@@ -1,4 +1,4 @@
-# Omnia/万象
+# OmniStax/万象
 Omnia/万象 is a next-gen STEM learning platform. Open source textbooks are markdown files. Diagrams are interactive and can be 3D. A low cognitive load experience powered by color-coded definitions, definitions and Diagrams are all interactive. Exercises and a mastery point system provide a curriculum experience.
 
 ## Omnia's content generation process
@@ -38,4 +38,4 @@ From this point on, Omnia should run on donations because the servers will be ex
 
 4. Responsible experiments with AI: Additional exercises and course content. Advanced "Evaluate" and "Create" level questions that necessitate AI grading. Let's be very careful, my concern is homogenization. Reading diverse content is important for younger learners but AI tends to use the same words and structure. Increasing AI creativity was actually a topic I researched as part of my thesis in 2023, but it was too hard with those early-day puny models so I gave up. As models are getting more logical and their latent space more hundun, I see a potential marriage here. 
 
-5. Omnia AR. Beyond a screen. Shortest feedback loops. New experience to be considered.
+5. Omnia AR. Beyond a screen. Shortest feedback loops. New experience to be considered.he te

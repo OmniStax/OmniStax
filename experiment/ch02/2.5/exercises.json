@@ -1,0 +1,110 @@
+{
+  "section": "2.5", "module": "m42099",
+  "notes": "Bloom levels and concept tags are AI-generated. Answers marked source come from the book's answer key; answers marked ai were computed for this experiment and need checking. Numeric answers accept 2% tolerance.",
+  "exercises": [
+    {"id": "cyu-rocket", "source_id": "fs-id1164906434690", "kind": "check-understanding", "bloom": "Apply", "concepts": ["v-from-at"], "place": "final-velocity",
+     "prompt": "A rocket accelerates at a rate of $20\\,\\text{m/s}^2$ during launch. How long does it take the rocket to reach a velocity of 400 m/s?",
+     "answer": {"type": "number", "value": 20, "unit": "s", "generated_by": "source",
+       "solution": "Choose an equation that allows you to solve for time $\\kt$, given only $\\ka$, $\\kvo$, and $\\kv$: $\\kv = \\kvo + \\ka\\kt$. Rearrange: $\\kt = \\dfrac{\\kv - \\kvo}{\\ka} = \\dfrac{400\\,\\text{m/s} - 0}{20\\,\\text{m/s}^2} = 20\\,\\text{s}$."}},
+
+    {"id": "ai-rel-1", "kind": "equation-relationship", "bloom": "Understand", "concepts": ["v-from-at"], "place": "final-velocity", "generated_by": "ai", "cite": "final-velocity",
+     "prompt": "Two objects start with the same initial velocity and the same constant acceleration. One accelerates for twice as long. Its change in velocity is",
+     "answer": {"type": "choice", "options": ["the same", "twice as large", "four times as large", "half as large"], "correct": 1, "generated_by": "ai"}},
+
+    {"id": "ai-rel-2", "kind": "equation-relationship", "bloom": "Understand", "concepts": ["x-quadratic"], "place": "position-quadratic", "generated_by": "ai", "cite": "position-quadratic",
+     "prompt": "Starting from rest with constant acceleration, an object travels a distance $d$ in the first $T$ seconds. How far has it traveled after $2T$ seconds?",
+     "answer": {"type": "choice", "options": ["$2d$", "$3d$", "$4d$", "$\\sqrt{2}\\,d$"], "correct": 2, "generated_by": "ai"}},
+
+    {"id": "ai-rel-3", "kind": "equation-relationship", "bloom": "Understand", "concepts": ["v-squared"], "place": "velocity-squared", "generated_by": "ai", "cite": "velocity-squared",
+     "prompt": "A car braking with a fixed deceleration stops in a distance $D$ from speed $s$. From speed $2s$ it stops in",
+     "answer": {"type": "choice", "options": ["$D$", "$2D$", "$4D$", "$8D$"], "correct": 2, "generated_by": "ai"}},
+
+    {"id": "ap-marble", "source_id": "fs-id1844508", "kind": "ap-test-prep", "bloom": "Analyze", "concepts": ["x-quadratic", "const-a"], "place": "end",
+     "prompt": "A group of students is attempting to determine the average acceleration of a marble released from the top of a long ramp. Below is a set of data representing the marble's position with respect to time.<table class=\"data\"><tr><th>Position (cm)</th><th>Time (s)</th></tr><tr><td>0.0</td><td>0.0</td></tr><tr><td>0.3</td><td>0.5</td></tr><tr><td>1.25</td><td>1.0</td></tr><tr><td>2.8</td><td>1.5</td></tr><tr><td>5.0</td><td>2.0</td></tr><tr><td>7.75</td><td>2.5</td></tr><tr><td>11.3</td><td>3.0</td></tr></table>Use the data table above to construct a graph determining the acceleration of the marble. Select a set of data points from the table and plot those points on the graph. Fill in the blank column in the table for any quantities you graph other than the given data. Label the axes and indicate the scale for each. Draw a best-fit line or curve through your data points. Using the best-fit line, determine the value of the marble's acceleration.",
+     "answer": {"type": "open", "generated_by": "ai", "solution": "Plot position against $\\kt^2$ (or fit $x = \\tfrac12 a t^2$). The slope of $x$ vs $t^2$ is about $1.25\\,\\text{cm/s}^2$, so $a \\approx 2.5\\,\\text{cm/s}^2$."}},
+
+    {"id": "p1", "source_id": "fs-id1164906440403", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at"], "place": "final-velocity",
+     "prompt": "An Olympic-class sprinter starts a race with an acceleration of $4.50\\,\\text{m/s}^2$. (a) What is her speed 2.40 s later? (b) Sketch a graph of her position vs. time for this period.",
+     "answer": {"type": "number", "part": "(a)", "value": 10.8, "unit": "m/s", "generated_by": "source"}},
+
+    {"id": "p2", "source_id": "fs-id1164906478917", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at"], "place": "end",
+     "prompt": "A well-thrown ball is caught in a well-padded mitt. If the deceleration of the ball is $2.10\\times10^{4}\\,\\text{m/s}^2$, and 1.85 ms $(1\\,\\text{ms} = 10^{-3}\\,\\text{s})$ elapses from the time the ball first touches the mitt until it stops, what was the initial velocity of the ball?",
+     "answer": {"type": "number", "value": 38.9, "unit": "m/s", "generated_by": "source", "solution": "38.9 m/s (about 87 miles per hour)"}},
+
+    {"id": "p3", "source_id": "fs-id1164906452216", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at"], "place": "end",
+     "prompt": "A bullet in a gun is accelerated from the firing chamber to the end of the barrel at an average rate of $6.20\\times10^{5}\\,\\text{m/s}^2$ for $8.10\\times10^{-4}\\,\\text{s}$. What is its muzzle velocity (that is, its final velocity)?",
+     "answer": {"type": "number", "value": 502, "unit": "m/s", "generated_by": "ai"}},
+
+    {"id": "p4", "source_id": "fs-id1164906424347", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at"], "place": "end",
+     "prompt": "(a) A light-rail commuter train accelerates at a rate of $1.35\\,\\text{m/s}^2$. How long does it take to reach its top speed of 80.0 km/h, starting from rest? (b) The same train ordinarily decelerates at a rate of $1.65\\,\\text{m/s}^2$. How long does it take to come to a stop from its top speed? (c) In emergencies the train can decelerate more rapidly, coming to rest from 80.0 km/h in 8.30 s. What is its emergency deceleration in $\\text{m/s}^2$?",
+     "answer": {"type": "number", "part": "(a)", "value": 16.5, "unit": "s", "generated_by": "source", "solution": "(a) 16.5 s (b) 13.5 s (c) $-2.68\\,\\text{m/s}^2$"}},
+
+    {"id": "p5", "source_id": "fs-id1164906441407", "kind": "problem", "bloom": "Apply", "concepts": ["x-quadratic", "v-from-at", "choose-equation"], "place": "position-quadratic",
+     "prompt": "While entering a freeway, a car accelerates from rest at a rate of $2.40\\,\\text{m/s}^2$ for 12.0 s. (a) Draw a sketch of the situation. (b) List the knowns in this problem. (c) How far does the car travel in those 12.0 s? To solve this part, first identify the unknown, and then discuss how you chose the appropriate equation to solve for it. After choosing the equation, show your steps in solving for the unknown, check your units, and discuss whether the answer is reasonable. (d) What is the car’s final velocity? Solve for this unknown in the same manner as in part (c), showing all steps explicitly.",
+     "answer": {"type": "number", "part": "(c)", "value": 173, "unit": "m", "generated_by": "ai", "solution": "(c) $x = \\tfrac12 a t^2 = 173\\,\\text{m}$ (d) $v = at = 28.8\\,\\text{m/s}$"}},
+
+    {"id": "p6", "source_id": "fs-id1164906459799", "kind": "problem", "bloom": "Analyze", "concepts": ["x-quadratic", "v-from-at", "const-a"], "place": "end",
+     "prompt": "At the end of a race, a runner decelerates from a velocity of 9.00 m/s at a rate of $2.00\\,\\text{m/s}^2$. (a) How far does she travel in the next 5.00 s? (b) What is her final velocity? (c) Evaluate the result. Does it make sense?",
+     "answer": {"type": "number", "part": "(a)", "value": 20.0, "unit": "m", "generated_by": "source", "solution": "(a) 20.0 m (b) $-1.00$ m/s (c) This result does not really make sense. If the runner starts at 9.00 m/s and decelerates at $2.00\\,\\text{m/s}^2$, then she will have stopped after 4.50 s. If she continues to decelerate, she will be running backwards."}},
+
+    {"id": "p7", "source_id": "fs-id1164906435065", "kind": "problem", "bloom": "Apply", "concepts": ["x-from-vbar", "vbar-midpoint", "choose-equation"], "place": "end", "tag": "Professional Application",
+     "prompt": "Blood is accelerated from rest to 30.0 cm/s in a distance of 1.80 cm by the left ventricle of the heart. (a) Make a sketch of the situation. (b) List the knowns in this problem. (c) How long does the acceleration take? To solve this part, first identify the unknown, and then discuss how you chose the appropriate equation to solve for it. After choosing the equation, show your steps in solving for the unknown, checking your units. (d) Is the answer reasonable when compared with the time for a heartbeat?",
+     "answer": {"type": "number", "part": "(c)", "value": 0.120, "unit": "s", "generated_by": "ai", "solution": "(c) $x = \\bar v t$ with $\\bar v = 15.0$ cm/s gives $t = 0.120$ s. (d) Yes: a heartbeat is roughly 0.8 s, so the acceleration phase is a fraction of it."}},
+
+    {"id": "p8", "source_id": "fs-id1164906467421", "kind": "problem", "bloom": "Apply", "concepts": ["x-from-vbar", "vbar-midpoint"], "place": "avg-velocity",
+     "prompt": "In a slap shot, a hockey player accelerates the puck from a velocity of 8.00 m/s to 40.0 m/s in the same direction. If this shot takes $3.33\\times10^{-2}\\,\\text{s}$, calculate the distance over which the puck accelerates.",
+     "answer": {"type": "number", "value": 0.799, "unit": "m", "generated_by": "source"}},
+
+    {"id": "p9", "source_id": "fs-id1164906508513", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at", "x-quadratic"], "place": "end",
+     "prompt": "A powerful motorcycle can accelerate from rest to 26.8 m/s (100 km/h) in only 3.90 s. (a) What is its average acceleration? (b) How far does it travel in that time?",
+     "answer": {"type": "number", "part": "(a)", "value": 6.87, "unit": "m/s²", "generated_by": "ai", "solution": "(a) $6.87\\,\\text{m/s}^2$ (b) 52.3 m"}},
+
+    {"id": "p10", "source_id": "fs-id1164906451358", "kind": "problem", "bloom": "Apply", "concepts": ["v-from-at", "x-quadratic", "physical-solution"], "place": "end",
+     "prompt": "Freight trains can produce only relatively small accelerations and decelerations. (a) What is the final velocity of a freight train that accelerates at a rate of $0.0500\\,\\text{m/s}^2$ for 8.00 min, starting with an initial velocity of 4.00 m/s? (b) If the train can slow down at a rate of $0.550\\,\\text{m/s}^2$, how long will it take to come to a stop from this velocity? (c) How far will it travel in each case?",
+     "answer": {"type": "number", "part": "(a)", "value": 28.0, "unit": "m/s", "generated_by": "source", "solution": "(a) 28.0 m/s (b) 50.9 s (c) 7.68 km to accelerate and 713 m to decelerate"}},
+
+    {"id": "p11", "source_id": "fs-id1164906430928", "kind": "problem", "bloom": "Apply", "concepts": ["x-from-vbar", "v-squared"], "place": "end",
+     "prompt": "A fireworks shell is accelerated from rest to a velocity of 65.0 m/s over a distance of 0.250 m. (a) How long did the acceleration last? (b) Calculate the acceleration.",
+     "answer": {"type": "number", "part": "(b)", "value": 8450, "unit": "m/s²", "generated_by": "ai", "solution": "(a) $7.69\\times10^{-3}$ s (b) $8.45\\times10^{3}\\,\\text{m/s}^2$"}},
+
+    {"id": "p12", "source_id": "fs-id1164906453058", "kind": "problem", "bloom": "Apply", "concepts": ["v-squared", "v-from-at"], "place": "velocity-squared",
+     "prompt": "A swan on a lake gets airborne by flapping its wings and running on top of the water. (a) If the swan must reach a velocity of 6.00 m/s to take off and it accelerates from rest at an average rate of $0.350\\,\\text{m/s}^2$, how far will it travel before becoming airborne? (b) How long does this take?",
+     "answer": {"type": "number", "part": "(a)", "value": 51.4, "unit": "m", "generated_by": "source", "solution": "(a) 51.4 m (b) 17.1 s"}},
+
+    {"id": "p13", "source_id": "fs-id1164906459326", "kind": "problem", "bloom": "Apply", "concepts": ["v-squared", "x-from-vbar"], "place": "end", "tag": "Professional Application",
+     "prompt": "A woodpecker’s brain is specially protected from large decelerations by tendon-like attachments inside the skull. While pecking on a tree, the woodpecker’s head comes to a stop from an initial velocity of 0.600 m/s in a distance of only 2.00 mm. (a) Find the acceleration in $\\text{m/s}^2$ and in multiples of $g\\;(g = 9.80\\,\\text{m/s}^2)$. (b) Calculate the stopping time. (c) The tendons cradling the brain stretch, making its stopping distance 4.50 mm (greater than the head and, hence, less deceleration of the brain). What is the brain’s deceleration, expressed in multiples of $g$?",
+     "answer": {"type": "number", "part": "(a)", "value": 90.0, "unit": "m/s²", "generated_by": "ai", "solution": "(a) $90.0\\,\\text{m/s}^2 = 9.18g$ (b) $6.67\\times10^{-3}$ s (c) $40.0\\,\\text{m/s}^2 = 4.08g$"}},
+
+    {"id": "p14", "source_id": "fs-id1164906466373", "kind": "problem", "bloom": "Apply", "concepts": ["v-squared", "x-from-vbar"], "place": "end",
+     "prompt": "An unwary football player collides with a padded goalpost while running at a velocity of 7.50 m/s and comes to a full stop after compressing the padding and his body 0.350 m. (a) What is his deceleration? (b) How long does the collision last?",
+     "answer": {"type": "number", "part": "(a)", "value": -80.4, "unit": "m/s²", "generated_by": "source", "solution": "(a) $-80.4\\,\\text{m/s}^2$ (b) $9.33\\times10^{-2}$ s"}},
+
+    {"id": "p15", "source_id": "fs-id1164906495926", "kind": "problem", "bloom": "Apply", "concepts": ["v-squared"], "place": "end",
+     "prompt": "In World War II, there were several reported cases of airmen who jumped from their flaming airplanes with no parachute to escape certain death. Some fell about 20,000 feet (6000 m), and some of them survived, with few life-threatening injuries. For these lucky pilots, the tree branches and snow drifts on the ground allowed their deceleration to be relatively small. If we assume that a pilot’s speed upon impact was 123 mph (54 m/s), then what was his deceleration? Assume that the trees and snow stopped him over a distance of 3.0 m.",
+     "answer": {"type": "number", "value": 486, "unit": "m/s²", "generated_by": "ai", "solution": "$a = v_0^2/(2\\,\\Delta x) = 486\\,\\text{m/s}^2$, directed opposite the motion."}},
+
+    {"id": "p16", "source_id": "fs-id1164906495944", "kind": "problem", "bloom": "Analyze", "concepts": ["v-squared"], "place": "end",
+     "prompt": "Consider a grey squirrel falling out of a tree to the ground. (a) If we ignore air resistance in this case (only for the sake of this problem), determine a squirrel’s velocity just before hitting the ground, assuming it fell from a height of 3.0 m. (b) If the squirrel stops in a distance of 2.0 cm through bending its limbs, compare its deceleration with that of the airman in the previous problem.",
+     "answer": {"type": "number", "part": "(a)", "value": 7.7, "unit": "m/s", "generated_by": "source", "solution": "(a) 7.7 m/s (b) $-15\\times10^{2}\\,\\text{m/s}^2$. This is about 3 times the deceleration of the pilots, who were falling from thousands of meters high!"}},
+
+    {"id": "p17", "source_id": "fs-id1164906433746", "kind": "problem", "bloom": "Apply", "concepts": ["x-quadratic", "physical-solution", "v-from-at"], "place": "end",
+     "prompt": "An express train passes through a station. It enters with an initial velocity of 22.0 m/s and decelerates at a rate of $0.150\\,\\text{m/s}^2$ as it goes through. The station is 210 m long. (a) How long did the nose of the train stay in the station? (b) How fast is it going when the nose leaves the station? (c) If the train is 130 m long, when does the end of the train leave the station? (d) What is the velocity of the end of the train as it leaves?",
+     "answer": {"type": "number", "part": "(a)", "value": 9.88, "unit": "s", "generated_by": "ai", "solution": "(a) 9.88 s (b) 20.5 m/s (c) 16.4 s (d) 19.5 m/s"}},
+
+    {"id": "p18", "source_id": "fs-id1164906502756", "kind": "problem", "bloom": "Analyze", "concepts": ["v-from-at", "v-squared", "const-a"], "place": "end",
+     "prompt": "Dragsters can actually reach a top speed of 145 m/s in only 4.45 s—considerably less time than given in the dragster examples above. (a) Calculate the average acceleration for such a dragster. (b) Find the final velocity of this dragster starting from rest and accelerating at the rate found in (a) for 402 m (a quarter mile) without using any information on time. (c) Why is the final velocity greater than that used to find the average acceleration? <em>Hint</em>: Consider whether the assumption of constant acceleration is valid for a dragster. If not, discuss whether the acceleration would be greater at the beginning or end of the run and what effect that would have on the final velocity.",
+     "answer": {"type": "number", "part": "(a)", "value": 32.6, "unit": "m/s²", "generated_by": "source", "solution": "(a) $32.6\\,\\text{m/s}^2$ (b) 162 m/s (c) $v > v_{\\text{max}}$, because the assumption of constant acceleration is not valid for a dragster. A dragster changes gears, and would have a greater acceleration in first gear than second gear than third gear, etc. The acceleration would be greatest at the beginning, so it would not be accelerating at $32.6\\,\\text{m/s}^2$ during the last few meters, but substantially less, and the final velocity would be less than 162 m/s."}},
+
+    {"id": "p19", "source_id": "fs-id1164906479070", "kind": "problem", "bloom": "Analyze", "concepts": ["v-from-at", "x-quadratic", "x-from-vbar", "choose-equation"], "place": "end",
+     "prompt": "A bicycle racer sprints at the end of a race to clinch a victory. The racer has an initial velocity of 11.5 m/s and accelerates at the rate of $0.500\\,\\text{m/s}^2$ for 7.00 s. (a) What is his final velocity? (b) The racer continues at this velocity to the finish line. If he was 300 m from the finish line when he started to accelerate, how much time did he save? (c) One other racer was 5.00 m ahead when the winner started to accelerate, but he was unable to accelerate, and traveled at 11.8 m/s until the finish line. How far ahead of him (in meters and in seconds) did the winner finish?",
+     "answer": {"type": "number", "part": "(a)", "value": 15.0, "unit": "m/s", "generated_by": "ai", "solution": "(a) 15.0 m/s (b) about 5.3 s saved (c) about 4.2 s, or 49 m at 11.8 m/s"}},
+
+    {"id": "p20", "source_id": "fs-id1164906433774", "kind": "problem", "bloom": "Analyze", "concepts": ["v-from-at", "x-quadratic", "x-from-vbar", "choose-equation"], "place": "end",
+     "prompt": "In 1967, New Zealander Burt Munro set the world record for an Indian motorcycle, on the Bonneville Salt Flats in Utah, with a maximum speed of 183.58 mi/h. The one-way course was 5.00 mi long. Acceleration rates are often described by the time it takes to reach 60.0 mi/h from rest. If this time was 4.00 s, and Burt accelerated at this rate until he reached his maximum speed, how long did it take Burt to complete the course?",
+     "answer": {"type": "number", "value": 104, "unit": "s", "generated_by": "source"}},
+
+    {"id": "p21", "source_id": "fs-id1164906508150", "kind": "problem", "bloom": "Analyze", "concepts": ["v-from-at", "x-quadratic", "x-from-vbar", "choose-equation"], "place": "end",
+     "prompt": "(a) A world record was set for the men’s 100-m dash in the 2008 Olympic Games in Beijing by Usain Bolt of Jamaica. Bolt “coasted” across the finish line with a time of 9.69 s. If we assume that Bolt accelerated for 3.00 s to reach his maximum speed, and maintained that speed for the rest of the race, calculate his maximum speed and his acceleration. (b) During the same Olympics, Bolt also set the world record in the 200-m dash with a time of 19.30 s. Using the same assumptions as for the 100-m dash, what was his maximum speed for this race?",
+     "answer": {"type": "number", "part": "(a) speed", "value": 12.2, "unit": "m/s", "generated_by": "source", "solution": "(a) $v = 12.2$ m/s; $a = 4.07\\,\\text{m/s}^2$ (b) $v = 11.2$ m/s"}}
+  ]
+}

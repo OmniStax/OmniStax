@@ -1,0 +1,22 @@
+{
+  "section": "2.5", "module": "m42099", "generated_by": "ai",
+  "variables": [
+    {"sym": "t", "color": "t", "meaning": "elapsed time, with the initial time taken to be zero (final time on the stopwatch)", "unit": "s"},
+    {"sym": "x0", "color": "x", "meaning": "initial position", "unit": "m"},
+    {"sym": "x", "color": "x", "meaning": "final position", "unit": "m"},
+    {"sym": "Δx", "color": "x", "meaning": "displacement, x − x0", "unit": "m"},
+    {"sym": "v0", "color": "v", "meaning": "initial velocity", "unit": "m/s"},
+    {"sym": "v", "color": "v", "meaning": "final velocity", "unit": "m/s"},
+    {"sym": "v̄", "color": "v", "meaning": "average velocity; equals (v0 + v)/2 when acceleration is constant", "unit": "m/s"},
+    {"sym": "Δv", "color": "v", "meaning": "change in velocity, v − v0", "unit": "m/s"},
+    {"sym": "a", "color": "a", "meaning": "acceleration, assumed constant so that ā = a", "unit": "m/s²"}
+  ],
+  "equations": [
+    {"id": "eq-notation", "latex": "\\Delta t = t,\\quad \\Delta x = x - x_0,\\quad \\Delta v = v - v_0", "anchor": "notation", "important": false},
+    {"id": "eq-x-vbar", "concept": "x-from-vbar", "latex": "x = x_0 + \\bar v t", "anchor": "avg-velocity", "important": true, "constant_a": false},
+    {"id": "eq-vbar", "concept": "vbar-midpoint", "latex": "\\bar v = \\frac{v_0 + v}{2}", "anchor": "avg-velocity", "important": true, "constant_a": true},
+    {"id": "eq-v", "concept": "v-from-at", "latex": "v = v_0 + a t", "anchor": "final-velocity", "important": true, "constant_a": true},
+    {"id": "eq-x", "concept": "x-quadratic", "latex": "x = x_0 + v_0 t + \\tfrac12 a t^2", "anchor": "position-quadratic", "important": true, "constant_a": true},
+    {"id": "eq-v2", "concept": "v-squared", "latex": "v^2 = v_0^2 + 2a(x - x_0)", "anchor": "velocity-squared", "important": true, "constant_a": true}
+  ]
+}
