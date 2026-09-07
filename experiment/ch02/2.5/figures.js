@@ -188,8 +188,8 @@ const demo = (id, H) => F.demo(root, id, H);
 ===================================================================== */
 (function () {
   const fig = F.byId(root, 'demo-braking');
-  const wrap = el('div', 'three-wrap'); fig.appendChild(wrap);
   const d = demo('demo-braking', 300);
+  const wrap = el('div', 'three-wrap'); d.stage.insertBefore(wrap, d.stage.firstChild);   /* the 3D view above the graph canvas */
   const v0 = ctl(d.controls, { label: '\\kvo', cls: 'v', min: 5, max: 40, step: 0.5, value: 30, unit: 'm/s', dec: 1, onInput: reset });
   const tr = ctl(d.controls, { label: 't_{\\text{react}}', cls: 't', min: 0, max: 1.5, step: 0.05, value: 0.5, unit: 's', dec: 2, onInput: reset, aria: 'reaction time' });
   const ad = ctl(d.controls, { label: '\\ka_{\\text{dry}}', cls: 'a', min: -10, max: -2, step: 0.1, value: -7, unit: 'm/s²', dec: 2, onInput: reset, aria: 'deceleration on dry concrete' });

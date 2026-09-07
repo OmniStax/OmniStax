@@ -80,10 +80,11 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function demo(root: HTMLElement, id: string, H?: Logical) {
   const fig = byId(root, id); if (!fig) throw new Error(`no figure "${id}" in ${root.dataset.sec}`);
-  const c = H ? makeCanvas(fig, H) : null;
+  const stage = el('div', 'stage'); fig.appendChild(stage);   /* the drawing and its transport */
+  const c = H ? makeCanvas(stage, H) : null;
   const controls = el('div', 'controls'); fig.appendChild(controls);
   const readout = el('div', 'readout'); fig.appendChild(readout);
-  return { fig, c, controls, readout };
+  return { fig, c, stage, controls, readout };
 }
 
 /* ---------- one animation loop for every figure ----------
@@ -106,7 +107,7 @@ function transport(d: Demo): void {
   speed.title = 'Speed'; speed.setAttribute('aria-label', 'Playback speed');
   speed.addEventListener('click', () => { d.speed = SPEEDS[(SPEEDS.indexOf(d.speed as 1) + 1) % SPEEDS.length]; sync(); });
   bar.append(play, stop, speed); sync();
-  const ctls = d.fig.querySelector('.controls'); if (ctls) d.fig.insertBefore(bar, ctls); else d.fig.appendChild(bar);
+  const stage = d.fig.querySelector('.stage'); if (stage) stage.appendChild(bar); else d.fig.appendChild(bar);
   d.sync = sync;
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
