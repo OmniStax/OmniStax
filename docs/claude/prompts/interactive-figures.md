@@ -110,6 +110,11 @@ Style, as numbers:
 - the headline is one sentence at y = 46 that states the live numbers
   ("t = 3.3 s · the parabola crosses the ramp length twice; only one
   crossing is in the future").
+- the caption under the Demo or Figure label, the headline and every
+  readout are written in the book's voice (see the tone rule in the
+  per-book `RULES.md`): full sentences that say what to drag and what to
+  watch, in the register the book uses, never a fragment headed with a
+  title ("The landing.") or a chain of semicolons.
 
 Motion:
 - every figure animates on its own: model time runs 0..T at a rate that

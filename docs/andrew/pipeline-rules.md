@@ -179,7 +179,7 @@ suggestion. A partial reply is answered with the remaining points, not with
 work. This is what makes the plan review of item 5 and the per-section stop
 of item 2 real rather than ceremonial.
 
-## 17. The page talks about the subject, not about itself
+## 17. The page talks about the subject, not about itself, in the book's voice
 
 Every sentence Omnia adds to a page is about the physics. A section lead
 says what the section is about. A demo caption says what to drag and what
@@ -195,4 +195,14 @@ to, and the licence asks for credit wherever the work is shared. The
 footer is the whole of the attribution: it names the adaptation and the
 licence the adapted page is shared under (the same as the source, when
 the source is ShareAlike).
+
+Everything Omnia writes (leads, demo captions, readouts, suggested
+approaches, concept "why" lines) is written in the book's own voice:
+its register, sentence shape, person and vocabulary. The typeface already
+marks the words as Omnia's, so the language must not; the reader should
+feel one writer across the page. The agent reads a few pages of the book
+before writing for it, and the per-book `RULES.md` records what the voice
+is (for College Physics 2e: full sentences, plain second person, patient
+rather than clever). Clipped fragments, semicolon chains and editorial
+framing are out even where they would be shorter.
 
