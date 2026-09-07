@@ -14,7 +14,7 @@ type Box = { readonly l: Logical; readonly r: Logical; readonly t: Logical; read
 type Range = readonly [number, number];
 type Scale = (v: number) => Logical;
 type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
-type Demo = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement };
+type Demo = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
 type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; onInput?: () => void };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
@@ -92,10 +92,15 @@ function demo(root: HTMLElement, id: string, H?: Logical) {
    Figures animate on their own. Each gets a transport (play/pause, stop and
    rewind, a time scrubber when the motion has a finite period, speed) under
    its canvas; a global switch pauses them all; reduced-motion starts every
-   figure stopped at its end state. */
+   figure stopped at its end state. A figure draws only when something
+   changed: its time advanced, a slider or drag touched it, it scrolled into
+   view, or a global redraw was asked for. A paused figure costs nothing. */
 let paused = false;
 const demos: Demo[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
-const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target))), { rootMargin: '120px' }) : null;
+const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => {
+  if (!e.isIntersecting) { onScreen.delete(e.target); return; }
+  onScreen.add(e.target); const d = demos.find((x) => x.fig === e.target); if (d) d.dirty = true;
+}), { rootMargin: '120px' }) : null;
 const SPEEDS = [1, 2, 4, 0.5] as const; const SPEED_LABEL: Record<number, string> = { 1: '1×', 2: '2×', 4: '4×', 0.5: '½×' };
 const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>', stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>' };
 const rewind = (d: Demo) => d.cycles.forEach((c) => { c.tau = 0; c.wait = 0; });
@@ -124,13 +129,22 @@ function transport(d: Demo): void {
   d.sync = sync;
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
-  const full: Demo = { ...d, fig, cycles: pendingCycles.splice(0), playing: !REDUCED, speed: 1 };
+  const full: Demo = { ...d, fig, cycles: pendingCycles.splice(0), playing: !REDUCED, speed: 1, dirty: true };
   demos.push(full); vio?.observe(fig); redraws.push(full.draw); transport(full);
+  fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
+  fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
-  demos.forEach((d) => { if (!onScreen.has(d.fig)) return; if (!paused && d.playing) { d.update(dt * d.speed); syncScrub(d); } d.draw(); });
+  demos.forEach((d) => {
+    if (!onScreen.has(d.fig)) return;
+    if (!paused && d.playing) {
+      const before = d.cycles.map((c) => c.tau); d.update(dt * d.speed);
+      if (!d.cycles.length || d.cycles.some((c, i) => c.tau !== before[i])) { d.dirty = true; syncScrub(d); }   /* the end-of-loop hold changes nothing */
+    }
+    if (d.dirty) { d.dirty = false; d.draw(); }
+  });
   requestAnimationFrame(loop);
 }
 if (typeof requestAnimationFrame === 'function') requestAnimationFrame(loop);
