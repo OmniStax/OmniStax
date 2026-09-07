@@ -113,7 +113,7 @@ budget the most time here.
 
 - [ ] Hosting (static host plus small DB), domain, privacy-respecting analytics.
 - [ ] Landing page that leads with the interactives.
-- [ ] Donation page. (Attribution page and per-section footers done 2026-09-07; see `experiment/RULES.md`, Attribution.)
+- [ ] Donation page. (Attribution is the generated per-section footer, done 2026-09-07; see `experiment/RULES.md`, Attribution.)
 - [ ] "How to add a course" doc for contributors.
 
 ---

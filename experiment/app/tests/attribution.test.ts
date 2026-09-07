@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sectionSourceUrl, attributionOf, footerHtml, citation, nameList, attributionUrl } from '../src/lib/content/attribution';
+import { sectionSourceUrl, attributionOf, footerHtml, citation, nameList } from '../src/lib/content/attribution';
 import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 
 const book: BookDTO = {
@@ -18,7 +18,7 @@ test('section source url needs both the prefix and a slug', () => {
   assert.equal(sectionSourceUrl(book, chapter, '2.2'), undefined);
   assert.equal(sectionSourceUrl({ openstax: undefined }, chapter, '2.1'), undefined);
 });
-test('footer carries author, publisher, licence, access line, long-form link and notes', () => {
+test('footer carries author, publisher, copyright, licence, access line and notes', () => {
   const a = attributionOf(book, chapter, { id: '2.1', notes: 'Problems 2 and 4 are left out.' });
   const html = footerHtml(a);
   assert.match(html, /^<footer class="footer">/);
@@ -27,7 +27,6 @@ test('footer carries author, publisher, licence, access line, long-form link and
   assert.match(html, /<a href="https:\/\/creativecommons.org\/licenses\/by-nc-sa\/4.0\/" rel="license">CC BY-NC-SA 4.0<\/a>/);
   assert.match(html, /shared under the same licence/);
   assert.match(html, /Access for free at <a href="https:\/\/openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement">openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement<\/a>\./);
-  assert.match(html, new RegExp(`<a href="${attributionUrl('college-physics-2e')}">What Omnia changed</a>`));
   assert.match(html, /<p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
 });
 test('footer without optional fields still reads', () => {

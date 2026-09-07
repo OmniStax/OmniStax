@@ -42,8 +42,8 @@ src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Pic
 src/components/views      View dispatcher, ConceptMap, Contents, Formulas, Definitions, Notes
 src/components/exercises  ExerciseList, ExerciseCard, NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
-src/layouts/Page.astro    metadata, colour tokens from the book, the static pool, the shell island; Head.astro is the head every page shares
-src/pages                 [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, chapter json, book.json, [book]/attribution.astro
+src/layouts/Page.astro    head, metadata, colour tokens from the book, the static pool, the shell island
+src/pages                 [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, chapter json, book.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, demos)
 ```
 
@@ -60,6 +60,6 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   come from `book.json` through the manifest. The shell has no physics in it.
 - Attribution is generated, never written by hand: `attribution.ts` builds the
   footer of every article and the citation from `book.json` and a section's
-  `notes`; `[book]/attribution.astro` is the long form.
+  `notes`.
 - Section figure modules are plain scripts against `window.FIG`; their contract
   is in `docs/claude/prompts/interactive-figures.md`.

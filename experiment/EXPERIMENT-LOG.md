@@ -267,13 +267,14 @@ what gets linked to, so every article gets it.
 - `content/attribution.ts` is the one place the credit is worded: the
   section's source URL, the footer HTML for both articles (text and
   exercises), and a plain-text citation for metadata. The footer is the
-  credit, the "Access for free at" line, a link to the long form, and the
-  section's `notes` (what was left out).
+  credit, the "Access for free at" line, and the section's `notes` (what
+  was left out).
 - Section pages carry `<link rel="license">` and JSON-LD with the authors,
   `isBasedOn` the source page, the licence URL and `creditText`.
-- `/<book>/attribution/` is the long form: source, what Omnia changes,
-  the licence of the adapted pages (the same, by ShareAlike), and each built
-  section beside its original with its notes.
+- A long-form `/<book>/attribution/` page was built and then removed the
+  same day: the footer already carries everything the licence asks for,
+  including the copyright notice (© Rice University), so the page was a
+  second place to maintain. `LICENSE.md` keeps the content/software split.
 - Root `LICENSE.md` separates adapted content (CC BY-NC-SA 4.0) from the
   software (licence not chosen yet).
 - The credited figures in 2.1 and 2.5 are all photographs, which are

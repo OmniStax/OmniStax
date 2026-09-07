@@ -62,11 +62,6 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .footer p{margin:0 0 6px}
 .footer cite{font-style:italic}
 .footer a{overflow-wrap:anywhere}
-table{border-collapse:collapse;font-family:var(--sans);font-size:0.9rem;width:100%;margin:1rem 0}
-th,td{text-align:left;vertical-align:top;padding:6px 10px 6px 0;border-bottom:1px solid var(--rule)}
-th{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)}
-td a{overflow-wrap:anywhere}
-blockquote{margin:1rem 0;padding:4px 0 4px 18px;border-left:3px solid var(--rule);font-family:var(--sans);font-size:0.9rem}
 .loading{padding:40px;color:var(--muted);font-family:var(--sans)}
 .loading.bad{color:var(--bad)}
 @media (max-width:900px){ article{padding:20px 18px 80px} }
