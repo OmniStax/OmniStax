@@ -1,0 +1,74 @@
+{
+ "id": "16",
+ "dir": "ch16",
+ "title": "Oscillatory Motion and Waves",
+ "intro_module": "m42239",
+ "sections": [
+  {
+   "id": "16.1",
+   "module": "m42240",
+   "title": "Hooke’s Law: Stress and Strain Revisited",
+   "slug": "16-1-hookes-law-stress-and-strain-revisited"
+  },
+  {
+   "id": "16.2",
+   "module": "m42241",
+   "title": "Period and Frequency in Oscillations",
+   "slug": "16-2-period-and-frequency-in-oscillations"
+  },
+  {
+   "id": "16.3",
+   "module": "m42242",
+   "title": "Simple Harmonic Motion: A Special Periodic Motion",
+   "slug": "16-3-simple-harmonic-motion-a-special-periodic-motion"
+  },
+  {
+   "id": "16.4",
+   "module": "m42243",
+   "title": "The Simple Pendulum",
+   "slug": "16-4-the-simple-pendulum"
+  },
+  {
+   "id": "16.5",
+   "module": "m42244",
+   "title": "Energy and the Simple Harmonic Oscillator",
+   "slug": "16-5-energy-and-the-simple-harmonic-oscillator"
+  },
+  {
+   "id": "16.6",
+   "module": "m42245",
+   "title": "Uniform Circular Motion and Simple Harmonic Motion",
+   "slug": "16-6-uniform-circular-motion-and-simple-harmonic-motion"
+  },
+  {
+   "id": "16.7",
+   "module": "m42246",
+   "title": "Damped Harmonic Motion",
+   "slug": "16-7-damped-harmonic-motion"
+  },
+  {
+   "id": "16.8",
+   "module": "m42247",
+   "title": "Forced Oscillations and Resonance",
+   "slug": "16-8-forced-oscillations-and-resonance"
+  },
+  {
+   "id": "16.9",
+   "module": "m42248",
+   "title": "Waves",
+   "slug": "16-9-waves"
+  },
+  {
+   "id": "16.10",
+   "module": "m42249",
+   "title": "Superposition and Interference",
+   "slug": "16-10-superposition-and-interference"
+  },
+  {
+   "id": "16.11",
+   "module": "m42250",
+   "title": "Energy in Waves: Intensity",
+   "slug": "16-11-energy-in-waves-intensity"
+  }
+ ]
+}

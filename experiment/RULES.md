@@ -74,15 +74,19 @@ split between adapted content and the software is in the root
 `LICENSE.md`.
 
 The book is CC BY-NC-SA 4.0, so the adapted pages are shared under the same
-licence and the footer says so. Photographs are dropped, which is also
-where the book's third-party credits live; if a credited figure is ever
-copied over, its credit line stays in the caption.
+licence and the footer says so. The book's third-party credits live on
+its photographs, so a photograph that is kept (see Widgets) keeps its
+credit line in the caption.
 
 ## Widgets
 
 Prefer replacing the book's static sketch figures with a live demo that
-covers the same quantities. Keep the book's photos out unless they carry
-information. 3D only when the situation is spatial (roads, runways, orbits).
+covers the same quantities. Keep a photograph when it serves the
+narrative and the original text (the text refers to it, or it shows the
+thing the passage is about); drop it when it is decoration, such as a
+splash image or a stock shot beside an example. The plan lists every
+photograph with keep or drop and the reason. 3D only when the situation
+is spatial (roads, runways, orbits).
 
 Every idea or result the section introduces gets a demo. Its sliders are
 whatever is interesting and variable in the idea (positions, a starting

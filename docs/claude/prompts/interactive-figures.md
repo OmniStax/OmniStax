@@ -43,9 +43,14 @@ Rules for the plan:
 - One figure per result or idea the section introduces (see coverage
   "introduces" in concepts.json). A worked example gets a figure only if
   it adds a quantity the section figure does not show.
-- Replace every sketch figure the book has. Drop photographs; they carry
-  no physics. Keep the book's numbers as the slider defaults so the figure
-  reproduces the worked example on load.
+- Replace every sketch figure the book has. Keep a photograph when it
+  serves the narrative and the original text (the text refers to it, or
+  it shows the thing the passage is about, such as a bridge driven to
+  failure by resonance); drop a photograph that is only decoration (a
+  splash image, a stock shot beside an example). A kept photograph keeps
+  the book's caption and credit line. List every photograph in the plan
+  with keep or drop and the reason. Keep the book's numbers as the slider
+  defaults so the figure reproduces the worked example on load.
 - A figure that exists to serve exercises (a diagram the problems refer
   to) is copied over faithfully, labelled "Figure" rather than "Demo": no
   sliders, no animation beyond what keeps the original readable.

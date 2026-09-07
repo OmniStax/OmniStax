@@ -283,3 +283,27 @@ what gets linked to, so every article gets it.
 
 Checked: 20 unit tests, `astro check` clean, build, and a headless pass in
 light and dark with no console errors.
+
+## Pass 9: choosing the next chapter, exploring Chapter 16 (2026-09-07)
+
+Asked: which chapter do live figures help most? Counted figures,
+equations, examples and exercises per chapter from the CNXML, then judged
+each chapter on whether time is its content, whether one slider changes
+the kind of thing seen, how many later chapters lean on it, and how well
+it fits the strip-and-graph idiom. Chapter 16 Oscillatory Motion and Waves
+won on all four; Chapter 3 (projectile motion, relative velocity) was the
+runner-up, then 25 (ray optics) and 6 (orbits).
+
+Exploration in `ch16/exploration.md`, module list in `ch16/chapter.json`,
+proposed config in `ch16/config.md` (status: awaiting confirmation). 48
+figures: 12 photographs dropped, 30 sketches and graphs to replace, 6
+exercise figures to copy. Two new hues (force, energy) and two new figure
+archetypes (circle with projection, travelling curve on a strip) are the
+only additions the chapter asks of the tooling. `book.json` is untouched
+until 16.1 is built.
+
+Config confirmed the same day, with one rule change: photographs are no
+longer dropped wholesale. A photograph that serves the narrative and the
+original text is kept with its caption and credit line (the Tacoma
+Narrows bridge in 16.8); decoration is dropped. The plan lists each one.
+Changed in the figure prompt, RULES.md and pipeline rule 14.

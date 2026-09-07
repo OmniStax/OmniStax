@@ -147,8 +147,10 @@ Three triggers, three treatments:
   be the variables of a single equation, and an idea with no equation
   still gets sliders for the quantities its definition names.
 - **A sketch figure in the book is replaced by a demo** that covers the
-  same quantities, with the book's numbers as defaults. Photographs are
-  dropped.
+  same quantities, with the book's numbers as defaults. A photograph is
+  kept when it serves the narrative and the original text and dropped
+  when it is decoration; the plan says which and why, and a kept
+  photograph carries the book's caption and credit line.
 - **A figure that exists to serve exercises is copied over as it is.**
   The paths figure of 2.1, a diagram a problem refers to: these are
   redrawn faithfully, with no sliders and no animation beyond what makes
