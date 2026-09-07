@@ -112,6 +112,9 @@ def inline(e):
             out.append(inline(k))
         elif t == "list":
             out.append("\n" + block(k, 0) + "\n")
+        elif t in ("figure", "note", "equation"):
+            # block elements nested inside a para: emit them as blocks, not as inline text
+            out.append("\n" + block(k, 0) + "\n")
         elif t == "title":
             pass
         else:

@@ -132,6 +132,7 @@ html:not(.cc) .rail button.tab::after{background:var(--ink)}
 .pane > .view .dag .row{margin-bottom:44px}
 .pane > .view .toc a{font-size:1rem;padding:5px 0}
 .pane > .view .defs li{font-size:0.95rem}
+.view .blank{color:var(--muted);font-size:0.82rem;padding:6px 0 10px}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--sans);font-size:0.9rem;text-align:center;padding:40px}
 
 .popover{position:fixed;left:52px;bottom:12px;z-index:40;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;font-family:var(--sans);font-size:0.86rem;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);min-width:230px}
@@ -323,6 +324,9 @@ html:not(.cc) .legend{display:none}
 <section class="view" data-view="definitions" data-title="Definitions" data-side="right">
   <div id="tab-defs"></div>
   <div class="legend" id="legend"></div>
+</section>
+<section class="view" data-view="notes" data-title="Notes" data-side="right">
+  <div class="blank">Your notes and highlights for this section will collect here.</div>
 </section>
 
 <article data-doc="text" data-title="Text">

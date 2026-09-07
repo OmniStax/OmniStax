@@ -1,0 +1,14 @@
+{
+ "\\kt": "\\htmlClass{kv-t}{t}",
+ "\\kx": "\\htmlClass{kv-x}{x}",
+ "\\kxo": "\\htmlClass{kv-x}{x_0}",
+ "\\kxf": "\\htmlClass{kv-x}{x_{\\text{f}}}",
+ "\\kv": "\\htmlClass{kv-v}{v}",
+ "\\kvo": "\\htmlClass{kv-v}{v_0}",
+ "\\kvb": "\\htmlClass{kv-v}{\\bar{v}}",
+ "\\ka": "\\htmlClass{kv-a}{a}",
+ "\\kab": "\\htmlClass{kv-a}{\\bar{a}}",
+ "\\kdx": "\\htmlClass{kv-x}{\\Delta x}",
+ "\\kdt": "\\htmlClass{kv-t}{\\Delta t}",
+ "\\kdv": "\\htmlClass{kv-v}{\\Delta v}"
+}

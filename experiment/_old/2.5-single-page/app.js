@@ -707,6 +707,7 @@ const ICON = {
   concepts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M11 7.2 7 15.8M13 7.2l4 8.6"/></svg>',
   formulas: '<svg viewBox="0 0 24 24"><path d="M17 5H7l6 7-6 7h10"/></svg>',
   definitions: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/></svg>',
+  notes: '<svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>',
   split: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
 };
@@ -714,10 +715,10 @@ const pool = $('#pool');
 const ITEMS = {};
 $$('[data-doc]', pool).forEach((e) => { ITEMS['doc:' + e.dataset.doc] = { id: 'doc:' + e.dataset.doc, kind: 'doc', title: e.dataset.title, icon: ICON[e.dataset.doc], el: e }; });
 $$('.view', pool).forEach((e) => { ITEMS['view:' + e.dataset.view] = { id: 'view:' + e.dataset.view, kind: 'view', title: e.dataset.title, icon: ICON[e.dataset.view], side: e.dataset.side, el: e }; });
-const ORDER = ['doc:text', 'doc:exercises', 'view:concepts', 'view:contents', 'view:formulas', 'view:definitions'];
+const ORDER = ['doc:text', 'doc:exercises', 'view:concepts', 'view:contents', 'view:formulas', 'view:definitions', 'view:notes'];
 
-const LKEY = 'omnia-layout-v1';
-const DEFAULT = () => ({ sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions'] } }, home: {}, collapsed: [], groups: [{ tabs: ['doc:text', 'doc:exercises'], active: 'doc:text' }], focus: 0 });
+const LKEY = 'omnia-layout-v2';
+const DEFAULT = () => ({ sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } }, home: {}, collapsed: [], groups: [{ tabs: ['doc:text', 'doc:exercises'], active: 'doc:text' }], focus: 0 });
 function validLayout(s) {
   try { return s && s.sides && s.groups && s.groups.length && s.groups.every((g) => g.tabs.every((t) => ITEMS[t]) && (g.tabs.length === 0 || g.tabs.includes(g.active))) && ['left', 'right'].every((k) => s.sides[k] && s.sides[k].items.every((t) => ITEMS[t] && ITEMS[t].kind === 'view')); } catch (e) { return false; }
 }

@@ -1,0 +1,17 @@
+{
+ "id": "2.1",
+ "module": "m42033",
+ "chapter": "2",
+ "title": "Displacement",
+ "short": "Displacement",
+ "lead": "Where something is, how far it ended up from where it started, and how far it actually travelled are three different questions. This section separates them.",
+ "objectives": [
+  "Define position, displacement, distance, and distance traveled.",
+  "Explain the relationship between position and displacement.",
+  "Distinguish between displacement and distance traveled.",
+  "Calculate displacement and distance given initial position, final position, and the path between the two."
+ ],
+ "summary_html": "<ul><li>Kinematics is the study of motion without considering its causes. In this chapter, it is limited to motion along a straight line, called one-dimensional motion.</li><li>Displacement is the change in position of an object.</li><li>In symbols, displacement $\\kdx$ is defined to be $\\kdx = \\kxf - \\kxo,$ where $\\kxo$ is the initial position and $\\kxf$ is the final position. In this text, the Greek letter $\\Delta$ (delta) always means “change in” whatever quantity follows it. The SI unit for displacement is the meter (m). Displacement has a direction as well as a magnitude.</li><li>When you start a problem, assign which direction will be positive.</li><li>Distance is the magnitude of displacement between two positions.</li><li>Distance traveled is the total length of the path traveled between two positions.</li></ul>",
+ "built": "2026-09-06",
+ "notes": "Problems 2 and 4 have no answer in the book's key and are left out."
+}

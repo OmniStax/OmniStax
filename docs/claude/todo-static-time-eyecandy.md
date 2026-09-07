@@ -50,7 +50,7 @@ and the verdict in the experiment log. Do not automate anything in this phase.
 - [x] **Pass: formulas and variables** on 2.5 (`experiment/ch02/2.5/formulas.json`). Extract every important equation, name its variables, assign colors per the color-coding standard. Check that the same variable keeps the same color across the chapter.
 - [x] **Pass: exercises** on 2.5 (`experiment/ch02/2.5/exercises.json`). Extract exercises, tag each with a *set* of concepts and a Bloom level (Remember/Understand/Apply/Analyze). Add citation anchors for Remember/Understand only.
 - [~] **Pass: equation questions** (3 generated for 2.5, quality unjudged). For each important equation, generate variable-relationship questions that do not show the equation. Judge whether they're any good.
-- [x] **Prompt promoted:** `docs/claude/prompts/interactive-figures.md` (figure planning + drawing contract, from the 2.5 restyle). Design decisions from the run: `docs/andrew/experiment-takeaways.md`.
+- [x] **Prompt promoted:** `docs/claude/prompts/interactive-figures.md` (figure planning + drawing contract, from the 2.5 restyle). Design decisions from the run: `docs/andrew/pipeline-rules.md`.
 - [~] **Pass: concept DAG** for 2.5 done twice (`concepts.json`; pass 2 = nodes justified by exercises, `kind` idea/result/skill, `coverage` span map, TOC split from map); chapter and book pending. Extract from exercises and definitions, not headers. Each concept gets a "why": either it serves another concept, or it connects to something real (an engineering marvel, a curable disease). Check for cycles and orphans by eye.
 - [x] **Pass: widgets** on 2.5: 7 hand-coded demos, one in 3D (`experiment/ch02/2.5/app.js`). Identify which figures and paragraphs deserve an interactive. Draft a widget spec for two or three of them by hand. Note what the spec needs to express.
 - [ ] After each pass: append to `EXPERIMENT-LOG.md` what the prompt was, what broke, what we'd change. Promote stable prompts to `docs/claude/prompts/<pass>.md`.
@@ -133,3 +133,5 @@ budget the most time here.
 - Widgets: archetype instantiation only, or arbitrary generated code? Recommendation: archetypes only for this milestone. Phase 1 widget pass should test this.
 
 - [x] Shell layout tried on 2.5: rails, sidebars, tabbed groups, split. Design note: `docs/claude/shell-layout.md`. Comments deferred.
+- [x] Static pages + dynamic composition pass (done with 2.1): split bundle, scope figures to a root, chapter-level data, book manifest, replaceState to canonical URLs. Design: `docs/claude/static-composition.md`.
+- [x] Section 2.1 built by the agent loop (exploration → config → plan → build). Next: 2.2.

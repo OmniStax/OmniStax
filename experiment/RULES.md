@@ -1,7 +1,8 @@
 # Per-book rules: OpenStax College Physics 2e
 
-First draft, written during the section 2.5 experiment. Revise as more
-sections get transformed.
+Rules for transforming OpenStax College Physics 2e. They are revised as
+sections are added; the pipeline-wide rules are in
+`docs/andrew/pipeline-rules.md`.
 
 ## Color-coding standard (kinematics chapters)
 
@@ -36,13 +37,19 @@ and figures use greys with text labels.
   section and example span to the nodes it introduces, uses, or
   reinforces; a span may map to nothing. Node ids are canonical and
   book-independent.
-- Not yet needed: constants sheet, unit table. Revisit at Ch 4+.
+- A constants sheet and a unit table are added when a chapter needs them
+  (Ch 4 onward).
 
 ## Tone rule
 
 Textbook prose is quoted verbatim. Omnia's own words (demo instructions,
-readouts, AI-generated questions) are set in the sans face and visibly
+readouts, suggested approaches) are set in the sans face and visibly
 marked, so a reader can always tell the two apart.
+
+Omnia's words talk about the physics, never about the page. No lead or
+caption explains that the prose is quoted, that a figure was redrawn or
+is "live", or that something was generated. Attribution and what was
+left out go in the footer only, in one plain sentence each.
 
 ## Widgets
 
@@ -50,7 +57,18 @@ Prefer replacing the book's static sketch figures with a live demo that
 covers the same quantities. Keep the book's photos out unless they carry
 information. 3D only when the situation is spatial (roads, runways, orbits).
 
-## Figure style (after the photoelectron explainer)
+Every idea or result the section introduces gets a demo. Its sliders are
+whatever is interesting and variable in the idea (positions, a starting
+speed); they need not be the variables of one equation.
+
+A figure that exists to serve exercises (a diagram the problems refer to)
+is copied over faithfully: no sliders, no animation beyond what keeps the
+original readable.
+
+Extra simulations beyond these are proposed in the plan, never built
+unasked, and only when they open a view the required figures do not.
+
+## Figure style
 
 - Scene first. Draw the thing that moves (runner, plane, car) on a strip;
   put the graph below it in the same canvas, never beside it.
@@ -58,11 +76,26 @@ information. 3D only when the situation is spatial (roads, runways, orbits).
   17px, headline 26px; strokes 3 to 5px; markers 9 to 11px radius. Hollow
   marker = initial value, filled = current, dashed = average or reference.
 - Every figure animates on its own, in a loop with a short hold, and reads
-  out its live state in a headline inside the canvas. One global pause
-  pill; reduced-motion starts paused at the end state.
+  out its live state in a headline inside the canvas. Each figure has its
+  own transport under the canvas (play/pause, stop and rewind, speed);
+  reduced-motion starts every figure stopped at its end state.
 - Chrome: 1px rule border and 6px radius on the canvas, nothing else. No
   card behind the figure. Sliders in a wrapping row below, readout equation
   centred below that.
 - Sparse chart frames: two axis lines, a few faint gridlines, round tick
   values, coloured axis titles.
 
+
+## Section source files
+
+`ch02/<sec>/`: `source.md` (converted CNXML), `plan.md`, `section.json`
+(title, lead, objectives, summary_html, notes), `text.html` (the article
+body, local ids, `\k` macros in math), `figures.js`
+(`OMNIA_FIGURES['<sec>'] = function (root, F) {...}`, every lookup through
+`F.demo(root, id, H)` or `F.byId(root, id)`), `exercises.json`.
+Chapter-level: `ch02/chapter.json`, `concepts.json` (every node carries
+`section`; coverage spans are qualified ids like `2.1-distance`),
+`formulas.json` (variables and equations carry `section`; equations have
+`ktex` with the colour macros; glossary terms live here too).
+Build: `python3 tools/build_site.py`, output in `site/`, serve with
+`python3 -m http.server -d site 8080`.

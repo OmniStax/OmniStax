@@ -1,0 +1,298 @@
+<p>We might know that the greater the acceleration of, say, a car moving away from a stop sign, the greater the displacement in a given time. But we have not developed a specific equation that relates acceleration and displacement. In this section, we develop some convenient equations for kinematic relationships, starting from the definitions of displacement, velocity, and acceleration already covered.</p>
+
+<section id="notation">
+<h2>Notation: $\kt$, $\kx$, $\kv$, $\ka$</h2>
+<p class="cite-target">First, let us make some simplifications in notation. Taking the initial time to be zero, as if time is measured with a stopwatch, is a great simplification. Since elapsed time is $\kdt = t_f - t_0$, taking $t_0 = 0$ means that $\kdt = t_f$, the final time on the stopwatch. When initial time is taken to be zero, we use the subscript 0 to denote initial values of position and velocity. That is, $\kxo$ <em>is the initial position</em> and $\kvo$ <em>is the initial velocity</em>. We put no subscripts on the final values. That is, $\kt$ <em>is the final time</em>, $\kx$ <em>is the final position</em>, and $\kv$ <em>is the final velocity</em>. This gives a simpler expression for elapsed time—now, $\kdt = \kt$. It also simplifies the expression for displacement, which is now $\kdx = \kx - \kxo$. Also, it simplifies the expression for change in velocity, which is now $\kdv = \kv - \kvo$. To summarize, using the simplified notation, with the initial time taken to be zero,</p>
+$$\begin{aligned}\kdt &= \kt\\ \kdx &= \kx - \kxo\\ \kdv &= \kv - \kvo\end{aligned}$$
+<p>where <em>the subscript 0 denotes an initial value and the absence of a subscript denotes a final value</em> in whatever motion is under consideration.</p>
+
+<figure class="demo" id="demo-notation">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>Drag the initial and final positions and the stopwatch. Hollow marks are initial values.</span></div>
+</figure>
+</section>
+
+<section id="constant-a">
+<h2>Constant acceleration</h2>
+<p class="cite-target">We now make the important assumption that <em>acceleration is constant</em>. This assumption allows us to avoid using calculus to find instantaneous acceleration. Since acceleration is constant, the average and instantaneous accelerations are equal. That is,</p>
+$$\kab = \ka = \text{constant},$$
+<p>so we use the symbol $\ka$ for acceleration at all times. Assuming acceleration to be constant does not seriously limit the situations we can study nor degrade the accuracy of our treatment. For one thing, acceleration <em>is</em> constant in a great number of situations. Furthermore, in many other situations we can accurately describe motion by assuming a constant acceleration equal to the average acceleration for that motion. Finally, in motions where acceleration changes drastically, such as a car accelerating to top speed and then braking to a stop, the motion can be considered in separate parts, each of which has its own constant acceleration.</p>
+</section>
+
+<section id="avg-velocity">
+<h2>Displacement from average velocity</h2>
+<div class="derivation">
+<h3>Solving for Displacement ($\kdx$) and Final Position ($\kx$) from Average Velocity when Acceleration ($\ka$) is Constant</h3>
+<p>To get our first two new equations, we start with the definition of average velocity:</p>
+$$\kvb = \frac{\kdx}{\kdt}.$$
+<p>Substituting the simplified notation for $\kdx$ and $\kdt$ yields</p>
+$$\kvb = \frac{\kx - \kxo}{\kt}.$$
+<p>Solving for $\kx$ yields</p>
+$$\kx = \kxo + \kvb\kt,$$
+<p>where the average velocity is</p>
+$$\kvb = \frac{\kvo + \kv}{2}\;(\text{constant }\ka).$$
+</div>
+<p class="cite-target">The equation $\kvb = \frac{\kvo + \kv}{2}$ reflects the fact that, when acceleration is constant, $\kv$ is just the simple average of the initial and final velocities. For example, if you steadily increase your velocity (that is, with constant acceleration) from 30 to 60 km/h, then your average velocity during this steady increase is 45 km/h. Using the equation $\kvb = \frac{\kvo + \kv}{2}$ to check this, we see that</p>
+$$\kvb = \frac{\kvo + \kv}{2} = \frac{30\ \text{km/h} + 60\ \text{km/h}}{2} = 45\ \text{km/h},$$
+<p>which seems logical.</p>
+
+<figure class="demo" id="demo-avg">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>With constant acceleration the velocity graph is a straight line, and the average sits halfway. The shaded area is the displacement.</span></div>
+</figure>
+
+<div class="example" id="ex-jogger">
+<h3>Example 2.8 · Calculating Displacement: How Far does the Jogger Run?</h3>
+<p>A jogger runs down a straight stretch of road with an average velocity of 4.00 m/s for 2.00 min. What is his final position, taking his initial position to be zero?</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. The final position $\kx$ is given by the equation</p>
+$$\kx = \kxo + \kvb\kt.$$
+<p>To find $\kx$, we identify the values of $\kxo$, $\kvb$, and $\kt$ from the statement of the problem and substitute them into the equation.</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify the knowns. $\kvb = 4.00\ \text{m/s}$, $\kdt = 2.00\ \text{min}$, and $\kxo = 0\ \text{m}$.</li>
+<li>Enter the known values into the equation.
+$$\kx = \kxo + \kvb\kt = 0 + (4.00\ \text{m/s})(120\ \text{s}) = 480\ \text{m}$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>Velocity and final displacement are both positive, which means they are in the same direction.</p>
+</div>
+
+<figure class="demo" id="demo-jogger">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>The jogger. Change the average velocity or the time and watch the final position move; the graph below is Figure 2.26.</span></div>
+</figure>
+
+<p>The equation $\kx = \kxo + \kvb\kt$ gives insight into the relationship between displacement, average velocity, and time. It shows, for example, that displacement is a linear function of average velocity. (By linear function, we mean that displacement depends on $\kvb$ rather than on $\kvb$ raised to some other power, such as $\kvb^2$. When graphed, linear functions look like straight lines with a constant slope.) On a car trip, for example, we will get twice as far in a given time if we average 90 km/h than if we average 45 km/h.</p>
+<div class="exercises" data-place="avg-velocity"></div>
+</section>
+
+<section id="final-velocity">
+<h2>Final velocity</h2>
+<div class="derivation">
+<h3>Solving for Final Velocity</h3>
+<p>We can derive another useful equation by manipulating the definition of acceleration.</p>
+$$\ka = \frac{\kdv}{\kdt}$$
+<p>Substituting the simplified notation for $\kdv$ and $\kdt$ gives us</p>
+$$\ka = \frac{\kv - \kvo}{\kt}\;(\text{constant }\ka).$$
+<p>Solving for $\kv$ yields</p>
+$$\kv = \kvo + \ka\kt\;(\text{constant }\ka).$$
+</div>
+
+<div class="example" id="ex-airplane">
+<h3>Example 2.9 · Calculating Final Velocity: An Airplane Slowing Down after Landing</h3>
+<p>An airplane lands with an initial velocity of 70.0 m/s and then decelerates at $1.50\ \text{m/s}^2$ for 40.0 s. What is its final velocity?</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. We draw the acceleration vector in the direction opposite the velocity vector because the plane is decelerating.</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify the knowns. $\kvo = 70.0\ \text{m/s}$, $\ka = -1.50\ \text{m/s}^2$, $\kt = 40.0\ \text{s}$.</li>
+<li>Identify the unknown. In this case, it is final velocity, $v_f$.</li>
+<li>Determine which equation to use. We can calculate the final velocity using the equation $\kv = \kvo + \ka\kt$.</li>
+<li>Plug in the known values and solve.
+$$\kv = \kvo + \ka\kt = 70.0\ \text{m/s} + (-1.50\ \text{m/s}^2)(40.0\ \text{s}) = 10.0\ \text{m/s}$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>The final velocity is much less than the initial velocity, as desired when slowing down, but still positive. With jet engines, reverse thrust could be maintained long enough to stop the plane and start moving it backward. That would be indicated by a negative final velocity, which is not the case here.</p>
+</div>
+
+<figure class="demo" id="demo-plane">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>The landing. The velocity arrow shrinks while the acceleration arrow, pointing the other way, stays the same length.</span></div>
+</figure>
+
+<p class="cite-target">In addition to being useful in problem solving, the equation $\kv = \kvo + \ka\kt$ gives us insight into the relationships among velocity, acceleration, and time. From it we can see, for example, that</p>
+<ul class="cite-target">
+<li>final velocity depends on how large the acceleration is and how long it lasts</li>
+<li>if the acceleration is zero, then the final velocity equals the initial velocity $(\kv = \kvo)$, as expected (i.e., velocity is constant)</li>
+<li>if $\ka$ is negative, then the final velocity is less than the initial velocity</li>
+</ul>
+<p>(All of these observations fit our intuition, and it is always useful to examine basic equations in light of our intuition and experiences to check that they do indeed describe nature accurately.)</p>
+
+<div class="note">
+<div class="eyebrow">Making Connections: Real-World Connection</div>
+<p>An intercontinental ballistic missile (ICBM) has a larger average acceleration than the Space Shuttle and achieves a greater velocity in the first minute or two of flight (actual ICBM burn times are classified—short-burn-time missiles are more difficult for an enemy to destroy). But the Space Shuttle obtains a greater final velocity, so that it can orbit the earth rather than come directly back down as an ICBM does. The Space Shuttle does this by accelerating for a longer time.</p>
+</div>
+<div class="exercises" data-place="final-velocity"></div>
+</section>
+
+<section id="position-quadratic">
+<h2>Final position when velocity is not constant</h2>
+<div class="derivation">
+<h3>Solving for Final Position When Velocity is Not Constant ($\ka \neq 0$)</h3>
+<p>We can combine the equations above to find a third equation that allows us to calculate the final position of an object experiencing constant acceleration. We start with</p>
+$$\kv = \kvo + \ka\kt.$$
+<p>Adding $\kvo$ to each side of this equation and dividing by 2 gives</p>
+$$\frac{\kvo + \kv}{2} = \kvo + \tfrac{1}{2}\ka\kt.$$
+<p>Since $\frac{\kvo + \kv}{2} = \kvb$ for constant acceleration, then</p>
+$$\kvb = \kvo + \tfrac{1}{2}\ka\kt.$$
+<p>Now we substitute this expression for $\kvb$ into the equation for displacement, $\kx = \kxo + \kvb\kt$, yielding</p>
+$$\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2\;(\text{constant }\ka).$$
+</div>
+
+<div class="example" id="ex-dragster">
+<h3>Example 2.10 · Calculating Displacement of an Accelerating Object: Dragsters</h3>
+<p>Dragsters can achieve average accelerations of $26.0\ \text{m/s}^2$. Suppose such a dragster accelerates from rest at this rate for 5.56 s. How far does it travel in this time?</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. We are asked to find displacement, which is $\kx$ if we take $\kxo$ to be zero. (Think about it like the starting line of a race. It can be anywhere, but we call it 0 and measure all other positions relative to it.) We can use the equation $\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2$ once we identify $\kvo$, $\ka$, and $\kt$ from the statement of the problem.</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify the knowns. Starting from rest means that $\kvo = 0$, $\ka$ is given as $26.0\ \text{m/s}^2$ and $\kt$ is given as 5.56 s.</li>
+<li>Plug the known values into the equation to solve for the unknown $\kx$:
+$$\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2.$$
+Since the initial position and velocity are both zero, this simplifies to
+$$\kx = \tfrac{1}{2}\ka\kt^2.$$
+Substituting the identified values of $\ka$ and $\kt$ gives
+$$\kx = \tfrac{1}{2}(26.0\ \text{m/s}^2)(5.56\ \text{s})^2,$$
+yielding
+$$\kx = 402\ \text{m}.$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>If we convert 402 m to miles, we find that the distance covered is very close to one quarter of a mile, the standard distance for drag racing. So the answer is reasonable. This is an impressive displacement in only 5.56 s, but top-notch dragsters can do a quarter mile in even less time than this.</p>
+</div>
+
+<figure class="demo" id="demo-dragster">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>The quarter mile. The hollow tick marks where the dragster is at half time: only a quarter of the way.</span></div>
+</figure>
+
+<p class="cite-target">What else can we learn by examining the equation $\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2$? We see that:</p>
+<ul class="cite-target">
+<li>displacement depends on the square of the elapsed time when acceleration is not zero. In Example 2.10, the dragster covers only one fourth of the total distance in the first half of the elapsed time</li>
+<li>if acceleration is zero, then the initial velocity equals average velocity ($\kvo = \kvb$) and $\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2$ becomes $\kx = \kxo + \kvo\kt$</li>
+</ul>
+<div class="exercises" data-place="position-quadratic"></div>
+</section>
+
+<section id="velocity-squared">
+<h2>Final velocity without time</h2>
+<div class="derivation">
+<h3>Solving for Final Velocity when Velocity Is Not Constant ($\ka \neq 0$)</h3>
+<p>A fourth useful equation can be obtained from another algebraic manipulation of previous equations. If we solve $\kv = \kvo + \ka\kt$ for $\kt$, we get</p>
+$$\kt = \frac{\kv - \kvo}{\ka}.$$
+<p>Substituting this and $\kvb = \frac{\kvo + \kv}{2}$ into $\kx = \kxo + \kvb\kt$, we get</p>
+$$\kv^2 = \kvo^2 + 2\ka(\kx - \kxo)\;(\text{constant }\ka).$$
+</div>
+
+<div class="example" id="ex-dragster2">
+<h3>Example 2.11 · Calculating Final Velocity: Dragsters</h3>
+<p>Calculate the final velocity of the dragster in Example 2.10 without using information about time.</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. The equation $\kv^2 = \kvo^2 + 2\ka(\kx - \kxo)$ is ideally suited to this task because it relates velocities, acceleration, and displacement, and no time information is required.</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify the known values. We know that $\kvo = 0$, since the dragster starts from rest. Then we note that $\kx - \kxo = 402\ \text{m}$ (this was the answer in Example 2.10). Finally, the average acceleration was given to be $\ka = 26.0\ \text{m/s}^2$.</li>
+<li>Plug the knowns into the equation $\kv^2 = \kvo^2 + 2\ka(\kx - \kxo)$ and solve for $\kv$.
+$$\kv^2 = 0 + 2(26.0\ \text{m/s}^2)(402\ \text{m}).$$
+Thus
+$$\kv^2 = 2.09 \times 10^4\ \text{m}^2\text{/s}^2.$$
+To get $\kv$, we take the square root:
+$$\kv = \sqrt{2.09 \times 10^4\ \text{m}^2\text{/s}^2} = 145\ \text{m/s}.$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>145 m/s is about 522 km/h or about 324 mi/h, but even this breakneck speed is short of the record for the quarter mile. Also, note that a square root has two values; we took the positive value to indicate a velocity in the same direction as the acceleration.</p>
+</div>
+
+<p class="cite-target">An examination of the equation $\kv^2 = \kvo^2 + 2\ka(\kx - \kxo)$ can produce further insights into the general relationships among physical quantities:</p>
+<ul class="cite-target">
+<li>The final velocity depends on how large the acceleration is and the distance over which it acts</li>
+<li>For a fixed deceleration, a car that is going twice as fast doesn’t simply stop in twice the distance—it takes much further to stop. (This is why we have reduced speed zones near schools.)</li>
+</ul>
+<div class="exercises" data-place="velocity-squared"></div>
+</section>
+
+<section id="summary">
+<h2>Putting Equations Together</h2>
+<p>In the following examples, we further explore one-dimensional motion, but in situations requiring slightly more algebraic manipulation. The examples also give insight into problem-solving techniques. The box below provides easy reference to the equations needed.</p>
+<div class="summary-box">
+<div class="eyebrow">Summary of Kinematic Equations (constant $\ka$)</div>
+$$\kx = \kxo + \kvb\kt$$
+$$\kvb = \frac{\kvo + \kv}{2}$$
+$$\kv = \kvo + \ka\kt$$
+$$\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2$$
+$$\kv^2 = \kvo^2 + 2\ka(\kx - \kxo)$$
+</div>
+</section>
+
+<section id="together">
+<div class="example" id="ex-braking">
+<h3>Example 2.12 · Calculating Displacement: How Far Does a Car Go When Coming to a Halt?</h3>
+<p>On dry concrete, a car can decelerate at a rate of $7.00\ \text{m/s}^2$, whereas on wet concrete it can decelerate at only $5.00\ \text{m/s}^2$. Find the distances necessary to stop a car moving at 30.0 m/s (about 110 km/h) (a) on dry concrete and (b) on wet concrete. (c) Repeat both calculations, finding the displacement from the point where the driver sees a traffic light turn red, taking into account his reaction time of 0.500 s to get his foot on the brake.</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. In order to determine which equations are best to use, we need to list all of the known values and identify exactly what we need to solve for. We shall do this explicitly in the next several examples, using tables to set them off.</p>
+<h4>Solution for (a)</h4>
+<ol>
+<li>Identify the knowns and what we want to solve for. We know that $\kvo = 30.0\ \text{m/s}$; $\kv = 0$; $\ka = -7.00\ \text{m/s}^2$ ($\ka$ is negative because it is in a direction opposite to velocity). We take $\kxo$ to be 0. We are looking for displacement $\kdx$, or $\kx - \kxo$.</li>
+<li>Identify the equation that will help up solve the problem. The best equation to use is
+$$\kv^2 = \kvo^2 + 2\ka(\kx - \kxo).$$
+This equation is best because it includes only one unknown, $\kx$. We know the values of all the other variables in this equation. (There are other equations that would allow us to solve for $\kx$, but they require us to know the stopping time, $\kt$, which we do not know. We could use them but it would entail additional calculations.)</li>
+<li>Rearrange the equation to solve for $\kx$.
+$$\kx - \kxo = \frac{\kv^2 - \kvo^2}{2\ka}$$</li>
+<li>Enter known values.
+$$\kx - 0 = \frac{0^2 - (30.0\ \text{m/s})^2}{2(-7.00\ \text{m/s}^2)}$$
+Thus,
+$$\kx = 64.3\ \text{m on dry concrete}.$$</li>
+</ol>
+<h4>Solution for (b)</h4>
+<p>This part can be solved in exactly the same manner as Part A. The only difference is that the deceleration is $-5.00\ \text{m/s}^2$. The result is</p>
+$$x_{\text{wet}} = 90.0\ \text{m on wet concrete}.$$
+<h4>Solution for (c)</h4>
+<p>Once the driver reacts, the stopping distance is the same as it is in Parts A and B for dry and wet concrete. So to answer this question, we need to calculate how far the car travels during the reaction time, and then add that to the stopping time. It is reasonable to assume that the velocity remains constant during the driver’s reaction time.</p>
+<ol>
+<li>Identify the knowns and what we want to solve for. We know that $\kvb = 30.0\ \text{m/s}$; $t_{\text{reaction}} = 0.500\ \text{s}$; $a_{\text{reaction}} = 0$. We take $x_{0\text{-reaction}}$ to be 0. We are looking for $x_{\text{reaction}}$.</li>
+<li>Identify the best equation to use. $\kx = \kxo + \kvb\kt$ works well because the only unknown value is $\kx$, which is what we want to solve for.</li>
+<li>Plug in the knowns to solve the equation.
+$$\kx = 0 + (30.0\ \text{m/s})(0.500\ \text{s}) = 15.0\ \text{m}.$$
+This means the car travels 15.0 m while the driver reacts, making the total displacements in the two cases of dry and wet concrete 15.0 m greater than if he reacted instantly.</li>
+<li>Add the displacement during the reaction time to the displacement when braking.
+$$x_{\text{braking}} + x_{\text{reaction}} = x_{\text{total}}$$
+<ol type="a"><li>64.3 m + 15.0 m = 79.3 m when dry</li><li>90.0 m + 15.0 m = 105 m when wet</li></ol></li>
+</ol>
+<h4>Discussion</h4>
+<p>The displacements found in this example seem reasonable for stopping a fast-moving car. It should take longer to stop a car on wet rather than dry pavement. It is interesting that reaction time adds significantly to the displacements. But more important is the general approach to solving problems. We identify the knowns and the quantities to be determined and then find an appropriate equation. There is often more than one way to solve a problem. The various parts of this example can in fact be solved by other methods, but the solutions presented above are the shortest.</p>
+</div>
+
+<figure class="demo" id="demo-braking">
+  <div class="demo-head"><span class="eyebrow">Demo · 3D</span><span>The light turns red at the pole. The two cars are identical; only the road differs. Drag to orbit the camera.</span></div>
+</figure>
+</section>
+
+<section id="merge">
+<div class="example" id="ex-merge">
+<h3>Example 2.13 · Calculating Time: A Car Merges into Traffic</h3>
+<p>Suppose a car merges into freeway traffic on a 200-m-long ramp. If its initial velocity is 10.0 m/s and it accelerates at $2.00\ \text{m/s}^2$, how long does it take to travel the 200 m up the ramp? (Such information might be useful to a traffic engineer.)</p>
+<h4>Strategy</h4>
+<p>Draw a sketch. We are asked to solve for the time $\kt$. As before, we identify the known quantities in order to choose a convenient physical relationship (that is, an equation with one unknown, $\kt$).</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify the knowns and what we want to solve for. We know that $\kvo = 10\ \text{m/s}$; $\ka = 2.00\ \text{m/s}^2$; and $\kx = 200\ \text{m}$.</li>
+<li>We need to solve for $\kt$. Choose the best equation. $\kx = \kxo + \kvo\kt + \tfrac{1}{2}\ka\kt^2$ works best because the only unknown in the equation is the variable $\kt$ for which we need to solve.</li>
+<li>We will need to rearrange the equation to solve for $\kt$. In this case, it will be easier to plug in the knowns first.
+$$200\ \text{m} = 0\ \text{m} + (10.0\ \text{m/s})\kt + \tfrac{1}{2}(2.00\ \text{m/s}^2)\,\kt^2$$</li>
+<li>Simplify the equation. The units of meters (m) cancel because they are in each term. We can get the units of seconds (s) to cancel by taking $\kt = t\ \text{s}$, where $t$ is the magnitude of time and s is the unit. Doing so leaves
+$$200 = 10\kt + \kt^2.$$</li>
+<li>Use the quadratic formula to solve for $\kt$.
+(a) Rearrange the equation to get 0 on one side of the equation.
+$$\kt^2 + 10\kt - 200 = 0$$
+This is a quadratic equation of the form
+$$a t^2 + b t + c = 0,$$
+where the constants are $a = 1.00,\; b = 10.0,\; \text{and}\; c = -200$.
+(b) Its solutions are given by the quadratic formula:
+$$t = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}.$$
+This yields two solutions for $\kt$, which are
+$$\kt = 10.0\ \text{and} -20.0.$$
+In this case, then, the time is $\kt = t$ in seconds, or
+$$\kt = 10.0\ \text{s}\ \text{and} -20.0\ \text{s}.$$
+A negative value for time is unreasonable, since it would mean that the event happened 20 s before the motion began. We can discard that solution. Thus,
+$$\kt = 10.0\ \text{s}.$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>Whenever an equation contains an unknown squared, there will be two solutions. In some problems both solutions are meaningful, but in others, such as the above, only one solution is reasonable. The 10.0 s answer seems reasonable for a typical freeway on-ramp.</p>
+</div>
+
+<figure class="demo" id="demo-merge">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>Both roots of the quadratic, drawn. The parabola is the car's position; the ramp length is the flat line. The negative root is the hollow one.</span></div>
+</figure>
+
+<p>With the basics of kinematics established, we can go on to many other interesting examples and applications. In the process of developing kinematics, we have also glimpsed a general approach to problem solving that produces both correct answers and insights into physical relationships. Section 2.6, Problem-Solving Basics, discusses problem-solving basics and outlines an approach that will help you succeed in this invaluable task.</p>
+
+<div class="note">
+<div class="eyebrow">Making Connections: Take-Home Experiment—Breaking News</div>
+<p>We have been using SI units of meters per second squared to describe some examples of acceleration or deceleration of cars, runners, and trains. To achieve a better feel for these numbers, one can measure the braking deceleration of a car doing a slow (and safe) stop. Recall that, for average acceleration, $\kab = \kdv/\kdt$. While traveling in a car, slowly apply the brakes as you come up to a stop sign. Have a passenger note the initial speed in miles per hour and the time taken (in seconds) to stop. From this, calculate the deceleration in miles per hour per second. Convert this to meters per second squared and compare with other decelerations mentioned in this chapter. Calculate the distance traveled in braking.</p>
+</div>
+</section>

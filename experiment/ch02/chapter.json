@@ -1,0 +1,56 @@
+{
+ "id": "2",
+ "dir": "ch02",
+ "title": "Kinematics",
+ "intro_module": "m42122",
+ "sections": [
+  {
+   "id": "2.1",
+   "module": "m42033",
+   "title": "Displacement",
+   "slug": "2-1-displacement"
+  },
+  {
+   "id": "2.2",
+   "module": "m42124",
+   "title": "Vectors, Scalars, and Coordinate Systems",
+   "slug": "2-2-vectors-scalars-and-coordinate-systems"
+  },
+  {
+   "id": "2.3",
+   "module": "m42096",
+   "title": "Time, Velocity, and Speed",
+   "slug": "2-3-time-velocity-and-speed"
+  },
+  {
+   "id": "2.4",
+   "module": "m42100",
+   "title": "Acceleration",
+   "slug": "2-4-acceleration"
+  },
+  {
+   "id": "2.5",
+   "module": "m42099",
+   "title": "Motion Equations for Constant Acceleration in One Dimension",
+   "slug": "2-5-motion-equations-for-constant-acceleration-in-one-dimension"
+  },
+  {
+   "id": "2.6",
+   "module": "m42125",
+   "title": "Problem-Solving Basics for One-Dimensional Kinematics",
+   "slug": "2-6-problem-solving-basics-for-one-dimensional-kinematics"
+  },
+  {
+   "id": "2.7",
+   "module": "m42102",
+   "title": "Falling Objects",
+   "slug": "2-7-falling-objects"
+  },
+  {
+   "id": "2.8",
+   "module": "m42103",
+   "title": "Graphical Analysis of One-Dimensional Motion",
+   "slug": "2-8-graphical-analysis-of-one-dimensional-motion"
+  }
+ ]
+}

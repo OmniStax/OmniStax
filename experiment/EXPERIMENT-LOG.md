@@ -166,7 +166,7 @@ Cost: about 450 lines of demo code rewritten; the primitives (`strip`,
 `dragster`) are the start of the declarative widget vocabulary the todo
 asks for.
 
-Promoted after pass 3: `docs/claude/prompts/interactive-figures.md` (the figure prompt) and `docs/andrew/experiment-takeaways.md` (pipeline decisions 1 to 7).
+Promoted after pass 3: `docs/claude/prompts/interactive-figures.md` (the figure prompt) and `docs/andrew/pipeline-rules.md` (pipeline decisions 1 to 7).
 
 ## Pass 4: shell layout (2026-09-06)
 
@@ -185,3 +185,46 @@ narrow-screen overlay flow all work in headless Chromium.
 
 Left for later: comments (needs a decoration layer), keyboard shortcuts
 for group focus, the same document in two groups.
+
+## Pass 5: static site build, chapter-level data (2026-09-06)
+
+The single-page build is replaced by `tools/build_site.py`, which emits
+`site/`: per section a full page (`index.html`) and a fragment
+(`doc.html`) plus its `figures.js`; per chapter `concepts.json` and
+`formulas.json`; a book manifest; and shared assets (shell.css, shell.js,
+figlib.js, KaTeX, three.js). Math is pre-rendered at build time with
+KaTeX in Node (`tools/prerender_math.js`), so the article reads without
+JS and the page paints without a rendering pass. Element ids are
+qualified by section at build time (`2.5-notation`), so two sections can
+share one DOM. Figures boot against a root element
+(`OMNIA_FIGURES['2.5'](root, FIG)`); the drawing layer lives in
+`shell/figlib.js`. The shell fetches other sections' fragments on demand,
+updates the address bar to the focused section's canonical URL, and
+restores saved tabs lazily. The old files are in `_old/2.5-single-page/`.
+
+Per the confirmed config, 2.5 lost its three generated relationship
+questions and nine problems whose answers were AI-computed; 14 exercises
+remain, all with book answers or AI-marked suggested approaches.
+
+Design note: `docs/claude/static-composition.md`.
+
+## Pass 6: section 2.1 Displacement (2026-09-06)
+
+First section built by the agent loop: exploration → config list → plan
+→ build. Plan in `ch02/2.1/plan.md`. Five idea nodes (reference frame,
+position, displacement, distance, distance traveled); no results or
+skills. Three figures: displacement on a line (the professor, with the
+passenger as a slider setting), path length vs displacement (the cyclist
+from Check Your Understanding, with an odometer), and the book's four
+paths for the problems, traced in turn. Seven exercises: the CYU inline
+with three parts on one card, one AP item, three conceptual questions
+with AI-marked suggested approaches, and problems 1 and 3. Problems 2 and
+4 have no keyed answer and were left out.
+
+Converter fix: figures nested inside a paragraph were being flattened to
+their caption text; `cnxml2md.py` now emits them as blocks.
+
+Checks: no console errors on either page over http and on 2.1 over
+file://; opening 2.5 from the 2.1 page boots its eight figures and moves
+the URL; the 2.5 map shows displacement as an other-section node and
+clicking it focuses the 2.1 group; split and drag work across sections.

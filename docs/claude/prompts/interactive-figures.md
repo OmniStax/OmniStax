@@ -1,13 +1,8 @@
 # Prompt: interactive figures for one section
 
-Reverse-engineered from the pass that produced the seven figures in
-`experiment/ch02/2.5` (College Physics 2e, constant-acceleration kinematics),
-after the restyle that copied the idiom of an earlier photoelectron
-spectroscopy explainer. The prompt below is what would have produced that
-result in one pass. The notes after it explain why each rule is there.
-
-Status: promoted from inline prompting on 2026-09-06. Not yet run on a
-second section; expect edits after 2.4.
+The prompt that produces a section's interactive figures, and the reasons
+behind its rules. Sections 2.5 and 2.1 of College Physics 2e were built
+with it.
 
 ## Inputs the prompt needs
 
@@ -19,8 +14,8 @@ second section; expect edits after 2.4.
   `coverage` table, so the figure plan can be checked against what the
   section actually introduces.
 - The per-book `RULES.md` (colour-coding table, tone rule, figure style).
-- The shared drawing layer in `app.js` (primitives listed below). The prompt
-  does not ask the model to reinvent it.
+- The shared drawing layer `shell/figlib.js` (`window.FIG`, primitives
+  listed below). The prompt does not ask the model to reinvent it.
 
 ## The prompt
 
@@ -32,7 +27,7 @@ one strict colour-coding binds tunable variables, equation symbols and
 drawn objects across text and figures.
 
 You are given: the section text (source.md), formulas.json, concepts.json,
-RULES.md, and app.js which already contains the drawing layer. The book's
+RULES.md, and figlib.js which already contains the drawing layer. The book's
 prose is quoted verbatim and must not be touched; everything you add is an
 Omnia addition, set in the sans face, and is labelled "Demo".
 
@@ -51,9 +46,22 @@ Rules for the plan:
 - Replace every sketch figure the book has. Drop photographs; they carry
   no physics. Keep the book's numbers as the slider defaults so the figure
   reproduces the worked example on load.
-- The sliders are the variables the equation is about, nothing else. Two
-  to four per figure. Each slider's colour class is the variable's class
-  from formulas.json.
+- A figure that exists to serve exercises (a diagram the problems refer
+  to) is copied over faithfully, labelled "Figure" rather than "Demo": no
+  sliders, no animation beyond what keeps the original readable.
+- The sliders are whatever is interesting and variable in the idea:
+  positions, a starting speed, a time. They need not be the variables of
+  one equation, and an idea with no equation still gets sliders for the
+  quantities its definition names. Two to four per figure. Each slider's
+  colour class is the variable's class from formulas.json.
+- After the required figures, propose extra simulations in a separate
+  list. First think broadly about what could help; then judge each one
+  strictly, keeping only those that open a view the text and required
+  figures do not give; then offer the survivors as one-line suggestions
+  saying what the learner would see. Build none of them until the user
+  picks.
+- Stop after the plan. Do not draw until the user has responded to every
+  line, question and suggestion in it.
 - Scene first: the thing that moves (a runner, a car, a plane) is drawn on
   a strip across the full width, and the graph goes below it in the same
   canvas. A graph-only figure is allowed when the graph is the idea (an
@@ -63,9 +71,10 @@ Rules for the plan:
 
 ## 2. Draw each figure with the shared layer
 
-Every figure is one IIFE that calls:
+Every figure is one IIFE inside the section's figures.js module
+(`OMNIA_FIGURES['<sec>'] = function (root, F) {...}`) that calls:
 
-  const d = demo('demo-<id>', H);            // H = canvas height in logical units
+  const d = demo('demo-<id>', H);            // demo = (id, H) => F.demo(root, id, H); H = canvas height in logical units
   const v = ctl(d.controls, {label:'\\kv', cls:'v', min, max, step, value, unit, dec, onInput: reset});
   const cy = cycle(() => T, hold);           // model time loops 0..T then waits `hold` s
   function draw() { const {ctx, W, H} = begin(d.c); ... tex(d.readout, `...`); }
@@ -108,7 +117,9 @@ Motion:
 - slider changes call reset() which restarts the loop.
 - the moving object is an ink-coloured dot or sprite; its arrows for v and
   a are drawn every frame with lengths proportional to the values.
-- there is one global pause pill; reduced-motion starts paused at t = T.
+- the library adds a transport (play/pause, stop, speed) under every
+  registered figure; do not draw your own. Reduced-motion starts the
+  figure stopped at t = T.
 
 Readout:
 - tex(d.readout, ...) renders the equation with the current numbers
@@ -126,42 +137,43 @@ headline. Do not loop on it.
 
 ## Why the rules are what they are
 
-Each rule came from something that went wrong or right in the 2.5 run.
-
-- **Fixed logical canvas.** The first pass drew in CSS pixels with 11px
-  type and 1.5px lines, and the figures looked like thumbnails. A 1400-unit
-  space with 22px type is what the photoelectron page did, and it is why
-  those figures read as drawings rather than charts.
-- **Scene above graph.** Side-by-side layouts squeezed both halves. Stacking
-  gave the strip the full width and let the graph share the x-axis story.
-- **Ambient loop, no Play button.** Play buttons made the figures still by
-  default, and a still figure is a chart. Looping with a hold means the
+- **Fixed logical canvas.** Drawing in CSS pixels with 11px type and
+  1.5px lines makes figures look like thumbnails. A 1400-unit space with
+  22px type reads as a drawing rather than a chart.
+- **Scene above graph.** Side-by-side layouts squeeze both halves.
+  Stacking gives the strip the full width and lets the graph share the
+  x-axis story.
+- **Ambient loop, no Play button.** A Play button leaves the figure still
+  by default, and a still figure is a chart. Looping with a hold means the
   page is never static and the reader sees the motion without doing
-  anything. The global pause pill and the reduced-motion default keep this
-  from being hostile.
-- **Headline with live numbers.** The photoelectron page's "KE = 6.0 − 4.5
-  = 1.5 eV" line in the canvas is the fastest way to tie the picture to the
-  equation. It also doubles as a caption.
+  anything. The per-figure transport and the reduced-motion default keep
+  this from being hostile.
+- **Headline with live numbers.** A line like "Δx = 3.5 − 1.5 = +2.0 m"
+  inside the canvas is the fastest way to tie the picture to the equation.
+  It also doubles as a caption.
 - **Hollow = initial.** The book's subscript-0 convention needs a drawn
   equivalent so x₀, v₀ and the current values can be told apart without
   reading labels.
 - **Colours only through C() and PAL.** The colour-coding toggle and dark
   mode both work by swapping what those return. One hex literal in a
   figure breaks both.
-- **Sliders are the equation's variables.** Anything else on a slider is a
-  distraction; the reader is meant to feel the equation, not tune a scene.
-- **Plan line first.** Asking for figures directly produced seven figures
-  that each drifted in layout. The plan line forces the scene/graph split
-  and the slider list to be decided before code.
-- **One look, one fix.** All the collisions found (a slope label under a
-  bracket, v₀ on an axis title, non-round ticks, a clipped total, a label
-  under the headline) were found in the single screenshot pass. A second
-  pass found nothing.
+- **Sliders are what is interesting and variable.** Not every idea has an
+  equation: the displacement and path demos of 2.1 have positions on
+  their sliders and nothing else to drive them. What matters is that a
+  slider changes something the idea is about; one that only tunes the
+  scene is a distraction.
+- **Plan line first.** Figures written without a plan drift in layout
+  from one to the next. The plan line forces the scene/graph split and
+  the slider list to be decided before code.
+- **One look, one fix.** The collisions a figure can have (a label under a
+  bracket, a symbol on an axis title, non-round ticks, a clipped total, a
+  label under the headline) all show in one screenshot. A second pass
+  finds nothing.
 
-## Archetypes seen so far
+## Archetypes
 
-The seven figures fall into four shapes. A future declarative widget spec
-should cover these before anything else.
+The figures built for 2.1 and 2.5 fall into these shapes. A declarative
+widget spec, if one is written, covers these first.
 
 1. **Strip + graph.** Object on a strip, v and a arrows, graph below with
    the moving point and a drop line. Jogger, plane, dragster.
@@ -172,14 +184,19 @@ should cover these before anything else.
 4. **Root finding.** A curve crossing a level twice, one crossing greyed
    as unphysical, the object on a strip above showing which root is real.
    Merge.
-5. **3D + bars.** The only 3D figure. Two lanes side by side, and a 2D bar
-   canvas beneath that shows the quantities the equation is about
-   (reaction distance, braking distance). The bars carry the reading; the
-   3D carries the situation.
+5. **3D + bars.** Two lanes side by side, and a 2D bar canvas beneath
+   that shows the quantities the equation is about (reaction distance,
+   braking distance). The bars carry the reading; the 3D carries the
+   situation. Braking car.
+6. **Number line + sprite.** Two draggable positions on a line, a bracket
+   for the displacement, a sprite that walks or rides between them, an
+   odometer when path length matters. Professor, cyclist.
+7. **Faithful copy.** A book figure that the problems refer to, redrawn
+   with the book's numbers and no sliders. Paths.
 
 ## Sprites
 
-Sprites are tiny path drawings (runner, car, plane, dragster) in ink
-colour. A new section will need new ones (a ball, a rocket, a boat). Keep
+Sprites are tiny path drawings (runner, car, plane, dragster, bike) in
+ink colour. A new section adds its own (a ball, a rocket, a boat). Keep
 them under 12 path commands and scale them with the `s` argument; they
 must read at 1400-wide logical scale, so bodies are 80 to 120 units long.
