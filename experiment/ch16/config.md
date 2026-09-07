@@ -21,6 +21,7 @@ repeat the Chapter 2 config are unchanged unless marked.
 | Colour coding | t, x, v, a hues carried over; T, f and ω share the time hue; amplitude and wavelength share the position hue; force and force constant get a new force hue; kinetic, potential and total energy get a new energy hue; both new hues added to `book.json` and RULES.md at 16.1 (new) |
 | Inline exercises | Check Your Understanding items, after the passage they test; an untyped exercise is classed by the header it sits under (16.1's is a conceptual question) |
 | Exercises tab | end-of-section problems, conceptual questions, AP test prep |
+| Exercise placement | an exercise goes with the section that introduces what it tests; one placed early by the book is held for the later page (AP question 1 of 16.1 goes to 16.3) |
 | AP test prep | included |
 | Answers to book problems | book answer key only; never generated; unkeyed problems are left out unless the user supplies an answer |
 | Suggested approaches for open questions | generated, marked AI |

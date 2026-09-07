@@ -117,6 +117,13 @@ types. The type decides where an exercise shows up on the page:
 The agent records the source location and the type of every exercise so
 the placement is a rule, not a per-item choice.
 
+An exercise goes with the section that introduces what it tests, not
+where the book happens to put it. The reader should be ready for an
+exercise when they meet it. When a book places an exercise ahead of the
+ideas it needs (the AP test-prep blocks do this: 16.1 carries a question
+about amplitude and period, which are 16.2 and 16.3 ideas), the exercise
+is held and placed on the later page, and both sections' notes say so.
+
 ## 13. What the agent may generate, and what it must not
 
 Defaults, all overridable in the config list of item 10:

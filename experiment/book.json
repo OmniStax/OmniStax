@@ -13,7 +13,8 @@
  "openstax": "https://openstax.org/books/college-physics-2e/pages/",
  "base_url": "https://omnia.local/",
  "chapters": [
-  "ch02"
+  "ch02",
+  "ch16"
  ],
  "colors": {
   "t": {
@@ -35,6 +36,16 @@
    "label": "acceleration",
    "light": "#6D28D9",
    "dark": "#A78BFA"
+  },
+  "F": {
+   "label": "force",
+   "light": "#15803D",
+   "dark": "#4ADE80"
+  },
+  "E": {
+   "label": "energy",
+   "light": "#0E7490",
+   "dark": "#22D3EE"
   }
  },
  "macros": {
@@ -49,7 +60,13 @@
   "\\kab": "\\htmlClass{kv-a}{\\bar{a}}",
   "\\kdx": "\\htmlClass{kv-x}{\\Delta x}",
   "\\kdt": "\\htmlClass{kv-t}{\\Delta t}",
-  "\\kdv": "\\htmlClass{kv-v}{\\Delta v}"
+  "\\kdv": "\\htmlClass{kv-v}{\\Delta v}",
+  "\\kF": "\\htmlClass{kv-F}{F}",
+  "\\kFa": "\\htmlClass{kv-F}{F_{\\text{app}}}",
+  "\\kk": "\\htmlClass{kv-F}{k}",
+  "\\kPE": "\\htmlClass{kv-E}{\\text{PE}_{\\text{el}}}",
+  "\\kKE": "\\htmlClass{kv-E}{\\text{KE}}",
+  "\\kW": "\\htmlClass{kv-E}{W}"
  },
  "symbols": {
   "t": "\\kt",
@@ -61,7 +78,13 @@
   "v": "\\kv",
   "v̄": "\\kvb",
   "Δv": "\\kdv",
-  "a": "\\ka"
+  "a": "\\ka",
+  "F": "\\kF",
+  "F_app": "\\kFa",
+  "k": "\\kk",
+  "PE_el": "\\kPE",
+  "KE": "\\kKE",
+  "W": "\\kW"
  },
  "exercise_kinds": {
   "check-understanding": "Check Your Understanding",

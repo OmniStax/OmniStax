@@ -1,0 +1,103 @@
+{
+ "chapter": "16",
+ "variables": [
+  {
+   "sym": "F",
+   "color": "F",
+   "meaning": "restoring force; the minus sign in Hooke’s law says it points opposite to the displacement",
+   "unit": "N",
+   "section": "16.1"
+  },
+  {
+   "sym": "F_app",
+   "color": "F",
+   "meaning": "applied force, equal and opposite to the restoring force while the system is deformed",
+   "unit": "N",
+   "section": "16.1"
+  },
+  {
+   "sym": "k",
+   "color": "F",
+   "meaning": "force constant, the stiffness of the system; the slope of the force against displacement graph",
+   "unit": "N/m",
+   "section": "16.1"
+  },
+  {
+   "sym": "x",
+   "color": "x",
+   "meaning": "displacement from equilibrium, or deformation",
+   "unit": "m",
+   "section": "16.1"
+  },
+  {
+   "sym": "PE_el",
+   "color": "E",
+   "meaning": "elastic potential energy stored in a deformed system that obeys Hooke’s law",
+   "unit": "J",
+   "section": "16.1"
+  },
+  {
+   "sym": "W",
+   "color": "E",
+   "meaning": "work done to deform the system; the area under the graph of applied force against deformation",
+   "unit": "J",
+   "section": "16.1"
+  },
+  {
+   "sym": "m",
+   "meaning": "mass",
+   "unit": "kg",
+   "section": "16.1"
+  }
+ ],
+ "equations": [
+  {
+   "id": "eq-hooke",
+   "concept": "hookes-law",
+   "section": "16.1",
+   "latex": "F = -kx",
+   "ktex": "\\kF = -\\kk\\kx",
+   "anchor": "16.1-hookes-law",
+   "important": true
+  },
+  {
+   "id": "eq-k",
+   "section": "16.1",
+   "latex": "k = -\\frac{F}{x}",
+   "ktex": "\\kk = -\\frac{\\kF}{\\kx}",
+   "anchor": "16.1-ex-car",
+   "important": false
+  },
+  {
+   "id": "eq-pe-el",
+   "concept": "elastic-potential-energy",
+   "section": "16.1",
+   "latex": "\\text{PE}_{\\text{el}} = \\tfrac{1}{2} k x^2",
+   "ktex": "\\kPE = \\tfrac{1}{2}\\kk\\kx^2",
+   "anchor": "16.1-elastic-energy",
+   "important": true
+  }
+ ],
+ "glossary": [
+  {
+   "section": "16.1",
+   "term": "deformation",
+   "definition": "displacement from equilibrium"
+  },
+  {
+   "section": "16.1",
+   "term": "elastic potential energy",
+   "definition": "potential energy stored as a result of deformation of an elastic object, such as the stretching of a spring"
+  },
+  {
+   "section": "16.1",
+   "term": "force constant",
+   "definition": "a constant related to the rigidity of a system: the larger the force constant, the more rigid the system; the force constant is represented by k"
+  },
+  {
+   "section": "16.1",
+   "term": "restoring force",
+   "definition": "force acting in opposition to the force caused by a deformation"
+  }
+ ]
+}

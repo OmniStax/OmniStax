@@ -1,0 +1,158 @@
+{
+ "chapter": "16",
+ "scheme": {
+  "node": "A testable unit of knowledge. A node exists only if a definition or an exercise in the book targets it. Headers are narrative, not nodes.",
+  "kind": {
+   "idea": "A concept in the usual sense; ask Understand questions.",
+   "result": "An equation or fact derived from ideas; ask Remember or derive questions. Linked to the formula sheet by eq.",
+   "skill": "A procedure the book teaches and the exercises test on its own; ask Apply questions."
+  },
+  "prereqs": "Edges. Mastery propagates downward: mastering a node implies its prerequisites.",
+  "coverage": "Which spans of the text introduce, use, or reinforce each node. Span ids are element ids, qualified by section: 2.5-notation.",
+  "ids": "Canonical and book-independent, so another textbook's constant-acceleration section maps to the same nodes.",
+  "section": "Section that introduces the node. Placeholders are nodes from sections not built yet; they resolve when that section is built."
+ },
+ "concepts": [
+  {
+   "id": "displacement",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Displacement",
+   "prereqs": [],
+   "placeholder": true
+  },
+  {
+   "id": "newtons-first-law",
+   "kind": "idea",
+   "section": "4.2",
+   "name": "Newton’s first law",
+   "prereqs": [],
+   "placeholder": true
+  },
+  {
+   "id": "work",
+   "kind": "idea",
+   "section": "7.1",
+   "name": "Work",
+   "prereqs": [],
+   "placeholder": true
+  },
+  {
+   "id": "kinetic-energy",
+   "kind": "result",
+   "section": "7.2",
+   "name": "Kinetic energy",
+   "prereqs": [],
+   "placeholder": true
+  },
+  {
+   "id": "potential-energy",
+   "kind": "idea",
+   "section": "7.3",
+   "name": "Potential energy",
+   "prereqs": [],
+   "placeholder": true
+  },
+  {
+   "id": "restoring-force",
+   "kind": "idea",
+   "section": "16.1",
+   "name": "Restoring force",
+   "prereqs": [
+    "displacement",
+    "newtons-first-law"
+   ],
+   "why": "When an object is displaced from its equilibrium position, the deformation creates a force in the opposite direction, which pushes the object back. Without such a force there is no oscillation, because the object would simply move in a straight line at constant speed.",
+   "evidence": "Glossary term; Check Your Understanding 1; the AP question on the meaning of the minus sign."
+  },
+  {
+   "id": "force-constant",
+   "kind": "idea",
+   "section": "16.1",
+   "name": "Force constant $\\kk$",
+   "prereqs": [
+    "restoring-force"
+   ],
+   "why": "The force constant tells how stiff a system is. The larger $\\kk$ is, the greater the restoring force for the same displacement, and the stiffer the system. It is the slope of the graph of restoring force against displacement, in newtons per meter.",
+   "evidence": "Glossary term; every problem in the section asks for the force constant; Check Your Understanding 1 asks how to make the ruler stiffer."
+  },
+  {
+   "id": "hookes-law",
+   "kind": "result",
+   "section": "16.1",
+   "eq": "eq-hooke",
+   "name": "Hooke’s law, $\\kF = -\\kk\\kx$",
+   "prereqs": [
+    "restoring-force",
+    "force-constant"
+   ],
+   "why": "The simplest oscillations occur when the restoring force is directly proportional to the displacement. This is Hooke’s law, and the minus sign says that the force points opposite to the displacement. Knowing the force and the displacement gives the force constant, which is what most problems in this section ask for.",
+   "evidence": "Example 16.1; problems 1, 3 and 5; the AP question on the minus sign. The book names the law in section 5.3 for stress and strain; the node is introduced here and will be reinforced by 5.3 when that section is built."
+  },
+  {
+   "id": "elastic-potential-energy",
+   "kind": "result",
+   "section": "16.1",
+   "eq": "eq-pe-el",
+   "name": "Elastic potential energy, $\\kPE = \\tfrac{1}{2}\\kk\\kx^2$",
+   "prereqs": [
+    "hookes-law",
+    "work",
+    "potential-energy"
+   ],
+   "why": "Deforming a system takes work, and if nothing goes into heat, sound, or motion, all of that work is stored as elastic potential energy. The work is the area under the graph of applied force against deformation, a triangle of area $\\tfrac{1}{2}\\kk\\kx^2$. When the system is released, that energy can become kinetic energy, as it does for the dart of a toy gun.",
+   "evidence": "Example 16.2; Check Your Understanding 2; conceptual question 1; problem 3."
+  }
+ ],
+ "coverage": [
+  {
+   "span": "16.1-restoring-force",
+   "introduces": [
+    "restoring-force"
+   ],
+   "uses": [
+    "displacement",
+    "newtons-first-law"
+   ]
+  },
+  {
+   "span": "16.1-hookes-law",
+   "introduces": [
+    "force-constant",
+    "hookes-law"
+   ],
+   "uses": [
+    "restoring-force"
+   ]
+  },
+  {
+   "span": "16.1-ex-car",
+   "uses": [
+    "hookes-law",
+    "force-constant"
+   ]
+  },
+  {
+   "span": "16.1-elastic-energy",
+   "introduces": [
+    "elastic-potential-energy"
+   ],
+   "uses": [
+    "hookes-law",
+    "work",
+    "potential-energy"
+   ]
+  },
+  {
+   "span": "16.1-ex-toy-gun",
+   "uses": [
+    "elastic-potential-energy",
+    "kinetic-energy"
+   ]
+  },
+  {
+   "span": "16.1-exercises",
+   "uses": []
+  }
+ ]
+}

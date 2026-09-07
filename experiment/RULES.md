@@ -17,9 +17,14 @@ Averages (bar) share the hue and are drawn dashed.
 | position / displacement | x, x0, Δx | #1D4ED8 | #60A5FA |
 | velocity | v, v0, v̄, Δv | #B91C1C | #F87171 |
 | acceleration | a, ā | #6D28D9 | #A78BFA |
+| force | F, F_app, k | #15803D | #4ADE80 |
+| energy | PE_el, KE, W | #0E7490 | #22D3EE |
 
-Later chapters will add force (Ch 4), energy (Ch 7), momentum (Ch 8). Pick
-hues that stay distinguishable from these four.
+Force and energy were added at 16.1; the force constant k takes the force
+hue because it is force per unit stretch, and mass stays in ink. Period,
+frequency and angular frequency share the time hue; amplitude and
+wavelength share the position hue. Later chapters add momentum (Ch 8).
+Pick hues that stay distinguishable from these six.
 
 Color coding must be toggleable. With it off, every symbol renders in ink
 and figures use greys with text labels.

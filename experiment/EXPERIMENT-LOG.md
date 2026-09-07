@@ -307,3 +307,44 @@ longer dropped wholesale. A photograph that serves the narrative and the
 original text is kept with its caption and credit line (the Tacoma
 Narrows bridge in 16.8); decoration is dropped. The plan lists each one.
 Changed in the figure prompt, RULES.md and pipeline rule 14.
+
+## Pass 10: section 16.1 Hooke's Law (2026-09-07)
+
+First section of Chapter 16, built by the agent loop: plan in
+`ch16/16.1/plan.md`, reviewed, then built. Three blocks (restoring force,
+Hooke's law, energy stored in a deformation), four nodes (restoring force,
+force constant, Hooke's law, elastic potential energy) with placeholders
+for displacement (2.1, which opens the built page), Newton's first law,
+work, kinetic and potential energy. Three demos: the plucked ruler (a
+cantilever with a force arrow that always points back to equilibrium, a
+free-length slider for Check Your Understanding 1, damping, finite so it
+has the scrubber), the spring scale (weights hung one at a time, each
+plotted on F against x, slope k, the book's 0.100 kg steps and k = 39 N/m
+as defaults) and the toy-gun spring (compress, hold, release; the work as
+the shaded triangle under the applied-force line, then the dart's speed,
+Example 16.2's numbers). Seven exercises: two CYU inline, one AP item,
+one conceptual question with an AI-marked approach, problems 1, 3 and 5.
+
+Decisions recorded on the way:
+- AP question 1 tests amplitude and period (16.2 and 16.3 ideas) though
+  the book puts it in 16.1. Held for the 16.3 page. Rule: an exercise goes
+  with the section that introduces what it tests (pipeline rule 12).
+- AP questions 2 and 4 and problems 2, 4 and 6 have no keyed answer in
+  the CNXML and are left out.
+- The car photograph beside Example 16.1 is dropped (decoration); the
+  toy-gun figure belongs to Example 16.2, so it became a demo rather than
+  a faithful copy.
+- Two new hues in `book.json` and RULES.md: force (F, F_app, k) and
+  energy (PE_el, KE, W). Sliders for quantities that are not colour-coded
+  variables (a length, a damping rate, a mass) use an empty colour class
+  and render in ink.
+- The spring-scale demo puts its graph beside the scene, not below it:
+  the scene is vertical, so the side-by-side squeeze the figure rule
+  guards against does not arise. Worth folding into the rule.
+- New sprites in the section module: a coil spring, a block, a fixed
+  surface (beam, clamp, wall). Candidates for figlib once 16.3 reuses them.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors; one fix pass for three label collisions.
+No chapter landing page yet (the config lists one; the app has no
+chapter-level page, same as Chapter 2).

@@ -1,7 +1,7 @@
 # Plan: 16.1 Hooke's Law: Stress and Strain Revisited (m42240)
 
 Source: `source.md` (converted from CNXML). Book pages 704 to 708.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. Decisions: AP question 1 is held for 16.3 (the section that introduces what it tests); the car photograph is dropped; the springs-sharing-a-load simulation is not built; AP question 4 turned out to be unkeyed as well and is left out.
 
 ## Sub-concepts (page headers)
 
@@ -16,8 +16,8 @@ of Deformation". Proposed page structure, one block per idea:
    Deformation; PE_el = ½kx², work as the area under F_app; Example 16.2
    toy gun)
 4. Check Your Understanding 1 (make the ruler stiffer) stays inline after
-   block 1; Check Your Understanding 2 (where did the work go) after
-   block 3.
+   block 2, since rigidity is the force constant; Check Your
+   Understanding 2 (where did the work go) after block 3.
 
 Learning objectives, section summary and glossary come out of the running
 text into the views. AP test prep, the conceptual question and the
@@ -109,10 +109,10 @@ shows it). One survivor:
 
 - 2 Check Your Understanding, open, inline (after blocks 1 and 3), with
   the book's answers.
-- 4 AP test prep: question 1 (choice, 4A; see the note above), question
-  3 (choice, the minus sign), question 4 (choice, gravity as restoring
-  force). Question 2 (force to compress 5 cm and stretch 15 cm) has no
-  keyed answer and is left out unless you supply one.
+- 4 AP test prep: question 1 (choice, 4A) is held for 16.3; question 3
+  (choice, the minus sign) is keyed and kept. Questions 2 (force to
+  compress 5 cm and stretch 15 cm) and 4 (the splashing liquid) have no
+  keyed answer in the source and are left out unless you supply one.
 - 1 conceptual question (untyped in the source, sits under Conceptual
   Questions), open, with an AI-marked suggested approach.
 - 6 problems. Keyed: 1 (spring scale, three parts), 3 (BB gun, two

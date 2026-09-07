@@ -1,0 +1,16 @@
+{
+ "id": "16.1",
+ "module": "m42240",
+ "chapter": "16",
+ "title": "Hooke’s Law: Stress and Strain Revisited",
+ "short": "Hooke’s law",
+ "lead": "An object that is pushed away from its equilibrium position and let go will oscillate if a force pulls it back. This section describes the simplest such force, one that is proportional to the displacement, and shows how much energy a deformed object stores.",
+ "objectives": [
+  "Explain Newton’s third law of motion with respect to stress and deformation.",
+  "Describe the restoration of force and displacement.",
+  "Calculate the energy in Hooke’s Law of deformation, and the stored energy in a spring."
+ ],
+ "summary_html": "<ul><li>An oscillation is a back and forth motion of an object between two points of deformation.</li><li>An oscillation may create a wave, which is a disturbance that propagates from where it was created.</li><li>The simplest type of oscillations and waves are related to systems that can be described by Hooke’s law: $\\kF = -\\kk\\kx,$ where $\\kF$ is the restoring force, $\\kx$ is the displacement from equilibrium or deformation, and $\\kk$ is the force constant of the system.</li><li>Elastic potential energy $\\kPE$ stored in the deformation of a system that can be described by Hooke’s law is given by $\\kPE = (1/2)\\kk\\kx^2.$</li></ul>",
+ "built": "2026-09-07",
+ "notes": "AP questions 2 and 4 and problems 2, 4 and 6 have no answer in the book’s key and are left out. AP question 1 asks about amplitude and period, which section 16.3 introduces, and appears there instead. The photograph of a car beside Example 16.1 is left out."
+}

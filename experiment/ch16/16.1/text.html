@@ -1,0 +1,67 @@
+<section id="restoring-force">
+<h2>A restoring force makes an oscillation</h2>
+<p class="cite-target">Newton’s first law implies that an object oscillating back and forth is experiencing forces. Without force, the object would move in a straight line at a constant speed rather than oscillate. Consider, for example, plucking a plastic ruler to the left as shown in Figure 16.2. The deformation of the ruler creates a force in the opposite direction, known as a <strong>restoring force</strong>. Once released, the restoring force causes the ruler to move back toward its stable equilibrium position, where the net force on it is zero. However, by the time the ruler gets there, it gains momentum and continues to move to the right, producing the opposite deformation. It is then forced to the left, back through equilibrium, and the process is repeated until dissipative forces dampen the motion. These forces remove mechanical energy from the system, gradually reducing the motion until the ruler comes to rest.</p>
+<figure class="demo" id="demo-ruler">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>A plastic ruler is clamped at one end, pulled aside, and let go. Watch the force arrow at the tip: it always points back toward the equilibrium position, and it is larger when the tip is farther away. Make the free length shorter and note that the ruler becomes stiffer and oscillates faster, which is what Check Your Understanding asks about.</span></div>
+</figure>
+</section>
+
+<section id="hookes-law">
+<h2>Hooke’s law: the force is proportional to the displacement</h2>
+<p class="cite-target">The simplest oscillations occur when the restoring force is directly proportional to displacement. When stress and strain were covered in Newton’s Third Law of Motion, the name was given to this relationship between force and displacement was Hooke’s law:</p>
+$$\kF = -\kk\kx.$$
+<p>Here, $\kF$ is the restoring force, $\kx$ is the displacement from equilibrium or <strong>deformation</strong>, and $\kk$ is a constant related to the difficulty in deforming the system. The minus sign indicates the restoring force is in the direction opposite to the displacement.</p>
+<p>The <strong>force constant</strong> $\kk$ is related to the rigidity (or stiffness) of a system—the larger the force constant, the greater the restoring force, and the stiffer the system. The units of $\kk$ are newtons per meter (N/m). For example, $\kk$ is directly related to Young’s modulus when we stretch a string. Figure 16.4 shows a graph of the absolute value of the restoring force versus the displacement for a system that can be described by Hooke’s law—a simple spring in this case. The slope of the graph equals the force constant $\kk$ in newtons per meter. A common physics laboratory exercise is to measure restoring forces created by springs, determine if they follow Hooke’s law, and calculate their force constants if they do.</p>
+<figure class="demo" id="demo-spring-scale">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>Weights are hung on a spring one at a time, as in Figure 16.4, and each stretch is plotted against the weight the spring supports. The points fall on a straight line, and the slope of that line is the force constant. Change the force constant and note that a stiffer spring stretches less under the same load.</span></div>
+</figure>
+<div class="example" id="ex-car">
+<h3>Example 16.1 · How Stiff Are Car Springs?</h3>
+<p>What is the force constant for the suspension system of a car that settles 1.20 cm when an 80.0-kg person gets in?</p>
+<h4>Strategy</h4>
+<p>Consider the car to be in its equilibrium position $\kx = 0$ before the person gets in. The car then settles down 1.20 cm, which means it is displaced to a position $\kx = -1.20 \times 10^{-2}\ \text{m}$. At that point, the springs supply a restoring force $\kF$ equal to the person’s weight $w = mg = (80.0\ \text{kg})(9.80\ \text{m/s}^2) = 784\ \text{N}$. We take this force to be $\kF$ in Hooke’s law. Knowing $\kF$ and $\kx$, we can then solve the force constant $\kk$.</p>
+<h4>Solution</h4>
+<ol>
+<li>Solve Hooke’s law, $\kF = -\kk\kx$, for $\kk$:
+$$\kk = -\frac{\kF}{\kx}.$$</li>
+<li>Substitute known values and solve $\kk$:
+$$\kk = -\frac{784\ \text{N}}{-1.20 \times 10^{-2}\ \text{m}} = 6.53 \times 10^{4}\ \text{N/m}.$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>Note that $\kF$ and $\kx$ have opposite signs because they are in opposite directions—the restoring force is up, and the displacement is down. Also, note that the car would oscillate up and down when the person got in if it were not for damping (due to frictional forces) provided by shock absorbers. Bouncing cars are a sure sign of bad shock absorbers.</p>
+</div>
+<div class="exercises" data-place="hookes-law"></div>
+</section>
+
+<section id="elastic-energy">
+<h2>The energy stored in a deformation</h2>
+<p class="cite-target">In order to produce a deformation, work must be done. That is, a force must be exerted through a distance, whether you pluck a guitar string or compress a car spring. If the only result is deformation, and no work goes into thermal, sound, or kinetic energy, then all the work is initially stored in the deformed object as some form of potential energy. The potential energy stored in a spring is $\text{PE}_{\text{s}} = \tfrac{1}{2}\kk\kx^2$. Here, we generalize the idea to elastic potential energy for a deformation of any system that can be described by Hooke’s law. Hence,</p>
+$$\kPE = \tfrac{1}{2}\kk\kx^2,$$
+<p>where $\kPE$ is the <strong>elastic potential energy</strong> stored in any deformed system that obeys Hooke’s law and has a displacement $\kx$ from equilibrium and a force constant $\kk$.</p>
+<p>It is possible to find the work done in deforming a system in order to find the energy stored. This work is performed by an applied force $\kFa$. The applied force is exactly opposite to the restoring force (action-reaction), and so $\kFa = \kk\kx$. Figure 16.6 shows a graph of the applied force versus deformation $\kx$ for a system that can be described by Hooke’s law. Work done on the system is force multiplied by distance, which equals the area under the curve or $(1/2)\kk\kx^2$ (Method A in the figure). Another way to determine the work is to note that the force increases linearly from 0 to $\kk\kx$, so that the average force is $(1/2)\kk\kx$, the distance moved is $\kx$, and thus $\kW = \kFa d = [(1/2)\kk\kx](\kx) = (1/2)\kk\kx^2$ (Method B in the figure).</p>
+<figure class="demo" id="demo-stored-energy">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>The spring of a toy gun is pushed in, held, and released, with the numbers of Example 16.2. As the spring is compressed, the applied force grows in proportion to the compression, and the work done is the area of the triangle under the line. When the spring is let go, the stored energy becomes the kinetic energy of the dart. Change the force constant, the compression, or the mass of the dart and watch the speed at which it leaves.</span></div>
+</figure>
+<div class="example" id="ex-toy-gun">
+<h3>Example 16.2 · Calculating Stored Energy: A Toy Gun Spring</h3>
+<p>We can use a toy gun’s spring mechanism to ask and answer two simple questions: (a) How much energy is stored in the spring of a toy gun that has a force constant of 50.0 N/m and is compressed 0.150 m? (b) If you neglect friction and the mass of the spring, at what speed will a 2.00-g projectile be ejected from the gun?</p>
+<h4>Strategy for a</h4>
+<p>(a): The energy stored in the spring can be found directly from elastic potential energy equation, because $\kk$ and $\kx$ are given.</p>
+<h4>Solution for a</h4>
+<p>Entering the given values for $\kk$ and $\kx$ yields</p>
+$$\kPE = \tfrac{1}{2}\kk\kx^2 = \tfrac{1}{2}(50.0\ \text{N/m})(0.150\ \text{m})^2 = 0.563\ \text{N}\cdot\text{m} = 0.563\ \text{J}$$
+<h4>Strategy for b</h4>
+<p>Because there is no friction, the potential energy is converted entirely into kinetic energy. The expression for kinetic energy can be solved for the projectile’s speed.</p>
+<h4>Solution for b</h4>
+<ol>
+<li>Identify known quantities:
+$$\kKE_{\text{f}} = \kPE \quad \text{or} \quad \tfrac{1}{2}m\kv^2 = \tfrac{1}{2}\kk\kx^2 = \kPE = 0.563\ \text{J}$$</li>
+<li>Solve for $\kv$:
+$$\kv = \left(\frac{2\kPE}{m}\right)^{1/2} = \left(\frac{2(0.563\ \text{J})}{0.002\ \text{kg}}\right)^{1/2} = 23.7\ (\text{J/kg})^{1/2}$$</li>
+<li>Convert units: $23.7\ \text{m/s}$</li>
+</ol>
+<h4>Discussion</h4>
+<p>(a) and (b): This projectile speed is impressive for a toy gun (more than 80 km/h). The numbers in this problem seem reasonable. The force needed to compress the spring is small enough for an adult to manage, and the energy imparted to the dart is small enough to limit the damage it might do, especially because the darts in many of these guns are made of soft material with a rubber tip. Yet, the speed of the dart is great enough for it to travel an acceptable distance.</p>
+</div>
+<div class="exercises" data-place="elastic-energy"></div>
+</section>
