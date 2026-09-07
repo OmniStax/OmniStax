@@ -113,8 +113,9 @@ def inline(e):
         elif t == "list":
             out.append("\n" + block(k, 0) + "\n")
         elif t in ("figure", "note", "equation"):
-            # block elements nested inside a para: emit them as blocks, not as inline text
-            out.append("\n" + block(k, 0) + "\n")
+            # block elements nested inside a para: emit them as blocks, not as inline text.
+            # The sentinels keep para() from folding the block's lines into the paragraph.
+            out.append("\n\x02" + block(k, 0) + "\x03\n")
         elif t == "title":
             pass
         else:
@@ -130,7 +131,8 @@ def block(e, depth):
         if title is not None:
             lines.append("**" + inline(title).strip() + "**")
         txt = inline(e).strip()
-        txt = re.sub(r"[ \t]*\n[ \t]*", " ", txt)
+        txt = "".join(seg if i % 2 else re.sub(r"[ \t]*\n[ \t]*", " ", seg)
+                      for i, seg in enumerate(re.split(r"\x02|\x03", txt)))
         if txt:
             lines.append(txt)
     elif t == "title":
@@ -228,6 +230,7 @@ def main(path):
         if tag(k) in ("content", "glossary"):
             out.append(block(k, 0))
     s = "\n".join(out)
+    s = s.replace("\x02", "").replace("\x03", "")
     s = re.sub(r"\n{3,}", "\n\n", s)
     print(s)
 
