@@ -8,15 +8,18 @@ export const zBook = z.object({
   id: z.string(),
   title: z.string(),
   publisher: z.string(),
+  authors: z.array(z.string()).default([]),
+  source_url: z.string().url().optional(),   /* the book at the publisher */
   license: z.string(),
-  openstax: z.string().url().optional(),
+  license_url: z.string().url().optional(),
+  openstax: z.string().url().optional(),     /* prefix of the publisher's section pages; a chapter's section slugs complete it */
   chapters: z.array(z.string()),
   colors: z.record(zColor).default({}),
   macros: z.record(z.string()).default({}),
   symbols: z.record(z.string()).default({}),
   exercise_kinds: z.record(z.string()).default({}),
 }).transform((b) => ({
-  id: b.id, title: b.title, publisher: b.publisher, license: b.license, openstax: b.openstax,
+  id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, license: b.license, licenseUrl: b.license_url, openstax: b.openstax,
   chapterDirs: b.chapters, colors: b.colors, macros: b.macros, symbols: b.symbols, exerciseKinds: b.exercise_kinds,
 }));
 export type BookDTO = z.infer<typeof zBook>;
@@ -78,7 +81,8 @@ export type GlossaryDTO = z.infer<typeof zGlossary>;
 export type SectionEntry = { readonly id: string; readonly title: string; readonly built: boolean; readonly url: string; readonly fragment: string; readonly figures: string; readonly openstax?: string };
 export type ChapterEntry = { readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string; readonly sections: readonly SectionEntry[] };
 export type BookManifest = {
-  readonly id: string; readonly title: string; readonly publisher: string; readonly license: string; readonly openstax?: string;
+  readonly id: string; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string;
+  readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
   readonly colors: BookDTO['colors']; readonly macros: BookDTO['macros']; readonly symbols: BookDTO['symbols']; readonly exerciseKinds: BookDTO['exerciseKinds'];
   readonly chapters: readonly ChapterEntry[];
 };

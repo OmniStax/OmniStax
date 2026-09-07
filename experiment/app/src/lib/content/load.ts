@@ -6,6 +6,7 @@ import type { z } from 'zod';
 import { zBook, zChapter, zSectionMeta, zExerciseFile, zConceptsFile, zFormulasFile } from './schema';
 import type { BookDTO, ChapterDTO, SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, BookManifest, ChapterEntry, SectionEntry } from './schema';
 import { prerenderMath } from '../math/prerender';
+import { sectionSourceUrl } from './attribution';
 
 export type SectionSource = {
   readonly meta: SectionMetaDTO;
@@ -47,7 +48,7 @@ const loadChapter = async (root: string, dir: string, macros: BookDTO['macros'])
 };
 
 const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManifest => ({
-  id: book.id, title: book.title, publisher: book.publisher, license: book.license, openstax: book.openstax,
+  id: book.id, title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   colors: book.colors, macros: book.macros, symbols: book.symbols, exerciseKinds: book.exerciseKinds,
   chapters: chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
@@ -55,7 +56,7 @@ const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManife
     sections: ch.dto.sections.map((s): SectionEntry => {
       const built = ch.sections.some((b) => b.meta.id === s.id);
       const url = sectionUrl(book.id, ch.dto.dir, s.id);
-      return { id: s.id, title: s.title, built, url, fragment: `${url}doc.html`, figures: `${url}figures.js`, openstax: book.openstax && s.slug ? book.openstax + s.slug : undefined };
+      return { id: s.id, title: s.title, built, url, fragment: `${url}doc.html`, figures: `${url}figures.js`, openstax: sectionSourceUrl(book, ch.dto, s.id) };
     }),
   })),
 });

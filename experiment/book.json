@@ -2,7 +2,13 @@
  "id": "college-physics-2e",
  "title": "College Physics 2e",
  "publisher": "OpenStax",
+ "authors": [
+  "Paul Peter Urone",
+  "Roger Hinrichs"
+ ],
+ "source_url": "https://openstax.org/details/books/college-physics-2e",
  "license": "CC BY-NC-SA 4.0",
+ "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
  "openstax": "https://openstax.org/books/college-physics-2e/pages/",
  "base_url": "https://omnia.local/",
  "chapters": [

@@ -21,7 +21,7 @@ export type Mounter = (root: HTMLElement, section: SectionId) => void;
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', license: '', colors: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
+  manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', colors: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
   private fig: Fig | null = null;

@@ -254,3 +254,31 @@ links and scroll spy, exercise modes, per-figure transport, the three settings
 switches, persistence across reload, and the narrow-screen overlay. No console
 errors. `astro check` is clean.
 
+
+## Pass 8: attribution (2026-09-07)
+
+College Physics 2e is CC BY-NC-SA 4.0 (verified against openstax.org; the
+book is not plain CC BY). OpenStax asks digital reuse to carry "Access for
+free at <page url>" on every page view, and CC 4.0 asks for credit, the
+licence, and a note of changes wherever the work is shared. A section is
+what gets linked to, so every article gets it.
+
+- `book.json` gained `authors`, `source_url` and `license_url`.
+- `content/attribution.ts` is the one place the credit is worded: the
+  section's source URL, the footer HTML for both articles (text and
+  exercises), and a plain-text citation for metadata. The footer is the
+  credit, the "Access for free at" line, a link to the long form, and the
+  section's `notes` (what was left out).
+- Section pages carry `<link rel="license">` and JSON-LD with the authors,
+  `isBasedOn` the source page, the licence URL and `creditText`.
+- `/<book>/attribution/` is the long form: source, what Omnia changes,
+  the licence of the adapted pages (the same, by ShareAlike), and each built
+  section beside its original with its notes.
+- Root `LICENSE.md` separates adapted content (CC BY-NC-SA 4.0) from the
+  software (licence not chosen yet).
+- The credited figures in 2.1 and 2.5 are all photographs, which are
+  dropped, so nothing third-party is carried over; the rule for when one is
+  went into RULES.md.
+
+Checked: 20 unit tests, `astro check` clean, build, and a headless pass in
+light and dark with no console errors.
