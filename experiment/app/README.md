@@ -31,12 +31,12 @@ concern and read from the environment with defaults:
 
 ```
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes)
-src/lib/types       ids.ts: branded ids, the ItemId ADT and its key/parse pair
+src/lib/types       ids.ts: branded ids, the ItemId ADT (doc, view, or one figure split out of a doc) and its key/parse pair
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, dag
 src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
-src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport, drawing primitives (window.FIG for section scripts)
+src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Picker, Settings
 src/components/views      View dispatcher, ConceptMap, Contents, Formulas, Definitions, Notes
@@ -56,6 +56,9 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   applies its functions and saves. Tests cover it.
 - Documents are static HTML that keep running figures and typed answers, so they
   are adopted into panes, never re-rendered. Views and exercise cards are components.
+- A figure can be split into a tab of its own: the registry builds a root holding
+  just that figure's static markup and boots the section script on it; the other
+  figures of the script get detached scaffolds and never draw.
 - Book-specific values (colour set, macros, symbol table, exercise kind labels)
   come from `book.json` through the manifest. The shell has no physics in it.
 - Attribution is generated, never written by hand: `attribution.ts` builds the

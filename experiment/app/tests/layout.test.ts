@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout, openTab, splitRight, closeItem, where, groupsWith, openSide, parseLayout, prune } from '../src/lib/layout/model';
-import { sectionId } from '../src/lib/types/ids';
+import { sectionId, parseItemKey, itemKey, figItem } from '../src/lib/types/ids';
+import { focusedSection } from '../src/lib/layout/model';
 
 const s = sectionId('2.1');
 const text = 'doc:2.1/text', ex = 'doc:2.1/exercises', map = 'view:concepts';
@@ -55,4 +56,12 @@ test('parseLayout rejects unknown items and duplicate tabs, assigns keys', () =>
 test('prune keeps one empty group', () => {
   const l = prune({ ...defaultLayout(s), groups: [] });
   assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, []);
+});
+
+test('figure keys round-trip and belong to their section', () => {
+  const k = itemKey(figItem(s, 'demo-plane'));
+  assert.equal(k, 'fig:2.1/demo-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'demo-plane'));
+  assert.equal(parseItemKey('fig:2.1/'), null);
+  const l = splitRight(defaultLayout(s), 0, k);
+  assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
 });

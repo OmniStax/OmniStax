@@ -187,7 +187,7 @@ const demo = (id, H) => F.demo(root, id, H);
    DEMO 6 (3D): braking on dry vs wet concrete, v² = v0² + 2aΔx
 ===================================================================== */
 (function () {
-  const fig = F.byId(root, 'demo-braking');
+  const fig = F.byId(root, 'demo-braking'); if (!fig) return;   /* a split-out pane for another figure: no WebGL context here */
   const d = demo('demo-braking', 300);
   const wrap = el('div', 'three-wrap'); d.stage.insertBefore(wrap, d.stage.firstChild);   /* the 3D view above the graph canvas */
   const v0 = ctl(d.controls, { label: '\\kvo', cls: 'v', min: 5, max: 40, step: 0.5, value: 30, unit: 'm/s', dec: 1, onInput: reset });

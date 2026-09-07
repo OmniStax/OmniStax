@@ -11,7 +11,7 @@
   import { spy } from '../lib/sections/spy.svelte';
   import { allEls, findEl, jump, activePane } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { VIEW_KEYS } from '../lib/layout/model';
+  import { VIEW_KEYS, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { parseItemKey, sectionId, itemKey, docItem, conceptId, type SectionId } from '../lib/types/ids';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
@@ -47,6 +47,8 @@
     const onKey = (e: KeyboardEvent) => { if (e.key !== 'Escape') return; picker.open = false; settingsOpen = false; if (pin.pinned) pin.clear(); };
     const onClick = (e: MouseEvent) => {
       picker.open = false; settingsOpen = false;
+      const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fig-split');
+      if (sb?.dataset.key) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.key)); return; }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
@@ -76,7 +78,7 @@
   $effect(() => {
     const l = layoutStore.layout; const sec = focus.section;
     tick().then(() => {
-      registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc]'))));
+      registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc], .pane .fig-root'))));
       FIG.redrawAll(); spy.read(activePane(l.focus));
       if (sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
       try { history.replaceState(null, '', e.url); } catch { /* file:// */ }

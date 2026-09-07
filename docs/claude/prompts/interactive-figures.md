@@ -75,6 +75,7 @@ Every figure is one IIFE inside the section's figures.js module
 (`OMNIA_FIGURES['<sec>'] = function (root, F) {...}`) that calls:
 
   const d = demo('demo-<id>', H);            // demo = (id, H) => F.demo(root, id, H); H = canvas height in logical units
+                                             // d.fig, d.c (canvas), d.stage (canvas + transport), d.controls, d.readout
   const v = ctl(d.controls, {label:'\\kv', cls:'v', min, max, step, value, unit, dec, onInput: reset});
   const cy = cycle(() => T, hold);           // model time loops 0..T then waits `hold` s
   function draw() { const {ctx, W, H} = begin(d.c); ... tex(d.readout, `...`); }
@@ -122,7 +123,8 @@ Motion:
 - slider changes call reset() which restarts the loop.
 - the moving object is an ink-coloured dot or sprite; its arrows for v and
   a are drawn every frame with lengths proportional to the values.
-- the library adds a transport (play/pause, stop, speed) under every
+- the library adds a transport (play/pause, stop, a time scrubber when the
+  motion has a finite period, speed) under every
   registered figure; do not draw your own. Reduced-motion starts the
   figure stopped at t = T.
 

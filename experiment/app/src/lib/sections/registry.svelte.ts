@@ -3,8 +3,12 @@
    shown in several groups: the first gets the adopted element, the rest get a
    copy built from the fragment source with its own exercises and figures. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type SectionId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey } from '../types/ids';
+import { type SectionId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey, figItem } from '../types/ids';
 import type { Fig } from '../fig/figlib';
+import { ICON } from '../icons';
+
+/* A figure's tab title: its local id without the demo-/fig- prefix, "demo-plane" → "plane". */
+const figName = (local: string): string => local.replace(/^(demo|fig)-/, '').replace(/-/g, ' ');
 
 export type SectionStatus = 'loaded' | 'loading' | 'failed';
 export type SectionState = {
@@ -38,6 +42,7 @@ class Registry {
   state(sec: SectionId): SectionState | undefined { return this.sections[sec]; }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
+    if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
   }
   get concepts(): readonly ConceptDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.concepts); }
@@ -65,7 +70,17 @@ class Registry {
   private prepare(root: HTMLElement, sec: SectionId, doc: DocKind): void {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
     this.mountExercises(root, sec);
-    if (doc === 'text') this.bootFigures(root, sec);
+    if (doc === 'text') { this.splitButtons(root, sec); this.bootFigures(root, sec); }
+  }
+  /* Every figure in a document gets a button that opens it in a split of its own. */
+  private splitButtons(root: HTMLElement, sec: SectionId): void {
+    root.querySelectorAll<HTMLElement>('figure.demo[id] .demo-head').forEach((head) => {
+      if (head.querySelector('.fig-split')) return;
+      const local = (head.closest('figure')!.id).replace(`${sec}-`, '');
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.key = itemKey(figItem(sec, local));
+      b.title = 'Open in a split'; b.setAttribute('aria-label', `Open ${figName(local)} in a split`); b.innerHTML = ICON.split;
+      head.appendChild(b);
+    });
   }
   private bootFigures(root: HTMLElement, sec: SectionId): void {
     const figs = (window as unknown as { OMNIA_FIGURES?: Record<string, (root: HTMLElement, F: Fig) => void> }).OMNIA_FIGURES;
@@ -91,6 +106,17 @@ class Registry {
     return this.loading[sec]!;
   }
 
+  /* One figure on its own: a root holding just that figure's static markup, with the section script booted on it. */
+  figureFor(group: GroupKey, id: Extract<ItemId, { kind: 'fig' }>): HTMLElement | null {
+    const ck = `${group}|${itemKey(id)}`;
+    if (this.clones[ck]) return this.clones[ck];
+    const src = this.sections[id.section]?.src.text; if (!src) return null;
+    const t = document.createElement('template'); t.innerHTML = src;
+    const f = t.content.querySelector<HTMLElement>(`[id="${id.section}-${id.fig}"]`); if (!f) return null;
+    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = id.section; root.dataset.one = '1'; root.appendChild(f);
+    this.bootFigures(root, id.section);
+    return (this.clones[ck] = root);
+  }
   /* One element per (group, document). */
   instanceFor(group: GroupKey, id: ItemId, holds: (group: GroupKey, key: string) => boolean): HTMLElement | null {
     if (id.kind !== 'doc') return null;

@@ -70,7 +70,12 @@ article > p, article li, .example p, .example li{max-width:66ch}
    One card per widget: caption header, stage (drawing plus its transport
    bar), sliders on an aligned grid, and the live equation as a footer band. */
 .demo{margin:2rem 0;font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
-.demo .demo-head{display:flex;align-items:baseline;gap:12px;margin:0;padding:12px 18px 11px;border-bottom:1px solid var(--rule)}
+.demo .demo-head{position:relative;display:flex;align-items:baseline;gap:12px;margin:0;padding:12px 48px 11px 18px;border-bottom:1px solid var(--rule)}
+.fig-split{position:absolute;right:10px;top:9px;width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
+.fig-split:hover{color:var(--ink);background:var(--soft)}
+.fig-split svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+.fig-root{max-width:980px;margin:0 auto;padding:28px 40px 120px}
+.fig-root .demo{margin:0}
 .demo .demo-head .eyebrow{color:var(--accent);white-space:nowrap}
 .demo .demo-head span:not(.eyebrow){font-size:0.9rem;color:var(--muted);line-height:1.45}
 .demo .stage{position:relative;background:var(--panel)}
@@ -85,7 +90,8 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .tbtn svg{width:14px;height:14px;fill:currentColor}
 .transport .speed{width:auto;padding:0 8px;font-family:var(--mono);font-size:0.75rem;font-variant-numeric:tabular-nums}
 .transport.playing .tbtn:first-child{color:var(--ink)}
-html.anim-off .transport{opacity:.45;pointer-events:none}
+.transport .scrub{flex:1;width:auto;min-width:80px;max-width:420px;margin:0 8px}
+html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
 .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 36px;margin:0;padding:14px 18px 8px;border-top:1px solid var(--rule);font-size:0.9rem;color:var(--muted)}
 .controls:empty{display:none}
 .controls label{display:grid;grid-template-columns:minmax(1.8em,auto) 1fr 6.5em;align-items:center;gap:12px;width:300px;max-width:100%}

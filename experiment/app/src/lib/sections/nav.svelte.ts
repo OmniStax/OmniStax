@@ -24,8 +24,8 @@ export const reveal = (node: Element): boolean => {
   const key = itemKey(id); const l = layoutStore.layout;
   const pane = paneOf(node);
   const loc = pane?.isConnected ? { type: 'group' as const, index: Number(pane.dataset.group) } : where(l, key);
-  if (id.kind === 'doc' && layoutStore.overlay) layoutStore.overlay = null;
-  if (!loc) { layoutStore.apply((x) => (id.kind === 'doc' ? openTab(x, key, x.focus) : openSide(x, key, homeSide(x, key)))); return true; }
+  if (id.kind !== 'view' && layoutStore.overlay) layoutStore.overlay = null;
+  if (!loc) { layoutStore.apply((x) => (id.kind !== 'view' ? openTab(x, key, x.focus) : openSide(x, key, homeSide(x, key)))); return true; }
   if (loc.type === 'side') {
     if (matchMedia('(max-width: 900px)').matches) layoutStore.overlay = loc.side;
     if (l.collapsed.includes(key)) layoutStore.apply((x) => toggleCollapsed(x, key));

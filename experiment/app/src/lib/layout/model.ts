@@ -1,7 +1,7 @@
 /* The layout is a plain immutable value: two sidebars of views, one or two
    document groups of tabs, which group is focused. Every operation here is a
    pure function from Layout to Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, itemKey, parseItemKey, isView, docItem, viewItem, newGroupKey } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionId, itemKey, parseItemKey, isView, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -42,7 +42,7 @@ export const groupsWith = (l: Layout, k: ItemKey): number[] => l.groups.flatMap(
 export const focusedGroup = (l: Layout): Group => l.groups[l.focus] ?? l.groups[0];
 export const focusedSection = (l: Layout, fallback: SectionId): SectionId => {
   const active = focusedGroup(l).active; const id = active ? parseItemKey(active) : null;
-  return id && id.kind === 'doc' ? id.section : fallback;
+  return (id && sectionOfItem(id)) ?? fallback;
 };
 
 const removeFromGroup = (g: Group, k: ItemKey): Group => {
@@ -112,11 +112,12 @@ export const activate = (l: Layout, index: number, id: ItemId | ItemKey): Layout
 export const setFocus = (l: Layout, index: number): Layout => ({ ...l, focus: Math.max(0, Math.min(index, l.groups.length - 1)) });
 export const toggleCollapsed = (l: Layout, k: ItemKey): Layout => ({ ...l, collapsed: l.collapsed.includes(k) ? l.collapsed.filter((c) => c !== k) : [...l.collapsed, k] });
 export const setWidth = (l: Layout, side: Side, width: number): Layout => ({ ...l, sides: { ...l.sides, [side]: { ...l.sides[side], width: Math.max(SIDE_WIDTH.min, Math.min(SIDE_WIDTH.max, Math.round(width))) } } });
-/* The page's own text is always open and active in the focused group on load. */
+/* The page's own text is open, active and focused on load: in the group that already holds it, else added to the focused group. */
 export const ensureOwn = (l: Layout, section: SectionId): Layout => {
-  const k = keyOf(docItem(section, 'text')); const g = focusedGroup(l);
+  const k = keyOf(docItem(section, 'text'));
+  const at = l.groups.findIndex((x) => x.tabs.includes(k)); const g = at >= 0 ? l.groups[at] : focusedGroup(l);
   const groups = l.groups.map((x) => (x.key === g.key ? { ...x, tabs: x.tabs.includes(k) ? x.tabs : [k, ...x.tabs], active: k } : x));
-  return withGroups(l, groups);
+  return focusOn(withGroups(l, groups), g.key);
 };
 
 /* Persistence boundary: anything read from storage is untrusted and comes back as a Layout or not at all. */

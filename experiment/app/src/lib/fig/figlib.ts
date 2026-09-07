@@ -13,8 +13,8 @@ export type SymbolMap = Readonly<Record<string, string>>;
 type Box = { readonly l: Logical; readonly r: Logical; readonly t: Logical; readonly b: Logical };
 type Range = readonly [number, number];
 type Scale = (v: number) => Logical;
-type Cycle = { tau: number; wait: number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
-type Demo = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void };
+type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
+type Demo = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
 type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; onInput?: () => void };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
@@ -79,7 +79,8 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function demo(root: HTMLElement, id: string, H?: Logical) {
-  const fig = byId(root, id); if (!fig) throw new Error(`no figure "${id}" in ${root.dataset.sec}`);
+  /* A root holding one figure (a split-out figure pane) boots the whole section script; the other figures get a detached scaffold and never draw. */
+  const fig = byId(root, id) ?? (root.dataset.one ? el('figure', 'demo') : null); if (!fig) throw new Error(`no figure "${id}" in ${root.dataset.sec}`);
   const stage = el('div', 'stage'); fig.appendChild(stage);   /* the drawing and its transport */
   const c = H ? makeCanvas(stage, H) : null;
   const controls = el('div', 'controls'); fig.appendChild(controls);
@@ -89,24 +90,36 @@ function demo(root: HTMLElement, id: string, H?: Logical) {
 
 /* ---------- one animation loop for every figure ----------
    Figures animate on their own. Each gets a transport (play/pause, stop and
-   rewind, speed) under its canvas; a global switch pauses them all;
-   reduced-motion starts every figure stopped at its end state. */
+   rewind, a time scrubber when the motion has a finite period, speed) under
+   its canvas; a global switch pauses them all; reduced-motion starts every
+   figure stopped at its end state. */
 let paused = false;
 const demos: Demo[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
 const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target))), { rootMargin: '120px' }) : null;
 const SPEEDS = [1, 2, 4, 0.5] as const; const SPEED_LABEL: Record<number, string> = { 1: '1×', 2: '2×', 4: '4×', 0.5: '½×' };
 const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>', stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>' };
 const rewind = (d: Demo) => d.cycles.forEach((c) => { c.tau = 0; c.wait = 0; });
+const periodOf = (d: Demo): number => Math.max(0, ...d.cycles.map((c) => c.period()));
+/* The scrubber follows the motion while it plays; dragging it pauses and sets the time. */
+function syncScrub(d: Demo): void {
+  const s = d.scrub; if (!s) return; const P = periodOf(d); if (!(P > 0)) return;
+  s.max = String(P); s.value = String(Math.min(d.cycles[0].tau, P));
+}
 function transport(d: Demo): void {
   const bar = el('div', 'transport'); const play = el('button', 'tbtn'), stop = el('button', 'tbtn'), speed = el('button', 'tbtn speed');
   [play, stop, speed].forEach((b) => { b.type = 'button'; });
-  const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? 'Pause' : 'Play'; play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); };
+  const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? 'Pause' : 'Play'; play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); syncScrub(d); };
   play.addEventListener('click', () => { d.playing = !d.playing; if (d.playing && d.cycles.every((c) => c.tau === Infinity)) rewind(d); sync(); });
   stop.innerHTML = TICON.stop; stop.title = 'Stop and rewind'; stop.setAttribute('aria-label', stop.title);
   stop.addEventListener('click', () => { d.playing = false; rewind(d); d.draw(); sync(); });
   speed.title = 'Speed'; speed.setAttribute('aria-label', 'Playback speed');
   speed.addEventListener('click', () => { d.speed = SPEEDS[(SPEEDS.indexOf(d.speed as 1) + 1) % SPEEDS.length]; sync(); });
-  bar.append(play, stop, speed); sync();
+  if (d.cycles.length) {
+    const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.step = 'any'; scrub.setAttribute('aria-label', 'Time');
+    scrub.addEventListener('input', () => { d.playing = false; const v = +scrub.value; d.cycles.forEach((c) => { c.tau = v; c.wait = 0; }); d.draw(); sync(); });
+    d.scrub = scrub; bar.append(play, stop, scrub, speed);
+  } else bar.append(play, stop, speed);
+  sync();
   const stage = d.fig.querySelector('.stage'); if (stage) stage.appendChild(bar); else d.fig.appendChild(bar);
   d.sync = sync;
 }
@@ -117,13 +130,13 @@ function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () 
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
-  demos.forEach((d) => { if (!onScreen.has(d.fig)) return; if (!paused && d.playing) d.update(dt * d.speed); d.draw(); });
+  demos.forEach((d) => { if (!onScreen.has(d.fig)) return; if (!paused && d.playing) { d.update(dt * d.speed); syncScrub(d); } d.draw(); });
   requestAnimationFrame(loop);
 }
 if (typeof requestAnimationFrame === 'function') requestAnimationFrame(loop);
 function cycle(period: () => number, hold: number): Cycle {
   const s: Cycle = {
-    tau: REDUCED ? Infinity : 0, wait: 0,
+    tau: REDUCED ? Infinity : 0, wait: 0, period,
     step(dt, rate) { if (s.tau >= period()) { s.wait += dt; if (s.wait > hold) { s.wait = 0; s.tau = 0; } return; } s.tau = Math.min(period(), s.tau + dt * rate()); },
     now: () => Math.min(s.tau, period()),
     reset() { s.tau = REDUCED ? Infinity : 0; s.wait = 0; },
