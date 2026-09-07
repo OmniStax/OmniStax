@@ -69,8 +69,10 @@ Rules for the plan:
   line, question and suggestion in it.
 - Scene first: the thing that moves (a runner, a car, a plane) is drawn on
   a strip across the full width, and the graph goes below it in the same
-  canvas. A graph-only figure is allowed when the graph is the idea (an
-  area under a line, a curve crossing a level twice).
+  canvas. A vertical scene (a spring hanging from a beam) takes its graph
+  beside it instead. Pick whichever layout leaves neither half squeezed.
+  A graph-only figure is allowed when the graph is the idea (an area
+  under a line, a curve crossing a level twice).
 - 3D only when the idea is spatial (two lanes side by side, a hemisphere,
   a field). Otherwise 2D canvas.
 
@@ -152,9 +154,11 @@ headline. Do not loop on it.
 - **Fixed logical canvas.** Drawing in CSS pixels with 11px type and
   1.5px lines makes figures look like thumbnails. A 1400-unit space with
   22px type reads as a drawing rather than a chart.
-- **Scene above graph.** Side-by-side layouts squeeze both halves.
-  Stacking gives the strip the full width and lets the graph share the
-  x-axis story.
+- **Scene above graph.** Side-by-side layouts squeeze both halves when
+  the scene is horizontal. Stacking gives the strip the full width and
+  lets the graph share the x-axis story. A vertical scene has the
+  opposite problem, so its graph goes beside it; the layout is the
+  agent's call each time.
 - **Ambient loop, no Play button.** A Play button leaves the figure still
   by default, and a still figure is a chart. Looping with a hold means the
   page is never static and the reader sees the motion without doing

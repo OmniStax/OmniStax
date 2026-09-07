@@ -107,7 +107,11 @@ unasked, and only when they open a view the required figures do not.
 ## Figure style
 
 - Scene first. Draw the thing that moves (runner, plane, car) on a strip;
-  put the graph below it in the same canvas, never beside it.
+  put the graph below it in the same canvas. That is the layout for a
+  horizontal scene, which wants the full width. A vertical scene, such as
+  a spring hanging from a beam, takes its graph beside it instead, since
+  the scene leaves the width free. Use whichever layout leaves neither
+  half squeezed; the point of the rule is legibility, not the stacking.
 - Fixed 1400-unit logical canvas scaled to the column. Type 22px, small
   17px, headline 26px; strokes 3 to 5px; markers 9 to 11px radius. Hollow
   marker = initial value, filled = current, dashed = average or reference.
