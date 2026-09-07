@@ -61,6 +61,27 @@
    "placeholder": true
   },
   {
+   "id": "instantaneous-velocity",
+   "kind": "idea",
+   "section": "2.3",
+   "name": "Instantaneous velocity",
+   "placeholder": true
+  },
+  {
+   "id": "acceleration",
+   "kind": "idea",
+   "section": "2.4",
+   "name": "Acceleration",
+   "placeholder": true
+  },
+  {
+   "id": "newtons-second-law",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Newton’s second law",
+   "placeholder": true
+  },
+  {
    "id": "restoring-force",
    "kind": "idea",
    "section": "16.1",
@@ -153,6 +174,60 @@
    ],
    "why": "If one cycle takes a time $\\kT$, then $1/\\kT$ cycles fit into each unit of time, so the frequency is the reciprocal of the period and the period is the reciprocal of the frequency. Given either one, the other follows at once.",
    "evidence": "Example 16.3; the AP item; problems 1 to 4."
+  },
+  {
+   "id": "simple-harmonic-motion",
+   "kind": "idea",
+   "section": "16.3",
+   "name": "Simple harmonic motion",
+   "prereqs": [
+    "hookes-law",
+    "restoring-force"
+   ],
+   "why": "When the net force on a system can be described by Hooke’s law and there is no damping, the system oscillates with equal displacement on either side of equilibrium. This is simple harmonic motion, the simplest and most common kind of oscillation, and the system is a simple harmonic oscillator.",
+   "evidence": "Glossary terms simple harmonic motion and simple harmonic oscillator; conceptual questions 1 and 3; Check Your Understanding 1."
+  },
+  {
+   "id": "amplitude",
+   "kind": "idea",
+   "section": "16.3",
+   "name": "Amplitude $\\kX$",
+   "prereqs": [
+    "displacement",
+    "simple-harmonic-motion"
+   ],
+   "why": "The amplitude is the maximum displacement from equilibrium. It has the units of the displacement, meters for an object on a spring, and it is related to the energy in the oscillation. In one full period the object covers four amplitudes of ground.",
+   "evidence": "Glossary term; Check Your Understanding 1 and 2; the AP item on the distance covered in one period, placed here from 16.1."
+  },
+  {
+   "id": "shm-period",
+   "kind": "result",
+   "section": "16.3",
+   "eq": "eq-shm-period",
+   "name": "Period of a simple harmonic oscillator, $\\kT = 2\\pi\\sqrt{m/\\kk}$",
+   "prereqs": [
+    "simple-harmonic-motion",
+    "force-constant",
+    "period-frequency"
+   ],
+   "why": "The period and frequency of a simple harmonic oscillator depend on the mass and the force constant alone, not on the amplitude. A stiffer system has a shorter period and a more massive one a longer period. Because the period is constant, a simple harmonic oscillator can be used as a clock.",
+   "evidence": "Example 16.4; AP question 2; problems 1, 3, 6 and 9; conceptual questions 2, 4, 5 and 6; Check Your Understanding 1 for the independence of amplitude."
+  },
+  {
+   "id": "shm-kinematics",
+   "kind": "result",
+   "section": "16.3",
+   "eq": "eq-shm-x",
+   "name": "Position, velocity and acceleration in simple harmonic motion",
+   "prereqs": [
+    "amplitude",
+    "shm-period",
+    "instantaneous-velocity",
+    "acceleration",
+    "newtons-second-law"
+   ],
+   "why": "The displacement in any simple harmonic motion is a cosine of time, $\\kx(t) = \\kX\\cos(2\\pi\\kt/\\kT)$. The velocity is a sine with maximum $\\kvmax = 2\\pi\\kX/\\kT = \\kX\\sqrt{\\kk/m}$, zero at the turning points and greatest through equilibrium, and the acceleration is a cosine opposite in direction to the displacement. These are the sine waves that link simple harmonic motion to waves.",
+   "evidence": "Check Your Understanding 2; the graphs of Figure 16.12."
   }
  ],
  "coverage": [
@@ -231,6 +306,51 @@
   },
   {
    "span": "16.2-exercises",
+   "uses": []
+  },
+  {
+   "span": "16.3-shm",
+   "introduces": [
+    "simple-harmonic-motion",
+    "amplitude"
+   ],
+   "uses": [
+    "hookes-law",
+    "restoring-force",
+    "displacement"
+   ]
+  },
+  {
+   "span": "16.3-shm-period",
+   "introduces": [
+    "shm-period"
+   ],
+   "uses": [
+    "force-constant",
+    "period-frequency"
+   ]
+  },
+  {
+   "span": "16.3-ex-car-shocks",
+   "uses": [
+    "shm-period"
+   ]
+  },
+  {
+   "span": "16.3-shm-waves",
+   "introduces": [
+    "shm-kinematics"
+   ],
+   "uses": [
+    "amplitude",
+    "shm-period",
+    "instantaneous-velocity",
+    "acceleration",
+    "newtons-second-law"
+   ]
+  },
+  {
+   "span": "16.3-exercises",
    "uses": []
   }
  ]

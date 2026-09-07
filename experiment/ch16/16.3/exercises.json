@@ -1,0 +1,174 @@
+{
+ "section": "16.3",
+ "module": "m42242",
+ "notes": "Bloom levels, concept tags and hints are AI-generated. Answers come from the book’s answer key; AP questions 1 and 3 and problems 2, 4, 5, 7 and 8 have no keyed answer and are left out. The first AP item is the one the book places in 16.1; it tests amplitude and period and is placed here. AP question 4 tests energy at the centre of the oscillation and is placed with section 16.5. Suggested approaches for open questions are AI-written and marked. Numeric answers accept 2% tolerance.",
+ "exercises": [
+  {
+   "id": "cyu1",
+   "source_id": "fs-id2056610",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "concepts": ["amplitude", "shm-period", "simple-harmonic-motion"],
+   "place": "shm-period",
+   "cite": "shm-period",
+   "prompt": "Suppose you pluck a banjo string. You hear a single note that starts out loud and slowly quiets over time. Describe what happens to the sound waves in terms of period, frequency and amplitude as the sound decreases in volume.",
+   "answer": { "type": "open", "generated_by": "source", "solution": "Frequency and period remain essentially unchanged. Only amplitude decreases as volume decreases." }
+  },
+  {
+   "id": "cyu2",
+   "source_id": "fs-id2056612",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "concepts": ["amplitude", "shm-kinematics"],
+   "place": "shm-waves",
+   "cite": "shm-waves",
+   "prompt": "A babysitter is pushing a child on a swing. At the point where the swing reaches $\\kX$, where would the corresponding point on a wave of this motion be located?",
+   "answer": { "type": "open", "generated_by": "source", "solution": "$\\kX$ is the maximum deformation, which corresponds to the amplitude of the wave. The point on the wave would either be at the very top or the very bottom of the curve." }
+  },
+  {
+   "id": "ap-4a",
+   "source_id": "fs-id2793783",
+   "kind": "ap-test-prep",
+   "bloom": "Understand",
+   "concepts": ["amplitude", "period"],
+   "place": "end",
+   "cite": "shm",
+   "prompt": "Which of the following represents the distance (how much ground the particle covers) moved by a particle in a simple harmonic motion in one time period? (Here, $A$ represents the amplitude of the oscillation.)",
+   "answer": {
+    "type": "choice",
+    "generated_by": "source",
+    "options": ["0 cm", "A cm", "2A cm", "4A cm"],
+    "correct": 3,
+    "hint": "Follow the object for one full period: from $\\kX$ to $-\\kX$ and back again. How many amplitudes does it cover?"
+   }
+  },
+  {
+   "id": "ap2",
+   "source_id": "fs-id1170241149016",
+   "kind": "ap-test-prep",
+   "bloom": "Apply",
+   "concepts": ["shm-period"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "A particle of mass 100 g undergoes a simple harmonic motion. The restoring force is provided by a spring with a spring constant of 40 N∙m<sup>−1</sup>. What is the period of oscillation?",
+   "answer": {
+    "type": "choice",
+    "generated_by": "source",
+    "options": ["10π", "0.5π", "0.1π", "1π"],
+    "correct": 2,
+    "hint": "Use $\\kT = 2\\pi\\sqrt{m/\\kk}$ with the mass in kilograms."
+   }
+  },
+  {
+   "id": "cq1",
+   "source_id": "fs-id2017072",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["simple-harmonic-motion"],
+   "place": "end",
+   "cite": "shm",
+   "prompt": "What conditions must be met to produce simple harmonic motion?",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "The net force on the system must be a restoring force that can be described by Hooke’s law, $\\kF = -\\kk\\kx$, so that it is proportional to the displacement and points back toward equilibrium. There must also be no damping, that is, no friction or other non-conservative forces removing energy from the motion." }
+  },
+  {
+   "id": "cq2",
+   "source_id": "fs-id1561901",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["shm-period", "simple-harmonic-motion"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "(a) If frequency is not constant for some oscillation, can the oscillation be simple harmonic motion? (b) Can you think of any examples of harmonic motion where the frequency may depend on the amplitude?",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "(a) No. In simple harmonic motion the frequency is set by the mass and the force constant alone, $\\kf = \\frac{1}{2\\pi}\\sqrt{\\kk/m}$, so it cannot change while the oscillation goes on. A changing frequency means the net force is not of the form $\\kF = -\\kk\\kx$. (b) A pendulum swung through large angles takes longer for a wide swing than for a small one; a spring stretched past the range where Hooke’s law holds, a ball bouncing on the floor, and a marble rolling in a bowl that is not a true hemisphere all have periods that change with the size of the motion." }
+  },
+  {
+   "id": "cq3",
+   "source_id": "fs-id2032223",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["simple-harmonic-motion", "shm-period"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "Give an example of a simple harmonic oscillator, specifically noting how its frequency is independent of amplitude.",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "A guitar string is one example: plucked gently or hard, it sounds the same note, so its frequency is the same for a small amplitude and a large one. An object on a spring is another. Released from a large displacement or a small one, it completes each cycle in the same time $\\kT = 2\\pi\\sqrt{m/\\kk}$, which contains the mass and the force constant but not the amplitude." }
+  },
+  {
+   "id": "cq4",
+   "source_id": "fs-id1888472",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["shm-period", "force-constant"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "Explain why you expect an object made of a stiff material to vibrate at a higher frequency than a similar object made of a spongy material.",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "A stiff material has a large force constant $\\kk$: it takes a large force to deform it, and it pushes back hard when deformed. The frequency of a simple harmonic oscillator is $\\kf = \\frac{1}{2\\pi}\\sqrt{\\kk/m}$, so for the same mass a larger $\\kk$ gives a higher frequency. The spongy object has a small $\\kk$ and vibrates more slowly." }
+  },
+  {
+   "id": "cq5",
+   "source_id": "fs-id3306170",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["shm-period"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "As you pass a freight truck with a trailer on a highway, you notice that its trailer is bouncing up and down slowly. Is it more likely that the trailer is heavily loaded or nearly empty? Explain your answer.",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "Heavily loaded. The springs of the trailer are the same either way, so the force constant is fixed, and the period $\\kT = 2\\pi\\sqrt{m/\\kk}$ grows with the mass. A slow bounce means a long period, which means a large mass on the springs. An empty trailer would bounce quickly." }
+  },
+  {
+   "id": "cq6",
+   "source_id": "fs-id3449442",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "concepts": ["shm-period", "hookes-law"],
+   "place": "end",
+   "cite": "shm-period",
+   "prompt": "Some people modify cars to be much closer to the ground than when manufactured. Should they install stiffer springs? Explain your answer.",
+   "answer": { "type": "open", "generated_by": "ai", "solution": "Yes. With the car closer to the ground there is less room for the suspension to move before it bottoms out, so each bump must compress the springs less. By Hooke’s law the same load compresses a stiffer spring less, since $\\kx = \\kF/\\kk$. The stiffer springs also raise the frequency of the car’s oscillations, $\\kf = \\frac{1}{2\\pi}\\sqrt{\\kk/m}$, so the ride is firmer and the bouncing dies out over fewer, quicker cycles." }
+  },
+  {
+   "id": "p1",
+   "source_id": "fs-id1587278",
+   "kind": "problem",
+   "bloom": "Apply",
+   "concepts": ["shm-period", "force-constant"],
+   "place": "end",
+   "prompt": "A type of cuckoo clock keeps time by having a mass bouncing on a spring, usually something cute like a cherub in a chair. What force constant is needed to produce a period of 0.500 s for a 0.0150-kg mass?",
+   "answer": { "type": "number", "generated_by": "source", "value": 2.37, "unit": "N/m", "hint": "Solve $\\kT = 2\\pi\\sqrt{m/\\kk}$ for $\\kk$.", "solution": "$2.37\\ \\text{N/m}$" }
+  },
+  {
+   "id": "p3",
+   "source_id": "eip-800",
+   "kind": "problem",
+   "bloom": "Apply",
+   "concepts": ["shm-period"],
+   "place": "end",
+   "prompt": "A 0.500-kg mass suspended from a spring oscillates with a period of 1.50 s. How much mass must be added to the object to change the period to 2.00 s?",
+   "answer": { "type": "number", "generated_by": "source", "value": 0.389, "unit": "kg", "hint": "The spring is the same, so $\\kT^2$ is proportional to the mass. Find the mass that gives 2.00 s, then subtract 0.500 kg.", "solution": "0.389 kg" }
+  },
+  {
+   "id": "p6",
+   "source_id": "fs-id1941088",
+   "kind": "problem",
+   "bloom": "Apply",
+   "concepts": ["shm-period"],
+   "place": "end",
+   "prompt": "A diver on a diving board is undergoing simple harmonic motion. Her mass is 55.0 kg and the period of her motion is 0.800 s. The next diver is a male whose period of simple harmonic oscillation is 1.05 s. What is his mass if the mass of the board is negligible?",
+   "answer": { "type": "number", "generated_by": "source", "value": 94.7, "unit": "kg", "hint": "The board is the same for both divers, so the ratio of the masses is the square of the ratio of the periods.", "solution": "94.7 kg" }
+  },
+  {
+   "id": "p9",
+   "source_id": "fs-id3035922",
+   "kind": "problem",
+   "bloom": "Apply",
+   "concepts": ["shm-period"],
+   "place": "end",
+   "prompt": "A 90.0-kg skydiver hanging from a parachute bounces up and down with a period of 1.50 s. What is the new period of oscillation when a second skydiver, whose mass is 60.0 kg, hangs from the legs of the first, as seen in Figure 16.14.",
+   "figure": {
+    "src": "/media/ch16/Figure_17_02_03a.jpg",
+    "alt": "The figure shows two skydivers midway through the air, with both with open having their parachutes open.",
+    "caption": "Figure 16.14 The oscillations of one skydiver are about to be affected by a second skydiver. (credit: U.S. Army, www.army.mil)"
+   },
+   "answer": { "type": "number", "generated_by": "source", "value": 1.94, "unit": "s", "hint": "The parachute lines act as the spring, so the force constant is unchanged. The period scales as the square root of the total mass.", "solution": "1.94 s" }
+  }
+ ]
+}

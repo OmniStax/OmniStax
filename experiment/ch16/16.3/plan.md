@@ -1,7 +1,7 @@
 # Plan: 16.3 Simple Harmonic Motion: A Special Periodic Motion (m42242)
 
 Source: `source.md` (converted from CNXML). Book pages 710 to 714.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. Approved as proposed; the marble-in-the-bowl simulation was not picked; AP question 4 held for 16.5.
 
 The chapter's central section: three definitions, the period formula,
 the x(t), v(t), a(t) equations, one example, two Take-Home Experiment

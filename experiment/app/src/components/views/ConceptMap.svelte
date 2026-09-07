@@ -65,7 +65,7 @@
 
 <style>
   .dag{position:relative}
-  .row{display:flex;justify-content:space-around;gap:6px;margin-bottom:30px;position:relative;z-index:1}
+  .row{display:flex;flex-wrap:wrap;justify-content:space-around;gap:8px 6px;margin-bottom:30px;position:relative;z-index:1}   /* a row of many prerequisites wraps rather than squeezes */
   .row:last-child{margin-bottom:0}
   .node{font:inherit;font-size:0.78rem;line-height:1.15;padding:5px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer;text-align:center;max-width:120px;min-width:0}
   .node :global(.katex){font-size:0.95em}

@@ -50,6 +50,7 @@ export type AnswerDTO = z.infer<typeof zAnswer>;
 export const zExercise = z.object({
   id: z.string(), kind: z.string(), bloom: z.string(), tag: z.string().optional(), concepts: z.array(z.string()).default([]),
   place: z.string().default('end'), cite: z.string().optional(), prompt: z.string(), answer: zAnswer,
+  figure: z.object({ src: z.string(), alt: z.string().default(''), caption: z.string().default('') }).optional(),   /* a book figure the problem refers to, kept in the card */
 });
 export type ExerciseDTO = z.infer<typeof zExercise>;
 export const zExerciseFile = z.object({ exercises: z.array(zExercise) });

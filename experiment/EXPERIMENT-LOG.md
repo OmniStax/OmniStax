@@ -402,3 +402,48 @@ and dark with no console errors, the photograph loading, the period demo
 without a scrubber and the count demo with one; one fix pass for a
 clipped axis title and a label sitting on the string. The 16.1 spring
 scale was re-shot to confirm the moved sprites.
+
+## Pass 12: section 16.3 Simple Harmonic Motion (2026-09-07)
+
+Plan in `ch16/16.3/plan.md`, approved as proposed, then built. Three
+blocks (simple harmonic motion and its amplitude; the period depends on
+mass and stiffness, not on amplitude; the book's own header on the link
+to waves), four nodes (simple harmonic motion, amplitude, the period
+result T = 2π√(m/k), and one node for x(t), v(t), a(t) together), with
+placeholders for instantaneous velocity (2.3), acceleration (2.4) and
+Newton's second law (4.3). Four demos, all endless: the block on a
+frictionless surface with force and velocity arrows (Fig 16.9); two
+identical oscillators released at different amplitudes staying in step,
+with T against m below (Example 16.4's car as defaults); the paper strip
+(Fig 16.11, with the car's headlight streak of Fig 16.10 folded in); and
+the mass on a vertical spring with x, v and a arrows and three stacked
+graphs beside it (Fig 16.12). Fourteen exercises: two CYU inline, the AP
+item held from 16.1 plus AP question 2, six conceptual questions with
+AI-marked approaches, four keyed problems. The skydiver photograph sits
+inside problem 9's card.
+
+Decisions recorded on the way:
+- The 16.1 AP item on the distance covered in one period (4A) lands
+  here, tagged amplitude and period, and demo 1's readout states the
+  fact. AP question 4 (energy at the centre of the swing) is held for
+  16.5 under pipeline rule 12; this section's notes say so.
+- AP questions 1 and 3 and problems 2, 4, 5, 7 and 8 are unkeyed and
+  left out, with the two AP graphs and the child's jumper photograph.
+- First figure inside an exercise card: `exercises.json` items may carry
+  a `figure` (src, alt, caption); the schema and the card render it with
+  the `.photo` style. The image goes to `app/public/media/ch16/`.
+- The PhET callout ("Masses and Springs") is kept as a note with the
+  book's link. The boxed period formulas are a note too.
+- Vertical scenes (demos 3 and 4) take their graphs beside them; the
+  horizontal ones (demos 1 and 2) stack. The rule was reworded to say so
+  earlier in the day.
+- Two macros added, `\kX` (position hue) and `\kvmax` (velocity hue);
+  the RULES.md colour table lists them.
+- The concept map's rows now wrap: eight external prerequisites in one
+  row were overlapping. One CSS line in `ConceptMap.svelte`.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors and the skydiver image loading; one fix
+pass for a force label on the spring, two clipped axis titles, graph
+titles colliding with tick labels, and a displacement label on the
+equilibrium line.

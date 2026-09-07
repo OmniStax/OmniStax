@@ -14,8 +14,8 @@ Averages (bar) share the hue and are drawn dashed.
 | Quantity | Symbols | Light | Dark |
 |---|---|---|---|
 | time | t, Δt, T, f | #B45309 | #F5A524 |
-| position / displacement | x, x0, Δx | #1D4ED8 | #60A5FA |
-| velocity | v, v0, v̄, Δv | #B91C1C | #F87171 |
+| position / displacement | x, x0, Δx, X | #1D4ED8 | #60A5FA |
+| velocity | v, v0, v̄, Δv, v_max | #B91C1C | #F87171 |
 | acceleration | a, ā | #6D28D9 | #A78BFA |
 | force | F, F_app, k | #15803D | #4ADE80 |
 | energy | PE_el, KE, W | #0E7490 | #22D3EE |

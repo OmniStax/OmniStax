@@ -68,6 +68,41 @@
    "meaning": "hertz, the SI unit of frequency: one cycle per second, or 1/s",
    "unit": "",
    "section": "16.2"
+  },
+  {
+   "sym": "X",
+   "color": "x",
+   "meaning": "amplitude, the maximum displacement from equilibrium",
+   "unit": "m",
+   "section": "16.3"
+  },
+  {
+   "sym": "t",
+   "color": "t",
+   "meaning": "time since the oscillator was released from x = X",
+   "unit": "s",
+   "section": "16.3"
+  },
+  {
+   "sym": "v",
+   "color": "v",
+   "meaning": "velocity of the oscillating object; zero at the turning points, greatest through equilibrium",
+   "unit": "m/s",
+   "section": "16.3"
+  },
+  {
+   "sym": "v_max",
+   "color": "v",
+   "meaning": "maximum speed, reached as the object passes through equilibrium",
+   "unit": "m/s",
+   "section": "16.3"
+  },
+  {
+   "sym": "a",
+   "color": "a",
+   "meaning": "acceleration of the oscillating object, always opposite in direction to the displacement",
+   "unit": "m/s²",
+   "section": "16.3"
   }
  ],
  "equations": [
@@ -113,6 +148,56 @@
    "ktex": "\\kT = \\frac{1}{\\kf}",
    "anchor": "16.2-ex-ultrasound",
    "important": false
+  },
+  {
+   "id": "eq-shm-period",
+   "concept": "shm-period",
+   "section": "16.3",
+   "latex": "T = 2\\pi\\sqrt{\\frac{m}{k}}",
+   "ktex": "\\kT = 2\\pi\\sqrt{\\frac{m}{\\kk}}",
+   "anchor": "16.3-shm-period",
+   "important": true
+  },
+  {
+   "id": "eq-shm-frequency",
+   "section": "16.3",
+   "latex": "f = \\frac{1}{2\\pi}\\sqrt{\\frac{k}{m}}",
+   "ktex": "\\kf = \\frac{1}{2\\pi}\\sqrt{\\frac{\\kk}{m}}",
+   "anchor": "16.3-shm-period",
+   "important": false
+  },
+  {
+   "id": "eq-shm-x",
+   "concept": "shm-kinematics",
+   "section": "16.3",
+   "latex": "x(t) = X\\cos\\frac{2\\pi t}{T}",
+   "ktex": "\\kx(\\kt) = \\kX\\cos\\frac{2\\pi\\kt}{\\kT}",
+   "anchor": "16.3-shm-waves",
+   "important": true
+  },
+  {
+   "id": "eq-shm-v",
+   "section": "16.3",
+   "latex": "v(t) = -v_{\\text{max}}\\sin\\frac{2\\pi t}{T}",
+   "ktex": "\\kv(\\kt) = -\\kvmax\\sin\\frac{2\\pi\\kt}{\\kT}",
+   "anchor": "16.3-shm-waves",
+   "important": false
+  },
+  {
+   "id": "eq-vmax",
+   "section": "16.3",
+   "latex": "v_{\\text{max}} = \\frac{2\\pi X}{T} = X\\sqrt{\\frac{k}{m}}",
+   "ktex": "\\kvmax = \\frac{2\\pi\\kX}{\\kT} = \\kX\\sqrt{\\frac{\\kk}{m}}",
+   "anchor": "16.3-shm-waves",
+   "important": false
+  },
+  {
+   "id": "eq-shm-a",
+   "section": "16.3",
+   "latex": "a(t) = -\\frac{kX}{m}\\cos\\frac{2\\pi t}{T}",
+   "ktex": "\\ka(\\kt) = -\\frac{\\kk\\kX}{m}\\cos\\frac{2\\pi\\kt}{\\kT}",
+   "anchor": "16.3-shm-waves",
+   "important": false
   }
  ],
  "glossary": [
@@ -150,6 +235,21 @@
    "section": "16.2",
    "term": "frequency",
    "definition": "number of events per unit of time"
+  },
+  {
+   "section": "16.3",
+   "term": "amplitude",
+   "definition": "the maximum displacement from the equilibrium position of an object oscillating around the equilibrium position"
+  },
+  {
+   "section": "16.3",
+   "term": "simple harmonic motion",
+   "definition": "the oscillatory motion in a system where the net force can be described by Hooke’s law"
+  },
+  {
+   "section": "16.3",
+   "term": "simple harmonic oscillator",
+   "definition": "a device that implements Hooke’s law, such as a mass that is attached to a spring, with the other end of the spring being connected to a rigid support such as a wall"
   }
  ]
 }

@@ -68,7 +68,9 @@
   "\\kKE": "\\htmlClass{kv-E}{\\text{KE}}",
   "\\kW": "\\htmlClass{kv-E}{W}",
   "\\kT": "\\htmlClass{kv-t}{T}",
-  "\\kf": "\\htmlClass{kv-t}{f}"
+  "\\kf": "\\htmlClass{kv-t}{f}",
+  "\\kX": "\\htmlClass{kv-x}{X}",
+  "\\kvmax": "\\htmlClass{kv-v}{v_{\\text{max}}}"
  },
  "symbols": {
   "t": "\\kt",
@@ -88,7 +90,9 @@
   "KE": "\\kKE",
   "W": "\\kW",
   "T": "\\kT",
-  "f": "\\kf"
+  "f": "\\kf",
+  "X": "\\kX",
+  "v_max": "\\kvmax"
  },
  "exercise_kinds": {
   "check-understanding": "Check Your Understanding",

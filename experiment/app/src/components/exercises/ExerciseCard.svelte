@@ -28,6 +28,7 @@
     {/each}
   </div>
   <div class="prompt" use:math={ex.prompt}><p>{@html ex.prompt}</p></div>
+  {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
   {#if a.type === 'number'}<NumberAnswer answer={a} />
   {:else if a.type === 'multi'}<MultiAnswer answer={a} />
   {:else if a.type === 'choice'}<ChoiceAnswer answer={a} name="c-{section}-{ex.id}" />{/if}

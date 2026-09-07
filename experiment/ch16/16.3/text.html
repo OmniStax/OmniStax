@@ -1,0 +1,76 @@
+<section id="shm">
+<h2>Simple harmonic motion and its amplitude</h2>
+<p class="cite-target">The oscillations of a system in which the net force can be described by Hooke’s law are of special importance, because they are very common. They are also the simplest oscillatory systems. <strong>Simple Harmonic Motion</strong> (SHM) is the name given to oscillatory motion for a system where the net force can be described by Hooke’s law, and such a system is called a <strong>simple harmonic oscillator</strong>. If the net force can be described by Hooke’s law and there is no <em>damping</em> (by friction or other non-conservative forces), then a simple harmonic oscillator will oscillate with equal displacement on either side of the equilibrium position, as shown for an object on a spring in Figure 16.9. The maximum displacement from equilibrium is called the <strong>amplitude</strong> $\kX$. The units for amplitude and displacement are the same, but depend on the type of oscillation. For the object on the spring, the units of amplitude and displacement are meters; whereas for sound oscillations, they have units of pressure (and other types of oscillations have yet other units). Because amplitude is the maximum displacement, it is related to the energy in the oscillation.</p>
+<div class="note">
+<div class="eyebrow">Take-Home Experiment: SHM and the Marble</div>
+<p>Find a bowl or basin that is shaped like a hemisphere on the inside. Place a marble inside the bowl and tilt the bowl periodically so the marble rolls from the bottom of the bowl to equally high points on the sides of the bowl. Get a feel for the force required to maintain this periodic motion. What is the restoring force and what role does the force you apply play in the simple harmonic motion (SHM) of the marble?</p>
+</div>
+<figure class="demo" id="demo-shm-oscillator">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>An object on a spring slides on a frictionless surface, as in Figure 16.9. It is released from rest at $\kx = \kX$ and oscillates with equal displacement on either side of equilibrium. Watch the two arrows: the restoring force is greatest at the turning points and zero at equilibrium, and the speed is the other way round. Change the amplitude, the force constant, or the mass.</span></div>
+</figure>
+</section>
+
+<section id="shm-period">
+<h2>The period depends on mass and stiffness, not on amplitude</h2>
+<p class="cite-target">What is so significant about simple harmonic motion? One special thing is that the period $\kT$ and frequency $\kf$ of a simple harmonic oscillator are independent of amplitude. The string of a guitar, for example, will oscillate with the same frequency whether plucked gently or hard. Because the period is constant, a simple harmonic oscillator can be used as a clock.</p>
+<p>Two important factors do affect the period of a simple harmonic oscillator. The period is related to how stiff the system is. A very stiff object has a large force constant $\kk$, which causes the system to have a smaller period. For example, you can adjust a diving board’s stiffness—the stiffer it is, the faster it vibrates, and the shorter its period. Period also depends on the mass of the oscillating system. The more massive the system is, the longer the period. For example, a heavy person on a diving board bounces up and down more slowly than a light one.</p>
+<p>In fact, the mass $m$ and the force constant $\kk$ are the <em>only</em> factors that affect the period and frequency of simple harmonic motion.</p>
+<div class="note">
+<div class="eyebrow">Period of Simple Harmonic Oscillator</div>
+<p>The <em>period of a simple harmonic oscillator</em> is given by</p>
+$$\kT = 2\pi\sqrt{\frac{m}{\kk}}$$
+<p>and, because $\kf = 1/\kT$, the <em>frequency of a simple harmonic oscillator</em> is</p>
+$$\kf = \frac{1}{2\pi}\sqrt{\frac{\kk}{m}}.$$
+<p>Note that neither $\kT$ nor $\kf$ has any dependence on amplitude.</p>
+</div>
+<figure class="demo" id="demo-shm-period">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>Two identical objects on identical springs are released at the same moment, the lower one from half the amplitude of the upper one. They pass through equilibrium together and stay in step, because the period does not depend on the amplitude. The graph below shows how the period grows with the mass for the force constant you set. The default numbers are those of Example 16.4.</span></div>
+</figure>
+<div class="note">
+<div class="eyebrow">Take-Home Experiment: Mass and Ruler Oscillations</div>
+<p>Find two identical wooden or plastic rulers. Tape one end of each ruler firmly to the edge of a table so that the length of each ruler that protrudes from the table is the same. On the free end of one ruler tape a heavy object such as a few large coins. Pluck the ends of the rulers at the same time and observe which one undergoes more cycles in a time period, and measure the period of oscillation of each of the rulers.</p>
+</div>
+<div class="example" id="ex-car-shocks">
+<h3>Example 16.4 · Calculate the Frequency and Period of Oscillations: Bad Shock Absorbers in a Car</h3>
+<p>If the shock absorbers in a car go bad, then the car will oscillate at the least provocation, such as when going over bumps in the road and after stopping (See Figure 16.10). Calculate the frequency and period of these oscillations for such a car if the car’s mass (including its load) is 900 kg and the force constant ($\kk$) of the suspension system is $6.53 \times 10^{4}\ \text{N/m}$.</p>
+<h4>Strategy</h4>
+<p>The frequency of the car’s oscillations will be that of a simple harmonic oscillator as given in the equation $\kf = \frac{1}{2\pi}\sqrt{\frac{\kk}{m}}$. The mass and the force constant are both given.</p>
+<h4>Solution</h4>
+<ol>
+<li>Enter the known values of $\kk$ and $m$:
+$$\kf = \frac{1}{2\pi}\sqrt{\frac{\kk}{m}} = \frac{1}{2\pi}\sqrt{\frac{6.53 \times 10^{4}\ \text{N/m}}{900\ \text{kg}}}.$$</li>
+<li>Calculate the frequency:
+$$\frac{1}{2\pi}\sqrt{72.6/\text{s}^{2}} = 1.3656/\text{s} \approx 1.36/\text{s} = 1.36\ \text{Hz}.$$</li>
+<li>You could use $\kT = 2\pi\sqrt{\frac{m}{\kk}}$ to calculate the period, but it is simpler to use the relationship $\kT = 1/\kf$ and substitute the value just found for $\kf$:
+$$\kT = \frac{1}{\kf} = \frac{1}{1.356\ \text{Hz}} = 0.738\ \text{s}.$$</li>
+</ol>
+<h4>Discussion</h4>
+<p>The values of $\kT$ and $\kf$ both seem about right for a bouncing car. You can observe these oscillations if you push down hard on the end of a car and let go.</p>
+</div>
+<div class="exercises" data-place="shm-period"></div>
+</section>
+
+<section id="shm-waves">
+<h2>The Link between Simple Harmonic Motion and Waves</h2>
+<p class="cite-target">If a time-exposure photograph of the bouncing car were taken as it drove by, the headlight would make a wavelike streak, as shown in Figure 16.10. Similarly, Figure 16.11 shows an object bouncing on a spring as it leaves a wavelike "trace" of its position on a moving strip of paper. Both waves are sine functions. All simple harmonic motion is intimately related to sine and cosine waves.</p>
+<figure class="demo" id="demo-paper-strip">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>An object bounces on a spring beside a strip of paper that moves steadily to the left, as in Figure 16.11, and a pen on the object records its position. The trace is a cosine: it starts at $\kx = \kX$, and one period later it is back at $\kx = \kX$ again. Change the amplitude or the period and watch the height and the spacing of the wave follow.</span></div>
+</figure>
+<p>The displacement as a function of time $\kt$ in any simple harmonic motion—that is, one in which the net restoring force can be described by Hooke’s law, is given by</p>
+$$\kx(\kt) = \kX\cos\frac{2\pi\kt}{\kT},$$
+<p>where $\kX$ is amplitude. At $\kt = 0$, the initial position is $\kxo = \kX$, and the displacement oscillates back and forth with a period $\kT$. (When $\kt = \kT$, we get $\kx = \kX$ again because $\cos 2\pi = 1$.). Furthermore, from this expression for $\kx$, the velocity $\kv$ as a function of time is given by:</p>
+$$\kv(\kt) = -\kvmax\sin\left(\frac{2\pi\kt}{\kT}\right),$$
+<p>where $\kvmax = 2\pi\kX/\kT = \kX\sqrt{\kk/m}$. The object has zero velocity at maximum displacement—for example, $\kv = 0$ when $\kt = 0$, and at that time $\kx = \kX$. The minus sign in the first equation for $\kv(\kt)$ gives the correct direction for the velocity. Just after the start of the motion, for instance, the velocity is negative because the system is moving back toward the equilibrium point. Finally, we can get an expression for acceleration using Newton’s second law. [Then we have $\kx(\kt)$, $\kv(\kt)$, $\kt$, and $\ka(\kt)$, the quantities needed for kinematics and a description of simple harmonic motion.] According to Newton’s second law, the acceleration is $\ka = \kF/m = \kk\kx/m$. So, $\ka(\kt)$ is also a cosine function:</p>
+$$\ka(\kt) = -\frac{\kk\kX}{m}\cos\frac{2\pi\kt}{\kT}.$$
+<p>Hence, $\ka(\kt)$ is directly proportional to and in the opposite direction to $\kx(\kt)$.</p>
+<p>Figure 16.12 shows the simple harmonic motion of an object on a spring and presents graphs of $\kx(\kt)$, $\kv(\kt)$, and $\ka(\kt)$ versus time.</p>
+<figure class="demo" id="demo-shm-xva">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>An object on a vertical spring is released from $\kx = \kX$, and its position, velocity and acceleration are graphed against time beside it, as in Figure 16.12. Note that the velocity is zero where the position is greatest and greatest where the position is zero, and that the acceleration is always opposite to the position. Change the amplitude, the force constant, or the mass and watch the three curves together.</span></div>
+</figure>
+<p>The most important point here is that these equations are mathematically straightforward and are valid for all simple harmonic motion. They are very useful in visualizing waves associated with simple harmonic motion, including visualizing how waves add with one another.</p>
+<div class="exercises" data-place="shm-waves"></div>
+<div class="note">
+<div class="eyebrow">Masses and Springs</div>
+<p>A realistic <a href="https://openstax.org/l/02masses_springs">mass and spring laboratory</a>. Hang masses from springs and adjust the spring stiffness and damping. You can even slow time. Transport the lab to different planets. A chart shows the kinetic, potential, and thermal energy for each spring.</p>
+</div>
+</section>
