@@ -97,5 +97,6 @@ Chapter-level: `ch02/chapter.json`, `concepts.json` (every node carries
 `section`; coverage spans are qualified ids like `2.1-distance`),
 `formulas.json` (variables and equations carry `section`; equations have
 `ktex` with the colour macros; glossary terms live here too).
-Build: `python3 tools/build_site.py`, output in `site/`, serve with
-`python3 -m http.server -d site 8080`.
+Build: `cd app && npm run build`, output in `app/dist/`, serve with
+`python3 -m http.server -d app/dist 8080`. Book-wide values the shell needs
+(colour set, macros, symbol table, exercise kind labels) live in `book.json`.

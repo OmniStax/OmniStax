@@ -41,32 +41,41 @@ fetched when first activated.
 
 ## How the build does it
 
-1. **Shared assets are separate files.** KaTeX, three.js, the shell CSS
-   and JS, and the figure primitives (`figlib.js`) are served from
-   `assets/` with long cache lifetimes. A section page costs its own HTML
-   plus cached shared assets.
-2. **Figures are scoped to a root.** Each section's `figures.js` registers
+The site is an Astro project (`experiment/app`) with static output and a
+Svelte 5 island for the shell.
+
+1. **Routes from content.** `src/lib/content/load.ts` reads the content
+   tree into DTOs. `[book]/[chapter]/[section]/index.astro` is the page;
+   `doc.html.ts` and `figures.js.ts` beside it emit the fragment and the
+   figure module; chapter `concepts.json` and `formulas.json` and the
+   `book.json` manifest are endpoints too.
+2. **Shared assets are bundled once.** KaTeX, the shell and the figure
+   library ship as hashed files under `assets/`; three.js is a vendor
+   script. A section page costs its own HTML plus cached shared assets.
+3. **Figures are scoped to a root.** Each section's `figures.js` registers
    `OMNIA_FIGURES['<sec>'] = function (root, F) {...}` and finds its
    canvases inside `root`, so two sections can share one DOM.
-3. **Chapter-level data.** The concept map, formula sheet and definitions
+4. **Chapter-level data.** The concept map, formula sheet and definitions
    are per chapter and grow across sections. Element ids are qualified by
    section at build time (`2.1-distance`, `2.1-ex-p1`), and the views
    scope to the focused section, showing other sections' nodes only as
    prerequisites.
-4. **Book manifest.** `book.json` lists chapters, sections, titles,
-   fragment URLs and figure module URLs. The "+" on each tab strip lists
-   it, which is how a reader picks what to load into that group.
-5. **Pre-rendered math.** The Python build pipes each article through
-   `tools/prerender_math.js`, which runs KaTeX in Node with the shared
-   colour macros.
+5. **Book manifest.** `book.json` lists chapters, sections, titles,
+   fragment URLs and figure module URLs, plus the book's colour set,
+   macros, symbol table and exercise kind labels. The "+" on each tab
+   strip lists its sections.
+6. **Pre-rendered math.** `src/lib/math/prerender.ts` runs KaTeX at build
+   time with the book's macros, so the article reads without JS.
 
 ## Stack
 
-The build is `tools/build_site.py` plus the Node step for math. If the
-site outgrows it, Astro with static output is the fit: one route per
-section from a content collection, zero client JS by default, per-route
-dynamic imports for figure modules, canonical and sitemap handled, and no
-component model forced on the figures, which stay plain canvas code.
+Astro for the pages, Svelte 5 for the shell. Astro because it does the
+static, one-URL-per-section, zero-JS-by-default delivery by design. Svelte
+because the shell moves live DOM between containers (a document with a
+running canvas and a typed answer goes from tab to sidebar to another
+group and keeps its state), and Svelte compiles to real DOM operations
+with actions, so a pane can adopt an existing element in one line. Figures
+stay plain canvas code against `window.FIG`.
 
 ## What stays dynamic on purpose
 
@@ -77,5 +86,5 @@ affect static delivery of the content.
 
 ## Limits
 
-Loading another section into a tab needs the site served over http. A
-single page still works from `file://`.
+The site must be served over http: asset paths are absolute and loading
+another section into a tab fetches its fragment.

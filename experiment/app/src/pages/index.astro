@@ -1,0 +1,7 @@
+---
+import { tree } from '../lib/content/paths';
+const t = await tree();
+const first = t.manifest.chapters.flatMap((c) => c.sections).find((s) => s.built);
+if (first) return Astro.redirect(first.url);
+---
+<p>No sections built.</p>

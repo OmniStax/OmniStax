@@ -14,8 +14,8 @@ with it.
   `coverage` table, so the figure plan can be checked against what the
   section actually introduces.
 - The per-book `RULES.md` (colour-coding table, tone rule, figure style).
-- The shared drawing layer `shell/figlib.js` (`window.FIG`, primitives
-  listed below). The prompt does not ask the model to reinvent it.
+- The shared drawing layer `app/src/lib/fig/figlib.ts` (`window.FIG`,
+  primitives listed below). The prompt does not ask the model to reinvent it.
 
 ## The prompt
 

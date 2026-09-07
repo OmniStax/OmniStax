@@ -1,0 +1,57 @@
+---
+/* One section as a static page: metadata for crawlers, the article in the
+   document, the book's colour tokens, and the shell mounted on top. */
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+import Shell from '../components/Shell.svelte';
+import { config } from '../../omnia.config';
+import { sectionUrl } from '../lib/content/load';
+import type { BookTree, ChapterTree, SectionSource } from '../lib/content/load';
+import { fragment } from '../lib/content/fragment';
+
+type Props = { tree: BookTree; chapter: ChapterTree; section: SectionSource };
+const { tree, chapter, section } = Astro.props as Props;
+const book = tree.dto;
+const sec = section.meta;
+const url = sectionUrl(book.id, chapter.dto.dir, sec.id);
+const canonical = new URL(url, config.site.baseUrl).href;
+const title = `${sec.id} ${sec.title} · ${book.title}`;
+const description = sec.objectives.join(' ') || sec.lead;
+const neighbours = chapter.dto.sections.map((s) => s.id);
+const at = neighbours.indexOf(sec.id);
+const built = new Set(chapter.sections.map((s) => s.meta.id));
+const link = (i: number) => (i >= 0 && i < neighbours.length && built.has(neighbours[i]) ? sectionUrl(book.id, chapter.dto.dir, neighbours[i]) : null);
+const prev = link(at - 1), next = link(at + 1);
+const ld = {
+  '@context': 'https://schema.org', '@type': 'LearningResource', name: `${sec.id} ${sec.title}`, description, url: canonical,
+  isPartOf: { '@type': 'Book', name: book.title, publisher: book.publisher }, license: book.license,
+  educationalLevel: 'Undergraduate', learningResourceType: 'Interactive textbook section',
+  teaches: chapter.concepts.concepts.filter((c) => c.section === sec.id && !c.placeholder).map((c) => c.name),
+};
+const colorVars = (mode: 'light' | 'dark') => Object.entries(book.colors).map(([k, c]) => `--c-${k}:${c[mode]}`).join(';');
+const kvRules = Object.keys(book.colors).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
+const shellProps = { manifest: tree.manifest, chapterDir: chapter.dto.dir, chapterData: { concepts: chapter.concepts, formulas: chapter.formulas }, section: sec, exercises: section.exercises, threeUrl: config.build.threeUrl };
+---
+<!doctype html>
+<html lang="en" data-book={book.id} data-chapter={chapter.dto.dir} data-section={sec.id}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title}</title>
+<meta name="description" content={description}>
+<link rel="canonical" href={canonical}>
+{prev && <link rel="prev" href={prev} />}
+{next && <link rel="next" href={next} />}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style is:inline set:html={`:root{${colorVars('light')}} @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${colorVars('dark')}}} :root[data-theme="dark"]{${colorVars('dark')}}\n${kvRules}`}></style>
+<script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnia-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
+</head>
+<body>
+<div id="pool" set:html={fragment(book, chapter.dto, section)}></div>
+<script is:inline src={config.build.threeUrl}></script>
+<script is:inline src={`${url}figures.js`}></script>
+<Shell client:only="svelte" {...shellProps} />
+</body>
+</html>

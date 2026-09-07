@@ -7,5 +7,59 @@
  "base_url": "https://omnia.local/",
  "chapters": [
   "ch02"
- ]
+ ],
+ "colors": {
+  "t": {
+   "label": "time",
+   "light": "#B45309",
+   "dark": "#F5A524"
+  },
+  "x": {
+   "label": "position, displacement",
+   "light": "#1D4ED8",
+   "dark": "#60A5FA"
+  },
+  "v": {
+   "label": "velocity",
+   "light": "#B91C1C",
+   "dark": "#F87171"
+  },
+  "a": {
+   "label": "acceleration",
+   "light": "#6D28D9",
+   "dark": "#A78BFA"
+  }
+ },
+ "macros": {
+  "\\kt": "\\htmlClass{kv-t}{t}",
+  "\\kx": "\\htmlClass{kv-x}{x}",
+  "\\kxo": "\\htmlClass{kv-x}{x_0}",
+  "\\kxf": "\\htmlClass{kv-x}{x_{\\text{f}}}",
+  "\\kv": "\\htmlClass{kv-v}{v}",
+  "\\kvo": "\\htmlClass{kv-v}{v_0}",
+  "\\kvb": "\\htmlClass{kv-v}{\\bar{v}}",
+  "\\ka": "\\htmlClass{kv-a}{a}",
+  "\\kab": "\\htmlClass{kv-a}{\\bar{a}}",
+  "\\kdx": "\\htmlClass{kv-x}{\\Delta x}",
+  "\\kdt": "\\htmlClass{kv-t}{\\Delta t}",
+  "\\kdv": "\\htmlClass{kv-v}{\\Delta v}"
+ },
+ "symbols": {
+  "t": "\\kt",
+  "x0": "\\kxo",
+  "xf": "\\kxf",
+  "x": "\\kx",
+  "Δx": "\\kdx",
+  "v0": "\\kvo",
+  "v": "\\kv",
+  "v̄": "\\kvb",
+  "Δv": "\\kdv",
+  "a": "\\ka"
+ },
+ "exercise_kinds": {
+  "check-understanding": "Check Your Understanding",
+  "problem": "Problem",
+  "ap-test-prep": "AP test prep",
+  "conceptual-question": "Conceptual question"
+ }
 }

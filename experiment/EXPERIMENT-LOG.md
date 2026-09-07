@@ -228,3 +228,29 @@ Checks: no console errors on either page over http and on 2.1 over
 file://; opening 2.5 from the 2.1 page boots its eight figures and moves
 the URL; the 2.5 map shows displacement as an other-section node and
 clicking it focuses the 2.1 group; split and drag work across sections.
+
+## Pass 7: Astro and Svelte port (2026-09-07)
+
+The DOM shell (one 585-line script) was rewritten as an Astro project with a
+Svelte 5 island, in `experiment/app`. The old shell, build script and output
+are in `_old/dom-shell/`.
+
+What changed in shape:
+- Content is parsed into DTOs with zod at one boundary (`content/schema.ts`);
+  the build reads the same `ch02/` sources as before.
+- The layout is an immutable value with pure operations (`layout/model.ts`),
+  covered by unit tests; the store applies and persists.
+- Ids are branded; a tab's content is an ADT (`ItemId`); answers are an ADT
+  (`AnswerDTO`) and each type has its own component.
+- Book-specific values (colour set, macros, symbols, exercise kinds) moved from
+  the shell into `book.json`.
+- The figure library is a typed ES module; section figures are unchanged.
+
+Verified in headless Chromium against the served build: default layout, split
+right duplicating the active document, closing one copy keeping the other's
+typed answer, opening 2.5 from the "+" into the second group with its figures,
+the 2.5 map's displacement node pinning and jumping into the 2.1 copy, contents
+links and scroll spy, exercise modes, per-figure transport, the three settings
+switches, persistence across reload, and the narrow-screen overlay. No console
+errors. `astro check` is clean.
+

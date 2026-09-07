@@ -1,0 +1,8 @@
+---
+import Page from '../../../../layouts/Page.astro';
+import { sectionRoutes } from '../../../../lib/content/paths';
+import type { SectionRoute } from '../../../../lib/content/paths';
+export const getStaticPaths = sectionRoutes;
+const { tree, chapter, section } = Astro.props as SectionRoute['props'];
+---
+<Page tree={tree} chapter={chapter} section={section} />

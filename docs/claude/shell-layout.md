@@ -1,8 +1,9 @@
 # Shell layout: rails, sidebars, tabbed groups
 
 The page is a shell of movable items rather than a fixed three-column
-article. Implementation: `experiment/shell/` (page.html, shell.css,
-shell.js), built into `experiment/site/` by `tools/build_site.py`. Documents are per section (`doc:2.1/text`,
+article. Implementation: Svelte 5 components under
+`experiment/app/src/components/` over a pure layout model in
+`src/lib/layout/model.ts`; see `experiment/app/README.md` for the file map. Documents are per section (`doc:2.1/text`,
 `doc:2.1/exercises`) and other sections load on demand through the "+"
 on each tab strip; see `static-composition.md`.
 
@@ -70,7 +71,7 @@ Interactions:
 - Under 900px the sidebars become one-at-a-time overlays opened from the
   rail, and groups stack vertically.
 
-State is one JSON object in `localStorage` (`omnia-layout-v3`): the items
+State is one JSON object in `localStorage` (`omnia-layout-v4`): the items
 in each sidebar and their widths, collapsed boxes, the groups with their
 tabs and active tab, a stable key per group, the focused group, and each
 view's home side. It is
