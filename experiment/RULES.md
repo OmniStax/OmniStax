@@ -13,7 +13,7 @@ Averages (bar) share the hue and are drawn dashed.
 
 | Quantity | Symbols | Light | Dark |
 |---|---|---|---|
-| time | t, Δt | #B45309 | #F5A524 |
+| time | t, Δt, T, f | #B45309 | #F5A524 |
 | position / displacement | x, x0, Δx | #1D4ED8 | #60A5FA |
 | velocity | v, v0, v̄, Δv | #B91C1C | #F87171 |
 | acceleration | a, ā | #6D28D9 | #A78BFA |

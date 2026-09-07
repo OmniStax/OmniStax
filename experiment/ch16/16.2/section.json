@@ -1,0 +1,15 @@
+{
+ "id": "16.2",
+ "module": "m42241",
+ "chapter": "16",
+ "title": "Period and Frequency in Oscillations",
+ "short": "Period and frequency",
+ "lead": "When you pluck a guitar string, each vibration takes the same time as the one before it. This section names that time the period, counts the vibrations in each second to define the frequency, and shows that each of the two is the reciprocal of the other.",
+ "objectives": [
+  "Observe the vibrations of a guitar string.",
+  "Determine the frequency of oscillations."
+ ],
+ "summary_html": "<ul><li>Periodic motion is a repetitious oscillation.</li><li>The time for one oscillation is the period $\\kT$.</li><li>The number of oscillations per unit time is the frequency $\\kf$.</li><li>These quantities are related by $\\kf = \\frac{1}{\\kT}.$</li></ul>",
+ "built": "2026-09-07",
+ "notes": ""
+}

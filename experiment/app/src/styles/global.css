@@ -66,6 +66,11 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .loading.bad{color:var(--bad)}
 @media (max-width:900px){ article{padding:20px 18px 80px} }
 
+/* a photograph kept from the book, with its caption and credit line */
+.photo{margin:2rem 0;font-family:var(--sans)}
+.photo img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+.photo figcaption{display:flex;align-items:baseline;gap:12px;margin-top:8px;font-size:0.9rem;color:var(--muted);line-height:1.45}
+.photo figcaption .eyebrow{white-space:nowrap}
 /* demos (drawn by the figure library into adopted articles)
    One card per widget: caption header, stage (drawing plus its transport
    bar), sliders on an aligned grid, and the live equation as a footer band. */

@@ -1,7 +1,7 @@
 # Plan: 16.2 Period and Frequency in Oscillations (m42241)
 
 Source: `source.md` (converted from CNXML). Book page 709.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. Approved as proposed; the tire-tread simulation was not picked.
 
 A thin section: one page in the book, one photograph, no sketches, one
 example, one Check Your Understanding, one AP item, six problems, all six

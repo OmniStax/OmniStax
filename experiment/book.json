@@ -66,7 +66,9 @@
   "\\kk": "\\htmlClass{kv-F}{k}",
   "\\kPE": "\\htmlClass{kv-E}{\\text{PE}_{\\text{el}}}",
   "\\kKE": "\\htmlClass{kv-E}{\\text{KE}}",
-  "\\kW": "\\htmlClass{kv-E}{W}"
+  "\\kW": "\\htmlClass{kv-E}{W}",
+  "\\kT": "\\htmlClass{kv-t}{T}",
+  "\\kf": "\\htmlClass{kv-t}{f}"
  },
  "symbols": {
   "t": "\\kt",
@@ -84,7 +86,9 @@
   "k": "\\kk",
   "PE_el": "\\kPE",
   "KE": "\\kKE",
-  "W": "\\kW"
+  "W": "\\kW",
+  "T": "\\kT",
+  "f": "\\kf"
  },
  "exercise_kinds": {
   "check-understanding": "Check Your Understanding",

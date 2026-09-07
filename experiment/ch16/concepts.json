@@ -54,6 +54,13 @@
    "placeholder": true
   },
   {
+   "id": "average-velocity",
+   "kind": "idea",
+   "section": "2.3",
+   "name": "Average velocity",
+   "placeholder": true
+  },
+  {
    "id": "restoring-force",
    "kind": "idea",
    "section": "16.1",
@@ -102,6 +109,50 @@
    ],
    "why": "Deforming a system takes work, and if nothing goes into heat, sound, or motion, all of that work is stored as elastic potential energy. The work is the area under the graph of applied force against deformation, a triangle of area $\\tfrac{1}{2}\\kk\\kx^2$. When the system is released, that energy can become kinetic energy, as it does for the dart of a toy gun.",
    "evidence": "Example 16.2; Check Your Understanding 2; conceptual question 1; problem 3."
+  },
+  {
+   "id": "periodic-motion",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Periodic motion",
+   "prereqs": [],
+   "why": "A motion that repeats itself at regular time intervals, such as a plucked guitar string or a mass on a spring moving up and down, is periodic. Each repetition takes the same time as the one before it, which is what makes a period and a frequency meaningful.",
+   "evidence": "Glossary term; Check Your Understanding asks for an event in your life that occurs regularly."
+  },
+  {
+   "id": "period",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Period $\\kT$",
+   "prereqs": [
+    "periodic-motion"
+   ],
+   "why": "The period is the time to complete one oscillation. Its units are usually seconds, but may be any convenient unit of time. The word applies to the time for any event, repetitive or not, but here it is the time for one cycle of a periodic motion.",
+   "evidence": "Glossary term; Check Your Understanding; the AP item; problems 1, 2 and 3."
+  },
+  {
+   "id": "frequency",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Frequency $\\kf$",
+   "prereqs": [
+    "periodic-motion"
+   ],
+   "why": "Frequency is the number of events per unit time. For periodic motion it is the number of oscillations per unit time, measured in hertz, where one hertz is one cycle per second. A count of cycles divided by the time they took gives the frequency, whether or not the count is made over one second.",
+   "evidence": "Glossary term; Check Your Understanding; the AP item; problems 2, 4, 5 and 6."
+  },
+  {
+   "id": "period-frequency",
+   "kind": "result",
+   "section": "16.2",
+   "eq": "eq-period-frequency",
+   "name": "Period and frequency, $\\kf = 1/\\kT$",
+   "prereqs": [
+    "period",
+    "frequency"
+   ],
+   "why": "If one cycle takes a time $\\kT$, then $1/\\kT$ cycles fit into each unit of time, so the frequency is the reciprocal of the period and the period is the reciprocal of the frequency. Given either one, the other follows at once.",
+   "evidence": "Example 16.3; the AP item; problems 1 to 4."
   }
  ],
  "coverage": [
@@ -152,6 +203,34 @@
   },
   {
    "span": "16.1-exercises",
+   "uses": []
+  },
+  {
+   "span": "16.2-periodic-motion",
+   "introduces": [
+    "periodic-motion",
+    "period"
+   ],
+   "uses": []
+  },
+  {
+   "span": "16.2-frequency",
+   "introduces": [
+    "frequency",
+    "period-frequency"
+   ],
+   "uses": [
+    "period"
+   ]
+  },
+  {
+   "span": "16.2-ex-ultrasound",
+   "uses": [
+    "period-frequency"
+   ]
+  },
+  {
+   "span": "16.2-exercises",
    "uses": []
   }
  ]

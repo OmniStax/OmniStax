@@ -48,6 +48,26 @@
    "meaning": "mass",
    "unit": "kg",
    "section": "16.1"
+  },
+  {
+   "sym": "T",
+   "color": "t",
+   "meaning": "period, the time to complete one oscillation",
+   "unit": "s",
+   "section": "16.2"
+  },
+  {
+   "sym": "f",
+   "color": "t",
+   "meaning": "frequency, the number of oscillations per unit time",
+   "unit": "Hz",
+   "section": "16.2"
+  },
+  {
+   "sym": "Hz",
+   "meaning": "hertz, the SI unit of frequency: one cycle per second, or 1/s",
+   "unit": "",
+   "section": "16.2"
   }
  ],
  "equations": [
@@ -76,6 +96,23 @@
    "ktex": "\\kPE = \\tfrac{1}{2}\\kk\\kx^2",
    "anchor": "16.1-elastic-energy",
    "important": true
+  },
+  {
+   "id": "eq-period-frequency",
+   "concept": "period-frequency",
+   "section": "16.2",
+   "latex": "f = \\frac{1}{T}",
+   "ktex": "\\kf = \\frac{1}{\\kT}",
+   "anchor": "16.2-frequency",
+   "important": true
+  },
+  {
+   "id": "eq-frequency-period",
+   "section": "16.2",
+   "latex": "T = \\frac{1}{f}",
+   "ktex": "\\kT = \\frac{1}{\\kf}",
+   "anchor": "16.2-ex-ultrasound",
+   "important": false
   }
  ],
  "glossary": [
@@ -98,6 +135,21 @@
    "section": "16.1",
    "term": "restoring force",
    "definition": "force acting in opposition to the force caused by a deformation"
+  },
+  {
+   "section": "16.2",
+   "term": "period",
+   "definition": "time it takes to complete one oscillation"
+  },
+  {
+   "section": "16.2",
+   "term": "periodic motion",
+   "definition": "motion that repeats itself at regular time intervals"
+  },
+  {
+   "section": "16.2",
+   "term": "frequency",
+   "definition": "number of events per unit of time"
   }
  ]
 }

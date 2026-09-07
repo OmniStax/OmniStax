@@ -348,3 +348,57 @@ Checks: `astro check` clean, 21 unit tests, build, headless pass in light
 and dark with no console errors; one fix pass for three label collisions.
 No chapter landing page yet (the config lists one; the app has no
 chapter-level page, same as Chapter 2).
+
+## Pass 11: section 16.2 Period and Frequency (2026-09-07)
+
+Plan in `ch16/16.2/plan.md`, approved as proposed, then built. A thin
+section: two blocks (periodic motion and the period; frequency as cycles
+per unit time, with Example 16.3 and the Check Your Understanding inline
+after it), four nodes (periodic motion, period, frequency, and the
+reciprocal relation f = 1/T as the result). Two demos: the plucked guitar
+string (an undamped vibration with the midpoint's position traced against
+time, the pen fixed at the right, one period bracketed between successive
+crests, a counting window shaded to show that the count over any window
+divided by its length gives the same frequency) and the counted cycles (a
+mass on a spring bobbing under a stopwatch, a mark on a time line for each
+completed cycle, N and t on the sliders, the AP item's ratio as default).
+Eight exercises, all from the book's key: one CYU inline, one AP item with
+two parts, six problems. Nothing left out, so the section's `notes` is
+empty for the first time.
+
+Decisions recorded on the way:
+- The block split falls inside the book's one paragraph, at "A concept
+  closely related to period is the frequency of an event." The words are
+  untouched; a header goes in. Approved.
+- The guitar photograph is kept, the first photograph kept under the
+  revised rule 14. New markup for a kept photograph, `figure.photo` with
+  an eyebrow carrying the book's figure number and a caption with the
+  credit line, and a `.photo` style in `global.css`. The image file is
+  copied into `app/public/media/ch16/`; the pipeline convention is that a
+  kept photograph goes to `app/public/media/<chapter dir>/` under the
+  book's own file name.
+- The tire-tread simulation (rule 15) was offered and not picked.
+- A steady oscillation runs endlessly: a cycle whose period is Infinity.
+  `figlib` now adds the time scrubber only when the motion has a finite
+  period, so an endless figure gets the plain transport the config asked
+  for. The figure handles reduced motion itself (a still frame with a
+  full trace).
+- The coil spring, block and fixed-surface sprites moved from 16.1's
+  module into `figlib` (`spring`, `block`, `fixed`), since 16.2 reuses
+  them; 16.1 now takes them from `F`.
+- Two macros added to `book.json`, `\kT` and `\kf`, both in the time hue;
+  the RULES.md colour table lists T and f on the time row. The hertz is a
+  definition of the unit symbol, not an equation on the sheet.
+- The AP item's key writes 1.66 Hz and 0.6 s; kept verbatim, the 2%
+  tolerance covers the exact 1.67 Hz. Its two parts are labelled f and T.
+- Problems 5 and 6 turn a speed and a spacing into a count per second;
+  they are tagged with `average-velocity` (2.3), added as a placeholder.
+- `cnxml2md.py` no longer folds a figure, note or equation nested in a
+  paragraph onto one line (the 16.1 converter note); 16.1's `source.md`
+  was regenerated.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors, the photograph loading, the period demo
+without a scrubber and the count demo with one; one fix pass for a
+clipped axis title and a label sitting on the string. The 16.1 spring
+scale was re-shot to confirm the moved sprites.
