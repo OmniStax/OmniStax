@@ -70,7 +70,9 @@
   "\\kT": "\\htmlClass{kv-t}{T}",
   "\\kf": "\\htmlClass{kv-t}{f}",
   "\\kX": "\\htmlClass{kv-x}{X}",
-  "\\kvmax": "\\htmlClass{kv-v}{v_{\\text{max}}}"
+  "\\kvmax": "\\htmlClass{kv-v}{v_{\\text{max}}}",
+  "\\ks": "\\htmlClass{kv-x}{s}",
+  "\\kg": "\\htmlClass{kv-a}{g}"
  },
  "symbols": {
   "t": "\\kt",
@@ -92,7 +94,9 @@
   "T": "\\kT",
   "f": "\\kf",
   "X": "\\kX",
-  "v_max": "\\kvmax"
+  "v_max": "\\kvmax",
+  "s": "\\ks",
+  "g": "\\kg"
  },
  "exercise_kinds": {
   "check-understanding": "Check Your Understanding",

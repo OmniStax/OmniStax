@@ -103,6 +103,32 @@
    "meaning": "acceleration of the oscillating object, always opposite in direction to the displacement",
    "unit": "m/s²",
    "section": "16.3"
+  },
+  {
+   "sym": "s",
+   "color": "x",
+   "meaning": "displacement of the pendulum bob along its arc from the lowest point",
+   "unit": "m",
+   "section": "16.4"
+  },
+  {
+   "sym": "θ",
+   "meaning": "angle of the string from the vertical; in radians, θ = s/L",
+   "unit": "rad",
+   "section": "16.4"
+  },
+  {
+   "sym": "L",
+   "meaning": "length of the pendulum, from the pivot to the centre of the bob",
+   "unit": "m",
+   "section": "16.4"
+  },
+  {
+   "sym": "g",
+   "color": "a",
+   "meaning": "acceleration due to gravity, 9.80 m/s² unless otherwise specified",
+   "unit": "m/s²",
+   "section": "16.4"
   }
  ],
  "equations": [
@@ -198,6 +224,41 @@
    "ktex": "\\ka(\\kt) = -\\frac{\\kk\\kX}{m}\\cos\\frac{2\\pi\\kt}{\\kT}",
    "anchor": "16.3-shm-waves",
    "important": false
+  },
+  {
+   "id": "eq-pendulum-force",
+   "concept": "pendulum-restoring-force",
+   "section": "16.4",
+   "latex": "F \\approx -\\frac{mg}{L}s",
+   "ktex": "\\kF \\approx -\\frac{m\\kg}{L}\\ks",
+   "anchor": "16.4-small-angle",
+   "important": false
+  },
+  {
+   "id": "eq-arc",
+   "section": "16.4",
+   "latex": "s = L\\theta",
+   "ktex": "\\ks = L\\theta",
+   "anchor": "16.4-small-angle",
+   "important": false
+  },
+  {
+   "id": "eq-pendulum-period",
+   "concept": "pendulum-period",
+   "section": "16.4",
+   "latex": "T = 2\\pi\\sqrt{\\frac{L}{g}}",
+   "ktex": "\\kT = 2\\pi\\sqrt{\\frac{L}{\\kg}}",
+   "anchor": "16.4-pendulum-period",
+   "important": true
+  },
+  {
+   "id": "eq-g-from-pendulum",
+   "concept": "measuring-g",
+   "section": "16.4",
+   "latex": "g = 4\\pi^2\\frac{L}{T^2}",
+   "ktex": "\\kg = 4\\pi^2\\frac{L}{\\kT^2}",
+   "anchor": "16.4-ex-measuring-g",
+   "important": false
   }
  ],
  "glossary": [
@@ -250,6 +311,11 @@
    "section": "16.3",
    "term": "simple harmonic oscillator",
    "definition": "a device that implements Hooke’s law, such as a mass that is attached to a spring, with the other end of the spring being connected to a rigid support such as a wall"
+  },
+  {
+   "section": "16.4",
+   "term": "simple pendulum",
+   "definition": "an object with a small mass suspended from a light wire or string"
   }
  ]
 }

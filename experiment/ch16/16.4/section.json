@@ -1,0 +1,14 @@
+{
+ "id": "16.4",
+ "module": "m42243",
+ "chapter": "16",
+ "title": "The Simple Pendulum",
+ "short": "The simple pendulum",
+ "lead": "A small mass hung from a light string swings back and forth about its lowest point. This section finds the restoring force on it, shows that for small swings the pendulum is a simple harmonic oscillator, and derives a period that depends on the length and the acceleration due to gravity alone, which is why a pendulum can measure gravity.",
+ "objectives": [
+  "Measure acceleration due to gravity."
+ ],
+ "summary_html": "<ul><li>A mass $m$ suspended by a wire of length $L$ is a simple pendulum and undergoes simple harmonic motion for amplitudes less than about $15°.$ The period of a simple pendulum is $\\kT = 2\\pi\\sqrt{\\frac{L}{\\kg}},$ where $L$ is the length of the string and $\\kg$ is the acceleration due to gravity.</li></ul>",
+ "built": "2026-09-07",
+ "notes": "AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 have no answer in the book’s key and are left out."
+}

@@ -13,6 +13,7 @@ export type SectionSource = {
   readonly textHtml: string;        /* article body, local ids, math prerendered */
   readonly figuresJs: string;
   readonly exercises: readonly ExerciseDTO[];
+  readonly exercisesLead: string;   /* math prerendered */
 };
 export type ChapterTree = { readonly dto: ChapterDTO; readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO; readonly sections: readonly SectionSource[] };
 export type BookTree = { readonly dto: BookDTO; readonly chapters: readonly ChapterTree[]; readonly manifest: BookManifest };
@@ -31,9 +32,9 @@ const loadSection = async (dir: string, macros: BookDTO['macros']): Promise<Sect
     readJson(path.join(dir, 'section.json'), zSectionMeta),
     readText(path.join(dir, 'text.html')),
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
-    exists(path.join(dir, 'exercises.json')).then((ok) => (ok ? readJson(path.join(dir, 'exercises.json'), zExerciseFile) : { exercises: [] })),
+    exists(path.join(dir, 'exercises.json')).then((ok) => (ok ? readJson(path.join(dir, 'exercises.json'), zExerciseFile) : { lead: '', exercises: [] })),
   ]);
-  return { meta, textHtml: prerenderMath(text, macros), figuresJs, exercises: exercises.exercises };
+  return { meta, textHtml: prerenderMath(text, macros), figuresJs, exercises: exercises.exercises, exercisesLead: exercises.lead ? prerenderMath(exercises.lead, macros) : '' };
 };
 
 const loadChapter = async (root: string, dir: string, macros: BookDTO['macros']): Promise<ChapterTree> => {

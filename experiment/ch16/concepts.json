@@ -82,6 +82,20 @@
    "placeholder": true
   },
   {
+   "id": "acceleration-due-to-gravity",
+   "kind": "idea",
+   "section": "2.7",
+   "name": "Acceleration due to gravity $\\kg$",
+   "placeholder": true
+  },
+  {
+   "id": "tension",
+   "kind": "idea",
+   "section": "4.5",
+   "name": "Tension",
+   "placeholder": true
+  },
+  {
    "id": "restoring-force",
    "kind": "idea",
    "section": "16.1",
@@ -228,6 +242,58 @@
    ],
    "why": "The displacement in any simple harmonic motion is a cosine of time, $\\kx(t) = \\kX\\cos(2\\pi\\kt/\\kT)$. The velocity is a sine with maximum $\\kvmax = 2\\pi\\kX/\\kT = \\kX\\sqrt{\\kk/m}$, zero at the turning points and greatest through equilibrium, and the acceleration is a cosine opposite in direction to the displacement. These are the sine waves that link simple harmonic motion to waves.",
    "evidence": "Check Your Understanding 2; the graphs of Figure 16.12."
+  },
+  {
+   "id": "simple-pendulum",
+   "kind": "idea",
+   "section": "16.4",
+   "name": "Simple pendulum",
+   "prereqs": [
+    "simple-harmonic-motion",
+    "restoring-force"
+   ],
+   "why": "A simple pendulum is a small mass, the bob, hung from a light string. Displaced along its arc, it feels a net force of $-m\\kg\\sin\\theta$ back toward the lowest point, because the tension cancels the part of the weight along the string. For small displacements it is a simple harmonic oscillator.",
+   "evidence": "Glossary term; Check Your Understanding; AP question 3."
+  },
+  {
+   "id": "pendulum-restoring-force",
+   "kind": "result",
+   "section": "16.4",
+   "eq": "eq-pendulum-force",
+   "name": "Restoring force on a pendulum, $\\kF \\approx -\\frac{m\\kg}{L}\\ks$",
+   "prereqs": [
+    "simple-pendulum",
+    "hookes-law",
+    "tension",
+    "acceleration-due-to-gravity"
+   ],
+   "why": "For angles below about 15°, $\\sin\\theta$ and $\\theta$ differ by 1% or less, so the restoring force $-m\\kg\\sin\\theta$ becomes $-m\\kg\\theta$, and with $\\ks = L\\theta$ it is $-\\frac{m\\kg}{L}\\ks$. That is Hooke’s law with a force constant $\\kk = m\\kg/L$, which is what makes the pendulum a simple harmonic oscillator.",
+   "evidence": "Check Your Understanding (a 12° swing is within the small-angle range); the derivation that Example 16.5 rests on."
+  },
+  {
+   "id": "pendulum-period",
+   "kind": "result",
+   "section": "16.4",
+   "eq": "eq-pendulum-period",
+   "name": "Period of a simple pendulum, $\\kT = 2\\pi\\sqrt{L/\\kg}$",
+   "prereqs": [
+    "pendulum-restoring-force",
+    "shm-period"
+   ],
+   "why": "Putting $\\kk = m\\kg/L$ into $\\kT = 2\\pi\\sqrt{m/\\kk}$ cancels the mass and leaves $\\kT = 2\\pi\\sqrt{L/\\kg}$. Only the length and the acceleration due to gravity affect the period; the mass does not, and the amplitude hardly does for small swings. This is why a pendulum keeps time.",
+   "evidence": "Example 16.5; AP questions 2 and 3; conceptual question 1; every problem in the section."
+  },
+  {
+   "id": "measuring-g",
+   "kind": "skill",
+   "section": "16.4",
+   "eq": "eq-g-from-pendulum",
+   "name": "Measuring $\\kg$ with a pendulum",
+   "prereqs": [
+    "pendulum-period"
+   ],
+   "why": "Squaring the period formula and solving for $\\kg$ gives $\\kg = 4\\pi^2 L/\\kT^2$. If the length is known precisely and the period is timed over many swings at a small angle, this gives the local acceleration due to gravity to several digits, which matters in geological exploration.",
+   "evidence": "The section’s learning objective; Example 16.5; AP question 2; the Take-Home Experiment; problems 7 and 13."
   }
  ],
  "coverage": [
@@ -351,6 +417,49 @@
   },
   {
    "span": "16.3-exercises",
+   "uses": []
+  },
+  {
+   "span": "16.4-pendulum-force",
+   "introduces": [
+    "simple-pendulum"
+   ],
+   "uses": [
+    "restoring-force",
+    "tension",
+    "acceleration-due-to-gravity"
+   ]
+  },
+  {
+   "span": "16.4-small-angle",
+   "introduces": [
+    "pendulum-restoring-force"
+   ],
+   "uses": [
+    "hookes-law",
+    "simple-pendulum"
+   ]
+  },
+  {
+   "span": "16.4-pendulum-period",
+   "introduces": [
+    "pendulum-period",
+    "measuring-g"
+   ],
+   "uses": [
+    "shm-period",
+    "pendulum-restoring-force"
+   ]
+  },
+  {
+   "span": "16.4-ex-measuring-g",
+   "uses": [
+    "measuring-g",
+    "pendulum-period"
+   ]
+  },
+  {
+   "span": "16.4-exercises",
    "uses": []
   }
  ]

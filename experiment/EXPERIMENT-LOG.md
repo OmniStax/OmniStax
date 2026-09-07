@@ -447,3 +447,44 @@ and dark with no console errors and the skydiver image loading; one fix
 pass for a force label on the spring, two clipped axis titles, graph
 titles colliding with tick labels, and a displacement label on the
 equilibrium line.
+
+## Pass 13: section 16.4 The Simple Pendulum (2026-09-07)
+
+Plan in `ch16/16.4/plan.md`, approved as proposed, then built. Three
+blocks split at paragraph boundaries (the restoring force on a pendulum;
+for small angles it is a simple harmonic oscillator; the period depends
+on length and gravity alone), four nodes (simple pendulum, the
+small-angle restoring force, the period T = 2π√(L/g), and measuring g as
+the chapter's first skill node), placeholders for tension (4.5) and the
+acceleration due to gravity (2.7). Three demos: the forces on the bob
+with the true equation of motion integrated live (RK4) and, beside it, F
+against s with Hooke's line and the small-angle band shaded; two
+pendulums of different length and mass swinging together with T against
+L below and a g slider that reaches the Moon; and the ten-swing timing of
+the Take-Home Experiment recovering g to five digits, Example 16.5 on
+load, finite with the scrubber. Ten exercises: the CYU inline, AP
+question 2 as a plain-text choice, the conceptual question with an
+AI-marked approach, seven keyed problems. The career note, the Take-Home
+Experiment and the Pendulum Lab callout are notes.
+
+Decisions recorded on the way:
+- The problem set's opening line (g = 9.80 m/s² unless otherwise
+  specified) is a `lead` in `exercises.json`; the loader prerenders its
+  math and the Exercises document prints it under its heading. First use
+  of the field.
+- AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 are unkeyed
+  and left out; the section's notes say so.
+- Choice options render as plain text, so AP question 2's formulas go in
+  as "g = 4π²L/T²" and the like.
+- The force demo's readout reports how far θ and sin θ differ at the set
+  amplitude and how much longer the true period is than 2π√(L/g), which
+  is the large-amplitude point the PhET note raises; the true period is
+  computed by the arithmetic-geometric mean.
+- Two macros added, `\ks` (position hue) and `\kg` (acceleration hue);
+  the RULES.md colour table lists them. θ and L stay in ink.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors; one fix pass for the weight and
+along-string labels colliding at small angles and the arc-length label
+sitting on the bob, plus a loader edit that had asserted its match
+without applying it.

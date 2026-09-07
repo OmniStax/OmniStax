@@ -53,7 +53,7 @@ export const zExercise = z.object({
   figure: z.object({ src: z.string(), alt: z.string().default(''), caption: z.string().default('') }).optional(),   /* a book figure the problem refers to, kept in the card */
 });
 export type ExerciseDTO = z.infer<typeof zExercise>;
-export const zExerciseFile = z.object({ exercises: z.array(zExercise) });
+export const zExerciseFile = z.object({ lead: z.string().default(''), exercises: z.array(zExercise) });   /* lead: a line the book prints above the problem set */
 
 export const zConcept = z.object({
   id: z.string(), kind: z.enum(['idea', 'result', 'skill']).default('idea'), section: z.string(), name: z.string(),

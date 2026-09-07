@@ -25,7 +25,7 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource
 
 export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
   `<article data-doc="${s.meta.id}/exercises" data-sec="${s.meta.id}" data-title="${s.meta.id} Exercises">`,
-  `<section id="${s.meta.id}-exercises"><h2>Problems &amp; Exercises</h2><div class="exercises" data-place="end"></div></section>`,
+  `<section id="${s.meta.id}-exercises"><h2>Problems &amp; Exercises</h2>${s.exercisesLead ? `<p class="lead">${s.exercisesLead}</p>` : ''}<div class="exercises" data-place="end"></div></section>`,
   footer(book, chapter, s),
   `</article>`,
 ].join('\n');

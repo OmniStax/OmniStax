@@ -1,7 +1,7 @@
 # Plan: 16.4 The Simple Pendulum (m42243)
 
 Source: `source.md` (converted from CNXML). Book pages 715 to 716.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. Approved as proposed; the clock-drift simulation was not picked.
 
 One idea, one derivation, one result. One sketch to replace, no
 photographs, one example, three notes (a career connection, a Take-Home
