@@ -10,6 +10,7 @@ export type Attribution = {
   readonly authors: readonly string[];
   readonly publisher: string;
   readonly publisherUrl?: string;   /* the book at the publisher */
+  readonly copyright?: string;      /* holder of the copyright notice, retained as the licence asks */
   readonly sourceUrl?: string;      /* this section at the publisher */
   readonly license: string;
   readonly licenseUrl?: string;
@@ -29,7 +30,7 @@ export const sectionSourceUrl = (book: Pick<BookDTO, 'openstax'>, chapter: Pick<
 };
 
 export const attributionOf = (book: BookDTO, chapter: ChapterDTO, meta: Pick<SectionMetaDTO, 'id' | 'notes'>): Attribution => ({
-  title: book.title, authors: book.authors, publisher: book.publisher, publisherUrl: book.sourceUrl,
+  title: book.title, authors: book.authors, publisher: book.publisher, publisherUrl: book.sourceUrl, copyright: book.copyright,
   sourceUrl: sectionSourceUrl(book, chapter, meta.id), license: book.license, licenseUrl: book.licenseUrl,
   attributionUrl: attributionUrl(book.id), notes: meta.notes,
 });
@@ -47,14 +48,16 @@ export const nameList = (names: readonly string[]): string =>
 export const citation = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${nameList(a.authors)}` : '';
   const access = a.sourceUrl ? ` Access for free at ${a.sourceUrl}.` : '';
-  return `${a.title}${by}, ${a.publisher}, ${a.license}, adapted by Omnia and shared under the same licence.${access}`;
+  const holder = a.copyright ? ` © ${a.copyright},` : '';
+  return `${a.title}${by}, ${a.publisher},${holder} ${a.license}, adapted by Omnia and shared under the same licence.${access}`;
 };
 
 /* The footer of every adapted article: the credit, the publisher's own
    "access for free" line, a link to the long form, and what was left out. */
 export const footerHtml = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${esc(nameList(a.authors))}` : '';
-  const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by Omnia and shared under the same licence.`;
+  const holder = a.copyright ? `, © ${esc(a.copyright)}` : '';
+  const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by Omnia and shared under the same licence.`;
   const access = a.sourceUrl ? ` Access for free at ${link(a.sourceUrl, esc(bare(a.sourceUrl)))}.` : '';
   const more = ` ${link(a.attributionUrl, 'What Omnia changed')}.`;
   const notes = a.notes ? `<p>${esc(a.notes)}</p>` : '';

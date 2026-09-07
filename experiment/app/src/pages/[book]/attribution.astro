@@ -38,7 +38,7 @@ const bookCredit = attributionOf(book, { id: '', dir: '', title: '', sections: [
 
 <section id="source">
 <h2>Source</h2>
-<p>The text is from <cite>{book.title}</cite>{authors && <> by {authors}</>}, published by {book.sourceUrl ? <a href={book.sourceUrl}>{book.publisher}</a> : book.publisher}, and licensed under {book.licenseUrl ? <a rel="license" href={book.licenseUrl}>{book.license}</a> : book.license}. {book.publisher} asks that any reuse carry the line “Access for free at” followed by the address of the original page. Each section's footer does, and the list below repeats it.</p>
+<p>The text is from <cite>{book.title}</cite>{authors && <> by {authors}</>}, published by {book.sourceUrl ? <a href={book.sourceUrl}>{book.publisher}</a> : book.publisher}{book.copyright && <>, © {book.copyright},</>} and licensed under {book.licenseUrl ? <a rel="license" href={book.licenseUrl}>{book.license}</a> : book.license}. {book.publisher} asks that any reuse carry the line “Access for free at” followed by the address of the original page. Each section's footer does, and the list below repeats it.</p>
 <p>{book.publisher} did not produce and does not endorse this adaptation. The {book.publisher} name and logo are trademarks of their owner and are used here only to say where the text comes from.</p>
 </section>
 

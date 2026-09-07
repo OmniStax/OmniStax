@@ -48,7 +48,7 @@ const loadChapter = async (root: string, dir: string, macros: BookDTO['macros'])
 };
 
 const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManifest => ({
-  id: book.id, title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
+  id: book.id, title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   colors: book.colors, macros: book.macros, symbols: book.symbols, exerciseKinds: book.exerciseKinds,
   chapters: chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,

@@ -5,7 +5,7 @@ import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 
 const book: BookDTO = {
   id: 'college-physics-2e', title: 'College Physics 2e', publisher: 'OpenStax', authors: ['Paul Peter Urone', 'Roger Hinrichs'],
-  sourceUrl: 'https://openstax.org/details/books/college-physics-2e', license: 'CC BY-NC-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
+  sourceUrl: 'https://openstax.org/details/books/college-physics-2e', copyright: 'Rice University', license: 'CC BY-NC-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
   openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], colors: {}, macros: {}, symbols: {}, exerciseKinds: {},
 };
 const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }] };
@@ -23,7 +23,7 @@ test('footer carries author, publisher, licence, access line, long-form link and
   const html = footerHtml(a);
   assert.match(html, /^<footer class="footer">/);
   assert.match(html, /<cite>College Physics 2e<\/cite> by Paul Peter Urone and Roger Hinrichs/);
-  assert.match(html, /<a href="https:\/\/openstax.org\/details\/books\/college-physics-2e">OpenStax<\/a>/);
+  assert.match(html, /\(<a href="https:\/\/openstax.org\/details\/books\/college-physics-2e">OpenStax<\/a>, © Rice University\), /);
   assert.match(html, /<a href="https:\/\/creativecommons.org\/licenses\/by-nc-sa\/4.0\/" rel="license">CC BY-NC-SA 4.0<\/a>/);
   assert.match(html, /shared under the same licence/);
   assert.match(html, /Access for free at <a href="https:\/\/openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement">openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement<\/a>\./);
@@ -31,7 +31,7 @@ test('footer carries author, publisher, licence, access line, long-form link and
   assert.match(html, /<p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
 });
 test('footer without optional fields still reads', () => {
-  const html = footerHtml(attributionOf({ ...book, authors: [], sourceUrl: undefined, licenseUrl: undefined, openstax: undefined }, chapter, { id: '2.1', notes: '' }));
+  const html = footerHtml(attributionOf({ ...book, authors: [], sourceUrl: undefined, copyright: undefined, licenseUrl: undefined, openstax: undefined }, chapter, { id: '2.1', notes: '' }));
   assert.match(html, /<cite>College Physics 2e<\/cite> \(OpenStax\), CC BY-NC-SA 4.0,/);
   assert.doesNotMatch(html, /Access for free/);
   assert.doesNotMatch(html, /<p><\/p>/);
@@ -42,5 +42,5 @@ test('footer escapes content fields', () => {
 });
 test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '' })),
-    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, CC BY-NC-SA 4.0, adapted by Omnia and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
+    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by Omnia and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
 });
