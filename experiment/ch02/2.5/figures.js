@@ -284,7 +284,7 @@ const demo = (id, H) => F.demo(root, id, H);
       dot(ctx, X(pos(a, tau)), y, PAL.ink, true, 9);
     });
     line(ctx, X(0), 80, X(0), 260, C('v'), 3, [4, 8]); text(ctx, 'light turns red', X(0), 282, PAL.muted, { align: 'center', size: 16 });
-    headline(ctx, 't = ' + fmt(tau, 2) + ' s · same speed, same driver; only the road differs');
+    headline(ctx, 't = ' + fmt(tau, 2) + ' s · the speed and the driver are the same, and only the road differs');
     tex(d.readout, `\\kx_{\\text{braking}} = \\frac{\\kv^2 - \\kvo^2}{2\\ka}:\\quad \\text{dry } \\frac{0 - (${fmt(v0.v, 1)})^2}{2(${fmt(ad.v, 2)})} = ${fmt(bd, 1)}\\ \\text{m},\\quad \\text{wet } ${fmt(bw, 1)}\\ \\text{m}`);
   }
   new ResizeObserver(() => draw()).observe(wrap);

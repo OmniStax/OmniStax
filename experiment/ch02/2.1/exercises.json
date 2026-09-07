@@ -82,7 +82,7 @@
    "answer": {
     "type": "open",
     "generated_by": "ai",
-    "solution": "Any path that doubles back works. A jogger runs 3 km east, then 1 km west: distance traveled 4 km, displacement +2 km (east positive), magnitude of displacement 2 km. The three numbers differ because the path has a turn in it."
+    "solution": "Any path that doubles back will do. For example, a jogger runs 3 km east and then 1 km west. The distance traveled is 4 km, the displacement is +2 km if east is taken as positive, and the magnitude of the displacement is 2 km. The three numbers differ because the path changes direction."
    }
   },
   {
@@ -100,7 +100,7 @@
    "answer": {
     "type": "open",
     "generated_by": "ai",
-    "solution": "Distance traveled equals the magnitude of displacement only when the motion never reverses direction, so the path is the straight segment between the two positions. Magnitude and displacement are exactly the same only when the displacement is positive (or zero) in the chosen coordinate system, since the magnitude drops the sign."
+    "solution": "The distance traveled equals the magnitude of the displacement only when the motion never reverses direction, so that the path is the straight segment between the two positions. The magnitude of the displacement equals the displacement itself only when the displacement is positive or zero in the chosen coordinate system, since the magnitude drops the sign."
    }
   },
   {
@@ -117,7 +117,7 @@
    "answer": {
     "type": "open",
     "generated_by": "ai",
-    "solution": "Because the motion keeps reversing. Every back-and-forth leg adds to the distance traveled, but the legs largely cancel in the displacement, which only measures the net change in position from start to finish."
+    "solution": "The motion keeps reversing direction. Each back-and-forth leg adds to the distance traveled, but the legs largely cancel in the displacement, which measures only the net change in position from start to finish."
    }
   },
   {

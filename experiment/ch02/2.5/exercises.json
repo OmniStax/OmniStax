@@ -35,7 +35,7 @@
    "answer": {
     "type": "open",
     "generated_by": "ai",
-    "solution": "Plot position against $\\kt^2$ (or fit $x = \\tfrac12 a t^2$). The slope of $x$ vs $t^2$ is about $1.25\\,\\text{cm/s}^2$, so $a \\approx 2.5\\,\\text{cm/s}^2$."
+    "solution": "Plot the position against $\\kt^2$, or fit the data to $x = \\tfrac12 a t^2$. The slope of the graph of $x$ against $t^2$ is about $1.25\\,\\text{cm/s}^2$, so the acceleration is about $2.5\\,\\text{cm/s}^2$."
    }
   },
   {
