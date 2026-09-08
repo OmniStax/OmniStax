@@ -14,7 +14,7 @@ export const qualifyIds = (html: string, section: string): string =>
 const footer = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => footerHtml(attributionOf(book, chapter, s.meta));
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
-  `<article data-doc="${s.meta.id}/text" data-sec="${s.meta.id}" data-title="${s.meta.id} Text" data-math="rendered">`,
+  `<article data-doc="${s.meta.id}/text" data-sec="${s.meta.id}" data-chapter="${chapter.dir}" data-title="${s.meta.id} Text" data-math="rendered">`,
   `<div class="eyebrow">Chapter ${esc(chapter.id)} · ${esc(chapter.title)} · ${s.meta.id}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   `<p class="lead">${s.meta.lead}</p>`,
@@ -24,7 +24,7 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource
 ].join('\n');
 
 export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
-  `<article data-doc="${s.meta.id}/exercises" data-sec="${s.meta.id}" data-title="${s.meta.id} Exercises">`,
+  `<article data-doc="${s.meta.id}/exercises" data-sec="${s.meta.id}" data-chapter="${chapter.dir}" data-title="${s.meta.id} Exercises">`,
   `<section id="${s.meta.id}-exercises"><h2>Problems &amp; Exercises</h2>${s.exercisesLead ? `<p class="lead">${s.exercisesLead}</p>` : ''}<div class="exercises" data-place="end"></div></section>`,
   footer(book, chapter, s),
   `</article>`,

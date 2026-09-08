@@ -50,9 +50,9 @@ const loadChapter = async (root: string, dir: string, macros: BookDTO['macros'])
 
 const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManifest => ({
   id: book.id, title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
-  colors: book.colors, macros: book.macros, symbols: book.symbols, exerciseKinds: book.exerciseKinds,
+  types: book.types, pool: book.pool, macros: book.macros, symbols: book.symbols, exerciseKinds: book.exerciseKinds,
   chapters: chapters.map((ch): ChapterEntry => ({
-    id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
+    id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title, colors: ch.dto.colors,
     concepts: `${chapterUrl(book.id, ch.dto.dir)}concepts.json`, formulas: `${chapterUrl(book.id, ch.dto.dir)}formulas.json`,
     sections: ch.dto.sections.map((s): SectionEntry => {
       const built = ch.sections.some((b) => b.meta.id === s.id);
@@ -66,7 +66,22 @@ export const loadBook = async (root: string, bookId: string): Promise<BookTree> 
   const dto = await readJson(path.join(root, 'book.json'), zBook);
   if (dto.id !== bookId) throw new Error(`book.json is "${dto.id}", expected "${bookId}"`);
   const chapters = await Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dir, dto.macros)));
+  checkColours(dto, chapters);
   return { dto, chapters, manifest: manifestOf(dto, chapters) };
+};
+
+/* Colour is a function of type. A chapter may bind only a type the book declares and only one without global hues, to a hue the pool has; a page may bind only declared types. */
+const checkColours = (book: BookDTO, chapters: readonly ChapterTree[]): void => {
+  const pool = new Set(book.pool.map((p) => p.id));
+  chapters.forEach((ch) => {
+    Object.entries(ch.dto.colors).forEach(([t, hue]) => {
+      const ty = book.types[t];
+      if (!ty) throw new Error(`chapter ${ch.dto.id} binds unknown type "${t}"`);
+      if (ty.light) throw new Error(`chapter ${ch.dto.id} binds "${t}", which has global hues`);
+      if (!pool.has(hue)) throw new Error(`chapter ${ch.dto.id} binds "${t}" to unknown pool hue "${hue}"`);
+    });
+    ch.sections.forEach((s) => s.meta.binds.forEach((t) => { if (!book.types[t]) throw new Error(`section ${s.meta.id} binds unknown type "${t}"`); }));
+  });
 };
 
 /* The tree is read once per build. In dev every request reads the files again, so a content edit shows on reload. */

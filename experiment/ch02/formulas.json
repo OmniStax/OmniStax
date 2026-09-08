@@ -3,91 +3,91 @@
  "variables": [
   {
    "sym": "x",
-   "color": "x",
+   "color": "position",
    "meaning": "position, relative to the chosen reference frame",
    "unit": "m",
    "section": "2.1"
   },
   {
    "sym": "x0",
-   "color": "x",
+   "color": "position",
    "meaning": "initial position",
    "unit": "m",
    "section": "2.1"
   },
   {
    "sym": "xf",
-   "color": "x",
+   "color": "position",
    "meaning": "final position",
    "unit": "m",
    "section": "2.1"
   },
   {
    "sym": "Δx",
-   "color": "x",
+   "color": "position",
    "meaning": "displacement, x_f − x_0; the sign gives the direction",
    "unit": "m",
    "section": "2.1"
   },
   {
    "sym": "t",
-   "color": "t",
+   "color": "time",
    "meaning": "elapsed time, with the initial time taken to be zero (final time on the stopwatch)",
    "unit": "s",
    "section": "2.5"
   },
   {
    "sym": "x0",
-   "color": "x",
+   "color": "position",
    "meaning": "initial position",
    "unit": "m",
    "section": "2.5"
   },
   {
    "sym": "x",
-   "color": "x",
+   "color": "position",
    "meaning": "final position",
    "unit": "m",
    "section": "2.5"
   },
   {
    "sym": "Δx",
-   "color": "x",
+   "color": "position",
    "meaning": "displacement, x − x0",
    "unit": "m",
    "section": "2.5"
   },
   {
    "sym": "v0",
-   "color": "v",
+   "color": "velocity",
    "meaning": "initial velocity",
    "unit": "m/s",
    "section": "2.5"
   },
   {
    "sym": "v",
-   "color": "v",
+   "color": "velocity",
    "meaning": "final velocity",
    "unit": "m/s",
    "section": "2.5"
   },
   {
    "sym": "v̄",
-   "color": "v",
+   "color": "velocity",
    "meaning": "average velocity; equals (v0 + v)/2 when acceleration is constant",
    "unit": "m/s",
    "section": "2.5"
   },
   {
    "sym": "Δv",
-   "color": "v",
+   "color": "velocity",
    "meaning": "change in velocity, v − v0",
    "unit": "m/s",
    "section": "2.5"
   },
   {
    "sym": "a",
-   "color": "a",
+   "color": "acceleration",
    "meaning": "acceleration, assumed constant so that ā = a",
    "unit": "m/s²",
    "section": "2.5"

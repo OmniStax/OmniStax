@@ -10,6 +10,11 @@
   "Determine the frequency of oscillations."
  ],
  "summary_html": "<ul><li>Periodic motion is a repetitious oscillation.</li><li>The time for one oscillation is the period $\\kT$.</li><li>The number of oscillations per unit time is the frequency $\\kf$.</li><li>These quantities are related by $\\kf = \\frac{1}{\\kT}.$</li></ul>",
+ "binds": [
+  "frequency",
+  "position",
+  "time"
+ ],
  "built": "2026-09-07",
  "notes": ""
 }

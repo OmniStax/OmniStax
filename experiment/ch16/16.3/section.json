@@ -10,6 +10,14 @@
   "Explain the link between simple harmonic motion and waves."
  ],
  "summary_html": "<ul><li>Simple harmonic motion is oscillatory motion for a system that can be described only by Hooke’s law. Such a system is also called a simple harmonic oscillator.</li><li>Maximum displacement is the amplitude $\\kX$. The period $\\kT$ and frequency $\\kf$ of a simple harmonic oscillator are given by $\\kT = 2\\pi\\sqrt{\\frac{m}{\\kk}}$ and $\\kf = \\frac{1}{2\\pi}\\sqrt{\\frac{\\kk}{m}}$, where $m$ is the mass of the system.</li><li>Displacement in simple harmonic motion as a function of time is given by $\\kx(\\kt) = \\kX\\cos\\frac{2\\pi\\kt}{\\kT}.$</li><li>The velocity is given by $\\kv(\\kt) = -\\kvmax\\sin\\frac{2\\pi\\kt}{\\kT}$, where $\\kvmax = \\kX\\sqrt{\\frac{\\kk}{m}}$.</li><li>The acceleration is found to be $\\ka(\\kt) = -\\frac{\\kk\\kX}{m}\\cos\\frac{2\\pi\\kt}{\\kT}.$</li></ul>",
+ "binds": [
+  "acceleration",
+  "force",
+  "position",
+  "stiffness",
+  "time",
+  "velocity"
+ ],
  "built": "2026-09-07",
  "notes": "AP questions 1 and 3 and problems 2, 4, 5, 7 and 8 have no answer in the book’s key and are left out, along with the two graphs of the AP questions and the photograph of the child’s jumper beside problem 8. AP question 4 asks for the energy of an oscillator at its centre, which section 16.5 introduces, and appears there instead."
 }

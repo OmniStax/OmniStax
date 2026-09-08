@@ -3,7 +3,7 @@
    per-book colour tokens (--c-*) are emitted by the page from the manifest. */
 :root{
   --bg:#F5F6F8; --panel:#FFFFFF; --ink:#1B1F27; --muted:#5D6470; --rule:#DDE1E7; --soft:#ECEFF3; --soft2:#E2E6EC; --thumb:#C3C9D2;
-  --ok:#15803D; --bad:#B91C1C; --accent:var(--c-x, #1D4ED8); --warm:var(--c-t, #B45309);
+  --ok:#15803D; --bad:#B91C1C; --accent:var(--c-position, #1D4ED8); --warm:var(--c-time, #B45309);
   --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
   --sans:'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;

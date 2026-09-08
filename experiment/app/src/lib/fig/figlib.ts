@@ -37,10 +37,22 @@ let CC = true;
 const PAL: Record<string, Color> = {};
 const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
 let colorKeys: readonly string[] = [];
-const cssVar = (n: string): string => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
+/* The page's palette, plus the chapter-tier hues a figure's chapter binds: a figure draws with the palette of the article it sits in. */
+let base: Record<string, Color> = {};
+const chapterPal = new Map<string, Record<string, Color>>();
 function readPal(): void {
   const named = Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k)]));
-  Object.assign(PAL, named, { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') });
+  base = { ...named, ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
+  chapterPal.clear(); Object.assign(PAL, base);
+}
+function usePal(fig: Element): void {
+  const scope = fig.closest<HTMLElement>('[data-chapter]'); const key = scope?.dataset.chapter ?? '';
+  if (!scope || scope === document.documentElement) { Object.assign(PAL, base); return; }
+  const cached = chapterPal.get(key);
+  const over: Record<string, Color> = cached ?? Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k, scope)]).filter(([, v]) => v));
+  if (!cached) chapterPal.set(key, over);
+  Object.assign(PAL, base, over);
 }
 const C = (k: string): Color => (CC || NEUTRAL.has(k) ? PAL[k] : PAL.ink);
 function alpha(hex: Color, a: number): Color {
@@ -130,7 +142,7 @@ function transport(d: Demo): void {
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
   const full: Demo = { ...d, fig, cycles: pendingCycles.splice(0), playing: !REDUCED, speed: 1, dirty: true };
-  demos.push(full); vio?.observe(fig); redraws.push(full.draw); transport(full);
+  demos.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
@@ -143,7 +155,7 @@ function loop(now: number): void {
       const before = d.cycles.map((c) => c.tau); d.update(dt * d.speed);
       if (!d.cycles.length || d.cycles.some((c, i) => c.tau !== before[i])) { d.dirty = true; syncScrub(d); }   /* the end-of-loop hold changes nothing */
     }
-    if (d.dirty) { d.dirty = false; d.draw(); }
+    if (d.dirty) { d.dirty = false; usePal(d.fig); d.draw(); }
   });
   requestAnimationFrame(loop);
 }

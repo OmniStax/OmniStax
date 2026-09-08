@@ -12,6 +12,12 @@
  ],
  "summary_html": "<ul>\n<li>To simplify calculations we take acceleration to be constant, so that $\\kab = \\ka$ at all times.</li>\n<li>We also take initial time to be zero.</li>\n<li>Initial position and velocity are given a subscript 0; final values have no subscript. Thus, $\\kdt = \\kt$, $\\kdx = \\kx - \\kxo$, $\\kdv = \\kv - \\kvo$.</li>\n<li>The following kinematic equations for motion with constant $\\ka$ are useful: $\\kx = \\kxo + \\kvb\\kt$, $\\kvb = \\frac{\\kvo + \\kv}{2}$, $\\kv = \\kvo + \\ka\\kt$, $\\kx = \\kxo + \\kvo\\kt + \\tfrac{1}{2}\\ka\\kt^2$, $\\kv^2 = \\kvo^2 + 2\\ka(\\kx - \\kxo)$.</li>\n<li>In vertical motion, $y$ is substituted for $\\kx$.</li>\n</ul>",
  "glossary": [],
+ "binds": [
+  "acceleration",
+  "position",
+  "time",
+  "velocity"
+ ],
  "built": "2026-09-05",
  "notes": ""
 }

@@ -4,29 +4,50 @@ Rules for transforming OpenStax College Physics 2e. They are revised as
 sections are added; the pipeline-wide rules are in
 `docs/andrew/pipeline-rules.md`.
 
-## Color-coding standard (kinematics chapters)
+## Colour is a function of type (pipeline rule 7)
 
-One hue per physical quantity. The hue is used everywhere the quantity
-appears: prose symbol, equation symbol, slider thumb, readout, drawn object.
-Initial values (subscript 0) share the hue and are drawn hollow or dashed.
-Averages (bar) share the hue and are drawn dashed.
+A type is a kind of physical quantity, named by its dimension. The book
+declares its types once in `book.json` (`types`: label, dimension, and
+hues for the global tier). A symbol takes its type's hue everywhere it
+appears: prose, equations, slider thumb, readout, drawn object. Variants
+of one type share the hue and differ by decoration: initial values
+(subscript 0) hollow or dashed, averages (bar) dashed, maxima by
+subscript. A derived quantity is another type with another hue.
 
-| Quantity | Symbols | Light | Dark |
+**Global tier**, pinned for the whole book:
+
+| Type | Symbols so far | Light | Dark |
 |---|---|---|---|
-| time | t, Δt, T, f | #B45309 | #F5A524 |
-| position / displacement | x, x0, Δx, X, s | #1D4ED8 | #60A5FA |
+| time | t, Δt, T | #B45309 | #F5A524 |
+| position | x, x0, Δx, X, s | #1D4ED8 | #60A5FA |
 | velocity | v, v0, v̄, Δv, v_max | #B91C1C | #F87171 |
 | acceleration | a, ā, g | #6D28D9 | #A78BFA |
-| force | F, F_app, k | #15803D | #4ADE80 |
+| force | F, F_app | #15803D | #4ADE80 |
 | energy | PE_el, KE, W | #0E7490 | #22D3EE |
 
-Force and energy were added at 16.1; the force constant k takes the force
-hue because it is force per unit stretch, and mass stays in ink. Period,
-frequency and angular frequency share the time hue; amplitude and
-wavelength share the position hue. Later chapters add momentum (Ch 8).
-Pick hues that stay distinguishable from these six.
+**Chapter tier.** Every other type is bound by the chapter in its
+`chapter.json` (`colors`: type → pool hue) from this pool, chosen so that
+no two types on one page of the chapter share a hue. The same type may
+take another pool hue in another chapter.
 
-Color coding must be toggleable. With it off, every symbol renders in ink
+| Pool hue | Light | Dark |
+|---|---|---|
+| magenta | #BE185D | #F472B6 |
+| olive | #4D7C0F | #A3E635 |
+| teal | #0F766E | #2DD4BF |
+
+Chapter 16 binds frequency (f) to magenta and stiffness (k, the force
+constant) to olive. Nothing is coerced: frequency is not a time and a
+force constant is not a force. Mass, length and angle are not typed for
+colour and stay in ink.
+
+**Per page.** A section's `section.json` lists in `binds` the types its
+page colours: the ones its demos draw, its sliders carry, or its
+readouts state. The rest render in ink on that page. The list is derived
+from the section's figures module at build time and written down, so
+the plan can say what the page binds.
+
+Colour coding must be toggleable. With it off, every symbol renders in ink
 and figures use greys with text labels.
 
 ## Global objects for this book

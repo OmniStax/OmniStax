@@ -11,6 +11,8 @@
   const order = $derived([...new Set([...vars.map((v) => v.section), ...terms.map((t) => t.section)])].sort((a, b) => (a === sec ? -1 : b === sec ? 1 : a.localeCompare(b, undefined, { numeric: true }))));
   const titleOf = (s: string) => registry.entry(sectionId(s))?.title ?? '';
   const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest.symbols[s] ?? s); return {}; };
+  /* the legend: the global tier, then the types the focused section's chapter binds */
+  const legend = $derived.by(() => { const m = registry.manifest, bound = registry.chapterOf(sectionId(sec))?.colors ?? {}; return Object.entries(m.types).filter(([k, t]) => t.light || k in bound).map(([k, t]) => [k, t.label] as const); });
 </script>
 
 {#snippet block(s: string)}
@@ -30,7 +32,7 @@
   {#if s === sec}{@render block(s)}{:else}<details class="other"><summary>{s} · {titleOf(s)}</summary>{@render block(s)}</details>{/if}
 {/each}
 {#if settings.colorCoding}
-  <div class="legend">{#each Object.entries(registry.manifest.colors) as [k, c] (k)}<i style:background="var(--c-{k})"></i><span>{c.label}</span>{/each}</div>
+  <div class="legend">{#each legend as [k, label] (k)}<i style:background="var(--c-{k})"></i><span>{label}</span>{/each}</div>
 {/if}
 
 <style>

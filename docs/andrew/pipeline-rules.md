@@ -53,12 +53,34 @@ concepts and sub-concepts, so the concept map grows across the book. The
 concept map holds strictly the concept description: name, kind, prerequisite
 edges, why, evidence. Narrative structure stays out of it.
 
-## 7. Keep the colour scheme by variable type
+## 7. Colour is a function of type
 
-Variables of the same type share a colour (time, position, velocity,
-acceleration in the kinematics chapters). The scheme binds sliders,
-equation symbols and drawn objects across the whole page, and it can be
-switched off. Keep it.
+A colour belongs to a type, and a type is a kind of physical quantity:
+its dimension (time, position, velocity, force, energy, frequency,
+stiffness). A symbol takes the colour of its type; a derived quantity is
+a different type and takes a different colour (v = dx/dt is velocity,
+not position); a variant of the same type (initial, average, maximum)
+keeps the colour and differs by decoration (hollow, dashed, subscript).
+A drawn thing takes the colour of its result type: the area under a
+force line is an energy and is shaded as one. Nothing is coerced into a
+neighbouring type to save a colour: frequency is not a time and a force
+constant is not a force.
+
+A book has more types than a page can carry in distinguishable hues, so
+hues are allocated in two tiers. The **global tier** pins one hue for
+the whole book to the handful of types nearly every chapter uses (time,
+position, velocity, acceleration, force, energy). Every other type is
+**chapter tier**: the chapter binds it to a hue from a small pool,
+choosing so that no two types that share a page in that chapter share a
+hue. A type may take a different pool hue in another chapter, since no
+reader is on both at once; the chapter is the unit a reader studies at
+a stretch. Finally, **a page colours only the types it binds**, the ones
+its demos draw, its sliders carry, or its readouts state; every other
+symbol renders in ink on that page, so colour stays a signal rather than
+wallpaper. The plan for a section lists what it binds.
+
+The scheme ties sliders, equation symbols and drawn objects together
+across the page, and it can be switched off. Keep it.
 
 ## 8. The page is a shell of items, not a fixed three-column article
 

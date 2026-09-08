@@ -13,7 +13,7 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
 ===================================================================== */
 (function () {
   const d = demo('demo-ruler', 640);
-  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'x', min: -6, max: 6, step: 0.5, value: 4, unit: 'cm', dec: 1, onInput: reset, aria: 'initial pull of the tip' });
+  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'position', min: -6, max: 6, step: 0.5, value: 4, unit: 'cm', dec: 1, onInput: reset, aria: 'initial pull of the tip' });
   const Lr = ctl(d.controls, { label: '\\text{free length}', cls: '', min: 10, max: 30, step: 1, value: 30, unit: 'cm', dec: 0, onInput: reset, aria: 'free length of the ruler' });
   const damp = ctl(d.controls, { label: '\\text{damping}', cls: '', min: 0.1, max: 3, step: 0.1, value: 0.6, unit: '/s', dec: 1, onInput: reset });
   /* Omnia's model of a plastic ruler: about 30 N/m and 1.5 Hz at 30 cm; a shorter length is stiffer as the cube and faster as the square */
@@ -35,10 +35,10 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
     ctx.strokeStyle = PAL.bg; ctx.lineWidth = 2; ctx.beginPath();
     for (let i = 2; i < 24; i += 2) { const f = i / 24, px = cx + x * U * f * f, py = yb - len * f; ctx.moveTo(px - 5, py); ctx.lineTo(px + 5, py); } ctx.stroke(); ctx.restore();
     if (Math.abs(x) > 0.15) {
-      hbracket(ctx, cx, tip, yt - 50, C('x'), 'x = ' + (x > 0 ? '+' : '−') + fmt(Math.abs(x), 1) + ' cm');
+      hbracket(ctx, cx, tip, yt - 50, C('position'), 'x = ' + (x > 0 ? '+' : '−') + fmt(Math.abs(x), 1) + ' cm');
       const s = x > 0 ? -1 : 1, al = 64 * Math.abs(x);
-      arrow(ctx, tip, yt + 8, tip + s * al, yt + 8, C('F'), 5);
-      text(ctx, 'restoring force F', tip + s * (al + 14), yt + 8, C('F'), { weight: 600, align: x > 0 ? 'right' : 'left', base: 'middle' });
+      arrow(ctx, tip, yt + 8, tip + s * al, yt + 8, C('force'), 5);
+      text(ctx, 'restoring force F', tip + s * (al + 14), yt + 8, C('force'), { weight: 600, align: x > 0 ? 'right' : 'left', base: 'middle' });
     }
     dot(ctx, tip, yt, PAL.ink, true, 9);
     headline(ctx, atRest ? 'the ruler has come to rest at its equilibrium position, where the net force is zero'
@@ -59,7 +59,7 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
 (function () {
   const d = demo('demo-spring-scale', 640);
   const m = ctl(d.controls, { label: 'm', cls: '', min: 0.1, max: 0.5, step: 0.1, value: 0.5, unit: 'kg', dec: 1, onInput: reset, aria: 'mass hung on the spring' });
-  const k = ctl(d.controls, { label: '\\kk', cls: 'F', min: 10, max: 100, step: 1, value: 39, unit: 'N/m', dec: 0, onInput: reset });
+  const k = ctl(d.controls, { label: '\\kk', cls: 'stiffness', min: 10, max: 100, step: 1, value: 39, unit: 'N/m', dec: 0, onInput: reset });
   const STEP = 1.1, steps = () => Math.round(m.v / 0.1), T = () => steps() * STEP;
   const cy = cycle(T, 1.6);
   function reset() { cy.reset(); }
@@ -77,22 +77,22 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
     spring(ctx, cx, yBeam, cx, yEnd, 9, 26, PAL.ink, 4);
     block(ctx, cx, yEnd + 32, 96, 64, PAL.ink);
     if (mNow > 0.001) text(ctx, fmt(mNow, 1) + ' kg', cx, yEnd + 32, PAL.ink, { size: 20, weight: 600, align: 'center', base: 'middle' });
-    line(ctx, cx - 150, y0, cx + 190, y0, PAL.muted, 2, [10, 10]); text(ctx, 'x = 0', cx - 160, y0, C('x'), { align: 'right', base: 'middle', weight: 600, size: 22 });
-    if (x > 0.004) vbracket(ctx, cx + 150, y0, yEnd, C('x'), 'x = ' + fmt(x, 3) + ' m', 1);
+    line(ctx, cx - 150, y0, cx + 190, y0, PAL.muted, 2, [10, 10]); text(ctx, 'x = 0', cx - 160, y0, C('position'), { align: 'right', base: 'middle', weight: 600, size: 22 });
+    if (x > 0.004) vbracket(ctx, cx + 150, y0, yEnd, C('position'), 'x = ' + fmt(x, 3) + ' m', 1);
     if (mNow > 0.001) {
       const al = 40 + 26 * w;
-      arrow(ctx, cx + 30, yEnd + 64, cx + 30, yEnd + 64 + al, C('F'), 5); text(ctx, 'w = ' + fmt(w, 2) + ' N', cx + 46, yEnd + 64 + al - 4, C('F'), { weight: 600, size: 20 });
-      arrow(ctx, cx - 30, yEnd, cx - 30, yEnd - al, C('F'), 5); text(ctx, 'F = ' + fmt(w, 2) + ' N', cx - 46, yEnd - al + 2, C('F'), { weight: 600, size: 20, align: 'right', base: 'bottom' });
+      arrow(ctx, cx + 30, yEnd + 64, cx + 30, yEnd + 64 + al, C('force'), 5); text(ctx, 'w = ' + fmt(w, 2) + ' N', cx + 46, yEnd + 64 + al - 4, C('force'), { weight: 600, size: 20 });
+      arrow(ctx, cx - 30, yEnd, cx - 30, yEnd - al, C('force'), 5); text(ctx, 'F = ' + fmt(w, 2) + ' N', cx - 46, yEnd - al + 2, C('force'), { weight: 600, size: 20, align: 'right', base: 'bottom' });
     }
     /* the graph beside a vertical scene: F against x, one dot per weight hung */
     const xr = nice(0, Math.max(0.02, xOf(m.v)) * 1.05, 3), Fr = nice(0, Math.max(0.5, m.v * G) * 1.05, 4);
     const box = { l: 760, r: 1320, t: 120, b: 500 };
-    const { X, Y } = axes(ctx, box, [0, xr.hi], [0, Fr.hi], { xl: 'x (m)', xc: C('x'), yl: 'F (N)', yc: C('F'), nx: xr.n, ny: Fr.n, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
+    const { X, Y } = axes(ctx, box, [0, xr.hi], [0, Fr.hi], { xl: 'x (m)', xc: C('position'), yl: 'F (N)', yc: C('force'), nx: xr.n, ny: Fr.n, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
     const xe = Math.min(xr.hi, Fr.hi / k.v);
-    line(ctx, X(0), Y(0), X(xe), Y(k.v * xe), C('F'), 5);
-    text(ctx, 'slope = k = ' + fmt(k.v, 0) + ' N/m', X(xe * 0.55) + 30, Y(k.v * xe * 0.55) + 44, C('F'), { weight: 600, size: 20 });
-    for (let j = 1; j <= hung; j++) dot(ctx, X(xOf(0.1 * j)), Y(0.1 * j * G), C('F'), true, 9);
-    if (mNow > 0.001) { line(ctx, X(x), box.b, X(x), Y(w), C('x'), 2, [4, 8]); line(ctx, box.l, Y(w), X(x), Y(w), C('F'), 2, [4, 8]); dot(ctx, X(x), Y(w), PAL.ink, true, 9); }
+    line(ctx, X(0), Y(0), X(xe), Y(k.v * xe), C('force'), 5);
+    text(ctx, 'slope = k = ' + fmt(k.v, 0) + ' N/m', X(xe * 0.55) + 30, Y(k.v * xe * 0.55) + 44, C('stiffness'), { weight: 600, size: 20 });
+    for (let j = 1; j <= hung; j++) dot(ctx, X(xOf(0.1 * j)), Y(0.1 * j * G), C('force'), true, 9);
+    if (mNow > 0.001) { line(ctx, X(x), box.b, X(x), Y(w), C('position'), 2, [4, 8]); line(ctx, box.l, Y(w), X(x), Y(w), C('force'), 2, [4, 8]); dot(ctx, X(x), Y(w), PAL.ink, true, 9); }
     headline(ctx, mNow < 0.001 ? 'with no load the spring hangs at its unstretched length, x = 0'
       : 'a ' + fmt(mNow, 1) + ' kg load weighs ' + fmt(w, 2) + ' N and stretches the spring ' + fmt(x, 3) + ' m');
     readout(d.readout, `\\kF = \\kk\\kx = (${fmt(k.v, 0)}\\ \\text{N/m})(${fmt(x, 3)}\\ \\text{m}) = ${fmt(w, 2)}\\ \\text{N} = w = mg`,
@@ -108,8 +108,8 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
 ===================================================================== */
 (function () {
   const d = demo('demo-stored-energy', 720);
-  const k = ctl(d.controls, { label: '\\kk', cls: 'F', min: 10, max: 200, step: 1, value: 50, unit: 'N/m', dec: 0, onInput: reset });
-  const x = ctl(d.controls, { label: '\\kx', cls: 'x', min: 0.02, max: 0.3, step: 0.005, value: 0.15, unit: 'm', dec: 3, onInput: reset, aria: 'compression of the spring' });
+  const k = ctl(d.controls, { label: '\\kk', cls: 'stiffness', min: 10, max: 200, step: 1, value: 50, unit: 'N/m', dec: 0, onInput: reset });
+  const x = ctl(d.controls, { label: '\\kx', cls: 'position', min: 0.02, max: 0.3, step: 0.005, value: 0.15, unit: 'm', dec: 3, onInput: reset, aria: 'compression of the spring' });
   const m = ctl(d.controls, { label: 'm', cls: '', min: 1, max: 10, step: 0.5, value: 2, unit: 'g', dec: 1, onInput: reset, aria: 'mass of the dart' });
   const T1 = 2.4, HOLD = 0.8, REL = 0.3, FLY = 1.2, T = () => T1 + HOLD + REL + FLY;
   const cy = cycle(T, 1.6);
@@ -133,23 +133,23 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
     line(ctx, plate, y - 36, plate, y + 36, PAL.ink, 8);
     const vv = vOut(), dartX = plate + 34 + (phase === 'flight' ? fly * Math.min(1000, 14 * vv) : 0);
     line(ctx, dartX - 44, y, dartX - 10, y, PAL.ink, 6); dot(ctx, dartX, y, PAL.ink, true, 12);
-    line(ctx, wall + nat, y - 44, wall + nat, y + 44, PAL.muted, 2, [6, 6]); text(ctx, 'x = 0', wall + nat, y - 58, C('x'), { size: 18, align: 'center', weight: 600 });
-    if (xc > 0.003) hbracket(ctx, plate, wall + nat, y + 80, C('x'), 'x = ' + fmt(xc, 3) + ' m');
+    line(ctx, wall + nat, y - 44, wall + nat, y + 44, PAL.muted, 2, [6, 6]); text(ctx, 'x = 0', wall + nat, y - 58, C('position'), { size: 18, align: 'center', weight: 600 });
+    if (xc > 0.003) hbracket(ctx, plate, wall + nat, y + 80, C('position'), 'x = ' + fmt(xc, 3) + ' m');
     if (phase === 'compress' || phase === 'hold') {
       const Fn = k.v * xc, al = 50 + 200 * xc / x.v;
-      arrow(ctx, plate + 60 + al, y - 96, plate + 60, y - 96, C('F'), 5);
-      text(ctx, 'applied force = kx = ' + fmt(Fn, 2) + ' N', plate + 74 + al, y - 96, C('F'), { weight: 600, base: 'middle' });
+      arrow(ctx, plate + 60 + al, y - 96, plate + 60, y - 96, C('force'), 5);
+      text(ctx, 'applied force = kx = ' + fmt(Fn, 2) + ' N', plate + 74 + al, y - 96, C('force'), { weight: 600, base: 'middle' });
     }
-    if (phase === 'flight') { arrow(ctx, dartX + 24, y - 80, dartX + 24 + Math.min(300, vv * 6), y - 80, C('v'), 5); text(ctx, 'v = ' + fmt(vv, 1) + ' m/s', dartX + 24, y - 112, C('v'), { weight: 600 }); }
+    if (phase === 'flight') { arrow(ctx, dartX + 24, y - 80, dartX + 24 + Math.min(300, vv * 6), y - 80, C('velocity'), 5); text(ctx, 'v = ' + fmt(vv, 1) + ' m/s', dartX + 24, y - 112, C('velocity'), { weight: 600 }); }
     /* the graph: applied force against deformation, work as the area */
     const xr = nice(0, x.v * 1.05, 3), Fr = nice(0, k.v * x.v * 1.05, 4);
     const box = { l: 200, r: 1240, t: 370, b: 620 };
-    const { X, Y } = axes(ctx, box, [0, xr.hi], [0, Fr.hi], { xl: 'deformation x (m)', xc: C('x'), yl: 'applied force (N)', yc: C('F'), nx: xr.n, ny: Fr.n, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
-    if (xs > 0.001) { ctx.save(); ctx.fillStyle = alpha(C('E'), 0.25); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(xs), Y(0)); ctx.lineTo(X(xs), Y(k.v * xs)); ctx.closePath(); ctx.fill(); ctx.restore(); }
-    line(ctx, X(0), Y(0), X(x.v), Y(k.v * x.v), C('F'), 5);
-    if (xc > 0.001) { line(ctx, X(xc), box.b, X(xc), Y(k.v * xc), C('x'), 2, [4, 8]); dot(ctx, X(xc), Y(k.v * xc), C('F'), true, 9); }
+    const { X, Y } = axes(ctx, box, [0, xr.hi], [0, Fr.hi], { xl: 'deformation x (m)', xc: C('position'), yl: 'applied force (N)', yc: C('force'), nx: xr.n, ny: Fr.n, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
+    if (xs > 0.001) { ctx.save(); ctx.fillStyle = alpha(C('energy'), 0.25); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(xs), Y(0)); ctx.lineTo(X(xs), Y(k.v * xs)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    line(ctx, X(0), Y(0), X(x.v), Y(k.v * x.v), C('force'), 5);
+    if (xc > 0.001) { line(ctx, X(xc), box.b, X(xc), Y(k.v * xc), C('position'), 2, [4, 8]); dot(ctx, X(xc), Y(k.v * xc), C('force'), true, 9); }
     const W = 0.5 * k.v * xs * xs;
-    text(ctx, (phase === 'compress' ? 'work done so far = area = ' : phase === 'hold' ? 'work done = area = ½kx² = ' : 'energy released = ') + fmt(W, 3) + ' J', box.l + 24, box.t + 26, C('E'), { weight: 600 });
+    text(ctx, (phase === 'compress' ? 'work done so far = area = ' : phase === 'hold' ? 'work done = area = ½kx² = ' : 'energy released = ') + fmt(W, 3) + ' J', box.l + 24, box.t + 26, C('energy'), { weight: 600 });
     headline(ctx, phase === 'compress' ? 'pushing the spring in: x = ' + fmt(xc, 3) + ' m, the applied force is kx = ' + fmt(k.v * xc, 2) + ' N, and the work so far is ' + fmt(W, 3) + ' J'
       : phase === 'hold' ? 'compressed by ' + fmt(x.v, 3) + ' m: the work done, ½kx² = ' + fmt(pe(), 3) + ' J, is stored as elastic potential energy'
       : 'released: the ' + fmt(pe(), 3) + ' J of elastic potential energy becomes kinetic energy, and the dart leaves at ' + fmt(vv, 1) + ' m/s');

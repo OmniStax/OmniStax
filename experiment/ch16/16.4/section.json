@@ -9,6 +9,12 @@
   "Measure acceleration due to gravity."
  ],
  "summary_html": "<ul><li>A mass $m$ suspended by a wire of length $L$ is a simple pendulum and undergoes simple harmonic motion for amplitudes less than about $15°.$ The period of a simple pendulum is $\\kT = 2\\pi\\sqrt{\\frac{L}{\\kg}},$ where $L$ is the length of the string and $\\kg$ is the acceleration due to gravity.</li></ul>",
+ "binds": [
+  "acceleration",
+  "force",
+  "position",
+  "time"
+ ],
  "built": "2026-09-07",
  "notes": "AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 have no answer in the book’s key and are left out."
 }

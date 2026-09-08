@@ -58,7 +58,9 @@ Rules for the plan:
   positions, a starting speed, a time. They need not be the variables of
   one equation, and an idea with no equation still gets sliders for the
   quantities its definition names. Two to four per figure. Each slider's
-  colour class is the variable's class from formulas.json.
+  colour class is the variable's type (position, time, force...), the
+  `color` of the variable in formulas.json; a quantity with no type is
+  in ink and gets an empty class.
 - After the required figures, propose extra simulations in a separate
   list. First think broadly about what could help; then judge each one
   strictly, keeping only those that open a view the text and required
@@ -170,9 +172,10 @@ headline. Do not loop on it.
 - **Hollow = initial.** The book's subscript-0 convention needs a drawn
   equivalent so x₀, v₀ and the current values can be told apart without
   reading labels.
-- **Colours only through C() and PAL.** The colour-coding toggle and dark
-  mode both work by swapping what those return. One hex literal in a
-  figure breaks both.
+- **Colours only through C() and PAL.** The colour-coding toggle, dark
+  mode and the chapter-tier bindings all work by swapping what those
+  return; C() takes a type name, never a hue. One hex literal in a
+  figure breaks all three.
 - **Sliders are what is interesting and variable.** Not every idea has an
   equation: the displacement and path demos of 2.1 have positions on
   their sliders and nothing else to drive them. What matters is that a

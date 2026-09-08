@@ -16,63 +16,94 @@
   "ch02",
   "ch16"
  ],
- "colors": {
-  "t": {
+ "types": {
+  "time": {
    "label": "time",
+   "dimension": "s",
    "light": "#B45309",
    "dark": "#F5A524"
   },
-  "x": {
+  "position": {
    "label": "position, displacement",
+   "dimension": "m",
    "light": "#1D4ED8",
    "dark": "#60A5FA"
   },
-  "v": {
+  "velocity": {
    "label": "velocity",
+   "dimension": "m/s",
    "light": "#B91C1C",
    "dark": "#F87171"
   },
-  "a": {
+  "acceleration": {
    "label": "acceleration",
+   "dimension": "m/s²",
    "light": "#6D28D9",
    "dark": "#A78BFA"
   },
-  "F": {
+  "force": {
    "label": "force",
+   "dimension": "N",
    "light": "#15803D",
    "dark": "#4ADE80"
   },
-  "E": {
+  "energy": {
    "label": "energy",
+   "dimension": "J",
    "light": "#0E7490",
    "dark": "#22D3EE"
+  },
+  "frequency": {
+   "label": "frequency",
+   "dimension": "Hz"
+  },
+  "stiffness": {
+   "label": "force constant",
+   "dimension": "N/m"
   }
  },
+ "chapter_pool": [
+  {
+   "id": "magenta",
+   "light": "#BE185D",
+   "dark": "#F472B6"
+  },
+  {
+   "id": "olive",
+   "light": "#4D7C0F",
+   "dark": "#A3E635"
+  },
+  {
+   "id": "teal",
+   "light": "#0F766E",
+   "dark": "#2DD4BF"
+  }
+ ],
  "macros": {
-  "\\kt": "\\htmlClass{kv-t}{t}",
-  "\\kx": "\\htmlClass{kv-x}{x}",
-  "\\kxo": "\\htmlClass{kv-x}{x_0}",
-  "\\kxf": "\\htmlClass{kv-x}{x_{\\text{f}}}",
-  "\\kv": "\\htmlClass{kv-v}{v}",
-  "\\kvo": "\\htmlClass{kv-v}{v_0}",
-  "\\kvb": "\\htmlClass{kv-v}{\\bar{v}}",
-  "\\ka": "\\htmlClass{kv-a}{a}",
-  "\\kab": "\\htmlClass{kv-a}{\\bar{a}}",
-  "\\kdx": "\\htmlClass{kv-x}{\\Delta x}",
-  "\\kdt": "\\htmlClass{kv-t}{\\Delta t}",
-  "\\kdv": "\\htmlClass{kv-v}{\\Delta v}",
-  "\\kF": "\\htmlClass{kv-F}{F}",
-  "\\kFa": "\\htmlClass{kv-F}{F_{\\text{app}}}",
-  "\\kk": "\\htmlClass{kv-F}{k}",
-  "\\kPE": "\\htmlClass{kv-E}{\\text{PE}_{\\text{el}}}",
-  "\\kKE": "\\htmlClass{kv-E}{\\text{KE}}",
-  "\\kW": "\\htmlClass{kv-E}{W}",
-  "\\kT": "\\htmlClass{kv-t}{T}",
-  "\\kf": "\\htmlClass{kv-t}{f}",
-  "\\kX": "\\htmlClass{kv-x}{X}",
-  "\\kvmax": "\\htmlClass{kv-v}{v_{\\text{max}}}",
-  "\\ks": "\\htmlClass{kv-x}{s}",
-  "\\kg": "\\htmlClass{kv-a}{g}"
+  "\\kt": "\\htmlClass{kv-time}{t}",
+  "\\kx": "\\htmlClass{kv-position}{x}",
+  "\\kxo": "\\htmlClass{kv-position}{x_0}",
+  "\\kxf": "\\htmlClass{kv-position}{x_{\\text{f}}}",
+  "\\kv": "\\htmlClass{kv-velocity}{v}",
+  "\\kvo": "\\htmlClass{kv-velocity}{v_0}",
+  "\\kvb": "\\htmlClass{kv-velocity}{\\bar{v}}",
+  "\\ka": "\\htmlClass{kv-acceleration}{a}",
+  "\\kab": "\\htmlClass{kv-acceleration}{\\bar{a}}",
+  "\\kdx": "\\htmlClass{kv-position}{\\Delta x}",
+  "\\kdt": "\\htmlClass{kv-time}{\\Delta t}",
+  "\\kdv": "\\htmlClass{kv-velocity}{\\Delta v}",
+  "\\kF": "\\htmlClass{kv-force}{F}",
+  "\\kFa": "\\htmlClass{kv-force}{F_{\\text{app}}}",
+  "\\kk": "\\htmlClass{kv-stiffness}{k}",
+  "\\kPE": "\\htmlClass{kv-energy}{\\text{PE}_{\\text{el}}}",
+  "\\kKE": "\\htmlClass{kv-energy}{\\text{KE}}",
+  "\\kW": "\\htmlClass{kv-energy}{W}",
+  "\\kT": "\\htmlClass{kv-time}{T}",
+  "\\kf": "\\htmlClass{kv-frequency}{f}",
+  "\\kX": "\\htmlClass{kv-position}{X}",
+  "\\kvmax": "\\htmlClass{kv-velocity}{v_{\\text{max}}}",
+  "\\ks": "\\htmlClass{kv-position}{s}",
+  "\\kg": "\\htmlClass{kv-acceleration}{g}"
  },
  "symbols": {
   "t": "\\kt",

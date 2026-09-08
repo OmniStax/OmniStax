@@ -24,8 +24,8 @@ function bike(ctx, x, y, color, dir, phase) {
 ===================================================================== */
 (function () {
   const d = demo('demo-displacement', 440);
-  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'x', min: 0, max: 8, step: 0.5, value: 1.5, unit: 'm', dec: 1, onInput: reset });
-  const xf = ctl(d.controls, { label: '\\kxf', cls: 'x', min: 0, max: 8, step: 0.5, value: 3.5, unit: 'm', dec: 1, onInput: reset, aria: 'final position' });
+  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'position', min: 0, max: 8, step: 0.5, value: 1.5, unit: 'm', dec: 1, onInput: reset });
+  const xf = ctl(d.controls, { label: '\\kxf', cls: 'position', min: 0, max: 8, step: 0.5, value: 3.5, unit: 'm', dec: 1, onInput: reset, aria: 'final position' });
   const T = () => Math.max(1.5, Math.abs(xf.v - x0.v) * 0.9);
   const cy = cycle(T, 1.4);
   function reset() { cy.reset(); }
@@ -38,11 +38,11 @@ function bike(ctx, x, y, color, dir, phase) {
     text(ctx, 'whiteboard (reference frame)', L - 10, 108, PAL.muted, { size: 17 });
     line(ctx, L - 30, y, R + 30, y, PAL.muted, 3); scale(ctx, X, 0, 8, 1, y, 'm', 1);
     // displacement arrow above the axis
-    if (Math.abs(dx) >= 0.25) { arrow(ctx, X(x0.v), y - 56, X(xf.v), y - 56, C('x'), 5); text(ctx, 'Δx = ' + sgn(dx, 1) + ' m', (X(x0.v) + X(xf.v)) / 2, y - 84, C('x'), { align: 'center', weight: 600 }); }
-    else text(ctx, 'Δx = 0', X(x0.v), y - 84, C('x'), { align: 'center', weight: 600 });
-    dot(ctx, X(x0.v), y, C('x'), false, 11); dot(ctx, X(xf.v), y, C('x'), true, 11);
-    text(ctx, 'x₀', X(x0.v), y + 66, C('x'), { align: 'center', weight: 600, size: 24 });
-    xfLabel(ctx, X(xf.v), y + 66, C('x'));
+    if (Math.abs(dx) >= 0.25) { arrow(ctx, X(x0.v), y - 56, X(xf.v), y - 56, C('position'), 5); text(ctx, 'Δx = ' + sgn(dx, 1) + ' m', (X(x0.v) + X(xf.v)) / 2, y - 84, C('position'), { align: 'center', weight: 600 }); }
+    else text(ctx, 'Δx = 0', X(x0.v), y - 84, C('position'), { align: 'center', weight: 600 });
+    dot(ctx, X(x0.v), y, C('position'), false, 11); dot(ctx, X(xf.v), y, C('position'), true, 11);
+    text(ctx, 'x₀', X(x0.v), y + 66, C('position'), { align: 'center', weight: 600, size: 24 });
+    xfLabel(ctx, X(xf.v), y + 66, C('position'));
     // the professor in transit, on the axis
     runner(ctx, X(xm), y - 8, PAL.ink, f * Math.PI * 6);
     const dir = dx > 0 ? 'to the right' : dx < 0 ? 'to the left' : 'she ends where she started';
@@ -58,9 +58,9 @@ function bike(ctx, x, y, color, dir, phase) {
 ===================================================================== */
 (function () {
   const d = demo('demo-path', 540);
-  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'x', min: -5, max: 5, step: 0.5, value: 0, unit: 'km', dec: 1, onInput: reset });
-  const xt = ctl(d.controls, { label: 'x_{\\text{turn}}', cls: 'x', min: -5, max: 5, step: 0.5, value: -3, unit: 'km', dec: 1, onInput: reset, aria: 'turning point' });
-  const xf = ctl(d.controls, { label: '\\kxf', cls: 'x', min: -5, max: 5, step: 0.5, value: -1, unit: 'km', dec: 1, onInput: reset, aria: 'final position' });
+  const x0 = ctl(d.controls, { label: '\\kxo', cls: 'position', min: -5, max: 5, step: 0.5, value: 0, unit: 'km', dec: 1, onInput: reset });
+  const xt = ctl(d.controls, { label: 'x_{\\text{turn}}', cls: 'position', min: -5, max: 5, step: 0.5, value: -3, unit: 'km', dec: 1, onInput: reset, aria: 'turning point' });
+  const xf = ctl(d.controls, { label: '\\kxf', cls: 'position', min: -5, max: 5, step: 0.5, value: -1, unit: 'km', dec: 1, onInput: reset, aria: 'final position' });
   const leg1 = () => Math.abs(xt.v - x0.v), leg2 = () => Math.abs(xf.v - xt.v), total = () => leg1() + leg2();
   const T = () => Math.max(1.5, total() * 0.8);
   const cy = cycle(T, 1.6);
@@ -80,10 +80,10 @@ function bike(ctx, x, y, color, dir, phase) {
     const onLeg2 = s > leg1() + 1e-6, px = onLeg2 ? p2 : p1, py = onLeg2 ? y2 : y1, dir = onLeg2 ? Math.sign(xf.v - xt.v) || 1 : Math.sign(xt.v - x0.v) || 1;
     bike(ctx, X(px), py - 22, PAL.ink, dir, s * 4);
     // displacement bracket below the axis, start and end markers on it
-    dot(ctx, X(x0.v), y, C('x'), false, 11); dot(ctx, X(xf.v), y, C('x'), true, 11);
-    text(ctx, 'x₀', X(x0.v), y + 66, C('x'), { align: 'center', weight: 600, size: 24 }); xfLabel(ctx, X(xf.v), y + 66, C('x'));
-    if (Math.abs(dx) >= 0.25) hbracket(ctx, X(x0.v), X(xf.v), y + 150, C('x'), 'displacement Δx = ' + sgn(dx, 1) + ' km');
-    else text(ctx, 'displacement Δx = 0', X(x0.v), y + 130, C('x'), { align: 'center', weight: 600 });
+    dot(ctx, X(x0.v), y, C('position'), false, 11); dot(ctx, X(xf.v), y, C('position'), true, 11);
+    text(ctx, 'x₀', X(x0.v), y + 66, C('position'), { align: 'center', weight: 600, size: 24 }); xfLabel(ctx, X(xf.v), y + 66, C('position'));
+    if (Math.abs(dx) >= 0.25) hbracket(ctx, X(x0.v), X(xf.v), y + 150, C('position'), 'displacement Δx = ' + sgn(dx, 1) + ' km');
+    else text(ctx, 'displacement Δx = 0', X(x0.v), y + 130, C('position'), { align: 'center', weight: 600 });
     // odometer
     ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = PAL.rule; ctx.lineWidth = 3; ctx.fillRect(1130, 150, 200, 96); ctx.strokeRect(1130, 150, 200, 96); ctx.restore();
     text(ctx, 'distance traveled', 1230, 176, PAL.muted, { size: 17, align: 'center' });
@@ -109,10 +109,10 @@ function bike(ctx, x, y, color, dir, phase) {
     const { ctx } = begin(d.c);
     const L = 150, R = 1250, y = 460; const X = (m) => L + (R - L) * m / 12;
     line(ctx, L - 30, y, R + 30, y, PAL.ink, 3); scale(ctx, X, 0, 12, 2, y, '', 1);
-    text(ctx, 'position x (m)', (L + R) / 2, y + 66, C('x'), { align: 'center', weight: 600, size: 24 });
+    text(ctx, 'position x (m)', (L + R) / 2, y + 66, C('position'), { align: 'center', weight: 600, size: 24 });
     const tau = cy.now(), k = Math.min(PATHS.length - 1, Math.floor(tau / PER)), f = REDUCED ? 1 : Math.min(1, (tau - k * PER) / (PER * 0.75));
     PATHS.forEach((P, i) => {
-      const active = i === k, done = i < k || REDUCED, color = active ? C('x') : done ? PAL.ink : PAL.rule;
+      const active = i === k, done = i < k || REDUCED, color = active ? C('position') : done ? PAL.ink : PAL.rule;
       let sLeft = active ? f * lens[i] : done ? Infinity : 0, cx = P.p[0], row = rows[i];
       text(ctx, P.n, X(P.p[0]) + (P.p[1] > P.p[0] ? -34 : 34), row - 30, PAL.ink, { align: 'center', weight: 600, size: 24 });
       dot(ctx, X(P.p[0]), row, color, false, 9);

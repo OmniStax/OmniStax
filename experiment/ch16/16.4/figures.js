@@ -45,8 +45,8 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
     line(ctx, px, py, px, py + Ld + 50, PAL.muted, 2, [8, 8]);
     ctx.save(); ctx.strokeStyle = PAL.rule; ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.arc(px, py, Ld, Math.PI / 2 - a0.v * DEG, Math.PI / 2 + a0.v * DEG); ctx.stroke(); ctx.restore();
     if (Math.abs(t) > 0.01) {
-      ctx.save(); ctx.strokeStyle = C('x'); ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(px, py, Ld + 14, Math.PI / 2, Math.PI / 2 - t, t > 0); ctx.stroke(); ctx.restore();
-      text(ctx, 's = ' + sgn(s) + fmt(Math.abs(s), 3) + ' m', px - Math.sign(t) * 30, py + Ld + 44, C('x'), { weight: 600, size: 20, align: t > 0 ? 'right' : 'left' });
+      ctx.save(); ctx.strokeStyle = C('position'); ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(px, py, Ld + 14, Math.PI / 2, Math.PI / 2 - t, t > 0); ctx.stroke(); ctx.restore();
+      text(ctx, 's = ' + sgn(s) + fmt(Math.abs(s), 3) + ' m', px - Math.sign(t) * 30, py + Ld + 44, C('position'), { weight: 600, size: 20, align: t > 0 ? 'right' : 'left' });
     }
     const { bx, by } = pendulum(ctx, px, py, Ld, t, 16, PAL.ink);
     text(ctx, 'L = ' + fmt(L.v, 2) + ' m', px + Ld / 2 * Math.sin(t) + (t >= 0 ? -16 : 16), py + Ld / 2 * Math.cos(t), PAL.muted, { size: 18, align: t >= 0 ? 'right' : 'left' });
@@ -55,25 +55,25 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
     const fs = 180 / mg, ux = Math.sin(t), uy = Math.cos(t), tx = Math.cos(t), ty = -Math.sin(t);   /* u: along the string outward; t: along the arc toward +θ */
     const wl = mg * fs, cl = mg * Math.cos(t) * fs, sl = mg * Math.sin(t) * fs;
     const side = t >= 0 ? 1 : -1;   /* the component leans to the bob's side; the labels sit on opposite sides of the pair */
-    arrow(ctx, bx, by, bx, by + wl, C('F'), 4); text(ctx, 'w = mg', bx - side * 16, by + wl * 0.62, C('F'), { size: 18, align: side > 0 ? 'right' : 'left' });
-    line(ctx, bx, by, bx + ux * cl, by + uy * cl, C('F'), 2, [6, 6]); line(ctx, bx + ux * cl, by + uy * cl, bx, by + wl, C('F'), 2, [6, 6]); line(ctx, bx - tx * sl, by - ty * sl, bx, by + wl, C('F'), 2, [6, 6]);
-    text(ctx, 'mg cos θ', bx + ux * cl * 0.62 + side * 16, by + uy * cl * 0.62, C('F'), { size: 17, align: side > 0 ? 'left' : 'right' });
+    arrow(ctx, bx, by, bx, by + wl, C('force'), 4); text(ctx, 'w = mg', bx - side * 16, by + wl * 0.62, C('force'), { size: 18, align: side > 0 ? 'right' : 'left' });
+    line(ctx, bx, by, bx + ux * cl, by + uy * cl, C('force'), 2, [6, 6]); line(ctx, bx + ux * cl, by + uy * cl, bx, by + wl, C('force'), 2, [6, 6]); line(ctx, bx - tx * sl, by - ty * sl, bx, by + wl, C('force'), 2, [6, 6]);
+    text(ctx, 'mg cos θ', bx + ux * cl * 0.62 + side * 16, by + uy * cl * 0.62, C('force'), { size: 17, align: side > 0 ? 'left' : 'right' });
     arrow(ctx, bx, by, bx - ux * cl, by - uy * cl, PAL.muted, 4); text(ctx, 'tension', bx - ux * cl * 0.55 + (t >= 0 ? 12 : -12), by - uy * cl * 0.55, PAL.muted, { size: 17, align: t >= 0 ? 'left' : 'right' });
-    if (Math.abs(t) > 0.01) { arrow(ctx, bx, by, bx - tx * sl, by - ty * sl, C('F'), 6); text(ctx, 'mg sin θ = ' + fmt(Math.abs(Fs), 2) + ' N', bx - tx * (sl + 16), by - ty * (sl + 16) - 22, C('F'), { size: 18, weight: 600, align: t >= 0 ? 'right' : 'left' }); }
+    if (Math.abs(t) > 0.01) { arrow(ctx, bx, by, bx - tx * sl, by - ty * sl, C('force'), 6); text(ctx, 'mg sin θ = ' + fmt(Math.abs(Fs), 2) + ' N', bx - tx * (sl + 16), by - ty * (sl + 16) - 22, C('force'), { size: 18, weight: 600, align: t >= 0 ? 'right' : 'left' }); }
     /* the graph beside: F against s, true and Hooke */
     const sm = nice(0, L.v * Math.max(a0.v * DEG, 20 * DEG) * 1.15, 2).hi, Fm = nice(0, mg * 1.05, 2).hi;
     const box = { l: 800, r: 1320, t: 130, b: 540 };
-    const { X, Y } = axes(ctx, box, [-sm, sm], [-Fm, Fm], { xl: 'arc length s (m)', xc: C('x'), yl: 'restoring force F (N)', yc: C('F'), nx: 4, ny: 4, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
+    const { X, Y } = axes(ctx, box, [-sm, sm], [-Fm, Fm], { xl: 'arc length s (m)', xc: C('position'), yl: 'restoring force F (N)', yc: C('force'), nx: 4, ny: 4, fx: (v) => fmt(v, 2), fy: (v) => fmt(v, 1) });
     const sb = Math.min(sm, L.v * 15 * DEG);
-    ctx.save(); ctx.fillStyle = alpha(C('x'), 0.1); ctx.fillRect(X(-sb), box.t, X(sb) - X(-sb), box.b - box.t); ctx.restore();
-    text(ctx, 'θ below 15°', X(0), box.b - 18, C('x'), { size: 17, align: 'center' });
+    ctx.save(); ctx.fillStyle = alpha(C('position'), 0.1); ctx.fillRect(X(-sb), box.t, X(sb) - X(-sb), box.b - box.t); ctx.restore();
+    text(ctx, 'θ below 15°', X(0), box.b - 18, C('position'), { size: 17, align: 'center' });
     ctx.save(); ctx.beginPath(); ctx.rect(box.l, box.t, box.r - box.l, box.b - box.t); ctx.clip();
-    curve(ctx, (v) => -(mg / L.v) * v, -sm, sm, X, Y, C('F'), 3, 2);
+    curve(ctx, (v) => -(mg / L.v) * v, -sm, sm, X, Y, C('force'), 3, 2);
     curve(ctx, (v) => -mg * Math.sin(v / L.v), -sm, sm, X, Y, PAL.ink, 4, 120);
     ctx.restore();
-    text(ctx, 'F = −(mg/L)s', X(-sm * 0.95), Y(mg / L.v * sm * 0.95) - 20, C('F'), { size: 17, weight: 600 });
+    text(ctx, 'F = −(mg/L)s', X(-sm * 0.95), Y(mg / L.v * sm * 0.95) - 20, C('force'), { size: 17, weight: 600 });
     text(ctx, 'F = −mg sin θ', X(sm * 0.95), Y(-mg * Math.sin(sm * 0.95 / L.v)) + 24, PAL.ink, { size: 17, weight: 600, align: 'right' });
-    dot(ctx, X(s), Y(Fs), C('F'), true, 9);
+    dot(ctx, X(s), Y(Fs), C('force'), true, 9);
     const dev = (a0.v * DEG - Math.sin(a0.v * DEG)) / Math.sin(a0.v * DEG) * 100, Tt = truePeriod(L.v, G, a0.v * DEG), T0 = TAU * Math.sqrt(L.v / G);
     headline(ctx, Math.abs(t) < 0.01 ? 'through the lowest point: the net force along the arc is zero, and the bob is moving fastest'
       : 'θ = ' + fmt(Math.abs(t) / DEG, 1) + '°, so the net force is mg sin θ = ' + fmt(Math.abs(Fs), 2) + ' N along the arc, back toward equilibrium');
@@ -92,7 +92,7 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
   const L1 = ctl(d.controls, { label: 'L_1', cls: '', min: 0.1, max: 2, step: 0.05, value: 1, unit: 'm', dec: 2, onInput: reset, aria: 'length of pendulum 1' });
   const L2 = ctl(d.controls, { label: 'L_2', cls: '', min: 0.1, max: 2, step: 0.05, value: 0.25, unit: 'm', dec: 2, onInput: reset, aria: 'length of pendulum 2' });
   const m2 = ctl(d.controls, { label: 'm_2', cls: '', min: 0.1, max: 10, step: 0.1, value: 5, unit: 'kg', dec: 1, onInput: reset, aria: 'mass of the second bob' });
-  const g = ctl(d.controls, { label: '\\kg', cls: 'a', min: 1.6, max: 25, step: 0.01, value: 9.8, unit: 'm/s²', dec: 2, onInput: reset });
+  const g = ctl(d.controls, { label: '\\kg', cls: 'acceleration', min: 1.6, max: 25, step: 0.01, value: 9.8, unit: 'm/s²', dec: 2, onInput: reset });
   const cy = cycle(() => Infinity, 0);
   function reset() { cy.reset(); }
   const Tof = (L) => TAU * Math.sqrt(L / g.v), A0 = 12 * DEG;
@@ -106,15 +106,15 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
       line(ctx, px, py, px, py + Ld(2) + 20, PAL.muted, 2, [8, 8]);
       const { bx, by } = pendulum(ctx, px, py, Ld(L), th, 12 + 4 * Math.sqrt(mass), PAL.ink);
       text(ctx, 'L' + lab + ' = ' + fmt(L, 2) + ' m', px + (lab === '1' ? -150 : 150), py + 60, PAL.ink, { size: 20, weight: 600, align: 'center' });
-      text(ctx, 'T' + lab + ' = ' + fmt(T, 2) + ' s', px + (lab === '1' ? -150 : 150), py + 90, C('t'), { size: 20, weight: 600, align: 'center' });
+      text(ctx, 'T' + lab + ' = ' + fmt(T, 2) + ' s', px + (lab === '1' ? -150 : 150), py + 90, C('time'), { size: 20, weight: 600, align: 'center' });
       if (lab === '2') text(ctx, 'm₂ = ' + fmt(mass, 1) + ' kg', px + 150, py + 120, PAL.muted, { size: 18, align: 'center' });
     }
     /* the graph: T against L for this g */
     const Tr = nice(0, Tof(2) * 1.05, 4), box = { l: 200, r: 1240, t: 470, b: 660 };
-    const { X, Y } = axes(ctx, box, [0, 2], [0, Tr.hi], { xl: 'length L (m)', xc: PAL.ink, yl: 'T (s)', yc: C('t'), nx: 4, ny: Tr.n, fx: (v) => fmt(v, 1), fy: (v) => fmt(v, 1) });
-    curve(ctx, Tof, 0, 2, X, Y, C('t'), 4, 100);
-    text(ctx, 'T = 2π√(L/g)', X(1.5) + 10, Y(Tof(1.5)) + 38, C('t'), { weight: 600, size: 20 });
-    for (const [L, T, lab] of [[L1.v, T1, '1'], [L2.v, T2, '2']]) { line(ctx, X(L), box.b, X(L), Y(T), PAL.ink, 2, [4, 8]); dot(ctx, X(L), Y(T), C('t'), true, 9); text(ctx, lab, X(L) + 14, Y(T) - 14, C('t'), { size: 18, weight: 600 }); }
+    const { X, Y } = axes(ctx, box, [0, 2], [0, Tr.hi], { xl: 'length L (m)', xc: PAL.ink, yl: 'T (s)', yc: C('time'), nx: 4, ny: Tr.n, fx: (v) => fmt(v, 1), fy: (v) => fmt(v, 1) });
+    curve(ctx, Tof, 0, 2, X, Y, C('time'), 4, 100);
+    text(ctx, 'T = 2π√(L/g)', X(1.5) + 10, Y(Tof(1.5)) + 38, C('time'), { weight: 600, size: 20 });
+    for (const [L, T, lab] of [[L1.v, T1, '1'], [L2.v, T2, '2']]) { line(ctx, X(L), box.b, X(L), Y(T), PAL.ink, 2, [4, 8]); dot(ctx, X(L), Y(T), C('time'), true, 9); text(ctx, lab, X(L) + 14, Y(T) - 14, C('time'), { size: 18, weight: 600 }); }
     headline(ctx, 'L₁ = ' + fmt(L1.v, 2) + ' m and g = ' + fmt(g.v, 2) + ' m/s² give T₁ = ' + fmt(T1, 2) + ' s; the pendulum of ' + fmt(L2.v, 2) + ' m has T₂ = ' + fmt(T2, 2) + ' s');
     readout(d.readout, `\\kT = 2\\pi\\sqrt{\\frac{L}{\\kg}} = 2\\pi\\sqrt{\\frac{${fmt(L1.v, 2)}\\ \\text{m}}{${fmt(g.v, 2)}\\ \\text{m/s}^2}} = ${fmt(T1, 2)}\\ \\text{s}`,
       'The second pendulum, ' + fmt(L2.v, 2) + ' m long with a ' + fmt(m2.v, 1) + ' kg bob, has T = ' + fmt(T2, 2) + ' s. Its mass does not enter; only the length and g do.');
@@ -129,7 +129,7 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
 (function () {
   const d = demo('demo-measure-g', 600);
   const L = ctl(d.controls, { label: 'L', cls: '', min: 0.25, max: 2, step: 0.005, value: 0.75, unit: 'm', dec: 3, onInput: reset, aria: 'length' });
-  const gl = ctl(d.controls, { label: '\\kg', cls: 'a', min: 1.6, max: 12, step: 0.0001, value: 9.8281, unit: 'm/s²', dec: 4, onInput: reset, aria: 'local acceleration due to gravity' });
+  const gl = ctl(d.controls, { label: '\\kg', cls: 'acceleration', min: 1.6, max: 12, step: 0.0001, value: 9.8281, unit: 'm/s²', dec: 4, onInput: reset, aria: 'local acceleration due to gravity' });
   const N = 10, T = () => TAU * Math.sqrt(L.v / gl.v), total = () => N * T();
   const cy = cycle(total, 1.8);
   function reset() { cy.reset(); }
@@ -150,8 +150,8 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
     for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; line(ctx, sx + (r - 12) * Math.sin(a), sy - (r - 12) * Math.cos(a), sx + (r - 4) * Math.sin(a), sy - (r - 4) * Math.cos(a), PAL.muted, i % 3 ? 2 : 4); }
     ctx.restore();
     const ha = (tau / total()) * TAU;
-    line(ctx, sx, sy, sx + (r - 22) * Math.sin(ha), sy - (r - 22) * Math.cos(ha), C('t'), 5); dot(ctx, sx, sy, C('t'), true, 7);
-    text(ctx, 't = ' + fmt(tau, 3) + ' s', sx, sy + r + 34, C('t'), { weight: 600, size: 26, align: 'center' });
+    line(ctx, sx, sy, sx + (r - 22) * Math.sin(ha), sy - (r - 22) * Math.cos(ha), C('time'), 5); dot(ctx, sx, sy, C('time'), true, 7);
+    text(ctx, 't = ' + fmt(tau, 3) + ' s', sx, sy + r + 34, C('time'), { weight: 600, size: 26, align: 'center' });
     /* the counter */
     const kx = 1150;
     text(ctx, String(n), kx, sy - 6, PAL.ink, { weight: 700, size: 88, align: 'center' });
@@ -160,7 +160,7 @@ function pendulum(ctx, px, py, Ld, th, r, color) {
     const tl = 140, tr = 1260, ty = 500, Xt = (t) => tl + ((tr - tl) * t) / total();
     line(ctx, tl, ty, tr, ty, PAL.muted, 3);
     scale(ctx, Xt, 0, Math.floor(total()), Math.max(1, Math.round(total() / 10)), ty, 's', 2);
-    for (let i = 1; i <= n; i++) line(ctx, Xt(i * T()), ty - 34, Xt(i * T()), ty - 10, C('t'), 3);
+    for (let i = 1; i <= n; i++) line(ctx, Xt(i * T()), ty - 34, Xt(i * T()), ty - 10, C('time'), 3);
     dot(ctx, Xt(tau), ty, PAL.ink, true, 8);
     text(ctx, 'one mark for each complete swing', tl, ty - 58, PAL.muted, { size: 17 });
     headline(ctx, done ? 'ten swings took ' + fmt(total(), 3) + ' s, so T = ' + fmt(Tm, 4) + ' s and g = 4π²L/T² = ' + fmt(gm, 4) + ' m/s²'

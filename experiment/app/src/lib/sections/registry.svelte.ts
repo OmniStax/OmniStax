@@ -25,7 +25,7 @@ export type Mounter = (root: HTMLElement, section: SectionId) => void;
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', colors: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
+  manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
   private fig: Fig | null = null;
@@ -113,7 +113,7 @@ class Registry {
     const src = this.sections[id.section]?.src.text; if (!src) return null;
     const t = document.createElement('template'); t.innerHTML = src;
     const f = t.content.querySelector<HTMLElement>(`[id="${id.section}-${id.fig}"]`); if (!f) return null;
-    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = id.section; root.dataset.one = '1'; root.appendChild(f);
+    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = id.section; root.dataset.chapter = this.chapterOf(id.section)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
     this.bootFigures(root, id.section);
     return (this.clones[ck] = root);
   }

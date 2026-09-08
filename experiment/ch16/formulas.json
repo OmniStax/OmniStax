@@ -3,42 +3,42 @@
  "variables": [
   {
    "sym": "F",
-   "color": "F",
+   "color": "force",
    "meaning": "restoring force; the minus sign in Hooke’s law says it points opposite to the displacement",
    "unit": "N",
    "section": "16.1"
   },
   {
    "sym": "F_app",
-   "color": "F",
+   "color": "force",
    "meaning": "applied force, equal and opposite to the restoring force while the system is deformed",
    "unit": "N",
    "section": "16.1"
   },
   {
    "sym": "k",
-   "color": "F",
+   "color": "stiffness",
    "meaning": "force constant, the stiffness of the system; the slope of the force against displacement graph",
    "unit": "N/m",
    "section": "16.1"
   },
   {
    "sym": "x",
-   "color": "x",
+   "color": "position",
    "meaning": "displacement from equilibrium, or deformation",
    "unit": "m",
    "section": "16.1"
   },
   {
    "sym": "PE_el",
-   "color": "E",
+   "color": "energy",
    "meaning": "elastic potential energy stored in a deformed system that obeys Hooke’s law",
    "unit": "J",
    "section": "16.1"
   },
   {
    "sym": "W",
-   "color": "E",
+   "color": "energy",
    "meaning": "work done to deform the system; the area under the graph of applied force against deformation",
    "unit": "J",
    "section": "16.1"
@@ -51,14 +51,14 @@
   },
   {
    "sym": "T",
-   "color": "t",
+   "color": "time",
    "meaning": "period, the time to complete one oscillation",
    "unit": "s",
    "section": "16.2"
   },
   {
    "sym": "f",
-   "color": "t",
+   "color": "frequency",
    "meaning": "frequency, the number of oscillations per unit time",
    "unit": "Hz",
    "section": "16.2"
@@ -71,42 +71,42 @@
   },
   {
    "sym": "X",
-   "color": "x",
+   "color": "position",
    "meaning": "amplitude, the maximum displacement from equilibrium",
    "unit": "m",
    "section": "16.3"
   },
   {
    "sym": "t",
-   "color": "t",
+   "color": "time",
    "meaning": "time since the oscillator was released from x = X",
    "unit": "s",
    "section": "16.3"
   },
   {
    "sym": "v",
-   "color": "v",
+   "color": "velocity",
    "meaning": "velocity of the oscillating object; zero at the turning points, greatest through equilibrium",
    "unit": "m/s",
    "section": "16.3"
   },
   {
    "sym": "v_max",
-   "color": "v",
+   "color": "velocity",
    "meaning": "maximum speed, reached as the object passes through equilibrium",
    "unit": "m/s",
    "section": "16.3"
   },
   {
    "sym": "a",
-   "color": "a",
+   "color": "acceleration",
    "meaning": "acceleration of the oscillating object, always opposite in direction to the displacement",
    "unit": "m/s²",
    "section": "16.3"
   },
   {
    "sym": "s",
-   "color": "x",
+   "color": "position",
    "meaning": "displacement of the pendulum bob along its arc from the lowest point",
    "unit": "m",
    "section": "16.4"
@@ -125,7 +125,7 @@
   },
   {
    "sym": "g",
-   "color": "a",
+   "color": "acceleration",
    "meaning": "acceleration due to gravity, 9.80 m/s² unless otherwise specified",
    "unit": "m/s²",
    "section": "16.4"

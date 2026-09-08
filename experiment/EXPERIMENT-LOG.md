@@ -488,3 +488,47 @@ and dark with no console errors; one fix pass for the weight and
 along-string labels colliding at small angles and the arc-length label
 sitting on the bob, plus a loader edit that had asserted its match
 without applying it.
+
+## Pass 14: colour is a function of type (2026-09-07)
+
+Chen asked for the colour coding to be type-driven and scoped, and the
+design was agreed in conversation: a hue belongs to a type (a physical
+dimension), variants share it by decoration, derived quantities are other
+types; a global tier of six types is pinned for the book, every other
+type is bound per chapter from a small pool, and a page colours only the
+types it binds. No coercions: frequency is not a time and a force
+constant is not a force. Recorded as pipeline rule 7, the colour section
+of RULES.md, and a note in the figure prompt.
+
+What changed, content:
+- `book.json`: `colors` became `types` (label, dimension, and hues for the
+  global tier; frequency and stiffness declared without hues) plus
+  `chapter_pool` (magenta, olive, teal). Macro classes are named by type
+  (`kv-position`, not `kv-x`); `\kf` is frequency and `\kk` is stiffness.
+- `ch16/chapter.json` binds frequency to magenta and stiffness to olive.
+- `formulas.json` variables carry the type as `color`; k is stiffness, f
+  is frequency.
+- Every `figures.js` (2.1, 2.5, 16.1 to 16.4) calls `C()` and sets slider
+  `cls` by type name; the 16.1 slope label is stiffness.
+- Every `section.json` lists in `binds` the types the page colours,
+  derived from its figures module (drawn, on a slider, or in a readout).
+  16.3 leaves frequency in ink and 16.4 the force constant.
+
+What changed, shell:
+- The page emits global hues on the root, chapter bindings scoped to
+  `[data-chapter]` (articles and split-out figure roots carry it), one
+  class rule per type, and per-article overrides that put unbound types
+  in ink. The loader rejects a binding to an unknown type, to a type with
+  global hues, or to a hue the pool lacks, and a page bind to an unknown
+  type.
+- The figure library sets its palette per figure from the chapter the
+  figure sits in, cached per chapter and cleared on a redraw.
+- The definitions legend lists the global tier plus the focused chapter's
+  bound types.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass over
+2.1, 2.5 and 16.1 to 16.4 in light and dark with no console errors, the
+computed colours probed on each page (frequency magenta on 16.2 and ink
+on 16.3; the force constant olive on 16.1 and 16.3, ink on 16.4, olive
+on the formula sheet throughout), and a Chapter 2 article opened beside
+16.3 keeping its own scope.

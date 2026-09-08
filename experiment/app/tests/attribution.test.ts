@@ -6,9 +6,9 @@ import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 const book: BookDTO = {
   id: 'college-physics-2e', title: 'College Physics 2e', publisher: 'OpenStax', authors: ['Paul Peter Urone', 'Roger Hinrichs'],
   sourceUrl: 'https://openstax.org/details/books/college-physics-2e', copyright: 'Rice University', license: 'CC BY-NC-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
-  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], colors: {}, macros: {}, symbols: {}, exerciseKinds: {},
+  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {},
 };
-const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }] };
+const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', colors: {}, sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }] };
 
 test('nameList joins like prose', () => {
   assert.equal(nameList([]), ''); assert.equal(nameList(['A']), 'A'); assert.equal(nameList(['A', 'B']), 'A and B'); assert.equal(nameList(['A', 'B', 'C']), 'A, B and C');
