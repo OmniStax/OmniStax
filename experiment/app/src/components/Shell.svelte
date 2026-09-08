@@ -36,7 +36,7 @@
   };
 
   onMount(() => {
-    const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types) });
+    const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types), chapterKeys: Object.entries(manifest.types).filter(([, t]) => !t.light).map(([k]) => k) });
     registry.init(manifest, fig, mountExercises);
     registry.setChapter(chapterDir, chapterData);
     focus.page = page;

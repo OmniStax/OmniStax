@@ -36,7 +36,9 @@ const ld = {
 type Mode = 'light' | 'dark';
 const globalVars = (mode: Mode) => Object.entries(book.types).filter(([, t]) => t[mode]).map(([k, t]) => `--c-${k}:${t[mode]}`).join(';');
 const poolHue = (id: string, mode: Mode) => book.pool.find((p) => p.id === id)?.[mode] ?? 'inherit';
-const chapterVars = (mode: Mode) => tree.chapters.map((ch) => Object.entries(ch.dto.colors).map(([k, id]) => `--c-${k}:${poolHue(id, mode)}`).join(';')).map((vars, i) => [tree.chapters[i].dto.dir, vars] as const).filter(([, v]) => v);
+/* Each chapter's scope sets the chapter-tier types it binds and resets the ones it does not, so an article of one chapter opened on another's page keeps its own colours. */
+const chapterTier = Object.entries(book.types).filter(([, t]) => !t.light).map(([k]) => k);
+const chapterVars = (mode: Mode) => tree.chapters.map((ch) => chapterTier.map((k) => `--c-${k}:${ch.dto.colors[k] ? poolHue(ch.dto.colors[k], mode) : 'initial'}`).join(';')).map((vars, i) => [tree.chapters[i].dto.dir, vars] as const).filter(([, v]) => v);
 const scoped = (mode: Mode, prefix: string) => chapterVars(mode).map(([dir, vars]) => `${prefix}[data-chapter="${dir}"],${prefix} [data-chapter="${dir}"]{${vars}}`).join('');
 const colourCss = [
   `:root{${globalVars('light')}}`, scoped('light', ''),
