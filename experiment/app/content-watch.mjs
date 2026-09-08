@@ -3,7 +3,7 @@
 import path from 'node:path';
 export default function contentWatch(root) {
   return {
-    name: 'omnia-content-watch',
+    name: 'omnistax-content-watch',
     hooks: {
       'astro:server:setup': ({ server }) => {
         server.watcher.add(root);

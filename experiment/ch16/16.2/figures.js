@@ -1,6 +1,6 @@
 /* Figures for section 16.2 Period and Frequency. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['16.2'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['16.2'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, ctl, cycle, register, begin, line, dot, text, headline, hbracket, vbracket, axes, nice, curve, scale, spring, block, fixed } = F;
 const demo = (id, H) => F.demo(root, id, H);
 function readout(host, main, small) { tex(host, main); if (small) host.appendChild(el('small', null, small)); }

@@ -1,6 +1,6 @@
 # Pipeline rules
 
-How the agent turns a textbook into Omnia pages. Each item is a decision,
+How the agent turns a textbook into OmniStax pages. Each item is a decision,
 numbered so the per-chapter config and the prompts can refer to it. The
 running log is `experiment/EXPERIMENT-LOG.md`; the per-book rules are in
 `experiment/RULES.md`.
@@ -164,7 +164,7 @@ Defaults, all overridable in the config list of item 10:
   exercise in the book that tests it, the agent asks the user whether to
   generate one for that node. It never generates unasked.
 - Everything generated is marked as generated on the item itself and set
-  in Omnia's face, not the book's.
+  in OmniStax's face, not the book's.
 
 ## 14. When a figure is made, and what kind
 
@@ -212,7 +212,7 @@ of item 2 real rather than ceremonial.
 
 ## 17. The page talks about the subject, not about itself, in the book's voice
 
-Every sentence Omnia adds to a page is about the physics. A section lead
+Every sentence OmniStax adds to a page is about the physics. A section lead
 says what the section is about. A demo caption says what to drag and what
 to watch. Nothing on the page explains that the prose is quoted, that a
 figure is a redrawn or live version of the book's, or that a card was
@@ -227,10 +227,10 @@ footer is the whole of the attribution: it names the adaptation and the
 licence the adapted page is shared under (the same as the source, when
 the source is ShareAlike).
 
-Everything Omnia writes (leads, demo captions, readouts, suggested
+Everything OmniStax writes (leads, demo captions, readouts, suggested
 approaches, concept "why" lines) is written in the book's own voice:
 its register, sentence shape, person and vocabulary. The typeface already
-marks the words as Omnia's, so the language must not; the reader should
+marks the words as OmniStax's, so the language must not; the reader should
 feel one writer across the page. The agent reads a few pages of the book
 before writing for it, and the per-book `RULES.md` records what the voice
 is (for College Physics 2e: full sentences, plain second person, patient

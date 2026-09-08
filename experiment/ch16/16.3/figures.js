@@ -1,6 +1,6 @@
 /* Figures for section 16.3 Simple Harmonic Motion. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['16.3'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['16.3'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, ctl, cycle, register, begin, line, arrow, dot, text, headline, hbracket, vbracket, strip, axes, nice, curve, spring, block, fixed } = F;
 const demo = (id, H) => F.demo(root, id, H);
 const TAU = 2 * Math.PI;

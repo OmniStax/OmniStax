@@ -1,5 +1,5 @@
 /* getStaticPaths helpers shared by the page and the endpoints beside it. */
-import { config } from '../../../omnia.config';
+import { config } from '../../../omnistax.config';
 import { bookTree } from './load';
 import type { BookTree, ChapterTree, SectionSource } from './load';
 

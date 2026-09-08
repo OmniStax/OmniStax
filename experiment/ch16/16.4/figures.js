@@ -1,6 +1,6 @@
 /* Figures for section 16.4 The Simple Pendulum. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['16.4'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['16.4'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, ctl, cycle, register, begin, line, arrow, dot, text, headline, axes, nice, curve, scale, fixed } = F;
 const demo = (id, H) => F.demo(root, id, H);
 const TAU = 2 * Math.PI, DEG = Math.PI / 180;

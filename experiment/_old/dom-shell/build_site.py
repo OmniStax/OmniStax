@@ -35,7 +35,7 @@ def fragment(ch, sec, meta, text, exercises):
     t = f'<article data-doc="{sid}/text" data-sec="{sid}" data-title="{sid} Text" data-math="rendered">\n'
     t += f'<div class="eyebrow">Chapter {ch["id"]} · {H.escape(ch["title"])} · {sid}</div>\n<h1>{H.escape(meta["title"])}</h1>\n'
     t += f'<p class="lead">{meta["lead"]}</p>\n' + prerender(qualify(text, sid))
-    t += f'\n<div class="footer">Text: {book["publisher"]}, <em>{book["title"]}</em>, section {sid}, {book["license"]}. Demos, concept map and suggestions marked AI: Omnia. {meta.get("notes","")}</div>\n</article>\n'
+    t += f'\n<div class="footer">Text: {book["publisher"]}, <em>{book["title"]}</em>, section {sid}, {book["license"]}. Demos, concept map and suggestions marked AI: OmniStax. {meta.get("notes","")}</div>\n</article>\n'
     t += f'<article data-doc="{sid}/exercises" data-sec="{sid}" data-title="{sid} Exercises">\n<section id="{sid}-exercises">\n<h2>Problems &amp; Exercises</h2>\n'
     t += '<div class="exercises" data-place="end"></div>\n</section>\n</article>\n'
     data = {'section': meta, 'exercises': exercises['exercises']}
@@ -94,5 +94,5 @@ shutil.copy(J(VENDOR, 'katex', 'contrib', 'auto-render.min.js'), J(A, 'katex', '
 if os.path.exists(J(A, 'katex', 'fonts')): shutil.rmtree(J(A, 'katex', 'fonts'))
 shutil.copytree(J(VENDOR, 'katex', 'fonts'), J(A, 'katex', 'fonts'))
 shutil.copy(J(VENDOR, 'three', 'three.min.js'), J(A, 'three.min.js'))
-write(J(SITE, 'index.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' + pages[0][3] + '"><a href="' + pages[0][3] + '">Omnia</a>')
+write(J(SITE, 'index.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' + pages[0][3] + '"><a href="' + pages[0][3] + '">OmniStax</a>')
 print('site ->', SITE)

@@ -1,6 +1,6 @@
 /* Figures for section 2.5. Boots against a root element (the section's text article). */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['2.5'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['2.5'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, LW, ctl, cycle, register, begin, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, curve, runner, car, plane, dragster } = F;
 const demo = (id, H) => F.demo(root, id, H);
 /* =====================================================================

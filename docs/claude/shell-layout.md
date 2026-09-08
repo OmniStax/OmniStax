@@ -70,7 +70,7 @@ Interactions:
 - Under 900px the sidebars become one-at-a-time overlays opened from the
   rail, and groups stack vertically.
 
-State is one JSON object in `localStorage` (`omnia-layout-v4`): the items
+State is one JSON object in `localStorage` (`omnistax-layout-v4`): the items
 in each sidebar and their widths, collapsed boxes, the groups with their
 tabs and active tab, a stable key per group, the focused group, and each
 view's home side. It is
@@ -85,7 +85,7 @@ Unpinned, the view follows the focused document, so switching tabs from
 2.1 to 2.5 switches the concept map, contents, formulas, definitions and
 notes to 2.5. Pinned, the view holds its section and shows a picker of
 the built sections, so 2.1's concept map can stay up while 2.5 is read.
-The pin is per view and remembered in this browser (`omnia-scope`). The
+The pin is per view and remembered in this browser (`omnistax-scope`). The
 same header appears whether the view sits in a sidebar box or in a tab.
 The design chosen over the alternatives: a global freeze would hold every
 view at once, which is rarely wanted; turning following off altogether
@@ -113,7 +113,7 @@ The notes view lists the scoped section's notes first, each with its
 colour, its quote as a link back into the text, and an annotation that
 saves as it is typed; the other sections of the book are folded below,
 with a control to expand them all. Notes are stored per book in this
-browser (`omnia-notes-<book id>`); with accounts they move to the profile.
+browser (`omnistax-notes-<book id>`); with accounts they move to the profile.
 
 ## Why this and not more
 

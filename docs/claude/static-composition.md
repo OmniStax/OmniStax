@@ -53,7 +53,7 @@ Svelte 5 island for the shell.
    library ship as hashed files under `assets/`; three.js is a vendor
    script. A section page costs its own HTML plus cached shared assets.
 3. **Figures are scoped to a root.** Each section's `figures.js` registers
-   `OMNIA_FIGURES['<sec>'] = function (root, F) {...}` and finds its
+   `OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}` and finds its
    canvases inside `root`, so two sections can share one DOM.
 4. **Chapter-level data.** The concept map, formula sheet and definitions
    are per chapter and grow across sections. Element ids are qualified by

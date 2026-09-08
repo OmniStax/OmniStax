@@ -286,12 +286,12 @@ html:not(.cc) .exercise.ex-hot{border-color:var(--ink)}
 html:not(.cc) .legend{display:none}
 .footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
 </style>
-<script>try{var t=localStorage.getItem('omnia-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script>try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
-  <div class="brand"><b>Constant Acceleration Kinematics</b><span>College Physics 2e · Chapter 2 · 2.5 · Omnia experiment</span></div>
+  <div class="brand"><b>Constant Acceleration Kinematics</b><span>College Physics 2e · Chapter 2 · 2.5 · OmniStax experiment</span></div>
   <div class="spacer"></div>
   <span class="hint">drag a rail icon into the page to open it as a tab · drag a tab to the right half to split</span>
 </header>
@@ -333,7 +333,7 @@ html:not(.cc) .legend{display:none}
 <article data-doc="text" data-title="Text">
 <div class="eyebrow">Chapter 2 · Kinematics · 2.5</div>
 <h1>Motion Equations for Constant Acceleration in One Dimension</h1>
-<p class="lead">The textbook's prose is quoted as written. The demos, readouts and the quiz cards between them are Omnia's additions, set in this sans-serif face so you can always tell the two apart.</p>
+<p class="lead">The textbook's prose is quoted as written. The demos, readouts and the quiz cards between them are OmniStax's additions, set in this sans-serif face so you can always tell the two apart.</p>
 
 <div class="objectives">
   <div class="eyebrow">Learning objectives</div>
@@ -655,7 +655,7 @@ $$\kt = 10.0\ \text{s}.$$</li>
 </ul>
 </section>
 
-<div class="footer">Text: OpenStax, <em>College Physics 2e</em>, section 2.5, CC BY-NC-SA 4.0. Demos, concept map, tags and AI-marked answers: Omnia experiment, 2026-09-05. Book photographs and sketch figures were replaced by the live demos.</div>
+<div class="footer">Text: OpenStax, <em>College Physics 2e</em>, section 2.5, CC BY-NC-SA 4.0. Demos, concept map, tags and AI-marked answers: OmniStax experiment, 2026-09-05. Book photographs and sketch figures were replaced by the live demos.</div>
 </article>
 
 <article data-doc="exercises" data-title="Exercises">
@@ -1401,7 +1401,7 @@ $$('[data-doc]', pool).forEach((e) => { ITEMS['doc:' + e.dataset.doc] = { id: 'd
 $$('.view', pool).forEach((e) => { ITEMS['view:' + e.dataset.view] = { id: 'view:' + e.dataset.view, kind: 'view', title: e.dataset.title, icon: ICON[e.dataset.view], side: e.dataset.side, el: e }; });
 const ORDER = ['doc:text', 'doc:exercises', 'view:concepts', 'view:contents', 'view:formulas', 'view:definitions', 'view:notes'];
 
-const LKEY = 'omnia-layout-v2';
+const LKEY = 'omnistax-layout-v2';
 const DEFAULT = () => ({ sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } }, home: {}, collapsed: [], groups: [{ tabs: ['doc:text', 'doc:exercises'], active: 'doc:text' }], focus: 0 });
 function validLayout(s) {
   try { return s && s.sides && s.groups && s.groups.length && s.groups.every((g) => g.tabs.every((t) => ITEMS[t]) && (g.tabs.length === 0 || g.tabs.includes(g.active))) && ['left', 'right'].every((k) => s.sides[k] && s.sides[k].items.every((t) => ITEMS[t] && ITEMS[t].kind === 'view')); } catch (e) { return false; }
@@ -1590,8 +1590,8 @@ document.addEventListener('click', (e) => { const a = e.target.closest('a[href^=
 
 /* ---------- toggle, theme ---------- */
 const toggle = $('#cc-toggle');
-try { const s = localStorage.getItem('omnia-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
-function applyCC() { CC = toggle.checked; document.documentElement.classList.toggle('cc', CC); try { localStorage.setItem('omnia-cc', CC ? '1' : '0'); } catch (e) { } redrawAll(); }
+try { const s = localStorage.getItem('omnistax-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
+function applyCC() { CC = toggle.checked; document.documentElement.classList.toggle('cc', CC); try { localStorage.setItem('omnistax-cc', CC ? '1' : '0'); } catch (e) { } redrawAll(); }
 toggle.addEventListener('change', applyCC);
 const themeToggle = $('#theme-toggle');
 const sysDark = matchMedia('(prefers-color-scheme: dark)');
@@ -1600,7 +1600,7 @@ function syncThemeToggle() { themeToggle.checked = isDark(); }
 themeToggle.addEventListener('change', () => {
   const t = themeToggle.checked ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
-  try { localStorage.setItem('omnia-theme', t); } catch (e) { }
+  try { localStorage.setItem('omnistax-theme', t); } catch (e) { }
 });
 sysDark.addEventListener('change', () => { syncThemeToggle(); redrawAll(); });
 new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

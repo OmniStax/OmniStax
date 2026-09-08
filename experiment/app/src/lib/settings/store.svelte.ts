@@ -9,16 +9,16 @@ const remove = (key: string): void => { try { localStorage.removeItem(key); } ca
 const sysDark = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 
 class Settings {
-  colorCoding = $state(read('omnia-cc') !== '0');
-  theme = $state<Theme>((read('omnia-theme') as Theme | null) ?? 'system');
-  animations = $state(read('omnia-anim') !== '0');
-  exerciseMode = $state<ExerciseMode>(read('omnia-exmode') === 'one' ? 'one' : 'all');
+  colorCoding = $state(read('omnistax-cc') !== '0');
+  theme = $state<Theme>((read('omnistax-theme') as Theme | null) ?? 'system');
+  animations = $state(read('omnistax-anim') !== '0');
+  exerciseMode = $state<ExerciseMode>(read('omnistax-exmode') === 'one' ? 'one' : 'all');
 
   get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
-  setColorCoding(on: boolean): void { this.colorCoding = on; write('omnia-cc', on ? '1' : '0'); }
-  setDark(on: boolean): void { this.theme = on ? 'dark' : 'light'; write('omnia-theme', this.theme); }
-  setAnimations(on: boolean): void { this.animations = on; write('omnia-anim', on ? '1' : '0'); }
-  setExerciseMode(m: ExerciseMode): void { this.exerciseMode = m; write('omnia-exmode', m); }
-  reset(): void { ['omnia-cc', 'omnia-theme', 'omnia-anim', 'omnia-exmode'].forEach(remove); }
+  setColorCoding(on: boolean): void { this.colorCoding = on; write('omnistax-cc', on ? '1' : '0'); }
+  setDark(on: boolean): void { this.theme = on ? 'dark' : 'light'; write('omnistax-theme', this.theme); }
+  setAnimations(on: boolean): void { this.animations = on; write('omnistax-anim', on ? '1' : '0'); }
+  setExerciseMode(m: ExerciseMode): void { this.exerciseMode = m; write('omnistax-exmode', m); }
+  reset(): void { ['omnistax-cc', 'omnistax-theme', 'omnistax-anim', 'omnistax-exmode'].forEach(remove); }
 }
 export const settings = new Settings();

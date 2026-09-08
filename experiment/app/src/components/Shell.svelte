@@ -103,7 +103,7 @@
 </script>
 
 {#if ready}
-  <div class="shell" role="application" aria-label="Omnia" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
+  <div class="shell" role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
     <Rail side="left" {narrow} onGear={() => { picker.open = false; settingsOpen = !settingsOpen; }} />
     <Sidebar side="left" {narrow} />
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>

@@ -28,10 +28,10 @@ class Notes {
   /* bumps when marks must be repainted (a note added, removed or recoloured); annotation edits do not repaint */
   paintVersion = $state(0);
   editing = $state<string | null>(null);   /* the note whose annotation should take focus in the view */
-  private key = 'omnia-notes';
+  private key = 'omnistax-notes';
 
   init(bookId: string): void {
-    this.key = `omnia-notes-${bookId}`;
+    this.key = `omnistax-notes-${bookId}`;
     try { this.list = parse(JSON.parse(localStorage.getItem(this.key) ?? '[]')); } catch { this.list = []; }
   }
   add(section: SectionId, doc: DocKind, anchor: Anchor, color: HlColor): Note {

@@ -4,7 +4,7 @@
 import { focus } from './focus.svelte';
 import type { SectionId, ViewKind } from '../types/ids';
 
-const KEY = 'omnia-scope';
+const KEY = 'omnistax-scope';
 const load = (): Partial<Record<ViewKind, SectionId>> => { try { const o = JSON.parse(localStorage.getItem(KEY) ?? '{}'); return typeof o === 'object' && o ? o : {}; } catch { return {}; } };
 
 class Scope {

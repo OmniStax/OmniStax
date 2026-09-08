@@ -1,4 +1,4 @@
-/* Omnia figure library: math rendering, palette, the animation loop and the drawing primitives.
+/* OmniStax figure library: math rendering, palette, the animation loop and the drawing primitives.
    Shared by the shell and every section's figures.js. Exposed as window.FIG. */
 window.FIG = (function () {
 'use strict';

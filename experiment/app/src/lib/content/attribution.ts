@@ -44,7 +44,7 @@ export const citation = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${nameList(a.authors)}` : '';
   const access = a.sourceUrl ? ` Access for free at ${a.sourceUrl}.` : '';
   const holder = a.copyright ? ` © ${a.copyright},` : '';
-  return `${a.title}${by}, ${a.publisher},${holder} ${a.license}, adapted by Omnia and shared under the same licence.${access}`;
+  return `${a.title}${by}, ${a.publisher},${holder} ${a.license}, adapted by OmniStax and shared under the same licence.${access}`;
 };
 
 /* The footer of every adapted article: the credit, the publisher's own
@@ -52,7 +52,7 @@ export const citation = (a: Attribution): string => {
 export const footerHtml = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${esc(nameList(a.authors))}` : '';
   const holder = a.copyright ? `, © ${esc(a.copyright)}` : '';
-  const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by Omnia and shared under the same licence.`;
+  const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same licence.`;
   const access = a.sourceUrl ? ` Access for free at ${link(a.sourceUrl, esc(bare(a.sourceUrl)))}.` : '';
   const notes = a.notes ? `<p>${esc(a.notes)}</p>` : '';
   return `<footer class="footer"><p>${credit}${access}</p>${notes}</footer>`;

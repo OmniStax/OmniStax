@@ -1,6 +1,6 @@
 /* Figures for section 16.1 Hooke's Law. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['16.1'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['16.1'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, ctl, cycle, register, begin, line, arrow, dot, text, headline, hbracket, vbracket, strip, axes, nice, spring, block, fixed } = F;
 const demo = (id, H) => F.demo(root, id, H);
 const G = 9.80;
@@ -16,7 +16,7 @@ function readout(host, main, small) { tex(host, main); if (small) host.appendChi
   const x0 = ctl(d.controls, { label: '\\kxo', cls: 'position', min: -6, max: 6, step: 0.5, value: 4, unit: 'cm', dec: 1, onInput: reset, aria: 'initial pull of the tip' });
   const Lr = ctl(d.controls, { label: '\\text{free length}', cls: '', min: 10, max: 30, step: 1, value: 30, unit: 'cm', dec: 0, onInput: reset, aria: 'free length of the ruler' });
   const damp = ctl(d.controls, { label: '\\text{damping}', cls: '', min: 0.1, max: 3, step: 0.1, value: 0.6, unit: '/s', dec: 1, onInput: reset });
-  /* Omnia's model of a plastic ruler: about 30 N/m and 1.5 Hz at 30 cm; a shorter length is stiffer as the cube and faster as the square */
+  /* OmniStax's model of a plastic ruler: about 30 N/m and 1.5 Hz at 30 cm; a shorter length is stiffer as the cube and faster as the square */
   const k = () => 30 * Math.pow(30 / Lr.v, 3), freq = () => 1.5 * Math.pow(30 / Lr.v, 2);
   const T = () => Math.min(20, Math.max(2, Math.log(50) / damp.v));
   const cy = cycle(T, 1.4);

@@ -41,5 +41,5 @@ test('footer escapes content fields', () => {
 });
 test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '' })),
-    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by Omnia and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
+    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
 });

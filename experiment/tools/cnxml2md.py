@@ -2,7 +2,7 @@
 """Convert an OpenStax CNXML module to markdown with LaTeX math.
 
 Usage: cnxml2md.py path/to/index.cnxml > out.md
-Lossy but faithful to prose order. Tags preserved as markers where Omnia
+Lossy but faithful to prose order. Tags preserved as markers where OmniStax
 needs them later: definitions, examples, exercises, figures, equations.
 """
 import sys, re

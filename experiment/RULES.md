@@ -69,16 +69,16 @@ and figures use greys with text labels.
 
 ## Tone rule
 
-Textbook prose is quoted verbatim. Omnia's own words (demo instructions,
+Textbook prose is quoted verbatim. OmniStax's own words (demo instructions,
 readouts, suggested approaches) are set in the sans face and visibly
 marked, so a reader can always tell the two apart.
 
-Omnia's words talk about the physics, never about the page. No lead or
+OmniStax's words talk about the physics, never about the page. No lead or
 caption explains that the prose is quoted, that a figure was redrawn or
 is "live", or that something was generated. Attribution and what was
 left out go in the footer only.
 
-Omnia's words are written in the book's voice. The typeface says whose
+OmniStax's words are written in the book's voice. The typeface says whose
 words they are; the language should not. Match the book's register,
 sentence shape, person and vocabulary: for this book, full sentences in
 plain second person, patient rather than clever, "for example" and "note
@@ -87,7 +87,7 @@ fragment-headed captions ("The landing."), no telegraphic semicolon
 chains, no editorial framing ("three different questions"). A reader
 switching from a quoted paragraph to a demo caption should feel a change
 of typeface, not a change of writer. Read a page of the book before
-writing Omnia's sentences for it.
+writing OmniStax's sentences for it.
 
 ## Attribution
 
@@ -154,7 +154,7 @@ unasked, and only when they open a view the required figures do not.
 (title, lead, objectives, summary_html, notes: what was left out, one
 sentence, rendered into the footer), `text.html` (the article
 body, local ids, `\k` macros in math), `figures.js`
-(`OMNIA_FIGURES['<sec>'] = function (root, F) {...}`, every lookup through
+(`OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}`, every lookup through
 `F.demo(root, id, H)` or `F.byId(root, id)`), `exercises.json`.
 Chapter-level: `ch02/chapter.json`, `concepts.json` (every node carries
 `section`; coverage spans are qualified ids like `2.1-distance`),

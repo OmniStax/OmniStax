@@ -1,6 +1,6 @@
 /* Figures for section 2.1 Displacement. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['2.1'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['2.1'] = function (root, F) {
 const { fmt, tex, C, PAL, REDUCED, LW, ctl, cycle, register, begin, line, arrow, dot, text, headline, hbracket, scale, runner } = F;
 const demo = (id, H) => F.demo(root, id, H);
 function xfLabel(ctx, x, y, color) { text(ctx, 'x', x - 6, y, color, { align: 'center', weight: 600, size: 24 }); text(ctx, 'f', x + 8, y + 8, color, { align: 'center', weight: 600, size: 16 }); }

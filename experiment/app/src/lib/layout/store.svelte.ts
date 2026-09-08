@@ -4,7 +4,7 @@ import type { Layout } from './model';
 import { defaultLayout, parseLayout, ensureOwn } from './model';
 import type { SectionId } from '../types/ids';
 
-const KEY = 'omnia-layout-v4';
+const KEY = 'omnistax-layout-v4';
 const load = (section: SectionId, known: (k: string) => boolean): Layout => {
   try { const parsed = parseLayout(JSON.parse(localStorage.getItem(KEY) ?? 'null'), known); if (parsed) return ensureOwn(parsed, section); } catch { /* fall through */ }
   return ensureOwn(defaultLayout(section), section);

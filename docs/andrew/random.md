@@ -21,7 +21,7 @@
 - Maybe it's better if we, for now, just "reveal answer"? And ask if the user did get the same.. Depends on the honesty of users, for curious people this is fine, for kids using this in standard education, no.
 - Yea I think bring your own AI is necessary to grade and respond to results.
 - AI should probably read the existing images to help make better diagrams? Hm. Also, if we want to just copy-paste over an image from a PDF. How easy is that? I imagine there are such images.
-- If the recipes to extracting from AI becomes hard enough and diverse, Omnia is no longer plug-and-play for educators to try converting materials. But that's fine. The core is still the content.
+- If the recipes to extracting from AI becomes hard enough and diverse, OmniStax is no longer plug-and-play for educators to try converting materials. But that's fine. The core is still the content.
 
 ## Textbook->course transformation process
 Transforming a book into a course should be an interactive process. Because it is the wielder of the AI who must decide who concepts are to be interactively diagrammed, what kind of domain specific widgets should there be, etc etc.

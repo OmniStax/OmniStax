@@ -43,8 +43,8 @@ module (2.4 Acceleration, m42100) already has, as explicit tags: 15
 equations, definitions and exercises are already structured. The PDF stays
 useful as the visual reference for layout and figures.
 
-Consequence for the milestone: the "pdf -> Omnia" pipeline is really
-"source -> Omnia", with PDF as the fallback when no structured source exists.
+Consequence for the milestone: the "pdf -> OmniStax" pipeline is really
+"source -> OmniStax", with PDF as the fallback when no structured source exists.
 LibreTexts also has an HTML/XML export, so check that before doing PDF work.
 
 ## Book structure worth knowing (per chapter)
@@ -88,7 +88,7 @@ What worked:
   and canvas drawings. The macro set is the color standard in code form.
 - Replacing the book's sketch figures with demos worked for every figure in
   this section; the photos carried no physics and were dropped.
-- Verbatim prose + sans-serif Omnia additions keeps the tone rule honest and
+- Verbatim prose + sans-serif OmniStax additions keeps the tone rule honest and
   visible.
 
 What hurt / to change:
@@ -106,7 +106,7 @@ What hurt / to change:
   strip with arrows, root-finding plot, 3D road scene. Archetypes look
   viable; the 3D scene is the one that resists a spec.
 - Decision: local HTML only, no Claude artifacts. They add a share URL and a
-  sandbox that blocks CDN stylesheets, nothing Omnia needs.
+  sandbox that blocks CDN stylesheets, nothing OmniStax needs.
 - No glossary in this module; definitions came from the notation paragraph.
 
 Next: run the same passes on 2.4 (has `<definition>` tags and 12 exercises
@@ -197,7 +197,7 @@ KaTeX in Node (`tools/prerender_math.js`), so the article reads without
 JS and the page paints without a rendering pass. Element ids are
 qualified by section at build time (`2.5-notation`), so two sections can
 share one DOM. Figures boot against a root element
-(`OMNIA_FIGURES['2.5'](root, FIG)`); the drawing layer lives in
+(`OMNISTAX_FIGURES['2.5'](root, FIG)`); the drawing layer lives in
 `shell/figlib.js`. The shell fetches other sections' fragments on demand,
 updates the address bar to the focused section's canonical URL, and
 restores saved tabs lazily. The old files are in `_old/2.5-single-page/`.
@@ -614,7 +614,7 @@ Design chosen:
 - **Notes view.** The scoped section first, then the rest of the book
   folded with an expand-all; each card has the colour dots, the quote
   as a link back to the mark (opening the document if needed), and an
-  annotation saved as typed. Stored per book (`omnia-notes-<id>`).
+  annotation saved as typed. Stored per book (`omnistax-notes-<id>`).
 
 Checks: `astro check` clean, 25 unit tests (four new for anchoring),
 build, and a headless scenario: highlight from a selection, annotate

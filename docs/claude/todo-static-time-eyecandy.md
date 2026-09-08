@@ -1,7 +1,7 @@
 # Todo: Milestone 1, "Static-time eyecandy"
 
 Target from the README: a dozen courses, great visuals and interactives, solid
-`pdf -> Omnia course` pipeline, basic mastery point system. No runtime AI. The
+`pdf -> OmniStax course` pipeline, basic mastery point system. No runtime AI. The
 selling point is UX and interactive simulations.
 
 ## Working principle
@@ -45,7 +45,7 @@ and the verdict in the experiment log. Do not automate anything in this phase.
 
 - [~] **Setup session (the "few hours of foundations")** for this book (first draft in `experiment/RULES.md`):
   - [ ] Read the table of contents and decide the domain-specific rules: what goes in the global object list (periodic table, unit tables, constant sheets...), what widgets should look like for this domain, what the color-coding standard is for this book's variables.
-  - [ ] Write these rules down as `omnia-content/<course>/RULES.md`. This is the first artifact of the future pipeline's per-course config.
+  - [ ] Write these rules down as `omnistax-content/<course>/RULES.md`. This is the first artifact of the future pipeline's per-course config.
 - [x] **Pass: text to markdown** on section 2.5 (`experiment/tools/cnxml2md.py`; from CNXML, not PDF). Verify tone is untouched. Note what markup we actually needed (definition spans, variable spans, equation blocks, citation anchors).
 - [x] **Pass: formulas and variables** on 2.5 (`experiment/ch02/2.5/formulas.json`). Extract every important equation, name its variables, assign colors per the color-coding standard. Check that the same variable keeps the same color across the chapter.
 - [x] **Pass: exercises** on 2.5 (`experiment/ch02/2.5/exercises.json`). Extract exercises, tag each with a *set* of concepts and a Bloom level (Remember/Understand/Apply/Analyze). Add citation anchors for Remember/Understand only.
@@ -75,7 +75,7 @@ and try the UX ideas on real content.
 ## Phase 3: Synthesize the pipeline (only after Phase 1 and 2 feedback)
 
 - [ ] Freeze v1 of `docs/content-format.md` (course manifest, per-course RULES, markdown extensions, DAG file, exercise file, widget spec, `generated-by` on every record).
-- [ ] Turn `docs/claude/prompts/*.md` into pipeline steps in `omnia-content/`: ingest PDF, per-course setup (interactive, human in the loop), then the automated passes in the order that worked.
+- [ ] Turn `docs/claude/prompts/*.md` into pipeline steps in `omnistax-content/`: ingest PDF, per-course setup (interactive, human in the loop), then the automated passes in the order that worked.
 - [ ] Validation: schema checks, DAG cycle/orphan checks, exercises reference existing concepts, citations resolve, widget specs compile, near-verbatim tone check on prose.
 - [ ] Idempotent per-chapter runs, cached model outputs, cost logging, a diff mode for prompt changes against the hand-made golden chapter.
 - [ ] Review tool: source PDF page beside generated output.

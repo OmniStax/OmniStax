@@ -1,4 +1,4 @@
-# Omnia app
+# OmniStax app
 
 Astro builds one static page per textbook section; a Svelte 5 shell mounts on
 top and composes sections, views and exercises into a VS Code-like layout.
@@ -17,15 +17,15 @@ second section into a tab fetches its fragment, so `file://` is not enough.
 
 ## Configuration
 
-`omnia.config.ts` is the only place user-settable values live, grouped by
+`omnistax.config.ts` is the only place user-settable values live, grouped by
 concern and read from the environment with defaults:
 
 | Section | Key | Env | Default |
 |---|---|---|---|
-| content | root | `OMNIA_CONTENT_DIR` | `..` (the experiment directory) |
-| content | bookId | `OMNIA_BOOK` | `college-physics-2e` |
-| site | baseUrl | `OMNIA_BASE_URL` | `https://omnia.local` |
-| build | threeUrl | `OMNIA_THREE_URL` | `/vendor/three.min.js` |
+| content | root | `OMNISTAX_CONTENT_DIR` | `..` (the experiment directory) |
+| content | bookId | `OMNISTAX_BOOK` | `college-physics-2e` |
+| site | baseUrl | `OMNISTAX_BASE_URL` | `https://omnistax.local` |
+| build | threeUrl | `OMNISTAX_THREE_URL` | `/vendor/three.min.js` |
 
 ## Layout of the source
 

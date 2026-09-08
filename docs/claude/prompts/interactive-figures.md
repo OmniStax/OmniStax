@@ -29,7 +29,7 @@ drawn objects across text and figures.
 You are given: the section text (source.md), formulas.json, concepts.json,
 RULES.md, and figlib.js which already contains the drawing layer. The book's
 prose is quoted verbatim and must not be touched; everything you add is an
-Omnia addition, set in the sans face, and is labelled "Demo".
+OmniStax addition, set in the sans face, and is labelled "Demo".
 
 ## 1. Plan the figures before drawing anything
 
@@ -81,7 +81,7 @@ Rules for the plan:
 ## 2. Draw each figure with the shared layer
 
 Every figure is one IIFE inside the section's figures.js module
-(`OMNIA_FIGURES['<sec>'] = function (root, F) {...}`) that calls:
+(`OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}`) that calls:
 
   const d = demo('demo-<id>', H);            // demo = (id, H) => F.demo(root, id, H); H = canvas height in logical units
                                              // d.fig, d.c (canvas), d.stage (canvas + transport), d.controls, d.readout

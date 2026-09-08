@@ -1,11 +1,11 @@
-/* Omnia shell: rails, sidebars of views, tabbed document groups, section loading.
+/* OmniStax shell: rails, sidebars of views, tabbed document groups, section loading.
    Content (documents) is static and pre-rendered per section; the shell composes it.
    Depends on window.FIG (figlib.js), KaTeX, and the page's inline data blocks. */
 (function () {
 'use strict';
 const F = window.FIG;
 const { $, $$, el, tex, renderMath, REDUCED, SYM } = F;
-const ROOT = ($('meta[name="omnia-root"]') || {}).content || './';
+const ROOT = ($('meta[name="omnistax-root"]') || {}).content || './';
 const PAGE = { book: document.documentElement.dataset.book, chapter: document.documentElement.dataset.chapter, section: document.documentElement.dataset.section };
 const BOOK = JSON.parse($('#data-book').textContent);
 const CHAP = {};   // chapter dir -> {concepts, formulas}
@@ -86,7 +86,7 @@ function mountExercises(sec, roots) {
   roots.forEach((r) => $$('.exercises', r).forEach((h) => { if (!h.children.length || h.querySelector('.eyebrow, .ex-bar')) return; if (h.dataset.place === 'end') exerciseBar(h); else h.prepend(el('div', 'eyebrow', 'Try it')); }));
 }
 /* The end-of-section list can show every problem, or one at a time with previous/next. The choice is remembered. */
-const EXMODE_KEY = 'omnia-exmode';
+const EXMODE_KEY = 'omnistax-exmode';
 let exMode = 'all'; try { if (localStorage.getItem(EXMODE_KEY) === 'one') exMode = 'one'; } catch (e) { }
 function exerciseBar(h) {
   const cards = () => $$(':scope > .exercise', h); let at = 0;
@@ -140,7 +140,7 @@ function adoptFragment(container) {
   });
   secs.forEach((sec) => { mountExercises(sec); bootFigures(sec); });
 }
-function bootFigures(sec, root) { const f = window.OMNIA_FIGURES && window.OMNIA_FIGURES[sec]; root = root || (SEC[sec] && SEC[sec].docs.text); if (f && root && !root.dataset.booted) { root.dataset.booted = '1'; try { f(root, F); } catch (e) { console.error('figures ' + sec, e); } } }
+function bootFigures(sec, root) { const f = window.OMNISTAX_FIGURES && window.OMNISTAX_FIGURES[sec]; root = root || (SEC[sec] && SEC[sec].docs.text); if (f && root && !root.dataset.booted) { root.dataset.booted = '1'; try { f(root, F); } catch (e) { console.error('figures ' + sec, e); } } }
 const loading = {};
 function loadSection(sec) {
   if (SEC[sec] && SEC[sec].docs.text) return Promise.resolve();
@@ -304,7 +304,7 @@ function spy(pane) {
 /* =====================================================================
    Layout: rails, sidebars, groups, drag and drop, persistence
 ===================================================================== */
-const LKEY = 'omnia-layout-v3';
+const LKEY = 'omnistax-layout-v3';
 const DEFAULT = () => ({ sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } }, home: {}, collapsed: [], groups: [{ key: uid(), tabs: ['doc:' + PAGE.section + '/text', 'doc:' + PAGE.section + '/exercises'], active: 'doc:' + PAGE.section + '/text' }], focus: 0 });
 function uid() { return Math.random().toString(36).slice(2, 8); }
 const knownItem = (id) => VIEWS.includes(id) || (id.startsWith('doc:') && (() => { const e = secEntry(id.slice(4).split('/')[0]); return e && e.built; })());
@@ -557,20 +557,20 @@ $('#docs').addEventListener('pointerdown', () => { if (overlay) { overlay = null
 
 /* ----- animations: one switch pauses every figure in every loaded section ----- */
 const animToggle = $('#anim-toggle');
-try { if (localStorage.getItem('omnia-anim') === '0') animToggle.checked = false; } catch (e) { }
-function applyAnim() { F.setPaused(!animToggle.checked); document.documentElement.classList.toggle('anim-off', !animToggle.checked); try { localStorage.setItem('omnia-anim', animToggle.checked ? '1' : '0'); } catch (e) { } }
+try { if (localStorage.getItem('omnistax-anim') === '0') animToggle.checked = false; } catch (e) { }
+function applyAnim() { F.setPaused(!animToggle.checked); document.documentElement.classList.toggle('anim-off', !animToggle.checked); try { localStorage.setItem('omnistax-anim', animToggle.checked ? '1' : '0'); } catch (e) { } }
 animToggle.addEventListener('change', applyAnim); applyAnim();
 
 /* ----- colour coding and theme ----- */
 const toggle = $('#cc-toggle');
-try { const s = localStorage.getItem('omnia-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
-function applyCC() { F.setCC(toggle.checked); document.documentElement.classList.toggle('cc', toggle.checked); try { localStorage.setItem('omnia-cc', toggle.checked ? '1' : '0'); } catch (e) { } F.redrawAll(); }
+try { const s = localStorage.getItem('omnistax-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
+function applyCC() { F.setCC(toggle.checked); document.documentElement.classList.toggle('cc', toggle.checked); try { localStorage.setItem('omnistax-cc', toggle.checked ? '1' : '0'); } catch (e) { } F.redrawAll(); }
 toggle.addEventListener('change', applyCC);
 const themeToggle = $('#theme-toggle');
 const sysDark = matchMedia('(prefers-color-scheme: dark)');
 function isDark() { const t = document.documentElement.getAttribute('data-theme'); return t ? t === 'dark' : sysDark.matches; }
 function syncThemeToggle() { themeToggle.checked = isDark(); }
-themeToggle.addEventListener('change', () => { const t = themeToggle.checked ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); try { localStorage.setItem('omnia-theme', t); } catch (e) { } });
+themeToggle.addEventListener('change', () => { const t = themeToggle.checked ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); try { localStorage.setItem('omnistax-theme', t); } catch (e) { } });
 sysDark.addEventListener('change', () => { syncThemeToggle(); F.redrawAll(); });
 new MutationObserver(F.redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 window.addEventListener('resize', F.redrawAll);

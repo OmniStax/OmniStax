@@ -717,7 +717,7 @@ $$('[data-doc]', pool).forEach((e) => { ITEMS['doc:' + e.dataset.doc] = { id: 'd
 $$('.view', pool).forEach((e) => { ITEMS['view:' + e.dataset.view] = { id: 'view:' + e.dataset.view, kind: 'view', title: e.dataset.title, icon: ICON[e.dataset.view], side: e.dataset.side, el: e }; });
 const ORDER = ['doc:text', 'doc:exercises', 'view:concepts', 'view:contents', 'view:formulas', 'view:definitions', 'view:notes'];
 
-const LKEY = 'omnia-layout-v2';
+const LKEY = 'omnistax-layout-v2';
 const DEFAULT = () => ({ sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } }, home: {}, collapsed: [], groups: [{ tabs: ['doc:text', 'doc:exercises'], active: 'doc:text' }], focus: 0 });
 function validLayout(s) {
   try { return s && s.sides && s.groups && s.groups.length && s.groups.every((g) => g.tabs.every((t) => ITEMS[t]) && (g.tabs.length === 0 || g.tabs.includes(g.active))) && ['left', 'right'].every((k) => s.sides[k] && s.sides[k].items.every((t) => ITEMS[t] && ITEMS[t].kind === 'view')); } catch (e) { return false; }
@@ -906,8 +906,8 @@ document.addEventListener('click', (e) => { const a = e.target.closest('a[href^=
 
 /* ---------- toggle, theme ---------- */
 const toggle = $('#cc-toggle');
-try { const s = localStorage.getItem('omnia-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
-function applyCC() { CC = toggle.checked; document.documentElement.classList.toggle('cc', CC); try { localStorage.setItem('omnia-cc', CC ? '1' : '0'); } catch (e) { } redrawAll(); }
+try { const s = localStorage.getItem('omnistax-cc'); if (s === '0') toggle.checked = false; } catch (e) { }
+function applyCC() { CC = toggle.checked; document.documentElement.classList.toggle('cc', CC); try { localStorage.setItem('omnistax-cc', CC ? '1' : '0'); } catch (e) { } redrawAll(); }
 toggle.addEventListener('change', applyCC);
 const themeToggle = $('#theme-toggle');
 const sysDark = matchMedia('(prefers-color-scheme: dark)');
@@ -916,7 +916,7 @@ function syncThemeToggle() { themeToggle.checked = isDark(); }
 themeToggle.addEventListener('change', () => {
   const t = themeToggle.checked ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
-  try { localStorage.setItem('omnia-theme', t); } catch (e) { }
+  try { localStorage.setItem('omnistax-theme', t); } catch (e) { }
 });
 sysDark.addEventListener('change', () => { syncThemeToggle(); redrawAll(); });
 new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

@@ -1,6 +1,6 @@
 /* Figures for section 16.5 Energy and the Simple Harmonic Oscillator. Boots against the section's text article. */
-window.OMNIA_FIGURES = window.OMNIA_FIGURES || {};
-window.OMNIA_FIGURES['16.5'] = function (root, F) {
+window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};
+window.OMNISTAX_FIGURES['16.5'] = function (root, F) {
 const { el, fmt, tex, C, PAL, alpha, REDUCED, ctl, cycle, register, begin, line, arrow, dot, text, headline, strip, axes, nice, curve, spring, block, fixed } = F;
 const demo = (id, H) => F.demo(root, id, H);
 const TAU = 2 * Math.PI;

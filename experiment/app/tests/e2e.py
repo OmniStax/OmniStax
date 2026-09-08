@@ -39,7 +39,7 @@ with sync_playwright() as p:
     pg.evaluate('document.getElementById("cc-toggle").click()'); pg.wait_for_timeout(100); print('7 cc off:', not pg.evaluate('document.documentElement.classList.contains("cc")'))
     pg.evaluate('document.getElementById("cc-toggle").click(); document.getElementById("theme-toggle").click()')
     # 8 reload persistence
-    pg.reload(); pg.wait_for_timeout(2500); print('8 after reload:', tabs(pg), canv(pg), 'paused:', pg.evaluate('window.FIG.paused'), 'mode one:', pg.evaluate('localStorage.getItem("omnia-exmode")'))
+    pg.reload(); pg.wait_for_timeout(2500); print('8 after reload:', tabs(pg), canv(pg), 'paused:', pg.evaluate('window.FIG.paused'), 'mode one:', pg.evaluate('localStorage.getItem("omnistax-exmode")'))
     pg.screenshot(path='astro2.png')
     # 9 narrow overlay
     pg.set_viewport_size({'width':700,'height':800}); pg.wait_for_timeout(400)

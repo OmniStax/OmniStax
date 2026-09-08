@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
-import { config } from './omnia.config.ts';
+import { config } from './omnistax.config.ts';
 import contentWatch from './content-watch.mjs';
 
 export default defineConfig({

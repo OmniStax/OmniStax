@@ -85,7 +85,7 @@ class Registry {
     });
   }
   private bootFigures(root: HTMLElement, sec: SectionId): void {
-    const figs = (window as unknown as { OMNIA_FIGURES?: Record<string, (root: HTMLElement, F: Fig) => void> }).OMNIA_FIGURES;
+    const figs = (window as unknown as { OMNISTAX_FIGURES?: Record<string, (root: HTMLElement, F: Fig) => void> }).OMNISTAX_FIGURES;
     const f = figs?.[sec]; if (!f || !this.fig || root.dataset.booted) return;
     root.dataset.booted = '1';
     try { f(root, this.fig); } catch (e) { console.error(`figures ${sec}`, e); }
