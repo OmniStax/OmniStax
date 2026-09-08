@@ -1,7 +1,7 @@
 # Plan: 16.6 Uniform Circular Motion and Simple Harmonic Motion (m42245)
 
 Source: `source.md` (converted from CNXML). Book pages 720 to 722.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. Approved as proposed; paper runs downward; the merry-go-round photograph kept.
 
 One idea, argued from one figure: the projection of uniform circular
 motion is simple harmonic motion, and everything about simple harmonic

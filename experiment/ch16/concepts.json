@@ -103,6 +103,20 @@
    "placeholder": true
   },
   {
+   "id": "uniform-circular-motion",
+   "kind": "idea",
+   "section": "6.1",
+   "name": "Uniform circular motion",
+   "placeholder": true
+  },
+  {
+   "id": "angular-velocity",
+   "kind": "idea",
+   "section": "6.1",
+   "name": "Angular velocity $\\kw$",
+   "placeholder": true
+  },
+  {
    "id": "restoring-force",
    "kind": "idea",
    "section": "16.1",
@@ -329,6 +343,21 @@
    ],
    "why": "Solving the conservation of energy for the velocity gives the speed at every position, greatest at equilibrium and zero at the turning points, with $\\kvmax = \\kX\\sqrt{\\kk/m}$. The maximum velocity is proportional to the amplitude, greater for stiffer systems, and smaller for larger masses.",
    "evidence": "The section’s learning objective; Example 16.6; Check Your Understanding 1 and 2; problem 1(a) through the frequency."
+  },
+  {
+   "id": "ucm-shm-projection",
+   "kind": "idea",
+   "section": "16.6",
+   "eq": "eq-omega-T",
+   "name": "The projection of uniform circular motion is simple harmonic motion",
+   "prereqs": [
+    "simple-harmonic-motion",
+    "shm-kinematics",
+    "uniform-circular-motion",
+    "angular-velocity"
+   ],
+   "why": "A point moving round a circle at constant angular velocity $\\kw$ has a projection on a fixed axis at $\\kx = \\kX\\cos\\kw\\kt$, and with $\\kw = 2\\pi/\\kT$ this is exactly the position of a simple harmonic oscillator. The shadow of a ball on a turntable therefore moves in simple harmonic motion, and the speed and the period of any simple harmonic oscillator can be read off the circle: the similar triangles give $\\kv = \\kvmax\\sqrt{1 - \\kx^2/\\kX^2}$, and one revolution gives $\\kT = 2\\pi\\kX/\\kvmax = 2\\pi\\sqrt{m/\\kk}$.",
+   "evidence": "Check Your Understanding; the section summary. The AP item on the range of $x = A\\sin\\omega t$ is unkeyed and left out."
   }
  ],
  "coverage": [
@@ -527,6 +556,33 @@
   },
   {
    "span": "16.5-exercises",
+   "uses": []
+  },
+  {
+   "span": "16.6-projection",
+   "introduces": [
+    "ucm-shm-projection"
+   ],
+   "uses": [
+    "simple-harmonic-motion",
+    "shm-kinematics",
+    "uniform-circular-motion",
+    "angular-velocity"
+   ]
+  },
+  {
+   "span": "16.6-from-the-circle",
+   "uses": [
+    "ucm-shm-projection",
+    "amplitude"
+   ],
+   "reinforces": [
+    "shm-max-speed",
+    "shm-period"
+   ]
+  },
+  {
+   "span": "16.6-exercises",
    "uses": []
   }
  ]

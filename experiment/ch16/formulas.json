@@ -336,6 +336,47 @@
    "ktex": "\\kwmax = \\sqrt{\\frac{\\kg}{L}}\\theta_{\\text{max}}",
    "anchor": "16.5-max-speed",
    "important": false
+  },
+  {
+   "id": "eq-x-cos-theta",
+   "section": "16.6",
+   "latex": "x = X\\cos\\theta",
+   "ktex": "\\kx = \\kX\\cos\\theta",
+   "anchor": "16.6-projection",
+   "important": false
+  },
+  {
+   "id": "eq-x-cos-wt",
+   "section": "16.6",
+   "latex": "x = X\\cos\\omega t",
+   "ktex": "\\kx = \\kX\\cos\\kw\\kt",
+   "anchor": "16.6-projection",
+   "important": false
+  },
+  {
+   "id": "eq-omega-T",
+   "concept": "ucm-shm-projection",
+   "section": "16.6",
+   "latex": "\\omega = \\frac{2\\pi}{T}",
+   "ktex": "\\kw = \\frac{2\\pi}{\\kT}",
+   "anchor": "16.6-projection",
+   "important": true
+  },
+  {
+   "id": "eq-v-similar",
+   "section": "16.6",
+   "latex": "\\frac{v}{v_{\\text{max}}} = \\sqrt{1 - \\frac{x^2}{X^2}}",
+   "ktex": "\\frac{\\kv}{\\kvmax} = \\sqrt{1 - \\frac{\\kx^2}{\\kX^2}}",
+   "anchor": "16.6-from-the-circle",
+   "important": false
+  },
+  {
+   "id": "eq-T-from-circle",
+   "section": "16.6",
+   "latex": "T = \\frac{2\\pi X}{v_{\\text{max}}}",
+   "ktex": "\\kT = \\frac{2\\pi\\kX}{\\kvmax}",
+   "anchor": "16.6-from-the-circle",
+   "important": false
   }
  ],
  "glossary": [

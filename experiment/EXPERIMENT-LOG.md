@@ -567,3 +567,23 @@ Decisions recorded on the way:
 Checks: `astro check` clean, 21 unit tests, build, headless pass in light
 and dark with no console errors, ω probed teal in the text and present in
 the legend; two fix passes for the kinetic-energy label.
+
+## Pass 16: section 16.6 Uniform Circular Motion and SHM (2026-09-07)
+
+Plan in `ch16/16.6/plan.md`, approved as proposed. Two blocks (the
+shadow of a ball on a turntable moves in simple harmonic motion; the
+speed and the period follow from the circle), one node (the projection
+of uniform circular motion is simple harmonic motion, with ω = 2π/T as
+its equation), two nodes reinforced (the speed at a position from 16.5,
+the period from 16.3), placeholders for uniform circular motion and
+angular velocity (6.1). Two demos, both endless: the turntable, with the
+shadow drawn as a block on a spring and the trace on paper running
+downward as in Fig 16.20 (the circle-with-projection archetype); and the
+two similar triangles of Fig 16.19, shaded. The merry-go-round
+photograph is kept. Three exercises: the CYU inline and the two keyed
+problems; the AP item and problems 2 and 4 are unkeyed and left out.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors, the photograph loading; two fix passes
+for the headline under the light bar, a circle too small for its
+labels, and a side label against the velocity triangle.

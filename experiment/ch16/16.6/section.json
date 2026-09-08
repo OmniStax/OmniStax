@@ -1,0 +1,20 @@
+{
+ "id": "16.6",
+ "module": "m42245",
+ "chapter": "16",
+ "title": "Uniform Circular Motion and Simple Harmonic Motion",
+ "short": "Circular motion and SHM",
+ "lead": "A ball moving round a circle at a steady rate casts a shadow that moves back and forth in simple harmonic motion. This section uses that projection to produce simple harmonic motion, and then reads the position, the speed and the period of any simple harmonic oscillator off the circle.",
+ "objectives": [
+  "Compare simple harmonic motion with uniform circular motion."
+ ],
+ "summary_html": "<ul><li>A projection of uniform circular motion undergoes simple harmonic oscillation.</li></ul>",
+ "binds": [
+  "angular-rate",
+  "position",
+  "time",
+  "velocity"
+ ],
+ "built": "2026-09-07",
+ "notes": "The AP question and problems 2 and 4 have no answer in the book’s key and are left out."
+}
