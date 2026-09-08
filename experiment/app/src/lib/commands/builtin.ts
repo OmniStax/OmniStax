@@ -4,8 +4,6 @@
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ExerciseMode } from '../settings/store.svelte';
-import type { DocKind, SectionId } from '../types/ids';
-import { sectionId } from '../types/ids';
 
 export type BuiltinDeps = {
   readonly settings: {
@@ -14,15 +12,16 @@ export type BuiltinDeps = {
   };
   readonly layout: { reset(): void };
   readonly fold: { foldAll(): void; unfoldAll(): void; hideFigures(): void; showFigures(): void };
-  readonly openDoc: (sec: SectionId, doc: DocKind, group?: number) => unknown;
-  readonly ui: { openPalette(): void; openSettings(): void; readonly palette: { readonly open: boolean; readonly group: number | null } };
+  readonly ui: {
+    openPalette(): void; openSettings(): void; openBrowser(opts?: { group?: number }): void;
+    readonly palette: { readonly open: boolean; readonly group: number | null }; readonly browser: { readonly open: boolean };
+  };
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
-  readonly manifest: { readonly chapters: readonly { readonly sections: readonly { readonly id: string; readonly title: string; readonly built: boolean }[] }[] };
 };
 
 /* Ids the defaults and the Rail refer to. */
 export const BUILTIN = {
-  palette: commandId('palette'), settings: commandId('settings'),
+  palette: commandId('palette'), settings: commandId('settings'), open: commandId('open'),
   animations: commandId('animations'), colourCoding: commandId('colour-coding'),
   themeSystem: commandId('theme-system'), themeLight: commandId('theme-light'), themeDark: commandId('theme-dark'), themeCycle: commandId('theme-cycle'),
   resetLayout: commandId('reset-layout'),
@@ -30,24 +29,16 @@ export const BUILTIN = {
   voice: commandId('voice'), readAloud: commandId('read-aloud'), stopReading: commandId('stop-reading'),
   foldAll: commandId('fold-all'), unfoldAll: commandId('unfold-all'), hideFigures: commandId('hide-figures'), showFigures: commandId('show-figures'),
 } as const;
-export const SECTIONS_GROUP = 'Sections';
-export const openId = (sec: string, doc: DocKind): CommandId => commandId(`open:${sec}/${doc}`);
 
 const onOff = (v: boolean): string => (v ? 'on' : 'off');
 const themeCommand = (d: BuiltinDeps, id: CommandId, t: Theme): Command =>
   ({ id, label: `Theme: ${t}`, group: 'Appearance', run: () => d.settings.setTheme(t), detail: () => (d.settings.theme === t ? 'current' : '') });
 const modeCommand = (d: BuiltinDeps, id: CommandId, m: ExerciseMode, label: string): Command =>
   ({ id, label: `Exercise mode: ${label}`, group: 'Reading', run: () => d.settings.setExerciseMode(m), detail: () => (d.settings.exerciseMode === m ? 'current' : '') });
-const sectionCommands = (d: BuiltinDeps): readonly Command[] =>
-  d.manifest.chapters.flatMap((ch) => ch.sections.filter((s) => s.built)).flatMap((s) =>
-    (['text', 'exercises'] as const).map((doc): Command => ({
-      id: openId(s.id, doc), label: `Open ${s.id} ${s.title}: ${doc === 'text' ? 'Text' : 'Exercises'}`, group: SECTIONS_GROUP,
-      run: () => d.openDoc(sectionId(s.id), doc, d.ui.palette.group ?? undefined),
-    })));
-
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
+  { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
   { id: BUILTIN.colourCoding, label: 'Toggle colour coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
   themeCommand(d, BUILTIN.themeSystem, 'system'), themeCommand(d, BUILTIN.themeLight, 'light'), themeCommand(d, BUILTIN.themeDark, 'dark'),
   { id: BUILTIN.themeCycle, label: 'Theme: cycle', group: 'Appearance', run: () => d.settings.cycleTheme(), detail: () => d.settings.theme },
@@ -61,5 +52,4 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.hideFigures, label: 'Hide all figures', group: 'Reading', run: () => d.fold.hideFigures() },
   { id: BUILTIN.showFigures, label: 'Show all figures', group: 'Reading', run: () => d.fold.showFigures() },
   { id: BUILTIN.resetLayout, label: 'Reset layout', group: 'Layout', run: () => d.layout.reset() },
-  ...sectionCommands(d),
 ];

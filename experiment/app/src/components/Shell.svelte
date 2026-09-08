@@ -15,7 +15,6 @@
   import { VIEW_KEYS, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
-  import { SECTIONS_GROUP } from '../lib/commands/builtin';
   import { reader } from '../lib/voice.svelte';
   import { parseItemKey, sectionId, itemKey, docItem, conceptId, type SectionId } from '../lib/types/ids';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
@@ -25,6 +24,7 @@
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
+  import Browser from './Browser.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { notes } from '../lib/notes/store.svelte';
@@ -54,7 +54,7 @@
     registry.setChapter(chapterDir, chapterData);
     focus.page = page;
     layoutStore.init(page, known);
-    installCommands(manifest);
+    installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
@@ -108,8 +108,8 @@
       document.title = `${sec} ${e.title} · ${manifest.title}`;
     });
   });
-  /* The "+" on a tab strip: the palette, limited to sections, opening into that group. */
-  const onPick = (group: number) => { ui.openPalette('Open ', { scope: SECTIONS_GROUP, group }); };
+  /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */
+  const onPick = (group: number) => { ui.openBrowser({ group }); };
 </script>
 
 {#if ready}
@@ -126,6 +126,7 @@
   <Hover />
   <HighlightBar />
   <Palette />
+  <Browser {manifest} />
 {/if}
 
 <style>

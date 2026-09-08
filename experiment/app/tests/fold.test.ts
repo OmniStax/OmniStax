@@ -35,10 +35,8 @@ const deps = (): BuiltinDeps => ({
   settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {} },
   layout: { reset: () => {} },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
-  openDoc: () => {},
-  ui: { openPalette: () => {}, openSettings: () => {}, palette: { open: false, group: null } },
+  ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
-  manifest: { chapters: [] },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {
   const chords = DEFAULT_PAIRS.map(([c]) => c);

@@ -6,13 +6,12 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { openDoc, focusedArticle } from '../sections/nav.svelte';
+import { focusedArticle } from '../sections/nav.svelte';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
-import type { BookManifest } from '../content/schema';
 
-export const installCommands = (manifest: BookManifest): void => {
+export const installCommands = (): void => {
   const fold = { foldAll: () => foldAllIn(focusedArticle()), unfoldAll: () => unfoldAllIn(focusedArticle()), hideFigures: () => hideFigsIn(focusedArticle()), showFigures: () => showFigsIn(focusedArticle()) };
-  commands.register(builtinCommands({ settings, layout: layoutStore, fold, openDoc, ui, reader, manifest }));
+  commands.register(builtinCommands({ settings, layout: layoutStore, fold, ui, reader }));
 };
 export { commands, ui, keys };

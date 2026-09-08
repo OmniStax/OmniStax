@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, type Bindings, type KeyLike } from '../src/lib/commands/chord';
 import { fuzzy, rank } from '../src/lib/commands/fuzzy';
-import { builtinCommands, BUILTIN, openId, type BuiltinDeps } from '../src/lib/commands/builtin';
+import { builtinCommands, BUILTIN, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { commandId, available } from '../src/lib/commands/command';
 
 /* chords */
@@ -74,17 +74,15 @@ test('rank orders best-first and keeps ties in the given order', () => {
 });
 
 /* builtins */
-const deps = (): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
   return {
     log,
     settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`) },
     layout: { reset: () => log.push('reset') },
     fold: { foldAll: () => log.push('fold'), unfoldAll: () => log.push('unfold'), hideFigures: () => log.push('hide'), showFigures: () => log.push('show') },
-    openDoc: (sec, doc, group) => log.push(`open ${sec} ${doc} ${group}`),
-    ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), palette: { open: false, group: 1 } },
+    ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
-    manifest: { chapters: [{ sections: [{ id: '2.1', title: 'Displacement', built: true }, { id: '2.2', title: 'Vectors', built: false }] }] },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {
@@ -92,16 +90,21 @@ test('builtin command ids are unique and every fixed id is present', () => {
   const ids = cmds.map((c) => c.id);
   assert.equal(new Set(ids).size, ids.length);
   Object.values(BUILTIN).forEach((id) => assert.ok(ids.includes(id), id));
-  assert.ok(ids.includes(openId('2.1', 'text'))); assert.ok(ids.includes(openId('2.1', 'exercises')));
-  assert.ok(!ids.includes(openId('2.2', 'text')), 'unbuilt sections get no command');
+  assert.ok(ids.includes(BUILTIN.open), 'the browser is opened by one command');
   cmds.forEach((c) => { assert.ok(c.label && c.group, c.id); assert.equal(typeof c.run, 'function'); });
 });
 test('builtin commands act on their stores', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  by(BUILTIN.animations).run(); by(BUILTIN.themeDark).run(); by(BUILTIN.themeCycle).run(); by(BUILTIN.exerciseOne).run(); by(openId('2.1', 'exercises')).run(); by(BUILTIN.resetLayout).run();
-  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'mode one', 'open 2.1 exercises 1', 'reset']);
+  by(BUILTIN.animations).run(); by(BUILTIN.themeDark).run(); by(BUILTIN.themeCycle).run(); by(BUILTIN.exerciseOne).run(); by(BUILTIN.open).run(); by(BUILTIN.resetLayout).run();
+  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'mode one', 'browser 1', 'reset']);
   assert.equal(by(BUILTIN.themeSystem).detail?.(), 'current'); assert.equal(by(BUILTIN.themeDark).detail?.(), '');
   assert.equal(available(by(BUILTIN.readAloud)), false, 'voice off hides read aloud');
   assert.equal(available(by(BUILTIN.stopReading)), false);
   assert.equal(available(by(BUILTIN.palette)), true);
+  assert.equal(available(by(BUILTIN.open)), true);
+});
+test('Open… is hidden while the browser is up, so its chord cannot reset the tree', () => {
+  const open = (d: BuiltinDeps) => builtinCommands(d).find((c) => c.id === BUILTIN.open)!;
+  assert.equal(available(open(deps(true))), false);
+  assert.equal(available(open(deps(false))), true);
 });

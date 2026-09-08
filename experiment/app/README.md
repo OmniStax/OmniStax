@@ -39,7 +39,7 @@ src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
-src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Picker, Settings, HighlightBar
+src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar
 src/components/views      View dispatcher (with the scope header), ConceptMap, Contents, Formulas, Definitions, Notes
 src/components/exercises  ExerciseList, ExerciseCard, NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)

@@ -9,6 +9,7 @@ const bind = (pairs: readonly (readonly [string, string])[]): Bindings =>
 export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+K', 'palette'], ['Ctrl+Shift+P', 'palette'],
   ['Ctrl+,', 'settings'],
+  ['Ctrl+O', 'open'],
   ['Ctrl+Shift+A', 'animations'],
   ['Ctrl+Shift+C', 'colour-coding'],
   ['Ctrl+Shift+D', 'theme-cycle'],

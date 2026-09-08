@@ -1,8 +1,8 @@
 <script lang="ts">
   /* The command palette: a query box near the top, the commands that match it
      ranked best-first, the chord bound to each on the right. Arrow keys move,
-     Enter runs, Escape closes. Opened from a chord, the Rail's search button,
-     or a tab strip's "+" (which limits it to the Sections group). */
+     Enter runs, Escape closes. Opened from a chord or the Rail's search button;
+     documents are opened from the browser (Browser.svelte), not from here. */
   import { tick } from 'svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { available, type Command } from '../lib/commands/command';
@@ -10,18 +10,15 @@
   import { chordKeys } from '../lib/commands/chord';
   import { ui } from '../lib/commands/ui.svelte';
   import { rank } from '../lib/commands/fuzzy';
+  import { pieces } from '../lib/commands/pieces';
 
-  type Piece = { readonly t: string; readonly hit: boolean };
   let query = $state('');
   let sel = $state(0);
   let input = $state<HTMLInputElement | null>(null);
   let list = $state<HTMLElement | null>(null);
 
   const text = (c: Command): string => `${c.group} ${c.label}`;
-  const items = $derived.by(() => {
-    const scope = ui.palette.scope;
-    return rank(query, commands.all().filter((c) => available(c) && (!scope || c.group === scope)), text);
-  });
+  const items = $derived(rank(query, commands.all().filter(available), text));
   $effect(() => {
     if (!ui.palette.open) return;
     query = ui.palette.query; sel = 0;
@@ -30,14 +27,6 @@
   $effect(() => { query; sel = 0; });
   $effect(() => { const row = list?.children[sel] as HTMLElement | undefined; row?.scrollIntoView({ block: 'nearest' }); });
 
-  /* Split a string into runs, marking the characters the query matched. */
-  const pieces = (s: string, offset: number, indices: readonly number[]): readonly Piece[] => {
-    const hits = new Set(indices.map((i) => i - offset));
-    return Array.from(s).reduce<Piece[]>((acc, ch, i) => {
-      const hit = hits.has(i); const last = acc[acc.length - 1];
-      return last && last.hit === hit ? [...acc.slice(0, -1), { t: last.t + ch, hit }] : [...acc, { t: ch, hit }];
-    }, []);
-  };
   const run = (c: Command) => { c.run(); ui.closePalette(); };
   const onKey = (e: KeyboardEvent) => {
     e.stopPropagation();
@@ -53,7 +42,7 @@
 
 {#if ui.palette.open}
   <div class="palette" role="dialog" aria-label="Command palette" onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
-    <input bind:this={input} bind:value={query} type="text" spellcheck="false" autocomplete="off" aria-label="Command" placeholder={ui.palette.scope ? 'Open a section…' : 'Type a command…'} />
+    <input bind:this={input} bind:value={query} type="text" spellcheck="false" autocomplete="off" aria-label="Command" placeholder="Type a command…" />
     <div class="list" bind:this={list} role="listbox">
       {#each items as { item, match }, i (item.id)}
         {@const detail = item.detail?.() ?? ''}
