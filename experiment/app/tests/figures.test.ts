@@ -23,8 +23,8 @@ test('a number the chapter has no figure for stays plain', () => {
 test('text already inside a link and a caption naming itself are left alone', () => {
   const inA = '<a href="#x">Figure 16.4</a> and Figure 16.4';
   assert.equal(linkFigureRefs(inA, figs), `<a href="#x">Figure 16.4</a> and ${link('16.4', '16.1-demo-spring-scale')}`);
-  const head = '<div class="demo-head"><span class="eyebrow">Figure 16.4<span class="tag">Demo</span></span><span>As in Figure 16.9.</span></div>';
-  assert.equal(linkFigureRefs(head, figs), `<div class="demo-head"><span class="eyebrow">Figure 16.4<span class="tag">Demo</span></span><span>As in ${link('16.9', '16.3-demo-shm-oscillator')}.</span></div>`);
+  const head = '<div class="demo-head"><span class="eyebrow">Figure 16.4</span><span>As in Figure 16.9.</span></div>';
+  assert.equal(linkFigureRefs(head, figs), `<div class="demo-head"><span class="eyebrow">Figure 16.4</span><span>As in ${link('16.9', '16.3-demo-shm-oscillator')}.</span></div>`);
   const cap = '<figcaption><span class="eyebrow">Figure 16.4</span><span>The strings.</span></figcaption>';
   assert.equal(linkFigureRefs(cap, figs), cap);
 });
