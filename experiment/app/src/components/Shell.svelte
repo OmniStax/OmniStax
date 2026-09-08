@@ -9,17 +9,22 @@
   import { focus } from '../lib/sections/focus.svelte';
   import { pin, spansOf, testedBy } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
+  import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
   import { allEls, findEl, jump, activePane } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { VIEW_KEYS, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
+  import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
+  import { SECTIONS_GROUP } from '../lib/commands/builtin';
+  import { reader } from '../lib/voice.svelte';
   import { parseItemKey, sectionId, itemKey, docItem, conceptId, type SectionId } from '../lib/types/ids';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import DocGroup from './DocGroup.svelte';
-  import Picker from './Picker.svelte';
   import Settings from './Settings.svelte';
+  import Hover from './Hover.svelte';
+  import Palette from './Palette.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { notes } from '../lib/notes/store.svelte';
@@ -30,8 +35,6 @@
   const page = sectionId(untrack(() => section.id));   /* the page's own section never changes */
   let ready = $state(false);
   let narrow = $state(false);
-  let picker = $state({ open: false, group: 0, anchor: null as HTMLElement | null });
-  let settingsOpen = $state(false);
 
   const known = (k: string): boolean => { const id = parseItemKey(k); return !!id && (id.kind === 'view' ? VIEW_KEYS.includes(k) : registry.isBuilt(id.section)); };
   const mountExercises = (root: HTMLElement, sec: SectionId) => {
@@ -51,12 +54,14 @@
     registry.setChapter(chapterDir, chapterData);
     focus.page = page;
     layoutStore.init(page, known);
+    installCommands(manifest);
     registry.adopt(document.getElementById('pool') ?? document);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
-    const onKey = (e: KeyboardEvent) => { if (e.key !== 'Escape') return; picker.open = false; settingsOpen = false; if (pin.pinned) pin.clear(); };
+    /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns. */
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; } keys.dispatch(e); };
     const onClick = (e: MouseEvent) => {
-      picker.open = false; settingsOpen = false;
+      ui.closeAll();
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fig-split');
       if (sb?.dataset.key) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.key)); return; }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
@@ -65,13 +70,17 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onClick);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); };
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); reader.stop(); };
   });
 
   /* settings → document */
   $effect(() => { document.documentElement.classList.toggle('cc', settings.colorCoding); FIG.setCC(settings.colorCoding); FIG.redrawAll(); });
   $effect(() => { if (settings.theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', settings.theme); FIG.redrawAll(); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
+  $effect(() => { if (!settings.voice) reader.stop(); });
+
+  /* folded headings and hidden figures → classes on every copy, then the spy re-reads the shorter page */
+  $effect(() => { folded.ids; hiddenFigs.ids; registry.sections; applyState(document); spy.read(activePane(layoutStore.layout.focus)); });
 
   /* pinned concept → span highlights in every copy of every document */
   $effect(() => {
@@ -99,12 +108,13 @@
       document.title = `${sec} ${e.title} · ${manifest.title}`;
     });
   });
-  const onPick = (group: number, anchor: HTMLElement) => { settingsOpen = false; picker = { open: !(picker.open && picker.group === group), group, anchor }; };
+  /* The "+" on a tab strip: the palette, limited to sections, opening into that group. */
+  const onPick = (group: number) => { ui.openPalette('Open ', { scope: SECTIONS_GROUP, group }); };
 </script>
 
 {#if ready}
   <div class="shell" role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
-    <Rail side="left" {narrow} onGear={() => { picker.open = false; settingsOpen = !settingsOpen; }} />
+    <Rail side="left" {narrow} />
     <Sidebar side="left" {narrow} />
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
       {#each layoutStore.layout.groups as g, i (g.key)}<DocGroup index={i} group={g} {onPick} />{/each}
@@ -112,9 +122,10 @@
     <Sidebar side="right" {narrow} />
     <Rail side="right" {narrow} />
   </div>
-  <Settings bind:open={settingsOpen} />
+  <Settings />
+  <Hover />
   <HighlightBar />
-  <Picker bind:open={picker.open} group={picker.group} anchor={picker.anchor} />
+  <Palette />
 {/if}
 
 <style>

@@ -123,6 +123,19 @@ A figure that exists to serve exercises (a diagram the problems refer to)
 is copied over faithfully: no sliders, no animation beyond what keeps the
 original readable.
 
+A demo that replaces a book figure keeps the book's number: its eyebrow
+reads "Figure 16.4" with a small "Demo" tag, and the `<figure>` carries
+`data-figure="16.4"`, `data-original` (the book's image files under
+`app/public/media/<chapter>/`, comma-separated when one demo replaced
+several figures, the numbered one first) and `data-original-caption` (the
+book's caption, plain text). The app adds an Original button that swaps
+the book's figure in. A demo that replaces nothing stays "Demo" and has no
+number. Numbers are the book's own (openstax.org, not a count of the
+CNXML figures: figures in exercises are unnumbered). A kept photograph
+gets an id and `data-figure` too. The prose's figure references ("Figure
+16.4", "Figures 16.4 and 16.5") are linked at build to the figure that
+keeps that number, anywhere in the chapter.
+
 Extra simulations beyond these are proposed in the plan, never built
 unasked, and only when they open a view the required figures do not.
 

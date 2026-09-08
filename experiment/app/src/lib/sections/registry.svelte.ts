@@ -6,6 +6,9 @@ import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO,
 import { type SectionId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey, figItem } from '../types/ids';
 import type { Fig } from '../fig/figlib';
 import { ICON } from '../icons';
+import { originalButtons } from './original';
+import { decorateTerms } from '../hover';
+import { foldControls } from './fold.svelte';
 
 /* A figure's tab title: its local id without the demo-/fig- prefix, "demo-plane" → "plane". */
 const figName = (local: string): string => local.replace(/^(demo|fig)-/, '').replace(/-/g, ' ');
@@ -71,7 +74,7 @@ class Registry {
   private prepare(root: HTMLElement, sec: SectionId, doc: DocKind): void {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
     this.mountExercises(root, sec);
-    if (doc === 'text') { this.splitButtons(root, sec); this.bootFigures(root, sec); }
+    if (doc === 'text') { this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec); }
     this.decorate(root);
   }
   /* Every figure in a document gets a button that opens it in a split of its own. */
@@ -116,7 +119,7 @@ class Registry {
     const t = document.createElement('template'); t.innerHTML = src;
     const f = t.content.querySelector<HTMLElement>(`[id="${id.section}-${id.fig}"]`); if (!f) return null;
     const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = id.section; root.dataset.chapter = this.chapterOf(id.section)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
-    this.bootFigures(root, id.section);
+    originalButtons(root); this.bootFigures(root, id.section);
     return (this.clones[ck] = root);
   }
   /* One element per (group, document). */

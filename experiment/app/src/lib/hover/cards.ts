@@ -1,0 +1,94 @@
+/* From a hovered node to its card: find the target the pointer is on, gather
+   the facts from the DOM and the registry, and compose the card. This is the
+   only file in the hover layer that reads the registry or the document. */
+import { registry } from '../sections/registry.svelte';
+import { focus } from '../sections/focus.svelte';
+import { goSpan, findEl, openDoc, reveal } from '../sections/nav.svelte';
+import { layoutStore } from '../layout/store.svelte';
+import { openSide, homeSide, toggleCollapsed } from '../layout/model';
+import { type SectionId, type SpanId, sectionId, spanId, sectionOfSpan, itemKey, viewItem } from '../types/ids';
+import { symOf, typeOf, lookupVariable } from './data';
+import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+
+/* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
+export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display';
+export const targetOf = (node: EventTarget | null): HTMLElement | null => {
+  const el = node instanceof Element ? node : null; if (!el) return null;
+  if (el.closest('.hover-card')) return null;
+  return el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
+};
+
+/* The section a node is read in: its article or figure root, else the focused document. */
+const sectionOf = (el: Element): SectionId => sectionId(el.closest<HTMLElement>('[data-sec]')?.dataset.sec ?? focus.section);
+const chapterData = (sec: SectionId) => { const dir = registry.chapterOf(sec)?.dir; return dir ? registry.chapters[dir] : undefined; };
+
+/* A heading's text without the MathML twin of its math, and without the example number. */
+export const headingText = (h: Element | null | undefined): string | undefined => {
+  if (!h) return undefined;
+  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove());
+  return c.textContent?.replace(/\s+/g, ' ').replace(/^Example [\d.]+ · /, '').trim();
+};
+const spanTitle = (id: SpanId): string | undefined => headingText(findEl(id)?.querySelector('h2, h3'));
+
+const showView = (view: 'definitions' | 'formulas'): void => {
+  const key = itemKey(viewItem(view));
+  const host = document.querySelector<HTMLElement>(`[data-view="${view}"]`);
+  if (host) { reveal(host); return; }
+  layoutStore.apply((x) => { const y = openSide(x, key, homeSide(x, key)); return y.collapsed.includes(key) ? toggleCollapsed(y, key) : y; });
+};
+const showOriginal = (figure: SpanId): void => {
+  goSpan(figure);
+  const show = () => { const f = findEl(figure); const b = f?.querySelector<HTMLButtonElement>('button.fig-original'); if (f && b && !f.classList.contains('show-original')) b.click(); };
+  const f = findEl(figure); if (f) { show(); return; }
+  openDoc(sectionOfSpan(figure), 'text').then(() => requestAnimationFrame(show));
+};
+export const nav: Nav = { goSpan, openSection: (sec) => { openDoc(sec, 'text'); }, showView, showOriginal };
+
+/* ---------- resolvers, one per kind ---------- */
+const variable = (t: HTMLElement): Card | null => {
+  const sym = symOf(t); if (!sym) return null;
+  const sec = sectionOf(t); const data = chapterData(sec);
+  const type = typeOf(t); const typeLabel = type ? registry.manifest.types[type]?.label : undefined;
+  return variableCard({ sym, tex: registry.manifest.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: data ? lookupVariable(data.formulas.variables, sym, sec) : undefined }, nav);
+};
+const figure = (t: HTMLElement): Card | null => {
+  const n = t.dataset.figref; const id = t.getAttribute('href')?.slice(1); if (!n || !id) return null;
+  const fig = findEl(id);
+  const caption = fig ? (fig.querySelector('.demo-head span:not(.eyebrow)')?.textContent ?? fig.dataset.originalCaption)?.replace(/\s+/g, ' ').trim() : undefined;
+  return figureCard({ number: n, id: spanId(id), section: sectionOfSpan(spanId(id)), caption, hasOriginal: !!fig?.dataset.original }, nav);
+};
+const term = (t: HTMLElement): Card | null => {
+  const name = t.dataset.term; if (!name) return null;
+  const sec = sectionOf(t); const data = chapterData(sec);
+  const g = data?.formulas.glossary.find((x) => x.term.toLowerCase() === name.toLowerCase());
+  const anchor = data ? introducingSpan(name, data.concepts.concepts, data.concepts.coverage) : undefined;
+  const home = g ? sectionId(g.section) : sec;
+  const top = registry.state(home)?.docs.text?.querySelector<HTMLElement>('section[id]')?.id;   /* the section's first span, when it is loaded */
+  return termCard({ term: g?.term ?? name, definition: g?.definition, section: home, anchor: anchor ?? (top ? spanId(top) : undefined) }, nav);
+};
+const reference = (t: HTMLElement): Card | null => {
+  const id = t.getAttribute('href')?.slice(1); if (!id) return null;
+  const el = findEl(id); if (!el || !(el.matches('.example[id]') || el.matches('section[id]'))) return null;
+  const title = headingText(el.querySelector('h2, h3')) ?? id;
+  const p = el.querySelector('p'); const body = p ? firstSentence(headingText(p) ?? '') : undefined;
+  return referenceCard({ id: spanId(id), title: t.dataset.xref ? `Example ${t.dataset.xref} · ${title}` : title, body }, nav);
+};
+const equation = (t: HTMLElement): Card | null => {
+  const tex = t.querySelector('.katex-mathml annotation')?.textContent; if (!tex) return null;
+  const data = chapterData(sectionOf(t)); if (!data) return null;
+  const e = matchEquation(tex, data.formulas.equations); if (!e) return null;
+  const concept = data.concepts.concepts.find((c) => c.eq === e.id);
+  return equationCard({ equation: e, concept, introducedIn: e.anchor ? spanTitle(spanId(e.anchor)) : undefined }, nav);
+};
+
+/* The card for a target, or null when there is nothing to say. */
+export const cardFor = (t: HTMLElement): Card | null => {
+  if (t.hasAttribute('data-sym')) return variable(t);
+  if (t.matches('a.figref')) return figure(t);
+  if (t.matches('.term')) return term(t);
+  if (t.matches('.katex-display')) return equation(t);
+  if (t.matches('a[href^="#"]')) return reference(t);
+  return null;
+};
+/* Equation blocks open more slowly: the reader is likely just reading them. */
+export const openDelay = (t: HTMLElement): number => (t.matches('.katex-display') ? 500 : 250);

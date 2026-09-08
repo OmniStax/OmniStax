@@ -7,6 +7,7 @@ import { zBook, zChapter, zSectionMeta, zExerciseFile, zConceptsFile, zFormulasF
 import type { BookDTO, ChapterDTO, SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, BookManifest, ChapterEntry, SectionEntry } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { sectionSourceUrl } from './attribution';
+import { figureIds, linkFigureRefs } from './fragment';
 
 export type SectionSource = {
   readonly meta: SectionMetaDTO;
@@ -45,7 +46,10 @@ const loadChapter = async (root: string, dir: string, macros: BookDTO['macros'])
     readJson(path.join(base, 'formulas.json'), zFormulasFile),
   ]);
   const loaded = await Promise.all(dto.sections.map((s) => loadSection(path.join(base, s.id), macros)));
-  return { dto, concepts, formulas, sections: loaded.filter((s): s is SectionSource => s !== null) };
+  const built = loaded.filter((s): s is SectionSource => s !== null);
+  /* Figure numbers are chapter-wide: a section may refer to a figure another section keeps. */
+  const figs = new Map(built.flatMap((s) => [...figureIds(s.textHtml, s.meta.id)]));
+  return { dto, concepts, formulas, sections: built.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs) })) };
 };
 
 const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManifest => ({
@@ -67,6 +71,7 @@ export const loadBook = async (root: string, bookId: string): Promise<BookTree> 
   if (dto.id !== bookId) throw new Error(`book.json is "${dto.id}", expected "${bookId}"`);
   const chapters = await Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dir, dto.macros)));
   checkColours(dto, chapters);
+  checkAnchors(chapters);
   return { dto, chapters, manifest: manifestOf(dto, chapters) };
 };
 
@@ -81,6 +86,24 @@ const checkColours = (book: BookDTO, chapters: readonly ChapterTree[]): void => 
       if (!pool.has(hue)) throw new Error(`chapter ${ch.dto.id} binds "${t}" to unknown pool hue "${hue}"`);
     });
     ch.sections.forEach((s) => s.meta.binds.forEach((t) => { if (!book.types[t]) throw new Error(`section ${s.meta.id} binds unknown type "${t}"`); }));
+  });
+};
+
+/* An anchor names the span where a variable or equation is introduced, qualified by its section ("16.1-hookes-law"). It must be an id the built section carries. */
+const localIds = (html: string): ReadonlySet<string> => new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (m) => m[1]));
+const checkAnchors = (chapters: readonly ChapterTree[]): void => {
+  chapters.forEach((ch) => {
+    const ids = new Map(ch.sections.map((s) => [s.meta.id, localIds(s.textHtml)] as const));
+    const check = (what: string, anchor: string | undefined): void => {
+      if (anchor === undefined) return;
+      const cut = anchor.indexOf('-');
+      const [sec, local] = cut < 0 ? [anchor, ''] : [anchor.slice(0, cut), anchor.slice(cut + 1)];
+      const built = ids.get(sec);
+      if (!built) throw new Error(`${what} anchors "${anchor}", but section ${sec} of chapter ${ch.dto.id} is not built`);
+      if (!built.has(local)) throw new Error(`${what} anchors "${anchor}", but section ${sec} has no id "${local}"`);
+    };
+    ch.formulas.variables.forEach((v) => check(`variable ${v.sym} (${v.section})`, v.anchor));
+    ch.formulas.equations.forEach((e) => check(`equation ${e.id}`, e.anchor));
   });
 };
 

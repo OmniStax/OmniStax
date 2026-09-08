@@ -6,91 +6,104 @@
    "color": "position",
    "meaning": "position, relative to the chosen reference frame",
    "unit": "m",
-   "section": "2.1"
+   "section": "2.1",
+   "anchor": "2.1-position"
   },
   {
    "sym": "x0",
    "color": "position",
    "meaning": "initial position",
    "unit": "m",
-   "section": "2.1"
+   "section": "2.1",
+   "anchor": "2.1-displacement"
   },
   {
    "sym": "xf",
    "color": "position",
    "meaning": "final position",
    "unit": "m",
-   "section": "2.1"
+   "section": "2.1",
+   "anchor": "2.1-displacement"
   },
   {
    "sym": "Δx",
    "color": "position",
    "meaning": "displacement, x_f − x_0; the sign gives the direction",
    "unit": "m",
-   "section": "2.1"
+   "section": "2.1",
+   "anchor": "2.1-displacement"
   },
   {
    "sym": "t",
    "color": "time",
    "meaning": "elapsed time, with the initial time taken to be zero (final time on the stopwatch)",
    "unit": "s",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "x0",
    "color": "position",
    "meaning": "initial position",
    "unit": "m",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "x",
    "color": "position",
    "meaning": "final position",
    "unit": "m",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "Δx",
    "color": "position",
    "meaning": "displacement, x − x0",
    "unit": "m",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "v0",
    "color": "velocity",
    "meaning": "initial velocity",
    "unit": "m/s",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "v",
    "color": "velocity",
    "meaning": "final velocity",
    "unit": "m/s",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "v̄",
    "color": "velocity",
    "meaning": "average velocity; equals (v0 + v)/2 when acceleration is constant",
    "unit": "m/s",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-avg-velocity"
   },
   {
    "sym": "Δv",
    "color": "velocity",
    "meaning": "change in velocity, v − v0",
    "unit": "m/s",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-notation"
   },
   {
    "sym": "a",
    "color": "acceleration",
    "meaning": "acceleration, assumed constant so that ā = a",
    "unit": "m/s²",
-   "section": "2.5"
+   "section": "2.5",
+   "anchor": "2.5-constant-a"
   }
  ],
  "equations": [

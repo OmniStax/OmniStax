@@ -5,11 +5,15 @@ import { openTab, openSide, activate, homeSide, where, toggleCollapsed } from '.
 import { registry } from './registry.svelte';
 import { type SpanId, type ItemId, itemKey, parseItemKey, sectionOfSpan, docItem } from '../types/ids';
 import { FIG } from '../fig/figlib';
+import { revealFolds } from './fold.svelte';
 
 const cssId = (id: string): string => (typeof CSS !== 'undefined' && 'escape' in CSS ? CSS.escape(id) : id);
 export const allEls = (id: string): HTMLElement[] => Array.from(document.querySelectorAll<HTMLElement>(`[id="${cssId(id)}"]`));
 const paneOf = (e: Element): HTMLElement | null => e.closest<HTMLElement>('.pane');
 export const activePane = (index: number): HTMLElement | null => document.querySelector<HTMLElement>(`.group[data-index="${index}"] .pane:not([hidden])`);
+/* The article the reading commands act on: the focused pane's, else any visible one. */
+export const focusedArticle = (): HTMLElement | null =>
+  activePane(layoutStore.layout.focus)?.querySelector<HTMLElement>('article[data-doc]') ?? document.querySelector<HTMLElement>('.pane:not([hidden]) article[data-doc]');
 export const findEl = (id: string): HTMLElement | null => {
   const all = allEls(id); if (all.length < 2) return all[0] ?? null;
   const ap = activePane(layoutStore.layout.focus);
@@ -39,6 +43,7 @@ export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 
   if (!target) return;
   const card = target.closest<HTMLElement & { exShow?: () => void }>('.exercise');
   if (card?.hidden && card.exShow) card.exShow();
+  revealFolds(target);
   reveal(target);
   requestAnimationFrame(() => target.scrollIntoView({ behavior: FIG.REDUCED ? 'auto' : 'smooth', block }));
 };

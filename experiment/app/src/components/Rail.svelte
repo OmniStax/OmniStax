@@ -1,11 +1,15 @@
 <script lang="ts">
   /* An activity rail: one icon per view that lives on this side. Lit when the
-     view is open anywhere, dotted when it is open as a tab. */
+     view is open anywhere, dotted when it is open as a tab. The left rail also
+     carries the palette, settings and (when voice is on) read-aloud buttons. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { where, homeSide, openSide, openTab, closeItem, VIEW_KEYS, type Side } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { ICON, VIEW_TITLE } from '../lib/icons';
-  let { side, narrow = false, onGear }: { side: Side; narrow?: boolean; onGear?: (e: MouseEvent) => void } = $props();
+  import { ui } from '../lib/commands/ui.svelte';
+  import { settings } from '../lib/settings/store.svelte';
+  import { reader } from '../lib/voice.svelte';
+  let { side, narrow = false }: { side: Side; narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const views = $derived(VIEW_KEYS.filter((k) => homeSide(l, k) === side));
   const kindOf = (k: string) => k.slice(5);
@@ -19,6 +23,7 @@
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
+  const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
 </script>
 
 <nav class="rail {side}" class:drop aria-label="Views"
@@ -30,7 +35,11 @@
   {/each}
   <div class="spacer"></div>
   {#if side === 'left'}
-    <button type="button" id="gear" title="Settings" aria-label="Settings" onclick={(e) => { e.stopPropagation(); onGear?.(e); }}>{@html ICON.gear}</button>
+    {#if settings.voice && reader.supported}
+      <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} title={voiceTitle} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
+    {/if}
+    <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+K)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.search}</button>
+    <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
   {/if}
 </nav>
 
@@ -42,6 +51,7 @@
   button{width:36px;height:36px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;position:relative;padding:0}
   button:hover{background:var(--soft);color:var(--ink)}
   button.on{color:var(--ink)}
+  button.speaking{color:var(--accent)}
   .left button.on::before{content:"";position:absolute;left:-4px;top:8px;bottom:8px;width:2px;background:var(--ink);border-radius:1px}
   .right button.on::before{content:"";position:absolute;right:-4px;top:8px;bottom:8px;width:2px;background:var(--ink);border-radius:1px}
   button.tab::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)}

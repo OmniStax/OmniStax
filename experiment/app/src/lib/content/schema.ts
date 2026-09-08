@@ -70,7 +70,7 @@ export const zConceptsFile = z.object({ chapter: z.string().optional(), concepts
   .transform((f) => ({ concepts: f.concepts, coverage: f.coverage }));
 export type ConceptsDTO = z.infer<typeof zConceptsFile>;
 
-export const zVariable = z.object({ sym: z.string(), color: z.string().optional(), meaning: z.string(), unit: z.string().default(''), section: z.string() });
+export const zVariable = z.object({ sym: z.string(), color: z.string().optional(), meaning: z.string(), unit: z.string().default(''), section: z.string(), anchor: z.string().optional() });   /* anchor: the qualified span id where the variable is introduced, e.g. "16.1-hookes-law" */
 export const zEquation = z.object({
   id: z.string(), concept: z.string().optional(), section: z.string(), latex: z.string(), ktex: z.string().optional(), anchor: z.string().optional(),
   important: z.boolean().default(false), constant_a: z.boolean().optional(),

@@ -80,7 +80,7 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
    One card per widget: caption header, stage (drawing plus its transport
    bar), sliders on an aligned grid, and the live equation as a footer band. */
 .demo{margin:2rem 0;font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
-.demo .demo-head{position:relative;display:flex;align-items:baseline;gap:12px;margin:0;padding:12px 48px 11px 18px;border-bottom:1px solid var(--rule)}
+.demo .demo-head{position:relative;display:flex;align-items:baseline;gap:12px;margin:0;padding:12px 82px 11px 18px;border-bottom:1px solid var(--rule)}
 .fig-split{position:absolute;right:10px;top:9px;width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
 .fig-split:hover{color:var(--ink);background:var(--soft)}
 .fig-split svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
@@ -88,6 +88,46 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
 .fig-root .demo{margin:0}
 .demo .demo-head .eyebrow{color:var(--accent);white-space:nowrap}
 .demo .demo-head span:not(.eyebrow){font-size:0.9rem;color:var(--muted);line-height:1.45}
+/* a demo that keeps a book figure's number: "Figure 16.4" with small pills after it, and a button that swaps in the book's figure */
+.eyebrow .tag{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px}
+.demo .demo-head .eyebrow .tag{font-size:0.62rem;color:var(--muted);line-height:1.5}
+figure.demo[data-original] .demo-head{padding-right:152px}
+.fig-original{position:absolute;right:78px;top:9px;height:24px;display:grid;place-items:center;padding:0 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;line-height:1}
+.fig-original:hover{color:var(--ink);background:var(--soft)}
+.fig-original:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.demo .original{padding:14px 18px 12px}
+.demo .original img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+.demo .original img+img{margin-top:12px}
+.demo .ocap{display:flex;align-items:baseline;gap:12px;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
+.demo .ocap .eyebrow{white-space:nowrap}
+figure.demo.show-original>.stage,figure.demo.show-original>.controls,figure.demo.show-original>.readout,figure.demo.show-original>.transport{display:none}
+/* a figure split out on its own has neither the split nor the hide button */
+.fig-root .demo .demo-head{padding-right:18px}
+.fig-root figure.demo[data-original] .demo-head{padding-right:84px}
+.fig-root .fig-original{right:10px}
+/* folding: a chevron before each section's or example's heading; folded, only the heading stays.
+   A section that opens with an example and has no h2 keeps that example's h3 (.fold-head). */
+button.fold{display:inline-grid;place-items:center;width:22px;height:22px;margin:0 4px 0 0;padding:0;border:0;border-radius:4px;background:none;color:var(--muted);cursor:pointer;vertical-align:-3px}
+button.fold:hover{color:var(--ink);background:var(--soft)}
+button.fold:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.fold svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .15s}
+button.fold[aria-expanded="false"] svg{transform:rotate(-90deg)}
+html.anim-off button.fold svg{transition:none}
+section.folded > :not(h2, .fold-head), section.folded > .fold-head > :not(h3), .example.folded > :not(h3){display:none}
+.folded > h2, .folded > h3, .folded > .fold-head > h3{opacity:.8}
+section.folded > .fold-head{padding-bottom:16px}
+/* hiding a figure: an eye at the right of the head or caption; hidden, only that line stays and it says so */
+.fig-hide{position:absolute;right:44px;top:9px;width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
+.fig-hide:hover{color:var(--ink);background:var(--soft)}
+.fig-hide:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fig-hide svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
+.fig-hide[aria-pressed="true"]{color:var(--accent)}
+.photo figcaption .fig-hide{position:static;flex:none;margin-left:auto;align-self:center}
+figure.demo.fig-hidden > :not(.demo-head), figure.photo.fig-hidden > img{display:none}
+figure.demo.fig-hidden > .demo-head{border-bottom:0}
+.fig-hidden .demo-head .eyebrow::after, .fig-hidden figcaption .eyebrow::after{content:"hidden";display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px;line-height:1.5}
+a.figref{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
+a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .demo .stage{position:relative;background:var(--panel)}
 .demo canvas{display:block;width:100%;height:auto;border:0;border-radius:0;background:var(--panel)}
 .demo .three-wrap{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--soft);margin:0}
@@ -124,3 +164,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:2
 .btn:hover{background:var(--soft)}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .chip{padding:1px 7px;border-radius:10px;background:var(--soft);color:var(--muted);font-weight:600;letter-spacing:0.02em}
+
+/* commands, palette, settings */
+.kbd{display:inline-block;font-family:var(--mono);font-size:0.68rem;line-height:1.3;padding:1px 5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;background:var(--soft);color:var(--muted);white-space:nowrap}

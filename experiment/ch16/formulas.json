@@ -6,156 +6,179 @@
    "color": "force",
    "meaning": "restoring force; the minus sign in Hooke’s law says it points opposite to the displacement",
    "unit": "N",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-hookes-law"
   },
   {
    "sym": "F_app",
    "color": "force",
    "meaning": "applied force, equal and opposite to the restoring force while the system is deformed",
    "unit": "N",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-elastic-energy"
   },
   {
    "sym": "k",
    "color": "stiffness",
    "meaning": "force constant, the stiffness of the system; the slope of the force against displacement graph",
    "unit": "N/m",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-hookes-law"
   },
   {
    "sym": "x",
    "color": "position",
    "meaning": "displacement from equilibrium, or deformation",
    "unit": "m",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-hookes-law"
   },
   {
    "sym": "PE_el",
    "color": "energy",
    "meaning": "elastic potential energy stored in a deformed system that obeys Hooke’s law",
    "unit": "J",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-elastic-energy"
   },
   {
    "sym": "W",
    "color": "energy",
    "meaning": "work done to deform the system; the area under the graph of applied force against deformation",
    "unit": "J",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-elastic-energy"
   },
   {
    "sym": "m",
    "meaning": "mass",
    "unit": "kg",
-   "section": "16.1"
+   "section": "16.1",
+   "anchor": "16.1-ex-car"
   },
   {
    "sym": "T",
    "color": "time",
    "meaning": "period, the time to complete one oscillation",
    "unit": "s",
-   "section": "16.2"
+   "section": "16.2",
+   "anchor": "16.2-periodic-motion"
   },
   {
    "sym": "f",
    "color": "frequency",
    "meaning": "frequency, the number of oscillations per unit time",
    "unit": "Hz",
-   "section": "16.2"
+   "section": "16.2",
+   "anchor": "16.2-frequency"
   },
   {
    "sym": "Hz",
    "meaning": "hertz, the SI unit of frequency: one cycle per second, or 1/s",
    "unit": "",
-   "section": "16.2"
+   "section": "16.2",
+   "anchor": "16.2-frequency"
   },
   {
    "sym": "X",
    "color": "position",
    "meaning": "amplitude, the maximum displacement from equilibrium",
    "unit": "m",
-   "section": "16.3"
+   "section": "16.3",
+   "anchor": "16.3-shm"
   },
   {
    "sym": "t",
    "color": "time",
    "meaning": "time since the oscillator was released from x = X",
    "unit": "s",
-   "section": "16.3"
+   "section": "16.3",
+   "anchor": "16.3-shm-waves"
   },
   {
    "sym": "v",
    "color": "velocity",
    "meaning": "velocity of the oscillating object; zero at the turning points, greatest through equilibrium",
    "unit": "m/s",
-   "section": "16.3"
+   "section": "16.3",
+   "anchor": "16.3-shm-waves"
   },
   {
    "sym": "v_max",
    "color": "velocity",
    "meaning": "maximum speed, reached as the object passes through equilibrium",
    "unit": "m/s",
-   "section": "16.3"
+   "section": "16.3",
+   "anchor": "16.3-shm-waves"
   },
   {
    "sym": "a",
    "color": "acceleration",
    "meaning": "acceleration of the oscillating object, always opposite in direction to the displacement",
    "unit": "m/s²",
-   "section": "16.3"
+   "section": "16.3",
+   "anchor": "16.3-shm-waves"
   },
   {
    "sym": "s",
    "color": "position",
    "meaning": "displacement of the pendulum bob along its arc from the lowest point",
    "unit": "m",
-   "section": "16.4"
+   "section": "16.4",
+   "anchor": "16.4-pendulum-force"
   },
   {
    "sym": "θ",
    "meaning": "angle of the string from the vertical; in radians, θ = s/L",
    "unit": "rad",
-   "section": "16.4"
+   "section": "16.4",
+   "anchor": "16.4-pendulum-force"
   },
   {
    "sym": "L",
    "meaning": "length of the pendulum, from the pivot to the centre of the bob",
    "unit": "m",
-   "section": "16.4"
+   "section": "16.4",
+   "anchor": "16.4-small-angle"
   },
   {
    "sym": "g",
    "color": "acceleration",
    "meaning": "acceleration due to gravity, 9.80 m/s² unless otherwise specified",
    "unit": "m/s²",
-   "section": "16.4"
+   "section": "16.4",
+   "anchor": "16.4-pendulum-force"
   },
   {
    "sym": "KE",
    "color": "energy",
    "meaning": "kinetic energy of the oscillating object, ½mv²",
    "unit": "J",
-   "section": "16.5"
+   "section": "16.5",
+   "anchor": "16.5-shm-energy"
   },
   {
    "sym": "ω",
    "color": "angular-rate",
    "meaning": "angular velocity of a pendulum bob, v = Lω; also the angular frequency 2π/T of an oscillation",
    "unit": "rad/s",
-   "section": "16.5"
+   "section": "16.5",
+   "anchor": "16.5-shm-energy"
   },
   {
    "sym": "ω_max",
    "color": "angular-rate",
    "meaning": "greatest angular velocity of a pendulum, reached at the lowest point",
    "unit": "rad/s",
-   "section": "16.5"
+   "section": "16.5",
+   "anchor": "16.5-max-speed"
   },
   {
    "sym": "θ_max",
    "meaning": "greatest angle of a pendulum’s swing, its angular amplitude",
    "unit": "rad",
-   "section": "16.5"
+   "section": "16.5",
+   "anchor": "16.5-max-speed"
   }
  ],
  "equations": [

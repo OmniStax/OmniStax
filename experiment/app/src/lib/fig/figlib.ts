@@ -26,7 +26,8 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
 /* ---------- math ---------- */
 let macros: Macros = {};
 let SYM: SymbolMap = {};
-const KOPT = () => ({ macros: { ...macros }, trust: (c: { command: string }) => c.command === '\\htmlClass', strict: false as const, throwOnError: false });
+const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /* the book's colour macros: a type class and a symbol key */
+const KOPT = () => ({ macros: { ...macros }, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
 function tex(el: HTMLElement, s: string, display = false): void { katex.render(s, el, { ...KOPT(), displayMode: display }); }
 function renderMath(root: HTMLElement): void {
   renderMathInElement(root, { ...KOPT(), delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] });
