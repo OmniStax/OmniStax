@@ -1,7 +1,69 @@
 ---
+/* The front of the book: its title, then every chapter and section, each a
+   link. Sections that are not built yet are listed but not linked. */
+import '../styles/global.css';
 import { tree } from '../lib/content/paths';
 const t = await tree();
-const first = t.manifest.chapters.flatMap((c) => c.sections).find((s) => s.built);
-if (first) return Astro.redirect(first.url);
+const m = t.manifest;
+const chapters = m.chapters.map((ch) => ({ ...ch, count: ch.sections.filter((s) => s.built).length }));
 ---
-<p>No sections built.</p>
+<!doctype html>
+<html lang="en" data-book={m.id}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{m.title}</title>
+<meta name="description" content={`Contents of ${m.title}, an interactive edition of the OpenStax text.`}>
+{m.licenseUrl && <link rel="license" href={m.licenseUrl} />}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<script is:inline>try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body>
+<main class="front">
+  <header>
+    <div class="eyebrow">{m.publisher}</div>
+    <h1>{m.title}</h1>
+    <p class="lead">{m.authors.join(', ')}</p>
+  </header>
+  <nav aria-label="Contents">
+    {chapters.map((ch) => (
+      <section class="chapter" data-chapter={ch.dir}>
+        <h2><span class="num">Chapter {ch.id}</span> {ch.title}</h2>
+        <ol>
+          {ch.sections.map((s) => (
+            <li class:list={{ off: !s.built }}>
+              {s.built
+                ? <a href={s.url}><span class="num">{s.id}</span> {s.title}</a>
+                : <><span class="num">{s.id}</span> {s.title} <span class="soon">not built yet</span></>}
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+  </nav>
+  <footer class="footer">
+    <p>Adapted from <cite>{m.title}</cite> by {m.authors.join(' and ')}, published by {m.publisher}, {m.copyright}. Licensed under <a href={m.licenseUrl}>{m.license}</a>.</p>
+    <p><a href={m.sourceUrl}>The original text at OpenStax</a></p>
+  </footer>
+</main>
+</body>
+</html>
+
+<style>
+  html{height:auto;overflow:auto}
+  body{height:auto;overflow:auto}
+  .front{max-width:760px;margin:0 auto;padding:64px 40px 120px}
+  header{margin-bottom:2.4rem}
+  header h1{font-size:2.6rem;margin-top:0.3rem}
+  .chapter h2{margin-top:2rem;padding-top:0;border-top:1px solid var(--rule);padding-top:1.2rem}
+  .chapter ol{list-style:none;padding:0;margin:0.6rem 0 0}
+  .chapter li{margin:0;font-family:var(--sans);font-size:1rem}
+  .chapter a{display:block;padding:7px 10px;margin:0 -10px;border-radius:5px;text-decoration:none}
+  .chapter a:hover{background:var(--soft)}
+  .chapter li.off{padding:7px 0;color:var(--muted)}
+  .num{display:inline-block;min-width:3.2em;color:var(--muted);font-variant-numeric:tabular-nums}
+  h2 .num{min-width:0;margin-right:0.4em;font-weight:500}
+  .soon{font-size:0.78rem;color:var(--muted);margin-left:0.5em}
+  @media (max-width:900px){ .front{padding:32px 18px 80px} }
+</style>
