@@ -74,36 +74,39 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
 /* a photograph kept from the book, with its caption and credit line */
 .photo{margin:2rem 0;font-family:var(--sans)}
 .photo img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
-.photo figcaption{display:flex;align-items:baseline;gap:12px;margin-top:8px;font-size:0.9rem;color:var(--muted);line-height:1.45}
-.photo figcaption .eyebrow{white-space:nowrap}
+.photo figcaption{position:relative;display:block;margin-top:8px;font-size:0.9rem;color:var(--muted);line-height:1.45}
+.photo figcaption .eyebrow{display:block;padding-right:36px;white-space:nowrap}
+.photo figcaption > span:not(.eyebrow){display:block;margin-top:5px}
 /* demos (drawn by the figure library into adopted articles)
    One card per widget: caption header, stage (drawing plus its transport
    bar), sliders on an aligned grid, and the live equation as a footer band. */
 .demo{margin:2rem 0;font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
-.demo .demo-head{position:relative;display:flex;align-items:baseline;gap:12px;margin:0;padding:12px 82px 11px 18px;border-bottom:1px solid var(--rule)}
+.demo .demo-head{position:relative;display:block;margin:0;padding:12px 18px 11px;border-bottom:1px solid var(--rule)}
 .fig-split{position:absolute;right:10px;top:9px;width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
 .fig-split:hover{color:var(--ink);background:var(--soft)}
 .fig-split svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
 .fig-root{max-width:980px;margin:0 auto;padding:28px 40px 120px}
 .fig-root .demo{margin:0}
-.demo .demo-head .eyebrow{color:var(--accent);white-space:nowrap}
-.demo .demo-head span:not(.eyebrow){font-size:0.9rem;color:var(--muted);line-height:1.45}
+/* the figure number on its own line, clear of the buttons at the right; the description on a full-width line beneath */
+.demo .demo-head .eyebrow{display:block;padding-right:64px;color:var(--accent);white-space:nowrap}
+.demo .demo-head > span:not(.eyebrow){display:block;margin-top:5px;font-size:0.9rem;color:var(--muted);line-height:1.45}
 /* a demo that keeps a book figure's number: "Figure 16.4" with small pills after it, and a button that swaps in the book's figure */
 .eyebrow .tag{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px}
 .demo .demo-head .eyebrow .tag{font-size:0.62rem;color:var(--muted);line-height:1.5}
-figure.demo[data-original] .demo-head{padding-right:152px}
+figure.demo[data-original] .demo-head .eyebrow{padding-right:134px}
 .fig-original{position:absolute;right:78px;top:9px;height:24px;display:grid;place-items:center;padding:0 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;line-height:1}
 .fig-original:hover{color:var(--ink);background:var(--soft)}
 .fig-original:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .demo .original{padding:14px 18px 12px}
 .demo .original img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
 .demo .original img+img{margin-top:12px}
-.demo .ocap{display:flex;align-items:baseline;gap:12px;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
-.demo .ocap .eyebrow{white-space:nowrap}
+.demo .ocap{display:block;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
+.demo .ocap .eyebrow{display:block;white-space:nowrap}
+.demo .ocap > span:not(.eyebrow){display:block;margin-top:5px}
 figure.demo.show-original>.stage,figure.demo.show-original>.controls,figure.demo.show-original>.readout,figure.demo.show-original>.transport{display:none}
 /* a figure split out on its own has neither the split nor the hide button */
-.fig-root .demo .demo-head{padding-right:18px}
-.fig-root figure.demo[data-original] .demo-head{padding-right:84px}
+.fig-root .demo .demo-head .eyebrow{padding-right:0}
+.fig-root figure.demo[data-original] .demo-head .eyebrow{padding-right:66px}
 .fig-root .fig-original{right:10px}
 /* folding: a chevron before each section's or example's heading; folded, only the heading stays.
    A section that opens with an example and has no h2 keeps that example's h3 (.fold-head). */
@@ -122,7 +125,7 @@ section.folded > .fold-head{padding-bottom:16px}
 .fig-hide:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .fig-hide svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
 .fig-hide[aria-pressed="true"]{color:var(--accent)}
-.photo figcaption .fig-hide{position:static;flex:none;margin-left:auto;align-self:center}
+.photo figcaption .fig-hide{right:0;top:-4px}
 figure.demo.fig-hidden > :not(.demo-head), figure.photo.fig-hidden > img{display:none}
 figure.demo.fig-hidden > .demo-head{border-bottom:0}
 .fig-hidden .demo-head .eyebrow::after, .fig-hidden figcaption .eyebrow::after{content:"hidden";display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px;line-height:1.5}
