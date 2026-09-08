@@ -1,11 +1,13 @@
 <script lang="ts">
   /* Important equations, the focused section first, other sections folded. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { getContext as getCtx } from 'svelte';
+  import type { SectionId as ScopeSection } from '../../lib/types/ids';
   import { goSpan, findEl } from '../../lib/sections/nav.svelte';
   import { spanId, sectionId } from '../../lib/types/ids';
   import { FIG } from '../../lib/fig/figlib';
-  const sec = $derived(focus.section);
+  const scoped = getCtx<() => ScopeSection>('scope');
+  const sec = $derived(scoped());
   const eqs = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.equations).filter((e) => e.important));
   const order = $derived([...new Set(eqs.map((e) => e.section))].sort((a, b) => (a === sec ? -1 : b === sec ? 1 : a.localeCompare(b, undefined, { numeric: true }))));
   const titleOf = (s: string) => registry.entry(sectionId(s))?.title ?? '';

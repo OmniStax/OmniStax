@@ -3,7 +3,8 @@
      behind them. Hover explains a node; click pins it and jumps to where the
      text introduces it. Scoped to the focused section, or the chapter as a tab. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { getContext as getCtx } from 'svelte';
+  import type { SectionId as ScopeSection } from '../../lib/types/ids';
   import { pin, spansOf, testedBy } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { goSpan, openDoc, findEl } from '../../lib/sections/nav.svelte';
@@ -11,7 +12,8 @@
   import { conceptId, sectionId } from '../../lib/types/ids';
   import { math } from '../actions/math';
   let { chapterWide }: { chapterWide: boolean } = $props();
-  const scope = $derived(chapterWide ? null : focus.section);
+  const scoped = getCtx<() => ScopeSection>('scope');
+  const scope = $derived(chapterWide ? null : scoped());
   const list = $derived(scopedNodes(registry.concepts, scope));
   const rows = $derived(dagRows(list));
   const edges = $derived(edgesOf(list));

@@ -21,6 +21,9 @@
   import Picker from './Picker.svelte';
   import Settings from './Settings.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
+  import HighlightBar from './HighlightBar.svelte';
+  import { notes } from '../lib/notes/store.svelte';
+  import { paint, setNoted } from '../lib/notes/paint';
 
   type Props = { manifest: BookManifest; chapterDir: string; chapterData: { concepts: ConceptsDTO; formulas: FormulasDTO }; section: SectionMetaDTO; exercises: readonly ExerciseDTO[]; threeUrl: string };
   let { manifest, chapterDir, chapterData, section }: Props = $props();
@@ -35,9 +38,16 @@
     root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { section: sec, place: host.dataset.place ?? 'end' } }); });
   };
 
+  /* highlights: paint a document from the notes that belong to it */
+  const paintDoc = (root: HTMLElement) => {
+    const [sec, doc] = (root.dataset.doc ?? '').split('/'); if (!sec) return;
+    paint(root, notes.list.filter((n) => n.section === sec && n.doc === doc).map((n) => ({ id: n.id, anchor: n.anchor, color: n.color, noted: !!n.text })));
+  };
+
   onMount(() => {
     const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types), chapterKeys: Object.entries(manifest.types).filter(([, t]) => !t.light).map(([k]) => k) });
-    registry.init(manifest, fig, mountExercises);
+    notes.init(manifest.id);
+    registry.init(manifest, fig, mountExercises, paintDoc);
     registry.setChapter(chapterDir, chapterData);
     focus.page = page;
     layoutStore.init(page, known);
@@ -73,6 +83,10 @@
     sp.uses.forEach((s) => allEls(s).forEach((e) => e.classList.add('span-uses')));
   });
 
+  /* notes → marks in every copy of every document */
+  $effect(() => { notes.paintVersion; tick().then(() => document.querySelectorAll<HTMLElement>('article[data-doc]').forEach(paintDoc)); });
+  $effect(() => { notes.list.forEach((n) => setNoted(document, n.id, !!n.text)); });
+
   /* layout → address bar, title, released copies, spy, redraw */
   let urlSec: SectionId = page;
   $effect(() => {
@@ -99,6 +113,7 @@
     <Rail side="right" {narrow} />
   </div>
   <Settings bind:open={settingsOpen} />
+  <HighlightBar />
   <Picker bind:open={picker.open} group={picker.group} anchor={picker.anchor} />
 {/if}
 

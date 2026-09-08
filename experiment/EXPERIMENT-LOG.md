@@ -587,3 +587,40 @@ Checks: `astro check` clean, 21 unit tests, build, headless pass in light
 and dark with no console errors, the photograph loading; two fix passes
 for the headline under the light bar, a circle too small for its
 labels, and a side label against the velocity triangle.
+
+## Pass 17: notes, highlights, and pinned views (2026-09-07)
+
+Chen asked for note-taking (highlight a selection in a colour or add an
+annotation, all collected in a notes view that shows the focused page's
+notes by default and the whole book on demand) and for a way to keep a
+companion view from following the focused document.
+
+Design chosen:
+- **Pinning per view.** Every view opens with a scope line, "16.3 ·
+  following the page" and a pin. Pinned, the view holds its section and
+  shows a picker of the built sections. Chosen over a global freeze
+  (holds everything at once) and over turning following off (stale by
+  default). Remembered per browser. Implemented as a `scope` store and a
+  Svelte context set by the view dispatcher; the five views read their
+  section from it instead of from `focus`.
+- **Highlights anchored to text.** A selection in an article shows a bar
+  with four colours and Note. Anchors are the quote plus 32 characters
+  of context each side, pure and tested; the painter indexes the prose
+  (skipping figures, controls, photographs, hidden MathML) and wraps
+  text nodes in marks. Copies of a document in a second group are
+  painted when prepared, while still detached. Clicking a mark reopens
+  the bar to recolour, annotate or remove. A noted mark has a dotted
+  underline.
+- **Notes view.** The scoped section first, then the rest of the book
+  folded with an expand-all; each card has the colour dots, the quote
+  as a link back to the mark (opening the document if needed), and an
+  annotation saved as typed. Stored per book (`omnia-notes-<id>`).
+
+Checks: `astro check` clean, 25 unit tests (four new for anchoring),
+build, and a headless scenario: highlight from a selection, annotate
+with focus landing in the view, reload with both marks and the text
+kept, pin the notes view and open 16.1 (notes stay on 16.3 while the
+other views follow), unpin and expand the rest of the book, split 16.3
+right (four marks in two copies), jump to a mark from the view, remove
+from the mark's bar. One fix on the way: the painter had skipped
+disconnected text nodes and so left copies unpainted.

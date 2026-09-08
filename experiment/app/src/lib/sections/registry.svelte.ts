@@ -30,11 +30,12 @@ class Registry {
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
   private fig: Fig | null = null;
   private mountExercises: Mounter = () => {};
+  private decorate: (root: HTMLElement) => void = () => {};
   private owner: Record<string, GroupKey> = {};
   private clones: Record<string, HTMLElement> = {};
   private loading: Partial<Record<string, Promise<void>>> = {};
 
-  init(manifest: BookManifest, fig: Fig, mounter: Mounter): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; }
+  init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; }
 
   entry(sec: SectionId): SectionEntry | undefined { return this.manifest.chapters.flatMap((c) => c.sections).find((s) => s.id === sec); }
   chapterOf(sec: SectionId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.sections.some((s) => s.id === sec)); }
@@ -71,6 +72,7 @@ class Registry {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
     this.mountExercises(root, sec);
     if (doc === 'text') { this.splitButtons(root, sec); this.bootFigures(root, sec); }
+    this.decorate(root);
   }
   /* Every figure in a document gets a button that opens it in a split of its own. */
   private splitButtons(root: HTMLElement, sec: SectionId): void {

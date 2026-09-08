@@ -2,7 +2,7 @@
    demos, exercise cards). Chrome styles live in their Svelte components. The
    per-book colour tokens (--c-*) are emitted by the page from the manifest. */
 :root{
-  --bg:#F5F6F8; --panel:#FFFFFF; --ink:#1B1F27; --muted:#5D6470; --rule:#DDE1E7; --soft:#ECEFF3; --soft2:#E2E6EC; --thumb:#C3C9D2;
+  --bg:#F5F6F8; --panel:#FFFFFF; --ink:#1B1F27; --muted:#5D6470; --rule:#DDE1E7; --soft:#ECEFF3; --soft2:#E2E6EC; --thumb:#C3C9D2; --hl-yellow:#FDE68A; --hl-green:#BBF7D0; --hl-blue:#BFDBFE; --hl-pink:#FBCFE8;
   --ok:#15803D; --bad:#B91C1C; --accent:var(--c-position, #1D4ED8); --warm:var(--c-time, #B45309);
   --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
   --sans:'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif;
@@ -10,9 +10,9 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
+  :root:not([data-theme="light"]){ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --hl-yellow:#6B5410; --hl-green:#14532D; --hl-blue:#1E3A8A; --hl-pink:#831843; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
 }
-:root[data-theme="dark"]{ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
+:root[data-theme="dark"]{ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --hl-yellow:#6B5410; --hl-green:#14532D; --hl-blue:#1E3A8A; --hl-pink:#831843; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
 html:not(.cc){ --accent:var(--ink); --warm:var(--ink); }
 
 *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--thumb) transparent}
@@ -66,6 +66,11 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .loading.bad{color:var(--bad)}
 @media (max-width:900px){ article{padding:20px 18px 80px} }
 
+/* the reader's highlights: a mark per text node, coloured; a dotted underline when it carries a note */
+mark.hl{background:var(--hl-yellow);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+mark.hl-green{background:var(--hl-green)} mark.hl-blue{background:var(--hl-blue)} mark.hl-pink{background:var(--hl-pink)}
+mark.hl[data-noted]{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
+mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
 /* a photograph kept from the book, with its caption and credit line */
 .photo{margin:2rem 0;font-family:var(--sans)}
 .photo img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}

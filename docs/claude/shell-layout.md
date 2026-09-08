@@ -17,8 +17,7 @@ in:
 - **Documents** (`[data-doc]`): the section text and the problem set of
   every section that has been opened.
 - **Views** (`.view`): concept map, contents, formulas, definitions, and
-  notes/highlights. The notes view has no content yet. Comments and
-  search are planned as further views.
+  notes. Comments and search are planned as further views.
 
 A view lives in exactly one of three places: a **sidebar** box (left or
 right), a **tab** in a document group, or hidden when closed. A document
@@ -78,6 +77,43 @@ view's home side. It is
 validated against the registered items on load and falls back to the
 default: text and exercises as tabs, concept map and contents on the left,
 formulas, definitions and notes on the right.
+
+## What a view describes: following and pinning
+
+Every view opens with a scope line: the section it describes and a pin.
+Unpinned, the view follows the focused document, so switching tabs from
+2.1 to 2.5 switches the concept map, contents, formulas, definitions and
+notes to 2.5. Pinned, the view holds its section and shows a picker of
+the built sections, so 2.1's concept map can stay up while 2.5 is read.
+The pin is per view and remembered in this browser (`omnia-scope`). The
+same header appears whether the view sits in a sidebar box or in a tab.
+The design chosen over the alternatives: a global freeze would hold every
+view at once, which is rarely wanted; turning following off altogether
+would make the companion views stale by default. A pin on the one view
+the reader wants held keeps the default useful.
+
+## Notes and highlights
+
+Selecting text in any article shows a small bar: four highlight colours
+and a Note button. A colour makes a highlight; Note makes a yellow one
+and opens its annotation in the notes view. Clicking a highlight reopens
+the bar to recolour, annotate or remove it. A highlight with a note
+carries a dotted underline.
+
+A highlight is anchored to its text, not to the DOM: the quoted text with
+32 characters of context on each side (`src/lib/notes/anchor.ts`, pure
+and tested). The painter (`paint.ts`) indexes an article's prose, skipping
+figures, controls, photographs and the hidden MathML, finds each anchor
+and wraps its text nodes in `mark.hl`. Painting runs when a document is
+prepared, including copies opened in a second group, and again whenever a
+note is added, removed or recoloured. If the text changes so that a quote
+is no longer found, the highlight is kept in the store but not shown.
+
+The notes view lists the scoped section's notes first, each with its
+colour, its quote as a link back into the text, and an annotation that
+saves as it is typed; the other sections of the book are folded below,
+with a control to expand them all. Notes are stored per book in this
+browser (`omnia-notes-<book id>`); with accounts they move to the profile.
 
 ## Why this and not more
 

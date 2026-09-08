@@ -1,11 +1,13 @@
 <script lang="ts">
   /* Objectives, the table of contents of the focused section (its headings), and the summary. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { getContext as getCtx } from 'svelte';
+  import type { SectionId as ScopeSection } from '../../lib/types/ids';
   import { spy } from '../../lib/sections/spy.svelte';
   import { go } from '../../lib/sections/nav.svelte';
   import { math } from '../actions/math';
-  const sec = $derived(focus.section);
+  const scoped = getCtx<() => ScopeSection>('scope');
+  const sec = $derived(scoped());
   const state = $derived(registry.state(sec));
   type Entry = { id: string; title: string };
   const entries = $derived.by((): Entry[] => {

@@ -33,13 +33,14 @@ concern and read from the environment with defaults:
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes)
 src/lib/types       ids.ts: branded ids, the ItemId ADT (doc, view, or one figure split out of a doc) and its key/parse pair
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
-src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, dag
+src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (what a view describes: following or pinned), dag
+src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's notes, persisted), go.ts (jump to a highlight)
 src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
-src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Picker, Settings
-src/components/views      View dispatcher, ConceptMap, Contents, Formulas, Definitions, Notes
+src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Picker, Settings, HighlightBar
+src/components/views      View dispatcher (with the scope header), ConceptMap, Contents, Formulas, Definitions, Notes
 src/components/exercises  ExerciseList, ExerciseCard, NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/Page.astro    head, metadata, colour tokens from the book, the static pool, the shell island

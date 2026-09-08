@@ -1,11 +1,13 @@
 <script lang="ts">
   /* Symbols and glossary terms, the focused section first; the colour legend at the end. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { getContext as getCtx } from 'svelte';
+  import type { SectionId as ScopeSection } from '../../lib/types/ids';
   import { settings } from '../../lib/settings/store.svelte';
   import { sectionId } from '../../lib/types/ids';
   import { FIG } from '../../lib/fig/figlib';
-  const sec = $derived(focus.section);
+  const scoped = getCtx<() => ScopeSection>('scope');
+  const sec = $derived(scoped());
   const vars = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.variables));
   const terms = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.glossary));
   const order = $derived([...new Set([...vars.map((v) => v.section), ...terms.map((t) => t.section)])].sort((a, b) => (a === sec ? -1 : b === sec ? 1 : a.localeCompare(b, undefined, { numeric: true }))));
