@@ -532,3 +532,38 @@ computed colours probed on each page (frequency magenta on 16.2 and ink
 on 16.3; the force constant olive on 16.1 and 16.3, ink on 16.4, olive
 on the formula sheet throughout), and a Chapter 2 article opened beside
 16.3 keeping its own scope.
+
+## Pass 15: section 16.5 Energy and the Simple Harmonic Oscillator (2026-09-07)
+
+Plan in `ch16/16.5/plan.md`, approved with one change: ω is coloured now
+rather than at 16.6. Two blocks (the energy is conserved; the maximum
+speed follows from it), two nodes (the energy result and the speed
+result), a placeholder for conservation of energy (7.6). Two demos, both
+endless: the block on a spring with kinetic and potential bars against
+the total and energy against position below (the parabola, its cap, the
+flat total); and Example 16.6's car bouncing on its springs with
+velocity against position beside it, the ellipse with v_max at x = 0.
+Seven exercises, all keyed: two CYU inline, this section's AP item and
+AP question 4 held from 16.3, the conceptual question with an AI-marked
+approach, the climber and the Citigroup Center problems.
+
+Decisions recorded on the way:
+- ω is one type. The bob's angular velocity (v = Lω) and the angular
+  frequency 2π/T have the same dimension, rad/s, so under rule 7 they are
+  one type, `angular-rate`, bound by Chapter 16 to teal, the last pool
+  hue. Macros `\kw` and `\kwmax`. No demo draws ω, so the car demo's
+  readout states ω = 2π/T = √(k/m) and the page binds the type.
+- v_max = X√(k/m) has an entry on the 16.5 sheet as well as the 16.3
+  one, tied to the speed node; the chapter sheet lists it twice.
+- The three pendulum paragraphs the source places inside Example 16.6
+  stay inside the example. The letter a there is the pendulum's
+  amplitude and is left in ink, since a is acceleration elsewhere.
+- Force-constant sliders that carry the car's 6.53×10⁴ N/m now step by
+  100 (16.3 and 16.5): a step of 1000 snapped the default to 65000 and
+  the readout to 0.850 m/s against the book's 0.852.
+- Symbol entries for θ and θ_max so the definitions view sets the
+  subscript properly.
+
+Checks: `astro check` clean, 21 unit tests, build, headless pass in light
+and dark with no console errors, ω probed teal in the text and present in
+the legend; two fix passes for the kinetic-energy label.

@@ -73,7 +73,7 @@ function oscillator(ctx, wall, eq, floorY, x, SC, label) {
 (function () {
   const d = demo('demo-shm-period', 720);
   const m = ctl(d.controls, { label: 'm', cls: '', min: 100, max: 2000, step: 10, value: 900, unit: 'kg', dec: 0, onInput: reset, aria: 'mass' });
-  const k = ctl(d.controls, { label: '\\kk', cls: 'stiffness', min: 10000, max: 200000, step: 1000, value: 65300, unit: 'N/m', dec: 0, onInput: reset });
+  const k = ctl(d.controls, { label: '\\kk', cls: 'stiffness', min: 10000, max: 200000, step: 100, value: 65300, unit: 'N/m', dec: 0, onInput: reset });
   const X = ctl(d.controls, { label: '\\kX', cls: 'position', min: 0.02, max: 0.1, step: 0.005, value: 0.05, unit: 'm', dec: 3, onInput: reset, aria: 'amplitude' });
   const cy = cycle(() => Infinity, 0);
   function reset() { cy.reset(); }

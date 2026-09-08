@@ -1,7 +1,7 @@
 # Plan: 16.5 Energy and the Simple Harmonic Oscillator (m42244)
 
 Source: `source.md` (converted from CNXML). Book pages 717 to 719.
-Status: proposed 2026-09-07, awaiting review.
+Status: reviewed and built 2026-09-07. v_max on both sheets as proposed; ω coloured now as the angular-rate type (Chen chose the alternative); the climber simulation was not picked.
 
 One result stated two ways: the energy of a simple harmonic oscillator is
 conserved, and the maximum speed follows from it. One sketch to replace

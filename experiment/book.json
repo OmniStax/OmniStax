@@ -60,6 +60,10 @@
   "stiffness": {
    "label": "force constant",
    "dimension": "N/m"
+  },
+  "angular-rate": {
+   "label": "angular velocity, angular frequency",
+   "dimension": "rad/s"
   }
  },
  "chapter_pool": [
@@ -103,7 +107,9 @@
   "\\kX": "\\htmlClass{kv-position}{X}",
   "\\kvmax": "\\htmlClass{kv-velocity}{v_{\\text{max}}}",
   "\\ks": "\\htmlClass{kv-position}{s}",
-  "\\kg": "\\htmlClass{kv-acceleration}{g}"
+  "\\kg": "\\htmlClass{kv-acceleration}{g}",
+  "\\kw": "\\htmlClass{kv-angular-rate}{\\omega}",
+  "\\kwmax": "\\htmlClass{kv-angular-rate}{\\omega_{\\text{max}}}"
  },
  "symbols": {
   "t": "\\kt",
@@ -127,7 +133,11 @@
   "X": "\\kX",
   "v_max": "\\kvmax",
   "s": "\\ks",
-  "g": "\\kg"
+  "g": "\\kg",
+  "ω": "\\kw",
+  "ω_max": "\\kwmax",
+  "θ_max": "\\theta_{\\text{max}}",
+  "θ": "\\theta"
  },
  "exercise_kinds": {
   "check-understanding": "Check Your Understanding",

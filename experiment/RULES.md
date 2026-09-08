@@ -36,8 +36,9 @@ take another pool hue in another chapter.
 | olive | #4D7C0F | #A3E635 |
 | teal | #0F766E | #2DD4BF |
 
-Chapter 16 binds frequency (f) to magenta and stiffness (k, the force
-constant) to olive. Nothing is coerced: frequency is not a time and a
+Chapter 16 binds frequency (f) to magenta, stiffness (k, the force
+constant) to olive, and the angular rate (ω as a pendulum's angular
+velocity and as the angular frequency 2π/T, both rad/s) to teal. Nothing is coerced: frequency is not a time and a
 force constant is not a force. Mass, length and angle are not typed for
 colour and stay in ink.
 

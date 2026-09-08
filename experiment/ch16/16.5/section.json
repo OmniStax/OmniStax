@@ -1,0 +1,21 @@
+{
+ "id": "16.5",
+ "module": "m42244",
+ "chapter": "16",
+ "title": "Energy and the Simple Harmonic Oscillator",
+ "short": "Energy of the oscillator",
+ "lead": "A simple harmonic oscillator has no dissipative forces, so its energy is shared between the elastic potential energy of the spring and the kinetic energy of the object, with the total constant. This section follows the energy back and forth through one cycle and uses its conservation to find the speed at every position, and the greatest speed of all, at equilibrium.",
+ "objectives": [
+  "Determine the maximum speed of an oscillating system."
+ ],
+ "summary_html": "<ul><li>Energy in the simple harmonic oscillator is shared between elastic potential energy and kinetic energy, with the total being constant: $\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\text{constant}.$</li><li>Maximum velocity depends on three factors: it is directly proportional to amplitude, it is greater for stiffer systems, and it is smaller for objects that have larger masses: $\\kvmax = \\kX\\sqrt{\\frac{\\kk}{m}}$</li></ul>",
+ "binds": [
+  "angular-rate",
+  "energy",
+  "position",
+  "stiffness",
+  "velocity"
+ ],
+ "built": "2026-09-07",
+ "notes": "AP question 4 of section 16.3 asks for the energy of an oscillator at its centre, which this section introduces, and appears here."
+}

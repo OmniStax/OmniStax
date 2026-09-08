@@ -96,6 +96,13 @@
    "placeholder": true
   },
   {
+   "id": "conservation-of-energy",
+   "kind": "result",
+   "section": "7.6",
+   "name": "Conservation of energy",
+   "placeholder": true
+  },
+  {
    "id": "restoring-force",
    "kind": "idea",
    "section": "16.1",
@@ -294,6 +301,34 @@
    ],
    "why": "Squaring the period formula and solving for $\\kg$ gives $\\kg = 4\\pi^2 L/\\kT^2$. If the length is known precisely and the period is timed over many swings at a small angle, this gives the local acceleration due to gravity to several digits, which matters in geological exploration.",
    "evidence": "The section’s learning objective; Example 16.5; AP question 2; the Take-Home Experiment; problems 7 and 13."
+  },
+  {
+   "id": "shm-energy",
+   "kind": "result",
+   "section": "16.5",
+   "eq": "eq-shm-energy",
+   "name": "Energy of a simple harmonic oscillator, $\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\text{constant}$",
+   "prereqs": [
+    "simple-harmonic-motion",
+    "elastic-potential-energy",
+    "kinetic-energy",
+    "conservation-of-energy"
+   ],
+   "why": "A simple harmonic oscillator has no dissipative forces, so its energy is shared between elastic potential energy and kinetic energy with the total constant. The energy goes completely from one form to the other as the system oscillates: all potential at the turning points, all kinetic through equilibrium. Started from rest at $\\kx = \\kX$, the total is $\\tfrac{1}{2}\\kk\\kX^2$.",
+   "evidence": "The AP item on the internal energy of a 1 kg oscillator; AP question 4 of section 16.3 (the energy at the centre), placed here; conceptual question 1; problem 2(b); problem 1(b), with gravity."
+  },
+  {
+   "id": "shm-max-speed",
+   "kind": "result",
+   "section": "16.5",
+   "eq": "eq-v-of-x",
+   "name": "Speed in simple harmonic motion, $\\kv = \\pm\\kvmax\\sqrt{1 - \\kx^2/\\kX^2}$",
+   "prereqs": [
+    "shm-energy",
+    "amplitude"
+   ],
+   "why": "Solving the conservation of energy for the velocity gives the speed at every position, greatest at equilibrium and zero at the turning points, with $\\kvmax = \\kX\\sqrt{\\kk/m}$. The maximum velocity is proportional to the amplitude, greater for stiffer systems, and smaller for larger masses.",
+   "evidence": "The section’s learning objective; Example 16.6; Check Your Understanding 1 and 2; problem 1(a) through the frequency."
   }
  ],
  "coverage": [
@@ -460,6 +495,38 @@
   },
   {
    "span": "16.4-exercises",
+   "uses": []
+  },
+  {
+   "span": "16.5-shm-energy",
+   "introduces": [
+    "shm-energy"
+   ],
+   "uses": [
+    "elastic-potential-energy",
+    "kinetic-energy",
+    "conservation-of-energy",
+    "simple-harmonic-motion"
+   ]
+  },
+  {
+   "span": "16.5-max-speed",
+   "introduces": [
+    "shm-max-speed"
+   ],
+   "uses": [
+    "shm-energy",
+    "amplitude"
+   ]
+  },
+  {
+   "span": "16.5-ex-bumpy-road",
+   "uses": [
+    "shm-max-speed"
+   ]
+  },
+  {
+   "span": "16.5-exercises",
    "uses": []
   }
  ]

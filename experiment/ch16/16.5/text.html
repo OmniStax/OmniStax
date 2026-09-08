@@ -1,0 +1,62 @@
+<section id="shm-energy">
+<h2>The energy of a simple harmonic oscillator is conserved</h2>
+<p class="cite-target">To study the energy of a simple harmonic oscillator, we first consider all the forms of energy it can have We know from Hooke’s Law: Stress and Strain Revisited that the energy stored in the deformation of a simple harmonic oscillator is a form of potential energy given by:</p>
+$$\kPE = \frac{1}{2}\kk\kx^{2}.$$
+<p>Because a simple harmonic oscillator has no dissipative forces, the other important form of energy is kinetic energy $\kKE$. Conservation of energy for these two forms is:</p>
+$$\kKE + \kPE = \text{constant}$$
+<p>or</p>
+$$\frac{1}{2}m\kv^{2} + \frac{1}{2}\kk\kx^{2} = \text{constant.}$$
+<p>This statement of conservation of energy is valid for <em>all</em> simple harmonic oscillators, including ones where the gravitational force plays a role</p>
+<p>Namely, for a simple pendulum we replace the velocity with $\kv = L\kw$, the spring constant with $\kk = m\kg/L$, and the displacement term with $\kx = L\theta$. Thus</p>
+$$\frac{1}{2}mL^{2}\kw^{2} + \frac{1}{2}m\kg L\theta^{2} = \text{constant.}$$
+<p>In the case of undamped simple harmonic motion, the energy oscillates back and forth between kinetic and potential, going completely from one to the other as the system oscillates. So for the simple example of an object on a frictionless surface attached to a spring, as shown again in Figure 16.16, the motion starts with all of the energy stored in the spring. As the object starts to move, the elastic potential energy is converted to kinetic energy, becoming entirely kinetic energy at the equilibrium position. It is then converted back into elastic potential energy by the spring, the velocity becomes zero when the kinetic energy is completely converted, and so on. This concept provides extra insight here and in later applications of simple harmonic motion, such as alternating current circuits.</p>
+<figure class="demo" id="demo-energy-transfer">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>An object on a spring slides on a frictionless surface, as in Figure 16.16, released from rest at $\kx = \kX$. The two bars show the kinetic energy and the elastic potential energy at each moment, and the graph below plots both against the position, together with their constant total. Watch the energy go completely from one form to the other: all potential at the turning points, all kinetic through equilibrium.</span></div>
+</figure>
+</section>
+
+<section id="max-speed">
+<h2>The maximum speed follows from conservation of energy</h2>
+<p class="cite-target">The conservation of energy principle can be used to derive an expression for velocity $\kv$. If we start our simple harmonic motion with zero velocity and maximum displacement ($\kx = \kX$), then the total energy is</p>
+$$\frac{1}{2}\kk\kX^{2}.$$
+<p>This total energy is constant and is shifted back and forth between kinetic energy and potential energy, at most times being shared by each. The conservation of energy for this system in equation form is thus:</p>
+$$\frac{1}{2}m\kv^{2} + \frac{1}{2}\kk\kx^{2} = \frac{1}{2}\kk\kX^{2}.$$
+<p>Solving this equation for $\kv$ yields:</p>
+$$\kv = \pm\sqrt{\frac{\kk}{m}(\kX^{2} - \kx^{2})}.$$
+<p>Manipulating this expression algebraically gives:</p>
+$$\kv = \pm\sqrt{\frac{\kk}{m}}\,\kX\sqrt{1 - \frac{\kx^{2}}{\kX^{2}}}$$
+<p>and so</p>
+$$\kv = \pm\kvmax\sqrt{1 - \frac{\kx^{2}}{\kX^{2}}},$$
+<p>where</p>
+$$\kvmax = \kX\sqrt{\frac{\kk}{m}}.$$
+<p>From this expression, we see that the velocity is a maximum ($\kvmax$) at $\kx = 0$, as stated earlier in $\kv(\kt) = -\kvmax\sin\frac{2\pi\kt}{\kT}$. Notice that the maximum velocity depends on three factors. Maximum velocity is directly proportional to amplitude. As you might guess, the greater the maximum displacement the greater the maximum velocity. Maximum velocity is also greater for stiffer systems, because they exert greater force for the same displacement. This observation is seen in the expression for $\kvmax$; it is proportional to the square root of the force constant $\kk$. Finally, the maximum velocity is smaller for objects that have larger masses, because the maximum velocity is inversely proportional to the square root of $m$. For a given force, objects that have large masses accelerate more slowly.</p>
+<p>A similar calculation for the simple pendulum produces a similar result, namely:</p>
+$$\kwmax = \sqrt{\frac{\kg}{L}}\,\theta_{\text{max}}.$$
+<figure class="demo" id="demo-max-speed">
+  <div class="demo-head"><span class="eyebrow">Demo</span><span>The car of Example 16.6 bounces on its springs after a bump, released from an amplitude $\kX$ with no damping. Beside it, the velocity is plotted against the position: the curve is $\kv = \pm\kvmax\sqrt{1 - \kx^2/\kX^2}$, and the greatest speed comes at $\kx = 0$. Change the amplitude, the force constant, or the mass and note which way the maximum velocity moves.</span></div>
+</figure>
+<div class="example" id="ex-bumpy-road">
+<h3>Example 16.6 · Determine the Maximum Speed of an Oscillating System: A Bumpy Road</h3>
+<p>Suppose that a car is 900 kg and has a suspension system that has a force constant $\kk = 6.53 \times 10^{4}\ \text{N/m}$. The car hits a bump and bounces with an amplitude of 0.100 m. What is its maximum vertical velocity if you assume no damping occurs?</p>
+<h4>Strategy</h4>
+<p>We can use the expression for $\kvmax$ given in $\kvmax = \kX\sqrt{\frac{\kk}{m}}$ to determine the maximum vertical velocity. The variables $m$ and $\kk$ are given in the problem statement, and the maximum displacement $\kX$ is 0.100 m.</p>
+<h4>Solution</h4>
+<ol>
+<li>Identify known.</li>
+<li>Substitute known values into $\kvmax = \sqrt{\frac{\kk}{m}}\,\kX$:
+$$\kvmax = \sqrt{\frac{6.53 \times 10^{4}\ \text{N/m}}{900\ \text{kg}}}(0.100\ \text{m}).$$</li>
+<li>Calculate to find $\kvmax = 0.852\ \text{m/s}.$</li>
+</ol>
+<h4>Discussion</h4>
+<p>This answer seems reasonable for a bouncing car. There are other ways to use conservation of energy to find $\kvmax$. We could use it directly, as was done in the example featured in Hooke’s Law: Stress and Strain Revisited.</p>
+<p>The small vertical displacement $y$ of an oscillating simple pendulum, starting from its equilibrium position, is given as</p>
+$$y(\kt) = a\sin\kw\kt,$$
+<p>where $a$ is the amplitude, $\kw$ is the angular velocity and $\kt$ is the time taken. Substituting $\kw = \frac{2\pi}{\kT}$, we have</p>
+$$y(\kt) = a\sin\left(\frac{2\pi\kt}{\kT}\right).$$
+<p>Thus, the displacement of pendulum is a function of time as shown above.</p>
+<p>Also the velocity of the pendulum is given by</p>
+$$\kv(\kt) = \frac{2a\pi}{\kT}\cos\left(\frac{2\pi\kt}{\kT}\right),$$
+<p>so the motion of the pendulum is a function of time.</p>
+</div>
+<div class="exercises" data-place="max-speed"></div>
+</section>

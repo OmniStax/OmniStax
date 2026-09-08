@@ -129,6 +129,33 @@
    "meaning": "acceleration due to gravity, 9.80 m/s² unless otherwise specified",
    "unit": "m/s²",
    "section": "16.4"
+  },
+  {
+   "sym": "KE",
+   "color": "energy",
+   "meaning": "kinetic energy of the oscillating object, ½mv²",
+   "unit": "J",
+   "section": "16.5"
+  },
+  {
+   "sym": "ω",
+   "color": "angular-rate",
+   "meaning": "angular velocity of a pendulum bob, v = Lω; also the angular frequency 2π/T of an oscillation",
+   "unit": "rad/s",
+   "section": "16.5"
+  },
+  {
+   "sym": "ω_max",
+   "color": "angular-rate",
+   "meaning": "greatest angular velocity of a pendulum, reached at the lowest point",
+   "unit": "rad/s",
+   "section": "16.5"
+  },
+  {
+   "sym": "θ_max",
+   "meaning": "greatest angle of a pendulum’s swing, its angular amplitude",
+   "unit": "rad",
+   "section": "16.5"
   }
  ],
  "equations": [
@@ -258,6 +285,56 @@
    "latex": "g = 4\\pi^2\\frac{L}{T^2}",
    "ktex": "\\kg = 4\\pi^2\\frac{L}{\\kT^2}",
    "anchor": "16.4-ex-measuring-g",
+   "important": false
+  },
+  {
+   "id": "eq-shm-energy",
+   "concept": "shm-energy",
+   "section": "16.5",
+   "latex": "\\tfrac{1}{2}mv^2 + \\tfrac{1}{2}kx^2 = \\text{constant}",
+   "ktex": "\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\text{constant}",
+   "anchor": "16.5-shm-energy",
+   "important": true
+  },
+  {
+   "id": "eq-shm-total",
+   "section": "16.5",
+   "latex": "\\tfrac{1}{2}mv^2 + \\tfrac{1}{2}kx^2 = \\tfrac{1}{2}kX^2",
+   "ktex": "\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\tfrac{1}{2}\\kk\\kX^2",
+   "anchor": "16.5-max-speed",
+   "important": false
+  },
+  {
+   "id": "eq-v-of-x",
+   "concept": "shm-max-speed",
+   "section": "16.5",
+   "latex": "v = \\pm v_{\\text{max}}\\sqrt{1 - \\frac{x^2}{X^2}}",
+   "ktex": "\\kv = \\pm\\kvmax\\sqrt{1 - \\frac{\\kx^2}{\\kX^2}}",
+   "anchor": "16.5-max-speed",
+   "important": true
+  },
+  {
+   "id": "eq-vmax-energy",
+   "section": "16.5",
+   "latex": "v_{\\text{max}} = X\\sqrt{\\frac{k}{m}}",
+   "ktex": "\\kvmax = \\kX\\sqrt{\\frac{\\kk}{m}}",
+   "anchor": "16.5-max-speed",
+   "important": false
+  },
+  {
+   "id": "eq-pendulum-energy",
+   "section": "16.5",
+   "latex": "\\tfrac{1}{2}mL^2\\omega^2 + \\tfrac{1}{2}mgL\\theta^2 = \\text{constant}",
+   "ktex": "\\tfrac{1}{2}mL^2\\kw^2 + \\tfrac{1}{2}m\\kg L\\theta^2 = \\text{constant}",
+   "anchor": "16.5-shm-energy",
+   "important": false
+  },
+  {
+   "id": "eq-omega-max",
+   "section": "16.5",
+   "latex": "\\omega_{\\text{max}} = \\sqrt{\\frac{g}{L}}\\theta_{\\text{max}}",
+   "ktex": "\\kwmax = \\sqrt{\\frac{\\kg}{L}}\\theta_{\\text{max}}",
+   "anchor": "16.5-max-speed",
    "important": false
   }
  ],

@@ -73,6 +73,7 @@
  ],
  "colors": {
   "frequency": "magenta",
-  "stiffness": "olive"
+  "stiffness": "olive",
+  "angular-rate": "teal"
  }
 }
