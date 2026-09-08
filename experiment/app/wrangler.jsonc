@@ -1,0 +1,7 @@
+/* Cloudflare Workers: serve the built site as static assets. No script; the
+   platform handles routing, with /x resolving to /x/index.html. */
+{
+  "name": "omnistax",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./dist" }
+}
