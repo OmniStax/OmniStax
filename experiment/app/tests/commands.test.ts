@@ -155,10 +155,11 @@ test('builtin commands act on their stores', () => {
 test('the group commands appear only once there is more than one group', () => {
   const one = builtinCommands(deps(false, 1)); const two = builtinCommands(deps(false, 2));
   const by = (cmds: readonly ReturnType<typeof builtinCommands>[number][], id: string) => cmds.find((c) => c.id === id)!;
-  for (const id of [BUILTIN.closeGroup, BUILTIN.closeOtherGroups, BUILTIN.focusNextGroup, BUILTIN.focusGroupUp]) {
+  for (const id of [BUILTIN.closeOtherGroups, BUILTIN.focusNextGroup, BUILTIN.focusGroupUp]) {
     assert.equal(available(by(one, id)), false, id); assert.equal(available(by(two, id)), true, id);
   }
   assert.equal(available(by(one, BUILTIN.splitRight)), true, 'a single group can still be split');
+  assert.equal(available(by(one, BUILTIN.closeGroup)), true, 'the last group can be closed: it is emptied');
   assert.equal(by(two, BUILTIN.focusGroupDown).label, 'Focus group below');
 });
 test('every default chord names a builtin command', () => {

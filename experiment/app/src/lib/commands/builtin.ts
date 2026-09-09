@@ -124,7 +124,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.splitDown, label: 'Split down', group: 'Layout', run: () => d.layout.splitDown() },
   { id: BUILTIN.moveRight, label: 'Move tab to a new group right', group: 'Layout', run: () => d.layout.moveRight() },
   { id: BUILTIN.moveDown, label: 'Move tab to a new group below', group: 'Layout', run: () => d.layout.moveDown() },
-  { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup(), when: () => d.layout.groupCount > 1 },
+  { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup() },
   { id: BUILTIN.closeOtherGroups, label: 'Close other groups', group: 'Layout', run: () => d.layout.closeOtherGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.evenGroups, label: 'Even out group sizes', group: 'Layout', run: () => d.layout.evenGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.reopenClosedTab, label: 'Reopen closed tab', group: 'Layout', run: () => d.layout.reopenClosedTab(), when: () => d.layout.canReopenTab },

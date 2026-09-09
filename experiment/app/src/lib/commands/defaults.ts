@@ -20,8 +20,9 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Alt+ArrowLeft', 'focus-group-left'], ['Ctrl+Alt+ArrowRight', 'focus-group-right'],
   ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
-  /* Chrome keeps Ctrl+W for closing its own tab and a page cannot take it back; other
-     browsers, and Cmd+W in some Mac setups, hand it over and close the group instead. */
+  /* A browser tab keeps Ctrl+W for closing itself and a page cannot take it back;
+     installed as an app (the manifest makes the book installable) the shell is
+     handed the chord and closes the group instead. The last group is emptied. */
   ['Ctrl+W', 'close-group'],
   ['Ctrl+Shift+T', 'reopen-closed-tab'],
   /* The reader's own edits, in the chords every editor uses. Inside a field or
