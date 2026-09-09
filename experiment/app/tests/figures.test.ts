@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { linkFigureRefs, figureIds, figureNumber, qualifyIds } from '../src/lib/content/fragment';
+import { linkFigureRefs, figureIds, figureList, figureNumber, qualifyIds } from '../src/lib/content/fragment';
+import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
 
 const figs = new Map([[figureNumber('16.4'), spanId('16.1-demo-spring-scale')], [figureNumber('16.9'), spanId('16.3-demo-shm-oscillator')]]);
@@ -33,6 +34,40 @@ test('figureIds reads a section and qualifies; qualifyIds leaves those hrefs alo
   const m = figureIds(html, '16.1');
   assert.deepEqual([...m], [['16.4', '16.1-demo-a'], ['16.8', '16.1-fig-c']]);
   assert.equal(qualifyIds('<a href="#16.3-demo-x">x</a><a href="#local">y</a>', '16.1'), '<a href="#16.3-demo-x">x</a><a href="#16.1-local">y</a>');
+});
+
+const demo = (id: string, head: string): string => `<figure class="demo" id="${id}"><div class="demo-head">${head}</div></figure>`;
+const eyebrow = (text: string): string => `<span class="eyebrow">${text}</span>`;
+
+test('figureList labels a figure with its eyebrow and the first sentence of its head', () => {
+  const html = [
+    demo('demo-shm-oscillator', `${eyebrow('Figure 16.9')}<span>An object on a spring slides on a frictionless surface, as in <a class="figref" href="#16.3-demo-shm-oscillator" data-figref="16.9">Figure 16.9</a>. It is released from rest and oscillates.</span>`),
+    demo('demo-shm-period', `${eyebrow('Demo')}<span>Two identical objects are released at the same moment. They stay in step.</span>`),
+    '<figure class="demo" id="demo-shm-period-graph"></figure>',
+    '<figure class="photo" id="fig-guitar"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>',
+  ].join('\n');
+  assert.deepEqual(figureList(html, '16.3'), [
+    { id: 'demo-shm-oscillator', label: 'Figure 16.9 · An object on a spring slides on a frictionless surface, as in Figure 16.9.' },
+    { id: 'demo-shm-period', label: 'Demo · Two identical objects are released at the same moment.' },
+    { id: 'demo-shm-period-graph', label: 'shm period graph' },
+  ]);
+});
+test('figureList takes the head of a figure with no eyebrow, and gives a qualified id back', () => {
+  assert.deepEqual(figureList(demo('demo-a', '<span>One sentence only</span>'), '16.3'), [{ id: 'demo-a', label: 'One sentence only' }]);
+  assert.deepEqual(figureList(demo('16.3-demo-a', `${eyebrow('Demo')}<span>Qualified.</span>`), '16.3'), [{ id: 'demo-a', label: 'Demo · Qualified.' }]);
+});
+test('figureList caps a long sentence with an ellipsis', () => {
+  const long = `${'word '.repeat(40)}ends here. A second sentence.`;
+  const [fig] = figureList(demo('demo-a', `${eyebrow('Demo')}<span>${long}</span>`), '16.3');
+  assert.equal(fig.label.startsWith('Demo · word word'), true);
+  assert.equal(fig.label.endsWith('…'), true);
+  assert.ok(fig.label.slice('Demo · '.length).length <= 141, fig.label);   /* 140 characters and the ellipsis, less if the cut fell on a space */
+});
+test('figureList keeps math as $…$, whether the text is written or prerendered', () => {
+  const head = `${eyebrow('Figure 16.9')}<span>It is released from rest at $\\x = \\X$ and oscillates. Then on.</span>`;
+  const label = 'Figure 16.9 · It is released from rest at $\\x = \\X$ and oscillates.';
+  assert.deepEqual(figureList(demo('demo-a', head), '16.3'), [{ id: 'demo-a', label }]);
+  assert.deepEqual(figureList(prerenderMath(demo('demo-a', head), {}), '16.3'), [{ id: 'demo-a', label }]);
 });
 
 /* Every original a section names is served, and every figure with a number has an original or is a photograph. */

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout, openTab, splitRight, splitDown, split, closeItem, closeGroup, where, groupsWith, openSide, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, parseItemKey, itemKey, figItem } from '../src/lib/types/ids';
+import { sectionId, parseItemKey, itemKey, figItem, exItem } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -63,6 +63,14 @@ test('figure keys round-trip and belong to their section', () => {
   const k = itemKey(figItem(s, 'demo-plane'));
   assert.equal(k, 'fig:2.1/demo-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'demo-plane'));
   assert.equal(parseItemKey('fig:2.1/'), null);
+  const l = splitRight(defaultLayout(s), 0, k);
+  assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
+});
+
+test('exercise keys round-trip and belong to their section', () => {
+  const k = itemKey(exItem(s, 'cq1'));
+  assert.equal(k, 'ex:2.1/cq1'); assert.deepEqual(parseItemKey(k), exItem(s, 'cq1'));
+  assert.equal(parseItemKey('ex:2.1/'), null); assert.equal(parseItemKey('ex:2.1/a/b'), null);
   const l = splitRight(defaultLayout(s), 0, k);
   assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
 });

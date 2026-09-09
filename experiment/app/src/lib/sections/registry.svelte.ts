@@ -1,9 +1,11 @@
 /* Loaded sections and their DOM. The page's own section is adopted from the
    static pool; others are fetched as fragments on demand. A document may be
    shown in several groups: the first gets the adopted element, the rest get a
-   copy built from the fragment source with its own exercises and figures. */
+   copy built from the fragment source with its own exercises and figures. A
+   chapter's concepts and formulas are loaded on their own, since a view scoped
+   to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type SectionId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey, figItem } from '../types/ids';
+import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey, figItem } from '../types/ids';
 import type { Fig } from '../fig/figlib';
 import { ICON } from '../icons';
 import { originalButtons } from './original';
@@ -23,6 +25,7 @@ export type SectionState = {
   readonly error?: string;
 };
 export type ChapterData = { readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO };
+export type ChapterStatus = SectionStatus;
 export type Mounter = (root: HTMLElement, section: SectionId) => void;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
@@ -31,28 +34,54 @@ class Registry {
   manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
+  chapterStatus = $state.raw<Readonly<Record<string, ChapterStatus>>>({});   /* by chapter dir, beside the data above */
   private fig: Fig | null = null;
   private mountExercises: Mounter = () => {};
   private decorate: (root: HTMLElement) => void = () => {};
   private owner: Record<string, GroupKey> = {};
   private clones: Record<string, HTMLElement> = {};
   private loading: Partial<Record<string, Promise<void>>> = {};
+  private loadingChapters: Partial<Record<string, Promise<void>>> = {};
 
   init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; }
 
   entry(sec: SectionId): SectionEntry | undefined { return this.manifest.chapters.flatMap((c) => c.sections).find((s) => s.id === sec); }
   chapterOf(sec: SectionId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.sections.some((s) => s.id === sec)); }
+  chapterById(id: ChapterId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.id === id); }
   isBuilt(sec: SectionId): boolean { return this.entry(sec)?.built ?? false; }
   state(sec: SectionId): SectionState | undefined { return this.sections[sec]; }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
+    if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
     return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
+  }
+  /* What the book calls an exercise's kind, once the section holding it has been loaded. */
+  private exerciseLabel(sec: SectionId, ex: string): string | null {
+    const kind = this.sections[sec]?.exercises.find((e) => e.id === ex)?.kind;
+    return kind === undefined ? null : this.manifest.exerciseKinds[kind] ?? kind;
   }
   get concepts(): readonly ConceptDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.concepts); }
   get coverage(): readonly CoverageDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.coverage); }
   concept(id: string): ConceptDTO | undefined { return this.concepts.find((c) => c.id === id); }
-  setChapter(dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [dir]: data }; }
+  setChapter(dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [dir]: data }; this.setChapterStatus(dir, 'loaded'); }
+  private setChapterStatus(dir: string, status: ChapterStatus): void { this.chapterStatus = { ...this.chapterStatus, [dir]: status }; }
+
+  /* A chapter's concepts and formulas, fetched once however many askers there are;
+     a chapter that will not load is remembered as failed rather than thrown at each of them. */
+  loadChapter(dir: string): Promise<void> {
+    if (this.chapters[dir]) return Promise.resolve();
+    const pending = this.loadingChapters[dir]; if (pending) return pending;
+    const ch = this.manifest.chapters.find((c) => c.dir === dir);
+    if (!ch) return Promise.reject(new Error(`unknown chapter ${dir}`));
+    this.setChapterStatus(dir, 'loading');
+    this.loadingChapters[dir] = Promise.all([fetch(ch.concepts).then((r) => r.json()), fetch(ch.formulas).then((r) => r.json())])
+      .then(([concepts, formulas]) => this.setChapter(dir, { concepts, formulas }))
+      .catch(() => this.setChapterStatus(dir, 'failed'))
+      .finally(() => { delete this.loadingChapters[dir]; });
+    return this.loadingChapters[dir]!;
+  }
+  async loadChapters(dirs: readonly string[]): Promise<void> { await Promise.all(dirs.map((d) => this.loadChapter(d))); }
 
   /* Take the articles and data block out of a container (the static pool or a fetched fragment). */
   adopt(container: ParentNode): SectionId[] {
@@ -101,8 +130,8 @@ class Registry {
     const e = this.entry(sec), ch = this.chapterOf(sec);
     if (!e || !ch || !e.built) return Promise.reject(new Error(`unknown section ${sec}`));
     this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'loading' } };
-    const chapterData = this.chapters[ch.dir] ? Promise.resolve() : Promise.all([fetch(ch.concepts).then((r) => r.json()), fetch(ch.formulas).then((r) => r.json())]).then(([concepts, formulas]) => this.setChapter(ch.dir, { concepts, formulas }));
-    const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figures; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
+    const chapterData = this.loadChapter(ch.dir);
+    const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
     const html = fetch(e.fragment).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); });
     this.loading[sec] = Promise.all([chapterData, script, html])
       .then(([, , text]) => { const t = document.createElement('template'); t.innerHTML = text; this.adopt(t.content); })

@@ -1,9 +1,18 @@
-/* Which section the companion views describe: the focused group's active document. */
+/* Which section the companion views describe: the focused group's active
+   document. Beside it, which view the reader last touched, so a command aimed
+   at "this view" knows what it means: the view the pointer or the keyboard went
+   into, and failing that the view a focused tab is showing. */
 import { layoutStore } from '../layout/store.svelte';
-import { focusedSection } from '../layout/model';
-import type { SectionId } from '../types/ids';
+import { focusedGroup, focusedSection } from '../layout/model';
+import { parseItemKey, type SectionId, type ViewKind } from '../types/ids';
 class Focus {
   page: SectionId = '0.0' as SectionId;
+  view = $state<ViewKind | null>(null);
   get section(): SectionId { return focusedSection(layoutStore.layout, this.page); }
+  get activeView(): ViewKind | null {
+    if (this.view) return this.view;
+    const active = focusedGroup(layoutStore.layout).active; const id = active ? parseItemKey(active) : null;
+    return id !== null && id.kind === 'view' ? id.view : null;
+  }
 }
 export const focus = new Focus();
