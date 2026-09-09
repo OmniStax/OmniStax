@@ -37,7 +37,7 @@ src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes)
 src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
-src/lib/settings    colour coding, theme, animations, exercise mode
+src/lib/settings    colour coding, theme, animations, exercise mode, underlines
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
@@ -91,6 +91,14 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   the commands that open each view where it belongs. A crumb's label moves the
   view to that level and the chevron beside it chooses another chapter or section,
   and choosing anything but the place the open page lies in pins the view there.
+- The explorer is the reader's own tree with the book hanging in it: the two
+  things they make — a note, a folder — are icons at the top right, and the
+  catalogue of textbooks is a row of the tree itself, first under User and above
+  the books they have taken.
+- A symbol, a glossary term and an example reference wear a dotted rule that says
+  a card will open on them. The rule is a setting ("Underlines"), off leaves the
+  page clean and the cards still open, and inside a card nothing is underlined:
+  that is where the symbol is explained, not another place to look it up.
 - One fold rule for every list a view draws: what the view's level covers is shown
   grouped by chapter and by section, in the order the book sets, and everything
   outside it is folded away under a single heading. `grouping.ts` makes the cut

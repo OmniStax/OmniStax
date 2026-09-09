@@ -1,9 +1,16 @@
 <script lang="ts">
   /* A small toolbar over a text selection in an article: four highlight colours
-     and a note. Clicking an existing highlight reopens it to recolour, annotate
-     or remove. */
+     and, once the words are marked, the three things a reader does with a
+     highlight — write a note on it, copy the reference a note quotes it by, and
+     take it away. Those three are icons, each named by the shell's tooltip.
+
+     Marking the words does not put the bar away: the same bar stays where it
+     stands, now over a highlight rather than a selection, so the reader can go
+     straight on to annotate or to copy the link. Clicking a highlight in the
+     text opens it again the same way. */
   import { onMount } from 'svelte';
   import { notes, HL_COLORS, type HlColor } from '../lib/notes/store.svelte';
+  import { ICON } from '../lib/icons';
   import { textIndex, rangeSpan } from '../lib/notes/paint';
   import { makeAnchor, type Anchor } from '../lib/notes/anchor';
   import { layoutStore } from '../lib/layout/store.svelte';
@@ -37,8 +44,12 @@
   onMount(() => { document.addEventListener('selectionchange', onSel); document.addEventListener('click', onClick); document.addEventListener('keydown', onKey); return () => { document.removeEventListener('selectionchange', onSel); document.removeEventListener('click', onClick); document.removeEventListener('keydown', onKey); }; });
   const openNotesView = () => { const v = document.querySelector('[data-view="annotations"]'); if (v) reveal(v); else layoutStore.apply((l) => openSide(l, 'view:annotations', homeSide(l, 'view:annotations'))); };
   const choose = (c: HlColor) => {
-    if (mode === 'edit' && noteId) { notes.setColor(noteId, c); open = false; return; }
-    if (!pending) return; notes.add(pending.section, pending.doc, pending.anchor, c); document.getSelection()?.removeAllRanges(); open = false;
+    if (mode === 'edit' && noteId) { notes.setColor(noteId, c); return; }
+    if (!pending) return;
+    const n = notes.add(pending.section, pending.doc, pending.anchor, c);
+    document.getSelection()?.removeAllRanges();
+    /* The bar stands over the words it has just marked. */
+    noteId = n.id; mode = 'edit'; pending = null; copied = false;
   };
   const annotate = () => {
     let id = noteId;
@@ -46,6 +57,7 @@
     if (!id) return; open = false; openNotesView(); notes.editing = id;
   };
   const remove = () => { if (noteId) notes.remove(noteId); open = false; };
+  const noted = $derived(mode === 'edit' && !!notes.get(noteId ?? '')?.text);
   /* The link a note writes to quote this highlight. A selection that is not yet
      a highlight becomes one, in yellow, so that there is something to point at;
      the bar then stands over it as though it had been clicked. */
@@ -65,9 +77,9 @@
   <div class="hl-bar" role="toolbar" aria-label="Highlight" style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
     {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
     <span class="sep"></span>
-    <button type="button" class="act" onclick={annotate}>{mode === 'edit' && notes.get(noteId ?? '')?.text ? 'Edit note' : 'Note'}</button>
-    <button type="button" class="act" class:done={copied} title="Copy a link to this highlight, to paste into a note" onclick={copyLink}>{copied ? 'Copied' : 'Copy link'}</button>
-    {#if mode === 'edit'}<button type="button" class="act" onclick={remove}>Remove</button>{/if}
+    <button type="button" class="act" title={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} aria-label={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} onclick={annotate}>{@html ICON.highlighter}</button>
+    <button type="button" class="act" class:done={copied} title={copied ? 'Copied' : 'Copy link to this highlight'} aria-label="Copy link to this highlight" onclick={copyLink}>{@html copied ? ICON.check : ICON.link}</button>
+    {#if mode === 'edit'}<button type="button" class="act" title="Remove this highlight" aria-label="Remove this highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
   </div>
 {/if}
 
@@ -78,7 +90,9 @@
   .dot:hover{transform:scale(1.15)}
   .dot.on{box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--ink)}
   .sep{width:1px;height:18px;background:var(--rule);margin:0 2px}
-  .act{font:inherit;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:3px 6px;border-radius:4px}
+  .act{display:grid;place-items:center;width:24px;height:24px;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:0;border-radius:4px}
   .act:hover{background:var(--soft)}
+  .act:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .act :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   .act.done{color:var(--ok)}
 </style>

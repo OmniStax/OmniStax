@@ -131,6 +131,7 @@
   $effect(() => { document.documentElement.classList.toggle('cc', settings.colorCoding); FIG.setCC(settings.colorCoding); FIG.redrawAll(); });
   $effect(() => { if (settings.theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', settings.theme); FIG.redrawAll(); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
+  $effect(() => { document.documentElement.classList.toggle('no-underlines', !settings.underlines); });
   $effect(() => { if (!settings.voice) reader.stop(); });
 
   /* folded headings and hidden figures → classes on every copy, then the spy re-reads the shorter page */

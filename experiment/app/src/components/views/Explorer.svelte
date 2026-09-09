@@ -30,7 +30,7 @@
   import type { BookManifest, SectionEntry } from '../../lib/content/schema';
   import RowMenu from '../explorer/RowMenu.svelte';
 
-  type RowKind = 'root' | 'folder' | 'note' | 'book' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -142,6 +142,9 @@
       });
     };
     out.push({ key: 'root', kind: 'root', depth: 0, label: 'User', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
+    /* The catalogue stands where a reader looks for a book they have not got
+       yet: the first row under their own, above the books they have. */
+    out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find, add new textbooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
     walk(null, 1);
     return out;
   });
@@ -227,8 +230,11 @@
 
   /* Clicking a row: the reader's rows open or select, a book's rows walk into
      the book, and a section is a file that opens its text. */
-  const activate = (r: Row): void => {
+  const activate = (r: Row, ev?: MouseEvent): void => {
     explorer.selected = r.key;
+    /* The shell closes whatever is open on any click it sees, so the row that
+       opens the finder keeps its own click to itself. */
+    if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'section' && r.section && !r.dim && !r.href) { void openDoc(r.section, 'text'); return; }
@@ -316,15 +322,8 @@
 
 <div class="explorer">
   <div class="tools">
-    <button type="button" class="tool" title="New note" onclick={() => newNote(parentForNew())}>
-      <span class="ico">{@html ICON.note}</span><span class="tlabel">New note</span>
-    </button>
-    <button type="button" class="tool" title="New folder" onclick={() => newFolder(parentForNew())}>
-      <span class="ico">{@html ICON.folder}</span><span class="tlabel">New folder</span>
-    </button>
-    <button type="button" class="tool" title="Find a textbook" onclick={(e) => { e.stopPropagation(); ui.openFindTextbook(); }}>
-      <span class="ico">{@html ICON.search}</span><span class="tlabel">Find a textbook</span>
-    </button>
+    <button type="button" class="tool" title="New note" aria-label="New note" onclick={() => newNote(parentForNew())}>{@html ICON.notePlus}</button>
+    <button type="button" class="tool" title="New folder" aria-label="New folder" onclick={() => newFolder(parentForNew())}>{@html ICON.folderPlus}</button>
   </div>
 
   <div class="tree" role="tree" aria-label="Your notes and books" tabindex="0" onkeydown={onKey}>
@@ -336,7 +335,7 @@
           class:sel={explorer.selected === r.key} class:active={r.active} class:dim={r.dim} class:drop={over === r.key}
           role="treeitem" tabindex="-1" aria-selected={explorer.selected === r.key} aria-expanded={r.expandable ? r.open : undefined}
           style:padding-left="{6 + r.depth * 13}px"
-          onclick={() => activate(r)}
+          onclick={(ev) => activate(r, ev)}
           oncontextmenu={(e) => { if (r.entry && r.kind !== 'book') openMenu(e, r.entry); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
@@ -382,12 +381,12 @@
 
 <style>
   .explorer{display:flex;flex-direction:column;min-width:0}
-  .tools{display:flex;flex-wrap:wrap;gap:4px;padding:0 0 6px}
-  .tool{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:5px;background:transparent;color:var(--muted);font:inherit;font-size:0.74rem;padding:3px 6px;cursor:pointer}
+  /* The two things a reader makes here are icons, kept to the right above the tree. */
+  .tools{display:flex;justify-content:flex-end;gap:2px;padding:0 0 4px}
+  .tool{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}
   .tool:focus-visible{outline:2px solid var(--accent)}
-  .tool .ico :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6}
-  .tool .ico{display:grid;place-items:center}
+  .tool :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
   .tree{display:flex;flex-direction:column;min-width:0;outline:none}
   .tree:focus-visible{outline:2px solid var(--accent);border-radius:4px}
@@ -399,6 +398,8 @@
   .row.drop{box-shadow:inset 0 0 0 2px var(--accent)}
   .row.hint{color:var(--muted);opacity:.7;font-size:0.76rem;font-style:italic;cursor:default}
   .row.r-root{color:var(--ink);font-weight:600}
+  .row.r-find{color:var(--muted)}
+  .row.r-find:hover{color:var(--accent)}
   .row.r-heading .lbl{font-size:0.78rem}
   .twist{flex:none;width:14px;height:14px;border:0;background:transparent;color:var(--muted);font-size:9px;line-height:1;padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
   .twist.open{transform:none}
@@ -416,6 +417,7 @@
 
   :global(.view-pane) .row{font-size:0.92rem;line-height:2}
   :global(.view-pane) .row.r-heading .lbl{font-size:0.88rem}
-  :global(.view-pane) .tool{font-size:0.82rem}
+  :global(.view-pane) .tool{width:28px;height:28px}
+  :global(.view-pane) .tool :global(svg){width:17px;height:17px}
   :global(.view-pane) .ico :global(svg){width:16px;height:16px}
 </style>

@@ -13,8 +13,8 @@ export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly exerciseMode: ExerciseMode; readonly voice: boolean;
-    setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setExerciseMode(m: ExerciseMode): void; setVoice(on: boolean): void;
+    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly exerciseMode: ExerciseMode; readonly voice: boolean; readonly underlines: boolean;
+    setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setExerciseMode(m: ExerciseMode): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
   };
   readonly layout: {
     reset(): void;
@@ -49,7 +49,7 @@ export type ViewWhere = 'group' | 'side' | 'split';
 /* Ids the defaults and the Rail refer to. */
 export const BUILTIN = {
   palette: commandId('palette'), settings: commandId('settings'), open: commandId('open'),
-  animations: commandId('animations'), colourCoding: commandId('colour-coding'),
+  animations: commandId('animations'), colourCoding: commandId('colour-coding'), underlines: commandId('underlines'),
   themeSystem: commandId('theme-system'), themeLight: commandId('theme-light'), themeDark: commandId('theme-dark'), themeCycle: commandId('theme-cycle'),
   resetLayout: commandId('reset-layout'),
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
@@ -105,6 +105,9 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.redo, label: 'Redo', group: 'App', run: () => d.history.redo(), when: () => d.history.canRedo, detail: () => d.history.redoLabel },
   { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
   { id: BUILTIN.colourCoding, label: 'Toggle colour coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
+  /* The dotted rule under symbols, glossary terms and example references; what
+     they open is unaffected either way. */
+  { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },
   themeCommand(d, BUILTIN.themeSystem, 'system'), themeCommand(d, BUILTIN.themeLight, 'light'), themeCommand(d, BUILTIN.themeDark, 'dark'),
   { id: BUILTIN.themeCycle, label: 'Theme: cycle', group: 'Appearance', run: () => d.settings.cycleTheme(), detail: () => d.settings.theme },
   { id: BUILTIN.animations, label: 'Toggle animations', group: 'Reading', run: () => d.settings.setAnimations(!d.settings.animations), detail: () => onOff(d.settings.animations) },

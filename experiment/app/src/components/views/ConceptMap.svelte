@@ -17,7 +17,7 @@
   import { goSpan, openDoc, findEl } from '../../lib/sections/nav.svelte';
   import { scopedNodes, dagRows, edgesOf } from '../../lib/sections/dag';
   import { conceptId, sectionId } from '../../lib/types/ids';
-  import { math } from '../actions/math';
+  import { mathHtml } from '../actions/math';
   const scoped = getCtx<() => Target>('scope');
   const list = $derived(scopedNodes(registry.concepts, scoped(), registry.manifest));
   const rows = $derived(dagRows(list));
@@ -26,6 +26,8 @@
   const coverage = $derived(spy.current.span ? registry.coverage.find((c) => c.span === spy.current.span) ?? registry.coverage.find((c) => c.span === spy.current.section) : undefined);
   const spanTitle = (id: string): string => { const h = findEl(id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
   let hover = $state<string | null>(null);
+  /* What the panel says with nothing under the pointer. */
+  const BLANK = '<b>Hover a concept</b> to see why it matters. Click one to pin it and see where the text introduces, uses and tests it.';
   const why = $derived.by(() => {
     if (!hover) return null; const c = node(hover); const sp = spansOf(conceptId(c.id)); const tb = testedBy(conceptId(c.id)).length;
     if (c.placeholder) return `<b>${c.name}.</b> <span class="kind">section ${c.section}, not built yet</span><br>Opens the OpenStax page.`;
@@ -72,13 +74,13 @@
         {@const c = node(id)}
         <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
-          {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:math={c.name}>{@html c.name}</span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
+          {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
         </button>
       {/each}
     </div>
   {/each}
 </div>
-<div class="why" use:math={why}>{#if why}{@html why}{:else}<b>Hover a concept</b> to see why it matters. Click one to pin it and see where the text introduces, uses and tests it.{/if}</div>
+<div class="why" use:mathHtml={why ?? BLANK}></div>
 
 <style>
   /* one hue per kind, mixed into the panel so the tint stays a second cue behind the shape */

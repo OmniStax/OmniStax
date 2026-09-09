@@ -53,6 +53,7 @@
           </div>
         </div>
         <label class="row switch"><span class="name">Colour coding</span><span class="hint">Each physical type keeps its own hue in text, formulas and figures.</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
+        <label class="row switch"><span class="name">Underlines</span><span class="hint">The dotted rule under symbols, glossary terms and example references. Off leaves the page clean; the card still opens on hover.</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
       </section>
 
       <section>

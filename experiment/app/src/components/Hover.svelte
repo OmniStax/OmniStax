@@ -111,10 +111,15 @@
   .actions button:hover{background:var(--soft)}
   .actions button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
-  /* the underline affordance: symbols (on the outer type wrapper, so a subscript is included), glossary terms, example references */
-  :global(.katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(.term[data-term]), :global(a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
-  :global(.katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(.term[data-term]:hover), :global(a.xref:hover){text-decoration-color:var(--accent)}
+  /* The underline affordance: symbols (on the outer type wrapper, so a subscript
+     is included), glossary terms, example references. It is the reader's to
+     keep or to do without — "Underline what can be looked up" in the settings
+     writes the class the rules hang from — and either way the card still opens. */
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
   :global(.demo .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a demo's readouts and control labels stay clean; the card still opens */
+  /* The card is where a symbol is explained, not another place to look it up. */
+  :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card a.xref){text-decoration:none}
   :global(.term[data-term]){cursor:default}
   :global(a.xref){color:inherit}
   :global(a.xref:hover){color:var(--accent)}

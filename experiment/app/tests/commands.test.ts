@@ -106,7 +106,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
-    settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`) },
+    settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`) },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
@@ -220,6 +220,14 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split', 'exercises']);
   assert.equal(available(by(BUILTIN.openExercises)), true);
   assert.equal(available(builtinCommands(deps(false, 2, {}, false)).find((c) => c.id === BUILTIN.openExercises)!), false, 'a section that is not built has no exercises to open');
+});
+test('the underline affordance is the reader\u2019s to keep or to do without', () => {
+  const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;
+  by(BUILTIN.underlines).run();
+  assert.deepEqual(d.log, ['underlines false']);
+  assert.equal(by(BUILTIN.underlines).label, 'Toggle underlines');
+  assert.equal(by(BUILTIN.underlines).group, 'Appearance');
+  assert.equal(by(BUILTIN.underlines).detail?.(), 'on');
 });
 test('undo and redo stand where the reader can read what they would take back', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;

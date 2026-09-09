@@ -18,6 +18,14 @@ export const ICON = {
   split: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
   splitDown: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
+  /* the two things the explorer makes: a page and a folder, each with a plus */
+  notePlus: '<svg viewBox="0 0 24 24"><path d="M13 3H6v18h12V8z"/><path d="M13 3v5h5"/><path d="M12 12v6M9 15h6"/></svg>',
+  folderPlus: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v7M8.5 13.5h7"/></svg>',
+  /* the highlight bar: a marker for the note, a link for the reference, a bin for the removal, a tick for what has been copied */
+  highlighter: '<svg viewBox="0 0 24 24"><path d="M15 3.5l5.5 5.5-8.5 8.5H7l-1.5-3z"/><path d="M4 21h7"/></svg>',
+  link: '<svg viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   /* the command palette: a prompt and a caret waiting in a box */
   palette: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.2l2.4 1.9-2.4 1.9"/><path d="M12.4 14h4.1"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
