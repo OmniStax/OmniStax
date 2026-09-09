@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
-import { variableCard, figureCard, termCard, equationCard, referenceCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
+import { variableCard, figureCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
 
@@ -12,7 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- terms ---------- */
@@ -124,4 +124,26 @@ test('a reference card and the first sentence', () => {
   assert.equal(firstSentence('Values of 3.5 m/s are typical. More follows.'), 'Values of 3.5 m/s are typical.');
   const c = referenceCard({ id: span('16.1-ex-car'), title: 'How Stiff Are Car Springs?', body: 'What is the force constant?' }, nav);
   assert.equal(run('Go', c), 'span:16.1-ex-car');
+});
+
+/* ---------- concept ---------- */
+const hooke = { id: 'hookes-law', kind: 'result' as const, section: '16.1', name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], placeholder: false, why: 'the restoring force is proportional to the displacement' };
+test('a concept card names its kind and section and says where it is introduced and how often it is tested', () => {
+  const c = conceptCard({ concept: hooke, anchor: span('16.1-hookes-law'), introducedIn: 'Hooke’s Law', tested: 2, built: true }, nav);
+  assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Concept · result · section 16.1'); assert.equal(c.title, hooke.name);
+  assert.equal(c.body, 'The restoring force is proportional to the displacement. Introduced in “Hooke’s Law”. Tested by 2 exercises.');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Concept map']);
+  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Concept map', c), 'view:concepts');
+});
+test('a concept with no why, no introducing span and one exercise still counts what tests it', () => {
+  const c = conceptCard({ concept: { ...hooke, why: undefined }, tested: 1, built: true }, nav);
+  assert.equal(c.body, 'Tested by 1 exercise.'); assert.equal(run('Go to definition', c), 'sec:16.1');
+});
+test('a placeholder concept says its section is not built and offers the page it can reach', () => {
+  const ph = { id: 'newtons-laws', kind: 'idea' as const, section: '4.3', name: 'Newton’s second law', prereqs: [], placeholder: true };
+  const out = conceptCard({ concept: ph, tested: 0, built: false }, nav);
+  assert.equal(out.body, 'Section 4.3 is not built yet.'); assert.deepEqual(out.actions.map((a) => a.label), ['Open in OpenStax']);
+  assert.equal(run('Open in OpenStax', out), 'ext:4.3');
+  const here = conceptCard({ concept: ph, tested: 0, built: true }, nav);
+  assert.deepEqual(here.actions.map((a) => a.label), ['Go to section']); assert.equal(run('Go to section', here), 'sec:4.3');
 });

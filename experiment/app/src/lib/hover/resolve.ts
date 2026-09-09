@@ -5,7 +5,7 @@
 import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
 import type { SpanId, SectionId } from '../types/ids';
 
-export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation';
+export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation' | 'concept';
 export type Action = { readonly label: string; readonly run: () => void };
 export type Card = {
   readonly kind: Kind;
@@ -20,14 +20,16 @@ export type Card = {
 export type Nav = {
   readonly goSpan: (id: SpanId) => void;
   readonly openSection: (sec: SectionId) => void;
-  readonly showView: (view: 'definitions' | 'formulas') => void;
+  readonly showView: (view: 'definitions' | 'formulas' | 'concepts') => void;
   readonly showOriginal: (figure: SpanId) => void;
+  readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
 };
 
-const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation' };
+const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept' };
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
+const secIdOf = (s: string): SectionId => s as SectionId;
 
 /* ---------- variable ---------- */
 export type VariableFacts = {
@@ -103,6 +105,27 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
     actions: [
       ...(anchor ? [{ label: 'Go to where it is introduced', run: () => nav.goSpan(anchor) }] : [{ label: 'Go to section', run: () => nav.openSection(e.section as SectionId) }]),
       ...(e.important ? [{ label: 'Show in Formulas', run: () => nav.showView('formulas') }] : []),
+    ],
+  };
+};
+
+/* ---------- concept ---------- */
+/* A concept a problem tests: what it is, where the text introduces it, and how much of
+   the problem set rests on it. A placeholder concept belongs to a section not built here. */
+export type ConceptFacts = { readonly concept: ConceptDTO; readonly anchor?: SpanId; readonly introducedIn?: string; readonly tested: number; readonly built: boolean };
+export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
+  const c = f.concept, sec = secIdOf(c.section), anchor = f.anchor;
+  const eyebrow = `${KIND_LABEL.concept} · ${c.kind} · section ${c.section}`;
+  if (c.placeholder) return {
+    kind: 'concept', eyebrow, title: c.name, body: `Section ${c.section} is not built yet.`,
+    actions: [f.built ? { label: 'Go to section', run: () => nav.openSection(sec) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
+  };
+  const body = [c.why ? sentence(c.why) : '', f.introducedIn ? `Introduced in “${f.introducedIn}”.` : '', `Tested by ${f.tested} exercise${f.tested === 1 ? '' : 's'}.`].filter((s) => s !== '').join(' ');
+  return {
+    kind: 'concept', eyebrow, title: c.name, body,
+    actions: [
+      { label: 'Go to definition', run: () => (anchor ? nav.goSpan(anchor) : nav.openSection(sec)) },
+      { label: 'Show in Concept map', run: () => nav.showView('concepts') },
     ],
   };
 };

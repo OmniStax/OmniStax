@@ -4,18 +4,20 @@
 import { registry } from '../sections/registry.svelte';
 import { focus } from '../sections/focus.svelte';
 import { goSpan, findEl, openDoc, reveal } from '../sections/nav.svelte';
+import { spansOf, testedBy } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { openSide, homeSide, toggleCollapsed } from '../layout/model';
-import { type SectionId, type SpanId, sectionId, spanId, sectionOfSpan, itemKey, viewItem } from '../types/ids';
+import { type SectionId, type SpanId, sectionId, spanId, conceptId, sectionOfSpan, itemKey, viewItem } from '../types/ids';
 import { symOf, typeOf, lookupVariable } from './data';
-import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display';
+export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display, .chip.concept[data-concept]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
-  return el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
+  const t = el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
+  return t?.hasAttribute('data-sym') ? t.closest<HTMLElement>('.chip.concept[data-concept]') ?? t : t;   /* except in a concept chip, whose name may set a symbol in math: the chip wins */
 };
 
 /* The section a node is read in: its article or figure root, else the focused document. */
@@ -30,7 +32,7 @@ export const headingText = (h: Element | null | undefined): string | undefined =
 };
 const spanTitle = (id: SpanId): string | undefined => headingText(findEl(id)?.querySelector('h2, h3'));
 
-const showView = (view: 'definitions' | 'formulas'): void => {
+const showView = (view: 'definitions' | 'formulas' | 'concepts'): void => {
   const key = itemKey(viewItem(view));
   const host = document.querySelector<HTMLElement>(`[data-view="${view}"]`);
   if (host) { reveal(host); return; }
@@ -42,7 +44,8 @@ const showOriginal = (figure: SpanId): void => {
   const f = findEl(figure); if (f) { show(); return; }
   openDoc(sectionOfSpan(figure), 'text').then(() => requestAnimationFrame(show));
 };
-export const nav: Nav = { goSpan, openSection: (sec) => { openDoc(sec, 'text'); }, showView, showOriginal };
+const openExternal = (sec: SectionId): void => { window.open(registry.entry(sec)?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); };
+export const nav: Nav = { goSpan, openSection: (sec) => { openDoc(sec, 'text'); }, showView, showOriginal, openExternal };
 
 /* ---------- resolvers, one per kind ---------- */
 const variable = (t: HTMLElement): Card | null => {
@@ -81,12 +84,20 @@ const equation = (t: HTMLElement): Card | null => {
   return equationCard({ equation: e, concept, introducedIn: e.anchor ? spanTitle(spanId(e.anchor)) : undefined }, nav);
 };
 
+const concept = (t: HTMLElement): Card | null => {
+  const id = t.dataset.concept; if (!id) return null;
+  const c = registry.concept(id); if (!c) return null;
+  const anchor = spansOf(conceptId(id)).intro[0];
+  return conceptCard({ concept: c, anchor, introducedIn: anchor ? spanTitle(anchor) : undefined, tested: testedBy(conceptId(id)).length, built: !!registry.entry(sectionId(c.section))?.built }, nav);
+};
+
 /* The card for a target, or null when there is nothing to say. */
 export const cardFor = (t: HTMLElement): Card | null => {
   if (t.hasAttribute('data-sym')) return variable(t);
   if (t.matches('a.figref')) return figure(t);
   if (t.matches('.term')) return term(t);
   if (t.matches('.katex-display')) return equation(t);
+  if (t.matches('[data-concept]')) return concept(t);
   if (t.matches('a[href^="#"]')) return reference(t);
   return null;
 };
