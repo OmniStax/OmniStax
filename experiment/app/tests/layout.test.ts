@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout, openTab, splitRight, splitDown, split, closeItem, closeGroup, where, groupsWith, openSide, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, type Layout, type SplitNode } from '../src/lib/layout/model';
+import { defaultLayout, openTab, splitRight, splitDown, split, closeItem, closeGroup, where, groupsWith, openSide, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { sectionId, parseItemKey, itemKey, figItem } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -122,6 +122,61 @@ test('parseLayout repairs a tree that names a group it has not got', () => {
   assert.ok(l); assert.equal(l!.groups.length, 2);
   assert.deepEqual(shape(l!), { row: [0, 1] }, 'the lone leaf collapses and the forgotten group joins the root row');
 });
+/* The shares a split hands out, as the layout has them written down. */
+const sizesAt = (l: Layout, path: SplitPath): readonly number[] | undefined => { const n = nodeAt(l.tree, path); return n && n.type === 'split' ? n.sizes : undefined; };
+const sides = { left: { width: 1, items: [] }, right: { width: 1, items: [] } };
+const known = (k: string) => [text, ex, map].includes(k);
+
+test('splitting a group inside a sized row halves that group alone', () => {
+  const sized = resizeSplit(splitRight(defaultLayout(s), 0), [], [3, 1]);
+  const l = splitRight(sized, 0);
+  assert.deepEqual(shape(l), { row: [0, 1, 2] });
+  assert.deepEqual(sizesAt(l, []), [1.5, 1.5, 1], 'the target splits in two and its neighbour keeps its share');
+});
+test('closing a group takes its share away with it', () => {
+  const three = resizeSplit(splitRight(splitRight(defaultLayout(s), 0), 1), [], [1, 2, 3]);
+  assert.deepEqual(sizesAt(closeGroup(three, 1), []), [1, 3]);
+});
+test('a row nested in a row is flattened, its shares scaled into the slot it had', () => {
+  const raw = {
+    sides,
+    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }, { key: 'c', tabs: [map], active: map }],
+    tree: { type: 'split', dir: 'row', sizes: [1, 3], children: [{ type: 'leaf', group: 'a' }, { type: 'split', dir: 'row', sizes: [1, 3], children: [{ type: 'leaf', group: 'b' }, { type: 'leaf', group: 'c' }] }] },
+  };
+  const l = parseLayout(raw, known);
+  assert.ok(l); assert.deepEqual(shape(l!), { row: [0, 1, 2] });
+  assert.deepEqual(sizesAt(l!, []), [1, 0.75, 2.25], 'the inner pair still divides the three parts it was given');
+});
+test('resizeSplit takes only a full set of positive shares for a split it can find', () => {
+  const two = splitRight(defaultLayout(s), 0);
+  assert.equal(resizeSplit(two, [], [1]), two, 'too few shares');
+  assert.equal(resizeSplit(two, [], [1, 1, 1]), two, 'too many shares');
+  assert.equal(resizeSplit(two, [], [1, 0]), two, 'a group of no width');
+  assert.equal(resizeSplit(two, [], [2, -1]), two, 'a group of less than none');
+  assert.equal(resizeSplit(two, [0], [1, 1]), two, 'a path that names a leaf');
+  assert.deepEqual(sizesAt(resizeSplit(two, [], [2, 1]), []), [2, 1]);
+});
+test('evenSizes forgets every share in the tree', () => {
+  const nested = splitRight(splitDown(defaultLayout(s), 0), 1);
+  const sized = resizeSplit(resizeSplit(nested, [], [3, 1]), [1], [1, 4]);
+  assert.deepEqual(sizesAt(sized, []), [3, 1]); assert.deepEqual(sizesAt(sized, [1]), [1, 4]);
+  const l = evenSizes(sized);
+  assert.equal(sizesAt(l, []), undefined); assert.equal(sizesAt(l, [1]), undefined);
+  assert.deepEqual(shape(l), { column: [0, { row: [1, 2] }] }, 'only the shares go');
+});
+test('parseLayout keeps sound shares and ignores the rest', () => {
+  const saved = (sizes: unknown) => ({
+    sides,
+    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }],
+    tree: { type: 'split', dir: 'row', sizes, children: [{ type: 'leaf', group: 'a' }, { type: 'leaf', group: 'b' }] },
+  });
+  assert.deepEqual(sizesAt(parseLayout(saved([2, 1]), known)!, []), [2, 1]);
+  assert.equal(sizesAt(parseLayout(saved([1, 2, 3]), known)!, []), undefined, 'more shares than children');
+  assert.equal(sizesAt(parseLayout(saved(['2', '1']), known)!, []), undefined, 'shares that are not numbers');
+  assert.equal(sizesAt(parseLayout(saved([1, 0]), known)!, []), undefined, 'a share of nothing');
+  assert.equal(sizesAt(parseLayout(saved('wide'), known)!, []), undefined, 'no array at all');
+});
+
 test('focusNext walks the groups and wraps at either end', () => {
   const three = splitRight(splitRight(defaultLayout(s), 0), 1);
   assert.equal(three.focus, 2);

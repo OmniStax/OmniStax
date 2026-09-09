@@ -15,7 +15,7 @@ export type BuiltinDeps = {
   readonly layout: {
     reset(): void;
     splitRight(): void; splitDown(): void; moveRight(): void; moveDown(): void;
-    closeGroup(): void; closeOtherGroups(): void;
+    closeGroup(): void; closeOtherGroups(): void; evenGroups(): void;
     focusNextGroup(): void; focusPreviousGroup(): void; focusGroup(dir: FocusDir): void;
     nextTab(): void; previousTab(): void;
     readonly groupCount: number;
@@ -36,7 +36,7 @@ export const BUILTIN = {
   resetLayout: commandId('reset-layout'),
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
-  closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'),
+  closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
   focusNextGroup: commandId('focus-next-group'), focusPreviousGroup: commandId('focus-previous-group'),
   focusGroupLeft: commandId('focus-group-left'), focusGroupRight: commandId('focus-group-right'),
   focusGroupUp: commandId('focus-group-up'), focusGroupDown: commandId('focus-group-down'),
@@ -77,6 +77,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.moveDown, label: 'Move tab to a new group below', group: 'Layout', run: () => d.layout.moveDown() },
   { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.closeOtherGroups, label: 'Close other groups', group: 'Layout', run: () => d.layout.closeOtherGroups(), when: () => d.layout.groupCount > 1 },
+  { id: BUILTIN.evenGroups, label: 'Even out group sizes', group: 'Layout', run: () => d.layout.evenGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.focusNextGroup, label: 'Focus next group', group: 'Layout', run: () => d.layout.focusNextGroup(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.focusPreviousGroup, label: 'Focus previous group', group: 'Layout', run: () => d.layout.focusPreviousGroup(), when: () => d.layout.groupCount > 1 },
   focusGroupCommand(d, BUILTIN.focusGroupLeft, 'left', 'to the left'), focusGroupCommand(d, BUILTIN.focusGroupRight, 'right', 'to the right'),

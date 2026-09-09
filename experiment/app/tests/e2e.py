@@ -12,9 +12,9 @@ with sync_playwright() as p:
     js('.tabstrip .act[title="Split right"]'); pg.wait_for_timeout(600)
     print('1 split:', tabs(pg), canv(pg), 'focus:', pg.eval_on_selector_all('.group','gs=>gs.findIndex(g=>g.classList.contains("focus"))'))
     # 2 answer in copy survives closing the other
-    pg.eval_on_selector('.group:nth-child(2) .exercise input', 'i=>{i.value="42"; i.dispatchEvent(new Event("input"))}')
-    js('.group:nth-child(1) .tab .x', 0); pg.wait_for_timeout(400)
-    print('2 closed left text:', tabs(pg), canv(pg), 'kept:', pg.eval_on_selector('.group:nth-child(2) .exercise input','i=>i.value'))
+    pg.eval_on_selector('.group[data-index="1"] .exercise input', 'i=>{i.value="42"; i.dispatchEvent(new Event("input"))}')
+    js('.group[data-index="0"] .tab .x', 0); pg.wait_for_timeout(400)
+    print('2 closed left text:', tabs(pg), canv(pg), 'kept:', pg.eval_on_selector('.group[data-index="1"] .exercise input','i=>i.value'))
     # 3 open 2.5 via + into group 2: the "+" opens the command palette limited to the Sections group
     js('.tabstrip .plus', 1); pg.wait_for_timeout(300)
     print('3 palette:', pg.is_visible('.palette'), pg.eval_on_selector('.palette input', 'i=>i.placeholder'))
@@ -27,10 +27,10 @@ with sync_playwright() as p:
     # 5 TOC click scrolls focused pane
     js('.toc a', 3); pg.wait_for_timeout(800); print('5 pane scroll:', pg.eval_on_selector_all('.pane:not([hidden])','ps=>ps.map(p=>Math.round(p.scrollTop))'), 'spy:', pg.eval_on_selector_all('.toc a.active','as=>as.map(a=>a.textContent)'))
     # 6 exercises mode
-    js('.group:nth-child(1) .tab', 0); pg.wait_for_timeout(300)
+    js('.group[data-index="0"] .tab', 0); pg.wait_for_timeout(300)
     js('.seg button', 1); pg.wait_for_timeout(300)
-    print('6 one mode visible:', len(pg.query_selector_all('.group:nth-child(1) .exercise:not([hidden])')), pg.inner_text('.group:nth-child(1) .count'))
-    js('.nav .tbtn', 1); pg.wait_for_timeout(200); print('6 next:', pg.inner_text('.group:nth-child(1) .count'))
+    print('6 one mode visible:', len(pg.query_selector_all('.group[data-index="0"] .exercise:not([hidden])')), pg.inner_text('.group[data-index="0"] .count'))
+    js('.nav .tbtn', 1); pg.wait_for_timeout(200); print('6 next:', pg.inner_text('.group[data-index="0"] .count'))
     # 7 transport + settings
     t = pg.query_selector('.transport'); pg.evaluate('document.querySelector(".transport .speed").click()'); print('7 speed:', pg.eval_on_selector('.transport .speed','b=>b.textContent'))
     js('#gear'); pg.wait_for_timeout(200); print('7 settings:', pg.is_visible('#settings'))

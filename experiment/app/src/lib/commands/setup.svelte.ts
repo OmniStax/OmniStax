@@ -8,7 +8,7 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split, moveToNewGroup, closeGroup, closeOtherGroups, focusNext, activateNext, setFocus } from '../layout/model';
+import { split, moveToNewGroup, closeGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
 import { focusedArticle } from '../sections/nav.svelte';
@@ -53,6 +53,7 @@ export const installCommands = (): void => {
     moveDown: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'down')),
     closeGroup: () => layoutStore.apply((x) => closeGroup(x, x.focus)),
     closeOtherGroups: () => layoutStore.apply((x) => closeOtherGroups(x, x.focus)),
+    evenGroups: () => layoutStore.apply(evenSizes),
     focusNextGroup: () => layoutStore.apply((x) => focusNext(x, 1)),
     focusPreviousGroup: () => layoutStore.apply((x) => focusNext(x, -1)),
     focusGroup: (dir: FocusDir) => focusToward(dir),

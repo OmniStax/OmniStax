@@ -9,9 +9,14 @@ export type ItemKey = string;                 /* itemKey(ItemId): what tabs and 
 export type Group = { readonly key: GroupKey; readonly tabs: readonly ItemKey[]; readonly active: ItemKey | null };
 export type SideState = { readonly width: number; readonly items: readonly ItemKey[] };
 export type SplitDir = 'row' | 'column';      /* row: side by side; column: stacked */
+/* A split may say what share of its slot each child takes. The weights are
+   relative to one another, never pixels, and a split that names none simply
+   divides its slot equally. */
 export type SplitNode =
   | { readonly type: 'leaf'; readonly group: GroupKey }
-  | { readonly type: 'split'; readonly dir: SplitDir; readonly children: readonly SplitNode[] };
+  | { readonly type: 'split'; readonly dir: SplitDir; readonly children: readonly SplitNode[]; readonly sizes?: readonly number[] };
+export type Split = Extract<SplitNode, { readonly type: 'split' }>;
+export type SplitPath = readonly number[];    /* the child indices that lead from the root down to a split */
 export type Layout = {
   readonly sides: { readonly left: SideState; readonly right: SideState };
   readonly home: Readonly<Record<ItemKey, Side>>;
@@ -29,6 +34,17 @@ const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : 
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
 const emptyGroup = (): Group => ({ key: newGroupKey(), tabs: [], active: null });
 const leaf = (group: GroupKey): SplitNode => ({ type: 'leaf', group });
+type Slot = { readonly node: SplitNode; readonly weight: number };   /* one child of a split, with the share of the slot it takes */
+const positive = (w: unknown): w is number => typeof w === 'number' && Number.isFinite(w) && w > 0;
+/* The shares a split hands its children: the ones it names when they fit and are sound, and equal shares otherwise. */
+const weightsOf = (n: Split): readonly number[] => (!!n.sizes && n.sizes.length === n.children.length && n.sizes.every(positive) ? n.sizes : n.children.map(() => 1));
+const slotsOf = (n: Split): readonly Slot[] => { const w = weightsOf(n); return n.children.map((node, i) => ({ node, weight: w[i] })); };
+const allEven = (ws: readonly number[]): boolean => ws.every((w) => Math.abs(w - ws[0]) <= 1e-9 * ws[0]);
+/* Weights are only worth remembering when they differ, so a split of equal children is written plainly. */
+const splitOf = (dir: SplitDir, slots: readonly Slot[]): SplitNode => {
+  const sizes = slots.map((s) => s.weight);
+  return { type: 'split', dir, children: slots.map((s) => s.node), sizes: allEven(sizes) ? undefined : sizes };
+};
 
 export const defaultLayout = (section: SectionId): Layout => {
   const group: Group = { key: newGroupKey(), tabs: [keyOf(docItem(section, 'text')), keyOf(docItem(section, 'exercises'))], active: keyOf(docItem(section, 'text')) };
@@ -74,9 +90,13 @@ const leafKeys = (n: SplitNode): GroupKey[] => (n.type === 'leaf' ? [n.group] : 
 /* Bring the tree and the group array back into agreement. Leaves that name no
    group are dropped, a group the tree forgot is appended to the root row, a
    split of one child gives way to that child and a split nested inside a split
-   of its own direction is flattened into it. The group array is then re-ordered
-   to the depth-first order of the leaves, so that "the next group" means the
-   one that reads next, and the focus follows its own group through the move. */
+   of its own direction is flattened into it. Every share travels with its
+   child through all of that: a dropped child takes its weight away, a flattened
+   split has its inner weights scaled to fill exactly the slot it had, and a
+   lone child inherits the slot of the split that gave way. The group array is
+   then re-ordered to the depth-first order of the leaves, so that "the next
+   group" means the one that reads next, and the focus follows its own group
+   through the move. */
 const normalize = (l: Layout): Layout => {
   if (!l.groups.length) return normalize({ ...l, groups: [emptyGroup()], focus: 0 });
   const focusKey = l.groups[l.focus]?.key ?? null;
@@ -84,13 +104,20 @@ const normalize = (l: Layout): Layout => {
   const seen = new Set<GroupKey>();
   const clean = (n: SplitNode): SplitNode | null => {
     if (n.type === 'leaf') { if (!known.has(n.group) || seen.has(n.group)) return null; seen.add(n.group); return n; }
-    const children = n.children.flatMap((c) => { const x = clean(c); return !x ? [] : x.type === 'split' && x.dir === n.dir ? [...x.children] : [x]; });
-    return !children.length ? null : children.length === 1 ? children[0] : { type: 'split', dir: n.dir, children };
+    const kept = slotsOf(n).flatMap(({ node, weight }): Slot[] => {
+      const x = clean(node); if (!x) return [];
+      if (x.type !== 'split' || x.dir !== n.dir) return [{ node: x, weight }];
+      const inner = weightsOf(x), whole = inner.reduce((a, b) => a + b, 0);
+      return x.children.map((c, j) => ({ node: c, weight: (weight * inner[j]) / whole }));
+    });
+    return !kept.length ? null : kept.length === 1 ? kept[0].node : splitOf(n.dir, kept);
   };
   const cleaned = clean(l.tree);
-  const roots = !cleaned ? [] : cleaned.type === 'split' && cleaned.dir === 'row' ? [...cleaned.children] : [cleaned];
-  const children = [...roots, ...l.groups.filter((g) => !seen.has(g.key)).map((g) => leaf(g.key))];
-  const tree: SplitNode = children.length === 1 ? children[0] : { type: 'split', dir: 'row', children };
+  const roots: readonly Slot[] = !cleaned ? [] : cleaned.type === 'split' && cleaned.dir === 'row' ? slotsOf(cleaned) : [{ node: cleaned, weight: 1 }];
+  /* A group the tree forgot joins the root row at the going rate. */
+  const share = roots.length ? roots.reduce((a, r) => a + r.weight, 0) / roots.length : 1;
+  const slots = [...roots, ...l.groups.filter((g) => !seen.has(g.key)).map((g) => ({ node: leaf(g.key), weight: share }))];
+  const tree: SplitNode = slots.length === 1 ? slots[0].node : splitOf('row', slots);
   const byKey = new Map(l.groups.map((g) => [g.key, g] as const));
   const groups = leafKeys(tree).flatMap((k) => { const g = byKey.get(k); return g ? [g] : []; });
   return { ...l, groups, tree, focus: Math.max(0, groups.findIndex((g) => g.key === focusKey)) };
@@ -130,13 +157,15 @@ export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: Op
 const SPLIT_DIR: Readonly<Record<SplitSide, SplitDir>> = { left: 'row', right: 'row', up: 'column', down: 'column' };
 const SPLIT_BEFORE: Readonly<Record<SplitSide, boolean>> = { left: true, up: true, right: false, down: false };
 /* Seat a new leaf beside the target one: among its siblings when they already
-   run in that direction, otherwise by splitting the target where it stands. */
+   run in that direction, otherwise by splitting the target where it stands. The
+   new group takes half of the target's share and the target keeps the other
+   half, so the group visibly splits in two and its neighbours do not stir. */
 const insertLeaf = (n: SplitNode, target: GroupKey, fresh: GroupKey, side: SplitSide): SplitNode => {
   const dir = SPLIT_DIR[side], before = SPLIT_BEFORE[side], added = leaf(fresh);
-  const beside = (c: SplitNode): SplitNode[] => (before ? [added, c] : [c, added]);
-  if (n.type === 'leaf') return n.group === target ? { type: 'split', dir, children: beside(n) } : n;
-  if (n.dir === dir && n.children.some((c) => c.type === 'leaf' && c.group === target))
-    return { type: 'split', dir, children: n.children.flatMap((c) => (c.type === 'leaf' && c.group === target ? beside(c) : [c])) };
+  const beside = (s: Slot): Slot[] => { const gained = { node: added, weight: s.weight / 2 }, kept = { ...s, weight: s.weight / 2 }; return before ? [gained, kept] : [kept, gained]; };
+  const isTarget = (c: SplitNode): boolean => c.type === 'leaf' && c.group === target;
+  if (n.type === 'leaf') return n.group === target ? splitOf(dir, beside({ node: n, weight: 1 })) : n;
+  if (n.dir === dir && n.children.some(isTarget)) return splitOf(dir, slotsOf(n).flatMap((s) => (isTarget(s.node) ? beside(s) : [s])));
   return { ...n, children: n.children.map((c) => insertLeaf(c, target, fresh, side)) };
 };
 
@@ -194,6 +223,27 @@ export const moveToNewGroup = (l: Layout, index: number, side: SplitSide): Layou
   const g = l.groups[index]; const k = g?.active; if (!g || !k) return l;
   return split(l, index, side, k, g.key);
 };
+/* The node a path names, counting child indices down from the root. */
+export const nodeAt = (tree: SplitNode, path: SplitPath): SplitNode | null =>
+  path.reduce<SplitNode | null>((n, i) => (n && n.type === 'split' ? n.children[i] ?? null : null), tree);
+const rewrite = (n: SplitNode, path: SplitPath, f: (x: Split) => SplitNode): SplitNode => {
+  if (n.type !== 'split') return n;
+  if (!path.length) return f(n);
+  const [i, ...rest] = path;
+  return n.children[i] ? { ...n, children: n.children.map((c, j) => (j === i ? rewrite(c, rest, f) : c)) } : n;
+};
+/* Give one split new shares, as the reader does by dragging the grip between
+   two groups. Anything that does not describe its children is refused. */
+export const resizeSplit = (l: Layout, path: SplitPath, sizes: readonly number[]): Layout => {
+  const n = nodeAt(l.tree, path);
+  if (!n || n.type !== 'split' || sizes.length !== n.children.length || !sizes.every(positive)) return l;
+  return { ...l, tree: rewrite(l.tree, path, (x) => ({ ...x, sizes })) };
+};
+/* Forget every share: the groups fill their rows and columns equally again. */
+export const evenSizes = (l: Layout): Layout => {
+  const strip = (n: SplitNode): SplitNode => (n.type === 'leaf' ? n : { type: 'split', dir: n.dir, children: n.children.map(strip) });
+  return { ...l, tree: strip(l.tree) };
+};
 export const setFocus = (l: Layout, index: number): Layout => ({ ...l, focus: Math.max(0, Math.min(index, l.groups.length - 1)) });
 export const toggleCollapsed = (l: Layout, k: ItemKey): Layout => ({ ...l, collapsed: l.collapsed.includes(k) ? l.collapsed.filter((c) => c !== k) : [...l.collapsed, k] });
 export const setWidth = (l: Layout, side: Side, width: number): Layout => ({ ...l, sides: { ...l.sides, [side]: { ...l.sides[side], width: Math.max(SIDE_WIDTH.min, Math.min(SIDE_WIDTH.max, Math.round(width))) } } });
@@ -221,13 +271,15 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
     const key = typeof g.key === 'string' && !seen.has(g.key) ? (g.key as GroupKey) : newGroupKey(); seen.add(key);
     groups.push({ key, tabs: g.tabs, active });
   }
-  /* A tree is kept only as far as it parses; normalize below repairs whatever it names wrongly, and a layout saved before there were trees simply gets a row. */
+  /* A tree is kept only as far as it parses; normalize below repairs whatever it names wrongly, and a layout saved before there were trees simply gets a row.
+     Shares are read only when every one of them is a positive number, and normalize drops a set that no longer fits its children. */
   const node = (x: unknown): SplitNode | null => {
     if (!isRec(x)) return null;
     if (x.type === 'leaf') return typeof x.group === 'string' ? leaf(x.group as GroupKey) : null;
     if (x.type !== 'split' || (x.dir !== 'row' && x.dir !== 'column') || !Array.isArray(x.children)) return null;
     const children = x.children.flatMap((c) => { const p = node(c); return p ? [p] : []; });
-    return children.length ? { type: 'split', dir: x.dir, children } : null;
+    const sizes = Array.isArray(x.sizes) && x.sizes.every(positive) ? (x.sizes as readonly number[]) : undefined;
+    return children.length ? { type: 'split', dir: x.dir, children, sizes } : null;
   };
   const row = groups.length === 1 ? leaf(groups[0].key) : { type: 'split' as const, dir: 'row' as const, children: groups.map((g) => leaf(g.key)) };
   const home = isRec(raw.home) ? Object.fromEntries(Object.entries(raw.home).filter((e): e is [string, Side] => e[1] === 'left' || e[1] === 'right')) : {};

@@ -82,7 +82,7 @@ const deps = (browserOpen = false, groups = 2): BuiltinDeps & { log: string[] } 
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
-      closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'),
+      closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
       focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
       nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'), groupCount: groups,
     },
