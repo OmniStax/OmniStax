@@ -20,7 +20,7 @@
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
-  import DocGroup from './DocGroup.svelte';
+  import SplitTree from './SplitTree.svelte';
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
@@ -107,7 +107,7 @@
     <Rail side="left" {narrow} />
     <Sidebar side="left" {narrow} />
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
-      {#each layoutStore.layout.groups as g, i (g.key)}<DocGroup index={i} group={g} {onPick} />{/each}
+      <SplitTree node={layoutStore.layout.tree} {onPick} />
     </main>
     <Sidebar side="right" {narrow} />
     <Rail side="right" {narrow} />

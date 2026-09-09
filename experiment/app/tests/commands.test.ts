@@ -74,12 +74,18 @@ test('rank orders best-first and keeps ties in the given order', () => {
 });
 
 /* builtins */
-const deps = (browserOpen = false): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false, groups = 2): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
   return {
     log,
     settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`) },
-    layout: { reset: () => log.push('reset') },
+    layout: {
+      reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
+      moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
+      closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'),
+      focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
+      nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'), groupCount: groups,
+    },
     fold: { foldAll: () => log.push('fold'), unfoldAll: () => log.push('unfold'), hideFigures: () => log.push('hide'), showFigures: () => log.push('show') },
     ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
@@ -96,12 +102,22 @@ test('builtin command ids are unique and every fixed id is present', () => {
 test('builtin commands act on their stores', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   by(BUILTIN.animations).run(); by(BUILTIN.themeDark).run(); by(BUILTIN.themeCycle).run(); by(BUILTIN.exerciseOne).run(); by(BUILTIN.open).run(); by(BUILTIN.resetLayout).run();
-  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'mode one', 'browser 1', 'reset']);
+  by(BUILTIN.splitDown).run(); by(BUILTIN.moveRight).run(); by(BUILTIN.focusGroupLeft).run(); by(BUILTIN.nextTab).run(); by(BUILTIN.closeOtherGroups).run();
+  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'mode one', 'browser 1', 'reset', 'split down', 'move right', 'focus left', 'next tab', 'close others']);
   assert.equal(by(BUILTIN.themeSystem).detail?.(), 'current'); assert.equal(by(BUILTIN.themeDark).detail?.(), '');
   assert.equal(available(by(BUILTIN.readAloud)), false, 'voice off hides read aloud');
   assert.equal(available(by(BUILTIN.stopReading)), false);
   assert.equal(available(by(BUILTIN.palette)), true);
   assert.equal(available(by(BUILTIN.open)), true);
+});
+test('the group commands appear only once there is more than one group', () => {
+  const one = builtinCommands(deps(false, 1)); const two = builtinCommands(deps(false, 2));
+  const by = (cmds: readonly ReturnType<typeof builtinCommands>[number][], id: string) => cmds.find((c) => c.id === id)!;
+  for (const id of [BUILTIN.closeGroup, BUILTIN.closeOtherGroups, BUILTIN.focusNextGroup, BUILTIN.focusGroupUp]) {
+    assert.equal(available(by(one, id)), false, id); assert.equal(available(by(two, id)), true, id);
+  }
+  assert.equal(available(by(one, BUILTIN.splitRight)), true, 'a single group can still be split');
+  assert.equal(by(two, BUILTIN.focusGroupDown).label, 'Focus group below');
 });
 test('Open… is hidden while the browser is up, so its chord cannot reset the tree', () => {
   const open = (d: BuiltinDeps) => builtinCommands(d).find((c) => c.id === BUILTIN.open)!;

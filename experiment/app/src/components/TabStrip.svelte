@@ -1,15 +1,13 @@
 <script lang="ts">
   /* Tabs of one group, a "+" that opens the section picker for this group, and
-     a split button while there is room for a second group. */
+     the two buttons that split the group beside it or below it. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { openTab, activate, closeItem, splitRight, MAX_GROUPS, type Group } from '../lib/layout/model';
+  import { openTab, activate, closeItem, splitRight, splitDown, type Group } from '../lib/layout/model';
+  import { tabTitle } from '../lib/layout/titles';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
-  import { registry } from '../lib/sections/registry.svelte';
-  import { parseItemKey } from '../lib/types/ids';
-  import { ICON, VIEW_TITLE } from '../lib/icons';
+  import { ICON } from '../lib/icons';
   let { index, group, onPick }: { index: number; group: Group; onPick: (index: number, anchor: HTMLElement) => void } = $props();
-  const l = $derived(layoutStore.layout);
-  const title = (k: string) => { const id = parseItemKey(k); return !id ? k : id.kind === 'view' ? VIEW_TITLE[id.view] : registry.title(id); };
+  const title = tabTitle;
   let drop = $state(false);
 </script>
 
@@ -23,9 +21,8 @@
   {/each}
   <button type="button" class="act plus" title="Open a section here" aria-label="Open a section in this group" onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>
   <span class="spacer"></span>
-  {#if l.groups.length < MAX_GROUPS}
-    <button type="button" class="act" title="Split right" aria-label="Split right" onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
-  {/if}
+  <button type="button" class="act" title="Split right" aria-label="Split right" onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
+  <button type="button" class="act" title="Split down" aria-label="Split down" onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
 </div>
 
 <style>

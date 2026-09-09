@@ -15,5 +15,10 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Shift+D', 'theme-cycle'],
   ['Ctrl+Shift+[', 'fold-all'], ['Ctrl+Shift+]', 'unfold-all'],
   ['Ctrl+Shift+H', 'hide-figures'], ['Ctrl+Shift+J', 'show-figures'],
+  ['Ctrl+\\', 'split-right'], ['Ctrl+Shift+\\', 'split-down'],
+  ['Ctrl+Alt+ArrowLeft', 'focus-group-left'], ['Ctrl+Alt+ArrowRight', 'focus-group-right'],
+  ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
+  ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
+  ['Ctrl+Shift+W', 'close-group'],
 ];
 export const DEFAULT_BINDINGS: Bindings = bind(DEFAULT_PAIRS);

@@ -1,33 +1,42 @@
-/* The layout is a plain immutable value: two sidebars of views, one or two
-   document groups of tabs, which group is focused. Every operation here is a
-   pure function from Layout to Layout; the store applies them and persists. */
+/* The layout is a plain immutable value: two sidebars of views, any number of
+   document groups of tabs arranged in a tree of rows and columns, and which
+   group is focused. Every operation here is a pure function from Layout to
+   Layout; the store applies them and persists. */
 import { type ItemId, type GroupKey, type SectionId, itemKey, parseItemKey, isView, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
 export type Group = { readonly key: GroupKey; readonly tabs: readonly ItemKey[]; readonly active: ItemKey | null };
 export type SideState = { readonly width: number; readonly items: readonly ItemKey[] };
+export type SplitDir = 'row' | 'column';      /* row: side by side; column: stacked */
+export type SplitNode =
+  | { readonly type: 'leaf'; readonly group: GroupKey }
+  | { readonly type: 'split'; readonly dir: SplitDir; readonly children: readonly SplitNode[] };
 export type Layout = {
   readonly sides: { readonly left: SideState; readonly right: SideState };
   readonly home: Readonly<Record<ItemKey, Side>>;
   readonly collapsed: readonly ItemKey[];
   readonly groups: readonly Group[];
   readonly focus: number;
+  readonly tree: SplitNode;                   /* arranges the groups above; every group appears once as a leaf */
 };
 export type Location = { readonly type: 'side'; readonly side: Side } | { readonly type: 'group'; readonly index: number };
-export const MAX_GROUPS = 2;
+export type SplitSide = 'left' | 'right' | 'up' | 'down';
 export const SIDE_WIDTH = { min: 200, max: 520 } as const;
 
 const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:concepts': 'left', 'view:contents': 'left', 'view:formulas': 'right', 'view:definitions': 'right', 'view:notes': 'right' };
 const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : itemKey(id));
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
+const emptyGroup = (): Group => ({ key: newGroupKey(), tabs: [], active: null });
+const leaf = (group: GroupKey): SplitNode => ({ type: 'leaf', group });
 
-export const defaultLayout = (section: SectionId): Layout => ({
-  sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } },
-  home: {}, collapsed: [],
-  groups: [{ key: newGroupKey(), tabs: [keyOf(docItem(section, 'text')), keyOf(docItem(section, 'exercises'))], active: keyOf(docItem(section, 'text')) }],
-  focus: 0,
-});
+export const defaultLayout = (section: SectionId): Layout => {
+  const group: Group = { key: newGroupKey(), tabs: [keyOf(docItem(section, 'text')), keyOf(docItem(section, 'exercises'))], active: keyOf(docItem(section, 'text')) };
+  return {
+    sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } },
+    home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key),
+  };
+};
 
 export const homeSide = (l: Layout, k: ItemKey): Side => l.home[k] ?? DEFAULT_HOME[k] ?? 'left';
 
@@ -39,6 +48,7 @@ export const where = (l: Layout, id: ItemId | ItemKey): Location | null => {
   return index >= 0 ? { type: 'group', index } : null;
 };
 export const groupsWith = (l: Layout, k: ItemKey): number[] => l.groups.flatMap((g, i) => (g.tabs.includes(k) ? [i] : []));
+export const groupIndex = (l: Layout, key: GroupKey): number => l.groups.findIndex((g) => g.key === key);
 export const focusedGroup = (l: Layout): Group => l.groups[l.focus] ?? l.groups[0];
 export const focusedSection = (l: Layout, fallback: SectionId): SectionId => {
   const active = focusedGroup(l).active; const id = active ? parseItemKey(active) : null;
@@ -59,13 +69,42 @@ export const detach = (l: Layout, id: ItemId | ItemKey): Layout => {
   return { ...l, sides: { left: sideWithout(l.sides.left, k), right: sideWithout(l.sides.right, k) }, groups: l.groups.map((g) => removeFromGroup(g, k)) };
 };
 
-/* Drop empty groups (keeping at least one) and clamp focus. */
-export const prune = (l: Layout): Layout => {
-  const kept = l.groups.length > 1 ? l.groups.filter((g) => g.tabs.length) : l.groups;
-  const groups = kept.length ? kept : [{ key: newGroupKey(), tabs: [], active: null }];
-  return { ...l, groups, focus: Math.max(0, Math.min(l.focus, groups.length - 1)) };
+const leafKeys = (n: SplitNode): GroupKey[] => (n.type === 'leaf' ? [n.group] : n.children.flatMap(leafKeys));
+
+/* Bring the tree and the group array back into agreement. Leaves that name no
+   group are dropped, a group the tree forgot is appended to the root row, a
+   split of one child gives way to that child and a split nested inside a split
+   of its own direction is flattened into it. The group array is then re-ordered
+   to the depth-first order of the leaves, so that "the next group" means the
+   one that reads next, and the focus follows its own group through the move. */
+const normalize = (l: Layout): Layout => {
+  if (!l.groups.length) return normalize({ ...l, groups: [emptyGroup()], focus: 0 });
+  const focusKey = l.groups[l.focus]?.key ?? null;
+  const known = new Set(l.groups.map((g) => g.key));
+  const seen = new Set<GroupKey>();
+  const clean = (n: SplitNode): SplitNode | null => {
+    if (n.type === 'leaf') { if (!known.has(n.group) || seen.has(n.group)) return null; seen.add(n.group); return n; }
+    const children = n.children.flatMap((c) => { const x = clean(c); return !x ? [] : x.type === 'split' && x.dir === n.dir ? [...x.children] : [x]; });
+    return !children.length ? null : children.length === 1 ? children[0] : { type: 'split', dir: n.dir, children };
+  };
+  const cleaned = clean(l.tree);
+  const roots = !cleaned ? [] : cleaned.type === 'split' && cleaned.dir === 'row' ? [...cleaned.children] : [cleaned];
+  const children = [...roots, ...l.groups.filter((g) => !seen.has(g.key)).map((g) => leaf(g.key))];
+  const tree: SplitNode = children.length === 1 ? children[0] : { type: 'split', dir: 'row', children };
+  const byKey = new Map(l.groups.map((g) => [g.key, g] as const));
+  const groups = leafKeys(tree).flatMap((k) => { const g = byKey.get(k); return g ? [g] : []; });
+  return { ...l, groups, tree, focus: Math.max(0, groups.findIndex((g) => g.key === focusKey)) };
 };
-const focusOn = (l: Layout, key: GroupKey): Layout => { const p = prune(l); const i = p.groups.findIndex((g) => g.key === key); return { ...p, focus: i < 0 ? p.focus : i }; };
+
+/* Drop empty groups (keeping at least one), then put the tree back in order. */
+export const prune = (l: Layout): Layout => {
+  const focusKey = l.groups[l.focus]?.key ?? null;
+  const kept = l.groups.length > 1 ? l.groups.filter((g) => g.tabs.length) : l.groups;
+  const groups = kept.length ? kept : [emptyGroup()];
+  const at = groups.findIndex((g) => g.key === focusKey);
+  return normalize({ ...l, groups, focus: at >= 0 ? at : Math.max(0, Math.min(l.focus, groups.length - 1)) });
+};
+const focusOn = (l: Layout, key: GroupKey): Layout => { const p = prune(l); const i = groupIndex(p, key); return { ...p, focus: i < 0 ? p.focus : i }; };
 
 export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout => {
   const k = keyOf(id); if (!viewKey(k)) return openTab(l, k, l.focus);
@@ -88,16 +127,50 @@ export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: Op
   return focusOn(withGroups(base, groups), target.key);
 };
 
-/* Split right (as in VS Code): the active document opens again in a new group to the right and stays here; a view moves. */
-export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
+const SPLIT_DIR: Readonly<Record<SplitSide, SplitDir>> = { left: 'row', right: 'row', up: 'column', down: 'column' };
+const SPLIT_BEFORE: Readonly<Record<SplitSide, boolean>> = { left: true, up: true, right: false, down: false };
+/* Seat a new leaf beside the target one: among its siblings when they already
+   run in that direction, otherwise by splitting the target where it stands. */
+const insertLeaf = (n: SplitNode, target: GroupKey, fresh: GroupKey, side: SplitSide): SplitNode => {
+  const dir = SPLIT_DIR[side], before = SPLIT_BEFORE[side], added = leaf(fresh);
+  const beside = (c: SplitNode): SplitNode[] => (before ? [added, c] : [c, added]);
+  if (n.type === 'leaf') return n.group === target ? { type: 'split', dir, children: beside(n) } : n;
+  if (n.dir === dir && n.children.some((c) => c.type === 'leaf' && c.group === target))
+    return { type: 'split', dir, children: n.children.flatMap((c) => (c.type === 'leaf' && c.group === target ? beside(c) : [c])) };
+  return { ...n, children: n.children.map((c) => insertLeaf(c, target, fresh, side)) };
+};
+
+/* Split a group (as in VS Code): the item opens again in a new group on the
+   side asked for. A document stays where it was and is copied; a view moves,
+   because a view lives in only one place. */
+export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
   const k = id ? keyOf(id) : g.active; if (!k) return l;
   const source = id ? from ?? null : viewKey(k) ? g.key : null;
-  if (l.groups.length >= MAX_GROUPS) return openTab(l, k, index + 1, { from: source });
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };
-  const groups = [...base.groups.slice(0, index + 1), fresh, ...base.groups.slice(index + 1)];
-  return focusOn(withGroups(base, groups), fresh.key);
+  const at = groupIndex(base, g.key);
+  const groups = [...base.groups.slice(0, at + 1), fresh, ...base.groups.slice(at + 1)];
+  return focusOn({ ...base, groups, tree: insertLeaf(base.tree, g.key, fresh.key, side) }, fresh.key);
+};
+export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
+export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
+
+/* Close a whole group: it loses every tab and the prune below takes it away. A
+   view that was open there simply closes, and its rail button opens it again. */
+export const closeGroup = (l: Layout, index: number): Layout => {
+  const g = l.groups[index]; if (!g) return l;
+  return prune(withGroups(l, l.groups.map((x) => (x.key === g.key ? { ...x, tabs: [], active: null } : x))));
+};
+/* Keep this group alone; every other group closes the same way. */
+export const closeOtherGroups = (l: Layout, index: number): Layout => {
+  const g = l.groups[index]; if (!g) return l;
+  return prune({ ...l, groups: l.groups.map((x) => (x.key === g.key ? x : { ...x, tabs: [], active: null })), focus: index });
+};
+/* Move the focus one group along the tree order, wrapping at either end. */
+export const focusNext = (l: Layout, delta: 1 | -1): Layout => {
+  const n = l.groups.length; if (n < 2) return l;
+  return { ...l, focus: (l.focus + delta + n) % n };
 };
 
 export const closeItem = (l: Layout, id: ItemId | ItemKey, index?: number): Layout => {
@@ -108,6 +181,18 @@ export const closeItem = (l: Layout, id: ItemId | ItemKey, index?: number): Layo
 export const activate = (l: Layout, index: number, id: ItemId | ItemKey): Layout => {
   const k = keyOf(id);
   return { ...l, focus: index, groups: l.groups.map((g, i) => (i === index && g.tabs.includes(k) ? { ...g, active: k } : g)) };
+};
+/* Step to the next or previous tab of one group, wrapping at either end. */
+export const activateNext = (l: Layout, index: number, delta: 1 | -1): Layout => {
+  const g = l.groups[index]; if (!g || !g.tabs.length) return l;
+  const at = g.active ? g.tabs.indexOf(g.active) : -1;
+  return activate(l, index, g.tabs[(at + delta + g.tabs.length) % g.tabs.length]);
+};
+/* Unlike a split, which copies a document, this takes the active tab away from
+   the group it was in and gives it a new group of its own on that side. */
+export const moveToNewGroup = (l: Layout, index: number, side: SplitSide): Layout => {
+  const g = l.groups[index]; const k = g?.active; if (!g || !k) return l;
+  return split(l, index, side, k, g.key);
 };
 export const setFocus = (l: Layout, index: number): Layout => ({ ...l, focus: Math.max(0, Math.min(index, l.groups.length - 1)) });
 export const toggleCollapsed = (l: Layout, k: ItemKey): Layout => ({ ...l, collapsed: l.collapsed.includes(k) ? l.collapsed.filter((c) => c !== k) : [...l.collapsed, k] });
@@ -136,9 +221,18 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
     const key = typeof g.key === 'string' && !seen.has(g.key) ? (g.key as GroupKey) : newGroupKey(); seen.add(key);
     groups.push({ key, tabs: g.tabs, active });
   }
+  /* A tree is kept only as far as it parses; normalize below repairs whatever it names wrongly, and a layout saved before there were trees simply gets a row. */
+  const node = (x: unknown): SplitNode | null => {
+    if (!isRec(x)) return null;
+    if (x.type === 'leaf') return typeof x.group === 'string' ? leaf(x.group as GroupKey) : null;
+    if (x.type !== 'split' || (x.dir !== 'row' && x.dir !== 'column') || !Array.isArray(x.children)) return null;
+    const children = x.children.flatMap((c) => { const p = node(c); return p ? [p] : []; });
+    return children.length ? { type: 'split', dir: x.dir, children } : null;
+  };
+  const row = groups.length === 1 ? leaf(groups[0].key) : { type: 'split' as const, dir: 'row' as const, children: groups.map((g) => leaf(g.key)) };
   const home = isRec(raw.home) ? Object.fromEntries(Object.entries(raw.home).filter((e): e is [string, Side] => e[1] === 'left' || e[1] === 'right')) : {};
   const collapsed = strs(raw.collapsed) ? raw.collapsed : [];
   const focus = typeof raw.focus === 'number' ? Math.max(0, Math.min(raw.focus, groups.length - 1)) : 0;
-  return { sides: { left, right }, home, collapsed, groups, focus };
+  return normalize({ sides: { left, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row });
 };
 export const VIEW_KEYS: readonly ItemKey[] = ['concepts', 'contents', 'formulas', 'definitions', 'notes'].map((v) => keyOf(viewItem(v as never)));

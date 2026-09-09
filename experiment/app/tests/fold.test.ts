@@ -33,7 +33,11 @@ test('the foldable and hideable selectors name only spans and figures that carry
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
   settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {} },
-  layout: { reset: () => {} },
+  layout: {
+    reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
+    closeGroup: () => {}, closeOtherGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
+    nextTab: () => {}, previousTab: () => {}, groupCount: 2,
+  },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },

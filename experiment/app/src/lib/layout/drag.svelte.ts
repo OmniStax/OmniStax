@@ -5,12 +5,13 @@ import type { ItemKey } from './model';
 
 export type Drag = { readonly key: ItemKey; readonly from: GroupKey | null };
 let current: Drag | null = null;
+const DROP_CLASSES = ['drop', 'drop-left', 'drop-right', 'drop-up', 'drop-down'];
 export const dragging = (): Drag | null => current;
 
 export function draggable(node: HTMLElement, params: Drag) {
   let p = params; node.draggable = true;
   const start = (e: DragEvent) => { current = p; e.dataTransfer?.setData('text/plain', p.key); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; };
-  const end = () => { current = null; document.querySelectorAll('.drop, .drop-right').forEach((z) => z.classList.remove('drop', 'drop-right')); };
+  const end = () => { current = null; document.querySelectorAll(DROP_CLASSES.map((c) => `.${c}`).join(',')).forEach((z) => z.classList.remove(...DROP_CLASSES)); };
   node.addEventListener('dragstart', start); node.addEventListener('dragend', end);
   return { update(next: Drag) { p = next; }, destroy() { node.removeEventListener('dragstart', start); node.removeEventListener('dragend', end); } };
 }
