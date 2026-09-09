@@ -9,7 +9,7 @@ npm run dev          # http://localhost:4321, hot reload for components and for 
 npm run build        # dist/, one directory per section
 npm test             # pure modules: layout model, answer checking
 npm run check        # astro check (TypeScript + Svelte)
-python3 tests/e2e.py # browser scenarios against a served dist/ (Playwright for Python)
+python3 tests/e2e.py # browser scenarios against a served dist/ (Playwright for Python; a base URL may follow)
 ```
 
 Serve `dist/` over http (`python3 -m http.server -d dist 8080`). Loading a
@@ -31,9 +31,9 @@ concern and read from the environment with defaults:
 
 ```
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes)
-src/lib/types       ids.ts: branded ids, the ItemId ADT (doc, view, or one figure split out of a doc) and its key/parse pair
+src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, or one exercise on its own) and its key/parse pair
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
-src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (what a view describes: following or pinned), dag
+src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's notes, persisted), go.ts (jump to a highlight)
 src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
@@ -41,7 +41,7 @@ src/lib/fig         figlib.ts: math, palette, animation loop with per-figure tra
 src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar
 src/components/views      View dispatcher (with the scope header), ConceptMap, Contents, Formulas, Definitions, Notes
-src/components/exercises  ExerciseList, ExerciseCard, NumberAnswer, MultiAnswer, ChoiceAnswer
+src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/Page.astro    head, metadata, colour tokens from the book, the static pool, the shell island
 src/pages                 [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, chapter json, book.json
@@ -59,7 +59,21 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   are adopted into panes, never re-rendered. Views and exercise cards are components.
 - A figure can be split into a tab of its own: the registry builds a root holding
   just that figure's static markup and boots the section script on it; the other
-  figures of the script get detached scaffolds and never draw.
+  figures of the script get detached scaffolds and never draw. One exercise opens
+  the same way — the `ex` kind of `ItemId`, reached from the card's own button or
+  from the Open browser — but as a card the shell renders rather than adopted
+  markup, so what is answered there is that card's own, as it is for a document
+  cloned into a second group.
+- A companion view stands at a level of the book — the whole book, one chapter or
+  one section — and at that level either follows the page being read or is pinned
+  to a place of its own. The bar above it is the trail to that place and the
+  control that walks it, Left and Right widen and narrow it, and the palette's
+  View group holds the same moves for the view the reader last touched, with the
+  commands that open any view in a group or the sidebar.
+- One fold rule for every list a view draws: what the view's level covers is shown
+  grouped by chapter and by section, in the order the book sets, and everything
+  outside it is folded away under a single heading. `grouping.ts` makes the cut
+  and the views only render it.
 - Book-specific values (colour set, macros, symbol table, exercise kind labels)
   come from `book.json` through the manifest. The shell has no physics in it.
 - Attribution is generated, never written by hand: `attribution.ts` builds the

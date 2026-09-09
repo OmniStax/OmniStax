@@ -12,7 +12,7 @@ import { symOf, typeOf, lookupVariable } from './data';
 import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display, .chip.concept[data-concept]';
+export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .ex-root a[href^="#"], .katex-display, .chip.concept[data-concept]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;

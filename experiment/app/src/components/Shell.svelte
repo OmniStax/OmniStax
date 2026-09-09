@@ -65,8 +65,8 @@
     const onClick = (e: MouseEvent) => {
       clearView(e);
       ui.closeAll();
-      const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fig-split');
-      if (sb?.dataset.key) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.key)); return; }
+      const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
+      if (sb?.dataset.splitKey) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };

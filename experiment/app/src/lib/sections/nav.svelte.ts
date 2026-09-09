@@ -47,8 +47,8 @@ const land = (el: HTMLElement): void => {
 };
 export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 'start', tint = true): void => {
   if (!target) return;
-  const card = target.closest<HTMLElement & { exShow?: () => void }>('.exercise');
-  if (card?.hidden && card.exShow) card.exShow();
+  const card = target.closest<HTMLElement>('.exercise');   /* a card the one-at-a-time list is holding back is stepped to first */
+  if (card?.hidden) card.closest<HTMLElement & { exShow?: (id: string) => void }>('.list')?.exShow?.(card.id);
   revealFolds(target);
   reveal(target);
   requestAnimationFrame(() => { target.scrollIntoView({ behavior: FIG.REDUCED ? 'auto' : 'smooth', block }); if (tint) land(target); });

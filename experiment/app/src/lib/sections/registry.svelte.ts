@@ -106,12 +106,17 @@ class Registry {
     if (doc === 'text') { this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec); }
     this.decorate(root);
   }
-  /* Every figure in a document gets a button that opens it in a split of its own. */
+  /* A root the shell built itself — one exercise in a tab of its own — asks for the
+     same document-wide decoration a prepared document gets. */
+  decorateRoot(root: HTMLElement): void { this.decorate(root); }
+  /* Every figure in a document gets a button that opens it in a split of its own;
+     the key it carries is the one the shell delegates on, the same attribute an
+     exercise card's split button uses, so one selector finds them both. */
   private splitButtons(root: HTMLElement, sec: SectionId): void {
     root.querySelectorAll<HTMLElement>('figure.demo[id] .demo-head').forEach((head) => {
       if (head.querySelector('.fig-split')) return;
       const local = (head.closest('figure')!.id).replace(`${sec}-`, '');
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.key = itemKey(figItem(sec, local));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(sec, local));
       b.title = 'Open in a split'; b.setAttribute('aria-label', `Open ${figName(local)} in a split`); b.innerHTML = ICON.split;
       head.appendChild(b);
     });
