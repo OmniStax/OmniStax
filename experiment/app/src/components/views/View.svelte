@@ -15,7 +15,7 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { atLevel, crumbsOf, resolve, sameTarget, siblingsOf, type Level, type Target } from '../../lib/sections/scope';
-  import type { ViewKind } from '../../lib/types/ids';
+  import { viewKindOf } from '../../lib/types/ids';
   import { ICON } from '../../lib/icons';
   import CrumbMenu from './CrumbMenu.svelte';
   import ConceptMap from './ConceptMap.svelte';
@@ -23,17 +23,19 @@
   import Formulas from './Formulas.svelte';
   import Definitions from './Definitions.svelte';
   import Annotations from './Annotations.svelte';
-  let { kind }: { kind: string } = $props();
-  const vk = $derived(kind as ViewKind);
+  let { item }: { item: string } = $props();
+  /* The tab is the page; its key says which kind of view to draw and, when the
+     reader has opened several of one kind, which of them this one is. */
+  const kind = $derived(viewKindOf(item));
   /* The explorer is the whole tree — the reader's notes and every book they
      have added — so it stands nowhere in particular and wears no bar. */
-  const hasBar = $derived(vk !== 'explorer');
-  const target = $derived(scope.targetFor(vk));
-  const pinned = $derived(scope.isPinned(vk));
+  const hasBar = $derived(kind !== 'explorer');
+  const target = $derived(scope.targetFor(item));
+  const pinned = $derived(scope.isPinned(item));
   /* The trail is read from the narrowest place this view could stand at, so every crumb
      names where clicking it lands: a view following the book still says which chapter and
      which section it would come down to. */
-  const deepest = $derived(resolve(atLevel(scope.of(vk), 'section', focus.section, registry.manifest), focus.section, registry.manifest));
+  const deepest = $derived(resolve(atLevel(scope.of(item), 'section', focus.section, registry.manifest), focus.section, registry.manifest));
   const crumbs = $derived(crumbsOf(deepest, registry.manifest));
   const at = $derived(crumbs.findIndex((c) => c.level === target.level));
   setContext('scope', () => target);
@@ -44,7 +46,7 @@
   let chevrons = $state<Partial<Record<Level, HTMLButtonElement | null>>>({});
   const openMenu = (level: Level, chevron: HTMLButtonElement): void => { if (menu === level) { menu = null; return; } menuLeft = chevron.offsetLeft; menu = level; };
   const closeMenu = (): void => { const chevron = menu ? chevrons[menu] : null; menu = null; chevron?.focus(); };
-  const choose = (place: Target): void => { scope.choose(vk, place); closeMenu(); };
+  const choose = (place: Target): void => { scope.choose(item, place); closeMenu(); };
   /* The places the open menu offers: the crumb's own place is the one the view stands on,
      and the place the open page lies in is named, since choosing it is following again. */
   const entries = $derived.by(() => {
@@ -66,13 +68,13 @@
   const failed = $derived(dirs.some((d) => registry.chapterStatus[d] === 'failed'));
 </script>
 
-<div class="view" data-view={kind} onpointerdown={() => (focus.view = vk)} onfocusincapture={() => (focus.view = vk)}>
+<div class="view" data-view={kind} data-item={item} onpointerdown={() => (focus.view = item)} onfocusincapture={() => (focus.view = item)}>
   {#if hasBar}
   <div class="scope" class:pinned>
     <nav class="crumbs" aria-label="Where this view stands">
       {#each crumbs as c, i (c.level)}
         {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
-        <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} class:pinned={pinned && i === at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(vk, c.level)}>
+        <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} class:pinned={pinned && i === at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(item, c.level)}>
           <span class="short">{c.short}</span><span class="long">{c.long}</span>
         </button>
         {#if c.level !== 'book'}
@@ -84,7 +86,7 @@
       {/each}
     </nav>
     {#if target.level !== 'book'}
-      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin: follow the open page again' : `Pin this view to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(vk)}>{@html ICON.pin}</button>
+      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin: follow the open page again' : `Pin this view to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
     {/if}
     {#if menu}
       <div class="menuhold" style="margin-left:min({menuLeft}px, max(0px, 100% - 220px))">

@@ -7,8 +7,9 @@ const bind = (pairs: readonly (readonly [string, string])[]): Bindings =>
   Object.fromEntries(pairs.flatMap(([c, id]) => { const k = chord(c); return k ? [[k, commandId(id)]] : []; })) as Bindings;
 
 export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
-  ['Ctrl+K', 'palette'], ['Ctrl+Shift+P', 'palette'],
-  ['Ctrl+,', 'settings'],
+  ['Ctrl+Shift+P', 'palette'],
+  /* Ctrl+K begins a sequence, as it does in VS Code: nothing is bound to it alone. */
+  ['Ctrl+,', 'settings'], ['Ctrl+K Ctrl+S', 'settings'],
   ['Ctrl+O', 'open'],
   ['Ctrl+Shift+A', 'animations'],
   ['Ctrl+Shift+C', 'colour-coding'],
@@ -19,7 +20,14 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Alt+ArrowLeft', 'focus-group-left'], ['Ctrl+Alt+ArrowRight', 'focus-group-right'],
   ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
-  ['Ctrl+Shift+W', 'close-group'],
+  /* Chrome keeps Ctrl+W for closing its own tab and a page cannot take it back; other
+     browsers, and Cmd+W in some Mac setups, hand it over and close the group instead. */
+  ['Ctrl+W', 'close-group'],
+  ['Ctrl+Shift+T', 'reopen-closed-tab'],
+  /* The reader's own edits, in the chords every editor uses. Inside a field or
+     the note editor these never reach the shell: the browser and CodeMirror
+     keep their own undo there, which is what the reader means by them. */
+  ['Ctrl+Z', 'undo'], ['Ctrl+Shift+Z', 'redo'], ['Ctrl+Y', 'redo'],
   ['ArrowLeft', 'scope-widen'], ['ArrowRight', 'scope-narrow'],
   ['Ctrl+Shift+E', 'open-exercises'],
   ['Ctrl+E', 'note-toggle-mode'],

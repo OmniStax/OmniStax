@@ -16,17 +16,17 @@
   import { onMount } from 'svelte';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { bookKey, chapterKey, entryId, sectionKey, type Entry, type EntryId } from '../../lib/explorer/model';
-  import { noteDocs } from '../../lib/notes/docs.svelte';
+  import { createFolder, createNote, deleteEntry, moveEntry, renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { go, openDoc, openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { closeItem, focusedGroup } from '../../lib/layout/model';
+  import { focusedGroup } from '../../lib/layout/model';
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { docItem, itemKey, noteId, noteItem, sectionId, type NoteId, type SectionId } from '../../lib/types/ids';
+  import { docItem, itemKey, noteId, noteItem, sectionId, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, SectionEntry } from '../../lib/content/schema';
   import RowMenu from '../explorer/RowMenu.svelte';
 
@@ -161,7 +161,7 @@
   };
   const newFolder = (parent: EntryId | null): void => {
     openUpTo(parent);
-    const id = explorer.addFolder(parent);
+    const id = createFolder(parent);
     explorer.selected = id; explorer.renaming = id;
   };
   /* A note is two things under one id: the row here and the document itself.
@@ -169,35 +169,18 @@
      editor is what the reader types the name into. */
   const newNote = (parent: EntryId | null): void => {
     openUpTo(parent);
-    const name = explorer.uniqueName(parent, 'Untitled note');
-    const doc = noteDocs.create(name);
+    const doc = createNote(parent);
     const id = entryId(doc.id);
-    explorer.addNote(parent, id, name);
     explorer.selected = id;
     void openItem(itemKey(noteItem(doc.id)));
     requestAnimationFrame(() => requestAnimationFrame(() => { explorer.renaming = id; }));
   };
-  /* Every note under a row, so that deleting the row can take their documents
-     and their tabs with it. */
-  const notesUnder = (id: EntryId): NoteId[] => {
-    const out: NoteId[] = [];
-    const walk = (at: EntryId): void => {
-      const e = explorer.entry(at);
-      if (e?.kind === 'note') out.push(noteId(e.id));
-      explorer.children(at).forEach((c) => walk(c.id));
-    };
-    walk(id);
-    return out;
-  };
+  /* The row, the documents it stood for and their tabs all go at once, and the
+     whole of it is one step of the shell's timeline. */
   const remove = (e: Entry): void => {
     const kids = explorer.children(e.id);
     if (kids.length && !confirm(`Delete “${e.name}” and the ${kids.length === 1 ? 'row' : 'rows'} inside it?`)) return;
-    const gone = notesUnder(e.id);
-    explorer.remove(e.id);
-    if (gone.length) {
-      noteDocs.removeMany(gone);
-      layoutStore.apply((x) => gone.reduce((l, n) => closeItem(l, itemKey(noteItem(n))), x));
-    }
+    deleteEntry(e);
   };
 
   /* Renaming happens in place: the label gives way to a box, Enter and losing
@@ -208,15 +191,30 @@
     explorer.renaming = null;
     const next = name.trim();
     if (!next || next === e.name) return;
-    explorer.rename(e.id, next);
-    if (e.kind === 'note') noteDocs.rename(noteId(e.id), next);
+    renameEntry(e.id, next);
   };
   const renameKey = (ev: KeyboardEvent, e: Entry): void => {
     ev.stopPropagation();
     if (ev.key === 'Enter') { ev.preventDefault(); commit(e, (ev.currentTarget as HTMLInputElement).value); }
     else if (ev.key === 'Escape') { ev.preventDefault(); abandoned = true; explorer.renaming = null; }
   };
-  const takeBox = (node: HTMLInputElement) => { node.focus(); node.select(); };
+  /* The row the name box stands on, kept aside from the tree it was drawn from.
+     The box loses the focus as Svelte takes it away — Enter and Escape both
+     close it — and the row it was drawn for is no longer the branch's to read by
+     then, so what the box needs of the row is held here instead. */
+  let boxRow: Entry | null = null;
+  const takeBox = (node: HTMLInputElement, e: Entry) => {
+    boxRow = e; node.focus(); node.select();
+    return { update: (next: Entry) => { boxRow = next; }, destroy: () => { boxRow = null; } };
+  };
+  /* Losing the focus keeps what was typed, unless Escape has just left the name
+     as it was, or the box has already been closed by Enter — which `commit`
+     sees for itself, since the row is no longer the one being named. */
+  const leaveBox = (value: string): void => {
+    const e = boxRow;
+    if (abandoned) { abandoned = false; return; }
+    if (e) commit(e, value);
+  };
 
   /* A note row is draggable into a document group, which is the layout's own
      action; every other row is only ever dragged inside the tree, so the action
@@ -267,7 +265,7 @@
   const canDrop = (r: Row): boolean => dragged !== null && (r.kind === 'root' || r.kind === 'folder') && r.entry?.id !== dragged;
   const dropInto = (r: Row): void => {
     const id = dragged;
-    if (id !== null) explorer.move(id, r.kind === 'root' ? null : r.entry?.id ?? null);
+    if (id !== null) moveEntry(id, r.kind === 'root' ? null : r.entry?.id ?? null);
     dragged = null; over = null;
   };
 
@@ -358,10 +356,10 @@
           {#if r.entry && explorer.renaming === r.entry.id}
             {@const own = r.entry}
             <input class="rename" value={own.name} spellcheck="false" autocomplete="off" aria-label="Name"
-              use:takeBox
+              use:takeBox={own}
               onclick={(ev) => ev.stopPropagation()}
               onkeydown={(ev) => renameKey(ev, own)}
-              onblur={(ev) => { if (abandoned) { abandoned = false; return; } commit(own, (ev.currentTarget as HTMLInputElement).value); }} />
+              onblur={(ev) => leaveBox((ev.currentTarget as HTMLInputElement).value)} />
           {:else if r.href}
             <a class="lbl" href={r.href} onclick={(e) => e.stopPropagation()}>{r.label}</a>
           {:else}

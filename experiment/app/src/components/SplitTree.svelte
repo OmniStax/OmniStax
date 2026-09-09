@@ -55,7 +55,7 @@
   {@const i = groupIndex(l, node.group)}
   {#if i >= 0}<DocGroup index={i} group={l.groups[i]} {onPick} />{/if}
 {:else}
-  <div class="split {node.dir}">
+  <div class="split {node.dir}" style:--cell-min="{MIN}px">
     {#each node.children as child, i (nodeKey(child))}
       {#if i > 0}
         <div class="grip" role="separator" aria-orientation={node.dir === 'row' ? 'vertical' : 'horizontal'} aria-label="Resize groups"
@@ -73,6 +73,9 @@
   .split.row{flex-direction:row}
   .split.column{flex-direction:column}
   .cell{display:flex;min-width:0;min-height:0}
+  /* No group is ever a sliver, whatever shares a saved layout hands it. */
+  .split.row > .cell{min-width:var(--cell-min)}
+  .split.column > .cell{min-height:var(--cell-min)}
   .cell > :global(*){flex:1;min-width:0;min-height:0}
   /* The grip is a broad target with the rule between the groups drawn down the middle of it. */
   .grip{position:relative;flex:none;z-index:2}
@@ -87,6 +90,7 @@
   /* Narrow screens have no room for columns of documents: everything stacks, and every grip works up and down. */
   @media (max-width:900px){
     .split.row,.split.column{flex-direction:column}
+    .split.row > .cell{min-width:0;min-height:var(--cell-min)}
     .split.row > .grip{width:auto;height:7px;cursor:row-resize}
     .split.row > .grip::before{top:3px;left:0;right:0;width:auto;height:1px}
     .split.row > .grip:hover::before,.split.row > .grip:active::before{width:auto;height:2px}

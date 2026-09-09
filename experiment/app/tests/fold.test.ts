@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { toggleId, addIds, removeIds, parseIds, FOLDABLE, HIDEABLE } from '../src/lib/sections/fold';
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
 import { builtinCommands, BUILTIN, type BuiltinDeps } from '../src/lib/commands/builtin';
-import { parseChord, chordsFor } from '../src/lib/commands/chord';
+import { chord, chordsFor } from '../src/lib/commands/chord';
 
 /* the set arithmetic on remembered ids: pure, order-keeping, never mutating */
 test('toggleId adds an absent id and drops a present one', () => {
@@ -36,18 +36,19 @@ const deps = (): BuiltinDeps => ({
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
-    nextTab: () => {}, previousTab: () => {}, groupCount: 2,
+    nextTab: () => {}, previousTab: () => {}, reopenClosedTab: () => {}, canReopenTab: true, groupCount: 2,
   },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, openFindTextbook: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
-  scope: { activeView: () => 'concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
+  scope: { activeView: () => 'view:concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
   docs: { openView: () => {}, openExercises: () => {}, canOpenExercises: () => true },
   notes: { newNote: () => {}, toggleMode: () => {}, canToggle: () => true },
+  history: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'highlight in yellow', redoLabel: '' },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {
   const chords = DEFAULT_PAIRS.map(([c]) => c);
-  chords.forEach((c) => assert.ok(parseChord(c), c));
+  chords.forEach((c) => assert.ok(chord(c), c));   /* a binding may be one press or a sequence of two */
   assert.equal(new Set(chords).size, chords.length, 'a chord bound twice');
   assert.equal(Object.keys(DEFAULT_BINDINGS).length, chords.length, 'a chord lost in parsing');
   const ids = new Set(builtinCommands(deps()).map((c) => c.id));

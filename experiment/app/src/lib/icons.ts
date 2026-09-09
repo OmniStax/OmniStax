@@ -6,7 +6,8 @@ export const ICON = {
   explorer: '<svg viewBox="0 0 24 24"><path d="M5 3v15a2 2 0 0 0 2 2h4"/><path d="M5 7.5h5M5 13h5"/><rect x="13" y="3" width="7" height="4.5" rx="1"/><rect x="13" y="10.5" width="7" height="4.5" rx="1"/><rect x="13" y="17.5" width="7" height="4.5" rx="1"/></svg>',
   concepts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M11 7.2 7 15.8M13 7.2l4 8.6"/></svg>',
   formulas: '<svg viewBox="0 0 24 24"><path d="M17 5H7l6 7-6 7h10"/></svg>',
-  definitions: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/></svg>',
+  /* two dictionary entries: the term in a bold stroke, its definition in a longer thin one that runs on */
+  definitions: '<svg viewBox="0 0 24 24"><path d="M4 5.5h5.5" stroke-width="2.6"/><path d="M12.5 5.5h7.5" stroke-width="1.2"/><path d="M12.5 9.5h5" stroke-width="1.2"/><path d="M4 15.5h5.5" stroke-width="2.6"/><path d="M12.5 15.5h7.5" stroke-width="1.2"/><path d="M12.5 19.5h5" stroke-width="1.2"/></svg>',
   annotations: '<svg viewBox="0 0 24 24"><path d="M13.5 3.5l5 5-8 8-5-5z"/><path d="M5.5 11.5 4 16.5l5-1.5"/><path d="M4 21h16"/></svg>',
   note: '<svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   about: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r="1" fill="currentColor"/></svg>',
@@ -17,6 +18,8 @@ export const ICON = {
   split: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
   splitDown: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
+  /* the command palette: a prompt and a caret waiting in a box */
+  palette: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.2l2.4 1.9-2.4 1.9"/><path d="M12.4 14h4.1"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
 export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations' };

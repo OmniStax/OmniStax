@@ -5,6 +5,7 @@
      is typed. */
   import { getContext, tick } from 'svelte';
   import { notes, HL_COLORS, type Note } from '../../lib/notes/store.svelte';
+  import { history } from '../../lib/history/store.svelte';
   import { goNote } from '../../lib/notes/go';
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
@@ -35,7 +36,11 @@
       <button type="button" class="x" title="Remove this highlight" aria-label="Remove this highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
     <button type="button" class="quote hl-{n.color}" title="Show it in the text" onclick={() => goNote(n)}>{n.anchor.quote}</button>
-    <textarea data-note={n.id} rows="2" placeholder="Add a note…" value={n.text} oninput={(e) => notes.setText(n.id, (e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+    <!-- A burst of typing is one step of the shell's timeline; leaving the box
+         ends the burst, so the next one begins a step of its own. -->
+    <textarea data-note={n.id} rows="2" placeholder="Add a note…" value={n.text}
+      oninput={(e) => notes.setText(n.id, (e.currentTarget as HTMLTextAreaElement).value)}
+      onblur={() => history.breakCoalescing()}></textarea>
   </div>
 {/snippet}
 

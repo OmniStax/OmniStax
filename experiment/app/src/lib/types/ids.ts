@@ -10,6 +10,9 @@ export type GroupKey = string & { readonly __brand: 'GroupKey' };
 export type SpanId = string & { readonly __brand: 'SpanId' };
 export type ConceptId = string & { readonly __brand: 'ConceptId' };
 export type NoteId = string & { readonly __brand: 'NoteId' };
+/* One page of a view: several concept maps may stand open at once, and this is what
+   tells them apart. A view with no instance is the singleton the sidebar holds. */
+export type ViewInstance = string & { readonly __brand: 'ViewInstance' };
 
 export const sectionId = (s: string): SectionId => s as SectionId;
 export const chapterId = (s: string): ChapterId => s as ChapterId;
@@ -20,6 +23,9 @@ export const noteId = (s: string): NoteId => s as NoteId;
 export const newGroupKey = (): GroupKey => groupKey(Math.random().toString(36).slice(2, 8));
 /* A note's id is eight lowercase letters and digits, which is the shape the key form reads back. */
 export const newNoteId = (): NoteId => noteId(Math.random().toString(36).slice(2, 10).padEnd(8, '0'));
+export const viewInstance = (s: string): ViewInstance => s as ViewInstance;
+/* Six of them for a view's instance, in the same shape its key form reads back. */
+export const newViewInstance = (): ViewInstance => viewInstance(Math.random().toString(36).slice(2, 8).padEnd(6, '0'));
 
 export type DocKind = 'text' | 'exercises';
 /* The companion views. Two of them may stand in the left sidebar as well as in
@@ -37,14 +43,16 @@ export type PageKind = (typeof PAGE_KINDS)[number];
 
 export type ItemId =
   | { readonly kind: 'doc'; readonly section: SectionId; readonly doc: DocKind }
-  | { readonly kind: 'view'; readonly view: ViewKind }
+  | { readonly kind: 'view'; readonly view: ViewKind; readonly instance?: ViewInstance }   /* instance: one page of that view; none is the singleton a sidebar holds */
   | { readonly kind: 'fig'; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. demo-plane */
   | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string }      /* ex: the exercise's local id, e.g. cq1 */
   | { readonly kind: 'page'; readonly page: PageKind }
   | { readonly kind: 'note'; readonly note: NoteId };
 
 export const docItem = (section: SectionId, doc: DocKind): ItemId => ({ kind: 'doc', section, doc });
-export const viewItem = (view: ViewKind): ItemId => ({ kind: 'view', view });
+export const viewItem = (view: ViewKind, instance?: ViewInstance): ItemId => (instance ? { kind: 'view', view, instance } : { kind: 'view', view });
+/* A page of a view of its own, which is what the rail opens: every click is another one. */
+export const newViewItem = (view: ViewKind): ItemId => viewItem(view, newViewInstance());
 export const figItem = (section: SectionId, fig: string): ItemId => ({ kind: 'fig', section, fig });
 export const exItem = (section: SectionId, ex: string): ItemId => ({ kind: 'ex', section, ex });
 export const pageItem = (page: PageKind): ItemId => ({ kind: 'page', page });
@@ -60,10 +68,10 @@ export const itemKey = (id: ItemId): string =>
       : id.kind === 'ex' ? `ex:${id.section}/${id.ex}`
         : id.kind === 'page' ? `page:${id.page}`
           : id.kind === 'note' ? `note:${id.note}`
-            : `view:${id.view}`;
+            : id.instance ? `view:${id.view}@${id.instance}` : `view:${id.view}`;
 export const parseItemKey = (s: string): ItemId | null => {
-  const view = /^view:(\w+)$/.exec(s);
-  if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind) : null;
+  const view = /^view:(\w+)(?:@([a-z0-9]{6}))?$/.exec(s);
+  if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind, view[2] ? viewInstance(view[2]) : undefined) : null;
   const page = /^page:(\w+)$/.exec(s);
   if (page) return (PAGE_KINDS as readonly string[]).includes(page[1]) ? pageItem(page[1] as PageKind) : null;
   const note = /^note:([a-z0-9]{8})$/.exec(s);
@@ -77,8 +85,11 @@ export const parseItemKey = (s: string): ItemId | null => {
 };
 export const sameItem = (a: ItemId, b: ItemId): boolean => itemKey(a) === itemKey(b);
 export const isView = (id: ItemId): id is Extract<ItemId, { kind: 'view' }> => id.kind === 'view';
-/* A view that may stand in the sidebar as well as in a group. */
-export const isSidebarView = (id: ItemId): boolean => isView(id) && isSidebarKind(id.view);
+/* A view that may stand in the sidebar as well as in a group; only the singleton does,
+   since a sidebar holds one of each. */
+export const isSidebarView = (id: ItemId): boolean => isView(id) && !id.instance && isSidebarKind(id.view);
+/* The kind of view a key names, and nothing when it names something else. */
+export const viewKindOf = (k: string): ViewKind | null => { const id = parseItemKey(k); return id !== null && isView(id) ? id.view : null; };
 
 /* DOM ids inside a section are qualified by the section at build time: "2.1-displacement". */
 export const qualifiedId = (section: SectionId, local: string): SpanId => spanId(`${section}-${local}`);

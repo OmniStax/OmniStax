@@ -19,6 +19,7 @@
   import { candidate, type Candidate } from '../../lib/notes/md/complete';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { entryId } from '../../lib/explorer/model';
+  import { renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
   import { label } from '../../lib/sections/grouping';
   import type { GroupKey, NoteId } from '../../lib/types/ids';
@@ -34,16 +35,13 @@
   /* ── the name ──────────────────────────────────────────────────────────── */
 
   /* The note's name is the row in the explorer as well as the title of the tab,
-     so both are renamed together. */
+     so one place renames both, as one step of the shell's timeline. */
   let renaming = $state(false);
   let draft = $state('');
   const startRename = (): void => { draft = doc?.name ?? ''; renaming = true; };
   const commit = (): void => {
     const name = draft.trim();
-    if (name && doc && name !== doc.name) {
-      noteDocs.rename(noteId, name);
-      if (explorer.entry(entryId(noteId))) explorer.rename(entryId(noteId), name);
-    }
+    if (name && doc && name !== doc.name) renameEntry(entryId(noteId), name);
     renaming = false;
   };
   const onNameKey = (e: KeyboardEvent): void => {

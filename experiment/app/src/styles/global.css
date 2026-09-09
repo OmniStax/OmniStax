@@ -202,3 +202,12 @@ article.page .num{display:inline-block;min-width:3.2em;color:var(--muted);font-v
 article.page h2 .num{min-width:0;margin-right:0.4em;font-weight:500}
 article.page .soon{font-size:0.78rem;color:var(--muted);margin-left:0.5em}
 @media (max-width:900px){ article.page{padding:20px 18px 80px} article.page h1{font-size:2.1rem} }
+
+/* the concept map's three kinds of node: one hue each, held apart from --accent
+   (which the map keeps for pinned and active) and from the highlight colours.
+   Shape carries the meaning; these only tint the fill and the rule behind it. */
+:root{ --cm-idea:#6D28D9; --cm-result:#0D9488; --cm-skill:#C2410C; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
+}
+:root[data-theme="dark"]{ --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }

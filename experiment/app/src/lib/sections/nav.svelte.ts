@@ -23,7 +23,8 @@ export const findEl = (id: string): HTMLElement | null => {
 /* Make the item that contains `node` visible: activate its tab, expand its box, or open it. */
 export const reveal = (node: Element): boolean => {
   const host = node.closest<HTMLElement>('[data-doc], [data-view]'); if (!host) return false;
-  const id: ItemId | null = host.dataset.doc ? parseItemKey('doc:' + host.dataset.doc) : parseItemKey('view:' + host.dataset.view);
+  /* A view says which page of itself this is, since several of one kind may stand open. */
+  const id: ItemId | null = host.dataset.doc ? parseItemKey('doc:' + host.dataset.doc) : parseItemKey(host.dataset.item ?? 'view:' + host.dataset.view);
   if (!id) return false;
   const key = itemKey(id); const l = layoutStore.layout;
   const pane = paneOf(node);

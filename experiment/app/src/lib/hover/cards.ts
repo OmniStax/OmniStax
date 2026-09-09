@@ -6,8 +6,8 @@ import { focus } from '../sections/focus.svelte';
 import { goSpan, findEl, openDoc, reveal } from '../sections/nav.svelte';
 import { spansOf, testedBy } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { openInSplit } from '../layout/model';
-import { type SectionId, type SpanId, sectionId, spanId, conceptId, sectionOfSpan, itemKey, viewItem } from '../types/ids';
+import { split } from '../layout/model';
+import { type SectionId, type SpanId, sectionId, spanId, conceptId, sectionOfSpan, newViewItem } from '../types/ids';
 import { symOf, typeOf, lookupVariable } from './data';
 import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
@@ -32,11 +32,13 @@ export const headingText = (h: Element | null | undefined): string | undefined =
 };
 const spanTitle = (id: SpanId): string | undefined => headingText(findEl(id)?.querySelector('h2, h3'));
 
+/* A card sends the reader to a view of that kind: the page of it already open,
+   wherever it stands, since a second one would only say the same thing; and where
+   none is open, a page of its own beside what is being read. */
 const showView = (view: 'definitions' | 'formulas' | 'concepts'): void => {
-  const key = itemKey(viewItem(view));
-  const host = document.querySelector<HTMLElement>(`[data-view="${view}"]`);
+  const host = document.querySelector<HTMLElement>(`.view[data-view="${view}"]`);
   if (host) { reveal(host); return; }
-  layoutStore.apply((x) => openInSplit(x, key));
+  layoutStore.apply((x) => split(x, x.focus, 'right', newViewItem(view)));
 };
 const showOriginal = (figure: SpanId): void => {
   goSpan(figure);

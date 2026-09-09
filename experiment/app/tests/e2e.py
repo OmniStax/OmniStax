@@ -29,6 +29,7 @@ with sync_playwright() as p:
     print('3 tabs:', tabs(pg), canv(pg), 'url:', pg.url, 'title:', pg.title(), 'cards:', len(pg.query_selector_all('.exercise')))
     # 3b a view walks the levels: Left widens to the book, Right narrows back to the section, and a
     # view opened in a group is named by where it stands
+    js('.rail button', 3); pg.wait_for_timeout(700)   # the rail's third view: Formulas, in a page of its own
     pg.dispatch_event('.view[data-view="formulas"]', 'pointerdown'); pg.wait_for_timeout(150)
     pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(200); pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(400)
     print('3b widened to:', crumb(pg, 'formulas'))
@@ -48,6 +49,7 @@ with sync_playwright() as p:
     print('3b formulas tab:', [t for g in tabs(pg) for t in g if t.startswith('Formulas')])
     pg.evaluate('[...document.querySelectorAll(".tab")].find(t=>t.querySelector(".ttl").textContent.startsWith("Formulas")).querySelector(".x").click()'); pg.wait_for_timeout(400)
     # 4 map scoped to 2.5 shows displacement ext node; click it -> pins and jumps to 2.1 copy
+    js('.rail button', 2); pg.wait_for_timeout(2000)   # the rail's second view: the concept map, in a page of its own
     ext = pg.eval_on_selector_all('.dag .node.ext','ns=>ns.map(n=>n.dataset.id)'); print('4 ext nodes:', ext)
     js('.dag .node.ext[data-id="displacement"]'); pg.wait_for_timeout(800)
     print('4 pinned:', pg.eval_on_selector_all('.dag .node.pinned','ns=>ns.map(n=>n.dataset.id)'), 'span-intro:', len(pg.query_selector_all('.span-intro')), 'active tab g1:', tabs(pg)[0], 'hot cards:', len(pg.query_selector_all('.exercise.hot')))

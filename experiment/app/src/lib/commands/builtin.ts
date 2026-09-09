@@ -5,6 +5,7 @@
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ExerciseMode } from '../settings/store.svelte';
 import { VIEW_KINDS, isSidebarKind, type ViewKind } from '../types/ids';
+import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
 
@@ -19,6 +20,7 @@ export type BuiltinDeps = {
     reset(): void;
     splitRight(): void; splitDown(): void; moveRight(): void; moveDown(): void;
     closeGroup(): void; closeOtherGroups(): void; evenGroups(): void;
+    reopenClosedTab(): void; readonly canReopenTab: boolean;
     focusNextGroup(): void; focusPreviousGroup(): void; focusGroup(dir: FocusDir): void;
     nextTab(): void; previousTab(): void;
     readonly groupCount: number;
@@ -29,11 +31,15 @@ export type BuiltinDeps = {
     readonly palette: { readonly open: boolean; readonly group: number | null }; readonly browser: { readonly open: boolean };
   };
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
-  /* The view the commands act on is whichever one the reader last touched; with none there is nothing to scope. */
-  readonly scope: { activeView(): ViewKind | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
+  /* The view the commands act on is whichever page the reader last touched, named by
+     its item key, since a kind may be open in several; with none there is nothing to scope. */
+  readonly scope: { activeView(): ItemKey | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
   readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openExercises(): void; canOpenExercises(): boolean };
   /* The reader's own notes: a new one, and the mode of the note tab in the focused group. */
   readonly notes: { newNote(): void; toggleMode(): void; canToggle(): boolean };
+  /* One timeline of the reader's own edits: what the next step back or forward
+     would undo or redo, and whether there is one at all. */
+  readonly history: { undo(): void; redo(): void; readonly canUndo: boolean; readonly canRedo: boolean; readonly undoLabel: string; readonly redoLabel: string };
 };
 
 /* Where a view is asked for: a tab of the group in hand, the sidebar it calls
@@ -49,6 +55,8 @@ export const BUILTIN = {
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
   closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
+  reopenClosedTab: commandId('reopen-closed-tab'),
+  undo: commandId('undo'), redo: commandId('redo'),
   focusNextGroup: commandId('focus-next-group'), focusPreviousGroup: commandId('focus-previous-group'),
   focusGroupLeft: commandId('focus-group-left'), focusGroupRight: commandId('focus-group-right'),
   focusGroupUp: commandId('focus-group-up'), focusGroupDown: commandId('focus-group-down'),
@@ -80,8 +88,8 @@ const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: 
 const scopeCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
   ({ id, label: `View scope: ${level}`, group: 'View', run: () => d.scope.atLevel(level), when: () => d.scope.activeView() !== null, detail: () => (d.scope.level() === level ? 'current' : '') });
 /* The two views a sidebar holds can be opened as a tab of their own or shown in
-   the sidebar; the other three are only ever tabs, and open in a split beside
-   what is being read. */
+   the sidebar; the other three are only ever tabs, and every asking opens another
+   page of one in a split beside what is being read. */
 const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap((kind): readonly Command[] => (isSidebarKind(kind)
   ? [
     { id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a group`, group: 'View', run: () => d.docs.openView(kind, 'group') },
@@ -91,6 +99,10 @@ const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap(
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
+  /* The detail says what the step would take back, so the palette reads
+     "Undo — highlight in yellow" rather than asking the reader to remember. */
+  { id: BUILTIN.undo, label: 'Undo', group: 'App', run: () => d.history.undo(), when: () => d.history.canUndo, detail: () => d.history.undoLabel },
+  { id: BUILTIN.redo, label: 'Redo', group: 'App', run: () => d.history.redo(), when: () => d.history.canRedo, detail: () => d.history.redoLabel },
   { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
   { id: BUILTIN.colourCoding, label: 'Toggle colour coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
   themeCommand(d, BUILTIN.themeSystem, 'system'), themeCommand(d, BUILTIN.themeLight, 'light'), themeCommand(d, BUILTIN.themeDark, 'dark'),
@@ -112,6 +124,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.closeOtherGroups, label: 'Close other groups', group: 'Layout', run: () => d.layout.closeOtherGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.evenGroups, label: 'Even out group sizes', group: 'Layout', run: () => d.layout.evenGroups(), when: () => d.layout.groupCount > 1 },
+  { id: BUILTIN.reopenClosedTab, label: 'Reopen closed tab', group: 'Layout', run: () => d.layout.reopenClosedTab(), when: () => d.layout.canReopenTab },
   { id: BUILTIN.focusNextGroup, label: 'Focus next group', group: 'Layout', run: () => d.layout.focusNextGroup(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.focusPreviousGroup, label: 'Focus previous group', group: 'Layout', run: () => d.layout.focusPreviousGroup(), when: () => d.layout.groupCount > 1 },
   focusGroupCommand(d, BUILTIN.focusGroupLeft, 'left', 'to the left'), focusGroupCommand(d, BUILTIN.focusGroupRight, 'right', 'to the right'),

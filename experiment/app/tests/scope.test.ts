@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, resolve, sameTarget, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
+import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, parseScopes, resolve, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
 import { chapterId, sectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
@@ -159,4 +159,14 @@ test('the pins the older shell wrote, one section per view, are read as pinned s
 test('anything else out of storage is refused', () => {
   [null, undefined, 7, [], {}, { follow: true, level: 'page' }, { follow: false }, { follow: false, target: { level: 'chapter' } }, { follow: false, target: null }].forEach((raw) =>
     assert.equal(parseScope(raw), null, JSON.stringify(raw ?? null)));
+});
+
+test('every page of a view stands where it was left, and a new one follows the page being read', () => {
+  const map = 'view:concepts@ab12cd', other = 'view:concepts@ef34gh';
+  const saved = parseScopes({ concepts: '16.3', [map]: { follow: false, target: { level: 'chapter', chapter: '16' } }, [other]: { follow: true, level: 'book' }, 'view:formulas': 42 });
+  assert.deepEqual(saved['view:concepts'], pin(section), 'a pin saved against the bare kind belongs to that kind\'s singleton');
+  assert.deepEqual(saved[map], pin(chapter)); assert.deepEqual(saved[other], follow('book'), 'two pages of one view stand where each was left');
+  assert.equal('view:formulas' in saved, false, 'an entry that does not read as a scope is left out');
+  assert.deepEqual(scopeAt(saved, 'view:concepts@999999'), FOLLOW_SECTION, 'a page nothing was saved for follows the section being read');
+  assert.deepEqual(parseScopes(null), {}); assert.deepEqual(parseScopes('scopes'), {});
 });

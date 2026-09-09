@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, type Bindings, type KeyLike } from '../src/lib/commands/chord';
+import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, startsSequence, type Bindings, type Chord, type KeyLike } from '../src/lib/commands/chord';
 import { fuzzy, rank } from '../src/lib/commands/fuzzy';
 import { builtinCommands, BUILTIN, openViewId, showViewId, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { commandId, available } from '../src/lib/commands/command';
-import { DEFAULT_PAIRS } from '../src/lib/commands/defaults';
-import { SIDEBAR_KINDS, VIEW_KINDS, isSidebarKind, type ViewKind } from '../src/lib/types/ids';
+import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
+import { SIDEBAR_KINDS, VIEW_KINDS, isSidebarKind, itemKey, newViewItem } from '../src/lib/types/ids';
 import type { Level } from '../src/lib/sections/scope';
 
 /* chords */
@@ -49,6 +49,24 @@ test('resolveChord matches bindings and skips plain keys typed into fields', () 
   assert.equal(resolveChord(bindings, ev({ key: 'f', code: 'KeyF', target: editable })), null);
   assert.equal(resolveChord(bindings, ev({ key: 'k', code: 'KeyK', ctrlKey: true, target: input }))?.id, palette);
 });
+test('a binding may be two presses: the first waits, and only the second answers it', () => {
+  const b = parseBindings({ 'ctrl+k ctrl+s': 'settings', 'Ctrl+Shift+P': 'palette' })!;
+  assert.deepEqual(Object.keys(b), ['Ctrl+K Ctrl+S', 'Ctrl+Shift+P'], 'a sequence is written one press after the other');
+  const prefix = chord('Ctrl+K')! as Chord;
+  assert.equal(startsSequence(b, prefix), true);
+  assert.equal(startsSequence(b, chord('Ctrl+Shift+P')! as Chord), false, 'a binding of its own begins nothing');
+  const k = ev({ key: 'k', code: 'KeyK', ctrlKey: true }), sKey = ev({ key: 's', code: 'KeyS', ctrlKey: true });
+  assert.equal(resolveChord(b, k), null, 'the first press runs nothing on its own');
+  assert.equal(resolveChord(b, sKey), null, 'and neither does the second');
+  assert.equal(resolveChord(b, sKey, prefix)?.id, 'settings');
+  assert.equal(resolveChord(b, ev({ key: 'x', code: 'KeyX', ctrlKey: true }), prefix), null, 'anything else after the first press answers nothing');
+  assert.equal(resolveChord(b, ev({ key: 'P', code: 'KeyP', ctrlKey: true, shiftKey: true }), prefix), null, 'not even a binding of its own, while a press is held');
+  assert.deepEqual(chordKeys(chord('Ctrl+K Ctrl+S')! as Chord), ['Ctrl', 'K', 'Ctrl', 'S']);
+  assert.equal(chord('Ctrl+K Bogus+S'), null, 'a sequence is only as good as its presses');
+  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+K Ctrl+S' && id === 'settings'), 'the settings answer to the sequence by default');
+  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+W' && id === 'close-group'));
+  assert.equal(DEFAULT_PAIRS.some(([c]) => c === 'Ctrl+K'), false, "and Ctrl+K alone is nobody's");
+});
 test('rebind gives a command one chord and takes it from the previous owner', () => {
   const b = rebind(bindings, settings, 'Ctrl+K' as never);
   assert.deepEqual(chordsFor(b, settings), ['Ctrl+K']); assert.deepEqual(chordsFor(b, palette), ['Ctrl+Shift+P']);
@@ -77,11 +95,15 @@ test('rank orders best-first and keeps ties in the given order', () => {
 });
 
 /* builtins */
-/* The view the scope commands act on: which one is active, where it stands, whether it is pinned. */
-type ViewState = { readonly view?: ViewKind | null; readonly level?: Level; readonly pinned?: boolean };
-const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true): BuiltinDeps & { log: string[] } => {
+/* The page of a view the scope commands act on — named by its item key, since a
+   view may be open in several — where it stands, and whether it is pinned. */
+type ViewState = { readonly view?: string | null; readonly level?: Level; readonly pinned?: boolean };
+/* The timeline the undo and redo commands read: what each way would take back,
+   and nothing at all where the reader has done nothing. */
+type Timeline = { readonly undoLabel?: string; readonly redoLabel?: string };
+const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
-  const kind = view.view === undefined ? 'concepts' : view.view;
+  const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
     settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`) },
@@ -90,18 +112,25 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
       closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
       focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
-      nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'), groupCount: groups,
+      nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'),
+      reopenClosedTab: () => log.push('reopen tab'), canReopenTab: closedTabs,
+      groupCount: groups,
     },
     fold: { foldAll: () => log.push('fold'), unfoldAll: () => log.push('unfold'), hideFigures: () => log.push('hide'), showFigures: () => log.push('show') },
     ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), openFindTextbook: () => log.push('find textbook'), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
     scope: {
-      activeView: () => kind, level: () => (kind ? view.level ?? 'section' : null), pinned: () => view.pinned === true,
+      activeView: () => active, level: () => (active ? view.level ?? 'section' : null), pinned: () => view.pinned === true,
       widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`),
       previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
     },
     docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt },
     notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
+    history: {
+      undo: () => log.push('undo'), redo: () => log.push('redo'),
+      canUndo: timeline.undoLabel !== undefined, canRedo: timeline.redoLabel !== undefined,
+      undoLabel: timeline.undoLabel ?? '', redoLabel: timeline.redoLabel ?? '',
+    },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {
@@ -191,6 +220,29 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split', 'exercises']);
   assert.equal(available(by(BUILTIN.openExercises)), true);
   assert.equal(available(builtinCommands(deps(false, 2, {}, false)).find((c) => c.id === BUILTIN.openExercises)!), false, 'a section that is not built has no exercises to open');
+});
+test('undo and redo stand where the reader can read what they would take back', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  by(BUILTIN.undo).run(); by(BUILTIN.redo).run();
+  assert.deepEqual(d.log, ['undo', 'redo']);
+  assert.equal(by(BUILTIN.undo).label, 'Undo'); assert.equal(by(BUILTIN.redo).label, 'Redo');
+  assert.equal(by(BUILTIN.undo).group, 'App');
+  assert.equal(by(BUILTIN.undo).detail?.(), 'highlight in yellow', 'the palette says what the step is');
+  assert.equal(by(BUILTIN.redo).detail?.(), 'remove highlight');
+  const empty = builtinCommands(deps(false, 2, {}, true, true, {}));
+  assert.equal(available(empty.find((c) => c.id === BUILTIN.undo)!), false, 'nothing done, nothing to take back');
+  assert.equal(available(empty.find((c) => c.id === BUILTIN.redo)!), false);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.undo), ['Ctrl+Z']);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.redo), ['Ctrl+Shift+Z', 'Ctrl+Y']);
+});
+test('a closed tab comes back by a command of its own, and only while one is remembered', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  by(BUILTIN.reopenClosedTab).run();
+  assert.deepEqual(d.log, ['reopen tab']);
+  assert.equal(by(BUILTIN.reopenClosedTab).label, 'Reopen closed tab');
+  assert.equal(by(BUILTIN.reopenClosedTab).group, 'Layout');
+  assert.equal(available(builtinCommands(deps(false, 2, {}, true, true, {}, false)).find((c) => c.id === BUILTIN.reopenClosedTab)!), false);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.reopenClosedTab), ['Ctrl+Shift+T']);
 });
 test('the note commands and the textbook finder act on their stores', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;

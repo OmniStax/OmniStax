@@ -2,7 +2,7 @@
   /* Tabs of one group, a "+" that opens the section picker for this group, and
      the two buttons that split the group beside it or below it. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { openTab, activate, closeItem, splitRight, splitDown, type Group } from '../lib/layout/model';
+  import { openTab, activate, splitRight, splitDown, type Group } from '../lib/layout/model';
   import { tabTitle } from '../lib/layout/titles';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { ICON } from '../lib/icons';
@@ -16,7 +16,7 @@
     <div class="tab" class:active={k === group.active} role="tab" aria-selected={k === group.active} data-tab={k} tabindex="0"
       use:draggable={{ key: k, from: group.key }} onclick={() => layoutStore.apply((x) => activate(x, index, k))} onkeydown={(e) => { if (e.key === 'Enter') layoutStore.apply((x) => activate(x, index, k)); }}>
       <span class="ttl">{title(k)}</span>
-      <button type="button" class="x" title="Close" aria-label="Close {title(k)}" onclick={(e) => { e.stopPropagation(); layoutStore.apply((x) => closeItem(x, k, index)); }}>×</button>
+      <button type="button" class="x" title="Close" aria-label="Close {title(k)}" onclick={(e) => { e.stopPropagation(); layoutStore.closeTab(index, k); }}>×</button>
     </div>
   {/each}
   <button type="button" class="act plus" title="Open a section here" aria-label="Open a section in this group" onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>

@@ -35,11 +35,13 @@ src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes)
+src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
+src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
-src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar
+src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
 src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations
 src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
@@ -72,10 +74,15 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   That item is the shell's `own`, what `ensureOwn` keeps open, and what the
   section-scoped views fall back from when the focused tab belongs to no section.
 - The shell is a rail, a sidebar and the document groups, all on the left. The
-  rail's top two views — the explorer and the annotations — toggle in the
-  sidebar; the three below the rule are only ever tabs and open in a split to
-  the right of the group being read (`openInSplit`), or step to where they
-  already stand. Every rail button drags into a group all the same.
+  rail stands in three sections: the explorer and the annotations at the top,
+  which toggle in the sidebar; the other three in the middle of the rail, which
+  are only ever tabs; and the palette and the settings at the foot. A click on
+  one of the middle three opens a page of that view — an `ItemId` of kind `view`
+  with an instance of its own — in a split to the right of the group being read,
+  and every click opens another, so several concept maps may stand open at once.
+  Each page keeps its own scope, and the rail's button lights while any page of
+  that kind is open (`instancesOf`). Every rail button drags into a group all
+  the same, carrying the bare key, which is the one page a sidebar can hold.
 - A companion view stands at a level of the book — the whole book, one chapter or
   one section — and at that level either follows the page being read or is pinned
   to a place of its own. The bar above it is the trail to that place and the
@@ -90,6 +97,14 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   and the views only render it.
 - Book-specific values (colour set, macros, symbol table, exercise kind labels)
   come from `book.json` through the manifest. The shell has no physics in it.
+- Undo and redo are one timeline of the reader's own edits — highlights,
+  annotations, the rows and documents of the explorer — and nothing else: the
+  layout, what is open and where the reader has scrolled are not edits, and a
+  tab closed comes back through Reopen closed tab (Ctrl+Shift+T) instead. An
+  edit knows how to take itself back and how to do itself again, and a burst
+  under one coalescing key — typing an annotation, dragging an image wider —
+  is one step. Where the reader is typing, Ctrl+Z is not the shell's: a field
+  keeps the browser's history and the note editor CodeMirror's.
 - Attribution is generated, never written by hand: `attribution.ts` builds the
   footer of every article and the citation from `book.json` and a section's
   `notes`.

@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, viewKindOf, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -30,7 +30,8 @@ export type SplitSide = 'left' | 'right' | 'up' | 'down';
 export const SIDE_WIDTH = { min: 200, max: 520 } as const;
 
 /* The two views that may stand in a sidebar both call the left one home; the
-   rest are only ever tabs, so they name no side. */
+   rest are only ever tabs, so they name no side. A page of a view opened by the
+   rail carries an instance of its own and calls no side home either. */
 const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:annotations': 'left' };
 const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : itemKey(id));
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
@@ -49,6 +50,18 @@ const splitOf = (dir: SplitDir, slots: readonly Slot[]): SplitNode => {
   const sizes = slots.map((s) => s.weight);
   return { type: 'split', dir, children: slots.map((s) => s.node), sizes: allEven(sizes) ? undefined : sizes };
 };
+/* Gathering the children a split keeps, share by share. A child that is dropped
+   does not take its share away with it: the sibling before it takes it on, or the
+   one after it when the dropped child stood first, so closing a group gives back
+   the room the split that opened it took. A child that flattens in brings its own
+   shares, scaled into the slot it had. */
+type Handout = { readonly kept: readonly Slot[]; readonly owed: number };
+const handOn = ({ kept, owed }: Handout, gained: readonly Slot[], weight: number): Handout =>
+  !gained.length
+    ? kept.length
+      ? { kept: kept.map((s, i) => (i === kept.length - 1 ? { ...s, weight: s.weight + weight } : s)), owed }
+      : { kept, owed: owed + weight }
+    : { kept: [...kept, ...gained.map((g, i) => (i === 0 ? { ...g, weight: g.weight + owed } : g))], owed: 0 };
 
 /* A layout for a page that has nothing saved: the explorer in the left sidebar,
    the page's own item in the one group, and beside a section's text its
@@ -100,9 +113,10 @@ const leafKeys = (n: SplitNode): GroupKey[] => (n.type === 'leaf' ? [n.group] : 
    group are dropped, a group the tree forgot is appended to the root row, a
    split of one child gives way to that child and a split nested inside a split
    of its own direction is flattened into it. Every share travels with its
-   child through all of that: a dropped child takes its weight away, a flattened
-   split has its inner weights scaled to fill exactly the slot it had, and a
-   lone child inherits the slot of the split that gave way. The group array is
+   child through all of that: a dropped child hands its weight to the sibling
+   before it — to the one after it when it stood first — a flattened split has
+   its inner weights scaled to fill exactly the slot it had, and a lone child
+   inherits the slot of the split that gave way. The group array is
    then re-ordered to the depth-first order of the leaves, so that "the next
    group" means the one that reads next, and the focus follows its own group
    through the move. */
@@ -113,12 +127,13 @@ const normalize = (l: Layout): Layout => {
   const seen = new Set<GroupKey>();
   const clean = (n: SplitNode): SplitNode | null => {
     if (n.type === 'leaf') { if (!known.has(n.group) || seen.has(n.group)) return null; seen.add(n.group); return n; }
-    const kept = slotsOf(n).flatMap(({ node, weight }): Slot[] => {
+    const gained = ({ node, weight }: Slot): readonly Slot[] => {
       const x = clean(node); if (!x) return [];
       if (x.type !== 'split' || x.dir !== n.dir) return [{ node: x, weight }];
       const inner = weightsOf(x), whole = inner.reduce((a, b) => a + b, 0);
       return x.children.map((c, j) => ({ node: c, weight: (weight * inner[j]) / whole }));
-    });
+    };
+    const { kept } = slotsOf(n).reduce<Handout>((acc, s) => handOn(acc, gained(s), s.weight), { kept: [], owed: 0 });
     return !kept.length ? null : kept.length === 1 ? kept[0].node : splitOf(n.dir, kept);
   };
   const cleaned = clean(l.tree);
@@ -162,7 +177,7 @@ export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout =>
 };
 
 export type OpenOpts = { readonly before?: ItemKey | null; readonly from?: GroupKey | null };
-/* A view lives in one place; a document may be open in several groups. `from` moves a tab instead of copying it. */
+/* One page of a view lives in one place; a document may be open in several groups. `from` moves a tab instead of copying it. */
 export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: OpenOpts = {}): Layout => {
   const k = keyOf(id); const g = Math.max(0, Math.min(index, l.groups.length - 1)); const target = l.groups[g];
   const base = viewKey(k) ? detach(l, k) : opts.from && opts.from !== target.key ? withGroups(l, l.groups.map((x) => (x.key === opts.from ? removeFromGroup(x, k) : x))) : l;
@@ -198,7 +213,8 @@ const seat = (l: Layout, target: GroupKey, fresh: Group, side: SplitSide): Layou
 };
 /* Split a group (as in VS Code): the item opens again in a new group on the
    side asked for. A document stays where it was and is copied; a view moves,
-   because a view lives in only one place. A group with nothing to split simply
+   because one page of a view lives in only one place — which is why the rail
+   hands this a page of its own each time. A group with nothing to split simply
    gains an empty neighbour, which stays until the reader closes it. */
 export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
@@ -211,9 +227,9 @@ export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | I
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
-/* What the rail does with a view that is only ever a tab: it shows it where it
-   already stands, and where it stands nowhere it splits the focused group to
-   the right and opens it there, beside what is being read. */
+/* Step to a page that is named: it shows it where it already stands, and where it
+   stands nowhere it splits the focused group to the right and opens it there,
+   beside what is being read. */
 export const openInSplit = (l: Layout, id: ItemId | ItemKey): Layout => {
   const k = keyOf(id);
   const at = l.groups.findIndex((g) => g.tabs.includes(k));
@@ -329,6 +345,13 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   return normalize({ sides: { left, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row });
 };
 export const VIEW_KEYS: readonly ItemKey[] = VIEW_KINDS.map((v) => keyOf(viewItem(v)));
+/* Every page of one kind of view that is open, in the sidebars and in the groups:
+   the rail lights its button while any one of them stands, however many the reader
+   has opened. */
+export const instancesOf = (l: Layout, kind: ViewKind): readonly ItemKey[] => {
+  const open = [...l.sides.left.items, ...l.sides.right.items, ...l.groups.flatMap((g) => g.tabs)];
+  return [...new Set(open.filter((k) => viewKindOf(k) === kind))];
+};
 /* The rail draws these two first, as the sidebar's own, and the rest below a separator. */
 export const SIDEBAR_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter(sideKey);
 export const GROUP_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter((k) => !sideKey(k));

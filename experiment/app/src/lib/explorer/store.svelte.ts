@@ -44,6 +44,16 @@ class Explorer {
     return gone;
   }
   move(id: EntryId, parent: EntryId | null): void { this.apply((t) => move(t, id, parent)); }
+  /* Put a whole tree back without any of the bookkeeping an edit does: what the
+     shell's undo and redo apply, through the compound edits of edits.ts. A row
+     that is no longer there cannot be the one selected or being named. */
+  restore(tree: Tree): void {
+    this.tree = tree; this.save();
+    if (this.renaming !== null && !entryById(tree, this.renaming)) this.renaming = null;
+    /* The rows of a book are keyed with a colon and belong to the manifest, not
+       to the tree, so only the reader's own rows can go missing here. */
+    if (this.selected !== null && !this.selected.includes(':') && !entryById(tree, this.selected as EntryId)) this.selected = null;
+  }
   toggle(key: string): void { this.apply((t) => toggleExpanded(t, key)); }
   expanded(key: string): boolean { return isExpanded(this.tree, key); }
 

@@ -14,11 +14,13 @@
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
   import { findEl, jump, activePane, openDoc } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { VIEW_KEYS, focusedGroup, splitRight } from '../lib/layout/model';
+  import { focusedGroup, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
+  import { BUILTIN } from '../lib/commands/builtin';
+  import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { parseItemKey, sectionOfItem, type ItemId, type SectionId } from '../lib/types/ids';
+  import { parseItemKey, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
@@ -27,6 +29,7 @@
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
+  import Tooltip from './Tooltip.svelte';
   import Browser from './Browser.svelte';
   import FindTextbook from './explorer/FindTextbook.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
@@ -43,13 +46,14 @@
   let ready = $state(false);
   let narrow = $state(false);
 
-  /* What a saved layout may name: a view the shell still has, a document,
-     figure or exercise of a section that is built, either standing page, and a
-     note the reader still keeps. */
+  /* What a saved layout may name: a page of a view the shell still has — the
+     singleton or one of the reader's own pages of it — a document, figure or
+     exercise of a section that is built, either standing page, and a note the
+     reader still keeps. */
   const known = (k: string): boolean => {
     const id = parseItemKey(k);
     if (!id) return false;
-    if (id.kind === 'view') return VIEW_KEYS.includes(k);
+    if (id.kind === 'view') return viewKindOf(k) !== null;
     if (id.kind === 'page') return true;
     if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
     return registry.isBuilt(id.section);
@@ -78,8 +82,27 @@
     registry.adopt(document.getElementById('pool') ?? document);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
-    /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns. */
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; } keys.dispatch(e); };
+    /* Where the reader is typing, undo and redo are not the shell's: a field has
+       the browser's own history and the note editor has CodeMirror's, and either
+       is what Ctrl+Z means there. Every other chord behaves as it does anywhere. */
+    const typingIn = (t: EventTarget | null): boolean => {
+      const el = t as HTMLElement | null;
+      return el?.closest?.('input, textarea, [contenteditable], .cm-editor') != null;
+    };
+    const ownUndo = (c: Chord | null): boolean => {
+      const id = c ? keys.commandFor(c) : undefined;
+      return id === BUILTIN.undo || id === BUILTIN.redo;
+    };
+    /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns.
+       Ctrl+P and Ctrl+S are the shell's whether anything is bound to them or not: nothing here
+       prints a page or saves one, so the browser is not given the chance to offer either. */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; }
+      const c = chordOf(e);
+      if (!keys.pending && ownUndo(c) && typingIn(e.target)) return;
+      if (keys.dispatch(e)) return;
+      if (c === 'Ctrl+P' || c === 'Ctrl+S') e.preventDefault();
+    };
     /* A click or a focus outside every view lets go of "this view", so the scope commands stop aiming at it. */
     const clearView = (e: Event) => { const el = e.target as HTMLElement | null; if (!el?.closest?.('.view')) focus.view = null; };
     const onClick = (e: MouseEvent) => {
@@ -144,8 +167,12 @@
       <SplitTree node={layoutStore.layout.tree} {onPick} />
     </main>
   </div>
+  {#if keys.pending}
+    <div class="chord-hint" role="status">{#each chordKeys(keys.pending) as k, i}{i ? ' ' : ''}<kbd>{k}</kbd>{/each}{' …'}</div>
+  {/if}
   <Settings />
   <Hover />
+  <Tooltip />
   <HighlightBar />
   <Palette />
   <Browser {manifest} />
@@ -153,6 +180,11 @@
 {/if}
 
 <style>
+  /* What the shell is waiting for: the first press of a sequence, until the second comes. */
+  /* Block, with the keys inline inside it, so that the hint reads as one line of
+     words — "Ctrl K …" — to anything that takes the shell at its text. */
+  .chord-hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:block;white-space:nowrap;padding:5px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--muted);font-family:var(--sans);font-size:0.78rem;line-height:1.5;box-shadow:0 2px 10px rgb(0 0 0 / 0.16)}
+  .chord-hint kbd{display:inline-block;font:inherit;border:1px solid var(--rule);border-radius:3px;padding:0 4px;color:var(--ink)}
   .shell{height:100vh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr);grid-template-areas:"rl sl docs"}
   .docs{grid-area:docs;display:flex;min-width:0;min-height:0;background:var(--bg);position:relative}
   @media (max-width:900px){ .shell{grid-template-columns:44px 0 minmax(0,1fr)} .docs{flex-direction:column} }

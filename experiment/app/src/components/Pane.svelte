@@ -27,7 +27,7 @@
 
 <div class="pane" data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll}>
   {#if id && id.kind === 'view'}
-    <div class="view-pane" data-view={id.view}><View kind={id.view} /></div>
+    <div class="view-pane" data-view={id.view} data-item={itemKey}><View item={itemKey} /></div>
   {:else if id && id.kind === 'note'}
     <NoteTab noteId={id.note} {groupKey} />
   {:else if el}

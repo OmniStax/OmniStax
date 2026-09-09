@@ -49,8 +49,11 @@
     const move = (m: PointerEvent): void => { width = Math.max(40, Math.round(w0 + (m.clientX - x0))); img.style.width = `${width}px`; };
     const up = (): void => {
       bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', up); bar.removeEventListener('pointercancel', up);
+      /* The width the drag settled on is written into the markdown, and unlike
+         typing in the editor — which CodeMirror remembers for itself — this is
+         an edit of the shell's own, so Ctrl+Z can put the old width back. */
       const src = img.dataset.src, doc = noteDocs.get(noteId);
-      if (src && doc) noteDocs.setBody(noteId, setImageWidth(doc.body, src, width));
+      if (src && doc) noteDocs.setBodyRecorded(noteId, setImageWidth(doc.body, src, width), 'resize image');
     };
     bar.addEventListener('pointermove', move); bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
   };

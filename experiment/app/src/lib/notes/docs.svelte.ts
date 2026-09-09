@@ -3,6 +3,7 @@
    Every change is kept in this browser, the body after a short pause so that
    typing does not write on every keystroke. */
 import { newNoteId, noteId, type NoteId } from '../types/ids';
+import { history } from '../history/store.svelte';
 
 export type NoteDoc = { readonly id: NoteId; readonly name: string; readonly body: string; readonly created: number; readonly updated: number };
 
@@ -37,8 +38,24 @@ class NoteDocs {
     this.list = [...this.list, doc]; this.save();
     return doc;
   }
-  /* The list is right at once; only the writing to storage waits. */
+  /* The list is right at once; only the writing to storage waits. Typing in the
+     editor comes through here and is not recorded: CodeMirror keeps a history
+     of its own, and Ctrl+Z inside the editor belongs to it. */
   setBody(id: NoteId, body: string): void { this.patch(id, { body }, true); }
+  /* A change to the body made from outside the editor — an image dragged wider
+     — which the shell's own undo must be able to take back. A key gathers a
+     drag into one step; without one every change stands alone. */
+  setBodyRecorded(id: NoteId, body: string, label: string, coalesceKey?: string): void {
+    const before = this.list;
+    this.setBody(id, body);
+    if (this.list === before) return;
+    const after = this.list;
+    const edit = { label, undo: () => this.restore(before), redo: () => this.restore(after) };
+    if (coalesceKey) history.coalesce(coalesceKey, edit); else history.push(edit);
+  }
+  /* Put a whole list back without recording it: what undo and redo apply, here
+     and from the explorer's compound edits. */
+  restore(list: readonly NoteDoc[]): void { this.list = list; this.save(); }
   rename(id: NoteId, name: string): void { this.patch(id, { name }); }
   remove(id: NoteId): void { this.removeMany([id]); }
   removeMany(ids: readonly NoteId[]): void {

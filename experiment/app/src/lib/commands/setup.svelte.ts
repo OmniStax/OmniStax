@@ -8,18 +8,18 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split, moveToNewGroup, closeGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, openInSplit, homeSide, focusedGroup } from '../layout/model';
+import { split, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, type ItemKey } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
 import { focusedArticle, openDoc, openItem } from '../sections/nav.svelte';
-import { noteDocs } from '../notes/docs.svelte';
 import { noteModes } from '../notes/modes.svelte';
 import { explorer } from '../explorer/store.svelte';
-import { entryId } from '../explorer/model';
+import { createNote } from '../explorer/edits';
+import { history } from '../history/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
 import { registry } from '../sections/registry.svelte';
-import { itemKey, noteItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
+import { itemKey, newViewItem, noteItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
@@ -52,14 +52,14 @@ const groupCommands = (): readonly Command[] =>
     detail: () => { const active = layoutStore.layout.groups[n]?.active; return active ? tabTitle(active) : ''; },
   }));
 
-/* The view a scope command acts on, and nothing to do when the reader has touched none. */
-const onView = (f: (kind: ViewKind) => void): void => { const kind = focus.activeView; if (kind) f(kind); };
+/* The page of a view a scope command acts on, and nothing to do when the reader has touched none. */
+const onView = (f: (key: ItemKey) => void): void => { const key = focus.activeView; if (key) f(key); };
 /* Picking a place in the book pins the view there; the book is no pin, so it only sets the level. */
-const pinTo = (kind: ViewKind) => (target: Target): void => { if (target.level === 'book') scope.atLevel(kind, 'book'); else scope.pin(kind, target); };
+const pinTo = (key: ItemKey) => (target: Target): void => { if (target.level === 'book') scope.atLevel(key, 'book'); else scope.pin(key, target); };
 const scopeDeps = {
-  activeView: (): ViewKind | null => focus.activeView,
-  level: (): Level | null => { const kind = focus.activeView; return kind ? scope.levelFor(kind) : null; },
-  pinned: (): boolean => { const kind = focus.activeView; return kind !== null && scope.isPinned(kind); },
+  activeView: (): ItemKey | null => focus.activeView,
+  level: (): Level | null => { const key = focus.activeView; return key ? scope.levelFor(key) : null; },
+  pinned: (): boolean => { const key = focus.activeView; return key !== null && scope.isPinned(key); },
   widen: (): void => onView((k) => scope.widen(k)),
   narrow: (): void => onView((k) => scope.narrow(k)),
   atLevel: (l: Level): void => onView((k) => scope.atLevel(k, l)),
@@ -68,12 +68,13 @@ const scopeDeps = {
   togglePin: (): void => onView((k) => scope.togglePin(k)),
   pickTarget: (): void => onView((k) => ui.openBrowser({ pick: pinTo(k) })),
 };
-/* A view opens as a tab of the group in hand, in the sidebar it calls home, or
-   in a split beside what is being read; the exercises are the focused section's. */
+/* A view opens as a tab of the group in hand or in the sidebar it calls home —
+   both of them the singleton a rail button toggles — and in a split as a page of
+   its own, so asking twice gives two of them; the exercises are the focused section's. */
 const docs = {
   openView: (kind: ViewKind, at: ViewWhere): void => {
     const key = itemKey(viewItem(kind));
-    layoutStore.apply((x) => (at === 'group' ? openTab(x, key, ui.palette.group ?? x.focus) : at === 'split' ? openInSplit(x, key) : openSide(x, key, homeSide(x, key))));
+    layoutStore.apply((x) => (at === 'group' ? openTab(x, key, ui.palette.group ?? x.focus) : at === 'split' ? split(x, x.focus, 'right', newViewItem(kind)) : openSide(x, key, homeSide(x, key))));
   },
   openExercises: (): void => { void openDoc(focus.section, 'exercises', ui.palette.group ?? undefined); },
   canOpenExercises: (): boolean => registry.isBuilt(focus.section),
@@ -87,14 +88,12 @@ const activeNote = (): { readonly group: GroupKey; readonly note: NoteId } | nul
   return g && id?.kind === 'note' ? { group: g.key, note: id.note } : null;
 };
 
-/* A new note is written under the reader's own root, named so that it does not
-   collide with what is already there, and opened where the reader is standing,
-   under the cursor: there is nothing yet to read. */
+/* A new note is written under the reader's own root — one step of the shell's
+   timeline, row and document together — and opened where the reader is
+   standing, under the cursor: there is nothing yet to read. */
 const notesDeps = {
   newNote: (): void => {
-    const name = explorer.uniqueName(null, 'Untitled');
-    const doc = noteDocs.create(name);
-    explorer.addNote(null, entryId(doc.id), name);
+    const doc = createNote(null, explorer.uniqueName(null, 'Untitled'));
     const at = ui.palette.group ?? layoutStore.layout.focus;
     const group = layoutStore.layout.groups[at] ?? focusedGroup(layoutStore.layout);
     if (group) noteModes.setMode(group.key, doc.id, 'edit');
@@ -112,7 +111,7 @@ export const installCommands = (): void => {
     splitDown: () => layoutStore.apply((x) => split(x, x.focus, 'down')),
     moveRight: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'right')),
     moveDown: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'down')),
-    closeGroup: () => layoutStore.apply((x) => closeGroup(x, x.focus)),
+    closeGroup: () => layoutStore.closeGroup(layoutStore.layout.focus),
     closeOtherGroups: () => layoutStore.apply((x) => closeOtherGroups(x, x.focus)),
     evenGroups: () => layoutStore.apply(evenSizes),
     focusNextGroup: () => layoutStore.apply((x) => focusNext(x, 1)),
@@ -120,8 +119,19 @@ export const installCommands = (): void => {
     focusGroup: (dir: FocusDir) => focusToward(dir),
     nextTab: () => layoutStore.apply((x) => activateNext(x, x.focus, 1)),
     previousTab: () => layoutStore.apply((x) => activateNext(x, x.focus, -1)),
+    reopenClosedTab: () => layoutStore.reopenClosed(),
+    get canReopenTab(): boolean { return layoutStore.canReopen; },
     get groupCount(): number { return layoutStore.layout.groups.length; },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps }), ...groupCommands()]);
+  /* The timeline reads as it stands at the moment the palette draws or a chord
+     fires, so its four answers are getters rather than values. */
+  const historyDeps = {
+    undo: () => history.undo(), redo: () => history.redo(),
+    get canUndo(): boolean { return history.canUndo; },
+    get canRedo(): boolean { return history.canRedo; },
+    get undoLabel(): string { return history.undoLabel; },
+    get redoLabel(): string { return history.redoLabel; },
+  };
+  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, history: historyDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

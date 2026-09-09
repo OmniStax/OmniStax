@@ -1,6 +1,8 @@
-/* Key chords: "Ctrl+Shift+P". Pure parse/format and the match against a
-   keyboard event, so the dispatcher can be tested without a browser. "Ctrl"
-   matches either ctrlKey or metaKey, so one binding serves Mac and the rest. */
+/* Key chords: "Ctrl+Shift+P", and sequences of two of them written with a space
+   between, "Ctrl+K Ctrl+S", as VS Code writes them. Pure parse/format and the
+   match against a keyboard event, so the dispatcher can be tested without a
+   browser. "Ctrl" matches either ctrlKey or metaKey, so one binding serves Mac
+   and the rest. */
 import type { CommandId } from './command';
 
 export type Chord = string & { readonly __brand: 'Chord' };
@@ -15,6 +17,8 @@ const MOD_NAMES: Readonly<Record<string, keyof Omit<ParsedChord, 'key'>>> = { ct
 
 const normKey = (k: string): string => (k === ' ' || k.toLowerCase() === 'space' ? 'Space' : k.length === 1 ? k.toUpperCase() : k);
 
+/* One press of a sequence. `parseChord` reads a single press; the whole binding
+   goes through `parseSequence`, which is what a stored binding is read with. */
 export const parseChord = (s: string): ParsedChord | null => {
   const trimmed = s.trim(); if (!trimmed) return null;
   const endsPlus = trimmed === '+' || trimmed.endsWith('++');   /* the plus key itself: "Ctrl++" */
@@ -28,9 +32,15 @@ export const parseChord = (s: string): ParsedChord | null => {
 };
 export const formatChord = (p: ParsedChord): Chord =>
   [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.key].filter(Boolean).join('+') as Chord;
-export const chord = (s: string): Chord | null => { const p = parseChord(s); return p ? formatChord(p) : null; };
-/* The parts to draw as keycaps: ["Ctrl", "Shift", "P"]. */
-export const chordKeys = (c: Chord): readonly string[] => { const p = parseChord(c); return p ? [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.key].filter(Boolean) : [c]; };
+/* Every press of a binding, in order; nothing at all when one of them does not read. */
+export const parseSequence = (s: string): readonly ParsedChord[] | null => {
+  const steps = s.trim().split(/\s+/).filter(Boolean).map(parseChord);
+  return steps.length && steps.every((p): p is ParsedChord => p !== null) ? (steps as ParsedChord[]) : null;
+};
+export const chord = (s: string): Chord | null => { const steps = parseSequence(s); return steps ? (steps.map(formatChord).join(' ') as Chord) : null; };
+const capsOf = (p: ParsedChord): readonly string[] => [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.key].filter(Boolean);
+/* The parts to draw as keycaps: ["Ctrl", "Shift", "P"], and every press of a sequence in turn. */
+export const chordKeys = (c: Chord): readonly string[] => { const steps = parseSequence(c); return steps ? steps.flatMap(capsOf) : [c]; };
 
 /* The key name for an event, or null when only a modifier was pressed. */
 export const keyOf = (e: KeyLike): string | null => {
@@ -52,11 +62,17 @@ export const isEditable = (t: unknown): boolean => {
   const el = t as { tagName?: string; isContentEditable?: boolean };
   return ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName ?? '') || el.isContentEditable === true;
 };
-/* The command a key event selects under these bindings, if any. */
-export const resolveChord = (bindings: Bindings, e: KeyLike): { readonly chord: Chord; readonly id: CommandId } | null => {
+/* Whether a press only begins a binding — "Ctrl+K" of "Ctrl+K Ctrl+S" — which is
+   what the dispatcher waits on. */
+export const startsSequence = (bindings: Bindings, c: Chord): boolean => Object.keys(bindings).some((k) => k.startsWith(`${c} `));
+/* The command a key event selects under these bindings, if any. With a press held
+   from a moment ago, only the sequence that carries on from it answers: after
+   Ctrl+K the next press is read as the second half of a binding, or as nothing. */
+export const resolveChord = (bindings: Bindings, e: KeyLike, pending: Chord | null = null): { readonly chord: Chord; readonly id: CommandId } | null => {
   const c = chordOf(e); if (!c) return null;
   if (isEditable(e.target) && !(e.ctrlKey || e.metaKey || e.altKey)) return null;
-  const id = bindings[c]; return id ? { chord: c, id } : null;
+  const whole = (pending ? `${pending} ${c}` : c) as Chord;
+  const id = bindings[whole]; return id ? { chord: whole, id } : null;
 };
 
 /* Bindings as they are stored: chord -> command id, only valid chords kept. */

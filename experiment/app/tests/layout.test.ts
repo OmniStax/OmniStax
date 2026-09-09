@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem } from '../src/lib/types/ids';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -82,6 +82,29 @@ test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
   const already = ensureOwn(defaultLayout(), own);
   assert.deepEqual(already.groups[0].tabs, [text, ex], 'the item is where it was, and is made active');
   assert.equal(already.groups[0].active, text);
+});
+test('a view key names a kind, and one page of that kind when it carries an instance', () => {
+  const page = newViewItem('concepts');
+  const k = itemKey(page);
+  assert.match(k, /^view:concepts@[a-z0-9]{6}$/);
+  assert.deepEqual(parseItemKey(k), page, 'a page reads back as itself');
+  assert.deepEqual(parseItemKey(map), viewItem('concepts'), 'and the bare key as the singleton');
+  assert.notEqual(itemKey(newViewItem('concepts')), k, 'every page opened is another one');
+  assert.equal(viewKindOf(k), 'concepts'); assert.equal(viewKindOf(map), 'concepts');
+  assert.equal(viewKindOf(text), null); assert.equal(viewKindOf('view:nothing@ab12cd'), null);
+  assert.equal(parseItemKey('view:concepts@AB12CD'), null, 'an instance is six lowercase letters and digits');
+  assert.equal(parseItemKey('view:concepts@ab12c'), null);
+});
+test('the rail opens another page of a view and leaves the ones already open', () => {
+  const one = split(defaultLayout(), 0, 'right', newViewItem('concepts'));
+  const two = split(one, one.focus, 'right', newViewItem('concepts'));
+  const open = instancesOf(two, 'concepts');
+  assert.equal(two.groups.length, 3, 'each page took a group of its own');
+  assert.equal(open.length, 2); assert.deepEqual(open, [two.groups[1].active, two.groups[2].active]);
+  assert.deepEqual(instancesOf(two, 'formulas'), [], 'a view nobody opened stands nowhere');
+  const gone = closeItem(two, open[1]);
+  assert.deepEqual(instancesOf(gone, 'concepts'), [open[0]], 'closing one page leaves the other');
+  assert.deepEqual(instancesOf(openSide(defaultLayout(), notes, 'left'), 'annotations'), [notes], 'a sidebar view counts as the page it is');
 });
 test('page and note keys round-trip and belong to no section', () => {
   assert.equal(itemKey(pageItem('about')), 'page:about'); assert.equal(itemKey(pageItem('book')), 'page:book');
@@ -194,9 +217,20 @@ test('splitting a group inside a sized row halves that group alone', () => {
   assert.deepEqual(shape(l), { row: [0, 1, 2] });
   assert.deepEqual(sizesAt(l, []), [1.5, 1.5, 1], 'the target splits in two and its neighbour keeps its share');
 });
-test('closing a group takes its share away with it', () => {
-  const three = resizeSplit(splitRight(splitRight(defaultLayout(), 0), 1), [], [1, 2, 3]);
-  assert.deepEqual(sizesAt(closeGroup(three, 1), []), [1, 3]);
+test('a group that goes hands its share to the sibling before it, or to the one after when it stood first', () => {
+  const three = resizeSplit(splitRight(splitRight(defaultLayout(), 0), 1), [], [1, 2, 4]);
+  assert.deepEqual(sizesAt(closeGroup(three, 1), []), [3, 4], 'the middle group gives its share to the one before it');
+  assert.deepEqual(sizesAt(closeGroup(three, 2), []), [1, 6], 'so does the last');
+  assert.deepEqual(sizesAt(closeGroup(three, 0), []), [3, 4], 'the first has nothing before it, so the one after takes it');
+});
+test('opening a view beside a group and closing it again leaves the shares as they were', () => {
+  const two = splitRight(defaultLayout(), 0);
+  const cycle = (l: Layout): Layout => closeItem(split(l, 0, 'right', map), map);
+  assert.equal(sizesAt(two, []), undefined, 'two groups start out sharing the row evenly');
+  assert.deepEqual(sizesAt(split(two, 0, 'right', map), []), [0.5, 0.5, 1], 'the view takes half of the group it opened beside');
+  assert.equal(sizesAt(cycle(two), []), undefined, 'and gives it back when it closes');
+  const six = Array.from({ length: 6 }).reduce<Layout>((l) => cycle(l), two);
+  assert.equal(six.groups.length, 2); assert.equal(sizesAt(six, []), undefined, 'six openings and closings drift nowhere');
 });
 test('a row nested in a row is flattened, its shares scaled into the slot it had', () => {
   const raw = {

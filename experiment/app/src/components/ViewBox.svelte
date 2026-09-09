@@ -4,9 +4,10 @@
   import { toggleCollapsed, closeItem } from '../lib/layout/model';
   import { draggable } from '../lib/layout/drag.svelte';
   import { VIEW_TITLE } from '../lib/icons';
+  import { viewKindOf } from '../lib/types/ids';
   import View from './views/View.svelte';
   let { itemKey }: { itemKey: string } = $props();
-  const kind = $derived(itemKey.slice(5));
+  const kind = $derived(viewKindOf(itemKey) ?? '');
   const collapsed = $derived(layoutStore.layout.collapsed.includes(itemKey));
 </script>
 
@@ -16,7 +17,7 @@
     <span class="eyebrow">{VIEW_TITLE[kind]}</span>
     <button type="button" class="x" title="Close" onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
   </header>
-  <div class="body" hidden={collapsed}><View {kind} /></div>
+  <div class="body" hidden={collapsed}><View item={itemKey} /></div>
 </div>
 
 <style>

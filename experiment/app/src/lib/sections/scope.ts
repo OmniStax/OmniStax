@@ -5,7 +5,7 @@
    pinned to 16.3 widens to a view pinned to chapter 16 rather than letting go.
    Everything here is pure: a scope is read against the focused section and the
    book tree, and the store applies these functions and persists the result. */
-import { type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
+import { type ChapterId, type SectionId, type ViewKind, VIEW_KINDS, chapterId, itemKey, sectionId, viewItem } from '../types/ids';
 import type { BookTree } from '../commands/browser';
 
 export type Level = 'book' | 'chapter' | 'section';
@@ -152,3 +152,16 @@ export const parseScope = (raw: unknown): ViewScope | null => {
   if (t.level === 'section') return typeof t.section === 'string' && t.section !== '' ? { follow: false, target: { level: 'section', section: sectionId(t.section) } } : null;
   return null;
 };
+
+/* The whole table as storage holds it: where every page of a view stands, keyed by
+   the item key of the tab it is. An entry written against a bare kind — as every
+   entry was before a view could be opened twice — belongs to that kind's singleton,
+   and an entry that does not read as a scope is left out. */
+export type Scopes = Readonly<Record<string, ViewScope>>;
+const scopeKey = (k: string): string => ((VIEW_KINDS as readonly string[]).includes(k) ? itemKey(viewItem(k as ViewKind)) : k);
+export const parseScopes = (raw: unknown): Scopes =>
+  typeof raw !== 'object' || raw === null ? {}
+    : Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => { const s = parseScope(v); return s ? [[scopeKey(k), s]] : []; }));
+/* Where one page stands: what was saved for it, and the section being read for a page
+   nothing was saved for — a view opens following the page it was opened beside. */
+export const scopeAt = (scopes: Scopes, key: string): ViewScope => scopes[key] ?? FOLLOW_SECTION;
