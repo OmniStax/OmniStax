@@ -84,7 +84,18 @@ export type EquationDTO = z.infer<typeof zEquation>;
 export type GlossaryDTO = z.infer<typeof zGlossary>;
 
 /* What the shell receives about the book: the manifest the pages and the picker are built from. */
-export type SectionEntry = { readonly id: string; readonly title: string; readonly built: boolean; readonly url: string; readonly fragment: string; readonly figures: string; readonly openstax?: string };
+/* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("demo-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
+export type FigureEntry = { readonly id: string; readonly label: string };
+/* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
+export type ExerciseEntry = { readonly id: string; readonly kind: string };
+export type SectionEntry = {
+  readonly id: string; readonly title: string; readonly built: boolean; readonly url: string;
+  readonly fragment: string;                     /* the section's HTML fragment, doc.html */
+  readonly figuresJs: string;                    /* the section's figure module, figures.js */
+  readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
+  readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
+  readonly openstax?: string;
+};
 export type ChapterEntry = { readonly id: string; readonly dir: string; readonly title: string; readonly colors: Readonly<Record<string, string>>; readonly concepts: string; readonly formulas: string; readonly sections: readonly SectionEntry[] };
 export type BookManifest = {
   readonly id: string; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;

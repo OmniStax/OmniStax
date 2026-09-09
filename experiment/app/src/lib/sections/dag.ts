@@ -1,10 +1,16 @@
-/* Concept map layout: which nodes to show for a scope, and rows by prerequisite depth. */
+/* Concept map layout: which nodes to show at the level a view stands at, and rows
+   by prerequisite depth. A section or a chapter shows what it teaches and, dashed
+   behind it, the concepts it takes for granted; the book shows everything it
+   teaches, with the sections it has not built yet dashed in the same way. */
 import type { ConceptDTO } from '../content/schema';
+import { sectionsOf, type Target } from './scope';
+import type { BookTree } from '../commands/browser';
 export type DagNode = ConceptDTO & { readonly ext: boolean };
 
-export const scopedNodes = (all: readonly ConceptDTO[], scope: string | null): DagNode[] => {
-  if (!scope) return all.map((c) => ({ ...c, ext: c.placeholder }));
-  const own = all.filter((c) => c.section === scope && !c.placeholder);
+export const scopedNodes = (all: readonly ConceptDTO[], target: Target, tree: BookTree): DagNode[] => {
+  if (target.level === 'book') return all.map((c) => ({ ...c, ext: c.placeholder }));
+  const scope = new Set<string>(sectionsOf(target, tree));
+  const own = all.filter((c) => scope.has(c.section) && !c.placeholder);
   const ids = new Set(own.map((c) => c.id));
   const ext = own.flatMap((c) => c.prereqs).filter((p, i, arr) => !ids.has(p) && arr.indexOf(p) === i).map((p) => all.find((c) => c.id === p)).filter((c): c is ConceptDTO => !!c);
   return [...ext.map((c) => ({ ...c, ext: true })), ...own.map((c) => ({ ...c, ext: false }))];

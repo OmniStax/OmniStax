@@ -1,21 +1,28 @@
 <script lang="ts">
-  /* The reader's highlights and notes: the scoped section first, the rest of
-     the book folded below. Each note shows its colour, its quote as a link back
-     into the text, and an annotation that saves as it is typed. */
+  /* The reader's highlights and notes for the place this view stands at, with
+     whatever lies outside it folded away below. Each note shows its colour, its
+     quote as a link back into the text, and an annotation that saves as it is
+     typed. */
   import { getContext, tick } from 'svelte';
   import { notes, HL_COLORS, type Note } from '../../lib/notes/store.svelte';
   import { goNote } from '../../lib/notes/go';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { sectionId, type SectionId } from '../../lib/types/ids';
-  const scoped = getContext<() => SectionId>('scope');
-  const sec = $derived(scoped());
-  const all = $derived(notes.list);
-  const mine = $derived(all.filter((n) => n.section === sec));
-  const others = $derived([...new Set(all.map((n) => n.section))].filter((s) => s !== sec).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })));
-  let expandAll = $state(false);
-  const titleOf = (s: string) => registry.entry(sectionId(s))?.title ?? '';
+  import { focus } from '../../lib/sections/focus.svelte';
+  import { targetLabel, type Target } from '../../lib/sections/scope';
+  import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
+  const scoped = getContext<() => Target>('scope');
+  const target = $derived(scoped());
+  const grouped = $derived(groupBySection(notes.list, (n) => n.section, target, registry.manifest));
+  const inside = $derived(countOf(grouped.inside));
+  const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
   const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const plural = (n: number) => `${n} ${n === 1 ? 'note' : 'notes'}`;
+  /* what to say where a place has nothing marked in it yet */
+  const blank = $derived(
+    target.level === 'section' ? 'Select some text in the section to highlight it or to add a note.'
+      : target.level === 'chapter' ? 'No notes in this chapter yet.'
+      : 'No notes in this book yet.',
+  );
   /* the bar asks for an annotation to take focus */
   $effect(() => { const id = notes.editing; if (!id) return; tick().then(() => { const ta = document.querySelector<HTMLTextAreaElement>(`textarea[data-note="${id}"]`); if (ta) { ta.focus(); notes.editing = null; } }); });
 </script>
@@ -32,23 +39,37 @@
   </div>
 {/snippet}
 
-<div class="eyebrow">{sec} · {titleOf(sec)} · {plural(mine.length)}</div>
-{#if mine.length}
-  {#each mine as n (n.id)}{@render card(n)}{/each}
+{#snippet list(items: readonly Note[])}
+  {#each items as n (n.id)}{@render card(n)}{/each}
+{/snippet}
+
+{#snippet sectionGroup(g: SectionGroup<Note>)}
+  <div class="eyebrow">{label(g.section, g.title)} · {plural(g.items.length)}</div>
+  {@render list(g.items)}
+{/snippet}
+
+{#snippet chapterGroup(g: ChapterGroup<Note>, open: boolean)}
+  <details class="chapter" {open}>
+    <summary>{label(g.chapter, g.title)}</summary>
+    {#each g.sections as s (s.section)}{@render sectionGroup(s)}{/each}
+  </details>
+{/snippet}
+
+<div class="eyebrow">{targetLabel(target, registry.manifest)} · {plural(inside)}</div>
+{#if inside === 0}
+  <div class="blank">{blank}</div>
+{:else if target.level === 'section'}
+  {#each grouped.inside as c (c.chapter)}{#each c.sections as s (s.section)}{@render list(s.items)}{/each}{/each}
+{:else if target.level === 'chapter'}
+  {#each grouped.inside as c (c.chapter)}{#each c.sections as s (s.section)}{@render sectionGroup(s)}{/each}{/each}
 {:else}
-  <div class="blank">Select some text in the section to highlight it or to add a note.</div>
+  {#each grouped.inside as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
 {/if}
-{#if others.length}
-  <div class="all">
-    <span class="eyebrow">Elsewhere in this book · {plural(all.length - mine.length)}</span>
-    <button type="button" class="link" onclick={() => (expandAll = !expandAll)}>{expandAll ? 'Collapse all' : 'Expand all'}</button>
-  </div>
-  {#each others as s (s)}
-    <details class="other" open={expandAll}>
-      <summary>{s} · {titleOf(s)} · {all.filter((n) => n.section === s).length}</summary>
-      {#each all.filter((n) => n.section === s) as n (n.id)}{@render card(n)}{/each}
-    </details>
-  {/each}
+{#if grouped.outside.length}
+  <details class="other">
+    <summary>{outsideLabel(target)} · {plural(countOf(grouped.outside))}</summary>
+    {#each grouped.outside as c (c.chapter)}{@render chapterGroup(c, false)}{/each}
+  </details>
 {/if}
 
 <style>
@@ -67,9 +88,5 @@
   .quote:hover{filter:brightness(.96)}
   textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:0.84rem;line-height:1.4;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:5px 7px;resize:vertical;box-sizing:border-box}
   textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
-  .all{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding-top:8px;border-top:1px solid var(--rule)}
-  .all .eyebrow{margin:0}
-  .link{font:inherit;font-size:0.74rem;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline dotted}
-  .link:hover{color:var(--ink)}
   :global(.view-pane) .note{font-size:1rem}
 </style>

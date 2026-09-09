@@ -1,20 +1,19 @@
 <script lang="ts">
   /* The concept map: nodes in rows by prerequisite depth, edges drawn in an SVG
      behind them. Hover explains a node; click pins it and jumps to where the
-     text introduces it. Scoped to the focused section, or the chapter as a tab. */
+     text introduces it. What it draws is what the view's level covers: one
+     section, one chapter, or everything the book teaches. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
-  import type { SectionId as ScopeSection } from '../../lib/types/ids';
+  import type { Target } from '../../lib/sections/scope';
   import { pin, spansOf, testedBy } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { goSpan, openDoc, findEl } from '../../lib/sections/nav.svelte';
   import { scopedNodes, dagRows, edgesOf } from '../../lib/sections/dag';
   import { conceptId, sectionId } from '../../lib/types/ids';
   import { math } from '../actions/math';
-  let { chapterWide }: { chapterWide: boolean } = $props();
-  const scoped = getCtx<() => ScopeSection>('scope');
-  const scope = $derived(chapterWide ? null : scoped());
-  const list = $derived(scopedNodes(registry.concepts, scope));
+  const scoped = getCtx<() => Target>('scope');
+  const list = $derived(scopedNodes(registry.concepts, scoped(), registry.manifest));
   const rows = $derived(dagRows(list));
   const edges = $derived(edgesOf(list));
   const node = (id: string) => list.find((c) => c.id === id)!;

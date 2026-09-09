@@ -16,7 +16,7 @@
     <span class="eyebrow">{VIEW_TITLE[kind]}</span>
     <button type="button" class="x" title="Close" onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
   </header>
-  <div class="body" hidden={collapsed}><View {kind} asTab={false} /></div>
+  <div class="body" hidden={collapsed}><View {kind} /></div>
 </div>
 
 <style>

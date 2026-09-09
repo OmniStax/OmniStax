@@ -4,6 +4,9 @@
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ExerciseMode } from '../settings/store.svelte';
+import { VIEW_KINDS, type ViewKind } from '../types/ids';
+import type { Level } from '../sections/scope';
+import { VIEW_TITLE } from '../icons';
 
 export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
@@ -26,6 +29,9 @@ export type BuiltinDeps = {
     readonly palette: { readonly open: boolean; readonly group: number | null }; readonly browser: { readonly open: boolean };
   };
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
+  /* The view the commands act on is whichever one the reader last touched; with none there is nothing to scope. */
+  readonly scope: { activeView(): ViewKind | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; togglePin(): void; pickTarget(): void };
+  readonly docs: { openView(kind: ViewKind, where: 'group' | 'side'): void; openExercises(): void; canOpenExercises(): boolean };
 };
 
 /* Ids the defaults and the Rail refer to. */
@@ -44,7 +50,14 @@ export const BUILTIN = {
   exerciseAll: commandId('exercise-all'), exerciseOne: commandId('exercise-one'),
   voice: commandId('voice'), readAloud: commandId('read-aloud'), stopReading: commandId('stop-reading'),
   foldAll: commandId('fold-all'), unfoldAll: commandId('unfold-all'), hideFigures: commandId('hide-figures'), showFigures: commandId('show-figures'),
+  scopeWiden: commandId('scope-widen'), scopeNarrow: commandId('scope-narrow'),
+  scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
+  scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
+  openExercises: commandId('open-exercises'),
 } as const;
+/* One pair of ids per view, since each of the five is opened and shown by name. */
+export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${kind}`);
+export const showViewId = (kind: ViewKind): CommandId => commandId(`show-view-${kind}`);
 
 const onOff = (v: boolean): string => (v ? 'on' : 'off');
 const themeCommand = (d: BuiltinDeps, id: CommandId, t: Theme): Command =>
@@ -54,6 +67,14 @@ const modeCommand = (d: BuiltinDeps, id: CommandId, m: ExerciseMode, label: stri
 /* Moving the focus between groups only means anything once there are several. */
 const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: string): Command =>
   ({ id, label: `Focus group ${label}`, group: 'Layout', run: () => d.layout.focusGroup(dir), when: () => d.layout.groupCount > 1 });
+/* Sending a view straight to a level, which says which one it stands at now. */
+const scopeCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
+  ({ id, label: `View scope: ${level}`, group: 'View', run: () => d.scope.atLevel(level), when: () => d.scope.activeView() !== null, detail: () => (d.scope.level() === level ? 'current' : '') });
+/* Every view can be opened as a tab of its own or shown in the sidebar it belongs to. */
+const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap((kind): readonly Command[] => [
+  { id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a group`, group: 'View', run: () => d.docs.openView(kind, 'group') },
+  { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
+]);
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
@@ -84,4 +105,12 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   focusGroupCommand(d, BUILTIN.focusGroupUp, 'up', 'above'), focusGroupCommand(d, BUILTIN.focusGroupDown, 'down', 'below'),
   { id: BUILTIN.nextTab, label: 'Next tab', group: 'Layout', run: () => d.layout.nextTab() },
   { id: BUILTIN.previousTab, label: 'Previous tab', group: 'Layout', run: () => d.layout.previousTab() },
+  { id: BUILTIN.scopeWiden, label: 'View scope: wider', group: 'View', run: () => d.scope.widen(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
+  { id: BUILTIN.scopeNarrow, label: 'View scope: narrower', group: 'View', run: () => d.scope.narrow(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'section' },
+  scopeCommand(d, BUILTIN.scopeBook, 'book'), scopeCommand(d, BUILTIN.scopeChapter, 'chapter'), scopeCommand(d, BUILTIN.scopeSection, 'section'),
+  { id: BUILTIN.scopePin, label: 'Pin view here', group: 'View', run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' && !d.scope.pinned() },
+  { id: BUILTIN.scopeUnpin, label: 'Unpin view: follow the page', group: 'View', run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.pinned() },
+  { id: BUILTIN.scopePick, label: 'Pin view to…', group: 'View', run: () => d.scope.pickTarget(), when: () => d.scope.activeView() !== null },
+  ...viewCommands(d),
+  { id: BUILTIN.openExercises, label: "Open this section's exercises", group: 'App', run: () => d.docs.openExercises(), when: () => d.docs.canOpenExercises() },
 ];

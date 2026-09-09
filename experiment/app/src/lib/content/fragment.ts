@@ -2,7 +2,7 @@
    The same markup goes into the full page and into doc.html, so the two
    cannot drift. Ids are qualified by section so two sections share a DOM. */
 import type { SectionSource } from './load';
-import type { BookDTO, ChapterDTO } from './schema';
+import type { BookDTO, ChapterDTO, FigureEntry } from './schema';
 import { attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 
@@ -19,6 +19,51 @@ export const figureNumber = (s: string): FigureNumber => s as FigureNumber;
 /* Every figure that keeps a book number, mapped to its qualified DOM id, from one section's text. */
 export const figureIds = (html: string, section: string): ReadonlyMap<FigureNumber, SpanId> =>
   new Map([...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"[^>]*\bdata-figure="([^"]+)"/g)].map(([, id, n]) => [figureNumber(n), qualifiedId(sectionId(section), id)]));
+
+/* The text one fragment of a head reads as: tags dropped, prerendered math back to the $…$ it was written as, entities decoded, whitespace collapsed.
+   A tag walk, as in linkFigureRefs: KaTeX markup is a tree whose visual branch repeats the symbols, so inside it only the TeX annotation is kept. */
+const KATEX = /^<span\b[^>]*\bclass="katex/;
+const TEX = /^<annotation\b[^>]*x-tex/;
+const unesc = (s: string): string => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+const plainText = (html: string): string => {
+  let depth = 0, tex = false, out = '';   /* depth: elements open inside a katex span, 0 outside one; tex: the text that follows is an annotation's */
+  html.split(/(<[^>]+>)/).forEach((part) => {
+    if (!part.startsWith('<')) { out += tex ? `$${part.trim()}$` : depth === 0 ? part : ''; return; }
+    if (depth === 0) { if (KATEX.test(part)) depth = 1; return; }
+    depth += part.startsWith('</') ? -1 : part.endsWith('/>') ? 0 : 1;
+    tex = TEX.test(part);
+  });
+  return unesc(out).replace(/\s+/g, ' ').trim();
+};
+
+/* A label stays one line: the first sentence, up to and including the first ., ? or ! that ends a word, cut with an ellipsis if it runs long. */
+const CAP = 140;
+const firstSentence = (text: string): string => {
+  const s = (/^[\s\S]*?[.?!](?=\s|$)/.exec(text)?.[0] ?? text).trim();
+  return s.length > CAP ? `${s.slice(0, CAP).trimEnd()}…` : s;
+};
+
+/* A figure with no head is named by its id, as the registry names its tab: "demo-shm-period" → "shm period". */
+const figName = (local: string): string => local.replace(/^(demo|fig)-/, '').replace(/-/g, ' ');
+const HEAD = /<div\b[^>]*\bclass="[^"]*\bdemo-head\b[^"]*"[^>]*>([\s\S]*?)<\/div>/;
+const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>([\s\S]*?)<\/span>/;
+/* The eyebrow, then the first sentence of the prose beside it: "Figure 16.9 · An object on a spring slides on a frictionless surface, as in Figure 16.9." */
+const headLabel = (figure: string): string => {
+  const head = HEAD.exec(figure); if (!head) return '';
+  const eye = EYEBROW.exec(head[1]);
+  const prose = eye ? head[1].slice(eye.index + eye[0].length) : head[1];
+  return [eye ? plainText(eye[1]) : '', firstSentence(plainText(prose))].filter((p) => p !== '').join(' · ');
+};
+
+/* Every demo figure of one section's text with its label, in the order the section draws them. The id is local, as the section
+   writes it: the text is qualified later, and a text already qualified gives the prefix back. */
+export const figureList = (html: string, section: string): readonly FigureEntry[] =>
+  [...html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/g)]
+    .filter(([, attrs]) => /\bclass="[^"]*\bdemo\b[^"]*"/.test(attrs) && /\bid="/.test(attrs))
+    .map(([, attrs, body]) => {
+      const raw = /\bid="([^"]+)"/.exec(attrs)![1], id = raw.startsWith(`${section}-`) ? raw.slice(section.length + 1) : raw;
+      return { id, label: headLabel(body) || figName(id) };
+    });
 
 const REF = /\bFigures? \d+\.\d+(?:(?:,| and| or|, and|, or) \d+\.\d+)*/g;
 const figLink = (n: string, figs: ReadonlyMap<FigureNumber, SpanId>, text: string): string => {

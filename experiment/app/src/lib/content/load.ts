@@ -7,7 +7,7 @@ import { zBook, zChapter, zSectionMeta, zExerciseFile, zConceptsFile, zFormulasF
 import type { BookDTO, ChapterDTO, SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, BookManifest, ChapterEntry, SectionEntry } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { sectionSourceUrl } from './attribution';
-import { figureIds, linkFigureRefs } from './fragment';
+import { figureIds, figureList, linkFigureRefs } from './fragment';
 
 export type SectionSource = {
   readonly meta: SectionMetaDTO;
@@ -59,9 +59,13 @@ const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManife
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title, colors: ch.dto.colors,
     concepts: `${chapterUrl(book.id, ch.dto.dir)}concepts.json`, formulas: `${chapterUrl(book.id, ch.dto.dir)}formulas.json`,
     sections: ch.dto.sections.map((s): SectionEntry => {
-      const built = ch.sections.some((b) => b.meta.id === s.id);
+      const src = ch.sections.find((b) => b.meta.id === s.id);   /* an unbuilt section is listed with nothing below it */
       const url = sectionUrl(book.id, ch.dto.dir, s.id);
-      return { id: s.id, title: s.title, built, url, fragment: `${url}doc.html`, figures: `${url}figures.js`, openstax: sectionSourceUrl(book, ch.dto, s.id) };
+      return {
+        id: s.id, title: s.title, built: src !== undefined, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`,
+        figures: src ? figureList(src.textHtml, s.id) : [], exercises: src ? src.exercises.map((e) => ({ id: e.id, kind: e.kind })) : [],
+        openstax: sectionSourceUrl(book, ch.dto, s.id),
+      };
     }),
   })),
 });

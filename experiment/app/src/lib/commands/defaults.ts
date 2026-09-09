@@ -20,5 +20,7 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
   ['Ctrl+Shift+W', 'close-group'],
+  ['ArrowLeft', 'scope-widen'], ['ArrowRight', 'scope-narrow'],
+  ['Ctrl+Shift+E', 'open-exercises'],
 ];
 export const DEFAULT_BINDINGS: Bindings = bind(DEFAULT_PAIRS);
