@@ -35,7 +35,7 @@ const deps = (): BuiltinDeps => ({
   settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {}, setUnderlines: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
-    closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
+    closeTab: () => {}, closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
     nextTab: () => {}, previousTab: () => {}, reopenClosedTab: () => {}, canReopenTab: true, groupCount: 2,
   },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },

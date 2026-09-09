@@ -22,8 +22,9 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
   /* A browser tab keeps Ctrl+W for closing itself and a page cannot take it back;
      installed as an app (the manifest makes the book installable) the shell is
-     handed the chord and closes the group instead. The last group is emptied. */
-  ['Ctrl+W', 'close-group'],
+     handed the chord and closes the active tab instead, and the group with it
+     when that was its last. Ctrl+Shift+W closes the whole group. */
+  ['Ctrl+W', 'close-tab'], ['Ctrl+Shift+W', 'close-group'],
   ['Ctrl+Shift+T', 'reopen-closed-tab'],
   /* The reader's own edits, in the chords every editor uses. Inside a field or
      the note editor these never reach the shell: the browser and CodeMirror

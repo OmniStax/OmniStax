@@ -64,7 +64,7 @@ test('a binding may be two presses: the first waits, and only the second answers
   assert.deepEqual(chordKeys(chord('Ctrl+K Ctrl+S')! as Chord), ['Ctrl', 'K', 'Ctrl', 'S']);
   assert.equal(chord('Ctrl+K Bogus+S'), null, 'a sequence is only as good as its presses');
   assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+K Ctrl+S' && id === 'settings'), 'the settings answer to the sequence by default');
-  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+W' && id === 'close-group'));
+  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+W' && id === 'close-tab'));
   assert.equal(DEFAULT_PAIRS.some(([c]) => c === 'Ctrl+K'), false, "and Ctrl+K alone is nobody's");
 });
 test('rebind gives a command one chord and takes it from the previous owner', () => {
@@ -110,7 +110,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
-      closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
+      closeTab: () => log.push('close tab'), closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
       focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
       nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'),
       reopenClosedTab: () => log.push('reopen tab'), canReopenTab: closedTabs,

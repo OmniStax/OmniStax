@@ -71,7 +71,7 @@
 
       <section>
         <h3>Keyboard shortcuts</h3>
-        <p class="hint">Click a shortcut to record a new one. Escape cancels, Backspace clears. Ctrl also answers to Cmd. A browser tab keeps Ctrl+W for itself; installed as an app, the book is handed it and closes the group.</p>
+        <p class="hint">Click a shortcut to record a new one. Escape cancels, Backspace clears. Ctrl also answers to Cmd. A browser tab keeps Ctrl+W for itself; installed as an app, the book is handed it and closes the tab.</p>
         <table>
           <tbody>
             {#each groups as [group, cmds] (group)}

@@ -111,6 +111,8 @@ export const installCommands = (): void => {
     splitDown: () => layoutStore.apply((x) => split(x, x.focus, 'down')),
     moveRight: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'right')),
     moveDown: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'down')),
+    /* The active tab of the focused group; a group left with nothing goes with it. */
+    closeTab: () => { const l = layoutStore.layout; const g = focusedGroup(l); if (g.active) layoutStore.closeTab(l.focus, g.active); },
     closeGroup: () => layoutStore.closeGroup(layoutStore.layout.focus),
     closeOtherGroups: () => layoutStore.apply((x) => closeOtherGroups(x, x.focus)),
     evenGroups: () => layoutStore.apply(evenSizes),

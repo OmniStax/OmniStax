@@ -19,7 +19,7 @@ export type BuiltinDeps = {
   readonly layout: {
     reset(): void;
     splitRight(): void; splitDown(): void; moveRight(): void; moveDown(): void;
-    closeGroup(): void; closeOtherGroups(): void; evenGroups(): void;
+    closeTab(): void; closeGroup(): void; closeOtherGroups(): void; evenGroups(): void;
     reopenClosedTab(): void; readonly canReopenTab: boolean;
     focusNextGroup(): void; focusPreviousGroup(): void; focusGroup(dir: FocusDir): void;
     nextTab(): void; previousTab(): void;
@@ -54,7 +54,7 @@ export const BUILTIN = {
   resetLayout: commandId('reset-layout'),
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
-  closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
+  closeTab: commandId('close-tab'), closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
   reopenClosedTab: commandId('reopen-closed-tab'),
   undo: commandId('undo'), redo: commandId('redo'),
   focusNextGroup: commandId('focus-next-group'), focusPreviousGroup: commandId('focus-previous-group'),
@@ -124,6 +124,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.splitDown, label: 'Split down', group: 'Layout', run: () => d.layout.splitDown() },
   { id: BUILTIN.moveRight, label: 'Move tab to a new group right', group: 'Layout', run: () => d.layout.moveRight() },
   { id: BUILTIN.moveDown, label: 'Move tab to a new group below', group: 'Layout', run: () => d.layout.moveDown() },
+  { id: BUILTIN.closeTab, label: 'Close tab', group: 'Layout', run: () => d.layout.closeTab() },
   { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup() },
   { id: BUILTIN.closeOtherGroups, label: 'Close other groups', group: 'Layout', run: () => d.layout.closeOtherGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.evenGroups, label: 'Even out group sizes', group: 'Layout', run: () => d.layout.evenGroups(), when: () => d.layout.groupCount > 1 },
