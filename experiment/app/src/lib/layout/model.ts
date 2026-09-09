@@ -123,20 +123,31 @@ const normalize = (l: Layout): Layout => {
   return { ...l, groups, tree, focus: Math.max(0, groups.findIndex((g) => g.key === focusKey)) };
 };
 
-/* Drop empty groups (keeping at least one), then put the tree back in order. */
-export const prune = (l: Layout): Layout => {
+/* Settle a layout after a change: at least one group, and the tree in agreement
+   with them. An empty group is a group like any other and stays until it is
+   closed; only an operation that empties one takes it away, through dropEmptied. */
+export const settle = (l: Layout): Layout => normalize(l);
+export const prune = settle;                  /* the older name for it */
+/* Keep just these groups, the focus on its own group where that one survives and on the fallback where it does not. */
+const keeping = (l: Layout, groups: readonly Group[], fallback: number): Layout => {
   const focusKey = l.groups[l.focus]?.key ?? null;
-  const kept = l.groups.length > 1 ? l.groups.filter((g) => g.tabs.length) : l.groups;
-  const groups = kept.length ? kept : [emptyGroup()];
   const at = groups.findIndex((g) => g.key === focusKey);
-  return normalize({ ...l, groups, focus: at >= 0 ? at : Math.max(0, Math.min(l.focus, groups.length - 1)) });
+  return settle({ ...l, groups, focus: at >= 0 ? at : Math.max(0, Math.min(fallback, groups.length - 1)) });
 };
-const focusOn = (l: Layout, key: GroupKey): Layout => { const p = prune(l); const i = groupIndex(p, key); return { ...p, focus: i < 0 ? p.focus : i }; };
+/* A group goes away when an operation empties it: it held tabs before and holds
+   none after. A group that was already empty is left alone, and the last group
+   never goes. */
+export const dropEmptied = (before: Layout, after: Layout): Layout => {
+  const had = new Set(before.groups.filter((g) => g.tabs.length).map((g) => g.key));
+  const kept = after.groups.filter((g) => g.tabs.length || !had.has(g.key));
+  return keeping(after, kept.length ? kept : after.groups.slice(0, 1), after.focus);
+};
+const focusOn = (l: Layout, key: GroupKey): Layout => { const i = groupIndex(l, key); return i < 0 ? l : { ...l, focus: i }; };
 
 export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout => {
   const k = keyOf(id); if (!viewKey(k)) return openTab(l, k, l.focus);
   const d = detach(l, k);
-  return prune({ ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [...d.sides[side].items, k] } }, home: { ...d.home, [k]: side } });
+  return dropEmptied(l, { ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [...d.sides[side].items, k] } }, home: { ...d.home, [k]: side } });
 };
 
 export type OpenOpts = { readonly before?: ItemKey | null; readonly from?: GroupKey | null };
@@ -151,7 +162,7 @@ export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: Op
     const tabs = x.tabs.includes(k) && at < 0 ? x.tabs : at >= 0 ? [...without.slice(0, at), k, ...without.slice(at)] : [...without, k];
     return { ...x, tabs, active: k };
   });
-  return focusOn(withGroups(base, groups), target.key);
+  return focusOn(dropEmptied(l, withGroups(base, groups)), target.key);
 };
 
 const SPLIT_DIR: Readonly<Record<SplitSide, SplitDir>> = { left: 'row', right: 'row', up: 'column', down: 'column' };
@@ -169,32 +180,39 @@ const insertLeaf = (n: SplitNode, target: GroupKey, fresh: GroupKey, side: Split
   return { ...n, children: n.children.map((c) => insertLeaf(c, target, fresh, side)) };
 };
 
+/* Seat a new group beside the target one, in the group array and in the tree. */
+const seat = (l: Layout, target: GroupKey, fresh: Group, side: SplitSide): Layout => {
+  const at = groupIndex(l, target);
+  return { ...l, groups: [...l.groups.slice(0, at + 1), fresh, ...l.groups.slice(at + 1)], tree: insertLeaf(l.tree, target, fresh.key, side) };
+};
 /* Split a group (as in VS Code): the item opens again in a new group on the
    side asked for. A document stays where it was and is copied; a view moves,
-   because a view lives in only one place. */
+   because a view lives in only one place. A group with nothing to split simply
+   gains an empty neighbour, which stays until the reader closes it. */
 export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  const k = id ? keyOf(id) : g.active; if (!k) return l;
+  const k = id ? keyOf(id) : g.active;
+  if (!k) { const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, side)), fresh.key); }
   const source = id ? from ?? null : viewKey(k) ? g.key : null;
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };
-  const at = groupIndex(base, g.key);
-  const groups = [...base.groups.slice(0, at + 1), fresh, ...base.groups.slice(at + 1)];
-  return focusOn({ ...base, groups, tree: insertLeaf(base.tree, g.key, fresh.key, side) }, fresh.key);
+  return focusOn(dropEmptied(l, seat(base, g.key, fresh, side)), fresh.key);
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
 
-/* Close a whole group: it loses every tab and the prune below takes it away. A
-   view that was open there simply closes, and its rail button opens it again. */
+/* Close a whole group, empty or not: it goes, and so do its tabs. A view that
+   was open there simply closes, and its rail button opens it again. The last
+   group cannot go, so it is emptied instead. */
 export const closeGroup = (l: Layout, index: number): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  return prune(withGroups(l, l.groups.map((x) => (x.key === g.key ? { ...x, tabs: [], active: null } : x))));
+  const rest = l.groups.filter((x) => x.key !== g.key);
+  return keeping(l, rest.length ? rest : [{ ...g, tabs: [], active: null }], index);
 };
-/* Keep this group alone; every other group closes the same way. */
+/* Keep this group alone, with its tabs and the focus; every other group closes. */
 export const closeOtherGroups = (l: Layout, index: number): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  return prune({ ...l, groups: l.groups.map((x) => (x.key === g.key ? x : { ...x, tabs: [], active: null })), focus: index });
+  return settle({ ...l, groups: [g], focus: 0 });
 };
 /* Move the focus one group along the tree order, wrapping at either end. */
 export const focusNext = (l: Layout, delta: 1 | -1): Layout => {
@@ -204,8 +222,8 @@ export const focusNext = (l: Layout, delta: 1 | -1): Layout => {
 
 export const closeItem = (l: Layout, id: ItemId | ItemKey, index?: number): Layout => {
   const k = keyOf(id);
-  if (index == null || viewKey(k)) return prune(detach(l, k));
-  return prune(withGroups(l, l.groups.map((g, i) => (i === index ? removeFromGroup(g, k) : g))));
+  const after = index == null || viewKey(k) ? detach(l, k) : withGroups(l, l.groups.map((g, i) => (i === index ? removeFromGroup(g, k) : g)));
+  return dropEmptied(l, after);
 };
 export const activate = (l: Layout, index: number, id: ItemId | ItemKey): Layout => {
   const k = keyOf(id);
@@ -218,10 +236,11 @@ export const activateNext = (l: Layout, index: number, delta: 1 | -1): Layout =>
   return activate(l, index, g.tabs[(at + delta + g.tabs.length) % g.tabs.length]);
 };
 /* Unlike a split, which copies a document, this takes the active tab away from
-   the group it was in and gives it a new group of its own on that side. */
+   the group it was in and gives it a new group of its own on that side. With
+   nothing to take, it splits the group as it stands, into an empty neighbour. */
 export const moveToNewGroup = (l: Layout, index: number, side: SplitSide): Layout => {
-  const g = l.groups[index]; const k = g?.active; if (!g || !k) return l;
-  return split(l, index, side, k, g.key);
+  const g = l.groups[index]; if (!g) return l;
+  return g.active ? split(l, index, side, g.active, g.key) : split(l, index, side);
 };
 /* The node a path names, counting child indices down from the root. */
 export const nodeAt = (tree: SplitNode, path: SplitPath): SplitNode | null =>
@@ -252,7 +271,7 @@ export const ensureOwn = (l: Layout, section: SectionId): Layout => {
   const k = keyOf(docItem(section, 'text'));
   const at = l.groups.findIndex((x) => x.tabs.includes(k)); const g = at >= 0 ? l.groups[at] : focusedGroup(l);
   const groups = l.groups.map((x) => (x.key === g.key ? { ...x, tabs: x.tabs.includes(k) ? x.tabs : [k, ...x.tabs], active: k } : x));
-  return focusOn(withGroups(l, groups), g.key);
+  return focusOn(settle(withGroups(l, groups)), g.key);
 };
 
 /* Persistence boundary: anything read from storage is untrusted and comes back as a Layout or not at all. */

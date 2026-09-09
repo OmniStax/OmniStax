@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout, openTab, splitRight, splitDown, split, closeItem, closeGroup, where, groupsWith, openSide, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout, openTab, splitRight, splitDown, split, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { sectionId, parseItemKey, itemKey, figItem } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -57,6 +57,12 @@ test('parseLayout rejects unknown items and duplicate tabs, assigns keys', () =>
 test('prune keeps one empty group', () => {
   const l = prune({ ...defaultLayout(s), groups: [] });
   assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, []);
+});
+test('an empty group keeps its place until it is closed', () => {
+  const l = prune(closeItem(defaultLayout(s), ex, 0));
+  assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, [text], 'a group with tabs is untouched');
+  const empty = closeItem(closeItem(defaultLayout(s), ex, 0), text, 0);
+  assert.equal(empty.groups.length, 1); assert.deepEqual(empty.groups[0].tabs, [], 'the last group stays, empty');
 });
 
 test('figure keys round-trip and belong to their section', () => {
@@ -194,6 +200,51 @@ test('moveToNewGroup takes the tab away from the group it came from', () => {
   const l = moveToNewGroup(defaultLayout(s), 0, 'down');
   assert.deepEqual(l.groups[0].tabs, [ex]); assert.deepEqual(l.groups[1].tabs, [text]);
   assert.deepEqual(shape(l), { column: [0, 1] }); assert.deepEqual(groupsWith(l, text), [1]);
+});
+test('splitting a group with nothing open gives it an empty neighbour', () => {
+  const one = closeGroup(defaultLayout(s), 0);
+  assert.deepEqual(one.groups[0].tabs, []);
+  const l = splitRight(one, 0);
+  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[1].tabs, []); assert.equal(l.groups[1].active, null);
+  assert.deepEqual(shape(l), { row: [0, 1] }); assert.equal(l.focus, 1, 'the new group takes the focus');
+  assert.deepEqual(shape(splitDown(one, 0)), { column: [0, 1] });
+  assert.equal(sizesAt(l, []), undefined, 'the two halves share the slot evenly');
+});
+test('moveToNewGroup on an empty group splits it in two', () => {
+  const l = moveToNewGroup(closeGroup(defaultLayout(s), 0), 0, 'down');
+  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, []); assert.deepEqual(l.groups[1].tabs, []);
+  assert.deepEqual(shape(l), { column: [0, 1] });
+});
+test('an empty group sits out the work done in the others', () => {
+  const two = splitRight(closeGroup(defaultLayout(s), 0), 0);       /* two empty groups */
+  const opened = openTab(two, text, 1);
+  assert.equal(opened.groups.length, 2); assert.deepEqual(opened.groups[0].tabs, []);
+  const more = openTab(opened, ex, 1);
+  assert.equal(activate(more, 1, text).groups.length, 2);
+  assert.equal(resizeSplit(more, [], [1, 3]).groups.length, 2);
+  assert.deepEqual(sizesAt(resizeSplit(more, [], [1, 3]), []), [1, 3]);
+});
+test('a group that is emptied by an operation goes, one that was empty stays', () => {
+  const two = splitRight(defaultLayout(s), 0);
+  assert.equal(closeItem(two, text, 1).groups.length, 1, 'closing the last tab drops the group');
+  const moved = openTab(two, text, 0, { from: two.groups[1].key });
+  assert.equal(moved.groups.length, 1, 'moving the only tab out drops the source');
+  assert.deepEqual(moved.groups[0].tabs, [text, ex]);
+});
+test('closeGroup takes an empty group away, closeOtherGroups keeps one with its tabs', () => {
+  const two = splitRight(closeGroup(defaultLayout(s), 0), 0);
+  const l = closeGroup(two, 1);
+  assert.equal(l.groups.length, 1); assert.equal(l.groups[0].key, two.groups[0].key); assert.deepEqual(shape(l), 0);
+  const three = splitRight(splitRight(defaultLayout(s), 0), 1);
+  const alone = closeOtherGroups(three, 0);
+  assert.equal(alone.groups.length, 1); assert.equal(alone.groups[0].key, three.groups[0].key);
+  assert.deepEqual(alone.groups[0].tabs, [text, ex]); assert.equal(alone.focus, 0);
+});
+test('parseLayout keeps every empty group it is given', () => {
+  const raw = { sides, groups: [{ key: 'a', tabs: [], active: null }, { key: 'b', tabs: [text], active: text }, { key: 'c', tabs: [] }], focus: 2 };
+  const l = parseLayout(raw, known);
+  assert.ok(l); assert.equal(l!.groups.length, 3); assert.deepEqual(shape(l!), { row: [0, 1, 2] });
+  assert.deepEqual(l!.groups.map((g) => g.tabs), [[], [text], []]); assert.equal(l!.focus, 2);
 });
 test('the spatial picker takes the nearest group that way', () => {
   const rect = (left: number, top: number, right: number, bottom: number): Rect => ({ left, top, right, bottom });
