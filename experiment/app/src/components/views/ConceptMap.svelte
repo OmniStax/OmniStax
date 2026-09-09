@@ -24,7 +24,7 @@
   const why = $derived.by(() => {
     if (!hover) return null; const c = node(hover); const sp = spansOf(conceptId(c.id)); const tb = testedBy(conceptId(c.id)).length;
     if (c.placeholder) return `<b>${c.name}.</b> <span class="kind">section ${c.section}, not built yet</span><br>Opens the OpenStax page.`;
-    return `<b>${c.name}.</b> <span class="kind">${c.kind}${c.ext ? ' · section ' + c.section : ''}${sp.intro[0] ? ' · introduced in “' + spanTitle(sp.intro[0]) + '”' : ''} · tested by ${tb} exercise${tb === 1 ? '' : 's'}</span><br>${c.why ?? ''}<br><span class="kind">Click to pin: highlights where it is introduced, used and tested.</span>`;
+    return `<b>${c.name}.</b> <span class="kind">${c.kind}${c.ext ? ' · section ' + c.section : ''}${sp.intro[0] ? ' · introduced in “' + spanTitle(sp.intro[0]) + '”' : ''} · tested by ${tb} exercise${tb === 1 ? '' : 's'}</span><br>${c.why ?? ''}<br><span class="kind">Click to pin: goes to where it is introduced and marks the exercises that test it.</span>`;
   });
   const click = (id: string) => {
     const c = node(id);

@@ -54,10 +54,9 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .example ol{padding-left:1.2rem}
 .summary-box{background:var(--soft);border-radius:6px;padding:14px 20px;margin:1.2rem 0}
 .summary-box .katex-display{margin:0.4rem 0}
-.cite-target{transition:background .6s}
-.cite-target.flash{background:color-mix(in srgb,var(--warm) 18%,transparent);border-radius:4px}
-.span-intro{box-shadow:-16px 0 0 -13px var(--accent)}
-.span-uses{box-shadow:-16px 0 0 -13px var(--muted)}
+/* where a jump landed: a tint that fades out */
+.landed{animation:landed 1.8s ease-out;border-radius:4px}
+@keyframes landed{0%,25%{background:color-mix(in srgb,var(--warm) 18%,transparent);box-shadow:0 0 0 8px color-mix(in srgb,var(--warm) 18%,transparent)}100%{background:transparent;box-shadow:0 0 0 8px transparent}}
 .footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
 .footer p{margin:0 0 6px}
 .footer cite{font-style:italic}

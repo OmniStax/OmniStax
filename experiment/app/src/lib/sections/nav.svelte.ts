@@ -8,7 +8,7 @@ import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
 
 const cssId = (id: string): string => (typeof CSS !== 'undefined' && 'escape' in CSS ? CSS.escape(id) : id);
-export const allEls = (id: string): HTMLElement[] => Array.from(document.querySelectorAll<HTMLElement>(`[id="${cssId(id)}"]`));
+const allEls = (id: string): HTMLElement[] => Array.from(document.querySelectorAll<HTMLElement>(`[id="${cssId(id)}"]`));
 const paneOf = (e: Element): HTMLElement | null => e.closest<HTMLElement>('.pane');
 export const activePane = (index: number): HTMLElement | null => document.querySelector<HTMLElement>(`.group[data-index="${index}"] .pane:not([hidden])`);
 /* The article the reading commands act on: the focused pane's, else any visible one. */
@@ -39,13 +39,19 @@ export const reveal = (node: Element): boolean => {
   if (g && (g.active !== key || l.focus !== loc.index)) { layoutStore.apply((x) => activate(x, loc.index, key)); return true; }
   return false;
 };
-export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 'start'): void => {
+/* Tint the element a jump landed on, briefly; a repeat jump restarts the tint. */
+const land = (el: HTMLElement): void => {
+  el.classList.remove('landed'); void el.offsetWidth;
+  el.classList.add('landed');
+  el.addEventListener('animationend', () => el.classList.remove('landed'), { once: true });
+};
+export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 'start', tint = true): void => {
   if (!target) return;
   const card = target.closest<HTMLElement & { exShow?: () => void }>('.exercise');
   if (card?.hidden && card.exShow) card.exShow();
   revealFolds(target);
   reveal(target);
-  requestAnimationFrame(() => target.scrollIntoView({ behavior: FIG.REDUCED ? 'auto' : 'smooth', block }));
+  requestAnimationFrame(() => { target.scrollIntoView({ behavior: FIG.REDUCED ? 'auto' : 'smooth', block }); if (tint) land(target); });
 };
 export const go = (id: string, block: ScrollLogicalPosition = 'start'): void => jump(findEl(id), block);
 export const goSpan = (id: SpanId | undefined): void => {
@@ -57,7 +63,7 @@ export const goSpan = (id: SpanId | undefined): void => {
 export const cite = (id: string): void => {
   const sec = findEl(id); if (!sec) return;
   const tgt = sec.querySelector<HTMLElement>('.cite-target') ?? sec;
-  jump(tgt, 'center'); tgt.classList.add('flash'); setTimeout(() => tgt.classList.remove('flash'), 2000);
+  jump(tgt, 'center');
 };
 /* Open a document: activate it where it is, or open it in the given group (default: focused). */
 export const openDoc = (sec: SectionId, doc: 'text' | 'exercises', group?: number): Promise<void> => {

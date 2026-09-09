@@ -7,16 +7,16 @@
   import { initFig, FIG } from '../lib/fig/figlib';
   import { registry } from '../lib/sections/registry.svelte';
   import { focus } from '../lib/sections/focus.svelte';
-  import { pin, spansOf, testedBy } from '../lib/sections/concepts.svelte';
+  import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { allEls, findEl, jump, activePane } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { VIEW_KEYS, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import { reader } from '../lib/voice.svelte';
-  import { parseItemKey, sectionId, itemKey, docItem, conceptId, type SectionId } from '../lib/types/ids';
+  import { parseItemKey, sectionId, itemKey, docItem, type SectionId } from '../lib/types/ids';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -81,16 +81,6 @@
 
   /* folded headings and hidden figures → classes on every copy, then the spy re-reads the shorter page */
   $effect(() => { folded.ids; hiddenFigs.ids; registry.sections; applyState(document); spy.read(activePane(layoutStore.layout.focus)); });
-
-  /* pinned concept → span highlights in every copy of every document */
-  $effect(() => {
-    const p = pin.pinned; registry.sections; layoutStore.layout;
-    document.querySelectorAll('.span-intro, .span-uses').forEach((s) => s.classList.remove('span-intro', 'span-uses'));
-    if (!p) return;
-    const sp = spansOf(conceptId(p));
-    sp.intro.forEach((s) => allEls(s).forEach((e) => e.classList.add('span-intro')));
-    sp.uses.forEach((s) => allEls(s).forEach((e) => e.classList.add('span-uses')));
-  });
 
   /* notes → marks in every copy of every document */
   $effect(() => { notes.paintVersion; tick().then(() => document.querySelectorAll<HTMLElement>('article[data-doc]').forEach(paintDoc)); });

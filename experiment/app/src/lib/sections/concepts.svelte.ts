@@ -1,6 +1,5 @@
-/* The pinned concept and what it lights up: the spans that introduce and use
-   it, and the exercises that test it. Exercise cards read `pinned` themselves;
-   spans are static HTML and get their classes from an effect in the shell. */
+/* The pinned concept and what it points at: the spans that introduce and use
+   it, and the exercises that test it. Exercise cards read `pinned` themselves. */
 import { registry } from './registry.svelte';
 import { type ConceptId, type SpanId, spanId, exerciseDomId, sectionId } from '../types/ids';
 
