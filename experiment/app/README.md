@@ -31,20 +31,23 @@ concern and read from the environment with defaults:
 
 ```
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes)
-src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, or one exercise on its own) and its key/parse pair
+src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag
-src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's notes, persisted), go.ts (jump to a highlight)
+src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes)
 src/lib/settings    colour coding, theme, animations, exercise mode
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
-src/components      Shell, Rail, Sidebar, ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar
-src/components/views      View dispatcher (with the scope header), ConceptMap, Contents, Formulas, Definitions, Notes
+src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar
+src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations
+src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
-src/layouts/Page.astro    head, metadata, colour tokens from the book, the static pool, the shell island
-src/pages                 [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, chapter json, book.json
+src/layouts/ShellPage.astro  what every page shares: fonts, the book's colour tokens, the theme script, the static pool and the shell island, over the one item the page is
+src/layouts/Page.astro    one section over ShellPage: its metadata, its canonical link and its figure scripts
+src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
+src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, about.html, book.html, chapter json, book.json, library.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, demos)
 ```
 
@@ -64,12 +67,21 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   from the Open browser — but as a card the shell renders rather than adopted
   markup, so what is answered there is that card's own, as it is for a document
   cloned into a second group.
+- Every page of the site is the same shell over a different item: `/` carries
+  `page:about`, `/<book>/` carries `page:book`, a section page carries its text.
+  That item is the shell's `own`, what `ensureOwn` keeps open, and what the
+  section-scoped views fall back from when the focused tab belongs to no section.
+- The shell is a rail, a sidebar and the document groups, all on the left. The
+  rail's top two views — the explorer and the annotations — toggle in the
+  sidebar; the three below the rule are only ever tabs and open in a split to
+  the right of the group being read (`openInSplit`), or step to where they
+  already stand. Every rail button drags into a group all the same.
 - A companion view stands at a level of the book — the whole book, one chapter or
   one section — and at that level either follows the page being read or is pinned
   to a place of its own. The bar above it is the trail to that place and the
   control that walks it, Left and Right widen and narrow it, and the palette's
-  View group holds the same moves for the view the reader last touched, with the
-  commands that open any view in a group or the sidebar. A crumb's label moves the
+  View group holds the same moves for the view the reader last touched, beside
+  the commands that open each view where it belongs. A crumb's label moves the
   view to that level and the chevron beside it chooses another chapter or section,
   and choosing anything but the place the open page lies in pins the view there.
 - One fold rule for every list a view draws: what the view's level covers is shown

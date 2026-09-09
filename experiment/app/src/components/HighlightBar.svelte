@@ -23,19 +23,19 @@
     const ix = textIndex(art); const span = rangeSpan(ix, range);
     if (!span || !ix.full.slice(span.start, span.end).trim()) { open = false; return; }
     const [section, doc] = (art.dataset.doc ?? '').split('/') as [string, DocKind];
-    pending = { section: sectionId(section), doc, anchor: makeAnchor(ix.full, span) }; mode = 'new'; noteId = null; place(range.getBoundingClientRect()); open = true;
+    pending = { section: sectionId(section), doc, anchor: makeAnchor(ix.full, span) }; mode = 'new'; noteId = null; copied = false; place(range.getBoundingClientRect()); open = true;
   };
   let timer = 0;
   const onSel = () => { clearTimeout(timer); timer = window.setTimeout(fromSelection, 160); };
   const onClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement; if (t.closest('.hl-bar')) return;
     const m = t.closest<HTMLElement>('mark.hl');
-    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; place(m.getBoundingClientRect()); open = true; return; }
+    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; copied = false; place(m.getBoundingClientRect()); open = true; return; }
     if (mode === 'edit') open = false;
   };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') open = false; };
   onMount(() => { document.addEventListener('selectionchange', onSel); document.addEventListener('click', onClick); document.addEventListener('keydown', onKey); return () => { document.removeEventListener('selectionchange', onSel); document.removeEventListener('click', onClick); document.removeEventListener('keydown', onKey); }; });
-  const openNotesView = () => { const v = document.querySelector('[data-view="notes"]'); if (v) reveal(v); else layoutStore.apply((l) => openSide(l, 'view:notes', homeSide(l, 'view:notes'))); };
+  const openNotesView = () => { const v = document.querySelector('[data-view="annotations"]'); if (v) reveal(v); else layoutStore.apply((l) => openSide(l, 'view:annotations', homeSide(l, 'view:annotations'))); };
   const choose = (c: HlColor) => {
     if (mode === 'edit' && noteId) { notes.setColor(noteId, c); open = false; return; }
     if (!pending) return; notes.add(pending.section, pending.doc, pending.anchor, c); document.getSelection()?.removeAllRanges(); open = false;
@@ -46,6 +46,18 @@
     if (!id) return; open = false; openNotesView(); notes.editing = id;
   };
   const remove = () => { if (noteId) notes.remove(noteId); open = false; };
+  /* The link a note writes to quote this highlight. A selection that is not yet
+     a highlight becomes one, in yellow, so that there is something to point at;
+     the bar then stands over it as though it had been clicked. */
+  let copied = $state(false);
+  const COPIED_FOR = 1200;
+  const copyLink = async () => {
+    let id = noteId;
+    if (mode === 'new' && pending) { id = notes.add(pending.section, pending.doc, pending.anchor, 'yellow').id; document.getSelection()?.removeAllRanges(); noteId = id; mode = 'edit'; pending = null; }
+    if (!id) return;
+    try { await navigator.clipboard.writeText(`[[hl:${id}]]`); } catch { console.warn('The clipboard is not open to this page; the link was not copied.'); return; }
+    copied = true; setTimeout(() => { copied = false; }, COPIED_FOR);
+  };
   const current = $derived(noteId ? notes.get(noteId)?.color ?? null : null);
 </script>
 
@@ -54,6 +66,7 @@
     {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
     <span class="sep"></span>
     <button type="button" class="act" onclick={annotate}>{mode === 'edit' && notes.get(noteId ?? '')?.text ? 'Edit note' : 'Note'}</button>
+    <button type="button" class="act" class:done={copied} title="Copy a link to this highlight, to paste into a note" onclick={copyLink}>{copied ? 'Copied' : 'Copy link'}</button>
     {#if mode === 'edit'}<button type="button" class="act" onclick={remove}>Remove</button>{/if}
   </div>
 {/if}
@@ -67,4 +80,5 @@
   .sep{width:1px;height:18px;background:var(--rule);margin:0 2px}
   .act{font:inherit;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:3px 6px;border-radius:4px}
   .act:hover{background:var(--soft)}
+  .act.done{color:var(--ok)}
 </style>

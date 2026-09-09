@@ -19,12 +19,15 @@
   import { ICON } from '../../lib/icons';
   import CrumbMenu from './CrumbMenu.svelte';
   import ConceptMap from './ConceptMap.svelte';
-  import Contents from './Contents.svelte';
+  import Explorer from './Explorer.svelte';
   import Formulas from './Formulas.svelte';
   import Definitions from './Definitions.svelte';
-  import Notes from './Notes.svelte';
+  import Annotations from './Annotations.svelte';
   let { kind }: { kind: string } = $props();
   const vk = $derived(kind as ViewKind);
+  /* The explorer is the whole tree — the reader's notes and every book they
+     have added — so it stands nowhere in particular and wears no bar. */
+  const hasBar = $derived(vk !== 'explorer');
   const target = $derived(scope.targetFor(vk));
   const pinned = $derived(scope.isPinned(vk));
   /* The trail is read from the narrowest place this view could stand at, so every crumb
@@ -54,7 +57,7 @@
   /* The chapters a view above the section reads from: the one it stands in, or every
      chapter the book has built something of. */
   const dirs = $derived(
-    target.level === 'section' ? []
+    !hasBar || target.level === 'section' ? []
       : target.level === 'chapter' ? registry.manifest.chapters.filter((c) => c.id === target.chapter).map((c) => c.dir)
       : registry.manifest.chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir),
   );
@@ -64,6 +67,7 @@
 </script>
 
 <div class="view" data-view={kind} onpointerdown={() => (focus.view = vk)} onfocusincapture={() => (focus.view = vk)}>
+  {#if hasBar}
   <div class="scope" class:pinned>
     <nav class="crumbs" aria-label="Where this view stands">
       {#each crumbs as c, i (c.level)}
@@ -89,11 +93,12 @@
     {/if}
   </div>
   {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
-  {#if kind === 'concepts'}<ConceptMap />
-  {:else if kind === 'contents'}<Contents />
+  {/if}
+  {#if kind === 'explorer'}<Explorer />
+  {:else if kind === 'concepts'}<ConceptMap />
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />
-  {:else}<Notes />{/if}
+  {:else}<Annotations />{/if}
 </div>
 
 <style>

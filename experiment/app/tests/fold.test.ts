@@ -39,10 +39,11 @@ const deps = (): BuiltinDeps => ({
     nextTab: () => {}, previousTab: () => {}, groupCount: 2,
   },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
-  ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, palette: { open: false, group: null }, browser: { open: false } },
+  ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, openFindTextbook: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
-  scope: { activeView: () => 'contents', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
+  scope: { activeView: () => 'concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
   docs: { openView: () => {}, openExercises: () => {}, canOpenExercises: () => true },
+  notes: { newNote: () => {}, toggleMode: () => {}, canToggle: () => true },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {
   const chords = DEFAULT_PAIRS.map(([c]) => c);

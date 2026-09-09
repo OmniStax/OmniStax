@@ -1,14 +1,15 @@
 ---
 /* One section as a static page: metadata for crawlers, the article in the
-   document, the book's colour tokens, and the shell mounted on top. */
-import 'katex/dist/katex.min.css';
-import '../styles/global.css';
-import Shell from '../components/Shell.svelte';
+   document, and the shell mounted on top with that section's text as the item
+   the page is. Everything the three pages of the site share — fonts, colour
+   tokens, the pool, the island — is in ShellPage beneath this. */
+import ShellPage from './ShellPage.astro';
 import { config } from '../../omnistax.config';
 import { sectionUrl } from '../lib/content/load';
 import type { BookTree, ChapterTree, SectionSource } from '../lib/content/load';
 import { fragment } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
+import { docItem, sectionId } from '../lib/types/ids';
 
 type Props = { tree: BookTree; chapter: ChapterTree; section: SectionSource };
 const { tree, chapter, section } = Astro.props as Props;
@@ -31,48 +32,29 @@ const ld = {
   educationalLevel: 'Undergraduate', learningResourceType: 'Interactive textbook section',
   teaches: chapter.concepts.concepts.filter((c) => c.section === sec.id && !c.placeholder).map((c) => c.name),
 };
-/* Colour is a function of type. Global-tier types get their hues on the root; a chapter's bindings are scoped to
-   its articles; a page colours only the types it binds. Dark values come in three states: system, forced, or light. */
-type Mode = 'light' | 'dark';
-const globalVars = (mode: Mode) => Object.entries(book.types).filter(([, t]) => t[mode]).map(([k, t]) => `--c-${k}:${t[mode]}`).join(';');
-const poolHue = (id: string, mode: Mode) => book.pool.find((p) => p.id === id)?.[mode] ?? 'inherit';
-/* Each chapter's scope sets the chapter-tier types it binds and resets the ones it does not, so an article of one chapter opened on another's page keeps its own colours. */
-const chapterTier = Object.entries(book.types).filter(([, t]) => !t.light).map(([k]) => k);
-const chapterVars = (mode: Mode) => tree.chapters.map((ch) => chapterTier.map((k) => `--c-${k}:${ch.dto.colors[k] ? poolHue(ch.dto.colors[k], mode) : 'initial'}`).join(';')).map((vars, i) => [tree.chapters[i].dto.dir, vars] as const).filter(([, v]) => v);
-const scoped = (mode: Mode, prefix: string) => chapterVars(mode).map(([dir, vars]) => `${prefix}[data-chapter="${dir}"],${prefix} [data-chapter="${dir}"]{${vars}}`).join('');
-const colourCss = [
-  `:root{${globalVars('light')}}`, scoped('light', ''),
-  `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${globalVars('dark')}}${scoped('dark', ':root:not([data-theme="light"])')}}`,
-  `:root[data-theme="dark"]{${globalVars('dark')}}${scoped('dark', ':root[data-theme="dark"]')}`,
-].join('');
-const kvRules = Object.keys(book.types).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
-const unbound = tree.chapters.flatMap((ch) => ch.sections.filter((s) => s.meta.binds.length).map((s) => {
-  const off = Object.keys(book.types).filter((k) => !s.meta.binds.includes(k));
-  return off.length ? `article[data-sec="${s.meta.id}"] :is(${off.map((k) => `.kv-${k}`).join(',')}){color:inherit}` : '';
-})).join('\n');
-const shellProps = { manifest: tree.manifest, chapterDir: chapter.dto.dir, chapterData: { concepts: chapter.concepts, formulas: chapter.formulas }, section: sec, exercises: section.exercises, threeUrl: config.build.threeUrl };
 ---
-<!doctype html>
-<html lang="en" data-book={book.id} data-chapter={chapter.dto.dir} data-section={sec.id}>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title}</title>
-<meta name="description" content={description}>
-<link rel="canonical" href={canonical}>
-{prev && <link rel="prev" href={prev} />}
-{next && <link rel="next" href={next} />}
-{book.licenseUrl && <link rel="license" href={book.licenseUrl} />}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<style is:inline set:html={`${colourCss}\n${kvRules}\n${unbound}`}></style>
-<script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
-</head>
-<body>
-<div id="pool" set:html={fragment(book, chapter.dto, section)}></div>
-<script is:inline src={config.build.threeUrl}></script>
-<script is:inline src={`${url}figures.js`}></script>
-<Shell client:only="svelte" {...shellProps} />
-</body>
-</html>
+<ShellPage
+  tree={tree}
+  own={docItem(sectionId(sec.id), 'text')}
+  pool={fragment(book, chapter.dto, section)}
+  title={title}
+  description={description}
+  book={book.id}
+  chapter={chapter.dto.dir}
+  section={sec.id}
+  chapterDir={chapter.dto.dir}
+  chapterData={{ concepts: chapter.concepts, formulas: chapter.formulas }}
+  meta={sec}
+  exercises={section.exercises}
+>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonical}>
+    {prev && <link rel="prev" href={prev} />}
+    {next && <link rel="next" href={next} />}
+    {book.licenseUrl && <link rel="license" href={book.licenseUrl} />}
+    <script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
+  </Fragment>
+  <Fragment slot="scripts">
+    <script is:inline src={`${url}figures.js`}></script>
+  </Fragment>
+</ShellPage>

@@ -65,9 +65,10 @@ export const cite = (id: string): void => {
   const tgt = sec.querySelector<HTMLElement>('.cite-target') ?? sec;
   jump(tgt, 'center');
 };
-/* Open anything a tab can hold — a document, a figure, one exercise: activate it
-   where it already is, or open it in the given group (default: focused), and
-   load the section it comes out of. */
+/* Open anything a tab can hold — a document, a figure, one exercise, a standing
+   page, a note: activate it where it already is, or open it in the given group
+   (default: focused), and load the section it comes out of. A page and a note
+   come out of no section, so for them there is nothing to fetch. */
 export const openItem = (key: string, group?: number): Promise<void> => {
   const l = layoutStore.layout;
   const loc = group == null ? where(l, key) : null;

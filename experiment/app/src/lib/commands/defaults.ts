@@ -22,5 +22,7 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Shift+W', 'close-group'],
   ['ArrowLeft', 'scope-widen'], ['ArrowRight', 'scope-narrow'],
   ['Ctrl+Shift+E', 'open-exercises'],
+  ['Ctrl+E', 'note-toggle-mode'],
+  ['Ctrl+Alt+N', 'note-new'],   /* Ctrl+N opens a window of the browser's own, so the note takes Alt as well */
 ];
 export const DEFAULT_BINDINGS: Bindings = bind(DEFAULT_PAIRS);

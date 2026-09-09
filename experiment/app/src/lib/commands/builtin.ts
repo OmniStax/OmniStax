@@ -4,7 +4,7 @@
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ExerciseMode } from '../settings/store.svelte';
-import { VIEW_KINDS, type ViewKind } from '../types/ids';
+import { VIEW_KINDS, isSidebarKind, type ViewKind } from '../types/ids';
 import type { Level } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
 
@@ -25,14 +25,20 @@ export type BuiltinDeps = {
   };
   readonly fold: { foldAll(): void; unfoldAll(): void; hideFigures(): void; showFigures(): void };
   readonly ui: {
-    openPalette(): void; openSettings(): void; openBrowser(opts?: { group?: number }): void;
+    openPalette(): void; openSettings(): void; openBrowser(opts?: { group?: number }): void; openFindTextbook(): void;
     readonly palette: { readonly open: boolean; readonly group: number | null }; readonly browser: { readonly open: boolean };
   };
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
   /* The view the commands act on is whichever one the reader last touched; with none there is nothing to scope. */
   readonly scope: { activeView(): ViewKind | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
-  readonly docs: { openView(kind: ViewKind, where: 'group' | 'side'): void; openExercises(): void; canOpenExercises(): boolean };
+  readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openExercises(): void; canOpenExercises(): boolean };
+  /* The reader's own notes: a new one, and the mode of the note tab in the focused group. */
+  readonly notes: { newNote(): void; toggleMode(): void; canToggle(): boolean };
 };
+
+/* Where a view is asked for: a tab of the group in hand, the sidebar it calls
+   home, or a split to the right of the group being read. */
+export type ViewWhere = 'group' | 'side' | 'split';
 
 /* Ids the defaults and the Rail refer to. */
 export const BUILTIN = {
@@ -55,8 +61,10 @@ export const BUILTIN = {
   scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
   scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
   openExercises: commandId('open-exercises'),
+  noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
+  findTextbook: commandId('explorer-find-textbook'),
 } as const;
-/* One pair of ids per view, since each of the five is opened and shown by name. */
+/* One id per view for opening it, and a second for the two that a sidebar holds. */
 export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${kind}`);
 export const showViewId = (kind: ViewKind): CommandId => commandId(`show-view-${kind}`);
 
@@ -71,11 +79,15 @@ const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: 
 /* Sending a view straight to a level, which says which one it stands at now. */
 const scopeCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
   ({ id, label: `View scope: ${level}`, group: 'View', run: () => d.scope.atLevel(level), when: () => d.scope.activeView() !== null, detail: () => (d.scope.level() === level ? 'current' : '') });
-/* Every view can be opened as a tab of its own or shown in the sidebar it belongs to. */
-const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap((kind): readonly Command[] => [
-  { id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a group`, group: 'View', run: () => d.docs.openView(kind, 'group') },
-  { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
-]);
+/* The two views a sidebar holds can be opened as a tab of their own or shown in
+   the sidebar; the other three are only ever tabs, and open in a split beside
+   what is being read. */
+const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap((kind): readonly Command[] => (isSidebarKind(kind)
+  ? [
+    { id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a group`, group: 'View', run: () => d.docs.openView(kind, 'group') },
+    { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
+  ]
+  : [{ id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a split`, group: 'View', run: () => d.docs.openView(kind, 'split') }]));
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
@@ -116,4 +128,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.scopePick, label: 'Pin view to…', group: 'View', run: () => d.scope.pickTarget(), when: () => d.scope.activeView() !== null },
   ...viewCommands(d),
   { id: BUILTIN.openExercises, label: "Open this section's exercises", group: 'App', run: () => d.docs.openExercises(), when: () => d.docs.canOpenExercises() },
+  { id: BUILTIN.noteNew, label: 'New note', group: 'App', run: () => d.notes.newNote() },
+  { id: BUILTIN.noteToggleMode, label: 'Note: edit or read', group: 'App', run: () => d.notes.toggleMode(), when: () => d.notes.canToggle() },
+  { id: BUILTIN.findTextbook, label: 'Find a textbook', group: 'App', run: () => d.ui.openFindTextbook() },
 ];

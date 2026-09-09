@@ -5,7 +5,7 @@ import { fuzzy, rank } from '../src/lib/commands/fuzzy';
 import { builtinCommands, BUILTIN, openViewId, showViewId, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { commandId, available } from '../src/lib/commands/command';
 import { DEFAULT_PAIRS } from '../src/lib/commands/defaults';
-import { VIEW_KINDS, type ViewKind } from '../src/lib/types/ids';
+import { SIDEBAR_KINDS, VIEW_KINDS, isSidebarKind, type ViewKind } from '../src/lib/types/ids';
 import type { Level } from '../src/lib/sections/scope';
 
 /* chords */
@@ -79,9 +79,9 @@ test('rank orders best-first and keeps ties in the given order', () => {
 /* builtins */
 /* The view the scope commands act on: which one is active, where it stands, whether it is pinned. */
 type ViewState = { readonly view?: ViewKind | null; readonly level?: Level; readonly pinned?: boolean };
-const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
-  const kind = view.view === undefined ? 'contents' : view.view;
+  const kind = view.view === undefined ? 'concepts' : view.view;
   return {
     log,
     settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`) },
@@ -93,7 +93,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'), groupCount: groups,
     },
     fold: { foldAll: () => log.push('fold'), unfoldAll: () => log.push('unfold'), hideFigures: () => log.push('hide'), showFigures: () => log.push('show') },
-    ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
+    ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), openFindTextbook: () => log.push('find textbook'), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
     scope: {
       activeView: () => kind, level: () => (kind ? view.level ?? 'section' : null), pinned: () => view.pinned === true,
@@ -101,6 +101,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
     },
     docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt },
+    notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {
@@ -176,15 +177,28 @@ test('a view is pinned or unpinned by one command or the other, never both', () 
   cmds.find((c) => c.id === BUILTIN.scopeUnpin)!.run();
   assert.deepEqual(d.log, ['toggle pin']);
 });
-test('every view can be opened in a group or shown in the sidebar, and the exercises follow the page', () => {
+test('the sidebar views open in a group or in the sidebar, the rest only in a split', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  VIEW_KINDS.forEach((k) => { assert.ok(cmds.some((c) => c.id === openViewId(k)), k); assert.ok(cmds.some((c) => c.id === showViewId(k)), k); });
-  assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a group');
-  assert.equal(by(showViewId('concepts')).label, 'Show Concept map in the sidebar');
-  by(openViewId('notes')).run(); by(showViewId('notes')).run(); by(BUILTIN.openExercises).run();
-  assert.deepEqual(d.log, ['view notes group', 'view notes side', 'exercises']);
+  VIEW_KINDS.forEach((k) => {
+    assert.ok(cmds.some((c) => c.id === openViewId(k)), k);
+    assert.equal(cmds.some((c) => c.id === showViewId(k)), isSidebarKind(k), k);
+  });
+  assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'annotations']);
+  assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a split');
+  assert.equal(by(openViewId('explorer')).label, 'Open Explorer in a group');
+  assert.equal(by(showViewId('annotations')).label, 'Show Annotations in the sidebar');
+  by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run(); by(BUILTIN.openExercises).run();
+  assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split', 'exercises']);
   assert.equal(available(by(BUILTIN.openExercises)), true);
   assert.equal(available(builtinCommands(deps(false, 2, {}, false)).find((c) => c.id === BUILTIN.openExercises)!), false, 'a section that is not built has no exercises to open');
+});
+test('the note commands and the textbook finder act on their stores', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  by(BUILTIN.noteNew).run(); by(BUILTIN.noteToggleMode).run(); by(BUILTIN.findTextbook).run();
+  assert.deepEqual(d.log, ['new note', 'toggle mode', 'find textbook']);
+  assert.equal(available(by(BUILTIN.noteToggleMode)), true);
+  assert.equal(available(builtinCommands(deps(false, 2, {}, true, false)).find((c) => c.id === BUILTIN.noteToggleMode)!), false, 'nothing to toggle without a note in hand');
+  assert.equal(available(by(BUILTIN.noteNew)), true);
 });
 test('Open… is hidden while the browser is up, so its chord cannot reset the tree', () => {
   const open = (d: BuiltinDeps) => builtinCommands(d).find((c) => c.id === BUILTIN.open)!;

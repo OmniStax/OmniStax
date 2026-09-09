@@ -6,7 +6,7 @@ import { focus } from '../sections/focus.svelte';
 import { goSpan, findEl, openDoc, reveal } from '../sections/nav.svelte';
 import { spansOf, testedBy } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { openSide, homeSide, toggleCollapsed } from '../layout/model';
+import { openInSplit } from '../layout/model';
 import { type SectionId, type SpanId, sectionId, spanId, conceptId, sectionOfSpan, itemKey, viewItem } from '../types/ids';
 import { symOf, typeOf, lookupVariable } from './data';
 import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, introducingSpan, matchEquation, firstSentence } from './resolve';
@@ -36,7 +36,7 @@ const showView = (view: 'definitions' | 'formulas' | 'concepts'): void => {
   const key = itemKey(viewItem(view));
   const host = document.querySelector<HTMLElement>(`[data-view="${view}"]`);
   if (host) { reveal(host); return; }
-  layoutStore.apply((x) => { const y = openSide(x, key, homeSide(x, key)); return y.collapsed.includes(key) ? toggleCollapsed(y, key) : y; });
+  layoutStore.apply((x) => openInSplit(x, key));
 };
 const showOriginal = (figure: SpanId): void => {
   goSpan(figure);

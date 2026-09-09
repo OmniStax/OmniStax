@@ -1,6 +1,8 @@
 <script lang="ts">
   /* The shell: mounts once per page, adopts the static article from the pool,
-     and lays out rails, sidebars and document groups from the layout store.
+     and lays out the rail, the sidebar and the document groups from the layout
+     store. The page it mounts on may be a section, the front of the book or the
+     front of OmniStax; what it carries is one item, and that is what opens.
      Everything that touches document-wide state (theme, colour coding, pinned
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
@@ -10,13 +12,14 @@
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { findEl, jump, activePane } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane, openDoc } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { VIEW_KEYS, splitRight } from '../lib/layout/model';
+  import { VIEW_KEYS, focusedGroup, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import { reader } from '../lib/voice.svelte';
-  import { parseItemKey, sectionId, itemKey, docItem, type SectionId } from '../lib/types/ids';
+  import { parseItemKey, sectionOfItem, type ItemId, type SectionId } from '../lib/types/ids';
+  import { sectionOfUrl } from '../lib/content/urls';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -25,18 +28,32 @@
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
   import Browser from './Browser.svelte';
+  import FindTextbook from './explorer/FindTextbook.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { notes } from '../lib/notes/store.svelte';
+  import { noteDocs } from '../lib/notes/docs.svelte';
+  import { explorer } from '../lib/explorer/store.svelte';
+  import { library } from '../lib/explorer/library.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
 
-  type Props = { manifest: BookManifest; chapterDir: string; chapterData: { concepts: ConceptsDTO; formulas: FormulasDTO }; section: SectionMetaDTO; exercises: readonly ExerciseDTO[]; threeUrl: string };
-  let { manifest, chapterDir, chapterData, section }: Props = $props();
-  const page = sectionId(untrack(() => section.id));   /* the page's own section never changes */
+  type Props = { manifest: BookManifest; own: ItemId; chapterDir?: string; chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO }; section?: SectionMetaDTO; exercises?: readonly ExerciseDTO[]; threeUrl?: string };
+  let { manifest, own, chapterDir, chapterData }: Props = $props();
+  const page = untrack(() => own);   /* the page's own item never changes */
   let ready = $state(false);
   let narrow = $state(false);
 
-  const known = (k: string): boolean => { const id = parseItemKey(k); return !!id && (id.kind === 'view' ? VIEW_KEYS.includes(k) : registry.isBuilt(id.section)); };
+  /* What a saved layout may name: a view the shell still has, a document,
+     figure or exercise of a section that is built, either standing page, and a
+     note the reader still keeps. */
+  const known = (k: string): boolean => {
+    const id = parseItemKey(k);
+    if (!id) return false;
+    if (id.kind === 'view') return VIEW_KEYS.includes(k);
+    if (id.kind === 'page') return true;
+    if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
+    return registry.isBuilt(id.section);
+  };
   const mountExercises = (root: HTMLElement, sec: SectionId) => {
     root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { section: sec, place: host.dataset.place ?? 'end' } }); });
   };
@@ -50,9 +67,12 @@
   onMount(() => {
     const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types), chapterKeys: Object.entries(manifest.types).filter(([, t]) => !t.light).map(([k]) => k) });
     notes.init(manifest.id);
+    noteDocs.init();
+    explorer.init();
+    library.init(manifest.id, manifest.title);
     registry.init(manifest, fig, mountExercises, paintDoc);
-    registry.setChapter(chapterDir, chapterData);
-    focus.page = page;
+    if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);
+    focus.own = page;
     layoutStore.init(page, known);
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
@@ -67,6 +87,14 @@
       ui.closeAll();
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
+      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
+      /* A link inside a pane that names a section of this book opens as a tab
+         rather than as a page of its own; anything else — another host, the
+         front of the book, a section this build has not made — is left alone. */
+      if (link?.closest('.pane') && link.origin === location.origin && !link.hash && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        const sec = sectionOfUrl(manifest, link.pathname);
+        if (sec) { e.preventDefault(); void openDoc(sec, 'text'); return; }
+      }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
@@ -89,14 +117,17 @@
   $effect(() => { notes.paintVersion; tick().then(() => document.querySelectorAll<HTMLElement>('article[data-doc]').forEach(paintDoc)); });
   $effect(() => { notes.list.forEach((n) => setNoted(document, n.id, !!n.text)); });
 
+  /* The section the focused tab is showing, if it is showing one at all: a
+     standing page and a note belong to no section and leave the address alone. */
+  const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; const id = a ? parseItemKey(a) : null; return id ? sectionOfItem(id) : null; });
   /* layout → address bar, title, released copies, spy, redraw */
-  let urlSec: SectionId = page;
+  let urlSec: SectionId | null = null;
   $effect(() => {
-    const l = layoutStore.layout; const sec = focus.section;
+    const l = layoutStore.layout; const sec = reading;
     tick().then(() => {
       registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc], .pane .fig-root'))));
       FIG.redrawAll(); spy.read(activePane(l.focus));
-      if (sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
+      if (!sec || sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
       try { history.replaceState(null, '', e.url); } catch { /* file:// */ }
       document.title = `${sec} ${e.title} · ${manifest.title}`;
     });
@@ -107,23 +138,22 @@
 
 {#if ready}
   <div class="shell" role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
-    <Rail side="left" {narrow} />
-    <Sidebar side="left" {narrow} />
+    <Rail {narrow} />
+    <Sidebar {narrow} />
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
       <SplitTree node={layoutStore.layout.tree} {onPick} />
     </main>
-    <Sidebar side="right" {narrow} />
-    <Rail side="right" {narrow} />
   </div>
   <Settings />
   <Hover />
   <HighlightBar />
   <Palette />
   <Browser {manifest} />
+  <FindTextbook />
 {/if}
 
 <style>
-  .shell{height:100vh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr) auto 44px;grid-template-areas:"rl sl docs sr rr"}
+  .shell{height:100vh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr);grid-template-areas:"rl sl docs"}
   .docs{grid-area:docs;display:flex;min-width:0;min-height:0;background:var(--bg);position:relative}
-  @media (max-width:900px){ .shell{grid-template-columns:44px 0 minmax(0,1fr) 0 44px} .docs{flex-direction:column} }
+  @media (max-width:900px){ .shell{grid-template-columns:44px 0 minmax(0,1fr)} .docs{flex-direction:column} }
 </style>

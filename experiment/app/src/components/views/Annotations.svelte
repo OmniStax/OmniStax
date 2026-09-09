@@ -1,8 +1,8 @@
 <script lang="ts">
-  /* The reader's highlights and notes for the place this view stands at, with
-     whatever lies outside it folded away below. Each note shows its colour, its
-     quote as a link back into the text, and an annotation that saves as it is
-     typed. */
+  /* The reader's highlights for the place this view stands at, with whatever
+     lies outside it folded away below. Each one shows its colour, its quote as
+     a link back into the text, and the annotation beneath it, which saves as it
+     is typed. */
   import { getContext, tick } from 'svelte';
   import { notes, HL_COLORS, type Note } from '../../lib/notes/store.svelte';
   import { goNote } from '../../lib/notes/go';
@@ -16,12 +16,12 @@
   const inside = $derived(countOf(grouped.inside));
   const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
   const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const plural = (n: number) => `${n} ${n === 1 ? 'note' : 'notes'}`;
+  const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
   /* what to say where a place has nothing marked in it yet */
   const blank = $derived(
-    target.level === 'section' ? 'Select some text in the section to highlight it or to add a note.'
-      : target.level === 'chapter' ? 'No notes in this chapter yet.'
-      : 'No notes in this book yet.',
+    target.level === 'section' ? 'Select some text in the section to highlight it or to annotate it.'
+      : target.level === 'chapter' ? 'Nothing annotated in this chapter yet.'
+      : 'Nothing annotated in this book yet.',
   );
   /* the bar asks for an annotation to take focus */
   $effect(() => { const id = notes.editing; if (!id) return; tick().then(() => { const ta = document.querySelector<HTMLTextAreaElement>(`textarea[data-note="${id}"]`); if (ta) { ta.focus(); notes.editing = null; } }); });

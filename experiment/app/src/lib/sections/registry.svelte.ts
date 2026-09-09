@@ -5,7 +5,8 @@
    chapter's concepts and formulas are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, sectionId, itemKey, figItem } from '../types/ids';
+import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, sectionId, itemKey, figItem } from '../types/ids';
+import { noteDocs } from '../notes/docs.svelte';
 import type { Fig } from '../fig/figlib';
 import { ICON } from '../icons';
 import { originalButtons } from './original';
@@ -33,6 +34,7 @@ const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises:
 class Registry {
   manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
+  pages = $state.raw<Partial<Record<PageKind, HTMLElement>>>({});             /* the standing pages, adopted from a pool or fetched */
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
   chapterStatus = $state.raw<Readonly<Record<string, ChapterStatus>>>({});   /* by chapter dir, beside the data above */
   private fig: Fig | null = null;
@@ -42,6 +44,7 @@ class Registry {
   private clones: Record<string, HTMLElement> = {};
   private loading: Partial<Record<string, Promise<void>>> = {};
   private loadingChapters: Partial<Record<string, Promise<void>>> = {};
+  private loadingPages: Partial<Record<PageKind, Promise<void>>> = {};
 
   init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; }
 
@@ -52,6 +55,8 @@ class Registry {
   state(sec: SectionId): SectionState | undefined { return this.sections[sec]; }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
+    if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.manifest.title || 'The book';
+    if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
     return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
@@ -83,10 +88,16 @@ class Registry {
   }
   async loadChapters(dirs: readonly string[]): Promise<void> { await Promise.all(dirs.map((d) => this.loadChapter(d))); }
 
-  /* Take the articles and data block out of a container (the static pool or a fetched fragment). */
+  /* Take the articles and data block out of a container (the static pool or a
+     fetched fragment). A standing page is an article of its own, named by the
+     page it is rather than by a section. */
   adopt(container: ParentNode): SectionId[] {
     const seen = new Set<SectionId>();
     const next: Record<string, SectionState> = { ...this.sections };
+    container.querySelectorAll<HTMLElement>('article[data-page]').forEach((a) => {
+      const kind = a.dataset.page as PageKind;
+      if ((PAGE_KINDS as readonly string[]).includes(kind)) this.pages = { ...this.pages, [kind]: a };
+    });
     container.querySelectorAll<HTMLScriptElement>('script[data-section]').forEach((s) => {
       const sec = sectionId(s.dataset.section ?? ''); const d = sectionDataOf(s);
       next[sec] = { ...(next[sec] ?? { docs: {}, src: {} }), meta: d.meta, exercises: d.exercises, status: 'loaded' }; seen.add(sec); s.remove();
@@ -143,6 +154,22 @@ class Registry {
       .catch((err: Error) => { this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'failed', error: err.message } }; })
       .finally(() => { delete this.loading[sec]; });
     return this.loading[sec]!;
+  }
+
+  /* One of the standing pages, for a tab that holds it: the article the pool
+     carried, or nothing yet and a fetch of its fragment, which adopts the
+     article and so answers the next ask. */
+  pageFor(kind: PageKind): HTMLElement | null {
+    const have = this.pages[kind];
+    if (have) return have;
+    if (!this.loadingPages[kind]) {
+      const url = kind === 'about' ? '/about.html' : `/${this.manifest.id}/book.html`;
+      this.loadingPages[kind] = fetch(url)
+        .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
+        .then((text) => { const t = document.createElement('template'); t.innerHTML = text; this.adopt(t.content); })
+        .catch(() => { /* the page stays empty; the pane says it is loading */ });
+    }
+    return null;
   }
 
   /* One figure on its own: a root holding just that figure's static markup, with the section script booted on it. */

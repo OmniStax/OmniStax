@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, itemKey, parseItemKey, isView, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionId, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -29,9 +29,13 @@ export type Location = { readonly type: 'side'; readonly side: Side } | { readon
 export type SplitSide = 'left' | 'right' | 'up' | 'down';
 export const SIDE_WIDTH = { min: 200, max: 520 } as const;
 
-const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:concepts': 'left', 'view:contents': 'left', 'view:formulas': 'right', 'view:definitions': 'right', 'view:notes': 'right' };
+/* The two views that may stand in a sidebar both call the left one home; the
+   rest are only ever tabs, so they name no side. */
+const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:annotations': 'left' };
 const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : itemKey(id));
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
+/* What a sidebar will hold: the explorer and the annotations, and nothing else. */
+const sideKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isSidebarView(id); };
 const emptyGroup = (): Group => ({ key: newGroupKey(), tabs: [], active: null });
 const leaf = (group: GroupKey): SplitNode => ({ type: 'leaf', group });
 type Slot = { readonly node: SplitNode; readonly weight: number };   /* one child of a split, with the share of the slot it takes */
@@ -46,10 +50,15 @@ const splitOf = (dir: SplitDir, slots: readonly Slot[]): SplitNode => {
   return { type: 'split', dir, children: slots.map((s) => s.node), sizes: allEven(sizes) ? undefined : sizes };
 };
 
-export const defaultLayout = (section: SectionId): Layout => {
-  const group: Group = { key: newGroupKey(), tabs: [keyOf(docItem(section, 'text')), keyOf(docItem(section, 'exercises'))], active: keyOf(docItem(section, 'text')) };
+/* A layout for a page that has nothing saved: the explorer in the left sidebar,
+   the page's own item in the one group, and beside a section's text its
+   exercises, which is how a section is read. */
+export const defaultLayout = (own: ItemId): Layout => {
+  const k = keyOf(own);
+  const tabs = own.kind === 'doc' && own.doc === 'text' ? [k, keyOf(docItem(own.section, 'exercises'))] : [k];
+  const group: Group = { key: newGroupKey(), tabs, active: k };
   return {
-    sides: { left: { width: 270, items: ['view:concepts', 'view:contents'] }, right: { width: 300, items: ['view:formulas', 'view:definitions', 'view:notes'] } },
+    sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },
     home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key),
   };
 };
@@ -144,8 +153,10 @@ export const dropEmptied = (before: Layout, after: Layout): Layout => {
 };
 const focusOn = (l: Layout, key: GroupKey): Layout => { const i = groupIndex(l, key); return i < 0 ? l : { ...l, focus: i }; };
 
+/* A sidebar holds the two views that call one home; anything else asked for
+   there — a document, or a view that is only ever a tab — opens in a group. */
 export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout => {
-  const k = keyOf(id); if (!viewKey(k)) return openTab(l, k, l.focus);
+  const k = keyOf(id); if (!sideKey(k)) return openTab(l, k, l.focus);
   const d = detach(l, k);
   return dropEmptied(l, { ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [...d.sides[side].items, k] } }, home: { ...d.home, [k]: side } });
 };
@@ -200,6 +211,14 @@ export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | I
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
+/* What the rail does with a view that is only ever a tab: it shows it where it
+   already stands, and where it stands nowhere it splits the focused group to
+   the right and opens it there, beside what is being read. */
+export const openInSplit = (l: Layout, id: ItemId | ItemKey): Layout => {
+  const k = keyOf(id);
+  const at = l.groups.findIndex((g) => g.tabs.includes(k));
+  return at >= 0 ? activate(l, at, k) : split(l, l.focus, 'right', k);
+};
 
 /* Close a whole group, empty or not: it goes, and so do its tabs. A view that
    was open there simply closes, and its rail button opens it again. The last
@@ -266,9 +285,11 @@ export const evenSizes = (l: Layout): Layout => {
 export const setFocus = (l: Layout, index: number): Layout => ({ ...l, focus: Math.max(0, Math.min(index, l.groups.length - 1)) });
 export const toggleCollapsed = (l: Layout, k: ItemKey): Layout => ({ ...l, collapsed: l.collapsed.includes(k) ? l.collapsed.filter((c) => c !== k) : [...l.collapsed, k] });
 export const setWidth = (l: Layout, side: Side, width: number): Layout => ({ ...l, sides: { ...l.sides, [side]: { ...l.sides[side], width: Math.max(SIDE_WIDTH.min, Math.min(SIDE_WIDTH.max, Math.round(width))) } } });
-/* The page's own text is open, active and focused on load: in the group that already holds it, else added to the focused group. */
-export const ensureOwn = (l: Layout, section: SectionId): Layout => {
-  const k = keyOf(docItem(section, 'text'));
+/* The page's own item — a section's text, or one of the standing pages — is
+   open, active and focused on load: in the group that already holds it, else
+   added to the focused group. */
+export const ensureOwn = (l: Layout, own: ItemId): Layout => {
+  const k = keyOf(own);
   const at = l.groups.findIndex((x) => x.tabs.includes(k)); const g = at >= 0 ? l.groups[at] : focusedGroup(l);
   const groups = l.groups.map((x) => (x.key === g.key ? { ...x, tabs: x.tabs.includes(k) ? x.tabs : [k, ...x.tabs], active: k } : x));
   return focusOn(settle(withGroups(l, groups)), g.key);
@@ -279,7 +300,8 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const isRec = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;
   const strs = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string');
   if (!isRec(raw) || !isRec(raw.sides) || !Array.isArray(raw.groups) || !raw.groups.length) return null;
-  const side = (x: unknown): SideState | null => (isRec(x) && typeof x.width === 'number' && strs(x.items) && x.items.every((k) => viewKey(k) && known(k)) ? { width: x.width, items: x.items } : null);
+  /* A sidebar keeps only what a sidebar holds: a layout saved when some other view lived there gives that item up. */
+  const side = (x: unknown): SideState | null => (isRec(x) && typeof x.width === 'number' && strs(x.items) ? { width: x.width, items: x.items.filter((k) => sideKey(k) && known(k)) } : null);
   const left = side(raw.sides.left), right = side(raw.sides.right); if (!left || !right) return null;
   const seen = new Set<string>();
   const groups: Group[] = [];
@@ -306,4 +328,7 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const focus = typeof raw.focus === 'number' ? Math.max(0, Math.min(raw.focus, groups.length - 1)) : 0;
   return normalize({ sides: { left, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row });
 };
-export const VIEW_KEYS: readonly ItemKey[] = ['concepts', 'contents', 'formulas', 'definitions', 'notes'].map((v) => keyOf(viewItem(v as never)));
+export const VIEW_KEYS: readonly ItemKey[] = VIEW_KINDS.map((v) => keyOf(viewItem(v)));
+/* The rail draws these two first, as the sidebar's own, and the rest below a separator. */
+export const SIDEBAR_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter(sideKey);
+export const GROUP_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter((k) => !sideKey(k));
