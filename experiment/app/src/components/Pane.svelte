@@ -1,7 +1,8 @@
 <script lang="ts">
   /* One scroll pane for one tab. A document tab adopts its DOM instance; a
      figure tab adopts a root holding that one figure; a view tab renders the
-     view at chapter scope. The focused group's active pane feeds the scroll spy. */
+     view with the room a tab gives it. The focused group's active pane feeds the
+     scroll spy. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { spy } from '../lib/sections/spy.svelte';
@@ -23,7 +24,7 @@
 
 <div class="pane" data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll}>
   {#if id && id.kind === 'view'}
-    <div class="view-pane" data-view={id.view}><View kind={id.view} asTab={true} /></div>
+    <div class="view-pane" data-view={id.view}><View kind={id.view} /></div>
   {:else if el}
     <div class="doc-host" use:adopt={el}></div>
   {:else if status === 'failed'}

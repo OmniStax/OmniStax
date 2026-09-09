@@ -8,10 +8,15 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split, moveToNewGroup, closeGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus } from '../layout/model';
+import { split, moveToNewGroup, closeGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
-import { focusedArticle } from '../sections/nav.svelte';
+import { focusedArticle, openDoc } from '../sections/nav.svelte';
+import { focus } from '../sections/focus.svelte';
+import { scope } from '../sections/scope.svelte';
+import { registry } from '../sections/registry.svelte';
+import { itemKey, viewItem, type ViewKind } from '../types/ids';
+import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
 
@@ -43,6 +48,30 @@ const groupCommands = (): readonly Command[] =>
     detail: () => { const active = layoutStore.layout.groups[n]?.active; return active ? tabTitle(active) : ''; },
   }));
 
+/* The view a scope command acts on, and nothing to do when the reader has touched none. */
+const onView = (f: (kind: ViewKind) => void): void => { const kind = focus.activeView; if (kind) f(kind); };
+/* Picking a place in the book pins the view there; the book is no pin, so it only sets the level. */
+const pinTo = (kind: ViewKind) => (target: Target): void => { if (target.level === 'book') scope.atLevel(kind, 'book'); else scope.pin(kind, target); };
+const scopeDeps = {
+  activeView: (): ViewKind | null => focus.activeView,
+  level: (): Level | null => { const kind = focus.activeView; return kind ? scope.levelFor(kind) : null; },
+  pinned: (): boolean => { const kind = focus.activeView; return kind !== null && scope.isPinned(kind); },
+  widen: (): void => onView((k) => scope.widen(k)),
+  narrow: (): void => onView((k) => scope.narrow(k)),
+  atLevel: (l: Level): void => onView((k) => scope.atLevel(k, l)),
+  togglePin: (): void => onView((k) => scope.togglePin(k)),
+  pickTarget: (): void => onView((k) => ui.openBrowser({ pick: pinTo(k) })),
+};
+/* Views open as a tab of their own or in the sidebar they call home; the exercises are the focused section's. */
+const docs = {
+  openView: (kind: ViewKind, at: 'group' | 'side'): void => {
+    const key = itemKey(viewItem(kind));
+    layoutStore.apply((x) => (at === 'group' ? openTab(x, key, ui.palette.group ?? x.focus) : openSide(x, key, homeSide(x, key))));
+  },
+  openExercises: (): void => { void openDoc(focus.section, 'exercises', ui.palette.group ?? undefined); },
+  canOpenExercises: (): boolean => registry.isBuilt(focus.section),
+};
+
 export const installCommands = (): void => {
   const fold = { foldAll: () => foldAllIn(focusedArticle()), unfoldAll: () => unfoldAllIn(focusedArticle()), hideFigures: () => hideFigsIn(focusedArticle()), showFigures: () => showFigsIn(focusedArticle()) };
   const layout = {
@@ -61,6 +90,6 @@ export const installCommands = (): void => {
     previousTab: () => layoutStore.apply((x) => activateNext(x, x.focus, -1)),
     get groupCount(): number { return layoutStore.layout.groups.length; },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader }), ...groupCommands()]);
+  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs }), ...groupCommands()]);
 };
 export { commands, ui, keys };

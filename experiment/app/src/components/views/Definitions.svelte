@@ -1,40 +1,75 @@
 <script lang="ts">
-  /* Symbols and glossary terms, the focused section first; the colour legend at the end. */
+  /* The symbols and the glossary terms of the place this view stands at, each
+     section saying its symbols first and its terms after: flat for a section,
+     under a line per section for a chapter, under a fold per chapter for the
+     book, with whatever lies outside folded away below. The colour legend names
+     the global tier and the types the chapters in scope bind. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
-  import type { SectionId as ScopeSection } from '../../lib/types/ids';
+  import { focus } from '../../lib/sections/focus.svelte';
+  import type { Target } from '../../lib/sections/scope';
+  import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { settings } from '../../lib/settings/store.svelte';
   import { sectionId } from '../../lib/types/ids';
+  import type { VariableDTO, GlossaryDTO } from '../../lib/content/schema';
   import { FIG } from '../../lib/fig/figlib';
-  const scoped = getCtx<() => ScopeSection>('scope');
-  const sec = $derived(scoped());
-  const vars = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.variables));
-  const terms = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.glossary));
-  const order = $derived([...new Set([...vars.map((v) => v.section), ...terms.map((t) => t.section)])].sort((a, b) => (a === sec ? -1 : b === sec ? 1 : a.localeCompare(b, undefined, { numeric: true }))));
-  const titleOf = (s: string) => registry.entry(sectionId(s))?.title ?? '';
+  /* One definition: a symbol the book gives a meaning, or a term it defines. */
+  type Def = { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO };
+  const scoped = getCtx<() => Target>('scope');
+  const target = $derived(scoped());
+  const defs = $derived<readonly Def[]>([
+    ...Object.values(registry.chapters).flatMap((c) => c.formulas.variables).map((symbol): Def => ({ kind: 'symbol', symbol })),
+    ...Object.values(registry.chapters).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
+  ]);
+  const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest));
+  const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
   const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest.symbols[s] ?? s); return {}; };
-  /* the legend: the global tier, then the types the focused section's chapter binds */
-  const legend = $derived.by(() => { const m = registry.manifest, bound = registry.chapterOf(sectionId(sec))?.colors ?? {}; return Object.entries(m.types).filter(([k, t]) => t.light || k in bound).map(([k, t]) => [k, t.label] as const); });
+  /* the chapters the view stands over, and with them the types they colour */
+  const chapters = $derived(
+    target.level === 'book' ? registry.manifest.chapters
+      : target.level === 'chapter' ? registry.manifest.chapters.filter((c) => c.id === target.chapter)
+      : registry.manifest.chapters.filter((c) => c.sections.some((s) => s.id === target.section)),
+  );
+  const legend = $derived.by(() => { const bound = new Set(chapters.flatMap((c) => Object.keys(c.colors))); return Object.entries(registry.manifest.types).filter(([k, t]) => t.light || bound.has(k)).map(([k, t]) => [k, t.label] as const); });
 </script>
 
-{#snippet block(s: string)}
-  {@const vs = vars.filter((v) => v.section === s)}
-  {@const ts = terms.filter((t) => t.section === s)}
-  {#if vs.length}
-    <div class="eyebrow">{s} · symbols</div>
-    <ul class="defs">{#each vs as v (v.sym)}<li><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
+{#snippet list(items: readonly Def[])}
+  {@const symbols = items.flatMap((d) => (d.kind === 'symbol' ? [d.symbol] : []))}
+  {@const terms = items.flatMap((d) => (d.kind === 'term' ? [d.term] : []))}
+  {#if symbols.length}
+    <div class="eyebrow">{symbols[0].section} · symbols</div>
+    <ul class="defs">{#each symbols as v (v.sym)}<li><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
   {/if}
-  {#if ts.length}
-    <div class="eyebrow">{s} · terms</div>
-    <ul class="defs terms">{#each ts as t (t.term)}<li><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
+  {#if terms.length}
+    <div class="eyebrow">{terms[0].section} · terms</div>
+    <ul class="defs terms">{#each terms as t (t.term)}<li><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
   {/if}
 {/snippet}
 
-{#each order as s (s)}
-  {#if s === sec}{@render block(s)}{:else}<details class="other"><summary>{s} · {titleOf(s)}</summary>{@render block(s)}</details>{/if}
-{/each}
+{#snippet sectionGroup(g: SectionGroup<Def>)}
+  {@render list(g.items)}
+{/snippet}
+
+{#snippet chapterGroup(g: ChapterGroup<Def>, open: boolean)}
+  <details class="chapter" {open}>
+    <summary>{label(g.chapter, g.title)}</summary>
+    {#each g.sections as s (s.section)}{@render sectionGroup(s)}{/each}
+  </details>
+{/snippet}
+
+{#if target.level === 'book'}
+  {#each grouped.inside as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
+{:else}
+  {#each grouped.inside as c (c.chapter)}{#each c.sections as s (s.section)}{@render sectionGroup(s)}{/each}{/each}
+{/if}
+{#if grouped.outside.length}
+  <details class="other">
+    <summary>{outsideLabel(target)} · {countOf(grouped.outside)}</summary>
+    {#each grouped.outside as c (c.chapter)}{@render chapterGroup(c, false)}{/each}
+  </details>
+{/if}
 {#if settings.colorCoding}
-  <div class="legend">{#each legend as [k, label] (k)}<i style:background="var(--c-{k})"></i><span>{label}</span>{/each}</div>
+  <div class="legend">{#each legend as [k, name] (k)}<i style:background="var(--c-{k})"></i><span>{name}</span>{/each}</div>
 {/if}
 
 <style>

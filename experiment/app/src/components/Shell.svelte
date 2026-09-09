@@ -60,17 +60,20 @@
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
     /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns. */
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; } keys.dispatch(e); };
+    /* A click or a focus outside every view lets go of "this view", so the scope commands stop aiming at it. */
+    const clearView = (e: Event) => { const el = e.target as HTMLElement | null; if (!el?.closest?.('.view')) focus.view = null; };
     const onClick = (e: MouseEvent) => {
+      clearView(e);
       ui.closeAll();
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fig-split');
       if (sb?.dataset.key) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.key)); return; }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
-    document.addEventListener('keydown', onKey); document.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKey); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); reader.stop(); };
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
   });
 
   /* settings → document */

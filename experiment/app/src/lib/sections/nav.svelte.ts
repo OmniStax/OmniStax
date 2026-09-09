@@ -3,7 +3,7 @@
 import { layoutStore } from '../layout/store.svelte';
 import { openTab, openSide, activate, homeSide, where, toggleCollapsed } from '../layout/model';
 import { registry } from './registry.svelte';
-import { type SpanId, type ItemId, itemKey, parseItemKey, sectionOfSpan, docItem } from '../types/ids';
+import { type SpanId, type ItemId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, docItem } from '../types/ids';
 import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
 
@@ -65,12 +65,16 @@ export const cite = (id: string): void => {
   const tgt = sec.querySelector<HTMLElement>('.cite-target') ?? sec;
   jump(tgt, 'center');
 };
-/* Open a document: activate it where it is, or open it in the given group (default: focused). */
-export const openDoc = (sec: SectionId, doc: 'text' | 'exercises', group?: number): Promise<void> => {
-  const key = itemKey(docItem(sec, doc)); const l = layoutStore.layout;
+/* Open anything a tab can hold — a document, a figure, one exercise: activate it
+   where it already is, or open it in the given group (default: focused), and
+   load the section it comes out of. */
+export const openItem = (key: string, group?: number): Promise<void> => {
+  const l = layoutStore.layout;
   const loc = group == null ? where(l, key) : null;
   if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
   else layoutStore.apply((x) => openTab(x, key, group ?? x.focus));
-  return registry.load(sec);
+  const id = parseItemKey(key); const sec = id ? sectionOfItem(id) : null;
+  return sec ? registry.load(sec) : Promise.resolve();
 };
+export const openDoc = (sec: SectionId, doc: 'text' | 'exercises', group?: number): Promise<void> => openItem(itemKey(docItem(sec, doc)), group);
 type SectionId = import('../types/ids').SectionId;
