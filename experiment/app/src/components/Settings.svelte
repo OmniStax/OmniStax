@@ -11,6 +11,7 @@
   import type { Command, CommandId } from '../lib/commands/command';
   import { ui } from '../lib/commands/ui.svelte';
   import { reader } from '../lib/voice.svelte';
+  import { host, kept, keptChords, hostName, BROWSER_NAMES, type Surface } from '../lib/commands/host.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
@@ -35,6 +36,16 @@
     keys.set(rec.id, c); rec = null;
   };
   const record = (id: CommandId) => { rec = rec?.id === id ? null : { id, pending: null }; };
+
+  /* The shortcuts are marked against a surface: the window this is, or the tab
+     or app window the reader may move to. A browser tab keeps a few chords for
+     itself and they never arrive; the marks say which. */
+  let surface = $state<Surface | 'here'>('here');
+  const SURFACES: readonly { readonly id: Surface | 'here'; readonly label: string }[] = [{ id: 'here', label: 'This window' }, { id: 'tab', label: 'A browser tab' }, { id: 'app', label: 'An installed app' }];
+  const judged = $derived(surface === 'here' ? host.info : { browser: host.browser, surface });
+  const browserName = $derived(BROWSER_NAMES[host.browser]);
+  const heldCount = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(judged, ch))).length);
+  const keptTitle = $derived(`${browserName} keeps this chord for itself in ${judged.surface === 'tab' ? 'a browser tab' : 'this window'}; the book never sees it`);
 </script>
 
 {#if ui.settings}
@@ -71,7 +82,23 @@
 
       <section>
         <h3>Keyboard shortcuts</h3>
-        <p class="hint">Click a shortcut to record a new one. Escape cancels, Backspace clears. Ctrl also answers to Cmd. A browser tab keeps Ctrl+W for itself; installed as an app, the book is handed it and closes the tab.</p>
+        <p class="hint">Click a shortcut to record a new one. Escape cancels, Backspace clears. Ctrl also answers to Cmd.</p>
+        <div class="row host">
+          <span class="name">Running in</span>
+          <span class="hint">{hostName(host.info)}.
+            {#if !keptChords(judged).length && surface === 'here'}Every shortcut reaches the book here.
+            {:else if !keptChords(judged).length}In {surface === 'tab' ? 'a browser tab' : 'an installed app'}, {browserName} would hand the book every one.
+            {:else if surface === 'here'}{browserName} keeps {heldCount} of these for itself and the book never sees them; they are marked <span class="kept" aria-hidden="true">⊘</span>.
+              {#if host.browser === 'chromium'}Installed as an app, or in full screen, the book is handed every one.{/if}
+            {:else}{browserName} would keep {heldCount} of these in {surface === 'tab' ? 'a browser tab' : 'an installed app'}, marked <span class="kept" aria-hidden="true">⊘</span>.{/if}
+          </span>
+          {#if host.canInstall}<button class="btn-sm" type="button" onclick={() => host.install()}>Install as app</button>{/if}
+        </div>
+        <div class="row">
+          <span class="name">Mark for</span>
+          <span class="hint">Which window the marks are judged against.</span>
+          <div class="seg" role="radiogroup" aria-label="Mark shortcuts for">{#each SURFACES as s (s.id)}<button type="button" class:on={surface === s.id} role="radio" aria-checked={surface === s.id} onclick={() => (surface = s.id)}>{s.label}</button>{/each}</div>
+        </div>
         <table>
           <tbody>
             {#each groups as [group, cmds] (group)}
@@ -87,7 +114,7 @@
                       {:else if on}
                         <span class="recording">Press a chord…</span>
                       {:else}
-                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord">{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}</span>{:else}<span class="none">—</span>{/each}
+                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord" class:held={kept(judged, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(judged, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
                       {/if}
                     </button>
                   </td>
@@ -144,7 +171,9 @@
   .chord-cell{font:inherit;width:100%;text-align:left;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--ink);padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:28px;flex-wrap:wrap}
   .chord-cell:hover{background:var(--soft)}
   .chord-cell.on{border-color:var(--accent);background:var(--soft)}
-  .chord{display:inline-flex;gap:2px}
+  .chord{display:inline-flex;gap:2px;align-items:center}
+  .chord.held .kbd{opacity:.55}
+  .kept{color:var(--bad);font-size:0.85rem;line-height:1;margin-left:2px}
   .or,.none{color:var(--muted);font-size:0.78rem}
   .recording{color:var(--muted);font-style:italic}
   .conflict{color:var(--bad);font-size:0.8rem}
