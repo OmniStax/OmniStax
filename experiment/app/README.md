@@ -69,7 +69,9 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   to a place of its own. The bar above it is the trail to that place and the
   control that walks it, Left and Right widen and narrow it, and the palette's
   View group holds the same moves for the view the reader last touched, with the
-  commands that open any view in a group or the sidebar.
+  commands that open any view in a group or the sidebar. A crumb's label moves the
+  view to that level and the chevron beside it chooses another chapter or section,
+  and choosing anything but the place the open page lies in pins the view there.
 - One fold rule for every list a view draws: what the view's level covers is shown
   grouped by chapter and by section, in the order the book sets, and everything
   outside it is folded away under a single heading. `grouping.ts` makes the cut

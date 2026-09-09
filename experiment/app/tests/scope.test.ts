@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, crumbsOf, levelOf, narrow, parseScope, resolve, sameTarget, sectionsOf, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
+import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, resolve, sameTarget, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
 import { chapterId, sectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
@@ -100,6 +100,50 @@ test('two targets are the same when they name the same place', () => {
   assert.ok(!sameTarget(chapter, { level: 'chapter', chapter: chapterId('2') }));
   assert.ok(!sameTarget(section, { level: 'section', section: sibling }));
   assert.ok(sameTarget(book, { level: 'book' })); assert.ok(!sameTarget(book, chapter));
+});
+
+test('choosing the place the open page lies in follows it again, and any other place pins', () => {
+  assert.deepEqual(choose(section, here, BOOK), follow('section'));
+  assert.deepEqual(choose(section, elsewhere, BOOK), pin(section));
+  assert.deepEqual(choose(chapter, here, BOOK), follow('chapter'));
+  assert.deepEqual(choose(chapter, elsewhere, BOOK), pin(chapter));
+  assert.deepEqual(choose(book, here, BOOK), follow('book'), 'the book is the same book whatever is being read');
+});
+
+test('a chapter menu offers every chapter the book lists, and says which have something built', () => {
+  assert.deepEqual(siblingsOf('chapter', section, BOOK), [
+    { target: { level: 'chapter', chapter: '2' }, id: '2', title: 'Kinematics', built: true },
+    { target: chapter, id: '16', title: 'Oscillatory Motion and Waves', built: true },
+  ]);
+  const unbuilt = { title: 'College Physics', chapters: [...BOOK.chapters, { id: '17', title: 'Physics of Hearing', sections: [{ id: '17.1', title: 'Sound', built: false }] }] };
+  assert.deepEqual(siblingsOf('chapter', book, unbuilt).map((c) => [c.id, c.built]), [['2', true], ['16', true], ['17', false]]);
+});
+test('a section menu offers the sections of the chapter the trail runs through, built or not', () => {
+  assert.deepEqual(siblingsOf('section', section, BOOK).map((s) => [s.id, s.title, s.built]), [['16.1', 'Hookes Law', false], ['16.3', 'Simple Harmonic Motion', true], ['16.4', 'The Simple Pendulum', true]]);
+  assert.deepEqual(siblingsOf('section', chapter, BOOK).map((s) => s.id), ['16.1', '16.3', '16.4']);
+  assert.deepEqual(siblingsOf('section', book, BOOK).map((s) => s.id), ['2.1', '2.2'], 'the book stands at its first chapter, as the trail does');
+  assert.deepEqual(siblingsOf('section', { level: 'section', section: unknown }, BOOK), []);
+});
+
+test('stepping at chapter level walks the chapters and holds at both ends', () => {
+  const ch2: Target = { level: 'chapter', chapter: chapterId('2') };
+  assert.deepEqual(stepSibling(pin(chapter), -1, here, BOOK), pin(ch2));
+  assert.deepEqual(stepSibling(pin(ch2), 1, here, BOOK), follow('chapter'), 'the chapter being read is followed, not pinned');
+  assert.deepEqual(stepSibling(pin(ch2), -1, here, BOOK), pin(ch2));
+  assert.deepEqual(stepSibling(pin(chapter), 1, here, BOOK), pin(chapter));
+});
+test('stepping at section level runs through the built sections of the whole book', () => {
+  const s21: Target = { level: 'section', section: elsewhere }, s164: Target = { level: 'section', section: sibling };
+  assert.deepEqual(stepSibling(FOLLOW_SECTION, 1, here, BOOK), pin(s164));
+  assert.deepEqual(stepSibling(pin(s164), -1, here, BOOK), follow('section'), 'stepping back onto the open page follows it again');
+  assert.deepEqual(stepSibling(pin(s21), 1, here, BOOK), follow('section'), 'the step runs on past the end of a chapter');
+  assert.deepEqual(stepSibling(pin(s21), -1, here, BOOK), pin(s21));
+  assert.deepEqual(stepSibling(pin(s164), 1, here, BOOK), pin(s164));
+  assert.deepEqual(stepSibling(FOLLOW_SECTION, 1, unknown, BOOK), FOLLOW_SECTION, 'a section the book does not know has nothing to step from');
+});
+test('the book has no siblings to step through', () => {
+  assert.deepEqual(stepSibling(follow('book'), 1, here, BOOK), follow('book'));
+  assert.deepEqual(stepSibling(follow('book'), -1, here, BOOK), follow('book'));
 });
 
 test('a stored scope is read back, and a stored pin on the book is no pin at all', () => {

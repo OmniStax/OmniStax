@@ -41,7 +41,7 @@ const deps = (): BuiltinDeps => ({
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
-  scope: { activeView: () => 'contents', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, togglePin: () => {}, pickTarget: () => {} },
+  scope: { activeView: () => 'contents', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
   docs: { openView: () => {}, openExercises: () => {}, canOpenExercises: () => true },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {

@@ -5,7 +5,7 @@
    shell, one section per view, are read once and carried forward. */
 import { focus } from './focus.svelte';
 import { registry } from './registry.svelte';
-import { FOLLOW_SECTION, atLevel, levelOf, narrow, parseScope, resolve, widen, type Level, type Target, type ViewScope } from './scope';
+import { FOLLOW_SECTION, atLevel, choose, levelOf, narrow, parseScope, resolve, stepSibling, widen, type Level, type Target, type ViewScope } from './scope';
 import type { ViewKind } from '../types/ids';
 
 const KEY = 'omnistax-scope-v2';
@@ -31,6 +31,11 @@ class Scope {
   widen(kind: ViewKind): void { this.set(kind, widen(this.of(kind), registry.manifest)); }
   narrow(kind: ViewKind): void { this.set(kind, narrow(this.of(kind), focus.section, registry.manifest)); }
   atLevel(kind: ViewKind, level: Level): void { this.set(kind, atLevel(this.of(kind), level, focus.section, registry.manifest)); }
+  /* Choosing a place from a crumb's menu: the view walks to that level, following again when
+     the place chosen is the one the open page is in and pinning to it when it is anywhere else. */
+  choose(kind: ViewKind, target: Target): void { this.set(kind, choose(target, focus.section, registry.manifest)); }
+  previous(kind: ViewKind): void { this.set(kind, stepSibling(this.of(kind), -1, focus.section, registry.manifest)); }
+  next(kind: ViewKind): void { this.set(kind, stepSibling(this.of(kind), 1, focus.section, registry.manifest)); }
   /* Pinning holds where the view stands now, unless a place is named; at the book there is nothing to hold. */
   pin(kind: ViewKind, target: Target = this.targetFor(kind)): void { if (target.level !== 'book') this.set(kind, { follow: false, target }); }
   unpin(kind: ViewKind): void { this.set(kind, { follow: true, level: this.levelFor(kind) }); }

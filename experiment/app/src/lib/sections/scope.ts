@@ -22,6 +22,9 @@ export type ViewScope =
 /* One step of the trail to a target: the book, its chapter, its section, each named
    twice — short for a button, long for its title — and each a place to send the view. */
 export type Crumb = { readonly level: Level; readonly short: string; readonly long: string; readonly target: Target };
+/* One entry of a crumb's menu: a chapter of the book, or a section of one chapter,
+   named the way the book names it and told whether anything of it has been built. */
+export type Sibling = { readonly target: Target; readonly id: string; readonly title: string; readonly built: boolean };
 
 const BOOK: Target = { level: 'book' };
 export const FOLLOW_SECTION: ViewScope = { follow: true, level: 'section' };
@@ -101,6 +104,38 @@ export const crumbsOf = (target: Target, tree: BookTree): readonly Crumb[] => {
 export const targetLabel = (target: Target, tree: BookTree): string => crumbsOf(target, tree).find((c) => c.level === target.level)?.short ?? 'Book';
 export const sameTarget = (a: Target, b: Target): boolean =>
   a.level === 'book' ? b.level === 'book' : a.level === 'chapter' ? b.level === 'chapter' && a.chapter === b.chapter : b.level === 'section' && a.section === b.section;
+
+/* Picking a place at a level: the place a following view would land on there means
+   following again, since that is what the reader is asking for, and any other place is
+   a pin. A choice carries its own level, so choosing also walks the view to it. */
+export const choose = (target: Target, focused: SectionId, tree: BookTree): ViewScope =>
+  sameTarget(target, resolve({ follow: true, level: target.level }, focused, tree)) ? { follow: true, level: target.level } : { follow: false, target };
+
+/* The chapter a target lies in, and for the book the first one, which is where the trail runs. */
+const anchorChapter = (anchor: Target, tree: BookTree): ChapterId | null =>
+  anchor.level === 'chapter' ? anchor.chapter : anchor.level === 'section' ? chapterOf(tree, anchor.section) : tree.chapters.length > 0 ? chapterId(tree.chapters[0].id) : null;
+/* The places one crumb's menu offers: every chapter of the book, or every section of the
+   chapter the trail runs through — which the anchor, the deepest crumb's target, names. */
+export const siblingsOf = (level: 'chapter' | 'section', anchor: Target, tree: BookTree): readonly Sibling[] => {
+  if (level === 'chapter') return tree.chapters.map((c) => ({ target: { level: 'chapter', chapter: chapterId(c.id) }, id: c.id, title: c.title, built: c.sections.some((s) => s.built) }));
+  const id = anchorChapter(anchor, tree);
+  return (id ? chapterNode(tree, id)?.sections ?? [] : []).map((s) => ({ target: { level: 'section', section: sectionId(s.id) }, id: s.id, title: s.title, built: s.built }));
+};
+
+/* The chapter or the section before or after the one the view stands on, taken as the menu
+   takes it. Chapters step through every chapter the book lists; sections step through the
+   built sections of the whole book, so the step runs on past a chapter's end. The book has
+   no siblings, and both ends hold. */
+export const stepSibling = (scope: ViewScope, dir: 1 | -1, focused: SectionId, tree: BookTree): ViewScope => {
+  const target = resolve(scope, focused, tree);
+  if (target.level === 'book') return scope;
+  const places: readonly Target[] = target.level === 'chapter'
+    ? tree.chapters.map((c): Target => ({ level: 'chapter', chapter: chapterId(c.id) }))
+    : sectionsOf(BOOK, tree).map((s): Target => ({ level: 'section', section: s }));
+  const at = places.findIndex((p) => sameTarget(p, target));
+  const next = at < 0 ? undefined : places[at + dir];
+  return next ? choose(next, focused, tree) : scope;
+};
 
 /* The boundary with storage, where anything may come back: the shape written here,
    or the bare section id a per-kind pin used to be. A pin on the book is no pin at

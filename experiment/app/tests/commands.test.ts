@@ -97,7 +97,8 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
     scope: {
       activeView: () => kind, level: () => (kind ? view.level ?? 'section' : null), pinned: () => view.pinned === true,
-      widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
+      widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`),
+      previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
     },
     docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt },
   };
@@ -147,9 +148,18 @@ test('the scope commands act on the view the reader last touched, and none of th
   assert.equal(by(BUILTIN.scopeSection).detail?.(), 'current', 'a view following the page stands at its section');
   assert.equal(by(BUILTIN.scopeChapter).detail?.(), '');
   const none = builtinCommands(deps(false, 2, { view: null }));
-  for (const id of [BUILTIN.scopeWiden, BUILTIN.scopeNarrow, BUILTIN.scopeBook, BUILTIN.scopeSection, BUILTIN.scopePin, BUILTIN.scopeUnpin, BUILTIN.scopePick]) {
+  for (const id of [BUILTIN.scopeWiden, BUILTIN.scopeNarrow, BUILTIN.scopeBook, BUILTIN.scopeSection, BUILTIN.scopePin, BUILTIN.scopeUnpin, BUILTIN.scopePick, BUILTIN.scopePrevious, BUILTIN.scopeNext]) {
     assert.equal(available(none.find((c) => c.id === id)!), false, id);
   }
+});
+test('the previous and next chapter or section are a view away, but not at the book', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  by(BUILTIN.scopePrevious).run(); by(BUILTIN.scopeNext).run();
+  assert.deepEqual(d.log, ['previous', 'next']);
+  assert.equal(by(BUILTIN.scopePrevious).label, 'View scope: previous chapter or section');
+  assert.equal(by(BUILTIN.scopeNext).label, 'View scope: next chapter or section');
+  const at = (level: Level, id: string) => available(builtinCommands(deps(false, 2, { level })).find((c) => c.id === id)!);
+  assert.equal(at('book', BUILTIN.scopeNext), false); assert.equal(at('chapter', BUILTIN.scopeNext), true); assert.equal(at('section', BUILTIN.scopePrevious), true);
 });
 test('widening stops at the book and narrowing at the section', () => {
   const at = (level: Level, id: string) => available(builtinCommands(deps(false, 2, { level })).find((c) => c.id === id)!);

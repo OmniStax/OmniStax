@@ -30,7 +30,7 @@ export type BuiltinDeps = {
   };
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
   /* The view the commands act on is whichever one the reader last touched; with none there is nothing to scope. */
-  readonly scope: { activeView(): ViewKind | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; togglePin(): void; pickTarget(): void };
+  readonly scope: { activeView(): ViewKind | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
   readonly docs: { openView(kind: ViewKind, where: 'group' | 'side'): void; openExercises(): void; canOpenExercises(): boolean };
 };
 
@@ -51,6 +51,7 @@ export const BUILTIN = {
   voice: commandId('voice'), readAloud: commandId('read-aloud'), stopReading: commandId('stop-reading'),
   foldAll: commandId('fold-all'), unfoldAll: commandId('unfold-all'), hideFigures: commandId('hide-figures'), showFigures: commandId('show-figures'),
   scopeWiden: commandId('scope-widen'), scopeNarrow: commandId('scope-narrow'),
+  scopePrevious: commandId('scope-previous'), scopeNext: commandId('scope-next'),
   scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
   scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
   openExercises: commandId('open-exercises'),
@@ -107,6 +108,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.previousTab, label: 'Previous tab', group: 'Layout', run: () => d.layout.previousTab() },
   { id: BUILTIN.scopeWiden, label: 'View scope: wider', group: 'View', run: () => d.scope.widen(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
   { id: BUILTIN.scopeNarrow, label: 'View scope: narrower', group: 'View', run: () => d.scope.narrow(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'section' },
+  { id: BUILTIN.scopePrevious, label: 'View scope: previous chapter or section', group: 'View', run: () => d.scope.previous(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
+  { id: BUILTIN.scopeNext, label: 'View scope: next chapter or section', group: 'View', run: () => d.scope.next(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
   scopeCommand(d, BUILTIN.scopeBook, 'book'), scopeCommand(d, BUILTIN.scopeChapter, 'chapter'), scopeCommand(d, BUILTIN.scopeSection, 'section'),
   { id: BUILTIN.scopePin, label: 'Pin view here', group: 'View', run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' && !d.scope.pinned() },
   { id: BUILTIN.scopeUnpin, label: 'Unpin view: follow the page', group: 'View', run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.pinned() },

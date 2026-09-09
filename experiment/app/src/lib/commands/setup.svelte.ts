@@ -59,6 +59,8 @@ const scopeDeps = {
   widen: (): void => onView((k) => scope.widen(k)),
   narrow: (): void => onView((k) => scope.narrow(k)),
   atLevel: (l: Level): void => onView((k) => scope.atLevel(k, l)),
+  previous: (): void => onView((k) => scope.previous(k)),
+  next: (): void => onView((k) => scope.next(k)),
   togglePin: (): void => onView((k) => scope.togglePin(k)),
   pickTarget: (): void => onView((k) => ui.openBrowser({ pick: pinTo(k) })),
 };
