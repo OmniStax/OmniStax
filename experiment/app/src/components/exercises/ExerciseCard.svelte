@@ -5,14 +5,25 @@
      at the top right, which opens a panel of chips; each concept chip pins the
      concept when clicked and opens a goto card when hovered. Beside it a second
      button opens this one problem in a split of its own; a card that is already
-     standing in such a tab is `standalone` and does not offer it again. */
+     standing in such a tab is `standalone` and does not offer it again.
+
+     Every answer is recorded into the reader's practice, wherever the card stands:
+     a card inside a section's text counts as much as one drawn by a session. A
+     multiple choice is the one kind the card can mark itself, so the card records
+     the widget's verdict. Everything else — a number, a set of parts, an open
+     question — the reader marks: open the solution and the card asks whether you
+     got it, and your own verdict is the attempt. Either way the card then says
+     once what the answer earned. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { pin } from '../../lib/sections/concepts.svelte';
   import { cite } from '../../lib/sections/nav.svelte';
   import { conceptId, exerciseDomId, exItem, itemKey, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
+  import { solutionText, type Verdict } from '../../lib/exercises/check';
+  import { pointsOf, type Attempt } from '../../lib/practice/model';
+  import { practice } from '../../lib/practice/store.svelte';
   import { ICON } from '../../lib/icons';
-  import { math } from '../actions/math';
+  import { math, mathHtml } from '../actions/math';
   import NumberAnswer from './NumberAnswer.svelte';
   import MultiAnswer from './MultiAnswer.svelte';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
@@ -22,6 +33,20 @@
   const concept = (id: string) => registry.concept(id);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
+  const sol = $derived(solutionText(a));
+  const nameOf = (id: string): string => registry.concept(id)?.name ?? id;
+  /* An answer goes into the practice store the moment it is marked, and the card says
+     what came of it. The store refuses an exercise already answered correctly today,
+     which is what a null attempt means: nothing was lost, it was simply counted once. */
+  let earned = $state<string | null>(null);
+  let selfDone = $state(false);
+  let solutionOpen = $state(false);
+  const said = (att: Attempt | null, ok: boolean): string =>
+    att === null ? 'Already counted today.'
+      : ok ? Object.entries(pointsOf(ex)).map(([id, p]) => `+${p} ${nameOf(id)}`).join(' · ')
+      : `No points this time. The concepts it tests: ${ex.concepts.map(nameOf).join(', ')}.`;
+  const record = (ok: boolean, self: boolean): void => { earned = said(practice.record(registry.manifest.id, section, ex, ok, self), ok); };
+  const selfCheck = (ok: boolean): void => { selfDone = true; record(ok, true); };
   /* The panel closes on a click outside the card and on Escape — unless a goto card is
      open, whose own Escape closes it first (this listener captures, so it sees the card before it goes). */
   let open = $state(false);
@@ -59,14 +84,21 @@
   {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
   {#if a.type === 'number'}<NumberAnswer answer={a} />
   {:else if a.type === 'multi'}<MultiAnswer answer={a} />
-  {:else if a.type === 'choice'}<ChoiceAnswer answer={a} name="c-{section}-{ex.id}" />{/if}
+  {:else if a.type === 'choice'}<ChoiceAnswer answer={a} name="c-{section}-{ex.id}" oncheck={(v: Verdict) => record(v.ok, false)} />{/if}
+  {#if earned}<div class="earned" use:mathHtml={earned}></div>{/if}
   {#if ex.cite || a.solution}
     <div class="foot">
       {#if ex.cite}<button type="button" class="cite" onclick={() => cite(`${section}-${ex.cite}`)}>Show me the passage</button>{/if}
     </div>
   {/if}
-  {#if a.solution}
-    <details class="solution"><summary>{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</summary><div use:math={a.solution}>{@html a.solution}</div></details>
+  {#if sol}
+    <details class="solution" ontoggle={(e) => (solutionOpen = e.currentTarget.open)}><summary>{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</summary><div use:math={sol}>{@html sol}</div></details>
+    {#if solutionOpen && a.type !== 'choice'}
+      <div class="selfcheck"><span class="lead">Did you get it?</span>
+        <button type="button" disabled={selfDone} onclick={() => selfCheck(true)}>Got it</button>
+        <button type="button" disabled={selfDone} onclick={() => selfCheck(false)}>Missed it</button>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -101,4 +133,11 @@
   details.solution{font-family:var(--sans);font-size:0.9rem;margin-top:8px}
   details.solution summary{cursor:pointer;color:var(--muted);font-weight:600;font-size:0.8rem}
   details.solution > div{padding:6px 0 2px;font-family:var(--serif);font-size:0.95rem}
+  .selfcheck{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-family:var(--sans);font-size:0.8rem}
+  .selfcheck .lead{color:var(--muted)}
+  .selfcheck button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
+  .selfcheck button:hover{background:var(--soft)}
+  .selfcheck button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .selfcheck button:disabled{color:var(--muted);background:var(--panel);cursor:default}
+  .earned{margin-top:4px;font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
 </style>

@@ -19,6 +19,7 @@
   import { ICON } from '../../lib/icons';
   import CrumbMenu from './CrumbMenu.svelte';
   import ConceptMap from './ConceptMap.svelte';
+  import Exercises from './Exercises.svelte';
   import Explorer from './Explorer.svelte';
   import Formulas from './Formulas.svelte';
   import Definitions from './Definitions.svelte';
@@ -29,8 +30,10 @@
      reader has opened several of one kind, which of them this one is. */
   const kind = $derived(viewKindOf(item));
   /* The explorer is the whole tree — the reader's notes and every book they
-     have added — so it stands nowhere in particular and wears no bar. */
-  const hasBar = $derived(kind !== 'explorer');
+     have added — so it stands nowhere in particular and wears no bar; so does
+     the exercises view, whose curriculum is chosen across books rather than
+     read off the place the reader is standing in. */
+  const hasBar = $derived(kind !== 'explorer' && kind !== 'exercises');
   const target = $derived(scope.targetFor(item));
   const pinned = $derived(scope.isPinned(item));
   /* The trail is read from the narrowest place this view could stand at, so every crumb
@@ -98,6 +101,7 @@
   {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
   {/if}
   {#if kind === 'explorer'}<Explorer />
+  {:else if kind === 'exercises'}<Exercises />
   {:else if kind === 'concepts'}<ConceptMap />
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />

@@ -39,6 +39,7 @@
   import { noteDocs } from '../lib/notes/docs.svelte';
   import { explorer } from '../lib/explorer/store.svelte';
   import { library } from '../lib/explorer/library.svelte';
+  import { practice } from '../lib/practice/store.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
 
   type Props = { manifest: BookManifest; own: ItemId; chapterDir?: string; chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO }; section?: SectionMetaDTO; exercises?: readonly ExerciseDTO[]; threeUrl?: string };
@@ -75,6 +76,7 @@
     noteDocs.init();
     explorer.init();
     library.init(manifest.id, manifest.title);
+    practice.init();
     registry.init(manifest, fig, mountExercises, paintDoc);
     colours.init(manifest);
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);

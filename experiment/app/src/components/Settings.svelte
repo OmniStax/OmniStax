@@ -1,5 +1,6 @@
 <script lang="ts">
-  /* The settings page: appearance, reading, layout, keyboard shortcuts. A
+  /* The settings page: appearance, reading, exercises, layout, keyboard
+     shortcuts. A
      centred dialog; everything is saved in this browser. A filter in the header
      narrows the rows to those that mention what is typed. Each setting that is
      not at its default wears a small return arrow that puts it back. Clicking a
@@ -15,6 +16,8 @@
   import { ui } from '../lib/commands/ui.svelte';
   import { reader } from '../lib/voice.svelte';
   import { host, kept, BROWSER_NAMES } from '../lib/commands/host.svelte';
+  import { practice } from '../lib/practice/store.svelte';
+  import { DEFAULT_SETTINGS } from '../lib/practice/model';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
@@ -23,15 +26,38 @@
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
     theme: 'Theme system light dark', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
-    anim: 'Play animations demo transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech', layout: 'Panes and tabs reset layout views sidebars',
+    anim: 'Play animations demo transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
+    threshold: 'Mastery threshold score concept fading points mastered', days: 'Days in a row distinct correct streak mastered',
+    halfLife: 'Half-life in days fading decay unpractised score halved', session: 'Exercises in a session how many a session draws',
+    reviewShare: 'Share given to review due percentage session new work', spaced: 'Spaced review scores fade with time mastered come due again',
+    selfChecked: 'Count self-checked answers solution multiple choice points', record: 'Practice record forget my practice recorded answers points mastery',
+    layout: 'Panes and tabs reset layout views sidebars',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
+  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.halfLife, ROWS.session, ROWS.reviewShare, ROWS.spaced, ROWS.selfChecked, ROWS.record];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
     commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
     return Array.from(m.entries());
   });
   $effect(() => { if (!ui.settings) { rec = null; q = ''; } });
+
+  /* The five numbers under Exercises. `scale` turns what the store keeps into
+     what the reader sees: the review share is held as a fraction and shown as
+     a percentage. A value commits on change or on a stepper click, clamped. */
+  type NumKey = 'threshold' | 'days' | 'halfLife' | 'session' | 'reviewShare';
+  type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
+  const NUMS: readonly NumRow[] = [
+    { key: 'threshold', words: ROWS.threshold, name: 'Mastery threshold', hint: 'The score a concept must reach, after fading, to count as mastered.', min: 1, max: 100, step: 1, scale: 1, restore: 'Back to a threshold of ten points' },
+    { key: 'days', words: ROWS.days, name: 'Days in a row', hint: 'How many different days in a row you must answer a concept correctly before it is mastered.', min: 1, max: 14, step: 1, scale: 1, restore: 'Back to three days in a row' },
+    { key: 'halfLife', words: ROWS.halfLife, name: 'Half-life in days', hint: 'How quickly an unpractised concept fades: after this many days its score is halved. Each day in a row you keep a concept doubles its half-life.', min: 1, max: 90, step: 1, scale: 1, restore: 'Back to a half-life of seven days' },
+    { key: 'session', words: ROWS.session, name: 'Exercises in a session', hint: 'How many exercises a session draws.', min: 1, max: 50, step: 1, scale: 1, restore: 'Back to eight exercises in a session' },
+    { key: 'reviewShare', words: ROWS.reviewShare, name: 'Share given to review', hint: 'When something is due, this much of a session goes to reviewing it before new work.', min: 0, max: 100, step: 5, scale: 100, unit: '%', restore: 'Back to a third of a session' },
+  ];
+  const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
+  const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
+  const commit = (n: NumRow, v: number): void => { if (Number.isFinite(v)) practice.setSetting(n.key, clamp(v, n.min, n.max) / n.scale); };
+  const forget = () => { if (confirm('Forget every recorded answer? Points and mastery start again from nothing.')) practice.wipe(); };
 
   const plain = (e: KeyboardEvent): boolean => !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
   const onKey = (e: KeyboardEvent) => {
@@ -58,6 +84,19 @@
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
   {#if on}<button type="button" class="back" {title} aria-label={title} onclick={(e) => { e.preventDefault(); fn(); }}>↺</button>{/if}
+{/snippet}
+
+{#snippet numRow(n: NumRow)}
+  <div class="row num" hidden={!hit(n.words)}>
+    <span class="name">{n.name}{@render back(practice.settings[n.key] !== DEFAULT_SETTINGS[n.key], n.restore, () => practice.setSetting(n.key, DEFAULT_SETTINGS[n.key]))}</span>
+    <span class="hint">{n.hint}</span>
+    <div class="num">
+      <button type="button" aria-label="Less" onclick={() => commit(n, shown(n) - n.step)}>−</button>
+      <input type="number" min={n.min} max={n.max} step={n.step} inputmode="numeric" aria-label={n.name} value={shown(n)} onchange={(e) => { commit(n, e.currentTarget.valueAsNumber); e.currentTarget.value = String(shown(n)); }}>
+      {#if n.unit}<span class="unit">{n.unit}</span>{/if}
+      <button type="button" aria-label="More" onclick={() => commit(n, shown(n) + n.step)}>+</button>
+    </div>
+  </div>
 {/snippet}
 
 {#if ui.settings}
@@ -94,6 +133,18 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Back to voice off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
+      </section>
+
+      <section hidden={!PRACTICE.some(hit)}>
+        <h3>Exercises</h3>
+        {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
+        <label class="row switch" hidden={!hit(ROWS.spaced)}><span class="name">Spaced review{@render back(practice.settings.spaced !== DEFAULT_SETTINGS.spaced, 'Back to spaced review on', () => practice.setSetting('spaced', DEFAULT_SETTINGS.spaced))}</span><span class="hint">Scores fade with time and mastered concepts come due again. Off keeps every score as it is.</span><input type="checkbox" checked={practice.settings.spaced} onchange={(e) => practice.setSetting('spaced', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.selfChecked)}><span class="name">Count self-checked answers{@render back(practice.settings.selfChecked !== DEFAULT_SETTINGS.selfChecked, 'Back to counting self-checked answers', () => practice.setSetting('selfChecked', DEFAULT_SETTINGS.selfChecked))}</span><span class="hint">A problem you check against the book’s solution yourself earns points when you say you got it. Off makes only multiple-choice answers count.</span><input type="checkbox" checked={practice.settings.selfChecked} onchange={(e) => practice.setSetting('selfChecked', e.currentTarget.checked)}></label>
+        <div class="row" hidden={!hit(ROWS.record)}>
+          <span class="name">Practice record</span>
+          <span class="hint">Every answer you have recorded, and the points and mastery that come from it.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One answer' : `${practice.attempts.length} answers`} so far.{/if}</span>
+          <button class="btn-sm" type="button" onclick={forget}>Forget my practice</button>
+        </div>
       </section>
 
       <section hidden={!hit(ROWS.layout)}>
@@ -166,6 +217,15 @@
   .seg button+button{border-left:1px solid var(--rule)}
   .seg button.on{background:var(--soft);color:var(--ink);font-weight:600}
   .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .row>.num{display:inline-flex;align-items:center;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+  .row>.num button{font:inherit;font-size:0.8rem;line-height:1.25;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
+  .row>.num button:hover{background:var(--soft);color:var(--ink)}
+  .row>.num button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .row>.num button:last-child{border-left:1px solid var(--rule)}
+  .row>.num input{font:inherit;font-size:0.8rem;line-height:1.25;width:5.5ch;text-align:right;padding:4px 6px;border:0;border-left:1px solid var(--rule);background:var(--panel);color:var(--ink);appearance:textfield;-moz-appearance:textfield}
+  .row>.num input::-webkit-outer-spin-button,.row>.num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .row>.num input:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .row>.num .unit{font-size:0.8rem;line-height:1.25;color:var(--muted);padding:4px 6px 4px 0;background:var(--panel)}
   .btn-sm{font:inherit;font-size:0.82rem;padding:5px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer;align-self:flex-start}
   .btn-sm:hover:not(:disabled){background:var(--soft)}
   .btn-sm:disabled{opacity:.5;cursor:default}

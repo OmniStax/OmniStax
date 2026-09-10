@@ -44,10 +44,12 @@ An exercise is worth a number of points to each concept it tests.
   pipeline rules gain an item for this. Where the field is absent the Bloom
   table applies, so no content has to change to start.
 
-A wrong answer earns nothing. An open question has no key, so after the
-reader reveals the book's solution the card asks "Did you get it?" and
-scores the reader's own verdict, flagged as self-checked; a setting can
-exclude self-checked answers from mastery.
+A wrong answer earns nothing. Only a multiple-choice answer is scored by
+the app. Every other kind, a number, a set of parts or an open question,
+is scored by the reader: the card shows the book's solution and asks "Did
+you get it?", and the reader's own verdict is the attempt, flagged as
+self-checked. The number widget stays as a scratch check and earns
+nothing. A setting can exclude self-checked answers from mastery.
 
 ### Mastery per concept
 
@@ -175,10 +177,10 @@ this state and the rail button carries the count of concepts due.
   exists already.
 - `src/components/views/View.svelte`: the branch, with no scope bar, since
   the curriculum spans books.
-- Answer widgets (`NumberAnswer`, `MultiAnswer`, `ChoiceAnswer`) gain an
-  `oncheck` callback carrying the verdict; `ExerciseCard` threads it and
-  adds the self-check for open answers. Cards inside a section's text call
-  the same store, so reading and answering there counts too.
+- `ChoiceAnswer` gains an `oncheck` callback carrying the verdict;
+  `ExerciseCard` records it, and adds the self-check row under the solution
+  for every other answer type. Cards inside a section's text record to the
+  same store, so reading and answering there counts too.
 - `src/lib/practice/model.ts` (points, decay, mastery, draw; tested in
   `tests/practice.test.ts`), `store.svelte.ts` (`omnistax-practice-v1`,
   one key across books, book id inside every record; not on the shell's
@@ -196,7 +198,8 @@ this state and the rail button carries the count of concepts due.
 
 ## Phases
 
-1. Model and store with tests; `oncheck` on the widgets and cards; the view
+1. Model and store with tests; `oncheck` on the choice widget and the
+   self-check on the cards; the view
    with Choose (current book only), Practise and the summary; the Settings
    group; rail placement. This is the whole loop for one book.
 2. The Progress face; concept map nodes tinted by state; the due count on
@@ -206,11 +209,10 @@ this state and the rail button carries the count of concepts due.
 
 ## Decisions taken, and open
 
-Taken here, all reversible: no tiers above mastered; open questions score
-by self-report; propagation is freshness, not points; the Bloom table is
+Taken here, all reversible: no tiers above mastered; every answer but a
+multiple choice scores by self-report; propagation is freshness, not points; the Bloom table is
 the default weight and the agent's `weights` the override; the half-life
 doubles per streak day and that is the whole spacing rule.
 
-Open, for Chen: whether an untouched concept with no exercise in any loaded
-book should show at all in Progress; whether a wrong answer should cost
-points (this design says no); and the default numbers in the table.
+Chen agreed the self-report and the name "due" on 2026-09-09 and said go
+with the defaults above; a wrong answer costs nothing.

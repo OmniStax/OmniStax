@@ -28,10 +28,13 @@ export const viewInstance = (s: string): ViewInstance => s as ViewInstance;
 export const newViewInstance = (): ViewInstance => viewInstance(Math.random().toString(36).slice(2, 8).padEnd(6, '0'));
 
 export type DocKind = 'text' | 'exercises';
-/* The companion views. Two of them may stand in the left sidebar as well as in
-   a group — the explorer, which is the whole tree, and the annotations — and
-   the rest are only ever opened as tabs. */
-export const VIEW_KINDS = ['explorer', 'concepts', 'formulas', 'definitions', 'annotations', 'colours'] as const;
+/* The companion views, in the order the rail draws their buttons. Two of them
+   may stand in the left sidebar as well as in a group — the explorer, which is
+   the whole tree, and the annotations — and the rest are only ever opened as
+   tabs. Exercises comes immediately before the concept map, since practice is
+   the map's other face: the map says what the book teaches, and the exercises
+   say how much of it the reader has made their own. */
+export const VIEW_KINDS = ['explorer', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'colours'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 export const SIDEBAR_KINDS = ['explorer', 'annotations'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];

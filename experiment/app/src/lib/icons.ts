@@ -32,4 +32,4 @@ export const ICON = {
   palette: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.2l2.4 1.9-2.4 1.9"/><path d="M12.4 14h4.1"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };
