@@ -9,9 +9,11 @@
    section, since section ids are not unique across books. None of this is on
    the shell's undo stack, for the same reason the colours are not: answering a
    question is not an edit to take back. */
-import type { ExerciseDTO, ChapterEntry } from '../content/schema';
+import type { ExerciseDTO, ChapterEntry, ConceptDTO } from '../content/schema';
 import { type SectionId, sectionId, conceptId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
+import { books } from './books.svelte';
+import { mergeCatalog } from './books';
 import {
   DEFAULT_SETTINGS, dayOf, draw, pointsOf, rebuild, stateOf, summarize, togglePick, total,
   type Attempt, type Catalog, type Curriculum, type Drawn, type Mastery, type Pick, type PracticeSettings, type State,
@@ -76,9 +78,12 @@ class Practice {
   session = $state.raw<Session | null>(null);
   face = $state<Face>('choose');
   /* Derived, never stored: the records follow from the attempts and the numbers
-     in force, and the concept DAG says what a right answer freshens below it. */
+     in force, and the concept DAG says what a right answer freshens below it.
+     The DAG is the catalogue's, not the registry's, so a prerequisite a foreign
+     book taught is freshened too; the map is built once per recompute, and a
+     book loading is one of the things that recomputes it. */
   readonly mastery: Mastery = $derived.by(() => {
-    const prereqs = new Map(registry.concepts.map((c) => [c.id, c.prereqs]));
+    const prereqs = new Map(this.catalog().concepts.map((c) => [c.id, c.prereqs]));
     return rebuild(this.attempts, (id) => prereqs.get(id) ?? [], this.settings);
   });
 
@@ -92,19 +97,24 @@ class Practice {
     this.face = FACES.find((f) => f === o.face) ?? 'choose';
   }
 
-  /* What the model is allowed to see of the library. One book for now: the
-     manifest the shell was started with. A pick naming another book comes to
-     nothing until phase 3 loads foreign manifests. */
+  /* What the model is allowed to see of the library: the book the shell was
+     started with, and every other book the cache has loaded beside it. A pick
+     naming a book that has not loaded comes to nothing until it does. */
   catalog(): Catalog {
     const book = registry.manifest.id;
     const built = (c: ChapterEntry): SectionId[] => c.sections.filter((x) => x.built).map((x) => sectionId(x.id));
-    return {
+    const home: Catalog = {
       concepts: registry.concepts,
       sectionsOf: (b, chapter) => { const c = b === book ? registry.manifest.chapters.find((x) => x.id === chapter || x.dir === chapter) : undefined; return c ? built(c) : []; },
       allSections: (b) => (b === book ? registry.manifest.chapters.flatMap(built) : []),
       exercises: Object.entries(registry.sections).flatMap(([sec, st]) => st.exercises.map((ex) => ({ book, section: sectionId(sec), ex }))),
     };
+    return mergeCatalog(home, Object.entries(books.loaded));
   }
+  /* A concept and a book's name, wherever they were taught: the view shows both
+     beside an exercise drawn out of a book the reader is not reading. */
+  conceptOf(id: string): ConceptDTO | undefined { return books.concept(id); }
+  bookTitle(id: string): string { return books.title(id); }
 
   stateOf(id: string, now = Date.now()): State { return stateOf(this.mastery[id], now, this.settings); }
   /* The concepts waiting for review. Read off the records alone, which are
@@ -149,12 +159,13 @@ class Practice {
     this.face = 'practise'; this.save();
     return true;
   }
-  /* The exercise the session stands on, read back out of the registry; nothing
-     while the section holding it is still being fetched. */
+  /* The exercise the session stands on, read back out of the book it belongs to;
+     nothing while the section holding it — or the whole foreign book — is still
+     being fetched. */
   current(): { book: string; section: SectionId; ex: ExerciseDTO; why: Drawn['why'] } | null {
     const s = this.session, d = s?.drawn[s.at];
     if (!s || !d) return null;
-    const ex = registry.sections[d.section]?.exercises.find((e) => e.id === d.ex);
+    const ex = books.exercises(d.book, d.section)?.find((e) => e.id === d.ex);
     return ex ? { book: d.book, section: d.section, ex, why: d.why } : null;
   }
   skip(): void { this.advance(); }

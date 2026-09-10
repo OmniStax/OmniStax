@@ -8,7 +8,9 @@
      standing in such a tab is `standalone` and does not offer it again.
 
      Every answer is recorded into the reader's practice, wherever the card stands:
-     a card inside a section's text counts as much as one drawn by a session. A
+     a card inside a section's text counts as much as one drawn by a session, and
+     under the book it belongs to, which is the book being read unless a session
+     drew the problem out of another one. A
      multiple choice is the one kind the card can mark itself, so the card records
      the widget's verdict. Everything else — a number, a set of parts, an open
      question — the reader marks: open the solution and the card asks whether you
@@ -27,14 +29,18 @@
   import NumberAnswer from './NumberAnswer.svelte';
   import MultiAnswer from './MultiAnswer.svelte';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
-  let { section, ex, hidden = false, standalone = false }: { section: SectionId; ex: ExerciseDTO; hidden?: boolean; standalone?: boolean } = $props();
+  let { section, ex, hidden = false, standalone = false, book = registry.manifest.id }: { section: SectionId; ex: ExerciseDTO; hidden?: boolean; standalone?: boolean; book?: string } = $props();
   const kinds = $derived(registry.manifest.exerciseKinds);
   const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
-  const concept = (id: string) => registry.concept(id);
+  /* Concepts are canonical across the library, so a problem drawn out of another
+     book names them from wherever they are known; the passage behind the problem
+     is not, so it is offered only while the card stands in the book being read. */
+  const concept = (id: string) => practice.conceptOf(id);
+  const reading = $derived(book === registry.manifest.id);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
-  const nameOf = (id: string): string => registry.concept(id)?.name ?? id;
+  const nameOf = (id: string): string => practice.conceptOf(id)?.name ?? id;
   /* An answer goes into the practice store the moment it is marked, and the card says
      what came of it. The store refuses an exercise already answered correctly today,
      which is what a null attempt means: nothing was lost, it was simply counted once. */
@@ -45,7 +51,7 @@
     att === null ? 'Already counted today.'
       : ok ? Object.entries(pointsOf(ex)).map(([id, p]) => `+${p} ${nameOf(id)}`).join(' · ')
       : `No points this time. The concepts it tests: ${ex.concepts.map(nameOf).join(', ')}.`;
-  const record = (ok: boolean, self: boolean): void => { earned = said(practice.record(registry.manifest.id, section, ex, ok, self), ok); };
+  const record = (ok: boolean, self: boolean): void => { earned = said(practice.record(book, section, ex, ok, self), ok); };
   const selfCheck = (ok: boolean): void => { selfDone = true; record(ok, true); };
   /* The panel closes on a click outside the card and on Escape — unless a goto card is
      open, whose own Escape closes it first (this listener captures, so it sees the card before it goes). */
@@ -86,9 +92,9 @@
   {:else if a.type === 'multi'}<MultiAnswer answer={a} />
   {:else if a.type === 'choice'}<ChoiceAnswer answer={a} name="c-{section}-{ex.id}" oncheck={(v: Verdict) => record(v.ok, false)} />{/if}
   {#if earned}<div class="earned" use:mathHtml={earned}></div>{/if}
-  {#if ex.cite || a.solution}
+  {#if (ex.cite && reading) || a.solution}
     <div class="foot">
-      {#if ex.cite}<button type="button" class="cite" onclick={() => cite(`${section}-${ex.cite}`)}>Show me the passage</button>{/if}
+      {#if ex.cite && reading}<button type="button" class="cite" onclick={() => cite(`${section}-${ex.cite}`)}>Show me the passage</button>{/if}
     </div>
   {/if}
   {#if sol}

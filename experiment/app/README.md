@@ -38,7 +38,7 @@ src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a docum
 src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/settings    colour coding, theme, animations, exercise mode, underlines
-src/lib/practice    model.ts (points by Bloom level, decaying mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books)
+src/lib/practice    model.ts (points by Bloom level, decaying mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build, and joining them to the book being read; pure), books.svelte.ts (that cache, one fetch a book)
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time

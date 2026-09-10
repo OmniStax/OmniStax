@@ -1,7 +1,7 @@
 # Exercises as a curriculum: points, mastery, and a practice session
 
-Status: design, 2026-09-09. Written before any code; the phases at the end
-say what gets built first. The rail places this view right above the
+Status: design, 2026-09-09; phases 1 and 2 built 2026-09-09, phase 3 on
+2026-09-10. The phases at the end say what was built in which order. The rail places this view right above the
 concept map.
 
 ## What the reader gets

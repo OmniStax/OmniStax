@@ -180,10 +180,19 @@ type Cand = { readonly book: string; readonly section: SectionId; readonly ex: E
 
 /* Review first, then the frontier of the DAG, then whatever is left, so that a
    session is always full while exercises remain. */
-export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly Attempt[], s: PracticeSettings, now: number, seed: string): readonly Drawn[] => {
+/* The exercises a curriculum can draw on. A pick of a concept reaches into any
+   section of any book that tests it; a pick of a place reaches only its own
+   sections. The Choose face counts with this same rule, so what it promises is
+   what a session draws. */
+export const poolOf = (c: Curriculum, cat: Catalog): Catalog['exercises'] => {
   const inSet = conceptsOf(c, cat);
   const places = new Set(sectionsOfCurriculum(c, cat).map((p) => `${p.book}/${p.section}`));
   const picked = new Set(c.filter(isConcept).map((p) => String(p.concept)));
+  return cat.exercises.filter((e) => e.ex.concepts.some((id) => inSet.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => picked.has(id))));
+};
+
+export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly Attempt[], s: PracticeSettings, now: number, seed: string): readonly Drawn[] => {
+  const inSet = conceptsOf(c, cat);
   const state = (id: string): State => stateOf(m[id], now, s);
   const prereqs = new Map(cat.concepts.map((k) => [k.id, k.prereqs]));
 
@@ -193,11 +202,9 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
     last.set(k, Math.max(last.get(k) ?? 0, a.at));
     if (a.ok) lastOk.set(k, Math.max(lastOk.get(k) ?? 0, a.at));
   });
-  /* A pick of a concept reaches into any section that tests it; a pick of a
-     place reaches only its own sections. An exercise answered rightly in the
-     last two days is left alone unless one of its concepts has come due. */
-  const pool: Cand[] = cat.exercises
-    .filter((e) => e.ex.concepts.some((id) => inSet.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => picked.has(id))))
+  /* An exercise answered rightly in the last two days is left alone unless one
+     of its concepts has come due. */
+  const pool: Cand[] = poolOf(c, cat)
     .map((e) => { const key = `${e.book}/${e.section}/${e.ex.id}`; return { book: e.book, section: e.section, ex: e.ex, key, h: hash(`${seed}:${key}`), last: last.get(key) ?? 0, ok: lastOk.get(key) ?? 0 }; })
     .filter((e) => e.ok === 0 || now - e.ok > DAY * 2 || e.ex.concepts.some((id) => inSet.has(id) && state(id) === 'due'));
 

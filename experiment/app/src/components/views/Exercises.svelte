@@ -6,10 +6,10 @@
      standing the practising builds up, which is a step to the side rather than
      a step on — the Practise tab puts the reader back on the face they left.
 
-     On the first face the reader says what they want to practise: rows of the
-     book — the book itself, its chapters, its sections — each a checkbox that
-     stands for a pick, and beside them every concept those chapters teach, so a
-     reader who wants one idea rather than one section can say so. A row is
+     On the first face the reader says what they want to practise: rows of every
+     book in their library — the book itself, its chapters, its sections — each a
+     checkbox that stands for a pick, and beside them every concept those chapters
+     teach, so a reader who wants one idea rather than one section can say so. A row is
      checked when its own pick is in the curriculum or when everything under it
      is, and half-checked when only some of it is, which is the rule a file tree
      uses. The foot adds the choice up in a sentence and draws a session from it.
@@ -24,20 +24,38 @@
      attention, with what each book has earned them at the foot. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
-  import { sectionId, conceptId, type SpanId } from '../../lib/types/ids';
-  import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
+  import { library } from '../../lib/explorer/library.svelte';
+  import { sectionId, conceptId, type SpanId, type SectionId } from '../../lib/types/ids';
+  import type { BookManifest, ChapterEntry, ConceptDTO, SectionEntry } from '../../lib/content/schema';
   import { math } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
   import { pin, spansOf } from '../../lib/sections/concepts.svelte';
   import { goSpan } from '../../lib/sections/nav.svelte';
   import { practice, type Face } from '../../lib/practice/store.svelte';
-  import { DAY, conceptsOf, decayed, dueAt, pointsByBook, samePick, type Pick, type State } from '../../lib/practice/model';
+  import { books } from '../../lib/practice/books.svelte';
+  import { DAY, conceptsOf, decayed, dueAt, pointsByBook, samePick, type Pick, type State, poolOf } from '../../lib/practice/model';
 
-  /* Phase one is the book the reader has open; everything the store keeps is
-     keyed by book already, so nothing here has to change when the rest of the
-     library joins in. */
+  /* The curriculum spans the shelf rather than the page: the book the reader has
+     open stands first, and after it every other book they have taken into their
+     library, each fetched once and then held. Everything the store keeps is keyed
+     by book already, so a chapter of one book and a section of another sit in the
+     curriculum side by side. */
   const book = $derived(registry.manifest.id);
   const cat = $derived(practice.catalog());
+  const shelf = $derived([book, ...library.added.filter((id) => id !== book)]);
+  /* A book's shape is read from its own manifest: the one the shell was started
+     with for the book being read, a fetched one for every other. */
+  const manifestOf = (id: string): BookManifest | undefined => (id === book ? registry.manifest : books.manifest(id));
+  const chaptersOf = (id: string): readonly ChapterEntry[] => manifestOf(id)?.chapters ?? [];
+  const statusOf = (id: string): string => (id === book ? 'loaded' : books.status[id] ?? 'idle');
+  /* The catalogue of what the library holds, and then each book on the shelf. A
+     book is asked for only while nothing has been tried, so a book that will not
+     load is reported rather than fetched again and again. */
+  $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
+  $effect(() => { shelf.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); }); });
+  const bookTitle = (id: string): string => (id === book ? registry.manifest.title || 'This book' : practice.bookTitle(id));
+  const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
+  const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
   const chapters = $derived(registry.manifest.chapters);
   const builtOf = (c: ChapterEntry): readonly SectionEntry[] => c.sections.filter((s) => s.built);
 
@@ -56,18 +74,18 @@
      only, so it is set here rather than written as an attribute. */
   const tri = (node: HTMLInputElement, on: boolean) => { node.indeterminate = on; return { update(v: boolean) { node.indeterminate = v; } }; };
 
-  const bookPick = (): Pick => ({ book });
-  const chapPick = (c: ChapterEntry): Pick => ({ book, chapter: c.id });
-  const secPick = (s: SectionEntry): Pick => ({ book, section: sectionId(s.id) });
+  const bookPick = (id: string): Pick => ({ book: id });
+  const chapPick = (id: string, c: ChapterEntry): Pick => ({ book: id, chapter: c.id });
+  const secPick = (id: string, s: SectionEntry): Pick => ({ book: id, section: sectionId(s.id) });
   const conceptPick = (id: string): Pick => ({ concept: conceptId(id) });
   const has = (p: Pick): boolean => practice.curriculum.some((q) => samePick(q, p));
   /* A section is in the curriculum on its own account or through the chapter or
      the book above it; a chapter is in it when every section it has built is. */
-  const secOn = (c: ChapterEntry, s: SectionEntry): boolean => has(bookPick()) || has(chapPick(c)) || has(secPick(s));
-  const chapOn = (c: ChapterEntry): boolean => { const b = builtOf(c); return has(bookPick()) || has(chapPick(c)) || (b.length > 0 && b.every((s) => secOn(c, s))); };
-  const chapSome = (c: ChapterEntry): boolean => builtOf(c).some((s) => secOn(c, s));
-  const bookOn = $derived(has(bookPick()) || (chapters.length > 0 && chapters.every((c) => chapOn(c))));
-  const bookSome = $derived(!bookOn && chapters.some((c) => chapSome(c)));
+  const secOn = (id: string, c: ChapterEntry, s: SectionEntry): boolean => has(bookPick(id)) || has(chapPick(id, c)) || has(secPick(id, s));
+  const chapOn = (id: string, c: ChapterEntry): boolean => { const b = builtOf(c); return has(bookPick(id)) || has(chapPick(id, c)) || (b.length > 0 && b.every((s) => secOn(id, c, s))); };
+  const chapSome = (id: string, c: ChapterEntry): boolean => builtOf(c).some((s) => secOn(id, c, s));
+  const bookOn = (id: string): boolean => { const ch = chaptersOf(id); return has(bookPick(id)) || (ch.length > 0 && ch.every((c) => chapOn(id, c))); };
+  const bookSome = (id: string): boolean => !bookOn(id) && chaptersOf(id).some((c) => chapSome(id, c));
 
   /* What a pick comes to: the concepts it holds, how many of them are waiting
      for review, and how many problems in the book test any of them. */
@@ -76,7 +94,7 @@
     const ids = conceptsOf(picks, cat);
     let due = 0;
     ids.forEach((id) => { if (practice.stateOf(id) === 'due') due += 1; });
-    return { concepts: ids.size, due, exercises: cat.exercises.filter((e) => e.ex.concepts.some((c) => ids.has(c))).length };
+    return { concepts: ids.size, due, exercises: poolOf(picks, cat).length };
   };
   const countLine = (s: Sum): string => `${s.concepts} · ${s.exercises}${s.due ? ` · ${s.due} due` : ''}`;
   const countTitle = (s: Sum): string =>
@@ -84,20 +102,28 @@
       : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`}, ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}, and ${
         s.due === 0 ? 'nothing due for review' : s.due === 1 ? 'one of them due for review' : `${s.due} of them due for review`}.`;
 
-  /* The concept list: everything the loaded chapters teach that the book itself
-     states, in the order the book states it, narrowed by what is typed above. */
+  /* The concept list: everything the loaded chapters of the shelf teach that the
+     book stating it states, book by book and in the order each book states it,
+     narrowed by what is typed above. Section ids repeat from one book to the
+     next, so a group is keyed by its book as well as by its section. */
   let q = $state('');
   const plain = (s: string): string => s.replace(/\$[^$]*\$/g, ' ').replace(/<[^>]*>/g, ' ');
+  const conceptsIn = (id: string): readonly ConceptDTO[] => (id === book ? registry.concepts : books.loaded[id]?.concepts ?? []);
   const conceptGroups = $derived.by(() => {
     const needle = q.trim().toLowerCase();
-    const order = chapters.flatMap((c) => c.sections.map((s) => s.id));
-    const kept = cat.concepts.filter((c) => !c.placeholder && (!needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)));
-    const by = new Map<string, typeof kept>();
-    kept.forEach((c) => { const g = by.get(c.section); if (g) g.push(c); else by.set(c.section, [c]); });
-    return [...by.entries()]
-      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
-      .map(([section, items]) => ({ section, title: registry.entry(sectionId(section))?.title ?? '', items }));
+    return shelf.flatMap((id) => {
+      const order = chaptersOf(id).flatMap((c) => c.sections.map((s) => s.id));
+      const kept = conceptsIn(id).filter((c) => !c.placeholder && (!needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)));
+      const by = new Map<string, ConceptDTO[]>();
+      kept.forEach((c) => { const g = by.get(c.section); if (g) g.push(c); else by.set(c.section, [c]); });
+      return [...by.entries()]
+        .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+        .map(([section, items]) => ({ key: `${id}/${section}`, book: id, section, title: sectionTitle(id, section), items }));
+    });
   });
+  /* The book a group belongs to is worth saying only where more than one book has
+     something to say. */
+  const manyBooks = $derived(new Set(conceptGroups.map((g) => g.book)).size > 1);
   /* A concept is checked when the reader named it, and half-checked when a
      section or a chapter they picked brings it in. */
   const curriculumConcepts = $derived(conceptsOf(practice.curriculum, cat));
@@ -135,7 +161,13 @@
   const drawn = $derived(session?.drawn ?? []);
   const cur = $derived(practice.current());
   const pending = $derived(session ? session.drawn[at] : undefined);
-  $effect(() => { if (pending && !cur) registry.load(pending.section).catch(() => {}); });
+  /* A problem of the book being read waits on its section; one drawn out of
+     another book waits on that book, which arrives whole. */
+  $effect(() => {
+    if (!pending || cur) return;
+    if (pending.book === book) registry.load(pending.section).catch(() => {});
+    else if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
+  });
   const answered = $derived(session?.answered[at] === true);
   const last = $derived(session !== null && at === drawn.length - 1);
   const WHY: Readonly<Record<string, string>> = { review: 'review', frontier: 'new', more: 'more' };
@@ -149,7 +181,7 @@
   let nextBtn = $state<HTMLButtonElement | null>(null);
   $effect(() => { if (answered && nextBtn) nextBtn.focus({ preventScroll: true }); });
 
-  const conceptName = (id: string): string => registry.concept(id)?.name ?? id;
+  const conceptName = (id: string): string => practice.conceptOf(id)?.name ?? id;
   const bar = (id: string): number => { const r = practice.mastery[id]; return r ? Math.min(1, decayed(r, Date.now(), practice.settings) / practice.settings.threshold) : 0; };
   const barTitle = (id: string, s: State): string =>
     s === 'untouched' ? 'You have not answered anything on this concept yet.'
@@ -200,7 +232,8 @@
 
   /* The curriculum, or everything the reader has ever answered: a record is
      kept by the concept alone, so the wider list reaches into books that are
-     not open, and names by id whatever the registry cannot name. */
+     not open; a concept is named by whichever book on the shelf states it, and
+     by its id while no loaded book does. */
   let scope = $state<'curriculum' | 'everything'>('curriculum');
   const STATES: readonly State[] = ['due', 'practised', 'mastered', 'untouched'];
   type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly at: number | null; readonly meta: string; readonly intro: SpanId | undefined };
@@ -216,7 +249,7 @@
     const mine = [...conceptsOf(practice.curriculum, cat)];
     const ids = scope === 'curriculum' ? mine : [...new Set([...Object.keys(practice.mastery), ...mine])];
     return ids.map((id): Row => {
-      const r = practice.mastery[id], c = registry.concept(id), st = practice.stateOf(id, now);
+      const r = practice.mastery[id], c = practice.conceptOf(id), st = practice.stateOf(id, now);
       const at = r ? dueAt(r, practice.settings) : null;
       return {
         id, name: c?.name ?? id, kind: c?.kind ?? '', state: st, bar: bar(id), at, intro: spansOf(conceptId(id)).intro[0],
@@ -242,11 +275,11 @@
   );
   const dueLine = $derived(practice.due.length === 0 ? '' : practice.due.length === 1 ? 'One concept is due now.' : `${practice.due.length} concepts are due now.`);
   /* Points are earned in a book even though mastery is not, so this is summed
-     over the attempts; a book of the library the reader has not opened here is
-     named by its id until its manifest is loaded. */
-  const books = $derived.by(() => Object.entries(pointsByBook(practice.attempts))
+     over the attempts; a book the reader has since taken out of their library is
+     named by its id until it is put back. */
+  const bookTotals = $derived.by(() => Object.entries(pointsByBook(practice.attempts))
     .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
-    .map(([id, n]) => ({ id, line: `${id === registry.manifest.id ? registry.manifest.title || id : id} · ${n === 1 ? 'one point' : `${n} points`}` })));
+    .map(([id, n]) => ({ id, line: `${practice.bookTitle(id)} · ${n === 1 ? 'one point' : `${n} points`}` })));
   const rowTitle = (r: Row): string => (r.intro ? 'Pin this concept on the map and go to where the book introduces it.' : 'Pin this concept on the map; the book has no page that introduces it yet.');
   const open = (r: Row): void => { const id = conceptId(r.id); const was = pin.pinned === id; pin.toggle(id); if (!was && r.intro) goSpan(r.intro); };
 </script>
@@ -266,8 +299,8 @@
     {#if loading}<p class="quiet">Loading the book’s problems…</p>{/if}
     <div class="presets">
       <button type="button" class="btn" onclick={() => replace([{ book, section: here }])}>This section</button>
-      <button type="button" class="btn" disabled={!hereChapter} onclick={() => hereChapter && replace([chapPick(hereChapter)])}>This chapter</button>
-      <button type="button" class="btn" onclick={() => replace([bookPick()])}>This book</button>
+      <button type="button" class="btn" disabled={!hereChapter} onclick={() => hereChapter && replace([chapPick(book, hereChapter)])}>This chapter</button>
+      <button type="button" class="btn" onclick={() => replace([bookPick(book)])}>This book</button>
       <button type="button" class="btn" disabled={dueNow.length === 0}
         title={dueNow.length === 0 ? 'Nothing is waiting for review at the moment.' : 'The concepts whose score has faded below the threshold since you last practised them.'}
         onclick={() => replace(dueNow.map((c) => conceptPick(c.id)))}>Everything due</button>
@@ -276,33 +309,41 @@
 
     <div class="cols">
       <div class="pane">
-        <div class="eyebrow">The book</div>
-        <label class="row lvl-book">
-          <input type="checkbox" checked={bookOn} use:tri={bookSome} onchange={() => practice.toggle(bookPick())}>
-          <span class="lab">{registry.manifest.title || 'This book'}</span>
-          <span class="cnt" title={countTitle(sumOf([bookPick()]))}>{countLine(sumOf([bookPick()]))}</span>
-        </label>
-        {#each chapters as c (c.id)}
-          {@const on = chapOn(c)}
-          <label class="row lvl-chapter">
-            <input type="checkbox" checked={on} use:tri={!on && chapSome(c)} onchange={() => practice.toggle(chapPick(c))}>
-            <span class="lab">{c.id} · {c.title}</span>
-            <span class="cnt" title={countTitle(sumOf([chapPick(c)]))}>{countLine(sumOf([chapPick(c)]))}</span>
+        <div class="eyebrow">{shelf.length > 1 ? 'The books' : 'The book'}</div>
+        {#each shelf as b (b)}
+          {@const on = bookOn(b)}
+          <label class="row lvl-book">
+            <input type="checkbox" checked={on} use:tri={bookSome(b)} onchange={() => practice.toggle(bookPick(b))}>
+            <span class="lab">{bookTitle(b)}</span>
+            <span class="cnt" title={countTitle(sumOf([bookPick(b)]))}>{countLine(sumOf([bookPick(b)]))}</span>
           </label>
-          {#each c.sections as s (s.id)}
-            {#if s.built}
-              <label class="row lvl-section">
-                <input type="checkbox" checked={secOn(c, s)} onchange={() => practice.toggle(secPick(s))}>
-                <span class="lab">{s.id} · {s.title}</span>
-                <span class="cnt" title={countTitle(sumOf([secPick(s)]))}>{countLine(sumOf([secPick(s)]))}</span>
-              </label>
-            {:else}
-              <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
-                <input type="checkbox" disabled>
-                <span class="lab">{s.id} · {s.title}</span>
-                <span class="cnt">not built yet</span>
-              </div>
-            {/if}
+          {#if !manifestOf(b)}
+            <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
+              <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
+            </div>
+          {/if}
+          {#each chaptersOf(b) as c (c.id)}
+            {@const chOn = chapOn(b, c)}
+            <label class="row lvl-chapter">
+              <input type="checkbox" checked={chOn} use:tri={!chOn && chapSome(b, c)} onchange={() => practice.toggle(chapPick(b, c))}>
+              <span class="lab">{c.id} · {c.title}</span>
+              <span class="cnt" title={countTitle(sumOf([chapPick(b, c)]))}>{countLine(sumOf([chapPick(b, c)]))}</span>
+            </label>
+            {#each c.sections as s (s.id)}
+              {#if s.built}
+                <label class="row lvl-section">
+                  <input type="checkbox" checked={secOn(b, c, s)} onchange={() => practice.toggle(secPick(b, s))}>
+                  <span class="lab">{s.id} · {s.title}</span>
+                  <span class="cnt" title={countTitle(sumOf([secPick(b, s)]))}>{countLine(sumOf([secPick(b, s)]))}</span>
+                </label>
+              {:else}
+                <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
+                  <input type="checkbox" disabled>
+                  <span class="lab">{s.id} · {s.title}</span>
+                  <span class="cnt">not built yet</span>
+                </div>
+              {/if}
+            {/each}
           {/each}
         {/each}
       </div>
@@ -311,9 +352,10 @@
         <div class="eyebrow">The concepts</div>
         <input class="find" type="search" placeholder="Narrow the concepts…" aria-label="Narrow the concepts by name" bind:value={q}>
         {#if conceptGroups.length === 0}
-          <p class="quiet">{loading ? 'The concepts are still loading.' : q.trim() ? 'No concept of this book is named that.' : 'This book lists no concepts yet.'}</p>
+          <p class="quiet">{loading ? 'The concepts are still loading.' : q.trim() ? 'No concept in your library is named that.' : 'Your library lists no concepts yet.'}</p>
         {/if}
-        {#each conceptGroups as g (g.section)}
+        {#each conceptGroups as g, i (g.key)}
+          {#if manyBooks && (i === 0 || conceptGroups[i - 1].book !== g.book)}<div class="eyebrow bk">{bookTitle(g.book)}</div>{/if}
           <div class="eyebrow sec">{g.section}{g.title ? ` · ${g.title}` : ''}</div>
           {#each g.items as c (c.id)}
             {@const own = has(conceptPick(c.id))}
@@ -358,13 +400,16 @@
           </div>
         {/each}
       </div>
-      {#key `${cur.section}/${cur.ex.id}/${at}`}
-        <div class="card-root" data-sec={cur.section} data-chapter={registry.chapterOf(cur.section)?.dir ?? ''} data-one="1" bind:this={root}>
-          <ExerciseCard section={cur.section} ex={cur.ex} standalone />
+      {#if cur.book !== book}<div class="eyebrow from">From {practice.bookTitle(cur.book)} · {cur.section}</div>{/if}
+      {#key `${cur.book}/${cur.section}/${cur.ex.id}/${at}`}
+        <div class="card-root" data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
+          <ExerciseCard book={cur.book} section={cur.section} ex={cur.ex} standalone />
         </div>
       {/key}
+    {:else if pending && statusOf(pending.book) === 'failed'}
+      <p class="quiet">This problem comes from {practice.bookTitle(pending.book)}, and that book would not load. Skip it and the session goes on without it.</p>
     {:else}
-      <p class="quiet">Loading the section this problem comes from…</p>
+      <p class="quiet">{pending && pending.book !== book ? 'Loading the book this problem comes from…' : 'Loading the section this problem comes from…'}</p>
     {/if}
     <div class="acts">
       <button type="button" class="btn" onclick={() => practice.skip()}>Skip</button>
@@ -431,10 +476,10 @@
           </button>
         {/each}
       {/each}
-      {#if books.length}
+      {#if bookTotals.length}
         <div class="eyebrow">Book by book</div>
         <ul class="books">
-          {#each books as b (b.id)}<li>{b.line}</li>{/each}
+          {#each bookTotals as b (b.id)}<li>{b.line}</li>{/each}
         </ul>
       {/if}
     {/if}
@@ -452,6 +497,7 @@
   .quiet{color:var(--muted);margin:6px 0}
   .eyebrow{margin:10px 0 4px}
   .eyebrow.sec{margin:10px 0 2px;opacity:.85}
+  .eyebrow.bk{margin:14px 0 0;font-weight:600}   /* which book the sections under it belong to, where the shelf holds more than one */
   .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
   .btn{font:inherit;font-size:0.78rem;font-weight:600;padding:4px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer}
   .btn:hover:not(:disabled){background:var(--soft)}
@@ -503,6 +549,7 @@
   .fill.st-practised{background:var(--accent)}
   .fill.st-mastered{background:var(--ok)}
   .fill.st-due{background:var(--warm)}
+  .eyebrow.from{margin:8px 0 0;opacity:.85}
   .card-root{margin:6px 0 2px}
   .moved,.due{list-style:none;margin:0;padding:0}
   .moved li,.due li{padding:2px 0;display:flex;gap:8px;align-items:baseline;min-width:0}

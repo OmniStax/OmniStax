@@ -145,6 +145,16 @@ ideas it needs (the AP test-prep blocks do this: 16.1 carries a question
 about amplitude and period, which are 16.2 and 16.3 ideas), the exercise
 is held and placed on the later page, and both sections' notes say so.
 
+Every exercise is tagged with the concepts it tests, and the app scores a
+correct answer into each of them by the exercise's Bloom level. Where an
+exercise leans on one concept and only touches another, the agent may write
+`weights`, points per concept id, so the practice gives credit where the
+work is: a problem that turns on Hooke's law and merely names displacement
+gives displacement less. The field is marked `"weights_by": "ai"` and the
+Bloom table applies wherever it is absent, so it is never required. A
+weight is a small whole number in the Bloom range (1 to 6), and the
+concept that the exercise is really about keeps the full Bloom value.
+
 ## 13. What the agent may generate, and what it must not
 
 Defaults, all overridable in the config list of item 10:
