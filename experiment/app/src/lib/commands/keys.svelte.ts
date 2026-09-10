@@ -2,18 +2,16 @@
    own several chords, and a binding may be a sequence of two presses — Ctrl+K
    Ctrl+S — of which the first is held here for a moment while the second is
    waited for. The dispatcher runs from the document's keydown; chords without
-   Ctrl or Alt are left to inputs so typing keeps working.
-   An installed app and a browser tab share one origin and so one storage, but
-   not one set of chords the browser keeps, so each has bindings of its own. */
+   Ctrl or Alt are left to inputs so typing keeps working. An installed app is
+   the same browser and profile in another window, so it reads the same bindings. */
 import { commands } from './registry.svelte';
 import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBindings, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
 import { DEFAULT_BINDINGS } from './defaults';
 import type { CommandId } from './command';
-import { host } from './host.svelte';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
-const KEY = host.surface === 'app' ? 'omnistax-keys-app' : 'omnistax-keys';
+const KEY = 'omnistax-keys';
 const WAIT = 1500;   /* how long the first press of a sequence is held, in milliseconds */
 export { DEFAULT_BINDINGS } from './defaults';
 

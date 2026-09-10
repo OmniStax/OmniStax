@@ -14,7 +14,7 @@
   import type { Command, CommandId } from '../lib/commands/command';
   import { ui } from '../lib/commands/ui.svelte';
   import { reader } from '../lib/voice.svelte';
-  import { host, kept, keptChords, BROWSER_NAMES } from '../lib/commands/host.svelte';
+  import { host, kept, BROWSER_NAMES } from '../lib/commands/host.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
@@ -49,12 +49,11 @@
   const record = (id: CommandId) => { rec = rec?.id === id ? null : { id, pending: null }; };
   const focus = (el: HTMLElement) => { el.focus(); };
 
-  /* The chords this window never sees: the browser keeps them. A tab and an
-     installed app have bindings of their own, since what each keeps differs. */
+  /* The chords this window never sees: the browser keeps them. The bindings
+     are the same in a tab and in the installed app; only what arrives differs. */
   const browserName = $derived(BROWSER_NAMES[host.browser]);
-  const heldCount = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(host.info, ch))).length);
+  const tabHeld = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept({ browser: host.browser, surface: 'tab' }, ch))).length);
   const keptTitle = $derived(`${browserName} keeps this chord for itself in a browser tab; the book never sees it`);
-  const surfaceNote = $derived(host.surface === 'app' ? 'These are the shortcuts of the installed app; a browser tab keeps its own.' : 'These are the shortcuts of a browser tab; the installed app keeps its own.');
 </script>
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
@@ -105,10 +104,14 @@
       <section hidden={!groups.length}>
         <h3>Keyboard shortcuts</h3>
         <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>
-        <p class="hint">{surfaceNote}
-          {#if keptChords(host.info).length}{browserName} keeps {heldCount} of these for itself and the book never sees them; they are marked <span class="kept" aria-hidden="true">⊘</span>. {#if host.browser === 'chromium'}Installed as an app, the book is handed every one.{/if}{/if}
-          {#if host.canInstall}<button class="link" type="button" onclick={() => host.install()}>Install as app</button>{/if}
-        </p>
+        {#if tabHeld}
+          <p class="hint">
+            {#if host.surface === 'app'}You are in the installed app, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
+            {:else if host.surface === 'fullscreen'}You are in full screen, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
+            {:else}You are in a browser tab, where {browserName} keeps {tabHeld} of these shortcuts for itself; they are marked <span class="kept" aria-hidden="true">⊘</span> and the book never sees them. {#if host.browser === 'chromium'}In the installed app, or in full screen, every one reaches the book.{/if}{/if}
+            {#if host.canInstall}<button class="link" type="button" onclick={() => host.install()}>Install as app</button>{/if}
+          </p>
+        {/if}
         <table>
           <tbody>
             {#each groups as [group, cmds] (group)}
