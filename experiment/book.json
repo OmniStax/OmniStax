@@ -11,111 +11,854 @@
  "license": "CC BY-NC-SA 4.0",
  "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
  "openstax": "https://openstax.org/books/college-physics-2e/pages/",
- "base_url": "https://omnistax.local/",
  "chapters": [
   "ch02",
   "ch16"
  ],
- "types": {
-  "time": {
+ "types": [
+  {
+   "id": "time",
    "label": "time",
    "dimension": "s"
   },
-  "position": {
+  {
+   "id": "position",
    "label": "position, displacement",
    "dimension": "m"
   },
-  "velocity": {
+  {
+   "id": "velocity",
    "label": "velocity",
    "dimension": "m/s"
   },
-  "acceleration": {
+  {
+   "id": "acceleration",
    "label": "acceleration",
    "dimension": "m/s²"
   },
-  "force": {
+  {
+   "id": "force",
    "label": "force",
    "dimension": "N"
   },
-  "energy": {
+  {
+   "id": "energy",
    "label": "energy",
    "dimension": "J"
   },
-  "frequency": {
+  {
+   "id": "frequency",
    "label": "frequency",
    "dimension": "Hz"
   },
-  "stiffness": {
+  {
+   "id": "stiffness",
    "label": "force constant",
    "dimension": "N/m"
   },
-  "angular-rate": {
+  {
+   "id": "angular-rate",
    "label": "angular velocity, angular frequency",
    "dimension": "rad/s"
   }
- },
- "macros": {
-  "\\kt": "\\htmlClass{kv-time}{\\htmlData{sym=t}{t}}",
-  "\\kx": "\\htmlClass{kv-position}{\\htmlData{sym=x}{x}}",
-  "\\kxo": "\\htmlClass{kv-position}{\\htmlData{sym=x0}{x_0}}",
-  "\\kxf": "\\htmlClass{kv-position}{\\htmlData{sym=xf}{x_{\\text{f}}}}",
-  "\\kv": "\\htmlClass{kv-velocity}{\\htmlData{sym=v}{v}}",
-  "\\kvo": "\\htmlClass{kv-velocity}{\\htmlData{sym=v0}{v_0}}",
-  "\\kvb": "\\htmlClass{kv-velocity}{\\htmlData{sym=v̄}{\\bar{v}}}",
-  "\\ka": "\\htmlClass{kv-acceleration}{\\htmlData{sym=a}{a}}",
-  "\\kab": "\\htmlClass{kv-acceleration}{\\htmlData{sym=ā}{\\bar{a}}}",
-  "\\kdx": "\\htmlClass{kv-position}{\\htmlData{sym=Δx}{\\Delta x}}",
-  "\\kdt": "\\htmlClass{kv-time}{\\htmlData{sym=Δt}{\\Delta t}}",
-  "\\kdv": "\\htmlClass{kv-velocity}{\\htmlData{sym=Δv}{\\Delta v}}",
-  "\\kF": "\\htmlClass{kv-force}{\\htmlData{sym=F}{F}}",
-  "\\kFa": "\\htmlClass{kv-force}{\\htmlData{sym=F_app}{F_{\\text{app}}}}",
-  "\\kk": "\\htmlClass{kv-stiffness}{\\htmlData{sym=k}{k}}",
-  "\\kPE": "\\htmlClass{kv-energy}{\\htmlData{sym=PE_el}{\\text{PE}_{\\text{el}}}}",
-  "\\kKE": "\\htmlClass{kv-energy}{\\htmlData{sym=KE}{\\text{KE}}}",
-  "\\kW": "\\htmlClass{kv-energy}{\\htmlData{sym=W}{W}}",
-  "\\kT": "\\htmlClass{kv-time}{\\htmlData{sym=T}{T}}",
-  "\\kf": "\\htmlClass{kv-frequency}{\\htmlData{sym=f}{f}}",
-  "\\kX": "\\htmlClass{kv-position}{\\htmlData{sym=X}{X}}",
-  "\\kvmax": "\\htmlClass{kv-velocity}{\\htmlData{sym=v_max}{v_{\\text{max}}}}",
-  "\\ks": "\\htmlClass{kv-position}{\\htmlData{sym=s}{s}}",
-  "\\kg": "\\htmlClass{kv-acceleration}{\\htmlData{sym=g}{g}}",
-  "\\kw": "\\htmlClass{kv-angular-rate}{\\htmlData{sym=ω}{\\omega}}",
-  "\\kwmax": "\\htmlClass{kv-angular-rate}{\\htmlData{sym=ω_max}{\\omega_{\\text{max}}}}"
- },
- "symbols": {
-  "t": "\\kt",
-  "Δt": "\\kdt",
-  "x0": "\\kxo",
-  "xf": "\\kxf",
-  "x": "\\kx",
-  "Δx": "\\kdx",
-  "v0": "\\kvo",
-  "v": "\\kv",
-  "v̄": "\\kvb",
-  "Δv": "\\kdv",
-  "a": "\\ka",
-  "ā": "\\kab",
-  "F": "\\kF",
-  "F_app": "\\kFa",
-  "k": "\\kk",
-  "PE_el": "\\kPE",
-  "KE": "\\kKE",
-  "W": "\\kW",
-  "T": "\\kT",
-  "f": "\\kf",
-  "X": "\\kX",
-  "v_max": "\\kvmax",
-  "s": "\\ks",
-  "g": "\\kg",
-  "ω": "\\kw",
-  "ω_max": "\\kwmax",
-  "θ_max": "\\theta_{\\text{max}}",
-  "θ": "\\theta"
- },
- "exercise_kinds": {
-  "check-understanding": "Check Your Understanding",
-  "problem": "Problem",
-  "ap-test-prep": "AP test prep",
-  "conceptual-question": "Conceptual question"
- }
+ ],
+ "symbols": [
+  {
+   "sym": "t",
+   "latex": "t",
+   "type": "time",
+   "macro": "\\kt"
+  },
+  {
+   "sym": "Δt",
+   "latex": "\\Delta t",
+   "type": "time",
+   "macro": "\\kdt"
+  },
+  {
+   "sym": "x0",
+   "latex": "x_0",
+   "type": "position",
+   "macro": "\\kxo"
+  },
+  {
+   "sym": "xf",
+   "latex": "x_{\\text{f}}",
+   "type": "position",
+   "macro": "\\kxf"
+  },
+  {
+   "sym": "x",
+   "latex": "x",
+   "type": "position",
+   "macro": "\\kx"
+  },
+  {
+   "sym": "Δx",
+   "latex": "\\Delta x",
+   "type": "position",
+   "macro": "\\kdx"
+  },
+  {
+   "sym": "v0",
+   "latex": "v_0",
+   "type": "velocity",
+   "macro": "\\kvo"
+  },
+  {
+   "sym": "v",
+   "latex": "v",
+   "type": "velocity",
+   "macro": "\\kv"
+  },
+  {
+   "sym": "v̄",
+   "latex": "\\bar{v}",
+   "type": "velocity",
+   "macro": "\\kvb"
+  },
+  {
+   "sym": "Δv",
+   "latex": "\\Delta v",
+   "type": "velocity",
+   "macro": "\\kdv"
+  },
+  {
+   "sym": "a",
+   "latex": "a",
+   "type": "acceleration",
+   "macro": "\\ka"
+  },
+  {
+   "sym": "ā",
+   "latex": "\\bar{a}",
+   "type": "acceleration",
+   "macro": "\\kab"
+  },
+  {
+   "sym": "F",
+   "latex": "F",
+   "type": "force",
+   "macro": "\\kF"
+  },
+  {
+   "sym": "F_app",
+   "latex": "F_{\\text{app}}",
+   "type": "force",
+   "macro": "\\kFa"
+  },
+  {
+   "sym": "k",
+   "latex": "k",
+   "type": "stiffness",
+   "macro": "\\kk"
+  },
+  {
+   "sym": "PE_el",
+   "latex": "\\text{PE}_{\\text{el}}",
+   "type": "energy",
+   "macro": "\\kPE"
+  },
+  {
+   "sym": "KE",
+   "latex": "\\text{KE}",
+   "type": "energy",
+   "macro": "\\kKE"
+  },
+  {
+   "sym": "W",
+   "latex": "W",
+   "type": "energy",
+   "macro": "\\kW"
+  },
+  {
+   "sym": "T",
+   "latex": "T",
+   "type": "time",
+   "macro": "\\kT"
+  },
+  {
+   "sym": "f",
+   "latex": "f",
+   "type": "frequency",
+   "macro": "\\kf"
+  },
+  {
+   "sym": "X",
+   "latex": "X",
+   "type": "position",
+   "macro": "\\kX"
+  },
+  {
+   "sym": "v_max",
+   "latex": "v_{\\text{max}}",
+   "type": "velocity",
+   "macro": "\\kvmax"
+  },
+  {
+   "sym": "s",
+   "latex": "s",
+   "type": "position",
+   "macro": "\\ks"
+  },
+  {
+   "sym": "g",
+   "latex": "g",
+   "type": "acceleration",
+   "macro": "\\kg"
+  },
+  {
+   "sym": "ω",
+   "latex": "\\omega",
+   "type": "angular-rate",
+   "macro": "\\kw"
+  },
+  {
+   "sym": "ω_max",
+   "latex": "\\omega_{\\text{max}}",
+   "type": "angular-rate",
+   "macro": "\\kwmax"
+  },
+  {
+   "sym": "θ_max",
+   "latex": "\\theta_{\\text{max}}"
+  },
+  {
+   "sym": "θ",
+   "latex": "\\theta"
+  }
+ ],
+ "exercise_kinds": [
+  {
+   "id": "check-understanding",
+   "label": "Check Your Understanding"
+  },
+  {
+   "id": "problem",
+   "label": "Problem"
+  },
+  {
+   "id": "ap-test-prep",
+   "label": "AP test prep"
+  },
+  {
+   "id": "conceptual-question",
+   "label": "Conceptual question"
+  }
+ ],
+ "concepts": [
+  {
+   "id": "reference-frame",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Reference frame",
+   "why": "A position is always given relative to something, such as the Earth, a whiteboard, or the cabin of an airplane. Choosing the reference frame is the first step in describing any motion.",
+   "evidence": "Defined in the text (\"position relative to a convenient reference frame\"); the AP question separates position from displacement, which only makes sense once a frame is fixed."
+  },
+  {
+   "id": "position",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Position",
+   "why": "The position of an object is where it is at a particular time, given as a coordinate with a sign on the chosen axis. Every other quantity in one-dimensional kinematics is built from positions and times.",
+   "evidence": "Glossary term; the AP question distinguishes position from distance traveled and displacement."
+  },
+  {
+   "id": "displacement",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Displacement, $\\kdx = \\kxf - \\kxo$",
+   "why": "Displacement is the change in position, that is, the final position minus the initial position. It has a sign, and the sign gives the direction. In kinematics we nearly always deal with displacement rather than with the path taken.",
+   "evidence": "Check Your Understanding (a); problems 1 and 3 part (c); AP question.",
+   "eq": "eq-dx"
+  },
+  {
+   "id": "distance",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Distance (magnitude of displacement)",
+   "why": "Distance is the magnitude of the displacement, so it has no sign. It is easy to confuse with distance traveled, which is why the text treats the two separately.",
+   "evidence": "Check Your Understanding (c); problems 1 and 3 part (b); conceptual question 2."
+  },
+  {
+   "id": "distance-traveled",
+   "kind": "idea",
+   "section": "2.1",
+   "name": "Distance traveled (path length)",
+   "why": "Distance traveled is the total length of the path, and it can be much greater than the magnitude of the displacement. For example, a professor who paces 150 m during a lecture may end up only 2.0 m from where she started.",
+   "evidence": "Check Your Understanding (b); problems 1 and 3 part (a); conceptual questions 1 to 3."
+  },
+  {
+   "id": "average-velocity",
+   "kind": "idea",
+   "section": "2.3",
+   "name": "Average velocity"
+  },
+  {
+   "id": "acceleration",
+   "kind": "idea",
+   "section": "2.4",
+   "name": "Acceleration"
+  },
+  {
+   "id": "const-a",
+   "kind": "idea",
+   "section": "2.5",
+   "name": "Constant-acceleration model",
+   "why": "In this section we assume that acceleration is constant. Then the average acceleration equals the acceleration at every instant, and the average velocity is simply the midpoint of the initial and final velocities. The kinematic equations all follow from this assumption, and many real motions can be described in pieces within which it holds.",
+   "evidence": "Definition in the text (\"acceleration is constant\"); exercises ap-marble, p6, p18 test whether the learner knows when the model applies."
+  },
+  {
+   "id": "x-from-vbar",
+   "kind": "result",
+   "section": "2.5",
+   "name": "$\\kx = \\kxo + \\kvb\\kt$",
+   "why": "Displacement equals the average velocity multiplied by the elapsed time. This is the definition of average velocity rearranged, so it holds whether or not the acceleration is constant.",
+   "evidence": "Tested directly by p7, p8; used in p11, p13, p14.",
+   "eq": "eq-x-vbar"
+  },
+  {
+   "id": "vbar-midpoint",
+   "kind": "result",
+   "section": "2.5",
+   "name": "$\\kvb = \\tfrac{\\kvo + \\kv}{2}$",
+   "why": "When acceleration is constant, velocity changes at a steady rate, so the average velocity is the midpoint of the initial and final velocities. This step turns the definition of average velocity into the equations for displacement.",
+   "evidence": "Tested by p7, p8; required to derive x-quadratic and v-squared.",
+   "eq": "eq-vbar"
+  },
+  {
+   "id": "v-from-at",
+   "kind": "result",
+   "section": "2.5",
+   "name": "$\\kv = \\kvo + \\ka\\kt$",
+   "why": "The final velocity depends on both the size of the acceleration and the time over which it acts. A modest acceleration that lasts a long time can produce a very large velocity.",
+   "evidence": "Tested by cyu-rocket, ai-rel-1, p1 to p5; used in most later problems.",
+   "eq": "eq-v"
+  },
+  {
+   "id": "x-quadratic",
+   "kind": "result",
+   "section": "2.5",
+   "name": "$\\kx = \\kxo + \\kvo\\kt + \\tfrac12\\ka\\kt^2$",
+   "why": "Under constant acceleration, the displacement grows with the square of the elapsed time. For example, a dragster starting from rest covers only one quarter of the track in the first half of its run.",
+   "evidence": "Tested by ai-rel-2, ap-marble, p5, p9, p10, p17.",
+   "eq": "eq-x"
+  },
+  {
+   "id": "v-squared",
+   "kind": "result",
+   "section": "2.5",
+   "name": "$\\kv^2 = \\kvo^2 + 2\\ka\\kdx$",
+   "why": "This equation relates velocity to displacement without involving time. Because the stopping distance of a car grows with the square of its speed, halving the speed reduces the stopping distance to one quarter.",
+   "evidence": "Tested by ai-rel-3, p11 to p16, p18.",
+   "eq": "eq-v2"
+  },
+  {
+   "id": "choose-equation",
+   "kind": "skill",
+   "section": "2.5",
+   "name": "Choose the equation from knowns and unknowns",
+   "why": "To solve a problem, first list the quantities you know and the quantity you want to find, and then choose the equation in which the quantity you want is the only unknown. This is the skill that Putting Equations Together teaches and that multi-step problems test.",
+   "evidence": "Taught explicitly as a problem-solving strategy; tested by p5, p7, p19, p20, p21."
+  },
+  {
+   "id": "physical-solution",
+   "kind": "skill",
+   "section": "2.5",
+   "name": "Interpret the solution physically",
+   "why": "The algebra can give two roots, a negative time, or a square root with two signs, but only one of these describes the motion. Deciding which solution is physically reasonable is part of solving the problem.",
+   "evidence": "Example 2.13 rejects the negative time root; p10(b) and p17 ask the learner to judge whether a result makes sense."
+  },
+  {
+   "id": "newtons-first-law",
+   "kind": "idea",
+   "section": "4.2",
+   "name": "Newton’s first law"
+  },
+  {
+   "id": "work",
+   "kind": "idea",
+   "section": "7.1",
+   "name": "Work"
+  },
+  {
+   "id": "kinetic-energy",
+   "kind": "result",
+   "section": "7.2",
+   "name": "Kinetic energy"
+  },
+  {
+   "id": "potential-energy",
+   "kind": "idea",
+   "section": "7.3",
+   "name": "Potential energy"
+  },
+  {
+   "id": "instantaneous-velocity",
+   "kind": "idea",
+   "section": "2.3",
+   "name": "Instantaneous velocity"
+  },
+  {
+   "id": "newtons-second-law",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Newton’s second law"
+  },
+  {
+   "id": "acceleration-due-to-gravity",
+   "kind": "idea",
+   "section": "2.7",
+   "name": "Acceleration due to gravity $\\kg$"
+  },
+  {
+   "id": "tension",
+   "kind": "idea",
+   "section": "4.5",
+   "name": "Tension"
+  },
+  {
+   "id": "conservation-of-energy",
+   "kind": "result",
+   "section": "7.6",
+   "name": "Conservation of energy"
+  },
+  {
+   "id": "uniform-circular-motion",
+   "kind": "idea",
+   "section": "6.1",
+   "name": "Uniform circular motion"
+  },
+  {
+   "id": "angular-velocity",
+   "kind": "idea",
+   "section": "6.1",
+   "name": "Angular velocity $\\kw$"
+  },
+  {
+   "id": "restoring-force",
+   "kind": "idea",
+   "section": "16.1",
+   "name": "Restoring force",
+   "why": "When an object is displaced from its equilibrium position, the deformation creates a force in the opposite direction, which pushes the object back. Without such a force there is no oscillation, because the object would simply move in a straight line at constant speed.",
+   "evidence": "Glossary term; Check Your Understanding 1; the AP question on the meaning of the minus sign."
+  },
+  {
+   "id": "force-constant",
+   "kind": "idea",
+   "section": "16.1",
+   "name": "Force constant $\\kk$",
+   "why": "The force constant tells how stiff a system is. The larger $\\kk$ is, the greater the restoring force for the same displacement, and the stiffer the system. It is the slope of the graph of restoring force against displacement, in newtons per meter.",
+   "evidence": "Glossary term; every problem in the section asks for the force constant; Check Your Understanding 1 asks how to make the ruler stiffer."
+  },
+  {
+   "id": "hookes-law",
+   "kind": "result",
+   "section": "16.1",
+   "name": "Hooke’s law, $\\kF = -\\kk\\kx$",
+   "why": "The simplest oscillations occur when the restoring force is directly proportional to the displacement. This is Hooke’s law, and the minus sign says that the force points opposite to the displacement. Knowing the force and the displacement gives the force constant, which is what most problems in this section ask for.",
+   "evidence": "Example 16.1; problems 1, 3 and 5; the AP question on the minus sign. The book names the law in section 5.3 for stress and strain; the node is introduced here and will be reinforced by 5.3 when that section is built.",
+   "eq": "eq-hooke"
+  },
+  {
+   "id": "elastic-potential-energy",
+   "kind": "result",
+   "section": "16.1",
+   "name": "Elastic potential energy, $\\kPE = \\tfrac{1}{2}\\kk\\kx^2$",
+   "why": "Deforming a system takes work, and if nothing goes into heat, sound, or motion, all of that work is stored as elastic potential energy. The work is the area under the graph of applied force against deformation, a triangle of area $\\tfrac{1}{2}\\kk\\kx^2$. When the system is released, that energy can become kinetic energy, as it does for the dart of a toy gun.",
+   "evidence": "Example 16.2; Check Your Understanding 2; conceptual question 1; problem 3.",
+   "eq": "eq-pe-el"
+  },
+  {
+   "id": "periodic-motion",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Periodic motion",
+   "why": "A motion that repeats itself at regular time intervals, such as a plucked guitar string or a mass on a spring moving up and down, is periodic. Each repetition takes the same time as the one before it, which is what makes a period and a frequency meaningful.",
+   "evidence": "Glossary term; Check Your Understanding asks for an event in your life that occurs regularly."
+  },
+  {
+   "id": "period",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Period $\\kT$",
+   "why": "The period is the time to complete one oscillation. Its units are usually seconds, but may be any convenient unit of time. The word applies to the time for any event, repetitive or not, but here it is the time for one cycle of a periodic motion.",
+   "evidence": "Glossary term; Check Your Understanding; the AP item; problems 1, 2 and 3."
+  },
+  {
+   "id": "frequency",
+   "kind": "idea",
+   "section": "16.2",
+   "name": "Frequency $\\kf$",
+   "why": "Frequency is the number of events per unit time. For periodic motion it is the number of oscillations per unit time, measured in hertz, where one hertz is one cycle per second. A count of cycles divided by the time they took gives the frequency, whether or not the count is made over one second.",
+   "evidence": "Glossary term; Check Your Understanding; the AP item; problems 2, 4, 5 and 6."
+  },
+  {
+   "id": "period-frequency",
+   "kind": "result",
+   "section": "16.2",
+   "name": "Period and frequency, $\\kf = 1/\\kT$",
+   "why": "If one cycle takes a time $\\kT$, then $1/\\kT$ cycles fit into each unit of time, so the frequency is the reciprocal of the period and the period is the reciprocal of the frequency. Given either one, the other follows at once.",
+   "evidence": "Example 16.3; the AP item; problems 1 to 4.",
+   "eq": "eq-period-frequency"
+  },
+  {
+   "id": "simple-harmonic-motion",
+   "kind": "idea",
+   "section": "16.3",
+   "name": "Simple harmonic motion",
+   "why": "When the net force on a system can be described by Hooke’s law and there is no damping, the system oscillates with equal displacement on either side of equilibrium. This is simple harmonic motion, the simplest and most common kind of oscillation, and the system is a simple harmonic oscillator.",
+   "evidence": "Glossary terms simple harmonic motion and simple harmonic oscillator; conceptual questions 1 and 3; Check Your Understanding 1."
+  },
+  {
+   "id": "amplitude",
+   "kind": "idea",
+   "section": "16.3",
+   "name": "Amplitude $\\kX$",
+   "why": "The amplitude is the maximum displacement from equilibrium. It has the units of the displacement, meters for an object on a spring, and it is related to the energy in the oscillation. In one full period the object covers four amplitudes of ground.",
+   "evidence": "Glossary term; Check Your Understanding 1 and 2; the AP item on the distance covered in one period, placed here from 16.1."
+  },
+  {
+   "id": "shm-period",
+   "kind": "result",
+   "section": "16.3",
+   "name": "Period of a simple harmonic oscillator, $\\kT = 2\\pi\\sqrt{m/\\kk}$",
+   "why": "The period and frequency of a simple harmonic oscillator depend on the mass and the force constant alone, not on the amplitude. A stiffer system has a shorter period and a more massive one a longer period. Because the period is constant, a simple harmonic oscillator can be used as a clock.",
+   "evidence": "Example 16.4; AP question 2; problems 1, 3, 6 and 9; conceptual questions 2, 4, 5 and 6; Check Your Understanding 1 for the independence of amplitude.",
+   "eq": "eq-shm-period"
+  },
+  {
+   "id": "shm-kinematics",
+   "kind": "result",
+   "section": "16.3",
+   "name": "Position, velocity and acceleration in simple harmonic motion",
+   "why": "The displacement in any simple harmonic motion is a cosine of time, $\\kx(t) = \\kX\\cos(2\\pi\\kt/\\kT)$. The velocity is a sine with maximum $\\kvmax = 2\\pi\\kX/\\kT = \\kX\\sqrt{\\kk/m}$, zero at the turning points and greatest through equilibrium, and the acceleration is a cosine opposite in direction to the displacement. These are the sine waves that link simple harmonic motion to waves.",
+   "evidence": "Check Your Understanding 2; the graphs of Figure 16.12.",
+   "eq": "eq-shm-x"
+  },
+  {
+   "id": "simple-pendulum",
+   "kind": "idea",
+   "section": "16.4",
+   "name": "Simple pendulum",
+   "why": "A simple pendulum is a small mass, the bob, hung from a light string. Displaced along its arc, it feels a net force of $-m\\kg\\sin\\theta$ back toward the lowest point, because the tension cancels the part of the weight along the string. For small displacements it is a simple harmonic oscillator.",
+   "evidence": "Glossary term; Check Your Understanding; AP question 3."
+  },
+  {
+   "id": "pendulum-restoring-force",
+   "kind": "result",
+   "section": "16.4",
+   "name": "Restoring force on a pendulum, $\\kF \\approx -\\frac{m\\kg}{L}\\ks$",
+   "why": "For angles below about 15°, $\\sin\\theta$ and $\\theta$ differ by 1% or less, so the restoring force $-m\\kg\\sin\\theta$ becomes $-m\\kg\\theta$, and with $\\ks = L\\theta$ it is $-\\frac{m\\kg}{L}\\ks$. That is Hooke’s law with a force constant $\\kk = m\\kg/L$, which is what makes the pendulum a simple harmonic oscillator.",
+   "evidence": "Check Your Understanding (a 12° swing is within the small-angle range); the derivation that Example 16.5 rests on.",
+   "eq": "eq-pendulum-force"
+  },
+  {
+   "id": "pendulum-period",
+   "kind": "result",
+   "section": "16.4",
+   "name": "Period of a simple pendulum, $\\kT = 2\\pi\\sqrt{L/\\kg}$",
+   "why": "Putting $\\kk = m\\kg/L$ into $\\kT = 2\\pi\\sqrt{m/\\kk}$ cancels the mass and leaves $\\kT = 2\\pi\\sqrt{L/\\kg}$. Only the length and the acceleration due to gravity affect the period; the mass does not, and the amplitude hardly does for small swings. This is why a pendulum keeps time.",
+   "evidence": "Example 16.5; AP questions 2 and 3; conceptual question 1; every problem in the section.",
+   "eq": "eq-pendulum-period"
+  },
+  {
+   "id": "measuring-g",
+   "kind": "skill",
+   "section": "16.4",
+   "name": "Measuring $\\kg$ with a pendulum",
+   "why": "Squaring the period formula and solving for $\\kg$ gives $\\kg = 4\\pi^2 L/\\kT^2$. If the length is known precisely and the period is timed over many swings at a small angle, this gives the local acceleration due to gravity to several digits, which matters in geological exploration.",
+   "evidence": "The section’s learning objective; Example 16.5; AP question 2; the Take-Home Experiment; problems 7 and 13.",
+   "eq": "eq-g-from-pendulum"
+  },
+  {
+   "id": "shm-energy",
+   "kind": "result",
+   "section": "16.5",
+   "name": "Energy of a simple harmonic oscillator, $\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\text{constant}$",
+   "why": "A simple harmonic oscillator has no dissipative forces, so its energy is shared between elastic potential energy and kinetic energy with the total constant. The energy goes completely from one form to the other as the system oscillates: all potential at the turning points, all kinetic through equilibrium. Started from rest at $\\kx = \\kX$, the total is $\\tfrac{1}{2}\\kk\\kX^2$.",
+   "evidence": "The AP item on the internal energy of a 1 kg oscillator; AP question 4 of section 16.3 (the energy at the centre), placed here; conceptual question 1; problem 2(b); problem 1(b), with gravity.",
+   "eq": "eq-shm-energy"
+  },
+  {
+   "id": "shm-max-speed",
+   "kind": "result",
+   "section": "16.5",
+   "name": "Speed in simple harmonic motion, $\\kv = \\pm\\kvmax\\sqrt{1 - \\kx^2/\\kX^2}$",
+   "why": "Solving the conservation of energy for the velocity gives the speed at every position, greatest at equilibrium and zero at the turning points, with $\\kvmax = \\kX\\sqrt{\\kk/m}$. The maximum velocity is proportional to the amplitude, greater for stiffer systems, and smaller for larger masses.",
+   "evidence": "The section’s learning objective; Example 16.6; Check Your Understanding 1 and 2; problem 1(a) through the frequency.",
+   "eq": "eq-v-of-x"
+  },
+  {
+   "id": "ucm-shm-projection",
+   "kind": "idea",
+   "section": "16.6",
+   "name": "The projection of uniform circular motion is simple harmonic motion",
+   "why": "A point moving round a circle at constant angular velocity $\\kw$ has a projection on a fixed axis at $\\kx = \\kX\\cos\\kw\\kt$, and with $\\kw = 2\\pi/\\kT$ this is exactly the position of a simple harmonic oscillator. The shadow of a ball on a turntable therefore moves in simple harmonic motion, and the speed and the period of any simple harmonic oscillator can be read off the circle: the similar triangles give $\\kv = \\kvmax\\sqrt{1 - \\kx^2/\\kX^2}$, and one revolution gives $\\kT = 2\\pi\\kX/\\kvmax = 2\\pi\\sqrt{m/\\kk}$.",
+   "evidence": "Check Your Understanding; the section summary. The AP item on the range of $x = A\\sin\\omega t$ is unkeyed and left out.",
+   "eq": "eq-omega-T"
+  }
+ ],
+ "concept_prereqs": [
+  {
+   "concept": "position",
+   "prereq": "reference-frame"
+  },
+  {
+   "concept": "displacement",
+   "prereq": "position"
+  },
+  {
+   "concept": "distance",
+   "prereq": "displacement"
+  },
+  {
+   "concept": "distance-traveled",
+   "prereq": "position"
+  },
+  {
+   "concept": "const-a",
+   "prereq": "acceleration"
+  },
+  {
+   "concept": "const-a",
+   "prereq": "average-velocity"
+  },
+  {
+   "concept": "x-from-vbar",
+   "prereq": "displacement"
+  },
+  {
+   "concept": "x-from-vbar",
+   "prereq": "average-velocity"
+  },
+  {
+   "concept": "vbar-midpoint",
+   "prereq": "const-a"
+  },
+  {
+   "concept": "v-from-at",
+   "prereq": "const-a"
+  },
+  {
+   "concept": "x-quadratic",
+   "prereq": "x-from-vbar"
+  },
+  {
+   "concept": "x-quadratic",
+   "prereq": "vbar-midpoint"
+  },
+  {
+   "concept": "x-quadratic",
+   "prereq": "v-from-at"
+  },
+  {
+   "concept": "v-squared",
+   "prereq": "x-from-vbar"
+  },
+  {
+   "concept": "v-squared",
+   "prereq": "vbar-midpoint"
+  },
+  {
+   "concept": "v-squared",
+   "prereq": "v-from-at"
+  },
+  {
+   "concept": "choose-equation",
+   "prereq": "x-from-vbar"
+  },
+  {
+   "concept": "choose-equation",
+   "prereq": "v-from-at"
+  },
+  {
+   "concept": "choose-equation",
+   "prereq": "x-quadratic"
+  },
+  {
+   "concept": "choose-equation",
+   "prereq": "v-squared"
+  },
+  {
+   "concept": "physical-solution",
+   "prereq": "x-quadratic"
+  },
+  {
+   "concept": "physical-solution",
+   "prereq": "v-squared"
+  },
+  {
+   "concept": "restoring-force",
+   "prereq": "displacement"
+  },
+  {
+   "concept": "restoring-force",
+   "prereq": "newtons-first-law"
+  },
+  {
+   "concept": "force-constant",
+   "prereq": "restoring-force"
+  },
+  {
+   "concept": "hookes-law",
+   "prereq": "restoring-force"
+  },
+  {
+   "concept": "hookes-law",
+   "prereq": "force-constant"
+  },
+  {
+   "concept": "elastic-potential-energy",
+   "prereq": "hookes-law"
+  },
+  {
+   "concept": "elastic-potential-energy",
+   "prereq": "work"
+  },
+  {
+   "concept": "elastic-potential-energy",
+   "prereq": "potential-energy"
+  },
+  {
+   "concept": "period",
+   "prereq": "periodic-motion"
+  },
+  {
+   "concept": "frequency",
+   "prereq": "periodic-motion"
+  },
+  {
+   "concept": "period-frequency",
+   "prereq": "period"
+  },
+  {
+   "concept": "period-frequency",
+   "prereq": "frequency"
+  },
+  {
+   "concept": "simple-harmonic-motion",
+   "prereq": "hookes-law"
+  },
+  {
+   "concept": "simple-harmonic-motion",
+   "prereq": "restoring-force"
+  },
+  {
+   "concept": "amplitude",
+   "prereq": "displacement"
+  },
+  {
+   "concept": "amplitude",
+   "prereq": "simple-harmonic-motion"
+  },
+  {
+   "concept": "shm-period",
+   "prereq": "simple-harmonic-motion"
+  },
+  {
+   "concept": "shm-period",
+   "prereq": "force-constant"
+  },
+  {
+   "concept": "shm-period",
+   "prereq": "period-frequency"
+  },
+  {
+   "concept": "shm-kinematics",
+   "prereq": "amplitude"
+  },
+  {
+   "concept": "shm-kinematics",
+   "prereq": "shm-period"
+  },
+  {
+   "concept": "shm-kinematics",
+   "prereq": "instantaneous-velocity"
+  },
+  {
+   "concept": "shm-kinematics",
+   "prereq": "acceleration"
+  },
+  {
+   "concept": "shm-kinematics",
+   "prereq": "newtons-second-law"
+  },
+  {
+   "concept": "simple-pendulum",
+   "prereq": "simple-harmonic-motion"
+  },
+  {
+   "concept": "simple-pendulum",
+   "prereq": "restoring-force"
+  },
+  {
+   "concept": "pendulum-restoring-force",
+   "prereq": "simple-pendulum"
+  },
+  {
+   "concept": "pendulum-restoring-force",
+   "prereq": "hookes-law"
+  },
+  {
+   "concept": "pendulum-restoring-force",
+   "prereq": "tension"
+  },
+  {
+   "concept": "pendulum-restoring-force",
+   "prereq": "acceleration-due-to-gravity"
+  },
+  {
+   "concept": "pendulum-period",
+   "prereq": "pendulum-restoring-force"
+  },
+  {
+   "concept": "pendulum-period",
+   "prereq": "shm-period"
+  },
+  {
+   "concept": "measuring-g",
+   "prereq": "pendulum-period"
+  },
+  {
+   "concept": "shm-energy",
+   "prereq": "simple-harmonic-motion"
+  },
+  {
+   "concept": "shm-energy",
+   "prereq": "elastic-potential-energy"
+  },
+  {
+   "concept": "shm-energy",
+   "prereq": "kinetic-energy"
+  },
+  {
+   "concept": "shm-energy",
+   "prereq": "conservation-of-energy"
+  },
+  {
+   "concept": "shm-max-speed",
+   "prereq": "shm-energy"
+  },
+  {
+   "concept": "shm-max-speed",
+   "prereq": "amplitude"
+  },
+  {
+   "concept": "ucm-shm-projection",
+   "prereq": "simple-harmonic-motion"
+  },
+  {
+   "concept": "ucm-shm-projection",
+   "prereq": "shm-kinematics"
+  },
+  {
+   "concept": "ucm-shm-projection",
+   "prereq": "uniform-circular-motion"
+  },
+  {
+   "concept": "ucm-shm-projection",
+   "prereq": "angular-velocity"
+  }
+ ]
 }

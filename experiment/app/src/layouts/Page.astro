@@ -21,7 +21,7 @@ const title = `${sec.id} ${sec.title} · ${book.title}`;
 const description = sec.objectives.join(' ') || sec.lead;
 const neighbours = chapter.dto.sections.map((s) => s.id);
 const at = neighbours.indexOf(sec.id);
-const built = new Set(chapter.sections.map((s) => s.meta.id));
+const built = new Set<string>(chapter.sections.map((s) => String(s.meta.id)));
 const link = (i: number) => (i >= 0 && i < neighbours.length && built.has(neighbours[i]) ? sectionUrl(book.id, chapter.dto.dir, neighbours[i]) : null);
 const prev = link(at - 1), next = link(at + 1);
 const credit = attributionOf(book, chapter.dto, sec);
@@ -30,7 +30,7 @@ const ld = {
   isPartOf: { '@type': 'Book', name: book.title, url: book.sourceUrl, author: book.authors.map((name) => ({ '@type': 'Person', name })), publisher: { '@type': 'Organization', name: book.publisher } },
   isBasedOn: credit.sourceUrl, license: book.licenseUrl ?? book.license, creditText: citation(credit),
   educationalLevel: 'Undergraduate', learningResourceType: 'Interactive textbook section',
-  teaches: chapter.concepts.concepts.filter((c) => c.section === sec.id && !c.placeholder).map((c) => c.name),
+  teaches: chapter.concepts.concepts.filter((c) => c.section === sec.id && c.status === 'built').map((c) => c.name),
 };
 ---
 <ShellPage

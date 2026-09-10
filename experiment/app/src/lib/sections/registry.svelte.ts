@@ -66,7 +66,11 @@ class Registry {
     const kind = this.sections[sec]?.exercises.find((e) => e.id === ex)?.kind;
     return kind === undefined ? null : this.manifest.exerciseKinds[kind] ?? kind;
   }
-  get concepts(): readonly ConceptDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.concepts); }
+  /* Concept ids are canonical and a chapter reaches into the chapters before it, so two loaded chapters may name the same concept; the map draws it once. */
+  get concepts(): readonly ConceptDTO[] {
+    const seen = new Set<string>();
+    return Object.values(this.chapters).flatMap((c) => c.concepts.concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true)));
+  }
   get coverage(): readonly CoverageDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.coverage); }
   concept(id: string): ConceptDTO | undefined { return this.concepts.find((c) => c.id === id); }
   setChapter(dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [dir]: data }; this.setChapterStatus(dir, 'loaded'); }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { dagRows, edgesOf, scopedNodes, type DagNode } from '../src/lib/sections/dag';
 import type { ConceptDTO } from '../src/lib/content/schema';
 import type { Target } from '../src/lib/sections/scope';
-import { chapterId, sectionId } from '../src/lib/types/ids';
+import { chapterId, conceptId, sectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
 /* The book the map is read in: one chapter whose first section is not built, and one before it. */
@@ -14,8 +14,10 @@ const BOOK: BookTree = {
     { id: '16', title: 'Oscillatory Motion and Waves', sections: [{ id: '16.1', title: 'Hookes Law', built: false }, { id: '16.3', title: 'Simple Harmonic Motion', built: true }, { id: '16.4', title: 'The Simple Pendulum', built: true }] },
   ],
 };
-const concept = (id: string, section: string, prereqs: string[] = [], placeholder = false): ConceptDTO =>
-  ({ id, kind: 'idea', section, name: id, prereqs, placeholder });
+const concept = (id: string, section: string, prereqs: string[] = [], placeholder = false): ConceptDTO => {
+  const row = { id: conceptId(id), kind: 'idea' as const, section: sectionId(section), name: id, prereqs: prereqs.map(conceptId) };
+  return placeholder ? { status: 'placeholder', ...row } : { status: 'built', ...row };
+};
 /* Displacement is taught in another chapter, Hookes law in a section that is not built yet. */
 const ALL: readonly ConceptDTO[] = [
   concept('displacement', '2.1'),

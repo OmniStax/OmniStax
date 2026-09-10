@@ -52,5 +52,202 @@
    "title": "Graphical Analysis of One-Dimensional Motion",
    "slug": "2-8-graphical-analysis-of-one-dimensional-motion"
   }
+ ],
+ "variables": [
+  {
+   "sym": "x",
+   "type": "position",
+   "meaning": "position, relative to the chosen reference frame",
+   "unit": "m",
+   "section": "2.1",
+   "anchor": "2.1-position"
+  },
+  {
+   "sym": "x0",
+   "type": "position",
+   "meaning": "initial position",
+   "unit": "m",
+   "section": "2.1",
+   "anchor": "2.1-displacement"
+  },
+  {
+   "sym": "xf",
+   "type": "position",
+   "meaning": "final position",
+   "unit": "m",
+   "section": "2.1",
+   "anchor": "2.1-displacement"
+  },
+  {
+   "sym": "Δx",
+   "type": "position",
+   "meaning": "displacement, x_f − x_0; the sign gives the direction",
+   "unit": "m",
+   "section": "2.1",
+   "anchor": "2.1-displacement"
+  },
+  {
+   "sym": "t",
+   "type": "time",
+   "meaning": "elapsed time, with the initial time taken to be zero (final time on the stopwatch)",
+   "unit": "s",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "x0",
+   "type": "position",
+   "meaning": "initial position",
+   "unit": "m",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "x",
+   "type": "position",
+   "meaning": "final position",
+   "unit": "m",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "Δx",
+   "type": "position",
+   "meaning": "displacement, x − x0",
+   "unit": "m",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "v0",
+   "type": "velocity",
+   "meaning": "initial velocity",
+   "unit": "m/s",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "v",
+   "type": "velocity",
+   "meaning": "final velocity",
+   "unit": "m/s",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "v̄",
+   "type": "velocity",
+   "meaning": "average velocity; equals (v0 + v)/2 when acceleration is constant",
+   "unit": "m/s",
+   "section": "2.5",
+   "anchor": "2.5-avg-velocity"
+  },
+  {
+   "sym": "Δv",
+   "type": "velocity",
+   "meaning": "change in velocity, v − v0",
+   "unit": "m/s",
+   "section": "2.5",
+   "anchor": "2.5-notation"
+  },
+  {
+   "sym": "a",
+   "type": "acceleration",
+   "meaning": "acceleration, assumed constant so that ā = a",
+   "unit": "m/s²",
+   "section": "2.5",
+   "anchor": "2.5-constant-a"
+  }
+ ],
+ "equations": [
+  {
+   "id": "eq-dx",
+   "concept": "displacement",
+   "section": "2.1",
+   "latex": "\\Delta x = x_{\\text{f}} - x_0",
+   "ktex": "\\kdx = \\kxf - \\kxo",
+   "anchor": "2.1-displacement",
+   "important": true
+  },
+  {
+   "id": "eq-notation",
+   "section": "2.5",
+   "latex": "\\Delta t = t,\\quad \\Delta x = x - x_0,\\quad \\Delta v = v - v_0",
+   "ktex": "\\kdt = \\kt,\\quad \\kdx = \\kx - \\kxo,\\quad \\kdv = \\kv - \\kvo",
+   "anchor": "2.5-notation",
+   "important": false
+  },
+  {
+   "id": "eq-x-vbar",
+   "concept": "x-from-vbar",
+   "section": "2.5",
+   "latex": "x = x_0 + \\bar v t",
+   "ktex": "\\kx = \\kxo + \\kvb\\kt",
+   "anchor": "2.5-avg-velocity",
+   "important": true
+  },
+  {
+   "id": "eq-vbar",
+   "concept": "vbar-midpoint",
+   "section": "2.5",
+   "latex": "\\bar v = \\frac{v_0 + v}{2}",
+   "ktex": "\\kvb = \\frac{\\kvo + \\kv}{2}",
+   "anchor": "2.5-avg-velocity",
+   "important": true
+  },
+  {
+   "id": "eq-v",
+   "concept": "v-from-at",
+   "section": "2.5",
+   "latex": "v = v_0 + a t",
+   "ktex": "\\kv = \\kvo + \\ka\\kt",
+   "anchor": "2.5-final-velocity",
+   "important": true
+  },
+  {
+   "id": "eq-x",
+   "concept": "x-quadratic",
+   "section": "2.5",
+   "latex": "x = x_0 + v_0 t + \\tfrac12 a t^2",
+   "ktex": "\\kx = \\kxo + \\kvo\\kt + \\tfrac{1}{2}\\ka\\kt^2",
+   "anchor": "2.5-position-quadratic",
+   "important": true
+  },
+  {
+   "id": "eq-v2",
+   "concept": "v-squared",
+   "section": "2.5",
+   "latex": "v^2 = v_0^2 + 2a(x - x_0)",
+   "ktex": "\\kv^2 = \\kvo^2 + 2\\ka(\\kx - \\kxo)",
+   "anchor": "2.5-velocity-squared",
+   "important": true
+  }
+ ],
+ "glossary": [
+  {
+   "section": "2.1",
+   "term": "kinematics",
+   "definition": "the study of motion without considering its causes"
+  },
+  {
+   "section": "2.1",
+   "term": "position",
+   "definition": "the location of an object at a particular time"
+  },
+  {
+   "section": "2.1",
+   "term": "displacement",
+   "definition": "the change in position of an object"
+  },
+  {
+   "section": "2.1",
+   "term": "distance",
+   "definition": "the magnitude of displacement between two positions"
+  },
+  {
+   "section": "2.1",
+   "term": "distance traveled",
+   "definition": "the total length of the path traveled between two positions"
+  }
  ]
 }

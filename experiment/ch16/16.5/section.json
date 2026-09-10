@@ -9,17 +9,310 @@
   "Determine the maximum speed of an oscillating system."
  ],
  "summary_html": "<ul><li>Energy in the simple harmonic oscillator is shared between elastic potential energy and kinetic energy, with the total being constant: $\\tfrac{1}{2}m\\kv^2 + \\tfrac{1}{2}\\kk\\kx^2 = \\text{constant}.$</li><li>Maximum velocity depends on three factors: it is directly proportional to amplitude, it is greater for stiffer systems, and it is smaller for objects that have larger masses: $\\kvmax = \\kX\\sqrt{\\frac{\\kk}{m}}$</li></ul>",
- "binds": [
-  "angular-rate",
-  "energy",
-  "position",
-  "stiffness",
-  "velocity"
- ],
- "built": "2026-09-07",
+ "notes": "AP question 4 of section 16.3 asks for the energy of an oscillator at its centre, which this section introduces, and appears here.",
  "ai": {
   "text": "Claude Fable 5.1",
   "figures": "Claude Fable 5.1"
  },
- "notes": "AP question 4 of section 16.3 asks for the energy of an oscillator at its centre, which this section introduces, and appears here."
+ "built": "2026-09-07",
+ "exercise_notes": "Bloom levels, concept tags and hints are AI-generated. Answers come from the book’s answer key; every exercise in this section is keyed. AP question 4 of section 16.3 tests the energy at the centre of an oscillation and is placed here. Suggested approaches for open questions are AI-written and marked. Numeric answers accept 2% tolerance.",
+ "figures": [
+  {
+   "id": "demo-energy-transfer",
+   "kind": "demo",
+   "number": "16.14",
+   "originals": [
+    "/media/ch16/Figure_17_05_01a.jpg"
+   ],
+   "original_caption": "The transformation of energy in simple harmonic motion is illustrated for an object attached to a spring on a frictionless surface.",
+   "draws": [
+    "angular-rate",
+    "energy",
+    "position",
+    "stiffness",
+    "velocity"
+   ]
+  },
+  {
+   "id": "demo-max-speed",
+   "kind": "demo",
+   "draws": [
+    "angular-rate",
+    "energy",
+    "position",
+    "stiffness",
+    "velocity"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "shm-energy",
+   "concept": "shm-energy",
+   "verb": "introduces"
+  },
+  {
+   "span": "shm-energy",
+   "concept": "elastic-potential-energy",
+   "verb": "uses"
+  },
+  {
+   "span": "shm-energy",
+   "concept": "kinetic-energy",
+   "verb": "uses"
+  },
+  {
+   "span": "shm-energy",
+   "concept": "conservation-of-energy",
+   "verb": "uses"
+  },
+  {
+   "span": "shm-energy",
+   "concept": "simple-harmonic-motion",
+   "verb": "uses"
+  },
+  {
+   "span": "max-speed",
+   "concept": "shm-max-speed",
+   "verb": "introduces"
+  },
+  {
+   "span": "max-speed",
+   "concept": "shm-energy",
+   "verb": "uses"
+  },
+  {
+   "span": "max-speed",
+   "concept": "amplitude",
+   "verb": "uses"
+  },
+  {
+   "span": "ex-bumpy-road",
+   "concept": "shm-max-speed",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "cyu1",
+   "source_id": "fs-id3399175",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "max-speed"
+   },
+   "cite": "max-speed",
+   "prompt": "Why does it hurt more if your hand is snapped with a ruler than with a loose spring, even if the displacement of each system is equal?",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "The ruler is a stiffer system, which carries greater force for the same amount of displacement. The ruler snaps your hand with greater force, which hurts more."
+   }
+  },
+  {
+   "id": "cyu2",
+   "source_id": "fs-id2653384",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "max-speed"
+   },
+   "cite": "max-speed",
+   "prompt": "You are observing a simple harmonic oscillator. Identify one way you could decrease the maximum velocity of the system.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "You could increase the mass of the object that is oscillating."
+   }
+  },
+  {
+   "id": "ap1",
+   "source_id": "fs-id1765110",
+   "kind": "ap-test-prep",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "max-speed",
+   "prompt": "A mass of 1 kg undergoes simple harmonic motion with amplitude of 1 m. If the period of the oscillation is 1 s, calculate the internal energy of the system.",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 19.7,
+    "unit": "J",
+    "hint": "The total energy is $\\tfrac{1}{2}\\kk\\kX^2$. Find $\\kk$ from the period, $\\kk = 4\\pi^2 m/\\kT^2$.",
+    "solution": "19.7 J"
+   }
+  },
+  {
+   "id": "ap-16-3-4",
+   "source_id": "fs-id1170241022648",
+   "kind": "ap-test-prep",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "shm-energy",
+   "prompt": "A pendulum of mass 200 g undergoes simple harmonic motion when acted upon by a force of 15 N. The pendulum crosses the point of equilibrium at a speed of 5 m∙s<sup>−1</sup>. What is the energy of the pendulum at the center of the oscillation?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 2.5,
+    "unit": "J",
+    "hint": "At the centre the energy is all kinetic.",
+    "solution": "The energy of the particle at the center of the oscillation is given by $E = \\tfrac{1}{2}m\\kv^2 = \\tfrac{1}{2} \\times 0.2\\ \\text{kg} \\times (5\\ \\text{m/s})^2 = 2.5\\ \\text{J}$"
+   }
+  },
+  {
+   "id": "cq1",
+   "source_id": "fs-id3144926",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "shm-energy",
+   "prompt": "Explain in terms of energy how dissipative forces such as friction reduce the amplitude of a harmonic oscillator. Also explain how a driving mechanism can compensate. (A pendulum clock is such a system.)",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "The total energy of the oscillator is $\\tfrac{1}{2}\\kk\\kX^2$, so the amplitude is set by how much energy the system has. Friction and other dissipative forces do negative work on the object every cycle and turn some of its mechanical energy into thermal energy, so the total falls and with it the amplitude, since $\\kX = \\sqrt{2E/\\kk}$. A driving mechanism puts energy back in each cycle, for example the escapement of a pendulum clock, which gives the pendulum a small push every swing from a falling weight or a wound spring. If the energy added each cycle equals the energy lost, the amplitude stays constant."
+   }
+  },
+  {
+   "id": "p1",
+   "source_id": "eip-863",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "The length of nylon rope from which a mountain climber is suspended has a force constant of $1.40 \\times 10^{4}\\ \\text{N/m}$. (a) What is the frequency at which he bounces, given his mass plus and the mass of his equipment are 90.0 kg? Ignore the change in gravitational potential energy after the cord begins to stretch. (b) How much would this rope stretch to break the climber’s fall if he free-falls 2.00 m before the rope runs out of slack? Hint: Use conservation of energy. (c) Repeat both parts of this problem in the situation where twice this length of nylon rope is used.",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 1.99,
+      "unit": "Hz",
+      "hint": "Use $\\kf = \\frac{1}{2\\pi}\\sqrt{\\kk/m}$."
+     },
+     {
+      "part": "(b)",
+      "value": 50.2,
+      "unit": "cm",
+      "hint": "The gravitational potential energy lost in the 2.00 m fall becomes elastic potential energy in the rope, $\\tfrac{1}{2}\\kk\\kx^2$."
+     },
+     {
+      "part": "(c) f",
+      "value": 1.4,
+      "unit": "Hz",
+      "hint": "Twice the length of rope has half the force constant."
+     },
+     {
+      "part": "(c) stretch",
+      "value": 71.0,
+      "unit": "cm",
+      "hint": "Repeat part (b) with half the force constant."
+     }
+    ],
+    "solution": "(a) 1.99 Hz (b) 50.2 cm (c) 1.40 Hz, 71.0 cm"
+   }
+  },
+  {
+   "id": "p2",
+   "source_id": "eip-217",
+   "kind": "problem",
+   "bloom": "Apply",
+   "tag": "Engineering Application",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "Near the top of the Citigroup Center building in New York City, there is an object with mass of $4.00 \\times 10^{5}\\ \\text{kg}$ on springs that have adjustable force constants. Its function is to dampen wind-driven oscillations of the building by oscillating at the same frequency as the building is being driven—the driving force is transferred to the object, which oscillates instead of the entire building. (a) What effective force constant should the springs have to make the object oscillate with a period of 2.00 s? (b) What energy is stored in the springs for a 2.00-m displacement from equilibrium?",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 3950000,
+      "unit": "N/m",
+      "hint": "Solve $\\kT = 2\\pi\\sqrt{m/\\kk}$ for $\\kk$."
+     },
+     {
+      "part": "(b)",
+      "value": 7900000,
+      "unit": "J",
+      "hint": "The stored energy is $\\tfrac{1}{2}\\kk\\kx^2$."
+     }
+    ],
+    "solution": "(a) $3.95 \\times 10^{6}\\ \\text{N/m}$ (b) $7.90 \\times 10^{6}\\ \\text{J}$"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "cyu1",
+   "concept": "shm-max-speed"
+  },
+  {
+   "exercise": "cyu1",
+   "concept": "force-constant"
+  },
+  {
+   "exercise": "cyu2",
+   "concept": "shm-max-speed"
+  },
+  {
+   "exercise": "ap1",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "ap1",
+   "concept": "shm-period"
+  },
+  {
+   "exercise": "ap-16-3-4",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "ap-16-3-4",
+   "concept": "kinetic-energy"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "amplitude"
+  },
+  {
+   "exercise": "p1",
+   "concept": "shm-period"
+  },
+  {
+   "exercise": "p1",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "p1",
+   "concept": "potential-energy"
+  },
+  {
+   "exercise": "p2",
+   "concept": "shm-period"
+  },
+  {
+   "exercise": "p2",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "p2",
+   "concept": "elastic-potential-energy"
+  }
+ ]
 }

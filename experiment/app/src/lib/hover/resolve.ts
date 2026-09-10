@@ -101,12 +101,14 @@ export const matchEquation = (annotation: string, equations: readonly EquationDT
   const key = normTex(annotation); if (key === '') return undefined;
   return equations.find((e) => normTex(e.tex) === key);
 };
+/* Why a concept matters, where it has one to give: a placeholder stands for a section nobody has built, and says nothing. */
+const whyOf = (c: ConceptDTO | undefined): string | undefined => (c && c.status === 'built' ? c.why : undefined);
 export type EquationFacts = { readonly equation: EquationDTO; readonly concept?: ConceptDTO; readonly introducedIn?: string };   /* introducedIn: the heading text of the anchor span */
 export const equationCard = (f: EquationFacts, nav: Nav): Card => {
   const e = f.equation; const anchor = e.anchor ? spanIdOf(e.anchor) : undefined;
   const eyebrow = e.important ? `${KIND_LABEL.equation} · important` : KIND_LABEL.equation;
   const title = f.concept?.name ?? (f.introducedIn ? `In “${f.introducedIn}”` : `Section ${e.section}`);
-  const body = f.concept?.why ?? (f.introducedIn && f.concept ? `Introduced in “${f.introducedIn}”.` : undefined);
+  const body = whyOf(f.concept) ?? (f.introducedIn && f.concept ? `Introduced in “${f.introducedIn}”.` : undefined);
   return {
     kind: 'equation', eyebrow, title, body,
     actions: [
@@ -136,7 +138,7 @@ export type ConceptFacts = {
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   const c = f.concept, sec = secIdOf(c.section), id = conIdOf(c.id), first = f.intro[0];
   const eyebrow = `${KIND_LABEL.concept} · ${c.kind} · section ${c.section}`;
-  if (c.placeholder) return {
+  if (c.status === 'placeholder') return {
     kind: 'concept', eyebrow, title: c.name, body: `Section ${c.section} is not built yet.`,
     actions: [f.built ? { label: 'Go to section', run: () => nav.openSection(sec) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
   };

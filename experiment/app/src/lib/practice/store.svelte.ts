@@ -83,7 +83,7 @@ class Practice {
      book taught is freshened too; the map is built once per recompute, and a
      book loading is one of the things that recomputes it. */
   readonly mastery: Mastery = $derived.by(() => {
-    const prereqs = new Map(this.catalog().concepts.map((c) => [c.id, c.prereqs]));
+    const prereqs = new Map<string, readonly string[]>(this.catalog().concepts.map((c) => [c.id, c.prereqs]));
     return rebuild(this.attempts, (id) => prereqs.get(id) ?? [], this.settings);
   });
 

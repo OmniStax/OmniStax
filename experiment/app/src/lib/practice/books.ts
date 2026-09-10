@@ -10,7 +10,7 @@
    that will not parse comes back empty rather than thrown, because a book that
    half-loaded is still worth practising from. */
 import { z } from 'zod';
-import { zConceptsFile, zExercise } from '../content/schema';
+import { ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
 import type { BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, SectionEntry } from '../content/schema';
 import { bookId, sectionId } from '../types/ids';
 import type { Catalog } from './model';
@@ -64,13 +64,13 @@ export const parseManifest = (raw: unknown): BookManifest | null => {
 /* The chapter's concepts and coverage, by the same schema the shell reads for
    the book it is in. */
 export const parseConcepts = (raw: unknown): { concepts: ConceptDTO[]; coverage: CoverageDTO[] } => {
-  const p = zConceptsFile.safeParse(raw);
+  const p = ServedConceptsSchema.safeParse(raw);
   return p.success ? { concepts: [...p.data.concepts], coverage: [...p.data.coverage] } : { concepts: [], coverage: [] };
 };
 /* A section's problem set. One bad row fails the array, which is the honest
    answer: an exercise the app cannot read is one it must not draw. */
 export const parseExercises = (raw: unknown): ExerciseDTO[] => {
-  const p = z.array(zExercise).safeParse(raw);
+  const p = z.array(ServedExerciseSchema).safeParse(raw);
   return p.success ? p.data : [];
 };
 

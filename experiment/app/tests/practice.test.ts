@@ -4,7 +4,7 @@ import {
   BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, pointsByBook, pointsOf, rebuild, stateOf, summarize, togglePick, total,
   type Attempt, type Catalog, type ConceptRecord, type Curriculum, type Mastery, type PracticeSettings,
 } from '../src/lib/practice/model';
-import type { ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
+import type { Bloom, ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
 import { conceptId, sectionId } from '../src/lib/types/ids';
 
 /* dayOf reads the local calendar, so every timestamp here is built at local
@@ -19,7 +19,10 @@ const sec = (s: string) => sectionId(s);
 /* The book the session is drawn from: displacement in chapter 2, then Hooke's
    law, simple harmonic motion and period up the chain in chapter 16. `ghost`
    stands for a section nobody has built. */
-const concept = (id: string, section: string, prereqs: string[] = [], placeholder = false): ConceptDTO => ({ id, kind: 'idea', section, name: id, prereqs, placeholder });
+const concept = (id: string, section: string, prereqs: string[] = [], placeholder = false): ConceptDTO => {
+  const row = { id: conceptId(id), kind: 'idea' as const, section: sectionId(section), name: id, prereqs: prereqs.map(conceptId) };
+  return placeholder ? { status: 'placeholder', ...row } : { status: 'built', ...row };
+};
 const CONCEPTS: readonly ConceptDTO[] = [
   concept('displacement', '2.1'),
   concept('hookes-law', '16.1', ['displacement']),
@@ -29,8 +32,9 @@ const CONCEPTS: readonly ConceptDTO[] = [
 ];
 const prereqsOf = (id: string): readonly string[] => CONCEPTS.find((c) => c.id === id)?.prereqs ?? [];
 
+/* The pipeline writes the level as the schema spells it; these fixtures also spell it as it never would, since the points table is meant to hold whatever comes. */
 const ex = (id: string, bloom: string, concepts: string[], weights?: Record<string, number>): ExerciseDTO =>
-  ({ id, kind: 'problem', bloom, concepts, place: 'end', prompt: id, answer: { type: 'open', generated_by: 'source' }, ...(weights ? { weights, weights_by: 'ai' as const } : {}) });
+  ({ id, sourceId: id, kind: 'problem', bloom: bloom as Bloom, concepts: concepts.map(conceptId), place: { at: 'end' }, prompt: id, answer: { type: 'open', generated_by: 'source' }, ...(weights ? { weights } : {}) });
 const EX: readonly { book: string; section: ReturnType<typeof sec>; ex: ExerciseDTO }[] = [
   { book: 'cp', section: sec('2.1'), ex: ex('d1', 'remember', ['displacement']) },
   { book: 'cp', section: sec('2.1'), ex: ex('d2', 'apply', ['displacement']) },

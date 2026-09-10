@@ -9,16 +9,369 @@
   "Measure acceleration due to gravity."
  ],
  "summary_html": "<ul><li>A mass $m$ suspended by a wire of length $L$ is a simple pendulum and undergoes simple harmonic motion for amplitudes less than about $15°.$ The period of a simple pendulum is $\\kT = 2\\pi\\sqrt{\\frac{L}{\\kg}},$ where $L$ is the length of the string and $\\kg$ is the acceleration due to gravity.</li></ul>",
- "binds": [
-  "acceleration",
-  "force",
-  "position",
-  "time"
- ],
- "built": "2026-09-07",
+ "notes": "AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 have no answer in the book’s key and are left out.",
  "ai": {
   "text": "Claude Fable 5.1",
   "figures": "Claude Fable 5.1"
  },
- "notes": "AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 have no answer in the book’s key and are left out."
+ "built": "2026-09-07",
+ "exercises_lead": "As usual, the acceleration due to gravity in these problems is taken to be $\\kg = 9.80\\ \\text{m/s}^2$, unless otherwise specified.",
+ "exercise_notes": "Bloom levels, concept tags and hints are AI-generated. Answers come from the book’s answer key; AP questions 1 and 3 and problems 2, 4, 6, 8, 10 and 12 have no keyed answer and are left out. Suggested approaches for open questions are AI-written and marked. Numeric answers accept 2% tolerance.",
+ "figures": [
+  {
+   "id": "demo-pendulum-force",
+   "kind": "demo",
+   "number": "16.13",
+   "originals": [
+    "/media/ch16/Figure_17_04_01a.jpg"
+   ],
+   "original_caption": "A simple pendulum has a small-diameter bob and a string that has a very small mass but is strong enough not to stretch appreciably. The linear displacement from equilibrium is s, the length of the arc. Also shown are the forces on the bob, which result in a net force of −mg sin θ toward the equilibrium position—that is, a restoring force.",
+   "draws": [
+    "acceleration",
+    "force",
+    "position"
+   ]
+  },
+  {
+   "id": "demo-pendulum-period",
+   "kind": "demo",
+   "draws": [
+    "acceleration",
+    "time"
+   ]
+  },
+  {
+   "id": "demo-measure-g",
+   "kind": "demo",
+   "draws": [
+    "acceleration",
+    "time"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "pendulum-force",
+   "concept": "simple-pendulum",
+   "verb": "introduces"
+  },
+  {
+   "span": "pendulum-force",
+   "concept": "restoring-force",
+   "verb": "uses"
+  },
+  {
+   "span": "pendulum-force",
+   "concept": "tension",
+   "verb": "uses"
+  },
+  {
+   "span": "pendulum-force",
+   "concept": "acceleration-due-to-gravity",
+   "verb": "uses"
+  },
+  {
+   "span": "small-angle",
+   "concept": "pendulum-restoring-force",
+   "verb": "introduces"
+  },
+  {
+   "span": "small-angle",
+   "concept": "hookes-law",
+   "verb": "uses"
+  },
+  {
+   "span": "small-angle",
+   "concept": "simple-pendulum",
+   "verb": "uses"
+  },
+  {
+   "span": "pendulum-period",
+   "concept": "pendulum-period",
+   "verb": "introduces"
+  },
+  {
+   "span": "pendulum-period",
+   "concept": "measuring-g",
+   "verb": "introduces"
+  },
+  {
+   "span": "pendulum-period",
+   "concept": "shm-period",
+   "verb": "uses"
+  },
+  {
+   "span": "pendulum-period",
+   "concept": "pendulum-restoring-force",
+   "verb": "uses"
+  },
+  {
+   "span": "ex-measuring-g",
+   "concept": "measuring-g",
+   "verb": "uses"
+  },
+  {
+   "span": "ex-measuring-g",
+   "concept": "pendulum-period",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "cyu1",
+   "source_id": "fs-id2990952",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "pendulum-period"
+   },
+   "cite": "pendulum-period",
+   "prompt": "An engineer builds two simple pendula. Both are suspended from small wires secured to the ceiling of a room. Each pendulum hovers 2 cm above the floor. Pendulum 1 has a bob with a mass of $10\\ \\text{kg}$. Pendulum 2 has a bob with a mass of $100\\ \\text{kg}$. Describe how the motion of the pendula will differ if the bobs are both displaced by $12°$.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "The movement of the pendula will not differ at all because the mass of the bob has no effect on the motion of a simple pendulum. The pendula are only affected by the period (which is related to the pendulum’s length) and by the acceleration due to gravity."
+   }
+  },
+  {
+   "id": "ap2",
+   "source_id": "fs-id1877058",
+   "kind": "ap-test-prep",
+   "bloom": "Remember",
+   "place": {
+    "at": "end"
+   },
+   "cite": "pendulum-period",
+   "prompt": "Which of the following gives the correct relation between the acceleration due to gravity and period of a pendulum?",
+   "answer": {
+    "type": "choice",
+    "generated_by": "source",
+    "options": [
+     "g = 2πL/T²",
+     "g = 4π²L/T²",
+     "g = 2πL/T",
+     "g = 2π²L/T"
+    ],
+    "correct": 1,
+    "hint": "Square $\\kT = 2\\pi\\sqrt{L/\\kg}$ and solve for $\\kg$."
+   }
+  },
+  {
+   "id": "cq1",
+   "source_id": "fs-id2588490",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "pendulum-period",
+   "prompt": "Pendulum clocks are made to run at the correct rate by adjusting the pendulum’s length. Suppose you move from one city to another where the acceleration due to gravity is slightly greater, taking your pendulum clock with you, will you have to lengthen or shorten the pendulum to keep the correct time, other factors remaining constant? Explain your answer.",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "Lengthen it. The period is $\\kT = 2\\pi\\sqrt{L/\\kg}$, so a larger $\\kg$ makes the period shorter for the same length, and the clock runs fast. To bring the period back to its correct value the length must grow in the same proportion as $\\kg$, since $\\kT$ depends on the ratio $L/\\kg$."
+   }
+  },
+  {
+   "id": "p1",
+   "source_id": "fs-id2593990",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "What is the length of a pendulum that has a period of 0.500 s?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 6.21,
+    "unit": "cm",
+    "hint": "Solve $\\kT = 2\\pi\\sqrt{L/\\kg}$ for $L$, and give the answer in centimeters.",
+    "solution": "6.21 cm"
+   }
+  },
+  {
+   "id": "p3",
+   "source_id": "fs-id1986261",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "What is the period of a 1.00-m-long pendulum?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 2.01,
+    "unit": "s",
+    "hint": "Put $L = 1.00$ m and $\\kg = 9.80$ m/s² into the period formula.",
+    "solution": "2.01 s"
+   }
+  },
+  {
+   "id": "p5",
+   "source_id": "fs-id2382885",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "The pendulum on a cuckoo clock is 5.00 cm long. What is its frequency?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 2.23,
+    "unit": "Hz",
+    "hint": "Find the period from the length, then take its reciprocal. Mind the units of the length.",
+    "solution": "2.23 Hz"
+   }
+  },
+  {
+   "id": "p7",
+   "source_id": "fs-id2454166",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "(a) A pendulum that has a period of 3.00000 s and that is located where the acceleration due to gravity is $9.79\\ \\text{m/s}^2$ is moved to a location where the acceleration due to gravity is $9.82\\ \\text{m/s}^2$. What is its new period? (b) Explain why so many digits are needed in the value for the period, based on the relation between the period and the acceleration due to gravity.",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "part": "(a)",
+    "value": 2.99541,
+    "unit": "s",
+    "hint": "The length is unchanged, so the ratio of the periods is the square root of the inverse ratio of the two values of $\\kg$.",
+    "solution": "(a) 2.99541 s (b) Since the period is related to the square root of the acceleration of gravity, when the acceleration changes by 1% the period changes by $(0.01)^2 = 0.01\\%$ so it is necessary to have at least 4 digits after the decimal to see the changes."
+   }
+  },
+  {
+   "id": "p9",
+   "source_id": "fs-id2408955",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "(a) What is the effect on the period of a pendulum if you double its length? (b) What is the effect on the period of a pendulum if you decrease its length by 5.00%?",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 1.41,
+      "unit": "× the old period",
+      "hint": "The period goes as the square root of the length."
+     },
+     {
+      "part": "(b)",
+      "value": 97.5,
+      "unit": "% of the old period",
+      "hint": "Take the square root of 0.950."
+     }
+    ],
+    "solution": "(a) Period increases by a factor of 1.41 ($\\sqrt{2}$) (b) Period decreases to 97.5% of old period"
+   }
+  },
+  {
+   "id": "p11",
+   "source_id": "fs-id1864432",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "At what rate will a pendulum clock run on the Moon, where the acceleration due to gravity is $1.63\\ \\text{m/s}^2$, if it keeps time accurately on Earth? That is, find the time (in hours) it takes the clock’s minute hand, which on Earth makes one revolution per hour, to make one revolution on the Moon.",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 2.45,
+    "unit": "h",
+    "hint": "The clock counts swings, and each swing on the Moon takes longer by the factor $\\sqrt{9.80/1.63}$.",
+    "solution": "Slow by a factor of 2.45"
+   }
+  },
+  {
+   "id": "p13",
+   "source_id": "fs-id2688094",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "If a pendulum-driven clock gains 5.00 s/day, what fractional change in pendulum length must be made for it to keep perfect time?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 0.0116,
+    "unit": "% longer",
+    "hint": "Gaining 5.00 s in 86,400 s means the period is too short by that fraction. The length must change by twice the fraction, since $\\kT$ goes as $\\sqrt{L}$.",
+    "solution": "length must increase by 0.0116%."
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "cyu1",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "cyu1",
+   "concept": "simple-pendulum"
+  },
+  {
+   "exercise": "ap2",
+   "concept": "measuring-g"
+  },
+  {
+   "exercise": "ap2",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p1",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p3",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p5",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p5",
+   "concept": "period-frequency"
+  },
+  {
+   "exercise": "p7",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p7",
+   "concept": "measuring-g"
+  },
+  {
+   "exercise": "p9",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p11",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p13",
+   "concept": "pendulum-period"
+  },
+  {
+   "exercise": "p13",
+   "concept": "measuring-g"
+  }
+ ]
 }

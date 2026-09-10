@@ -8,9 +8,9 @@ import type { BookTree } from '../commands/browser';
 export type DagNode = ConceptDTO & { readonly ext: boolean };
 
 export const scopedNodes = (all: readonly ConceptDTO[], target: Target, tree: BookTree): DagNode[] => {
-  if (target.level === 'book') return all.map((c) => ({ ...c, ext: c.placeholder }));
+  if (target.level === 'book') return all.map((c) => ({ ...c, ext: c.status === 'placeholder' }));
   const scope = new Set<string>(sectionsOf(target, tree));
-  const own = all.filter((c) => scope.has(c.section) && !c.placeholder);
+  const own = all.filter((c) => scope.has(c.section) && c.status === 'built');
   const ids = new Set(own.map((c) => c.id));
   const ext = own.flatMap((c) => c.prereqs).filter((p, i, arr) => !ids.has(p) && arr.indexOf(p) === i).map((p) => all.find((c) => c.id === p)).filter((c): c is ConceptDTO => !!c);
   return [...ext.map((c) => ({ ...c, ext: true })), ...own.map((c) => ({ ...c, ext: false }))];

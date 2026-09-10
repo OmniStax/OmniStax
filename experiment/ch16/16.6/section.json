@@ -9,16 +9,185 @@
   "Compare simple harmonic motion with uniform circular motion."
  ],
  "summary_html": "<ul><li>A projection of uniform circular motion undergoes simple harmonic oscillation.</li></ul>",
- "binds": [
-  "angular-rate",
-  "position",
-  "time",
-  "velocity"
- ],
- "built": "2026-09-07",
+ "notes": "The AP question and problems 2 and 4 have no answer in the book’s key and are left out.",
  "ai": {
   "text": "Claude Fable 5.1",
   "figures": "Claude Fable 5.1"
  },
- "notes": "The AP question and problems 2 and 4 have no answer in the book’s key and are left out."
+ "built": "2026-09-07",
+ "exercise_notes": "Bloom levels, concept tags and hints are AI-generated. Answers come from the book’s answer key; the AP question and problems 2 and 4 have no keyed answer and are left out. Numeric answers accept 2% tolerance.",
+ "figures": [
+  {
+   "id": "fig-merry-go-round",
+   "kind": "photo",
+   "number": "16.15",
+   "draws": []
+  },
+  {
+   "id": "demo-turntable",
+   "kind": "demo",
+   "number": "16.16",
+   "originals": [
+    "/media/ch16/Figure_17_06_02a.jpg",
+    "/media/ch16/Figure_17_06_04a.jpg"
+   ],
+   "original_caption": "The shadow of a ball rotating at constant angular velocity ω on a turntable goes back and forth in precise simple harmonic motion.",
+   "draws": [
+    "angular-rate",
+    "position",
+    "time"
+   ]
+  },
+  {
+   "id": "demo-circle-triangles",
+   "kind": "demo",
+   "number": "16.17",
+   "originals": [
+    "/media/ch16/Figure_17_06_03a.jpg"
+   ],
+   "original_caption": "A point P moving on a circular path with a constant angular velocity ω is undergoing uniform circular motion. Its projection on the x-axis undergoes simple harmonic motion. Also shown is the velocity of this point around the circle, v_max, and its projection, which is v. Note that these velocities form a similar triangle to the displacement triangle.",
+   "draws": [
+    "angular-rate",
+    "position",
+    "velocity"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "projection",
+   "concept": "ucm-shm-projection",
+   "verb": "introduces"
+  },
+  {
+   "span": "projection",
+   "concept": "simple-harmonic-motion",
+   "verb": "uses"
+  },
+  {
+   "span": "projection",
+   "concept": "shm-kinematics",
+   "verb": "uses"
+  },
+  {
+   "span": "projection",
+   "concept": "uniform-circular-motion",
+   "verb": "uses"
+  },
+  {
+   "span": "projection",
+   "concept": "angular-velocity",
+   "verb": "uses"
+  },
+  {
+   "span": "from-the-circle",
+   "concept": "ucm-shm-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "from-the-circle",
+   "concept": "amplitude",
+   "verb": "uses"
+  },
+  {
+   "span": "from-the-circle",
+   "concept": "shm-max-speed",
+   "verb": "reinforces"
+  },
+  {
+   "span": "from-the-circle",
+   "concept": "shm-period",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "cyu1",
+   "source_id": "fs-id2209875",
+   "kind": "check-understanding",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "projection"
+   },
+   "cite": "projection",
+   "prompt": "Identify an object that undergoes uniform circular motion. Describe how you could trace the simple harmonic motion of this object as a wave.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "A record player undergoes uniform circular motion. You could attach dowel rod to one point on the outside edge of the turntable and attach a pen to the other end of the dowel. As the record player turns, the pen will move. You can drag a long piece of paper under the pen, capturing its motion as a wave."
+   }
+  },
+  {
+   "id": "p1",
+   "source_id": "fs-id2615915",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "from-the-circle",
+   "prompt": "(a) What is the maximum velocity of an 85.0-kg person bouncing on a bathroom scale having a force constant of $1.50 \\times 10^{6}\\ \\text{N/m}$, if the amplitude of the bounce is 0.200 cm? (b) What is the maximum energy stored in the spring?",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 0.266,
+      "unit": "m/s",
+      "hint": "Use $\\kvmax = \\kX\\sqrt{\\kk/m}$ with the amplitude in meters."
+     },
+     {
+      "part": "(b)",
+      "value": 3.0,
+      "unit": "J",
+      "hint": "At the turning point all the energy is in the spring, $\\tfrac{1}{2}\\kk\\kX^2$."
+     }
+    ],
+    "solution": "a). 0.266 m/s b). 3.00 J"
+   }
+  },
+  {
+   "id": "p3",
+   "source_id": "fs-id1348556",
+   "kind": "problem",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "from-the-circle",
+   "prompt": "At what positions is the speed of a simple harmonic oscillator half its maximum? That is, what values of $\\kx/\\kX$ give $\\kv = \\pm\\kvmax/2$, where $\\kX$ is the amplitude of the motion?",
+   "answer": {
+    "type": "number",
+    "generated_by": "source",
+    "value": 0.866,
+    "unit": "",
+    "hint": "Set $\\sqrt{1 - \\kx^2/\\kX^2} = 1/2$ and solve for $\\kx/\\kX$. There are two positions, one on each side of equilibrium; give the positive one.",
+    "solution": "$\\pm\\frac{\\sqrt{3}}{2}$"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "cyu1",
+   "concept": "ucm-shm-projection"
+  },
+  {
+   "exercise": "p1",
+   "concept": "shm-max-speed"
+  },
+  {
+   "exercise": "p1",
+   "concept": "shm-energy"
+  },
+  {
+   "exercise": "p3",
+   "concept": "shm-max-speed"
+  },
+  {
+   "exercise": "p3",
+   "concept": "ucm-shm-projection"
+  }
+ ]
 }

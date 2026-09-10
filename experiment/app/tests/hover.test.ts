@@ -7,6 +7,7 @@ import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN
 import { variableCard, figureCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
 import type { ConceptId, SectionId, SpanId } from '../src/lib/types/ids';
+import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const sec = (s: string) => s as SectionId;
@@ -49,7 +50,7 @@ test('example references become links only when the example is in the article', 
 });
 test('the real sections wrap each glossary term at most once and never inside a heading', () => {
   for (const ch of ['ch02', 'ch16']) {
-    const f = JSON.parse(fs.readFileSync(path.join(root, ch, 'formulas.json'), 'utf8')) as { glossary: { term: string }[] };
+    const f = JSON.parse(fs.readFileSync(path.join(root, ch, 'chapter.json'), 'utf8')) as { glossary: { term: string }[] };
     const terms = f.glossary.map((g) => g.term);
     for (const dir of fs.readdirSync(path.join(root, ch)).filter((d) => /^\d+\.\d+$/.test(d))) {
       const out = wrapTerms(fs.readFileSync(path.join(root, ch, dir, 'text.html'), 'utf8'), terms);
@@ -60,7 +61,7 @@ test('the real sections wrap each glossary term at most once and never inside a 
 });
 
 /* ---------- variable ---------- */
-const vars: readonly VariableDTO[] = [{ sym: 'k', color: 'stiffness', meaning: 'force constant, the stiffness of the system', unit: 'N/m', section: '16.1', anchor: '16.1-hookes-law' }];
+const vars: readonly VariableDTO[] = [{ sym: 'k', type: typeId('stiffness'), meaning: 'force constant, the stiffness of the system', unit: 'N/m', section: sectionId('16.1'), anchor: spanId('16.1-hookes-law') }];
 test('a variable card carries the symbol, its type and unit, its meaning and two actions', () => {
   const c = variableCard({ sym: 'k', tex: '\\kk', typeLabel: 'Stiffness', variable: vars[0], section: sec('16.1'), formulasLoaded: true }, nav);
   assert.equal(c.kind, 'variable'); assert.equal(c.tex, '\\kk'); assert.equal(c.eyebrow, 'Symbol · Stiffness · N/m');
@@ -89,7 +90,7 @@ test('a figure card from the reference attributes', () => {
 
 /* ---------- term ---------- */
 test('a term card prefers the span that introduces the concept of the same name', () => {
-  const concepts = [{ id: 'force-constant', kind: 'idea' as const, section: '16.1', name: 'Force constant $\\kk$', prereqs: [], placeholder: false }];
+  const concepts = [{ status: 'built' as const, id: conceptId('force-constant'), kind: 'idea' as const, section: sectionId('16.1'), name: 'Force constant $\\kk$', prereqs: [] }];
   const coverage = [{ span: '16.1-hookes-law', introduces: ['force-constant'], uses: [], reinforces: [] }];
   assert.equal(introducingSpan('force constant', concepts, coverage), '16.1-hookes-law');
   assert.equal(introducingSpan('period', concepts, coverage), undefined);
@@ -100,8 +101,8 @@ test('a term card prefers the span that introduces the concept of the same name'
 
 /* ---------- equation ---------- */
 const eqs: readonly EquationDTO[] = [
-  { id: 'eq-hooke', section: '16.1', tex: '\\kF = -\\kk\\kx', anchor: '16.1-hookes-law', important: true, constantA: undefined },
-  { id: 'eq-v', section: '2.5', tex: '\\kv = \\kvo + \\ka\\kt', anchor: '2.5-final-velocity', important: true, constantA: true },
+  { id: equationId('eq-hooke'), section: sectionId('16.1'), tex: '\\kF = -\\kk\\kx', anchor: spanId('16.1-hookes-law'), important: true },
+  { id: equationId('eq-v'), section: sectionId('2.5'), tex: '\\kv = \\kvo + \\ka\\kt', anchor: spanId('2.5-final-velocity'), important: true },
 ];
 test('tex normalisation ignores spacing, closing punctuation and the constant-a qualifier', () => {
   assert.equal(normTex('\\kF = -\\kk\\kx.'), normTex('\\kF=-\\kk\\kx'));
@@ -112,7 +113,7 @@ test('tex normalisation ignores spacing, closing punctuation and the constant-a 
   assert.equal(matchEquation('   ', eqs), undefined);
 });
 test('an equation card names the concept and goes to where it is introduced', () => {
-  const concept = { id: 'hookes-law', kind: 'result' as const, section: '16.1', name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], placeholder: false, eq: 'eq-hooke', why: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
+  const concept = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], eq: equationId('eq-hooke'), why: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
   const c = equationCard({ equation: eqs[0], concept, introducedIn: 'Hooke’s Law' }, nav);
   assert.equal(c.eyebrow, 'Equation · important'); assert.equal(c.title, concept.name); assert.equal(c.body, concept.why);
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Formulas']);
@@ -128,7 +129,7 @@ test('a reference card and the first sentence', () => {
 });
 
 /* ---------- concept ---------- */
-const hooke = { id: 'hookes-law', kind: 'result' as const, section: '16.1', name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], placeholder: false, why: 'the restoring force is proportional to the displacement' };
+const hooke = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], why: 'the restoring force is proportional to the displacement' };
 const place = (id: string, title: string) => ({ id: span(id), title });
 const tester = (id: string, label: string) => ({ id: span(id), label });
 const refOf = (card: { refs?: readonly { label: string; links: readonly { label: string }[]; more?: { label: string } }[] }, label: string) => card.refs?.find((g) => g.label === label);
@@ -138,7 +139,7 @@ const runRef = (card: { refs?: readonly { label: string; links: readonly { label
 
 test('a concept card says why it matters, then where the text introduces, uses and tests it', () => {
   const c = conceptCard({
-    concept: { ...hooke, eq: 'eq-hooke' },
+    concept: { ...hooke, eq: equationId('eq-hooke') },
     intro: [place('16.1-hookes-law', 'Hooke’s Law')],
     uses: [place('16.1-energy', 'Energy in a Spring'), place('16.2-period', 'Period and Frequency')],
     tested: [tester('16.1-ex-p3', 'Problem p3'), tester('16.2-ex-cq1', '16.2 · Conceptual question cq1')],
@@ -185,7 +186,7 @@ test('a concept the text neither introduces, uses nor tests has no places, and n
   assert.equal(run('Go to definition', c), 'sec:16.1');
 });
 test('a placeholder concept says its section is not built and offers the page it can reach', () => {
-  const ph = { id: 'newtons-laws', kind: 'idea' as const, section: '4.3', name: 'Newton’s second law', prereqs: [], placeholder: true };
+  const ph = { status: 'placeholder' as const, id: conceptId('newtons-laws'), kind: 'idea' as const, section: sectionId('4.3'), name: 'Newton’s second law', prereqs: [] };
   const facts = { concept: ph, intro: [], uses: [], tested: [], onMap: false };
   const out = conceptCard({ ...facts, built: false }, nav);
   assert.equal(out.body, 'Section 4.3 is not built yet.'); assert.equal(out.refs, undefined); assert.deepEqual(out.actions.map((a) => a.label), ['Open in OpenStax']);

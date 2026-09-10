@@ -113,7 +113,7 @@
     const needle = q.trim().toLowerCase();
     return shelf.flatMap((id) => {
       const order = chaptersOf(id).flatMap((c) => c.sections.map((s) => s.id));
-      const kept = conceptsIn(id).filter((c) => !c.placeholder && (!needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)));
+      const kept = conceptsIn(id).filter((c) => c.status === 'built' && (!needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)));
       const by = new Map<string, ConceptDTO[]>();
       kept.forEach((c) => { const g = by.get(c.section); if (g) g.push(c); else by.set(c.section, [c]); });
       return [...by.entries()]
@@ -134,7 +134,7 @@
   const replace = (picks: readonly Pick[]): void => { practice.clear(); picks.forEach((p) => practice.toggle(p)); };
   const here = $derived(focus.section);
   const hereChapter = $derived(registry.chapterOf(here));
-  const dueNow = $derived(cat.concepts.filter((c) => !c.placeholder && practice.stateOf(c.id) === 'due'));
+  const dueNow = $derived(cat.concepts.filter((c) => c.status === 'built' && practice.stateOf(c.id) === 'due'));
 
   const choice = $derived(sumOf(practice.curriculum));
   const size = $derived(Math.min(practice.settings.session, choice.exercises));

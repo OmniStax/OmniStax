@@ -42,7 +42,7 @@ export type State = 'untouched' | 'practised' | 'mastered' | 'due';
 export const BLOOM_POINTS: Readonly<Record<string, number>> = { remember: 1, understand: 2, apply: 3, analyze: 4, analyse: 4, evaluate: 5, create: 6 };
 const bloomOf = (bloom: string): number => BLOOM_POINTS[bloom.trim().toLowerCase()] ?? 2;
 export const pointsOf = (ex: ExerciseDTO): Readonly<Record<string, number>> =>
-  ex.weights ?? Object.fromEntries(ex.concepts.map((id) => [id, bloomOf(ex.bloom)]));
+  Object.fromEntries(ex.concepts.map((id) => [id, ex.weights?.[id] ?? bloomOf(ex.bloom)]));
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 export const dayOf = (at: number): string => { const d = new Date(at); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -160,8 +160,8 @@ export const sectionsOfCurriculum = (c: Curriculum, cat: Catalog): readonly { bo
    section nobody has built, so nothing tests them. */
 export const conceptsOf = (c: Curriculum, cat: Catalog): ReadonlySet<string> => {
   const secs = new Set(sectionsOfCurriculum(c, cat).map((p) => String(p.section)));
-  const out = new Set(cat.concepts.filter((k) => !k.placeholder && secs.has(k.section)).map((k) => k.id));
-  c.filter(isConcept).forEach((p) => { const k = cat.concepts.find((q) => q.id === p.concept); if (!k || !k.placeholder) out.add(String(p.concept)); });
+  const out = new Set<string>(cat.concepts.filter((k) => k.status === 'built' && secs.has(k.section)).map((k) => String(k.id)));
+  c.filter(isConcept).forEach((p) => { const k = cat.concepts.find((q) => q.id === p.concept); if (!k || k.status === 'built') out.add(String(p.concept)); });
   return out;
 };
 
@@ -194,7 +194,7 @@ export const poolOf = (c: Curriculum, cat: Catalog): Catalog['exercises'] => {
 export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly Attempt[], s: PracticeSettings, now: number, seed: string): readonly Drawn[] => {
   const inSet = conceptsOf(c, cat);
   const state = (id: string): State => stateOf(m[id], now, s);
-  const prereqs = new Map(cat.concepts.map((k) => [k.id, k.prereqs]));
+  const prereqs = new Map<string, readonly string[]>(cat.concepts.map((k) => [k.id, k.prereqs]));
 
   const last = new Map<string, number>(), lastOk = new Map<string, number>();
   attempts.forEach((a) => {
@@ -225,7 +225,7 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
   const taken = new Set<string>();
   const out: Drawn[] = [];
   const pick = (id: string, order: (a: Cand, b: Cand) => number): Cand | undefined =>
-    pool.filter((e) => !taken.has(e.key) && e.ex.concepts.includes(id)).sort(order)[0];
+    pool.filter((e) => !taken.has(e.key) && e.ex.concepts.some((c) => c === id)).sort(order)[0];
   const take = (e: Cand, why: Drawn['why']): void => { taken.add(e.key); out.push({ book: e.book, section: e.section, ex: e.ex, why }); };
   /* The expert-reversal note: a concept with no score gets its lowest Bloom
      exercise, pattern before problem, and one with a score gets a higher one. */

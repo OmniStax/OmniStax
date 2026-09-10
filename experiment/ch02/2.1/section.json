@@ -12,13 +12,351 @@
   "Calculate displacement and distance given initial position, final position, and the path between the two."
  ],
  "summary_html": "<ul><li>Kinematics is the study of motion without considering its causes. In this chapter, it is limited to motion along a straight line, called one-dimensional motion.</li><li>Displacement is the change in position of an object.</li><li>In symbols, displacement $\\kdx$ is defined to be $\\kdx = \\kxf - \\kxo,$ where $\\kxo$ is the initial position and $\\kxf$ is the final position. In this text, the Greek letter $\\Delta$ (delta) always means “change in” whatever quantity follows it. The SI unit for displacement is the meter (m). Displacement has a direction as well as a magnitude.</li><li>When you start a problem, assign which direction will be positive.</li><li>Distance is the magnitude of displacement between two positions.</li><li>Distance traveled is the total length of the path traveled between two positions.</li></ul>",
- "binds": [
-  "position"
- ],
- "built": "2026-09-06",
+ "notes": "Problems 2 and 4 have no answer in the book's key and are left out.",
  "ai": {
   "text": "Claude Fable 5.1",
   "figures": "Claude Fable 5.1"
  },
- "notes": "Problems 2 and 4 have no answer in the book's key and are left out."
+ "built": "2026-09-06",
+ "exercise_notes": "Bloom levels and concept tags are AI-generated. Answers come from the book's answer key; problems 2 (path B) and 4 (path D) have no keyed answer and are left out. Suggested approaches for open questions are AI-written and marked. Numeric answers accept 2% tolerance.",
+ "figures": [
+  {
+   "id": "demo-displacement",
+   "kind": "demo",
+   "number": "2.3",
+   "originals": [
+    "/media/ch02/Figure_02_01_01.jpg",
+    "/media/ch02/Figure_02_01_02.jpg"
+   ],
+   "original_caption": "A professor paces left and right while lecturing. Her position relative to Earth is given by x. The +2.0 m displacement of the professor relative to Earth is represented by an arrow pointing to the right.",
+   "draws": [
+    "position"
+   ]
+  },
+  {
+   "id": "demo-path",
+   "kind": "demo",
+   "number": "2.5",
+   "originals": [
+    "/media/ch02/Figure_02_01_03.jpg"
+   ],
+   "draws": [
+    "position"
+   ]
+  },
+  {
+   "id": "fig-paths",
+   "kind": "demo",
+   "originals": [
+    "/media/ch02/Figure_02_01Sol_01.jpg"
+   ],
+   "draws": [
+    "position"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "position",
+   "concept": "reference-frame",
+   "verb": "introduces"
+  },
+  {
+   "span": "position",
+   "concept": "position",
+   "verb": "introduces"
+  },
+  {
+   "span": "displacement",
+   "concept": "displacement",
+   "verb": "introduces"
+  },
+  {
+   "span": "displacement",
+   "concept": "position",
+   "verb": "uses"
+  },
+  {
+   "span": "sign",
+   "concept": "displacement",
+   "verb": "uses"
+  },
+  {
+   "span": "sign",
+   "concept": "position",
+   "verb": "uses"
+  },
+  {
+   "span": "distance",
+   "concept": "distance",
+   "verb": "introduces"
+  },
+  {
+   "span": "distance",
+   "concept": "distance-traveled",
+   "verb": "introduces"
+  },
+  {
+   "span": "distance",
+   "concept": "displacement",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "cyu-cyclist",
+   "source_id": "fs-id3589986",
+   "kind": "check-understanding",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "distance"
+   },
+   "cite": "distance",
+   "prompt": "A cyclist rides 3 km west and then turns around and rides 2 km east. (a) What is their displacement? (b) What distance do they ride? (c) What is the magnitude of their displacement? Take east as positive.",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": -1,
+      "unit": "km",
+      "hint": "Displacement is final position minus initial position, with east positive."
+     },
+     {
+      "part": "(b)",
+      "value": 5,
+      "unit": "km",
+      "hint": "Distance traveled adds up every leg of the path."
+     },
+     {
+      "part": "(c)",
+      "value": 1,
+      "unit": "km",
+      "hint": "Magnitude drops the sign."
+     }
+    ],
+    "solution": "(a) The rider’s displacement is $\\kdx = \\kxf - \\kxo = -1\\ \\text{km}$. (The displacement is negative because we take east to be positive and west to be negative.) (b) The distance traveled is $3\\ \\text{km} + 2\\ \\text{km} = 5\\ \\text{km}$. (c) The magnitude of the displacement is $1\\ \\text{km}$."
+   }
+  },
+  {
+   "id": "ap1",
+   "source_id": "fs-id1862594",
+   "kind": "ap-test-prep",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "Which of the following statements comparing position, distance traveled, and displacement is correct?",
+   "answer": {
+    "type": "choice",
+    "generated_by": "source",
+    "options": [
+     "An object may record a distance traveled of zero while recording a non-zero displacement.",
+     "An object may record a non-zero distance traveled while recording a displacement of zero.",
+     "An object may record a non-zero distance traveled while maintaining a position of zero.",
+     "An object may record a non-zero displacement while maintaining a position of zero."
+    ],
+    "correct": 1,
+    "hint": "Think of walking away and coming back: which quantity returns to zero, and which keeps growing?"
+   }
+  },
+  {
+   "id": "cq1",
+   "source_id": "fs-id1704056",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "Give an example in which there are clear distinctions among distance traveled, displacement, and magnitude of displacement. Specifically identify each quantity in your example.",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "Any path that doubles back will do. For example, a jogger runs 3 km east and then 1 km west. The distance traveled is 4 km, the displacement is +2 km if east is taken as positive, and the magnitude of the displacement is 2 km. The three numbers differ because the path changes direction."
+   }
+  },
+  {
+   "id": "cq2",
+   "source_id": "fs-id3147584",
+   "kind": "conceptual-question",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "Under what circumstances does distance traveled equal magnitude of displacement? What is the only case in which magnitude of displacement and displacement are exactly the same?",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "The distance traveled equals the magnitude of the displacement only when the motion never reverses direction, so that the path is the straight segment between the two positions. The magnitude of the displacement equals the displacement itself only when the displacement is positive or zero in the chosen coordinate system, since the magnitude drops the sign."
+   }
+  },
+  {
+   "id": "cq3",
+   "source_id": "fs-id3563423",
+   "kind": "conceptual-question",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "prompt": "Bacteria move back and forth by using their flagella (structures that look like little tails). Speeds of up to $50\\ \\mu\\text{m/s}\\ (50 \\times 10^{-6}\\ \\text{m/s})$ have been observed. The total distance traveled by a bacterium is large for its size, while its displacement is small. Why is this?",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "The motion keeps reversing direction. Each back-and-forth leg adds to the distance traveled, but the legs largely cancel in the displacement, which measures only the net change in position from start to finish."
+   }
+  },
+  {
+   "id": "p1",
+   "source_id": "fs-id1126076",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "paths",
+   "prompt": "Find the following for path A in the paths figure: (a) The distance traveled. (b) The magnitude of the displacement from start to finish. (c) The displacement from start to finish.",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 7,
+      "unit": "m"
+     },
+     {
+      "part": "(b)",
+      "value": 7,
+      "unit": "m"
+     },
+     {
+      "part": "(c)",
+      "value": 7,
+      "unit": "m",
+      "hint": "Path A goes from 0 to 7 m in the positive direction."
+     }
+    ],
+    "solution": "(a) 7 m (b) 7 m (c) +7 m"
+   }
+  },
+  {
+   "id": "p3",
+   "source_id": "fs-id4292134",
+   "kind": "problem",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "paths",
+   "prompt": "Find the following for path C in the paths figure: (a) The distance traveled. (b) The magnitude of the displacement from start to finish. (c) The displacement from start to finish.",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "(a)",
+      "value": 13,
+      "unit": "m",
+      "hint": "Add every leg: 2 → 10, 10 → 8, 8 → 11."
+     },
+     {
+      "part": "(b)",
+      "value": 9,
+      "unit": "m"
+     },
+     {
+      "part": "(c)",
+      "value": 9,
+      "unit": "m",
+      "hint": "Final minus initial: 11 m − 2 m."
+     }
+    ],
+    "solution": "(a) $8\\ \\text{m} + 2\\ \\text{m} + 3\\ \\text{m} = 13\\ \\text{m}$ (b) $9\\ \\text{m}$ (c) $\\kdx = 11\\ \\text{m} - 2\\ \\text{m} = 9\\ \\text{m}$"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "cyu-cyclist",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "cyu-cyclist",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "cyu-cyclist",
+   "concept": "distance"
+  },
+  {
+   "exercise": "ap1",
+   "concept": "position"
+  },
+  {
+   "exercise": "ap1",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "ap1",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "cq1",
+   "concept": "distance"
+  },
+  {
+   "exercise": "cq2",
+   "concept": "distance"
+  },
+  {
+   "exercise": "cq2",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "cq2",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "cq3",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "cq3",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "p1",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "p1",
+   "concept": "distance"
+  },
+  {
+   "exercise": "p1",
+   "concept": "displacement"
+  },
+  {
+   "exercise": "p3",
+   "concept": "distance-traveled"
+  },
+  {
+   "exercise": "p3",
+   "concept": "distance"
+  },
+  {
+   "exercise": "p3",
+   "concept": "displacement"
+  }
+ ]
 }

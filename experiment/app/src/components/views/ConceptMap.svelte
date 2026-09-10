@@ -44,7 +44,7 @@
   };
   const click = (id: string) => {
     const c = node(id);
-    if (c.placeholder) { const e = registry.entry(sectionId(c.section)); if (e?.built) { openDoc(sectionId(c.section), 'text'); return; } window.open(e?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); return; }
+    if (c.status === 'placeholder') { const e = registry.entry(sectionId(c.section)); if (e?.built) { openDoc(sectionId(c.section), 'text'); return; } window.open(e?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); return; }
     const was = pin.pinned === id; pin.toggle(conceptId(id));
     const sp = spansOf(conceptId(id)); const t = sp.intro[0] ?? sp.uses[0]; if (!was && t) goSpan(t);
   };

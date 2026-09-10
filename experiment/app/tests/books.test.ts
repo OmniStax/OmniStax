@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { builtSections, mergeCatalog, parseConcepts, parseExercises, parseManifest, type ForeignBook } from '../src/lib/practice/books';
 import type { Catalog } from '../src/lib/practice/model';
 import type { ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
-import { sectionId } from '../src/lib/types/ids';
+import { conceptId, sectionId } from '../src/lib/types/ids';
 
 const sec = (s: string) => sectionId(s);
 
@@ -27,8 +27,8 @@ const RAW_MANIFEST = {
   ],
 };
 
-const concept = (id: string, section: string, name: string, prereqs: string[] = []): ConceptDTO => ({ id, kind: 'idea', section, name, prereqs, placeholder: false });
-const ex = (id: string, concepts: string[]): ExerciseDTO => ({ id, kind: 'problem', bloom: 'apply', concepts, place: 'end', prompt: id, answer: { type: 'open', generated_by: 'source' } });
+const concept = (id: string, section: string, name: string, prereqs: string[] = []): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'idea', section: sectionId(section), name, prereqs: prereqs.map(conceptId) });
+const ex = (id: string, concepts: string[]): ExerciseDTO => ({ id, sourceId: id, kind: 'problem', bloom: 'Apply', concepts: concepts.map(conceptId), place: { at: 'end' }, prompt: id, answer: { type: 'open', generated_by: 'source' } });
 
 const HOME: Catalog = {
   concepts: [concept('hookes-law', '16.1', 'Hooke’s law'), concept('shm', '16.3', 'Simple harmonic motion')],
@@ -69,13 +69,13 @@ test('a manifest defaults what it is not read for, and comes to nothing without 
 /* ---------- concepts and exercises ---------- */
 
 test('a chapter’s concepts are read by the schema the book being read uses, and garbage comes back empty', () => {
-  const p = parseConcepts({ chapter: '15', concepts: [{ id: 'torque', section: '15.4', name: 'Torque' }], coverage: [{ span: '15.4', introduces: ['torque'] }] });
+  const p = parseConcepts({ chapter: '15', concepts: [{ status: 'built', id: 'torque', kind: 'idea', section: '15.4', name: 'Torque' }], coverage: [{ span: '15.4', introduces: ['torque'] }] });
   assert.deepEqual(p.concepts.map((c) => c.id), ['torque']);
   assert.deepEqual(p.coverage.map((c) => c.span), ['15.4']);
   assert.deepEqual(parseConcepts('not a file'), { concepts: [], coverage: [] });
 });
 test('a problem set with a row the app cannot read comes back empty rather than half read', () => {
-  const good = { id: 'u1', kind: 'problem', bloom: 'apply', concepts: ['torque'], prompt: 'p', answer: { type: 'open' } };
+  const good = { id: 'u1', source_id: 'fs-u1', kind: 'problem', bloom: 'Apply', concepts: ['torque'], place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } };
   assert.deepEqual(parseExercises([good]).map((e) => e.id), ['u1']);
   assert.deepEqual(parseExercises([good, { id: 'u2' }]), [], 'the whole array fails: an exercise that will not parse is one the session must not draw');
   assert.deepEqual(parseExercises(null), []);

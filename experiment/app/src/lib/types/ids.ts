@@ -12,6 +12,12 @@ export type ChapterId = string & { readonly __brand: 'ChapterId' };
 export type GroupKey = string & { readonly __brand: 'GroupKey' };
 export type SpanId = string & { readonly __brand: 'SpanId' };
 export type ConceptId = string & { readonly __brand: 'ConceptId' };
+/* One declared type of physical quantity, e.g. "position": the key the book's
+   `types` table is read by, the class a coloured symbol wears, and the hue a
+   page binds. */
+export type TypeId = string & { readonly __brand: 'TypeId' };
+/* One equation of the formula sheet, e.g. "eq-hooke". */
+export type EquationId = string & { readonly __brand: 'EquationId' };
 export type NoteId = string & { readonly __brand: 'NoteId' };
 /* One page of a view: several concept maps may stand open at once, and this is what
    tells them apart. A view with no instance is the singleton the sidebar holds. */
@@ -23,6 +29,8 @@ export const chapterId = (s: string): ChapterId => s as ChapterId;
 export const groupKey = (s: string): GroupKey => s as GroupKey;
 export const spanId = (s: string): SpanId => s as SpanId;
 export const conceptId = (s: string): ConceptId => s as ConceptId;
+export const typeId = (s: string): TypeId => s as TypeId;
+export const equationId = (s: string): EquationId => s as EquationId;
 export const noteId = (s: string): NoteId => s as NoteId;
 export const newGroupKey = (): GroupKey => groupKey(Math.random().toString(36).slice(2, 8));
 /* A note's id is eight lowercase letters and digits, which is the shape the key form reads back. */

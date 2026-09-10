@@ -5,10 +5,11 @@
   import { settings } from '../../lib/settings/store.svelte';
   import { FIG } from '../../lib/fig/figlib';
   import type { SectionId } from '../../lib/types/ids';
+  import { placeKey } from '../../lib/content/schema';
   import ExerciseCard from './ExerciseCard.svelte';
   let { section, place }: { section: SectionId; place: string } = $props();
   const all = $derived(registry.state(section)?.exercises ?? []);
-  const items = $derived(all.filter((e) => (e.place ?? 'end') === place));
+  const items = $derived(all.filter((e) => placeKey(e.place) === place));
   const isEnd = $derived(place === 'end');
   const one = $derived(isEnd && settings.exerciseMode === 'one');
   let at = $state(0);

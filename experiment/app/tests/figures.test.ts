@@ -86,3 +86,26 @@ test('data-original paths exist under public/media', () => {
     });
   });
 });
+
+/* The section's figures table and its text say the same thing: one row for every
+   <figure> the text draws, and no row for a figure it does not. */
+const sectionDirs = fs.readdirSync(content).filter((d) => /^ch\d+$/.test(d))
+  .flatMap((ch) => fs.readdirSync(path.join(content, ch)).map((s) => path.join(content, ch, s)).filter((d) => fs.existsSync(path.join(d, 'section.json'))));
+const figureRows = (dir: string): { id: string; number?: string }[] =>
+  (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: { id: string; number?: string }[] }).figures ?? [];
+
+test('every figure of a section is a row of its figures table, and every row is a figure', () => {
+  assert.ok(sectionDirs.length > 0);
+  sectionDirs.forEach((dir) => {
+    const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
+    const drawn = [...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"/g)].map(([, id]) => id).sort();
+    assert.deepEqual(figureRows(dir).map((f) => f.id).sort(), drawn, `${dir}: the figures table and the text disagree`);
+  });
+});
+test('a figure the text numbers is numbered the same way in the table', () => {
+  sectionDirs.forEach((dir) => {
+    const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
+    const numbered: Record<string, string> = Object.fromEntries([...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"[^>]*\bdata-figure="([^"]+)"/g)].map(([, id, n]) => [id, n]));
+    figureRows(dir).forEach((f) => assert.equal(f.number, numbered[f.id], `${dir}: figure ${f.id} is numbered ${String(f.number)} in the table and ${String(numbered[f.id])} in the text`));
+  });
+});
