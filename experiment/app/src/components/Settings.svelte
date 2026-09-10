@@ -108,7 +108,7 @@
           <p class="hint">
             {#if host.surface === 'app'}You are in the installed app, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
             {:else if host.surface === 'fullscreen'}You are in full screen, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
-            {:else}You are in a browser tab, where {browserName} keeps {tabHeld} of these shortcuts for itself; they are marked <span class="kept" aria-hidden="true">⊘</span> and the book never sees them. {#if host.browser === 'chromium'}In the installed app, or in full screen, every one reaches the book.{/if}{/if}
+            {:else}You are in a browser tab, so {browserName} keeps {tabHeld} of these shortcuts for itself, marked <span class="kept" aria-hidden="true">⊘</span>.{/if}
             {#if host.canInstall}<button class="link" type="button" onclick={() => host.install()}>Install as app</button>{/if}
           </p>
         {/if}
