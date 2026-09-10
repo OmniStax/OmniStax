@@ -6,5 +6,5 @@
     "allowJs": true,
     "types": ["node"]
   },
-  "include": ["src/**/*", "omnistax.config.ts", "tests/**/*", ".astro/types.d.ts"]
+  "include": ["src/**/*", "omnistax.config.ts", "scripts/**/*", "tests/**/*", ".astro/types.d.ts"]
 }

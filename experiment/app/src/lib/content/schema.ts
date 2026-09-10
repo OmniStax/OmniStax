@@ -130,6 +130,7 @@ export const EquationSchema = z.object({
   section: SECTION_REF.describe('The section that states the equation.'),
   latex: z.string().describe('The equation in plain LaTeX, as the book prints it.'),
   ktex: z.string().optional().describe('The same equation written with the book\u2019s macros, so that each symbol wears the colour of its type. The sheet prints this where it is given.'),
+  condition: z.string().optional().describe('The condition under which the equation holds, stated as the book would state it, such as \u201cconstant acceleration\u201d. Absent where the equation holds generally.'),
   anchor: SPAN_REF.optional().describe('The qualified span of the text where the equation is stated.'),
   important: z.boolean().default(false).describe('Whether the equation belongs on the formula sheet, or is only a step of a derivation.'),
 }).strict();
@@ -245,6 +246,7 @@ const ExerciseFigureSchema = z.object({
 export const ExerciseSchema = z.object({
   id: z.string().describe('The exercise\u2019s local id, such as cq1 or p3, which names its card and its tab.'),
   source_id: z.string().describe('The publisher\u2019s own id for the exercise, so that it can be found again in the source.'),
+  source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own.'),
   kind: z.string().describe('The kind of exercise it is, naming a row of the book\u2019s exercise kinds.'),
   bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for, which is what it is worth in points.'),
   tag: z.string().optional().describe('A word the book prints beside the exercise, such as the topic of an AP item.'),
@@ -366,7 +368,7 @@ export const ServedExerciseSchema = ExerciseSchema
     weights: z.record(z.number()).optional(),
   })
   .strip()
-  .transform(({ source_id, ...e }) => ({ ...e, sourceId: source_id }));
+  .transform(({ source_id, source_section, ...e }) => ({ ...e, sourceId: source_id, ...(source_section === undefined ? {} : { sourceSection: source_section }) }));
 export type ExerciseDTO = z.infer<typeof ServedExerciseSchema>;
 
 /* An equation as the sheet prints it: the coloured form where the chapter wrote
@@ -375,10 +377,11 @@ export type EquationDTO = {
   readonly id: EquationId;
   readonly section: SectionId;
   readonly tex: string;
+  readonly condition?: string;   /* what the equation holds under, where it does not hold generally: "constant acceleration" */
   readonly anchor?: SpanId;
   readonly important: boolean;
 };
-export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, section: e.section, tex: e.ktex ?? e.latex, anchor: e.anchor, important: e.important });
+export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, section: e.section, tex: e.ktex ?? e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
 
 export type FormulasDTO = {
   readonly variables: readonly VariableDTO[];

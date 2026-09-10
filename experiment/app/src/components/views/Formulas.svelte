@@ -25,7 +25,7 @@
   {#each items as e (e.id)}
     <button type="button" class="formula" onclick={() => goSpan(e.anchor ? spanId(e.anchor) : undefined)}>
       <div use:tex={e.tex}></div>
-      <small>{e.anchor ? 'in “' + spanTitle(e.anchor) + '”' : ''}</small>
+      <small>{e.condition ? e.condition + ' · ' : ''}{e.anchor ? 'in “' + spanTitle(e.anchor) + '”' : ''}</small>
     </button>
   {/each}
 {/snippet}

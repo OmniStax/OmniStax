@@ -198,6 +198,13 @@ def migrate_book(book, chapters):
 # --------------------------------------------------------------- chapter.json
 
 
+def condition_of(equation):
+    """The condition the equation holds under, as the book states it. The old
+    files carried one flag, `constant_a`; an equation that needed constant
+    acceleration says so in words, and one that holds generally says nothing."""
+    return "constant acceleration" if equation.get("constant_a") else None
+
+
 def migrate_chapter(chapter, formulas):
     out = OrderedDict()
     for key in ("id", "dir", "title", "intro_module"):
@@ -211,7 +218,8 @@ def migrate_chapter(chapter, formulas):
     ]
     out["equations"] = [
         row(("id", e["id"]), ("concept", e.get("concept")), ("section", e["section"]),
-            ("latex", e["latex"]), ("ktex", e.get("ktex")), ("anchor", e.get("anchor")),
+            ("latex", e["latex"]), ("ktex", e.get("ktex")),
+            ("condition", condition_of(e)), ("anchor", e.get("anchor")),
             ("important", bool(e.get("important", False))))
         for e in formulas.get("equations", [])
     ]
@@ -302,7 +310,8 @@ def exercise_rows(exercises):
         place = ({"at": "end"} if place_at in ("end", None)
                  else OrderedDict((("at", "inline"), ("after", place_at))))
         rows.append(row(
-            ("id", e["id"]), ("source_id", e.get("source_id")), ("kind", e["kind"]),
+            ("id", e["id"]), ("source_id", e.get("source_id")),
+            ("source_section", e.get("source_section")), ("kind", e["kind"]),
             ("bloom", e["bloom"]), ("tag", e.get("tag")), ("place", place),
             ("cite", e.get("cite")), ("figure", e.get("figure")),
             ("prompt", e["prompt"]), ("answer", e["answer"]),

@@ -17,6 +17,8 @@ import { figureIds, figureList, linkFigureRefs } from './fragment';
 import { type ConceptId, bookId, qualifiedId } from '../types/ids';
 
 export type SectionSource = {
+  readonly dir: string;             /* where the section's files live, for anything that reads one the build does not */
+  readonly dto: SectionDTO;         /* the tables as the section writes them, which the validator reads */
   readonly meta: SectionMetaDTO;
   readonly textHtml: string;        /* article body, local ids, math prerendered */
   readonly figuresJs: string;
@@ -70,10 +72,10 @@ export const bindsOf = (figures: readonly FigureRowDTO[]): readonly string[] =>
    Bloom table. */
 export const exercisesOf = (s: SectionDTO): readonly ExerciseDTO[] => {
   const rowsOf = (id: string) => s.exerciseConcepts.filter((r) => r.exercise === id);
-  return s.exercises.map(({ source_id, ...e }) => {
+  return s.exercises.map(({ source_id, source_section, ...e }) => {
     const rows = rowsOf(e.id);
     const weighted = rows.flatMap((r) => (r.weight === undefined ? [] : [[r.concept, r.weight] as const]));
-    return { ...e, sourceId: source_id, concepts: rows.map((r) => r.concept), ...(weighted.length ? { weights: Object.fromEntries(weighted) } : {}) };
+    return { ...e, sourceId: source_id, ...(source_section === undefined ? {} : { sourceSection: source_section }), concepts: rows.map((r) => r.concept), ...(weighted.length ? { weights: Object.fromEntries(weighted) } : {}) };
   });
 };
 
@@ -127,7 +129,7 @@ export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: 
   };
 };
 
-const formulasOf = (chapter: ChapterDTO): FormulasDTO => ({ variables: chapter.variables, equations: chapter.equations.map(equationOf), glossary: chapter.glossary });
+export const formulasOf = (chapter: ChapterDTO): FormulasDTO => ({ variables: chapter.variables, equations: chapter.equations.map(equationOf), glossary: chapter.glossary });
 
 /* ---------- reading the files ---------- */
 
@@ -144,7 +146,7 @@ const loadSection = async (dir: string, macros: MacroMap): Promise<SectionSource
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
   ]);
   return {
-    meta: metaOf(dto), textHtml: prerenderMath(text, macros), figuresJs,
+    dir, dto, meta: metaOf(dto), textHtml: prerenderMath(text, macros), figuresJs,
     figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto),
     exercisesLead: dto.exercisesLead ? prerenderMath(dto.exercisesLead, macros) : '',
   };
@@ -186,36 +188,7 @@ export const loadBook = async (root: string, bookId: string): Promise<BookTree> 
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */
   const built = new Set<string>(loaded.flatMap((ch) => ch.sections.map((s) => String(s.meta.id))));
   const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built), formulas: formulasOf(ch.dto) }));
-  checkBinds(dto, chapters);
-  checkAnchors(chapters);
   return { dto, chapters, manifest: manifestOf(dto, chapters) };
-};
-
-/* Colour is a function of type, and a page colours only the types it binds, so a
-   page may bind only a type the book declares. */
-const checkBinds = (book: BookDTO, chapters: readonly ChapterTree[]): void => {
-  const types = typesOf(book.types);
-  chapters.forEach((ch) => ch.sections.forEach((s) => s.meta.binds.forEach((t) => {
-    if (!types[t]) throw new Error(`section ${s.meta.id} binds unknown type "${t}"`);
-  })));
-};
-
-/* An anchor names the span where a variable or equation is introduced, qualified by its section ("16.1-hookes-law"). It must be an id the built section carries. */
-const localIds = (html: string): ReadonlySet<string> => new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (m) => m[1]));
-const checkAnchors = (chapters: readonly ChapterTree[]): void => {
-  chapters.forEach((ch) => {
-    const ids = new Map(ch.sections.map((s) => [String(s.meta.id), localIds(s.textHtml)] as const));
-    const check = (what: string, anchor: string | undefined): void => {
-      if (anchor === undefined) return;
-      const cut = anchor.indexOf('-');
-      const [sec, local] = cut < 0 ? [anchor, ''] : [anchor.slice(0, cut), anchor.slice(cut + 1)];
-      const built = ids.get(sec);
-      if (!built) throw new Error(`${what} anchors "${anchor}", but section ${sec} of chapter ${ch.dto.id} is not built`);
-      if (!built.has(local)) throw new Error(`${what} anchors "${anchor}", but section ${sec} has no id "${local}"`);
-    };
-    ch.formulas.variables.forEach((v) => check(`variable ${v.sym} (${v.section})`, v.anchor));
-    ch.formulas.equations.forEach((e) => check(`equation ${e.id}`, e.anchor));
-  });
 };
 
 /* The tree is read once per build. In dev every request reads the files again, so a content edit shows on reload. */

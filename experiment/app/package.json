@@ -8,6 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "check:content": "tsx scripts/check-content.ts",
+    "docs:content": "tsx scripts/docs-content.ts",
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "dependencies": {

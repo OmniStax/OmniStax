@@ -57,7 +57,9 @@ Tables:
   built or not.
 - `variables`: `{ sym, type?, meaning, unit, section, anchor? }`. `type`
   was `color`; the book declares types, the app picks hues.
-- `equations`: `{ id, concept?, section, latex, ktex?, anchor?, important }`.
+- `equations`: `{ id, concept?, section, latex, ktex?, condition?, anchor?,
+  important }`. `condition` is what the equation holds under, in the book's
+  words ("constant acceleration"); an equation that holds generally has none.
 - `glossary`: `{ section, term, definition }`.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
@@ -83,8 +85,12 @@ Tables:
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
-- `exercises`: `{ id, source_id, kind, bloom, tag?, place, cite?, figure?,
-  prompt, answer }`. `place` is an ADT: `{ "at": "end" }` or
+- `exercises`: `{ id, source_id, source_section?, kind, bloom, tag?, place,
+  cite?, figure?, prompt, answer }`. `source_section` is the section whose
+  source the item was taken from, written down where the book places an
+  exercise with the concept it tests rather than with the section it is
+  printed in; absent when it is the section's own. `place` is an ADT:
+  `{ "at": "end" }` or
   `{ "at": "inline", "after": "<local id>" }`. `answer` is the existing
   ADT on `type`.
 - `exercise_concepts`: `{ exercise, concept, weight? }`. `weight` is the
@@ -143,7 +149,9 @@ references:
   section's `text.html`;
 - every `figures.id` is a `<figure id>` in `text.html` and every
   `<figure data-figure>` matches the row's `number`;
-- every `source_id` occurs in the section's `source.md`;
+- every `source_id` occurs in the `source.md` of `source_section` where the
+  row names one and of the section itself where it does not, and a
+  `source_section` names a section the app has built;
 - every built concept has `why` and `evidence` and at least one coverage
   row that introduces it;
 - every `draws` entry is a declared type.

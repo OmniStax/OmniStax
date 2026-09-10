@@ -192,6 +192,7 @@
    "section": "2.5",
    "latex": "\\bar v = \\frac{v_0 + v}{2}",
    "ktex": "\\kvb = \\frac{\\kvo + \\kv}{2}",
+   "condition": "constant acceleration",
    "anchor": "2.5-avg-velocity",
    "important": true
   },
@@ -201,6 +202,7 @@
    "section": "2.5",
    "latex": "v = v_0 + a t",
    "ktex": "\\kv = \\kvo + \\ka\\kt",
+   "condition": "constant acceleration",
    "anchor": "2.5-final-velocity",
    "important": true
   },
@@ -210,6 +212,7 @@
    "section": "2.5",
    "latex": "x = x_0 + v_0 t + \\tfrac12 a t^2",
    "ktex": "\\kx = \\kxo + \\kvo\\kt + \\tfrac{1}{2}\\ka\\kt^2",
+   "condition": "constant acceleration",
    "anchor": "2.5-position-quadratic",
    "important": true
   },
@@ -219,6 +222,7 @@
    "section": "2.5",
    "latex": "v^2 = v_0^2 + 2a(x - x_0)",
    "ktex": "\\kv^2 = \\kvo^2 + 2\\ka(\\kx - \\kxo)",
+   "condition": "constant acceleration",
    "anchor": "2.5-velocity-squared",
    "important": true
   }
