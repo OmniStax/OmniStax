@@ -63,7 +63,7 @@ const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManife
       const url = sectionUrl(book.id, ch.dto.dir, s.id);
       return {
         id: s.id, title: s.title, built: src !== undefined, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`,
-        figures: src ? figureList(src.textHtml, s.id) : [], exercises: src ? src.exercises.map((e) => ({ id: e.id, kind: e.kind })) : [],
+        figures: src ? figureList(src.textHtml, s.id) : [], binds: src ? src.meta.binds : [], exercises: src ? src.exercises.map((e) => ({ id: e.id, kind: e.kind })) : [],
         openstax: sectionSourceUrl(book, ch.dto, s.id),
       };
     }),

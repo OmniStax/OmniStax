@@ -5,7 +5,7 @@ import { fuzzy, rank } from '../src/lib/commands/fuzzy';
 import { builtinCommands, BUILTIN, openViewId, showViewId, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { commandId, available } from '../src/lib/commands/command';
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
-import { SIDEBAR_KINDS, VIEW_KINDS, isSidebarKind, itemKey, newViewItem } from '../src/lib/types/ids';
+import { PALETTE_ONLY_KINDS, SIDEBAR_KINDS, VIEW_KINDS, isPaletteOnlyKind, isSidebarKind, itemKey, newViewItem } from '../src/lib/types/ids';
 import type { Level } from '../src/lib/sections/scope';
 
 /* chords */
@@ -101,7 +101,7 @@ type ViewState = { readonly view?: string | null; readonly level?: Level; readon
 /* The timeline the undo and redo commands read: what each way would take back,
    and nothing at all where the reader has done nothing. */
 type Timeline = { readonly undoLabel?: string; readonly redoLabel?: string };
-const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true, colourTimeline: Timeline = { undoLabel: 'velocity in section 16.3', redoLabel: 'every colour of chapter 16 cleared' }): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
@@ -130,6 +130,11 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       undo: () => log.push('undo'), redo: () => log.push('redo'),
       canUndo: timeline.undoLabel !== undefined, canRedo: timeline.redoLabel !== undefined,
       undoLabel: timeline.undoLabel ?? '', redoLabel: timeline.redoLabel ?? '',
+    },
+    colours: {
+      undo: () => log.push('colours undo'), redo: () => log.push('colours redo'),
+      canUndo: colourTimeline.undoLabel !== undefined, canRedo: colourTimeline.redoLabel !== undefined,
+      undoLabel: colourTimeline.undoLabel ?? '', redoLabel: colourTimeline.redoLabel ?? '',
     },
   };
 };
@@ -212,6 +217,7 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   VIEW_KINDS.forEach((k) => {
     assert.ok(cmds.some((c) => c.id === openViewId(k)), k);
     assert.equal(cmds.some((c) => c.id === showViewId(k)), isSidebarKind(k), k);
+    if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, 'Appearance', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'annotations']);
   assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a split');
@@ -265,6 +271,28 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
   const open = (d: BuiltinDeps) => builtinCommands(d).find((c) => c.id === BUILTIN.open)!;
   assert.equal(available(open(deps(true))), false);
   assert.equal(available(open(deps(false))), true);
+});
+test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  assert.deepEqual([...PALETTE_ONLY_KINDS], ['colours']);
+  assert.equal(by(openViewId('colours')).label, 'Open the colour menu');
+  assert.equal(by(openViewId('colours')).group, 'Appearance');
+  assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');
+  by(openViewId('colours')).run();
+  assert.deepEqual(d.log, ['view colours group']);
+});
+test('the colours have a timeline of their own, apart from the reader\u2019s edits', () => {
+  const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
+  by(BUILTIN.coloursUndo).run(); by(BUILTIN.coloursRedo).run();
+  assert.deepEqual(d.log, ['colours undo', 'colours redo'], 'neither one touches the shell timeline');
+  assert.equal(by(BUILTIN.coloursUndo).label, 'Colours: undo');
+  assert.equal(by(BUILTIN.coloursRedo).label, 'Colours: redo');
+  assert.equal(by(BUILTIN.coloursUndo).group, 'Appearance');
+  assert.equal(by(BUILTIN.coloursUndo).detail?.(), 'velocity in section 16.3', 'the palette says which colour would come back');
+  assert.equal(by(BUILTIN.coloursRedo).detail?.(), 'every colour of chapter 16 cleared');
+  const empty = builtinCommands(deps(false, 2, {}, true, true, undefined, true, {}));
+  assert.equal(available(empty.find((c) => c.id === BUILTIN.coloursUndo)!), false, 'no colour chosen, none to take back');
+  assert.equal(available(empty.find((c) => c.id === BUILTIN.coloursRedo)!), false);
 });
 test('rebind takes the other chords of a command away unless told to keep them', () => {
   const b = { 'Ctrl+A': commandId('x'), 'Ctrl+B': commandId('x'), 'Ctrl+C': commandId('y') } as Bindings;

@@ -98,6 +98,7 @@ export type SectionEntry = {
   readonly fragment: string;                     /* the section's HTML fragment, doc.html */
   readonly figuresJs: string;                    /* the section's figure module, figures.js */
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
+  readonly binds: readonly string[];             /* the types this page colours, from its meta; empty until the section is built, and empty means all */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };

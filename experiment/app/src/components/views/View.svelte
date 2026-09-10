@@ -23,6 +23,7 @@
   import Formulas from './Formulas.svelte';
   import Definitions from './Definitions.svelte';
   import Annotations from './Annotations.svelte';
+  import Colours from './Colours.svelte';
   let { item }: { item: string } = $props();
   /* The tab is the page; its key says which kind of view to draw and, when the
      reader has opened several of one kind, which of them this one is. */
@@ -100,6 +101,7 @@
   {:else if kind === 'concepts'}<ConceptMap />
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />
+  {:else if kind === 'colours'}<Colours />
   {:else}<Annotations />{/if}
 </div>
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf } from '../src/lib/types/ids';
+import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -63,7 +63,10 @@ test('a view that no sidebar holds is asked for there and opens as a tab', () =>
 test('the rail draws the two sidebar views first and the three group views below', () => {
   assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:annotations']);
   assert.deepEqual(GROUP_VIEW_KEYS, ['view:concepts', 'view:formulas', 'view:definitions']);
-  assert.equal(VIEW_KEYS.length, SIDEBAR_VIEW_KEYS.length + GROUP_VIEW_KEYS.length);
+  /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
+  assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:colours']);
+  assert.equal(GROUP_VIEW_KEYS.includes('view:colours'), false);
+  assert.equal(VIEW_KEYS.length, SIDEBAR_VIEW_KEYS.length + GROUP_VIEW_KEYS.length + PALETTE_ONLY_KINDS.length);
 });
 test('openInSplit opens the view beside what is being read, and finds it where it already is', () => {
   const l = openInSplit(defaultLayout(), map);

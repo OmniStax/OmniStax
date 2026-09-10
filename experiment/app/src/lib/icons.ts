@@ -8,6 +8,8 @@ export const ICON = {
   formulas: '<svg viewBox="0 0 24 24"><path d="M17 5H7l6 7-6 7h10"/></svg>',
   /* two dictionary entries: the term in a bold stroke, its definition in a longer thin one that runs on */
   definitions: '<svg viewBox="0 0 24 24"><path d="M4 5.5h5.5" stroke-width="2.6"/><path d="M12.5 5.5h7.5" stroke-width="1.2"/><path d="M12.5 9.5h5" stroke-width="1.2"/><path d="M4 15.5h5.5" stroke-width="2.6"/><path d="M12.5 15.5h7.5" stroke-width="1.2"/><path d="M12.5 19.5h5" stroke-width="1.2"/></svg>',
+  /* the colour menu: a painter's palette with four dabs of paint on it */
+  colours: '<svg viewBox="0 0 24 24"><path d="M12 3.2a8.8 8.8 0 1 0 0 17.6c1.3 0 2-.8 2-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7h2A5.3 5.3 0 0 0 22 9.7c0-3.8-4.5-6.5-10-6.5Z"/><circle cx="7.4" cy="10" r="1" fill="currentColor"/><circle cx="11" cy="7.2" r="1" fill="currentColor"/><circle cx="15.4" cy="8.2" r="1" fill="currentColor"/><circle cx="6.8" cy="14.4" r="1" fill="currentColor"/></svg>',
   annotations: '<svg viewBox="0 0 24 24"><path d="M13.5 3.5l5 5-8 8-5-5z"/><path d="M5.5 11.5 4 16.5l5-1.5"/><path d="M4 21h16"/></svg>',
   note: '<svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   about: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r="1" fill="currentColor"/></svg>',
@@ -30,4 +32,4 @@ export const ICON = {
   palette: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.2l2.4 1.9-2.4 1.9"/><path d="M12.4 14h4.1"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };

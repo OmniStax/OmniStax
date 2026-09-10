@@ -40,7 +40,7 @@ const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']
 let colorKeys: readonly string[] = [];
 let chapterKeys: readonly string[] = [];   /* types without global hues; a figure whose chapter leaves one unbound draws it in ink */
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
-/* The page's palette, plus the chapter-tier hues a figure's chapter binds: a figure draws with the palette of the article it sits in. */
+/* The page's palette, plus the hues a figure's own chapter and section bind. */
 let base: Record<string, Color> = {};
 const chapterPal = new Map<string, Record<string, Color>>();
 function readPal(): void {
@@ -48,8 +48,11 @@ function readPal(): void {
   base = { ...named, ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
   chapterPal.clear(); Object.assign(PAL, base);
 }
+/* A figure draws with the palette of the article it sits in, and a section may
+   colour a type differently from its chapter, so the scope is the nearest
+   element that names either — a section's root, which names both. */
 function usePal(fig: Element): void {
-  const scope = fig.closest<HTMLElement>('[data-chapter]'); const key = scope?.dataset.chapter ?? '';
+  const scope = fig.closest<HTMLElement>('[data-sec], [data-chapter]'); const key = `${scope?.dataset.chapter ?? ''}|${scope?.dataset.sec ?? ''}`;
   if (!scope || scope === document.documentElement) { Object.assign(PAL, base); return; }
   const cached = chapterPal.get(key);
   const over: Record<string, Color> = cached ?? Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k, scope) || (chapterKeys.includes(k) ? base.ink : '')]).filter(([, v]) => v));

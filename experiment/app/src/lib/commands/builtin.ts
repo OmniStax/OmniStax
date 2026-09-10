@@ -4,7 +4,7 @@
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ExerciseMode } from '../settings/store.svelte';
-import { VIEW_KINDS, isSidebarKind, type ViewKind } from '../types/ids';
+import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../types/ids';
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
@@ -40,6 +40,9 @@ export type BuiltinDeps = {
   /* One timeline of the reader's own edits: what the next step back or forward
      would undo or redo, and whether there is one at all. */
   readonly history: { undo(): void; redo(): void; readonly canUndo: boolean; readonly canRedo: boolean; readonly undoLabel: string; readonly redoLabel: string };
+  /* The colours the reader has chosen keep a timeline of their own, so that taking
+     back a colour never takes back a highlight. */
+  readonly colours: { undo(): void; redo(): void; readonly canUndo: boolean; readonly canRedo: boolean; readonly undoLabel: string; readonly redoLabel: string };
 };
 
 /* Where a view is asked for: a tab of the group in hand, the sidebar it calls
@@ -71,6 +74,7 @@ export const BUILTIN = {
   openExercises: commandId('open-exercises'),
   noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
   findTextbook: commandId('explorer-find-textbook'),
+  coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
 } as const;
 /* One id per view for opening it, and a second for the two that a sidebar holds. */
 export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${kind}`);
@@ -88,14 +92,17 @@ const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: 
 const scopeCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
   ({ id, label: `View scope: ${level}`, group: 'View', run: () => d.scope.atLevel(level), when: () => d.scope.activeView() !== null, detail: () => (d.scope.level() === level ? 'current' : '') });
 /* The two views a sidebar holds can be opened as a tab of their own or shown in
-   the sidebar; the other three are only ever tabs, and every asking opens another
-   page of one in a split beside what is being read. */
+   the sidebar; the ones the rail keeps open in a split beside what is being read,
+   and every asking opens another page of one; and the colour menu, which the
+   reader asks for by name and reads as a tab of the group they asked from. */
 const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap((kind): readonly Command[] => (isSidebarKind(kind)
   ? [
     { id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a group`, group: 'View', run: () => d.docs.openView(kind, 'group') },
     { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
   ]
-  : [{ id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a split`, group: 'View', run: () => d.docs.openView(kind, 'split') }]));
+  : isPaletteOnlyKind(kind)
+    ? [{ id: openViewId(kind), label: 'Open the colour menu', group: 'Appearance', run: () => d.docs.openView(kind, 'group') }]
+    : [{ id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a split`, group: 'View', run: () => d.docs.openView(kind, 'split') }]));
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
@@ -148,4 +155,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.noteNew, label: 'New note', group: 'App', run: () => d.notes.newNote() },
   { id: BUILTIN.noteToggleMode, label: 'Note: edit or read', group: 'App', run: () => d.notes.toggleMode(), when: () => d.notes.canToggle() },
   { id: BUILTIN.findTextbook, label: 'Find a textbook', group: 'App', run: () => d.ui.openFindTextbook() },
+  /* The colour timeline is the colour menu's own, so these two say so by name and
+     the detail says which colour would come back. */
+  { id: BUILTIN.coloursUndo, label: 'Colours: undo', group: 'Appearance', run: () => d.colours.undo(), when: () => d.colours.canUndo, detail: () => d.colours.undoLabel },
+  { id: BUILTIN.coloursRedo, label: 'Colours: redo', group: 'Appearance', run: () => d.colours.redo(), when: () => d.colours.canRedo, detail: () => d.colours.redoLabel },
 ];

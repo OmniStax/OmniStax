@@ -30,12 +30,18 @@ export const newViewInstance = (): ViewInstance => viewInstance(Math.random().to
 export type DocKind = 'text' | 'exercises';
 /* The companion views. Two of them may stand in the left sidebar as well as in
    a group — the explorer, which is the whole tree, and the annotations — and
-   the other three are only ever opened as tabs. */
-export const VIEW_KINDS = ['explorer', 'concepts', 'formulas', 'definitions', 'annotations'] as const;
+   the rest are only ever opened as tabs. */
+export const VIEW_KINDS = ['explorer', 'concepts', 'formulas', 'definitions', 'annotations', 'colours'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 export const SIDEBAR_KINDS = ['explorer', 'annotations'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];
 export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_KINDS as readonly string[]).includes(kind);
+/* The views the rail draws no button for, because they are asked for by name
+   rather than kept to hand: the colour menu is one page the reader opens from
+   the command palette when they want to change a colour. */
+export const PALETTE_ONLY_KINDS = ['colours'] as const;
+export type PaletteOnlyKind = (typeof PALETTE_ONLY_KINDS)[number];
+export const isPaletteOnlyKind = (kind: ViewKind): kind is PaletteOnlyKind => (PALETTE_ONLY_KINDS as readonly string[]).includes(kind);
 
 /* The standing pages of the site: the front of OmniStax and the front of the book. */
 export const PAGE_KINDS = ['about', 'book'] as const;

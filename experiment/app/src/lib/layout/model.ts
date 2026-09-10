@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, viewKindOf, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -37,6 +37,8 @@ const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : 
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
 /* What a sidebar will hold: the explorer and the annotations, and nothing else. */
 const sideKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isSidebarView(id); };
+/* A view the reader asks for by name in the command palette, which the rail leaves out. */
+const paletteKey = (k: ItemKey): boolean => { const kind = viewKindOf(k); return kind !== null && isPaletteOnlyKind(kind); };
 const emptyGroup = (): Group => ({ key: newGroupKey(), tabs: [], active: null });
 const leaf = (group: GroupKey): SplitNode => ({ type: 'leaf', group });
 type Slot = { readonly node: SplitNode; readonly weight: number };   /* one child of a split, with the share of the slot it takes */
@@ -352,6 +354,8 @@ export const instancesOf = (l: Layout, kind: ViewKind): readonly ItemKey[] => {
   const open = [...l.sides.left.items, ...l.sides.right.items, ...l.groups.flatMap((g) => g.tabs)];
   return [...new Set(open.filter((k) => viewKindOf(k) === kind))];
 };
-/* The rail draws these two first, as the sidebar's own, and the rest below a separator. */
+/* The rail draws these two first, as the sidebar's own, and the rest below a
+   separator. A view that is only ever opened from the command palette stands in
+   neither row: the rail has no button for it. */
 export const SIDEBAR_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter(sideKey);
-export const GROUP_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter((k) => !sideKey(k));
+export const GROUP_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter((k) => !sideKey(k) && !paletteKey(k));

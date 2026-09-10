@@ -7,7 +7,7 @@ import type { BookManifest, SectionEntry } from '../src/lib/content/schema';
 const section = (id: string, dir: string, built: boolean): SectionEntry => ({
   id, title: id, built, url: `/college-physics-2e/${dir}/${id}/`,
   fragment: `/college-physics-2e/${dir}/${id}/doc.html`, figuresJs: `/college-physics-2e/${dir}/${id}/figures.js`,
-  figures: [], exercises: [],
+  figures: [], binds: [], exercises: [],
 });
 const chapter = (id: string, dir: string, sections: readonly SectionEntry[]) =>
   ({ id, dir, title: id, colors: {}, concepts: '', formulas: '', sections });

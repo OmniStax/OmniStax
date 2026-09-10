@@ -105,6 +105,19 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   and the views only render it.
 - Book-specific values (colour set, macros, symbol table, exercise kind labels)
   come from `book.json` through the manifest. The shell has no physics in it.
+- The reader may choose those colours for themselves in the colour menu, a view
+  of kind `colours` opened from the command palette ("Open the colour menu") and
+  read as a tab like any other view. It wears the same scope bar, and the level
+  the bar stands at is the tier being edited: the colour a quantity has on a page
+  is that section's own setting, else its chapter's, else the book-wide one, else
+  the hue the book was built with. Nothing is copied downwards — a higher tier
+  reaches every place that has not chosen its own, a lower place's choice wins,
+  and clearing a setting hands the quantity back to the tier above. Every colour
+  is a pair, one for each ground, and the reader edits the one they are looking
+  at while the other is derived. The menu keeps an undo timeline of its own
+  (`Colours: undo`, `Colours: redo`, and Ctrl+Z inside the page), so taking back
+  a colour never takes back a highlight; `colours/model.ts` is pure and the store
+  writes one style element and redraws the figures.
 - Undo and redo are one timeline of the reader's own edits — highlights,
   annotations, the rows and documents of the explorer — and nothing else: the
   layout, what is open and where the reader has scrolled are not edits, and a

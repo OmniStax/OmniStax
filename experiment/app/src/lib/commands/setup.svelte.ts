@@ -16,6 +16,7 @@ import { noteModes } from '../notes/modes.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { createNote } from '../explorer/edits';
 import { history } from '../history/store.svelte';
+import { colours } from '../colours/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
 import { registry } from '../sections/registry.svelte';
@@ -134,6 +135,14 @@ export const installCommands = (): void => {
     get undoLabel(): string { return history.undoLabel; },
     get redoLabel(): string { return history.redoLabel; },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, history: historyDeps }), ...groupCommands()]);
+  /* The colour menu keeps a timeline of its own, read the same way and at the same moment. */
+  const coloursDeps = {
+    undo: () => colours.undo(), redo: () => colours.redo(),
+    get canUndo(): boolean { return colours.canUndo; },
+    get canRedo(): boolean { return colours.canRedo; },
+    get undoLabel(): string { return colours.undoLabel; },
+    get redoLabel(): string { return colours.redoLabel; },
+  };
+  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, history: historyDeps, colours: coloursDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

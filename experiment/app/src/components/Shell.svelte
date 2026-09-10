@@ -16,6 +16,7 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
+  import { colours } from '../lib/colours/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
@@ -75,6 +76,7 @@
     explorer.init();
     library.init(manifest.id, manifest.title);
     registry.init(manifest, fig, mountExercises, paintDoc);
+    colours.init(manifest);
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);
     focus.own = page;
     layoutStore.init(page, known);
