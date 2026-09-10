@@ -1,7 +1,7 @@
-# source PDFs are large; keep them local
-experiment/*.pdf
+# a book's source bundle is large; the publisher keeps it
+omnistax-content/*/source/
+omnistax-content/**/*.pdf
 # rendered page images are derived from the PDF
-experiment/*/pages/
-node_modules/
+omnistax-content/**/pages/
+node_modules
 __pycache__/
-experiment/osbooks-college-physics-bundle/

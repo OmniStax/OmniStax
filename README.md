@@ -10,6 +10,8 @@ OmniStax's contents are built from open-source textbook pdfs, primarily from Lib
 
 Then the OmniStax frontend compiles these processings into a standard curriculum experiences.
 
+The rules the agent follows through that pipeline, and the layout the work is kept in, are in `RULES.md`: each book is a folder under `omnistax-content/`, and `omnistax-web/` is the app that builds every book into a site.
+
 ## Education Literature OmniStax takes inspiration from
 Cognitive Load Theory:
 - Extraneous load: Time spent "searching" due to bad organization of the material, e.g., flipping pages because a diagram and its analysis paragraph is split, is time wasted. How we can reduce this load is my original inspiration for making OmniStax Interactive diagrams with inline formulas, color-coded variables, a floating panel to keep all relevant definitions help us cut down on this load.
