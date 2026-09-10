@@ -115,6 +115,12 @@ export const rebuild = (attempts: readonly Attempt[], prereqsOf: (id: string) =>
 /* The reader's one running number: what was earned, not what remains after
    decay, so it never goes down. */
 export const total = (m: Mastery): number => Object.values(m).reduce((n, r) => n + r.earned, 0);
+/* The same number book by book, which the records cannot give: they are keyed
+   by the concept alone, since mastering a concept in one book is mastering it
+   in all, while an attempt remembers the book it was answered in. A book the
+   reader has only answered wrongly still has a line, with nothing on it. */
+export const pointsByBook = (attempts: readonly Attempt[]): Readonly<Record<string, number>> =>
+  attempts.reduce<Record<string, number>>((out, a) => ({ ...out, [a.book]: (out[a.book] ?? 0) + Object.values(a.earned).reduce((n, v) => n + v, 0) }), {});
 
 /* ---------- the curriculum ---------- */
 

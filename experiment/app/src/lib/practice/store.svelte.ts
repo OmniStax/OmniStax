@@ -13,15 +13,15 @@ import type { ExerciseDTO, ChapterEntry } from '../content/schema';
 import { type SectionId, sectionId, conceptId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import {
-  DEFAULT_SETTINGS, dayOf, draw, pointsOf, rebuild, stateOf, summarize, togglePick,
+  DEFAULT_SETTINGS, dayOf, draw, pointsOf, rebuild, stateOf, summarize, togglePick, total,
   type Attempt, type Catalog, type Curriculum, type Drawn, type Mastery, type Pick, type PracticeSettings, type State,
 } from './model';
 
-export type Face = 'choose' | 'practise' | 'summary';
+export type Face = 'choose' | 'practise' | 'summary' | 'progress';
 export type Session = { readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why'] }[]; readonly at: number /* index of the current exercise */; readonly answered: readonly boolean[] /* per drawn: recorded */; readonly earned: number; readonly started: number; readonly before: Mastery /* snapshot at start, for the summary */ };
 
 const KEY = 'omnistax-practice-v1';
-const FACES: readonly Face[] = ['choose', 'practise', 'summary'];
+const FACES: readonly Face[] = ['choose', 'practise', 'summary', 'progress'];
 const WHYS: readonly Drawn['why'][] = ['review', 'frontier', 'more'];
 
 const obj = (raw: unknown): Record<string, unknown> | null => (typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null);
@@ -107,6 +107,16 @@ class Practice {
   }
 
   stateOf(id: string, now = Date.now()): State { return stateOf(this.mastery[id], now, this.settings); }
+  /* The concepts waiting for review. Read off the records alone, which are
+     keyed by the concept and know nothing of the library, so the count is true
+     before a single chapter has loaded — which is what the rail needs. */
+  get due(): readonly string[] {
+    const now = Date.now();
+    return Object.keys(this.mastery).filter((id) => stateOf(this.mastery[id], now, this.settings) === 'due');
+  }
+  /* The reader's one running number, across every book: what was earned, not
+     what is left after the decay, so it never goes down. */
+  get lifetime(): number { return total(this.mastery); }
 
   /* An answer, written down once. A second right answer to the same exercise on
      the same day earns nothing — otherwise a card could be checked over and over
@@ -153,6 +163,9 @@ class Practice {
   changed(now = Date.now()): ReturnType<typeof summarize> { const s = this.session; return s ? summarize(s.before, this.mastery, now, this.settings) : []; }
   /* The curriculum opened beside a session, which is not the end of it. */
   choose(): void { this.face = 'choose'; this.save(); }
+  /* The standing of every concept, which is a face rather than a session: it
+     is there to be read whether or not anything is running. */
+  progress(): void { this.face = 'progress'; this.save(); }
   resume(): void { if (this.session) { this.face = 'practise'; this.save(); } }
   discard(): void { this.session = null; this.face = 'choose'; this.save(); }
   wipe(): void { this.attempts = []; this.save(); }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, pointsOf, rebuild, stateOf, summarize, togglePick, total,
+  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, pointsByBook, pointsOf, rebuild, stateOf, summarize, togglePick, total,
   type Attempt, type Catalog, type ConceptRecord, type Curriculum, type Mastery, type PracticeSettings,
 } from '../src/lib/practice/model';
 import type { ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
@@ -152,6 +152,15 @@ test('the records are a fold over the attempts, whatever order they arrive in, a
   assert.equal(total(m), 15);
   assert.equal(total(rebuild([...list].reverse(), prereqsOf, S)), 15);
   assert.equal(rebuild([], prereqsOf, S)['hookes-law'], undefined);
+});
+test('the points are counted book by book, and a book answered only wrongly still has a line', () => {
+  const list: readonly Attempt[] = [
+    attempt('h1', D1, true, { 'hookes-law': 3 }),
+    attempt('h2', D2, true, { 'hookes-law': 2, displacement: 1 }),
+    { ...attempt('u1', D2, false, { shm: 4 }), book: 'up' },
+  ];
+  assert.deepEqual(pointsByBook(list), { cp: 6, up: 0 });
+  assert.deepEqual(pointsByBook([]), {});
 });
 
 /* ---------- the four states ---------- */

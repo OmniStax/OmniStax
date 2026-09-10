@@ -1,7 +1,10 @@
 <script lang="ts">
   /* Practice, as a curriculum rather than as a page of problems. The view has
-     three faces and the store remembers which one is showing, so closing the tab
-     and opening it again puts the reader back where they were.
+     four faces and the store remembers which one is showing, so closing the tab
+     and opening it again puts the reader back where they were. Two quiet tabs
+     divide them: three faces are the practising itself, and the fourth is the
+     standing the practising builds up, which is a step to the side rather than
+     a step on — the Practise tab puts the reader back on the face they left.
 
      On the first face the reader says what they want to practise: rows of the
      book — the book itself, its chapters, its sections — each a checkbox that
@@ -16,15 +19,19 @@
      answer into the store by itself; this face only watches for it, so that Next
      arrives when the problem has been answered and not before. The third face is
      the reckoning: what was earned, which concepts moved, and when the ones just
-     practised come round again. */
+     practised come round again. The fourth is the long view of the same thing:
+     every concept the reader has chosen or ever answered, in the order they need
+     attention, with what each book has earned them at the foot. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
-  import { sectionId, conceptId } from '../../lib/types/ids';
+  import { sectionId, conceptId, type SpanId } from '../../lib/types/ids';
   import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
   import { math } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
-  import { practice } from '../../lib/practice/store.svelte';
-  import { conceptsOf, decayed, dueAt, samePick, total, type Pick, type State } from '../../lib/practice/model';
+  import { pin, spansOf } from '../../lib/sections/concepts.svelte';
+  import { goSpan } from '../../lib/sections/nav.svelte';
+  import { practice, type Face } from '../../lib/practice/store.svelte';
+  import { DAY, conceptsOf, decayed, dueAt, pointsByBook, samePick, type Pick, type State } from '../../lib/practice/model';
 
   /* Phase one is the book the reader has open; everything the store keeps is
      keyed by book already, so nothing here has to change when the rest of the
@@ -172,13 +179,87 @@
       : done === 0 ? `You skipped ${drawn.length === 1 ? 'it' : 'all of them'}.`
         : `You answered ${done} of the ${drawn.length} problems and skipped ${skipped === 1 ? 'the other one' : `the other ${skipped}`}.`,
   );
-  const lifetime = $derived(total(practice.mastery));
+  const lifetimeLine = $derived(practice.lifetime === 1 ? 'You have earned one point in all.' : `You have earned ${practice.lifetime} points in all.`);
+
+  /* ---------- the two tabs, and what the Practise one goes back to ---------- */
+
+  /* Progress is read beside the practising rather than after it, so stepping
+     over to it remembers the face it was read from and stepping back returns
+     there; with nothing to return to, the choice. */
+  let back = $state<Face | null>(null);
+  const toProgress = (): void => { if (practice.face !== 'progress') back = practice.face; practice.progress(); };
+  const toPractise = (): void => {
+    const to = back ?? (live ? 'practise' : 'choose');
+    back = null;
+    if (to === 'summary' && session) practice.end();
+    else if (to === 'practise' && live) practice.resume();
+    else practice.choose();
+  };
+
+  /* ---------- progress ---------- */
+
+  /* The curriculum, or everything the reader has ever answered: a record is
+     kept by the concept alone, so the wider list reaches into books that are
+     not open, and names by id whatever the registry cannot name. */
+  let scope = $state<'curriculum' | 'everything'>('curriculum');
+  const STATES: readonly State[] = ['due', 'practised', 'mastered', 'untouched'];
+  type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly at: number | null; readonly meta: string; readonly intro: SpanId | undefined };
+
+  const ago = (at: number, now: number): string => {
+    const days = Math.round((now - at) / DAY);
+    return days <= 0 ? 'last practised today' : days === 1 ? 'last practised yesterday' : `last practised ${days} days ago`;
+  };
+  const streak = (n: number): string => (n <= 0 ? '' : n === 1 ? 'one day in a row' : `${n} days in a row`);
+  const rows = $derived.by((): readonly Row[] => {
+    if (practice.face !== 'progress') return [];
+    const now = Date.now();
+    const mine = [...conceptsOf(practice.curriculum, cat)];
+    const ids = scope === 'curriculum' ? mine : [...new Set([...Object.keys(practice.mastery), ...mine])];
+    return ids.map((id): Row => {
+      const r = practice.mastery[id], c = registry.concept(id), st = practice.stateOf(id, now);
+      const at = r ? dueAt(r, practice.settings) : null;
+      return {
+        id, name: c?.name ?? id, kind: c?.kind ?? '', state: st, bar: bar(id), at, intro: spansOf(conceptId(id)).intro[0],
+        meta: [streak(r?.days ?? 0), r && r.earned > 0 ? ago(r.lastAt, now) : '', at !== null && (st === 'mastered' || st === 'due') ? `due ${when(at, now)}` : ''].filter(Boolean).join(' · '),
+      };
+    });
+  });
+  /* Each group in the order the reader would work through it: the most overdue
+     first, then the concept nearest to mastery, then the mastered one that
+     comes round soonest, and the untouched by name. */
+  const byName = (a: Row, b: Row): number => plain(a.name).trim().localeCompare(plain(b.name).trim()) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const ORDER: Readonly<Record<State, (a: Row, b: Row) => number>> = {
+    due: (a, b) => a.bar - b.bar || byName(a, b),
+    practised: (a, b) => b.bar - a.bar || byName(a, b),
+    mastered: (a, b) => (a.at ?? Infinity) - (b.at ?? Infinity) || byName(a, b),
+    untouched: byName,
+  };
+  /* Untouched is a fact about the curriculum: outside it, a concept nobody has
+     answered is simply one of the thousands the library holds. */
+  const groups = $derived(
+    STATES.filter((st) => scope === 'curriculum' || st !== 'untouched')
+      .flatMap((st) => { const items = rows.filter((r) => r.state === st).sort(ORDER[st]); return items.length ? [{ state: st, items }] : []; }),
+  );
+  const dueLine = $derived(practice.due.length === 0 ? '' : practice.due.length === 1 ? 'One concept is due now.' : `${practice.due.length} concepts are due now.`);
+  /* Points are earned in a book even though mastery is not, so this is summed
+     over the attempts; a book of the library the reader has not opened here is
+     named by its id until its manifest is loaded. */
+  const books = $derived.by(() => Object.entries(pointsByBook(practice.attempts))
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .map(([id, n]) => ({ id, line: `${id === registry.manifest.id ? registry.manifest.title || id : id} · ${n === 1 ? 'one point' : `${n} points`}` })));
+  const rowTitle = (r: Row): string => (r.intro ? 'Pin this concept on the map and go to where the book introduces it.' : 'Pin this concept on the map; the book has no page that introduces it yet.');
+  const open = (r: Row): void => { const id = conceptId(r.id); const was = pin.pinned === id; pin.toggle(id); if (!was && r.intro) goSpan(r.intro); };
 </script>
 
 {#snippet stateChip(id: string)}
   {@const s = practice.stateOf(id)}
   {#if s !== 'untouched'}<span class="chip st-{s}">{STATE_WORD[s]}</span>{/if}
 {/snippet}
+
+<div class="faces">
+  <button type="button" class="tab" class:on={practice.face !== 'progress'} aria-current={practice.face !== 'progress' ? 'true' : undefined} onclick={toPractise}>Practise</button>
+  <button type="button" class="tab" class:on={practice.face === 'progress'} aria-current={practice.face === 'progress' ? 'true' : undefined} onclick={toProgress}>Progress</button>
+</div>
 
 {#if practice.face === 'choose'}
   <div class="choose">
@@ -319,12 +400,55 @@
       <button type="button" class="btn go" onclick={begin}>Another round</button>
       <button type="button" class="btn" onclick={() => { practice.discard(); practice.choose(); }}>Change what to practise</button>
     </div>
-    <p class="quiet total">You have earned {lifetime === 1 ? 'one point' : `${lifetime} points`} in all.</p>
+    <p class="quiet total">{lifetimeLine}</p>
+  </div>
+
+{:else if practice.face === 'progress'}
+  <div class="progress">
+    <div class="presets">
+      <div class="seg" role="radiogroup" aria-label="Which concepts to show">
+        <button type="button" class:on={scope === 'curriculum'} role="radio" aria-checked={scope === 'curriculum'} onclick={() => (scope = 'curriculum')}>In my curriculum</button>
+        <button type="button" class:on={scope === 'everything'} role="radio" aria-checked={scope === 'everything'} onclick={() => (scope = 'everything')}>Everything practised</button>
+      </div>
+    </div>
+    <p class="sum">{lifetimeLine}{dueLine ? ` ${dueLine}` : ''}</p>
+    {#if practice.attempts.length === 0}
+      <p class="quiet">You have not answered anything yet; choose a section or a concept, practise it, and every point you earn is counted here.</p>
+      <div class="acts"><button type="button" class="btn go" onclick={() => practice.choose()}>Choose what to practise</button></div>
+    {:else}
+      {#if groups.length === 0}
+        <p class="quiet">{scope === 'curriculum' ? 'You have not chosen anything to practise yet, so there is nothing here to report on.' : 'Nothing you have answered has a concept attached to it yet.'}</p>
+      {/if}
+      {#each groups as g (g.state)}
+        <div class="eyebrow">{STATE_WORD[g.state]}</div>
+        {#each g.items as r (r.id)}
+          <button type="button" class="row prow" title={rowTitle(r)} onclick={() => open(r)}>
+            <i class="dot k-{r.kind}" aria-hidden="true"></i>
+            <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
+            <span class="track" title={barTitle(r.id, r.state)}><i class="fill st-{r.state}" style="width:{Math.round(r.bar * 100)}%"></i></span>
+            <span class="chip st-{r.state}">{STATE_WORD[r.state]}</span>
+            <span class="meta">{r.meta}</span>
+          </button>
+        {/each}
+      {/each}
+      {#if books.length}
+        <div class="eyebrow">Book by book</div>
+        <ul class="books">
+          {#each books as b (b.id)}<li>{b.line}</li>{/each}
+        </ul>
+      {/if}
+    {/if}
   </div>
 {/if}
 
 <style>
-  .choose,.practise,.summary{font-family:var(--sans);font-size:0.82rem;color:var(--ink);container-type:inline-size}
+  .choose,.practise,.summary,.progress{font-family:var(--sans);font-size:0.82rem;color:var(--ink);container-type:inline-size}
+  /* the two tabs over the faces: the eyebrow's small capitals, and the face showing underlined in the accent */
+  .faces{display:flex;gap:14px;margin:0 0 10px;border-bottom:1px solid var(--rule)}
+  .tab{font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:2px 0 5px;margin-bottom:-1px;cursor:pointer}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .quiet{color:var(--muted);margin:6px 0}
   .eyebrow{margin:10px 0 4px}
   .eyebrow.sec{margin:10px 0 2px;opacity:.85}
@@ -352,7 +476,7 @@
   .lvl-chapter{padding-left:16px}
   .lvl-section{padding-left:32px;color:var(--muted)}
   .lvl-section .lab{color:var(--ink)}
-  .row.concept .lab :global(.katex){font-size:0.95em}
+  .row.concept .lab :global(.katex),.row.prow .lab :global(.katex){font-size:0.95em}
   /* the kind's hue as a dot beside the name: the same three the concept map gives its shapes */
   .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
   .dot.k-idea{background:var(--cm-idea)}
@@ -374,21 +498,38 @@
   .bars{display:flex;flex-direction:column;gap:3px;margin:8px 0}
   .bars .one{display:flex;align-items:center;gap:8px;min-width:0}
   .bars .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
-  .bars .track{flex:none;width:84px;height:5px;border-radius:3px;background:var(--soft2);overflow:hidden}
-  .bars .fill{display:block;height:100%;background:var(--muted)}
-  .bars .fill.st-practised{background:var(--accent)}
-  .bars .fill.st-mastered{background:var(--ok)}
-  .bars .fill.st-due{background:var(--warm)}
+  .track{flex:none;width:84px;height:5px;border-radius:3px;background:var(--soft2);overflow:hidden}
+  .fill{display:block;height:100%;background:var(--muted)}
+  .fill.st-practised{background:var(--accent)}
+  .fill.st-mastered{background:var(--ok)}
+  .fill.st-due{background:var(--warm)}
   .card-root{margin:6px 0 2px}
   .moved,.due{list-style:none;margin:0;padding:0}
   .moved li,.due li{padding:2px 0;display:flex;gap:8px;align-items:baseline;min-width:0}
   .due .q{color:var(--muted);margin-left:auto;flex:none}
   .total{margin-top:12px;padding-top:8px;border-top:1px solid var(--rule)}
+  /* the segmented pair the settings use, for a choice of two that is not a checkbox */
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+  .seg button{font:inherit;font-size:0.78rem;padding:4px 12px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
+  .seg button+button{border-left:1px solid var(--rule)}
+  .seg button.on{background:var(--soft);color:var(--ink);font-weight:600}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  /* one concept's standing, on a row that is a button: the bar, the word for the state, and the small print about the streak, the last answer and the next review */
+  .row.prow{width:100%;box-sizing:border-box;font:inherit;font-size:inherit;text-align:left;background:none;border:0;color:inherit}
+  .row.prow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .row.prow .meta{flex:none;color:var(--muted);font-size:0.7rem;font-variant-numeric:tabular-nums}
+  @container (max-width:520px){ .row.prow{flex-wrap:wrap} .row.prow .lab{flex:1 1 70%;white-space:normal} .row.prow .meta{display:none} }   /* in a narrow box the name takes a line of its own and the bar drops under it */
+  .books{list-style:none;margin:0;padding:0;color:var(--muted)}
+  .books li{padding:2px 0;font-variant-numeric:tabular-nums}
   /* a page has room for the reading size the rest of the views take in one */
-  :global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .summary{font-size:0.95rem;max-width:900px;margin:0 auto}
+  :global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .summary,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto}
+  :global(.view-pane) .faces{max-width:900px;margin:0 auto 12px}
+  :global(.view-pane) .tab{font-size:0.8rem}
+  :global(.view-pane) .seg button{font-size:0.85rem}
+  :global(.view-pane) .row.prow .meta{font-size:0.78rem}
   :global(.view-pane) .btn{font-size:0.85rem;padding:5px 12px}
   :global(.view-pane) .find{font-size:0.85rem}
   :global(.view-pane) .row .cnt{font-size:0.78rem}
   :global(.view-pane) .chip{font-size:0.7rem}
-  :global(.view-pane) .bars .track{width:120px;height:6px}
+  :global(.view-pane) .track{width:120px;height:6px}
 </style>

@@ -16,6 +16,7 @@
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
+  import { practice } from '../lib/practice/store.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const kindOf = (k: string): ViewKind => viewKindOf(k) as ViewKind;   /* every key the rail draws is a view's */
@@ -49,8 +50,10 @@
   <div class="section">
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
-      <button type="button" class:on={open} title="{VIEW_TITLE[kindOf(k)]} (opens a page of its own in a split)" aria-label={VIEW_TITLE[kindOf(k)]}
-        use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html ICON[kindOf(k) as keyof typeof ICON]}</button>
+      {@const due = kindOf(k) === 'exercises' ? practice.due.length : 0}
+      {@const owed = due ? ` · ${due} concept${due === 1 ? '' : 's'} due` : ''}
+      <button type="button" class:on={open} title="{VIEW_TITLE[kindOf(k)]} (opens a page of its own in a split){owed}" aria-label="{VIEW_TITLE[kindOf(k)]}{owed}"
+        use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html ICON[kindOf(k) as keyof typeof ICON]}{#if due}<span class="badge">{due > 9 ? '9+' : due}</span>{/if}</button>
     {/each}
   </div>
   <div class="spacer"></div>
@@ -74,6 +77,8 @@
   button.speaking{color:var(--accent)}
   /* the one marker a button wears: the bar down its left while the view stands open somewhere */
   button.on::before{content:"";position:absolute;left:-4px;top:8px;bottom:8px;width:2px;background:var(--ink);border-radius:1px}
+  /* how many concepts stand due, in the corner of the exercises button; the title says it in words */
+  .badge{position:absolute;top:2px;right:2px;min-width:14px;height:14px;padding:0 3px;border-radius:7px;background:var(--warm);color:var(--panel);font-size:0.6rem;font-weight:700;line-height:1;display:grid;place-items:center;pointer-events:none}
   button :global(svg){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   button[draggable="true"]{cursor:grab}
