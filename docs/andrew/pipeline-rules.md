@@ -220,12 +220,15 @@ generated. Attribution and omissions go in the footer, and the AI mark on
 a suggested approach is the only in-place flag. The footer is generated
 by the app from the book's metadata (title, authors, publisher, copyright
 holder, licence, the section's page at the publisher); the pipeline writes
-only the section's `notes`, one plain sentence saying what was left out.
-Every article carries the footer because a section is what gets linked
-to, and the licence asks for credit wherever the work is shared. The
-footer is the whole of the attribution: it names the adaptation and the
-licence the adapted page is shared under (the same as the source, when
-the source is ShareAlike).
+only the section's `notes`, one plain sentence saying what was left out,
+and its `ai`, the name of the model that transformed the text and of the
+model that built the simulations. Every article carries the footer
+because a section is what gets linked to, and the licence asks for credit
+wherever the work is shared. The footer is the whole of the attribution:
+it names the adaptation, the licence the adapted page is shared under
+(the same as the source, when the source is ShareAlike), and the AI that
+did each job, so a reader always knows which model wrote the page's
+words and built its figures.
 
 Everything OmniStax writes (leads, demo captions, readouts, suggested
 approaches, concept "why" lines) is written in the book's own voice:

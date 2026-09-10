@@ -16,5 +16,9 @@
   "time"
  ],
  "built": "2026-09-07",
+ "ai": {
+  "text": "Claude Fable 5.1",
+  "figures": "Claude Fable 5.1"
+ },
  "notes": ""
 }

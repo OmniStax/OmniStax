@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sectionSourceUrl, attributionOf, footerHtml, citation, nameList } from '../src/lib/content/attribution';
+import { sectionSourceUrl, attributionOf, footerHtml, citation, nameList, aiSentence } from '../src/lib/content/attribution';
 import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 
 const book: BookDTO = {
@@ -29,6 +29,13 @@ test('footer carries author, publisher, copyright, licence, access line and note
   assert.match(html, /Access for free at <a href="https:\/\/openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement">openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement<\/a>\./);
   assert.match(html, /<p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
 });
+test('footer names the AI by role, folded when one model did both', () => {
+  const both = footerHtml(attributionOf(book, chapter, { id: '2.1', notes: 'Problems 2 and 4 are left out.', ai: { text: 'Claude Fable 5.1', figures: 'Claude Fable 5.1' } }));
+  assert.match(both, /<\/p><p>The text was transformed and the simulations were built by Claude Fable 5.1.<\/p><p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
+  assert.equal(aiSentence({ text: 'Claude Fable 5.1', figures: 'Claude Opus 5' }), 'The text was transformed by Claude Fable 5.1 and the simulations were built by Claude Opus 5.');
+  assert.equal(aiSentence(undefined), '');
+  assert.doesNotMatch(footerHtml(attributionOf(book, chapter, { id: '2.1', notes: '' })), /transformed/);
+});
 test('footer without optional fields still reads', () => {
   const html = footerHtml(attributionOf({ ...book, authors: [], sourceUrl: undefined, copyright: undefined, licenseUrl: undefined, openstax: undefined }, chapter, { id: '2.1', notes: '' }));
   assert.match(html, /<cite>College Physics 2e<\/cite> \(OpenStax\), CC BY-NC-SA 4.0,/);
@@ -42,4 +49,6 @@ test('footer escapes content fields', () => {
 test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '' })),
     'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
+  assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '', ai: { text: 'Claude Fable 5.1', figures: 'Claude Fable 5.1' } })),
+    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement. The text was transformed and the simulations were built by Claude Fable 5.1.');
 });

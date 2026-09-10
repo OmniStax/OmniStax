@@ -19,5 +19,9 @@
   "velocity"
  ],
  "built": "2026-09-07",
+ "ai": {
+  "text": "Claude Fable 5.1",
+  "figures": "Claude Fable 5.1"
+ },
  "notes": "AP questions 1 and 3 and problems 2, 4, 5, 7 and 8 have no answer in the book’s key and are left out, along with the two graphs of the AP questions and the photograph of the child’s jumper beside problem 8. AP question 4 asks for the energy of an oscillator at its centre, which section 16.5 introduces, and appears there instead."
 }

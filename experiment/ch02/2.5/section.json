@@ -19,5 +19,9 @@
   "velocity"
  ],
  "built": "2026-09-05",
+ "ai": {
+  "text": "Claude Fable 5.1",
+  "figures": "Claude Fable 5.1"
+ },
  "notes": ""
 }

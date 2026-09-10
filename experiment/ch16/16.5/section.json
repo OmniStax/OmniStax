@@ -17,5 +17,9 @@
   "velocity"
  ],
  "built": "2026-09-07",
+ "ai": {
+  "text": "Claude Fable 5.1",
+  "figures": "Claude Fable 5.1"
+ },
  "notes": "AP question 4 of section 16.3 asks for the energy of an oscillator at its centre, which this section introduces, and appears here."
 }

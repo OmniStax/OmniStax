@@ -19,5 +19,9 @@
   "velocity"
  ],
  "built": "2026-09-07",
+ "ai": {
+  "text": "Claude Fable 5.1",
+  "figures": "Claude Fable 5.1"
+ },
  "notes": "AP questions 2 and 4 and problems 2, 4 and 6 have no answer in the book’s key and are left out. AP question 1 asks about amplitude and period, which section 16.3 introduces, and appears there instead. The photograph of a car beside Example 16.1 is left out."
 }

@@ -33,11 +33,16 @@ export const zChapter = z.object({ id: z.string(), dir: z.string(), title: z.str
   .transform((c) => ({ id: c.id, dir: c.dir, title: c.title, sections: c.sections, colors: c.colors }));   /* colors: chapter-tier type → pool hue id */
 export type ChapterDTO = z.infer<typeof zChapter>;
 
+/* The AI a section was built with, by role: the model that transformed the text, and the model that built the simulations. */
+export const zAiCredit = z.object({ text: z.string(), figures: z.string() });
+export type AiCreditDTO = z.infer<typeof zAiCredit>;
+
 export const zSectionMeta = z.object({
   id: z.string(), module: z.string().optional(), chapter: z.string(), title: z.string(), short: z.string().optional(),
   lead: z.string().default(''), objectives: z.array(z.string()).default([]), summary_html: z.string().default(''), notes: z.string().default(''),
   binds: z.array(z.string()).default([]),   /* the types this page colours; the rest render in ink on it. Empty means all. */
-}).transform((s) => ({ id: s.id, chapter: s.chapter, title: s.title, short: s.short ?? s.title, lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, binds: s.binds }));
+  ai: zAiCredit.optional(),                 /* which model transformed the text and which built the simulations; named in the footer */
+}).transform((s) => ({ id: s.id, chapter: s.chapter, title: s.title, short: s.short ?? s.title, lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, binds: s.binds, ai: s.ai }));
 export type SectionMetaDTO = z.infer<typeof zSectionMeta>;
 
 /* Answers are an ADT: each type carries its own fields and its own checker. */
