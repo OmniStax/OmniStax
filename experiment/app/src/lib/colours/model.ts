@@ -89,6 +89,58 @@ export const hueFrom = (picked: Hex, dark: boolean, keep: Hue | null): Hue => {
 };
 const normHue = (h: Hue): Hue => ({ light: normHex(h.light), dark: normHex(h.dark) });
 
+/* ---------- hues worked out rather than published ---------- */
+
+/* Two of the palettes are not lists at all but generators, so that a level with
+   any number of quantities still gets exactly that many colours. They belong
+   here with the rest of the colour arithmetic, and like everything here they are
+   pure: the same count always gives the same hues, in the same order. */
+
+const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
+const byte = (x: number): string => Math.round(255 * clamp01(x)).toString(16).padStart(2, '0');
+const rgbHex = (r: number, g: number, b: number): Hex => normHex('#' + byte(r) + byte(g) + byte(b));
+
+/* Linear light to the sRGB a screen is asked for. */
+const encodeSrgb = (x: number): number => (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
+
+/* n hues evenly spaced round the OKLCH hue circle, all at one lightness and one
+   chroma, so that they differ in hue alone and none of them shouts over the
+   rest. The ring starts at 25°, which puts a warm colour first, the way the
+   published sets do. The conversion is Björn Ottosson's OKLab, and a hue that
+   falls outside what a screen can show is simply clipped, since at this
+   lightness and chroma the ring is very nearly in gamut all the way round. */
+export const oklchRing = (n: number, l = 0.55, c = 0.14): Hex[] =>
+  n < 1 ? [] : Array.from({ length: n }, (_, i) => {
+    const h = ((25 + (360 * i) / n) * Math.PI) / 180;
+    const a = c * Math.cos(h), b = c * Math.sin(h);
+    const lc = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const mc = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const sc = (l - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+    return rgbHex(
+      encodeSrgb(clamp01(4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc)),
+      encodeSrgb(clamp01(-1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc)),
+      encodeSrgb(clamp01(-0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc)),
+    );
+  });
+
+/* D3's interpolateRainbow, sampled n times. The samples are taken at i / n
+   rather than i / (n − 1) because the rainbow is cyclic: were the last sample
+   taken at 1 it would be the same colour as the first. The curve is a cubehelix
+   whose saturation and lightness fall away from the middle, and the cubehelix to
+   RGB step is the one d3-color writes. */
+export const d3Rainbow = (n: number): Hex[] =>
+  n < 1 ? [] : Array.from({ length: n }, (_, i) => {
+    const t = i / n, ts = Math.abs(t - 0.5);
+    const s = 1.5 - 1.5 * ts, l = 0.8 - 0.9 * ts;
+    const h = ((360 * t - 100 + 120) * Math.PI) / 180;
+    const a = s * l * (1 - l), cos = Math.cos(h), sin = Math.sin(h);
+    return rgbHex(
+      l + a * (-0.14861 * cos + 1.78277 * sin),
+      l + a * (-0.29227 * cos - 0.90649 * sin),
+      l + a * (1.97294 * cos),
+    );
+  });
+
 /* ---------- the value ---------- */
 
 const isEmptyRecord = (r: Readonly<Record<string, unknown>>): boolean => Object.keys(r).length === 0;

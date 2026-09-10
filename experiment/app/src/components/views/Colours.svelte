@@ -105,7 +105,13 @@
   });
 
   const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
-  const enough = (p: Palette): boolean => p.hues.length >= types.length;
+  /* Only the palettes that can dress this level, each already cut to the number
+     of quantities here, so that the strip the reader sees is the very set the
+     button would apply and a palette that cannot answer is simply not offered. */
+  const shownPalettes = $derived(PALETTES.flatMap((p) => {
+    const hues = p.huesFor(types.length);
+    return hues ? [{ palette: p, hues }] : [];
+  }));
   const use = (p: Palette): void => { colours.usePalette(place, types, p); };
 </script>
 
@@ -178,16 +184,18 @@
     {/each}
   </ul>
 
-  <div class="eyebrow">Palettes</div>
+  <div class="eyebrow">Recommended palettes</div>
+  {#if shownPalettes.length === 0}
+    <p class="note">There is nothing to colour at this level.</p>
+  {/if}
   <ul class="pals">
-    {#each PALETTES as p (p.id)}
-      {@const fits = enough(p)}
+    {#each shownPalettes as { palette: p, hues } (p.id)}
       <li>
         <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" disabled={!fits} title={fits ? `Give the quantities of this level the colours of ${p.name}.` : 'This palette has too few colours for the quantities of this level.'} onclick={() => use(p)}>Use</button>
+          <button type="button" title={`Give the quantities of this level the colours of ${p.name}.`} onclick={() => use(p)}>Use</button>
         </div>
-        <div class="strip pstrip" aria-hidden="true">{#each p.hues as h, i (i)}<i style:background-color={h}></i>{/each}</div>
-        <p class="note">{fits ? p.note : `Only ${p.hues.length} colours for ${types.length} quantities.`}</p>
+        <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={h}></i>{/each}</div>
+        <p class="note">{p.note}</p>
       </li>
     {/each}
   </ul>
@@ -241,8 +249,7 @@
   .phead{display:flex;align-items:center;gap:8px;margin-bottom:5px}
   .pname{flex:1;font-weight:600}
   .phead button{font:inherit;font-size:0.76rem;padding:2px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
-  .phead button:hover:not(:disabled){background:var(--soft)}
-  .phead button:disabled{opacity:.45;cursor:default}
+  .phead button:hover{background:var(--soft)}
   .phead button:focus-visible{outline:2px solid var(--accent)}
   .pstrip{margin-bottom:5px}
   .note{margin:0;color:var(--muted);font-size:0.76rem;line-height:1.4}

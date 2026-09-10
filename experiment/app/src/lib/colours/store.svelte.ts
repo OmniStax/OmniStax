@@ -68,11 +68,13 @@ class Colours {
   clearPlace(place: Place): void {
     this.record(`every colour of ${whereOf(place)} cleared`, clearPlace(this.overrides, place));
   }
-  /* A palette dressed onto the types of a place in one step. A palette with fewer
-     colours than there are quantities cannot say what the rest would be, and the
-     page says so rather than colouring some of them. */
+  /* A palette dressed onto the types of a place in one step. The palette is asked
+     for exactly as many hues as the place has quantities; one that cannot dress
+     that many answers nothing, and the page does not offer it in the first
+     place, so this refuses rather than colouring some of them. */
   usePalette(place: Place, types: readonly TypeKey[], palette: Palette): boolean {
-    const next = applyPalette(this.overrides, place, types, palette.hues);
+    const hues = palette.huesFor(types.length);
+    const next = hues ? applyPalette(this.overrides, place, types, hues) : null;
     if (!next) return false;
     this.record(`the palette ${palette.name} ${whereFor(place)}`, next);
     return true;

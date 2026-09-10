@@ -115,7 +115,9 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   reaches every place that has not chosen its own, a lower place's choice wins,
   and clearing a setting hands the quantity back to the tier above. Every colour
   is a pair, one for each ground, and the reader edits the one they are looking
-  at while the other is derived. The menu keeps an undo timeline of its own
+  at while the other is derived. The recommended palettes are cut to the number
+  of quantities the level shows, and the two generated ones fit any number. The
+  menu keeps an undo timeline of its own
   (`Colours: undo`, `Colours: redo`, and Ctrl+Z inside the page), so taking back
   a colour never takes back a highlight; `colours/model.ts` is pure and the store
   writes one style element and redraws the figures.

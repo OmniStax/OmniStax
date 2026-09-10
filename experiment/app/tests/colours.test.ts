@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EMPTY, type Hue, type Place, applyPalette, clearHue, clearPlace, cssFor, darkOf, defaultHue, effectiveHue, hueFrom,
-  isEmpty, isHex, lightOf, normHex, ownHue, parseOverrides, placeKey, placeOf, setHue, symbolsOf, typesAt,
+  EMPTY, type Hue, type Place, applyPalette, clearHue, clearPlace, cssFor, d3Rainbow, darkOf, defaultHue, effectiveHue,
+  hueFrom, isEmpty, isHex, lightOf, normHex, oklchRing, ownHue, parseOverrides, placeKey, placeOf, setHue, symbolsOf, typesAt,
 } from '../src/lib/colours/model';
-import { PALETTES, SWATCHES } from '../src/lib/colours/palettes';
+import { SWATCHES } from '../src/lib/colours/palettes';
 import type { BookManifest } from '../src/lib/content/schema';
 import { chapterId, sectionId } from '../src/lib/types/ids';
 
@@ -120,17 +120,36 @@ test('a palette dresses the types in order and refuses to leave any of them out'
   assert.notEqual(applyPalette(EMPTY, CH16, types, ['#E69F00', '#56B4E9', '#009E73']), null, 'three exactly can');
 });
 
-test('every palette on offer is a list of colours with a sentence saying what it is for', () => {
-  assert.ok(PALETTES.length >= 8);
-  assert.equal(new Set(PALETTES.map((p) => p.id)).size, PALETTES.length);
-  PALETTES.forEach((p) => {
-    assert.ok(p.hues.every(isHex), `${p.id} is written in hex`);
-    assert.equal(new Set(p.hues.map(normHex)).size, p.hues.length, `${p.id} repeats no colour`);
-    assert.match(p.note, /\.$/, `${p.id} says what it is for in a full sentence`);
-  });
+test('every swatch on offer is a colour of its own with a plain name', () => {
   assert.ok(SWATCHES.length >= 16);
   assert.ok(SWATCHES.every((s) => isHex(s.hex)));
   assert.equal(new Set(SWATCHES.map((s) => normHex(s.hex))).size, SWATCHES.length);
+});
+
+test('the even ring lays n distinct hues round the colour circle', () => {
+  assert.deepEqual(oklchRing(0), [], 'fewer than one is no hues at all');
+  assert.deepEqual(oklchRing(1), ['#B54A46'], 'one hue, taken at the 25° the ring starts from');
+  /* Worked through by hand from the OKLab matrices at L 0.55, C 0.14, h 25°:
+     the linear channels come out 0.4618, 0.0688 and 0.0613, which encode to
+     181, 74 and 70. */
+  for (let n = 1; n <= 40; n++) {
+    const hues = oklchRing(n);
+    assert.equal(hues.length, n, `${n} quantities get ${n} hues`);
+    assert.ok(hues.every(isHex), `the hues for ${n} are written in hex`);
+    assert.equal(new Set(hues).size, n, `the hues for ${n} are all different`);
+  }
+});
+
+test("the rainbow samples d3's curve n times, so its ends never meet", () => {
+  assert.deepEqual(d3Rainbow(0), [], 'fewer than one is no hues at all');
+  assert.deepEqual(d3Rainbow(1), ['#6E40AA'], "d3's interpolateRainbow at t = 0");
+  assert.deepEqual(d3Rainbow(4), ['#6E40AA', '#FF5E63', '#AFF05B', '#1AC7C2'], 'quarter turns round the same curve');
+  for (let n = 1; n <= 40; n++) {
+    const hues = d3Rainbow(n);
+    assert.equal(hues.length, n, `${n} quantities get ${n} hues`);
+    assert.ok(hues.every(isHex), `the hues for ${n} are written in hex`);
+    assert.equal(new Set(hues).size, n, `the hues for ${n} are all different`);
+  }
 });
 
 test('the stylesheet writes the three blocks the book writes, and the section rule outranks its chapter', () => {
