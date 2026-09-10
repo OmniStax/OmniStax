@@ -10,10 +10,10 @@ const section = (id: string, dir: string, built: boolean): SectionEntry => ({
   figures: [], binds: [], exercises: [],
 });
 const chapter = (id: string, dir: string, sections: readonly SectionEntry[]) =>
-  ({ id, dir, title: id, colors: {}, concepts: '', formulas: '', sections });
+  ({ id, dir, title: id, concepts: '', formulas: '', sections });
 const MANIFEST = {
   id: 'college-physics-2e', title: 'College Physics', publisher: 'OpenStax', authors: [], license: 'CC BY',
-  types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {},
+  types: {}, macros: {}, symbols: {}, exerciseKinds: {},
   chapters: [
     chapter('2', 'ch02', [section('2.1', 'ch02', true), section('2.2', 'ch02', false)]),
     chapter('16', 'ch16', [section('16.4', 'ch16', true)]),

@@ -7,40 +7,28 @@ sections are added; the pipeline-wide rules are in
 ## Colour is a function of type (pipeline rule 7)
 
 A type is a kind of physical quantity, named by its dimension. The book
-declares its types once in `book.json` (`types`: label, dimension, and
-hues for the global tier). A symbol takes its type's hue everywhere it
-appears: prose, equations, slider thumb, readout, drawn object. Variants
-of one type share the hue and differ by decoration: initial values
-(subscript 0) hollow or dashed, averages (bar) dashed, maxima by
-subscript. A derived quantity is another type with another hue.
+declares its types once in `book.json` (`types`: label and dimension) and
+says nothing about their colours. The app gives each type a hue from its
+scheme: the first of the recommended palettes that can dress every type
+the book declares, and, when none of them is long enough, hues spaced
+evenly round the OKLCH circle. The hues are laid along the order the book
+declares its types in, so the first type takes the first hue. For this
+book, which declares nine types, the scheme is Paul Tol muted.
 
-**Global tier**, pinned for the whole book:
+A symbol takes its type's hue everywhere it appears: prose, equations,
+slider thumb, readout, drawn object. Variants of one type share the hue
+and differ by decoration: initial values (subscript 0) hollow or dashed,
+averages (bar) dashed, maxima by subscript. A derived quantity is another
+type with another hue.
 
-| Type | Symbols so far | Light | Dark |
-|---|---|---|---|
-| time | t, Δt, T | #B45309 | #F5A524 |
-| position | x, x0, Δx, X, s | #1D4ED8 | #60A5FA |
-| velocity | v, v0, v̄, Δv, v_max | #B91C1C | #F87171 |
-| acceleration | a, ā, g | #6D28D9 | #A78BFA |
-| force | F, F_app | #15803D | #4ADE80 |
-| energy | PE_el, KE, W | #0E7490 | #22D3EE |
+The reader may change any of it in the colour menu: the order the
+quantities stand in, which is what the scheme lays its hues along, and the
+colour of a quantity for the whole book, for one chapter or for one
+section. What they choose is remembered in their browser and can be
+exported to a file and loaded back. Nothing the book writes down changes.
 
-**Chapter tier.** Every other type is bound by the chapter in its
-`chapter.json` (`colors`: type → pool hue) from this pool, chosen so that
-no two types on one page of the chapter share a hue. The same type may
-take another pool hue in another chapter.
-
-| Pool hue | Light | Dark |
-|---|---|---|
-| magenta | #BE185D | #F472B6 |
-| olive | #4D7C0F | #A3E635 |
-| teal | #0F766E | #2DD4BF |
-
-Chapter 16 binds frequency (f) to magenta, stiffness (k, the force
-constant) to olive, and the angular rate (ω as a pendulum's angular
-velocity and as the angular frequency 2π/T, both rad/s) to teal. Nothing is coerced: frequency is not a time and a
-force constant is not a force. Mass, length and angle are not typed for
-colour and stay in ink.
+Nothing is coerced: frequency is not a time and a force constant is not a
+force. Mass, length and angle are not typed for colour and stay in ink.
 
 **Per page.** A section's `section.json` lists in `binds` the types its
 page colours: the ones its demos draw, its sliders carry, or its
@@ -179,4 +167,4 @@ Chapter-level: `ch02/chapter.json`, `concepts.json` (every node carries
 `ktex` with the colour macros; glossary terms live here too).
 Build: `cd app && npm run build`, output in `app/dist/`, serve with
 `python3 -m http.server -d app/dist 8080`. Book-wide values the shell needs
-(colour set, macros, symbol table, exercise kind labels) live in `book.json`.
+(types, macros, symbol table, exercise kind labels) live in `book.json`.

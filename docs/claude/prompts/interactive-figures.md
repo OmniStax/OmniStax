@@ -13,7 +13,7 @@ with it.
 - `concepts.json`: the nodes with `kind` (idea, result, skill) and the
   `coverage` table, so the figure plan can be checked against what the
   section actually introduces.
-- The per-book `RULES.md` (colour-coding table, tone rule, figure style).
+- The per-book `RULES.md` (type table, tone rule, figure style).
 - The shared drawing layer `app/src/lib/fig/figlib.ts` (`window.FIG`,
   primitives listed below). The prompt does not ask the model to reinvent it.
 
@@ -173,8 +173,8 @@ headline. Do not loop on it.
   equivalent so x₀, v₀ and the current values can be told apart without
   reading labels.
 - **Colours only through C() and PAL.** The colour-coding toggle, dark
-  mode and the chapter-tier bindings all work by swapping what those
-  return; C() takes a type name, never a hue. One hex literal in a
+  mode and the colours the reader chooses all work by swapping what
+  those return; C() takes a type name, never a hue. One hex literal in a
   figure breaks all three.
 - **Sliders are what is interesting and variable.** Not every idea has an
   equation: the displacement and path demos of 2.1 have positions on

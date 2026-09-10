@@ -70,10 +70,5 @@
    "title": "Energy in Waves: Intensity",
    "slug": "16-11-energy-in-waves-intensity"
   }
- ],
- "colors": {
-  "frequency": "magenta",
-  "stiffness": "olive",
-  "angular-rate": "teal"
- }
+ ]
 }

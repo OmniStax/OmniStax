@@ -3,13 +3,16 @@
      section saying its symbols first and its terms after: flat for a section,
      under a line per section for a chapter, under a fold per chapter for the
      book, with whatever lies outside folded away below. The colour legend names
-     the global tier and the types the chapters in scope bind. */
+     every quantity the book declares, in the order the reader has put them in,
+     so that it reads the same way round as the colour menu. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { settings } from '../../lib/settings/store.svelte';
+  import { colours } from '../../lib/colours/store.svelte';
+  import { orderOf } from '../../lib/colours/model';
   import { sectionId } from '../../lib/types/ids';
   import type { VariableDTO, GlossaryDTO } from '../../lib/content/schema';
   import { FIG } from '../../lib/fig/figlib';
@@ -24,13 +27,7 @@
   const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest));
   const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
   const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest.symbols[s] ?? s); return {}; };
-  /* the chapters the view stands over, and with them the types they colour */
-  const chapters = $derived(
-    target.level === 'book' ? registry.manifest.chapters
-      : target.level === 'chapter' ? registry.manifest.chapters.filter((c) => c.id === target.chapter)
-      : registry.manifest.chapters.filter((c) => c.sections.some((s) => s.id === target.section)),
-  );
-  const legend = $derived.by(() => { const bound = new Set(chapters.flatMap((c) => Object.keys(c.colors))); return Object.entries(registry.manifest.types).filter(([k, t]) => t.light || bound.has(k)).map(([k, t]) => [k, t.label] as const); });
+  const legend = $derived(orderOf(registry.manifest, colours.choices).map((k) => [k, registry.manifest.types[k]?.label ?? k] as const));
 </script>
 
 {#snippet list(items: readonly Def[])}

@@ -38,7 +38,6 @@ let CC = true;
 const PAL: Record<string, Color> = {};
 const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
 let colorKeys: readonly string[] = [];
-let chapterKeys: readonly string[] = [];   /* types without global hues; a figure whose chapter leaves one unbound draws it in ink */
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
 /* The page's palette, plus the hues a figure's own chapter and section bind. */
 let base: Record<string, Color> = {};
@@ -55,7 +54,7 @@ function usePal(fig: Element): void {
   const scope = fig.closest<HTMLElement>('[data-sec], [data-chapter]'); const key = `${scope?.dataset.chapter ?? ''}|${scope?.dataset.sec ?? ''}`;
   if (!scope || scope === document.documentElement) { Object.assign(PAL, base); return; }
   const cached = chapterPal.get(key);
-  const over: Record<string, Color> = cached ?? Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k, scope) || (chapterKeys.includes(k) ? base.ink : '')]).filter(([, v]) => v));
+  const over: Record<string, Color> = cached ?? Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k, scope)]).filter(([, v]) => v));
   if (!cached) chapterPal.set(key, over);
   Object.assign(PAL, base, over);
 }
@@ -291,8 +290,8 @@ export const FIG = {
 export type Fig = typeof FIG;
 
 /* Called once by the shell with the book's macros and symbol table. */
-export function initFig(book: { macros: Macros; symbols: SymbolMap; colorKeys: readonly string[]; chapterKeys?: readonly string[] }): Fig {
-  macros = book.macros; SYM = book.symbols; colorKeys = book.colorKeys; chapterKeys = book.chapterKeys ?? []; readPal();
+export function initFig(book: { macros: Macros; symbols: SymbolMap; colorKeys: readonly string[] }): Fig {
+  macros = book.macros; SYM = book.symbols; colorKeys = book.colorKeys; readPal();
   (window as unknown as { FIG: Fig }).FIG = FIG;
   return FIG;
 }

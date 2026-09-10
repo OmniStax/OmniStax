@@ -71,7 +71,7 @@
   };
 
   onMount(() => {
-    const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types), chapterKeys: Object.entries(manifest.types).filter(([, t]) => !t.light).map(([k]) => k) });
+    const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types) });
     notes.init(manifest.id);
     noteDocs.init();
     explorer.init();

@@ -6,9 +6,9 @@ import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 const book: BookDTO = {
   id: 'college-physics-2e', title: 'College Physics 2e', publisher: 'OpenStax', authors: ['Paul Peter Urone', 'Roger Hinrichs'],
   sourceUrl: 'https://openstax.org/details/books/college-physics-2e', copyright: 'Rice University', license: 'CC BY-NC-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
-  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {},
+  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: {}, macros: {}, symbols: {}, exerciseKinds: {},
 };
-const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', colors: {}, sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }] };
+const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }] };
 
 test('nameList joins like prose', () => {
   assert.equal(nameList([]), ''); assert.equal(nameList(['A']), 'A'); assert.equal(nameList(['A', 'B']), 'A and B'); assert.equal(nameList(['A', 'B', 'C']), 'A, B and C');
@@ -19,7 +19,7 @@ test('section source url needs both the prefix and a slug', () => {
   assert.equal(sectionSourceUrl({ openstax: undefined }, chapter, '2.1'), undefined);
 });
 test('footer carries author, publisher, copyright, licence, access line and notes', () => {
-  const a = attributionOf(book, chapter, { id: '2.1', notes: 'Problems 2 and 4 are left out.' });
+  const a = attributionOf(book, chapter, { id: '2.1', notes: 'Problems 2 and 4 are left out.', ai: undefined });
   const html = footerHtml(a);
   assert.match(html, /^<footer class="footer">/);
   assert.match(html, /<cite>College Physics 2e<\/cite> by Paul Peter Urone and Roger Hinrichs/);
@@ -34,20 +34,20 @@ test('footer names the AI by role, folded when one model did both', () => {
   assert.match(both, /<\/p><p>The text was transformed and the simulations were built by Claude Fable 5.1.<\/p><p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
   assert.equal(aiSentence({ text: 'Claude Fable 5.1', figures: 'Claude Opus 5' }), 'The text was transformed by Claude Fable 5.1 and the simulations were built by Claude Opus 5.');
   assert.equal(aiSentence(undefined), '');
-  assert.doesNotMatch(footerHtml(attributionOf(book, chapter, { id: '2.1', notes: '' })), /transformed/);
+  assert.doesNotMatch(footerHtml(attributionOf(book, chapter, { id: '2.1', notes: '', ai: undefined })), /transformed/);
 });
 test('footer without optional fields still reads', () => {
-  const html = footerHtml(attributionOf({ ...book, authors: [], sourceUrl: undefined, copyright: undefined, licenseUrl: undefined, openstax: undefined }, chapter, { id: '2.1', notes: '' }));
+  const html = footerHtml(attributionOf({ ...book, authors: [], sourceUrl: undefined, copyright: undefined, licenseUrl: undefined, openstax: undefined }, chapter, { id: '2.1', notes: '', ai: undefined }));
   assert.match(html, /<cite>College Physics 2e<\/cite> \(OpenStax\), CC BY-NC-SA 4.0,/);
   assert.doesNotMatch(html, /Access for free/);
   assert.doesNotMatch(html, /<p><\/p>/);
 });
 test('footer escapes content fields', () => {
-  const html = footerHtml(attributionOf({ ...book, title: 'A <b>' }, chapter, { id: '2.1', notes: 'x < y & "z"' }));
+  const html = footerHtml(attributionOf({ ...book, title: 'A <b>' }, chapter, { id: '2.1', notes: 'x < y & "z"', ai: undefined }));
   assert.match(html, /<cite>A &lt;b&gt;<\/cite>/); assert.match(html, /x &lt; y &amp; &quot;z&quot;/);
 });
 test('citation is plain text with the access line', () => {
-  assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '' })),
+  assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '', ai: undefined })),
     'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
   assert.equal(citation(attributionOf(book, chapter, { id: '2.1', notes: '', ai: { text: 'Claude Fable 5.1', figures: 'Claude Fable 5.1' } })),
     'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement. The text was transformed and the simulations were built by Claude Fable 5.1.');

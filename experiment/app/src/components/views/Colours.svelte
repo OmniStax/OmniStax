@@ -1,34 +1,41 @@
 <script lang="ts">
   /* The colour menu: one page where the reader chooses the colour of every
-     quantity the book draws. The bar above says where the page stands, and that
-     place is the tier being edited — a colour set at the book reaches every
-     chapter and section that has not chosen its own, a colour set at a chapter
-     reaches its sections the same way, and a colour set at a section stops
-     there. Clearing a colour hands the quantity back to the tier above it.
-     Every colour is a pair, one for the light ground and one for the dark; the
-     reader edits the one they are looking at and the other follows unless they
-     have chosen it too. The edits keep a timeline of their own, so taking a
-     colour back never takes back a highlight. */
+     quantity the book draws, and the order the quantities stand in. The book
+     declares its types and says nothing about their hues; the app dresses them
+     from its scheme, and everything here stands over that. The bar above says
+     where the page stands, and that place is the tier being edited — a colour
+     set at the book reaches every chapter and section that has not chosen its
+     own, a colour set at a chapter reaches its sections the same way, and a
+     colour set at a section stops there. Clearing a colour hands the quantity
+     back to the tier above it. Every colour is a pair, one for the light ground
+     and one for the dark; the reader edits the one they are looking at and the
+     other follows unless they have chosen it too. The order is one list for the
+     whole book, and it is what every palette lays its hues along, so dragging a
+     quantity upwards recolours whatever still follows the scheme. The edits keep
+     a timeline of their own, so taking a colour back never takes back a
+     highlight. */
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
-  import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type TypeKey } from '../../lib/colours/model';
-  import { PALETTES, SWATCHES, type Palette } from '../../lib/colours/palettes';
+  import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
+  import { PALETTES, SWATCHES, huesOf, type Palette } from '../../lib/colours/palettes';
+  import { ICON } from '../../lib/icons';
   import { FIG } from '../../lib/fig/figlib';
 
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
   const place = $derived(placeOf(target));
   const manifest = $derived(registry.manifest);
-  const types = $derived(typesAt(manifest, place));
+  const types = $derived(typesAt(manifest, colours.choices, place));
   /* The chapter the page stands in, which a badge names when a colour comes from there. */
   const chapter = $derived(place.level === 'book' ? '' : place.chapter);
+  const labelOf = (k: TypeKey): string => manifest.types[k]?.label ?? k;
 
   const lead = $derived(
     place.level === 'book'
-      ? 'A colour set here is the colour of that quantity everywhere in the book, except where a chapter or a section has chosen its own.'
+      ? `A colour set here is the colour of that quantity everywhere in the book, except where a chapter or a section has chosen its own. Until you choose otherwise, the book takes its colours from ${colours.scheme.palette.name}.`
       : place.level === 'chapter'
         ? `A colour set here is the colour of that quantity in every section of chapter ${chapter} that has not chosen its own.`
         : `A colour set here is the colour of that quantity in section ${place.section} only.`,
@@ -43,23 +50,28 @@
   /* Whether anything at all has been set at this place, read from the overrides themselves
      so that a type this level does not list still counts. */
   const setHere = $derived.by(() => {
-    const o = colours.overrides;
+    const o = colours.choices.overrides;
     const at = place.level === 'book' ? o.book : place.level === 'chapter' ? o.chapters[place.chapter] : o.sections[place.section];
     return Object.keys(at ?? {}).length > 0;
   });
-  const nothingSet = $derived(isEmpty(colours.overrides));
+  const nothingSet = $derived(isEmpty(colours.choices));
 
-  const source = (k: TypeKey): string => {
-    if (ownOf(k)) return 'set here';
-    const from = hueOf(k).from;
-    if (from === 'section' || from === 'chapter') return `from chapter ${chapter}`;
-    return from === 'book' ? 'from the book' : from === 'default' ? "the book's default" : 'not coloured here';
+  /* Where the colour on a row came from, said the way the reader would say it. */
+  const source = (from: Source): string => {
+    switch (from.kind) {
+      case 'section': return 'set here';
+      case 'chapter': return `from chapter ${from.chapter}`;
+      case 'book': return 'from the book';
+      case 'scheme': return `from ${colours.scheme.palette.name}`;
+      case 'none': return 'not a quantity of this book';
+    }
   };
 
   /* One picker stands open at a time, under the row it belongs to. */
   let open = $state<TypeKey | null>(null);
   let draft = $state('');
   const openPicker = (k: TypeKey): void => {
+    trouble = '';
     if (open === k) { open = null; return; }
     open = k;
     draft = shown(hueOf(k).hue) ?? '';
@@ -78,6 +90,83 @@
     colours.breakCoalescing();
   };
   const sameHex = (a: string | null, b: string): boolean => a !== null && isHex(a) && normHex(a) === normHex(b);
+
+  /* One line under the toolbar when a file could not be read, cleared as soon as
+     the reader does anything that works. */
+  let trouble = $state('');
+
+  /* ---------- rearranging the quantities ---------- */
+
+  /* The row being carried and the row it is over, with which half of that row
+     the pointer is in, which is the line the reader sees. The HTML drag events
+     are used directly here: the actions in layout/drag.svelte.ts carry a layout
+     item's key, and a quantity is not one of those. */
+  let carried = $state<TypeKey | null>(null);
+  let over = $state<{ readonly type: TypeKey; readonly below: boolean } | null>(null);
+  const clearDrag = (): void => { carried = null; over = null; };
+  /* The quantity a dropped row lands before: the row it is over, or the one
+     after it when the pointer is in its lower half, and the end of the list when
+     there is nothing after it. */
+  const beforeOf = (onto: TypeKey, below: boolean): TypeKey | null => {
+    if (!below) return onto;
+    const next = types[types.indexOf(onto) + 1];
+    return next ?? null;
+  };
+  const onDragOver = (e: DragEvent, k: TypeKey): void => {
+    if (carried === null) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    over = { type: k, below: e.clientY > box.top + box.height / 2 };
+  };
+  const onDrop = (e: DragEvent, k: TypeKey): void => {
+    if (carried === null) return;
+    e.preventDefault();
+    trouble = '';
+    const below = over?.type === k ? over.below : false;
+    const moved = carried;
+    clearDrag();
+    colours.move(moved, beforeOf(k, below));
+  };
+  /* The keyboard says the same thing one step at a time: up is before the row
+     above, down is after the row below, which is before the one after that. */
+  const step = (k: TypeKey, way: -1 | 1): void => {
+    trouble = '';
+    const i = types.indexOf(k);
+    if (i < 0) return;
+    if (way === -1 && i > 0) colours.move(k, types[i - 1]);
+    if (way === 1 && i < types.length - 1) colours.move(k, types[i + 2] ?? null);
+  };
+  const onGripKey = (e: KeyboardEvent, k: TypeKey): void => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    step(k, e.key === 'ArrowUp' ? -1 : 1);
+    e.preventDefault();
+  };
+
+  /* ---------- the file the colours are kept in ---------- */
+
+  let picker = $state<HTMLInputElement | null>(null);
+  const exportFile = (): void => {
+    trouble = '';
+    const url = URL.createObjectURL(new Blob([JSON.stringify(colours.exportFile(), null, 1)], { type: 'application/json' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: `omnistax-colours-${manifest.id}.json` });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  const loadFile = async (file: File): Promise<void> => {
+    const raw = await file.text();
+    const parsed = ((): unknown => { try { return JSON.parse(raw); } catch { return null; } })();
+    const got = colours.load(parsed);
+    trouble = got.ok ? '' : got.reason === 'other-book' ? 'That file holds the colours of another book.' : 'That file does not hold colours.';
+  };
+  const onFile = (e: Event): void => {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';   /* so that the same file chosen twice is read twice */
+    if (file) void loadFile(file);
+  };
 
   /* Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y belong to the colour timeline while the reader
      is on this page, and preventing the default is what keeps the shell's own out of
@@ -109,10 +198,10 @@
      of quantities here, so that the strip the reader sees is the very set the
      button would apply and a palette that cannot answer is simply not offered. */
   const shownPalettes = $derived(PALETTES.flatMap((p) => {
-    const hues = p.huesFor(types.length);
+    const hues = huesOf(p, types.length);
     return hues ? [{ palette: p, hues }] : [];
   }));
-  const use = (p: Palette): void => { colours.usePalette(place, types, p); };
+  const use = (p: Palette): void => { trouble = ''; colours.usePalette(place, types, p); };
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -125,19 +214,23 @@
   <div class="bar">
     <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? `Undo ${colours.undoLabel}` : 'There is nothing to take back yet.'} onclick={() => colours.undo()}>Undo</button>
     <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? `Redo ${colours.redoLabel}` : 'There is nothing to do again yet.'} onclick={() => colours.redo()}>Redo</button>
-    <button type="button" disabled={!setHere} title="Hand every colour set here back to the tier above." onclick={() => colours.clearPlace(place)}>Clear this level</button>
+    <button type="button" disabled={!setHere} title="Hand every colour set here back to the tier above." onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
     {#if place.level === 'book'}
-      <button type="button" disabled={nothingSet} title="Take the book back to the colours it was built with." onclick={() => colours.resetAll()}>Reset every colour</button>
+      <button type="button" disabled={nothingSet} title="Take the book back to the scheme, with the quantities in the order the book declares them." onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
     {/if}
+    <button type="button" title="Save these colours to a file you can keep or pass on." onclick={exportFile}>Export…</button>
+    <button type="button" title="Take the colours in a file you have saved." onclick={() => picker?.click()}>Load…</button>
+    <input type="file" accept="application/json,.json" bind:this={picker} onchange={onFile} hidden />
     <span class="theme">{themeNote}</span>
   </div>
+  {#if trouble}<p class="trouble">{trouble}</p>{/if}
 
   {#if types.length > 8}
     <!-- the whole set at a glance, in the order the rows below take -->
     <div class="strip" aria-hidden="true">
       {#each types as k (k)}
         {@const hex = shown(hueOf(k).hue)}
-        <i style:background-color={hex ?? 'var(--soft2)'} title={manifest.types[k]?.label ?? k}></i>
+        <i style:background-color={hex ?? 'var(--soft2)'} title={labelOf(k)}></i>
       {/each}
     </div>
   {/if}
@@ -148,17 +241,25 @@
       {@const hex = shown(eff.hue)}
       {@const alt = spare(eff.hue)}
       {@const own = ownOf(k)}
-      {@const name = manifest.types[k]?.label ?? k}
+      {@const name = labelOf(k)}
       {@const dim = manifest.types[k]?.dimension ?? ''}
       <li class:open={open === k}>
-        <div class="row">
+        <div class="row" class:carried={carried === k} class:over-up={over?.type === k && !over.below} class:over-down={over?.type === k && over.below}
+          draggable="true"
+          ondragstart={(e) => { carried = k; e.dataTransfer?.setData('text/plain', k); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; }}
+          ondragend={clearDrag}
+          ondragover={(e) => onDragOver(e, k)}
+          ondragleave={() => { if (over?.type === k) over = null; }}
+          ondrop={(e) => onDrop(e, k)}>
+          <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
+            title="Drag to move this quantity, or press the arrow keys" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
           <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
             title={hex ? `Choose another colour for ${name}` : `Choose a colour for ${name}`}
             onclick={() => openPicker(k)}></button>
           {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'The light colour of this quantity' : 'The dark colour of this quantity'}></i>{/if}
           <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
           <span class="syms">{#each symbolsOf(manifest, k) as macro (macro)}<span use:tex={macro}></span>{/each}</span>
-          <span class="from" class:own={own !== null}>{source(k)}</span>
+          <span class="from" class:own={own !== null}>{source(eff.from)}</span>
           {#if own}
             <button type="button" class="clear" title="Back to the colour above" aria-label={`Back to the colour above for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
           {/if}
@@ -212,12 +313,21 @@
   .bar button:disabled{opacity:.45;cursor:default}
   .bar button:focus-visible{outline:2px solid var(--accent)}
   .theme{color:var(--muted);font-size:0.76rem;margin-left:auto}
+  .trouble{margin:-4px 0 10px;color:var(--ink);font-size:0.78rem}
   /* the whole set read at a glance: cells that touch, so the run of hues is one band */
   .strip{display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:10px}
   .strip i{flex:1;display:block}
   .rows{list-style:none;padding:0;margin:0 0 14px}
   .rows > li{border-bottom:1px solid var(--rule)}
   .row{display:flex;align-items:center;gap:8px;padding:6px 0}
+  /* the row being carried, and the line that says where it would land */
+  .row.carried{opacity:.45}
+  .row.over-up{box-shadow:inset 0 2px 0 var(--accent)}
+  .row.over-down{box-shadow:inset 0 -2px 0 var(--accent)}
+  .grip{flex:none;width:18px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:grab;display:flex;align-items:center;justify-content:center}
+  .grip:hover{color:var(--ink);background:var(--soft2)}
+  .grip:focus-visible{outline:2px solid var(--accent)}
+  .grip :global(svg){width:16px;height:16px;fill:currentColor;stroke:none}
   .swatch{width:22px;height:22px;flex:none;border:1px solid var(--rule);border-radius:5px;padding:0;cursor:pointer}
   .swatch:hover{border-color:var(--accent)}
   .swatch:focus-visible{outline:2px solid var(--accent)}

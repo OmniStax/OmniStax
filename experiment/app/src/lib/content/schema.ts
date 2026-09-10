@@ -1,10 +1,12 @@
 /* DTOs at the content boundary. The files under the content root are parsed
    into these; fields may be renamed or dropped here and nowhere else. */
 import { z } from 'zod';
+import type { BookId } from '../types/ids';
 
-/* A type is a kind of physical quantity. The global tier carries its own hues; a chapter-tier type gets a hue from the chapter's bindings. */
-const zType = z.object({ label: z.string(), dimension: z.string().optional(), light: z.string().optional(), dark: z.string().optional() });
-const zPoolHue = z.object({ id: z.string(), light: z.string(), dark: z.string() });
+/* A type is a kind of physical quantity, named by its dimension. The book says
+   what its quantities are and the app gives them their colours, so a type
+   declares no hue of its own. */
+const zType = z.object({ label: z.string(), dimension: z.string().optional() });
 
 export const zBook = z.object({
   id: z.string(),
@@ -18,19 +20,18 @@ export const zBook = z.object({
   openstax: z.string().url().optional(),     /* prefix of the publisher's section pages; a chapter's section slugs complete it */
   chapters: z.array(z.string()),
   types: z.record(zType).default({}),
-  chapter_pool: z.array(zPoolHue).default([]),
   macros: z.record(z.string()).default({}),
   symbols: z.record(z.string()).default({}),
   exercise_kinds: z.record(z.string()).default({}),
 }).transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright, license: b.license, licenseUrl: b.license_url, openstax: b.openstax,
-  chapterDirs: b.chapters, types: b.types, pool: b.chapter_pool, macros: b.macros, symbols: b.symbols, exerciseKinds: b.exercise_kinds,
+  chapterDirs: b.chapters, types: b.types, macros: b.macros, symbols: b.symbols, exerciseKinds: b.exercise_kinds,
 }));
 export type BookDTO = z.infer<typeof zBook>;
 
 export const zChapterSectionRef = z.object({ id: z.string(), module: z.string().optional(), title: z.string(), slug: z.string().optional() });
-export const zChapter = z.object({ id: z.string(), dir: z.string(), title: z.string(), intro_module: z.string().optional(), sections: z.array(zChapterSectionRef), colors: z.record(z.string()).default({}) })
-  .transform((c) => ({ id: c.id, dir: c.dir, title: c.title, sections: c.sections, colors: c.colors }));   /* colors: chapter-tier type → pool hue id */
+export const zChapter = z.object({ id: z.string(), dir: z.string(), title: z.string(), intro_module: z.string().optional(), sections: z.array(zChapterSectionRef) })
+  .transform((c) => ({ id: c.id, dir: c.dir, title: c.title, sections: c.sections }));
 export type ChapterDTO = z.infer<typeof zChapter>;
 
 /* The AI a section was built with, by role: the model that transformed the text, and the model that built the simulations. */
@@ -103,10 +104,10 @@ export type SectionEntry = {
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };
-export type ChapterEntry = { readonly id: string; readonly dir: string; readonly title: string; readonly colors: Readonly<Record<string, string>>; readonly concepts: string; readonly formulas: string; readonly sections: readonly SectionEntry[] };
+export type ChapterEntry = { readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string; readonly sections: readonly SectionEntry[] };
 export type BookManifest = {
-  readonly id: string; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
+  readonly id: BookId; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
-  readonly types: BookDTO['types']; readonly pool: BookDTO['pool']; readonly macros: BookDTO['macros']; readonly symbols: BookDTO['symbols']; readonly exerciseKinds: BookDTO['exerciseKinds'];
+  readonly types: BookDTO['types']; readonly macros: BookDTO['macros']; readonly symbols: BookDTO['symbols']; readonly exerciseKinds: BookDTO['exerciseKinds'];
   readonly chapters: readonly ChapterEntry[];
 };

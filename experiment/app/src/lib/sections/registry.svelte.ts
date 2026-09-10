@@ -5,7 +5,7 @@
    chapter's concepts and formulas are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, sectionId, itemKey, figItem } from '../types/ids';
+import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, bookId, sectionId, itemKey, figItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import type { Fig } from '../fig/figlib';
 import { ICON } from '../icons';
@@ -32,7 +32,7 @@ export type Mounter = (root: HTMLElement, section: SectionId) => void;
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: '', title: '', publisher: '', authors: [], license: '', types: {}, pool: [], macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
+  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   pages = $state.raw<Partial<Record<PageKind, HTMLElement>>>({});             /* the standing pages, adopted from a pool or fetched */
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});

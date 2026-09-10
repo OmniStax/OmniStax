@@ -3,31 +3,38 @@
    Every hue here is written for a light ground; the dark one is worked out from
    it, so a palette carries only the colours it is published with.
 
-   A palette is a function of the count rather than a fixed list, because what a
-   published set of eight should do for three quantities is not what a generator
-   should do: the published one hands back its first three, the generator lays
-   three out afresh, and a set with too few colours for the level says so by
-   answering nothing at all, which is how the page knows not to show it. */
+   A palette is one of two things, and which it is matters beyond the colours it
+   holds. A fixed palette is a list somebody published, and it dresses any count
+   up to its length by taking that many from the front; a variable one works its
+   colours out for the count it is given, so it answers for a level of any size.
+   The book's scheme is drawn from the fixed ones, since a published set is what
+   a reader recognises, and the ring is what answers when none of them fits. */
 import { type Hex, d3Rainbow, oklchRing } from './model';
 
-export type Palette = {
-  readonly id: string;
-  readonly name: string;
-  readonly note: string;
-  /* The hues for n quantities, in order and all distinct, or null when the palette cannot dress that many. */
-  readonly huesFor: (n: number) => readonly Hex[] | null;
-};
+export type PaletteId = string & { readonly __brand: 'PaletteId' };
+export const paletteId = (s: string): PaletteId => s as PaletteId;
 
-/* A published list, which dresses any count up to its length by taking that many
-   from the front, in the order its author set them down. */
+export type Palette =
+  | { readonly kind: 'fixed'; readonly id: PaletteId; readonly name: string; readonly note: string; readonly hues: readonly Hex[] }
+  | { readonly kind: 'variable'; readonly id: PaletteId; readonly name: string; readonly note: string; readonly huesFor: (n: number) => readonly Hex[] | null };
+
+/* A published list, which dresses any count up to its length. */
 export const fixed = (id: string, name: string, note: string, hues: readonly Hex[]): Palette =>
-  ({ id, name, note, huesFor: (n) => (n >= 1 && n <= hues.length ? hues.slice(0, n) : null) });
+  ({ kind: 'fixed', id: paletteId(id), name, note, hues });
 
-/* A palette that works its colours out for the count it is given. No palette
-   dresses nothing, so a count below one is refused here rather than in every
-   generator. */
-export const generated = (id: string, name: string, note: string, f: (n: number) => readonly Hex[] | null): Palette =>
-  ({ id, name, note, huesFor: (n) => (n >= 1 ? f(n) : null) });
+/* A palette that works its colours out for the count it is given. */
+export const generated = (id: string, name: string, note: string, huesFor: (n: number) => readonly Hex[] | null): Palette =>
+  ({ kind: 'variable', id: paletteId(id), name, note, huesFor });
+
+/* The hues for n quantities, in order and all distinct, or nothing at all when
+   the palette cannot dress that many, which is how the page knows not to offer
+   it. No palette dresses nothing, so a count below one is refused here rather
+   than in every generator. */
+export const huesOf = (p: Palette, n: number): readonly Hex[] | null => {
+  if (n < 1) return null;
+  if (p.kind === 'fixed') return n <= p.hues.length ? p.hues.slice(0, n) : null;
+  return p.huesFor(n);
+};
 
 /* Paul Tol's discrete rainbow, which is not one list cut short but a different
    cut for every count: the whole set of twenty-nine below, and then the indices
@@ -68,17 +75,22 @@ const tolRainbow = (n: number): readonly Hex[] | null => {
   return cut ? cut.map((i) => TOL_RAINBOW[i]) : null;
 };
 
-/* The order the page shows them in: the two that never refuse first, since they
-   answer for any level the book can have; then Tol's rainbow, which is cut
-   rather than trimmed; then the published lists, the short and careful ones
-   before the long ones, and the book's own at the end. */
+/* The ring, which lays out as many hues as it is asked for and so can dress a
+   level of any size. It is the scheme a book falls back on when no published
+   list is long enough for its quantities. */
+export const OKLCH: Palette = generated(
+  'oklch',
+  'Even hues',
+  'Hues spaced evenly round the colour circle, as many as the level needs, all at one lightness so no one of them shouts.',
+  (n) => oklchRing(n),
+);
+
+/* The order the page shows them in, and the order the scheme is chosen from:
+   the two that never refuse first, since they answer for any level the book can
+   have; then Tol's rainbow, which is cut rather than trimmed; then the published
+   lists, the short and careful ones before the long ones. */
 export const PALETTES: readonly Palette[] = [
-  generated(
-    'oklch',
-    'Even hues',
-    'Hues spaced evenly round the colour circle, as many as the level needs, all at one lightness so no one of them shouts.',
-    (n) => oklchRing(n),
-  ),
+  OKLCH,
   generated(
     'rainbow',
     'Rainbow',
@@ -170,18 +182,21 @@ export const PALETTES: readonly Palette[] = [
       '#9E4B00', '#9C3B50',
     ],
   ),
-  fixed(
-    'book',
-    "The book's own",
-    'The six colours the book pins to its quantities, followed by the three a chapter draws on.',
-    ['#B45309', '#1D4ED8', '#B91C1C', '#6D28D9', '#15803D', '#0E7490', '#BE185D', '#4D7C0F', '#0F766E'],
-  ),
 ];
+
+export const paletteById = (id: PaletteId): Palette | null => PALETTES.find((p) => p.id === id) ?? null;
+
+/* The scheme a book of n quantities wears before the reader chooses anything:
+   the first published list that can dress every one of them, and the ring when
+   none of them can. A published set is what a reader recognises, so it is
+   preferred; the ring is there so that no book is left without colours. */
+export const schemePalette = (n: number): Palette =>
+  PALETTES.find((p) => p.kind === 'fixed' && huesOf(p, n) !== null) ?? OKLCH;
 
 export type Swatch = { readonly name: string; readonly hex: Hex };
 
 /* Single colours to change one quantity with, deep enough to read as text on a
-   white page. The last two are the book's own, which no plain name here matches. */
+   white page and each with a name a reader would use aloud. */
 export const SWATCHES: readonly Swatch[] = [
   { name: 'red', hex: '#DC2626' },
   { name: 'orange', hex: '#EA580C' },
@@ -199,6 +214,6 @@ export const SWATCHES: readonly Swatch[] = [
   { name: 'pink', hex: '#DB2777' },
   { name: 'brown', hex: '#78350F' },
   { name: 'slate', hex: '#475569' },
-  { name: "the book's orange", hex: '#B45309' },
-  { name: "the book's red", hex: '#B91C1C' },
+  { name: 'rose', hex: '#BE123C' },
+  { name: 'emerald', hex: '#047857' },
 ];

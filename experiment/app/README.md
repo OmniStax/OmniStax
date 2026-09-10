@@ -47,7 +47,7 @@ src/components/views      View dispatcher (with the scope header, which the expl
 src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
-src/layouts/ShellPage.astro  what every page shares: fonts, the book's colour tokens, the theme script, the static pool and the shell island, over the one item the page is
+src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one section over ShellPage: its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
 src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, about.html, book.html, chapter json, book.json, library.json
@@ -57,7 +57,7 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
 ## Conventions
 
 - Types at boundaries: `…DTO` for what is parsed from content files, branded ids
-  (`SectionId`, `GroupKey`, `SpanId`, `ConceptId`), ADTs with a `kind` or `type`
+  (`BookId`, `SectionId`, `GroupKey`, `SpanId`, `ConceptId`), ADTs with a `kind` or `type`
   discriminator (`ItemId`, `AnswerDTO`) and smart constructors beside them.
 - The layout is an immutable value. `model.ts` has no DOM and no state; the store
   applies its functions and saves. Tests cover it.
@@ -104,23 +104,37 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   grouped by chapter and by section, in the order the book sets, and everything
   outside it is folded away under a single heading. `grouping.ts` makes the cut
   and the views only render it.
-- Book-specific values (colour set, macros, symbol table, exercise kind labels)
-  come from `book.json` through the manifest. The shell has no physics in it.
-- The reader may choose those colours for themselves in the colour menu, a view
-  of kind `colours` opened from the command palette ("Open the colour menu") and
+- Book-specific values (the types it declares, macros, symbol table, exercise
+  kind labels) come from `book.json` through the manifest. The shell has no
+  physics in it. A type is a quantity, with a label and a dimension and no hue:
+  the book says what its quantities are and the app says what colour they wear.
+- Colour is a function of type, and the colours are the app's, not the book's.
+  A book of n types wears a scheme: the first of the recommended palettes that
+  can dress all n, and when none of them can, hues spaced evenly round the OKLCH
+  circle. The scheme's hues are laid along the order the quantities stand in, so
+  the first quantity takes the first hue. ShellPage writes that scheme onto the
+  root at build time; the shell's own style element comes after it in the head
+  and carries what the reader has chosen over it.
+- The reader may choose all of it for themselves in the colour menu, a view of
+  kind `colours` opened from the command palette ("Open the colour menu") and
   read as a tab like any other view. It wears the same scope bar, and the level
   the bar stands at is the tier being edited: the colour a quantity has on a page
   is that section's own setting, else its chapter's, else the book-wide one, else
-  the hue the book was built with. Nothing is copied downwards — a higher tier
-  reaches every place that has not chosen its own, a lower place's choice wins,
-  and clearing a setting hands the quantity back to the tier above. Every colour
-  is a pair, one for each ground, and the reader edits the one they are looking
-  at while the other is derived. The recommended palettes are cut to the number
-  of quantities the level shows, and the two generated ones fit any number. The
-  menu keeps an undo timeline of its own
-  (`Colours: undo`, `Colours: redo`, and Ctrl+Z inside the page), so taking back
-  a colour never takes back a highlight; `colours/model.ts` is pure and the store
-  writes one style element and redraws the figures.
+  the scheme's. Nothing is copied downwards — a higher tier reaches every place
+  that has not chosen its own, a lower place's choice wins, and clearing a
+  setting hands the quantity back to the tier above. Every colour is a pair, one
+  for each ground, and the reader edits the one they are looking at while the
+  other is derived. The recommended palettes are cut to the number of quantities
+  the level shows, and the two generated ones fit any number. The reader may also
+  drag the quantities into another order, which is one list for the whole book
+  and is what every palette, the scheme included, lays its hues along, so a drag
+  recolours whatever still follows the scheme and leaves an explicit choice where
+  it is. They can export what they have chosen to a file and load such a file
+  back: the file and what this browser remembers are one document, so one zod
+  object (`ColourFileDTO`) parses both. The menu keeps an undo timeline of its
+  own (`Colours: undo`, `Colours: redo`, and Ctrl+Z inside the page), so taking
+  back a colour never takes back a highlight; `colours/model.ts` is pure and the
+  store writes one style element and redraws the figures.
 - Undo and redo are one timeline of the reader's own edits — highlights,
   annotations, the rows and documents of the explorer — and nothing else: the
   layout, what is open and where the reader has scrolled are not edits, and a

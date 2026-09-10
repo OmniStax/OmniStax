@@ -19,39 +19,27 @@
  "types": {
   "time": {
    "label": "time",
-   "dimension": "s",
-   "light": "#B45309",
-   "dark": "#F5A524"
+   "dimension": "s"
   },
   "position": {
    "label": "position, displacement",
-   "dimension": "m",
-   "light": "#1D4ED8",
-   "dark": "#60A5FA"
+   "dimension": "m"
   },
   "velocity": {
    "label": "velocity",
-   "dimension": "m/s",
-   "light": "#B91C1C",
-   "dark": "#F87171"
+   "dimension": "m/s"
   },
   "acceleration": {
    "label": "acceleration",
-   "dimension": "m/s²",
-   "light": "#6D28D9",
-   "dark": "#A78BFA"
+   "dimension": "m/s²"
   },
   "force": {
    "label": "force",
-   "dimension": "N",
-   "light": "#15803D",
-   "dark": "#4ADE80"
+   "dimension": "N"
   },
   "energy": {
    "label": "energy",
-   "dimension": "J",
-   "light": "#0E7490",
-   "dark": "#22D3EE"
+   "dimension": "J"
   },
   "frequency": {
    "label": "frequency",
@@ -66,23 +54,6 @@
    "dimension": "rad/s"
   }
  },
- "chapter_pool": [
-  {
-   "id": "magenta",
-   "light": "#BE185D",
-   "dark": "#F472B6"
-  },
-  {
-   "id": "olive",
-   "light": "#4D7C0F",
-   "dark": "#A3E635"
-  },
-  {
-   "id": "teal",
-   "light": "#0F766E",
-   "dark": "#2DD4BF"
-  }
- ],
  "macros": {
   "\\kt": "\\htmlClass{kv-time}{\\htmlData{sym=t}{t}}",
   "\\kx": "\\htmlClass{kv-position}{\\htmlData{sym=x}{x}}",

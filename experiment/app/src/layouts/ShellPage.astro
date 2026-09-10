@@ -11,6 +11,7 @@ import { config } from '../../omnistax.config';
 import type { BookTree } from '../lib/content/load';
 import type { ItemId } from '../lib/types/ids';
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO } from '../lib/content/schema';
+import { NO_CHOICES, cssFor } from '../lib/colours/model';
 
 export type Props = {
   tree: BookTree;
@@ -25,24 +26,14 @@ export type Props = {
   exercises?: readonly ExerciseDTO[];
 };
 const { tree, own, pool, title, description, book, chapter, section, chapterDir, chapterData, meta, exercises } = Astro.props as Props;
-const m = tree.dto;
-/* Colour is a function of type. Global-tier types get their hues on the root; a chapter's bindings are scoped to
-   its articles; a page colours only the types it binds. Dark values come in three states: system, forced, or light. */
-type Mode = 'light' | 'dark';
-const globalVars = (mode: Mode) => Object.entries(m.types).filter(([, t]) => t[mode]).map(([k, t]) => `--c-${k}:${t[mode]}`).join(';');
-const poolHue = (id: string, mode: Mode) => m.pool.find((p) => p.id === id)?.[mode] ?? 'inherit';
-/* Each chapter's scope sets the chapter-tier types it binds and resets the ones it does not, so an article of one chapter opened on another's page keeps its own colours. */
-const chapterTier = Object.entries(m.types).filter(([, t]) => !t.light).map(([k]) => k);
-const chapterVars = (mode: Mode) => tree.chapters.map((ch) => chapterTier.map((k) => `--c-${k}:${ch.dto.colors[k] ? poolHue(ch.dto.colors[k], mode) : 'initial'}`).join(';')).map((vars, i) => [tree.chapters[i].dto.dir, vars] as const).filter(([, v]) => v);
-const scoped = (mode: Mode, prefix: string) => chapterVars(mode).map(([dir, vars]) => `${prefix}[data-chapter="${dir}"],${prefix} [data-chapter="${dir}"]{${vars}}`).join('');
-const colourCss = [
-  `:root{${globalVars('light')}}`, scoped('light', ''),
-  `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${globalVars('dark')}}${scoped('dark', ':root:not([data-theme="light"])')}}`,
-  `:root[data-theme="dark"]{${globalVars('dark')}}${scoped('dark', ':root[data-theme="dark"]')}`,
-].join('');
-const kvRules = Object.keys(m.types).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
+/* Colour is a function of type. The book declares its quantities and the app
+   dresses them from its scheme, which is what these tokens carry; the shell's
+   own style element comes after this one in the head, so the colours the reader
+   has chosen win over it. Dark comes in three states: system, forced, or light. */
+const colourCss = cssFor(tree.manifest, NO_CHOICES);
+const kvRules = Object.keys(tree.manifest.types).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
 const unbound = tree.chapters.flatMap((ch) => ch.sections.filter((s) => s.meta.binds.length).map((s) => {
-  const off = Object.keys(m.types).filter((k) => !s.meta.binds.includes(k));
+  const off = Object.keys(tree.manifest.types).filter((k) => !s.meta.binds.includes(k));
   return off.length ? `article[data-sec="${s.meta.id}"] :is(${off.map((k) => `.kv-${k}`).join(',')}){color:inherit}` : '';
 })).join('\n');
 const shellProps = { manifest: tree.manifest, own, chapterDir, chapterData, section: meta, exercises, threeUrl: config.build.threeUrl };

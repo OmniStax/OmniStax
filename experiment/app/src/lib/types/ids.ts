@@ -4,6 +4,9 @@
    split out of a document, one exercise on its own, one of the standing pages
    of the site, or a note the reader has written. */
 
+/* One textbook of the library: the id its book.json carries, which names its
+   pages, the storage it keeps and the colour file the reader exports. */
+export type BookId = string & { readonly __brand: 'BookId' };
 export type SectionId = string & { readonly __brand: 'SectionId' };
 export type ChapterId = string & { readonly __brand: 'ChapterId' };
 export type GroupKey = string & { readonly __brand: 'GroupKey' };
@@ -14,6 +17,7 @@ export type NoteId = string & { readonly __brand: 'NoteId' };
    tells them apart. A view with no instance is the singleton the sidebar holds. */
 export type ViewInstance = string & { readonly __brand: 'ViewInstance' };
 
+export const bookId = (s: string): BookId => s as BookId;
 export const sectionId = (s: string): SectionId => s as SectionId;
 export const chapterId = (s: string): ChapterId => s as ChapterId;
 export const groupKey = (s: string): GroupKey => s as GroupKey;

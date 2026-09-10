@@ -66,18 +66,17 @@ force line is an energy and is shaded as one. Nothing is coerced into a
 neighbouring type to save a colour: frequency is not a time and a force
 constant is not a force.
 
-A book has more types than a page can carry in distinguishable hues, so
-hues are allocated in two tiers. The **global tier** pins one hue for
-the whole book to the handful of types nearly every chapter uses (time,
-position, velocity, acceleration, force, energy). Every other type is
-**chapter tier**: the chapter binds it to a hue from a small pool,
-choosing so that no two types that share a page in that chapter share a
-hue. A type may take a different pool hue in another chapter, since no
-reader is on both at once; the chapter is the unit a reader studies at
-a stretch. Finally, **a page colours only the types it binds**, the ones
-its demos draw, its sliders carry, or its readouts state; every other
-symbol renders in ink on that page, so colour stays a signal rather than
-wallpaper. The plan for a section lists what it binds.
+The book declares its types and says nothing about their hues. The
+app dresses them from a **scheme**: the first of its recommended
+palettes that can dress every type the book declares, and hues spaced
+evenly round the OKLCH circle when none is long enough, laid along the
+order the book declares its types in. The reader may reorder the types
+and override any colour for the book, a chapter or a section in the
+colour menu, and export or load what they chose. Finally, **a page
+colours only the types it binds**, the ones its demos draw, its sliders
+carry, or its readouts state; every other symbol renders in ink on that
+page, so colour stays a signal rather than wallpaper. The plan for a
+section lists what it binds.
 
 The scheme ties sliders, equation symbols and drawn objects together
 across the page, and it can be switched off. Keep it.
