@@ -4,7 +4,9 @@
      reaching a target, opens after a short delay, and stays while the pointer
      crosses into the card. Escape closes; on touch a tap opens and a tap
      elsewhere closes. It also carries the underline rules for its targets and
-     the click that follows a figure reference into a section not yet open. */
+     the click that follows a figure reference into a section not yet open.
+     A concept's card carries more than a sentence: under it stand the places
+     the text introduces it, uses it and tests it, each one a link to go there. */
   import { onMount, tick } from 'svelte';
   import { targetOf, cardFor, openDelay } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
@@ -93,6 +95,7 @@
     <div class="eyebrow">{card.eyebrow}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
+    {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={() => run(l)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={() => run(m)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
     {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={() => run(a)}>{a.label}</button>{/each}</div>{/if}
   </div>
 {/key}{/if}
@@ -106,6 +109,17 @@
   .title{font-weight:600;font-size:0.92rem;margin-bottom:3px}
   .body{margin:0;color:var(--ink);max-width:36em}
   .body :global(.katex){font-size:1em}
+  /* a concept's places: the lead in the eyebrow's voice, the places beside it as quiet links */
+  .refs{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline}
+  .refs dt{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;white-space:nowrap}
+  .refs dd{margin:0;display:flex;flex-wrap:wrap;gap:3px 6px}
+  .ref{font:inherit;font-size:0.78rem;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;text-align:left;text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
+  .ref:hover,.ref:focus-visible{text-decoration-color:var(--accent);color:var(--accent)}
+  .ref:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .ref.more{color:var(--muted);text-decoration:none;font-style:italic}
+  .refs .sep{color:var(--muted);font-size:0.78rem}
+  .ref :global(.katex){font-size:1em}
+  .hover-card[data-kind="concept"]{max-width:min(400px,calc(100vw - 16px))}
   .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
   .actions button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
   .actions button:hover{background:var(--soft)}

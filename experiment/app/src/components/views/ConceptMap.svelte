@@ -1,8 +1,10 @@
 <script lang="ts">
   /* The concept map: nodes in rows by prerequisite depth, edges drawn in an SVG
-     behind them. Hover explains a node; click pins it and jumps to where the
-     text introduces it. What it draws is what the view's level covers: one
-     section, one chapter, or everything the book teaches.
+     behind them. Hover opens the node's goto card — why the concept matters,
+     and where the text introduces it, uses it and tests it, each a link to go
+     there; click pins it and jumps to where the text introduces it. What it
+     draws is what the view's level covers: one section, one chapter, or
+     everything the book teaches.
 
      A node's shape says what kind of thing it is, the way a textbook page does:
      an idea is a plain box (a term to hold), a result is a box under a double
@@ -12,9 +14,9 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
-  import { pin, spansOf, testedBy } from '../../lib/sections/concepts.svelte';
+  import { pin, spansOf } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { goSpan, openDoc, findEl } from '../../lib/sections/nav.svelte';
+  import { goSpan, openDoc } from '../../lib/sections/nav.svelte';
   import { scopedNodes, dagRows, edgesOf } from '../../lib/sections/dag';
   import { conceptId, sectionId } from '../../lib/types/ids';
   import { mathHtml } from '../actions/math';
@@ -24,15 +26,7 @@
   const edges = $derived(edgesOf(list));
   const node = (id: string) => list.find((c) => c.id === id)!;
   const coverage = $derived(spy.current.span ? registry.coverage.find((c) => c.span === spy.current.span) ?? registry.coverage.find((c) => c.span === spy.current.section) : undefined);
-  const spanTitle = (id: string): string => { const h = findEl(id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
-  let hover = $state<string | null>(null);
-  /* What the panel says with nothing under the pointer. */
-  const BLANK = '<b>Hover a concept</b> to see why it matters. Click one to pin it and see where the text introduces, uses and tests it.';
-  const why = $derived.by(() => {
-    if (!hover) return null; const c = node(hover); const sp = spansOf(conceptId(c.id)); const tb = testedBy(conceptId(c.id)).length;
-    if (c.placeholder) return `<b>${c.name}.</b> <span class="kind">section ${c.section}, not built yet</span><br>Opens the OpenStax page.`;
-    return `<b>${c.name}.</b> <span class="kind">${c.kind}${c.ext ? ' · section ' + c.section : ''}${sp.intro[0] ? ' · introduced in “' + spanTitle(sp.intro[0]) + '”' : ''} · tested by ${tb} exercise${tb === 1 ? '' : 's'}</span><br>${c.why ?? ''}<br><span class="kind">Click to pin: goes to where it is introduced and marks the exercises that test it.</span>`;
-  });
+  let hover = $state<string | null>(null);   /* the node under the pointer, which lights its edges; the card itself is the shell's */
   const click = (id: string) => {
     const c = node(id);
     if (c.placeholder) { const e = registry.entry(sectionId(c.section)); if (e?.built) { openDoc(sectionId(c.section), 'text'); return; } window.open(e?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); return; }
@@ -72,7 +66,7 @@
     <div class="row" class:dense={row.length >= 3}>
       {#each row as id (id)}
         {@const c = node(id)}
-        <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id}
+        <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
           {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
         </button>
@@ -80,7 +74,6 @@
     </div>
   {/each}
 </div>
-<div class="why" use:mathHtml={why ?? BLANK}></div>
 
 <style>
   /* one hue per kind, mixed into the panel so the tint stays a second cue behind the shape */
@@ -115,9 +108,6 @@
   .dag > svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
   .dag > svg path{fill:none;stroke:var(--rule);stroke-width:1.5}
   .dag > svg path.hot{stroke:var(--muted)}
-  .why{margin-top:14px;padding:10px 12px;border-radius:5px;background:var(--soft);font-size:0.8rem;color:var(--muted);min-height:3em}
-  .why :global(b){color:var(--ink);font-weight:600}
-  .why :global(.kind){font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em}
   /* the legend draws the four shapes in miniature, so the convention is taught where it is used */
   .legend{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin:-4px 0 10px;font-size:0.7rem;color:var(--muted)}
   .legend span{display:inline-flex;align-items:center;gap:5px}

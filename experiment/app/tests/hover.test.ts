@@ -6,13 +6,14 @@ import { fileURLToPath } from 'node:url';
 import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
 import { variableCard, figureCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
-import type { SectionId, SpanId } from '../src/lib/types/ids';
+import type { ConceptId, SectionId, SpanId } from '../src/lib/types/ids';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
+const cid = (s: string) => s as ConceptId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`), showExercises: (s, c) => calls.push(`exs:${s}/${c}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- terms ---------- */
@@ -128,22 +129,67 @@ test('a reference card and the first sentence', () => {
 
 /* ---------- concept ---------- */
 const hooke = { id: 'hookes-law', kind: 'result' as const, section: '16.1', name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], placeholder: false, why: 'the restoring force is proportional to the displacement' };
-test('a concept card names its kind and section and says where it is introduced and how often it is tested', () => {
-  const c = conceptCard({ concept: hooke, anchor: span('16.1-hookes-law'), introducedIn: 'Hooke’s Law', tested: 2, built: true }, nav);
+const place = (id: string, title: string) => ({ id: span(id), title });
+const tester = (id: string, label: string) => ({ id: span(id), label });
+const refOf = (card: { refs?: readonly { label: string; links: readonly { label: string }[]; more?: { label: string } }[] }, label: string) => card.refs?.find((g) => g.label === label);
+const runRef = (card: { refs?: readonly { label: string; links: readonly { label: string; run: () => void }[]; more?: { label: string; run: () => void } }[] }, group: string, link: string) => {
+  calls.length = 0; const g = card.refs?.find((x) => x.label === group); (link === 'more' ? g?.more : g?.links.find((l) => l.label === link))?.run(); return calls.join(',');
+};
+
+test('a concept card says why it matters, then where the text introduces, uses and tests it', () => {
+  const c = conceptCard({
+    concept: { ...hooke, eq: 'eq-hooke' },
+    intro: [place('16.1-hookes-law', 'Hooke’s Law')],
+    uses: [place('16.1-energy', 'Energy in a Spring'), place('16.2-period', 'Period and Frequency')],
+    tested: [tester('16.1-ex-p3', 'Problem p3'), tester('16.2-ex-cq1', '16.2 · Conceptual question cq1')],
+    built: true, onMap: false,
+  }, nav);
   assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Concept · result · section 16.1'); assert.equal(c.title, hooke.name);
-  assert.equal(c.body, 'The restoring force is proportional to the displacement. Introduced in “Hooke’s Law”. Tested by 2 exercises.');
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Concept map']);
-  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Concept map', c), 'view:concepts');
+  assert.equal(c.body, 'The restoring force is proportional to the displacement.');
+  assert.deepEqual(c.refs?.map((g) => g.label), ['Introduced in', 'Used in', 'Tested by']);
+  assert.deepEqual(refOf(c, 'Introduced in')?.links.map((l) => l.label), ['Hooke’s Law']);
+  assert.deepEqual(refOf(c, 'Used in')?.links.map((l) => l.label), ['Energy in a Spring', 'Period and Frequency']);
+  assert.deepEqual(refOf(c, 'Tested by')?.links.map((l) => l.label), ['Problem p3', '16.2 · Conceptual question cq1']);
+  assert.equal(refOf(c, 'Used in')?.more, undefined); assert.equal(refOf(c, 'Tested by')?.more, undefined);
+  assert.equal(runRef(c, 'Tested by', 'Problem p3'), 'span:16.1-ex-p3');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Formulas', 'Show in Concept map']);
+  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Formulas', c), 'view:formulas'); assert.equal(run('Show in Concept map', c), 'view:concepts');
 });
-test('a concept with no why, no introducing span and one exercise still counts what tests it', () => {
-  const c = conceptCard({ concept: { ...hooke, why: undefined }, tested: 1, built: true }, nav);
-  assert.equal(c.body, 'Tested by 1 exercise.'); assert.equal(run('Go to definition', c), 'sec:16.1');
+test('a card opened on the map itself does not offer the map, and one with no equation does not offer the sheet', () => {
+  const c = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], tested: [], built: true, onMap: true }, nav);
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition']);
+  const off = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], tested: [], built: true, onMap: false }, nav);
+  assert.deepEqual(off.actions.map((a) => a.label), ['Go to definition', 'Show in Concept map']);
+});
+test('long lists are cut short and the rest stand behind one trailing action', () => {
+  const many = conceptCard({
+    concept: hooke, intro: [], uses: [],
+    tested: Array.from({ length: 8 }, (_, i) => tester(`16.1-ex-p${i + 1}`, `Problem p${i + 1}`)),
+    built: true, onMap: false,
+  }, nav);
+  const t = refOf(many, 'Tested by');
+  assert.deepEqual(t?.links.map((l) => l.label), ['Problem p1', 'Problem p2', 'Problem p3', 'Problem p4', 'Problem p5', 'Problem p6']);
+  assert.equal(t?.more?.label, 'and 2 more'); assert.equal(runRef(many, 'Tested by', 'more'), `exs:${sec('16.1')}/${cid(hooke.id)}`);
+  const wide = conceptCard({
+    concept: hooke, intro: [], tested: [],
+    uses: Array.from({ length: 6 }, (_, i) => place(`16.1-part-${i + 1}`, `Part ${i + 1}`)),
+    built: true, onMap: false,
+  }, nav);
+  const u = refOf(wide, 'Used in');
+  assert.deepEqual(u?.links.map((l) => l.label), ['Part 1', 'Part 2', 'Part 3', 'Part 4']);
+  assert.equal(u?.more?.label, 'and 2 more'); assert.equal(runRef(wide, 'Used in', 'more'), 'sec:16.1');
+});
+test('a concept the text neither introduces, uses nor tests has no places, and no why leaves no body', () => {
+  const c = conceptCard({ concept: { ...hooke, why: undefined }, intro: [], uses: [], tested: [], built: true, onMap: false }, nav);
+  assert.equal(c.body, undefined); assert.deepEqual(c.refs, []);
+  assert.equal(run('Go to definition', c), 'sec:16.1');
 });
 test('a placeholder concept says its section is not built and offers the page it can reach', () => {
   const ph = { id: 'newtons-laws', kind: 'idea' as const, section: '4.3', name: 'Newton’s second law', prereqs: [], placeholder: true };
-  const out = conceptCard({ concept: ph, tested: 0, built: false }, nav);
-  assert.equal(out.body, 'Section 4.3 is not built yet.'); assert.deepEqual(out.actions.map((a) => a.label), ['Open in OpenStax']);
+  const facts = { concept: ph, intro: [], uses: [], tested: [], onMap: false };
+  const out = conceptCard({ ...facts, built: false }, nav);
+  assert.equal(out.body, 'Section 4.3 is not built yet.'); assert.equal(out.refs, undefined); assert.deepEqual(out.actions.map((a) => a.label), ['Open in OpenStax']);
   assert.equal(run('Open in OpenStax', out), 'ext:4.3');
-  const here = conceptCard({ concept: ph, tested: 0, built: true }, nav);
+  const here = conceptCard({ ...facts, built: true }, nav);
   assert.deepEqual(here.actions.map((a) => a.label), ['Go to section']); assert.equal(run('Go to section', here), 'sec:4.3');
 });

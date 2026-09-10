@@ -3,16 +3,21 @@
    actions. Composition is pure: the facts come in as plain records and the
    navigation as callbacks, so the cards can be tested without a DOM. */
 import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
-import type { SpanId, SectionId } from '../types/ids';
+import type { SpanId, SectionId, ConceptId } from '../types/ids';
 
 export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation' | 'concept';
 export type Action = { readonly label: string; readonly run: () => void };
+/* Places the card points at, under a lead of their own: "Introduced in", "Used
+   in", "Tested by". A long list is cut short and the rest stand behind one
+   trailing action, which opens the page holding them all. */
+export type RefGroup = { readonly label: string; readonly links: readonly Action[]; readonly more?: Action };
 export type Card = {
   readonly kind: Kind;
   readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Figure", "Equation · important" */
   readonly title: string;            /* plain text, or text with $…$ for the math action */
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
   readonly body?: string;            /* one or two sentences, $…$ allowed */
+  readonly refs?: readonly RefGroup[];
   readonly actions: readonly Action[];
 };
 
@@ -23,6 +28,7 @@ export type Nav = {
   readonly showView: (view: 'definitions' | 'formulas' | 'concepts') => void;
   readonly showOriginal: (figure: SpanId) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
+  readonly showExercises: (sec: SectionId, concept: ConceptId) => void;   /* pins the concept and opens the problem set, so the cards that test it stand marked */
 };
 
 const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept' };
@@ -30,6 +36,7 @@ const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
 const secIdOf = (s: string): SectionId => s as SectionId;
+const conIdOf = (s: string): ConceptId => s as ConceptId;
 
 /* ---------- variable ---------- */
 export type VariableFacts = {
@@ -110,22 +117,40 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
 };
 
 /* ---------- concept ---------- */
-/* A concept a problem tests: what it is, where the text introduces it, and how much of
-   the problem set rests on it. A placeholder concept belongs to a section not built here. */
-export type ConceptFacts = { readonly concept: ConceptDTO; readonly anchor?: SpanId; readonly introducedIn?: string; readonly tested: number; readonly built: boolean };
+/* A concept: why it matters, and then the book itself — the span that introduces
+   it, the spans that go on using it, the problems that test it — each one a place
+   the reader can go. Where the text uses a concept everywhere, the list would be
+   the section's table of contents, so it is cut short and the section stands for
+   the rest. A placeholder concept belongs to a section not built here. */
+export const USES_SHOWN = 4, TESTED_SHOWN = 6;
+export type Place = { readonly id: SpanId; readonly title: string };          /* a span of the text, by heading */
+export type Tester = { readonly id: SpanId; readonly label: string };         /* an exercise, by its DOM id and its "Problem p3" label */
+export type ConceptFacts = {
+  readonly concept: ConceptDTO;
+  readonly intro: readonly Place[];      /* spans whose coverage introduces it */
+  readonly uses: readonly Place[];       /* spans whose coverage uses or reinforces it */
+  readonly tested: readonly Tester[];    /* exercises whose `concepts` include it */
+  readonly built: boolean;               /* the concept's section is built in this app */
+  readonly onMap: boolean;               /* the card opened from the concept map itself, so it need not offer the map */
+};
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
-  const c = f.concept, sec = secIdOf(c.section), anchor = f.anchor;
+  const c = f.concept, sec = secIdOf(c.section), id = conIdOf(c.id), first = f.intro[0];
   const eyebrow = `${KIND_LABEL.concept} · ${c.kind} · section ${c.section}`;
   if (c.placeholder) return {
     kind: 'concept', eyebrow, title: c.name, body: `Section ${c.section} is not built yet.`,
     actions: [f.built ? { label: 'Go to section', run: () => nav.openSection(sec) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
   };
-  const body = [c.why ? sentence(c.why) : '', f.introducedIn ? `Introduced in “${f.introducedIn}”.` : '', `Tested by ${f.tested} exercise${f.tested === 1 ? '' : 's'}.`].filter((s) => s !== '').join(' ');
+  const uses = f.uses.slice(0, USES_SHOWN), tested = f.tested.slice(0, TESTED_SHOWN);
+  const refs: RefGroup[] = [];
+  if (f.intro.length) refs.push({ label: 'Introduced in', links: f.intro.map((p) => ({ label: p.title, run: () => nav.goSpan(p.id) })) });
+  if (uses.length) refs.push({ label: 'Used in', links: uses.map((p) => ({ label: p.title, run: () => nav.goSpan(p.id) })), ...(f.uses.length > uses.length ? { more: { label: `and ${f.uses.length - uses.length} more`, run: () => nav.openSection(sec) } } : {}) });
+  if (tested.length) refs.push({ label: 'Tested by', links: tested.map((t) => ({ label: t.label, run: () => nav.goSpan(t.id) })), ...(f.tested.length > tested.length ? { more: { label: `and ${f.tested.length - tested.length} more`, run: () => nav.showExercises(sec, id) } } : {}) });
   return {
-    kind: 'concept', eyebrow, title: c.name, body,
+    kind: 'concept', eyebrow, title: c.name, body: c.why ? sentence(c.why) : undefined, refs,
     actions: [
-      { label: 'Go to definition', run: () => (anchor ? nav.goSpan(anchor) : nav.openSection(sec)) },
-      { label: 'Show in Concept map', run: () => nav.showView('concepts') },
+      { label: 'Go to definition', run: () => (first ? nav.goSpan(first.id) : nav.openSection(sec)) },
+      ...(c.eq ? [{ label: 'Show in Formulas', run: () => nav.showView('formulas') }] : []),
+      ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: () => nav.showView('concepts') }]),
     ],
   };
 };
