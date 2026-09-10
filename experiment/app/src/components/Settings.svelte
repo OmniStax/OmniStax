@@ -1,9 +1,12 @@
 <script lang="ts">
-  /* The settings page: appearance, reading, keyboard shortcuts, layout. A
-     centred dialog; everything is saved in this browser. Clicking a shortcut
-     cell records the next chord (Escape cancels, Backspace clears); a chord
-     another command owns is shown as a conflict and taken only on Enter. */
-  import { settings, THEMES } from '../lib/settings/store.svelte';
+  /* The settings page: appearance, reading, layout, keyboard shortcuts. A
+     centred dialog; everything is saved in this browser. A filter in the header
+     narrows the rows to those that mention what is typed. Each setting that is
+     not at its default wears a small return arrow that puts it back. Clicking a
+     shortcut cell records the next chord (Escape cancels, Backspace clears); a
+     chord another command owns is shown as a conflict and taken only on Enter.
+     Chords the browser keeps for itself on this surface are marked. */
+  import { settings, THEMES, DEFAULTS } from '../lib/settings/store.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -11,16 +14,24 @@
   import type { Command, CommandId } from '../lib/commands/command';
   import { ui } from '../lib/commands/ui.svelte';
   import { reader } from '../lib/voice.svelte';
-  import { host, kept, keptChords, hostName, BROWSER_NAMES, type Surface } from '../lib/commands/host.svelte';
+  import { host, kept, keptChords, BROWSER_NAMES } from '../lib/commands/host.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
+  let q = $state('');
+  const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
+  /* Every row's words, so a section can tell whether any of its rows survive the filter. */
+  const ROWS = {
+    theme: 'Theme system light dark', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
+    anim: 'Play animations demo transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech', layout: 'Panes and tabs reset layout views sidebars',
+  } as const;
+  const APPEARANCE = [ROWS.theme, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
-    commands.all().forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
+    commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
     return Array.from(m.entries());
   });
-  $effect(() => { if (!ui.settings) rec = null; });
+  $effect(() => { if (!ui.settings) { rec = null; q = ''; } });
 
   const plain = (e: KeyboardEvent): boolean => !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
   const onKey = (e: KeyboardEvent) => {
@@ -36,69 +47,68 @@
     keys.set(rec.id, c); rec = null;
   };
   const record = (id: CommandId) => { rec = rec?.id === id ? null : { id, pending: null }; };
+  const focus = (el: HTMLElement) => { el.focus(); };
 
-  /* The shortcuts are marked against a surface: the window this is, or the tab
-     or app window the reader may move to. A browser tab keeps a few chords for
-     itself and they never arrive; the marks say which. */
-  let surface = $state<Surface | 'here'>('here');
-  const SURFACES: readonly { readonly id: Surface | 'here'; readonly label: string }[] = [{ id: 'here', label: 'This window' }, { id: 'tab', label: 'A browser tab' }, { id: 'app', label: 'An installed app' }];
-  const judged = $derived(surface === 'here' ? host.info : { browser: host.browser, surface });
+  /* The chords this window never sees: the browser keeps them. A tab and an
+     installed app have bindings of their own, since what each keeps differs. */
   const browserName = $derived(BROWSER_NAMES[host.browser]);
-  const heldCount = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(judged, ch))).length);
-  const keptTitle = $derived(`${browserName} keeps this chord for itself in ${judged.surface === 'tab' ? 'a browser tab' : 'this window'}; the book never sees it`);
+  const heldCount = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(host.info, ch))).length);
+  const keptTitle = $derived(`${browserName} keeps this chord for itself in a browser tab; the book never sees it`);
+  const surfaceNote = $derived(host.surface === 'app' ? 'These are the shortcuts of the installed app; a browser tab keeps its own.' : 'These are the shortcuts of a browser tab; the installed app keeps its own.');
 </script>
+
+{#snippet back(on: boolean, title: string, fn: () => void)}
+  {#if on}<button type="button" class="back" {title} aria-label={title} onclick={(e) => { e.preventDefault(); fn(); }}>↺</button>{/if}
+{/snippet}
 
 {#if ui.settings}
   <div class="scrim">
     <div class="dialog" id="settings" onclick={(e) => e.stopPropagation()} onkeydown={onKey} role="dialog" tabindex="-1" aria-label="Settings">
-      <header><div class="eyebrow">Settings</div><button type="button" class="x" title="Close" aria-label="Close settings" onclick={() => (ui.settings = false)}>×</button></header>
+      <header>
+        <div class="eyebrow">Settings</div>
+        <input class="find" type="search" placeholder="Filter settings…" aria-label="Filter settings" bind:value={q} use:focus>
+        <button type="button" class="x" title="Close" aria-label="Close settings" onclick={() => (ui.settings = false)}>×</button>
+      </header>
 
-      <section>
+      <section hidden={!APPEARANCE.some(hit)}>
         <h3>Appearance</h3>
-        <div class="row">
-          <span class="name">Theme</span>
+        <div class="row" hidden={!hit(ROWS.theme)}>
+          <span class="name">Theme{@render back(settings.theme !== DEFAULTS.theme, 'Back to the system theme', () => settings.setTheme(DEFAULTS.theme))}</span>
           <div class="seg" role="radiogroup" aria-label="Theme">
             {#each THEMES as t (t)}
               <button type="button" class:on={settings.theme === t} id={t === 'dark' ? 'theme-toggle' : undefined} role="radio" aria-checked={settings.theme === t} onclick={() => settings.setTheme(t)}>{t}</button>
             {/each}
           </div>
         </div>
-        <label class="row switch"><span class="name">Colour coding</span><span class="hint">Each physical type keeps its own hue in text, formulas and figures.</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
-        <label class="row switch"><span class="name">Underlines</span><span class="hint">The dotted rule under symbols, glossary terms and example references. Off leaves the page clean; the card still opens on hover.</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Colour coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Back to colour coding on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">Each physical type keeps its own hue in text, formulas and figures.</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Back to underlines on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">The dotted rule under symbols, glossary terms and example references. Off leaves the page clean; the card still opens on hover.</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
       </section>
 
-      <section>
+      <section hidden={!READING.some(hit)}>
         <h3>Reading</h3>
-        <label class="row switch"><span class="name">Play animations</span><span class="hint">Off pauses every demo; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
-        <div class="row">
-          <span class="name">Exercises</span>
+        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every demo; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <div class="row" hidden={!hit(ROWS.ex)}>
+          <span class="name">Exercises{@render back(settings.exerciseMode !== DEFAULTS.exerciseMode, 'Back to all exercises at once', () => settings.setExerciseMode(DEFAULTS.exerciseMode))}</span>
           <div class="seg" role="radiogroup" aria-label="Exercise mode">
             <button type="button" class:on={settings.exerciseMode === 'all'} role="radio" aria-checked={settings.exerciseMode === 'all'} onclick={() => settings.setExerciseMode('all')}>all</button>
             <button type="button" class:on={settings.exerciseMode === 'one'} role="radio" aria-checked={settings.exerciseMode === 'one'} onclick={() => settings.setExerciseMode('one')}>one at a time</button>
           </div>
         </div>
-        <label class="row switch"><span class="name">Voice</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Back to voice off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </section>
 
-      <section>
+      <section hidden={!hit(ROWS.layout)}>
+        <h3>Layout</h3>
+        <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section's text and exercises, views in their home sidebars.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
+      </section>
+
+      <section hidden={!groups.length}>
         <h3>Keyboard shortcuts</h3>
-        <p class="hint">Click a shortcut to record a new one. Escape cancels, Backspace clears. Ctrl also answers to Cmd.</p>
-        <div class="row host">
-          <span class="name">Running in</span>
-          <span class="hint">{hostName(host.info)}.
-            {#if !keptChords(judged).length && surface === 'here'}Every shortcut reaches the book here.
-            {:else if !keptChords(judged).length}In {surface === 'tab' ? 'a browser tab' : 'an installed app'}, {browserName} would hand the book every one.
-            {:else if surface === 'here'}{browserName} keeps {heldCount} of these for itself and the book never sees them; they are marked <span class="kept" aria-hidden="true">⊘</span>.
-              {#if host.browser === 'chromium'}Installed as an app, or in full screen, the book is handed every one.{/if}
-            {:else}{browserName} would keep {heldCount} of these in {surface === 'tab' ? 'a browser tab' : 'an installed app'}, marked <span class="kept" aria-hidden="true">⊘</span>.{/if}
-          </span>
-          {#if host.canInstall}<button class="btn-sm" type="button" onclick={() => host.install()}>Install as app</button>{/if}
-        </div>
-        <div class="row">
-          <span class="name">Mark for</span>
-          <span class="hint">Which window the marks are judged against.</span>
-          <div class="seg" role="radiogroup" aria-label="Mark shortcuts for">{#each SURFACES as s (s.id)}<button type="button" class:on={surface === s.id} role="radio" aria-checked={surface === s.id} onclick={() => (surface = s.id)}>{s.label}</button>{/each}</div>
-        </div>
+        <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>
+        <p class="hint">{surfaceNote}
+          {#if keptChords(host.info).length}{browserName} keeps {heldCount} of these for itself and the book never sees them; they are marked <span class="kept" aria-hidden="true">⊘</span>. {#if host.browser === 'chromium'}Installed as an app, the book is handed every one.{/if}{/if}
+          {#if host.canInstall}<button class="link" type="button" onclick={() => host.install()}>Install as app</button>{/if}
+        </p>
         <table>
           <tbody>
             {#each groups as [group, cmds] (group)}
@@ -106,7 +116,7 @@
               {#each cmds as c (c.id)}
                 {@const on = rec?.id === c.id}
                 <tr>
-                  <td class="cmd">{c.label}</td>
+                  <td class="cmd">{c.label}{@render back(!keys.isDefaultFor(c.id), 'Back to the default shortcut', () => keys.restoreDefault(c.id))}</td>
                   <td class="keys">
                     <button type="button" class="chord-cell" class:on onclick={() => record(c.id)} aria-label="Shortcut for {c.label}">
                       {#if on && rec?.pending}
@@ -114,7 +124,7 @@
                       {:else if on}
                         <span class="recording">Press a chord…</span>
                       {:else}
-                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord" class:held={kept(judged, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(judged, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
+                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord" class:held={kept(host.info, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(host.info, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
                       {/if}
                     </button>
                   </td>
@@ -123,12 +133,7 @@
             {/each}
           </tbody>
         </table>
-        <button class="btn-sm" type="button" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Restore defaults</button>
-      </section>
-
-      <section>
-        <h3>Layout</h3>
-        <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section's text and exercises, views in their home sidebars.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
+        <button class="btn-sm" type="button" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Restore all defaults</button>
       </section>
 
       <small>Layout, shortcuts and settings are saved in this browser.</small>
@@ -139,15 +144,20 @@
 <style>
   .scrim{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:rgba(0,0,0,.18);padding:16px}
   .dialog{width:min(760px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 24px 20px;font-family:var(--sans);font-size:0.88rem;box-shadow:0 12px 40px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:18px;box-sizing:border-box}
-  header{display:flex;align-items:center;justify-content:space-between}
-  .x{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;width:28px;height:28px;border-radius:4px}
+  header{display:flex;align-items:center;gap:12px}
+  .find{flex:1;font:inherit;font-size:0.82rem;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);min-width:0}
+  .find:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
+  .x{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;width:28px;height:28px;border-radius:4px;flex:none}
   .x:hover{background:var(--soft);color:var(--ink)}
   h3{font-size:0.95rem;font-weight:600;margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
   section{display:flex;flex-direction:column;gap:8px}
   .row{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:12px;padding:4px 0}
-  .name{font-weight:600}
+  .name{font-weight:600;display:inline-flex;align-items:center;gap:4px}
+  .back{border:0;background:transparent;color:var(--muted);font:inherit;font-size:0.9rem;line-height:1;cursor:pointer;padding:1px 3px;border-radius:3px}
+  .back:hover{background:var(--soft);color:var(--ink)}
   .hint{color:var(--muted);font-size:0.8rem;margin:0}
   p.hint{margin:-4px 0 4px}
+  .link{border:0;background:transparent;color:var(--accent);font:inherit;font-size:0.8rem;padding:0;cursor:pointer;text-decoration:underline}
   .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;grid-column:3}
   .seg button{font:inherit;font-size:0.8rem;padding:4px 12px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
   .seg button+button{border-left:1px solid var(--rule)}

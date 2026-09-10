@@ -85,4 +85,5 @@ export const parseBindings = (raw: unknown): Bindings | null => {
 export const chordsFor = (bindings: Bindings, id: CommandId): readonly Chord[] => (Object.keys(bindings) as Chord[]).filter((c) => bindings[c] === id);
 export const withoutCommand = (bindings: Bindings, id: CommandId): Bindings => Object.fromEntries(Object.entries(bindings).filter(([, v]) => v !== id)) as Bindings;
 /* Give `id` exactly this chord, taking it from whichever command had it. */
-export const rebind = (bindings: Bindings, id: CommandId, c: Chord): Bindings => ({ ...withoutCommand(bindings, id), [c]: id });
+/* Make `c` a chord of `id`: its only one, unless `keep` says the others stay. Whoever had `c` loses it. */
+export const rebind = (bindings: Bindings, id: CommandId, c: Chord, keep = false): Bindings => ({ ...(keep ? bindings : withoutCommand(bindings, id)), [c]: id });

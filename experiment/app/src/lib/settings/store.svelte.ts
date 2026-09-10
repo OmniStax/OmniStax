@@ -5,6 +5,7 @@
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false } as const;
 
 const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };

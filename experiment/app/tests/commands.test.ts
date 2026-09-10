@@ -266,3 +266,8 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
   assert.equal(available(open(deps(true))), false);
   assert.equal(available(open(deps(false))), true);
 });
+test('rebind takes the other chords of a command away unless told to keep them', () => {
+  const b = { 'Ctrl+A': commandId('x'), 'Ctrl+B': commandId('x'), 'Ctrl+C': commandId('y') } as Bindings;
+  assert.deepEqual(Object.keys(rebind(b, commandId('x'), 'Ctrl+C' as Chord)).sort(), ['Ctrl+C']);
+  assert.deepEqual(rebind(b, commandId('x'), 'Ctrl+C' as Chord, true), { 'Ctrl+A': 'x', 'Ctrl+B': 'x', 'Ctrl+C': 'x' });
+});

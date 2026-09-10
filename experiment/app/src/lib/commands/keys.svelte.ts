@@ -2,15 +2,18 @@
    own several chords, and a binding may be a sequence of two presses — Ctrl+K
    Ctrl+S — of which the first is held here for a moment while the second is
    waited for. The dispatcher runs from the document's keydown; chords without
-   Ctrl or Alt are left to inputs so typing keeps working. */
+   Ctrl or Alt are left to inputs so typing keeps working.
+   An installed app and a browser tab share one origin and so one storage, but
+   not one set of chords the browser keeps, so each has bindings of its own. */
 import { commands } from './registry.svelte';
 import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBindings, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
 import { DEFAULT_BINDINGS } from './defaults';
 import type { CommandId } from './command';
+import { host } from './host.svelte';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
-const KEY = 'omnistax-keys';
+const KEY = host.surface === 'app' ? 'omnistax-keys-app' : 'omnistax-keys';
 const WAIT = 1500;   /* how long the first press of a sequence is held, in milliseconds */
 export { DEFAULT_BINDINGS } from './defaults';
 
@@ -33,6 +36,12 @@ class Keys {
   clear(id: CommandId): void { this.bindings = withoutCommand(this.bindings, id); save(this.bindings); }
   restoreDefaults(): void { this.bindings = DEFAULT_BINDINGS; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
   get isDefault(): boolean { return JSON.stringify(this.bindings) === JSON.stringify(DEFAULT_BINDINGS); }
+  /* One command back to the chords it shipped with; whoever holds them now loses them. */
+  restoreDefault(id: CommandId): void {
+    this.bindings = chordsFor(DEFAULT_BINDINGS, id).reduce((b, c) => rebind(b, id, c, true), withoutCommand(this.bindings, id));
+    save(this.bindings);
+  }
+  isDefaultFor(id: CommandId): boolean { return JSON.stringify([...this.chordsFor(id)].sort()) === JSON.stringify([...chordsFor(DEFAULT_BINDINGS, id)].sort()); }
 
   /* Hold a press, or let go of the one being held; a held press is dropped after a
      moment, so a Ctrl+K nobody followed up on stops standing in the way. */
