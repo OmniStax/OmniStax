@@ -26,7 +26,7 @@
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
     theme: 'Theme system light dark', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
-    anim: 'Play animations demo transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
+    anim: 'Play animations sim figure transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
     threshold: 'Mastery threshold score concept fading points mastered', days: 'Days in a row distinct correct streak mastered',
     halfLife: 'Half-life in days fading decay unpractised score halved', session: 'Exercises in a session how many a session draws',
     reviewShare: 'Share given to review due percentage session new work', spaced: 'Spaced review scores fade with time mastered come due again',
@@ -125,7 +125,7 @@
 
       <section hidden={!READING.some(hit)}>
         <h3>Reading</h3>
-        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every demo; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every interactive figure; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(ROWS.ex)}>
           <span class="name">Exercises{@render back(settings.exerciseMode !== DEFAULTS.exerciseMode, 'Back to all exercises at once', () => settings.setExerciseMode(DEFAULTS.exerciseMode))}</span>
           <div class="seg" role="radiogroup" aria-label="Exercise mode">

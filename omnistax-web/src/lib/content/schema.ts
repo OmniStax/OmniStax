@@ -36,8 +36,9 @@ export type CoverageVerb = (typeof COVERAGE_VERBS)[number];
    built the section. */
 export const GENERATED_BY = ['source', 'ai'] as const;
 export type GeneratedBy = (typeof GENERATED_BY)[number];
-/* What a figure is: a simulation the reader can play with, a faithful copy of a
-   book figure that the exercises need, or a photograph. */
+/* What a figure is: an interactive figure the reader can play with, a faithful
+   copy of a book figure that the exercises need, or a photograph. The kind names
+   the mechanism; the label the reader sees follows from the number. */
 export const FIGURE_KINDS = ['demo', 'figure', 'photo'] as const;
 export type FigureKind = (typeof FIGURE_KINDS)[number];
 
@@ -169,9 +170,9 @@ export type AiCreditDTO = z.infer<typeof AiCreditSchema>;
 
 export const FigureSchema = z.object({
   id: z.string().describe('The figure\u2019s local id, which is the id the <figure> element carries in the section\u2019s text.'),
-  kind: z.enum(FIGURE_KINDS).describe('Whether the figure is a simulation the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph.'),
+  kind: z.enum(FIGURE_KINDS).describe('Whether the figure is an interactive one the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph. The kind demo names the mechanism, not the label: its eyebrow reads Sim where the row carries no number, since the figure replaces nothing in the book, and Figure with the book\u2019s numbers where it does.'),
   number: z.string().optional().describe('The number the book prints the figure under, such as 16.4, where the figure keeps one.'),
-  folds: z.array(z.string()).default([]).describe('The further numbers the book prints the figure under, where the book drew one scene several times and the demo replaces them all; the number stays the demo\u2019s own, and the eyebrow reads every number in the book\u2019s order.'),
+  folds: z.array(z.string()).default([]).describe('The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure\u2019s own, and the eyebrow reads every number in the book\u2019s order.'),
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
   original_caption: z.string().optional().describe('The caption the book prints under the figure, kept word for word.'),
   draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The page\u2019s binds are the union of them, so the page need not say again what it colours.'),

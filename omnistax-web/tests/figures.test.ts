@@ -61,26 +61,26 @@ const eyebrow = (text: string): string => `<span class="eyebrow">${text}</span>`
 test('figureList labels a figure with its eyebrow and the first sentence of its head', () => {
   const html = [
     demo('demo-shm-oscillator', `${eyebrow('Figure 16.9')}<span>An object on a spring slides on a frictionless surface, as in <a class="figref" href="#16.3-demo-shm-oscillator" data-figref="16.9">Figure 16.9</a>. It is released from rest and oscillates.</span>`),
-    demo('demo-shm-period', `${eyebrow('Demo')}<span>Two identical objects are released at the same moment. They stay in step.</span>`),
+    demo('demo-shm-period', `${eyebrow('Sim')}<span>Two identical objects are released at the same moment. They stay in step.</span>`),
     '<figure class="demo" id="demo-shm-period-graph"></figure>',
     '<figure class="photo" id="fig-guitar"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>',
   ].join('\n');
   assert.deepEqual(figureList(html, '16.3'), [
     { id: 'demo-shm-oscillator', label: 'Figure 16.9 · An object on a spring slides on a frictionless surface, as in Figure 16.9.' },
-    { id: 'demo-shm-period', label: 'Demo · Two identical objects are released at the same moment.' },
+    { id: 'demo-shm-period', label: 'Sim · Two identical objects are released at the same moment.' },
     { id: 'demo-shm-period-graph', label: 'shm period graph' },
   ]);
 });
 test('figureList takes the head of a figure with no eyebrow, and gives a qualified id back', () => {
   assert.deepEqual(figureList(demo('demo-a', '<span>One sentence only</span>'), '16.3'), [{ id: 'demo-a', label: 'One sentence only' }]);
-  assert.deepEqual(figureList(demo('16.3-demo-a', `${eyebrow('Demo')}<span>Qualified.</span>`), '16.3'), [{ id: 'demo-a', label: 'Demo · Qualified.' }]);
+  assert.deepEqual(figureList(demo('16.3-demo-a', `${eyebrow('Sim')}<span>Qualified.</span>`), '16.3'), [{ id: 'demo-a', label: 'Sim · Qualified.' }]);
 });
 test('figureList caps a long sentence with an ellipsis', () => {
   const long = `${'word '.repeat(40)}ends here. A second sentence.`;
-  const [fig] = figureList(demo('demo-a', `${eyebrow('Demo')}<span>${long}</span>`), '16.3');
-  assert.equal(fig.label.startsWith('Demo · word word'), true);
+  const [fig] = figureList(demo('demo-a', `${eyebrow('Sim')}<span>${long}</span>`), '16.3');
+  assert.equal(fig.label.startsWith('Sim · word word'), true);
   assert.equal(fig.label.endsWith('…'), true);
-  assert.ok(fig.label.slice('Demo · '.length).length <= 141, fig.label);   /* 140 characters and the ellipsis, less if the cut fell on a space */
+  assert.ok(fig.label.slice('Sim · '.length).length <= 141, fig.label);   /* 140 characters and the ellipsis, less if the cut fell on a space */
 });
 test('figureList keeps math as $…$, whether the text is written or prerendered', () => {
   const head = `${eyebrow('Figure 16.9')}<span>It is released from rest at $\\x = \\X$ and oscillates. Then on.</span>`;

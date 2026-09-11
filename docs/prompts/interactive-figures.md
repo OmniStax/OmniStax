@@ -33,7 +33,11 @@ You are given: the section text (source.md), the chapter's chapter.json, the
 book's book.json and the section's section.json, the book's RULES.md, and
 figlib.ts which already contains the drawing layer. The book's
 prose is quoted verbatim and must not be touched; everything you add is an
-OmniStax addition, set in the sans face, and is labelled "Demo".
+OmniStax addition, set in the sans face. An interactive figure carries one
+of two labels in its eyebrow: "Sim" where it is your own addition and
+replaces nothing in the book, and "Figure" with the book's number (or
+numbers, when it folds several) where it transforms a book figure. The
+validator checks the eyebrow against the row.
 
 ## 1. Plan the figures before drawing anything
 
@@ -50,13 +54,14 @@ Rules for the plan:
   "introduces" in the section's coverage rows). A worked example gets a
   figure only if
   it adds a quantity the section figure does not show.
-- Fold several book figures into one demo when the book draws one scene
-  several times and one live drawing says it better (a grid walked, then
-  its triangle, then its diagonal). The demo keeps every number it
-  replaces: `number` for its own, `folds` for the others, the eyebrow
-  "Figure 3.3 + 3.4 + 3.5", every image under `originals`. The build
-  links each number in the prose to the folded demo. Fold only when it
-  is obvious and clearer, and say which numbers in the plan line.
+- Fold several book figures into one interactive figure when the book
+  draws one scene several times and one live drawing says it better (a
+  grid walked, then its triangle, then its diagonal). The figure keeps
+  every number it replaces: `number` for its own, `folds` for the
+  others, the eyebrow "Figure 3.3 + 3.4 + 3.5", every image under
+  `originals`. The build links each number in the prose to the folded
+  figure. Fold only when it is obvious and clearer, and say which
+  numbers in the plan line.
 - Replace every sketch figure the book has. Keep a photograph when it
   serves the narrative and the original text (the text refers to it, or
   it shows the thing the passage is about, such as a bridge driven to
@@ -66,8 +71,9 @@ Rules for the plan:
   with keep or drop and the reason. Keep the book's numbers as the slider
   defaults so the figure reproduces the worked example on load.
 - A figure that exists to serve exercises (a diagram the problems refer
-  to) is copied over faithfully, labelled "Figure" rather than "Demo": no
-  sliders, no animation beyond what keeps the original readable.
+  to) is copied over faithfully, labelled "Figure" (with the book's
+  number where it has one) and never "Sim": no sliders, no animation
+  beyond what keeps the original readable.
 - The sliders are whatever is interesting and variable in the idea:
   positions, a starting speed, a time. They need not be the variables of
   one equation, and an idea with no equation still gets sliders for the
@@ -144,7 +150,7 @@ Style, as numbers:
 - the headline is one sentence at y = 46 that states the live numbers
   ("t = 3.3 s · the parabola crosses the ramp length twice; only one
   crossing is in the future").
-- the caption under the Demo or Figure label, the headline and every
+- the caption under the Sim or Figure label, the headline and every
   readout are written in the book's voice (see the tone rule in the
   per-book `RULES.md`): full sentences that say what to drag and what to
   watch, in the register the book uses, never a fragment headed with a
@@ -193,7 +199,7 @@ headline. Do not loop on it.
   page is never static and the reader sees the motion without doing
   anything. The per-figure transport and the reduced-motion default keep
   this from being hostile.
-- **No transport on a still figure.** The five still demos of Chapter 1
+- **No transport on a still figure.** The five still sims of Chapter 1
   first shipped with a dummy infinite cycle so that they would register
   like the others, and so each carried play, stop and speed buttons that
   did nothing. A transport says "this plays"; on a figure that cannot,
@@ -210,7 +216,7 @@ headline. Do not loop on it.
   those return; C() takes a type name, never a hue. One hex literal in a
   figure breaks all three.
 - **Sliders are what is interesting and variable.** Not every idea has an
-  equation: the displacement and path demos of 2.1 have positions on
+  equation: the displacement and path figures of 2.1 have positions on
   their sliders and nothing else to drive them. What matters is that a
   slider changes something the idea is about; one that only tunes the
   scene is a distraction.

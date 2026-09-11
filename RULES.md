@@ -102,7 +102,7 @@ evenly round the OKLCH circle when none is long enough, laid along the
 order the book declares its types in. The reader may reorder the types
 and override any colour for the book, a chapter or a section in the
 colour menu, and export or load what they chose. Finally, **a page
-colours only the types it binds**, the ones its demos draw, its sliders
+colours only the types it binds**, the ones its figures draw, its sliders
 carry, or its readouts state; every other symbol renders in ink on that
 page, so colour stays a signal rather than wallpaper. The plan for a
 section lists what it binds.
@@ -208,28 +208,29 @@ Defaults, all overridable in the config list of item 10:
 
 Three triggers, three treatments:
 
-- **An idea or result the section introduces gets a demo.** Sliders are
-  whatever is interesting and variable in that idea: positions for
-  displacement, a starting speed for a stopping car. They do not have to
-  be the variables of a single equation, and an idea with no equation
-  still gets sliders for the quantities its definition names.
-- **A sketch figure in the book is replaced by a demo** that covers the
-  same quantities, with the book's numbers as defaults. A photograph is
-  kept when it serves the narrative and the original text and dropped
-  when it is decoration; the plan says which and why, and a kept
-  photograph carries the book's caption and credit line.
-- **Several book figures may fold into one demo.** A book often draws
-  one scene several times because print cannot move: the walk across
-  the city, then the right triangle it makes, then the same grid with
-  the helicopter's diagonal (Figures 3.3, 3.4 and 3.5 of College Physics
-  2e). One demo that walks the legs, shades the triangle and flies the
-  diagonal is clearer than three drawings of the same grid, so the
-  agent folds them when the fold is obvious and reads better, and says
-  so in the plan line. A folded demo keeps every number it replaces: its
-  row names its own `number` and lists the others under `folds`, its
+- **An idea or result the section introduces gets an interactive figure.**
+  Sliders are whatever is interesting and variable in that idea:
+  positions for displacement, a starting speed for a stopping car. They
+  do not have to be the variables of a single equation, and an idea with
+  no equation still gets sliders for the quantities its definition names.
+- **A sketch figure in the book is replaced by an interactive figure**
+  that covers the same quantities, with the book's numbers as defaults.
+  A photograph is kept when it serves the narrative and the original
+  text and dropped when it is decoration; the plan says which and why,
+  and a kept photograph carries the book's caption and credit line.
+- **Several book figures may fold into one interactive figure.** A book
+  often draws one scene several times because print cannot move: the
+  walk across the city, then the right triangle it makes, then the same
+  grid with the helicopter's diagonal (Figures 3.3, 3.4 and 3.5 of
+  College Physics 2e). One figure that walks the legs, shades the
+  triangle and flies the diagonal is clearer than three drawings of the
+  same grid, so the agent folds them when the fold is obvious and reads
+  better, and says so in the plan line. A folded figure keeps every
+  number it replaces: its row names its own `number` and lists the
+  others under `folds`, its
   eyebrow reads "Figure 3.3 + 3.4 + 3.5", its `originals` carry every
   folded image, and the build links each of those numbers in the prose
-  to the one demo, so "as pictured in Figure 3.5" still jumps somewhere.
+  to the one figure, so "as pictured in Figure 3.5" still jumps somewhere.
   A fold is never a way to skip a figure: every number the prose cites
   must land on a figure that shows what that number showed.
 - **A figure that exists to serve exercises is copied over as it is.**
@@ -238,19 +239,31 @@ Three triggers, three treatments:
   the original readable. The point is that the reader sees exactly what
   the problem is about.
 
-Whether a demo moves is a decision of its own, made in the plan line, and
-the agent thinks it through for every figure rather than defaulting to
-motion. A demo moves when the idea has a time in it: something travels,
-oscillates, falls, or a quantity accumulates as a clock runs. That demo
-registers a cycle and gets the app's transport (play and pause, stop, a
-scrubber when the run is finite, speed). A demo whose idea has no time in
-it, one that answers its sliders and nothing else (a bull's-eye that
-scatters as the spread changes, a value placed on a ladder of powers of
-ten, two lengths summed with their rejected digits muted), is a still
-picture: it registers no cycle, gets no transport, and redraws when a
-slider moves. A transport on a still picture is a promise of motion the
-figure cannot keep, and a dummy loop added to earn one is worse. The plan
-line says which of the two each figure is, and why.
+An interactive figure carries one of two labels, and the reader sees no
+other word for it. A figure the agent made on its own suggestion,
+replacing nothing in the book, is a **Sim**: its row carries no number
+and its eyebrow reads "Sim". A figure that transforms a book figure is
+still a **Figure**: its row carries the book's number and its eyebrow
+reads "Figure 2.39", or "Figure 3.3 + 3.4 + 3.5" when it folds several.
+A faithful copy and a kept photograph are Figures as before. The
+validator reads the eyebrow of every figure element against its row and
+refuses any other label. The word "demo" survives only in the mechanism
+(the row's `kind`, the `.demo` class, the `demo-` id prefix, `F.demo()`),
+where it names how a figure is built and never what it is called.
+
+Whether an interactive figure moves is a decision of its own, made in the
+plan line, and the agent thinks it through for every figure rather than
+defaulting to motion. A figure moves when the idea has a time in it:
+something travels, oscillates, falls, or a quantity accumulates as a clock
+runs. That figure registers a cycle and gets the app's transport (play and
+pause, stop, a scrubber when the run is finite, speed). A figure whose
+idea has no time in it, one that answers its sliders and nothing else (a
+bull's-eye that scatters as the spread changes, a value placed on a
+ladder of powers of ten, two lengths summed with their rejected digits
+muted), is a still picture: it registers no cycle, gets no transport, and
+redraws when a slider moves. A transport on a still picture is a promise
+of motion the figure cannot keep, and a dummy loop added to earn one is
+worse. The plan line says which of the two each figure is, and why.
 
 ## 15. Proposing extra simulations
 
@@ -279,7 +292,7 @@ of item 2 real rather than ceremonial.
 ## 17. The page talks about the subject, not about itself, in the book's voice
 
 Every sentence OmniStax adds to a page is about the physics. A section lead
-says what the section is about. A demo caption says what to drag and what
+says what the section is about. A figure caption says what to drag and what
 to watch. Nothing on the page explains that the prose is quoted, that a
 figure is a redrawn or live version of the book's, or that a card was
 generated. Attribution and omissions go in the footer, and the AI mark on
@@ -296,7 +309,7 @@ it names the adaptation, the licence the adapted page is shared under
 did each job, so a reader always knows which model wrote the page's
 words and built its figures.
 
-Everything OmniStax writes (leads, demo captions, readouts, suggested
+Everything OmniStax writes (leads, figure captions, readouts, suggested
 approaches, concept "why" lines) is written in the book's own voice:
 its register, sentence shape, person and vocabulary. The typeface already
 marks the words as OmniStax's, so the language must not; the reader should

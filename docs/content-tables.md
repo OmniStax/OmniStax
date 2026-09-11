@@ -75,13 +75,19 @@ was the `notes` of the old `exercises.json`).
 
 Tables:
 
-- `figures`: `{ id, kind, number?, originals?, original_caption?, draws }`.
-  `kind` is `demo`, `figure` (a faithful copy that serves exercises) or
-  `photo`. `draws` lists the types the figure colours, and the page's
-  `binds` is the union of them, so `binds` is no longer written down.
-  The `<figure>` element in `text.html` still carries the same facts as
-  `data-*` attributes for the browser; the validator checks that the two
-  agree until the build injects them.
+- `figures`: `{ id, kind, number?, folds?, originals?, original_caption?,
+  draws }`. `kind` is `demo` (an interactive figure), `figure` (a faithful
+  copy that serves exercises) or `photo`. The kind names the mechanism and
+  the label follows from the number: a `demo` row with no number is a Sim,
+  an interactive figure that replaces nothing in the book, and its
+  eyebrow reads "Sim"; a `demo` row with a number transforms a book
+  figure and its eyebrow reads "Figure" with its number and folds; a
+  `figure` row reads "Figure" or "Figure N" as its number says; a `photo`
+  row reads "Figure N". `draws` lists the types the figure colours, and
+  the page's `binds` is the union of them, so `binds` is no longer
+  written down. The `<figure>` element in `text.html` still carries the
+  same facts as `data-*` attributes for the browser; the validator checks
+  that the two agree until the build injects them.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -151,6 +157,10 @@ references:
   `<figure data-figure>` matches the row's `number` joined with its
   `folds` in the book's order ("3.3 + 3.4 + 3.5"), and no fold repeats a
   number the section already carries;
+- every `<figure>`'s eyebrow reads what its row says: "Sim" for a `demo`
+  row with no number, "Figure" and the joined numbers for a `demo` row
+  with one, "Figure" or "Figure N" for a `figure` row, "Figure N" for a
+  `photo` row;
 - every `Figure N.M` the text cites is carried by some row of the book, as
   its `number` or one of its `folds`; one that is not is a warning rather
   than an error, since the figure may sit in a chapter nobody has built;

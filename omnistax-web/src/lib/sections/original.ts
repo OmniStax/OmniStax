@@ -1,9 +1,12 @@
-/* A demo that replaced a book figure can show that figure in its place. The
-   figure carries the originals in data-original (paths, comma-separated), the
-   book number in data-figure ("3.3 + 3.4 + 3.5" where the demo folds several
-   book figures, and then every folded image is among the originals) and the
-   book caption in data-original-caption; the button and the image block are
-   made here, on demand. */
+/* An interactive figure that replaced a book figure can show that figure in
+   its place. The figure carries the originals in data-original (paths,
+   comma-separated), the book number in data-figure ("3.3 + 3.4 + 3.5" where
+   the figure folds several book figures, and then every folded image is among
+   the originals) and the book caption in data-original-caption; the button and
+   the image block are made here, on demand. The button reads "Original" while
+   the live figure is shown and "Live" while the book's is: a figure with an
+   original always replaces a book figure, so it is a Figure and never a Sim,
+   and the word on the button names the drawing it will bring back. */
 
 const CLS = 'show-original';
 
@@ -19,8 +22,8 @@ const originalOf = (fig: HTMLElement): HTMLElement => {
   return box;
 };
 
-const labelOf = (shown: boolean): string => (shown ? 'Demo' : 'Original');
-const titleOf = (shown: boolean): string => (shown ? 'Show the demo' : 'Show the book’s original figure');
+const labelOf = (shown: boolean): string => (shown ? 'Live' : 'Original');
+const titleOf = (shown: boolean): string => (shown ? 'Show the live figure' : 'Show the book’s original figure');
 
 const toggle = (fig: HTMLElement, button: HTMLButtonElement): void => {
   const shown = fig.classList.toggle(CLS);

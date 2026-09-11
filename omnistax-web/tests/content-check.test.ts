@@ -35,7 +35,9 @@ test('a figure the book on disk cites and no row carries is a warning, and only 
 
 /* The smallest book that passes: one chapter, one built section, one concept
    the section introduces, and a text with the one span they all name. */
-const TEXT = '<section id="hookes-law"><h2>Hooke’s law</h2><figure class="demo" id="demo-ruler" data-figure="16.2"></figure></section>';
+const figureOf = (attrs: string, eyebrow: string | undefined): string =>
+  `<figure ${attrs}>${eyebrow === undefined ? '' : `<div class="demo-head"><span class="eyebrow">${eyebrow}</span><span>Drag the ruler.</span></div>`}</figure>`;
+const TEXT = `<section id="hookes-law"><h2>Hooke’s law</h2>${figureOf('class="demo" id="demo-ruler" data-figure="16.2"', 'Figure 16.2')}</section>`;
 const SOURCE = ':::exercise {fs-1} type=problem\nPROBLEM: How far?\n';
 
 const bookOf = (o: object) => BookSchema.parse({
@@ -116,17 +118,39 @@ test('checkFigures: a row with no figure, a figure with no row, and a number the
 });
 
 /* A demo that folds several book figures prints them all, and the text must print the same joined string. */
-const FOLDED = TEXT.replace('data-figure="16.2"', 'data-figure="16.2 + 16.3"');
+const FOLDED = TEXT.replaceAll('16.2', '16.2 + 16.3');
 const folded = (folds: readonly string[], more: readonly object[] = []) => ({ figures: [{ id: 'demo-ruler', kind: 'demo', number: '16.2', folds }, ...more] });
 test('checkFigures: a folded figure whose text does not print the joined string, or whose fold repeats a number', () => {
   assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED }), []);
   assert.match(run(checkFigures, { section: folded(['16.3']) })[0], /numbered 16.2 \+ 16.3 in the table and 16.2 in the text/);
   assert.match(run(checkFigures, { section: folded([]), textHtml: FOLDED })[0], /numbered 16.2 in the table and 16.2 \+ 16.3 in the text/);
-  assert.match(run(checkFigures, { section: folded(['16.2']), textHtml: TEXT.replace('16.2"', '16.2 + 16.2"') })[0], /folds 16.2, which is its own number/);
-  const two = `${FOLDED}<figure class="demo" id="demo-scale" data-figure="16.3"></figure>`;
+  assert.match(run(checkFigures, { section: folded(['16.2']), textHtml: TEXT.replaceAll('16.2', '16.2 + 16.2') })[0], /folds 16.2, which is its own number/);
+  const two = `${FOLDED}${figureOf('class="demo" id="demo-scale" data-figure="16.3"', 'Figure 16.3')}`;
   const clash = run(checkFigures, { section: folded(['16.3'], [{ id: 'demo-scale', kind: 'demo', number: '16.3' }]), textHtml: two });
   assert.deepEqual(clash, ['16.1/section.json figures[demo-ruler]: folds 16.3, which figure "demo-scale" already carries']);
-  assert.match(run(checkFigures, { section: { figures: [{ id: 'demo-ruler', kind: 'demo', folds: ['16.3'] }] }, textHtml: TEXT.replace(' data-figure="16.2"', '') })[0], /folds 16.3 but carries no number of its own/);
+  assert.match(run(checkFigures, { section: { figures: [{ id: 'demo-ruler', kind: 'demo', folds: ['16.3'] }] }, textHtml: TEXT.replace(' data-figure="16.2"', '').replace('Figure 16.2', 'Sim') })[0], /folds 16.3 but carries no number of its own/);
+});
+
+/* The eyebrow follows from the row: Sim for an interactive figure that replaces nothing, Figure with the book's numbers for
+   one that transforms a book figure, Figure or Figure N for a faithful copy, Figure N for a photograph. */
+const labelled = (row: object, attrs: string, eyebrow: string | undefined) => ({ section: { figures: [row] }, textHtml: figureOf(attrs, eyebrow) });
+test('checkFigures: the eyebrow of every figure reads what its row says', () => {
+  const sim = { id: 'demo-ruler', kind: 'demo' };
+  assert.deepEqual(run(checkFigures, labelled(sim, 'class="demo" id="demo-ruler"', 'Sim')), []);
+  assert.deepEqual(run(checkFigures, labelled(sim, 'class="demo" id="demo-ruler"', 'Demo')), ['16.1/section.json figures[demo-ruler]: reads "Demo" in the text and should read "Sim"']);
+  assert.deepEqual(run(checkFigures, labelled(sim, 'class="demo" id="demo-ruler"', 'Figure')), ['16.1/section.json figures[demo-ruler]: reads "Figure" in the text and should read "Sim"']);
+  assert.deepEqual(run(checkFigures, labelled(sim, 'class="demo" id="demo-ruler"', undefined)), ['16.1/section.json figures[demo-ruler]: has no eyebrow in the text; it should read "Sim"']);
+  assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2', 'Sim') }), ['16.1/section.json figures[demo-ruler]: reads "Sim" in the text and should read "Figure 16.2"'], 'a demo that replaces a book figure is a Figure');
+  assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED.replace('Figure 16.2 + 16.3', 'Figure 16.2') }), ['16.1/section.json figures[demo-ruler]: reads "Figure 16.2" in the text and should read "Figure 16.2 + 16.3"'], 'a folded figure reads every number');
+  assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2</span>', 'Figure 16.2<span class="tag">3D</span></span>') }), [], 'a badge nested in the eyebrow is not part of the label');
+  const copy = { id: 'fig-paths', kind: 'figure' };
+  assert.deepEqual(run(checkFigures, labelled(copy, 'class="demo" id="fig-paths"', 'Figure')), []);
+  assert.deepEqual(run(checkFigures, labelled({ ...copy, number: '16.5' }, 'class="demo" id="fig-paths" data-figure="16.5"', 'Figure 16.5')), []);
+  assert.deepEqual(run(checkFigures, labelled(copy, 'class="demo" id="fig-paths"', 'Sim')), ['16.1/section.json figures[fig-paths]: reads "Sim" in the text and should read "Figure"']);
+  const photo = { id: 'fig-guitar', kind: 'photo', number: '16.8' };
+  assert.deepEqual(run(checkFigures, { section: { figures: [photo] }, textHtml: '<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>' }), []);
+  assert.deepEqual(run(checkFigures, labelled(photo, 'class="photo" id="fig-guitar" data-figure="16.8"', 'Figure')), ['16.1/section.json figures[fig-guitar]: reads "Figure" in the text and should read "Figure 16.8"']);
+  assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so its eyebrow has nothing to read']);
 });
 
 test('checkFigureRefs: a figure the prose cites that no row carries is a warning, and a fold carries its numbers', () => {

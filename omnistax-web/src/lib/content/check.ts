@@ -54,6 +54,23 @@ export const localIds = (html: string): ReadonlySet<string> => new Set(Array.fro
 /* Every <figure> of the text by its id, with the number the browser reads off it. */
 const figureTags = (html: string): ReadonlyMap<string, string | undefined> =>
   new Map(Array.from(html.matchAll(/<figure\b[^>]*>/g), ([tag]) => [/\bid="([^"]+)"/.exec(tag)?.[1] ?? '', /\bdata-figure="([^"]+)"/.exec(tag)?.[1]] as const));
+/* The label an eyebrow prints: the eyebrow's own text, which is what sits at depth one inside the first span of
+   class eyebrow. A badge nested in it (the 3D tag) is chrome beside the label and is left out, as the tag walk of
+   linkFigureRefs leaves it. Nothing where the element has no eyebrow. */
+const EYEBROW_OPEN = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>/;
+type Walk = { readonly depth: number; readonly text: string };
+const eyebrowText = (body: string): string | undefined => {
+  const open = EYEBROW_OPEN.exec(body); if (!open) return undefined;
+  const walked = body.slice(open.index + open[0].length).split(/(<[^>]+>)/).reduce<Walk>(({ depth, text }, part) => {
+    if (depth === 0) return { depth, text };
+    if (!part.startsWith('<')) return { depth, text: depth === 1 ? text + part : text };
+    return { depth: /^<span\b/.test(part) ? depth + 1 : /^<\/span>/.test(part) ? depth - 1 : depth, text };
+  }, { depth: 1, text: '' });
+  return walked.text.replace(/\s+/g, ' ').trim();
+};
+/* Every <figure> of the text by its id, with the label its eyebrow prints. Figures do not nest. */
+const figureEyebrows = (html: string): ReadonlyMap<string, string | undefined> =>
+  new Map(Array.from(html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/g), ([, attrs, body]) => [/\bid="([^"]+)"/.exec(attrs)?.[1] ?? '', eyebrowText(body)] as const));
 
 const sectionsOf = (content: Content): readonly SectionContent[] => content.chapters.flatMap((ch) => ch.sections);
 /* Where a finding in a section is: the section's number, since that is what its directory is called. */
@@ -180,11 +197,32 @@ export const checkSpans: Check = (content) =>
    it does not, and the same number on both. A demo that folds several book
    figures prints them all, so the text's number is the joined string of the
    row's number and its folds, and a fold may not repeat a number the section
-   already carries, on this row or another. */
+   already carries, on this row or another.
+
+   The eyebrow follows from the row. An interactive figure that replaces
+   nothing in the book is a Sim, and its eyebrow reads exactly that; one that
+   transforms a book figure is still a Figure, and its eyebrow reads "Figure"
+   with every number it carries. A faithful copy reads "Figure" or "Figure N"
+   as its number says, and a photograph reads "Figure N". The word "demo"
+   names the mechanism in the row's kind and nowhere the reader looks. */
 const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefined ? [] : [f.number, ...f.folds]);
+/* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
+export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
+  const printed = printedNumbers(f);
+  if (f.kind === 'demo') return printed === undefined ? 'Sim' : `Figure ${printed}`;
+  if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
+  return printed === undefined ? undefined : `Figure ${printed}`;
+};
+const eyebrowFinding = (where: string, f: FigureRowDTO, read: string | undefined): readonly Finding[] => {
+  const expected = eyebrowOf(f);
+  if (expected === undefined) return [error(where, 'is a photograph with no number, so its eyebrow has nothing to read')];
+  if (read === undefined) return [error(where, `has no eyebrow in the text; it should read "${expected}"`)];
+  return read === expected ? [] : [error(where, `reads "${read}" in the text and should read "${expected}"`)];
+};
 export const checkFigures: Check = (content) =>
   sectionsOf(content).flatMap((s) => {
     const drawn = figureTags(s.textHtml);
+    const eyebrows = figureEyebrows(s.textHtml);
     const rows = new Map(s.dto.figures.map((f) => [f.id, printedNumbers(f)] as const));
     const carriedBy = (n: string, except: string): readonly string[] => s.dto.figures.filter((f) => f.id !== except && numbersOf(f).includes(n)).map((f) => f.id);
     return [
@@ -198,6 +236,7 @@ export const checkFigures: Check = (content) =>
         const others = carriedBy(n, f.id);
         return others.length === 0 ? [] : [error(inSection(s, 'figures', f.id), `folds ${n}, which figure "${others.join('", "')}" already carries`)];
       })),
+      ...s.dto.figures.flatMap((f) => (drawn.has(f.id) ? eyebrowFinding(inSection(s, 'figures', f.id), f, eyebrows.get(f.id)) : [])),
     ];
   });
 
