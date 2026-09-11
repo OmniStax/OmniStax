@@ -1,16 +1,26 @@
 # OmniStax/万象
-OmniStax/万象 is a next-gen, self-hostable STEM learning platform. Open source textbooks are markdown files. Diagrams are interactive and can be 3D. A low cognitive load experience powered by color-coded definitions, definitions and Diagrams are all interactive. Exercises and a mastery point system provide a curriculum experience.
+OmniStax/万象 is a next-gen, local STEM learning platform, which I call an *Integrated Learning Environment* (ILE), mimicing the seamless experience that a programmer feels in an Integrated Development Environment. When you read one of the OmniStax-transformed textbooks, you are dropped into this ILE which comes with an abundance of features.
 
-## OmniStax's content generation process
-OmniStax's contents are built from open-source textbook pdfs, primarily from LibreTexts. AI must not alter the tone of the original writing. AI enhances textbooks in the following pipeline:
-1. Extract a concept DAG
-2. Extract exercises, each tagged with a concept and a mastery level
-3. Transform text to markdown
-4. Transform diagrams into interactive widgets. Automatically identify diagrams to build for deserving text
 
-Then the OmniStax frontend compiles these processings into a standard curriculum experiences.
+## Installation
+Browser: https://omnistax.andrewchen14250.workers.dev/
 
-The rules the agent follows through that pipeline, and the layout the work is kept in, are in `RULES.md`: each book is a folder under `omnistax-content/`, and `omnistax-web/` is the app that builds every book into a site.
+I recommend installing the website as a Progressive Web App since browser-reserved keybindings become available. `Ctrl + W` is how you close a tab in VSCode, and it so should be how you close it in OmniStax.
+
+In the near futuer, I will build this into a true Desktop App. It will probably be Electron-based.
+
+OmniStax is totally local. This means there's no account syncing. But there is easy export/import OmniStax system for now. In the near future I will implement self-hosting options. I do not want to make money off of this by any means because education must be completely open. Donations are welcomed though (todo: setup a link).  
+
+
+## Contributors: Read This
+I strongly welcome PRs - whether it is changes to the OmniStax platform in `omnistax-web` or adding new content to the collection in `omnistax-content`. If you are contributing to `omnistax-content` on the `main` branch, you are adding content to the publicly available https://omnistax.andrewchen14250.workers.dev/, so please ensure you are transforming an open-source text or have the appropriate rights to enhance the text. You are probably using an agent to do the transformation. Read `docs/` for instructions and rules that an agent tasked with making new content will use.
+
+The books can use human reviews! If you catch incoherencies, please report them! Likely, they will be in *AI-written* content, e.g., interactive diagrams, proposed solutions for problems without a key (the default behavior is to omit these problems). They are less likely to be in *AI-extracted* contents like concept map, definition and formula sheet. However, as the books can get large, AI could miss key extraction. Incoherencies are least likely to be found in the text itself, which the book-enhancing agent is asked to keep the original words of.
+
+The future must be more and more open, and it takes folks reading this to contribute.
+
+## AI Agents: Read This
+If you are tasked with generating OmniStax textbooks, read `docs/`.
 
 ## Education Literature OmniStax takes inspiration from
 Cognitive Load Theory:
@@ -28,7 +38,7 @@ The Math Academy Way, Justin Skycak: This is a brillant read about how to upskil
 - Only exercises contribute XP.
 
 ## Pipe dream and OmniStax's Roadmap
-1. Static-time eyecandy. A dozen courses. Great visuals, interactives, and edtech user experience. Solid `pdf->OmniStax course` extraction pipeline. Basic mastery point system. The selling point of OmniStax is in the UX and interactive simulations.
+1. Static-time eyecandy. Enhance 4 textbooks: Physics, Math, Chem, and CS. Great visuals, interactives, and edtech user experience. Solid `pdf->OmniStax course` extraction pipeline. Basic mastery point system. The selling point of OmniStax is in the UX and interactive simulations.
 
 From this point on, OmniStax should run on donations because the servers will be expensive.
 
