@@ -247,9 +247,11 @@ still a **Figure**: its row carries the book's number and its eyebrow
 reads "Figure 2.39", or "Figure 3.3 + 3.4 + 3.5" when it folds several.
 A faithful copy and a kept photograph are Figures as before. The
 validator reads the eyebrow of every figure element against its row and
-refuses any other label. The word "demo" survives only in the mechanism
-(the row's `kind`, the `.demo` class, the `demo-` id prefix, `F.demo()`),
-where it names how a figure is built and never what it is called.
+refuses any other label. The mechanism behind both is a sim, a
+simulation the reader can play with, and that is its name wherever the
+tables and the code refer to it: the row's `kind`, the `.sim` class, the
+`sim-` id prefix, `F.sim()`. The label follows from the number, never
+from the kind.
 
 Whether an interactive figure moves is a decision of its own, made in the
 plan line, and the agent thinks it through for every figure rather than

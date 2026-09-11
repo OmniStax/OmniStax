@@ -113,7 +113,7 @@ Rules for the plan:
 Every figure is one IIFE inside the section's figures.js module
 (`OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}`) that calls:
 
-  const d = demo('demo-<id>', H);            // demo = (id, H) => F.demo(root, id, H); H = canvas height in logical units
+  const d = sim('sim-<id>', H);              // sim = (id, H) => F.sim(root, id, H); H = canvas height in logical units
                                              // d.fig, d.c (canvas), d.stage (canvas + transport), d.controls, d.readout
   const v = ctl(d.controls, {label:'\\kv', cls:'v', min, max, step, value, unit, dec, onInput: reset});
   const cy = cycle(() => T, hold);           // model time loops 0..T then waits `hold` s

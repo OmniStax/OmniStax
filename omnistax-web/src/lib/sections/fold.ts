@@ -6,8 +6,8 @@
 /* A span folds when it has an id: a section or an example. Bare h3 subheadings
    with no container of their own are not spans and cannot fold. */
 export const FOLDABLE = 'section[id], .example[id]';
-/* A figure hides when it has an id: a demo or a photograph kept from the book. */
-export const HIDEABLE = 'figure.demo[id], figure.photo[id]';
+/* A figure hides when it has an id: a sim or a photograph kept from the book. */
+export const HIDEABLE = 'figure.sim[id], figure.photo[id]';
 export const FOLDED_CLASS = 'folded';
 export const HIDDEN_CLASS = 'fig-hidden';
 /* The element that holds a span's heading when the heading is not a direct
@@ -26,5 +26,7 @@ export const toggleId = (ids: readonly string[], id: string): readonly string[] 
 export const addIds = (ids: readonly string[], more: readonly string[]): readonly string[] => [...ids, ...more.filter((m) => !ids.includes(m))];
 export const removeIds = (ids: readonly string[], drop: readonly string[]): readonly string[] => ids.filter((x) => !drop.includes(x));
 
+/* A figure id remembered before the sim rename of 2026-09-11 says "2.5-demo-avg" where the figure now says "2.5-sim-avg". */
+export const renamedSimId = (id: string): string => id.replace(/^(\d+\.\d+)-demo-/, '$1-sim-');
 /* What was remembered, kept only when it is a list of strings. */
 export const parseIds = (raw: unknown): readonly string[] | null => (Array.isArray(raw) && raw.every((x) => typeof x === 'string') ? raw : null);

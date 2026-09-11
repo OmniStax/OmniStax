@@ -1,5 +1,5 @@
 /* Tokens, typography and every style that applies to adopted content (articles,
-   demos, exercise cards). Chrome styles live in their Svelte components. The
+   sims, exercise cards). Chrome styles live in their Svelte components. The
    per-book colour tokens (--c-*) are emitted by the page from the manifest. */
 :root{
   --bg:#F5F6F8; --panel:#FFFFFF; --ink:#1B1F27; --muted:#5D6470; --rule:#DDE1E7; --soft:#ECEFF3; --soft2:#E2E6EC; --thumb:#C3C9D2; --hl-yellow:#FDE68A; --hl-green:#BBF7D0; --hl-blue:#BFDBFE; --hl-pink:#FBCFE8;
@@ -91,36 +91,36 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
 .photo figcaption{position:relative;display:block;margin-top:8px;font-size:0.9rem;color:var(--muted);line-height:1.45}
 .photo figcaption .eyebrow{display:block;padding-right:36px;white-space:nowrap}
 .photo figcaption > span:not(.eyebrow){display:block;margin-top:5px}
-/* demos (drawn by the figure library into adopted articles)
+/* sims (drawn by the figure library into adopted articles)
    One card per widget: caption header, stage (drawing plus its transport
    bar), sliders on an aligned grid, and the live equation as a footer band. */
-.demo{margin:2rem 0;font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
-.demo .demo-head{position:relative;display:block;margin:0;padding:12px 18px 11px;border-bottom:1px solid var(--rule)}
+.sim{margin:2rem 0;font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.sim .sim-head{position:relative;display:block;margin:0;padding:12px 18px 11px;border-bottom:1px solid var(--rule)}
 .fig-split{position:absolute;right:10px;top:9px;width:26px;height:24px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;padding:0}
 .fig-split:hover{color:var(--ink);background:var(--soft)}
 .fig-split svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
 .fig-root{max-width:980px;margin:0 auto;padding:28px 40px 120px}
-.fig-root .demo{margin:0}
+.fig-root .sim{margin:0}
 /* the figure number on its own line, clear of the buttons at the right; the description on a full-width line beneath */
-.demo .demo-head .eyebrow{display:block;padding-right:64px;color:var(--accent);white-space:nowrap}
-.demo .demo-head > span:not(.eyebrow){display:block;margin-top:5px;font-size:0.9rem;color:var(--muted);line-height:1.45}
-/* a demo that keeps a book figure's number: "Figure 16.4" with small pills after it, and a button that swaps in the book's figure */
+.sim .sim-head .eyebrow{display:block;padding-right:64px;color:var(--accent);white-space:nowrap}
+.sim .sim-head > span:not(.eyebrow){display:block;margin-top:5px;font-size:0.9rem;color:var(--muted);line-height:1.45}
+/* a sim that keeps a book figure's number: "Figure 16.4" with small pills after it, and a button that swaps in the book's figure */
 .eyebrow .tag{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px}
-.demo .demo-head .eyebrow .tag{font-size:0.62rem;color:var(--muted);line-height:1.5}
-figure.demo[data-original] .demo-head .eyebrow{padding-right:134px}
+.sim .sim-head .eyebrow .tag{font-size:0.62rem;color:var(--muted);line-height:1.5}
+figure.sim[data-original] .sim-head .eyebrow{padding-right:134px}
 .fig-original{position:absolute;right:78px;top:9px;height:24px;display:grid;place-items:center;padding:0 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;line-height:1}
 .fig-original:hover{color:var(--ink);background:var(--soft)}
 .fig-original:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.demo .original{padding:14px 18px 12px}
-.demo .original img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
-.demo .original img+img{margin-top:12px}
-.demo .ocap{display:block;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
-.demo .ocap .eyebrow{display:block;white-space:nowrap}
-.demo .ocap > span:not(.eyebrow){display:block;margin-top:5px}
-figure.demo.show-original>.stage,figure.demo.show-original>.controls,figure.demo.show-original>.readout,figure.demo.show-original>.transport{display:none}
+.sim .original{padding:14px 18px 12px}
+.sim .original img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+.sim .original img+img{margin-top:12px}
+.sim .ocap{display:block;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
+.sim .ocap .eyebrow{display:block;white-space:nowrap}
+.sim .ocap > span:not(.eyebrow){display:block;margin-top:5px}
+figure.sim.show-original>.stage,figure.sim.show-original>.controls,figure.sim.show-original>.readout,figure.sim.show-original>.transport{display:none}
 /* a figure split out on its own has neither the split nor the hide button */
-.fig-root .demo .demo-head .eyebrow{padding-right:0}
-.fig-root figure.demo[data-original] .demo-head .eyebrow{padding-right:66px}
+.fig-root .sim .sim-head .eyebrow{padding-right:0}
+.fig-root figure.sim[data-original] .sim-head .eyebrow{padding-right:66px}
 .fig-root .fig-original{right:10px}
 /* folding: a chevron before each section's or example's heading; folded, only the heading stays.
    A section that opens with an example and has no h2 keeps that example's h3 (.fold-head). */
@@ -140,16 +140,16 @@ section.folded > .fold-head{padding-bottom:16px}
 .fig-hide svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
 .fig-hide[aria-pressed="true"]{color:var(--accent)}
 .photo figcaption .fig-hide{right:0;top:-4px}
-figure.demo.fig-hidden > :not(.demo-head), figure.photo.fig-hidden > img{display:none}
-figure.demo.fig-hidden > .demo-head{border-bottom:0}
-.fig-hidden .demo-head .eyebrow::after, .fig-hidden figcaption .eyebrow::after{content:"hidden";display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px;line-height:1.5}
+figure.sim.fig-hidden > :not(.sim-head), figure.photo.fig-hidden > img{display:none}
+figure.sim.fig-hidden > .sim-head{border-bottom:0}
+.fig-hidden .sim-head .eyebrow::after, .fig-hidden figcaption .eyebrow::after{content:"hidden";display:inline-block;margin-left:8px;padding:1px 6px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:0.62rem;letter-spacing:0.06em;vertical-align:1px;line-height:1.5}
 a.figref{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
 a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
-.demo .stage{position:relative;background:var(--panel)}
-.demo canvas{display:block;width:100%;height:auto;border:0;border-radius:0;background:var(--panel)}
-.demo .three-wrap{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--soft);margin:0}
-.demo .three-wrap canvas{width:100%!important;height:100%!important;display:block}
-.demo .lab3d{position:absolute;font-size:0.8rem;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--panel);color:var(--ink);pointer-events:none;transform:translate(-50%,-100%);white-space:nowrap;border:1px solid var(--rule)}
+.sim .stage{position:relative;background:var(--panel)}
+.sim canvas{display:block;width:100%;height:auto;border:0;border-radius:0;background:var(--panel)}
+.sim .three-wrap{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--soft);margin:0}
+.sim .three-wrap canvas{width:100%!important;height:100%!important;display:block}
+.sim .lab3d{position:absolute;font-size:0.8rem;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--panel);color:var(--ink);pointer-events:none;transform:translate(-50%,-100%);white-space:nowrap;border:1px solid var(--rule)}
 .transport{display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 18px 8px;font-family:var(--sans)}
 .tbtn{width:28px;height:26px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:0.9rem;line-height:1;padding:0}
 .tbtn:hover{color:var(--ink);background:var(--soft)}

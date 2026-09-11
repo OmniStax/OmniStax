@@ -194,7 +194,7 @@ export const checkSpans: Check = (content) =>
 
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
-   it does not, and the same number on both. A demo that folds several book
+   it does not, and the same number on both. A sim that folds several book
    figures prints them all, so the text's number is the joined string of the
    row's number and its folds, and a fold may not repeat a number the section
    already carries, on this row or another.
@@ -203,13 +203,14 @@ export const checkSpans: Check = (content) =>
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
    with every number it carries. A faithful copy reads "Figure" or "Figure N"
-   as its number says, and a photograph reads "Figure N". The word "demo"
-   names the mechanism in the row's kind and nowhere the reader looks. */
+   as its number says, and a photograph reads "Figure N". The kind sim names
+   the mechanism, a simulation the reader can play with, and the label
+   follows from the number. */
 const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefined ? [] : [f.number, ...f.folds]);
 /* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
 export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
   const printed = printedNumbers(f);
-  if (f.kind === 'demo') return printed === undefined ? 'Sim' : `Figure ${printed}`;
+  if (f.kind === 'sim') return printed === undefined ? 'Sim' : `Figure ${printed}`;
   if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
   return printed === undefined ? undefined : `Figure ${printed}`;
 };

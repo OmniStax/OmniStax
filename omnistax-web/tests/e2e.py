@@ -73,7 +73,7 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
     pg.evaluate('document.querySelector(".pane:not([hidden]) section[id] > h2 > button.fold").click()'); pg.wait_for_timeout(100)
     print('7b folded:', pg.evaluate('JSON.parse(localStorage.getItem("omnistax-folded"))'), 'copies folded:', pg.evaluate('document.querySelectorAll("section.folded").length'))
-    pg.evaluate('document.querySelector(".pane:not([hidden]) figure.demo[id] > .demo-head > button.fig-hide").click()'); pg.wait_for_timeout(100)
+    pg.evaluate('document.querySelector(".pane:not([hidden]) figure.sim[id] > .sim-head > button.fig-hide").click()'); pg.wait_for_timeout(100)
     print('7b hidden:', pg.evaluate('JSON.parse(localStorage.getItem("omnistax-hidden-figs"))'), 'stage display:', pg.evaluate('getComputedStyle(document.querySelector("figure.fig-hidden .stage")).display'))
     pg.keyboard.press('Control+Shift+BracketRight'); pg.keyboard.press('Control+Shift+J'); pg.wait_for_timeout(100)
     print('7b unfolded and shown:', pg.evaluate('document.querySelectorAll(".folded, .fig-hidden").length'))

@@ -1,7 +1,7 @@
 /* The live layout: one reactive value, changed only through the pure model
    functions, saved to this browser after every change. */
 import type { ItemKey, Layout } from './model';
-import { closeGroup, closeItem, defaultLayout, ensureOwn, openTab, parseLayout } from './model';
+import { closeGroup, closeItem, defaultLayout, ensureOwn, openTab, parseLayout, renamedSimKeys } from './model';
 import { type ItemId, pageItem } from '../types/ids';
 
 const KEY = 'omnistax-layout-v5';
@@ -11,7 +11,7 @@ const REOPEN = 20;
 /* A tab as it was closed: what it showed and which group it stood in. */
 type Closed = { readonly key: ItemKey; readonly group: number };
 const load = (own: ItemId, known: (k: string) => boolean): Layout => {
-  try { const parsed = parseLayout(JSON.parse(localStorage.getItem(KEY) ?? 'null'), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
+  try { const parsed = parseLayout(JSON.parse(renamedSimKeys(localStorage.getItem(KEY) ?? 'null')), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
   return ensureOwn(defaultLayout(own), own);
 };
 

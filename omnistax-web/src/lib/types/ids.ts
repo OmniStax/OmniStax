@@ -65,7 +65,7 @@ export type PageKind = (typeof PAGE_KINDS)[number];
 export type ItemId =
   | { readonly kind: 'doc'; readonly section: SectionId; readonly doc: DocKind }
   | { readonly kind: 'view'; readonly view: ViewKind; readonly instance?: ViewInstance }   /* instance: one page of that view; none is the singleton a sidebar holds */
-  | { readonly kind: 'fig'; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. demo-plane */
+  | { readonly kind: 'fig'; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
   | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string }      /* ex: the exercise's local id, e.g. cq1 */
   | { readonly kind: 'page'; readonly page: PageKind }
   | { readonly kind: 'note'; readonly note: NoteId };

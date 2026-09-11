@@ -10,7 +10,7 @@ const BOOK: BookTree = {
   exerciseKinds: { conceptual: 'Conceptual question', problem: 'Problem' },
   chapters: [
     { id: '2', title: 'Kinematics', sections: [
-      { id: '2.1', title: 'Displacement', built: true, figures: [{ id: 'demo-walk', label: 'Figure 2.3 · A professor paces the front of the room.' }, { id: 'graph-x', label: 'Figure 2.4 · Position against time.' }], exercises: [{ id: 'cq1', kind: 'conceptual' }, { id: 'p1', kind: 'problem' }, { id: 'p2', kind: 'unlisted' }] },
+      { id: '2.1', title: 'Displacement', built: true, figures: [{ id: 'sim-walk', label: 'Figure 2.3 · A professor paces the front of the room.' }, { id: 'graph-x', label: 'Figure 2.4 · Position against time.' }], exercises: [{ id: 'cq1', kind: 'conceptual' }, { id: 'p1', kind: 'problem' }, { id: 'p2', kind: 'unlisted' }] },
       { id: '2.2', title: 'Vectors', built: false },
     ] },
     { id: '3', title: 'Motion in Two Dimensions', sections: [{ id: '3.1', title: 'Vector Addition', built: true }] },
@@ -51,10 +51,10 @@ test('a section holds its two documents, each opened by Enter and entered for wh
 });
 test('the text leads to the figures it draws and the exercises to the ones the book sets', () => {
   const figs = rowsAt(BOOK, FIGURES_21);
-  assert.deepEqual(keys(figs), ['fig:2.1/demo-walk', 'fig:2.1/graph-x']);
+  assert.deepEqual(keys(figs), ['fig:2.1/sim-walk', 'fig:2.1/graph-x']);
   assert.deepEqual(figs.map((r) => r.label), ['Figure 2.3 · A professor paces the front of the room.', 'Figure 2.4 · Position against time.']);
   assert.deepEqual(figs.map((r) => [r.openable, r.enterable, r.detail]), [[true, false, ''], [true, false, '']]);
-  assert.deepEqual(figs.map((r) => (r.kind === 'fig' ? [r.section, r.fig] : null)), [['2.1', 'demo-walk'], ['2.1', 'graph-x']]);
+  assert.deepEqual(figs.map((r) => (r.kind === 'fig' ? [r.section, r.fig] : null)), [['2.1', 'sim-walk'], ['2.1', 'graph-x']]);
   const exs = rowsAt(BOOK, EXERCISES_21);
   assert.deepEqual(keys(exs), ['ex:2.1/cq1', 'ex:2.1/p1', 'ex:2.1/p2']);
   /* the book names the kinds; one it has no name for reads as the kind itself */
@@ -78,7 +78,7 @@ test('entering and going back are inverse steps down and up the tree', () => {
   assert.deepEqual(enter(DOCS_21, rowFor(DOCS_21, 'doc:2.1/text')), FIGURES_21);
   assert.deepEqual(enter(DOCS_21, rowFor(DOCS_21, 'doc:2.1/exercises')), EXERCISES_21);
   assert.equal(enter(DOCS_31, rowFor(DOCS_31, 'doc:3.1/text')), null, 'a document with nothing inside it is only opened');
-  assert.equal(enter(FIGURES_21, rowFor(FIGURES_21, 'fig:2.1/demo-walk')), null);
+  assert.equal(enter(FIGURES_21, rowFor(FIGURES_21, 'fig:2.1/sim-walk')), null);
   assert.deepEqual(up(FIGURES_21), DOCS_21);
   assert.deepEqual(up(EXERCISES_21), DOCS_21);
   assert.deepEqual(up(DOCS_21), SECTIONS_2);

@@ -33,7 +33,7 @@ JS and paints without a rendering pass.
 
 The same page, plus the shell. Opening another section in a tab fetches
 its fragment, inserts it into a pane, and loads that section's figure
-module, which boots the demos inside that pane. As the reader switches
+module, which boots the sims inside that pane. As the reader switches
 tabs the address bar is updated with `replaceState` to the focused
 section's canonical URL, so any link they copy is a static page. On
 reload, the saved layout is restored and the other tabs' fragments are

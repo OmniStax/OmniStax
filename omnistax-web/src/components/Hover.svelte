@@ -131,7 +131,7 @@
      writes the class the rules hang from — and either way the card still opens. */
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
-  :global(.demo .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a demo's readouts and control labels stay clean; the card still opens */
+  :global(.sim .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a sim's readouts and control labels stay clean; the card still opens */
   /* The card is where a symbol is explained, not another place to look it up. */
   :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card a.xref){text-decoration:none}
   :global(.term[data-term]){cursor:default}

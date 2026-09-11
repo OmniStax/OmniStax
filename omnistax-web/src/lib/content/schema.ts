@@ -39,7 +39,7 @@ export type GeneratedBy = (typeof GENERATED_BY)[number];
 /* What a figure is: an interactive figure the reader can play with, a faithful
    copy of a book figure that the exercises need, or a photograph. The kind names
    the mechanism; the label the reader sees follows from the number. */
-export const FIGURE_KINDS = ['demo', 'figure', 'photo'] as const;
+export const FIGURE_KINDS = ['sim', 'figure', 'photo'] as const;
 export type FigureKind = (typeof FIGURE_KINDS)[number];
 
 /* ---------- book.json ---------- */
@@ -170,7 +170,7 @@ export type AiCreditDTO = z.infer<typeof AiCreditSchema>;
 
 export const FigureSchema = z.object({
   id: z.string().describe('The figure\u2019s local id, which is the id the <figure> element carries in the section\u2019s text.'),
-  kind: z.enum(FIGURE_KINDS).describe('Whether the figure is an interactive one the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph. The kind demo names the mechanism, not the label: its eyebrow reads Sim where the row carries no number, since the figure replaces nothing in the book, and Figure with the book\u2019s numbers where it does.'),
+  kind: z.enum(FIGURE_KINDS).describe('Whether the figure is an interactive one the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph. A sim is a simulation the reader can play with: its eyebrow reads Sim where the row carries no number, since the figure replaces nothing in the book, and Figure with the book\u2019s numbers where it transforms a book figure.'),
   number: z.string().optional().describe('The number the book prints the figure under, such as 16.4, where the figure keeps one.'),
   folds: z.array(z.string()).default([]).describe('The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure\u2019s own, and the eyebrow reads every number in the book\u2019s order.'),
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
@@ -417,7 +417,7 @@ export type MacroMap = Readonly<Record<string, string>>;
 export type SymbolMap = Readonly<Record<string, string>>;
 /* What the book calls each kind of exercise. */
 export type KindMap = Readonly<Record<string, string>>;
-/* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("demo-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
+/* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("sim-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
 export type FigureEntry = { readonly id: string; readonly label: string };
 /* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
 export type ExerciseEntry = { readonly id: string; readonly kind: string };

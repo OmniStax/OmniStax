@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -120,6 +120,9 @@ test('page and note keys round-trip and belong to no section', () => {
   assert.deepEqual(l.groups[1].tabs, ['note:a1b2c3d4']);
   assert.equal(focusedSection(l, sectionId('9.9')), '9.9', 'a note leaves the views where they stood');
 });
+test('a saved layout names its figure tabs under the new prefix', () => {
+  assert.equal(renamedSimKeys('{"tabs":["fig:2.5/demo-avg","fig:2.5/fig-paths","doc:2.5/text"]}'), '{"tabs":["fig:2.5/sim-avg","fig:2.5/fig-paths","doc:2.5/text"]}');
+});
 test('parseLayout rejects unknown items and duplicate tabs, assigns keys', () => {
   const known = (k: string) => [text, ex, map].includes(k);
   assert.equal(parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: ['doc:9.9/text'], active: 'doc:9.9/text' }] }, known), null);
@@ -139,8 +142,8 @@ test('an empty group keeps its place until it is closed', () => {
 });
 
 test('figure keys round-trip and belong to their section', () => {
-  const k = itemKey(figItem(s, 'demo-plane'));
-  assert.equal(k, 'fig:2.1/demo-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'demo-plane'));
+  const k = itemKey(figItem(s, 'sim-plane'));
+  assert.equal(k, 'fig:2.1/sim-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'sim-plane'));
   assert.equal(parseItemKey('fig:2.1/'), null);
   const l = splitRight(defaultLayout(), 0, k);
   assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');

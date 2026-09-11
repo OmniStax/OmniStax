@@ -313,6 +313,8 @@ export const ensureOwn = (l: Layout, own: ItemId): Layout => {
   return focusOn(settle(withGroups(l, groups)), g.key);
 };
 
+/* A layout saved before the sim rename of 2026-09-11 names a figure tab "fig:2.5/demo-avg" where the figure now says "fig:2.5/sim-avg"; read as saved, it would be thrown away whole. */
+export const renamedSimKeys = (saved: string): string => saved.replace(/"fig:(\d+\.\d+)\/demo-/g, '"fig:$1/sim-');
 /* Persistence boundary: anything read from storage is untrusted and comes back as a Layout or not at all. */
 export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layout | null => {
   const isRec = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;

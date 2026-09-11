@@ -13,8 +13,8 @@ import { originalButtons } from './original';
 import { decorateTerms } from '../hover';
 import { foldControls } from './fold.svelte';
 
-/* A figure's tab title: its local id without the demo-/fig- prefix, "demo-plane" → "plane". */
-const figName = (local: string): string => local.replace(/^(demo|fig)-/, '').replace(/-/g, ' ');
+/* A figure's tab title: its local id without the sim-/fig- prefix, "sim-plane" → "plane". */
+const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').replace(/-/g, ' ');
 
 export type SectionStatus = 'loaded' | 'loading' | 'failed';
 export type SectionState = {
@@ -128,7 +128,7 @@ class Registry {
      the key it carries is the one the shell delegates on, the same attribute an
      exercise card's split button uses, so one selector finds them both. */
   private splitButtons(root: HTMLElement, sec: SectionId): void {
-    root.querySelectorAll<HTMLElement>('figure.demo[id] .demo-head').forEach((head) => {
+    root.querySelectorAll<HTMLElement>('figure.sim[id] .sim-head').forEach((head) => {
       if (head.querySelector('.fig-split')) return;
       const local = (head.closest('figure')!.id).replace(`${sec}-`, '');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(sec, local));

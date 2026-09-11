@@ -4,13 +4,13 @@
    The toggles are buttons put into the headings and figure heads when a
    document is prepared (registry.svelte.ts), one delegated click listener
    per root, like the "Original" button. */
-import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds } from './fold';
+import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, renamedSimId } from './fold';
 export { FOLDABLE, HIDEABLE, foldableOf, hideableOf, headingOf } from './fold';
 
 type StorageKey = 'omnistax-folded' | 'omnistax-hidden-figs';
 const load = (key: StorageKey): readonly string[] => {
   if (typeof localStorage === 'undefined') return [];
-  try { return parseIds(JSON.parse(localStorage.getItem(key) ?? 'null')) ?? []; } catch { return []; }
+  try { return parseIds(JSON.parse(localStorage.getItem(key) ?? 'null'))?.map(renamedSimId) ?? []; } catch { return []; }
 };
 const save = (key: StorageKey, ids: readonly string[]): void => { try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* private mode */ } };
 
@@ -44,7 +44,7 @@ const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6
 const EYE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>';
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string): HTMLElementTagNameMap[K] => { const e = document.createElement(tag); e.className = cls; return e; };
 const foldButtonOf = (span: HTMLElement): HTMLButtonElement | null => headingOf(span)?.querySelector<HTMLButtonElement>(':scope > button.fold') ?? null;
-const hideButtonOf = (fig: HTMLElement): HTMLButtonElement | null => fig.querySelector<HTMLButtonElement>(':scope > .demo-head > button.fig-hide, :scope > figcaption > button.fig-hide');
+const hideButtonOf = (fig: HTMLElement): HTMLButtonElement | null => fig.querySelector<HTMLButtonElement>(':scope > .sim-head > button.fig-hide, :scope > figcaption > button.fig-hide');
 
 const syncSpan = (span: HTMLElement, on: boolean): void => {
   span.classList.toggle(FOLDED_CLASS, on);
@@ -77,7 +77,7 @@ const foldButtons = (root: HTMLElement): void => {
 };
 /* An eye at the right of each figure's head or caption. */
 const hideButtons = (root: HTMLElement): void => {
-  root.querySelectorAll<HTMLElement>('figure.demo[id] > .demo-head, figure.photo[id] > figcaption').forEach((head) => {
+  root.querySelectorAll<HTMLElement>('figure.sim[id] > .sim-head, figure.photo[id] > figcaption').forEach((head) => {
     if (head.querySelector(':scope > button.fig-hide')) return;
     const b = el('button', 'fig-hide'); b.type = 'button'; b.dataset.fig = head.parentElement!.id; b.title = 'Hide figure'; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', 'Hide this figure'); b.innerHTML = EYE;
     head.appendChild(b);

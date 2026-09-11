@@ -4,7 +4,7 @@
    twice, from the same anchors. */
 import { locate, type Anchor, type Span } from './anchor';
 
-const SKIP = 'script, style, .katex-mathml, .demo, .photo, button, input, select, textarea, .footer, .exercises .bar';
+const SKIP = 'script, style, .katex-mathml, .sim, .photo, button, input, select, textarea, .footer, .exercises .bar';
 type Seg = { readonly node: Text; readonly start: number };
 export type Index = { readonly full: string; readonly segs: readonly Seg[] };
 

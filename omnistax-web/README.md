@@ -51,7 +51,7 @@ src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of
 src/layouts/Page.astro    one section over ShellPage: its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
 src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, about.html, book.html, chapter json, book.json, library.json
-src/styles/global.css     tokens, typography, styles for adopted content (articles, demos)
+src/styles/global.css     tokens, typography, styles for adopted content (articles, sims)
 ```
 
 ## Conventions

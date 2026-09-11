@@ -14,7 +14,7 @@ type Box = { readonly l: Logical; readonly r: Logical; readonly t: Logical; read
 type Range = readonly [number, number];
 type Scale = (v: number) => Logical;
 type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
-type Demo = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
+type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
 type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; onInput?: () => void };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
@@ -94,9 +94,9 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
   return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); } };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
-function demo(root: HTMLElement, id: string, H?: Logical) {
+function sim(root: HTMLElement, id: string, H?: Logical) {
   /* A root holding one figure (a split-out figure pane) boots the whole section script; the other figures get a detached scaffold and never draw. */
-  const fig = byId(root, id) ?? (root.dataset.one ? el('figure', 'demo') : null); if (!fig) throw new Error(`no figure "${id}" in ${root.dataset.sec}`);
+  const fig = byId(root, id) ?? (root.dataset.one ? el('figure', 'sim') : null); if (!fig) throw new Error(`no figure "${id}" in ${root.dataset.sec}`);
   const stage = el('div', 'stage'); fig.appendChild(stage);   /* the drawing and its transport */
   const c = H ? makeCanvas(stage, H) : null;
   const controls = el('div', 'controls'); fig.appendChild(controls);
@@ -114,21 +114,21 @@ function demo(root: HTMLElement, id: string, H?: Logical) {
    changed: its time advanced, a slider or drag touched it, it scrolled into
    view, or a global redraw was asked for. A paused figure costs nothing. */
 let paused = false;
-const demos: Demo[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
+const sims: Sim[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
 const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => {
   if (!e.isIntersecting) { onScreen.delete(e.target); return; }
-  onScreen.add(e.target); const d = demos.find((x) => x.fig === e.target); if (d) d.dirty = true;
+  onScreen.add(e.target); const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true;
 }), { rootMargin: '120px' }) : null;
 const SPEEDS = [1, 2, 4, 0.5] as const; const SPEED_LABEL: Record<number, string> = { 1: '1×', 2: '2×', 4: '4×', 0.5: '½×' };
 const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>', stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>' };
-const rewind = (d: Demo) => d.cycles.forEach((c) => { c.tau = 0; c.wait = 0; });
-const periodOf = (d: Demo): number => Math.max(0, ...d.cycles.map((c) => c.period()));
+const rewind = (d: Sim) => d.cycles.forEach((c) => { c.tau = 0; c.wait = 0; });
+const periodOf = (d: Sim): number => Math.max(0, ...d.cycles.map((c) => c.period()));
 /* The scrubber follows the motion while it plays; dragging it pauses and sets the time. */
-function syncScrub(d: Demo): void {
+function syncScrub(d: Sim): void {
   const s = d.scrub; if (!s) return; const P = periodOf(d); if (!(P > 0)) return;
   s.max = String(P); s.value = String(Math.min(d.cycles[0].tau, P));
 }
-function transport(d: Demo): void {
+function transport(d: Sim): void {
   const bar = el('div', 'transport'); const play = el('button', 'tbtn'), stop = el('button', 'tbtn'), speed = el('button', 'tbtn speed');
   [play, stop, speed].forEach((b) => { b.type = 'button'; });
   const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? 'Pause' : 'Play'; play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); syncScrub(d); };
@@ -148,15 +148,15 @@ function transport(d: Demo): void {
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
-  const full: Demo = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
-  demos.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); if (!still) transport(full);
+  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
+  sims.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
-  demos.forEach((d) => {
+  sims.forEach((d) => {
     if (!onScreen.has(d.fig)) return;
     if (!paused && d.playing) {
       const before = d.cycles.map((c) => c.tau); d.update(dt * d.speed);
@@ -287,7 +287,7 @@ function fixed(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical): void {
 
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redraws, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, demo,
+  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redraws, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, curve, runner, car, plane, dragster, spring, block, fixed, FONT,
 };
 export type Fig = typeof FIG;

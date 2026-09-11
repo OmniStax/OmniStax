@@ -76,7 +76,7 @@ const variable = (t: HTMLElement): Card | null => {
 const figure = (t: HTMLElement): Card | null => {
   const n = t.dataset.figref; const id = t.getAttribute('href')?.slice(1); if (!n || !id) return null;
   const fig = findEl(id);
-  const caption = fig ? (fig.querySelector('.demo-head span:not(.eyebrow)')?.textContent ?? fig.dataset.originalCaption)?.replace(/\s+/g, ' ').trim() : undefined;
+  const caption = fig ? (fig.querySelector('.sim-head span:not(.eyebrow)')?.textContent ?? fig.dataset.originalCaption)?.replace(/\s+/g, ' ').trim() : undefined;
   return figureCard({ number: n, id: spanId(id), section: sectionOfSpan(spanId(id)), caption, hasOriginal: !!fig?.dataset.original }, nav);
 };
 const term = (t: HTMLElement): Card | null => {

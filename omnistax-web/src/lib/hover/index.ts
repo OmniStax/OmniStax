@@ -8,7 +8,7 @@
 
    decorateTerms(root, section): marks the section's glossary terms and example
    references in the article's prose (see terms.ts) and makes symbols focusable.
-   Idempotent, touches only <p> and <li> elements, and leaves demos and
+   Idempotent, touches only <p> and <li> elements, and leaves sims and
    exercise cards alone, so it may run after figures have booted.
    Hover.svelte: the card itself and its document-level listeners; mount once. */
 import type { SectionId } from '../types/ids';

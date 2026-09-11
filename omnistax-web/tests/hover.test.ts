@@ -29,7 +29,7 @@ test('only the first plain mention is marked, whole words, case-insensitive', ()
 });
 test('nothing is marked in headings, links, math, captions or exercise hosts', () => {
   const html = ['<h2>The period</h2>', '<p><a href="#x">period</a></p>', '<p><span class="katex"><span class="katex-html">period</span></span></p>',
-    '<figure><div class="demo-head"><span>period</span></div></figure>', '<div class="exercises"><p>period</p></div>', '<div>period outside a paragraph</div>', '<li>the period at last</li>'].join('');
+    '<figure><div class="sim-head"><span>period</span></div></figure>', '<div class="exercises"><p>period</p></div>', '<div>period outside a paragraph</div>', '<li>the period at last</li>'].join('');
   assert.equal(wrapTerms(html, TERMS), html.replace('<li>the period at last</li>', '<li>the <span class="term" data-term="period" tabindex="0">period</span> at last</li>'));
 });
 test('a multi-word term matches across a line break', () => {
@@ -80,11 +80,11 @@ test('an unknown symbol gets a card with no body and no actions', () => {
 
 /* ---------- figure ---------- */
 test('a figure card from the reference attributes', () => {
-  const c = figureCard({ number: '16.4', id: span('16.1-demo-spring-scale'), section: sec('16.1'), caption: 'Weights are hung on a spring.', hasOriginal: true }, nav);
+  const c = figureCard({ number: '16.4', id: span('16.1-sim-spring-scale'), section: sec('16.1'), caption: 'Weights are hung on a spring.', hasOriginal: true }, nav);
   assert.equal(c.title, 'Figure 16.4'); assert.equal(c.body, 'Weights are hung on a spring.');
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to figure', 'Show original']);
-  assert.equal(run('Go to figure', c), 'span:16.1-demo-spring-scale'); assert.equal(run('Show original', c), 'orig:16.1-demo-spring-scale');
-  const far = figureCard({ number: '16.9', id: span('16.3-demo-shm-oscillator'), section: sec('16.3'), hasOriginal: false }, nav);
+  assert.equal(run('Go to figure', c), 'span:16.1-sim-spring-scale'); assert.equal(run('Show original', c), 'orig:16.1-sim-spring-scale');
+  const far = figureCard({ number: '16.9', id: span('16.3-sim-shm-oscillator'), section: sec('16.3'), hasOriginal: false }, nav);
   assert.equal(far.body, 'Figure 16.9 is in section 16.3.'); assert.deepEqual(far.actions.map((a) => a.label), ['Go to figure']);
 });
 

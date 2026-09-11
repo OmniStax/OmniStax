@@ -33,7 +33,7 @@ const toggle = (fig: HTMLElement, button: HTMLButtonElement): void => {
 
 /* One button per figure that has an original; one click listener per root, delegated. */
 export const originalButtons = (root: HTMLElement): void => {
-  root.querySelectorAll<HTMLElement>('figure.demo[data-original] .demo-head').forEach((head) => {
+  root.querySelectorAll<HTMLElement>('figure.sim[data-original] .sim-head').forEach((head) => {
     if (head.querySelector('.fig-original')) return;
     const b = el('button', 'fig-original'); b.type = 'button'; b.textContent = labelOf(false); b.title = titleOf(false); b.setAttribute('aria-pressed', 'false');
     head.appendChild(b);
@@ -42,7 +42,7 @@ export const originalButtons = (root: HTMLElement): void => {
   root.dataset.original = '1';
   root.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fig-original'); if (!b) return;
-    const fig = b.closest<HTMLElement>('figure.demo'); if (!fig) return;
+    const fig = b.closest<HTMLElement>('figure.sim'); if (!fig) return;
     e.preventDefault(); toggle(fig, b);
   });
 };

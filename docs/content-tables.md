@@ -76,11 +76,11 @@ was the `notes` of the old `exercises.json`).
 Tables:
 
 - `figures`: `{ id, kind, number?, folds?, originals?, original_caption?,
-  draws }`. `kind` is `demo` (an interactive figure), `figure` (a faithful
+  draws }`. `kind` is `sim` (an interactive figure), `figure` (a faithful
   copy that serves exercises) or `photo`. The kind names the mechanism and
-  the label follows from the number: a `demo` row with no number is a Sim,
+  the label follows from the number: a `sim` row with no number is a Sim,
   an interactive figure that replaces nothing in the book, and its
-  eyebrow reads "Sim"; a `demo` row with a number transforms a book
+  eyebrow reads "Sim"; a `sim` row with a number transforms a book
   figure and its eyebrow reads "Figure" with its number and folds; a
   `figure` row reads "Figure" or "Figure N" as its number says; a `photo`
   row reads "Figure N". `draws` lists the types the figure colours, and
@@ -157,8 +157,8 @@ references:
   `<figure data-figure>` matches the row's `number` joined with its
   `folds` in the book's order ("3.3 + 3.4 + 3.5"), and no fold repeats a
   number the section already carries;
-- every `<figure>`'s eyebrow reads what its row says: "Sim" for a `demo`
-  row with no number, "Figure" and the joined numbers for a `demo` row
+- every `<figure>`'s eyebrow reads what its row says: "Sim" for a `sim`
+  row with no number, "Figure" and the joined numbers for a `sim` row
   with one, "Figure" or "Figure N" for a `figure` row, "Figure N" for a
   `photo` row;
 - every `Figure N.M` the text cites is carried by some row of the book, as

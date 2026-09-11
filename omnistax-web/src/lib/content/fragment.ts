@@ -8,7 +8,7 @@ import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/* An href already qualified by a section ("#16.1-demo-ruler", as the figure links are) is left alone. */
+/* An href already qualified by a section ("#16.1-sim-ruler", as the figure links are) is left alone. */
 export const qualifyIds = (html: string, section: string): string =>
   html.replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${section}-${id}"`).replace(/href="#(?!\d+\.\d+-)([^"]+)"/g, (_, id: string) => `href="#${section}-${id}"`);
 
@@ -16,7 +16,7 @@ export const qualifyIds = (html: string, section: string): string =>
 export type FigureNumber = string & { readonly __brand: 'FigureNumber' };
 export const figureNumber = (s: string): FigureNumber => s as FigureNumber;
 
-/* A demo that folds several book figures prints every number it replaces, in the
+/* A sim that folds several book figures prints every number it replaces, in the
    book's order and joined with " + ": "Figure 3.3 + 3.4 + 3.5". The order is
    numeric on both parts, so 2.9 comes before 2.10. That joined string is what
    the <figure>'s data-figure carries and what its eyebrow reads after "Figure ". */
@@ -56,9 +56,9 @@ const firstSentence = (text: string): string => {
   return s.length > CAP ? `${s.slice(0, CAP).trimEnd()}…` : s;
 };
 
-/* A figure with no head is named by its id, as the registry names its tab: "demo-shm-period" → "shm period". */
-const figName = (local: string): string => local.replace(/^(demo|fig)-/, '').replace(/-/g, ' ');
-const HEAD = /<div\b[^>]*\bclass="[^"]*\bdemo-head\b[^"]*"[^>]*>([\s\S]*?)<\/div>/;
+/* A figure with no head is named by its id, as the registry names its tab: "sim-shm-period" → "shm period". */
+const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').replace(/-/g, ' ');
+const HEAD = /<div\b[^>]*\bclass="[^"]*\bsim-head\b[^"]*"[^>]*>([\s\S]*?)<\/div>/;
 const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>([\s\S]*?)<\/span>/;
 /* The eyebrow, then the first sentence of the prose beside it: "Figure 16.9 · An object on a spring slides on a frictionless surface, as in Figure 16.9." */
 const headLabel = (figure: string): string => {
@@ -68,11 +68,11 @@ const headLabel = (figure: string): string => {
   return [eye ? plainText(eye[1]) : '', firstSentence(plainText(prose))].filter((p) => p !== '').join(' · ');
 };
 
-/* Every demo figure of one section's text with its label, in the order the section draws them. The id is local, as the section
+/* Every sim figure of one section's text with its label, in the order the section draws them. The id is local, as the section
    writes it: the text is qualified later, and a text already qualified gives the prefix back. */
 export const figureList = (html: string, section: string): readonly FigureEntry[] =>
   [...html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/g)]
-    .filter(([, attrs]) => /\bclass="[^"]*\bdemo\b[^"]*"/.test(attrs) && /\bid="/.test(attrs))
+    .filter(([, attrs]) => /\bclass="[^"]*\bsim\b[^"]*"/.test(attrs) && /\bid="/.test(attrs))
     .map(([, attrs, body]) => {
       const raw = /\bid="([^"]+)"/.exec(attrs)![1], id = raw.startsWith(`${section}-`) ? raw.slice(section.length + 1) : raw;
       return { id, label: headLabel(body) || figName(id) };

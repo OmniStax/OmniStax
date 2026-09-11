@@ -27,8 +27,8 @@ const CH16 = ChapterSchema.parse({ id: '16', dir: 'ch16', title: 'Oscillatory Mo
 const SECTION = SectionSchema.parse({
   id: '16.1', chapter: '16', title: 'Hooke’s Law', built: '2026-09-07',
   figures: [
-    { id: 'demo-ruler', kind: 'demo', number: '16.2', draws: ['position', 'force'] },
-    { id: 'demo-spring-scale', kind: 'demo', draws: ['force'] },
+    { id: 'sim-ruler', kind: 'sim', number: '16.2', draws: ['position', 'force'] },
+    { id: 'sim-spring-scale', kind: 'sim', draws: ['force'] },
   ],
   coverage: [
     { span: 'hookes-law', concept: 'hookes-law', verb: 'introduces' },
