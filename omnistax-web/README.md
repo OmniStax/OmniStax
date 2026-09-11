@@ -30,7 +30,7 @@ concern and read from the environment with defaults:
 ## Layout of the source
 
 ```
-src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages)
+src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages), textindex.ts (the text of a book as blocks with their span and heading, for search.json)
 src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag
@@ -39,18 +39,19 @@ src/lib/history     model.ts (the timeline of the reader's edits, pure), store.s
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/settings    colour coding, theme, animations, exercise mode, underlines
 src/lib/practice    model.ts (points by Bloom level, decaying mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build, and joining them to the book being read; pure), books.svelte.ts (that cache, one fetch a book)
+src/lib/search      model.ts (a corpus per book and what a query finds in it, by kind, with the prose capped; pure), books.ts (a formula sheet and a text index off the wire, leniently; pure), store.svelte.ts (the corpora, the book being read out of the registry and the rest off the build, fetched once), go.ts (landing on a hit: the block, the span, the term, or a link out)
 src/lib/exercises   check.ts: pure answer checking
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
-src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations
+src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations, Search (every book of the library: its text, concepts, definitions and formulas, under a filter; a hit opens the page and lands on the thing, or links out to another book)
 src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
-src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json, book.json, library.json
+src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json, book.json, search.json (the book's text as blocks), library.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, sims)
 ```
 
@@ -75,10 +76,10 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   That item is the shell's `own`, what `ensureOwn` keeps open, and what the
   section-scoped views fall back from when the focused tab belongs to no section.
 - The shell is a rail, a sidebar and the document groups, all on the left. The
-  rail stands in three sections: the explorer and the annotations at the top,
-  which toggle in the sidebar; the other three in the middle of the rail, which
+  rail stands in three sections: the explorer, the search and the annotations at the top,
+  which toggle in the sidebar; the other four in the middle of the rail, which
   are only ever tabs; and the palette and the settings at the foot. A click on
-  one of the middle three opens a page of that view — an `ItemId` of kind `view`
+  one of the middle four opens a page of that view — an `ItemId` of kind `view`
   with an instance of its own — in a split to the right of the group being read,
   and every click opens another, so several concept maps may stand open at once.
   Each page keeps its own scope, and the rail's button lights while any page of

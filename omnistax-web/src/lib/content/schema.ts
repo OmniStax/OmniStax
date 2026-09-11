@@ -398,11 +398,12 @@ export type EquationDTO = {
   readonly id: EquationId;
   readonly section: SectionId;
   readonly tex: string;
+  readonly latex: string;        /* the plain form beside it, which the search reads: a macro names nothing to a reader typing "kx" */
   readonly condition?: string;   /* what the equation holds under, where it does not hold generally: "constant acceleration" */
   readonly anchor?: SpanId;
   readonly important: boolean;
 };
-export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, section: e.section, tex: e.ktex ?? e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
+export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, section: e.section, tex: e.ktex ?? e.latex, latex: e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
 
 export type FormulasDTO = {
   readonly variables: readonly VariableDTO[];

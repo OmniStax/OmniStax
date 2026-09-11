@@ -21,6 +21,7 @@
   import ConceptMap from './ConceptMap.svelte';
   import Exercises from './Exercises.svelte';
   import Explorer from './Explorer.svelte';
+  import Search from './Search.svelte';
   import Formulas from './Formulas.svelte';
   import Definitions from './Definitions.svelte';
   import Annotations from './Annotations.svelte';
@@ -31,9 +32,10 @@
   const kind = $derived(viewKindOf(item));
   /* The explorer is the whole tree — the reader's notes and every book they
      have added — so it stands nowhere in particular and wears no bar; so does
-     the exercises view, whose curriculum is chosen across books rather than
-     read off the place the reader is standing in. */
-  const hasBar = $derived(kind !== 'explorer' && kind !== 'exercises');
+     the search, which reads every book of the library, and the exercises view,
+     whose curriculum is chosen across books rather than read off the place the
+     reader is standing in. */
+  const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'exercises');
   const target = $derived(scope.targetFor(item));
   const pinned = $derived(scope.isPinned(item));
   /* The trail is read from the narrowest place this view could stand at, so every crumb
@@ -101,6 +103,7 @@
   {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
   {/if}
   {#if kind === 'explorer'}<Explorer />
+  {:else if kind === 'search'}<Search />
   {:else if kind === 'exercises'}<Exercises {item} />
   {:else if kind === 'concepts'}<ConceptMap />
   {:else if kind === 'formulas'}<Formulas />

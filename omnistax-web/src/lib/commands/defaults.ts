@@ -32,6 +32,8 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Z', 'undo'], ['Ctrl+Shift+Z', 'redo'], ['Ctrl+Y', 'redo'],
   ['ArrowLeft', 'scope-widen'], ['ArrowRight', 'scope-narrow'],
   ['Ctrl+Shift+E', 'open-exercises'],
+  /* The search in the sidebar, under the chord every editor finds across files with. */
+  ['Ctrl+Shift+F', 'show-view-search'],
   ['Ctrl+E', 'note-toggle-mode'],
   ['Ctrl+Alt+N', 'note-new'],   /* Ctrl+N opens a window of the browser's own, so the note takes Alt as well */
 ];

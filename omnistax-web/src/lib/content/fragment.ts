@@ -48,7 +48,7 @@ export const figureIds = (html: string, section: string): ReadonlyMap<FigureNumb
 const KATEX = /^<span\b[^>]*\bclass="katex/;
 const TEX = /^<annotation\b[^>]*x-tex/;
 const unesc = (s: string): string => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
-const plainText = (html: string): string => {
+export const plainText = (html: string): string => {
   let depth = 0, tex = false, out = '';   /* depth: elements open inside a katex span, 0 outside one; tex: the text that follows is an annotation's */
   html.split(/(<[^>]+>)/).forEach((part) => {
     if (!part.startsWith('<')) { out += tex ? `$${part.trim()}$` : depth === 0 ? part : ''; return; }

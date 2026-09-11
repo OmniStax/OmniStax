@@ -40,15 +40,16 @@ export const viewInstance = (s: string): ViewInstance => s as ViewInstance;
 export const newViewInstance = (): ViewInstance => viewInstance(Math.random().toString(36).slice(2, 8).padEnd(6, '0'));
 
 export type DocKind = 'text' | 'exercises';
-/* The companion views, in the order the rail draws their buttons. Two of them
+/* The companion views, in the order the rail draws their buttons. Three of them
    may stand in the left sidebar as well as in a group — the explorer, which is
-   the whole tree, and the annotations — and the rest are only ever opened as
-   tabs. Exercises comes immediately before the concept map, since practice is
-   the map's other face: the map says what the book teaches, and the exercises
-   say how much of it the reader has made their own. */
-export const VIEW_KINDS = ['explorer', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'colours'] as const;
+   the whole tree, the search, which reads every book of the library, and the
+   annotations — and the rest are only ever opened as tabs. Exercises comes
+   immediately before the concept map, since practice is the map's other face:
+   the map says what the book teaches, and the exercises say how much of it the
+   reader has made their own. */
+export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'colours'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
-export const SIDEBAR_KINDS = ['explorer', 'annotations'] as const;
+export const SIDEBAR_KINDS = ['explorer', 'search', 'annotations'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];
 export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_KINDS as readonly string[]).includes(kind);
 /* The views the rail draws no button for, because they are asked for by name

@@ -30,13 +30,13 @@ export type Location = { readonly type: 'side'; readonly side: Side } | { readon
 export type SplitSide = 'left' | 'right' | 'up' | 'down';
 export const SIDE_WIDTH = { min: 200, max: 520 } as const;
 
-/* The two views that may stand in a sidebar both call the left one home; the
+/* The three views that may stand in a sidebar all call the left one home; the
    rest are only ever tabs, so they name no side. A page of a view opened by the
    rail carries an instance of its own and calls no side home either. */
-const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:annotations': 'left' };
+const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:search': 'left', 'view:annotations': 'left' };
 const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : itemKey(id));
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
-/* What a sidebar will hold: the explorer and the annotations, and nothing else. */
+/* What a sidebar will hold: the explorer, the search and the annotations, and nothing else. */
 const sideKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isSidebarView(id); };
 /* A view the reader asks for by name in the command palette, which the rail leaves out. */
 const paletteKey = (k: ItemKey): boolean => { const kind = viewKindOf(k); return kind !== null && isPaletteOnlyKind(kind); };

@@ -101,8 +101,8 @@ test('a term card prefers the span that introduces the concept of the same name'
 
 /* ---------- equation ---------- */
 const eqs: readonly EquationDTO[] = [
-  { id: equationId('eq-hooke'), section: sectionId('16.1'), tex: '\\kF = -\\kk\\kx', anchor: spanId('16.1-hookes-law'), important: true },
-  { id: equationId('eq-v'), section: sectionId('2.5'), tex: '\\kv = \\kvo + \\ka\\kt', anchor: spanId('2.5-final-velocity'), important: true },
+  { id: equationId('eq-hooke'), section: sectionId('16.1'), tex: '\\kF = -\\kk\\kx', latex: 'F = -kx', anchor: spanId('16.1-hookes-law'), important: true },
+  { id: equationId('eq-v'), section: sectionId('2.5'), tex: '\\kv = \\kvo + \\ka\\kt', latex: 'v = v_0 + at', anchor: spanId('2.5-final-velocity'), important: true },
 ];
 test('tex normalisation ignores spacing, closing punctuation and the constant-a qualifier', () => {
   assert.equal(normTex('\\kF = -\\kk\\kx.'), normTex('\\kF=-\\kk\\kx'));

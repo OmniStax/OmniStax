@@ -32,4 +32,4 @@ export const ICON = {
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.3" fill="currentColor"/><circle cx="15" cy="6" r="1.3" fill="currentColor"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/><circle cx="9" cy="18" r="1.3" fill="currentColor"/><circle cx="15" cy="18" r="1.3" fill="currentColor"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };

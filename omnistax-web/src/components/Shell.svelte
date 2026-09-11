@@ -87,6 +87,12 @@
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
+    /* A page opened at a span — a search hit in another book links here with the span in
+       the hash — lands on it once the document stands in its pane, since the browser's own
+       landing came while it still stood in the pool; a hash that changes under the shell
+       lands the same way. */
+    const onHash = () => { const hash = decodeURIComponent(location.hash.slice(1)); if (hash) requestAnimationFrame(() => jump(findEl(hash))); };
+    onHash(); window.addEventListener('hashchange', onHash);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
     /* Where the reader is typing, undo and redo are not the shell's: a field has
@@ -142,7 +148,7 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
   });
 
   /* settings → document */

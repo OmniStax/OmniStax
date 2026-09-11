@@ -65,7 +65,7 @@ test('a view that no sidebar holds is asked for there and opens as a tab', () =>
   assert.equal(where(l, map)?.type, 'group'); assert.equal(l.groups[0].active, map);
 });
 test('the rail draws the two sidebar views first and the four group views below, exercises above the map', () => {
-  assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:annotations']);
+  assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:annotations']);
   assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:formulas', 'view:definitions']);
   /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
   assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:colours']);
