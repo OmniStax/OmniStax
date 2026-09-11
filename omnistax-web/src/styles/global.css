@@ -52,6 +52,16 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .example h3{margin-top:0}
 .example h4{font-family:var(--sans);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:0.9rem 0 0.2rem}
 .example ol{padding-left:1.2rem}
+/* a table of the book's, numbered as the book numbers it: the eyebrow is the number, the caption the book's title */
+.book-table{margin:1.6rem 0;font-family:var(--sans);font-size:0.9rem;overflow-x:auto}
+.book-table .tcap{display:block;margin-bottom:8px;color:var(--muted);line-height:1.45}
+.book-table .tcap .eyebrow{display:block;white-space:nowrap}
+.book-table .tcap > span:not(.eyebrow){display:block;margin-top:4px}
+.book-table table{border-collapse:collapse;width:100%;background:var(--panel);border:1px solid var(--rule);border-radius:6px}
+.book-table th,.book-table td{padding:6px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+.book-table th{font-weight:600;background:var(--soft)}
+.book-table tr:last-child td{border-bottom:0}
+.book-table td.num{white-space:nowrap}
 .summary-box{background:var(--soft);border-radius:6px;padding:14px 20px;margin:1.2rem 0}
 .summary-box .katex-display{margin:0.4rem 0}
 /* where a jump landed: a tint that fades out */
