@@ -76,7 +76,7 @@ was the `notes` of the old `exercises.json`).
 Tables:
 
 - `figures`: `{ id, kind, number?, folds?, originals?, original_caption?,
-  draws }`. `kind` is `sim` (an interactive figure), `figure` (a faithful
+  widths?, draws }`. `kind` is `sim` (an interactive figure), `figure` (a faithful
   copy that serves exercises) or `photo`. The kind names the mechanism and
   the label follows from the number: a `sim` row with no number is a Sim,
   an interactive figure that replaces nothing in the book, and its
@@ -85,9 +85,16 @@ Tables:
   `figure` row reads "Figure" or "Figure N" as its number says; a `photo`
   row reads "Figure N". `draws` lists the types the figure colours, and
   the page's `binds` is the union of them, so `binds` is no longer
-  written down. The `<figure>` element in `text.html` still carries the
-  same facts as `data-*` attributes for the browser; the validator checks
-  that the two agree until the build injects them.
+  written down. `widths` is the width the book prints each of the row's
+  images at, in pixels of the book's own column, one per image in the
+  order the row shows them (a photograph's one image, or the
+  `originals`), read off the CNXML `<image width>`; it is empty where
+  the book gives none, and the app then shows the image at its natural
+  size. The `<figure>` element in `text.html` still carries the
+  same facts as `data-*` attributes for the browser (a photograph's
+  `<img data-width>`, a figure's `data-original-width`, comma-separated
+  in the order of `data-original`); the validator checks that the two
+  agree until the build injects them.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -157,6 +164,10 @@ references:
   `<figure data-figure>` matches the row's `number` joined with its
   `folds` in the book's order ("3.3 + 3.4 + 3.5"), and no fold repeats a
   number the section already carries;
+- every `widths` is empty or one number per image the row shows, and the
+  text carries the same numbers: `<img data-width>` on a photograph,
+  `<figure data-original-width>` on a figure with originals, and neither
+  where the row is empty;
 - every `<figure>`'s eyebrow reads what its row says: "Sim" for a `sim`
   row with no number, "Figure" and the joined numbers for a `sim` row
   with one, "Figure" or "Figure N" for a `figure` row, "Figure N" for a

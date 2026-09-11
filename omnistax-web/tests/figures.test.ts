@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, splitNumbers } from '../src/lib/content/fragment';
+import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, sizeImages, splitNumbers } from '../src/lib/content/fragment';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
 import { ROOT } from './book-on-disk';
@@ -53,6 +53,16 @@ test('figureIds reads a section and qualifies; qualifyIds leaves those hrefs alo
   const m = figureIds(html, '16.1');
   assert.deepEqual([...m], [['16.4', '16.1-sim-a'], ['16.8', '16.1-fig-c']]);
   assert.equal(qualifyIds('<a href="#16.3-sim-x">x</a><a href="#local">y</a>', '16.1'), '<a href="#16.3-sim-x">x</a><a href="#16.1-local">y</a>');
+});
+
+test('sizeImages writes the book’s width onto a photograph’s image as --book-w, and leaves an image with no width alone', () => {
+  const photo = '<figure class="photo" id="fig-jet" data-figure="2.4"><img src="/media/ch02/Figure_02_02_00.jpg" alt="A jet." data-width="300"><figcaption></figcaption></figure>';
+  const sized = '<figure class="photo" id="fig-jet" data-figure="2.4"><img src="/media/ch02/Figure_02_02_00.jpg" alt="A jet." data-width="300" style="--book-w:300"><figcaption></figcaption></figure>';
+  assert.equal(sizeImages(photo), sized);
+  assert.equal(sizeImages(sized), sized, 'sizing twice writes nothing twice');
+  const bare = '<figure class="photo" id="fig-mri"><img src="/m.jpg" alt="A scan."></figure>';
+  assert.equal(sizeImages(bare), bare);
+  assert.equal(sizeImages(`${bare}${photo}`), `${bare}${sized}`, 'each image is sized on its own');
 });
 
 const sim = (id: string, head: string): string => `<figure class="sim" id="${id}"><div class="sim-head">${head}</div></figure>`;

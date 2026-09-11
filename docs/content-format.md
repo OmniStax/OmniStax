@@ -178,6 +178,7 @@ The figures the section draws, and the types each of them colours.
 | `folds` | `string[]` | no | The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure’s own, and the eyebrow reads every number in the book’s order. |
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
+| `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
 | `draws` | `string[]` | no | The types the figure colours. The page’s binds are the union of them, so the page need not say again what it colours. |
 
 ### `coverage`

@@ -85,9 +85,16 @@ mark.hl{background:var(--hl-yellow);color:inherit;border-radius:2px;padding:0 1p
 mark.hl-green{background:var(--hl-green)} mark.hl-blue{background:var(--hl-blue)} mark.hl-pink{background:var(--hl-pink)}
 mark.hl[data-noted]{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
 mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
-/* a photograph kept from the book, with its caption and credit line */
+/* a photograph kept from the book, with its caption and credit line.
+   A book image, here or under a sim as an Original, is never upscaled: it sits at its natural size, centred, never wider
+   than the column and never taller than three fifths of the viewport. Where the book says how wide it prints the image
+   (the CNXML width attribute, carried as --book-w on the <img>), that width is honoured on our column: the book lays its
+   pages out on a 600 px column and the article is 740 px wide (820 less two 40 px paddings), so one of the book's
+   pixels is 740 / 600 of ours, which --book-px names. */
+:root{--book-px:1.2333px}
 .photo{margin:2rem 0;font-family:var(--sans)}
-.photo img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+.photo img,.sim .original img{display:block;width:auto;max-width:100%;max-height:60vh;height:auto;margin:0 auto;border:1px solid var(--rule);border-radius:6px}
+.photo img[data-width],.sim .original img[data-width]{max-width:min(100%,calc(var(--book-w) * var(--book-px)))}
 .photo figcaption{position:relative;display:block;margin-top:8px;font-size:0.9rem;color:var(--muted);line-height:1.45}
 .photo figcaption .eyebrow{display:block;padding-right:36px;white-space:nowrap}
 .photo figcaption > span:not(.eyebrow){display:block;margin-top:5px}
@@ -112,7 +119,6 @@ figure.sim[data-original] .sim-head .eyebrow{padding-right:134px}
 .fig-original:hover{color:var(--ink);background:var(--soft)}
 .fig-original:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .sim .original{padding:14px 18px 12px}
-.sim .original img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
 .sim .original img+img{margin-top:12px}
 .sim .ocap{display:block;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
 .sim .ocap .eyebrow{display:block;white-space:nowrap}

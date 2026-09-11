@@ -175,6 +175,7 @@ export const FigureSchema = z.object({
   folds: z.array(z.string()).default([]).describe('The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure\u2019s own, and the eyebrow reads every number in the book\u2019s order.'),
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
   original_caption: z.string().optional().describe('The caption the book prints under the figure, kept word for word.'),
+  widths: z.array(z.number().int().positive()).default([]).describe('The book\u2019s display width in pixels for each image the row shows, one per image in order (a photo\u2019s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size.'),
   draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The page\u2019s binds are the union of them, so the page need not say again what it colours.'),
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;

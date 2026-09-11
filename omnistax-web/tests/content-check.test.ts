@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBook } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkBinds, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes,
+  CHECKS, checkAnchors, checkBinds, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkWidths,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -151,6 +151,28 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
   assert.deepEqual(run(checkFigures, { section: { figures: [photo] }, textHtml: '<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>' }), []);
   assert.deepEqual(run(checkFigures, labelled(photo, 'class="photo" id="fig-guitar" data-figure="16.8"', 'Figure')), ['16.1/section.json figures[fig-guitar]: reads "Figure" in the text and should read "Figure 16.8"']);
   assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so its eyebrow has nothing to read']);
+});
+
+/* The book's display widths ride on the row as `widths`, one per image, and on the text as data-width (a photograph's
+   <img>) or data-original-width (a figure's originals, comma-separated); both are absent where the row is empty. */
+const photoText = (img: string) => `<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"${img}><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>`;
+const simText = (attr: string) => figureOf(`class="sim" id="sim-ruler" data-figure="16.2" data-original="/a.jpg,/b.jpg"${attr}`, 'Figure 16.2');
+test('checkWidths: a row gives one width per image, and the text carries the same numbers', () => {
+  const photo = (widths: readonly number[]) => ({ id: 'fig-guitar', kind: 'photo', number: '16.8', widths });
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([])] }, textHtml: photoText('') }), []);
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([250])] }, textHtml: photoText(' data-width="250"') }), []);
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([250, 300])] }, textHtml: photoText(' data-width="250"') }), ['16.1/section.json figures[fig-guitar]: gives 2 widths for 1 images']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([250])] }, textHtml: photoText('') }), ['16.1/section.json figures[fig-guitar]: gives widths 250, but carries no data-width in the text']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([])] }, textHtml: photoText(' data-width="250"') }), ['16.1/section.json figures[fig-guitar]: gives no widths, but its data-width in the text reads "250"']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [photo([250])] }, textHtml: photoText(' data-width="300"') }), ['16.1/section.json figures[fig-guitar]: gives widths 250 and its data-width in the text reads "300"']);
+  const sim = (widths: readonly number[]) => ({ id: 'sim-ruler', kind: 'sim', number: '16.2', originals: ['/a.jpg', '/b.jpg'], widths });
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([])] }, textHtml: simText('') }), []);
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([400, 300])] }, textHtml: simText(' data-original-width="400,300"') }), []);
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([400])] }, textHtml: simText(' data-original-width="400"') }), ['16.1/section.json figures[sim-ruler]: gives 1 widths for 2 images']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([400, 300])] }, textHtml: simText(' data-original-width="300,400"') }), ['16.1/section.json figures[sim-ruler]: gives widths 400,300 and its data-original-width in the text reads "300,400"']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([400, 300])] }, textHtml: simText('') }), ['16.1/section.json figures[sim-ruler]: gives widths 400,300, but carries no data-original-width in the text']);
+  assert.deepEqual(run(checkWidths, { section: { figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', widths: [400] }] }, textHtml: TEXT }), ['16.1/section.json figures[sim-ruler]: gives 1 widths for 0 images'], 'a sim with no originals shows no image');
+  assert.deepEqual(run(checkWidths, { section: { figures: [sim([400, 300])] }, textHtml: '' }), [], 'a row with no <figure> is checkFigures’ finding, not this one');
 });
 
 test('checkFigureRefs: a figure the prose cites that no row carries is a warning, and a fold carries its numbers', () => {

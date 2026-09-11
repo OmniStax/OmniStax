@@ -70,6 +70,16 @@ Rules for the plan:
   the book's caption and credit line. List every photograph in the plan
   with keep or drop and the reason. Keep the book's numbers as the slider
   defaults so the figure reproduces the worked example on load.
+- The `FIGURE` block of `source.md` carries `width: 400` where the book
+  says how wide it prints the image. A row that shows book images (a
+  photograph, or a figure with `originals`) copies those widths into
+  `widths`, one per image in the row's order, and the text carries the
+  same numbers: `data-width` on a photograph's `<img>`,
+  `data-original-width` (comma-separated, aligned with `data-original`)
+  on a figure. Where any image of the row has no width, leave `widths`
+  empty and say so in the plan; the app never upscales a book image and
+  never lets one stand taller than three fifths of the viewport, so a
+  row without widths still reads well.
 - A figure that exists to serve exercises (a diagram the problems refer
   to) is copied over faithfully, labelled "Figure" (with the book's
   number where it has one) and never "Sim": no sliders, no animation

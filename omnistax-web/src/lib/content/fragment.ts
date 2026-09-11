@@ -12,6 +12,14 @@ const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 export const qualifyIds = (html: string, section: string): string =>
   html.replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${section}-${id}"`).replace(/href="#(?!\d+\.\d+-)([^"]+)"/g, (_, id: string) => `href="#${section}-${id}"`);
 
+/* The book's display width for a photograph rides on its <img> as data-width, and the stylesheet
+   sizes the image from the custom property --book-w, so the build writes the one onto the other
+   here, and no content file carries a style attribute. An image with no data-width is left alone
+   and sits at its natural size. */
+const IMG_WITH_WIDTH = /<img\b[^>]*\bdata-width="(\d+)"[^>]*>/g;
+export const sizeImages = (html: string): string =>
+  html.replace(IMG_WITH_WIDTH, (tag, width: string) => (tag.includes('--book-w') ? tag : `${tag.slice(0, -1)} style="--book-w:${width}">`));
+
 /* Book figure numbers as the prose writes them: "16.4". */
 export type FigureNumber = string & { readonly __brand: 'FigureNumber' };
 export const figureNumber = (s: string): FigureNumber => s as FigureNumber;
@@ -109,7 +117,7 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource
   `<div class="eyebrow">Chapter ${esc(chapter.id)} · ${esc(chapter.title)} · ${s.meta.id}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   `<p class="lead">${s.meta.lead}</p>`,
-  qualifyIds(s.textHtml, s.meta.id),
+  sizeImages(qualifyIds(s.textHtml, s.meta.id)),
   sectionEnd(s),
   footer(book, chapter, s),
   `</article>`,

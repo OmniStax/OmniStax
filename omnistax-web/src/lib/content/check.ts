@@ -241,6 +241,39 @@ export const checkFigures: Check = (content) =>
     ];
   });
 
+/* The book says how wide it prints an image, as the width attribute of the
+   CNXML <image>, and a row keeps that in `widths`: one number per image the
+   row shows, in the order it shows them, or nothing where the book gives none.
+   The text carries the same numbers for the browser, as the other facts of a
+   row are carried: a photograph's <img> has data-width, and a figure with
+   originals has data-original-width, comma-separated and aligned with
+   data-original. Both must agree with the row, and both are absent where the
+   row is empty. */
+/* The width attributes one <figure> of the text carries: the data-width of its image and its own data-original-width. */
+type WidthTags = { readonly image?: string; readonly originals?: string };
+const widthTags = (html: string): ReadonlyMap<string, WidthTags> =>
+  new Map(Array.from(html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/g), ([, attrs, body]) => [/\bid="([^"]+)"/.exec(attrs)?.[1] ?? '', {
+    image: /<img\b[^>]*\bdata-width="([^"]*)"/.exec(body)?.[1],
+    originals: /\bdata-original-width="([^"]*)"/.exec(attrs)?.[1],
+  }] as const));
+/* How many images a row shows: a photograph shows one, and any other row shows its originals. */
+const imageCount = (f: FigureRowDTO): number => (f.kind === 'photo' ? 1 : f.originals.length);
+const widthFinding = (where: string, f: FigureRowDTO, tags: WidthTags | undefined): readonly Finding[] => {
+  if (f.widths.length > 0 && f.widths.length !== imageCount(f)) return [error(where, `gives ${f.widths.length} widths for ${imageCount(f)} images`)];
+  if (tags === undefined) return [];
+  const expected = f.widths.length === 0 ? undefined : f.kind === 'photo' ? String(f.widths[0]) : f.widths.join(',');
+  const [attr, read] = f.kind === 'photo' ? ['data-width', tags.image] : ['data-original-width', tags.originals];
+  if (read === expected) return [];
+  if (expected === undefined) return [error(where, `gives no widths, but its ${attr} in the text reads "${read}"`)];
+  if (read === undefined) return [error(where, `gives widths ${expected}, but carries no ${attr} in the text`)];
+  return [error(where, `gives widths ${expected} and its ${attr} in the text reads "${read}"`)];
+};
+export const checkWidths: Check = (content) =>
+  sectionsOf(content).flatMap((s) => {
+    const tags = widthTags(s.textHtml);
+    return s.dto.figures.flatMap((f) => widthFinding(inSection(s, 'figures', f.id), f, tags.get(f.id)));
+  });
+
 /* Every figure the prose cites should land somewhere: the build links "Figure
    3.5" to the row that carries 3.5, as its number or as a fold, and a number no
    row of the book carries stays plain text. That is legitimate while the figure
@@ -299,7 +332,7 @@ export const checkConcepts: Check = (content) => {
 
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkFigureRefs, checkSources, checkConcepts];
+export const CHECKS: readonly Check[] = [checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
