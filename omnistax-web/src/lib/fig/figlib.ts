@@ -108,7 +108,9 @@ function demo(root: HTMLElement, id: string, H?: Logical) {
    Figures animate on their own. Each gets a transport (play/pause, stop and
    rewind, a time scrubber when the motion has a finite period, speed) under
    its canvas; a global switch pauses them all; reduced-motion starts every
-   figure stopped at its end state. A figure draws only when something
+   figure stopped at its end state. A figure that registers no cycle is a
+   still picture that answers its sliders: it gets no transport and never
+   plays, since it has no time to play through. A figure draws only when something
    changed: its time advanced, a slider or drag touched it, it scrolled into
    view, or a global redraw was asked for. A paused figure costs nothing. */
 let paused = false;
@@ -145,8 +147,9 @@ function transport(d: Demo): void {
   d.sync = sync;
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
-  const full: Demo = { ...d, fig, cycles: pendingCycles.splice(0), playing: !REDUCED, speed: 1, dirty: true };
-  demos.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); transport(full);
+  const cycles = pendingCycles.splice(0), still = !cycles.length;
+  const full: Demo = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
+  demos.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
@@ -157,7 +160,7 @@ function loop(now: number): void {
     if (!onScreen.has(d.fig)) return;
     if (!paused && d.playing) {
       const before = d.cycles.map((c) => c.tau); d.update(dt * d.speed);
-      if (!d.cycles.length || d.cycles.some((c, i) => c.tau !== before[i])) { d.dirty = true; syncScrub(d); }   /* the end-of-loop hold changes nothing */
+      if (d.cycles.some((c, i) => c.tau !== before[i])) { d.dirty = true; syncScrub(d); }   /* the end-of-loop hold changes nothing */
     }
     if (d.dirty) { d.dirty = false; usePal(d.fig); d.draw(); }
   });

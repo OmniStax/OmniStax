@@ -40,8 +40,9 @@ OmniStax addition, set in the sans face, and is labelled "Demo".
 Produce a plan, one line per figure, and stop for review if asked to:
 
   id · replaces (book figure id or "new") · concept ids it serves ·
-  what moves · sliders (variable ids) · what the headline reads ·
-  graph below (axes) or none · 3D? (only if the idea is spatial)
+  what moves, or "still" when nothing does · sliders (variable ids) ·
+  what the headline reads · graph below (axes) or none · 3D? (only if
+  the idea is spatial)
 
 Rules for the plan:
 - One figure per result or idea the section introduces (see coverage
@@ -83,6 +84,15 @@ Rules for the plan:
   under a line, a curve crossing a level twice).
 - 3D only when the idea is spatial (two lanes side by side, a hemisphere,
   a field). Otherwise 2D canvas.
+- Decide for every figure whether it moves, and say so in the plan line.
+  It moves when the idea has a time in it: something travels, falls,
+  oscillates, or a quantity accumulates as a clock runs. It is still
+  when it answers its sliders and nothing else: a scatter of attempts
+  about a target, a value placed on a ladder of powers of ten, two
+  lengths summed with the rejected digits muted. Do not default to
+  motion, and never add a dummy loop so that a still figure earns a
+  transport; a transport on a picture that cannot play is a broken
+  promise.
 
 ## 2. Draw each figure with the shared layer
 
@@ -139,9 +149,12 @@ Motion:
 - the moving object is an ink-coloured dot or sprite; its arrows for v and
   a are drawn every frame with lengths proportional to the values.
 - the library adds a transport (play/pause, stop, a time scrubber when the
-  motion has a finite period, speed) under every
-  registered figure; do not draw your own. Reduced-motion starts the
+  motion has a finite period, speed) under every registered figure that
+  called cycle(); do not draw your own. Reduced-motion starts the
   figure stopped at t = T.
+- a still figure calls no cycle() and registers with
+  `update: () => {}`; the library then adds no transport, and the
+  slider's input event alone redraws it. Its sliders need no onInput.
 
 Readout:
 - tex(d.readout, ...) renders the equation with the current numbers
@@ -172,6 +185,12 @@ headline. Do not loop on it.
   page is never static and the reader sees the motion without doing
   anything. The per-figure transport and the reduced-motion default keep
   this from being hostile.
+- **No transport on a still figure.** The five still demos of Chapter 1
+  first shipped with a dummy infinite cycle so that they would register
+  like the others, and so each carried play, stop and speed buttons that
+  did nothing. A transport says "this plays"; on a figure that cannot,
+  it is chrome that lies. Motion is a judgment made per figure, not a
+  default.
 - **Headline with live numbers.** A line like "Δx = 3.5 − 1.5 = +2.0 m"
   inside the canvas is the fastest way to tie the picture to the equation.
   It also doubles as a caption.
@@ -241,10 +260,12 @@ carries.
 - Fixed 1400-unit logical canvas scaled to the column. Type 22px, small
   17px, headline 26px; strokes 3 to 5px; markers 9 to 11px radius. Hollow
   marker = initial value, filled = current, dashed = average or reference.
-- Every figure animates on its own, in a loop with a short hold, and reads
-  out its live state in a headline inside the canvas. Each figure has its
-  own transport under the canvas (play/pause, stop and rewind, speed);
-  reduced-motion starts every figure stopped at its end state.
+- Every figure whose idea has a time in it animates on its own, in a loop
+  with a short hold, and reads out its live state in a headline inside the
+  canvas. Each such figure has its own transport under the canvas
+  (play/pause, stop and rewind, speed); reduced-motion starts every
+  figure stopped at its end state. A figure whose idea has no time in it
+  is a still picture that answers its sliders, with no transport.
 - Chrome: 1px rule border and 6px radius on the canvas, nothing else. No
   card behind the figure. Sliders in a wrapping row below, readout equation
   centred below that.

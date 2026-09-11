@@ -224,6 +224,20 @@ Three triggers, three treatments:
   the original readable. The point is that the reader sees exactly what
   the problem is about.
 
+Whether a demo moves is a decision of its own, made in the plan line, and
+the agent thinks it through for every figure rather than defaulting to
+motion. A demo moves when the idea has a time in it: something travels,
+oscillates, falls, or a quantity accumulates as a clock runs. That demo
+registers a cycle and gets the app's transport (play and pause, stop, a
+scrubber when the run is finite, speed). A demo whose idea has no time in
+it, one that answers its sliders and nothing else (a bull's-eye that
+scatters as the spread changes, a value placed on a ladder of powers of
+ten, two lengths summed with their rejected digits muted), is a still
+picture: it registers no cycle, gets no transport, and redraws when a
+slider moves. A transport on a still picture is a promise of motion the
+figure cannot keep, and a dummy loop added to earn one is worse. The plan
+line says which of the two each figure is, and why.
+
 ## 15. Proposing extra simulations
 
 Beyond the figures the triggers above call for, the agent may propose
