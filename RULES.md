@@ -15,10 +15,14 @@ omnistax-content/<Book Title>/   one folder per book, named by the title in its 
   LOG.md                         the running log of passes over this book
   tools/                         the scripts written for this book's source format
   media/                         the book's figures and photographs, served at /media/
+  intro/                         the book's own introduction or preface, where it prints one (item 21)
+  summary/                       the book's own closing summary, where it prints one (item 21)
   <chapter>/                     one folder per chapter
     chapter.json                 sections, variables, equations, glossary
     config.md                    the agreed defaults for the chapter (item 10)
     exploration.md               what the exploration phase found (item 1)
+    intro/                       the chapter's own introduction, where the book prints one (item 21)
+    summary/                     the chapter's own summary or conclusion, where the book prints one (item 21)
     <section>/                   one folder per section
       source.md                  the section as converted from the book's source
       plan.md                    the plan that was reviewed before building (item 5)
@@ -63,7 +67,9 @@ at a time.
 Learning objectives, formula sheets, key terms, section summaries and
 similar apparatus are ingested into structured data and removed from the
 main text. The tool displays them elsewhere (floaters, formula sheet,
-definitions tab), so they must not also sit inline.
+definitions tab), so they must not also sit inline. A section's own
+introduction and summary are the one exception: item 21 says where they
+go.
 
 ## 5. Report the plan per section before building
 
@@ -392,3 +398,34 @@ write a `weight` on the row, so that a Hooke's law problem that mentions
 displacement gives displacement less. Weights are always the agent's
 judgement and are documented as such; where the field is absent the Bloom
 table applies.
+
+## 21. The book's introductions and summaries keep their place
+
+A textbook opens its chapters and often itself with an introduction, and
+closes them with a summary or a conclusion. Where the book prints one, it
+is kept, in the book's own words, and it stands where the book stood it:
+
+- **A chapter's introduction is a page of its own, first in the chapter's
+  folder**, and a book's introduction or preface is a page of its own,
+  first in the book's folder. It is listed before the first section, so
+  the reader meets it where the book put it.
+- **A chapter's summary or conclusion is a page of its own, last in the
+  chapter's folder**, and a book's closing summary is a page of its own,
+  last in the book's folder. It is listed after the last section.
+- **A section's own introduction and summary go inside the section's
+  page**, where the book has them: the introduction at the top of the
+  text, the summary at the end. Learning objectives and the rest of the
+  apparatus still go to the tables (item 4).
+- **Nothing is invented.** A book, chapter or section that prints no
+  introduction or summary gets none; the agent does not write one in
+  the book's place. The section `lead` is not a summary and not an
+  introduction: it is the one line under the title that says what the
+  page is about, and it stays what item 17 says it is.
+- **A long one is transformed like a section.** An introduction that
+  runs to pages, carries figures, or opens on a splash photograph is
+  converted with the same tools and held to the same rules as a section:
+  its sketch figures become interactive figures where item 14 says they
+  should, its photographs are kept or dropped by item 14 (the chapter
+  opener's photograph is the point of the page, so it is kept), and its
+  math and cross references are transformed as a section's are. The size
+  of the job is no reason to leave the page out.
