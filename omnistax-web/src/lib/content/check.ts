@@ -12,9 +12,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bindsOf } from './load';
-import type { BookTree } from './load';
-import { REF, printedNumbers } from './fragment';
-import type { BookDTO, ChapterDTO, FigureRowDTO, SectionDTO } from './schema';
+import type { BookTree, SectionSource } from './load';
+import { REF, SUMMARY_ID, printedNumbers } from './fragment';
+import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
+import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 
 /* What a check found. An error is content that will not work: a reference to a
    row or a span that is not there. A warning is content that works but may be
@@ -28,16 +29,18 @@ const error = (where: string, what: string): Finding => ({ level: 'error', where
 const warning = (where: string, what: string): Finding => ({ level: 'warning', where, what });
 const info = (where: string, what: string): Finding => ({ level: 'info', where, what });
 
-/* One built section as a check reads it: the tables as it writes them, the text
-   the spans live in, and the source the exercises were taken from. */
+/* One built page as a check reads it: the tables as it writes them, the text
+   the spans live in, and the source the exercises were taken from. A page is a
+   section, or the introduction or summary a chapter or the book keeps beside
+   its sections, which writes the same record with most of it empty. */
 export type SectionContent = {
   readonly dto: SectionDTO;
   readonly textHtml: string;          /* the article body, ids still local */
   readonly sourceMd: string | null;   /* the section's source.md, or nothing where the section keeps none */
 };
-export type ChapterContent = { readonly dto: ChapterDTO; readonly sections: readonly SectionContent[] };
-/* The whole book as the checks read it: the three files, and the text and source of every section that is built. */
-export type Content = { readonly book: BookDTO; readonly chapters: readonly ChapterContent[] };
+export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent };
+/* The whole book as the checks read it: the three files, and the text and source of every page that is built. */
+export type Content = { readonly book: BookDTO; readonly intro?: SectionContent; readonly chapters: readonly ChapterContent[]; readonly summary?: SectionContent };
 export type Check = (content: Content) => readonly Finding[];
 
 /* ---------- what the tables and the text are indexed by ---------- */
@@ -72,8 +75,12 @@ const eyebrowText = (body: string): string | undefined => {
 const figureEyebrows = (html: string): ReadonlyMap<string, string | undefined> =>
   new Map(Array.from(html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/g), ([, attrs, body]) => [/\bid="([^"]+)"/.exec(attrs)?.[1] ?? '', eyebrowText(body)] as const));
 
+/* The sections of the book, which is what the tables of concepts, exercises and anchors speak about. */
 const sectionsOf = (content: Content): readonly SectionContent[] => content.chapters.flatMap((ch) => ch.sections);
-/* Where a finding in a section is: the section's number, since that is what its directory is called. */
+/* Every page of the book, the introductions and summaries included, which is what the checks on a page's own text and figures read. */
+const pagesOf = (content: Content): readonly SectionContent[] =>
+  [...(content.intro ? [content.intro] : []), ...content.chapters.flatMap((ch) => framedPagesOf(ch)), ...(content.summary ? [content.summary] : [])];
+/* Where a finding in a page is: the section's number, since that is what its directory is called, or the id the app reads an introduction or summary under ("2.intro"). */
 const inSection = (s: SectionContent, table: string, row: string): string => `${s.dto.id}/section.json ${table}[${row}]`;
 const inChapter = (ch: ChapterContent, table: string, row: string): string => `${ch.dto.dir}/chapter.json ${table}[${row}]`;
 
@@ -141,7 +148,7 @@ export const checkRefs: Check = (content) => {
    what its figures drew. */
 export const checkBinds: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
-  return sectionsOf(content).flatMap((s) => [
+  return pagesOf(content).flatMap((s) => [
     ...s.dto.figures.flatMap((f) => f.draws.flatMap((t) => ref(inSection(s, 'figures', f.id), 'draws', types, t))),
     ...bindsOf(s.dto.figures).flatMap((t) => (types.has(t) ? [] : [error(`${s.dto.id}/section.json`, `the page binds unknown type "${t}"`)])),
   ]);
@@ -166,6 +173,7 @@ export const checkAnchors: Check = (content) => {
     const cut = value.indexOf('-');
     const [section, local] = cut < 0 ? [value, ''] : [value.slice(0, cut), value.slice(cut + 1)];
     const built = ids.get(section);
+    if (pageRoleOf(section) !== 'section') return [error(where, `anchors "${value}", but an introduction or summary page carries no anchors`)];
     if (!built) return [error(where, `anchors "${value}", but section ${section} is not built`)];
     return built.has(local) ? [] : [error(where, `anchors "${value}", but section ${section} has no id "${local}"`)];
   };
@@ -179,7 +187,7 @@ export const checkAnchors: Check = (content) => {
    span coverage is written of, the passage an exercise cites, and the span an
    inline exercise follows. Each must be an id in the section's text. */
 export const checkSpans: Check = (content) =>
-  sectionsOf(content).flatMap((s) => {
+  pagesOf(content).flatMap((s) => {
     const ids = localIds(s.textHtml);
     const span = (where: string, what: string, value: string | undefined): readonly Finding[] =>
       (value === undefined || ids.has(value) ? [] : [error(where, `${what} "${value}" is no id in the section’s text`)]);
@@ -221,7 +229,7 @@ const eyebrowFinding = (where: string, f: FigureRowDTO, read: string | undefined
   return read === expected ? [] : [error(where, `reads "${read}" in the text and should read "${expected}"`)];
 };
 export const checkFigures: Check = (content) =>
-  sectionsOf(content).flatMap((s) => {
+  pagesOf(content).flatMap((s) => {
     const drawn = figureTags(s.textHtml);
     const eyebrows = figureEyebrows(s.textHtml);
     const rows = new Map(s.dto.figures.map((f) => [f.id, printedNumbers(f)] as const));
@@ -269,7 +277,7 @@ const widthFinding = (where: string, f: FigureRowDTO, tags: WidthTags | undefine
   return [error(where, `gives widths ${expected} and its ${attr} in the text reads "${read}"`)];
 };
 export const checkWidths: Check = (content) =>
-  sectionsOf(content).flatMap((s) => {
+  pagesOf(content).flatMap((s) => {
     const tags = widthTags(s.textHtml);
     return s.dto.figures.flatMap((f) => widthFinding(inSection(s, 'figures', f.id), f, tags.get(f.id)));
   });
@@ -284,8 +292,8 @@ const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?<\/spa
 export const citedNumbers = (html: string): readonly string[] =>
   [...new Set(Array.from(html.replace(EYEBROW, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
 export const checkFigureRefs: Check = (content) => {
-  const carried = new Set(sectionsOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));
-  return sectionsOf(content).flatMap((s) => citedNumbers(s.textHtml).flatMap((n) =>
+  const carried = new Set(pagesOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));
+  return pagesOf(content).flatMap((s) => citedNumbers(s.textHtml).flatMap((n) =>
     (carried.has(n) ? [] : [warning(`${s.dto.id}/text.html`, `cites Figure ${n}, which no figure row of the book carries, so it stays plain text`)])));
 };
 
@@ -330,9 +338,43 @@ export const checkConcepts: Check = (content) => {
   });
 };
 
+/* A page is what its role says (rule 21). A section belongs to a chapter and
+   opens on a lead. An introduction or summary page keeps the book's own words
+   and nothing else: it lists no objectives, prints no section summary, sets no
+   exercises and covers no concepts, since the apparatus belongs to sections;
+   its lead may be empty, because nothing is invented in the book's place; and
+   the chapter or the book that keeps it must name it, so that the page's module
+   and its slug are written down where the sections' are. A section's text also
+   keeps off the one id the build adds to it, the summary block's. */
+const EMPTY_ON_FRONT: readonly (readonly [string, (s: SectionDTO) => number])[] = [
+  ['objectives', (s) => s.objectives.length], ['summary_html', (s) => s.summaryHtml.length], ['exercises_lead', (s) => s.exercisesLead.length],
+  ['exercise_notes', (s) => s.exerciseNotes.length], ['coverage', (s) => s.coverage.length], ['exercises', (s) => s.exercises.length], ['exercise_concepts', (s) => s.exerciseConcepts.length],
+];
+const frontPage = (s: SectionContent, role: FrontRole, owner: string, named: FrontPageRefDTO | undefined, chapter: string | undefined): readonly Finding[] => {
+  const where = `${s.dto.id}/section.json`;
+  return [
+    ...(named === undefined ? [error(where, `is the ${role} of ${owner}, which names no ${role} of its own`)] : []),
+    ...(s.dto.chapter === chapter ? [] : [error(where, chapter === undefined ? `belongs to the book and names chapter "${s.dto.chapter}"` : `belongs to chapter ${chapter} and names chapter "${s.dto.chapter ?? ''}"`)]),
+    ...EMPTY_ON_FRONT.flatMap(([field, count]) => (count(s.dto) === 0 ? [] : [error(where, `is ${role === 'intro' ? 'an introduction' : 'a summary'} page and carries ${field}, which belongs to a section`)])),
+  ];
+};
+const section = (s: SectionContent): readonly Finding[] => [
+  ...(s.dto.chapter === undefined ? [error(`${s.dto.id}/section.json`, 'is a section and names no chapter')] : []),
+  ...(s.dto.lead === '' ? [error(`${s.dto.id}/section.json`, 'is a section and has no lead')] : []),
+  ...(localIds(s.textHtml).has(SUMMARY_ID) ? [error(`${s.dto.id}/text.html`, `carries the id "${SUMMARY_ID}", which the build keeps for the section summary`)] : []),
+];
+export const checkPages: Check = (content) => {
+  const ownedBy = (owner: string, named: { readonly intro?: FrontPageRefDTO; readonly summary?: FrontPageRefDTO }, pages: { readonly intro?: SectionContent; readonly summary?: SectionContent }, chapter: string | undefined): readonly Finding[] =>
+    (['intro', 'summary'] as const).flatMap((role) => { const page = pages[role]; return page ? frontPage(page, role, owner, named[role], chapter) : []; });
+  return [
+    ...ownedBy('the book', content.book, content, undefined),
+    ...content.chapters.flatMap((ch) => [...ownedBy(`chapter ${ch.dto.id}`, ch.dto, ch, ch.dto.id), ...ch.sections.flatMap(section)]),
+  ];
+};
+
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
@@ -343,10 +385,16 @@ export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => 
    it has no reason to read is the source a section was made from, so this is
    where that is read and the only place any check's input comes off disk. */
 const readIf = (file: string): Promise<string | null> => fs.readFile(file, 'utf8').then((s) => s, () => null);
+const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')) });
+const frontContent = async (s: SectionSource | undefined): Promise<SectionContent | undefined> => (s ? pageContent(s) : undefined);
+/* The introduction and summary of a level, as fields only where the level keeps them, so a fixture without them reads the same as one written without them. */
+const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });
 export const contentOf = async (tree: BookTree): Promise<Content> => ({
   book: tree.dto,
+  ...framed(await frontContent(tree.intro), await frontContent(tree.summary)),
   chapters: await Promise.all(tree.chapters.map(async (ch): Promise<ChapterContent> => ({
     dto: ch.dto,
-    sections: await Promise.all(ch.sections.map(async (s): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')) }))),
+    ...framed(await frontContent(ch.intro), await frontContent(ch.summary)),
+    sections: await Promise.all(ch.sections.map(pageContent)),
   }))),
 });

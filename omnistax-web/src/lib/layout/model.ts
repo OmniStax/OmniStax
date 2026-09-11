@@ -3,6 +3,7 @@
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
 import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { pageRoleOf } from '../content/roles';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -67,10 +68,11 @@ const handOn = ({ kept, owed }: Handout, gained: readonly Slot[], weight: number
 
 /* A layout for a page that has nothing saved: the explorer in the left sidebar,
    the page's own item in the one group, and beside a section's text its
-   exercises, which is how a section is read. */
+   exercises, which is how a section is read. An introduction or summary page
+   sets no exercises, so it opens alone. */
 export const defaultLayout = (own: ItemId): Layout => {
   const k = keyOf(own);
-  const tabs = own.kind === 'doc' && own.doc === 'text' ? [k, keyOf(docItem(own.section, 'exercises'))] : [k];
+  const tabs = own.kind === 'doc' && own.doc === 'text' && pageRoleOf(own.section) === 'section' ? [k, keyOf(docItem(own.section, 'exercises'))] : [k];
   const group: Group = { key: newGroupKey(), tabs, active: k };
   return {
     sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },

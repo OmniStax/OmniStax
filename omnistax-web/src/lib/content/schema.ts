@@ -11,6 +11,7 @@
    description is the only place the meaning of a field is written down. */
 import { z } from 'zod';
 import { type BookId, type EquationId, type SectionId, type SpanId, conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
+import { type PageRole, pageId, pageRoleOf } from './roles';
 
 /* A row refers to another row by id alone, and the ids are branded so that a
    section is never handed where a concept is asked for. */
@@ -82,6 +83,18 @@ export const ConceptPrereqSchema = z.object({
 }).strict();
 export type ConceptPrereqDTO = z.infer<typeof ConceptPrereqSchema>;
 
+/* Where a book or a chapter prints an introduction or a summary of its own, the
+   record names the page's module and its slug at the publisher, and the page
+   itself is built in the intro/ or summary/ folder beside the sections (rule 21). */
+export const FrontPageRefSchema = z.object({
+  module: z.string().optional().describe('The publisher\u2019s own id for the page, kept so the source can be found again.'),
+  slug: z.string().optional().describe('The last part of the page\u2019s address at the publisher, which completes the book\u2019s page prefix.'),
+}).strict();
+export type FrontPageRefDTO = z.infer<typeof FrontPageRefSchema>;
+/* The two records as a DTO carries them: as fields only where the file wrote them. */
+const framed = (o: { readonly intro?: FrontPageRefDTO; readonly summary?: FrontPageRefDTO }): { readonly intro?: FrontPageRefDTO; readonly summary?: FrontPageRefDTO } =>
+  ({ ...(o.intro ? { intro: o.intro } : {}), ...(o.summary ? { summary: o.summary } : {}) });
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
@@ -93,6 +106,8 @@ export const BookSchema = z.object({
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
   openstax: z.string().url().optional().describe('The prefix of the publisher\u2019s section pages; a chapter\u2019s section slugs complete it.'),
   chapters: z.array(z.string()).describe('The chapter directories, in the order the book sets them.'),
+  intro: FrontPageRefSchema.optional().describe('The book\u2019s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter.'),
+  summary: FrontPageRefSchema.optional().describe('The book\u2019s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter.'),
   types: z.array(TypeSchema).default([]).describe('The kinds of physical quantity the book declares. The order is the order the colour scheme lays its hues along, so it is a table and not a record.'),
   symbols: z.array(SymbolSchema).default([]).describe('Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}. The macro expansions are derived from these rows.'),
   exercise_kinds: z.array(ExerciseKindSchema).default([]).describe('The kinds of exercise the book sets, each with the name it prints above them.'),
@@ -100,7 +115,7 @@ export const BookSchema = z.object({
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
-  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters,
+  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs,
 }));
 export type BookDTO = z.infer<typeof BookSchema>;
@@ -148,13 +163,14 @@ export const ChapterSchema = z.object({
   id: z.string().describe('The chapter\u2019s number as the book prints it.'),
   dir: z.string().describe('The directory the chapter is kept in, which is also what its pages are addressed by.'),
   title: z.string().describe('The chapter\u2019s title as the book prints it.'),
-  intro_module: z.string().optional().describe('The publisher\u2019s own id for the chapter\u2019s opening pages.'),
+  intro: FrontPageRefSchema.optional().describe('The chapter\u2019s own introduction, where the book prints one; the page is built in intro/ and listed before the first section.'),
+  summary: FrontPageRefSchema.optional().describe('The chapter\u2019s own summary or conclusion, where the book prints one; the page is built in summary/ and listed after the last section.'),
   sections: z.array(SectionRefSchema).default([]).describe('Every section of the chapter, built or not, in the order the book sets them.'),
   variables: z.array(VariableSchema).default([]).describe('The symbols the chapter\u2019s sections give a meaning to.'),
   equations: z.array(EquationSchema).default([]).describe('The equations the chapter\u2019s sections state.'),
   glossary: z.array(GlossarySchema).default([]).describe('The terms the chapter\u2019s sections define.'),
 }).strict().transform((c) => ({
-  id: c.id, dir: c.dir, title: c.title, sections: c.sections,
+  id: c.id, dir: c.dir, title: c.title, ...framed(c), sections: c.sections,
   variables: c.variables, equations: c.equations, glossary: c.glossary,
 }));
 export type ChapterDTO = z.infer<typeof ChapterSchema>;
@@ -269,12 +285,12 @@ export const ExerciseConceptSchema = z.object({
 export type ExerciseConceptDTO = z.infer<typeof ExerciseConceptSchema>;
 
 export const SectionSchema = z.object({
-  id: z.string().describe('The section\u2019s number as the book prints it, which is also the directory it is kept in.'),
+  id: z.string().describe('The section\u2019s number as the book prints it, which is also the directory it is kept in; or the literal intro or summary for a chapter\u2019s or the book\u2019s own introduction or summary page, which the app then reads under the chapter\u2019s number ("2.intro").'),
   module: z.string().optional().describe('The publisher\u2019s own id for the section.'),
-  chapter: z.string().describe('The chapter the section belongs to.'),
+  chapter: z.string().optional().describe('The chapter the section belongs to. Absent only on the book\u2019s own introduction or summary page, which belongs to no chapter.'),
   title: z.string().describe('The section\u2019s title as the book prints it.'),
   short: z.string().optional().describe('A short name for the section, for the places a full title will not fit.'),
-  lead: z.string().default('').describe('The line under the title that says what the section is about.'),
+  lead: z.string().default('').describe('The line under the title that says what the section is about. Empty only on an introduction or summary page, where nothing is invented in the book\u2019s place.'),
   objectives: z.array(z.string()).default([]).describe('What the reader should be able to do by the end, as the book lists it.'),
   summary_html: z.string().default('').describe('The section\u2019s summary, as the book prints it at the end of the chapter.'),
   notes: z.string().default('').describe('What this section left out of the book and why, one sentence, which the footer prints under the attribution.'),
@@ -287,7 +303,7 @@ export const SectionSchema = z.object({
   exercises: z.array(ExerciseSchema).default([]).describe('The exercises the section sets, in the order the book sets them.'),
   exercise_concepts: z.array(ExerciseConceptSchema).default([]).describe('Which concepts each exercise tests, and what it is worth for them.'),
 }).strict().transform((s) => ({
-  id: sectionId(s.id), module: s.module, chapter: s.chapter, title: s.title, short: s.short ?? s.title,
+  id: sectionId(pageId(s.id, s.chapter)), role: pageRoleOf(s.id), module: s.module, chapter: s.chapter, title: s.title, short: s.short ?? s.title,
   lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, ai: s.ai, built: s.built,
   exercisesLead: s.exercises_lead, exerciseNotes: s.exercise_notes,
   figures: s.figures, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts,
@@ -313,12 +329,14 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
   concept_prereqs: { level: 'book', file: 'book.json', field: 'concept_prereqs', schema: ConceptPrereqSchema, note: 'The edges of the concept map.' },
+  book_pages: { level: 'book', file: 'book.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The book\u2019s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.' },
   chapter: { level: 'chapter', file: '<chapter>/chapter.json', field: null, schema: ChapterSchema, note: 'One chapter: its number, its title and the sections it is read in.' },
   sections: { level: 'chapter', file: '<chapter>/chapter.json', field: 'sections', schema: SectionRefSchema, note: 'Every section of the chapter, built or not.' },
   variables: { level: 'chapter', file: '<chapter>/chapter.json', field: 'variables', schema: VariableSchema, note: 'The symbols the chapter\u2019s sections give a meaning to.' },
   equations: { level: 'chapter', file: '<chapter>/chapter.json', field: 'equations', schema: EquationSchema, note: 'The equations the chapter\u2019s sections state.' },
   glossary: { level: 'chapter', file: '<chapter>/chapter.json', field: 'glossary', schema: GlossarySchema, note: 'The terms the chapter\u2019s sections define.' },
-  section: { level: 'section', file: '<chapter>/<section>/section.json', field: null, schema: SectionSchema, note: 'One section: what it is about, what it teaches, who built it and what it left out.' },
+  chapter_pages: { level: 'chapter', file: '<chapter>/chapter.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The chapter\u2019s own introduction and summary, where the book prints them. Each is a page built in intro/ or summary/ beside the sections, with a section.json whose id is the literal intro or summary, whose chapter is this chapter\u2019s, and whose objectives, summary, exercises and coverage are empty; its lead may be empty too.' },
+  section: { level: 'section', file: '<chapter>/<section>/section.json', field: null, schema: SectionSchema, note: 'One section: what it is about, what it teaches, who built it and what it left out. The same record, under intro/ or summary/, is a chapter\u2019s or the book\u2019s own introduction or summary page.' },
   figures: { level: 'section', file: '<chapter>/<section>/section.json', field: 'figures', schema: FigureSchema, note: 'The figures the section draws, and the types each of them colours.' },
   coverage: { level: 'section', file: '<chapter>/<section>/section.json', field: 'coverage', schema: CoverageSchema, note: 'Which spans of the text introduce, use and reinforce each concept.' },
   exercises: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises', schema: ExerciseSchema, note: 'The exercises the section sets.' },
@@ -396,7 +414,8 @@ export type FormulasDTO = {
    footer and its colours, and nothing of the tables below it. */
 export type SectionMetaDTO = {
   readonly id: SectionId;
-  readonly chapter: string;
+  readonly role: PageRole;             /* a section, or the introduction or summary a chapter or the book opens or closes on */
+  readonly chapter?: string;           /* absent on the book's own introduction or summary */
   readonly title: string;
   readonly short: string;
   readonly lead: string;
@@ -405,6 +424,7 @@ export type SectionMetaDTO = {
   readonly notes: string;
   readonly binds: readonly string[];   /* the types this page colours, the union of what its figures draw; the rest render in ink on it */
   readonly ai?: AiCreditDTO;
+  readonly openstax?: string;          /* the page at the publisher, which the footer credits */
 };
 
 /* ---------- the manifest ---------- */
@@ -431,10 +451,16 @@ export type SectionEntry = {
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };
-export type ChapterEntry = { readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string; readonly sections: readonly SectionEntry[] };
+/* A chapter's introduction and summary are listed beside its sections, in the
+   same shape, and only once built: the chapter file names their modules, but
+   a page's title is its own. */
+export type ChapterEntry = {
+  readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string;
+  readonly intro?: SectionEntry; readonly sections: readonly SectionEntry[]; readonly summary?: SectionEntry;
+};
 export type BookManifest = {
   readonly id: BookId; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
-  readonly chapters: readonly ChapterEntry[];
+  readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
 };

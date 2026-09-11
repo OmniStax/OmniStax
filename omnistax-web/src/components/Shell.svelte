@@ -23,6 +23,7 @@
   import { reader } from '../lib/voice.svelte';
   import { parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
+  import { pageLabel } from '../lib/content/roles';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -170,7 +171,7 @@
       FIG.redrawAll(); spy.read(activePane(l.focus));
       if (!sec || sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
       try { history.replaceState(null, '', e.url); } catch { /* file:// */ }
-      document.title = `${sec} ${e.title} · ${manifest.title}`;
+      document.title = `${pageLabel(e)} · ${manifest.title}`;
     });
   });
   /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */

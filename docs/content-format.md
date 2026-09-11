@@ -29,6 +29,8 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `license_url` | `string?` | no | The licence’s own page. |
 | `openstax` | `string?` | no | The prefix of the publisher’s section pages; a chapter’s section slugs complete it. |
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
+| `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
+| `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
 
 ### `types`
 
@@ -83,6 +85,15 @@ The edges of the concept map.
 | `concept` | `string` | yes | The concept that rests on another. |
 | `prereq` | `string` | yes | The concept it rests on. Mastery runs downward along these edges: mastering a concept freshens what it is built on. |
 
+### `book_pages`
+
+The book’s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `module` | `string?` | no | The publisher’s own id for the page, kept so the source can be found again. |
+| `slug` | `string?` | no | The last part of the page’s address at the publisher, which completes the book’s page prefix. |
+
 ## `<chapter>/chapter.json`
 
 One chapter: its number, its title and the sections it is read in.
@@ -94,7 +105,8 @@ The file's own fields. Every other field of `<chapter>/chapter.json` is one of t
 | `id` | `string` | yes | The chapter’s number as the book prints it. |
 | `dir` | `string` | yes | The directory the chapter is kept in, which is also what its pages are addressed by. |
 | `title` | `string` | yes | The chapter’s title as the book prints it. |
-| `intro_module` | `string?` | no | The publisher’s own id for the chapter’s opening pages. |
+| `intro` | `{ module?, slug? }?` | no | The chapter’s own introduction, where the book prints one; the page is built in intro/ and listed before the first section. |
+| `summary` | `{ module?, slug? }?` | no | The chapter’s own summary or conclusion, where the book prints one; the page is built in summary/ and listed after the last section. |
 
 ### `sections`
 
@@ -145,20 +157,29 @@ The terms the chapter’s sections define.
 | `term` | `string` | yes | The term as the book defines it, in the words the text marks. |
 | `definition` | `string` | yes | The book’s own definition of the term. |
 
+### `chapter_pages`
+
+The chapter’s own introduction and summary, where the book prints them. Each is a page built in intro/ or summary/ beside the sections, with a section.json whose id is the literal intro or summary, whose chapter is this chapter’s, and whose objectives, summary, exercises and coverage are empty; its lead may be empty too.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `module` | `string?` | no | The publisher’s own id for the page, kept so the source can be found again. |
+| `slug` | `string?` | no | The last part of the page’s address at the publisher, which completes the book’s page prefix. |
+
 ## `<chapter>/<section>/section.json`
 
-One section: what it is about, what it teaches, who built it and what it left out.
+One section: what it is about, what it teaches, who built it and what it left out. The same record, under intro/ or summary/, is a chapter’s or the book’s own introduction or summary page.
 
 The file's own fields. Every other field of `<chapter>/<section>/section.json` is one of the tables below.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The section’s number as the book prints it, which is also the directory it is kept in. |
+| `id` | `string` | yes | The section’s number as the book prints it, which is also the directory it is kept in; or the literal intro or summary for a chapter’s or the book’s own introduction or summary page, which the app then reads under the chapter’s number ("2.intro"). |
 | `module` | `string?` | no | The publisher’s own id for the section. |
-| `chapter` | `string` | yes | The chapter the section belongs to. |
+| `chapter` | `string?` | no | The chapter the section belongs to. Absent only on the book’s own introduction or summary page, which belongs to no chapter. |
 | `title` | `string` | yes | The section’s title as the book prints it. |
 | `short` | `string?` | no | A short name for the section, for the places a full title will not fit. |
-| `lead` | `string` | no | The line under the title that says what the section is about. |
+| `lead` | `string` | no | The line under the title that says what the section is about. Empty only on an introduction or summary page, where nothing is invented in the book’s place. |
 | `objectives` | `string[]` | no | What the reader should be able to do by the end, as the book lists it. |
 | `summary_html` | `string` | no | The section’s summary, as the book prints it at the end of the chapter. |
 | `notes` | `string` | no | What this section left out of the book and why, one sentence, which the footer prints under the attribution. |

@@ -1,0 +1,10 @@
+{
+ "id": "intro",
+ "module": "m2",
+ "chapter": "2",
+ "title": "Introduction to Kinematics",
+ "lead": "",
+ "notes": "The trailer is left out.",
+ "built": "2026-09-11",
+ "figures": [{ "id": "fig-bird", "kind": "photo", "number": "2.1", "draws": [] }]
+}

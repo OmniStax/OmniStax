@@ -28,6 +28,7 @@
   import { ICON } from '../../lib/icons';
   import { docItem, itemKey, noteId, noteItem, sectionId, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, SectionEntry } from '../../lib/content/schema';
+  import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
@@ -93,7 +94,7 @@
       const open = explorer.expanded(key);
       const sec = sectionId(s.id);
       out.push({
-        key, kind: 'section', depth, label: `${s.id} ${s.title}`, icon: ICON.text, section: sec,
+        key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: sec,
         href: own ? undefined : s.url, expandable: own && s.built, open,
         dim: !s.built, active: own && s.built && focus.section === sec,
       });
@@ -109,15 +110,20 @@
         expandable: false, open: false, dim: false, active: activeKey === itemKey(docItem(sec, 'exercises')),
       });
     };
+    /* A book's own introduction stands before its chapters and its summary after
+       them, and a chapter's stand either side of its sections, as the book
+       prints them (rule 21). */
     const book = (bookId: string, depth: number): void => {
       const m = manifestOf(bookId);
       if (!m) { hint(`${bookKey(bookId)}?`, depth, 'Reading the book…'); return; }
+      if (m.intro) section(bookId, m.intro, depth);
       m.chapters.forEach((c) => {
         const key = chapterKey(bookId, c.id);
         const open = explorer.expanded(key);
         out.push({ key, kind: 'chapter', depth, label: `${c.id} ${c.title}`, icon: ICON.folder, expandable: true, open, dim: false, active: false });
-        if (open) c.sections.forEach((s) => section(bookId, s, depth + 1));
+        if (open) pagesOf(c).forEach((s) => section(bookId, s, depth + 1));
       });
+      if (m.summary) section(bookId, m.summary, depth);
     };
     const walk = (parent: EntryId | null, depth: number): void => {
       explorer.children(parent).forEach((e) => {

@@ -9,34 +9,48 @@ import type { z } from 'zod';
 import { BookSchema, ChapterSchema, SectionSchema, equationOf } from './schema';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, FormulasDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
+  ExerciseDTO, FigureRowDTO, FormulasDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
-import { sectionSourceUrl } from './attribution';
+import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
 import { figureIds, figureList, linkFigureRefs } from './fragment';
+import { type FrontRole, type PageRole, pagesOf } from './roles';
 import { type ConceptId, bookId, qualifiedId } from '../types/ids';
 
+/* One page of the book as the build reads it: a section, or the introduction
+   or summary a chapter or the book opens or closes on, which share the record
+   and the machinery of a section (rule 21). */
 export type SectionSource = {
-  readonly dir: string;             /* where the section's files live, for anything that reads one the build does not */
+  readonly dir: string;             /* where the page's files live, for anything that reads one the build does not */
+  readonly role: PageRole;
+  readonly url: string;             /* the address the site serves the page at */
   readonly dto: SectionDTO;         /* the tables as the section writes them, which the validator reads */
   readonly meta: SectionMetaDTO;
   readonly textHtml: string;        /* article body, local ids, math prerendered */
+  readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
   readonly figuresJs: string;
   readonly figures: readonly FigureRowDTO[];
   readonly coverage: readonly CoverageDTO[];   /* spans already qualified by the section */
   readonly exercises: readonly ExerciseDTO[];
   readonly exercisesLead: string;   /* math prerendered */
 };
-export type ChapterTree = { readonly dto: ChapterDTO; readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO; readonly sections: readonly SectionSource[] };
-export type BookTree = { readonly dto: BookDTO; readonly chapters: readonly ChapterTree[]; readonly manifest: BookManifest };
+/* A chapter's pages: its sections, and its own introduction and summary where the book prints them and they are built. */
+export type ChapterTree = {
+  readonly dto: ChapterDTO; readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO;
+  readonly intro?: SectionSource; readonly sections: readonly SectionSource[]; readonly summary?: SectionSource;
+};
+export type BookTree = { readonly dto: BookDTO; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
 
 const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> => schema.parse(JSON.parse(await fs.readFile(file, 'utf8')));
 const readText = (file: string): Promise<string> => fs.readFile(file, 'utf8');
 const exists = (file: string): Promise<boolean> => fs.access(file).then(() => true, () => false);
 
-/* URL conventions: /<book>/<chapterDir>/<section>/ with a fragment, a figure module and chapter data beside it. */
+/* URL conventions: /<book>/<chapterDir>/<section>/ with a fragment, a figure module and chapter data beside it;
+   a chapter's introduction or summary at /<book>/<chapterDir>/intro/, and the book's own at /<book>/intro/. */
 export const sectionUrl = (bookId: string, chapterDir: string, sectionId: string): string => `/${bookId}/${chapterDir}/${sectionId}/`;
 const chapterUrl = (bookId: string, chapterDir: string): string => `/${bookId}/${chapterDir}/`;
+export const frontPageUrl = (bookId: string, chapterDir: string | null, role: FrontRole): string =>
+  (chapterDir === null ? `/${bookId}/${role}/` : `/${bookId}/${chapterDir}/${role}/`);
 
 /* ---------- the book's symbols ---------- */
 
@@ -133,62 +147,103 @@ export const formulasOf = (chapter: ChapterDTO): FormulasDTO => ({ variables: ch
 
 /* ---------- reading the files ---------- */
 
-const metaOf = (s: SectionDTO): SectionMetaDTO => ({
-  id: s.id, chapter: s.chapter, title: s.title, short: s.short, lead: s.lead, objectives: s.objectives,
-  summaryHtml: s.summaryHtml, notes: s.notes, binds: bindsOf(s.figures), ai: s.ai,
+/* Where a page stands: the address the site serves it at, and its page at the publisher, where the book keeps one. */
+type PagePlace = { readonly url: string; readonly openstax?: string };
+
+const metaOf = (s: SectionDTO, place: PagePlace): SectionMetaDTO => ({
+  id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: s.lead, objectives: s.objectives,
+  summaryHtml: s.summaryHtml, notes: s.notes, binds: bindsOf(s.figures), ai: s.ai, openstax: place.openstax,
 });
 
-const loadSection = async (dir: string, macros: MacroMap): Promise<SectionSource | null> => {
+/* One page's folder read into a source, or nothing where the folder holds no page. */
+const loadPage = async (dir: string, place: PagePlace, macros: MacroMap): Promise<SectionSource | null> => {
   if (!(await exists(path.join(dir, 'section.json')))) return null;
   const [dto, text, figuresJs] = await Promise.all([
     readJson(path.join(dir, 'section.json'), SectionSchema),
     readText(path.join(dir, 'text.html')),
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
   ]);
+  const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
   return {
-    dir, dto, meta: metaOf(dto), textHtml: prerenderMath(text, macros), figuresJs,
-    figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto),
-    exercisesLead: dto.exercisesLead ? prerenderMath(dto.exercisesLead, macros) : '',
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place), textHtml: prerenderMath(text, macros), summaryHtml: rendered(dto.summaryHtml), figuresJs,
+    figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
   };
 };
-
-type ChapterLoaded = { readonly dto: ChapterDTO; readonly sections: readonly SectionSource[] };
-const loadChapter = async (root: string, dir: string, macros: MacroMap): Promise<ChapterLoaded> => {
-  const base = path.join(root, dir);
-  const dto = await readJson(path.join(base, 'chapter.json'), ChapterSchema);
-  const loaded = await Promise.all(dto.sections.map((s) => loadSection(path.join(base, s.id), macros)));
-  const built = loaded.filter((s): s is SectionSource => s !== null);
-  /* Figure numbers are chapter-wide: a section may refer to a figure another section keeps. */
-  const figs = new Map(built.flatMap((s) => [...figureIds(s.textHtml, s.meta.id)]));
-  return { dto, sections: built.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs) })) };
+/* The chapter's or the book's own introduction or summary: read from its fixed
+   folder where the folder holds one. The folder names the role, so a record
+   there that calls itself anything else is refused before it can shadow a
+   section. */
+const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, macros: MacroMap): Promise<SectionSource | undefined> => {
+  const page = await loadPage(path.join(base, role), place, macros);
+  if (page !== null && page.role !== role) throw new Error(`${path.join(base, role, 'section.json')}: id is "${page.dto.id}", but a page in ${role}/ must be the literal "${role}"`);
+  return page ?? undefined;
 };
 
-const manifestOf = (book: BookDTO, chapters: readonly ChapterTree[]): BookManifest => ({
+/* Figure numbers are chapter-wide: a section may refer to a figure another page of the chapter keeps, the introduction's opener included. */
+const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta: SectionMetaDTO }>(pages: readonly T[]): readonly T[] => {
+  const figs = new Map(pages.flatMap((s) => [...figureIds(s.textHtml, s.meta.id)]));
+  return pages.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs) }));
+};
+
+type ChapterLoaded = Omit<ChapterTree, 'concepts' | 'formulas'>;
+const loadChapter = async (root: string, book: BookDTO, dir: string, macros: MacroMap): Promise<ChapterLoaded> => {
+  const base = path.join(root, dir);
+  const dto = await readJson(path.join(base, 'chapter.json'), ChapterSchema);
+  const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
+  const [intro, loaded, summary] = await Promise.all([
+    loadFrontPage(base, 'intro', front('intro'), macros),
+    Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, macros))),
+    loadFrontPage(base, 'summary', front('summary'), macros),
+  ]);
+  const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }));
+  const role = (r: PageRole): SectionSource | undefined => linked.find((s) => s.role === r);
+  return { dto, intro: role('intro'), sections: linked.filter((s) => s.role === 'section'), summary: role('summary') };
+};
+
+/* A built page as the manifest lists it. */
+const entryOf = (src: SectionSource): SectionEntry => ({
+  id: src.meta.id, title: src.meta.title, built: true, url: src.url, fragment: `${src.url}doc.html`, figuresJs: `${src.url}figures.js`,
+  figures: figureList(src.textHtml, src.meta.id), binds: src.meta.binds, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
+  openstax: src.meta.openstax,
+});
+/* A section the chapter lists but nobody has built: named, addressed, and empty below. */
+const unbuiltEntry = (book: BookDTO, ch: ChapterDTO, s: SectionRefDTO): SectionEntry => {
+  const url = sectionUrl(book.id, ch.dir, s.id);
+  return { id: s.id, title: s.title, built: false, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`, figures: [], binds: [], exercises: [], openstax: sectionSourceUrl(book, ch, s.id) };
+};
+
+const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
-  chapters: chapters.map((ch): ChapterEntry => ({
+  ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
+  chapters: tree.chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
     concepts: `${chapterUrl(book.id, ch.dto.dir)}concepts.json`, formulas: `${chapterUrl(book.id, ch.dto.dir)}formulas.json`,
+    ...(ch.intro ? { intro: entryOf(ch.intro) } : {}),
     sections: ch.dto.sections.map((s): SectionEntry => {
       const src = ch.sections.find((b) => b.meta.id === s.id);   /* an unbuilt section is listed with nothing below it */
-      const url = sectionUrl(book.id, ch.dto.dir, s.id);
-      return {
-        id: s.id, title: s.title, built: src !== undefined, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`,
-        figures: src ? figureList(src.textHtml, s.id) : [], binds: src ? src.meta.binds : [], exercises: src ? src.exercises.map((e) => ({ id: e.id, kind: e.kind })) : [],
-        openstax: sectionSourceUrl(book, ch.dto, s.id),
-      };
+      return src ? entryOf(src) : unbuiltEntry(book, ch.dto, s);
     }),
+    ...(ch.summary ? { summary: entryOf(ch.summary) } : {}),
   })),
+  ...(tree.summary ? { summary: entryOf(tree.summary) } : {}),
 });
 
 export const loadBook = async (root: string, bookId: string): Promise<BookTree> => {
   const dto = await readJson(path.join(root, 'book.json'), BookSchema);
   if (dto.id !== bookId) throw new Error(`book.json is "${dto.id}", expected "${bookId}"`);
-  const loaded = await Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dir, macrosOf(dto.symbols))));
+  const macros = macrosOf(dto.symbols);
+  const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
+  const [intro, loaded, summary] = await Promise.all([
+    loadFrontPage(root, 'intro', front('intro'), macros),
+    Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dto, dir, macros))),
+    loadFrontPage(root, 'summary', front('summary'), macros),
+  ]);
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */
   const built = new Set<string>(loaded.flatMap((ch) => ch.sections.map((s) => String(s.meta.id))));
   const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built), formulas: formulasOf(ch.dto) }));
-  return { dto, chapters, manifest: manifestOf(dto, chapters) };
+  const framed = { intro, chapters, summary };
+  return { dto, ...framed, manifest: manifestOf(dto, framed) };
 };
 
 /* The tree is read once per build. In dev every request reads the files again, so a content edit shows on reload. */

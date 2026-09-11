@@ -8,9 +8,10 @@ import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/* An href already qualified by a section ("#16.1-sim-ruler", as the figure links are) is left alone. */
+/* An href already qualified by a page ("#16.1-sim-ruler", "#2.intro-fig-kestrel", as the figure links are) is left alone. */
+const QUALIFIED_HREF = /href="#(?!(?:\d+\.\w+|intro|summary)-)([^"]+)"/g;
 export const qualifyIds = (html: string, section: string): string =>
-  html.replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${section}-${id}"`).replace(/href="#(?!\d+\.\d+-)([^"]+)"/g, (_, id: string) => `href="#${section}-${id}"`);
+  html.replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${section}-${id}"`).replace(QUALIFIED_HREF, (_, id: string) => `href="#${section}-${id}"`);
 
 /* The book's display width for a photograph rides on its <img> as data-width, and the stylesheet
    sizes the image from the custom property --book-w, so the build writes the one onto the other
@@ -110,18 +111,37 @@ export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, Spa
 };
 
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
-const footer = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => footerHtml(attributionOf(book, chapter, s.meta));
+const footer = (book: BookDTO, s: SectionSource): string => footerHtml(attributionOf(book, s.meta));
 
-export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
-  `<article data-doc="${s.meta.id}/text" data-sec="${s.meta.id}" data-chapter="${chapter.dir}" data-title="${s.meta.id} Text" data-math="rendered">`,
-  `<div class="eyebrow">Chapter ${esc(chapter.id)} · ${esc(chapter.title)} · ${s.meta.id}</div>`,
+/* The line above the title: the chapter and the section's number, or for a page of the chapter's own only the
+   chapter, and for a page of the book's own the book. The chapter is null for the book's own pages. */
+const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => {
+  if (chapter === null) return esc(book.title);
+  const where = `Chapter ${esc(chapter.id)} · ${esc(chapter.title)}`;
+  return s.role === 'section' ? `${where} · ${s.meta.id}` : where;
+};
+/* The attributes every article of a page carries: what page and chapter it belongs to, and the name its tab takes. */
+const articleAttrs = (chapter: ChapterDTO | null, s: SectionSource, doc: 'text' | 'exercises', title: string): string =>
+  `data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
+const textTitle = (s: SectionSource): string => (s.role === 'section' ? `${s.meta.id} Text` : s.meta.title);
+
+/* The section's own summary, where the book prints one, stands at the end of the text as the book stands it (rule 21).
+   Its id is the one local id the build keeps for itself, and the validator keeps the text off it. */
+export const SUMMARY_ID = 'section-summary';
+const summaryBlock = (s: SectionSource): string =>
+  (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>Section summary</h2>${s.summaryHtml}</section>`);
+
+export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => [
+  `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
+  `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
-  `<p class="lead">${s.meta.lead}</p>`,
+  ...(s.meta.lead === '' ? [] : [`<p class="lead">${s.meta.lead}</p>`]),
   sizeImages(qualifyIds(s.textHtml, s.meta.id)),
+  summaryBlock(s),
   sectionEnd(s),
-  footer(book, chapter, s),
+  footer(book, s),
   `</article>`,
-].join('\n');
+].filter((line) => line !== '').join('\n');
 
 /* The way on from the text: a button that opens a practice page on this
    section, beside the page, and one that opens its problem set. Both are
@@ -130,10 +150,10 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource
 const sectionEnd = (s: SectionSource): string => (s.exercises.length === 0 ? '' :
   `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practise this section</button><a class="problems" href="#${s.meta.id}-exercises" data-open-doc="${s.meta.id}/exercises">Problems &amp; Exercises</a></div>`);
 
-export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
-  `<article data-doc="${s.meta.id}/exercises" data-sec="${s.meta.id}" data-chapter="${chapter.dir}" data-title="${s.meta.id} Exercises">`,
+export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => [
+  `<article ${articleAttrs(chapter, s, 'exercises', `${s.meta.id} Exercises`)}>`,
   `<section id="${s.meta.id}-exercises"><h2>Problems &amp; Exercises</h2>${s.exercisesLead ? `<p class="lead">${s.exercisesLead}</p>` : ''}<div class="exercises" data-place="end"></div></section>`,
-  footer(book, chapter, s),
+  footer(book, s),
   `</article>`,
 ].join('\n');
 
@@ -141,5 +161,7 @@ export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionS
 export const sectionData = (s: SectionSource): string =>
   `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
 
-export const fragment = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string =>
-  [textArticle(book, chapter, s), exercisesArticle(book, chapter, s), sectionData(s)].join('\n');
+/* A section's fragment is its two documents and its data; an introduction or
+   summary page sets no exercises and so has no problem set to open. */
+export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string =>
+  [textArticle(book, chapter, s), ...(s.role === 'section' ? [exercisesArticle(book, chapter, s)] : []), sectionData(s)].join('\n');

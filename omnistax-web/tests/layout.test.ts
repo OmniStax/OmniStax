@@ -11,6 +11,10 @@ const text = 'doc:2.1/text', ex = 'doc:2.1/exercises', map = 'view:concepts', no
 /* The layout functions all take the item a page is; every test below reads the section page. */
 const defaultLayout = (id = own) => make(id);
 
+test('an introduction page opens alone, since it sets no exercises', () => {
+  const l = defaultLayout(docItem(sectionId('2.intro'), 'text'));
+  assert.deepEqual(l.groups[0].tabs, ['doc:2.intro/text']);
+});
 test('default layout opens text and exercises as tabs, and the explorer in the sidebar', () => {
   const l = defaultLayout();
   assert.deepEqual(l.groups[0].tabs, [text, ex]); assert.equal(l.groups[0].active, text);

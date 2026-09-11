@@ -67,6 +67,12 @@ article > p, article li, .example p, .example li{max-width:66ch}
 /* where a jump landed: a tint that fades out */
 .landed{animation:landed 1.8s ease-out;border-radius:4px}
 @keyframes landed{0%,25%{background:color-mix(in srgb,var(--warm) 18%,transparent);box-shadow:0 0 0 8px color-mix(in srgb,var(--warm) 18%,transparent)}100%{background:transparent;box-shadow:0 0 0 8px transparent}}
+/* the section's own summary, where the book prints one, stands at the end of the text as the book stands it:
+   the book's words in the book's face, set off by a rule and nothing more */
+.summary{margin-top:2.8rem;padding-top:1.2rem;border-top:1px solid var(--rule)}
+.summary h2{margin-top:0;padding-top:0;font-size:1.2rem}
+.summary ul,.summary ol{padding-left:1.3rem}
+.summary li{max-width:66ch;margin-bottom:0.5rem}
 .section-end{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:40px;font-family:var(--sans);font-size:0.82rem}
 .section-end .practise{font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
 .section-end .practise:hover{background:var(--soft)}
@@ -222,6 +228,8 @@ article.page .chapter li.off{padding:7px 0;color:var(--muted)}
 article.page .num{display:inline-block;min-width:3.2em;color:var(--muted);font-variant-numeric:tabular-nums}
 article.page h2 .num{min-width:0;margin-right:0.4em;font-weight:500}
 article.page .soon{font-size:0.78rem;color:var(--muted);margin-left:0.5em}
+article.page .chapter.front{margin-top:2rem}
+article.page .chapter.front ol{margin-top:0}
 @media (max-width:900px){ article.page{padding:20px 18px 80px} article.page h1{font-size:2.1rem} }
 
 /* the concept map's three kinds of node: one hue each, held apart from --accent

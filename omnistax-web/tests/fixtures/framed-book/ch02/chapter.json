@@ -1,0 +1,7 @@
+{
+ "id": "2",
+ "dir": "ch02",
+ "title": "Kinematics",
+ "intro": { "module": "m2", "slug": "2-introduction-to-kinematics" },
+ "sections": [{ "id": "2.1", "module": "m21", "title": "Displacement", "slug": "2-1-displacement" }, { "id": "2.2", "title": "Vectors" }]
+}

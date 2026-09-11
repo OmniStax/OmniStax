@@ -1,0 +1,13 @@
+{
+ "id": "framed",
+ "title": "A Framed Book",
+ "publisher": "P",
+ "authors": ["A"],
+ "license": "CC BY 4.0",
+ "openstax": "https://example.org/pages/",
+ "chapters": ["ch02"],
+ "intro": { "module": "m1", "slug": "preface" },
+ "types": [{ "id": "velocity", "label": "velocity" }],
+ "exercise_kinds": [{ "id": "problem", "label": "Problem" }],
+ "concepts": [{ "id": "displacement", "kind": "idea", "section": "2.1", "name": "Displacement", "why": "w", "evidence": "e" }]
+}

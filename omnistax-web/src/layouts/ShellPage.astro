@@ -12,6 +12,7 @@ import type { BookTree } from '../lib/content/load';
 import type { ItemId } from '../lib/types/ids';
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO } from '../lib/content/schema';
 import { NO_CHOICES, cssFor } from '../lib/colours/model';
+import { bookPagesOf } from '../lib/content/roles';
 
 export type Props = {
   tree: BookTree;
@@ -32,10 +33,10 @@ const { tree, own, pool, title, description, book, chapter, section, chapterDir,
    has chosen win over it. Dark comes in three states: system, forced, or light. */
 const colourCss = cssFor(tree.manifest, NO_CHOICES);
 const kvRules = Object.keys(tree.manifest.types).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
-const unbound = tree.chapters.flatMap((ch) => ch.sections.filter((s) => s.meta.binds.length).map((s) => {
+const unbound = bookPagesOf(tree).filter((s) => s.meta.binds.length).map((s) => {
   const off = Object.keys(tree.manifest.types).filter((k) => !s.meta.binds.includes(k));
   return off.length ? `article[data-sec="${s.meta.id}"] :is(${off.map((k) => `.kv-${k}`).join(',')}){color:inherit}` : '';
-})).join('\n');
+}).join('\n');
 const shellProps = { manifest: tree.manifest, own, chapterDir, chapterData, section: meta, exercises, threeUrl: config.build.threeUrl };
 ---
 <!doctype html>

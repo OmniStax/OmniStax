@@ -1,0 +1,12 @@
+{
+ "id": "2.1",
+ "module": "m21",
+ "chapter": "2",
+ "title": "Displacement",
+ "lead": "What displacement is.",
+ "summary_html": "<ul><li>Displacement is a change of position, $\\Delta x = x_f - x_0$.</li></ul>",
+ "built": "2026-09-11",
+ "coverage": [{ "span": "displacement", "concept": "displacement", "verb": "introduces" }],
+ "exercises": [{ "id": "p1", "source_id": "fs-1", "kind": "problem", "bloom": "Apply", "place": { "at": "end" }, "prompt": "How far?", "answer": { "type": "open" } }],
+ "exercise_concepts": [{ "exercise": "p1", "concept": "displacement" }]
+}

@@ -7,6 +7,7 @@
    book tree, and the store applies these functions and persists the result. */
 import { type ChapterId, type SectionId, type ViewKind, VIEW_KINDS, chapterId, itemKey, sectionId, viewItem } from '../types/ids';
 import type { BookTree } from '../commands/browser';
+import { pagesOf } from '../content/roles';
 
 export type Level = 'book' | 'chapter' | 'section';
 export const LEVELS: readonly Level[] = ['book', 'chapter', 'section'];   /* wider first */
@@ -34,7 +35,8 @@ const chapterNode = (tree: BookTree, id: ChapterId) => tree.chapters.find((c) =>
 const firstBuilt = (tree: BookTree, id: ChapterId): SectionId | null => { const s = chapterNode(tree, id)?.sections.find((x) => x.built); return s ? sectionId(s.id) : null; };
 const named = (id: string, title: string): string => `${id} ${title}`;
 
-export const chapterOf = (tree: BookTree, section: SectionId): ChapterId | null => { const c = tree.chapters.find((x) => x.sections.some((s) => s.id === section)); return c ? chapterId(c.id) : null; };
+/* The chapter a page lies in, its introduction and summary counted with its sections, so a view following the reader into a chapter's opening page describes that chapter. */
+export const chapterOf = (tree: BookTree, section: SectionId): ChapterId | null => { const c = tree.chapters.find((x) => pagesOf(x).some((s) => s.id === section)); return c ? chapterId(c.id) : null; };
 export const levelOf = (scope: ViewScope): Level => (scope.follow ? scope.level : scope.target.level);
 
 /* A following view reads as the place around the focused section at its level; a

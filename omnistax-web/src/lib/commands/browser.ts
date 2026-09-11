@@ -15,7 +15,8 @@ import type { Target } from '../sections/scope';   /* type only: scope.ts reads 
 export type FigureNode = { readonly id: string; readonly label: string };
 export type ExerciseNode = { readonly id: string; readonly kind: string };
 export type SectionNode = { readonly id: string; readonly title: string; readonly built: boolean; readonly figures?: readonly FigureNode[]; readonly exercises?: readonly ExerciseNode[] };
-export type ChapterNode = { readonly id: string; readonly title: string; readonly sections: readonly SectionNode[] };
+/* A chapter's introduction and summary, where it keeps them, are pages beside its sections and are named here so a scope can find the chapter of one; the tree lists only the sections. */
+export type ChapterNode = { readonly id: string; readonly title: string; readonly intro?: SectionNode; readonly sections: readonly SectionNode[]; readonly summary?: SectionNode };
 export type BookTree = { readonly title: string; readonly chapters: readonly ChapterNode[]; readonly exerciseKinds?: Readonly<Record<string, string>> };
 
 export type Level =

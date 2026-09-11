@@ -5,8 +5,9 @@
    DOM is touched and no dependency is added, because this runs at build time.
    Each page is one <article class="page" data-page="…"> that the shell adopts
    as it adopts a section's article. */
-import type { BookManifest } from './schema';
+import type { BookManifest, SectionEntry } from './schema';
 import { nameList } from './attribution';
+import { pageRoleOf, pagesOf } from './roles';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -67,18 +68,29 @@ export const aboutHtml = (manifest: BookManifest): string => `<article class="pa
 </article>`;
 
 /* One section of a book's contents: a link when the section is built, and a
-   plain line saying so when it is not. */
-const sectionRow = (s: BookManifest['chapters'][number]['sections'][number]): string =>
-  s.built
-    ? `<li><a href="${esc(s.url)}"><span class="num">${esc(s.id)}</span> ${esc(s.title)}</a></li>`
-    : `<li class="off"><span class="num">${esc(s.id)}</span> ${esc(s.title)} <span class="soon">not built yet</span></li>`;
+   plain line saying so when it is not. An introduction or summary page, which
+   the book prints no number on, is a link under its title alone; it is only
+   listed once built. */
+const sectionRow = (s: SectionEntry): string =>
+  pageRoleOf(s.id) !== 'section' ? `<li class="front"><a href="${esc(s.url)}">${esc(s.title)}</a></li>`
+    : s.built
+      ? `<li><a href="${esc(s.url)}"><span class="num">${esc(s.id)}</span> ${esc(s.title)}</a></li>`
+      : `<li class="off"><span class="num">${esc(s.id)}</span> ${esc(s.title)} <span class="soon">not built yet</span></li>`;
 
+/* A chapter's own introduction and summary stand either side of its sections, as the book prints them (rule 21). */
 const chapterSection = (c: BookManifest['chapters'][number]): string => `<section class="chapter" data-chapter="${esc(c.dir)}">
       <h2><span class="num">Chapter ${esc(c.id)}</span> ${esc(c.title)}</h2>
       <ol>
-        ${c.sections.map(sectionRow).join('\n        ')}
+        ${pagesOf(c).map(sectionRow).join('\n        ')}
       </ol>
     </section>`;
+/* The book's own introduction or summary: one row of its own, before the first chapter or after the last. */
+const frontSection = (s: SectionEntry | undefined): string =>
+  (s === undefined ? '' : `<section class="chapter front">
+      <ol>
+        ${sectionRow(s)}
+      </ol>
+    </section>`);
 
 /* The front of one book: its title, then every chapter and section, each a
    link, closing on the attribution the licence asks for. */
@@ -94,7 +106,7 @@ export const bookHtml = (manifest: BookManifest): string => {
     <p class="lead">${esc(m.authors.join(', '))}</p>
   </header>
   <nav aria-label="Contents">
-    ${m.chapters.map(chapterSection).join('\n    ')}
+    ${[frontSection(m.intro), ...m.chapters.map(chapterSection), frontSection(m.summary)].filter((part) => part !== '').join('\n    ')}
   </nav>
   <footer class="footer">
     <p>Adapted from <cite>${esc(m.title)}</cite> by ${esc(nameList(m.authors))}, published by ${esc(m.publisher)}${holder}. Licensed under ${licence}.</p>${source}

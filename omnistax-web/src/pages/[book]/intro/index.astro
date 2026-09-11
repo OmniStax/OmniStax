@@ -1,0 +1,12 @@
+---
+/* The book's own introduction or preface, where it prints one: a page of its own,
+   listed before the first chapter (rule 21) and rendered by the same page a
+   section is. A literal route wins over [chapter], so /<book>/intro/ is this
+   page and never a chapter called intro. */
+import Page from '../../../layouts/Page.astro';
+import { frontRoutes } from '../../../lib/content/paths';
+import type { PageProps } from '../../../lib/content/paths';
+export const getStaticPaths = frontRoutes('intro');
+const { tree, chapter, section } = Astro.props as PageProps;
+---
+<Page tree={tree} chapter={chapter} section={section} />

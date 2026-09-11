@@ -1,49 +1,52 @@
 ---
-/* One section as a static page: metadata for crawlers, the article in the
-   document, and the shell mounted on top with that section's text as the item
-   the page is. Everything the three pages of the site share — fonts, colour
-   tokens, the pool, the island — is in ShellPage beneath this. */
+/* One page of the book as a static page: metadata for crawlers, the article in
+   the document, and the shell mounted on top with that page's text as the item
+   the page is. The page is a section, or the introduction or summary a chapter
+   or the book opens or closes on, which share a section's machinery (rule 21);
+   the chapter is null for the book's own pages. Everything the pages of the
+   site share — fonts, colour tokens, the pool, the island — is in ShellPage
+   beneath this. */
 import ShellPage from './ShellPage.astro';
 import { config } from '../../omnistax.config';
-import { sectionUrl } from '../lib/content/load';
 import type { BookTree, ChapterTree, SectionSource } from '../lib/content/load';
 import { fragment } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
+import { pageLabel, pagesOf } from '../lib/content/roles';
 import { docItem, sectionId } from '../lib/types/ids';
 
-type Props = { tree: BookTree; chapter: ChapterTree; section: SectionSource };
+type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
 const { tree, chapter, section } = Astro.props as Props;
 const book = tree.dto;
 const sec = section.meta;
-const url = sectionUrl(book.id, chapter.dto.dir, sec.id);
-const canonical = new URL(url, config.site.baseUrl).href;
-const title = `${sec.id} ${sec.title} · ${book.title}`;
-const description = sec.objectives.join(' ') || sec.lead;
-const neighbours = chapter.dto.sections.map((s) => s.id);
-const at = neighbours.indexOf(sec.id);
-const built = new Set<string>(chapter.sections.map((s) => String(s.meta.id)));
-const link = (i: number) => (i >= 0 && i < neighbours.length && built.has(neighbours[i]) ? sectionUrl(book.id, chapter.dto.dir, neighbours[i]) : null);
+const canonical = new URL(section.url, config.site.baseUrl).href;
+const label = pageLabel(sec);
+const title = `${label} · ${book.title}`;
+const description = sec.objectives.join(' ') || sec.lead || sec.title;
+/* The pages before and after this one, among the built pages of its chapter, in the chapter's reading order. */
+const neighbours = chapter ? pagesOf(chapter) : [section];
+const at = neighbours.findIndex((s) => s.meta.id === sec.id);
+const link = (i: number): string | null => (i >= 0 && i < neighbours.length ? neighbours[i].url : null);
 const prev = link(at - 1), next = link(at + 1);
-const credit = attributionOf(book, chapter.dto, sec);
+const credit = attributionOf(book, sec);
 const ld = {
-  '@context': 'https://schema.org', '@type': 'LearningResource', name: `${sec.id} ${sec.title}`, description, url: canonical,
+  '@context': 'https://schema.org', '@type': 'LearningResource', name: label, description, url: canonical,
   isPartOf: { '@type': 'Book', name: book.title, url: book.sourceUrl, author: book.authors.map((name) => ({ '@type': 'Person', name })), publisher: { '@type': 'Organization', name: book.publisher } },
   isBasedOn: credit.sourceUrl, license: book.licenseUrl ?? book.license, creditText: citation(credit),
   educationalLevel: 'Undergraduate', learningResourceType: 'Interactive textbook section',
-  teaches: chapter.concepts.concepts.filter((c) => c.section === sec.id && c.status === 'built').map((c) => c.name),
+  teaches: chapter ? chapter.concepts.concepts.filter((c) => c.section === sec.id && c.status === 'built').map((c) => c.name) : [],
 };
 ---
 <ShellPage
   tree={tree}
   own={docItem(sectionId(sec.id), 'text')}
-  pool={fragment(book, chapter.dto, section)}
+  pool={fragment(book, chapter?.dto ?? null, section)}
   title={title}
   description={description}
   book={book.id}
-  chapter={chapter.dto.dir}
+  chapter={chapter?.dto.dir}
   section={sec.id}
-  chapterDir={chapter.dto.dir}
-  chapterData={{ concepts: chapter.concepts, formulas: chapter.formulas }}
+  chapterDir={chapter?.dto.dir}
+  chapterData={chapter ? { concepts: chapter.concepts, formulas: chapter.formulas } : undefined}
   meta={sec}
   exercises={section.exercises}
 >
@@ -55,6 +58,6 @@ const ld = {
     <script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
   </Fragment>
   <Fragment slot="scripts">
-    <script is:inline src={`${url}figures.js`}></script>
+    <script is:inline src={`${section.url}figures.js`}></script>
   </Fragment>
 </ShellPage>

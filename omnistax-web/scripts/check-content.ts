@@ -28,12 +28,13 @@ const line = (f: Finding, pad: number): string => `  ${f.where.padEnd(pad)}  ${f
 
 const report = (findings: readonly Finding[], content: Content): string => {
   const sections = content.chapters.flatMap((ch) => ch.sections).length;
+  const front = [content.intro, content.summary, ...content.chapters.flatMap((ch) => [ch.intro, ch.summary])].filter((p) => p !== undefined).length;
   const groups = GROUPS.flatMap(({ level, head }) => {
     const own = findings.filter((f) => f.level === level);
     return own.length === 0 ? [] : [[head(own.length), ...own.map((f) => line(f, width(own)))].join('\n')];
   });
   const warnings = warningsOf(findings).length;
-  const tally = `${content.chapters.length} chapters, ${sections} sections, ${CHECKS.length} checks, ${errorsOf(findings).length === 0 ? 'no errors' : `${errorsOf(findings).length} errors`}${warnings === 0 ? '' : `, ${warnings} warning${warnings === 1 ? '' : 's'}`}`;
+  const tally = `${content.chapters.length} chapters, ${sections} sections${front === 0 ? '' : `, ${front} introduction or summary page${front === 1 ? '' : 's'}`}, ${CHECKS.length} checks, ${errorsOf(findings).length === 0 ? 'no errors' : `${errorsOf(findings).length} errors`}${warnings === 0 ? '' : `, ${warnings} warning${warnings === 1 ? '' : 's'}`}`;
   return [...groups, tally].join('\n\n');
 };
 

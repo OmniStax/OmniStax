@@ -12,6 +12,7 @@ import { ICON } from '../icons';
 import { originalButtons } from './original';
 import { decorateTerms } from '../hover';
 import { foldControls } from './fold.svelte';
+import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 
 /* A figure's tab title: its local id without the sim-/fig- prefix, "sim-plane" → "plane". */
 const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').replace(/-/g, ' ');
@@ -48,8 +49,10 @@ class Registry {
 
   init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; }
 
-  entry(sec: SectionId): SectionEntry | undefined { return this.manifest.chapters.flatMap((c) => c.sections).find((s) => s.id === sec); }
-  chapterOf(sec: SectionId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.sections.some((s) => s.id === sec)); }
+  /* Any page of the book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
+  entry(sec: SectionId): SectionEntry | undefined { return bookPagesOf(this.manifest).find((s) => s.id === sec); }
+  /* The chapter a page belongs to; the book's own pages belong to none. */
+  chapterOf(sec: SectionId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => pagesOf(c).some((s) => s.id === sec)); }
   chapterById(id: ChapterId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.id === id); }
   isBuilt(sec: SectionId): boolean { return this.entry(sec)?.built ?? false; }
   state(sec: SectionId): SectionState | undefined { return this.sections[sec]; }
@@ -59,6 +62,8 @@ class Registry {
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
+    /* A section's tab is named by its number and which document it is; an introduction or summary page by its own title. */
+    if (pageRoleOf(id.section) !== 'section') { const e = this.entry(id.section); return e ? pageLabel(e) : id.section; }
     return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
   }
   /* What the book calls an exercise's kind, once the section holding it has been loaded. */
@@ -148,9 +153,10 @@ class Registry {
     if (this.sections[sec]?.docs.text) return Promise.resolve();
     const pending = this.loading[sec]; if (pending) return pending;
     const e = this.entry(sec), ch = this.chapterOf(sec);
-    if (!e || !ch || !e.built) return Promise.reject(new Error(`unknown section ${sec}`));
+    if (!e || !e.built) return Promise.reject(new Error(`unknown section ${sec}`));
     this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'loading' } };
-    const chapterData = this.loadChapter(ch.dir);
+    /* A page of the book's own has no chapter, and so no concepts or formulas to fetch beside it. */
+    const chapterData = ch ? this.loadChapter(ch.dir) : Promise.resolve();
     const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
     const html = fetch(e.fragment).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); });
     this.loading[sec] = Promise.all([chapterData, script, html])

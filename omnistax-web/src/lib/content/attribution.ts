@@ -5,7 +5,7 @@
    holds all the licence asks for: creators, copyright notice, licence,
    source link, the fact of adaptation, and the adapter's licence. It also
    names the AI the section was built with, by role, from the section's `ai`. */
-import type { AiCreditDTO, BookDTO, ChapterDTO, SectionMetaDTO } from './schema';
+import type { AiCreditDTO, BookDTO, ChapterDTO, FrontPageRefDTO, SectionMetaDTO } from './schema';
 
 export type Attribution = {
   readonly title: string;
@@ -20,15 +20,20 @@ export type Attribution = {
   readonly ai?: AiCreditDTO;        /* who transformed the text and who built the simulations, from section.json */
 };
 
+/* The publisher's page for a slug: the book's page prefix completed by it, and nothing where either is missing. */
+const pageSourceUrl = (book: Pick<BookDTO, 'openstax'>, slug: string | undefined): string | undefined =>
+  (book.openstax && slug ? book.openstax + slug : undefined);
 /* The publisher's page for a section: the book's page prefix completed by the chapter's slug for it. */
-export const sectionSourceUrl = (book: Pick<BookDTO, 'openstax'>, chapter: Pick<ChapterDTO, 'sections'>, sectionId: string): string | undefined => {
-  const slug = chapter.sections.find((s) => s.id === sectionId)?.slug;
-  return book.openstax && slug ? book.openstax + slug : undefined;
-};
+export const sectionSourceUrl = (book: Pick<BookDTO, 'openstax'>, chapter: Pick<ChapterDTO, 'sections'>, sectionId: string): string | undefined =>
+  pageSourceUrl(book, chapter.sections.find((s) => s.id === sectionId)?.slug);
+/* The publisher's page for a chapter's or the book's own introduction or summary, from the record that names it. */
+export const frontPageSourceUrl = (book: Pick<BookDTO, 'openstax'>, page: FrontPageRefDTO | undefined): string | undefined =>
+  pageSourceUrl(book, page?.slug);
 
-export const attributionOf = (book: BookDTO, chapter: ChapterDTO, meta: Pick<SectionMetaDTO, 'id' | 'notes' | 'ai'>): Attribution => ({
+/* The credit for one page, whichever role it has: the page's own place at the publisher rides on its meta. */
+export const attributionOf = (book: BookDTO, meta: Pick<SectionMetaDTO, 'notes' | 'ai' | 'openstax'>): Attribution => ({
   title: book.title, authors: book.authors, publisher: book.publisher, publisherUrl: book.sourceUrl, copyright: book.copyright,
-  sourceUrl: sectionSourceUrl(book, chapter, meta.id), license: book.license, licenseUrl: book.licenseUrl,
+  sourceUrl: meta.openstax, license: book.license, licenseUrl: book.licenseUrl,
   notes: meta.notes, ai: meta.ai,
 });
 

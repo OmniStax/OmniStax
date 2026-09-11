@@ -1,0 +1,12 @@
+---
+/* The book's own closing summary, where it prints one: a page of its own,
+   listed after the last chapter (rule 21) and rendered by the same page a
+   section is. A literal route wins over [chapter], so /<book>/summary/ is this
+   page and never a chapter called summary. */
+import Page from '../../../layouts/Page.astro';
+import { frontRoutes } from '../../../lib/content/paths';
+import type { PageProps } from '../../../lib/content/paths';
+export const getStaticPaths = frontRoutes('summary');
+const { tree, chapter, section } = Astro.props as PageProps;
+---
+<Page tree={tree} chapter={chapter} section={section} />

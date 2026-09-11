@@ -26,7 +26,10 @@ Every table row is flat. A row refers to another row by id only.
 
 Scalars: `id`, `title`, `publisher`, `authors`, `source_url`, `copyright`,
 `license`, `license_url`, `openstax`, `chapters` (chapter directories in
-order).
+order), and, where the book prints them, `intro` and `summary`, each
+`{ module?, slug? }`: the book's own introduction or preface and its
+closing summary, which are pages of their own in `intro/` and `summary/`
+beside the chapters (rule 21).
 
 Tables:
 
@@ -49,7 +52,11 @@ Tables:
 
 ### `<chapter>/chapter.json`
 
-Scalars: `id`, `dir`, `title`, `intro_module`.
+Scalars: `id`, `dir`, `title`, and, where the book prints them, `intro`
+and `summary`, each `{ module?, slug? }`: the chapter's own introduction
+and its summary or conclusion, pages of their own in `intro/` and
+`summary/` beside the sections. The old scalar `intro_module` is gone;
+the module sits in the record, beside the page's slug at the publisher.
 
 Tables:
 
@@ -113,6 +120,25 @@ Tables:
 Ids at this level are local (`hookes-law`, not `16.1-hookes-law`); the
 build qualifies them.
 
+### An introduction or summary page
+
+A chapter's or the book's introduction or summary (rule 21) is the same
+record in `intro/section.json` or `summary/section.json`, with `id` the
+literal `intro` or `summary` and `chapter` the chapter's id, or absent for
+the book's own pages. The app reads such a page under an id of its own,
+the chapter's number and the role, `2.intro`, so that two chapters'
+introductions can stand open in one shell; the book's own stays `intro`.
+Its `title`, `notes`, `ai`, `built` and `figures` are as on a section, its
+`figures` rows are checked as a section's are and its local ids qualify as
+`2.intro-fig-kestrel`; `lead` may be empty, since nothing is written in
+the book's place, and `objectives`, `summary_html`, `exercises_lead`,
+`exercise_notes`, `coverage`, `exercises` and `exercise_concepts` are
+empty. The page has no problem set, no concept coverage and no anchors
+into it. Its address is `/<book>/<chapter dir>/intro/`, or
+`/<book>/intro/` for the book's own, and the explorer and the book's
+front page list it where the book prints it: before the first section or
+chapter, after the last.
+
 ## Types in the app
 
 `schema.ts` keeps zod, since it already runs at build, and gains three
@@ -150,6 +176,17 @@ per-section endpoints as before:
 - `<section>/exercises.json`: exercises with `concepts` and `weights`
   folded in from `exercise_concepts`, and `place` flattened to the local
   id or `"end"`.
+- A section's `summary_html` is rendered into its text article, after the
+  last span and before the way on to practice, as
+  `<section class="summary" id="<section>-section-summary">` under the
+  heading "Section summary", with its math prerendered; it is the book's
+  own text and is not folded by default.
+- The manifest's chapter entries carry `intro` and `summary` beside
+  `sections`, in the same shape, only once built; the manifest itself
+  carries the book's own `intro` and `summary` the same way. Everything
+  that iterates sections (concept maps, exercises, practice, counts)
+  keeps iterating sections; the explorer, the book's front page and the
+  tab title are what show the new pages.
 
 ## Validation
 
@@ -180,7 +217,16 @@ references:
   `source_section` names a section the app has built;
 - every built concept has `why` and `evidence` and at least one coverage
   row that introduces it;
-- every `draws` entry is a declared type.
+- every `draws` entry is a declared type;
+- every section names its chapter and has a lead, and its text keeps off
+  the id `section-summary`, which the build gives the summary block it
+  appends after the last span;
+- every introduction or summary page is named by an `intro` or `summary`
+  record of the chapter or the book that keeps it, names that chapter (or
+  none, for the book's own), and carries none of a section's apparatus:
+  its objectives, summary, exercises lead and notes, coverage, exercises
+  and exercise concepts are empty, and only there may the lead be empty;
+- no chapter table anchors into an introduction or summary page.
 
 The same checks run in `npm test` against the real content, so a content
 edit that breaks a reference fails the suite, not only the build.

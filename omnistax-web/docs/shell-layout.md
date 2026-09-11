@@ -6,7 +6,12 @@ article. Implementation: Svelte 5 components under
 `src/lib/layout/model.ts`; see `omnistax-web/README.md` for the file map.
 Documents are per section (`doc:2.1/text`, `doc:2.1/exercises`) and other
 sections load on demand through the "+" on each tab strip; see
-`static-composition.md`.
+`static-composition.md`. A chapter's or the book's own introduction or
+summary page (root `RULES.md` item 21) is a text document with no problem
+set beside it, keyed by the chapter and its role (`doc:2.intro/text`, or
+`doc:intro/text` for the book's own) and titled by its own title; the
+explorer and the book's front page list it where the book prints it,
+before the first section or after the last.
 
 ## The model
 

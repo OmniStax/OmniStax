@@ -49,7 +49,7 @@ const bookOf = (o: object) => BookSchema.parse({
 });
 const chapterOf = (o: object) => ChapterSchema.parse({ id: '16', dir: 'ch16', title: 'Waves', sections: [{ id: '16.1', title: 'Hooke’s Law' }], ...o });
 const sectionOf = (o: object) => SectionSchema.parse({
-  id: '16.1', chapter: '16', title: 'Hooke’s Law', built: '2026-09-10',
+  id: '16.1', chapter: '16', title: 'Hooke’s Law', lead: 'What a spring does when it is stretched.', built: '2026-09-10',
   figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', draws: ['force'] }],
   coverage: [{ span: 'hookes-law', concept: 'hookes-law', verb: 'introduces' }],
   exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'How far?', answer: { type: 'open' } }],

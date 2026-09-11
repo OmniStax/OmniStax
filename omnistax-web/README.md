@@ -30,7 +30,7 @@ concern and read from the environment with defaults:
 ## Layout of the source
 
 ```
-src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes)
+src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages)
 src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), search (what a query finds in a view's list, by key or by the line beside it), dag
@@ -48,9 +48,9 @@ src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the static pool and the shell island, over the one item the page is
-src/layouts/Page.astro    one section over ShellPage: its metadata, its canonical link and its figure scripts
+src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
-src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts}, about.html, book.html, chapter json, book.json, library.json
+src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json, book.json, library.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, sims)
 ```
 
