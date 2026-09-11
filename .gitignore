@@ -1,4 +1,5 @@
 # a book's source bundle is large; the publisher keeps it
+omnistax-content/*/source
 omnistax-content/*/source/
 omnistax-content/**/*.pdf
 # rendered page images are derived from the PDF
