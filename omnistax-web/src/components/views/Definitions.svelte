@@ -16,6 +16,8 @@
   import { sectionId } from '../../lib/types/ids';
   import type { VariableDTO, GlossaryDTO } from '../../lib/content/schema';
   import { FIG } from '../../lib/fig/figlib';
+  import { goFind } from '../../lib/sections/nav.svelte';
+  import SearchBox from './SearchBox.svelte';
   /* One definition: a symbol the book gives a meaning, or a term it defines. */
   type Def = { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO };
   const scoped = getCtx<() => Target>('scope');
@@ -25,6 +27,13 @@
     ...Object.values(registry.chapters).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
   ]);
   const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest));
+  /* What the search bar finds: the definitions inside the level, in the order they are
+     listed, a symbol by its key or its meaning and a term by its name or its definition.
+     Each row wears the same key the search lands on. */
+  const keyOf = (d: Def): string => (d.kind === 'symbol' ? `sym:${d.symbol.section}:${d.symbol.sym}` : `term:${d.term.section}:${d.term.term}`);
+  const findable = (d: Def) => (d.kind === 'symbol' ? { key: d.symbol.sym, text: `${d.symbol.meaning} ${d.symbol.unit}` } : { key: d.term.term, text: d.term.definition });
+  const inside = $derived(grouped.inside.flatMap((c) => c.sections.flatMap((s) => [...s.items.filter((d) => d.kind === 'symbol'), ...s.items.filter((d) => d.kind === 'term')])));
+  let host = $state<HTMLElement | null>(null);
   const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
   const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest.symbols[s] ?? s); return {}; };
   const legend = $derived(orderOf(registry.manifest, colours.choices).map((k) => [k, registry.manifest.types[k]?.label ?? k] as const));
@@ -35,11 +44,11 @@
   {@const terms = items.flatMap((d) => (d.kind === 'term' ? [d.term] : []))}
   {#if symbols.length}
     <div class="eyebrow">{symbols[0].section} · symbols</div>
-    <ul class="defs">{#each symbols as v (v.sym)}<li><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
+    <ul class="defs">{#each symbols as v (v.sym)}<li data-find="sym:{v.section}:{v.sym}"><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
   {/if}
   {#if terms.length}
     <div class="eyebrow">{terms[0].section} · terms</div>
-    <ul class="defs terms">{#each terms as t (t.term)}<li><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
+    <ul class="defs terms">{#each terms as t (t.term)}<li data-find="term:{t.section}:{t.term}"><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
   {/if}
 {/snippet}
 
@@ -54,6 +63,13 @@
   </details>
 {/snippet}
 
+<SearchBox items={inside} of={findable} onpick={(d) => goFind(host, keyOf(d))} placeholder="Find a symbol or a term…">
+  {#snippet row(d: Def)}
+    {#if d.kind === 'symbol'}<span class="key sym" use:sym={d.symbol.sym}></span><span class="text">{d.symbol.meaning}{#if d.symbol.unit} · {d.symbol.unit}{/if}</span>
+    {:else}<span class="key term">{d.term.term}</span><span class="text">{d.term.definition}</span>{/if}
+  {/snippet}
+</SearchBox>
+<div bind:this={host}>
 {#if target.level === 'book'}
   {#each grouped.inside as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
 {:else}
@@ -65,6 +81,7 @@
     {#each grouped.outside as c (c.chapter)}{@render chapterGroup(c, false)}{/each}
   </details>
 {/if}
+</div>
 {#if settings.colorCoding}
   <div class="legend">{#each legend as [k, name] (k)}<i style:background="var(--c-{k})"></i><span>{name}</span>{/each}</div>
 {/if}

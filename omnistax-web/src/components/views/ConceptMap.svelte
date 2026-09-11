@@ -27,12 +27,18 @@
   import type { Target } from '../../lib/sections/scope';
   import { pin, spansOf } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { goSpan, openDoc } from '../../lib/sections/nav.svelte';
-  import { scopedNodes, dagRows, edgesOf } from '../../lib/sections/dag';
+  import { goSpan, openDoc, goFind } from '../../lib/sections/nav.svelte';
+  import { scopedNodes, dagRows, edgesOf, type DagNode } from '../../lib/sections/dag';
   import { conceptId, sectionId } from '../../lib/types/ids';
   import { mathHtml } from '../actions/math';
+  import SearchBox from './SearchBox.svelte';
   const scoped = getCtx<() => Target>('scope');
   const list = $derived(scopedNodes(registry.concepts, scoped(), registry.manifest));
+  /* What the search bar finds: the concepts the level teaches, by name or by why they
+     matter. What another section teaches stands dashed on a section's or a chapter's
+     map, but is not the level's to find; the book's dashed nodes are its own, unbuilt. */
+  const own = $derived(scoped().level === 'book' ? list : list.filter((c) => !c.ext));
+  const findable = (c: DagNode) => ({ key: `${c.id} ${c.name}`, text: c.status === 'built' ? c.why ?? '' : '' });
   const rows = $derived(dagRows(list));
   const edges = $derived(edgesOf(list));
   const node = (id: string) => list.find((c) => c.id === id)!;
@@ -77,6 +83,9 @@
   <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
 {/snippet}
 
+<SearchBox items={own} of={findable} onpick={(c) => goFind(host, c.id)} placeholder="Find a concept…">
+  {#snippet row(c: DagNode)}<span class="key" use:mathHtml={c.name}></span><span class="text">{c.section} · {c.kind}{#if c.status === 'built' && c.why} · {c.why}{/if}</span>{/snippet}
+</SearchBox>
 <div class="legend">
   <span class="k-idea"><i class="sw"></i>idea</span>
   <span class="k-result"><i class="sw"></i>result</span>
@@ -98,7 +107,7 @@
     <div class="row" class:dense={row.length >= 3}>
       {#each row as id (id)}
         {@const c = node(id)}
-        <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id}
+        <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id} data-find={id}
           data-state={showProgress ? practice.stateOf(id) : undefined} style:--m={showProgress ? share(id) : undefined}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
           {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}

@@ -79,4 +79,11 @@ export const openItem = (key: string, group?: number): Promise<void> => {
   return sec ? registry.load(sec) : Promise.resolve();
 };
 export const openDoc = (sec: SectionId, doc: 'text' | 'exercises', group?: number): Promise<void> => openItem(itemKey(docItem(sec, doc)), group);
+/* Land on one thing a view lists, named by the key the view wrote on it: a fold
+   the view keeps it under is opened first, so there is something to scroll to. */
+export const goFind = (host: ParentNode | null, key: string): void => {
+  const el = host?.querySelector<HTMLElement>(`[data-find="${cssId(key)}"]`) ?? null; if (!el) return;
+  for (let d = el.closest('details'); d; d = d.parentElement?.closest('details') ?? null) d.open = true;
+  jump(el, 'center');
+};
 type SectionId = import('../types/ids').SectionId;
