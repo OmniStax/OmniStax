@@ -2,9 +2,10 @@
   /* The concept map: nodes in rows by prerequisite depth, edges drawn in an SVG
      behind them. Hover opens the node's goto card — why the concept matters,
      and where the text introduces it, uses it and tests it, each a link to go
-     there; click pins it and jumps to where the text introduces it. What it
-     draws is what the view's level covers: one section, one chapter, or
-     everything the book teaches.
+     there; click pins it and jumps to where the text introduces it, and a node
+     dragged onto a note stands there as a card of its own. What it draws is what
+     the view's level covers: one section, one chapter, or everything the book
+     teaches.
 
      A node's shape says what kind of thing it is, the way a textbook page does:
      an idea is a plain box (a term to hold), a result is a box under a double
@@ -32,6 +33,7 @@
   import { conceptId, sectionId } from '../../lib/types/ids';
   import { mathHtml } from '../actions/math';
   import SearchBox from './SearchBox.svelte';
+  import { dragout } from '../../lib/notes/md/dragout';
   const scoped = getCtx<() => Target>('scope');
   const list = $derived(scopedNodes(registry.concepts, scoped(), registry.manifest));
   /* What the search bar finds: the concepts the level teaches, by name or by why they
@@ -108,6 +110,7 @@
       {#each row as id (id)}
         {@const c = node(id)}
         <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id} data-find={id}
+          use:dragout={{ kind: 'concept', section: c.section, id }}
           data-state={showProgress ? practice.stateOf(id) : undefined} style:--m={showProgress ? share(id) : undefined}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
           {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}

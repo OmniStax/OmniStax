@@ -4,7 +4,10 @@
      under a line per section for a chapter, under a fold per chapter for the
      book, with whatever lies outside folded away below. The colour legend names
      every quantity the book declares, in the order the reader has put them in,
-     so that it reads the same way round as the colour menu. */
+     so that it reads the same way round as the colour menu.
+
+     A symbol and a term are dragged into a note the same way a formula is: the
+     row carries the embed that writes it out there as a card. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
   import { focus } from '../../lib/sections/focus.svelte';
@@ -18,6 +21,7 @@
   import { FIG } from '../../lib/fig/figlib';
   import { goFind } from '../../lib/sections/nav.svelte';
   import SearchBox from './SearchBox.svelte';
+  import { dragout } from '../../lib/notes/md/dragout';
   /* One definition: a symbol the book gives a meaning, or a term it defines. */
   type Def = { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO };
   const scoped = getCtx<() => Target>('scope');
@@ -44,11 +48,11 @@
   {@const terms = items.flatMap((d) => (d.kind === 'term' ? [d.term] : []))}
   {#if symbols.length}
     <div class="eyebrow">{symbols[0].section} · symbols</div>
-    <ul class="defs">{#each symbols as v (v.sym)}<li data-find="sym:{v.section}:{v.sym}"><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
+    <ul class="defs">{#each symbols as v (v.sym)}<li data-find="sym:{v.section}:{v.sym}" use:dragout={{ kind: 'symbol', section: v.section, sym: v.sym }}><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
   {/if}
   {#if terms.length}
     <div class="eyebrow">{terms[0].section} · terms</div>
-    <ul class="defs terms">{#each terms as t (t.term)}<li data-find="term:{t.section}:{t.term}"><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
+    <ul class="defs terms">{#each terms as t (t.term)}<li data-find="term:{t.section}:{t.term}" use:dragout={{ kind: 'term', section: t.section, term: t.term }}><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
   {/if}
 {/snippet}
 
@@ -88,7 +92,9 @@
 
 <style>
   .defs{list-style:none;padding:0;margin:0}
-  .defs li{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:0.82rem;align-items:baseline}
+  /* the open hand says the row is a thing to take: it goes into a note by being dragged there */
+  .defs li{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:0.82rem;align-items:baseline;cursor:grab}
+  .defs li:active{cursor:grabbing}
   .defs.terms li{grid-template-columns:8em 1fr}
   .sym :global(.katex){font-size:1.15em}
   .unit{font-family:var(--mono);font-size:0.72rem;color:var(--muted);margin-left:4px}

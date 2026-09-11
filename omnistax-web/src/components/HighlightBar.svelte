@@ -1,13 +1,13 @@
 <script lang="ts">
   /* A small toolbar over a text selection in an article: four highlight colours
-     and, once the words are marked, the three things a reader does with a
-     highlight — write a note on it, copy the reference a note quotes it by, and
-     take it away. Those three are icons, each named by the shell's tooltip.
+     and, once the words are marked, the two things a reader does with a
+     highlight — write a note on it and take it away. Both are icons, each named
+     by the shell's tooltip.
 
      Marking the words does not put the bar away: the same bar stays where it
      stands, now over a highlight rather than a selection, so the reader can go
-     straight on to annotate or to copy the link. Clicking a highlight in the
-     text opens it again the same way. */
+     straight on to annotate it. Clicking a highlight in the text opens it again
+     the same way. */
   import { onMount } from 'svelte';
   import { notes, HL_COLORS, type HlColor } from '../lib/notes/store.svelte';
   import { ICON } from '../lib/icons';
@@ -30,14 +30,14 @@
     const ix = textIndex(art); const span = rangeSpan(ix, range);
     if (!span || !ix.full.slice(span.start, span.end).trim()) { open = false; return; }
     const [section, doc] = (art.dataset.doc ?? '').split('/') as [string, DocKind];
-    pending = { section: sectionId(section), doc, anchor: makeAnchor(ix.full, span) }; mode = 'new'; noteId = null; copied = false; place(range.getBoundingClientRect()); open = true;
+    pending = { section: sectionId(section), doc, anchor: makeAnchor(ix.full, span) }; mode = 'new'; noteId = null; place(range.getBoundingClientRect()); open = true;
   };
   let timer = 0;
   const onSel = () => { clearTimeout(timer); timer = window.setTimeout(fromSelection, 160); };
   const onClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement; if (t.closest('.hl-bar')) return;
     const m = t.closest<HTMLElement>('mark.hl');
-    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; copied = false; place(m.getBoundingClientRect()); open = true; return; }
+    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; place(m.getBoundingClientRect()); open = true; return; }
     if (mode === 'edit') open = false;
   };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') open = false; };
@@ -49,7 +49,7 @@
     const n = notes.add(pending.section, pending.doc, pending.anchor, c);
     document.getSelection()?.removeAllRanges();
     /* The bar stands over the words it has just marked. */
-    noteId = n.id; mode = 'edit'; pending = null; copied = false;
+    noteId = n.id; mode = 'edit'; pending = null;
   };
   const annotate = () => {
     let id = noteId;
@@ -58,18 +58,6 @@
   };
   const remove = () => { if (noteId) notes.remove(noteId); open = false; };
   const noted = $derived(mode === 'edit' && !!notes.get(noteId ?? '')?.text);
-  /* The link a note writes to quote this highlight. A selection that is not yet
-     a highlight becomes one, in yellow, so that there is something to point at;
-     the bar then stands over it as though it had been clicked. */
-  let copied = $state(false);
-  const COPIED_FOR = 1200;
-  const copyLink = async () => {
-    let id = noteId;
-    if (mode === 'new' && pending) { id = notes.add(pending.section, pending.doc, pending.anchor, 'yellow').id; document.getSelection()?.removeAllRanges(); noteId = id; mode = 'edit'; pending = null; }
-    if (!id) return;
-    try { await navigator.clipboard.writeText(`[[hl:${id}]]`); } catch { console.warn('The clipboard is not open to this page; the link was not copied.'); return; }
-    copied = true; setTimeout(() => { copied = false; }, COPIED_FOR);
-  };
   const current = $derived(noteId ? notes.get(noteId)?.color ?? null : null);
 </script>
 
@@ -78,7 +66,6 @@
     {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
     <span class="sep"></span>
     <button type="button" class="act" title={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} aria-label={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} onclick={annotate}>{@html ICON.highlighter}</button>
-    <button type="button" class="act" class:done={copied} title={copied ? 'Copied' : 'Copy link to this highlight'} aria-label="Copy link to this highlight" onclick={copyLink}>{@html copied ? ICON.check : ICON.link}</button>
     {#if mode === 'edit'}<button type="button" class="act" title="Remove this highlight" aria-label="Remove this highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
   </div>
 {/if}
@@ -94,5 +81,4 @@
   .act:hover{background:var(--soft)}
   .act:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .act :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-  .act.done{color:var(--ok)}
 </style>

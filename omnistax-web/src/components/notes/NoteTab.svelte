@@ -76,10 +76,38 @@
     return path ? `${path}/` : 'notes/';
   };
   const QUOTE = 40;
+  const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+  /* A concept's name may set its result in maths, which no list of rows can
+     print; the picker gives the words and leaves the maths to the card. */
+  const plain = (s: string): string => s.replace(/\$[^$]*\$/g, '').replace(/\s+/g, ' ').trim();
+  /* The sheet holds an equation in the book's own macros, one per symbol, so
+     that each symbol wears the colour of its type. A row of the picker is read
+     and not drawn, so the macros are put back into the symbols they stand for. */
+  const symbolOfMacro = (): Readonly<Record<string, string>> =>
+    Object.fromEntries(Object.entries(registry.manifest.symbols).map(([sym, tex]) => [tex, sym] as const));
+  const plainTex = (tex: string, byMacro: Readonly<Record<string, string>>): string =>
+    tex.replace(/\\[A-Za-z]+/g, (m) => byMacro[m] ?? m).replace(/\s+/g, ' ').trim();
+
+  /* What the book itself holds, out of every chapter whose tables have been
+     fetched: the equations of the formula sheet, the terms of the glossary, the
+     symbols with a meaning, and the concepts of a section built here. Each is
+     picked to be held whole in the note, so each writes a card. */
+  const bookRows = (): readonly Candidate[] => {
+    const byMacro = symbolOfMacro();
+    return Object.values(registry.chapters).flatMap((ch) => [
+      ...ch.formulas.equations.filter((e) => e.important).map((e) =>
+        candidate({ kind: 'equation', section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · '), true)),
+      ...ch.formulas.glossary.map((g) => candidate({ kind: 'term', section: g.section, term: g.term }, g.term, `term · ${g.section}`, true)),
+      ...ch.formulas.variables.map((v) => candidate({ kind: 'symbol', section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), `symbol · ${v.section}`, true)),
+      ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', section: c.section, id: c.id }, plain(c.name), `concept · ${c.section}`, true)),
+    ]);
+  };
+
   const candidates = (): readonly Candidate[] => [
     ...noteDocs.list.filter((d) => d.id !== noteId).map((d) => candidate({ kind: 'note', name: d.name }, d.name, folderOf(d.id))),
     ...registry.manifest.chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', section: s.id }, label(s.id, s.title), c.title))),
     ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `highlight · ${n.section}`)),
+    ...bookRows(),
   ];
 
   const onbody = (v: string): void => noteDocs.setBody(noteId, v);

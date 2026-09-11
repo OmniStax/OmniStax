@@ -39,13 +39,13 @@ with sync_playwright() as p:
     print('10 view mode:', pg.evaluate('document.querySelector(".note-tab")?.dataset.mode'), 'katex:', pg.evaluate('document.querySelectorAll(".note-view .katex").length'), 'wiki:', pg.eval_on_selector_all('.note-view a.wiki', 'as=>as.map(a=>a.dataset.link+"|"+a.textContent)'))
     pg.click('.note-view a.wiki'); pg.wait_for_timeout(600)
     print('11 wiki click → tabs:', tabs(pg))
-    # highlight + copy link
+    # highlight, and the embed that quotes it written into the note
     pg.evaluate('''() => { const t=[...document.querySelectorAll(".pane:not([hidden]) article[data-doc] p")].find(p=>p.textContent.trim().length>60); const r=document.createRange(); const tn=[...t.childNodes].find(n=>n.nodeType===3&&n.data.length>30); r.setStart(tn,2); r.setEnd(tn,28); const s=getSelection(); s.removeAllRanges(); s.addRange(r); document.dispatchEvent(new Event("selectionchange")); }'''); pg.wait_for_timeout(500)
     print('12 hl bar:', pg.is_visible('.hl-bar'), pg.eval_on_selector_all('.hl-bar button', 'bs=>bs.map(b=>b.textContent||b.title)'))
-    pg.click('.hl-bar button:has-text("Copy link")'); pg.wait_for_timeout(400)
-    clip = pg.evaluate('navigator.clipboard.readText()')
-    print('13 clipboard:', clip, 'marks:', pg.evaluate('document.querySelectorAll("mark.hl").length'))
-    # paste embed into the note
+    pg.click('.hl-bar button.dot.yellow'); pg.wait_for_timeout(400)
+    clip = '![[hl:%s]]' % pg.evaluate('document.querySelector("mark.hl")?.dataset.note')
+    print('13 embed for the highlight:', clip, 'marks:', pg.evaluate('document.querySelectorAll("mark.hl").length'))
+    # write that embed into the note, as a card dragged onto it would
     pg.evaluate('[...document.querySelectorAll(".tab")].find(t=>t.querySelector(".ttl").textContent.startsWith("Pendulum")).click()'); pg.wait_for_timeout(400)
     pg.keyboard.press('Control+e'); pg.wait_for_timeout(400)
     pg.click('.cm-content'); pg.keyboard.press('Control+End'); pg.keyboard.type('\n\n' + clip); pg.wait_for_timeout(300)
@@ -53,7 +53,8 @@ with sync_playwright() as p:
     print('14 embed:', pg.eval_on_selector_all('.note-view .hl-embed', 'es=>es.map(e=>e.className+" | "+e.querySelector("blockquote").textContent.slice(0,30))'))
     # annotations view exists & drag view into group via command
     pg.keyboard.press('Control+k'); pg.wait_for_timeout(300); pg.keyboard.type('Open Annotations in a group'); pg.wait_for_timeout(300); pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
-    print('15 annotations tab:', [t for g in tabs(pg) for t in g if t.startswith('Annotations')], 'cards:', pg.evaluate('document.querySelectorAll(".view[data-view=annotations] .note").length'))
+    print('15 annotations tab:', [t for g in tabs(pg) for t in g if t.startswith('Annotations')], 'cards:', pg.evaluate('document.querySelectorAll(".view[data-view=annotations] .note").length'),
+          'draggable:', pg.evaluate('document.querySelector(".view[data-view=annotations] .note")?.draggable'))
     # rename note in explorer & reload persistence
     pg.reload(); pg.wait_for_timeout(1500)
     print('16 after reload tabs:', tabs(pg), 'note rows:', [r for r in rows(pg) if r.startswith('note')])

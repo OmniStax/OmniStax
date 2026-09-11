@@ -2,13 +2,18 @@
   /* The important equations of the place this view stands at, grouped by the
      section that states them: flat for a section, under a line per section for a
      chapter, under a fold per chapter for the book. What lies outside the place
-     is folded away below, so the rest of the book is one click and never in the way. */
+     is folded away below, so the rest of the book is one click and never in the way.
+
+     A formula goes into a note by being dragged onto it, which drops the embed
+     that writes it out as a card; the click it keeps still jumps to where the
+     text states it. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { goSpan, findEl, goFind } from '../../lib/sections/nav.svelte';
+  import { dragout } from '../../lib/notes/md/dragout';
   import { spanId, sectionId } from '../../lib/types/ids';
   import type { EquationDTO } from '../../lib/content/schema';
   import { FIG } from '../../lib/fig/figlib';
@@ -29,7 +34,7 @@
 
 {#snippet list(items: readonly EquationDTO[])}
   {#each items as e (e.id)}
-    <button type="button" class="formula" data-find={e.id} onclick={() => goSpan(e.anchor ? spanId(e.anchor) : undefined)}>
+    <button type="button" class="formula" data-find={e.id} use:dragout={{ kind: 'equation', section: e.section, id: e.id }} onclick={() => goSpan(e.anchor ? spanId(e.anchor) : undefined)}>
       <div use:tex={e.tex}></div>
       <small>{e.condition ? e.condition + ' · ' : ''}{e.anchor ? 'in “' + spanTitle(e.anchor) + '”' : ''}</small>
     </button>

@@ -36,11 +36,17 @@
      is inside a link, and only there does the list appear. */
   const OPEN = /\[\[([^\]\n]*)$/;
 
+  /* A row that writes a card rather than a link changes the brackets it was
+     opened inside: the completion reaches back over the `[[` and writes `![[`,
+     unless the reader had already typed the mark themselves. */
   const apply = (c: Candidate) => (v: EditorView, _c: Completion, from: number, to: number): void => {
     const closed = v.state.doc.sliceString(to, to + 2) === ']]';
+    const mark = c.embed === true && v.state.doc.sliceString(Math.max(0, from - 3), from - 2) !== '!';
+    const start = mark ? from - 2 : from;
+    const insert = (mark ? '![[' : '') + c.insert + (closed ? '' : ']]');
     v.dispatch({
-      changes: { from, to, insert: c.insert + (closed ? '' : ']]') },
-      selection: { anchor: from + c.insert.length + 2 },   /* past the closing brackets, either way */
+      changes: { from: start, to, insert },
+      selection: { anchor: start + insert.length + (closed ? 2 : 0) },   /* past the closing brackets, either way */
       userEvent: 'input.complete',
     });
   };
