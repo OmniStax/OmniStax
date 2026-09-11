@@ -51,7 +51,8 @@ test('the real sections wrap each glossary term at most once and never inside a 
   for (const ch of ['ch02', 'ch16']) {
     const f = JSON.parse(fs.readFileSync(path.join(ROOT, ch, 'chapter.json'), 'utf8')) as { glossary: { term: string }[] };
     const terms = f.glossary.map((g) => g.term);
-    for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d))) {
+    /* a section folder that holds only a source.md is one being built, and has no article to check yet */
+    for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, ch, d, 'text.html')))) {
       const out = wrapTerms(fs.readFileSync(path.join(ROOT, ch, dir, 'text.html'), 'utf8'), terms);
       for (const t of terms) assert.ok((out.match(new RegExp(`data-term="${t}"`, 'g')) ?? []).length <= 1, `${ch}/${dir}: ${t} marked twice`);
       assert.ok(!/<h[23][^>]*>[^<]*<span class="term"/.test(out), `${ch}/${dir}: a term in a heading`);
