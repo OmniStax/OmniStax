@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, pointsByBook, pointsOf, rebuild, stateOf, summarize, togglePick, total,
+  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, heatWeeks, pointsByBook, pointsByDay, pointsOf, rebuild, standingOf, stateOf, stepDay, streakOf, summarize, togglePick, total,
   type Attempt, type Catalog, type ConceptRecord, type Curriculum, type Mastery, type PracticeSettings,
 } from '../src/lib/practice/model';
 import type { Bloom, ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
@@ -257,18 +257,98 @@ test('a pick of a concept reaches into any section that tests it', () => {
   const out = draw([{ concept: conceptId('shm') }], {}, CAT, [], SMALL, D3, 'seed');
   assert.deepEqual(ids(out).sort(), ['s1', 's2', 's3']);
 });
-test('the same day draws the same session, another day draws another', () => {
+test('a shuffled session is the same on a refresh and another one on another seed', () => {
   const c: Curriculum = [{ concept: conceptId('shm') }];
   const two = { ...S, session: 2 };
-  const monday = draw(c, {}, CAT, [], two, D3, '2026-03-04');
-  assert.deepEqual(ids(monday), ids(draw(c, {}, CAT, [], two, D3, '2026-03-04')), 'a refresh is the same session');
+  const shuffled = (seed: string) => draw(c, {}, CAT, [], two, D3, seed, { order: 'random' });
+  const monday = shuffled('2026-03-04');
+  assert.deepEqual(ids(monday), ids(shuffled('2026-03-04')), 'a refresh is the same session');
   assert.equal(ids(monday)[0], 's1', 'the lowest level first, whatever the seed');
-  assert.notDeepEqual(ids(monday), ids(draw(c, {}, CAT, [], two, D3, '2026-03-05')), 'and the tie between the two apply exercises falls the other way tomorrow');
+  assert.notDeepEqual(ids(monday), ids(shuffled('2026-03-05')), 'and the tie between the two apply exercises falls the other way on another seed');
 });
 test('the tiebreak is a hash of the seed and where the exercise lives', () => {
   assert.equal(hash('a'), hash('a'));
   assert.notEqual(hash('seed:cp/16.3/s2'), hash('seed:cp/16.3/s3'));
   assert.ok(Number.isInteger(hash('seed:cp/16.3/s2')) && hash('seed:cp/16.3/s2') >= 0);
+});
+
+/* ---------- the order a session comes in ---------- */
+
+/* One concept, four exercises of the same level in three sections of two books,
+   so that every tie falls to where the exercise stands rather than to what it
+   is worth. The manifest builds 16.1 before 2.1, which the order the exercises
+   were listed in does not. */
+const ORDERED: Catalog = {
+  concepts: [concept('displacement', '2.1')],
+  sectionsOf: () => [],
+  allSections: (book) => (book === 'cp' ? ['16.1', '2.1'].map(sec) : book === 'up' ? [sec('9.9')] : []),
+  exercises: [
+    { book: 'cp', section: sec('2.1'), ex: ex('a', 'remember', ['displacement']) },
+    { book: 'up', section: sec('9.9'), ex: ex('z', 'remember', ['displacement']) },
+    { book: 'cp', section: sec('16.1'), ex: ex('b', 'remember', ['displacement']) },
+    { book: 'cp', section: sec('16.1'), ex: ex('c', 'remember', ['displacement']) },
+  ],
+};
+const ONE: Curriculum = [{ concept: conceptId('displacement') }];
+
+test('by default a tie falls to where the exercise stands: the book on the shelf, the section in the manifest, the exercise in the section', () => {
+  assert.deepEqual(ids(draw(ONE, {}, ORDERED, [], S, D3, 'seed')), ['b', 'c', 'a', 'z'], 'the book being read first, its chapter 16 before its chapter 2, and the other book after both');
+  assert.deepEqual(ids(draw(ONE, {}, ORDERED, [], S, D3, 'another seed')), ['b', 'c', 'a', 'z'], 'and the seed does not come into it');
+});
+test('a shuffled draw takes the seed instead, and the same seed twice is the same draw', () => {
+  const shuffled = (seed: string) => ids(draw(ONE, {}, ORDERED, [], S, D3, seed, { order: 'random' }));
+  assert.deepEqual(shuffled('one'), shuffled('one'));
+  assert.deepEqual([...shuffled('one')].sort(), ['a', 'b', 'c', 'z'], 'the same four, in an order of its own');
+  assert.notDeepEqual(shuffled('one'), ['b', 'c', 'a', 'z']);
+});
+test('an excluded exercise is never drawn, and the size stands in for the session', () => {
+  assert.deepEqual(ids(draw(ONE, {}, ORDERED, [], S, D3, 'seed', { exclude: new Set(['cp/16.1/b', 'up/9.9/z']) })), ['c', 'a']);
+  assert.deepEqual(ids(draw(ONE, {}, ORDERED, [], S, D3, 'seed', { size: 2 })), ['b', 'c']);
+  assert.deepEqual(ids(draw(ONE, {}, ORDERED, [], S, D3, 'seed', { size: 1, exclude: new Set(['cp/16.1/b']) })), ['c'], 'the two together are what a re-draw of what is left asks for');
+});
+
+/* ---------- what the dashboard reads ---------- */
+
+test('the points are counted day by day, and a day answered only wrongly is a day with nothing on it', () => {
+  const list: readonly Attempt[] = [
+    attempt('h1', D1, true, { 'hookes-law': 3 }),
+    attempt('h2', D1, true, { 'hookes-law': 2, displacement: 1 }),
+    attempt('h3', D2, false, { 'hookes-law': 4 }),
+  ];
+  assert.deepEqual(pointsByDay(list), { [dayOf(D1)]: 6, [dayOf(D2)]: 0 });
+  assert.deepEqual(pointsByDay([]), {});
+});
+test('the streak is the days in a row with a right answer, counted back from today or from yesterday', () => {
+  const D4 = noon(2026, 3, 5);
+  const run: readonly Attempt[] = [D1, D2, D3].map((at) => attempt('h1', at, true, { 'hookes-law': 3 }));
+  assert.equal(streakOf(run, D3), 3, 'three days up to today');
+  assert.equal(streakOf(run, D4), 3, 'today is not over, so a streak that ended yesterday still stands');
+  assert.equal(streakOf(run, D5), 0, 'with yesterday empty as well it is broken');
+  assert.equal(streakOf([attempt('h1', D1, true, { 'hookes-law': 3 }), attempt('h1', D3, true, { 'hookes-law': 3 })], D3), 1, 'a day missed starts it again');
+  assert.equal(streakOf([attempt('h1', D3, false, { 'hookes-law': 3 })], D3), 0, 'a wrong answer is not a day kept');
+  assert.equal(streakOf([], D3), 0);
+});
+test('how a set of concepts stands, counted by state and only where the book is built', () => {
+  const m: Mastery = {
+    displacement: rec({ score: 12, lastAt: D3, earned: 12 }),
+    'hookes-law': rec({ score: 4, mastered: false, earned: 4, lastAt: D3 }),
+    shm: rec({ score: 16, lastAt: D3 - 28 * DAY, earned: 16 }),
+    ghost: rec({ score: 12, lastAt: D3, earned: 12 }),
+  };
+  assert.deepEqual(standingOf(CONCEPTS, m, S, D3), { untouched: 1, practised: 1, mastered: 1, due: 1 }, 'period is untouched and the placeholder is not counted at all');
+  assert.deepEqual(standingOf([], {}, S, D3), { untouched: 0, practised: 0, mastered: 0, due: 0 });
+});
+test('the heatmap is fifty-two weeks of seven days, ending on today', () => {
+  const weeks = heatWeeks(D3);
+  const dow = new Date(D3).getDay();
+  assert.equal(weeks.length, 52);
+  assert.ok(weeks.every((w) => w.length === 7));
+  assert.equal(weeks[51][dow], dayOf(D3), 'today stands on its own weekday in the last column');
+  assert.deepEqual(weeks[51].slice(dow + 1), Array.from({ length: 6 - dow }, () => ''), 'the days still to come are empty, and the column keeps its seven cells');
+  assert.equal(weeks[51][0], stepDay(dayOf(D3), -dow), 'the last column opens on this week\'s Sunday');
+  assert.equal(weeks[0][0], stepDay(weeks[51][0], -51 * 7), 'and the first one fifty-one weeks before it');
+  assert.equal(weeks.flat().filter((d) => d === '').length, 6 - dow, 'nothing else is empty');
+  assert.equal(heatWeeks(D3, 4).length, 4);
 });
 
 /* ---------- what the summary says ---------- */

@@ -15,9 +15,13 @@
      rather than a change of its shape or its hue: a thin bar along the bottom
      edge, as long as the concept's decayed score stands towards the mastery
      threshold, faint for practised, green for mastered and warm over a track for
-     one that has faded and is due for review. */
+     one that has faded and is due for review. A switch at the end of the states
+     legend takes that second reading away again, for a reader who wants the map
+     as a map; it belongs to this map alone, and opens the way the setting
+     "Progress on the concept map" says. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { practice } from '../../lib/practice/store.svelte';
+  import { settings } from '../../lib/settings/store.svelte';
   import { decayed } from '../../lib/practice/model';
   import { getContext as getCtx } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
@@ -34,6 +38,10 @@
   const node = (id: string) => list.find((c) => c.id === id)!;
   const coverage = $derived(spy.current.span ? registry.coverage.find((c) => c.span === spy.current.span) ?? registry.coverage.find((c) => c.span === spy.current.section) : undefined);
   let hover = $state<string | null>(null);   /* the node under the pointer, which lights its edges; the card itself is the shell's */
+  /* Whether this map draws the practice bars. It starts where the setting says
+     and is this map's own from then on: another map, or this one opened again,
+     starts from the setting afresh. */
+  let showProgress = $state(settings.mapProgress);
   /* How far the concept's decayed score stands towards the threshold, 0 to 1: the
      length of the bar. No record at all leaves it at 0, and nothing is drawn. */
   const share = (id: string): number => {
@@ -77,9 +85,12 @@
 </div>
 <!-- the same miniature again, for the bar the nodes carry: how the practice stands -->
 <div class="legend states">
-  <span class="s-practised"><i class="sw"></i>practised</span>
-  <span class="s-mastered"><i class="sw"></i>mastered</span>
-  <span class="s-due"><i class="sw"></i>due</span>
+  {#if showProgress}
+    <span class="s-practised"><i class="sw"></i>practised</span>
+    <span class="s-mastered"><i class="sw"></i>mastered</span>
+    <span class="s-due"><i class="sw"></i>due</span>
+  {/if}
+  <label class="prog" title="Draw how the practice stands on each node"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
 </div>
 <div class="dag" bind:this={host}>
   <svg viewBox="0 0 {box.w} {box.h}">{#each paths as p}<path d={p.d} class:hot={hover === p.from || hover === p.to} />{/each}</svg>
@@ -88,7 +99,7 @@
       {#each row as id (id)}
         {@const c = node(id)}
         <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id}
-          data-state={practice.stateOf(id)} style:--m={share(id)}
+          data-state={showProgress ? practice.stateOf(id) : undefined} style:--m={showProgress ? share(id) : undefined}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
           {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
         </button>
@@ -160,6 +171,13 @@
   .legend.states .s-practised{--m:0.5;--m-colour:color-mix(in srgb,var(--ink) 45%,transparent)}
   .legend.states .s-mastered{--m:1;--m-colour:var(--ok)}
   .legend.states .s-due{--m:0.35;--m-colour:var(--warm)}
+  /* the switch sits at the end of the same row, the size of a swatch */
+  .legend.states .prog{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+  .legend.states .prog input{appearance:none;flex:none;width:22px;height:13px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--panel);position:relative;cursor:pointer}
+  .legend.states .prog input::after{content:"";position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:var(--muted);transition:left .15s}
+  .legend.states .prog input:checked{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 50%,var(--rule))}
+  .legend.states .prog input:checked::after{left:11px;background:var(--accent)}
+  .legend.states .prog input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .legend.states .s-due .sw::before{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--warm) 20%,transparent)}
   :global(.view-pane) .node{font-size:0.9rem;max-width:180px;padding:7px 10px}
   :global(.view-pane) .node.k-result{padding:5px 8px}

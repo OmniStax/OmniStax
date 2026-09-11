@@ -14,14 +14,14 @@
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
   import { findEl, jump, activePane, openDoc } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { focusedGroup, splitRight } from '../lib/layout/model';
+  import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
   import { settings } from '../lib/settings/store.svelte';
   import { colours } from '../lib/colours/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { parseItemKey, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
+  import { parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
   import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
   import Rail from './Rail.svelte';
@@ -40,6 +40,7 @@
   import { explorer } from '../lib/explorer/store.svelte';
   import { library } from '../lib/explorer/library.svelte';
   import { practice } from '../lib/practice/store.svelte';
+  import { openPractice } from '../lib/practice/open.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
 
   type Props = { manifest: BookManifest; own: ItemId; chapterDir?: string; chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO }; section?: SectionMetaDTO; exercises?: readonly ExerciseDTO[]; threeUrl?: string };
@@ -82,6 +83,7 @@
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);
     focus.own = page;
     layoutStore.init(page, known);
+    practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
@@ -114,6 +116,10 @@
       ui.closeAll();
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
+      /* "Practise this section" at the end of a section: a practice view opens
+         beside the group the section is reading in, with that one section picked. */
+      const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
+      if (pb?.dataset.practiseSection) { const pane = pb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       /* A link inside a pane that names a section of this book opens as a tab
          rather than as a page of its own; anything else — another host, the
@@ -144,6 +150,10 @@
   /* notes → marks in every copy of every document */
   $effect(() => { notes.paintVersion; tick().then(() => document.querySelectorAll<HTMLElement>('article[data-doc]').forEach(paintDoc)); });
   $effect(() => { notes.list.forEach((n) => setNoted(document, n.id, !!n.text)); });
+
+  /* layout → practice: what a practice tab stands on belongs to that tab, so a
+     page whose tab the layout no longer holds is dropped as the layout settles. */
+  $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
 
   /* The section the focused tab is showing, if it is showing one at all: a
      standing page and a note belong to no section and leave the address alone. */

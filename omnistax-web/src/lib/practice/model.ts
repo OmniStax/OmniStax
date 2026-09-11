@@ -47,13 +47,19 @@ export const pointsOf = (ex: ExerciseDTO): Readonly<Record<string, number>> =>
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 export const dayOf = (at: number): string => { const d = new Date(at); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-/* Whether `day` is the calendar day right after `prev`, which is what keeps a
-   streak alive. Built from the parts rather than by subtracting a day in ms, so
-   that a clock change does not break the run. */
-const isNextDay = (prev: string, day: string): boolean => {
-  const p = prev.split('-').map(Number);
-  return p.length === 3 && p.every((n) => Number.isFinite(n)) && dayOf(new Date(p[0], p[1] - 1, p[2] + 1, 12).getTime()) === day;
+/* The day so many days on from this one, forwards or back. Built from the parts
+   rather than by adding days in ms, so that a clock change — an hour lost to
+   daylight saving — does not shift the answer by a day; noon is twelve hours
+   from either boundary, which is what keeps it. A day string that is not one
+   steps nowhere. */
+export const stepDay = (day: string, by: number): string => {
+  const p = day.split('-').map(Number);
+  if (p.length !== 3 || !p.every((n) => Number.isFinite(n))) return '';
+  return dayOf(new Date(p[0], p[1] - 1, p[2] + by, 12).getTime());
 };
+/* Whether `day` is the calendar day right after `prev`, which is what keeps a
+   streak alive. */
+const isNextDay = (prev: string, day: string): boolean => day !== '' && stepDay(prev, 1) === day;
 
 export const decayed = (r: ConceptRecord, now: number, s: PracticeSettings): number => (s.spaced ? r.score * 0.5 ** ((now - r.lastAt) / (r.halfLife * DAY)) : r.score);
 /* The four states the reader sees. A mastered concept whose score has faded
@@ -122,6 +128,40 @@ export const total = (m: Mastery): number => Object.values(m).reduce((n, r) => n
    reader has only answered wrongly still has a line, with nothing on it. */
 export const pointsByBook = (attempts: readonly Attempt[]): Readonly<Record<string, number>> =>
   attempts.reduce<Record<string, number>>((out, a) => ({ ...out, [a.book]: (out[a.book] ?? 0) + Object.values(a.earned).reduce((n, v) => n + v, 0) }), {});
+/* The same number day by day, which is what the heatmap draws: a day the reader
+   answered nothing has no entry at all, and one they answered only wrongly has
+   an entry of nothing, since they did sit down to it. */
+export const pointsByDay = (attempts: readonly Attempt[]): Readonly<Record<string, number>> =>
+  attempts.reduce<Record<string, number>>((out, a) => ({ ...out, [dayOf(a.at)]: (out[dayOf(a.at)] ?? 0) + Object.values(a.earned).reduce((n, v) => n + v, 0) }), {});
+/* The run of days the reader has kept up: calendar days in a row with at least
+   one right answer, counted back from today. A day that is not over is not a
+   day missed, so a reader who has not practised yet today keeps the streak they
+   ended yesterday — it is only broken once yesterday is empty as well. */
+export const streakOf = (attempts: readonly Attempt[], now: number): number => {
+  const days = new Set(attempts.filter((a) => a.ok).map((a) => dayOf(a.at)));
+  const today = dayOf(now);
+  let day = days.has(today) ? today : stepDay(today, -1);
+  let n = 0;
+  while (days.has(day)) { n += 1; day = stepDay(day, -1); }
+  return n;
+};
+/* How a set of concepts stands, counted by state. Only the built ones are
+   counted: a placeholder stands for a section nobody has written, so nothing
+   tests it and the reader cannot be behind on it. */
+export type Standing = Readonly<Record<State, number>>;
+export const standingOf = (concepts: readonly ConceptDTO[], m: Mastery, s: PracticeSettings, now: number): Standing =>
+  concepts.filter((c) => c.status === 'built')
+    .reduce<Standing>((out, c) => { const st = stateOf(m[c.id], now, s); return { ...out, [st]: out[st] + 1 }; }, { untouched: 0, practised: 0, mastered: 0, due: 0 });
+/* The calendar the heatmap is drawn on: `weeks` columns of seven days, a column
+   to a week beginning on Sunday, the last of them the week today falls in. The
+   days after today are empty strings rather than dates, so the last column
+   still has seven cells and the grid keeps its shape. */
+export const heatWeeks = (now: number, weeks = 52): readonly (readonly string[])[] => {
+  const today = dayOf(now);
+  const first = stepDay(today, -(new Date(now).getDay() + (weeks - 1) * 7));   /* the Sunday the first column opens on */
+  return Array.from({ length: weeks }, (_, w) =>
+    Array.from({ length: 7 }, (_, d) => { const day = stepDay(first, w * 7 + d); return day > today ? '' : day; }));
+};
 
 /* ---------- the curriculum ---------- */
 
@@ -177,7 +217,32 @@ export const hash = (s: string): number => {
   return h >>> 0;
 };
 
-type Cand = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly key: string; readonly h: number; readonly last: number; readonly ok: number };
+type Cand = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly key: string; readonly h: number; readonly pos: number; readonly last: number; readonly ok: number };
+
+/* How a session may break a tie between two exercises that serve the same
+   concept equally well: by where they stand in the library, which is the order
+   the reader would meet them reading, or by the hash of the seed, which is a
+   shuffle that a refresh repeats. */
+export type DrawOrder = 'book' | 'random';
+export type DrawOpts = {
+  readonly order?: DrawOrder;              /* 'book' by default */
+  readonly exclude?: ReadonlySet<string>;  /* exercise keys `book/section/ex` this draw may not take */
+  readonly size?: number;                  /* how many to draw, in place of the reader's session size */
+};
+/* Where every exercise stands on the shelf: the book first — the book being read
+   heads the catalogue, so the order they were listed in is the shelf's — then the
+   section in the order its book's manifest builds them, then the exercise in the
+   order its section sets them. A section its book does not list falls after the
+   ones it does. */
+const positionsOf = (cat: Catalog): ReadonlyMap<string, number> => {
+  const books = [...new Set(cat.exercises.map((e) => e.book))];
+  const sections = new Map(books.map((b) => [b, cat.allSections(b)] as const));
+  const at = (book: string, section: SectionId): number => { const list = sections.get(book) ?? []; const i = list.indexOf(section); return i < 0 ? list.length : i; };
+  return new Map(cat.exercises
+    .map((e, i) => ({ key: `${e.book}/${e.section}/${e.ex.id}`, book: books.indexOf(e.book), section: at(e.book, e.section), i }))
+    .sort((a, b) => a.book - b.book || a.section - b.section || a.i - b.i)
+    .map((e, i) => [e.key, i] as const));
+};
 
 /* Review first, then the frontier of the DAG, then whatever is left, so that a
    session is always full while exercises remain. */
@@ -192,8 +257,13 @@ export const poolOf = (c: Curriculum, cat: Catalog): Catalog['exercises'] => {
   return cat.exercises.filter((e) => e.ex.concepts.some((id) => inSet.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => picked.has(id))));
 };
 
-export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly Attempt[], s: PracticeSettings, now: number, seed: string): readonly Drawn[] => {
+export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly Attempt[], s: PracticeSettings, now: number, seed: string, opts: DrawOpts = {}): readonly Drawn[] => {
   const inSet = conceptsOf(c, cat);
+  const size = opts.size ?? s.session;
+  /* Book order is the default, so a session reads the way the book does; the
+     shuffle asks for the hash instead, and a seed of its own each time. */
+  const pos = opts.order === 'random' ? null : positionsOf(cat);
+  const tie = (a: Cand, b: Cand): number => (pos ? a.pos - b.pos : a.h - b.h);
   const state = (id: string): State => stateOf(m[id], now, s);
   const prereqs = new Map<string, readonly string[]>(cat.concepts.map((k) => [k.id, k.prereqs]));
 
@@ -206,7 +276,8 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
   /* An exercise answered rightly in the last two days is left alone unless one
      of its concepts has come due. */
   const pool: Cand[] = poolOf(c, cat)
-    .map((e) => { const key = `${e.book}/${e.section}/${e.ex.id}`; return { book: e.book, section: e.section, ex: e.ex, key, h: hash(`${seed}:${key}`), last: last.get(key) ?? 0, ok: lastOk.get(key) ?? 0 }; })
+    .map((e) => { const key = `${e.book}/${e.section}/${e.ex.id}`; return { book: e.book, section: e.section, ex: e.ex, key, h: hash(`${seed}:${key}`), pos: pos?.get(key) ?? 0, last: last.get(key) ?? 0, ok: lastOk.get(key) ?? 0 }; })
+    .filter((e) => !opts.exclude?.has(e.key))
     .filter((e) => e.ok === 0 || now - e.ok > DAY * 2 || e.ex.concepts.some((id) => inSet.has(id) && state(id) === 'due'));
 
   const ids = [...inSet];
@@ -231,24 +302,24 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
   /* The expert-reversal note: a concept with no score gets its lowest Bloom
      exercise, pattern before problem, and one with a score gets a higher one. */
   const worth = (e: Cand, id: string): number => pointsOf(e.ex)[id] ?? 0;
-  const byLevel = (id: string) => { const dir = state(id) === 'untouched' ? 1 : -1; return (a: Cand, b: Cand): number => dir * (worth(a, id) - worth(b, id)) || a.h - b.h; };
-  const byHardest = (id: string) => (a: Cand, b: Cand): number => worth(b, id) - worth(a, id) || a.h - b.h;
+  const byLevel = (id: string) => { const dir = state(id) === 'untouched' ? 1 : -1; return (a: Cand, b: Cand): number => dir * (worth(a, id) - worth(b, id)) || tie(a, b); };
+  const byHardest = (id: string) => (a: Cand, b: Cand): number => worth(b, id) - worth(a, id) || tie(a, b);
   /* One exercise per concept in turn, round after round, until the bucket runs
      dry or the session is full. */
   const rounds = (list: readonly string[], why: Drawn['why'], order: (id: string) => (a: Cand, b: Cand) => number): void => {
-    for (let moved = true; moved && out.length < s.session;) {
+    for (let moved = true; moved && out.length < size;) {
       moved = false;
       for (const id of list) {
-        if (out.length >= s.session) break;
+        if (out.length >= size) break;
         const e = pick(id, order(id));
         if (e) { take(e, why); moved = true; }
       }
     }
   };
 
-  const byStale = (a: Cand, b: Cand): number => a.last - b.last || a.h - b.h;
+  const byStale = (a: Cand, b: Cand): number => a.last - b.last || tie(a, b);
 
-  const reviewMax = Math.min(s.session, Math.max(0, Math.round(s.session * s.reviewShare)));
+  const reviewMax = Math.min(size, Math.max(0, Math.round(size * s.reviewShare)));
   due.forEach((id) => { if (out.length >= reviewMax) return; const e = pick(id, byStale); if (e) take(e, 'review'); });
   rounds(frontier, 'frontier', byLevel);
   rounds(rest, 'more', byLevel);
@@ -257,7 +328,7 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
      holds: with everything else drawn and room to spare, the due concepts come
      back round to fill it, so a session is always full while exercises remain. */
   rounds(due, 'more', () => byStale);
-  return out.slice(0, s.session);
+  return out.slice(0, size);
 };
 
 /* What the summary says moved: the concepts whose state is not the one they had

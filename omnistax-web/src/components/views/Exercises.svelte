@@ -1,27 +1,30 @@
 <script lang="ts">
-  /* Practice, as a curriculum rather than as a page of problems. The view has
-     four faces and the store remembers which one is showing, so closing the tab
-     and opening it again puts the reader back where they were. Two quiet tabs
-     divide them: three faces are the practising itself, and the fourth is the
-     standing the practising builds up, which is a step to the side rather than
-     a step on — the Practise tab puts the reader back on the face they left.
+  /* Practice, as a course of study rather than as a page of problems. A practice
+     view is its own course: the curriculum it draws on, the session running in
+     it, the face it shows and whether that session is shuffled all belong to
+     this tab and go when it does, so a reader may keep one view on the section
+     they are reading and another on the chapter they are revising.
 
-     On the first face the reader says what they want to practise: rows of every
-     book in their library — the book itself, its chapters, its sections — each a
-     checkbox that stands for a pick, and beside them every concept those chapters
-     teach, so a reader who wants one idea rather than one section can say so. A row is
-     checked when its own pick is in the curriculum or when everything under it
-     is, and half-checked when only some of it is, which is the rule a file tree
-     uses. The foot adds the choice up in a sentence and draws a session from it.
+     Five faces, under two tabs. The dashboard is where a fresh view opens and
+     what the Dashboard tab goes back to: the standing in numbers, any session
+     still running in this view or another, a year of days coloured by what each
+     one earned, and a row for every book on the shelf. Nothing on it is a
+     paragraph — it is meant to be read at a glance and clicked through.
 
-     On the second face the session runs one exercise at a time in the ordinary
-     card, standing alone as it does in a tab of its own. The card records the
-     answer into the store by itself; this face only watches for it, so that Next
-     arrives when the problem has been answered and not before. The third face is
-     the reckoning: what was earned, which concepts moved, and when the ones just
-     practised come round again. The fourth is the long view of the same thing:
-     every concept the reader has chosen or ever answered, in the order they need
-     attention, with what each book has earned them at the foot. */
+     The Practise tab leads to the three faces of the practising itself. On the
+     first the reader says what to practise: presets for the obvious answers,
+     the picks so far as chips, a tree of books, chapters and sections whose
+     boxes are half-checked the way a file tree's are, and a search for a single
+     concept. On the second the session runs one exercise at a time in the
+     ordinary card, standing alone as it does in a tab of its own; the card
+     records the answer into the store by itself, so Next arrives when the
+     problem has been answered and not before. The third is the reckoning: what
+     was earned, which concepts moved, and when the ones just practised come
+     round again.
+
+     The fifth face is one book's standing, reached by clicking that book's row
+     on the dashboard and leaving by the link back to it: every concept the book
+     teaches, in the order they want attention. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { library } from '../../lib/explorer/library.svelte';
@@ -31,9 +34,20 @@
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
   import { pin, spansOf } from '../../lib/sections/concepts.svelte';
   import { goSpan } from '../../lib/sections/nav.svelte';
-  import { practice, type Face } from '../../lib/practice/store.svelte';
+  import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
-  import { DAY, conceptsOf, decayed, dueAt, pointsByBook, samePick, type Pick, type State, poolOf } from '../../lib/practice/model';
+  import { layoutStore } from '../../lib/layout/store.svelte';
+  import { activate, groupsWith, type ItemKey } from '../../lib/layout/model';
+  import {
+    DAY, conceptsOf, decayed, dueAt, heatWeeks, pointsByBook, pointsByDay, samePick, standingOf, streakOf,
+    type Pick, type Standing, type State, poolOf,
+  } from '../../lib/practice/model';
+
+  /* Practice is per page: the tab's own key says which curriculum, which
+     session and which face this one stands on, so a second practice view is a
+     second course of study rather than the same one twice. */
+  let { item }: { item: string } = $props();
+  const page = $derived(practice.page(item));
 
   /* The curriculum spans the shelf rather than the page: the book the reader has
      open stands first, and after it every other book they have taken into their
@@ -56,8 +70,10 @@
   const bookTitle = (id: string): string => (id === book ? registry.manifest.title || 'This book' : practice.bookTitle(id));
   const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
   const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
+  const chapterOf = (id: string, ch: string): ChapterEntry | undefined => chaptersOf(id).find((c) => c.id === ch || c.dir === ch);
   const chapters = $derived(registry.manifest.chapters);
   const builtOf = (c: ChapterEntry): readonly SectionEntry[] => c.sections.filter((s) => s.built);
+  const conceptsIn = (id: string): readonly ConceptDTO[] => (id === book ? registry.concepts : books.loaded[id]?.concepts ?? []);
 
   /* What the Choose face needs before it can say anything true: every chapter's
      concepts, and every built section, whose exercises only join the catalog
@@ -74,11 +90,26 @@
      only, so it is set here rather than written as an attribute. */
   const tri = (node: HTMLInputElement, on: boolean) => { node.indeterminate = on; return { update(v: boolean) { node.indeterminate = v; } }; };
 
+  const plain = (s: string): string => s.replace(/\$[^$]*\$/g, ' ').replace(/<[^>]*>/g, ' ');
+  const conceptName = (id: string): string => practice.conceptOf(id)?.name ?? id;
+  const STATE_WORD: Readonly<Record<State, string>> = { untouched: 'untouched', practised: 'practised', mastered: 'mastered', due: 'due' };
+  const points = (n: number): string => (n === 1 ? 'one point' : `${n} points`);
+
+  /* ---------- the two tabs ---------- */
+
+  /* The dashboard and the standing it leads to are the one tab; the choosing,
+     the session and its reckoning are the other. The Practise tab goes back to
+     a session still running, and otherwise to the choice. */
+  const onDash = $derived(page.face === 'dashboard' || page.face === 'progress');
+  const toPractise = (): void => { if (practice.live(item)) practice.resume(item); else practice.choose(item); };
+
+  /* ---------- choosing ---------- */
+
   const bookPick = (id: string): Pick => ({ book: id });
   const chapPick = (id: string, c: ChapterEntry): Pick => ({ book: id, chapter: c.id });
   const secPick = (id: string, s: SectionEntry): Pick => ({ book: id, section: sectionId(s.id) });
   const conceptPick = (id: string): Pick => ({ concept: conceptId(id) });
-  const has = (p: Pick): boolean => practice.curriculum.some((q) => samePick(q, p));
+  const has = (p: Pick): boolean => page.curriculum.some((q) => samePick(q, p));
   /* A section is in the curriculum on its own account or through the chapter or
      the book above it; a chapter is in it when every section it has built is. */
   const secOn = (id: string, c: ChapterEntry, s: SectionEntry): boolean => has(bookPick(id)) || has(chapPick(id, c)) || has(secPick(id, s));
@@ -88,7 +119,9 @@
   const bookSome = (id: string): boolean => !bookOn(id) && chaptersOf(id).some((c) => chapSome(id, c));
 
   /* What a pick comes to: the concepts it holds, how many of them are waiting
-     for review, and how many problems in the book test any of them. */
+     for review, and how many problems in the library test any of them. The tree
+     no longer sets this out in a column of its own — it is what the row says
+     when the pointer rests on it. */
   type Sum = { readonly concepts: number; readonly due: number; readonly exercises: number };
   const sumOf = (picks: readonly Pick[]): Sum => {
     const ids = conceptsOf(picks, cat);
@@ -96,70 +129,77 @@
     ids.forEach((id) => { if (practice.stateOf(id) === 'due') due += 1; });
     return { concepts: ids.size, due, exercises: poolOf(picks, cat).length };
   };
-  const countLine = (s: Sum): string => `${s.concepts} · ${s.exercises}${s.due ? ` · ${s.due} due` : ''}`;
   const countTitle = (s: Sum): string =>
     s.concepts === 0 ? 'Nothing here has a concept attached to it yet.'
       : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`}, ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}, and ${
         s.due === 0 ? 'nothing due for review' : s.due === 1 ? 'one of them due for review' : `${s.due} of them due for review`}.`;
 
-  /* The concept list: everything the loaded chapters of the shelf teach that the
-     book stating it states, book by book and in the order each book states it,
-     narrowed by what is typed above. Section ids repeat from one book to the
-     next, so a group is keyed by its book as well as by its section. */
+  /* The tree opens book by book and stays folded at the chapters, which is what
+     keeps a shelf of long books readable; which chapters this view has opened
+     is its own, and is not worth keeping past the reading. */
+  let open = $state<readonly string[]>([]);
+  const isOpen = (id: string, c: ChapterEntry): boolean => open.includes(`${id}/${c.id}`);
+  const toggleOpen = (id: string, c: ChapterEntry): void => { const k = `${id}/${c.id}`; open = open.includes(k) ? open.filter((x) => x !== k) : [...open, k]; };
+
+  /* The picks as they stand, each one able to take itself out again. */
+  const pickLabel = (p: Pick): string => {
+    if ('concept' in p) return conceptName(String(p.concept));
+    if (p.section) { const t = sectionTitle(p.book, p.section); return t ? `${p.section} · ${t}` : String(p.section); }
+    if (p.chapter) { const c = chapterOf(p.book, p.chapter); return c ? `${c.id} · ${c.title}` : p.chapter; }
+    return bookTitle(p.book);
+  };
+
+  /* The concept search: a reader who wants one idea rather than one section
+     names it, and ticks it out of what the shelf turns up. The list is capped,
+     since a needle of one letter matches most of a library. */
+  const FOUND = 40;
   let q = $state('');
-  const plain = (s: string): string => s.replace(/\$[^$]*\$/g, ' ').replace(/<[^>]*>/g, ' ');
-  const conceptsIn = (id: string): readonly ConceptDTO[] => (id === book ? registry.concepts : books.loaded[id]?.concepts ?? []);
-  const conceptGroups = $derived.by(() => {
+  const found = $derived.by(() => {
     const needle = q.trim().toLowerCase();
-    return shelf.flatMap((id) => {
-      const order = chaptersOf(id).flatMap((c) => c.sections.map((s) => s.id));
-      const kept = conceptsIn(id).filter((c) => c.status === 'built' && (!needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)));
-      const by = new Map<string, ConceptDTO[]>();
-      kept.forEach((c) => { const g = by.get(c.section); if (g) g.push(c); else by.set(c.section, [c]); });
-      return [...by.entries()]
-        .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
-        .map(([section, items]) => ({ key: `${id}/${section}`, book: id, section, title: sectionTitle(id, section), items }));
-    });
+    if (!needle) return [];
+    return shelf.flatMap((id) => conceptsIn(id)
+      .filter((c) => c.status === 'built' && (plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)))
+      .map((c) => ({ c, book: id })))
+      .slice(0, FOUND);
   });
-  /* The book a group belongs to is worth saying only where more than one book has
-     something to say. */
-  const manyBooks = $derived(new Set(conceptGroups.map((g) => g.book)).size > 1);
   /* A concept is checked when the reader named it, and half-checked when a
      section or a chapter they picked brings it in. */
-  const curriculumConcepts = $derived(conceptsOf(practice.curriculum, cat));
-  const STATE_WORD: Readonly<Record<State, string>> = { untouched: 'untouched', practised: 'practised', mastered: 'mastered', due: 'due' };
+  const curriculumConcepts = $derived(conceptsOf(page.curriculum, cat));
 
   /* The presets replace the choice rather than adding to it, which is what makes
      them a quick way back to a clean start. */
-  const replace = (picks: readonly Pick[]): void => { practice.clear(); picks.forEach((p) => practice.toggle(p)); };
   const here = $derived(focus.section);
   const hereChapter = $derived(registry.chapterOf(here));
   const dueNow = $derived(cat.concepts.filter((c) => c.status === 'built' && practice.stateOf(c.id) === 'due'));
 
-  const choice = $derived(sumOf(practice.curriculum));
+  const choice = $derived(sumOf(page.curriculum));
   const size = $derived(Math.min(practice.settings.session, choice.exercises));
+  const setSize = (n: number): void => practice.setSetting('session', Math.max(1, Math.min(50, n)));
   const choiceLine = $derived(
-    practice.curriculum.length === 0 ? 'You have not chosen anything to practise yet.'
+    page.curriculum.length === 0 ? 'You have not chosen anything to practise yet.'
       : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`}, ${
         choice.due === 0 ? 'none of them due' : choice.due === 1 ? '1 of them due' : `${choice.due} of them due`}, in ${
         choice.exercises === 1 ? '1 exercise' : `${choice.exercises} exercises`}.`,
   );
   const why = $derived(
-    practice.curriculum.length === 0 ? 'Tick a chapter, a section or a concept above, and a session will be drawn from what you tick.'
+    page.curriculum.length === 0 ? 'Tick a chapter, a section or a concept above, and a session will be drawn from what you tick.'
       : choice.exercises === 0 ? 'Nothing you have chosen has a problem attached to it yet. Choose another part of the book, or one of its concepts.'
         : '',
   );
-  const live = $derived(practice.session !== null && practice.session.at < practice.session.drawn.length);
   let note = $state('');
-  const begin = (): void => { note = practice.start() ? '' : 'There is nothing left to draw on just now. Choose more of the book, or come back when the last answers have had time to fade.'; };
+  const NOTHING = 'There is nothing left to draw on just now. Choose more of the book, or come back when the last answers have had time to fade.';
+  const begin = (): void => { note = practice.start(item) ? '' : NOTHING; };
 
-  /* Practise. The card writes the answer into the store; this face reads the
-     store back, so Next arrives the moment the answer is recorded, however the
-     card came to record it. */
-  const session = $derived(practice.session);
+  /* ---------- practising ---------- */
+
+  /* The card writes the answer into the store; this face reads the store back,
+     so Next arrives the moment the answer is recorded, however the card came to
+     record it. The drawn list is read live rather than held, since a shuffled
+     round rewrites the slots the reader has not reached yet. */
+  const session = $derived(page.session);
   const at = $derived(session?.at ?? 0);
   const drawn = $derived(session?.drawn ?? []);
-  const cur = $derived(practice.current());
+  const cur = $derived(practice.current(item));
   const pending = $derived(session ? session.drawn[at] : undefined);
   /* A problem of the book being read waits on its section; one drawn out of
      another book waits on that book, which arrives whole. */
@@ -181,7 +221,6 @@
   let nextBtn = $state<HTMLButtonElement | null>(null);
   $effect(() => { if (answered && nextBtn) nextBtn.focus({ preventScroll: true }); });
 
-  const conceptName = (id: string): string => practice.conceptOf(id)?.name ?? id;
   const bar = (id: string): number => { const r = practice.mastery[id]; return r ? Math.min(1, decayed(r, Date.now(), practice.settings) / practice.settings.threshold) : 0; };
   const barTitle = (id: string, s: State): string =>
     s === 'untouched' ? 'You have not answered anything on this concept yet.'
@@ -189,12 +228,13 @@
         : s === 'due' ? 'This one has faded below the threshold and is waiting for a review.'
           : `The bar is how far your score on this concept stands towards the ${practice.settings.threshold} points that count as mastery.`;
 
-  /* Summary. */
-  const changed = $derived(practice.face === 'summary' ? practice.changed() : []);
+  /* ---------- the reckoning ---------- */
+
+  const changed = $derived(page.face === 'summary' ? practice.changed(item) : []);
   const done = $derived(drawn.filter((_, i) => session?.answered[i] === true).length);
   const skipped = $derived(drawn.length - done);
   const upcoming = $derived.by(() => {
-    if (practice.face !== 'summary') return [];
+    if (page.face !== 'summary') return [];
     const now = Date.now();
     return [...curriculumConcepts]
       .flatMap((id) => { const r = practice.mastery[id]; if (!r) return []; const t = dueAt(r, practice.settings); return t === null ? [] : [{ id, at: t, now }]; })
@@ -202,7 +242,7 @@
   });
   const when = (t: number, now: number): string => {
     if (t <= now) return 'now';
-    const days = Math.round((t - now) / 86400000);
+    const days = Math.round((t - now) / DAY);
     return days <= 0 ? 'later today' : days === 1 ? 'in a day' : `in ${days} days`;
   };
   const earnedLine = (n: number): string => (n === 0 ? 'You earned no points this round.' : n === 1 ? 'You earned one point this round.' : `You earned ${n} points this round.`);
@@ -211,49 +251,70 @@
       : done === 0 ? `You skipped ${drawn.length === 1 ? 'it' : 'all of them'}.`
         : `You answered ${done} of the ${drawn.length} problems and skipped ${skipped === 1 ? 'the other one' : `the other ${skipped}`}.`,
   );
-  const lifetimeLine = $derived(practice.lifetime === 1 ? 'You have earned one point in all.' : `You have earned ${practice.lifetime} points in all.`);
 
-  /* ---------- the two tabs, and what the Practise one goes back to ---------- */
+  /* ---------- the dashboard ---------- */
 
-  /* Progress is read beside the practising rather than after it, so stepping
-     over to it remembers the face it was read from and stepping back returns
-     there; with nothing to return to, the choice. */
-  let back = $state<Face | null>(null);
-  const toProgress = (): void => { if (practice.face !== 'progress') back = practice.face; practice.progress(); };
-  const toPractise = (): void => {
-    const to = back ?? (live ? 'practise' : 'choose');
-    back = null;
-    if (to === 'summary' && session) practice.end();
-    else if (to === 'practise' && live) practice.resume();
-    else practice.choose();
+  /* The calendar is fixed as the view opens: a heatmap that slid a day forward
+     under the reader would be a stranger thing than one that is a day stale. */
+  const opened = Date.now();
+  const weeks = heatWeeks(opened);
+  const byDay = $derived(pointsByDay(practice.attempts));
+  const streak = $derived(streakOf(practice.attempts, Date.now()));
+  const byBook = $derived(pointsByBook(practice.attempts));
+  /* Five depths over the empty cell, so a day of steady work and a day of a
+     great deal of it are told apart without a legend. */
+  const depth = (day: string): number => { const n = byDay[day] ?? 0; return n === 0 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 10 ? 3 : n < 15 ? 4 : 5; };
+  const dayTitle = (day: string): string => `${day} · ${byDay[day] ? points(byDay[day]) : 'no points'}`;
+  /* Today stands at the right edge, which is where the reader looks first; in a
+     pane too narrow for the year the rest is scrolled back to. */
+  let heat = $state<HTMLElement | null>(null);
+  $effect(() => { if (heat) heat.scrollLeft = heat.scrollWidth; });
+
+  /* Every practice view with a session still running, this one included. The
+     card for this view resumes it in place; a card for another view raises that
+     tab where it stands. */
+  const running = $derived(practice.liveSessions());
+  const raise = (key: ItemKey): void => {
+    if (key === item) { practice.resume(item); return; }
+    const g = groupsWith(layoutStore.layout, key)[0];
+    if (g !== undefined) layoutStore.apply((l) => activate(l, g, key));
+  };
+  const reviewDue = (): void => { note = practice.startDue(item) ? '' : NOTHING; };
+
+  /* A book's standing is counted over the concepts it teaches and has built,
+     which for the book being read is the registry's and for any other is what
+     the cache fetched. */
+  const standing = (id: string): Standing => standingOf(conceptsIn(id), practice.mastery, practice.settings, Date.now());
+  const totalOf = (s: Standing): number => s.mastered + s.practised + s.due + s.untouched;
+  const share = (n: number, of: number): number => (of === 0 ? 0 : (n / of) * 100);
+  const standTitle = (id: string, s: Standing): string => {
+    const n = totalOf(s);
+    if (n === 0) return statusOf(id) === 'failed' ? 'This book could not be loaded, so its concepts cannot be counted.' : 'Its concepts have not arrived yet.';
+    return `${s.mastered} mastered, ${s.practised} practised, ${s.due} due, ${s.untouched} untouched.`;
   };
 
-  /* ---------- progress ---------- */
+  /* ---------- one book's standing ---------- */
 
-  /* The curriculum, or everything the reader has ever answered: a record is
-     kept by the concept alone, so the wider list reaches into books that are
-     not open; a concept is named by whichever book on the shelf states it, and
-     by its id while no loaded book does. */
-  let scope = $state<'curriculum' | 'everything'>('curriculum');
+  /* The progress face is scoped to the book whose row was clicked, and falls
+     back to the book being read when a page is opened straight onto it. */
+  const scoped = $derived(page.book ?? book);
   const STATES: readonly State[] = ['due', 'practised', 'mastered', 'untouched'];
   type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly at: number | null; readonly meta: string; readonly intro: SpanId | undefined };
 
-  const ago = (at: number, now: number): string => {
-    const days = Math.round((now - at) / DAY);
+  const ago = (t: number, now: number): string => {
+    const days = Math.round((now - t) / DAY);
     return days <= 0 ? 'last practised today' : days === 1 ? 'last practised yesterday' : `last practised ${days} days ago`;
   };
-  const streak = (n: number): string => (n <= 0 ? '' : n === 1 ? 'one day in a row' : `${n} days in a row`);
+  const inARow = (n: number): string => (n <= 0 ? '' : n === 1 ? 'one day in a row' : `${n} days in a row`);
   const rows = $derived.by((): readonly Row[] => {
-    if (practice.face !== 'progress') return [];
+    if (page.face !== 'progress') return [];
     const now = Date.now();
-    const mine = [...conceptsOf(practice.curriculum, cat)];
-    const ids = scope === 'curriculum' ? mine : [...new Set([...Object.keys(practice.mastery), ...mine])];
-    return ids.map((id): Row => {
-      const r = practice.mastery[id], c = practice.conceptOf(id), st = practice.stateOf(id, now);
-      const at = r ? dueAt(r, practice.settings) : null;
+    return conceptsIn(scoped).filter((c) => c.status === 'built').map((c): Row => {
+      const r = practice.mastery[c.id], st = practice.stateOf(c.id, now);
+      const t = r ? dueAt(r, practice.settings) : null;
       return {
-        id, name: c?.name ?? id, kind: c?.kind ?? '', state: st, bar: bar(id), at, intro: spansOf(conceptId(id)).intro[0],
-        meta: [streak(r?.days ?? 0), r && r.earned > 0 ? ago(r.lastAt, now) : '', at !== null && (st === 'mastered' || st === 'due') ? `due ${when(at, now)}` : ''].filter(Boolean).join(' · '),
+        id: c.id, name: c.name, kind: c.kind, state: st, bar: bar(c.id), at: t, intro: spansOf(conceptId(c.id)).intro[0],
+        meta: [inARow(r?.days ?? 0), r && r.earned > 0 ? ago(r.lastAt, now) : '', t !== null && (st === 'mastered' || st === 'due') ? `due ${when(t, now)}` : ''].filter(Boolean).join(' · '),
       };
     });
   });
@@ -267,21 +328,17 @@
     mastered: (a, b) => (a.at ?? Infinity) - (b.at ?? Infinity) || byName(a, b),
     untouched: byName,
   };
-  /* Untouched is a fact about the curriculum: outside it, a concept nobody has
-     answered is simply one of the thousands the library holds. */
   const groups = $derived(
-    STATES.filter((st) => scope === 'curriculum' || st !== 'untouched')
-      .flatMap((st) => { const items = rows.filter((r) => r.state === st).sort(ORDER[st]); return items.length ? [{ state: st, items }] : []; }),
+    STATES.flatMap((st) => { const items = rows.filter((r) => r.state === st).sort(ORDER[st]); return items.length ? [{ state: st, items }] : []; }),
   );
-  const dueLine = $derived(practice.due.length === 0 ? '' : practice.due.length === 1 ? 'One concept is due now.' : `${practice.due.length} concepts are due now.`);
-  /* Points are earned in a book even though mastery is not, so this is summed
-     over the attempts; a book the reader has since taken out of their library is
-     named by its id until it is put back. */
-  const bookTotals = $derived.by(() => Object.entries(pointsByBook(practice.attempts))
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
-    .map(([id, n]) => ({ id, line: `${practice.bookTitle(id)} · ${n === 1 ? 'one point' : `${n} points`}` })));
+  const bookLine = $derived.by(() => {
+    const earned = byBook[scoped] ?? 0;
+    const due = rows.filter((r) => r.state === 'due').length;
+    const first = earned === 0 ? 'You have earned nothing in this book yet.' : `You have earned ${points(earned)} in this book.`;
+    return due === 0 ? first : `${first} ${due === 1 ? 'One of its concepts is due now.' : `${due} of its concepts are due now.`}`;
+  });
   const rowTitle = (r: Row): string => (r.intro ? 'Pin this concept on the map and go to where the book introduces it.' : 'Pin this concept on the map; the book has no page that introduces it yet.');
-  const open = (r: Row): void => { const id = conceptId(r.id); const was = pin.pinned === id; pin.toggle(id); if (!was && r.intro) goSpan(r.intro); };
+  const openConcept = (r: Row): void => { const id = conceptId(r.id); const was = pin.pinned === id; pin.toggle(id); if (!was && r.intro) goSpan(r.intro); };
 </script>
 
 {#snippet stateChip(id: string)}
@@ -290,87 +347,148 @@
 {/snippet}
 
 <div class="faces">
-  <button type="button" class="tab" class:on={practice.face !== 'progress'} aria-current={practice.face !== 'progress' ? 'true' : undefined} onclick={toPractise}>Practise</button>
-  <button type="button" class="tab" class:on={practice.face === 'progress'} aria-current={practice.face === 'progress' ? 'true' : undefined} onclick={toProgress}>Progress</button>
+  <button type="button" class="tab" class:on={onDash} aria-current={onDash ? 'true' : undefined} onclick={() => practice.dashboard(item)}>Dashboard</button>
+  <button type="button" class="tab" class:on={!onDash} aria-current={!onDash ? 'true' : undefined} onclick={toPractise}>Practise</button>
 </div>
 
-{#if practice.face === 'choose'}
+{#if page.face === 'dashboard'}
+  <div class="dash">
+    <div class="nums">
+      <span class="num"><b>{streak}</b>{streak === 1 ? 'day in a row' : 'days in a row'}</span>
+      <span class="num"><b>{practice.lifetime}</b>{practice.lifetime === 1 ? 'point in all' : 'points in all'}</span>
+      <span class="num"><b>{practice.due.length}</b>due for review</span>
+      <button type="button" class="btn go" disabled={practice.due.length === 0}
+        title={practice.due.length === 0 ? 'Nothing is waiting for review at the moment.' : 'Draw a session from the concepts whose score has faded below the threshold.'}
+        onclick={reviewDue}>Review {practice.due.length} due</button>
+      <button type="button" class="btn" onclick={() => practice.choose(item)}>Choose what to practise</button>
+    </div>
+    {#if note}<p class="quiet">{note}</p>{/if}
+
+    {#if running.length}
+      <div class="eyebrow">Still running</div>
+      <div class="cards">
+        {#each running as r (r.key)}
+          <button type="button" class="card" title={r.key === item ? 'Back to the session running in this view.' : 'Raise the view this session is running in.'} onclick={() => raise(r.key)}>
+            <span class="k">{r.key === item ? 'this view' : 'another view'}</span>
+            <span class="l">Exercise {Math.min(r.session.at + 1, r.session.drawn.length)} of {r.session.drawn.length} · {points(r.session.earned)}</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <div class="eyebrow">The year</div>
+    <div class="heat" bind:this={heat}>
+      <div class="weeks">
+        {#each weeks as w, i (i)}
+          <div class="week">
+            {#each w as day, d (d)}
+              {#if day}<i class="cell" data-d={depth(day)} title={dayTitle(day)}></i>{:else}<i class="cell ahead"></i>{/if}
+            {/each}
+          </div>
+        {/each}
+      </div>
+    </div>
+
+    <div class="eyebrow">{shelf.length > 1 ? 'The books' : 'The book'}</div>
+    {#each shelf as b (b)}
+      {@const st = standing(b)}
+      {@const n = totalOf(st)}
+      <button type="button" class="brow" title={standTitle(b, st)} onclick={() => practice.progress(item, b)}>
+        <span class="lab">{bookTitle(b)}</span>
+        <span class="stack" aria-hidden="true">
+          <i class="seg st-mastered" style="width:{share(st.mastered, n)}%"></i>
+          <i class="seg st-practised" style="width:{share(st.practised, n)}%"></i>
+          <i class="seg st-due" style="width:{share(st.due, n)}%"></i>
+          <i class="seg st-untouched" style="width:{share(st.untouched, n)}%"></i>
+        </span>
+        <span class="pts">{byBook[b] ?? 0}</span>
+      </button>
+    {/each}
+  </div>
+
+{:else if page.face === 'choose'}
   <div class="choose">
     {#if loading}<p class="quiet">Loading the book’s problems…</p>{/if}
     <div class="presets">
-      <button type="button" class="btn" onclick={() => replace([{ book, section: here }])}>This section</button>
-      <button type="button" class="btn" disabled={!hereChapter} onclick={() => hereChapter && replace([chapPick(book, hereChapter)])}>This chapter</button>
-      <button type="button" class="btn" onclick={() => replace([bookPick(book)])}>This book</button>
+      <button type="button" class="btn" onclick={() => practice.replace(item, [{ book, section: here }])}>This section</button>
+      <button type="button" class="btn" disabled={!hereChapter} onclick={() => hereChapter && practice.replace(item, [chapPick(book, hereChapter)])}>This chapter</button>
+      <button type="button" class="btn" onclick={() => practice.replace(item, [bookPick(book)])}>This book</button>
       <button type="button" class="btn" disabled={dueNow.length === 0}
         title={dueNow.length === 0 ? 'Nothing is waiting for review at the moment.' : 'The concepts whose score has faded below the threshold since you last practised them.'}
-        onclick={() => replace(dueNow.map((c) => conceptPick(c.id)))}>Everything due</button>
-      <button type="button" class="btn" disabled={practice.curriculum.length === 0} onclick={() => practice.clear()}>Clear</button>
+        onclick={() => practice.replace(item, dueNow.map((c) => conceptPick(c.id)))}>Everything due</button>
+      <button type="button" class="btn" disabled={page.curriculum.length === 0} onclick={() => practice.clear(item)}>Clear</button>
     </div>
 
-    <div class="cols">
-      <div class="pane">
-        <div class="eyebrow">{shelf.length > 1 ? 'The books' : 'The book'}</div>
-        {#each shelf as b (b)}
-          {@const on = bookOn(b)}
-          <label class="row lvl-book">
-            <input type="checkbox" checked={on} use:tri={bookSome(b)} onchange={() => practice.toggle(bookPick(b))}>
-            <span class="lab">{bookTitle(b)}</span>
-            <span class="cnt" title={countTitle(sumOf([bookPick(b)]))}>{countLine(sumOf([bookPick(b)]))}</span>
-          </label>
-          {#if !manifestOf(b)}
-            <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
-              <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
-            </div>
-          {/if}
-          {#each chaptersOf(b) as c (c.id)}
-            {@const chOn = chapOn(b, c)}
-            <label class="row lvl-chapter">
-              <input type="checkbox" checked={chOn} use:tri={!chOn && chapSome(b, c)} onchange={() => practice.toggle(chapPick(b, c))}>
-              <span class="lab">{c.id} · {c.title}</span>
-              <span class="cnt" title={countTitle(sumOf([chapPick(b, c)]))}>{countLine(sumOf([chapPick(b, c)]))}</span>
-            </label>
+    {#if page.curriculum.length}
+      <div class="chips">
+        {#each page.curriculum as p, i (i)}
+          <span class="pick">
+            <span class="lab"><span use:math={pickLabel(p)}>{@html pickLabel(p)}</span></span>
+            <button type="button" class="x" aria-label="Take this out of the curriculum" title="Take this out" onclick={() => practice.toggle(item, p)}>×</button>
+          </span>
+        {/each}
+      </div>
+    {/if}
+
+    <div class="tree">
+      {#each shelf as b (b)}
+        {@const on = bookOn(b)}
+        <label class="row lvl-book" title={countTitle(sumOf([bookPick(b)]))}>
+          <span class="twist" aria-hidden="true"></span>
+          <input type="checkbox" checked={on} use:tri={bookSome(b)} onchange={() => practice.toggle(item, bookPick(b))}>
+          <span class="lab">{bookTitle(b)}</span>
+        </label>
+        {#if !manifestOf(b)}
+          <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
+            <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
+          </div>
+        {/if}
+        {#each chaptersOf(b) as c (c.id)}
+          {@const chOn = chapOn(b, c)}
+          {@const shown = isOpen(b, c)}
+          <div class="row lvl-chapter" title={countTitle(sumOf([chapPick(b, c)]))}>
+            <button type="button" class="twist" class:open={shown} aria-expanded={shown} aria-label={shown ? 'Fold this chapter' : 'Open this chapter'} onclick={() => toggleOpen(b, c)}>▸</button>
+            <input type="checkbox" checked={chOn} use:tri={!chOn && chapSome(b, c)} onchange={() => practice.toggle(item, chapPick(b, c))}>
+            <button type="button" class="lab plain" onclick={() => toggleOpen(b, c)}>{c.id} · {c.title}</button>
+          </div>
+          {#if shown}
             {#each c.sections as s (s.id)}
               {#if s.built}
-                <label class="row lvl-section">
-                  <input type="checkbox" checked={secOn(b, c, s)} onchange={() => practice.toggle(secPick(b, s))}>
+                <label class="row lvl-section" title={countTitle(sumOf([secPick(b, s)]))}>
+                  <span class="twist" aria-hidden="true"></span>
+                  <input type="checkbox" checked={secOn(b, c, s)} onchange={() => practice.toggle(item, secPick(b, s))}>
                   <span class="lab">{s.id} · {s.title}</span>
-                  <span class="cnt" title={countTitle(sumOf([secPick(b, s)]))}>{countLine(sumOf([secPick(b, s)]))}</span>
                 </label>
               {:else}
                 <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
+                  <span class="twist" aria-hidden="true"></span>
                   <input type="checkbox" disabled>
                   <span class="lab">{s.id} · {s.title}</span>
-                  <span class="cnt">not built yet</span>
                 </div>
               {/if}
             {/each}
-          {/each}
+          {/if}
         {/each}
-      </div>
-
-      <div class="pane">
-        <div class="eyebrow">The concepts</div>
-        <input class="find" type="search" placeholder="Narrow the concepts…" aria-label="Narrow the concepts by name" bind:value={q}>
-        {#if conceptGroups.length === 0}
-          <p class="quiet">{loading ? 'The concepts are still loading.' : q.trim() ? 'No concept in your library is named that.' : 'Your library lists no concepts yet.'}</p>
-        {/if}
-        {#each conceptGroups as g, i (g.key)}
-          {#if manyBooks && (i === 0 || conceptGroups[i - 1].book !== g.book)}<div class="eyebrow bk">{bookTitle(g.book)}</div>{/if}
-          <div class="eyebrow sec">{g.section}{g.title ? ` · ${g.title}` : ''}</div>
-          {#each g.items as c (c.id)}
-            {@const own = has(conceptPick(c.id))}
-            {@const brought = !own && curriculumConcepts.has(c.id)}
-            <label class="row concept">
-              <input type="checkbox" checked={own} use:tri={brought} onchange={() => practice.toggle(conceptPick(c.id))}
-                title={brought ? 'A section you have already chosen brings this concept in.' : 'Practise this concept on its own.'}>
-              <i class="dot k-{c.kind}" aria-hidden="true"></i>
-              <span class="lab"><span use:math={c.name}>{@html c.name}</span></span>
-              {@render stateChip(c.id)}
-            </label>
-          {/each}
-        {/each}
-      </div>
+      {/each}
     </div>
+
+    <div class="eyebrow">A concept on its own</div>
+    <input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept by name" bind:value={q}>
+    {#if q.trim() && found.length === 0}
+      <p class="quiet">{loading ? 'The concepts are still loading.' : 'No concept in your library is named that.'}</p>
+    {/if}
+    {#each found as f (`${f.book}/${f.c.id}`)}
+      {@const own = has(conceptPick(f.c.id))}
+      {@const brought = !own && curriculumConcepts.has(f.c.id)}
+      <label class="row concept">
+        <input type="checkbox" checked={own} use:tri={brought} onchange={() => practice.toggle(item, conceptPick(f.c.id))}
+          title={brought ? 'A section you have already chosen brings this concept in.' : 'Practise this concept on its own.'}>
+        <i class="dot k-{f.c.kind}" aria-hidden="true"></i>
+        <span class="lab"><span use:math={f.c.name}>{@html f.c.name}</span></span>
+        {@render stateChip(f.c.id)}
+      </label>
+    {/each}
+    {#if found.length === FOUND}<p class="quiet">The first {FOUND} are listed; type more of the name to narrow them.</p>{/if}
 
     <div class="foot">
       <p class="sum">{choiceLine}</p>
@@ -378,17 +496,25 @@
       {#if note}<p class="quiet">{note}</p>{/if}
       <div class="acts">
         <button type="button" class="btn go" disabled={size === 0} onclick={begin}>Practise {size}</button>
-        {#if live}<button type="button" class="btn" onclick={() => practice.resume()}>Back to the session</button>{/if}
+        <span class="step" title="How many exercises a session draws.">
+          <button type="button" class="stepb" aria-label="One exercise fewer" disabled={practice.settings.session <= 1} onclick={() => setSize(practice.settings.session - 1)}>−</button>
+          <span class="n">{practice.settings.session}</span>
+          <button type="button" class="stepb" aria-label="One exercise more" disabled={practice.settings.session >= 50} onclick={() => setSize(practice.settings.session + 1)}>+</button>
+        </span>
+        {#if practice.live(item)}<button type="button" class="btn" onclick={() => practice.resume(item)}>Back to the session</button>{/if}
       </div>
     </div>
   </div>
 
-{:else if practice.face === 'practise' && session}
+{:else if page.face === 'practise' && session}
   <div class="practise">
     <div class="strip">
       <span class="where">Exercise {at + 1} of {drawn.length}</span>
       <span class="points">{session.earned === 1 ? '1 point so far' : `${session.earned} points so far`}</span>
       {#if pending}<span class="chip why-{pending.why}">{WHY[pending.why] ?? pending.why}</span>{/if}
+      <label class="shuffle" title="Draw the rest of the round again at random as you go, instead of taking it in the order the book sets.">
+        <input type="checkbox" checked={page.shuffle} onchange={(e) => practice.setShuffle(item, e.currentTarget.checked)}>shuffle
+      </label>
     </div>
     {#if cur}
       <div class="bars">
@@ -412,14 +538,14 @@
       <p class="quiet">{pending && pending.book !== book ? 'Loading the book this problem comes from…' : 'Loading the section this problem comes from…'}</p>
     {/if}
     <div class="acts">
-      <button type="button" class="btn" onclick={() => practice.skip()}>Skip</button>
-      {#if answered}<button type="button" class="btn go" bind:this={nextBtn} onclick={() => practice.next()}>{last ? 'Finish' : 'Next'}</button>{/if}
-      <button type="button" class="btn" onclick={() => practice.choose()}>Add to the curriculum</button>
-      <button type="button" class="btn" onclick={() => practice.end()}>Stop here</button>
+      <button type="button" class="btn" onclick={() => practice.skip(item)}>Skip</button>
+      {#if answered}<button type="button" class="btn go" bind:this={nextBtn} onclick={() => practice.next(item)}>{last ? 'Finish' : 'Next'}</button>{/if}
+      <button type="button" class="btn" onclick={() => practice.choose(item)}>Add to the curriculum</button>
+      <button type="button" class="btn" onclick={() => practice.end(item)}>Stop here</button>
     </div>
   </div>
 
-{:else if practice.face === 'summary' && session}
+{:else if page.face === 'summary' && session}
   <div class="summary">
     <p class="sum">{earnedLine(session.earned)} {workLine}</p>
     {#if changed.length}
@@ -442,52 +568,37 @@
     {/if}
     {#if note}<p class="quiet">{note}</p>{/if}
     <div class="acts">
-      <button type="button" class="btn go" onclick={begin}>Another round</button>
-      <button type="button" class="btn" onclick={() => { practice.discard(); practice.choose(); }}>Change what to practise</button>
+      <button type="button" class="btn go" onclick={() => practice.dashboard(item)}>Done</button>
+      <button type="button" class="btn" onclick={begin}>Another round</button>
+      <button type="button" class="btn" onclick={() => { practice.discard(item); practice.choose(item); }}>Change what to practise</button>
     </div>
-    <p class="quiet total">{lifetimeLine}</p>
   </div>
 
-{:else if practice.face === 'progress'}
+{:else if page.face === 'progress'}
   <div class="progress">
-    <div class="presets">
-      <div class="seg" role="radiogroup" aria-label="Which concepts to show">
-        <button type="button" class:on={scope === 'curriculum'} role="radio" aria-checked={scope === 'curriculum'} onclick={() => (scope = 'curriculum')}>In my curriculum</button>
-        <button type="button" class:on={scope === 'everything'} role="radio" aria-checked={scope === 'everything'} onclick={() => (scope = 'everything')}>Everything practised</button>
-      </div>
-    </div>
-    <p class="sum">{lifetimeLine}{dueLine ? ` ${dueLine}` : ''}</p>
-    {#if practice.attempts.length === 0}
-      <p class="quiet">You have not answered anything yet; choose a section or a concept, practise it, and every point you earn is counted here.</p>
-      <div class="acts"><button type="button" class="btn go" onclick={() => practice.choose()}>Choose what to practise</button></div>
-    {:else}
-      {#if groups.length === 0}
-        <p class="quiet">{scope === 'curriculum' ? 'You have not chosen anything to practise yet, so there is nothing here to report on.' : 'Nothing you have answered has a concept attached to it yet.'}</p>
-      {/if}
-      {#each groups as g (g.state)}
-        <div class="eyebrow">{STATE_WORD[g.state]}</div>
-        {#each g.items as r (r.id)}
-          <button type="button" class="row prow" title={rowTitle(r)} onclick={() => open(r)}>
-            <i class="dot k-{r.kind}" aria-hidden="true"></i>
-            <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
-            <span class="track" title={barTitle(r.id, r.state)}><i class="fill st-{r.state}" style="width:{Math.round(r.bar * 100)}%"></i></span>
-            <span class="chip st-{r.state}">{STATE_WORD[r.state]}</span>
-            <span class="meta">{r.meta}</span>
-          </button>
-        {/each}
-      {/each}
-      {#if bookTotals.length}
-        <div class="eyebrow">Book by book</div>
-        <ul class="books">
-          {#each bookTotals as b (b.id)}<li>{b.line}</li>{/each}
-        </ul>
-      {/if}
+    <button type="button" class="back" onclick={() => practice.dashboard(item)}>‹ Dashboard</button>
+    <div class="eyebrow">{bookTitle(scoped)}</div>
+    <p class="sum">{bookLine}</p>
+    {#if rows.length === 0}
+      <p class="quiet">{statusOf(scoped) === 'failed' ? 'This book could not be loaded, so its concepts cannot be listed.' : 'The concepts of this book have not arrived yet.'}</p>
     {/if}
+    {#each groups as g (g.state)}
+      <div class="eyebrow">{STATE_WORD[g.state]}</div>
+      {#each g.items as r (r.id)}
+        <button type="button" class="row prow" title={rowTitle(r)} onclick={() => openConcept(r)}>
+          <i class="dot k-{r.kind}" aria-hidden="true"></i>
+          <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
+          <span class="track" title={barTitle(r.id, r.state)}><i class="fill st-{r.state}" style="width:{Math.round(r.bar * 100)}%"></i></span>
+          <span class="chip st-{r.state}">{STATE_WORD[r.state]}</span>
+          <span class="meta">{r.meta}</span>
+        </button>
+      {/each}
+    {/each}
   </div>
 {/if}
 
 <style>
-  .choose,.practise,.summary,.progress{font-family:var(--sans);font-size:0.82rem;color:var(--ink);container-type:inline-size}
+  .dash,.choose,.practise,.summary,.progress{font-family:var(--sans);font-size:0.82rem;color:var(--ink);container-type:inline-size}
   /* the two tabs over the faces: the eyebrow's small capitals, and the face showing underlined in the accent */
   .faces{display:flex;gap:14px;margin:0 0 10px;border-bottom:1px solid var(--rule)}
   .tab{font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:2px 0 5px;margin-bottom:-1px;cursor:pointer}
@@ -496,33 +607,75 @@
   .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .quiet{color:var(--muted);margin:6px 0}
   .eyebrow{margin:10px 0 4px}
-  .eyebrow.sec{margin:10px 0 2px;opacity:.85}
-  .eyebrow.bk{margin:14px 0 0;font-weight:600}   /* which book the sections under it belong to, where the shelf holds more than one */
-  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
   .btn{font:inherit;font-size:0.78rem;font-weight:600;padding:4px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer}
   .btn:hover:not(:disabled){background:var(--soft)}
   .btn:disabled{opacity:.5;cursor:default}
   .btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .btn.go{border-color:var(--accent);color:var(--accent)}
-  /* the tree and the concept list stand side by side where the pane has room for both, and stack where it has not */
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @container (max-width:700px){ .cols{grid-template-columns:1fr} }
-  .pane{min-width:0}
+  /* ---------- the dashboard: four short bands, no paragraph among them ---------- */
+  .nums{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+  .num{display:inline-flex;align-items:baseline;gap:5px;color:var(--muted);font-size:0.76rem}
+  .num b{font-size:1.15rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .cards{display:flex;flex-wrap:wrap;gap:6px}
+  .card{display:flex;flex-direction:column;gap:1px;text-align:left;font:inherit;font-size:0.78rem;padding:4px 10px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:4px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .card:hover{background:var(--soft)}
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .card .k{font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+  .card .l{font-variant-numeric:tabular-nums}
+  /* a year of days, a column to the week, today in the last column; the pane
+     scrolls back over it where it cannot hold the whole year */
+  .heat{overflow-x:auto;overflow-y:hidden;padding-bottom:2px}
+  .weeks{display:flex;gap:2px;width:max-content}
+  .week{display:flex;flex-direction:column;gap:2px}
+  .cell{width:11px;height:11px;border-radius:2px;background:var(--soft2)}
+  .cell.ahead{visibility:hidden}
+  .cell[data-d="1"]{background:color-mix(in srgb,var(--ok) 22%,var(--soft2))}
+  .cell[data-d="2"]{background:color-mix(in srgb,var(--ok) 42%,var(--soft2))}
+  .cell[data-d="3"]{background:color-mix(in srgb,var(--ok) 62%,var(--soft2))}
+  .cell[data-d="4"]{background:color-mix(in srgb,var(--ok) 82%,var(--soft2))}
+  .cell[data-d="5"]{background:var(--ok)}
+  /* one book: what it is called, how it stands, and what it has earned */
+  .brow{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;font:inherit;font-size:inherit;text-align:left;padding:3px 4px;border:0;border-radius:4px;background:none;color:inherit;cursor:pointer}
+  .brow:hover{background:var(--soft)}
+  .brow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .brow .lab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brow .pts{flex:none;color:var(--muted);font-size:0.72rem;font-variant-numeric:tabular-nums}
+  .stack{flex:none;display:flex;width:150px;height:6px;border-radius:3px;overflow:hidden;background:var(--rule)}
+  .seg{display:block;height:100%}
+  .seg.st-mastered{background:var(--ok)}
+  .seg.st-practised{background:color-mix(in srgb,var(--ink) 45%,transparent)}
+  .seg.st-due{background:var(--warm)}
+  .seg.st-untouched{background:var(--rule)}
+  /* ---------- choosing ---------- */
+  /* the picks as they stand, each carrying the × that takes it out again */
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .pick{display:inline-flex;align-items:center;gap:4px;max-width:100%;font-size:0.74rem;padding:2px 4px 2px 8px;border:1px solid var(--rule);border-radius:11px;background:var(--soft)}
+  .pick .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pick .x{font:inherit;font-size:0.9rem;line-height:1;color:var(--muted);background:none;border:0;border-radius:50%;padding:0 3px;cursor:pointer}
+  .pick .x:hover{color:var(--ink);background:var(--soft2)}
+  .pick .x:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .tree{margin-bottom:4px}
   .find{width:100%;box-sizing:border-box;font:inherit;font-size:0.78rem;padding:4px 8px;margin:0 0 4px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink)}
   .find:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
-  /* one row of the tree: the box, the name, and what the row comes to, kept to the right so the counts line up */
+  /* one row of the tree: the twisty, the box and the name; what the row comes to is in its title */
   .row{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:4px;cursor:pointer;min-width:0}
   .row:hover{background:var(--soft)}
   .row.off{cursor:default;color:var(--muted);opacity:.65}
   .row.off:hover{background:none}
   .row input{margin:0;flex:none;accent-color:var(--accent)}
   .row .lab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .row .cnt{flex:none;color:var(--muted);font-size:0.7rem;font-variant-numeric:tabular-nums}
+  .row .lab.plain{font:inherit;font-size:inherit;text-align:left;background:none;border:0;color:inherit;padding:0;cursor:pointer}
+  .row .lab.plain:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .twist{flex:none;width:12px;font:inherit;font-size:0.7rem;line-height:1;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;transition:transform .12s}
+  button.twist:hover{color:var(--ink)}
+  .twist.open{transform:rotate(90deg)}
+  .twist:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .lvl-book{font-weight:600}
   .lvl-chapter{padding-left:16px}
   .lvl-section{padding-left:32px;color:var(--muted)}
   .lvl-section .lab{color:var(--ink)}
-  .row.concept .lab :global(.katex),.row.prow .lab :global(.katex){font-size:0.95em}
+  .row.concept .lab :global(.katex),.row.prow .lab :global(.katex),.pick .lab :global(.katex){font-size:0.95em}
   /* the kind's hue as a dot beside the name: the same three the concept map gives its shapes */
   .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
   .dot.k-idea{background:var(--cm-idea)}
@@ -534,13 +687,27 @@
   .chip.st-due{color:var(--warm)}
   .foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
   .sum{margin:0 0 8px}
-  .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-  /* the strip over the session: where the reader is, what they have earned, and why this problem was drawn */
+  .acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+  /* how many a round draws, set where the round is started rather than only in the settings */
+  .step{display:inline-flex;align-items:center;border:1px solid var(--rule);border-radius:4px;background:var(--panel)}
+  .stepb{font:inherit;font-size:0.85rem;line-height:1;color:var(--muted);background:none;border:0;padding:4px 8px;cursor:pointer}
+  .stepb:hover:not(:disabled){color:var(--ink);background:var(--soft)}
+  .stepb:disabled{opacity:.4;cursor:default}
+  .stepb:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .step .n{min-width:1.6em;text-align:center;font-size:0.78rem;font-weight:600;font-variant-numeric:tabular-nums}
+  /* the strip over the session: where the reader is, what they have earned, why this problem was drawn, and the shuffle */
   .strip{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
   .strip .where{font-weight:600}
   .strip .points{color:var(--muted);font-variant-numeric:tabular-nums}
   .chip.why-review{color:var(--warm)}
   .chip.why-frontier{color:var(--accent)}
+  /* the same small switch the concept map's legend carries */
+  .shuffle{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted);cursor:pointer;user-select:none}
+  .shuffle input{appearance:none;flex:none;width:22px;height:13px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--panel);position:relative;cursor:pointer}
+  .shuffle input::after{content:"";position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:var(--muted);transition:left .15s}
+  .shuffle input:checked{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 50%,var(--rule))}
+  .shuffle input:checked::after{left:11px;background:var(--accent)}
+  .shuffle input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .bars{display:flex;flex-direction:column;gap:3px;margin:8px 0}
   .bars .one{display:flex;align-items:center;gap:8px;min-width:0}
   .bars .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
@@ -554,29 +721,24 @@
   .moved,.due{list-style:none;margin:0;padding:0}
   .moved li,.due li{padding:2px 0;display:flex;gap:8px;align-items:baseline;min-width:0}
   .due .q{color:var(--muted);margin-left:auto;flex:none}
-  .total{margin-top:12px;padding-top:8px;border-top:1px solid var(--rule)}
-  /* the segmented pair the settings use, for a choice of two that is not a checkbox */
-  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
-  .seg button{font:inherit;font-size:0.78rem;padding:4px 12px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
-  .seg button+button{border-left:1px solid var(--rule)}
-  .seg button.on{background:var(--soft);color:var(--ink);font-weight:600}
-  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  /* the way back to the dashboard, which is where this face was reached from */
+  .back{font:inherit;font-size:0.74rem;color:var(--muted);background:none;border:0;padding:0;margin:0 0 2px;cursor:pointer}
+  .back:hover{color:var(--ink)}
+  .back:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   /* one concept's standing, on a row that is a button: the bar, the word for the state, and the small print about the streak, the last answer and the next review */
   .row.prow{width:100%;box-sizing:border-box;font:inherit;font-size:inherit;text-align:left;background:none;border:0;color:inherit}
   .row.prow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .row.prow .meta{flex:none;color:var(--muted);font-size:0.7rem;font-variant-numeric:tabular-nums}
   @container (max-width:520px){ .row.prow{flex-wrap:wrap} .row.prow .lab{flex:1 1 70%;white-space:normal} .row.prow .meta{display:none} }   /* in a narrow box the name takes a line of its own and the bar drops under it */
-  .books{list-style:none;margin:0;padding:0;color:var(--muted)}
-  .books li{padding:2px 0;font-variant-numeric:tabular-nums}
   /* a page has room for the reading size the rest of the views take in one */
-  :global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .summary,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto}
+  :global(.view-pane) .dash,:global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .summary,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto}
   :global(.view-pane) .faces{max-width:900px;margin:0 auto 12px}
   :global(.view-pane) .tab{font-size:0.8rem}
-  :global(.view-pane) .seg button{font-size:0.85rem}
   :global(.view-pane) .row.prow .meta{font-size:0.78rem}
   :global(.view-pane) .btn{font-size:0.85rem;padding:5px 12px}
   :global(.view-pane) .find{font-size:0.85rem}
-  :global(.view-pane) .row .cnt{font-size:0.78rem}
   :global(.view-pane) .chip{font-size:0.7rem}
   :global(.view-pane) .track{width:120px;height:6px}
+  :global(.view-pane) .num b{font-size:1.3rem}
+  :global(.view-pane) .stack{width:200px}
 </style>

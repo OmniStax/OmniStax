@@ -101,7 +101,7 @@
   {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
   {/if}
   {#if kind === 'explorer'}<Explorer />
-  {:else if kind === 'exercises'}<Exercises />
+  {:else if kind === 'exercises'}<Exercises {item} />
   {:else if kind === 'concepts'}<ConceptMap />
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />

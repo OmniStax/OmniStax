@@ -31,10 +31,11 @@
     halfLife: 'Half-life in days fading decay unpractised score halved', session: 'Exercises in a session how many a session draws',
     reviewShare: 'Share given to review due percentage session new work', spaced: 'Spaced review scores fade with time mastered come due again',
     selfChecked: 'Count self-checked answers solution multiple choice points', record: 'Practice record forget my practice recorded answers points mastery',
+    mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
-  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.halfLife, ROWS.session, ROWS.reviewShare, ROWS.spaced, ROWS.selfChecked, ROWS.record];
+  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.halfLife, ROWS.session, ROWS.reviewShare, ROWS.spaced, ROWS.selfChecked, ROWS.mapProgress, ROWS.record];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
     commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
@@ -140,6 +141,7 @@
         {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
         <label class="row switch" hidden={!hit(ROWS.spaced)}><span class="name">Spaced review{@render back(practice.settings.spaced !== DEFAULT_SETTINGS.spaced, 'Back to spaced review on', () => practice.setSetting('spaced', DEFAULT_SETTINGS.spaced))}</span><span class="hint">Scores fade with time and mastered concepts come due again. Off keeps every score as it is.</span><input type="checkbox" checked={practice.settings.spaced} onchange={(e) => practice.setSetting('spaced', e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.selfChecked)}><span class="name">Count self-checked answers{@render back(practice.settings.selfChecked !== DEFAULT_SETTINGS.selfChecked, 'Back to counting self-checked answers', () => practice.setSetting('selfChecked', DEFAULT_SETTINGS.selfChecked))}</span><span class="hint">A problem you check against the book’s solution yourself earns points when you say you got it. Off makes only multiple-choice answers count.</span><input type="checkbox" checked={practice.settings.selfChecked} onchange={(e) => practice.setSetting('selfChecked', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Back to the bars drawn on the map', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">Every concept map opens with the mastery bars drawn on its nodes. The map's own switch hides them for that map.</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(ROWS.record)}>
           <span class="name">Practice record</span>
           <span class="hint">Every answer you have recorded, and the points and mastery that come from it.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One answer' : `${practice.attempts.length} answers`} so far.{/if}</span>

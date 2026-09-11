@@ -1,6 +1,9 @@
 <script lang="ts">
   /* The cards for one host inside a document: an inline "Try it" spot, or the
-     end-of-section list with its all-at-once / one-at-a-time switch. */
+     end-of-section list with its all-at-once / one-at-a-time switch and the
+     button that opens a practice session on this section. The shell catches
+     that button's click, the way it catches the rail's split buttons: the list
+     says which section it is, and the shell knows which group it sits in. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { FIG } from '../../lib/fig/figlib';
@@ -29,6 +32,7 @@
           <button type="button" class:on={!one} onclick={() => settings.setExerciseMode('all')}>All at once</button>
           <button type="button" class:on={one} onclick={() => settings.setExerciseMode('one')}>One at a time</button>
         </div>
+        <button type="button" class="practise" data-practise-section={section} title="Open a practice session on this section">Practise this section</button>
         {#if one}
           <div class="nav">
             <button type="button" class="tbtn" title="Previous problem" disabled={at === 0} onclick={() => step(-1)}>‹</button>
@@ -55,6 +59,9 @@
   .seg button{font:inherit;font-size:0.78rem;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
   .seg button+button{border-left:1px solid var(--rule)}
   .seg button.on{background:var(--soft);color:var(--ink);font-weight:600}
+  .practise{font:inherit;font-size:0.78rem;padding:4px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .practise:hover{background:var(--soft)}
+  .practise:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .nav{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:0.8rem;color:var(--muted)}
   .count{font-variant-numeric:tabular-nums;min-width:4.5em;text-align:center}
 </style>

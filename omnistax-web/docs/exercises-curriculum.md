@@ -1,7 +1,8 @@
 # Exercises as a curriculum: points, mastery, and a practice session
 
 Status: design, 2026-09-09; phases 1 and 2 built 2026-09-09, phase 3 on
-2026-09-10. The phases at the end say what was built in which order. The rail places this view right above the
+2026-09-10, phase 4 designed and built 2026-09-10. The phases at the end say
+what was built in which order. The rail places this view right above the
 concept map.
 
 ## What the reader gets
@@ -206,6 +207,74 @@ this state and the rail button carries the count of concepts due.
    the rail button.
 3. Cross-book: manifest cache, library-wide Choose tree, foreign sections
    loaded on demand; `weights` in the schema and the pipeline rule.
+4. The practice desk: the dashboard, practice state per view instance, the
+   way in from the end of a section, book order with a shuffle, and the
+   concept map's progress switch. Below.
+
+## Phase 4: the practice desk
+
+Phases 1 to 3 gave the reader a place to practise. Phase 4 makes it a place
+to come back to: something to open on that says where the practice stands,
+a way in from the section just read, and a second practice view beside the
+first when the reader wants one.
+
+**A way in from the section.** The end-of-section problem list carries a
+button, "Practise this section". It opens a *new* practice view, split to
+the right of the group the section is reading in, with the curriculum
+replaced by the single pick of that section, landing on Choose with the
+section ticked, so the reader sees what was picked before starting. The
+shell catches the click the way it catches the rail's split buttons: the
+list writes `data-practise-section`, the shell reads the group from the
+enclosing pane. No chapter button yet — that waits for chapter summary
+pages to have somewhere to put one.
+
+**Practice state per view instance.** Curriculum, session, face and the
+shuffle flag belong to the view's page, keyed by the tab's item key the way
+a document's scope is. Attempts, mastery and the settings stay global, one
+record across every book. Two practice views can therefore run two sessions
+at once — one on the section just read, one on everything due — and closing
+a tab takes its page with it.
+
+**Faces.** The tab row is `Dashboard | Practise`. A fresh view opens on the
+dashboard. Behind those two are five faces: `dashboard`, `choose`,
+`practise`, `summary` and `progress`. Progress is scoped to one book and is
+reached by clicking that book's row on the dashboard, with a link back. The
+summary ends on a "Done" that returns to the dashboard, and the Practise tab
+goes to the live session if there is one and to Choose if there is not.
+
+**The dashboard.** One screen, little vertical spread. A row of numbers:
+the streak (days in a row with a correct answer, ending today or
+yesterday), lifetime points, and how many concepts are due, with a "Review
+N due" button that starts a session on them here. Under it, a card per open
+practice view that has a live session ("Exercise 3 of 10 · 4 points"),
+which activates that tab — this view's own card resumes in place. Then an
+activity heatmap in the GitHub manner: 52 weeks by 7 days, one cell a day,
+depth by the points earned that day across every book, today at the right
+edge, the date and the points in the hover title. Then a row per book in
+the library, this book first: title, a stacked bar of mastered, practised,
+due and untouched over the concepts the book teaches, and the points earned
+in it. Clicking a row opens that book's progress.
+
+**Choose, less busy.** A presets row (this section, this chapter, this
+book, everything due, clear); chips for the current picks, each with a ×;
+one tree of books over chapters over sections, folded until clicked, with
+the tri-state checkboxes as before but no count columns — the counts move
+into the hover title. A search box finds concepts of any kind to tick, in
+place of the full concept list. The foot reads "Practise N" with a − +
+stepper that writes the session size setting.
+
+**Draw order.** The buckets are unchanged: review due first, then the
+frontier, then the rest. What changes is the tie-break inside a bucket: by
+default it is now book order — the book on the shelf, the section in the
+manifest, the exercise in the section — so a session reads in the order the
+book teaches. A "Shuffle" toggle on the practise strip puts the old random
+tie-break back and, while it is on, re-draws the slots not yet answered on
+every Next, never drawing an exercise this session has already shown.
+
+**Progress on the concept map.** The states legend grows a "progress"
+switch that hides the mastery bars for that map alone, for a reader who
+wants the map as a map. Where a map starts is a setting, "Progress on the
+concept map" in Settings under Exercises, on by default.
 
 ## Decisions taken, and open
 

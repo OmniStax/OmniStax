@@ -1,13 +1,14 @@
 /* User settings: colour coding, theme, animations, exercise view mode, voice,
-   and whether what can be looked up wears a rule under it.
+   whether what can be looked up wears a rule under it, and whether a concept
+   map opens with the practice bars drawn on its nodes.
    Each is remembered in this browser and applied to the document as a class or
    attribute. */
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
-export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false } as const;
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true } as const;
 
-const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines' } as const;
+const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -24,6 +25,10 @@ class Settings {
      which says the card will open on it. Some readers would rather have the
      page clean and hover anyway, so it can be turned off. */
   underlines = $state(read(KEYS.underlines) !== '0');
+  /* Where a concept map starts: with the mastery bars on its nodes, or without
+     them. Each map keeps its own switch afterwards, so this only says what a
+     map that has just opened shows. */
+  mapProgress = $state(read(KEYS.mapProgress) !== '0');
 
   get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
   setColorCoding(on: boolean): void { this.colorCoding = on; write(KEYS.cc, on ? '1' : '0'); }
@@ -34,6 +39,7 @@ class Settings {
   setAnimations(on: boolean): void { this.animations = on; write(KEYS.anim, on ? '1' : '0'); }
   setExerciseMode(m: ExerciseMode): void { this.exerciseMode = m; write(KEYS.exmode, m); }
   setVoice(on: boolean): void { this.voice = on; write(KEYS.voice, on ? '1' : '0'); }
+  setMapProgress(on: boolean): void { this.mapProgress = on; write(KEYS.mapProgress, on ? '1' : '0'); }
   setUnderlines(on: boolean): void { this.underlines = on; write(KEYS.underlines, on ? '1' : '0'); }
   reset(): void { Object.values(KEYS).forEach(remove); }
 }
