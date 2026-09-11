@@ -175,6 +175,7 @@ The figures the section draws, and the types each of them colours.
 | `id` | `string` | yes | The figure’s local id, which is the id the <figure> element carries in the section’s text. |
 | `kind` | `"demo" \| "figure" \| "photo"` | yes | Whether the figure is a simulation the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph. |
 | `number` | `string?` | no | The number the book prints the figure under, such as 16.4, where the figure keeps one. |
+| `folds` | `string[]` | no | The further numbers the book prints the figure under, where the book drew one scene several times and the demo replaces them all; the number stays the demo’s own, and the eyebrow reads every number in the book’s order. |
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
 | `draws` | `string[]` | no | The types the figure colours. The page’s binds are the union of them, so the page need not say again what it colours. |

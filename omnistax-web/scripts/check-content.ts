@@ -5,7 +5,7 @@
 import { parseConfig } from '../omnistax.config';
 import type { OmniStaxConfig } from '../omnistax.config';
 import { loadBook } from '../src/lib/content/load';
-import { CHECKS, checkContent, contentOf, errorsOf } from '../src/lib/content/check';
+import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
 
 /* The command's own layer over the build's configuration: the content root and
@@ -20,6 +20,7 @@ export const parseArgs = (argv: readonly string[], base: OmniStaxConfig): CheckA
 
 const GROUPS = [
   { level: 'error' as const, head: (n: number) => `${n} error${n === 1 ? '' : 's'}` },
+  { level: 'warning' as const, head: (n: number) => `${n} warning${n === 1 ? '' : 's'}` },
   { level: 'info' as const, head: (n: number) => `${n} note${n === 1 ? '' : 's'}` },
 ];
 const width = (findings: readonly Finding[]): number => findings.reduce((w, f) => Math.max(w, f.where.length), 0);
@@ -31,7 +32,8 @@ const report = (findings: readonly Finding[], content: Content): string => {
     const own = findings.filter((f) => f.level === level);
     return own.length === 0 ? [] : [[head(own.length), ...own.map((f) => line(f, width(own)))].join('\n')];
   });
-  const tally = `${content.chapters.length} chapters, ${sections} sections, ${CHECKS.length} checks, ${errorsOf(findings).length === 0 ? 'no errors' : `${errorsOf(findings).length} errors`}`;
+  const warnings = warningsOf(findings).length;
+  const tally = `${content.chapters.length} chapters, ${sections} sections, ${CHECKS.length} checks, ${errorsOf(findings).length === 0 ? 'no errors' : `${errorsOf(findings).length} errors`}${warnings === 0 ? '' : `, ${warnings} warning${warnings === 1 ? '' : 's'}`}`;
   return [...groups, tally].join('\n\n');
 };
 

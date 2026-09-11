@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { linkFigureRefs, figureIds, figureList, figureNumber, qualifyIds } from '../src/lib/content/fragment';
+import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, splitNumbers } from '../src/lib/content/fragment';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
 import { ROOT } from './book-on-disk';
@@ -29,6 +29,24 @@ test('text already inside a link and a caption naming itself are left alone', ()
   assert.equal(linkFigureRefs(head, figs), `<div class="demo-head"><span class="eyebrow">Figure 16.4</span><span>As in ${link('16.9', '16.3-demo-shm-oscillator')}.</span></div>`);
   const cap = '<figcaption><span class="eyebrow">Figure 16.4</span><span>The strings.</span></figcaption>';
   assert.equal(linkFigureRefs(cap, figs), cap);
+});
+test('a folded figure prints every number it replaces, in the book\'s order', () => {
+  assert.equal(printedNumbers({ number: '3.3', folds: ['3.5', '3.4'] }), '3.3 + 3.4 + 3.5');
+  assert.equal(printedNumbers({ number: '2.10', folds: ['2.9'] }), '2.9 + 2.10', 'numeric on both parts, not by the string');
+  assert.equal(printedNumbers({ number: '16.11', folds: ['16.10', '2.1'] }), '2.1 + 16.10 + 16.11');
+  assert.equal(printedNumbers({ number: '16.4', folds: [] }), '16.4');
+  assert.equal(printedNumbers({ folds: [] }), undefined, 'a figure with no number prints none');
+  assert.deepEqual(splitNumbers('2.9 + 2.10'), ['2.9', '2.10']);
+  assert.deepEqual(splitNumbers('16.4'), ['16.4']);
+});
+test('a folded data-figure links each of its numbers to the one demo', () => {
+  const html = '<figure class="demo" id="demo-walk" data-figure="3.3 + 3.4 + 3.5" data-original="/a.jpg,/b.jpg,/c.jpg"></figure>';
+  const m = figureIds(html, '3.1');
+  assert.deepEqual([...m], [['3.3', '3.1-demo-walk'], ['3.4', '3.1-demo-walk'], ['3.5', '3.1-demo-walk']]);
+  assert.equal(linkFigureRefs('<p>As pictured in Figure 3.5, and again in Figures 3.3 and 3.4.</p>', m),
+    `<p>As pictured in ${link('3.5', '3.1-demo-walk')}, and again in Figures ${link('3.3', '3.1-demo-walk', '3.3')} and ${link('3.4', '3.1-demo-walk', '3.4')}.</p>`);
+  const head = '<div class="demo-head"><span class="eyebrow">Figure 3.3 + 3.4 + 3.5</span><span>The walk.</span></div>';
+  assert.equal(linkFigureRefs(head, m), head, 'the eyebrow names the figure itself and is not linked');
 });
 test('figureIds reads a section and qualifies; qualifyIds leaves those hrefs alone', () => {
   const html = '<figure class="demo" id="demo-a" data-figure="16.4" data-original="/m.jpg"></figure><figure class="demo" id="demo-b"></figure><figure class="photo" id="fig-c" data-figure="16.8"></figure>';
@@ -91,8 +109,9 @@ test('data-original paths exist under the book\'s media', () => {
    <figure> the text draws, and no row for a figure it does not. */
 const sectionDirs = fs.readdirSync(ROOT).filter((d) => /^ch\d+$/.test(d))
   .flatMap((ch) => fs.readdirSync(path.join(ROOT, ch)).map((s) => path.join(ROOT, ch, s)).filter((d) => fs.existsSync(path.join(d, 'section.json'))));
-const figureRows = (dir: string): { id: string; number?: string }[] =>
-  (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: { id: string; number?: string }[] }).figures ?? [];
+type Row = { id: string; number?: string; folds?: string[] };
+const figureRows = (dir: string): Row[] =>
+  (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: Row[] }).figures ?? [];
 
 test('every figure of a section is a row of its figures table, and every row is a figure', () => {
   assert.ok(sectionDirs.length > 0);
@@ -102,10 +121,24 @@ test('every figure of a section is a row of its figures table, and every row is 
     assert.deepEqual(figureRows(dir).map((f) => f.id).sort(), drawn, `${dir}: the figures table and the text disagree`);
   });
 });
-test('a figure the text numbers is numbered the same way in the table', () => {
+test('a figure the text numbers is numbered the same way in the table, folds and all', () => {
   sectionDirs.forEach((dir) => {
     const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
     const numbered: Record<string, string> = Object.fromEntries([...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"[^>]*\bdata-figure="([^"]+)"/g)].map(([, id, n]) => [id, n]));
-    figureRows(dir).forEach((f) => assert.equal(f.number, numbered[f.id], `${dir}: figure ${f.id} is numbered ${String(f.number)} in the table and ${String(numbered[f.id])} in the text`));
+    figureRows(dir).forEach((f) => {
+      const printed = printedNumbers({ number: f.number, folds: f.folds ?? [] });
+      assert.equal(printed, numbered[f.id], `${dir}: figure ${f.id} is numbered ${String(printed)} in the table and ${String(numbered[f.id])} in the text`);
+    });
+  });
+});
+test('a folded figure\'s eyebrow reads every number, and every folded image is among its originals', () => {
+  sectionDirs.forEach((dir) => {
+    const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
+    figureRows(dir).filter((f) => (f.folds ?? []).length > 0).forEach((f) => {
+      const printed = printedNumbers({ number: f.number, folds: f.folds ?? [] });
+      const fig = new RegExp(`<figure\\b[^>]*\\bid="${f.id}"[^>]*\\bdata-original="([^"]+)"[^>]*>\\s*<div class="demo-head"><span class="eyebrow">Figure ${printed?.replace(/\+/g, '\\+')}<`).exec(html);
+      assert.ok(fig, `${dir}: ${f.id} should read "Figure ${String(printed)}" under its eyebrow`);
+      assert.ok(fig![1].split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
+    });
   });
 });

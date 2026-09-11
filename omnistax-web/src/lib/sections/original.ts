@@ -1,7 +1,9 @@
 /* A demo that replaced a book figure can show that figure in its place. The
    figure carries the originals in data-original (paths, comma-separated), the
-   book number in data-figure and the book caption in data-original-caption;
-   the button and the image block are made here, on demand. */
+   book number in data-figure ("3.3 + 3.4 + 3.5" where the demo folds several
+   book figures, and then every folded image is among the originals) and the
+   book caption in data-original-caption; the button and the image block are
+   made here, on demand. */
 
 const CLS = 'show-original';
 

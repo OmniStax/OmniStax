@@ -218,6 +218,20 @@ Three triggers, three treatments:
   kept when it serves the narrative and the original text and dropped
   when it is decoration; the plan says which and why, and a kept
   photograph carries the book's caption and credit line.
+- **Several book figures may fold into one demo.** A book often draws
+  one scene several times because print cannot move: the walk across
+  the city, then the right triangle it makes, then the same grid with
+  the helicopter's diagonal (Figures 3.3, 3.4 and 3.5 of College Physics
+  2e). One demo that walks the legs, shades the triangle and flies the
+  diagonal is clearer than three drawings of the same grid, so the
+  agent folds them when the fold is obvious and reads better, and says
+  so in the plan line. A folded demo keeps every number it replaces: its
+  row names its own `number` and lists the others under `folds`, its
+  eyebrow reads "Figure 3.3 + 3.4 + 3.5", its `originals` carry every
+  folded image, and the build links each of those numbers in the prose
+  to the one demo, so "as pictured in Figure 3.5" still jumps somewhere.
+  A fold is never a way to skip a figure: every number the prose cites
+  must land on a figure that shows what that number showed.
 - **A figure that exists to serve exercises is copied over as it is.**
   The paths figure of 2.1, a diagram a problem refers to: these are
   redrawn faithfully, with no sliders and no animation beyond what makes

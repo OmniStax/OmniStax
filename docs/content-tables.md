@@ -148,7 +148,12 @@ references:
 - every `anchor`, `span`, `cite` and `place.after` is an `id` in the
   section's `text.html`;
 - every `figures.id` is a `<figure id>` in `text.html` and every
-  `<figure data-figure>` matches the row's `number`;
+  `<figure data-figure>` matches the row's `number` joined with its
+  `folds` in the book's order ("3.3 + 3.4 + 3.5"), and no fold repeats a
+  number the section already carries;
+- every `Figure N.M` the text cites is carried by some row of the book, as
+  its `number` or one of its `folds`; one that is not is a warning rather
+  than an error, since the figure may sit in a chapter nobody has built;
 - every `source_id` occurs in the `source.md` of `source_section` where the
   row names one and of the section itself where it does not, and a
   `source_section` names a section the app has built;

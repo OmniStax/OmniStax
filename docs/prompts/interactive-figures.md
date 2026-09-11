@@ -39,7 +39,8 @@ OmniStax addition, set in the sans face, and is labelled "Demo".
 
 Produce a plan, one line per figure, and stop for review if asked to:
 
-  id · replaces (book figure id or "new") · concept ids it serves ·
+  id · replaces (book figure numbers, several when one scene is drawn
+  several times, or "new") · concept ids it serves ·
   what moves, or "still" when nothing does · sliders (variable ids) ·
   what the headline reads · graph below (axes) or none · 3D? (only if
   the idea is spatial)
@@ -49,6 +50,13 @@ Rules for the plan:
   "introduces" in the section's coverage rows). A worked example gets a
   figure only if
   it adds a quantity the section figure does not show.
+- Fold several book figures into one demo when the book draws one scene
+  several times and one live drawing says it better (a grid walked, then
+  its triangle, then its diagonal). The demo keeps every number it
+  replaces: `number` for its own, `folds` for the others, the eyebrow
+  "Figure 3.3 + 3.4 + 3.5", every image under `originals`. The build
+  links each number in the prose to the folded demo. Fold only when it
+  is obvious and clearer, and say which numbers in the plan line.
 - Replace every sketch figure the book has. Keep a photograph when it
   serves the narrative and the original text (the text refers to it, or
   it shows the thing the passage is about, such as a bridge driven to

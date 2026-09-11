@@ -13,14 +13,19 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bindsOf } from './load';
 import type { BookTree } from './load';
-import type { BookDTO, ChapterDTO, SectionDTO } from './schema';
+import { REF, printedNumbers } from './fragment';
+import type { BookDTO, ChapterDTO, FigureRowDTO, SectionDTO } from './schema';
 
 /* What a check found. An error is content that will not work: a reference to a
-   row or a span that is not there. Info is content that is allowed to be
-   incomplete, and is said out loud so that nobody has to remember it: a concept
-   that waits on a chapter the book has not added yet. */
-export type Finding = { readonly level: 'error' | 'info'; readonly where: string; readonly what: string };
+   row or a span that is not there. A warning is content that works but may be
+   a slip: a figure the prose cites that no row of the book carries, which is
+   legitimate while the chapter it lives in is unbuilt and a mistake once that
+   chapter is there. Info is content that is allowed to be incomplete, and is
+   said out loud so that nobody has to remember it: a concept that waits on a
+   chapter the book has not added yet. */
+export type Finding = { readonly level: 'error' | 'warning' | 'info'; readonly where: string; readonly what: string };
 const error = (where: string, what: string): Finding => ({ level: 'error', where, what });
+const warning = (where: string, what: string): Finding => ({ level: 'warning', where, what });
 const info = (where: string, what: string): Finding => ({ level: 'info', where, what });
 
 /* One built section as a check reads it: the tables as it writes them, the text
@@ -172,18 +177,44 @@ export const checkSpans: Check = (content) =>
 
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
-   it does not, and the same number on both. */
+   it does not, and the same number on both. A demo that folds several book
+   figures prints them all, so the text's number is the joined string of the
+   row's number and its folds, and a fold may not repeat a number the section
+   already carries, on this row or another. */
+const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefined ? [] : [f.number, ...f.folds]);
 export const checkFigures: Check = (content) =>
   sectionsOf(content).flatMap((s) => {
     const drawn = figureTags(s.textHtml);
-    const rows = new Map(s.dto.figures.map((f) => [f.id, f.number] as const));
+    const rows = new Map(s.dto.figures.map((f) => [f.id, printedNumbers(f)] as const));
+    const carriedBy = (n: string, except: string): readonly string[] => s.dto.figures.filter((f) => f.id !== except && numbersOf(f).includes(n)).map((f) => f.id);
     return [
       ...s.dto.figures.flatMap((f) => (drawn.has(f.id) ? [] : [error(inSection(s, 'figures', f.id), 'is no <figure> of the section’s text')])),
       ...[...drawn.keys()].flatMap((id) => (rows.has(id) ? [] : [error(`${s.dto.id}/text.html`, `<figure id="${id}"> is no row of the figures table`)])),
       ...[...drawn].flatMap(([id, number]) => (!rows.has(id) || rows.get(id) === number ? []
         : [error(inSection(s, 'figures', id), `is numbered ${rows.get(id) ?? '(none)'} in the table and ${number ?? '(none)'} in the text`)])),
+      ...s.dto.figures.flatMap((f) => f.folds.flatMap((n) => {
+        if (n === f.number) return [error(inSection(s, 'figures', f.id), `folds ${n}, which is its own number`)];
+        if (f.number === undefined) return [error(inSection(s, 'figures', f.id), `folds ${n} but carries no number of its own`)];
+        const others = carriedBy(n, f.id);
+        return others.length === 0 ? [] : [error(inSection(s, 'figures', f.id), `folds ${n}, which figure "${others.join('", "')}" already carries`)];
+      })),
     ];
   });
+
+/* Every figure the prose cites should land somewhere: the build links "Figure
+   3.5" to the row that carries 3.5, as its number or as a fold, and a number no
+   row of the book carries stays plain text. That is legitimate while the figure
+   is in a chapter nobody has built, and a slip once it is not, so it is said as
+   a warning rather than an error. The eyebrow of a figure names the figure
+   itself and is what the row says, so it is not a citation. */
+const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?<\/span>/g;
+export const citedNumbers = (html: string): readonly string[] =>
+  [...new Set(Array.from(html.replace(EYEBROW, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
+export const checkFigureRefs: Check = (content) => {
+  const carried = new Set(sectionsOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));
+  return sectionsOf(content).flatMap((s) => citedNumbers(s.textHtml).flatMap((n) =>
+    (carried.has(n) ? [] : [warning(`${s.dto.id}/text.html`, `cites Figure ${n}, which no figure row of the book carries, so it stays plain text`)])));
+};
 
 /* An exercise keeps the publisher's own id for it, so that the item can be found
    again in the source it was taken from. That is usually the section's own
@@ -228,9 +259,10 @@ export const checkConcepts: Check = (content) => {
 
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkSources, checkConcepts];
+export const CHECKS: readonly Check[] = [checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkFigureRefs, checkSources, checkConcepts];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
+export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
 
 /* ---------- what the checks are read from ---------- */
 

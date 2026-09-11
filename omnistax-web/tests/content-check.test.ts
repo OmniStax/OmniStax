@@ -4,8 +4,8 @@ import { config } from '../omnistax.config';
 import { loadBook } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkBinds, checkConcepts, checkContent, checkFigures, checkRefs, checkSources, checkSpans, checkTypes,
-  contentOf, errorsOf,
+  CHECKS, checkAnchors, checkBinds, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes,
+  citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
 
@@ -24,6 +24,11 @@ test('the book on disk is not empty, so the checks above had something to read',
 test('a concept whose chapter the book has not added yet is said out loud, and is no error', () => {
   const waiting = checkContent(REAL).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
+});
+test('a figure the book on disk cites and no row carries is a warning, and only in a chapter the book has not built', () => {
+  const built = new Set(REAL.chapters.map((ch) => ch.dto.id));
+  const cited = warningsOf(checkContent(REAL));
+  assert.ok(cited.every((f) => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1])), said(cited).join('\n'));
 });
 
 /* ---------- one fixture per rule, each broken on purpose ---------- */
@@ -108,6 +113,32 @@ test('checkFigures: a row with no figure, a figure with no row, and a number the
   assert.match(run(checkFigures, { section: { figures: [{ id: 'demo-ruler', kind: 'demo', number: '16.2' }, { id: 'demo-scale', kind: 'demo' }] } })[0], /is no <figure> of the section’s text/);
   assert.match(run(checkFigures, { section: { figures: [] } })[0], /<figure id="demo-ruler"> is no row/);
   assert.match(run(checkFigures, { section: { figures: [{ id: 'demo-ruler', kind: 'demo', number: '16.4' }] } })[0], /numbered 16.4 in the table and 16.2 in the text/);
+});
+
+/* A demo that folds several book figures prints them all, and the text must print the same joined string. */
+const FOLDED = TEXT.replace('data-figure="16.2"', 'data-figure="16.2 + 16.3"');
+const folded = (folds: readonly string[], more: readonly object[] = []) => ({ figures: [{ id: 'demo-ruler', kind: 'demo', number: '16.2', folds }, ...more] });
+test('checkFigures: a folded figure whose text does not print the joined string, or whose fold repeats a number', () => {
+  assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED }), []);
+  assert.match(run(checkFigures, { section: folded(['16.3']) })[0], /numbered 16.2 \+ 16.3 in the table and 16.2 in the text/);
+  assert.match(run(checkFigures, { section: folded([]), textHtml: FOLDED })[0], /numbered 16.2 in the table and 16.2 \+ 16.3 in the text/);
+  assert.match(run(checkFigures, { section: folded(['16.2']), textHtml: TEXT.replace('16.2"', '16.2 + 16.2"') })[0], /folds 16.2, which is its own number/);
+  const two = `${FOLDED}<figure class="demo" id="demo-scale" data-figure="16.3"></figure>`;
+  const clash = run(checkFigures, { section: folded(['16.3'], [{ id: 'demo-scale', kind: 'demo', number: '16.3' }]), textHtml: two });
+  assert.deepEqual(clash, ['16.1/section.json figures[demo-ruler]: folds 16.3, which figure "demo-scale" already carries']);
+  assert.match(run(checkFigures, { section: { figures: [{ id: 'demo-ruler', kind: 'demo', folds: ['16.3'] }] }, textHtml: TEXT.replace(' data-figure="16.2"', '') })[0], /folds 16.3 but carries no number of its own/);
+});
+
+test('checkFigureRefs: a figure the prose cites that no row carries is a warning, and a fold carries its numbers', () => {
+  const cite = (html: string) => ({ textHtml: `${TEXT}<p>${html}</p>` });
+  assert.deepEqual(run(checkFigureRefs, cite('See Figure 16.2.')), []);
+  const missing = checkFigureRefs(fixture(cite('See Figures 16.2 and 16.3.')));
+  assert.deepEqual(missing.map((f) => f.level), ['warning']);
+  assert.deepEqual(said(missing), ['16.1/text.html: cites Figure 16.3, which no figure row of the book carries, so it stays plain text']);
+  assert.deepEqual(run(checkFigureRefs, { section: folded(['16.3']), textHtml: `${FOLDED}<p>See Figures 16.2 and 16.3.</p>` }), [], 'a folded number is carried');
+  assert.deepEqual(run(checkFigureRefs, cite('<figure class="photo"><figcaption><span class="eyebrow">Figure 16.9</span></figcaption></figure>')), [], 'an eyebrow names its own figure and is no citation');
+  assert.deepEqual(errorsOf(checkFigureRefs(fixture(cite('Figure 4.1')))), [], 'a warning is no error');
+  assert.deepEqual(citedNumbers('Figure 2.9, Figures 2.10 and 2.9, Example 2.3, <span class="eyebrow">Figure 2.1</span>'), ['2.9', '2.10']);
 });
 
 test('checkSources: a source_id the source it was taken from does not hold', () => {

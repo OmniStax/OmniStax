@@ -16,9 +16,22 @@ export const qualifyIds = (html: string, section: string): string =>
 export type FigureNumber = string & { readonly __brand: 'FigureNumber' };
 export const figureNumber = (s: string): FigureNumber => s as FigureNumber;
 
-/* Every figure that keeps a book number, mapped to its qualified DOM id, from one section's text. */
+/* A demo that folds several book figures prints every number it replaces, in the
+   book's order and joined with " + ": "Figure 3.3 + 3.4 + 3.5". The order is
+   numeric on both parts, so 2.9 comes before 2.10. That joined string is what
+   the <figure>'s data-figure carries and what its eyebrow reads after "Figure ". */
+const JOIN = ' + ';
+const parts = (n: string): readonly number[] => n.split('.').map(Number);
+const byBook = (a: string, b: string): number => { const [ca, fa] = parts(a), [cb, fb] = parts(b); return ca - cb || fa - fb; };
+export const printedNumbers = (row: { readonly number?: string; readonly folds: readonly string[] }): string | undefined =>
+  (row.number === undefined ? undefined : [row.number, ...row.folds].sort(byBook).join(JOIN));
+/* The numbers a data-figure carries, one or several. */
+export const splitNumbers = (printed: string): readonly FigureNumber[] => printed.split(JOIN).map((n) => figureNumber(n.trim()));
+
+/* Every figure that keeps a book number, mapped to its qualified DOM id, from one section's text. A folded figure is reached from each of its numbers. */
 export const figureIds = (html: string, section: string): ReadonlyMap<FigureNumber, SpanId> =>
-  new Map([...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"[^>]*\bdata-figure="([^"]+)"/g)].map(([, id, n]) => [figureNumber(n), qualifiedId(sectionId(section), id)]));
+  new Map([...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"[^>]*\bdata-figure="([^"]+)"/g)]
+    .flatMap(([, id, printed]) => splitNumbers(printed).map((n) => [n, qualifiedId(sectionId(section), id)] as const)));
 
 /* The text one fragment of a head reads as: tags dropped, prerendered math back to the $…$ it was written as, entities decoded, whitespace collapsed.
    A tag walk, as in linkFigureRefs: KaTeX markup is a tree whose visual branch repeats the symbols, so inside it only the TeX annotation is kept. */
@@ -65,7 +78,8 @@ export const figureList = (html: string, section: string): readonly FigureEntry[
       return { id, label: headLabel(body) || figName(id) };
     });
 
-const REF = /\bFigures? \d+\.\d+(?:(?:,| and| or|, and|, or) \d+\.\d+)*/g;
+/* A reference in the prose: "Figure 16.4", "Figures 16.4 and 16.9". The check reads the same pattern, so the two cannot drift. */
+export const REF = /\bFigures? \d+\.\d+(?:(?:,| and| or|, and|, or) \d+\.\d+)*/g;
 const figLink = (n: string, figs: ReadonlyMap<FigureNumber, SpanId>, text: string): string => {
   const id = figs.get(figureNumber(n)); return id ? `<a class="figref" href="#${id}" data-figref="${n}">${text}</a>` : text;
 };

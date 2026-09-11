@@ -171,6 +171,7 @@ export const FigureSchema = z.object({
   id: z.string().describe('The figure\u2019s local id, which is the id the <figure> element carries in the section\u2019s text.'),
   kind: z.enum(FIGURE_KINDS).describe('Whether the figure is a simulation the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph.'),
   number: z.string().optional().describe('The number the book prints the figure under, such as 16.4, where the figure keeps one.'),
+  folds: z.array(z.string()).default([]).describe('The further numbers the book prints the figure under, where the book drew one scene several times and the demo replaces them all; the number stays the demo\u2019s own, and the eyebrow reads every number in the book\u2019s order.'),
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
   original_caption: z.string().optional().describe('The caption the book prints under the figure, kept word for word.'),
   draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The page\u2019s binds are the union of them, so the page need not say again what it colours.'),
