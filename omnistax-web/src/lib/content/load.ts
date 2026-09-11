@@ -13,8 +13,8 @@ import type {
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
-import { figureIds, figureList, linkFigureRefs } from './fragment';
-import { type FrontRole, type PageRole, pagesOf } from './roles';
+import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs } from './fragment';
+import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type ConceptId, bookId, qualifiedId } from '../types/ids';
 
 /* One page of the book as the build reads it: a section, or the introduction
@@ -247,5 +247,14 @@ export const loadBook = async (root: string, bookId: string): Promise<BookTree> 
 };
 
 /* The tree is read once per build. In dev every request reads the files again, so a content edit shows on reload. */
+/* The pages either side of one page of the book, across chapters: the last
+   section of one chapter goes on to the next chapter's introduction, as the
+   book reads. Only built pages are in the tree, so every link has a page. */
+export const pageNav = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>, page: SectionSource): PageNav => {
+  const { prev, next } = neighboursOf(bookPagesOf(tree), (s) => s.meta.id === page.meta.id);
+  const link = (s: SectionSource): PageLink => ({ url: s.url, label: pageLabel(s.meta) });
+  return { ...(prev && { prev: link(prev) }), ...(next && { next: link(next) }) };
+};
+
 let cached: Promise<BookTree> | null = null;
 export const bookTree = (root: string, bookId: string): Promise<BookTree> => (import.meta.env.PROD ? (cached ??= loadBook(root, bookId)) : loadBook(root, bookId));

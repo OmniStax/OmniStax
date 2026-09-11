@@ -5,6 +5,7 @@ import type { SectionSource } from './load';
 import type { BookDTO, ChapterDTO, FigureEntry } from './schema';
 import { attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
+import type { Neighbours } from './roles';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -131,7 +132,21 @@ export const SUMMARY_ID = 'section-summary';
 const summaryBlock = (s: SectionSource): string =>
   (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>Section summary</h2>${s.summaryHtml}</section>`);
 
-export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => [
+/* The pages either side of this one, by address and by the name they are listed under. */
+export type PageLink = { readonly url: string; readonly label: string };
+export type PageNav = Neighbours<PageLink>;
+/* The way to the page before and the page after, at the end of every text, above the credit: the reader
+   turns the page here as they would in the book. A link's href is the page's own address, so the built page
+   needs no script for it, and inside the shell such a link opens the page as a tab. A first page has only a
+   way on and a last page only a way back; a page with neither prints no row. */
+const pageNav = (nav: PageNav): string => {
+  const link = (rel: 'prev' | 'next', page: PageLink, word: string): string =>
+    `<a class="${rel}" rel="${rel}" href="${esc(page.url)}"><span class="eyebrow">${word}</span><span class="name">${esc(page.label)}</span></a>`;
+  const prev = nav.prev ? link('prev', nav.prev, 'Previous') : '', next = nav.next ? link('next', nav.next, 'Next') : '';
+  return prev === '' && next === '' ? '' : `<nav class="page-nav" aria-label="The pages before and after this one">${prev}${next}</nav>`;
+};
+
+export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => [
   `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
@@ -139,6 +154,7 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
   sizeImages(qualifyIds(s.textHtml, s.meta.id)),
   summaryBlock(s),
   sectionEnd(s),
+  pageNav(nav),
   footer(book, s),
   `</article>`,
 ].filter((line) => line !== '').join('\n');
@@ -162,6 +178,7 @@ export const sectionData = (s: SectionSource): string =>
   `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
 
 /* A section's fragment is its two documents and its data; an introduction or
-   summary page sets no exercises and so has no problem set to open. */
-export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string =>
-  [textArticle(book, chapter, s), ...(s.role === 'section' ? [exercisesArticle(book, chapter, s)] : []), sectionData(s)].join('\n');
+   summary page sets no exercises and so has no problem set to open. The text
+   carries the way to its neighbours, which the caller reads off the book. */
+export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string =>
+  [textArticle(book, chapter, s, nav), ...(s.role === 'section' ? [exercisesArticle(book, chapter, s)] : []), sectionData(s)].join('\n');

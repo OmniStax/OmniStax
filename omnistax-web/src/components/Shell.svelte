@@ -112,25 +112,29 @@
     };
     /* A click or a focus outside every view lets go of "this view", so the scope commands stop aiming at it. */
     const clearView = (e: Event) => { const el = e.target as HTMLElement | null; if (!el?.closest?.('.view')) focus.view = null; };
+    /* The group an element was clicked in, or the focused one when it stands outside every pane. */
+    const groupOf = (el: HTMLElement): number => { const pane = el.closest<HTMLElement>('.pane'); return pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; };
     const onClick = (e: MouseEvent) => {
       clearView(e);
       ui.closeAll();
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
-      if (sb?.dataset.splitKey) { const pane = sb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
+      if (sb?.dataset.splitKey) { const gi = groupOf(sb); layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
       /* "Practise this section" at the end of a section: a practice view opens
          beside the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
-      if (pb?.dataset.practiseSection) { const pane = pb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      if (pb?.dataset.practiseSection) { const gi = groupOf(pb); openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
       /* The link beside it opens the section's own problem set as a tab of the same group. */
       const od = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-open-doc]');
-      if (od?.dataset.openDoc) { const [sec, doc] = od.dataset.openDoc.split('/'); if (sec && (doc === 'text' || doc === 'exercises')) { e.preventDefault(); const pane = od.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; void openDoc(sectionId(sec), doc, gi); return; } }
+      if (od?.dataset.openDoc) { const [sec, doc] = od.dataset.openDoc.split('/'); if (sec && (doc === 'text' || doc === 'exercises')) { e.preventDefault(); const gi = groupOf(od); void openDoc(sectionId(sec), doc, gi); return; } }
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
-      /* A link inside a pane that names a section of this book opens as a tab
-         rather than as a page of its own; anything else — another host, the
-         front of the book, a section this build has not made — is left alone. */
+      /* A link inside a pane that names a page of this book — the way on at the
+         end of a text, a section the about page points at — opens as a tab of
+         the group it was clicked in rather than as a page of its own; anything
+         else — another host, the front of the book, a section this build has
+         not made — is left alone. */
       if (link?.closest('.pane') && link.origin === location.origin && !link.hash && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
         const sec = sectionOfUrl(manifest, link.pathname);
-        if (sec) { e.preventDefault(); void openDoc(sec, 'text'); return; }
+        if (sec) { e.preventDefault(); void openDoc(sec, 'text', groupOf(link)); return; }
       }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);

@@ -8,10 +8,10 @@
    beneath this. */
 import ShellPage from './ShellPage.astro';
 import { config } from '../../omnistax.config';
-import type { BookTree, ChapterTree, SectionSource } from '../lib/content/load';
+import { type BookTree, type ChapterTree, type SectionSource, pageNav } from '../lib/content/load';
 import { fragment } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
-import { pageLabel, pagesOf } from '../lib/content/roles';
+import { pageLabel } from '../lib/content/roles';
 import { docItem, sectionId } from '../lib/types/ids';
 
 type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
@@ -22,11 +22,8 @@ const canonical = new URL(section.url, config.site.baseUrl).href;
 const label = pageLabel(sec);
 const title = `${label} · ${book.title}`;
 const description = sec.objectives.join(' ') || sec.lead || sec.title;
-/* The pages before and after this one, among the built pages of its chapter, in the chapter's reading order. */
-const neighbours = chapter ? pagesOf(chapter) : [section];
-const at = neighbours.findIndex((s) => s.meta.id === sec.id);
-const link = (i: number): string | null => (i >= 0 && i < neighbours.length ? neighbours[i].url : null);
-const prev = link(at - 1), next = link(at + 1);
+/* The pages before and after this one among the built pages of the book, in its reading order: the head names them and the text ends on them. */
+const nav = pageNav(tree, section);
 const credit = attributionOf(book, sec);
 const ld = {
   '@context': 'https://schema.org', '@type': 'LearningResource', name: label, description, url: canonical,
@@ -39,7 +36,7 @@ const ld = {
 <ShellPage
   tree={tree}
   own={docItem(sectionId(sec.id), 'text')}
-  pool={fragment(book, chapter?.dto ?? null, section)}
+  pool={fragment(book, chapter?.dto ?? null, section, nav)}
   title={title}
   description={description}
   book={book.id}
@@ -52,8 +49,8 @@ const ld = {
 >
   <Fragment slot="head">
     <link rel="canonical" href={canonical}>
-    {prev && <link rel="prev" href={prev} />}
-    {next && <link rel="next" href={next} />}
+    {nav.prev && <link rel="prev" href={nav.prev.url} />}
+    {nav.next && <link rel="next" href={nav.next.url} />}
     {book.licenseUrl && <link rel="license" href={book.licenseUrl} />}
     <script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
   </Fragment>

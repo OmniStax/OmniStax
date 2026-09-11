@@ -146,5 +146,13 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
 - Attribution is generated, never written by hand: `attribution.ts` builds the
   footer of every article and the citation from `book.json` and a section's
   `notes`.
+- Every text ends on the way to the page before and the page after, above the
+  credit: the built pages of the whole book in reading order (`bookPagesOf`),
+  so the last section of a chapter goes on to the next chapter's introduction,
+  and a page this build did not make is no link at all. `pageNav` in `load.ts`
+  reads the pair off the tree, the fragment draws it, and the same pair is the
+  head's `rel=prev` and `rel=next`. The links are plain addresses, so a built
+  page needs no script for them; inside the shell they open as a tab of the
+  group they were clicked in, like any link to a page of the book.
 - Section figure modules are plain scripts against `window.FIG`; their contract
   is in `docs/prompts/interactive-figures.md`.

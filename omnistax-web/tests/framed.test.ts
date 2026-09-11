@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
-import { loadBook } from '../src/lib/content/load';
+import { loadBook, pageNav } from '../src/lib/content/load';
 import { fragment, qualifyIds } from '../src/lib/content/fragment';
 import { aboutHtml, bookHtml } from '../src/lib/content/pages';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
-import { bookPagesOf, pageDir, pageId, pageLabel, pageRoleOf, pagesOf } from '../src/lib/content/roles';
+import { bookPagesOf, neighboursOf, pageDir, pageId, pageLabel, pageRoleOf, pagesOf } from '../src/lib/content/roles';
 
 /* ---------- the roles, pure ---------- */
 
@@ -27,6 +27,15 @@ test('the pages of a chapter and of a book come in reading order, the introducti
   assert.deepEqual(pagesOf({ intro: 'i', sections: ['a', 'b'], summary: 's' }), ['i', 'a', 'b', 's']);
   assert.deepEqual(pagesOf({ sections: ['a'] }), ['a']);
   assert.deepEqual(bookPagesOf({ intro: 'p', chapters: [{ intro: 'i', sections: ['a'] }, { sections: ['b'], summary: 's' }], summary: 'z' }), ['p', 'i', 'a', 'b', 's', 'z']);
+});
+
+test('the neighbours of a page are the ones either side of it in the list, and a page the list lacks has none', () => {
+  const is = (x: string) => (p: string) => p === x;
+  assert.deepEqual(neighboursOf(['a', 'b', 'c'], is('b')), { prev: 'a', next: 'c' });
+  assert.deepEqual(neighboursOf(['a', 'b', 'c'], is('a')), { next: 'b' }, 'nothing before the first');
+  assert.deepEqual(neighboursOf(['a', 'b', 'c'], is('c')), { prev: 'b' }, 'nothing after the last');
+  assert.deepEqual(neighboursOf(['a'], is('a')), {});
+  assert.deepEqual(neighboursOf(['a', 'b'], is('z')), {});
 });
 
 /* ---------- the schema ---------- */
@@ -70,7 +79,7 @@ test('a figure the introduction keeps is linked from a section that cites it, ac
 });
 test('the front page’s article has the book’s words and nothing invented, and no problem set beside it', () => {
   const ch = TREE.chapters[0];
-  const html = fragment(TREE.dto, ch.dto, ch.intro!);
+  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!));
   assert.match(html, /<article data-doc="2\.intro\/text" data-sec="2\.intro" data-chapter="ch02" data-title="Introduction to Kinematics"/);
   assert.match(html, /<div class="eyebrow">Chapter 2 · Kinematics<\/div>/);
   assert.doesNotMatch(html, /<p class="lead">/, 'an empty lead prints no line');
@@ -78,14 +87,14 @@ test('the front page’s article has the book’s words and nothing invented, an
   assert.doesNotMatch(html, /class="section-end"/);
   assert.match(html, /Access for free at <a href="https:\/\/example.org\/pages\/2-introduction-to-kinematics">/);
   assert.match(html, /<p>The trailer is left out.<\/p><\/footer>/);
-  const preface = fragment(TREE.dto, null, TREE.intro!);
+  const preface = fragment(TREE.dto, null, TREE.intro!, pageNav(TREE, TREE.intro!));
   assert.match(preface, /<article data-doc="intro\/text" data-sec="intro" data-title="Preface"/);
   assert.doesNotMatch(preface, /data-chapter=/, 'the book’s own page belongs to no chapter');
   assert.match(preface, /<div class="eyebrow">A Framed Book<\/div>/);
 });
 test('a section’s summary stands at the end of its text, math rendered, before the way on to practice', () => {
   const ch = TREE.chapters[0];
-  const html = fragment(TREE.dto, ch.dto, ch.sections[0]);
+  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
   const summary = html.indexOf('<section class="summary" id="2.1-section-summary"><h2>Section summary</h2>');
   assert.ok(summary > html.indexOf('</section>'), 'after the last span');
   assert.ok(summary < html.indexOf('class="section-end"'), 'before the practise row');
@@ -99,6 +108,22 @@ test('the front of the book lists the preface before the chapters and the introd
   assert.ok(at('href="/framed/ch02/intro/">Introduction to Kinematics</a>') < at('href="/framed/ch02/2.1/"'));
   assert.match(html, /<li class="front"><a href="\/framed\/ch02\/intro\/">Introduction to Kinematics<\/a><\/li>/, 'no number on an introduction');
   assert.match(aboutHtml(M), /1 chapter, 1 of 2 sections built/, 'the count is of sections');
+});
+test('every text ends on the way to the page before and the page after, across the book, and only to pages that are built', () => {
+  const ch = TREE.chapters[0];
+  assert.deepEqual(pageNav(TREE, TREE.intro!), { next: { url: '/framed/ch02/intro/', label: 'Introduction to Kinematics' } }, 'the preface has nothing before it');
+  assert.deepEqual(pageNav(TREE, ch.intro!), { prev: { url: '/framed/intro/', label: 'Preface' }, next: { url: '/framed/ch02/2.1/', label: '2.1 Displacement' } }, 'a chapter’s introduction goes back to the book’s own page');
+  assert.deepEqual(pageNav(TREE, ch.sections[0]), { prev: { url: '/framed/ch02/intro/', label: 'Introduction to Kinematics' } }, '2.2 is not built, so 2.1 has no way on');
+  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!));
+  const nav = /<nav class="page-nav" aria-label="[^"]+">([\s\S]*?)<\/nav>/.exec(html);
+  assert.ok(nav, 'the row stands in the text');
+  assert.equal(nav![1], '<a class="prev" rel="prev" href="/framed/intro/"><span class="eyebrow">Previous</span><span class="name">Preface</span></a><a class="next" rel="next" href="/framed/ch02/2.1/"><span class="eyebrow">Next</span><span class="name">2.1 Displacement</span></a>');
+  assert.ok(html.indexOf('<nav class="page-nav"') < html.indexOf('<footer class="footer">'), 'above the credit');
+  const section = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
+  assert.ok(section.indexOf('class="section-end"') < section.indexOf('<nav class="page-nav"'), 'after the practise row');
+  assert.doesNotMatch(section, /class="next"/);
+  assert.doesNotMatch(section.slice(section.indexOf('data-doc="2.1/exercises"')), /page-nav/, 'the problem set carries no row of its own');
+  assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.sections[0], {}), /page-nav/, 'a page with no neighbour prints no row');
 });
 test('a link to a front page opens as a tab like a link to a section', () => {
   assert.equal(sectionOfUrl(M, '/framed/ch02/intro/'), '2.intro');

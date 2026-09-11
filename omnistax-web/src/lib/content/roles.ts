@@ -43,3 +43,12 @@ export const pagesOf = <T>(c: Framed<T>): readonly T[] =>
 /* Every page of a book in reading order: its own introduction, each chapter's pages, its own summary. */
 export const bookPagesOf = <T>(b: { readonly intro?: T; readonly summary?: T; readonly chapters: readonly Framed<T>[] }): readonly T[] =>
   [...(b.intro ? [b.intro] : []), ...b.chapters.flatMap((c) => pagesOf(c)), ...(b.summary ? [b.summary] : [])];
+
+/* The pages either side of one page in a list laid out in reading order: none
+   before the first, none after the last. Only pages the list holds are
+   neighbours, so a section this build did not make is no link at all. */
+export type Neighbours<T> = { readonly prev?: T; readonly next?: T };
+export const neighboursOf = <T>(pages: readonly T[], isThis: (page: T) => boolean): Neighbours<T> => {
+  const at = pages.findIndex(isThis);
+  return at < 0 ? {} : { ...(at > 0 ? { prev: pages[at - 1] } : {}), ...(at < pages.length - 1 ? { next: pages[at + 1] } : {}) };
+};

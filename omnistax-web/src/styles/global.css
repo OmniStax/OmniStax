@@ -78,6 +78,14 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .section-end .practise:hover{background:var(--soft)}
 .section-end .practise:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .section-end .problems{color:var(--muted)}
+.page-nav{display:flex;justify-content:space-between;gap:16px;margin-top:40px;font-family:var(--sans);font-size:0.9rem}
+.page-nav a{display:flex;flex-direction:column;gap:2px;max-width:48%;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;color:var(--ink);text-decoration:none;background:var(--panel)}
+.page-nav a:hover{background:var(--soft)}
+.page-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.page-nav .next{margin-left:auto;text-align:right}
+.page-nav .name{font-weight:600}
+.page-nav .prev .name::before{content:"← "}
+.page-nav .next .name::after{content:" →"}
 .footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
 .footer p{margin:0 0 6px}
 .footer cite{font-style:italic}
