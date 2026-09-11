@@ -120,6 +120,9 @@
          beside the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
       if (pb?.dataset.practiseSection) { const pane = pb.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      /* The link beside it opens the section's own problem set as a tab of the same group. */
+      const od = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-open-doc]');
+      if (od?.dataset.openDoc) { const [sec, doc] = od.dataset.openDoc.split('/'); if (sec && (doc === 'text' || doc === 'exercises')) { e.preventDefault(); const pane = od.closest<HTMLElement>('.pane'); const gi = pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; void openDoc(sectionId(sec), doc, gi); return; } }
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       /* A link inside a pane that names a section of this book opens as a tab
          rather than as a page of its own; anything else — another host, the

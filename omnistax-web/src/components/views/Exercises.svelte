@@ -173,8 +173,16 @@
   const dueNow = $derived(cat.concepts.filter((c) => c.status === 'built' && practice.stateOf(c.id) === 'due'));
 
   const choice = $derived(sumOf(page.curriculum));
+  /* The number beside Practise is what this choice can give, never more than
+     the session size the reader keeps in Settings; stepping it writes that
+     setting, so it holds from one choice to the next, and it cannot be stepped
+     past what the choice holds — that is the number the button says. */
   const size = $derived(Math.min(practice.settings.session, choice.exercises));
   const setSize = (n: number): void => practice.setSetting('session', Math.max(1, Math.min(50, n)));
+  const stepTitle = $derived(
+    choice.exercises === 0 ? 'How many exercises a session draws.'
+      : practice.settings.session > choice.exercises ? `How many exercises a session draws. Your session size is ${practice.settings.session}, but this choice holds only ${choice.exercises}.`
+        : 'How many exercises a session draws.');
   const choiceLine = $derived(
     page.curriculum.length === 0 ? 'You have not chosen anything to practise yet.'
       : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`}, ${
@@ -496,10 +504,10 @@
       {#if note}<p class="quiet">{note}</p>{/if}
       <div class="acts">
         <button type="button" class="btn go" disabled={size === 0} onclick={begin}>Practise {size}</button>
-        <span class="step" title="How many exercises a session draws.">
-          <button type="button" class="stepb" aria-label="One exercise fewer" disabled={practice.settings.session <= 1} onclick={() => setSize(practice.settings.session - 1)}>−</button>
-          <span class="n">{practice.settings.session}</span>
-          <button type="button" class="stepb" aria-label="One exercise more" disabled={practice.settings.session >= 50} onclick={() => setSize(practice.settings.session + 1)}>+</button>
+        <span class="step" title={stepTitle}>
+          <button type="button" class="stepb" aria-label="One exercise fewer" disabled={size <= 1} onclick={() => setSize(size - 1)}>−</button>
+          <span class="n">{size}</span>
+          <button type="button" class="stepb" aria-label="One exercise more" disabled={size >= Math.min(50, choice.exercises)} onclick={() => setSize(size + 1)}>+</button>
         </span>
         {#if practice.live(item)}<button type="button" class="btn" onclick={() => practice.resume(item)}>Back to the session</button>{/if}
       </div>

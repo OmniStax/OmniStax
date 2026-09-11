@@ -96,9 +96,17 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource
   `<h1>${esc(s.meta.title)}</h1>`,
   `<p class="lead">${s.meta.lead}</p>`,
   qualifyIds(s.textHtml, s.meta.id),
+  sectionEnd(s),
   footer(book, chapter, s),
   `</article>`,
 ].join('\n');
+
+/* The way on from the text: a button that opens a practice page on this
+   section, beside the page, and one that opens its problem set. Both are
+   plain markup the shell catches, so the built page needs no script of its
+   own to be sent somewhere. A section with no problems ends at its text. */
+const sectionEnd = (s: SectionSource): string => (s.exercises.length === 0 ? '' :
+  `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practise this section</button><a class="problems" href="#${s.meta.id}-exercises" data-open-doc="${s.meta.id}/exercises">Problems &amp; Exercises</a></div>`);
 
 export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO, s: SectionSource): string => [
   `<article data-doc="${s.meta.id}/exercises" data-sec="${s.meta.id}" data-chapter="${chapter.dir}" data-title="${s.meta.id} Exercises">`,
