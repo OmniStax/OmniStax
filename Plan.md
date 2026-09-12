@@ -75,8 +75,8 @@ Prep for the next wave starts while the current wave's sections build.
 
 | Wave | Chapters | Sections | Status |
 |---|---|---|---|
-| 1 | 4, 5, 6 | 17 | prep started 2026-09-11 |
-| 2 | 7, 8, 9 | 22 | |
+| 1 | 4, 5, 6 | 17 | sections built 2026-09-11; chapter passes interrupted (see Record) |
+| 2 | 7, 8, 9 | 22 | 8 and 9 built 2026-09-11; 7 prepared, 7.1 to 7.4 held aside (see Record) |
 | 3 | 10, 11, 12 | 23 | |
 | 4 | 13, 14, 15 | 20 | |
 | 5 | 17, 18, 19 | 22 | |
@@ -89,3 +89,49 @@ Prep for the next wave starts while the current wave's sections build.
 ## Record
 
 Updated as waves finish. See LOG.md for the pass entries.
+
+**2026-09-11, paused on Chen's word with credits running low.** Merged
+onto main: Chapters 4, 5, 6, 8 and 9 whole (every section, every
+introduction, 30 section pages and 5 introduction pages; LOG pass 27),
+and Chapter 7's preparation (chapter tables, 44 concepts, the `power`
+type, its introduction page). `check:content` clean at 10 chapters and
+53 sections, 348 tests, `astro check` clean, 66 pages built, and a
+headless pass over all 36 new pages in light and dark with no console
+error, every image loading and every canvas booting.
+
+What was cut short:
+
+- The chapter passes of 4, 5 and 6 were stopped mid-way. Chapter 4's
+  pass had merged its new symbols and applied them in 4.5 and 4.7;
+  Chapter 5's had applied its anchors; Chapter 6's had edited
+  `book-rows.json` (re-merged by Fable). None wrote its log pass, and
+  the anchors, cross-section checks and full-chapter headless pass of the
+  brief are still owed for 4, 5, 6, 8 and 9. Every section's `plan.md`
+  carries its "Wanted at chapter level" list, so the passes can be
+  re-run from the briefs as they stand.
+- Chapter 7: 7.1 and 7.2 were built whole but take exercises from 7.6
+  and 7.9 with `source_section`, which the validator refuses until those
+  are built; 7.3 and 7.4 had text and figures but no `section.json`; 7.5
+  had a plan. All of it is held, untracked, at
+  `/home/flober/repos/OmniStax/.claude/partial-sections/ch07/` (one
+  folder per section) and goes back into `ch07/` when the chapter
+  resumes; the `source.md` files and `media/ch07/` copies stayed in the
+  tree.
+- Book-level things a later pass should settle: 16.1's
+  `elastic-potential-energy` now sits at 7.4 (16.1 reinforces it); the
+  symbol `PE_el` keeps `\kPE` and plain `PE` took `\kPEtot`; `r` (5.3,
+  untyped) beside `r_curv` (`\kr`, position); `v_1`/`v_2` are Chapter 6
+  rows reused by Chapter 8; `T_1`/`T_2` are tensions, so Kepler's
+  periods are `T_orb1`/`T_orb2`; the book's own Table 4.1 is printed
+  as printed, contradictions and all.
+- The converter now emits a table nested in a paragraph (only 5.3 ever
+  had one); it still drops every table's title, which the exploration
+  files carry instead.
+
+Next when credits return: relaunch the chapter passes for 4, 5, 6, 8
+and 9 (one agent each, `brief-final.md`), restore and finish Chapter 7
+(7.1 to 7.4 from the holding folder, then 7.5 to 7.9, then its pass),
+then wave 3 (10, 11, 12) as planned. The briefs, `modules.json` and the
+per-section launch notes are in the job's tmp dir
+(`/home/flober/.claude/jobs/dbf4848c/tmp/`); the concurrent-agent cap
+is 20.
