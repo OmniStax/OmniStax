@@ -163,6 +163,7 @@ New components and an unhomogenised style are allowed where the idea needs them.
 4. Showing the original figure swaps the caption too; the two captions are never shown together.
 5. A simulation is legible on its own page from its labels and caption, using only ideas the book has taught by that page.
 6. Every drawn entity can be identified by a label, a hover name or a legend. Nothing is an unnamed coloured ball.
+7. Labels are tiered. The frame (axis titles, headline, slider names, legend) is always shown. A kind is labelled once, in a legend or on one representative, and an individual only where the reader must tell it apart. When the entity labels that remain exceed six, would collide at any slider extreme, or sit on things that move, they are off by default behind a Labels button, with hover names still available; otherwise they are on. The plan line says which, and why.
 
 ## 27. What an agent reads before building
 
