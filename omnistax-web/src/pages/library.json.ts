@@ -1,8 +1,7 @@
 /* The catalogue the explorer's "Find a textbook" floater reads: one entry for
-   every book this build knows. Today that is the single configured book, but
-   the shape is a list so that a second one costs nothing. */
+   every book this build knows, in the order the configuration puts them in. */
 import type { APIRoute } from 'astro';
-import { tree, json } from '../lib/content/paths';
+import { trees, json } from '../lib/content/paths';
 import type { BookManifest } from '../lib/content/schema';
 import type { LibraryBookDTO } from '../lib/explorer/library.svelte';
 
@@ -13,4 +12,4 @@ const entry = (m: BookManifest): LibraryBookDTO => ({
   url: `/${m.id}/`,
 });
 
-export const GET: APIRoute = async () => json([entry((await tree()).manifest)]);
+export const GET: APIRoute = async () => json((await trees()).map((t) => entry(t.manifest)));

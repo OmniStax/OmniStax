@@ -2,11 +2,11 @@
 /* The front of one book, which is the shell with the book page open in it: its
    title and every chapter and section, each a link into the text. */
 import ShellPage from '../../layouts/ShellPage.astro';
-import { tree } from '../../lib/content/paths';
+import { bookRoutes } from '../../lib/content/paths';
 import { bookHtml } from '../../lib/content/pages';
 import { pageItem } from '../../lib/types/ids';
 import type { BookTree } from '../../lib/content/load';
-export const getStaticPaths = async () => { const t = await tree(); return [{ params: { book: t.dto.id }, props: { tree: t } }]; };
+export const getStaticPaths = bookRoutes;
 const { tree: t } = Astro.props as { tree: BookTree };
 const m = t.manifest;
 ---

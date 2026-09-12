@@ -1,19 +1,23 @@
-/* `npm run check:content`: read the book the build reads and follow every
-   reference in it. The rules live in src/lib/content/check.ts, where they are
+/* `npm run check:content`: read every book the build reads and follow every
+   reference in each. The rules live in src/lib/content/check.ts, where they are
    pure and the tests call them; this file is only the command — where the
    content is, how the findings are printed, and what the shell is told. */
-import { parseConfig } from '../omnistax.config';
-import type { OmniStaxConfig } from '../omnistax.config';
-import { loadBook } from '../src/lib/content/load';
+import path from 'node:path';
+import { parseBooks, parseConfig } from '../omnistax.config';
+import type { BookSelection, OmniStaxConfig } from '../omnistax.config';
+import { loadBooks } from '../src/lib/content/load';
+import { type ContentRoot, contentRoot } from '../src/lib/types/ids';
 import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
 
 /* The command's own layer over the build's configuration: the content root and
-   the book, either of which may be named on the line. */
-type CheckArgs = { readonly root: string; readonly bookId: string };
+   which books of it to read, either of which may be named on the line. */
+type CheckArgs = { readonly root: ContentRoot; readonly books: BookSelection };
 export const parseArgs = (argv: readonly string[], base: OmniStaxConfig): CheckArgs => {
   const value = (flag: string): string | undefined => { const i = argv.indexOf(flag); return i < 0 ? undefined : argv[i + 1]; };
-  return { root: value('--root') ?? base.content.root, bookId: value('--book') ?? base.content.bookId };
+  const root = value('--root');
+  const named = value('--books') ?? value('--book');
+  return { root: root === undefined ? base.content.root : contentRoot(path.resolve(root)), books: named === undefined ? base.content.books : parseBooks(named) };
 };
 
 /* ---------- printing ---------- */
@@ -40,12 +44,15 @@ const report = (findings: readonly Finding[], content: Content): string => {
 
 /* ---------- the command ---------- */
 
+/* One book's heading and report, with a blank line between books so that a run over several reads as several. */
+const bookReport = (content: Content, findings: readonly Finding[]): string => `${content.book.title} (${content.book.id})\n\n${report(findings, content)}`;
+
 const main = async (): Promise<number> => {
   const args = parseArgs(process.argv.slice(2), parseConfig(process.env));
-  const content = await contentOf(await loadBook(args.root, args.bookId));
-  const findings = checkContent(content);
-  console.log(report(findings, content));
-  return errorsOf(findings).length === 0 ? 0 : 1;
+  const books = await loadBooks(args.root, args.books);
+  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: checkContent(content) }; }));
+  console.log(checked.map((c) => bookReport(c.content, c.findings)).join('\n\n'));
+  return checked.every((c) => errorsOf(c.findings).length === 0) ? 0 : 1;
 };
 
 process.exitCode = await main().catch((e: unknown) => { console.error(e instanceof Error ? e.message : String(e)); return 1; });

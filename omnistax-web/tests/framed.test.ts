@@ -8,6 +8,7 @@ import { aboutHtml, bookHtml } from '../src/lib/content/pages';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
+import { bookDir, bookId } from '../src/lib/types/ids';
 import { bookPagesOf, neighboursOf, pageDir, pageId, pageLabel, pageRoleOf, pagesOf } from '../src/lib/content/roles';
 
 /* ---------- the roles, pure ---------- */
@@ -59,8 +60,8 @@ test('a chapter and a book name their own pages by module and slug, and the old 
 
 /* ---------- the loader, on a fixture book with a preface and a chapter introduction ---------- */
 
-const ROOT = path.resolve(import.meta.dirname, 'fixtures/framed-book');
-const TREE = await loadBook(ROOT, 'framed');
+const ROOT = bookDir(path.resolve(import.meta.dirname, 'fixtures/framed-book'));
+const TREE = await loadBook(ROOT, bookId('framed'));
 const M = TREE.manifest;
 
 test('the tree and the manifest carry the front pages beside the sections, built and addressed', () => {
@@ -107,7 +108,7 @@ test('the front of the book lists the preface before the chapters and the introd
   assert.ok(at('href="/framed/intro/">Preface</a>') < at('Chapter 2'));
   assert.ok(at('href="/framed/ch02/intro/">Introduction to Kinematics</a>') < at('href="/framed/ch02/2.1/"'));
   assert.match(html, /<li class="front"><a href="\/framed\/ch02\/intro\/">Introduction to Kinematics<\/a><\/li>/, 'no number on an introduction');
-  assert.match(aboutHtml(M), /1 chapter, 1 of 2 sections built/, 'the count is of sections');
+  assert.match(aboutHtml([M]), /1 chapter, 1 of 2 sections built/, 'the count is of sections');
 });
 test('every text ends on the way to the page before and the page after, across the book, and only to pages that are built', () => {
   const ch = TREE.chapters[0];

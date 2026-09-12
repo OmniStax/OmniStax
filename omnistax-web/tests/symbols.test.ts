@@ -9,7 +9,10 @@ import { macroExpansion, macrosOf, symbolsOf } from '../src/lib/content/load';
 import { SymbolSchema } from '../src/lib/content/schema';
 import type { SymbolDTO, VariableDTO } from '../src/lib/content/schema';
 import { sectionId, spanId, typeId } from '../src/lib/types/ids';
-import { ROOT } from './book-on-disk';
+import { PHYSICS, bookRoot } from './book-on-disk';
+
+/* The table read below is College Physics 2e's own, so it is read from that book by its id. */
+const ROOT = await bookRoot(PHYSICS);
 
 /* The book writes one row per symbol and the build derives the macros from it,
    so the tests below read the table and then the derivation, rather than a pair

@@ -3,7 +3,8 @@
    summary, as textindex.ts cuts them. Written once beside the book's pages and
    fetched the first time the reader searches, whichever book they are reading. */
 import type { APIRoute } from 'astro';
-import { tree, json } from '../../lib/content/paths';
+import { bookRoutes, json } from '../../lib/content/paths';
+import type { BookProps } from '../../lib/content/paths';
 import type { BookTree, ChapterTree, SectionSource } from '../../lib/content/load';
 import { SUMMARY_ID } from '../../lib/content/fragment';
 import { pagesOf } from '../../lib/content/roles';
@@ -24,5 +25,5 @@ const index = (t: BookTree): TextIndexDTO => ({
   ],
 });
 
-export const getStaticPaths = async () => [{ params: { book: (await tree()).dto.id } }];
-export const GET: APIRoute = async () => json(index(await tree()));
+export const getStaticPaths = bookRoutes;
+export const GET: APIRoute = async ({ props }) => json(index((props as BookProps).tree));

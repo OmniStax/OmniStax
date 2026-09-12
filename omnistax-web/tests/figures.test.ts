@@ -5,7 +5,10 @@ import path from 'node:path';
 import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, sizeImages, splitNumbers } from '../src/lib/content/fragment';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
-import { ROOT } from './book-on-disk';
+import { bookRoots } from './book-on-disk';
+
+/* The tests over the real files below walk every book this build carries. */
+const ROOTS = await bookRoots();
 
 const figs = new Map([[figureNumber('16.4'), spanId('16.1-sim-spring-scale')], [figureNumber('16.9'), spanId('16.3-sim-shm-oscillator')]]);
 const link = (n: string, id: string, text = `Figure ${n}`): string => `<a class="figref" href="#${id}" data-figref="${n}">${text}</a>`;
@@ -100,13 +103,14 @@ test('figureList keeps math as $…$, whether the text is written or prerendered
 });
 
 /* Every original a section names is served, and every figure with a number has an original or is a photograph. */
-const sections = fs.readdirSync(ROOT).filter((d) => /^ch\d+$/.test(d)).flatMap((ch) => fs.readdirSync(path.join(ROOT, ch)).filter((s) => fs.existsSync(path.join(ROOT, ch, s, 'text.html'))).map((s) => path.join(ROOT, ch, s, 'text.html')));
+const sections = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d)).flatMap((ch) => fs.readdirSync(path.join(root, ch)).filter((s) => fs.existsSync(path.join(root, ch, s, 'text.html'))).map((s) => path.join(root, ch, s, 'text.html'))));
 test('data-original paths exist under the book\'s media', () => {
   assert.ok(sections.length > 0);
   sections.forEach((file) => {
     const html = fs.readFileSync(file, 'utf8');
+    const root = path.resolve(file, '..', '..', '..');   /* <book>/chNN/<section>/text.html, so the book is three up */
     [...html.matchAll(/data-original="([^"]+)"/g)].flatMap(([, v]) => v.split(',')).forEach((p) => {
-      assert.ok(fs.existsSync(path.resolve(ROOT, p.replace(/^\//, ''))), `${file}: ${p} is not served`);
+      assert.ok(fs.existsSync(path.resolve(root, p.replace(/^\//, ''))), `${file}: ${p} is not served`);
     });
     [...html.matchAll(/<figure\b[^>]*>/g)].map(([tag]) => tag).filter((tag) => tag.includes('data-figure=')).forEach((tag) => {
       assert.ok(/\bid="/.test(tag), `${file}: a numbered figure needs an id: ${tag}`);
@@ -117,8 +121,8 @@ test('data-original paths exist under the book\'s media', () => {
 
 /* The section's figures table and its text say the same thing: one row for every
    <figure> the text draws, and no row for a figure it does not. */
-const sectionDirs = fs.readdirSync(ROOT).filter((d) => /^ch\d+$/.test(d))
-  .flatMap((ch) => fs.readdirSync(path.join(ROOT, ch)).map((s) => path.join(ROOT, ch, s)).filter((d) => fs.existsSync(path.join(d, 'section.json'))));
+const sectionDirs = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d))
+  .flatMap((ch) => fs.readdirSync(path.join(root, ch)).map((s) => path.join(root, ch, s)).filter((d) => fs.existsSync(path.join(d, 'section.json')))));
 type Row = { id: string; number?: string; folds?: string[] };
 const figureRows = (dir: string): Row[] =>
   (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: Row[] }).figures ?? [];

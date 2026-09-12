@@ -22,10 +22,18 @@ concern and read from the environment with defaults:
 
 | Section | Key | Env | Default |
 |---|---|---|---|
-| content | root | `OMNISTAX_CONTENT_DIR` | `..` (the experiment directory) |
-| content | bookId | `OMNISTAX_BOOK` | `college-physics-2e` |
+| content | root | `OMNISTAX_CONTENT_DIR` | `../omnistax-content` (the directory holding the books) |
+| content | books | `OMNISTAX_BOOKS` | every book under the root |
 | site | baseUrl | `OMNISTAX_BASE_URL` | `https://omnistax.local` |
 | build | threeUrl | `OMNISTAX_THREE_URL` | `/vendor/three.min.js` |
+
+The content root holds one folder per book, named for the book's title; a
+book's id comes from its `book.json`, and a folder without one (`tools/`) is
+not a book. `OMNISTAX_BOOKS` is a comma-separated list of book ids, which also
+sets the order they are built and listed in; left empty, the build carries every
+book it finds, alphabetically by id. `OMNISTAX_BOOK` is the one-book form of
+the same setting. The books share one `/media/` address space, merged in the
+order they are built.
 
 ## Layout of the source
 

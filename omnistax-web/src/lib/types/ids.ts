@@ -7,6 +7,11 @@
 /* One textbook of the library: the id its book.json carries, which names its
    pages, the storage it keeps and the colour file the reader exports. */
 export type BookId = string & { readonly __brand: 'BookId' };
+/* Where the books sit on disk: the directory that holds one folder per book,
+   and one book's own folder inside it. A folder is named for the book's title
+   rather than its id, so the two are branded apart and never swapped. */
+export type ContentRoot = string & { readonly __brand: 'ContentRoot' };
+export type BookDir = string & { readonly __brand: 'BookDir' };
 export type SectionId = string & { readonly __brand: 'SectionId' };
 export type ChapterId = string & { readonly __brand: 'ChapterId' };
 export type GroupKey = string & { readonly __brand: 'GroupKey' };
@@ -24,6 +29,8 @@ export type NoteId = string & { readonly __brand: 'NoteId' };
 export type ViewInstance = string & { readonly __brand: 'ViewInstance' };
 
 export const bookId = (s: string): BookId => s as BookId;
+export const contentRoot = (s: string): ContentRoot => s as ContentRoot;
+export const bookDir = (s: string): BookDir => s as BookDir;
 export const sectionId = (s: string): SectionId => s as SectionId;
 export const chapterId = (s: string): ChapterId => s as ChapterId;
 export const groupKey = (s: string): GroupKey => s as GroupKey;

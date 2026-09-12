@@ -15,7 +15,8 @@ import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
 import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs } from './fragment';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
-import { type ConceptId, bookId, qualifiedId } from '../types/ids';
+import { type BookDir, type BookId, type ConceptId, type ContentRoot, bookDir, bookId, qualifiedId } from '../types/ids';
+import type { BookSelection } from '../../../omnistax.config';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -229,9 +230,10 @@ const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | '
   ...(tree.summary ? { summary: entryOf(tree.summary) } : {}),
 });
 
-export const loadBook = async (root: string, bookId: string): Promise<BookTree> => {
+/* One book, read from its own folder. The id the caller expects is checked against the file, so a folder renamed out from under the build says so. */
+export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => {
   const dto = await readJson(path.join(root, 'book.json'), BookSchema);
-  if (dto.id !== bookId) throw new Error(`book.json is "${dto.id}", expected "${bookId}"`);
+  if (dto.id !== id) throw new Error(`book.json is "${dto.id}", expected "${id}"`);
   const macros = macrosOf(dto.symbols);
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
@@ -246,7 +248,6 @@ export const loadBook = async (root: string, bookId: string): Promise<BookTree> 
   return { dto, ...framed, manifest: manifestOf(dto, framed) };
 };
 
-/* The tree is read once per build. In dev every request reads the files again, so a content edit shows on reload. */
 /* The pages either side of one page of the book, across chapters: the last
    section of one chapter goes on to the next chapter's introduction, as the
    book reads. Only built pages are in the tree, so every link has a page. */
@@ -256,5 +257,42 @@ export const pageNav = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>, 
   return { ...(prev && { prev: link(prev) }), ...(next && { next: link(next) }) };
 };
 
-let cached: Promise<BookTree> | null = null;
-export const bookTree = (root: string, bookId: string): Promise<BookTree> => (import.meta.env.PROD ? (cached ??= loadBook(root, bookId)) : loadBook(root, bookId));
+/* ---------- the books of the content root ---------- */
+
+/* One book as the root holds it: the id its book.json carries, and the folder
+   it lives in, which is named for its title rather than its id. */
+export type BookFolder = { readonly id: BookId; readonly dir: BookDir };
+
+/* Every book under the content root, by id. A folder with no book.json is not
+   a book — `tools/` is one — and is passed over; a book.json that will not
+   parse is an error, since a book that cannot be read is not a folder that was
+   never meant to be one. */
+export const findBooks = async (root: ContentRoot): Promise<readonly BookFolder[]> => {
+  const entries = await fs.readdir(root, { withFileTypes: true });
+  const dirs = entries.filter((e) => e.isDirectory()).map((e) => bookDir(path.join(root, e.name)));
+  const found = await Promise.all(dirs.map(async (dir): Promise<readonly BookFolder[]> => {
+    if (!(await exists(path.join(dir, 'book.json')))) return [];
+    const dto = await readJson(path.join(dir, 'book.json'), BookSchema);
+    return [{ id: bookId(dto.id), dir }];
+  }));
+  return found.flat();
+};
+
+/* The books a build carries, in a stable order: the order they were named in,
+   or alphabetical by id where the build carries everything it finds. */
+export const chooseBooks = (found: readonly BookFolder[], books: BookSelection): readonly BookFolder[] => {
+  if (books.kind === 'all') return [...found].sort((a, b) => a.id.localeCompare(b.id));
+  return books.ids.map((id) => {
+    const folder = found.find((f) => f.id === id);
+    if (!folder) throw new Error(`no book with id "${id}" under the content root; found ${found.map((f) => f.id).join(', ') || 'none'}`);
+    return folder;
+  });
+};
+
+export const loadBooks = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> =>
+  Promise.all(chooseBooks(await findBooks(root), books).map((f) => loadBook(f.dir, f.id)));
+
+/* The trees are read once per build. In dev every request reads the files again, so a content edit shows on reload. */
+let cached: Promise<readonly BookTree[]> | null = null;
+export const bookTrees = (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> =>
+  (import.meta.env.PROD ? (cached ??= loadBooks(root, books)) : loadBooks(root, books));

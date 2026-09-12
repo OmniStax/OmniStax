@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { config } from '../omnistax.config';
-import { loadBook } from '../src/lib/content/load';
+import { loadBooks } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
   CHECKS, checkAnchors, checkBinds, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkWidths,
@@ -11,24 +11,28 @@ import type { Check, Content, Finding } from '../src/lib/content/check';
 
 /* ---------- the book on disk ---------- */
 
-const REAL = await contentOf(await loadBook(config.content.root, config.content.bookId));
+/* Every book the build carries, as the checks read it: one content record a book, each checked on its own. */
+const BOOKS = await Promise.all((await loadBooks(config.content.root, config.content.books)).map(contentOf));
 const said = (findings: readonly Finding[]): readonly string[] => findings.map((f) => `${f.where}: ${f.what}`);
 
-test('the book on disk passes every check', () => {
-  assert.deepEqual(said(errorsOf(checkContent(REAL))), []);
+test('every book on disk passes every check', () => {
+  BOOKS.forEach((book) => assert.deepEqual(said(errorsOf(checkContent(book))), [], book.book.id));
 });
-test('the book on disk is not empty, so the checks above had something to read', () => {
-  assert.ok(REAL.chapters.length > 0 && REAL.chapters.flatMap((c) => c.sections).length > 0);
+test('the books on disk are not empty, so the checks above had something to read', () => {
+  assert.ok(BOOKS.length > 0);
+  assert.ok(BOOKS.every((b) => b.chapters.length > 0 && b.chapters.flatMap((c) => c.sections).length > 0));
   assert.ok(CHECKS.every((check) => typeof check === 'function'));
 });
 test('a concept whose chapter the book has not added yet is said out loud, and is no error', () => {
-  const waiting = checkContent(REAL).filter((f) => f.level === 'info');
+  const waiting = BOOKS.flatMap((b) => checkContent(b)).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
 });
-test('a figure the book on disk cites and no row carries is a warning, and only in a chapter the book has not built', () => {
-  const built = new Set(REAL.chapters.map((ch) => ch.dto.id));
-  const cited = warningsOf(checkContent(REAL));
-  assert.ok(cited.every((f) => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1])), said(cited).join('\n'));
+test('a figure a book on disk cites and no row carries is a warning, and only in a chapter the book has not built', () => {
+  BOOKS.forEach((book) => {
+    const built = new Set(book.chapters.map((ch) => ch.dto.id));
+    const cited = warningsOf(checkContent(book));
+    assert.ok(cited.every((f) => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1])), said(cited).join('\n'));
+  });
 });
 
 /* ---------- one fixture per rule, each broken on purpose ---------- */

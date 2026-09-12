@@ -7,7 +7,10 @@ import { variableCard, figureCard, termCard, equationCard, referenceCard, concep
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
 import type { ConceptId, SectionId, SpanId } from '../src/lib/types/ids';
 import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
-import { ROOT } from './book-on-disk';
+import { PHYSICS, bookRoot } from './book-on-disk';
+
+/* The fixtures below are pages of College Physics 2e, so they are read from that book by its id rather than from whichever book the environment puts first. */
+const ROOT = await bookRoot(PHYSICS);
 
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
