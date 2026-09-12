@@ -116,6 +116,40 @@ section lists what it binds.
 The scheme ties sliders, equation symbols and drawn objects together
 across the page, and it can be switched off. Keep it.
 
+Type hues are one of four families of colour, and a book whose figures
+draw things with identities (atoms, ions, molecules, species) uses all
+four:
+
+1. **Quantities take type hues from the scheme**, as above, bound per
+   page.
+2. **Every atom, ion, molecule and particle with an identity takes its
+   element colour, always.** The element palette is the chemist's own
+   convention (carbon black, oxygen red, nitrogen blue, and the rest),
+   fixed in the app as `F.el(symbol)` with a value for each theme. It is
+   not gated on the atoms needing to be told apart: a gas box draws the
+   gas the reader chose in that element's colour, never an anonymous
+   grey dot, and a figure gives a generic particle an identity so that
+   it can have one. An ion keeps its element colour and carries a charge
+   mark.
+3. **Colour that is the physical fact is drawn as the fact.** A photon at
+   656 nm is red; a flame test, an indicator, a copper solution, a
+   complex ion, a hazard diamond are their own colours.
+4. **Instances that must be told apart and carry no type or element take
+   a categorical palette**: three gases on one graph, four archers, three
+   isotopes, the samples of a table. The app provides a small ordinal
+   palette, `F.cat(i)`, and a page never draws it in a hue it has bound
+   to a type.
+
+The test for one figure: everything in it with an identity is coloured,
+or the whole figure is ink. No half-coloured figure. Ink is for the
+frame (axes, rules, apparatus outlines, labels) and for untyped scalars
+(a mass in a book that leaves mass untyped, a count, an angle). A phase
+is told by packing, not by colour, as the books draw it; a temperature is
+shown by its type hue on the symbol and the slider, never as a warm-to-
+cold tint on a body. Switching colour coding off drops the type hues and
+keeps the element, physical and categorical colours, which are the
+book's conventions rather than the app's signal.
+
 ## 8. The page is a shell of items, not a fixed three-column article
 
 Documents (section text, problem set) and views (concept map, contents,
