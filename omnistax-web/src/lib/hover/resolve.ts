@@ -5,12 +5,15 @@
 import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
 import type { SpanId, SectionId, ConceptId } from '../types/ids';
 
-export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation' | 'concept';
+export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
 export type Action = { readonly label: string; readonly run: () => void };
 /* Places the card points at, under a lead of their own: "Introduced in", "Used
    in", "Tested by". A long list is cut short and the rest stand behind one
    trailing action, which opens the page holding them all. */
 export type RefGroup = { readonly label: string; readonly links: readonly Action[]; readonly more?: Action };
+/* An element as a formula card shows it: a chip on the element's own colour,
+   the symbol, how many atoms of it the formula has, and the element's page. */
+export type Chip = { readonly symbol: string; readonly name: string; readonly count: number; readonly run: () => void };
 export type Card = {
   readonly kind: Kind;
   readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Figure", "Equation · important" */
@@ -18,6 +21,7 @@ export type Card = {
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
   readonly body?: string;            /* one or two sentences, $…$ allowed */
   readonly refs?: readonly RefGroup[];
+  readonly chips?: readonly Chip[];   /* a formula's composition, one chip per element */
   readonly actions: readonly Action[];
 };
 
@@ -29,9 +33,10 @@ export type Nav = {
   readonly showOriginal: (figure: SpanId) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showExercises: (sec: SectionId, concept: ConceptId) => void;   /* pins the concept and opens the problem set, so the cards that test it stand marked */
+  readonly showElement: (symbol: string) => void;   /* opens the book's elements sheet with that element pinned */
 };
 
-const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept' };
+const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept', formula: 'Formula' };
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
@@ -115,6 +120,30 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
       ...(anchor ? [{ label: 'Go to where it is introduced', run: () => nav.goSpan(anchor) }] : [{ label: 'Go to section', run: () => nav.openSection(e.section as SectionId) }]),
       ...(e.important ? [{ label: 'Show in Formulas', run: () => nav.showView('formulas') }] : []),
     ],
+  };
+};
+
+
+/* ---------- chemical formula ---------- */
+
+/* A formula in the prose: what it is made of, what a mole of it weighs, and the
+   way through to the elements page. The composition comes off the span the
+   marker wrote, so the card does not parse the formula a second time; the
+   masses come from the book's elements sheet, and where the sheet has not been
+   read yet the card says what it can and leaves the arithmetic out. */
+export type FormulaFacts = {
+  readonly formula: string;
+  readonly parts: readonly { readonly symbol: string; readonly name: string; readonly count: number }[];
+  readonly mass?: { readonly total: number; readonly working: string };
+};
+export const formulaCard = (f: FormulaFacts, nav: Nav): Card => {
+  const first = f.parts[0];
+  const names = f.parts.map((p) => p.name).join(', ');
+  return {
+    kind: 'formula', eyebrow: KIND_LABEL.formula, title: f.formula,
+    body: f.mass ? f.mass.working : names,
+    chips: f.parts.map((p) => ({ ...p, run: () => nav.showElement(p.symbol) })),
+    actions: first ? [{ label: 'Go to the elements', run: () => nav.showElement(first.symbol) }] : [],
   };
 };
 

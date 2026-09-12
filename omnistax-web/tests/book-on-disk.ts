@@ -23,3 +23,5 @@ export const bookRoots = async (): Promise<readonly BookDir[]> =>
 
 /* The book the fixtures of the physics tests come from. */
 export const PHYSICS: BookId = bookId('college-physics-2e');
+/* The book the fixtures of the sheet tests come from. */
+export const CHEMISTRY: BookId = bookId('chemistry-2e');

@@ -62,6 +62,7 @@ const sectionOf = (o: object) => SectionSchema.parse({
 type Parts = { readonly book?: object; readonly chapter?: object; readonly section?: object; readonly textHtml?: string; readonly sourceMd?: string | null };
 const fixture = (p: Parts = {}): Content => ({
   book: bookOf(p.book ?? {}),
+  sheets: [],
   chapters: [{ dto: chapterOf(p.chapter ?? {}), sections: [{ dto: sectionOf(p.section ?? {}), textHtml: p.textHtml ?? TEXT, sourceMd: p.sourceMd === undefined ? SOURCE : p.sourceMd }] }],
 });
 /* What one rule says about one fixture, as one string per finding. */
@@ -216,5 +217,5 @@ test('checkConcepts: a built concept with nothing to say for itself', () => {
   assert.match(said[0], /says no why/);
   assert.match(said[1], /shows no evidence/);
   assert.match(run(checkConcepts, { section: { coverage: [{ span: 'hookes-law', concept: 'hookes-law', verb: 'uses' }] } })[0], /no coverage row introduces it/);
-  assert.deepEqual(checkConcepts({ book: bookOf({ concepts: [bare] }), chapters: [{ dto: chapterOf({}), sections: [] }] }), [], 'a concept nobody has built the section for is a placeholder and says none of it');
+  assert.deepEqual(checkConcepts({ book: bookOf({ concepts: [bare] }), sheets: [], chapters: [{ dto: chapterOf({}), sections: [] }] }), [], 'a concept nobody has built the section for is a placeholder and says none of it');
 });

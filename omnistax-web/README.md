@@ -49,6 +49,7 @@ src/lib/settings    colour coding, theme, animations, exercise mode, underlines
 src/lib/practice    model.ts (points by Bloom level, decaying mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build, and joining them to the book being read; pure), books.svelte.ts (that cache, one fetch a book)
 src/lib/search      model.ts (a corpus per book and what a query finds in it, by kind, with the prose capped; pure), books.ts (a formula sheet and a text index off the wire, leniently; pure), store.svelte.ts (the corpora, the book being read out of the registry and the rest off the build, fetched once), go.ts (landing on a hit: the block, the span, the term, or a link out)
 src/lib/exercises   check.ts: pure answer checking
+src/lib/sheets      elements.ts (where a cell stands, what fills it, what a filter lets through; pure), formula.ts (the chemical formulas of the prose, found and read; pure), mark.ts (the one pass over a document), store.svelte.ts (the sheets fetched, and the element the page stands on)
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts)
 src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
@@ -59,7 +60,8 @@ src/components/actions    adopt (move a DOM node into a component), math (render
 src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
-src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json, book.json, search.json (the book's text as blocks), library.json
+src/components/sheets     Sheet (one sheet as a tab, dispatched by kind), Elements (the periodic table), TableSheet (a plain reference table)
+src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/sheets/[sheet]/{index.astro,sheet.json.ts} (one reference sheet and its data), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json, book.json, search.json (the book's text as blocks), library.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, sims)
 ```
 
@@ -163,5 +165,22 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   head's `rel=prev` and `rel=next`. The links are plain addresses, so a built
   page needs no script for them; inside the shell they open as a tab of the
   group they were clicked in, like any link to a page of the book.
+- A book may declare **sheets**: reference tables it keeps beside its chapters,
+  each a page of its own at `/<book>/sheets/<id>/`, listed in the explorer and
+  on the contents page above the text because a reader reaches for them at any
+  point in it. The kind is an ADT tag — `elements`, the periodic table, or
+  `table`, a plain reference table — and the app draws it; the book only says
+  what it is and which file holds it. The data is fetched once as `sheet.json`
+  beside the page, so it is never folded into a section's HTML.
+- The gestures are the app's and the tokens are the book's, as a language server
+  has it: physics declares typed symbols, chemistry declares element symbols and
+  formulas. A book with an `elements` sheet gets **formula hover**: the same
+  runtime pass that marks glossary terms marks every run of the prose whose
+  every symbol is an element — H₂O, Ca(OH)₂, SO₄²⁻, CuSO₄·5H₂O — and the card
+  shows the composition as element chips on their own palette colours, the molar
+  mass with the arithmetic on one line, and a way through to the elements page
+  with that element pinned. A bare capital is never a formula, since a lone V is
+  a volume; the recogniser is pure and lives in `lib/sheets/formula.ts`. A book
+  that declares no such sheet is untouched.
 - Section figure modules are plain scripts against `window.FIG`; their contract
   is in `docs/prompts/interactive-figures.md`.

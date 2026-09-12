@@ -26,12 +26,12 @@
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { docItem, itemKey, noteId, noteItem, sectionId, type SectionId } from '../../lib/types/ids';
+  import { docItem, itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, SectionEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
 
-  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -116,6 +116,13 @@
     const book = (bookId: string, depth: number): void => {
       const m = manifestOf(bookId);
       if (!m) { hint(`${bookKey(bookId)}?`, depth, 'Reading the book…'); return; }
+      /* The book's reference sheets stand above its text: a reader reaches for
+         the periodic table at any point in the book, not at one place in it. */
+      m.sheets.forEach((sh) => out.push({
+        key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth, label: sh.title, icon: ICON.formulas,
+        href: bookId === registry.manifest.id ? undefined : sh.url, expandable: false, open: false, dim: false,
+        active: bookId === registry.manifest.id && activeKey === itemKey(sheetItem(sheetId(sh.id))),
+      }));
       if (m.intro) section(bookId, m.intro, depth);
       m.chapters.forEach((c) => {
         const key = chapterKey(bookId, c.id);
@@ -243,6 +250,7 @@
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
+    if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
     if (r.kind === 'section' && r.section && !r.dim && !r.href) { void openDoc(r.section, 'text'); return; }
     if (r.kind === 'exercises' && r.section) { void openDoc(r.section, 'exercises'); return; }
     if (r.kind === 'heading' && r.domId) go(r.domId);

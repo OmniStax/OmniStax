@@ -95,6 +95,29 @@ export type FrontPageRefDTO = z.infer<typeof FrontPageRefSchema>;
 const framed = (o: { readonly intro?: FrontPageRefDTO; readonly summary?: FrontPageRefDTO }): { readonly intro?: FrontPageRefDTO; readonly summary?: FrontPageRefDTO } =>
   ({ ...(o.intro ? { intro: o.intro } : {}), ...(o.summary ? { summary: o.summary } : {}) });
 
+/* ---------- book.json `sheets` ---------- */
+
+/* What a sheet is. The app owns the gestures — a page of its own, a row in the
+   explorer, a card on hover — and the book says what tokens its text has and
+   what each gesture does with them; a sheet is the table a gesture looks a
+   token up in. The kind is an ADT tag, since a sheet of one kind carries data
+   a sheet of another kind does not: an `elements` sheet is the periodic table,
+   which the app draws and the formula hover reads, and a `table` is a plain
+   reference table of rows and columns. */
+export const SHEET_KINDS = ['elements', 'table'] as const;
+export type SheetKind = (typeof SHEET_KINDS)[number];
+/* One sheet's id, which names its page under the book: "elements". */
+export type SheetId = string & { readonly __brand: 'SheetId' };
+export const sheetId = (s: string): SheetId => s as SheetId;
+
+export const SheetSchema = z.object({
+  id: z.string().describe('The sheet\u2019s id, which names its page at /<book>/sheets/<id>/ and the storage anything keyed by sheet is kept under.'),
+  title: z.string().describe('The sheet\u2019s title as the book prints it, which is what the explorer and the contents page call it.'),
+  kind: z.enum(SHEET_KINDS).describe('What the sheet is, which is what the app draws it as: "elements" is the periodic table and "table" a plain reference table.'),
+  file: z.string().describe('The sheet\u2019s data file, as a path under the book\u2019s own folder; by convention sheets/<id>.json.'),
+}).strict();
+export type SheetDTO = z.infer<typeof SheetSchema>;
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
@@ -113,10 +136,11 @@ export const BookSchema = z.object({
   exercise_kinds: z.array(ExerciseKindSchema).default([]).describe('The kinds of exercise the book sets, each with the name it prints above them.'),
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
+  sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
-  types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs,
+  types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
 }));
 export type BookDTO = z.infer<typeof BookSchema>;
 
@@ -329,6 +353,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
   concept_prereqs: { level: 'book', file: 'book.json', field: 'concept_prereqs', schema: ConceptPrereqSchema, note: 'The edges of the concept map.' },
+  sheets: { level: 'book', file: 'book.json', field: 'sheets', schema: SheetSchema, note: 'The reference sheets the book keeps beside its chapters, each a page of its own whose data is read from the file the row names.' },
   book_pages: { level: 'book', file: 'book.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The book\u2019s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.' },
   chapter: { level: 'chapter', file: '<chapter>/chapter.json', field: null, schema: ChapterSchema, note: 'One chapter: its number, its title and the sections it is read in.' },
   sections: { level: 'chapter', file: '<chapter>/chapter.json', field: 'sections', schema: SectionRefSchema, note: 'Every section of the chapter, built or not.' },
@@ -459,9 +484,17 @@ export type ChapterEntry = {
   readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string;
   readonly intro?: SectionEntry; readonly sections: readonly SectionEntry[]; readonly summary?: SectionEntry;
 };
+/* One sheet as the shell reads it: what the row says, the page it is served at
+   and the data behind that page, which the sheet's own component fetches. */
+export type SheetEntry = {
+  readonly id: string; readonly title: string; readonly kind: SheetKind;
+  readonly url: string;      /* the page, /<book>/sheets/<id>/ */
+  readonly data: string;     /* the sheet's data, sheet.json beside the page */
+};
 export type BookManifest = {
   readonly id: BookId; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
   readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
+  readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
 };

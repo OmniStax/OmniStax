@@ -24,6 +24,9 @@ export type TypeId = string & { readonly __brand: 'TypeId' };
 /* One equation of the formula sheet, e.g. "eq-hooke". */
 export type EquationId = string & { readonly __brand: 'EquationId' };
 export type NoteId = string & { readonly __brand: 'NoteId' };
+/* One reference sheet of the book, e.g. "elements": the id its book.json
+   declares, which names the sheet's page and its tab. */
+export type SheetId = string & { readonly __brand: 'SheetId' };
 /* One page of a view: several concept maps may stand open at once, and this is what
    tells them apart. A view with no instance is the singleton the sidebar holds. */
 export type ViewInstance = string & { readonly __brand: 'ViewInstance' };
@@ -39,6 +42,7 @@ export const conceptId = (s: string): ConceptId => s as ConceptId;
 export const typeId = (s: string): TypeId => s as TypeId;
 export const equationId = (s: string): EquationId => s as EquationId;
 export const noteId = (s: string): NoteId => s as NoteId;
+export const sheetId = (s: string): SheetId => s as SheetId;
 export const newGroupKey = (): GroupKey => groupKey(Math.random().toString(36).slice(2, 8));
 /* A note's id is eight lowercase letters and digits, which is the shape the key form reads back. */
 export const newNoteId = (): NoteId => noteId(Math.random().toString(36).slice(2, 10).padEnd(8, '0'));
@@ -76,7 +80,8 @@ export type ItemId =
   | { readonly kind: 'fig'; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
   | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string }      /* ex: the exercise's local id, e.g. cq1 */
   | { readonly kind: 'page'; readonly page: PageKind }
-  | { readonly kind: 'note'; readonly note: NoteId };
+  | { readonly kind: 'note'; readonly note: NoteId }
+  | { readonly kind: 'sheet'; readonly sheet: SheetId };   /* one of the book's reference sheets, drawn by the app from the sheet's data */
 
 export const docItem = (section: SectionId, doc: DocKind): ItemId => ({ kind: 'doc', section, doc });
 export const viewItem = (view: ViewKind, instance?: ViewInstance): ItemId => (instance ? { kind: 'view', view, instance } : { kind: 'view', view });
@@ -86,6 +91,7 @@ export const figItem = (section: SectionId, fig: string): ItemId => ({ kind: 'fi
 export const exItem = (section: SectionId, ex: string): ItemId => ({ kind: 'ex', section, ex });
 export const pageItem = (page: PageKind): ItemId => ({ kind: 'page', page });
 export const noteItem = (note: NoteId): ItemId => ({ kind: 'note', note });
+export const sheetItem = (sheet: SheetId): ItemId => ({ kind: 'sheet', sheet });
 /* Documents, figures and exercises belong to a section; a view describes a scope
    of its own, and a page and a note belong to no section at all. */
 export const sectionOfItem = (id: ItemId): SectionId | null => (id.kind === 'doc' || id.kind === 'fig' || id.kind === 'ex' ? id.section : null);
@@ -97,7 +103,8 @@ export const itemKey = (id: ItemId): string =>
       : id.kind === 'ex' ? `ex:${id.section}/${id.ex}`
         : id.kind === 'page' ? `page:${id.page}`
           : id.kind === 'note' ? `note:${id.note}`
-            : id.instance ? `view:${id.view}@${id.instance}` : `view:${id.view}`;
+            : id.kind === 'sheet' ? `sheet:${id.sheet}`
+              : id.instance ? `view:${id.view}@${id.instance}` : `view:${id.view}`;
 export const parseItemKey = (s: string): ItemId | null => {
   const view = /^view:(\w+)(?:@([a-z0-9]{6}))?$/.exec(s);
   if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind, view[2] ? viewInstance(view[2]) : undefined) : null;
@@ -105,6 +112,8 @@ export const parseItemKey = (s: string): ItemId | null => {
   if (page) return (PAGE_KINDS as readonly string[]).includes(page[1]) ? pageItem(page[1] as PageKind) : null;
   const note = /^note:([a-z0-9]{8})$/.exec(s);
   if (note) return noteItem(noteId(note[1]));
+  const sheet = /^sheet:([\w.-]+)$/.exec(s);
+  if (sheet) return sheetItem(sheetId(sheet[1]));
   const doc = /^doc:([^/]+)\/(text|exercises)$/.exec(s);
   if (doc) return docItem(sectionId(doc[1]), doc[2] as DocKind);
   const fig = /^fig:([^/]+)\/([\w-]+)$/.exec(s);

@@ -16,7 +16,7 @@ const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const cid = (s: string) => s as ConceptId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`), showExercises: (s, c) => calls.push(`exs:${s}/${c}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`), showExercises: (s, c) => calls.push(`exs:${s}/${c}`), showElement: (sym) => calls.push(`el:${sym}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- terms ---------- */

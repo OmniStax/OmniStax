@@ -5,7 +5,7 @@
    DOM is touched and no dependency is added, because this runs at build time.
    Each page is one <article class="page" data-page="…"> that the shell adopts
    as it adopts a section's article. */
-import type { BookManifest, SectionEntry } from './schema';
+import type { BookManifest, SectionEntry, SheetEntry } from './schema';
 import { nameList } from './attribution';
 import { pageRoleOf, pagesOf } from './roles';
 
@@ -93,6 +93,17 @@ const frontSection = (s: SectionEntry | undefined): string =>
       </ol>
     </section>`);
 
+/* The sheets the book keeps beside its chapters: the reference tables the app
+   serves as pages of their own, listed above the text because a reader reaches
+   for them at any point in it. */
+const sheetsSection = (sheets: readonly SheetEntry[]): string =>
+  (sheets.length === 0 ? '' : `<section class="chapter sheets">
+      <h2>Reference</h2>
+      <ol>
+        ${sheets.map((s) => `<li class="front"><a href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('\n        ')}
+      </ol>
+    </section>`);
+
 /* The front of one book: its title, then every chapter and section, each a
    link, closing on the attribution the licence asks for. */
 export const bookHtml = (manifest: BookManifest): string => {
@@ -107,7 +118,7 @@ export const bookHtml = (manifest: BookManifest): string => {
     <p class="lead">${esc(m.authors.join(', '))}</p>
   </header>
   <nav aria-label="Contents">
-    ${[frontSection(m.intro), ...m.chapters.map(chapterSection), frontSection(m.summary)].filter((part) => part !== '').join('\n    ')}
+    ${[frontSection(m.intro), sheetsSection(m.sheets), ...m.chapters.map(chapterSection), frontSection(m.summary)].filter((part) => part !== '').join('\n    ')}
   </nav>
   <footer class="footer">
     <p>Adapted from <cite>${esc(m.title)}</cite> by ${esc(nameList(m.authors))}, published by ${esc(m.publisher)}${holder}. Licensed under ${licence}.</p>${source}

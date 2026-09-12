@@ -15,8 +15,9 @@ export type Context = { readonly block: number; readonly link: number; readonly 
 export const TOP: Context = { block: 0, link: 0, heading: 0, math: 0 };            /* the whole article */
 export const IN_BLOCK: Context = { ...TOP, block: 1 };                             /* the innerHTML of one <p> or <li> */
 
-type Token = string;
-const tokens = (html: string): Token[] => html.split(/(<[^>]+>)/).filter((t) => t !== '');
+/* One piece of the split: a tag, or the run of text between two tags. */
+export type Token = string;
+export const tokens = (html: string): Token[] => html.split(/(<[^>]+>)/).filter((t) => t !== '');
 const isTag = (t: Token): boolean => t.startsWith('<');
 const tagName = (t: Token): string => /^<\/?([a-zA-Z][\w-]*)/.exec(t)?.[1]?.toLowerCase() ?? '';
 const closes = (t: Token): boolean => t.startsWith('</');
@@ -29,7 +30,7 @@ const HEADING = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
 const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || tagName(t) === 'figure' || hasClass(t, 'exercises');
 
 /* The context of every token, from a scan that opens and closes at each tag. Forbidding subtrees are tracked by depth. */
-const contexts = (ts: readonly Token[], start: Context): Context[] => {
+export const contexts = (ts: readonly Token[], start: Context): Context[] => {
   let c = start; let forbid: string[] = [];   /* tag names of open forbidding elements */
   const out: Context[] = [];
   for (const t of ts) {
@@ -46,7 +47,9 @@ const contexts = (ts: readonly Token[], start: Context): Context[] => {
   return out;
 };
 const free = (c: Context): boolean => c.link === 0 && c.heading === 0 && c.math === 0;
-const termable = (c: Context): boolean => free(c) && c.block > 0;
+/* Where a run of text may be marked up: in a paragraph or list item, and under no link, heading or rendered math. */
+export const wrappable = (c: Context): boolean => free(c) && c.block > 0;
+const termable = wrappable;
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /* A term as a pattern: whole words, any whitespace between them, case-insensitive. */

@@ -6,7 +6,7 @@ import type { BookDTO, ChapterDTO } from '../src/lib/content/schema';
 const book: BookDTO = {
   id: 'college-physics-2e', title: 'College Physics 2e', publisher: 'OpenStax', authors: ['Paul Peter Urone', 'Roger Hinrichs'],
   sourceUrl: 'https://openstax.org/details/books/college-physics-2e', copyright: 'Rice University', license: 'CC BY-NC-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
-  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: [], symbols: [], exerciseKinds: [], concepts: [], conceptPrereqs: [],
+  openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: [], symbols: [], exerciseKinds: [], concepts: [], conceptPrereqs: [], sheets: [],
 };
 const AT = 'https://openstax.org/books/college-physics-2e/pages/2-1-displacement';
 const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }], variables: [], equations: [], glossary: [] };

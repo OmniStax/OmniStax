@@ -7,13 +7,16 @@
      registry prepare import { decorateTerms } from '../hover';   …   if (doc === 'text') decorateTerms(root, sec);
 
    decorateTerms(root, section): marks the section's glossary terms and example
-   references in the article's prose (see terms.ts) and makes symbols focusable.
+   references in the article's prose (see terms.ts), marks the chemical formulas
+   of a book that declares an elements sheet (see sheets/mark.ts), and makes
+   symbols focusable.
    Idempotent, touches only <p> and <li> elements, and leaves sims and
    exercise cards alone, so it may run after figures have booted.
    Hover.svelte: the card itself and its document-level listeners; mount once. */
 import type { SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK, type Term, type Wrapped } from './terms';
+import { markFormulas } from '../sheets/mark';
 
 export type { Card, Action, Kind } from './resolve';
 
@@ -36,4 +39,5 @@ export const decorateTerms = (root: HTMLElement, section: SectionId): void => {
   apply((h, t, d) => wrapPlainTerms(h, t, d, IN_BLOCK), afterEm);
   bs.forEach((b) => { const h = wrapExampleRefs(b.innerHTML, examples, IN_BLOCK); if (h !== b.innerHTML) b.innerHTML = h; });
   root.querySelectorAll<HTMLElement>('.katex-html [data-sym]').forEach((s) => { if (!s.hasAttribute('tabindex')) s.tabIndex = 0; });
+  markFormulas(root);
 };

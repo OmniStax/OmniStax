@@ -56,7 +56,7 @@ export const parseManifest = (raw: unknown): BookManifest | null => {
   const o = obj(raw); if (!o || !str(o.id) || !Array.isArray(o.chapters)) return null;
   return {
     id: bookId(str(o.id)), title: str(o.title), publisher: '', authors: [], license: '',
-    types: {}, macros: {}, symbols: {}, exerciseKinds: {},
+    types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [],
     chapters: o.chapters.flatMap(parseChapter),
   };
 };

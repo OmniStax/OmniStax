@@ -12,6 +12,7 @@
   import View from './views/View.svelte';
   import ExerciseTab from './exercises/ExerciseTab.svelte';
   import NoteTab from './notes/NoteTab.svelte';
+  import Sheet from './sheets/Sheet.svelte';
   let { groupKey, groupIndex, itemKey, active }: { groupKey: GroupKey; groupIndex: number; itemKey: string; active: boolean } = $props();
   const id = $derived(parseItemKey(itemKey));
   const holds = (g: GroupKey, k: string) => layoutStore.layout.groups.some((x) => x.key === g && x.tabs.includes(k));
@@ -30,6 +31,8 @@
     <div class="view-pane" data-view={id.view} data-item={itemKey}><View item={itemKey} /></div>
   {:else if id && id.kind === 'note'}
     <NoteTab noteId={id.note} {groupKey} />
+  {:else if id && id.kind === 'sheet'}
+    <div class="sheet-pane"><Sheet id={id.sheet} /></div>
   {:else if el}
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
   {:else if status === 'failed'}
@@ -47,6 +50,8 @@
   .pane[hidden]{display:none}
   .view-pane{max-width:760px;margin:0 auto;padding:28px 40px 120px;font-family:var(--sans);font-size:0.95rem}
   .page-host{max-width:760px;margin:0 auto;padding:28px 40px 120px}
+  /* a sheet is a table before it is prose, so it is given the width of the pane rather than a column of text */
+  .sheet-pane{max-width:1180px;margin:0 auto;padding:28px 28px 120px}
   .placeholder{max-width:820px;margin:0 auto}
-  @media (max-width:900px){ .view-pane,.page-host{padding:20px 18px 80px} }
+  @media (max-width:900px){ .view-pane,.page-host,.sheet-pane{padding:20px 18px 80px} }
 </style>

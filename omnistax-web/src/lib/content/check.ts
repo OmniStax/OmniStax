@@ -12,7 +12,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bindsOf } from './load';
-import type { BookTree, SectionSource } from './load';
+import type { BookTree, SectionSource, SheetSource } from './load';
 import { REF, SUMMARY_ID, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
@@ -40,7 +40,7 @@ export type SectionContent = {
 };
 export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent };
 /* The whole book as the checks read it: the three files, and the text and source of every page that is built. */
-export type Content = { readonly book: BookDTO; readonly intro?: SectionContent; readonly chapters: readonly ChapterContent[]; readonly summary?: SectionContent };
+export type Content = { readonly book: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionContent; readonly chapters: readonly ChapterContent[]; readonly summary?: SectionContent };
 export type Check = (content: Content) => readonly Finding[];
 
 /* ---------- what the tables and the text are indexed by ---------- */
@@ -372,9 +372,38 @@ export const checkPages: Check = (content) => {
   ];
 };
 
+
+/* ---------- the sheets ---------- */
+
+/* A sheet is a table the app looks a token up in, so the one thing that can go
+   wrong in the book is the file: the row names a path, and nothing in book.json
+   can say whether the file is there, whether it parses, or whether what it
+   holds is the kind the row promised. The loader has read it already and kept
+   the error rather than thrown, so every sheet of every book is reported in one
+   run. A sheet whose data names a section the book does not have is a warning
+   and not an error: the sections are computed by a tool from what is built, and
+   a book that drops a chapter should still serve its table. */
+export const checkSheets: Check = (content) => {
+  const pages = new Set<string>(pagesOf(content).map((p) => String(p.dto.id)));
+  const seen = new Set<string>();
+  return content.sheets.flatMap((s): readonly Finding[] => {
+    const where = `book.json/sheets/${s.row.id}`;
+    const duplicate = seen.has(s.row.id) ? [error(where, 'is declared twice')] : (seen.add(s.row.id), []);
+    if (s.data === null) return [...duplicate, error(where, `names "${s.row.file}", which does not read: ${s.error ?? 'unknown'}`)];
+    const d = s.data;
+    return [
+      ...duplicate,
+      ...(d.kind === s.row.kind ? [] : [error(where, `is of kind "${s.row.kind}" and its file holds a "${d.kind}" sheet`)]),
+      ...(d.id === s.row.id ? [] : [error(`${s.row.file}`, `calls itself "${d.id}" and the book lists it as "${s.row.id}"`)]),
+      ...(d.title === s.row.title ? [] : [warning(`${s.row.file}`, `is titled "${d.title}" and the book lists it as "${s.row.title}"`)]),
+      ...(d.kind !== 'elements' ? [] : d.elements.flatMap((e) => e.sections.filter((sec) => !pages.has(sec)).map((sec) => warning(`${s.row.file}`, `${e.symbol} names section "${sec}", which the book does not build`)))),
+    ];
+  });
+};
+
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
@@ -391,6 +420,7 @@ const frontContent = async (s: SectionSource | undefined): Promise<SectionConten
 const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });
 export const contentOf = async (tree: BookTree): Promise<Content> => ({
   book: tree.dto,
+  sheets: tree.sheets,
   ...framed(await frontContent(tree.intro), await frontContent(tree.summary)),
   chapters: await Promise.all(tree.chapters.map(async (ch): Promise<ChapterContent> => ({
     dto: ch.dto,

@@ -49,6 +49,26 @@ Tables:
   list, not written down. A concept whose section is built must carry
   `why` and `evidence`; the validator enforces it.
 - `concept_prereqs`: `{ concept, prereq }`.
+- `sheets`: `{ id, title, kind, file }`. The reference sheets the book keeps
+  beside its chapters, each a page of its own at `/<book>/sheets/<id>/`,
+  listed in the explorer and on the contents page above the chapters. The
+  `kind` is an ADT tag and today it is `"elements"`, the periodic table the
+  app draws and the formula hover reads, or `"table"`, a plain reference
+  table of named columns and rows. `file` is a path under the book's own
+  folder, by convention `sheets/<id>.json`.
+
+  A sheet file is one record with the same `id` and `title` the row gives
+  it, a `kind` that must be the row's, a `source` sentence saying where the
+  values came from, since a sheet is reference data and not the book's
+  words, and `generated_by`, `"tool"` or `"hand"`, so that a later pass
+  knows what it may overwrite. An `elements` sheet then carries `elements`,
+  one row per element with its symbol, name, atomic number, weight (as a
+  number and as the table prints it), group, period, block, category, the
+  book's three-way shading, state at 25 °C, electron configuration,
+  electronegativity, first ionization energy, covalent radius, year of
+  discovery, and the sections of this book that name it. A `table` sheet
+  carries `columns` and `rows`. The shapes are zod objects in
+  `src/lib/content/sheets.ts`, beside the tables of the three content files.
 
 ### `<chapter>/chapter.json`
 
@@ -226,7 +246,12 @@ references:
   none, for the book's own), and carries none of a section's apparatus:
   its objectives, summary, exercises lead and notes, coverage, exercises
   and exercise concepts are empty, and only there may the lead be empty;
-- no chapter table anchors into an introduction or summary page.
+- no chapter table anchors into an introduction or summary page;
+- every `sheets` row names a file that is there and parses, holds the kind
+  the row promised and calls itself by the row's id; a title that disagrees
+  with the row is a warning, and so is an element that names a section the
+  book does not build, since the sections are computed by a tool from what
+  has been built.
 
 The same checks run in `npm test` against the real content, so a content
 edit that breaks a reference fails the suite, not only the build.

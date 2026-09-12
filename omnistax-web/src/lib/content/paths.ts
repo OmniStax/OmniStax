@@ -4,7 +4,7 @@
    from. */
 import { config } from '../../../omnistax.config';
 import { bookTrees } from './load';
-import type { BookTree, ChapterTree, SectionSource } from './load';
+import type { BookTree, ChapterTree, SectionSource, SheetSource } from './load';
 import { type FrontRole, pageDir, pagesOf } from './roles';
 
 /* One page of the book as a route: a section or a chapter's own introduction
@@ -16,6 +16,9 @@ export type SectionRoute = { params: { book: string; chapter: string; section: s
 export type FrontRoute = { params: { book: string }; props: PageProps };
 export type BookRoute = { params: { book: string }; props: BookProps };
 export type ChapterRoute = { params: { book: string; chapter: string }; props: { tree: BookTree; chapter: ChapterTree } };
+/* One sheet of a book as a route: the book it belongs to and the sheet itself. */
+export type SheetProps = { tree: BookTree; sheet: SheetSource };
+export type SheetRoute = { params: { book: string; sheet: string }; props: SheetProps };
 
 /* Every book of this build, in the order the configuration puts them in. */
 export const trees = (): Promise<readonly BookTree[]> => bookTrees(config.content.root, config.content.books);
@@ -34,4 +37,8 @@ export const frontRoutes = (role: FrontRole) => async (): Promise<FrontRoute[]> 
   (await trees()).flatMap((t) => { const section = t[role]; return section ? [{ params: { book: t.dto.id }, props: { tree: t, chapter: null, section } }] : []; });
 export const chapterRoutes = async (): Promise<ChapterRoute[]> =>
   (await trees()).flatMap((t) => t.chapters.map((chapter) => ({ params: { book: t.dto.id, chapter: chapter.dto.dir }, props: { tree: t, chapter } })));
+/* Every sheet of every book: the page it is served at, and the data beside it. */
+export const sheetRoutes = async (): Promise<SheetRoute[]> =>
+  (await trees()).flatMap((tree) => tree.sheets.map((sheet) => ({ params: { book: tree.dto.id, sheet: sheet.row.id }, props: { tree, sheet } })));
+
 export const json = (data: unknown): Response => new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json; charset=utf-8' } });

@@ -33,7 +33,7 @@ export type Mounter = (root: HTMLElement, section: SectionId) => void;
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [] });
+  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [] });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   pages = $state.raw<Partial<Record<PageKind, HTMLElement>>>({});             /* the standing pages, adopted from a pool or fetched */
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
@@ -60,6 +60,7 @@ class Registry {
     if (id.kind === 'view') return id.view;
     if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.manifest.title || 'The book';
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
+    if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
     /* A section's tab is named by its number and which document it is; an introduction or summary page by its own title. */

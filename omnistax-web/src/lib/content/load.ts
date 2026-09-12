@@ -7,9 +7,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
 import { BookSchema, ChapterSchema, SectionSchema, equationOf } from './schema';
+import { SheetDataSchema } from './sheets';
+import type { SheetDataDTO } from './sheets';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, FormulasDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
+  ExerciseDTO, FigureRowDTO, FormulasDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
@@ -40,7 +42,12 @@ export type ChapterTree = {
   readonly dto: ChapterDTO; readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO;
   readonly intro?: SectionSource; readonly sections: readonly SectionSource[]; readonly summary?: SectionSource;
 };
-export type BookTree = { readonly dto: BookDTO; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
+/* One sheet as the build reads it: the row the book wrote, the file it names
+   and what that file holds. A file that is missing or will not parse is read as
+   an error rather than thrown, so that `check:content` can report every sheet
+   of every book in one run; the page that serves it throws instead. */
+export type SheetSource = { readonly row: SheetDTO; readonly file: string; readonly data: SheetDataDTO | null; readonly error?: string };
+export type BookTree = { readonly dto: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
 
 const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> => schema.parse(JSON.parse(await fs.readFile(file, 'utf8')));
 const readText = (file: string): Promise<string> => fs.readFile(file, 'utf8');
@@ -52,6 +59,8 @@ export const sectionUrl = (bookId: string, chapterDir: string, sectionId: string
 const chapterUrl = (bookId: string, chapterDir: string): string => `/${bookId}/${chapterDir}/`;
 export const frontPageUrl = (bookId: string, chapterDir: string | null, role: FrontRole): string =>
   (chapterDir === null ? `/${bookId}/${role}/` : `/${bookId}/${chapterDir}/${role}/`);
+/* A sheet stands at the book's root, beside the chapters rather than inside one. */
+export const sheetUrl = (bookId: string, sheetId: string): string => `/${bookId}/sheets/${sheetId}/`;
 
 /* ---------- the book's symbols ---------- */
 
@@ -213,9 +222,23 @@ const unbuiltEntry = (book: BookDTO, ch: ChapterDTO, s: SectionRefDTO): SectionE
   return { id: s.id, title: s.title, built: false, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`, figures: [], binds: [], exercises: [], openstax: sectionSourceUrl(book, ch, s.id) };
 };
 
-const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>): BookManifest => ({
+/* Every sheet the book declares, read from the files its rows name. The row's
+   own id and title are what the app lists, so a file that disagrees with them
+   is a finding for the validator and not a reason to refuse the build here. */
+export const loadSheets = async (root: BookDir, book: BookDTO): Promise<readonly SheetSource[]> =>
+  Promise.all(book.sheets.map(async (row): Promise<SheetSource> => {
+    const file = path.join(root, row.file);
+    try { return { row, file, data: SheetDataSchema.parse(JSON.parse(await fs.readFile(file, 'utf8'))) }; }
+    catch (e) { return { row, file, data: null, error: e instanceof Error ? e.message : String(e) }; }
+  }));
+
+const sheetEntry = (book: BookDTO, s: SheetSource): SheetEntry =>
+  ({ id: s.row.id, title: s.row.title, kind: s.row.kind, url: sheetUrl(book.id, s.row.id), data: `${sheetUrl(book.id, s.row.id)}sheet.json` });
+
+const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary' | 'sheets'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
+  sheets: tree.sheets.map((s) => sheetEntry(book, s)),
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
   chapters: tree.chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
@@ -236,15 +259,16 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   if (dto.id !== id) throw new Error(`book.json is "${dto.id}", expected "${id}"`);
   const macros = macrosOf(dto.symbols);
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
-  const [intro, loaded, summary] = await Promise.all([
+  const [intro, loaded, summary, sheets] = await Promise.all([
     loadFrontPage(root, 'intro', front('intro'), macros),
     Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dto, dir, macros))),
     loadFrontPage(root, 'summary', front('summary'), macros),
+    loadSheets(root, dto),
   ]);
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */
   const built = new Set<string>(loaded.flatMap((ch) => ch.sections.map((s) => String(s.meta.id))));
   const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built), formulas: formulasOf(ch.dto) }));
-  const framed = { intro, chapters, summary };
+  const framed = { intro, chapters, summary, sheets };
   return { dto, ...framed, manifest: manifestOf(dto, framed) };
 };
 

@@ -85,6 +85,17 @@ The edges of the concept map.
 | `concept` | `string` | yes | The concept that rests on another. |
 | `prereq` | `string` | yes | The concept it rests on. Mastery runs downward along these edges: mastering a concept freshens what it is built on. |
 
+### `sheets`
+
+The reference sheets the book keeps beside its chapters, each a page of its own whose data is read from the file the row names.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The sheet’s id, which names its page at /<book>/sheets/<id>/ and the storage anything keyed by sheet is kept under. |
+| `title` | `string` | yes | The sheet’s title as the book prints it, which is what the explorer and the contents page call it. |
+| `kind` | `"elements" \| "table"` | yes | What the sheet is, which is what the app draws it as: "elements" is the periodic table and "table" a plain reference table. |
+| `file` | `string` | yes | The sheet’s data file, as a path under the book’s own folder; by convention sheets/<id>.json. |
+
 ### `book_pages`
 
 The book’s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.

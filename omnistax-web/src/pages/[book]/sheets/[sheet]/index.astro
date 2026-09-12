@@ -1,0 +1,26 @@
+---
+/* One reference sheet of a book, which is the shell with that sheet open in it.
+   The sheet is data rather than prose, so the page carries no static article:
+   the component fetches the sheet beside it and draws it, and the pool is empty
+   but for the heading a reader without JavaScript is owed. */
+import ShellPage from '../../../../layouts/ShellPage.astro';
+import { sheetRoutes } from '../../../../lib/content/paths';
+import type { SheetProps } from '../../../../lib/content/paths';
+import { sheetId, sheetItem } from '../../../../lib/types/ids';
+export const getStaticPaths = sheetRoutes;
+const { tree, sheet } = Astro.props as SheetProps;
+const m = tree.manifest;
+const title = `${sheet.row.title} · ${m.title}`;
+---
+<ShellPage
+  tree={tree}
+  own={sheetItem(sheetId(sheet.row.id))}
+  pool={`<article class="page" data-page="sheet" data-sheet="${sheet.row.id}" hidden><h1>${sheet.row.title}</h1></article>`}
+  title={title}
+  description={`${sheet.row.title}, a reference sheet of ${m.title}.`}
+  book={m.id}
+>
+  <Fragment slot="head">
+    {m.licenseUrl && <link rel="license" href={m.licenseUrl} />}
+  </Fragment>
+</ShellPage>

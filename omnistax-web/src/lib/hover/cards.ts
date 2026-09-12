@@ -7,12 +7,16 @@ import { goSpan, findEl, openDoc, reveal } from '../sections/nav.svelte';
 import { pin, spansOf, testers } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { split } from '../layout/model';
-import { type SectionId, type SpanId, sectionId, spanId, conceptId, sectionOfSpan, exerciseDomId, newViewItem } from '../types/ids';
+import { type SectionId, type SpanId, sectionId, spanId, conceptId, sheetId, sectionOfSpan, exerciseDomId, newViewItem, sheetItem, itemKey } from '../types/ids';
+import { sheets } from '../sheets/store.svelte';
+import { componentsOf } from '../sheets/elements';
+import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, lookupVariable } from './data';
-import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import { openItem } from '../sections/nav.svelte';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .ex-root a[href^="#"], .katex-display, [data-concept]';
+export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .ex-root a[href^="#"], .katex-display, [data-concept], .formula[data-formula]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
@@ -61,8 +65,15 @@ const showOriginal = (figure: SpanId): void => {
   openDoc(sectionOfSpan(figure), 'text').then(() => requestAnimationFrame(show));
 };
 const openExternal = (sec: SectionId): void => { window.open(registry.entry(sec)?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); };
+/* The elements sheet, standing on one element: the page of it, opened wherever
+   a tab opens, with the element pinned before it draws. */
+const showElement = (symbol: string): void => {
+  const entry = sheets.elementsEntry; if (!entry) return;
+  sheets.pin(symbol);
+  void openItem(itemKey(sheetItem(sheetId(entry.id))));
+};
 export const nav: Nav = {
-  goSpan, openSection: (sec) => { openDoc(sec, 'text'); }, showView, showOriginal, openExternal,
+  goSpan, openSection: (sec) => { openDoc(sec, 'text'); }, showView, showOriginal, openExternal, showElement,
   showExercises: (sec, id) => { if (pin.pinned !== id) pin.toggle(id); openDoc(sec, 'exercises'); },   /* the problem set, with the cards that test the concept already marked */
 };
 
@@ -114,6 +125,17 @@ const concept = (t: HTMLElement): Card | null => {
   return conceptCard({ concept: c, intro: places(sp.intro), uses: places(sp.uses), tested, built: !!registry.entry(sec)?.built, onMap: t.matches('.node') }, nav);
 };
 
+/* A formula: the composition the marker wrote on the span, named and weighed
+   from the book's elements sheet. */
+const formula = (t: HTMLElement): Card | null => {
+  const text = t.dataset.formula; if (!text) return null;
+  const atoms = parseComposition(t.dataset.composition ?? '');
+  const sheet = sheets.elements;
+  const parts = sheet ? componentsOf(sheet, atoms).map(({ element, count }) => ({ symbol: element.symbol, name: element.name, count })) : atoms.map((a) => ({ symbol: a.symbol, name: a.symbol, count: a.count }));
+  const mass = molarMass(atoms, sheets.table);
+  return formulaCard({ formula: text, parts, ...(mass ? { mass } : {}) }, nav);
+};
+
 /* The card for a target, or null when there is nothing to say. */
 export const cardFor = (t: HTMLElement): Card | null => {
   if (t.hasAttribute('data-sym')) return variable(t);
@@ -121,6 +143,7 @@ export const cardFor = (t: HTMLElement): Card | null => {
   if (t.matches('.term')) return term(t);
   if (t.matches('.katex-display')) return equation(t);
   if (t.matches('[data-concept]')) return concept(t);
+  if (t.matches('.formula[data-formula]')) return formula(t);
   if (t.matches('a[href^="#"]')) return reference(t);
   return null;
 };

@@ -36,6 +36,8 @@
   import FindTextbook from './explorer/FindTextbook.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
+  import { sheets } from '../lib/sheets/store.svelte';
+  import { markFormulas } from '../lib/sheets/mark';
   import { notes } from '../lib/notes/store.svelte';
   import { noteDocs } from '../lib/notes/docs.svelte';
   import { explorer } from '../lib/explorer/store.svelte';
@@ -59,6 +61,7 @@
     if (!id) return false;
     if (id.kind === 'view') return viewKindOf(k) !== null;
     if (id.kind === 'page') return true;
+    if (id.kind === 'sheet') return registry.manifest.sheets.some((s) => s.id === id.sheet);
     if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
     return registry.isBuilt(id.section);
   };
@@ -80,6 +83,7 @@
     library.init(manifest.id, manifest.title);
     practice.init();
     registry.init(manifest, fig, mountExercises, paintDoc);
+    sheets.init(markFormulas);
     colours.init(manifest);
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);
     focus.own = page;

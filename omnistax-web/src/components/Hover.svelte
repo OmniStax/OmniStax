@@ -14,6 +14,8 @@
   import { findEl, goSpan } from '../lib/sections/nav.svelte';
   import { spanId } from '../lib/types/ids';
   import { FIG } from '../lib/fig/figlib';
+  import { elementColor } from '../lib/fig/elements';
+  import { settings } from '../lib/settings/store.svelte';
   import { math } from './actions/math';
 
   const CLOSE_GRACE = 200;
@@ -95,6 +97,7 @@
     <div class="eyebrow">{card.eyebrow}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
+    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={elementColor(c.symbol, settings.dark)} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={() => run(c)}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
     {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={() => run(l)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={() => run(m)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
     {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={() => run(a)}>{a.label}</button>{/each}</div>{/if}
   </div>
@@ -110,6 +113,13 @@
   .body{margin:0;color:var(--ink);max-width:36em}
   .body :global(.katex){font-size:1em}
   /* a concept's places: the lead in the eyebrow's voice, the places beside it as quiet links */
+  /* a formula's composition: one chip per element, on the element's own colour, which is a convention and not a signal the app adds */
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 0}
+  .chip{display:inline-flex;align-items:baseline;gap:2px;font:inherit;font-size:0.78rem;font-weight:600;padding:2px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--el) 55%,transparent);background:color-mix(in srgb,var(--el) 18%,transparent);color:var(--ink);cursor:pointer}
+  .chip:hover{background:color-mix(in srgb,var(--el) 32%,transparent)}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .chip .n{font-size:0.68rem;font-weight:500;color:var(--muted)}
+  .hover-card[data-kind="formula"] .body{font-variant-numeric:tabular-nums;color:var(--muted)}
   .refs{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline}
   .refs dt{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;white-space:nowrap}
   .refs dd{margin:0;display:flex;flex-wrap:wrap;gap:3px 6px}
@@ -129,12 +139,13 @@
      is included), glossary terms, example references. It is the reader's to
      keep or to do without — "Underline what can be looked up" in the settings
      writes the class the rules hang from — and either way the card still opens. */
-  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
-  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
   :global(.sim .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a sim's readouts and control labels stay clean; the card still opens */
   /* The card is where a symbol is explained, not another place to look it up. */
-  :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card a.xref){text-decoration:none}
-  :global(.term[data-term]){cursor:default}
+  :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card a.xref){text-decoration:none}
+  :global(.term[data-term]), :global(.formula[data-formula]){cursor:default}
+  :global(.formula[data-formula]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
   :global(a.xref){color:inherit}
   :global(a.xref:hover){color:var(--accent)}
   :global(.term[data-term]:focus-visible), :global([data-sym]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
