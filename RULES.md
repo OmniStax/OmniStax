@@ -1,10 +1,6 @@
 # Rules for transforming a textbook
 
-How the agent turns a textbook into OmniStax pages. Each item is a decision,
-numbered so that a book's rules, a chapter's config and the prompts can
-refer to it. These rules hold for every book. What is true of one book only
-(its structure, its source format, its voice, its types) goes in that
-book's own `RULES.md`, which item 18 describes.
+Each item is a decision, numbered so that a book's rules, a chapter's config, a plan and a brief can cite it. These hold for every book; what is true of one book goes in that book's `RULES.md` (item 18). The long form with history and examples is `docs/rationale/RULES.md`, kept for people.
 
 ## Where things live
 
@@ -33,560 +29,141 @@ omnistax-web/                    the app that builds every book into a site
 docs/                            designs, prompts and the generated content reference
 ```
 
-The shape of every JSON file is the subject of `docs/content-tables.md`,
-and the field-by-field reference, `docs/content-format.md`, is generated
-from the schema in `omnistax-web/src/lib/content/schema.ts`. Item 19 says
-how to read and check them.
-
 ## 1. Start with a textbook exploration phase
 
-Before transforming anything, the agent reads the book to learn how it
-organizes information, and reports the granularity of its organizing units
-(for example book → units → chapters → sections, or book → chapters →
-sections → subsections). This is where module ids, the collection order,
-the licence, and the location of exercises and answer keys are found.
+Before transforming anything, read the book and report in `exploration.md` its organizing units and their granularity, its module ids, the collection order, the licence, and where exercises and answer keys sit.
 
 ## 2. Build one section at a time, one page per section
 
-Whatever the book's own structure, the working format is
-book → chapters → sections → concepts. One section corresponds to one HTML
-page. After each section completes, the agent stops with a distinct,
-interrupting message to the user and waits for feedback before starting the
-next section.
+The working format is book → chapters → sections → concepts; one section is one page. After each section, stop with an interrupting message and wait for feedback before the next, unless the chapter's `config.md` records that the stop is replaced by a plan file left for review.
 
 ## 3. Decide the sub-concepts within a section
 
-The agent proposes the subheaders (sub-concepts) for the section. Not every
-section needs subdivision, but many do. The agent decides where to divide,
-neither over- nor under-dividing. The goal is digestible chunks: each idea
-is an independent block so the reader can take the material apart one piece
-at a time.
+Propose the section's sub-concept headers, one independent block per idea, neither over- nor under-divided. Not every section needs dividing.
 
 ## 4. Pull meta-information out of the running text
 
-Learning objectives, formula sheets, key terms, section summaries and
-similar apparatus are ingested into structured data and removed from the
-main text. The tool displays them elsewhere (floaters, formula sheet,
-definitions tab), so they must not also sit inline. A section's own
-introduction and summary are the one exception: item 21 says where they
-go.
+Learning objectives, key equations, key terms, summaries and similar apparatus go to the tables and are removed from the text; the app shows them elsewhere. A section's own introduction and summary are the exception (item 21).
 
 ## 5. Report the plan per section before building
 
-For each section, the agent reports which subheaders (sub-concepts) it
-plans to create and which diagrams it plans to make, and gets this plan
-reviewed before writing the page. The figure half of that plan is specified
-in `docs/prompts/interactive-figures.md`.
-
-Andrew: I liked especially the part where adjusting the variables values of interested updated live. And, that those values are shown to be updated within the formula. Wonderful.
+Write `plan.md` before building: the sub-concepts, the concept nodes and where each is introduced, one line per figure in the format of `docs/prompts/interactive-figures.md`, every photograph with keep or drop and why, exercises by kind, tables, and the types the page binds. The plan is reviewed before the page is written, or left for review when `config.md` says so. A section build owns its `plan.md`, `text.html`, `figures.js`, `section.json` and the media it copies, nothing at chapter or book level; what it needs changed there goes in `plan.md` under `## Wanted at chapter level`, one line per item with the exact id, and the chapter pass applies it.
 
 ## 6. Keep the concepts in an organized data format
 
-Concepts are written down in a structured file as the sections progress,
-not inferred from headers afterwards. Later sections point back to earlier
-concepts and sub-concepts, so the concept map grows across the book. The
-concept map holds strictly the concept description: name, kind, prerequisite
-edges, why, evidence. Narrative structure stays out of it.
+Concepts are written to the tables as sections progress, never inferred from headers afterwards; later sections point back to earlier concept ids. A concept row holds only name, kind, prerequisite edges, why and evidence.
 
 ## 7. Colour is a function of type
 
-A colour belongs to a type, and a type is a kind of physical quantity:
-its dimension (time, position, velocity, force, energy, frequency,
-stiffness). A symbol takes the colour of its type; a derived quantity is
-a different type and takes a different colour (v = dx/dt is velocity,
-not position); a variant of the same type (initial, average, maximum)
-keeps the colour and differs by decoration (hollow, dashed, subscript).
-A drawn thing takes the colour of its result type: the area under a
-force line is an energy and is shaded as one. Nothing is coerced into a
-neighbouring type to save a colour: frequency is not a time and a force
-constant is not a force.
+A colour belongs to a type, and a type is a kind of physical quantity. A symbol takes its type's colour; a derived quantity is another type and another colour; a variant of one type (initial, average, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its result type. Nothing is coerced into a neighbouring type to save a colour.
 
-The book declares its types and says nothing about their hues. The
-app dresses them from a **scheme**: the first of its recommended
-palettes that can dress every type the book declares, and hues spaced
-evenly round the OKLCH circle when none is long enough, laid along the
-order the book declares its types in. The reader may reorder the types
-and override any colour for the book, a chapter or a section in the
-colour menu, and export or load what they chose. Finally, **a page
-colours only the types it binds**, the ones its figures draw, its sliders
-carry, or its readouts state; every other symbol renders in ink on that
-page, so colour stays a signal rather than wallpaper. The plan for a
-section lists what it binds.
+The book declares its types in order and says nothing about hues; the app dresses them from a scheme and the reader may override. A page colours only the types it binds, the ones its figures draw, its sliders carry or its readouts state; every other symbol on that page is ink, and the plan lists what the page binds.
 
-The scheme ties sliders, equation symbols and drawn objects together
-across the page, and it can be switched off. Keep it.
+Four families of colour: type hues from the scheme, bound per page; the element palette `F.el(symbol)` for every atom, ion, molecule or particle with an identity, always, so no gas box draws an anonymous grey dot; a colour that is the physical fact (a photon's wavelength, a flame, a solution) drawn as the fact; and the categorical palette `F.cat(i)` for instances that must be told apart and carry no type or element, never in a hue the page has bound.
 
-Type hues are one of four families of colour, and a book whose figures
-draw things with identities (atoms, ions, molecules, species) uses all
-four:
-
-1. **Quantities take type hues from the scheme**, as above, bound per
-   page.
-2. **Every atom, ion, molecule and particle with an identity takes its
-   element colour, always.** The element palette is the chemist's own
-   convention (carbon black, oxygen red, nitrogen blue, and the rest),
-   fixed in the app as `F.el(symbol)` with a value for each theme. It is
-   not gated on the atoms needing to be told apart: a gas box draws the
-   gas the reader chose in that element's colour, never an anonymous
-   grey dot, and a figure gives a generic particle an identity so that
-   it can have one. An ion keeps its element colour and carries a charge
-   mark.
-3. **Colour that is the physical fact is drawn as the fact.** A photon at
-   656 nm is red; a flame test, an indicator, a copper solution, a
-   complex ion, a hazard diamond are their own colours.
-4. **Instances that must be told apart and carry no type or element take
-   a categorical palette**: three gases on one graph, four archers, three
-   isotopes, the samples of a table. The app provides a small ordinal
-   palette, `F.cat(i)`, and a page never draws it in a hue it has bound
-   to a type.
-
-The test for one figure: everything in it with an identity is coloured,
-or the whole figure is ink. No half-coloured figure. Ink is for the
-frame (axes, rules, apparatus outlines, labels) and for untyped scalars
-(a mass in a book that leaves mass untyped, a count, an angle). A phase
-is told by packing, not by colour, as the books draw it; a temperature is
-shown by its type hue on the symbol and the slider, never as a warm-to-
-cold tint on a body. Switching colour coding off drops the type hues and
-keeps the element, physical and categorical colours, which are the
-book's conventions rather than the app's signal.
+Test for one figure: everything in it with an identity is coloured, or the whole figure is ink. Ink is for the frame and for untyped scalars. A phase is told by packing, not colour; a temperature by its type hue on symbol and slider, never as a tint on a body. Colour-off drops the type hues and keeps element, physical and categorical colours.
 
 ## 8. The page is a shell of items, not a fixed three-column article
 
-Documents (section text, problem set) and views (concept map, contents,
-formulas, definitions, notes) are items that can sit in a sidebar
-or open as a tab, with rails on both edges and up to two document groups
-side by side. See `omnistax-web/docs/shell-layout.md`.
+Documents and views are items that sit in a sidebar or open as a tab; see `omnistax-web/docs/shell-layout.md`.
 
 ## 9. Scan ahead for exercises that live at the end of the chapter
 
-Some textbooks put all exercises at the end of the chapter rather than
-after each section (College Physics 2e does this: the problem set for 2.5
-is in the chapter-end material, keyed by section). Building one section at
-a time must not mean reading one section at a time. In the exploration
-phase the agent records where exercises, answer keys, glossaries and
-summaries sit, and when it builds a section it scans ahead to those places
-and pulls out the items that belong to the section. The same applies to
-any apparatus that is aggregated per chapter or per book.
+Where the book aggregates exercises, keys, glossaries or summaries per chapter or per book, `exploration.md` records where, and building a section scans those places and pulls out what belongs to it.
 
 ## 10. After exploration, present the defaults as a config list
 
-The agent has defaults: one section per page, sections in book order, the
-sub-concept split it proposes, figures replacing the book's sketches, what
-it generates and what it never generates (item 13). It should not silently
-apply them. After the exploration phase the loop starts with a message
-that lists these defaults as a config list, one line per setting with its
-default value, and asks whether the user is okay with them: which chapter
-or section to start with, whether to go section by section or chapter by
-chapter, what to skip, what to generate. The user edits the list; only
-then does the per-section loop of item 2 begin. The agreed config is
-written down next to the exploration report so later sections use it.
+After exploration, list the defaults one setting per line with its value (start point, section or chapter loop, what to skip, what to generate, item 13) and ask; the agreed list is `config.md` beside `exploration.md`, and the per-section loop begins only after it is agreed.
 
 ## 11. Do not fold sections together
 
-The book's sections are the unit, even when one is thin. A section with no
-equations or problems (a sign-convention note, a problem-solving strategy
-box) still gets its own page. The agent may point out that a section is
-thin, but it does not merge it into a neighbour. Splitting a section into
-sub-concepts (item 3) is the agent's call; joining sections is not.
+A section is a page even when thin. Splitting into sub-concepts is the agent's call; joining sections is never.
 
 ## 12. Exercises come from different places and go to different places
 
-Exercises are sourced from several locations in a book (inline Check Your
-Understanding boxes, end-of-section problem sets, end-of-chapter problem
-sets, test-prep sections, worked examples) and they come in different
-types. The type decides where an exercise shows up on the page:
-
-- **Inline**, in the running text right after the idea it tests: typically
-  Check Your Understanding items and other Remember/Understand level
-  questions. These are the short, low-effort checks that belong next to
-  the passage.
-- **Exercises tab**, as a separate document: the problem sets that the
-  book puts at the end of a section or chapter, test prep, and anything
-  at the Apply/Analyze level that takes real work.
-
-The agent records the source location and the type of every exercise so
-the placement is a rule, not a per-item choice.
-
-An exercise goes with the section that introduces what it tests, not
-where the book happens to put it. The reader should be ready for an
-exercise when they meet it. When a book places an exercise ahead of the
-ideas it needs (the AP test-prep blocks do this: 16.1 carries a question
-about amplitude and period, which are 16.2 and 16.3 ideas), the exercise
-is held and placed on the later page, and both sections' notes say so.
-
-Every exercise is tagged with the concepts it tests, and the app scores a
-correct answer into each of them by the exercise's Bloom level. Where an
-exercise leans on one concept and only touches another, the agent may write
-`weights`, points per concept id, so the practice gives credit where the
-work is: a problem that turns on Hooke's law and merely names displacement
-gives displacement less. The field is marked `"weights_by": "ai"` and the
-Bloom table applies wherever it is absent, so it is never required. A
-weight is a small whole number in the Bloom range (1 to 6), and the
-concept that the exercise is really about keeps the full Bloom value.
+Every exercise records its source location and its kind, and the kind decides placement: inline after the idea it tests for short Remember and Understand checks, the Exercises tab for problem sets, test prep and anything at Apply or above. An exercise goes with the section that introduces what it tests; one the book places early is held for the later page, and both sections' notes say so. Every exercise is tagged with the concepts it tests; item 20 says how weights work.
 
 ## 13. What the agent may generate, and what it must not
 
-Defaults, all overridable in the config list of item 10:
-
-- **Answers to book problems: never generate.** Answers come from the
-  book's answer key only. Most books key only some problems (often the
-  odd-numbered ones), and that is enough to work with. When a problem the
-  page needs has no keyed answer, the agent asks the user rather than
-  computing one.
-- **Suggested approaches for open questions: generate by default.**
-  Conceptual questions have no key; the agent writes the points the text
-  supports, labelled as an AI suggestion, never as a graded answer.
-- **Questions of any kind (relationship questions, new problems, worked
-  examples, definitions): not by default.** Books have enough questions.
-  The one exception the agent may raise: when a concept node has no
-  exercise in the book that tests it, the agent asks the user whether to
-  generate one for that node. It never generates unasked.
-- Everything generated is marked as generated on the item itself and set
-  in OmniStax's face, not the book's.
+Defaults, each overridable in the config list: answers to book problems are never generated, they come from the key, and an unkeyed problem the page needs is asked about, not computed; a suggested approach for an open question is generated by default and marked as an AI suggestion, never as a graded answer; questions, problems, worked examples and definitions are not generated unless the user asks, the one prompt being a concept node with no book exercise. Everything generated is marked generated on the item and set in OmniStax's face.
 
 ## 14. When a figure is made, and what kind
 
-Three triggers, three treatments:
+An idea or result the section introduces gets an interactive figure whose sliders are what is interesting and variable in the idea, not necessarily one equation's variables. A sketch figure in the book is replaced by an interactive figure covering the same quantities with the book's numbers as defaults. A photograph is kept when it serves the narrative or the text points at it, dropped when it is decoration, with the book's caption and credit when kept; the plan says which and why. A figure that serves exercises is copied faithfully, no sliders, no animation.
 
-- **An idea or result the section introduces gets an interactive figure.**
-  Sliders are whatever is interesting and variable in that idea:
-  positions for displacement, a starting speed for a stopping car. They
-  do not have to be the variables of a single equation, and an idea with
-  no equation still gets sliders for the quantities its definition names.
-- **A sketch figure in the book is replaced by an interactive figure**
-  that covers the same quantities, with the book's numbers as defaults.
-  A photograph is kept when it serves the narrative and the original
-  text and dropped when it is decoration; the plan says which and why,
-  and a kept photograph carries the book's caption and credit line.
-- **Several book figures may fold into one interactive figure.** A book
-  often draws one scene several times because print cannot move: the
-  walk across the city, then the right triangle it makes, then the same
-  grid with the helicopter's diagonal (Figures 3.3, 3.4 and 3.5 of
-  College Physics 2e). One figure that walks the legs, shades the
-  triangle and flies the diagonal is clearer than three drawings of the
-  same grid, so the agent folds them when the fold is obvious and reads
-  better, and says so in the plan line. A folded figure keeps every
-  number it replaces: its row names its own `number` and lists the
-  others under `folds`, its
-  eyebrow reads "Figure 3.3 + 3.4 + 3.5", its `originals` carry every
-  folded image, and the build links each of those numbers in the prose
-  to the one figure, so "as pictured in Figure 3.5" still jumps somewhere.
-  A fold is never a way to skip a figure: every number the prose cites
-  must land on a figure that shows what that number showed.
-- **A figure that exists to serve exercises is copied over as it is.**
-  The paths figure of 2.1, a diagram a problem refers to: these are
-  redrawn faithfully, with no sliders and no animation beyond what makes
-  the original readable. The point is that the reader sees exactly what
-  the problem is about.
+Several book figures may fold into one interactive figure when the book draws one scene several times and one live drawing is clearly better (a grid walked, then its triangle, then its diagonal). The folded figure keeps every number: its own in `number`, the rest under `folds`, an eyebrow "Figure 3.3 + 3.4 + 3.5", every image in `originals`, and every cited number in the prose links to it.
 
-An interactive figure carries one of two labels, and the reader sees no
-other word for it. A figure the agent made on its own suggestion,
-replacing nothing in the book, is a **Sim**: its row carries no number
-and its eyebrow reads "Sim". A figure that transforms a book figure is
-still a **Figure**: its row carries the book's number and its eyebrow
-reads "Figure 2.39", or "Figure 3.3 + 3.4 + 3.5" when it folds several.
-A faithful copy and a kept photograph are Figures as before. The
-validator reads the eyebrow of every figure element against its row and
-refuses any other label. The mechanism behind both is a sim, a
-simulation the reader can play with, and that is its name wherever the
-tables and the code refer to it: the row's `kind`, the `.sim` class, the
-`sim-` id prefix, `F.sim()`. The label follows from the number, never
-from the kind.
+Two labels, and the reader sees no other word. A figure that replaces nothing in the book is a Sim: no number, eyebrow "Sim". One that transforms a book figure is a Figure with the book's number in its eyebrow. The validator reads every eyebrow against its row. The mechanism is a sim in the tables and code (`kind`, `.sim`, `sim-` ids, `F.sim()`); the label follows the number, never the kind.
 
-Whether an interactive figure moves is a decision of its own, made in the
-plan line, and the agent thinks it through for every figure rather than
-defaulting to motion. A figure moves when the idea has a time in it:
-something travels, oscillates, falls, or a quantity accumulates as a clock
-runs. That figure registers a cycle and gets the app's transport (play and
-pause, stop, a scrubber when the run is finite, speed). A figure whose
-idea has no time in it, one that answers its sliders and nothing else (a
-bull's-eye that scatters as the spread changes, a value placed on a
-ladder of powers of ten, two lengths summed with their rejected digits
-muted), is a still picture: it registers no cycle, gets no transport, and
-redraws when a slider moves. A transport on a still picture is a promise
-of motion the figure cannot keep, and a dummy loop added to earn one is
-worse. The plan line says which of the two each figure is, and why.
+Motion is decided per figure in the plan line, with the reason. A figure moves when its idea has a time in it, registers a cycle and gets the app's transport. A figure that only answers its sliders is still: no cycle, no transport, redraw on input. Never add a dummy loop to earn a transport.
 
 ## 15. Proposing extra simulations
 
-Beyond the figures the triggers above call for, the agent may propose
-additional interactive simulations. A new simulation has to earn its place:
-it must open a view on the material the text and the required figures do
-not give. The agent works in three steps, in order:
-
-1. Think creatively about what simulations could be useful for this
-   section.
-2. Judge each one strictly: does it truly add insight, or does it only
-   animate something the reader already sees?
-3. Offer the survivors as suggestions in the plan message, one line each
-   with what the learner would see that they cannot see otherwise. The
-   user picks; nothing is built unasked.
+Beyond the required figures, think broadly about what could help, judge each candidate strictly (does it open a view the text and required figures do not give?), and offer only the survivors as one-line suggestions saying what the reader would see. Nothing is built until picked, or until `config.md` says the plan decides.
 
 ## 16. Let the user answer everything before proceeding
 
-When the agent asks for feedback, it stops. It does not build, refactor, or
-move to the next section until the user has had the chance to respond to
-every point in the message: every plan line, every question, every
-suggestion. A partial reply is answered with the remaining points, not with
-work. This is what makes the plan review of item 5 and the per-section stop
-of item 2 real rather than ceremonial.
+When feedback is asked for, stop. A partial reply is answered with the remaining points, not with work.
 
 ## 17. The page talks about the subject, not about itself, in the book's voice
 
-Every sentence OmniStax adds to a page is about the physics. A section lead
-says what the section is about. A figure caption says what to drag and what
-to watch. Nothing on the page explains that the prose is quoted, that a
-figure is a redrawn or live version of the book's, or that a card was
-generated. Attribution and omissions go in the footer, and the AI mark on
-a suggested approach is the only in-place flag. The footer is generated
-by the app from the book's metadata (title, authors, publisher, copyright
-holder, licence, the section's page at the publisher); the pipeline writes
-only the section's `notes`, one plain sentence saying what was left out,
-and its `ai`, the name of the model that transformed the text and of the
-model that built the simulations. Every article carries the footer
-because a section is what gets linked to, and the licence asks for credit
-wherever the work is shared. The footer is the whole of the attribution:
-it names the adaptation, the licence the adapted page is shared under
-(the same as the source, when the source is ShareAlike), and the AI that
-did each job, so a reader always knows which model wrote the page's
-words and built its figures.
+Every sentence OmniStax adds is about the subject; nothing on the page says that prose is quoted, a figure redrawn or a card generated. Attribution is the footer, generated by the app from `book.json`; the section writes only `notes`, one plain sentence on what was left out, and `ai`, `{"text": <model>, "figures": <model>}`, with `built` as the ISO date. The AI mark on a suggested approach is the only in-place flag.
 
-Everything OmniStax writes (leads, figure captions, readouts, suggested
-approaches, concept "why" lines) is written in the book's own voice:
-its register, sentence shape, person and vocabulary. The typeface already
-marks the words as OmniStax's, so the language must not; the reader should
-feel one writer across the page. The agent reads a few pages of the book
-before writing for it, and the per-book `RULES.md` records what the voice
-is (for College Physics 2e: full sentences, plain second person, patient
-rather than clever). Clipped fragments, semicolon chains and editorial
-framing are out even where they would be shorter.
-
+Everything OmniStax writes (leads, captions, headlines, readouts, suggested approaches, concept why lines, logs) is in the book's own voice as the book's `RULES.md` records it: full sentences, its register, person and vocabulary. No clipped fragments, semicolon chains or editorial framing.
 
 ## 18. Every book begins with a full-book pass that writes its rules and tools
 
-Before the first section of a new book is planned, the agent makes one pass
-over the whole book and leaves two things behind in the book's folder.
-
-The first is the book's `RULES.md`. It is the exploration report of item 1
-turned into standing decisions, and it must say:
-
-- **Source.** The format the book comes in (CNXML, PDF, HTML), where the
-  files sit, how the book names its modules or pages, and which tool in
-  `tools/` turns one unit of it into `source.md`.
-- **Structure.** The organizing units the book uses and how they map onto
-  OmniStax's chapters and sections; the list of chapters with their ids;
-  where the chapter introductions are.
-- **Apparatus.** Where the learning objectives, summaries, glossaries,
-  worked examples, exercises and answer keys sit, and which problems the
-  key covers (item 9 and item 13 depend on this).
-- **Licence and attribution.** The licence, the copyright holder, the
-  publisher's page for a section, and what a kept photograph's credit line
-  must carry. The same facts go in `book.json`; the rules say where they
-  came from.
-- **Voice.** The book's register, sentence shape, person and vocabulary,
-  with a few quoted sentences as the reference for item 17.
-- **Types.** The table of physical types the book declares, in the order
-  the colour scheme should lay its hues along, and what stays untyped
-  (item 7).
-- **Exercise kinds.** The kinds of exercise the book has, where each kind
-  comes from and where it goes on the page (item 12).
-- **Figures.** What the book numbers, what it does not, and any figure
-  convention of the book that the app has to honour.
-
-The second is `tools/`: the converter from the book's source to
-`source.md`, and any other script the pass needed (a table-of-contents
-extractor, an answer-key parser). A tool is written once for the book and
-run for every section after, so that conversion is parsing and the agent's
-judgement is spent on concepts, figures and exercises. A tool belongs to
-the book whose format it reads; a tool that turns out to be general moves
-up to `omnistax-content/tools/` when a second book uses it.
-
-The full-book pass ends with the config list of item 10 for the first
-chapter. Only then does the per-section loop of item 2 begin.
+Before the first section, one pass over the whole book leaves the book's `RULES.md` and its `tools/`. The rules state Source, Structure, Apparatus, Licence and attribution, Voice (with quoted sentences), Types (in scheme order, with what stays untyped), Exercise kinds and Figures, plus Files where the layout differs from the block above. The tools convert one unit of the source to `source.md` and do any other parsing the pass needed, once per book; a tool a second book uses moves to `omnistax-content/tools/`. The pass ends with the config list of item 10 for the first chapter.
 
 ## 19. The content is tables, and the schema is the reference
 
-The three JSON files of a book, `book.json`, `chapter.json` and
-`section.json`, are each a record of scalars and named tables, one table
-per kind of row, every row flat, every reference by id. The layout is
-`docs/content-tables.md`; the reference for every field is
-`docs/content-format.md`, generated from the schema and never edited by
-hand. The agent reads the reference before writing a file and writes only
-the fields it lists: the schema is strict, and an unknown key fails the
-build.
+`book.json`, `chapter.json` and `section.json` are records of scalars and named tables, every row flat, every reference by id. The layout is `docs/content-tables.md`; the field reference is `docs/content-format.md`, generated from `omnistax-web/src/lib/content/schema.ts`. The schema is strict and an unknown key fails the build, so write only the fields the reference lists.
 
-Every reference must resolve. `npm run check:content` in `omnistax-web`
-parses every file and checks that every concept, prerequisite, exercise,
-type, section and equation named anywhere exists, that every anchor, span,
-cite and place names an id in the section's `text.html`, that every figure
-row matches a figure in the text, and that every built concept has its
-`why`, its `evidence` and a span that introduces it. The agent runs it
-after every section and before every stop for feedback.
+Agents read and write the tables through `omnistax-content/tools/ost.py`, a cheap local MCP, and its commands `books`, `show`, `rows`, `find`, `add`, `set`, `del`, `merge`, `log`, `check` and `ids`; the reference is `omnistax-content/tools/README.md`. Never open `book.json` or a `chapter.json` to search it, and never edit `book.json` by hand. A `section.json` may be written whole once, then corrected row by row with `set`. A dollar sign is `&#36;` in the prose of `text.html` and the fullwidth `＄` inside an exercise string or a `\text{}`.
+
+Every reference must resolve. `npm run check:content` in `omnistax-web`, with the book's environment variables, checks every id, anchor, span, cite, place and figure row against the text, and that every built concept has `why`, `evidence` and an introducing span. Run it after every JSON write and before every stop.
 
 ## 20. Exercise weights
 
-An exercise is evidence for every concept in its `exercise_concepts` rows,
-and the app scores it into each of them by the Bloom table. When an
-exercise leans on one concept and merely touches another, the agent may
-write a `weight` on the row, so that a Hooke's law problem that mentions
-displacement gives displacement less. Weights are always the agent's
-judgement and are documented as such; where the field is absent the Bloom
-table applies.
+An exercise scores into each concept in its `exercise_concepts` rows by the Bloom table. Where it leans on one concept and merely touches another, a row may carry `weight`, a whole number from 1 to 6, the main concept keeping the full Bloom value, marked `"weights_by": "ai"`. Absent, the Bloom table applies.
 
 ## 21. The book's introductions and summaries keep their place
 
-A textbook opens its chapters and often itself with an introduction, and
-closes them with a summary or a conclusion. Where the book prints one, it
-is kept, in the book's own words, and it stands where the book stood it:
-
-- **A chapter's introduction is a page of its own, first in the chapter's
-  folder**, and a book's introduction or preface is a page of its own,
-  first in the book's folder. It is listed before the first section, so
-  the reader meets it where the book put it.
-- **A chapter's summary or conclusion is a page of its own, last in the
-  chapter's folder**, and a book's closing summary is a page of its own,
-  last in the book's folder. It is listed after the last section.
-- **A section's own introduction and summary go inside the section's
-  page**, where the book has them: the introduction at the top of the
-  text, the summary at the end. Learning objectives and the rest of the
-  apparatus still go to the tables (item 4).
-- **Nothing is invented.** A book, chapter or section that prints no
-  introduction or summary gets none; the agent does not write one in
-  the book's place. The section `lead` is not a summary and not an
-  introduction: it is the one line under the title that says what the
-  page is about, and it stays what item 17 says it is.
-- **A long one is transformed like a section.** An introduction that
-  runs to pages, carries figures, or opens on a splash photograph is
-  converted with the same tools and held to the same rules as a section:
-  its sketch figures become interactive figures where item 14 says they
-  should, its photographs are kept or dropped by item 14 (the chapter
-  opener's photograph is the point of the page, so it is kept), and its
-  math and cross references are transformed as a section's are. The size
-  of the job is no reason to leave the page out.
+Where the book prints an introduction or a summary, it is kept in the book's words where the book stood it: a chapter's or the book's introduction is a page of its own in `intro/`, listed first; a chapter's or the book's summary is a page in `summary/`, listed last; a section's own go inside its page, at the top and the end. Nothing is invented where the book prints none, and the `lead` is neither. A long introduction is transformed like a section, its opener photograph kept.
 
 ## 22. COLOR.md
-Every agent, when making a textbook for the first time, should search roughly through the book and design a what to color scheme in colors.md. Add this to RULE. Further, every chapter/section might use its own COLOR.md. Commit this, and please use the agent walk through our physics textbook again to create the appropraite COLOR.md.
 
-You fiugre out what to put in it: Roughly, what to color, and what is the colors. for physics, this is a complex scheme with types. Others maybe not as much.
+The full-book pass writes the book's `COLOR.md`, what is coloured and by which family of item 7, and a chapter or section may have its own `COLOR.md` that refines it: it may bind fewer types, never invent a hue.
 
 ## 23. BE INSPIRING
-In your initial exploration. You MUST ask yourself: For this specific topic, what is it I can do to craft an intuitive and stunning learning experience. This can be different for every book! 
 
-Importantly, while some topics are heavy in visuals, some aren't. But you must brainstorm about how to use interactive diagrams/simulations to tell stories visually, even for topics that aren't usually taught in this way.
+In exploration, ask for this specific book what would make an intuitive and stunning learning experience, and brainstorm how interactive figures can tell its stories visually even where the subject is not usually taught that way. Record the answer in `exploration.md`.
 
 ## 24. When a figure becomes a simulation
 
-1. When deciding whether to translate a figure: if the book draws arrows
-   to show statically the direction some entity is moving, animate it and
-   provide a real simulation, so that the student is not left to
-   translate the motion in their mind. Reducing that cognitive burden is
-   the point. Two kinds of arrow, though. A kinematic arrow shows
-   something moving or flowing (a molecule's path, electrons in a wire,
-   heat leaving a body, a piston pushed) and triggers animation. A
-   symbolic arrow is notation (a reaction arrow, a curly electron-pushing
-   arrow, a resonance arrow, a dipole or force vector) and is drawn in the
-   app's arrow style and never animated; animating notation only replays
-   the book.
-
-2. The translation of a figure into a simulation must be a value add,
-   and where there is a value add, the figure is enhanced. What counts as
-   a value add: the standardization of formatting is one; the enhancement
-   of pedagogical intuition is another. Simulations play two roles. They
-   let the reader quickly see the difference as variables, quantities or
-   states are changed, usually through a slider or a dropdown. And they
-   let the reader see the flow of things, where things are meant to flow
-   and be animated. There is a three-dimensional side to this as well: if
-   the figure is better represented in 3D, it may be.
-
-3. The gate is the mental-translation test. A figure becomes a
-   simulation when the reader would otherwise have to imagine one of
-   three things: motion (so animate it), variation (so give it sliders),
-   or depth (so let it turn). A still picture that asks the reader to
-   imagine none of those is a faithful copy or a kept photograph:
-   labelled apparatus, flowcharts, part diagrams, photographs, exercise
-   figures.
-
-4. Every plan line names its value add, from five: standardisation,
-   intuition, variation by slider, flow by animation, shape in 3D. A
-   figure whose only value add is standardisation is a faithful copy. A
-   simulation names at least one of the other four and says what the
-   reader sees that the still picture cannot.
-
-5. Four tiers by cost: faithful copy, still simulation with sliders,
-   moving simulation, 3D scene. The default is the lowest tier that
-   delivers the value adds the plan names; the plan may argue past the
-   default to a richer tier when the richer version is clearly worth it,
-   and says why in the plan line.
-
-6. A slider changes the idea, not the scene: moving it changes something
-   the section is about, and the difference is readable in the figure
-   and in the readout. A slider with no visible consequence is removed.
-
-7. The picture and the symbol stay connected. Every simulation carries a
-   readout that writes the section's equation or relation with the live
-   numbers in the type colours, so a quantity is seen to change in the
-   formula as it changes in the picture. No simulation is a mute
-   animation.
-
-8. 3D when the lesson is an arrangement in space: an angle, a shape, a
-   packing, a lobe. The book signals it when it draws a solid in
-   perspective or in wedge and dash. Otherwise 2D. A book's own
-   `RULES.md` settles the borderline groups for that book (particle
-   boxes, molecules inset in a flat figure, apparatus, structures the
-   text only names).
-
-9. What never becomes a simulation: decoration and splash photographs; a
-   mechanism animation that only replays the book's arrows; a molecule
-   viewer for a molecule the section merely names; a simulation whose
-   slider positions look alike; a transport on a figure with no clock in
-   it.
+1. An arrow that shows something moving or flowing (a molecule's path, electrons in a wire, heat leaving a body) is kinematic and triggers animation. An arrow that is notation (a reaction arrow, a curly electron-pushing arrow, a dipole or force vector) is symbolic, drawn in the app's arrow style and never animated.
+2. The translation must be a value add: standardisation, intuition, variation by slider, flow by animation, shape in 3D.
+3. The gate is the mental-translation test: a figure becomes a simulation when the reader would otherwise have to imagine motion (animate), variation (sliders) or depth (let it turn). Otherwise it is a faithful copy or a kept photograph.
+4. Every plan line names its value add. Standardisation alone means a faithful copy; a simulation names at least one other and says what the reader sees that the still cannot.
+5. Four tiers by cost: faithful copy, still simulation, moving simulation, 3D scene. Default to the lowest tier that delivers the named value adds; argue past it in the plan line.
+6. A slider changes the idea, not the scene, and the difference is readable in figure and readout. A slider with no visible consequence is removed.
+7. Every simulation carries a readout writing the section's equation or relation with the live numbers in type colours. No mute animations.
+8. 3D when the lesson is an arrangement in space (an angle, a packing, a lobe), signalled by the book's perspective or wedge-and-dash drawing; otherwise 2D. The book's `RULES.md` settles its borderline groups.
+9. Never a simulation: decoration and splash photographs, a mechanism animation that replays the book's arrows, a molecule viewer for a molecule merely named, a simulation whose slider positions look alike, a transport on a figure with no clock.
 
 ## 25. Translating the figure, once the translation is decided
 
-1. The goal of a figure or simulation is to inspire creativity and to be
-   pedagogically intuitive. Inventing new components for the figure
-   widget, and not homogenizing its style with the other figures, is
-   perfectly fine and encouraged where the idea needs it.
-
-2. Changing the figure slightly is completely fine. For example, the
-   simulation may include a more general case that the sliders reach and
-   that the original figure did not explicitly identify. The book's own
-   numbers remain the defaults, so the book's picture is one state of
-   the simulation.
+New components and an unhomogenised style are allowed where the idea needs them. The simulation may generalise the figure, reaching states the book did not draw, so long as the book's numbers are the defaults and the book's picture is one state of it.
 
 ## 26. Controls and legibility of a simulation
 
-1. A discrete state (solid, liquid, gas; cis, trans; the four gas laws)
-   is never a slider. It is a segmented control, a set of buttons or a
-   dropdown, one option per state, the current one marked. A quantity
-   that takes a few preset values (0, 1, 2, 3 lone pairs; the book's
-   listed materials) is a slider with soft detents: the breakpoints are
-   marked under the track and the thumb settles on them.
+1. A discrete state is a choice, never a slider: a segmented control or, where a row would wrap, a dropdown, one option per state, the current one marked. A quantity with a few preset values is a slider with soft detents.
+2. A 3D figure carries buttons, not only gestures: auto-rotate on and off (omitted where an idle spin makes no sense), snap-to-view buttons where a viewpoint matters, zoom in and out with the wheel doing the same.
+3. The orbit is bounded to the views that carry meaning; a scene with a ground is never seen from beneath. The plan line says the bound and why.
+4. Showing the original figure swaps the caption too; the two captions are never shown together.
+5. A simulation is legible on its own page from its labels and caption, using only ideas the book has taught by that page.
+6. Every drawn entity can be identified by a label, a hover name or a legend. Nothing is an unnamed coloured ball.
 
-2. A three-dimensional figure carries navigation controls as buttons, not
-   only gestures: auto-rotate on and off (omitted where an idle spin
-   makes no sense), snap-to-view buttons where a viewpoint matters (along
-   an axis, down a bond, face-on), and zoom in and out, with the scroll
-   wheel doing the same over the canvas. Dragging rotates; the buttons
-   say what dragging cannot.
+## 27. What an agent reads before building
 
-3. The viewport is constrained to the views that carry meaning. A scene
-   with a ground (a bench, a table, a beaker on it) is not turned to show
-   its underside; a molecule may turn freely. The plan line for a 3D
-   figure says what the orbit is limited to, and why.
-
-4. Showing the original figure swaps the caption too. While the book's
-   figure is shown, the book's caption stands in place of the live
-   figure's caption; the two are never shown together. Bringing the live
-   figure back brings its caption back.
-
-5. A simulation is legible on its own page. It uses only ideas the book
-   has taught by that page, and nothing it draws depends on a later
-   chapter to be understood. A reader who does not yet know what a salt
-   bridge is must be able to read the figure that draws one from its
-   labels and its caption.
-
-6. Every entity a simulation draws can be identified: atoms, ions,
-   particles, parts of an apparatus carry a label, or reveal their name
-   on hover, or both. A legend is used where labels would crowd the
-   picture. Nothing is an unnamed coloured ball.
+The root `RULES.md`; the book's `RULES.md` and `COLOR.md`; the chapter's `config.md` and `COLOR.md`; the section's `source.md`; one template section named in the book's rules; `docs/prompts/interactive-figures.md` when the section has figures; and the `ost show` summaries of the book, the chapter and the section in place of the JSON files. Nothing else unless a rule points at it.
