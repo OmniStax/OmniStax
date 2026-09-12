@@ -154,7 +154,9 @@ edge as a hollow marker with an arrow and its number.
 Colours come from C('t'|'x'|'v'|'a') for variables and PAL.ink / PAL.muted
 / PAL.rule / PAL.soft / PAL.panel for everything else. Never write a hex
 colour in a figure: C() returns ink when colour coding is off, and PAL
-follows the theme.
+follows the theme. The one exception is F.el('O'), the fixed CPK element
+palette, which is the only colour a figure may use that is not a type,
+and only ever as the fill of an atom.
 
 Style, as numbers:
 - type 22px for labels, 17px for ticks and notes, 24px for symbol labels

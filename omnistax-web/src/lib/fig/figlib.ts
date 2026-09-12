@@ -4,6 +4,7 @@
    exposed as window.FIG for classic scripts. */
 import katex from 'katex';
 import renderMathInElement from 'katex/contrib/auto-render';
+import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -49,11 +50,19 @@ const PAL: Record<string, Color> = {};
 const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
 let colorKeys: readonly string[] = [];
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
+/* The element palette is not a type and takes nothing from the scheme, so it is
+   read beside the palette rather than out of it: the only thing it needs from
+   the page is which of the two themes is showing, which the shell settles on
+   the root element and which `readPal` reads again on every theme change. */
+let darkTheme = false;
+const readTheme = (): boolean => (getComputedStyle(document.documentElement).colorScheme || '').includes('dark');
+const elColor = (s: ElementSymbol | string): Color => elementColor(s, darkTheme);
 /* The page's palette, plus the hues a figure's own chapter and section bind. */
 let base: Record<string, Color> = {};
 const chapterPal = new Map<string, Record<string, Color>>();
 function readPal(): void {
   const named = Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k)]));
+  darkTheme = readTheme();
   base = { ...named, ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
   chapterPal.clear(); Object.assign(PAL, base);
 }
@@ -87,6 +96,17 @@ function redrawAll(): void { readPal(); sims.forEach((d) => { d.dirty = true; })
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e;
 }
+/* `F.el` is one door onto two things that never collide: an element's symbol is
+   capitalised and named by the element map, an HTML tag is neither, so a figure
+   asking for `F.el('O')` gets oxygen's red and the library asking for
+   `F.el('div')` gets a div. */
+function elOf(s: ElementSymbol): Color;
+function elOf<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K];
+function elOf(s: string, cls?: string | null, html?: string): Color | HTMLElement {
+  if (isElementSymbol(s)) return elColor(s);
+  return el(s as keyof HTMLElementTagNameMap, cls, html);
+}
+
 const fmt = (n: number, d: number): string => (Math.abs(n) < 1e-9 ? 0 : n).toFixed(d);
 
 /* ---------- figure scaffolding ---------- */
@@ -443,7 +463,7 @@ function topline(ctx: Ctx, s: string): 1 | 2 {
 
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
 };
 export type Fig = typeof FIG;
