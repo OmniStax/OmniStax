@@ -429,3 +429,130 @@ is kept, in the book's own words, and it stands where the book stood it:
   opener's photograph is the point of the page, so it is kept), and its
   math and cross references are transformed as a section's are. The size
   of the job is no reason to leave the page out.
+
+## 22. COLOR.md
+Every agent, when making a textbook for the first time, should search roughly through the book and design a what to color scheme in colors.md. Add this to RULE. Further, every chapter/section might use its own COLOR.md. Commit this, and please use the agent walk through our physics textbook again to create the appropraite COLOR.md.
+
+You fiugre out what to put in it: Roughly, what to color, and what is the colors. for physics, this is a complex scheme with types. Others maybe not as much.
+
+## 23. BE INSPIRING
+In your initial exploration. You MUST ask yourself: For this specific topic, what is it I can do to craft an intuitive and stunning learning experience. This can be different for every book! 
+
+Importantly, while some topics are heavy in visuals, some aren't. But you must brainstorm about how to use interactive diagrams/simulations to tell stories visually, even for topics that aren't usually taught in this way.
+
+## 24. When a figure becomes a simulation
+
+1. When deciding whether to translate a figure: if the book draws arrows
+   to show statically the direction some entity is moving, animate it and
+   provide a real simulation, so that the student is not left to
+   translate the motion in their mind. Reducing that cognitive burden is
+   the point. Two kinds of arrow, though. A kinematic arrow shows
+   something moving or flowing (a molecule's path, electrons in a wire,
+   heat leaving a body, a piston pushed) and triggers animation. A
+   symbolic arrow is notation (a reaction arrow, a curly electron-pushing
+   arrow, a resonance arrow, a dipole or force vector) and is drawn in the
+   app's arrow style and never animated; animating notation only replays
+   the book.
+
+2. The translation of a figure into a simulation must be a value add,
+   and where there is a value add, the figure is enhanced. What counts as
+   a value add: the standardization of formatting is one; the enhancement
+   of pedagogical intuition is another. Simulations play two roles. They
+   let the reader quickly see the difference as variables, quantities or
+   states are changed, usually through a slider or a dropdown. And they
+   let the reader see the flow of things, where things are meant to flow
+   and be animated. There is a three-dimensional side to this as well: if
+   the figure is better represented in 3D, it may be.
+
+3. The gate is the mental-translation test. A figure becomes a
+   simulation when the reader would otherwise have to imagine one of
+   three things: motion (so animate it), variation (so give it sliders),
+   or depth (so let it turn). A still picture that asks the reader to
+   imagine none of those is a faithful copy or a kept photograph:
+   labelled apparatus, flowcharts, part diagrams, photographs, exercise
+   figures.
+
+4. Every plan line names its value add, from five: standardisation,
+   intuition, variation by slider, flow by animation, shape in 3D. A
+   figure whose only value add is standardisation is a faithful copy. A
+   simulation names at least one of the other four and says what the
+   reader sees that the still picture cannot.
+
+5. Four tiers by cost: faithful copy, still simulation with sliders,
+   moving simulation, 3D scene. The default is the lowest tier that
+   delivers the value adds the plan names; the plan may argue past the
+   default to a richer tier when the richer version is clearly worth it,
+   and says why in the plan line.
+
+6. A slider changes the idea, not the scene: moving it changes something
+   the section is about, and the difference is readable in the figure
+   and in the readout. A slider with no visible consequence is removed.
+
+7. The picture and the symbol stay connected. Every simulation carries a
+   readout that writes the section's equation or relation with the live
+   numbers in the type colours, so a quantity is seen to change in the
+   formula as it changes in the picture. No simulation is a mute
+   animation.
+
+8. 3D when the lesson is an arrangement in space: an angle, a shape, a
+   packing, a lobe. The book signals it when it draws a solid in
+   perspective or in wedge and dash. Otherwise 2D. A book's own
+   `RULES.md` settles the borderline groups for that book (particle
+   boxes, molecules inset in a flat figure, apparatus, structures the
+   text only names).
+
+9. What never becomes a simulation: decoration and splash photographs; a
+   mechanism animation that only replays the book's arrows; a molecule
+   viewer for a molecule the section merely names; a simulation whose
+   slider positions look alike; a transport on a figure with no clock in
+   it.
+
+## 25. Translating the figure, once the translation is decided
+
+1. The goal of a figure or simulation is to inspire creativity and to be
+   pedagogically intuitive. Inventing new components for the figure
+   widget, and not homogenizing its style with the other figures, is
+   perfectly fine and encouraged where the idea needs it.
+
+2. Changing the figure slightly is completely fine. For example, the
+   simulation may include a more general case that the sliders reach and
+   that the original figure did not explicitly identify. The book's own
+   numbers remain the defaults, so the book's picture is one state of
+   the simulation.
+
+## 26. Controls and legibility of a simulation
+
+1. A discrete state (solid, liquid, gas; cis, trans; the four gas laws)
+   is never a slider. It is a segmented control, a set of buttons or a
+   dropdown, one option per state, the current one marked. A quantity
+   that takes a few preset values (0, 1, 2, 3 lone pairs; the book's
+   listed materials) is a slider with soft detents: the breakpoints are
+   marked under the track and the thumb settles on them.
+
+2. A three-dimensional figure carries navigation controls as buttons, not
+   only gestures: auto-rotate on and off (omitted where an idle spin
+   makes no sense), snap-to-view buttons where a viewpoint matters (along
+   an axis, down a bond, face-on), and zoom in and out, with the scroll
+   wheel doing the same over the canvas. Dragging rotates; the buttons
+   say what dragging cannot.
+
+3. The viewport is constrained to the views that carry meaning. A scene
+   with a ground (a bench, a table, a beaker on it) is not turned to show
+   its underside; a molecule may turn freely. The plan line for a 3D
+   figure says what the orbit is limited to, and why.
+
+4. Showing the original figure swaps the caption too. While the book's
+   figure is shown, the book's caption stands in place of the live
+   figure's caption; the two are never shown together. Bringing the live
+   figure back brings its caption back.
+
+5. A simulation is legible on its own page. It uses only ideas the book
+   has taught by that page, and nothing it draws depends on a later
+   chapter to be understood. A reader who does not yet know what a salt
+   bridge is must be able to read the figure that draws one from its
+   labels and its caption.
+
+6. Every entity a simulation draws can be identified: atoms, ions,
+   particles, parts of an apparatus carry a label, or reveal their name
+   on hover, or both. A legend is used where labels would crowd the
+   picture. Nothing is an unnamed coloured ball.
