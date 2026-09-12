@@ -76,7 +76,7 @@ Prep for the next wave starts while the current wave's sections build.
 | Wave | Chapters | Sections | Status |
 |---|---|---|---|
 | 1 | 4, 5, 6 | 17 | sections built 2026-09-11; chapter passes interrupted (see Record) |
-| 2 | 7, 8, 9 | 22 | 8 and 9 built 2026-09-11; 7 prepared, 7.1 to 7.4 held aside (see Record) |
+| 2 | 7, 8, 9 | 22 | all built 2026-09-11; Chapter 7's pass done (LOG pass 28), passes of 8 and 9 still owed |
 | 3 | 10, 11, 12 | 23 | |
 | 4 | 13, 14, 15 | 20 | |
 | 5 | 17, 18, 19 | 22 | |
@@ -128,10 +128,22 @@ What was cut short:
   had one); it still drops every table's title, which the exploration
   files carry instead.
 
-Next when credits return: relaunch the chapter passes for 4, 5, 6, 8
-and 9 (one agent each, `brief-final.md`), restore and finish Chapter 7
-(7.1 to 7.4 from the holding folder, then 7.5 to 7.9, then its pass),
-then wave 3 (10, 11, 12) as planned. The briefs, `modules.json` and the
+**2026-09-11, later the same night.** Chen cancelled the timer and had
+Chapter 7 finished with the usage left: 7.1 to 7.5 restored from the
+holding folder, 7.3 to 7.9 built, and the chapter pass run (LOG pass
+28: 125 anchors, two inline hosts that were missing, the `F_fr` symbol,
+a rule on dollar signs in exercise strings). Checks on the whole:
+`check:content` clean at 10 chapters and 62 sections, 361 tests,
+`astro check` clean, 75 pages built, 45 new pages smoke-tested in light
+and dark with nothing wrong. Two things noted for a later pass: the
+chapter passes of 4, 5, 6, 8 and 9 are still owed, and the angle unit
+in `chapter.json` variables is the ordinal `º` rather than `°` across
+Chapters 3 to 9.
+
+Next: relaunch the chapter passes for 4, 5, 6, 8 and 9 (one agent each,
+`brief-final.md`), then wave 3 (10, 11, 12) as planned. Chen's root
+`RULES.md` items 22 (COLOR.md) and 23 (BE INSPIRING), uncommitted when
+these chapters were built, should be folded into the briefs first. The briefs, `modules.json` and the
 per-section launch notes are in the job's tmp dir
 (`/home/flober/.claude/jobs/dbf4848c/tmp/`); the concurrent-agent cap
 is 20.
