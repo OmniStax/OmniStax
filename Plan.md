@@ -157,3 +157,18 @@ these chapters were built, should be folded into the briefs first. The briefs, `
 per-section launch notes are in the job's tmp dir
 (`/home/flober/.claude/jobs/dbf4848c/tmp/`); the concurrent-agent cap
 is 20.
+
+**2026-09-12, 2 am to 3 am.** Chen's `todolist.md` applied (commits
+ccb467c, 3679e05, 0cf2973 on the worktree branch): the seven figure
+approaches he approved from the demonstrations, swept across Chapters 2
+to 9 by three Fable 5.1 low-effort agents and one Opus agent (people,
+objects, labels and strokes, graph ranges and locked-view 3D), the four
+app items by one Opus agent (tabs open and close in a frame, text zoom
+on Ctrl+= and Ctrl+-, reserved chords on Alt in the browser, a section
+contents list), multi-part solutions shown per part, the colour menu
+ending in an ellipsis, and the "Figure clarity" rules appended to
+`docs/prompts/interactive-figures.md`. Fable is credited in every
+section it touched. Checks: validator clean, 378 tests, astro check
+clean, 75 pages, all 72 pages smoke-tested in light and dark. Root
+`RULES.md` items were not renumbered because Chen's own items 22 and
+23 are uncommitted on main; the figure rules live in the figure prompt.
