@@ -305,3 +305,61 @@ carries.
   centred below that.
 - Sparse chart frames: two axis lines, a few faint gridlines, round tick
   values, coloured axis titles.
+
+## Figure clarity
+
+What Chen's review of Chapters 2 to 9 (2026-09-12) taught, written as
+rules so the next chapter is drawn right the first time. Each has a
+helper in `figlib.ts` where one is named.
+
+- **A person is a body, not a stick.** Draw people with `person()`:
+  the anchor is the sole of the feet on the surface they stand on, so
+  nobody sinks into a stair or floats above a slope; the torso is filled;
+  limbs are jointed and the hands go to what the person holds or pushes
+  (`reach`), so a pusher is connected to the crate and a puller to the
+  rope; the posture matches the action (`lean`, `phase`, `crouch`). Body
+  strokes are thinner than force arrows, so a free-body diagram never
+  looks like a limb.
+- **An object reads as the thing.** A guitar has a body, a neck and a
+  bridge; a nail has a head, a shank and a point; a package is a box
+  with flaps; a table has legs. Fill in `PAL.soft` or `PAL.muted`, line
+  in `PAL.ink`, and where the drawing alone cannot say what it is, a
+  short text label does ("a planet", "steel nail"). The book's original
+  image is the reference for what the scene must show: the water on the
+  Earth, the Moon's path, the magnified inset.
+- **A label sits beside its thing, never on it.** Use `labeller()`: a
+  label starts one gap past the arrowhead along the arrow's own
+  direction, steps out through a fixed ladder of gaps when that slot is
+  taken and ties back with a dotted leader, sits on a small panel in the
+  page colour so no line runs through the letters, and is clamped
+  inside the canvas at every slider position. `block()` reserves the
+  headline band first. Labels are flushed last, so text is above
+  arrows and arrows above bodies. Headlines go through `topline()`,
+  which wraps them rather than letting them run to the border. Text is
+  never set on a filled colour band; the panel carries it.
+- **Guide lines must read in both themes.** A dotted distance or
+  reference line is `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px, not
+  `PAL.rule`.
+- **Strokes have width.** A spoke ends at the rim's inner edge less half
+  its own stroke (a round cap reaches that far), and the rim is stroked
+  over the spokes; the same at every join of a drawn geometry.
+- **A graph's frame never moves.** The axis range is fixed once per
+  figure from the slider maxima (or from the default range where the
+  maximum would leave the default state tiny), with round ticks and a
+  comment saying where the range came from; it is never rescaled while
+  the figure runs or when a slider moves. A value the range cannot hold
+  is drawn with `pinned()`, held at the edge with a hollow marker and
+  its number, so growth is seen against a still frame.
+- **A perspective figure keeps the book's viewpoint.** Where the
+  original is a perspective view of a solid, draw it with `view()` and
+  `face()`: a fixed yaw and pitch chosen to match the original, faces
+  shaded from one fixed lamp, no orbit controls. Do not guess a
+  perspective in flat strokes, and do not add a full 3D scene where a
+  flat graph carries the idea.
+- **Interactivity has to earn its place.** A figure that serves an
+  exercise or shows a static arrangement is a faithful drawing with no
+  sliders; a sim is built only where a slider or a clock shows the reader
+  something the still picture cannot. Every figure is looked at once in
+  a screenshot at 1400 wide, in both themes, at its slider extremes,
+  before it is called done; text drawn outside its canvas is a fault the
+  `fillText` sweep catches.
