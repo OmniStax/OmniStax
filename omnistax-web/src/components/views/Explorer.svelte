@@ -27,11 +27,11 @@
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
   import { docItem, itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
-  import type { BookManifest, SectionEntry } from '../../lib/content/schema';
+  import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
 
-  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -117,12 +117,23 @@
       const m = manifestOf(bookId);
       if (!m) { hint(`${bookKey(bookId)}?`, depth, 'Reading the book…'); return; }
       /* The book's reference sheets stand above its text: a reader reaches for
-         the periodic table at any point in the book, not at one place in it. */
-      m.sheets.forEach((sh) => out.push({
-        key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth, label: sh.title, icon: ICON.formulas,
+         the periodic table at any point in the book, not at one place in it.
+         One sheet is a row of its own; a book with a shelf of them — the
+         appendices of the chemistry book — keeps them in a folder, so the
+         chapters are still the first thing under the book. */
+      const sheetRow = (sh: SheetEntry, at: number): Row => ({
+        key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth: at, label: sh.title, icon: ICON.formulas,
         href: bookId === registry.manifest.id ? undefined : sh.url, expandable: false, open: false, dim: false,
         active: bookId === registry.manifest.id && activeKey === itemKey(sheetItem(sheetId(sh.id))),
-      }));
+      });
+      const shelf = m.sheets.length > 3;
+      if (!shelf) m.sheets.forEach((sh) => out.push(sheetRow(sh, depth)));
+      else {
+        const key = `sheets:${bookId}`;
+        const open = explorer.expanded(key);
+        out.push({ key, kind: 'sheets', depth, label: 'Reference', icon: ICON.folder, expandable: true, open, dim: false, active: false });
+        if (open) m.sheets.forEach((sh) => out.push(sheetRow(sh, depth + 1)));
+      }
       if (m.intro) section(bookId, m.intro, depth);
       m.chapters.forEach((c) => {
         const key = chapterKey(bookId, c.id);
@@ -248,7 +259,7 @@
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
-    if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter') { explorer.toggle(r.key); return; }
+    if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
     if (r.kind === 'section' && r.section && !r.dim && !r.href) { void openDoc(r.section, 'text'); return; }

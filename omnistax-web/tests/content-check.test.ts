@@ -27,11 +27,14 @@ test('a concept whose chapter the book has not added yet is said out loud, and i
   const waiting = BOOKS.flatMap((b) => checkContent(b)).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
 });
-test('a figure a book on disk cites and no row carries is a warning, and only in a chapter the book has not built', () => {
+test('the only warnings a book on disk raises are a figure it has not built yet and a sheet cell the book prints with a word in it', () => {
   BOOKS.forEach((book) => {
     const built = new Set(book.chapters.map((ch) => ch.dto.id));
-    const cited = warningsOf(checkContent(book));
-    assert.ok(cited.every((f) => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1])), said(cited).join('\n'));
+    const raised = warningsOf(checkContent(book));
+    const figure = (f: Finding): boolean => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1]);
+    /* a reference table prints "0.9999720 (density maximum)" where a column holds numbers; the page leaves that row out of the order and says so here */
+    const cell = (f: Finding): boolean => /which is not a number/.test(f.what);
+    assert.ok(raised.every((f) => figure(f) || cell(f)), said(raised).join('\n'));
   });
 });
 

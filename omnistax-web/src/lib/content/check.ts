@@ -16,6 +16,8 @@ import type { BookTree, SectionSource, SheetSource } from './load';
 import { REF, SUMMARY_ID, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
+import { cellNumber } from './sheets';
+import type { TableSheetDTO } from './sheets';
 
 /* What a check found. An error is content that will not work: a reference to a
    row or a span that is not there. A warning is content that works but may be
@@ -383,6 +385,30 @@ export const checkPages: Check = (content) => {
    run. A sheet whose data names a section the book does not have is a warning
    and not an error: the sections are computed by a tool from what is built, and
    a book that drops a chapter should still serve its table. */
+/* A table sheet's own shape, which nothing but this can check: the zod object
+   says a row is a list of strings and cannot say that it is as long as the
+   columns, nor that two tables of one appendix have different ids. A cell of a
+   numeric column that is not a number is a warning and not an error, since the
+   book itself prints a value with a word beside it ("0.9999720 (density
+   maximum)") and the page simply leaves such a row out of that column's order.
+   A cell with no digit in it at all is the book's own em dash for a value
+   nobody has measured, and it is not reported. */
+const checkTableSheet = (file: string, d: TableSheetDTO): readonly Finding[] => {
+  const tables = new Set<string>();
+  return d.tables.flatMap((t): readonly Finding[] => {
+    const where = `${file}/${t.id}`;
+    const twice = tables.has(t.id) ? [error(where, 'is declared twice')] : (tables.add(t.id), []);
+    const columns = new Set<string>();
+    const ids = t.columns.flatMap((c) => (columns.has(c.id) ? [error(where, `has two columns called "${c.id}"`)] : (columns.add(c.id), [])));
+    const lengths = t.rows.flatMap((row, i) => (row.length === t.columns.length ? [] : [error(where, `row ${i + 1} has ${row.length} cells and the table has ${t.columns.length} columns`)]));
+    const numbers = t.columns.flatMap((c, i) => (c.kind !== 'number' ? [] : t.rows
+      .filter((row) => /\d/.test(plainText(row[i] ?? '')) && cellNumber(row[i] ?? '') === null)
+      .map((row) => warning(where, `the ${plainText(c.label) || `column ${i + 1}`} of "${plainText(row[0] ?? '')}" is "${plainText(row[i] ?? '')}", which is not a number`))));
+    return [...twice, ...ids, ...lengths, ...numbers];
+  });
+};
+const plainText = (html: string): string => html.replace(/<[^>]*>/g, '').trim();
+
 export const checkSheets: Check = (content) => {
   const pages = new Set<string>(pagesOf(content).map((p) => String(p.dto.id)));
   const seen = new Set<string>();
@@ -396,6 +422,7 @@ export const checkSheets: Check = (content) => {
       ...(d.kind === s.row.kind ? [] : [error(where, `is of kind "${s.row.kind}" and its file holds a "${d.kind}" sheet`)]),
       ...(d.id === s.row.id ? [] : [error(`${s.row.file}`, `calls itself "${d.id}" and the book lists it as "${s.row.id}"`)]),
       ...(d.title === s.row.title ? [] : [warning(`${s.row.file}`, `is titled "${d.title}" and the book lists it as "${s.row.title}"`)]),
+      ...(d.kind !== 'table' ? [] : checkTableSheet(s.row.file, d)),
       ...(d.kind !== 'elements' ? [] : d.elements.flatMap((e) => e.sections.filter((sec) => !pages.has(sec)).map((sec) => warning(`${s.row.file}`, `${e.symbol} names section "${sec}", which the book does not build`)))),
     ];
   });

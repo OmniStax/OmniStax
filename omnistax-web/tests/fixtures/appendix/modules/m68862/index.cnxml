@@ -1,0 +1,48 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML" class="appendix">
+
+<title>Fundamental Physical Constants</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m68862</md:content-id>
+  <md:title>Fundamental Physical Constants</md:title>
+</metadata>
+
+<content class="appendix">
+<table id="fixture-constants" class="top-titled" summary="A fixture cut from Appendix D.">
+<tgroup cols="2"><colspec colnum="1" colname="c1"/>
+<colspec colnum="2" colname="c2"/>
+<thead>
+<row valign="middle">
+<entry namest="c1" nameend="c2">Fundamental Physical Constants</entry>
+</row>
+<row valign="middle">
+<entry align="left">Name and Symbol</entry>
+<entry align="left">Value<footnote>Every value is the one the book prints.</footnote></entry>
+</row>
+</thead>
+<tbody>
+<row valign="middle">
+<entry align="left">atomic mass unit (amu)</entry>
+<entry align="left">1.6605402 <m:math><m:mo>×</m:mo></m:math>  10<sup>−27</sup> kg</entry>
+</row>
+<row valign="middle">
+<entry align="left">Boltzmann’s constant (<emphasis effect="italics">k</emphasis>)</entry>
+<entry align="left">1.380649 <m:math><m:mo>×</m:mo></m:math> 10<sup>−23</sup> J K<sup>−1</sup></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<table id="fixture-masses">
+<tgroup cols="2"><colspec colnum="1" colname="c1"/><colspec colnum="2" colname="c2"/>
+<thead>
+<row><entry namest="c1" nameend="c2">Rest Masses (kg)</entry></row>
+<row><entry align="left">Particle</entry><entry align="left">Mass</entry></row>
+</thead>
+<tbody>
+<row><entry align="left"><m:math><m:msub><m:mi>m</m:mi><m:mtext>e</m:mtext></m:msub></m:math></entry><entry align="left">9.1093897</entry></row>
+<row><entry align="left"><m:math><m:msubsup><m:mrow/><m:mrow><m:mn>6</m:mn></m:mrow><m:mn>14</m:mn></m:msubsup><m:mtext>C</m:mtext></m:math></entry><entry align="left">—</entry></row>
+</tbody>
+</tgroup>
+</table>
+</content>
+</document>

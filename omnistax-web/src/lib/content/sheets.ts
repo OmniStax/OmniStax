@@ -5,8 +5,9 @@
 
    The kinds are an ADT because the tag carries data: an `elements` sheet is the
    periodic table, whose rows the app draws as cells and whose masses the
-   formula hover sums, and a `table` sheet is a plain reference table of named
-   columns and rows of strings, which the app lists until a later pass draws it.
+   formula hover sums, and a `table` sheet is one data appendix of the book:
+   its tables, each of named columns and rows of HTML cells, which the app
+   draws as searchable, sortable tables.
 
    Every field carries a description for the same reason the content tables do:
    the meaning of a field is written on the field and nowhere else. */
@@ -62,12 +63,52 @@ export type ElementDTO = z.infer<typeof ElementSchema>;
 
 /* ---------- a plain reference table ---------- */
 
+/* What a column holds, which is what the page does with it: "number" is sorted
+   and set in tabular figures, "formula" carries the same HTML the prose does so
+   the formula hover marks it, and "text" is everything else. */
+export const TABLE_COLUMN_KINDS = ['text', 'number', 'formula'] as const;
+export type TableColumnKind = (typeof TABLE_COLUMN_KINDS)[number];
+
+/* One cell, as the HTML the book prints: plain text, or a formula with its
+   <sub> and <sup> exactly as the prose writes it. */
+export type TableCell = string & { readonly __brand: 'TableCell' };
+
 export const TableColumnSchema = z.object({
-  id: z.string().describe('The column’s key, which each row’s cells are given under.'),
-  label: z.string().describe('The column’s heading as the table prints it.'),
-  unit: z.string().optional().describe('The unit every value in the column is in, where they share one.'),
+  id: z.string().describe('The column\u2019s key, unique within its table, which the page keys a cell by when it sorts or searches.'),
+  label: z.string().describe('The column\u2019s heading as the table prints it, as HTML, since a heading may carry a subscript or a superscript.'),
+  unit: z.string().optional().describe('The unit every value in the column is in, where the heading names one.'),
+  kind: z.enum(TABLE_COLUMN_KINDS).default('text').describe('What the column holds: a number the page may sort by, a chemical formula the hover marks, or plain text.'),
 }).strict();
 export type TableColumnDTO = z.infer<typeof TableColumnSchema>;
+
+export const TableBlockSchema = z.object({
+  id: z.string().describe('The table\u2019s id, unique within the sheet, which names its heading on the page.'),
+  title: z.string().describe('The table\u2019s title as the appendix prints it.'),
+  columns: z.array(TableColumnSchema).describe('The columns, in the order the table prints them.'),
+  rows: z.array(z.array(z.string())).default([]).describe('The rows, each one cell per column in column order, as HTML.'),
+  notes: z.array(z.string()).default([]).describe('The table\u2019s footnotes, in the order they are marked, which the page prints under it.'),
+}).strict();
+export type TableBlockDTO = z.infer<typeof TableBlockSchema>;
+
+/* Where a table sheet came from: one module of the publisher\u2019s bundle, which is
+   one appendix of the book, since a table sheet is the appendix as data. */
+export const TableSourceSchema = z.object({
+  module: z.string().describe('The publisher\u2019s id for the module the tables were read from.'),
+  appendix: z.string().describe('The letter the book prints the appendix under.'),
+}).strict();
+export type TableSourceDTO = z.infer<typeof TableSourceSchema>;
+
+/* A number as a table cell writes it: a plain decimal, or a coefficient times a
+   power of ten with the exponent in a <sup>, which is how the book prints an
+   equilibrium constant. Nothing for a cell that is not a number, which is what
+   both the sort and the validator ask. */
+export const cellNumber = (cell: string): number | null => {
+  const text = cell.replace(/<[^>]*>/g, (t) => (/^<\/?sup\b/i.test(t) ? '^' : ' ')).replace(/&minus;|\u2212|\u2013/g, '-').replace(/&nbsp;|\u00a0/g, ' ').trim();
+  const power = /^([+-]?(?:\d+\.?\d*|\.\d+))\s*(?:\u00d7|x|\*)\s*10\s*\^\s*([+-]?\d+)\s*\^?$/i.exec(text);
+  if (power) return Number(power[1]) * Math.pow(10, Number(power[2]));
+  const bare = /^([+-]?(?:\d+\.?\d*|\.\d+))$/.exec(text.replace(/,/g, ''));
+  return bare ? Number(bare[1]) : null;
+};
 
 /* ---------- one sheet file ---------- */
 
@@ -84,10 +125,10 @@ export const SheetDataSchema = z.discriminatedUnion('kind', [
     elements: z.array(ElementSchema).describe('Every element, in order of atomic number.'),
   }).strict(),
   z.object({
-    kind: z.literal('table').describe('A plain reference table: named columns and rows of strings, which the app lists until a later pass draws it.'),
+    kind: z.literal('table').describe('A plain reference table: one appendix of the book as data, one or more tables of named columns and rows of HTML cells.'),
     ...SheetBase,
-    columns: z.array(TableColumnSchema).describe('The columns of the table, in the order it prints them.'),
-    rows: z.array(z.record(z.string())).default([]).describe('The rows, each a record keyed by column id.'),
+    source: TableSourceSchema.describe('The module the tables were read from and the letter the book prints it under, since a table sheet is an appendix as data.'),
+    tables: z.array(TableBlockSchema).default([]).describe('The tables of the appendix, in the order it prints them.'),
   }).strict(),
 ]);
 export type SheetDataDTO = z.infer<typeof SheetDataSchema>;

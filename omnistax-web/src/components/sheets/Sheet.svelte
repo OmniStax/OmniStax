@@ -5,7 +5,7 @@
      than showing an empty page. */
   import { sheets } from '../../lib/sheets/store.svelte';
   import Elements from './Elements.svelte';
-  import TableSheet from './TableSheet.svelte';
+  import Table from './Table.svelte';
   let { id }: { id: string } = $props();
   const entry = $derived(sheets.entry(id));
   const data = $derived(sheets.data[id]);
@@ -19,7 +19,7 @@
   {:else if data && data.kind === 'elements'}
     <Elements sheet={data} />
   {:else if data && data.kind === 'table'}
-    <TableSheet sheet={data} />
+    <Table sheet={data} />
   {:else if status === 'failed'}
     <p class="note bad">Could not read {entry.title}.</p>
   {:else}

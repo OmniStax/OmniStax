@@ -66,8 +66,19 @@ Tables:
   number and as the table prints it), group, period, block, category, the
   book's three-way shading, state at 25 °C, electron configuration,
   electronegativity, first ionization energy, covalent radius, year of
-  discovery, and the sections of this book that name it. A `table` sheet
-  carries `columns` and `rows`. The shapes are zod objects in
+  discovery, and the sections of this book that name it. A `table` sheet is one
+  data appendix of the book: its `source` is `{ module, appendix }` rather than
+  a sentence, and it carries `tables`, one per table the appendix prints, each
+  `{ id, title, columns, rows, notes }`. A column is
+  `{ id, label, unit?, kind }`, where `label` and `unit` are HTML, since a
+  heading may carry a subscript, and `kind` is `"text"`, `"number"` — a column
+  the page sorts by, whose cells read as a decimal or as a coefficient times a
+  power of ten — or `"formula"`. A row is one cell per column in column order,
+  each the same HTML the prose carries, so the formula hover marks a formula in
+  a cell as it marks one in a paragraph; a row whose first cell alone is filled
+  is a heading the book prints inside the table. `notes` are the table's
+  footnotes, marked in the cells they belong to as `<sup class="fn">n</sup>`.
+  The shapes are zod objects in
   `src/lib/content/sheets.ts`, beside the tables of the three content files.
 
 ### `<chapter>/chapter.json`
@@ -251,7 +262,13 @@ references:
   the row promised and calls itself by the row's id; a title that disagrees
   with the row is a warning, and so is an element that names a section the
   book does not build, since the sections are computed by a tool from what
-  has been built.
+  has been built;
+  and, in a `table` sheet, every table has an id of its own, no two columns of
+  one table share an id, and every row is as wide as the columns. A cell of a
+  numeric column that carries a digit and is not a number — the book prints
+  "0.9999720 (density maximum)" — is a warning, since the page simply leaves
+  that row out of the column's order, and a cell with no digit at all is the
+  book's em dash for a value nobody has measured and is not reported.
 
 The same checks run in `npm test` against the real content, so a content
 edit that breaks a reference fails the suite, not only the build.
