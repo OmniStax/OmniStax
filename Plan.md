@@ -140,8 +140,18 @@ chapter passes of 4, 5, 6, 8 and 9 are still owed, and the angle unit
 in `chapter.json` variables is the ordinal `º` rather than `°` across
 Chapters 3 to 9.
 
-Next: relaunch the chapter passes for 4, 5, 6, 8 and 9 (one agent each,
-`brief-final.md`), then wave 3 (10, 11, 12) as planned. Chen's root
+**2026-09-12, 12:53 am.** The chapter passes of 4, 5, 6, 8 and 9 ran
+in parallel (LOG passes 29 to 33): every variable and equation row of
+those chapters anchored, the angle unit swept to `°` book-wide, four
+inline exercise hosts that were missing added, "Professional
+Application" made a card tag across Chapter 8, two exercise figures
+dropped from 6.3 whose problems are unkeyed, and a file name with a
+space made an underscore in 8 and 9 (the convention now). Checks on the
+whole: validator clean at 10 chapters and 62 sections, 361 tests, astro
+check clean, 75 pages, 45 pages smoke-tested in light and dark with
+nothing wrong. Chapters 1 to 9 and 16 are complete.
+
+Next: wave 3 (10, 11, 12) as planned, after Chen's todolist.md. Chen's root
 `RULES.md` items 22 (COLOR.md) and 23 (BE INSPIRING), uncommitted when
 these chapters were built, should be folded into the briefs first. The briefs, `modules.json` and the
 per-section launch notes are in the job's tmp dir
