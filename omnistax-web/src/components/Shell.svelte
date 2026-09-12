@@ -15,7 +15,7 @@
   import { findEl, jump, activePane, openDoc } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
-  import { settings } from '../lib/settings/store.svelte';
+  import { settings, zoomPx } from '../lib/settings/store.svelte';
   import { colours } from '../lib/colours/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import { BUILTIN } from '../lib/commands/builtin';
@@ -106,6 +106,16 @@
       const id = c ? keys.commandFor(c) : undefined;
       return id === BUILTIN.undo || id === BUILTIN.redo;
     };
+    /* Ctrl+= , Ctrl+− and Ctrl+0 are the browser's zoom chords, and the shell
+       takes them to size its own text instead — a root font size, which leaves
+       the window the width it had. Turned off, the press is never dispatched
+       and the browser zooms the page with it as it always did; the three
+       commands stay in the palette either way. */
+    const ZOOM = [BUILTIN.zoomIn, BUILTIN.zoomOut, BUILTIN.zoomReset] as const;
+    const browserZoom = (c: Chord | null): boolean => {
+      const id = c ? keys.commandFor(c) : undefined;
+      return !settings.zoomKeys && id !== undefined && (ZOOM as readonly string[]).includes(id);
+    };
     /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns.
        Ctrl+P and Ctrl+S are the shell's whether anything is bound to them or not: nothing here
        prints a page or saves one, so the browser is not given the chance to offer either. */
@@ -113,6 +123,7 @@
       if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; }
       const c = chordOf(e);
       if (!keys.pending && ownUndo(c) && typingIn(e.target)) return;
+      if (browserZoom(c)) return;
       if (keys.dispatch(e)) return;
       if (c === 'Ctrl+P' || c === 'Ctrl+S') e.preventDefault();
     };
@@ -156,6 +167,11 @@
   $effect(() => { if (settings.theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', settings.theme); FIG.redrawAll(); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
   $effect(() => { document.documentElement.classList.toggle('no-underlines', !settings.underlines); });
+  /* The app's own text size: one root font size, which every rem in the book and
+     in the chrome is measured against, so the reading column, the rails and the
+     views grow together. Figures are drawn in their own logical space and are
+     measured out of the page, so they are marked for a redraw at the new size. */
+  $effect(() => { document.documentElement.style.fontSize = `${zoomPx(settings.zoom)}px`; FIG.redrawAll(); });
   $effect(() => { if (!settings.voice) reader.stop(); });
 
   /* folded headings and hidden figures → classes on every copy, then the spy re-reads the shorter page */

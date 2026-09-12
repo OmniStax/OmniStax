@@ -15,6 +15,16 @@ type Range = readonly [number, number];
 type Scale = (v: number) => Logical;
 type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
 type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
+type Label = { s: string; x: Logical; y: Logical; hx: Logical; hy: Logical; color: Color; sz: number; align: CanvasTextAlign };
+export type Labeller = {
+  block: (l: Logical, t: Logical, r: Logical, b: Logical) => void;
+  add: (s: string, hx: Logical, hy: Logical, ux: number, uy: number, color: Color, size?: number, start?: number) => void;
+  flush: () => void;
+};
+export type Vec3 = readonly [number, number, number];   /* a point or direction in the scene: y up, z toward the viewer */
+export type Pt = readonly [Logical, Logical];                 /* a projected point on the canvas */
+type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
+export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
 type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; onInput?: () => void };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
@@ -63,8 +73,15 @@ function alpha(hex: Color, a: number): Color {
   let h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const n = parseInt(h, 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
-const redraws: Array<() => void> = [];
-function redrawAll(): void { readPal(); redraws.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); }
+/* A redraw asked for across the book — a theme change, a colour, a resize, the
+   layout settling after a tab opened or closed — reads the palette again and
+   marks every figure rather than drawing it. The one animation loop below then
+   draws the figures that are on screen, together in the next frame, and leaves
+   the rest until they scroll into view. Drawing a figure measures its canvas
+   back out of the page, so drawing every figure of every loaded section in a
+   row costs a forced layout apiece: a shell with five sections open spent a
+   third of a second of that on every tab. */
+function redrawAll(): void { readPal(); sims.forEach((d) => { d.dirty = true; }); }
 
 /* ---------- DOM helpers ---------- */
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K] {
@@ -149,7 +166,7 @@ function transport(d: Sim): void {
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
   const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
-  sims.push(full); vio?.observe(fig); redraws.push(() => { usePal(fig); full.draw(); }); if (!still) transport(full);
+  sims.push(full); vio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
@@ -162,7 +179,9 @@ function loop(now: number): void {
       const before = d.cycles.map((c) => c.tau); d.update(dt * d.speed);
       if (d.cycles.some((c, i) => c.tau !== before[i])) { d.dirty = true; syncScrub(d); }   /* the end-of-loop hold changes nothing */
     }
-    if (d.dirty) { d.dirty = false; usePal(d.fig); d.draw(); }
+    /* Every redraw the book asks for now comes through here, so one figure that
+       throws must not take the loop — and with it every other figure — down. */
+    if (d.dirty) { d.dirty = false; usePal(d.fig); try { d.draw(); } catch (e) { console.error(e); } }
   });
   requestAnimationFrame(loop);
 }
@@ -316,6 +335,31 @@ function dragster(ctx: Ctx, x: Logical, y: Logical, color: Color, s = 1): void {
   ctx.fillRect(-60, -6, 90, 12); ctx.fillRect(20, -4, 26, 8); ctx.fillRect(-64, -22, 24, 6);
   ctx.beginPath(); ctx.arc(-44, 12, 14, 0, Math.PI * 2); ctx.arc(30, 8, 8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 }
+/* A locked view of a solid the book draws in perspective. The drawing layer has no
+   3D primitive, so the projection is done here: a pinhole camera stands at a fixed
+   yaw and pitch about the origin, dist away, and each face is lit by one fixed lamp
+   from the upper left front. P takes a point [x, y, z] (y up, z toward the viewer)
+   to the canvas, and shade takes a face's outward normal to the share of ink laid
+   over the face colour. Any figure whose original is a perspective view can reuse
+   it: choose the yaw and pitch that match the book's picture and never change them. */
+function view({ yaw, pitch, dist, cx, cy }: ViewOpts): View {
+  const e: Vec3 = [dist * Math.sin(yaw) * Math.cos(pitch), dist * Math.sin(pitch), dist * Math.cos(yaw) * Math.cos(pitch)];
+  const unit = (v: Vec3): Vec3 => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+  const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dotp = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const f = unit([-e[0], -e[1], -e[2]]), r = unit(cross(f, [0, 1, 0])), u = cross(r, f), lamp = unit([-0.45, 0.85, 0.55]);
+  return {
+    P: (p: Vec3): Pt => { const q: Vec3 = [p[0] - e[0], p[1] - e[1], p[2] - e[2]], z = dotp(q, f); return [cx + dist * dotp(q, r) / z, cy - dist * dotp(q, u) / z]; },
+    shade: (n: Vec3): number => 0.34 * (1 - Math.max(0, dotp(unit(n), lamp))),
+  };
+}
+/* one face of the solid on the canvas: the face colour, then k of ink over it for its shading, then an outline of the given width; a null k fills nothing */
+function face(ctx: Ctx, pts: readonly Pt[], k: number | null, stroke?: Logical): void {
+  ctx.save(); ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
+  if (k !== null) { ctx.fillStyle = PAL.soft; ctx.fill(); ctx.fillStyle = alpha(PAL.ink, k); ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = PAL.ink; ctx.lineWidth = stroke; ctx.lineJoin = 'round'; ctx.stroke(); }
+  ctx.restore();
+}
 /* a coil spring between two points: n coils of half-width a */
 function spring(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, n: number, a: Logical, color: Color, w = 4): void {
   const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, px = -uy, py = ux;
@@ -336,10 +380,71 @@ function fixed(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical): void {
   line(ctx, x, y, x + w, y, PAL.muted, 3); line(ctx, x, y + h, x + w, y + h, PAL.muted, 3);
 }
 
+/* ---------- the label discipline ----------
+   A label is set beside the thing it names and never on it. It starts one
+   gap beyond the arrowhead, along the arrow's own direction; where that slot
+   is already taken, or would fall off the canvas, it steps further out and a
+   dotted leader in the label's own colour ties it back to the head. Every
+   label is drawn in a small panel the colour of the page, so a line it
+   crosses does not run through the letters, and every label is kept inside
+   the canvas at every slider position. Labels are collected and flushed
+   last, which puts text above the arrows and the arrows above the bodies.
+   block() reserves a region, such as the headline band, that no label may
+   enter. */
+function labeller(ctx: Ctx, H: Logical): Labeller {
+  const placed: Box[] = [], queue: Label[] = [];
+  const boxOf = (s: string, x: Logical, y: Logical, size: number, align: CanvasTextAlign): Box => {
+    ctx.save(); ctx.font = '600 ' + size + 'px ' + FONT; const tw = ctx.measureText(s).width; ctx.restore();
+    const bw = tw + 14, bh = size + 8;
+    const l = align === 'center' ? x - bw / 2 : align === 'right' ? x - bw + 7 : x - 7;
+    return { l, r: l + bw, t: y - bh / 2, b: y + bh / 2 };
+  };
+  const clash = (a: Box): boolean => placed.some((b) => a.l < b.r + 8 && b.l < a.r + 8 && a.t < b.b + 6 && b.t < a.b + 6);
+  return {
+    block(l, t, r, b) { placed.push({ l, t, r, b }); },
+    add(s, hx, hy, ux, uy, color, size, start) {
+      const sz = size || 20, gaps = [start || 20, 58, 96, 138, 184];
+      const align: CanvasTextAlign = ux < -0.3 ? 'right' : ux > 0.3 ? 'left' : 'center';
+      for (let i = 0; i < gaps.length; i++) {
+        let x = hx + ux * gaps[i], y = hy + uy * gaps[i];
+        let b = boxOf(s, x, y, sz, align);
+        const dx = b.l < 16 ? 16 - b.l : b.r > LW - 16 ? LW - 16 - b.r : 0;
+        const dy = b.t < 16 ? 16 - b.t : b.b > H - 16 ? H - 16 - b.b : 0;
+        if (dx || dy) { x += dx; y += dy; b = boxOf(s, x, y, sz, align); }
+        if (clash(b) && i < gaps.length - 1) continue;
+        placed.push(b); queue.push({ s, x, y, hx, hy, color, sz, align });
+        return;
+      }
+    },
+    flush() {
+      for (const q of queue) {
+        const dx = q.x - q.hx, dy = q.y - q.hy, L = Math.hypot(dx, dy);
+        if (L > 40) line(ctx, q.hx + (dx / L) * 15, q.hy + (dy / L) * 15, q.x - (dx / L) * 17, q.y - (dy / L) * 17, alpha(q.color, 0.5), 1.5, [5, 6]);
+        text(ctx, q.s, q.x, q.y, q.color, { weight: 600, size: q.sz, align: q.align, bg: PAL.panel });
+      }
+    },
+  };
+}
+/* a headline that never runs to the border: one line where it fits, and
+   otherwise two, broken at the space that leaves the two halves most even */
+function topline(ctx: Ctx, s: string): 1 | 2 {
+  const wide = (t: string): number => { ctx.save(); ctx.font = '400 26px ' + FONT; const q = ctx.measureText(t).width; ctx.restore(); return q; };
+  if (wide(s) <= LW - 220) { headline(ctx, s); return 1; }
+  const words = s.split(' ');
+  let cut = 1, best = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const q = Math.abs(wide(words.slice(0, i).join(' ')) - wide(words.slice(i).join(' ')));
+    if (q < best) { best = q; cut = i; }
+  }
+  text(ctx, words.slice(0, cut).join(' '), LW / 2, 38, PAL.ink, { size: 26, align: 'center' });
+  text(ctx, words.slice(cut).join(' '), LW / 2, 74, PAL.ink, { size: 26, align: 'center' });
+  return 2;
+}
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redraws, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, runner, person, car, plane, dragster, spring, block, fixed, FONT,
+  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
 };
 export type Fig = typeof FIG;
 

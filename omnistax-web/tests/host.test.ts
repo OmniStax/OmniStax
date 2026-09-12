@@ -2,7 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { browserOf, kept, keptChords, hostName, RESERVED } from '../src/lib/commands/host';
 import { chord, type Chord } from '../src/lib/commands/chord';
-import { DEFAULT_PAIRS } from '../src/lib/commands/defaults';
+import { DEFAULT_BINDINGS, DEFAULT_PAIRS, defaultBindings } from '../src/lib/commands/defaults';
+import { chordsFor } from '../src/lib/commands/chord';
+import { commandId } from '../src/lib/commands/command';
+import { ZOOM_DEFAULT, ZOOM_STEPS, nearestZoom, zoomBy, zoomLabel, zoomPx } from '../src/lib/settings/zoom';
 
 const c = (s: string): Chord => chord(s)!;
 const CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
@@ -40,4 +43,32 @@ test('the defaults a Chromium tab keeps are the ones the comments admit to', () 
 test('the host is named for the reader', () => {
   assert.equal(hostName({ browser: 'chromium', surface: 'tab' }), 'Chrome, in a browser tab');
   assert.equal(hostName({ browser: 'firefox', surface: 'fullscreen' }), 'Firefox, in full screen');
+});
+
+test('in a browser tab the defaults hand the kept commands an Alt chord, and in the app the Ctrl one', () => {
+  const tab = defaultBindings({ browser: 'chromium', surface: 'tab' });
+  const app = defaultBindings({ browser: 'chromium', surface: 'app' });
+  assert.deepEqual(chordsFor(tab, commandId('close-tab')), ['Alt+W']);
+  assert.deepEqual(chordsFor(app, commandId('close-tab')), ['Ctrl+W']);
+  assert.deepEqual(chordsFor(tab, commandId('close-group')), ['Alt+Shift+W']);
+  assert.deepEqual(chordsFor(tab, commandId('next-tab')), ['Alt+PageDown']);
+  /* a chord the browser leaves alone reads the same on either surface */
+  assert.deepEqual(chordsFor(tab, commandId('split-right')), chordsFor(app, commandId('split-right')));
+  /* no two commands land on one chord, and the app's defaults are the pairs as written */
+  assert.equal(new Set(Object.keys(tab)).size, Object.keys(tab).length);
+  assert.deepEqual(Object.keys(app).sort(), Object.keys(DEFAULT_BINDINGS).sort());
+});
+test('Firefox keeps its chords in the app too, so its defaults do not change with the window', () => {
+  const tab = defaultBindings({ browser: 'firefox', surface: 'tab' });
+  assert.deepEqual(defaultBindings({ browser: 'firefox', surface: 'app' }), tab);
+  assert.deepEqual(chordsFor(tab, commandId('palette')), ['Alt+Shift+P']);
+});
+test('the text size walks a ladder and stops at either end', () => {
+  assert.equal(zoomBy(ZOOM_DEFAULT, 1) > ZOOM_DEFAULT, true);
+  assert.equal(zoomBy(ZOOM_STEPS[0], -1), ZOOM_STEPS[0]);
+  assert.equal(zoomBy(ZOOM_STEPS[ZOOM_STEPS.length - 1], 1), ZOOM_STEPS[ZOOM_STEPS.length - 1]);
+  assert.equal(nearestZoom(1.07), 1.1);        /* a number off the ladder lands on the nearest rung */
+  assert.equal(nearestZoom(99), 2);
+  assert.equal(zoomPx(ZOOM_DEFAULT), 16);
+  assert.equal(zoomLabel(zoomBy(ZOOM_DEFAULT, 1)), '110%');
 });

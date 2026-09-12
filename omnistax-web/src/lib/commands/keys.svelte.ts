@@ -6,7 +6,8 @@
    the same browser and profile in another window, so it reads the same bindings. */
 import { commands } from './registry.svelte';
 import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBindings, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
-import { DEFAULT_BINDINGS } from './defaults';
+import { defaultBindings } from './defaults';
+import { host } from './host.svelte';
 import type { CommandId } from './command';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
@@ -15,14 +16,19 @@ const KEY = 'omnistax-keys';
 const WAIT = 1500;   /* how long the first press of a sequence is held, in milliseconds */
 export { DEFAULT_BINDINGS } from './defaults';
 
-const load = (): Bindings => {
-  try { const parsed = parseBindings(JSON.parse(localStorage.getItem(KEY) ?? 'null')); if (parsed) return parsed; } catch { /* fall through */ }
-  return DEFAULT_BINDINGS;
+/* What this browser holds, or nothing at all when the reader has never changed
+   a chord — in which case the bindings are the host's own defaults, read live,
+   so installing the book as an app hands the Ctrl chords back on the spot. */
+const load = (): Bindings | null => {
+  try { return parseBindings(JSON.parse(localStorage.getItem(KEY) ?? 'null')); } catch { return null; }
 };
 const save = (b: Bindings): void => { try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* private mode */ } };
 
 class Keys {
-  bindings = $state.raw<Bindings>(typeof localStorage === 'undefined' ? DEFAULT_BINDINGS : load());
+  #edited = $state.raw<Bindings | null>(typeof localStorage === 'undefined' ? null : load());
+  bindings: Bindings = $derived(this.#edited ?? defaultBindings(host.info));
+  /* The chords the book ships with on this host, which a restore goes back to. */
+  private get defaults(): Bindings { return defaultBindings(host.info); }
   /* The first press of a sequence, while the shell waits for the second. */
   pending = $state.raw<Chord | null>(null);
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -30,16 +36,16 @@ class Keys {
   chordsFor(id: CommandId): readonly Chord[] { return chordsFor(this.bindings, id); }
   commandFor(c: Chord): CommandId | undefined { return this.bindings[c]; }
   /* Make `c` the one chord of `id`; whoever had `c` before loses it. */
-  set(id: CommandId, c: Chord): void { this.bindings = rebind(this.bindings, id, c); save(this.bindings); }
-  clear(id: CommandId): void { this.bindings = withoutCommand(this.bindings, id); save(this.bindings); }
-  restoreDefaults(): void { this.bindings = DEFAULT_BINDINGS; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
-  get isDefault(): boolean { return JSON.stringify(this.bindings) === JSON.stringify(DEFAULT_BINDINGS); }
+  set(id: CommandId, c: Chord): void { this.edit(rebind(this.bindings, id, c)); }
+  clear(id: CommandId): void { this.edit(withoutCommand(this.bindings, id)); }
+  private edit(b: Bindings): void { this.#edited = b; save(b); }
+  restoreDefaults(): void { this.#edited = null; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
+  get isDefault(): boolean { return this.#edited === null; }
   /* One command back to the chords it shipped with; whoever holds them now loses them. */
   restoreDefault(id: CommandId): void {
-    this.bindings = chordsFor(DEFAULT_BINDINGS, id).reduce((b, c) => rebind(b, id, c, true), withoutCommand(this.bindings, id));
-    save(this.bindings);
+    this.edit(chordsFor(this.defaults, id).reduce((b, c) => rebind(b, id, c, true), withoutCommand(this.bindings, id)));
   }
-  isDefaultFor(id: CommandId): boolean { return JSON.stringify([...this.chordsFor(id)].sort()) === JSON.stringify([...chordsFor(DEFAULT_BINDINGS, id)].sort()); }
+  isDefaultFor(id: CommandId): boolean { return JSON.stringify([...this.chordsFor(id)].sort()) === JSON.stringify([...chordsFor(this.defaults, id)].sort()); }
 
   /* Hold a press, or let go of the one being held; a held press is dropped after a
      moment, so a Ctrl+K nobody followed up on stops standing in the way. */

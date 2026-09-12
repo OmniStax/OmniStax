@@ -3,17 +3,21 @@
    map opens with the practice bars drawn on its nodes.
    Each is remembered in this browser and applied to the document as a class or
    attribute. */
+import { type ZoomStep, ZOOM_DEFAULT, nearestZoom, zoomBy } from './zoom';
+export type { ZoomStep } from './zoom';
+export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
-export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true } as const;
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true } as const;
 
-const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress' } as const;
+const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { try { localStorage.removeItem(key); } catch { /* private mode */ } };
 const sysDark = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 const readTheme = (): Theme => { const t = read(KEYS.theme); return t === 'light' || t === 'dark' ? t : 'system'; };
+const readZoom = (): ZoomStep => { const v = Number(read(KEYS.zoom)); return Number.isFinite(v) && v > 0 ? nearestZoom(v) : ZOOM_DEFAULT; };
 
 class Settings {
   colorCoding = $state(read(KEYS.cc) !== '0');
@@ -29,6 +33,12 @@ class Settings {
      them. Each map keeps its own switch afterwards, so this only says what a
      map that has just opened shows. */
   mapProgress = $state(read(KEYS.mapProgress) !== '0');
+  /* How large the app's own text is, and whether Ctrl+= / Ctrl+− / Ctrl+0 are
+     the book's keys or the browser's. Off hands the three chords straight back
+     to the browser, which zooms the whole page with them as it always did; the
+     three commands stay in the palette either way. */
+  zoom = $state<ZoomStep>(readZoom());
+  zoomKeys = $state(read(KEYS.zoomKeys) !== '0');
 
   get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
   setColorCoding(on: boolean): void { this.colorCoding = on; write(KEYS.cc, on ? '1' : '0'); }
@@ -40,6 +50,11 @@ class Settings {
   setExerciseMode(m: ExerciseMode): void { this.exerciseMode = m; write(KEYS.exmode, m); }
   setVoice(on: boolean): void { this.voice = on; write(KEYS.voice, on ? '1' : '0'); }
   setMapProgress(on: boolean): void { this.mapProgress = on; write(KEYS.mapProgress, on ? '1' : '0'); }
+  setZoom(z: ZoomStep): void { this.zoom = nearestZoom(z); write(KEYS.zoom, String(this.zoom)); }
+  zoomIn(): void { this.setZoom(zoomBy(this.zoom, 1)); }
+  zoomOut(): void { this.setZoom(zoomBy(this.zoom, -1)); }
+  resetZoom(): void { this.setZoom(ZOOM_DEFAULT); }
+  setZoomKeys(on: boolean): void { this.zoomKeys = on; write(KEYS.zoomKeys, on ? '1' : '0'); }
   setUnderlines(on: boolean): void { this.underlines = on; write(KEYS.underlines, on ? '1' : '0'); }
   reset(): void { Object.values(KEYS).forEach(remove); }
 }

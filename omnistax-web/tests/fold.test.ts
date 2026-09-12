@@ -1,3 +1,4 @@
+import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toggleId, addIds, removeIds, parseIds, renamedSimId, FOLDABLE, HIDEABLE } from '../src/lib/sections/fold';
@@ -35,7 +36,7 @@ test('the foldable and hideable selectors name only spans and figures that carry
 
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
-  settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {}, setUnderlines: () => {} },
+  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {}, setUnderlines: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeTab: () => {}, closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},

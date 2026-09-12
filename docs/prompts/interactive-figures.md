@@ -140,6 +140,8 @@ to the column. Use only these primitives (all take logical units):
   scale(ctx,X,from,to,step,y,unit,every)    axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}
   nice(lo,hi,want) -> {lo,hi,n}             curve(ctx,f,t0,t1,X,Y,color,w,n)
   pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
+  view({yaw,pitch,dist,cx,cy}) -> {P,shade}   /* a locked perspective view */
+  face(ctx,pts,k,stroke)                     /* one face of a solid; null k fills nothing */
 
 Axis ranges are fixed per figure. Work out the largest value the sliders
 can reach, round it up to a tick, and pass that range to axes() as a

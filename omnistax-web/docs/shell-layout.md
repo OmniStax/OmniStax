@@ -51,8 +51,20 @@ The chrome:
   opens the chosen text or exercises as a tab in that group. The focused group has the underlined tab, and the companion
   views follow its scroll position.
 - **Settings** is a popover from the gear, not a view: colour coding, dark
-  mode, a "Play animations" switch that pauses every figure in every
+  mode, text size, a "Play animations" switch that pauses every figure in every
   loaded section, reset layout.
+- **Text size** is the app's own zoom: one root font size, which every rem in
+  the book and in the chrome is measured against, so the reading column, the
+  rails and the views grow together and the window keeps its width. Ctrl+=,
+  Ctrl+− and Ctrl+0 walk a ladder of sizes and are remembered in this browser;
+  the "Zoom keys" switch hands the three chords back to the browser, which
+  zooms the whole page with them as it always did. The three commands stay in
+  the palette either way.
+- **A section's own contents** stand at the top of its text, under the lead: the
+  `<h2>` of each `<section id>` the section prints, as a quiet row of links.
+  They are written into the article at build time (`content/fragment.ts`), so
+  they cost the shell nothing. A page with one span, and every introduction or
+  summary page, prints none.
 - **Exercises** in the end-of-section list show all at once or one at a
   time with previous/next; the choice is remembered per browser, and a
   link into a hidden card switches to that card.
@@ -140,3 +152,31 @@ browser (`omnistax-notes-<book id>`); with accounts they move to the profile.
   moves to the user's profile with the rest of the layout.
 - Keyboard: tabs and boxes are reachable, but there is no shortcut to move
   focus between groups or cycle tabs yet.
+
+## Shortcuts the browser keeps
+
+A browser tab reserves a handful of chords — Ctrl+W closes the tab, Ctrl+T
+opens one, Ctrl+Tab steps between them — and never hands them to the page,
+whatever the page asks (`commands/host.ts` holds the list, by browser family).
+So the defaults are read off the host the shell is running in
+(`defaultBindings` in `commands/defaults.ts`): in a browser tab a command whose
+chord the host keeps ships with Alt in place of Ctrl — Alt+W closes a tab of
+the book, Alt+Shift+T reopens one — and installed as an app
+(`display-mode: standalone`) or in full screen, where every chord arrives, it
+ships as Ctrl. Firefox keeps its set on every surface, so its defaults do not
+change with the window. The swap is only what a command *ships* with: a chord
+the reader records is stored as they pressed it and nothing is swapped under
+it, and the settings pane says which rule is in force.
+
+## Why a tab opens and closes quickly
+
+Opening or closing a tab changes the layout, and the shell answers a layout
+change by letting the documents settle, dropping the copies no group shows any
+more, and asking the figures to redraw. That last step used to draw every
+figure of every loaded section in a row; drawing one measures its canvas back
+out of the page, so each was a forced layout, and a shell with five sections
+open spent about 400ms of main-thread work on every tab. A redraw now marks the
+figures instead (`fig/figlib.ts`), and the one animation loop draws the ones
+that are on screen together in the next frame and leaves the rest until they
+scroll into view. The scroll spy stops at the first span below the reading line
+rather than measuring them all. The same click costs about 100ms now.

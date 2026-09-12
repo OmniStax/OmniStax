@@ -7,7 +7,7 @@
      shortcut cell records the next chord (Escape cancels, Backspace clears); a
      chord another command owns is shown as a conflict and taken only on Enter.
      Chords the browser keeps for itself on this surface are marked. */
-  import { settings, THEMES, DEFAULTS } from '../lib/settings/store.svelte';
+  import { settings, THEMES, DEFAULTS, zoomLabel } from '../lib/settings/store.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -25,7 +25,7 @@
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
-    theme: 'Theme system light dark', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
+    theme: 'Theme system light dark', zoom: 'Text size zoom larger smaller root font', zoomKeys: 'Zoom keys ctrl plus minus zero browser page zoom', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
     anim: 'Play animations sim figure transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
     threshold: 'Mastery threshold score concept fading points mastered', days: 'Days in a row distinct correct streak mastered',
     halfLife: 'Half-life in days fading decay unpractised score halved', session: 'Exercises in a session how many a session draws',
@@ -34,7 +34,7 @@
     mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
+  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
   const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.halfLife, ROWS.session, ROWS.reviewShare, ROWS.spaced, ROWS.selfChecked, ROWS.mapProgress, ROWS.record];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
@@ -119,6 +119,16 @@
             {/each}
           </div>
         </div>
+        <div class="row" hidden={!hit(ROWS.zoom)}>
+          <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Back to the normal text size', () => settings.resetZoom())}</span>
+          <span class="hint">How large the book's own text is. The window keeps its width, so the reading column only gets the words larger.</span>
+          <div class="num">
+            <button type="button" aria-label="Smaller text" onclick={() => settings.zoomOut()}>−</button>
+            <span class="unit zoom">{zoomLabel(settings.zoom)}</span>
+            <button type="button" aria-label="Larger text" onclick={() => settings.zoomIn()}>+</button>
+          </div>
+        </div>
+        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Back to the book taking the zoom keys', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl+= , Ctrl+− and Ctrl+0 size the book's text. Off gives the three keys back to {browserName}, which zooms the whole page with them.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Colour coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Back to colour coding on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">Each physical type keeps its own hue in text, formulas and figures.</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Back to underlines on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">The dotted rule under symbols, glossary terms and example references. Off leaves the page clean; the card still opens on hover.</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
       </section>
@@ -157,6 +167,7 @@
       <section hidden={!groups.length}>
         <h3>Keyboard shortcuts</h3>
         <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>
+        <p class="hint">A browser tab keeps chords like Ctrl+W and Ctrl+T for itself, so in a tab those commands ship with Alt in their place — Alt+W closes a tab of the book. Installed as an app, the window is the book's and they ship as Ctrl. Either way a shortcut you record yourself is kept exactly as you pressed it.</p>
         {#if tabHeld}
           <p class="hint">
             {#if host.surface === 'app'}You are in the installed app, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
@@ -227,6 +238,7 @@
   .row>.num input{font:inherit;font-size:0.8rem;line-height:1.25;width:5.5ch;text-align:right;padding:4px 6px;border:0;border-left:1px solid var(--rule);background:var(--panel);color:var(--ink);appearance:textfield;-moz-appearance:textfield}
   .row>.num input::-webkit-outer-spin-button,.row>.num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .row>.num input:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .row>.num .unit.zoom{min-width:4.5ch;text-align:center;border-left:1px solid var(--rule);color:var(--ink);font-variant-numeric:tabular-nums}
   .row>.num .unit{font-size:0.8rem;line-height:1.25;color:var(--muted);padding:4px 6px 4px 0;background:var(--panel)}
   .btn-sm{font:inherit;font-size:0.82rem;padding:5px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer;align-self:flex-start}
   .btn-sm:hover:not(:disabled){background:var(--soft)}

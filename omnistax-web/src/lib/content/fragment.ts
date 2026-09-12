@@ -132,6 +132,28 @@ export const SUMMARY_ID = 'section-summary';
 const summaryBlock = (s: SectionSource): string =>
   (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>Section summary</h2>${s.summaryHtml}</section>`);
 
+/* The spans of one text, in the order it prints them: the <h2> that opens each
+   <section id> of the article, the section's own summary among them. A head may
+   carry markup and rendered math, so its words come back through plainText, the
+   same reading the search index takes. Only a section that opens a <section id>
+   is listed: an example or a figure inside one is not a place the reader turns to. */
+export type SpanHead = { readonly id: string; readonly title: string };
+const SPAN_HEAD = /<section\b[^>]*\bid="([^"]+)"[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g;
+export const spanHeads = (html: string): readonly SpanHead[] =>
+  [...html.matchAll(SPAN_HEAD)].map(([, id, head]) => ({ id, title: plainText(head) })).filter((h) => h.title !== '');
+
+/* The short list of a section's spans at the top of its text, under the lead:
+   where the section goes, in a glance, and a link into each. A page with one
+   span or none is its own contents and prints nothing; an introduction or
+   summary page prints nothing either, since the book runs those straight through. */
+const TOC_MIN = 2;
+export const sectionToc = (html: string): string => {
+  const heads = spanHeads(html);
+  if (heads.length < TOC_MIN) return '';
+  const items = heads.map((h) => `<li><a href="#${esc(h.id)}">${esc(h.title)}</a></li>`).join('');
+  return `<nav class="section-toc" aria-label="The parts of this section"><ul>${items}</ul></nav>`;
+};
+
 /* The pages either side of this one, by address and by the name they are listed under. */
 export type PageLink = { readonly url: string; readonly label: string };
 export type PageNav = Neighbours<PageLink>;
@@ -146,18 +168,22 @@ const pageNav = (nav: PageNav): string => {
   return prev === '' && next === '' ? '' : `<nav class="page-nav" aria-label="The pages before and after this one">${prev}${next}</nav>`;
 };
 
-export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => [
+export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
+  const body = sizeImages(qualifyIds(s.textHtml, s.meta.id)), summary = summaryBlock(s);
+  return [
   `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   ...(s.meta.lead === '' ? [] : [`<p class="lead">${s.meta.lead}</p>`]),
-  sizeImages(qualifyIds(s.textHtml, s.meta.id)),
-  summaryBlock(s),
+  s.role === 'section' ? sectionToc(body + summary) : '',
+  body,
+  summary,
   sectionEnd(s),
   pageNav(nav),
   footer(book, s),
   `</article>`,
-].filter((line) => line !== '').join('\n');
+  ].filter((line) => line !== '').join('\n');
+};
 
 /* The way on from the text: a button that opens a practice page on this
    section, beside the page, and one that opens its problem set. Both are

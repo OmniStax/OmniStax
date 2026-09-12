@@ -1,3 +1,4 @@
+import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, startsSequence, type Bindings, type Chord, type KeyLike } from '../src/lib/commands/chord';
@@ -106,7 +107,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
-    settings: { colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`) },
+    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`) },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),

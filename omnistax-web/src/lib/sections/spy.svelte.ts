@@ -11,9 +11,18 @@ class Spy {
     const doc = pane?.querySelector<HTMLElement>('[data-doc]');
     if (!pane || !doc) { this.current = { span: null, section: null }; return; }
     const line = pane.getBoundingClientRect().top + pane.clientHeight * 0.25;
-    let hit: HTMLElement | null = null;
-    doc.querySelectorAll<HTMLElement>('section[id], .example[id]').forEach((sp) => { const r = sp.getBoundingClientRect(); if (r.height > 0 && r.top <= line && r.bottom > line) hit = sp; });
-    const el = hit as HTMLElement | null;
+    /* The spans stand in document order, so the walk stops at the first one that
+       begins below the reading line: everything after it begins lower still.
+       Measuring a span asks the browser for the page's layout, and this runs on
+       every scroll and every time the layout settles, so the spans below the
+       line are worth not measuring at all. */
+    const spans = doc.querySelectorAll<HTMLElement>('section[id], .example[id]');
+    let el: HTMLElement | null = null;
+    for (const sp of spans) {
+      const r = sp.getBoundingClientRect();
+      if (r.top > line) break;
+      if (r.height > 0 && r.bottom > line) el = sp;
+    }
     const sec = el?.closest('section');
     const next: SpyState = { span: el ? spanId(el.id) : null, section: sec ? spanId(sec.id) : el ? spanId(el.id) : null };
     if (next.span !== this.current.span || next.section !== this.current.section) this.current = next;

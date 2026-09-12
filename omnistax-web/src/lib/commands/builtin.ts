@@ -3,7 +3,8 @@
    real ones), so the command list can be checked in tests. Add a builtin here;
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
-import type { Theme, ExerciseMode } from '../settings/store.svelte';
+import type { Theme, ExerciseMode, ZoomStep } from '../settings/store.svelte';
+import { zoomLabel } from '../settings/zoom';
 import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../types/ids';
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
@@ -13,7 +14,8 @@ export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly exerciseMode: ExerciseMode; readonly voice: boolean; readonly underlines: boolean;
+    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly exerciseMode: ExerciseMode; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
+    zoomIn(): void; zoomOut(): void; resetZoom(): void;
     setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setExerciseMode(m: ExerciseMode): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
   };
   readonly layout: {
@@ -53,6 +55,7 @@ export type ViewWhere = 'group' | 'side' | 'split';
 export const BUILTIN = {
   palette: commandId('palette'), settings: commandId('settings'), open: commandId('open'),
   animations: commandId('animations'), colourCoding: commandId('colour-coding'), underlines: commandId('underlines'),
+  zoomIn: commandId('zoom-in'), zoomOut: commandId('zoom-out'), zoomReset: commandId('zoom-reset'),
   themeSystem: commandId('theme-system'), themeLight: commandId('theme-light'), themeDark: commandId('theme-dark'), themeCycle: commandId('theme-cycle'),
   resetLayout: commandId('reset-layout'),
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
@@ -117,6 +120,11 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },
   themeCommand(d, BUILTIN.themeSystem, 'system'), themeCommand(d, BUILTIN.themeLight, 'light'), themeCommand(d, BUILTIN.themeDark, 'dark'),
   { id: BUILTIN.themeCycle, label: 'Theme: cycle', group: 'Appearance', run: () => d.settings.cycleTheme(), detail: () => d.settings.theme },
+  /* The app's own text size, a step at a time. The chords are the browser's
+     zoom chords, which the shell takes for itself while "Zoom keys" is on. */
+  { id: BUILTIN.zoomIn, label: 'Larger text', group: 'Appearance', run: () => d.settings.zoomIn(), detail: () => zoomLabel(d.settings.zoom) },
+  { id: BUILTIN.zoomOut, label: 'Smaller text', group: 'Appearance', run: () => d.settings.zoomOut(), detail: () => zoomLabel(d.settings.zoom) },
+  { id: BUILTIN.zoomReset, label: 'Text size back to normal', group: 'Appearance', run: () => d.settings.resetZoom(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.animations, label: 'Toggle animations', group: 'Reading', run: () => d.settings.setAnimations(!d.settings.animations), detail: () => onOff(d.settings.animations) },
   modeCommand(d, BUILTIN.exerciseAll, 'all', 'all'), modeCommand(d, BUILTIN.exerciseOne, 'one', 'one at a time'),
   { id: BUILTIN.voice, label: 'Toggle voice', group: 'Reading', run: () => d.settings.setVoice(!d.settings.voice), detail: () => (d.reader.supported ? onOff(d.settings.voice) : 'no speech in this browser') },
