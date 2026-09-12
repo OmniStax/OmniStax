@@ -6,3 +6,5 @@ omnistax-content/**/*.pdf
 omnistax-content/**/pages/
 node_modules
 __pycache__/
+# the figure sandbox is a local playground for visualisations, never published
+omnistax-content/Figure Sandbox/

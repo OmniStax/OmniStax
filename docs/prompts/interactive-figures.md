@@ -90,6 +90,7 @@ Readout: `tex(d.readout, ...)` writes the equation with the current numbers thro
 7. Faithful copy: a book figure the problems refer to, redrawn with the book's numbers and no sliders.
 8. Choice + scene: a segmented control or dropdown swaps the state or the material and the scene redraws.
 9. 3D scene: a molecule or lattice with snap views, bounded orbit and hover names.
+10. Two views: a flat drawing and a 3D scene of the same thing behind an `F.choice` labelled view (2D, 3D), 2D the default, the `F.view3d` stage mounted on the first switch and disposed with the figure; sliders and readout shared by both.
 
 ## 5. Check, once
 
