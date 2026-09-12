@@ -22,6 +22,7 @@
   import { conceptId, exerciseDomId, exItem, itemKey, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
   import { solutionText, type Verdict } from '../../lib/exercises/check';
+  import { solutionParts } from '../../lib/exercises/parts';
   import { pointsOf, type Attempt } from '../../lib/practice/model';
   import { practice } from '../../lib/practice/store.svelte';
   import { ICON } from '../../lib/icons';
@@ -40,6 +41,10 @@
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
+  /* A book problem that asks (a), (b), (c) keys all of them in one run of prose. The
+     card reads that run as it draws and sets a row per part, with the part's keyed
+     number beside it; a solution written as one piece has no rows and is printed whole. */
+  const parts = $derived(solutionParts(sol ?? '', ex.prompt, a));
   const nameOf = (id: string): string => practice.conceptOf(id)?.name ?? id;
   /* An answer goes into the practice store the moment it is marked, and the card says
      what came of it. The store refuses an exercise already answered correctly today,
@@ -98,7 +103,25 @@
     </div>
   {/if}
   {#if sol}
-    <details class="solution" ontoggle={(e) => (solutionOpen = e.currentTarget.open)}><summary>{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</summary><div use:math={sol}>{@html sol}</div></details>
+    <details class="solution" ontoggle={(e) => (solutionOpen = e.currentTarget.open)}><summary>{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</summary>
+      {#if parts.rows.length === 0}
+        <div use:math={sol}>{@html sol}</div>
+      {:else}
+        <div class="parts">
+          {#if parts.lead}<p class="plead" use:mathHtml={parts.lead}></p>{/if}
+          {#each parts.rows as r (r.label)}
+            <div class="prow">
+              <span class="plabel">{r.label}</span>
+              <div class="pbody">
+                {#if r.ask}<span class="pask" use:mathHtml={r.ask}></span>{/if}
+                <span class="ptext" use:mathHtml={r.text}></span>
+              </div>
+              {#if r.value}<span class="pval" use:mathHtml={r.value}></span>{/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </details>
     {#if solutionOpen && a.type !== 'choice'}
       <div class="selfcheck"><span class="lead">Did you get it?</span>
         <button type="button" disabled={selfDone} onclick={() => selfCheck(true)}>Got it</button>
@@ -139,6 +162,16 @@
   details.solution{font-family:var(--sans);font-size:0.9rem;margin-top:8px}
   details.solution summary{cursor:pointer;color:var(--muted);font-weight:600;font-size:0.8rem}
   details.solution > div{padding:6px 0 2px;font-family:var(--serif);font-size:0.95rem}
+  /* a row per part: the letter, what the part asked and what it comes to, and the
+     keyed number standing in its own column so the answers read down the card */
+  .parts{display:flex;flex-direction:column;gap:2px}
+  .plead{margin:0 0 4px}
+  .prow{display:flex;align-items:baseline;gap:8px;padding:3px 0;border-top:1px solid var(--rule)}
+  .prow:first-child{border-top:0}
+  .plabel{flex:none;min-width:1.8em;font-family:var(--sans);font-size:0.8rem;font-weight:600;color:var(--muted)}
+  .pbody{flex:1;min-width:0}
+  .pask{color:var(--muted);font-size:0.88rem}
+  .pval{flex:none;max-width:40%;text-align:right;color:var(--accent)}
   .selfcheck{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-family:var(--sans);font-size:0.8rem}
   .selfcheck .lead{color:var(--muted)}
   .selfcheck button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}

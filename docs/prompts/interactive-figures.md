@@ -139,6 +139,14 @@ to the column. Use only these primitives (all take logical units):
   vbracket(ctx,x,y1,y2,color,label,side)    strip(ctx,x1,x2,y,h)
   scale(ctx,X,from,to,step,y,unit,every)    axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}
   nice(lo,hi,want) -> {lo,hi,n}             curve(ctx,f,t0,t1,X,Y,color,w,n)
+  pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
+
+Axis ranges are fixed per figure. Work out the largest value the sliders
+can reach, round it up to a tick, and pass that range to axes() as a
+constant stated in a comment beside it; the range never changes while the
+figure runs or when a slider moves. A value the range cannot hold is not
+followed by rescaling: draw it through pinned(), which holds it at the
+edge as a hollow marker with an arrow and its number.
   runner(ctx,x,y,color,phase)  car(ctx,x,y,color,s)  plane(ctx,x,y,color,s)  dragster(ctx,x,y,color,s)
 
 Colours come from C('t'|'x'|'v'|'a') for variables and PAL.ink / PAL.muted

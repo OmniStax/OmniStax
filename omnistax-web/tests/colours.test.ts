@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   NO_CHOICES, type Choices, type Hue, type Place, applyPalette, clearHue, clearPlace, cssFor, d3Rainbow, darkOf,
-  effectiveHue, fromFile, hueFrom, isEmpty, isHex, lightOf, moveType, normHex, oklchRing, orderOf, ownHue, placeKey,
+  effectiveHue, fitCount, fromFile, hueFrom, isEmpty, isHex, lightOf, moveType, normHex, oklchRing, orderOf, ownHue, placeKey,
   placeOf, schemeOf, setHue, symbolsOf, toFile, typesAt,
 } from '../src/lib/colours/model';
 import { SWATCHES, huesOf, paletteById, paletteId, schemePalette } from '../src/lib/colours/palettes';
@@ -327,4 +327,15 @@ test('a palette answers with as many colours as the level needs, or with nothing
   assert.deepEqual(huesOf(okabe, 4), OKABE);
   assert.equal(huesOf(okabe, 9), null, 'eight colours cannot dress nine quantities');
   assert.equal(huesOf(okabe, 0), null, 'and no palette dresses nothing');
+});
+
+/* Four symbols twenty wide with six between them: 20, 46, 72, 98 as they are added. */
+test('a row takes as many symbols as fit, and keeps one however narrow it is', () => {
+  const w = [20, 20, 20, 20];
+  assert.equal(fitCount(w, 200, 12, 6), 4, 'they all fit, so none is left out');
+  assert.equal(fitCount(w, 98, 12, 6), 4, 'room for the lot exactly, and no ellipsis is wanted');
+  assert.equal(fitCount(w, 97, 12, 6), 3, 'one short of the lot, and the ellipsis takes room of its own');
+  assert.equal(fitCount(w, 85, 12, 6), 2);
+  assert.equal(fitCount(w, 5, 12, 6), 1, 'a row too narrow for even one still shows one');
+  assert.equal(fitCount([], 100, 12, 6), 0, 'a quantity with no symbols draws nothing');
 });

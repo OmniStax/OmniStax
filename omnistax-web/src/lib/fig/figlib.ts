@@ -235,6 +235,19 @@ function nice(lo: number, hi: number, want = 4): { lo: number; hi: number; n: nu
   const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
   return { lo: a, hi: b, n: Math.round((b - a) / step) };
 }
+/* A point on axes whose ranges are fixed. Inside the box it is an ordinary dot; past an edge it is
+   pinned at that edge as a hollow marker with its value written beside it, so the axes never rescale
+   to follow it. Returns the pinned coordinates for whatever the figure draws next. */
+function pinned(ctx: Ctx, box: Box, X: Scale, Y: Scale, xv: number, yv: number, color: Color, label?: string): { x: Logical; y: Logical; out: boolean } {
+  const px = X(xv), py = Y(yv);
+  const x = Math.min(Math.max(px, box.l), box.r), y = Math.min(Math.max(py, box.t), box.b), out = x !== px || y !== py;
+  if (!out) { dot(ctx, x, y, color, true, 9); return { x, y, out }; }
+  dot(ctx, x, y, color, false, 9);
+  const dx = px > box.r ? 1 : px < box.l ? -1 : 0, dy = py < box.t ? -1 : py > box.b ? 1 : 0;
+  arrow(ctx, x - dx * 26, y - dy * 26, x - dx * 4, y - dy * 4, color, 3);
+  if (label) text(ctx, label, x - dx * 16 - (dx ? 0 : 16), y - dy * 16 + (dy ? 0 : -22), color, { size: 17, weight: 600, align: dx > 0 ? 'right' : 'left', bg: PAL.panel });
+  return { x, y, out };
+}
 function curve(ctx: Ctx, f: (t: number) => number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w = 4, n = 80): void {
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath();
   for (let i = 0; i <= n; i++) { const s = t0 + ((t1 - t0) * i) / n; if (i) ctx.lineTo(X(s), Y(f(s))); else ctx.moveTo(X(s), Y(f(s))); }
@@ -247,6 +260,44 @@ function runner(ctx: Ctx, x: Logical, y: Logical, color: Color, phase: number): 
   ctx.beginPath(); ctx.moveTo(x, y - 34); ctx.lineTo(x - 2, y - 6);
   ctx.moveTo(x - 2, y - 6); ctx.lineTo(x - 10 + sw, y + 18); ctx.moveTo(x - 2, y - 6); ctx.lineTo(x + 10 - sw, y + 18);
   ctx.moveTo(x - 1, y - 26); ctx.lineTo(x + 14 + sw * 0.6, y - 16); ctx.moveTo(x - 1, y - 26); ctx.lineTo(x - 14 - sw * 0.6, y - 16); ctx.stroke(); ctx.restore();
+}
+/* a person of about 84 units, feet on the surface at (x, y): a filled head and torso
+   and two-segment limbs whose knees and elbows are placed by the reach of each limb.
+   `face` is +1 walking right and -1 left; `phase` runs the walk (0 stands still);
+   `lean` tips the torso forward in radians (a climber, a pusher); `crouch` in 0..1
+   bends the knees; `reach` puts both hands on a point in canvas units, such as the
+   side of a crate or the rail of a ladder; `s` scales the whole figure. */
+type Reach = { x: Logical; y: Logical };
+function joint(a: Reach, b: Reach, l1: number, l2: number, side: number): Reach {
+  const dx = b.x - a.x, dy = b.y - a.y, d = Math.max(1e-6, Math.min(Math.hypot(dx, dy), l1 + l2 - 1e-3));
+  const t = Math.atan2(dy, dx), bend = Math.acos(Math.min(1, Math.max(-1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))));
+  return { x: a.x + l1 * Math.cos(t - side * bend), y: a.y + l1 * Math.sin(t - side * bend) };
+}
+function person(ctx: Ctx, x: Logical, y: Logical, color: Color, o: { face?: number; phase?: number; lean?: number; crouch?: number; reach?: Reach; s?: number } = {}): void {
+  const face = o.face ?? 1, ph = o.phase ?? 0, lean = o.lean ?? 0, crouch = o.crouch ?? 0, s = o.s ?? 1;
+  const walking = ph !== 0, sw = walking ? Math.sin(ph) : 0;
+  const hip: Reach = { x: 0, y: -(40 - 12 * crouch) };
+  const sh: Reach = { x: hip.x + 30 * Math.sin(lean), y: hip.y - 30 * Math.cos(lean) };
+  const head: Reach = { x: sh.x + 14 * Math.sin(lean), y: sh.y - 14 * Math.cos(lean) };
+  const feet: Reach[] = [{ x: 12 * sw, y: -6 * Math.max(0, sw) }, { x: -12 * sw, y: -6 * Math.max(0, -sw) }];
+  const stance = walking ? 0 : 6 + 6 * crouch;
+  const hands: Reach[] = o.reach ? [{ x: (o.reach.x - x) / s * face, y: (o.reach.y - y) / s }, { x: (o.reach.x - x) / s * face - 3, y: (o.reach.y - y) / s + 3 }]
+    : [{ x: sh.x - 9 * sw + 3, y: sh.y + 27 }, { x: sh.x + 9 * sw - 3, y: sh.y + 27 }];
+  ctx.save(); ctx.translate(x, y); ctx.scale(s * face, s); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  /* the limbs behind the body first, then the body, then the near limbs */
+  const limb = (a: Reach, b: Reach, l1: number, l2: number, side: number, w: number) => {
+    const k = joint(a, b, l1, l2, side); ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(k.x, k.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  };
+  const foot = (f: Reach, w: number) => { ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(f.x - 3, f.y); ctx.lineTo(f.x + 9, f.y); ctx.stroke(); };
+  const far = walking ? 1 : 0;
+  limb(hip, { x: feet[far].x - stance, y: feet[far].y }, 22, 22, 1, 4.5); foot({ x: feet[far].x - stance, y: feet[far].y }, 4.5);
+  limb(sh, hands[1], 18, 18, -1, 4);
+  ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(hip.x - 5, hip.y); ctx.lineTo(sh.x - 7, sh.y); ctx.lineTo(sh.x + 7, sh.y); ctx.lineTo(hip.x + 5, hip.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(head.x, head.y); ctx.stroke();
+  ctx.beginPath(); ctx.arc(head.x, head.y - 4, 9, 0, Math.PI * 2); ctx.fill();
+  limb(hip, { x: feet[1 - far].x + stance, y: feet[1 - far].y }, 22, 22, 1, 5); foot({ x: feet[1 - far].x + stance, y: feet[1 - far].y }, 5);
+  limb(sh, hands[0], 18, 18, -1, 4.5);
+  ctx.restore();
 }
 function car(ctx: Ctx, x: Logical, y: Logical, color: Color, s = 1): void {
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = color;
@@ -288,7 +339,7 @@ function fixed(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical): void {
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redraws, redrawAll, el, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, curve, runner, car, plane, dragster, spring, block, fixed, FONT,
+  register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, runner, person, car, plane, dragster, spring, block, fixed, FONT,
 };
 export type Fig = typeof FIG;
 

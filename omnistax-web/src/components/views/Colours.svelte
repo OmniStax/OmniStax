@@ -22,7 +22,7 @@
   import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
   import { PALETTES, SWATCHES, huesOf, type Palette } from '../../lib/colours/palettes';
   import { ICON } from '../../lib/icons';
-  import { FIG } from '../../lib/fig/figlib';
+  import SymbolList from './SymbolList.svelte';
 
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
@@ -193,7 +193,6 @@
     return () => el.removeEventListener('keydown', onkeydown);
   });
 
-  const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
   /* Only the palettes that can dress this level, each already cut to the number
      of quantities here, so that the strip the reader sees is the very set the
      button would apply and a palette that cannot answer is simply not offered. */
@@ -258,7 +257,7 @@
             onclick={() => openPicker(k)}></button>
           {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'The light colour of this quantity' : 'The dark colour of this quantity'}></i>{/if}
           <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
-          <span class="syms">{#each symbolsOf(manifest, k) as macro (macro)}<span use:tex={macro}></span>{/each}</span>
+          <SymbolList macros={symbolsOf(manifest, k)} label={name} />
           <span class="from" class:own={own !== null}>{source(eff.from)}</span>
           {#if own}
             <button type="button" class="clear" title="Back to the colour above" aria-label={`Back to the colour above for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
@@ -334,10 +333,10 @@
   /* no colour here: a plain hatched square, so an empty slot never reads as black */
   .swatch.none{background-image:repeating-linear-gradient(45deg,var(--soft2) 0 4px,transparent 4px 8px)}
   .chip{width:8px;height:16px;flex:none;border-radius:2px;margin-left:-4px}
-  .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* the name takes twice the room the symbols do, and both from a basis of zero, so
+     that neither column is sized by what happens to be in it */
+  .name{flex:2 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .name small{color:var(--muted);font-family:var(--mono);font-size:0.7rem;margin-left:5px}
-  .syms{flex:none;display:flex;gap:6px;align-items:baseline}
-  .syms :global(.katex){font-size:1em}
   .from{flex:none;color:var(--muted);font-size:0.72rem}
   .from.own{color:var(--ink)}
   .clear{flex:none;width:20px;height:20px;line-height:1;border:0;border-radius:4px;background:transparent;color:var(--muted);font:inherit;font-size:0.95rem;cursor:pointer}

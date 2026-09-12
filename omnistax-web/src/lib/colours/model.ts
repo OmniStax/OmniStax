@@ -327,6 +327,20 @@ export const symbolsOf = (m: BookManifest, type: TypeKey): readonly string[] => 
   return Object.entries(m.macros).flatMap(([name, body]) => (mark.test(body) ? [name] : []));
 };
 
+/* A quantity of a large book carries a dozen symbols or more, and a row that prints
+   every one of them is a row the reader cannot read. How many stand on the line, then,
+   is measured: the symbols' own widths in the order they are declared, the room the
+   row gives them, and the room the ellipsis wants where some are left behind. One
+   symbol always stands, however narrow the row, so that the line is never only an
+   ellipsis. Pure, so that what the row draws is decided away from the DOM. */
+export const fitCount = (widths: readonly number[], room: number, ellipsis: number, gap = 0): number => {
+  const span = (n: number): number => widths.slice(0, n).reduce((a, w) => a + w, 0) + Math.max(n - 1, 0) * gap;
+  if (widths.length === 0 || span(widths.length) <= room) return widths.length;
+  let n = 0;
+  while (n < widths.length && span(n + 1) + gap + ellipsis <= room) n++;
+  return Math.max(n, 1);
+};
+
 /* ---------- the stylesheet ---------- */
 
 const varsOf = (order: readonly TypeKey[], hues: Readonly<Record<TypeKey, Hue>>, mode: 'light' | 'dark'): string => {
