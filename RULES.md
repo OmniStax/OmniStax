@@ -167,3 +167,11 @@ New components and an unhomogenised style are allowed where the idea needs them.
 ## 27. What an agent reads before building
 
 The root `RULES.md`; the book's `RULES.md` and `COLOR.md`; the chapter's `config.md` and `COLOR.md`; the section's `source.md`; one template section named in the book's rules; `docs/prompts/interactive-figures.md` when the section has figures; and the `ost show` summaries of the book, the chapter and the section in place of the JSON files. Nothing else unless a rule points at it.
+
+## 28. Three ways to show depth, and when each is right
+
+1. **Flat** is the default. A relation between quantities (a graph, a free-body diagram, a strip with a bar) is clearest drawn flat with a fixed frame and honest labels, and it is the cheapest to build and to read.
+2. **A locked view** (`view()`/`face()` in the drawing layer) is for a figure the book prints in perspective: a block, a cube, a table. It projects from the book's own viewpoint with shaded faces and no orbit, so the drawing does not have to guess a perspective in flat strokes, and it stays a 2D figure in cost and in chrome.
+3. **A full 3D scene** (the app's THREE renderer, item 26's controls) is reached for when the apparatus or the spatial arrangement is the thing being taught and a flat drawing would have to lie about depth or scale to show it: the Cavendish balance, whose fine fibre, small rod and mirrored beam are the explanation, is the case; a molecule's shape or a crystal's packing are others. It is built procedurally in the renderer, ships no external asset unless one is vendored with its licence, and falls back to a flat view where WebGL is missing.
+4. When the real motion is too small to see, the scene exaggerates it on a slider and the readout states the true numbers and the factor drawn, so the reader sees the mechanism and is told how far the picture departs from the truth.
+5. A 3D scene that adds no view the flat drawing lacks is removed, as the cars of 2.33 + 2.34 were. The plan line argues the tier, as item 24 asks.
