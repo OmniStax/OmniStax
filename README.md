@@ -17,6 +17,8 @@ I strongly welcome PRs - whether it is changes to the OmniStax platform in `omni
 
 The books can use human reviews! If you catch incoherencies, please report them! Likely, they will be in *AI-written* content, e.g., interactive diagrams, proposed solutions for problems without a key (the default behavior is to omit these problems). They are less likely to be in *AI-extracted* contents like concept map, definition and formula sheet. However, as the books can get large, AI could miss key extraction. Incoherencies are least likely to be found in the text itself, which the book-enhancing agent is asked to keep the original words of.
 
+I'm very interested in also creating an integrated and interactive experience for fields that usually don't use textbooks, e.g., mechanical design and the intuitive understand of how machines work. But this is where we need to be careful about who's writing the words and who's just extracting. 
+
 The future must be more and more open, and it takes folks reading this to contribute.
 
 ## AI Agents: Read This
