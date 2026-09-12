@@ -5,6 +5,7 @@
 import katex from 'katex';
 import renderMathInElement from 'katex/contrib/auto-render';
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
+import { cat as catOf } from './cat';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -64,7 +65,7 @@ function readPal(): void {
   const named = Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k)]));
   darkTheme = readTheme();
   base = { ...named, ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
-  chapterPal.clear(); Object.assign(PAL, base);
+  chapterPal.clear(); bound.clear(); Object.assign(PAL, base);
 }
 /* A figure draws with the palette of the article it sits in, and a section may
    colour a type differently from its chapter, so the scope is the nearest
@@ -77,7 +78,24 @@ function usePal(fig: Element): void {
   if (!cached) chapterPal.set(key, over);
   Object.assign(PAL, base, over);
 }
-const C = (k: string): Color => (CC || NEUTRAL.has(k) ? PAL[k] : PAL.ink);
+/* The type hues the page has drawn so far. The book's types reach the page as
+   CSS variables for all of them at once, so what a page actually binds is what
+   its figures ask for: every hue `C` has handed out since the palette was last
+   read. `F.cat` skips the categorical hues too close to these, which is the
+   rule that a page never draws a categorical hue in one it has bound to a type.
+   Colour coding off binds nothing, since every type is then ink. */
+const bound = new Set<Color>();
+function C(k: string): Color {
+  if (!CC && !NEUTRAL.has(k)) return PAL.ink;
+  const c = PAL[k];
+  if (!NEUTRAL.has(k) && c) bound.add(c);
+  return c;
+}
+/* The categorical palette. It is the book's own convention rather than the
+   app's signal, so it keeps its colours when colour coding is switched off,
+   exactly as `F.el` does; all it takes from the page is the theme and the type
+   hues already drawn. */
+const cat = (i: number): Color => catOf(i, darkTheme, [...bound]);
 function alpha(hex: Color, a: number): Color {
   let h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const n = parseInt(h, 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
@@ -812,7 +830,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
 
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
 };
 export type Fig = typeof FIG;

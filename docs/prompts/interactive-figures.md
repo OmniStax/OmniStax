@@ -222,9 +222,15 @@ edge as a hollow marker with an arrow and its number.
 Colours come from C('t'|'x'|'v'|'a') for variables and PAL.ink / PAL.muted
 / PAL.rule / PAL.soft / PAL.panel for everything else. Never write a hex
 colour in a figure: C() returns ink when colour coding is off, and PAL
-follows the theme. The one exception is F.el('O'), the fixed CPK element
-palette, which is the only colour a figure may use that is not a type,
-and only ever as the fill of an atom.
+follows the theme. The exceptions are F.el('O'), the fixed CPK element
+palette, and only ever as the fill of an atom; F.cat(i), the small ordinal
+palette for instances that must be told apart and carry no type and no
+element — three gases on one graph, four archers — where i wraps and the
+hues a page has bound to a type are skipped for you; and a colour that is
+the physical fact itself, a photon's wavelength or a flame, where the
+figure's own prompt names the hex. All three are the book's conventions
+rather than the app's signal, so they keep their colours when the reader
+switches colour coding off; only the type hues of C() go to ink.
 
 Style, as numbers:
 - type 22px for labels, 17px for ticks and notes, 24px for symbol labels
