@@ -142,18 +142,6 @@ const SPAN_HEAD = /<section\b[^>]*\bid="([^"]+)"[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\
 export const spanHeads = (html: string): readonly SpanHead[] =>
   [...html.matchAll(SPAN_HEAD)].map(([, id, head]) => ({ id, title: plainText(head) })).filter((h) => h.title !== '');
 
-/* The short list of a section's spans at the top of its text, under the lead:
-   where the section goes, in a glance, and a link into each. A page with one
-   span or none is its own contents and prints nothing; an introduction or
-   summary page prints nothing either, since the book runs those straight through. */
-const TOC_MIN = 2;
-export const sectionToc = (html: string): string => {
-  const heads = spanHeads(html);
-  if (heads.length < TOC_MIN) return '';
-  const items = heads.map((h) => `<li><a href="#${esc(h.id)}">${esc(h.title)}</a></li>`).join('');
-  return `<nav class="section-toc" aria-label="The parts of this section"><ul>${items}</ul></nav>`;
-};
-
 /* The pages either side of this one, by address and by the name they are listed under. */
 export type PageLink = { readonly url: string; readonly label: string };
 export type PageNav = Neighbours<PageLink>;
@@ -175,7 +163,6 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   ...(s.meta.lead === '' ? [] : [`<p class="lead">${s.meta.lead}</p>`]),
-  s.role === 'section' ? sectionToc(body + summary) : '',
   body,
   summary,
   sectionEnd(s),

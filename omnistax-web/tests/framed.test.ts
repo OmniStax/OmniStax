@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import { loadBook, pageNav } from '../src/lib/content/load';
-import { fragment, qualifyIds, sectionToc, spanHeads } from '../src/lib/content/fragment';
+import { fragment, qualifyIds, spanHeads } from '../src/lib/content/fragment';
 import { aboutHtml, bookHtml } from '../src/lib/content/pages';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
@@ -125,20 +125,6 @@ test('every text ends on the way to the page before and the page after, across t
   assert.doesNotMatch(section, /class="next"/);
   assert.doesNotMatch(section.slice(section.indexOf('data-doc="2.1/exercises"')), /page-nav/, 'the problem set carries no row of its own');
   assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.sections[0], {}), /page-nav/, 'a page with no neighbour prints no row');
-});
-test('a section prints its own contents at the top of its text; an introduction page prints none', () => {
-  assert.deepEqual(spanHeads('<section id="2.1-a"><h2>Position</h2><p>x</p></section><section id="2.1-b"><h2>Where $x$ goes</h2></section>'),
-    [{ id: '2.1-a', title: 'Position' }, { id: '2.1-b', title: 'Where $x$ goes' }]);
-  assert.equal(spanHeads('<section id="2.1-a"><h2>The only one</h2></section>').length, 1);
-  assert.equal(sectionToc('<section id="2.1-a"><h2>The only one</h2></section>'), '', 'one span is its own contents');
-  const ch = TREE.chapters[0];
-  const section = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
-  const toc = /<nav class="section-toc" aria-label="[^"]+"><ul>([\s\S]*?)<\/ul><\/nav>/.exec(section);
-  assert.ok(toc, 'the list stands in the text');
-  assert.ok(toc![1].startsWith('<li><a href="#2.1-'), 'each part is linked by its qualified id');
-  assert.ok(section.indexOf('class="section-toc"') < section.indexOf('<section id="2.1-'), 'above the first part');
-  assert.ok(section.indexOf('<h1>') < section.indexOf('class="section-toc"'), 'below the title');
-  assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!)), /section-toc/, 'an introduction runs straight through');
 });
 test('a link to a front page opens as a tab like a link to a section', () => {
   assert.equal(sectionOfUrl(M, '/framed/ch02/intro/'), '2.intro');

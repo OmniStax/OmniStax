@@ -60,11 +60,6 @@ The chrome:
   the "Zoom keys" switch hands the three chords back to the browser, which
   zooms the whole page with them as it always did. The three commands stay in
   the palette either way.
-- **A section's own contents** stand at the top of its text, under the lead: the
-  `<h2>` of each `<section id>` the section prints, as a quiet row of links.
-  They are written into the article at build time (`content/fragment.ts`), so
-  they cost the shell nothing. A page with one span, and every introduction or
-  summary page, prints none.
 - **Exercises** in the end-of-section list show all at once or one at a
   time with previous/next; the choice is remembered per browser, and a
   link into a hidden card switches to that card.

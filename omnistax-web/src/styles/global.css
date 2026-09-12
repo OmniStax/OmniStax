@@ -45,12 +45,6 @@ article > section:first-child > h2{margin-top:0.4rem}
    link into each part of it. Quiet by design — a sans list at the size of the
    lead, set off by a rule rather than a box, so it reads as a signpost and not
    as the first thing to read. */
-.section-toc{font-family:var(--sans);font-size:0.86rem;margin:1.2rem 0 0;padding-left:14px;border-left:2px solid var(--rule)}
-.section-toc ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px 18px}
-.section-toc li{margin:0}
-.section-toc a{color:var(--muted);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
-.section-toc a:hover,.section-toc a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
-article > .section-toc + section > h2{margin-top:1.8rem}
 article > p, article li, .example p, .example li{max-width:66ch}
 .lead{color:var(--muted);font-family:var(--sans);font-size:0.95rem;margin-top:6px}
 .note{border-left:3px solid var(--rule);padding:4px 0 4px 18px;margin:1.4rem 0}
