@@ -31,12 +31,20 @@ const imageOf = ({ src, width }: Original, alt: string): HTMLImageElement => {
   return img;
 };
 
+/* Rule 26.4: the caption swaps with the figure. The book's caption is built into the
+   head, where the live figure's own number and description sit, so the one that is
+   showing is the one the reader reads; the stylesheet hides the other. */
+const captionOf = (fig: HTMLElement, head: HTMLElement): HTMLElement => {
+  const have = head.querySelector<HTMLElement>(':scope > .ocap'); if (have) return have;
+  const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = fig.dataset.figure ? `Figure ${fig.dataset.figure}` : 'Figure';
+  const text = el('span'); text.textContent = fig.dataset.originalCaption ?? ''; cap.append(num, text); head.appendChild(cap);
+  return cap;
+};
+
 const originalOf = (fig: HTMLElement): HTMLElement => {
   const have = fig.querySelector<HTMLElement>(':scope > .original'); if (have) return have;
   const box = el('div', 'original'); const caption = fig.dataset.originalCaption ?? '';
   originalsOf(fig).forEach((o) => box.appendChild(imageOf(o, caption)));
-  const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = fig.dataset.figure ? `Figure ${fig.dataset.figure}` : 'Figure';
-  const text = el('span'); text.textContent = caption; cap.append(num, text); box.appendChild(cap);
   fig.appendChild(box);
   return box;
 };
@@ -47,6 +55,7 @@ const titleOf = (shown: boolean): string => (shown ? 'Show the live figure' : 'S
 const toggle = (fig: HTMLElement, button: HTMLButtonElement): void => {
   const shown = fig.classList.toggle(CLS);
   originalOf(fig).hidden = !shown;
+  const head = fig.querySelector<HTMLElement>(':scope > .sim-head'); if (head) captionOf(fig, head).hidden = !shown;
   button.textContent = labelOf(shown); button.title = titleOf(shown); button.setAttribute('aria-pressed', String(shown));
 };
 

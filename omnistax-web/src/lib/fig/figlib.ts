@@ -27,7 +27,7 @@ export type Pt = readonly [Logical, Logical];                 /* a projected poi
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
-type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; onInput?: () => void };
+type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; onInput?: () => void };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
@@ -127,7 +127,16 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
   const val = el('span', 'ctl-val kv-' + o.cls); const dec = o.dec ?? 1;
   const upd = () => { val.textContent = fmt(+inp.value, dec) + ' ' + o.unit; };
   upd(); inp.addEventListener('input', () => { upd(); o.onInput?.(); });
-  lab.append(name, inp, val); parent.appendChild(lab);
+  const ds = o.detents ?? [];
+  if (!ds.length) lab.append(name, inp, val);
+  else {
+    const track = el('span', 'ctl-track'); track.append(inp, ticksOf(ds, o)); lab.append(name, track, val);
+    if (o.snap ?? snapsByDefault(ds, o.step)) {
+      const reach = snapReach(ds, o);
+      inp.addEventListener('change', () => { const n = nearestDetent(ds, +inp.value, reach); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.(); });
+    }
+  }
+  parent.appendChild(lab);
   return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); } };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
@@ -187,7 +196,8 @@ function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () 
   const cycles = pendingCycles.splice(0), still = !cycles.length;
   const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
   sims.push(full); vio?.observe(fig); if (!still) transport(full);
-  fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber */
+  fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */
+  fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
@@ -461,10 +471,349 @@ function topline(ctx: Ctx, s: string): 1 | 2 {
   return 2;
 }
 
+/* ---------- discrete controls ----------
+   A state the figure switches between rather than slides through — solid,
+   liquid, gas; cis and trans; one of the four gas laws — is a row of buttons
+   with the current one marked, and a dropdown where the list is long enough
+   that a row would wrap. Both read and write like a slider does, both sit in
+   the same controls grid as the sliders, and both raise the figure's own
+   input event, so a figure that only draws on demand redraws when one is
+   pressed. The row is a radio group: arrow keys walk it and only the marked
+   option is in the tab order. */
+export type Choice = { readonly value: string; readonly label: string };
+export type Picker = { readonly value: string; set: (v: string) => void };
+type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void };
+
+const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
+const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : 'Choice');
+function ctlLabel(lab: HTMLElement, o: ChoiceOpts): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label); lab.appendChild(name); }
+
+function choice(host: HTMLElement, o: ChoiceOpts): Picker {
+  const lab = el('label', 'ctl-seg'); ctlLabel(lab, o);
+  const row = el('div', 'ctlseg'); row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', ariaOf(o));
+  const values = o.options.map((c) => c.value);
+  let v = values.includes(o.value ?? '') ? (o.value as string) : (values[0] ?? '');
+  const buttons = o.options.map((c) => {
+    const b = el('button', 'segbtn', c.label); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
+    row.appendChild(b); return b;
+  });
+  const mark = (): void => buttons.forEach((b) => { const on = b.dataset.value === v; b.setAttribute('aria-checked', String(on)); b.classList.toggle('on', on); b.tabIndex = on ? 0 : -1; });
+  const pick = (next: string, focus: boolean): void => {
+    if (next === v || !values.includes(next)) return;
+    v = next; mark(); if (focus) buttons[values.indexOf(v)].focus();
+    o.onInput?.(v); row.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  buttons.forEach((b) => b.addEventListener('click', () => pick(b.dataset.value ?? '', false)));
+  row.addEventListener('keydown', (e) => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault(); pick(values[(values.indexOf(v) + step + values.length) % values.length], true);
+  });
+  mark(); lab.appendChild(row); host.appendChild(lab);
+  return { get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; mark(); } };
+}
+
+function select(host: HTMLElement, o: ChoiceOpts): Picker {
+  const lab = el('label', 'ctl-pick'); ctlLabel(lab, o);
+  const sel = el('select', 'ctl-select'); sel.setAttribute('aria-label', ariaOf(o));
+  o.options.forEach((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; sel.appendChild(op); });
+  sel.value = o.value ?? o.options[0]?.value ?? '';
+  sel.addEventListener('input', () => o.onInput?.(sel.value));
+  lab.appendChild(sel); host.appendChild(lab);
+  return { get value() { return sel.value; }, set(x: string) { sel.value = x; } };
+}
+
+/* ---------- a slider with soft detents ----------
+   A quantity that takes a few preset values — none, one, two, three lone
+   pairs, the materials the book lists — stays a slider, and the presets are
+   drawn as ticks under its track with their labels where they carry one. The
+   thumb settles on the nearest of them when it is released close enough, so
+   the reader lands on the book's values without being barred from the ones
+   between. A slider given no detents is the slider it always was. */
+export type Detent = number | { readonly v: number; readonly label?: string };
+const detentValue = (d: Detent): number => (typeof d === 'number' ? d : d.v);
+const detentLabel = (d: Detent): string => (typeof d === 'number' ? '' : d.label ?? '');
+const gapsOf = (ds: readonly Detent[]): readonly number[] => ds.map(detentValue).slice(1).map((v, i) => v - detentValue(ds[i]));
+/* A step that already walks the detents snaps by itself; anything finer snaps only if asked. */
+const snapsByDefault = (ds: readonly Detent[], step: number): boolean => { const g = gapsOf(ds); return g.length > 0 && g.every((x) => Math.abs(x - step) < 1e-9); };
+const snapReach = (ds: readonly Detent[], o: CtlOpts): number => { const g = gapsOf(ds).map(Math.abs).filter((x) => x > 0); return 0.34 * (g.length ? Math.min(...g) : (o.max - o.min) * 0.2); };
+function nearestDetent(ds: readonly Detent[], x: number, reach: number): number | null {
+  const best = ds.map(detentValue).reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a));
+  return Math.abs(best - x) <= reach ? best : null;
+}
+function ticksOf(ds: readonly Detent[], o: CtlOpts): HTMLElement {
+  const box = el('span', 'ctl-ticks'); box.setAttribute('aria-hidden', 'true');
+  ds.forEach((d) => {
+    const t = el('span', 'tick'); t.style.left = (100 * (detentValue(d) - o.min)) / (o.max - o.min) + '%';
+    const s = detentLabel(d); if (s) t.appendChild(el('span', 'tick-lab', s));
+    box.appendChild(t);
+  });
+  return box;
+}
+
+/* ---------- hover names ----------
+   Rule 26.6: nothing a figure draws is an unnamed coloured ball. A figure
+   that cannot fit a label beside every body hands over the circles it drew,
+   in the 1400-unit space, and the reader gets the name under the pointer.
+   The list is asked for on each move, so a figure whose bodies travel needs
+   to register nothing again. */
+export type Hit = { readonly x: Logical; readonly y: Logical; readonly r: Logical; readonly name: string };
+type Tip = { show: (x: number, y: number, s: string) => void; hide: () => void };
+function tipOf(host: HTMLElement): Tip {
+  const t = el('div', 'fig-tip'); t.hidden = true; host.appendChild(t);
+  return {
+    show(x, y, s) { if (t.textContent !== s) t.textContent = s; t.style.left = x + 'px'; t.style.top = y + 'px'; t.hidden = false; },
+    hide() { t.hidden = true; },
+  };
+}
+function hover(stage: HTMLElement, hits: () => readonly Hit[]): Tip {
+  const tip = tipOf(stage); const c = stage.querySelector('canvas');
+  if (!c) return tip;
+  c.addEventListener('pointermove', (e) => {
+    const r = c.getBoundingClientRect(), s = stage.getBoundingClientRect(), H = +(c.dataset.h ?? 0);
+    if (!r.width || !H) return;
+    const x = ((e.clientX - r.left) / r.width) * LW, y = ((e.clientY - r.top) / r.height) * H;
+    const found = hits().find((h) => Math.hypot(h.x - x, h.y - y) <= h.r);
+    if (found) tip.show(e.clientX - s.left, e.clientY - s.top - 12, found.name); else tip.hide();
+  });
+  c.addEventListener('pointerleave', () => tip.hide());
+  return tip;
+}
+
+/* ---------- three dimensions ----------
+   The shell loads three.js (r128) on every page as a classic script, so it
+   has no types of its own here: `Three` names that global and `Obj3` the
+   scene objects the helpers below pass back to the figure.
+   A viewer mounts a WebGL renderer with a transparent clear colour inside the
+   figure's stage, so the page's own panel shows through in both themes, and
+   every colour of the scene is read from the palette as it is built, so a
+   theme change rebuilds it. The reader turns the scene by dragging; the
+   buttons under it say what dragging cannot — auto-rotate on and off, the
+   viewpoints that carry meaning, and zoom, which the wheel also does over the
+   canvas. The orbit is a turntable whose yaw and pitch the figure may bound,
+   so a scene with a bench is never turned to show its underside. The renderer
+   draws only when something changed and only while the figure is on screen,
+   follows the container's size and the device pixel ratio, and disposes
+   itself when the figure leaves the document. Labels are HTML (.lab3d) laid
+   over the canvas at the projected point, so they set in the page's face. */
+type Three = Record<string, any>;                        /* the r128 global */
+type Obj3 = any;                                         /* a mesh, a line, a group */
+export type Radians = number;
+export type ViewPreset = { readonly label: string; readonly yaw: Radians; readonly pitch: Radians };
+type Spin = 'idle' | 'off' | 'none';
+type View3dOpts = {
+  h?: Logical; dist?: number; tilt?: Radians;
+  spin?: Spin; views?: readonly ViewPreset[];
+  pitch?: readonly [Radians, Radians]; yaw?: readonly [Radians, Radians] | 'free';
+  zoomMin?: number; zoomMax?: number; onRender?: () => void;
+};
+export type View3d = {
+  readonly wrap: HTMLElement; readonly scene: Obj3; readonly camera: Obj3;
+  part: (x?: number) => Obj3;
+  label: (s: string, p: Vec3, g: Obj3, dy?: number, cls?: string) => HTMLElement;
+  clear: () => void;
+  project: (p: Vec3, g: Obj3) => Pt;
+  move: (e: HTMLElement, p: Vec3) => void;
+  invalidate: () => void;
+  pickable: (m: Obj3, name: string) => Obj3;
+  setView: (yaw: Radians, pitch: Radians) => void;
+  dispose: () => void;
+  readonly turned: boolean;
+};
+
+const three = (): Three | null => (window as unknown as { THREE?: Three }).THREE ?? null;
+const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
+/* The shared geometries every mesh helper instances, made once the global is there. */
+let GEO: Record<string, Obj3> | null = null;
+function geo(): Record<string, Obj3> {
+  const T = three(); if (!T) return {};
+  if (!GEO) GEO = { sphere: new T.SphereGeometry(1, 28, 20), cyl: new T.CylinderGeometry(1, 1, 1, 14, 1, true), cone: new T.ConeGeometry(1, 1, 18) };
+  return GEO;
+}
+const V3 = {
+  add: (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  mul: (a: Vec3, k: number): Vec3 => [a[0] * k, a[1] * k, a[2] * k],
+  dot: (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  unit: (a: Vec3): Vec3 => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+/* a point on the great circle from unit a to unit b, t from 0 to 1 */
+function slerp3(a: Vec3, b: Vec3, t: number): Vec3 {
+  const w = Math.acos(clamp(V3.dot(a, b), -1, 1)); if (w < 1e-6) return a;
+  const s = Math.sin(w);
+  return V3.add(V3.mul(a, Math.sin((1 - t) * w) / s), V3.mul(b, Math.sin(t * w) / s));
+}
+
+/* The bodies a three-dimensional figure is built from: balls, sticks between
+   two points, the lobe of a lone pair, an arrow with a cone for a head, a
+   polyline and the arc of an angle. A figure carries none of this itself. */
+const vec3 = (p: Vec3): Obj3 => { const T = three()!; return new T.Vector3(p[0], p[1], p[2]); };
+const up3 = (): Obj3 => vec3([0, 1, 0]);
+const mat3 = (c: Color, extra: Record<string, unknown> = {}): Obj3 => { const T = three()!; return new T.MeshPhongMaterial({ color: new T.Color(c), shininess: 24, ...extra }); };
+function sphere3(g: Obj3, p: Vec3, r: number, c: Color, extra?: Record<string, unknown>): Obj3 {
+  const T = three()!; const m = new T.Mesh(geo().sphere, mat3(c, extra)); m.position.copy(vec3(p)); m.scale.setScalar(r); g.add(m); return m;
+}
+function setStick3(m: Obj3, a: Vec3, b: Vec3): Obj3 {
+  const A = vec3(a), B = vec3(b), d = B.clone().sub(A), L = d.length() || 1e-6;
+  m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(up3(), d.normalize()); m.scale.y = L; return m;
+}
+function stick3(g: Obj3, a: Vec3, b: Vec3, r: number, c: Color, extra?: Record<string, unknown>): Obj3 {
+  const T = three()!; const m = new T.Mesh(geo().cyl, mat3(c, extra)); m.scale.set(r, 1, r); setStick3(m, a, b); g.add(m); return m;
+}
+function setLobe3(m: Obj3, from: Vec3, dir: Vec3, len: number): Obj3 {
+  const d = vec3(dir).normalize();
+  m.position.copy(vec3(from)).add(d.clone().multiplyScalar(len * 0.6)); m.quaternion.setFromUnitVectors(up3(), d); m.scale.set(len * 0.3, len * 0.56, len * 0.3); return m;
+}
+function lobe3(g: Obj3, from: Vec3, dir: Vec3, len: number, c?: Color): Obj3 {
+  const T = three()!; const m = new T.Mesh(geo().sphere, mat3(c ?? PAL.ink, { transparent: true, opacity: 0.5 })); setLobe3(m, from, dir, len); g.add(m); return m;
+}
+/* one, two or three parallel sticks between two atoms */
+function bond3(g: Obj3, a: Vec3, b: Vec3, order = 1, r = 0.07, c?: Color): readonly Obj3[] {
+  const T = three()!; const A = vec3(a), B = vec3(b), d = B.clone().sub(A).normalize();
+  const side = Math.abs(d.y) < 0.9 ? new T.Vector3().crossVectors(d, up3()).normalize() : new T.Vector3(1, 0, 0);
+  const offs = order === 1 ? [0] : order === 2 ? [-1.6, 1.6] : [-2.2, 0, 2.2];
+  return offs.map((o) => stick3(g, A.clone().add(side.clone().multiplyScalar(o * r)).toArray() as unknown as Vec3, B.clone().add(side.clone().multiplyScalar(o * r)).toArray() as unknown as Vec3, order === 1 ? r : r * 0.75, c ?? PAL.ink));
+}
+/* an arrow from a to b of shaft radius r; the head is a cone, and the tip comes back for a label */
+function arrow3(g: Obj3, a: Vec3, b: Vec3, r = 0.045, c?: Color): Obj3 {
+  const T = three()!; const A = vec3(a), B = vec3(b), d = B.clone().sub(A), L = d.length(), hl = Math.min(0.32, L * 0.45), u = d.clone().normalize(), base = B.clone().sub(u.clone().multiplyScalar(hl));
+  stick3(g, A.toArray() as unknown as Vec3, base.toArray() as unknown as Vec3, r, c ?? PAL.ink);
+  const cone = new T.Mesh(geo().cone, mat3(c ?? PAL.ink)); cone.position.copy(base).add(u.clone().multiplyScalar(hl / 2)); cone.quaternion.setFromUnitVectors(up3(), u); cone.scale.set(r * 3.2, hl, r * 3.2); g.add(cone);
+  return B;
+}
+function polyline3(g: Obj3, pts: readonly Vec3[], c?: Color): Obj3 {
+  const T = three()!; const l = new T.Line(new T.BufferGeometry().setFromPoints(pts.map(vec3)), new T.LineBasicMaterial({ color: new T.Color(c ?? PAL.ink) })); g.add(l); return l;
+}
+/* the arc of the angle between directions a and b about centre c at radius R, and its midpoint pushed out for a label */
+function arc3(g: Obj3, a: Vec3, b: Vec3, R: number, c: Vec3 = [0, 0, 0], col?: Color): Vec3 {
+  const ua = V3.unit(a), ub = V3.unit(b), pts: Vec3[] = [];
+  for (let i = 0; i <= 24; i++) pts.push(V3.add(c, V3.mul(slerp3(ua, ub, i / 24), R)));
+  polyline3(g, pts, col); return V3.add(c, V3.mul(V3.unit(slerp3(ua, ub, 0.5)), R + 0.18));
+}
+function box3(g: Obj3, p: Vec3, size: readonly [number, number, number], c: Color, extra?: Record<string, unknown>): Obj3 {
+  const T = three()!; const m = new T.Mesh(new T.BoxGeometry(size[0], size[1], size[2]), mat3(c, extra)); m.position.copy(vec3(p)); g.add(m); return m;
+}
+const MESH = { vec: vec3, mat: mat3, geo, sphere: sphere3, stick: stick3, setStick: setStick3, lobe: lobe3, setLobe: setLobe3, bond: bond3, arrow: arrow3, polyline: polyline3, arc: arc3, box: box3 };
+
+const VICON = {
+  spin: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4h-4"/></svg>',
+  out: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M8 11h6M20 20l-4.5-4.5"/></svg>',
+  in: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M8 11h6M11 8v6M20 20l-4.5-4.5"/></svg>',
+};
+function vbtn(bar: HTMLElement, html: string, title: string, cls = ''): HTMLButtonElement {
+  const b = el('button', 'vbtn' + (cls ? ' ' + cls : ''), html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); bar.appendChild(b); return b;
+}
+const stub = (stage: HTMLElement): View3d => {
+  const wrap = el('div', 'three-wrap'); wrap.appendChild(el('p', 'lab3d', 'This figure needs WebGL, which this browser does not provide.')); stage.appendChild(wrap);
+  const nil = (): void => {};
+  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; } };
+};
+
+function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
+  const T = three(); if (!T) return stub(stage);
+  const H = +(stage.dataset.h ?? 0) || opts.h || 480;
+  const dist = opts.dist ?? 7, zoomMin = opts.zoomMin ?? 0.55, zoomMax = opts.zoomMax ?? 2.6;
+  const pitchLim = opts.pitch ?? ([-Math.PI / 2, Math.PI / 2] as const);
+  const yawLim = opts.yaw ?? 'free';
+  const spinMode: Spin = opts.spin ?? 'idle';
+  const wrap = el('div', 'three-wrap'); wrap.style.setProperty('--three-h', String(H)); stage.appendChild(wrap);
+  let renderer: Obj3 = null;
+  try { renderer = new T.WebGLRenderer({ antialias: true, alpha: true }); } catch { return stub(stage); }
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(30, 2, 0.1, 100); camera.position.set(0, 0, dist); camera.lookAt(0, 0, 0);
+  const lamp = new T.DirectionalLight(0xffffff, 0.8); lamp.position.set(-3, 5, 7); scene.add(lamp); scene.add(new T.AmbientLight(0xffffff, 0.62));
+  const parts: Obj3[] = [], labels: { el: HTMLElement; p: Obj3; g: Obj3; dy: number }[] = [], picks: { m: Obj3; name: string }[] = [];
+  let yaw = 0, pitch = opts.tilt ?? 0.32, zoom = 1;
+  let spinning = spinMode === 'idle' && !REDUCED, dragging = false, last: readonly [number, number] = [0, 0], need = true, alive = true, seen = true, turned = false;
+  const qx = new T.Quaternion(), qy = new T.Quaternion(), AX = new T.Vector3(1, 0, 0), UP = new T.Vector3(0, 1, 0);
+  const orient = (): void => { parts.forEach((g: Obj3) => g.quaternion.copy(qx.setFromAxisAngle(AX, pitch).multiply(qy.setFromAxisAngle(UP, yaw)))); need = true; };
+  const aim = (y: Radians, p: Radians): void => {
+    yaw = yawLim === 'free' ? y : clamp(y, yawLim[0], yawLim[1]);
+    pitch = clamp(p, pitchLim[0], pitchLim[1]); orient();
+  };
+  const setZoom = (z: number): void => { zoom = clamp(z, zoomMin, zoomMax); camera.position.set(0, 0, dist / zoom); camera.updateProjectionMatrix(); need = true; };
+  const v: View3d = {
+    wrap, scene, camera,
+    /* a group the drag turns about its own centre, placed at x; a figure with panels has several */
+    part(x = 0) { const g = new T.Group(); g.position.set(x, 0, 0); scene.add(g); parts.push(g); orient(); return g; },
+    /* the label s at point p of group g, in the page's face, kept dy pixels above the point */
+    label(s, p, g, dy = 0, cls = '') { const e = el('div', 'lab3d' + (cls ? ' ' + cls : ''), s); wrap.appendChild(e); labels.push({ el: e, p: vec3(p), g, dy }); return e; },
+    clear() {
+      const shared = Object.values(geo());
+      parts.forEach((g: Obj3) => { g.traverse((o: Obj3) => { if (o.material) o.material.dispose(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); }); g.clear(); });
+      labels.forEach((l) => l.el.remove()); labels.length = 0; picks.length = 0; need = true;
+    },
+    /* the point p of group g on the canvas, in canvas pixels */
+    project(p, g) { const w = vec3(p); g.localToWorld(w); w.project(camera); return [((w.x + 1) / 2) * wrap.clientWidth, ((1 - w.y) / 2) * wrap.clientHeight]; },
+    move(e, p) { const l = labels.find((x) => x.el === e); if (l) l.p.set(p[0], p[1], p[2]); need = true; },
+    invalidate() { need = true; },
+    pickable(m, name) { picks.push({ m, name }); return m; },
+    setView: aim,
+    dispose,
+    get turned() { return turned; },
+  };
+  renderer.setClearColor(0x000000, 0); wrap.appendChild(renderer.domElement);
+  function size(): void {
+    const w = wrap.clientWidth || 800, h = wrap.clientHeight || Math.round((w * H) / LW);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix(); need = true;
+  }
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(size) : null; ro?.observe(wrap); size();
+  const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => { seen = e.isIntersecting; if (seen) need = true; }), { rootMargin: '120px' }) : null; io?.observe(wrap);
+
+  /* the button row: what dragging cannot say */
+  const bar = el('div', 'view3d-bar'); stage.appendChild(bar);
+  const spinBtn = spinMode === 'none' ? null : vbtn(bar, VICON.spin, 'Auto-rotate', 'spin');
+  const markSpin = (): void => { spinBtn?.setAttribute('aria-pressed', String(spinning)); spinBtn?.classList.toggle('on', spinning); };
+  spinBtn?.addEventListener('click', () => { spinning = !spinning; markSpin(); need = true; }); markSpin();
+  (opts.views ?? []).forEach((p) => vbtn(bar, p.label, 'View: ' + p.label, 'named').addEventListener('click', () => { spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
+  vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => setZoom(zoom / 1.25));
+  vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => setZoom(zoom * 1.25));
+
+  /* the orbit: a turntable within the bounds the figure set, and the wheel zooms over the canvas */
+  wrap.addEventListener('pointerdown', (e) => { dragging = true; spinning = false; markSpin(); last = [e.clientX, e.clientY]; wrap.setPointerCapture(e.pointerId); wrap.style.cursor = 'grabbing'; e.preventDefault(); });
+  wrap.addEventListener('pointermove', (e) => {
+    if (dragging) { turned = true; aim(yaw + (e.clientX - last[0]) * 0.009, pitch + (e.clientY - last[1]) * 0.009); last = [e.clientX, e.clientY]; return; }
+    pick(e);
+  });
+  const up = (): void => { dragging = false; wrap.style.cursor = 'grab'; };
+  wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up);
+  wrap.addEventListener('pointerleave', () => tip.hide());
+  wrap.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
+
+  /* the name of the body under the pointer, for the figures that register one */
+  const tip = tipOf(stage), ray = new T.Raycaster(), ndc = new T.Vector2();
+  function pick(e: PointerEvent): void {
+    if (!picks.length) return;
+    const r = wrap.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(picks.map((p) => p.m), false)[0];
+    const name = hit ? picks.find((p) => p.m === hit.object)?.name : undefined;
+    if (name) tip.show(e.clientX - s.left, e.clientY - s.top - 12, name); else tip.hide();
+  }
+
+  function place(): void {
+    const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
+    labels.forEach((l) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = ((1 - t.y) / 2) * h - l.dy + 'px'; });
+  }
+  function dispose(): void { if (!alive) return; alive = false; ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
+  let prev = performance.now(), gone = 0;
+  function frame(now: number): void {
+    if (!alive) return;
+    if (!wrap.isConnected && ++gone > 300) { dispose(); return; }   /* torn down: five seconds out of the document */
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    if (spinning && seen && !paused) aim(yaw + 0.22 * dt, pitch);
+    if (need && seen) { renderer.render(scene, camera); place(); need = false; opts.onRender?.(); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  return v;
+}
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, cycle, setPaused, get paused() { return paused; }, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
+  register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
 };
 export type Fig = typeof FIG;
 

@@ -144,10 +144,16 @@ figure.sim[data-original] .sim-head .eyebrow{padding-right:134px}
 .fig-original:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .sim .original{padding:14px 18px 12px}
 .sim .original img+img{margin-top:12px}
+.sim .ocap[hidden]{display:none}
 .sim .ocap{display:block;margin:8px 0 0;font-size:0.9rem;color:var(--muted);line-height:1.45}
 .sim .ocap .eyebrow{display:block;white-space:nowrap}
 .sim .ocap > span:not(.eyebrow){display:block;margin-top:5px}
 figure.sim.show-original>.stage,figure.sim.show-original>.controls,figure.sim.show-original>.readout,figure.sim.show-original>.transport{display:none}
+/* Rule 26.4: the book's caption stands in the live caption's place, never beside it. */
+figure.sim.show-original>.sim-head>.eyebrow,figure.sim.show-original>.sim-head>span:not(.eyebrow){display:none}
+.sim .sim-head .ocap{margin:0}
+.sim .sim-head .ocap .eyebrow{color:var(--accent);padding-right:134px}
+.fig-root .sim .sim-head .ocap .eyebrow{padding-right:66px}
 /* a figure split out on its own has neither the split nor the hide button */
 .fig-root .sim .sim-head .eyebrow{padding-right:0}
 .fig-root figure.sim[data-original] .sim-head .eyebrow{padding-right:66px}
@@ -177,7 +183,7 @@ a.figref{color:inherit;text-decoration:underline dotted;text-decoration-color:va
 a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .sim .stage{position:relative;background:var(--panel)}
 .sim canvas{display:block;width:100%;height:auto;border:0;border-radius:0;background:var(--panel)}
-.sim .three-wrap{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--soft);margin:0}
+.sim .three-wrap{position:relative;width:100%;aspect-ratio:1400 / var(--three-h,480);overflow:hidden;background:transparent;margin:0;touch-action:none;cursor:grab}
 .sim .three-wrap canvas{width:100%!important;height:100%!important;display:block}
 .sim .lab3d{position:absolute;font-size:0.8rem;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--panel);color:var(--ink);pointer-events:none;transform:translate(-50%,-100%);white-space:nowrap;border:1px solid var(--rule)}
 .transport{display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 18px 8px;font-family:var(--sans)}
@@ -201,6 +207,35 @@ input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(
 input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-6px;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule);background:var(--ink);cursor:pointer}
 input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule);background:var(--ink);cursor:pointer}
 input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+/* a slider with soft detents: the breakpoints under the track, with their names where they carry one */
+.ctl-track{position:relative;display:block;min-width:0}
+.ctl-ticks{position:relative;display:block;height:1px;margin:-3px 8px 0}
+.ctl-ticks .tick{position:absolute;top:0;width:1px;height:5px;background:var(--soft2)}
+.ctl-ticks .tick-lab{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:0.66rem;color:var(--muted);white-space:nowrap}
+.controls label:has(.ctl-ticks .tick-lab){padding-bottom:14px}
+/* a discrete state: one button per state, the current one marked; a dropdown where the list is long */
+.ctl-seg,.ctl-pick{align-items:center}
+.controls label.ctl-seg{grid-template-columns:minmax(1.6em,auto) 1fr}
+.controls label.ctl-pick{grid-template-columns:minmax(1.6em,auto) 1fr}
+.ctlseg{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule);border-radius:5px;overflow:hidden;background:var(--panel)}
+/* the row is .ctlseg so it does not meet the app's own .seg */
+.segbtn{flex:1 1 auto;padding:4px 10px;border:0;border-left:1px solid var(--rule);background:transparent;color:var(--muted);font:inherit;font-size:0.8rem;font-weight:600;line-height:1.5;cursor:pointer;white-space:nowrap}
+.segbtn:first-child{border-left:0}
+.segbtn:hover{background:var(--soft);color:var(--ink)}
+.segbtn.on{background:var(--soft2);color:var(--ink)}
+.segbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctl-select{font:inherit;font-size:0.82rem;padding:4px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
+.ctl-select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* the navigation of a three-dimensional figure: what dragging cannot say */
+.view3d-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:8px 18px 4px;font-family:var(--sans)}
+.vbtn{height:26px;min-width:28px;display:inline-grid;place-items:center;padding:0 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:0.75rem;font-weight:600;line-height:1}
+.vbtn:hover{color:var(--ink);background:var(--soft)}
+.vbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.vbtn.on{color:var(--ink);background:var(--soft2)}
+.vbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+html.anim-off .vbtn.spin{opacity:.45;pointer-events:none}
+/* the name of the body under the pointer */
+.fig-tip{position:absolute;z-index:3;transform:translate(-50%,-100%);padding:2px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.78rem;font-weight:600;white-space:nowrap;pointer-events:none}
 .readout{margin:0;padding:12px 18px 14px;text-align:center;font-size:1.15rem;overflow-x:auto;background:var(--soft);border-top:1px solid var(--rule)}
 .readout:empty{display:none}
 .readout .katex{font-size:1.1em}

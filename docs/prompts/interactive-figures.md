@@ -143,6 +143,74 @@ to the column. Use only these primitives (all take logical units):
   view({yaw,pitch,dist,cx,cy}) -> {P,shade}   /* a locked perspective view */
   face(ctx,pts,k,stroke)                     /* one face of a solid; null k fills nothing */
 
+Controls beyond the slider, for the states and the spaces a slider cannot
+carry:
+
+  choice(host,{label,options:[{value,label}],value,aria,onInput}) -> {value, set}
+
+A state the figure switches between rather than slides through — solid,
+liquid and gas; cis and trans; the four gas laws — is a row of buttons
+with the current one marked, never a slider. The row sits in d.controls
+beside the sliders, arrow keys walk it, and pressing one redraws the
+figure as a slider does.
+
+  select(host,{label,options,value,aria,onInput}) -> {value, set}
+
+The same control where the list of states is long enough that a row of
+buttons would wrap: the twelve molecules of a gallery, the book's list of
+materials. Same shape, same reading, a dropdown instead of a row.
+
+  ctl(d.controls, {..., detents:[0,1,2,3] | [{v,label}], snap})
+
+A quantity that takes a few preset values stays a slider and the presets
+are drawn as soft ticks under its track, with a name under a tick where
+one is given. The thumb settles on the nearest preset when it is released
+close by; a step that already walks the detents snaps by itself, and any
+other step snaps only when `snap: true` asks it to.
+
+  hover(d.stage, () => [{x, y, r, name}]) -> {hide}
+
+Rule 26.6: nothing a figure draws is an unnamed coloured ball. Where
+labels beside every body would crowd the picture, hand back the circles
+just drawn, in the same 1400-unit space, and the reader gets the name
+under the pointer. The list is asked for on every move, so bodies that
+travel need registering only once.
+
+Three dimensions, where the lesson is an arrangement in space:
+
+  const v = F.view3d(d.stage, {h, dist, tilt, spin, views, pitch, yaw, zoomMin, zoomMax, onRender});
+
+It mounts a transparent WebGL scene on the page's THREE global in the
+figure's stage (and says so in the stage if the browser has no WebGL),
+lights it, follows the container and the theme, gates itself on being on
+screen and disposes itself when the figure goes. `v.part(x)` is a group
+the orbit turns, `v.label(s,p,g,dy)` an HTML label laid over the point,
+`v.clear()` empties it for a rebuild, `v.project(p,g)` gives the point in
+canvas pixels, `v.pickable(mesh,name)` names a body for the hover tooltip,
+`v.setView(yaw,pitch)` aims it and `v.invalidate()` asks for a frame.
+The stage's `data-h`, or `h`, sets the aspect; never write one inline.
+
+Rule 26.2 hangs a button row under it: auto-rotate (`spin: 'idle'` starts
+it turning until the reader takes hold, `'off'` starts still, `'none'`
+leaves the button out where an idle spin makes no sense), one button per
+entry of `views: [{label, yaw, pitch}]` for the viewpoints that carry
+meaning (along an axis, down a bond, face-on), and zoom in and out, which
+the wheel also does over the canvas within `[zoomMin, zoomMax]`.
+Rule 26.3 bounds the orbit: `pitch: [min, max]` and `yaw: [min, max]` or
+`'free'`, so a molecule turns any way at all and a bench is never seen
+from beneath. The plan line says what the orbit is limited to, and why.
+
+  F.mesh.sphere(g,p,r,color,extra)     F.mesh.stick(g,a,b,r,color,extra) / setStick(m,a,b)
+  F.mesh.bond(g,a,b,order,r,color)     F.mesh.lobe(g,from,dir,len,color) / setLobe(m,from,dir,len)
+  F.mesh.arrow(g,a,b,r,color)          F.mesh.arc(g,a,b,R,centre,color) -> the label's point
+  F.mesh.polyline(g,pts,color)         F.mesh.box(g,p,[w,h,d],color,extra)
+  F.mesh.vec(p)  F.mesh.mat(color,extra)  F.mesh.geo()
+
+The bodies a scene is built from — balls, sticks between two points, the
+lobe of a lone pair, an arrow with a cone for a head, an arc for an angle
+— all in the same palette the flat figures read. A figure carries none of
+this itself.
+
 Axis ranges are fixed per figure. Work out the largest value the sliders
 can reach, round it up to a tick, and pass that range to axes() as a
 constant stated in a comment beside it; the range never changes while the
