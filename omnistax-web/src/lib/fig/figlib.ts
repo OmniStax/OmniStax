@@ -28,7 +28,7 @@ export type Pt = readonly [Logical, Logical];                 /* a projected poi
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
-type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; onInput?: () => void };
+type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
@@ -138,7 +138,7 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.textBaseline = 'middle';
   return { ctx, W: LW, H };
 }
-function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: number) => void } {
+function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void } {
   const lab = el('label'); const name = el('span', 'ctl-label'); tex(name, o.label);
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
   inp.setAttribute('aria-label', o.aria ?? o.label.replace(/\\k|[{}\\]/g, ''));
@@ -154,8 +154,11 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
       inp.addEventListener('change', () => { const n = nearestDetent(ds, +inp.value, reach); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.(); });
     }
   }
+  /* A slider a held law has taken over is disabled and greyed, never moved and snapped back. */
+  const disable = (held: boolean): void => { inp.disabled = held; lab.classList.toggle('ctl-held', held); };
+  if (o.disabled) disable(true);
   parent.appendChild(lab);
-  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); } };
+  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function sim(root: HTMLElement, id: string, H?: Logical) {
@@ -260,11 +263,27 @@ function dot(ctx: Ctx, x: Logical, y: Logical, color: Color, filled = true, r = 
   ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.fillStyle = filled ? color : PAL.panel;
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
 }
+/* A label may carry subscripts the way the book's symbols do: `F_net`, `T_{L}`, `w_{box}`. An underscore
+   followed by a braced group or one word character is drawn as a subscript, smaller and lowered; a
+   plain underscore is never printed. Alignment and the panel behind the label measure the whole run. */
+type Run = { s: string; sub: boolean };
+function runsOf(s: string): Run[] {
+  const out: Run[] = []; const re = /_\{([^}]*)\}|_([A-Za-z0-9\u2080-\u209c\u03b1-\u03c9+\-]+)/g; let last = 0, m: RegExpExecArray | null;
+  while ((m = re.exec(s))) { if (m.index > last) out.push({ s: s.slice(last, m.index), sub: false }); out.push({ s: m[1] ?? m[2] ?? '', sub: true }); last = re.lastIndex; }
+  if (last < s.length) out.push({ s: s.slice(last), sub: false });
+  return out;
+}
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
-  const size = o.size ?? 22;
-  ctx.save(); ctx.font = `${o.weight ?? 400} ${size}px ${FONT}`; ctx.textAlign = o.align ?? 'left'; ctx.textBaseline = o.base ?? 'middle';
-  if (o.bg) { const m = ctx.measureText(s), pw = m.width + 14, ph = size + 8; const bx = ctx.textAlign === 'center' ? x - pw / 2 : ctx.textAlign === 'right' ? x - pw + 7 : x - 7; ctx.fillStyle = o.bg; ctx.fillRect(bx, y - ph / 2, pw, ph); }
-  ctx.fillStyle = color; ctx.fillText(s, x, y); ctx.restore();
+  const size = o.size ?? 22, weight = o.weight ?? 400, font = (k: number) => `${weight} ${size * k}px ${FONT}`;
+  const runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
+  ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = o.base ?? 'middle';
+  const widths = runs.map((r) => { ctx.font = font(r.sub ? 0.72 : 1); return ctx.measureText(r.s).width; });
+  const total = widths.reduce((a, b) => a + b, 0), align = o.align ?? 'left';
+  let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
+  if (o.bg) { const pw = total + 14, ph = size + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
+  ctx.fillStyle = color;
+  runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
+  ctx.restore();
 }
 const headline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
 function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, label?: string): void {
