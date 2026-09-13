@@ -194,6 +194,8 @@ html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
 .controls:empty{display:none}
 .controls label{display:grid;grid-template-columns:minmax(1.6em,auto) 1fr minmax(5.6em,auto);align-items:center;gap:10px;min-width:0}
 .ctl-label{font-size:1rem;color:var(--ink);text-align:right}
+.ctl-held{opacity:.45}
+.ctl-held input[type=range]{cursor:not-allowed}
 .ctl-val{font-family:var(--mono);font-size:0.8rem;font-variant-numeric:tabular-nums;color:var(--ink)}
 input[type=range]{appearance:none;width:100%;height:22px;background:transparent;margin:0;min-width:0}
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--soft2)}
