@@ -8,6 +8,7 @@ import { pin, spansOf, testers } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { split } from '../layout/model';
 import { type SectionId, type SpanId, sectionId, spanId, conceptId, sheetId, sectionOfSpan, exerciseDomId, newViewItem, sheetItem, itemKey } from '../types/ids';
+import { books } from '../practice/books.svelte';
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
@@ -116,11 +117,21 @@ const equation = (t: HTMLElement): Card | null => {
 
 /* A concept's places: the spans that introduce and use it by their headings, and
    the problems that test it by the names the book prints on them — an exercise
-   set in another section says so, since the card is read from this one. */
+   set in another section says so, since the card is read from this one.
+
+   A concept may belong to a book other than the one being read: the practice
+   dashboard lists the reader's whole library, and every row of it opens a card.
+   The registry knows only the book in hand, so a concept it cannot name is
+   looked for in the books the practice store has fetched beside it. Such a
+   concept has no places here — its spans and its problems are in a book this
+   page has not loaded — so the card is given empty lists and told the section is
+   not built, which is what sends the reader to the book itself. */
 const concept = (t: HTMLElement): Card | null => {
   const id = t.dataset.concept; if (!id) return null;
-  const c = registry.concept(id); if (!c) return null;
-  const cid = conceptId(id), sec = sectionId(c.section), sp = spansOf(cid);
+  const own = registry.concept(id); const c = own ?? books.concept(id); if (!c) return null;
+  const cid = conceptId(id), sec = sectionId(c.section);
+  if (!own) return conceptCard({ concept: c, intro: [], uses: [], tested: [], built: false, onMap: t.matches('.node') }, nav);
+  const sp = spansOf(cid);
   const tested = testers(cid).map(({ section, ex }) => ({ id: exerciseDomId(section, ex.id), label: `${section === sec ? '' : `${section} · `}${registry.manifest.exerciseKinds[ex.kind] ?? ex.kind} ${ex.id}` }));
   return conceptCard({ concept: c, intro: places(sp.intro), uses: places(sp.uses), tested, built: !!registry.entry(sec)?.built, onMap: t.matches('.node') }, nav);
 };

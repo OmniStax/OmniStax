@@ -1,11 +1,14 @@
 <script lang="ts">
   /* One exercise: the prompt, an answer widget chosen by the answer's type, and
-     the book's solution or an AI-marked approach. What the problem is — its kind,
-     its level and the concepts it tests — is folded away behind the small button
-     at the top right, which opens a panel of chips; each concept chip pins the
-     concept when clicked and opens a goto card when hovered. Beside it a second
-     button opens this one problem in a split of its own; a card that is already
-     standing in such a tab is `standalone` and does not offer it again.
+     the book's solution or an AI-marked approach. What the problem asks of the
+     reader — the level of thinking it wants and the concepts it tests — is folded
+     away behind the small button at the top right, which opens a panel of two
+     labelled rows; each concept chip pins the concept when clicked and opens a
+     goto card when hovered. What kind of problem the book calls it, and the tag
+     it files it under, are the book's own filing and say nothing about the work,
+     so the panel leaves them out. Beside it a second button opens this one
+     problem in a split of its own; a card that is already standing in such a tab
+     is `standalone` and does not offer it again.
 
      Every answer is recorded into the reader's practice, wherever the card stands:
      a card inside a section's text counts as much as one drawn by a session, and
@@ -31,7 +34,6 @@
   import MultiAnswer from './MultiAnswer.svelte';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
   let { section, ex, hidden = false, standalone = false, book = registry.manifest.id }: { section: SectionId; ex: ExerciseDTO; hidden?: boolean; standalone?: boolean; book?: string } = $props();
-  const kinds = $derived(registry.manifest.exerciseKinds);
   const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
   /* Concepts are canonical across the library, so a problem drawn out of another
      book names them from wherever they are known; the passage behind the problem
@@ -46,6 +48,8 @@
      number beside it; a solution written as one piece has no rows and is printed whole. */
   const parts = $derived(solutionParts(sol ?? '', ex.prompt, a));
   const nameOf = (id: string): string => practice.conceptOf(id)?.name ?? id;
+  /* The Bloom level reads as a name, "Understand", whichever way the book wrote it. */
+  const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
   /* An answer goes into the practice store the moment it is marked, and the card says
      what came of it. The store refuses an exercise already answered correctly today,
      which is what a null attempt means: nothing was lost, it was simply counted once. */
@@ -76,10 +80,8 @@
   {#if !standalone}<button type="button" class="ex-split" data-split-key={itemKey(exItem(section, ex.id))} title="Open in a split" aria-label="Open exercise {ex.id} in a split">{@html ICON.split}</button>{/if}
   {#if open}
     <div class="meta" id="{domId}-meta" role="group" aria-label="What this problem tests">
-      <div class="row">
-        <span class="chip">{kinds[ex.kind] ?? ex.kind}</span>
-        {#if ex.tag}<span class="chip">{ex.tag}</span>{/if}
-        <span class="chip bloom">{ex.bloom}</span>
+      <div class="row"><span class="lab">Bloom level</span>
+        <span class="chip bloom">{titled(ex.bloom)}</span>
       </div>
       {#if ex.concepts.length}
         <div class="row"><span class="lab">Tests</span>

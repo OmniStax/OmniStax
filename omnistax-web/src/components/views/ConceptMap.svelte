@@ -15,8 +15,10 @@
      How the reader stands on a concept is a second reading drawn inside the node
      rather than a change of its shape or its hue: a thin bar along the bottom
      edge, as long as the concept's decayed score stands towards the mastery
-     threshold, faint for practised, green for mastered and warm over a track for
-     one that has faded and is due for review. A switch at the end of the states
+     threshold, in the four colours the mastery box wears everywhere else — low
+     for a concept begun, middling once its score is half the threshold, high
+     for one mastered, and the due colour over a track for one that has faded
+     and is waiting for review. A switch at the end of the states
      legend takes that second reading away again, for a reader who wants the map
      as a map; it belongs to this map alone, and opens the way the setting
      "Progress on the concept map" says. */
@@ -88,7 +90,8 @@
 <!-- the same miniature again, for the bar the nodes carry: how the practice stands -->
 <div class="legend states">
   {#if showProgress}
-    <span class="s-practised"><i class="sw"></i>practised</span>
+    <span class="s-practised"><i class="sw"></i>practiced</span>
+    <span class="s-half"><i class="sw"></i>halfway</span>
     <span class="s-mastered"><i class="sw"></i>mastered</span>
     <span class="s-due"><i class="sw"></i>due</span>
   {/if}
@@ -102,7 +105,7 @@
         {@const c = node(id)}
         <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === id} class:active={coverage?.introduces.includes(id)} class:active-weak={coverage?.uses.includes(id)} data-id={id} data-concept={id}
           use:dragout={{ kind: 'concept', section: c.section, id }}
-          data-state={showProgress ? practice.stateOf(id) : undefined} style:--m={showProgress ? share(id) : undefined}
+          data-state={showProgress ? practice.stateOf(id) : undefined} data-half={showProgress && share(id) >= 0.5 ? '1' : undefined} style:--m={showProgress ? share(id) : undefined}
           onclick={() => click(id)} onmouseenter={() => (hover = id)} onfocus={() => (hover = id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
           {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
         </button>
@@ -143,11 +146,16 @@
      as long as the decayed score stands towards the threshold. Its colours are
      the app's own, so the kind hues go on saying only what the node is. */
   .node::after{content:"";position:absolute;left:6px;bottom:2px;height:3px;width:calc(var(--m,0) * (100% - 12px));border-radius:2px;background:var(--m-colour);pointer-events:none}
-  .node[data-state="practised"]{--m-colour:color-mix(in srgb,var(--ink) 45%,transparent)}
-  .node[data-state="mastered"]{--m-colour:var(--ok)}
-  .node[data-state="due"]{--m-colour:var(--warm)}
+  /* The four colours of the mastery box, which is how the practice is drawn
+     everywhere the reader meets it: a concept begun is low until its score is
+     half the threshold and middling after it, a mastered one is high, and one
+     that has faded is due. */
+  .node[data-state="practised"]{--m-colour:var(--m-low)}
+  .node[data-state="practised"][data-half]{--m-colour:var(--m-mid)}
+  .node[data-state="mastered"]{--m-colour:var(--m-high)}
+  .node[data-state="due"]{--m-colour:var(--m-due)}
   /* a concept that has faded carries the whole track behind its bar, faintly, so the reader sees how much of it is gone */
-  .node[data-state="due"]::before{content:"";position:absolute;left:6px;right:6px;bottom:2px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--warm) 20%,transparent);pointer-events:none}
+  .node[data-state="due"]::before{content:"";position:absolute;left:6px;right:6px;bottom:2px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--m-due) 20%,transparent);pointer-events:none}
   /* a skill's pill is round-ended, so its bar keeps further clear */
   .node.k-skill::after{left:10px;width:calc(var(--m,0) * (100% - 20px))}
   .node.k-skill[data-state="due"]::before{left:10px;right:10px}
@@ -171,9 +179,10 @@
   .legend.states{margin-top:-6px}
   .legend.states .sw{position:relative}
   .legend.states .sw::after{content:"";position:absolute;left:3px;bottom:2px;height:2px;border-radius:1px;width:calc(var(--m) * (100% - 6px));background:var(--m-colour)}
-  .legend.states .s-practised{--m:0.5;--m-colour:color-mix(in srgb,var(--ink) 45%,transparent)}
-  .legend.states .s-mastered{--m:1;--m-colour:var(--ok)}
-  .legend.states .s-due{--m:0.35;--m-colour:var(--warm)}
+  .legend.states .s-practised{--m:0.3;--m-colour:var(--m-low)}
+  .legend.states .s-half{--m:0.7;--m-colour:var(--m-mid)}
+  .legend.states .s-mastered{--m:1;--m-colour:var(--m-high)}
+  .legend.states .s-due{--m:0.35;--m-colour:var(--m-due)}
   /* the switch sits at the end of the same row, the size of a swatch */
   .legend.states .prog{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
   .legend.states .prog input{appearance:none;flex:none;width:22px;height:13px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--panel);position:relative;cursor:pointer}
@@ -181,7 +190,7 @@
   .legend.states .prog input:checked{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 50%,var(--rule))}
   .legend.states .prog input:checked::after{left:11px;background:var(--accent)}
   .legend.states .prog input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .legend.states .s-due .sw::before{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--warm) 20%,transparent)}
+  .legend.states .s-due .sw::before{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--m-due) 20%,transparent)}
   :global(.view-pane) .node{font-size:0.9rem;max-width:180px;padding:7px 10px}
   :global(.view-pane) .node.k-result{padding:5px 8px}
   :global(.view-pane) .node.k-skill,:global(.view-pane) .node.k-skill.ext{padding:7px 14px}

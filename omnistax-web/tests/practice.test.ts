@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, hash, heatWeeks, pointsByBook, pointsByDay, pointsOf, rebuild, standingOf, stateOf, stepDay, streakOf, summarize, togglePick, total,
+  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, MIN_FILL, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, fillOf, hash, heatWeeks, newSessionId, pointsByBook, pointsByDay, pointsOf, rebuild, shareOf, standingOf, stateOf, stepDay, streakOf, summarize, togglePick, total, uniqueById,
   type Attempt, type Catalog, type ConceptRecord, type Curriculum, type Mastery, type PracticeSettings,
 } from '../src/lib/practice/model';
 import type { Bloom, ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
@@ -176,6 +176,31 @@ test('untouched, practised, mastered and due', () => {
   assert.equal(stateOf(rec({ score: 12 }), D1, S), 'mastered');
   assert.equal(stateOf(rec({ score: 12 }), D1 + 7 * DAY, S), 'due', 'six points left of the ten it wants');
   assert.equal(stateOf(rec({ score: 12 }), D1 + 7 * DAY, { ...S, spaced: false }), 'mastered', 'with decay frozen nothing ever comes due');
+});
+test('how far a concept stands towards the threshold, which is what every drawing of it is made of', () => {
+  assert.equal(shareOf(undefined, D1, S), 0, 'nothing answered is nothing to show');
+  assert.equal(shareOf(rec({ score: 5, mastered: false, earned: 5 }), D1, S), 0.5);
+  assert.equal(shareOf(rec({ score: 12 }), D1, S), 1, 'and it is never more than full');
+  assert.equal(shareOf(rec({ score: 12, lastAt: D1, halfLife: 7 }), D1 + 7 * DAY, S), 0.6, 'read after the decay, not before it');
+  assert.equal(shareOf(rec({ score: 4 }), D1, { ...S, threshold: 0 }), 1, 'a threshold of nothing is met by anything');
+});
+test('a mastery box is empty when nothing has been answered, full when mastered, and never so nearly empty that it cannot be seen', () => {
+  assert.equal(fillOf('untouched', 0.4), 0);
+  assert.equal(fillOf('mastered', 0.2), 1, 'a mastered concept keeps a full box; the hue says whether it is due');
+  assert.equal(fillOf('practised', 0.6), 0.6);
+  assert.equal(fillOf('practised', 0.01), MIN_FILL, 'a concept just begun still reads as begun');
+  assert.equal(fillOf('due', 0.05), MIN_FILL);
+  assert.equal(fillOf('practised', 4), 1, 'and never over the top of the box');
+});
+test('a list of concepts gathered out of several chapters names each of them once', () => {
+  const a = { id: 'shm', chapter: '16' }, b = { id: 'shm', chapter: '17' }, c = { id: 'period', chapter: '17' };
+  assert.deepEqual(uniqueById([a, b, c]), [a, c], 'the first seen wins, which is the chapter that comes first in the book');
+  assert.deepEqual(uniqueById([]), []);
+});
+test('a session id is eight letters and digits, and a new one is not the last one', () => {
+  const id = newSessionId();
+  assert.match(id, /^[a-z0-9]{8}$/);
+  assert.notEqual(id, newSessionId());
 });
 test('when a mastered concept comes due', () => {
   assert.equal(dueAt(rec({ score: 20, lastAt: D1, halfLife: 7 }), S), D1 + 7 * DAY, 'twenty points is one half-life above ten');

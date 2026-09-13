@@ -2,9 +2,9 @@
   /* One exercise in a tab of its own. The card is the same component the
      exercises document lists, given the room a tab has and told it is standing
      alone, so it does not offer a split of itself again. The line above it names
-     the section and leads back to the card where it belongs, opening the
-     exercises document and jumping to it — revealing it first if the reader is
-     working one problem at a time. Answer state belongs to the card instance, as
+     the section's exercises, the same name their tab carries, and leads back to
+     the card where it belongs, opening the exercises document and jumping to it
+     — revealing it first if the reader is working one problem at a time. Answer state belongs to the card instance, as
      it does for a document cloned into a second group: what is typed here is
      this card's, and the copy in the exercises document keeps its own. */
   import { registry } from '../../lib/sections/registry.svelte';
@@ -16,6 +16,9 @@
   const dto = $derived(state?.exercises.find((e) => e.id === ex));
   const loading = $derived((state?.status ?? 'loading') === 'loading');
   const domId = $derived(exerciseDomId(section, ex));
+  /* The line reads as the exercises tab does — "7.6 Momentum and Force ·
+     Exercises" — so the way back is named by the thing it leads to. */
+  const title = $derived.by(() => { const t = registry.entry(section)?.title; return t ? `${section} ${t} · Exercises` : `${section} · Exercises`; });
   let root = $state<HTMLElement | null>(null);
   $effect(() => { registry.load(section).catch(() => {}); });
   /* The tab's root carries the same decoration a prepared document root gets, so
@@ -30,7 +33,7 @@
 
 <div class="ex-root" data-sec={section} data-chapter={registry.chapterOf(section)?.dir ?? ''} data-one="1" bind:this={root}>
   {#if dto}
-    <button type="button" class="eyebrow up" title="Show this problem in the section's exercises" onclick={back}>{section} · Problems &amp; Exercises</button>
+    <button type="button" class="eyebrow up" title="Show this problem in the section's exercises" onclick={back}>{title}</button>
     <ExerciseCard {section} ex={dto} standalone />
   {:else if loading}
     <article class="placeholder"><div class="loading">Loading {registry.title(exItem(section, ex))}…</div></article>

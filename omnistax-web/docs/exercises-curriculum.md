@@ -1,9 +1,9 @@
 # Exercises as a curriculum: points, mastery, and a practice session
 
 Status: design, 2026-09-09; phases 1 and 2 built 2026-09-09, phase 3 on
-2026-09-10, phase 4 designed and built 2026-09-10. The phases at the end say
-what was built in which order. The rail places this view right above the
-concept map.
+2026-09-10, phase 4 on 2026-09-10, phase 5 on 2026-09-12. The phases at the
+end say what was built in which order. The rail places this view right above
+the concept map.
 
 ## What the reader gets
 
@@ -12,8 +12,9 @@ answering the problems that sit inside a section's text. It always opens on
 a choice: which books, chapters, sections or concepts to practise. From that
 choice it draws a session of exercises, one at a time, scores each answer
 into the concepts the exercise tests, and shows how those concepts stand:
-practised, mastered, or due for review. More can be added to the curriculum
-at any time from inside a session. Progress is kept across every textbook
+practised, mastered, or due for review. A session is the reader's own and not
+the tab's: it can be paused, ended early, and taken up again from any
+practice page. Progress is kept across every textbook
 in the reader's library, because concept ids are canonical and
 book-independent (`docs/content-tables.md`, the `concepts` table): mastering
 `hookes-law` in one book is mastering it in all.
@@ -142,7 +143,7 @@ them, which is how a change of settings takes effect on old work.
 ## The view
 
 `view:exercises`, a page in a split like the concept map, opened from the
-rail button above the map's. It has three faces, and the store remembers
+rail button above the map's. It has four faces, and the store remembers
 which one is showing so reopening resumes.
 
 **Choose.** The opening face, and the one a reader always sees first. A
@@ -155,20 +156,23 @@ button starts the session. This face is a purpose-built tree, not the
 Open browser: the browser is a single-select place picker.
 
 **Practise.** One exercise at a time in the existing card, standalone, with
-a strip above it: exercise k of N, points this session, and the concepts
-the current exercise tests with their bars. A check writes the attempt and
-the card shows what it earned, "+3 Hooke's law". Skip moves on; an open
-question shows the book's solution and asks for the reader's verdict. The
-strip carries "add to curriculum", which opens the Choose face beside the
-session without ending it. The session ends on a summary: points earned,
-concepts that moved state, what is due next and when, and the two ways
-on: another round, or change the curriculum.
+a strip above it: exercise k of N, points this session, why this problem was
+drawn, and a segment per problem of the round coloured answered, in hand or
+still ahead. Beside it the concepts the exercise tests, each with its mastery
+box. A check writes the attempt and the card shows what it earned, "+3
+Hooke's law". Skip moves on; an open question shows the book's solution and
+asks for the reader's verdict. Four buttons: Skip, Next (Finish on the last),
+Pause, and End, which asks first in a strip of its own.
 
-**Progress.** Every concept in the curriculum (and a switch to every
-concept practised, across books) with its state, decayed score against the
-threshold, streak, last practised and when it comes due; the reader's total
-points and the per-book totals. Later, the concept map tints its nodes by
-this state and the rail button carries the count of concepts due.
+**Summary.** What the round came to in one sentence — the points earned and
+how many of its problems were answered — and, where any concept changed
+state, the list of what moved. One button, Return to Dashboard, which is
+also where the session is let go of.
+
+**Book Progress.** Every book on the shelf is a row on the dashboard, and a
+row opens its breakdown under it: every concept the book teaches, grouped by
+state, with its mastery box, the streak, when it was last practiced and when
+it comes round again.
 
 ## What changes where
 
@@ -210,6 +214,8 @@ this state and the rail button carries the count of concepts due.
 4. The practice desk: the dashboard, practice state per view instance, the
    way in from the end of a section, book order with a shuffle, and the
    concept map's progress switch. Below.
+5. Sessions of their own, the Book Progress accordion and the mastery box.
+   Below.
 
 ## Phase 4: the practice desk
 
@@ -228,40 +234,37 @@ list writes `data-practise-section`, the shell reads the group from the
 enclosing pane. No chapter button yet — that waits for chapter summary
 pages to have somewhere to put one.
 
-**Practice state per view instance.** Curriculum, session, face and the
-shuffle flag belong to the view's page, keyed by the tab's item key the way
-a document's scope is. Attempts, mastery and the settings stay global, one
-record across every book. Two practice views can therefore run two sessions
-at once — one on the section just read, one on everything due — and closing
-a tab takes its page with it.
+**Practice state per view instance.** Curriculum, face, shuffle and which
+book's breakdown stands open belong to the view's page, keyed by the tab's
+item key the way a document's scope is. Attempts, mastery and the settings
+stay global, one record across every book. Two practice views can therefore
+run two sessions at once — one on the section just read, one on everything
+due — and closing a tab takes its page with it. Phase 5 takes the session
+itself out of the page; see below.
 
-**Faces.** The tab row is `Dashboard | Practise`. A fresh view opens on the
-dashboard. Behind those two are five faces: `dashboard`, `choose`,
-`practise`, `summary` and `progress`. Progress is scoped to one book and is
-reached by clicking that book's row on the dashboard, with a link back. The
-summary ends on a "Done" that returns to the dashboard, and the Practise tab
-goes to the live session if there is one and to Choose if there is not.
+**Faces.** The tab row is `Dashboard | Practice`. A fresh view opens on the
+dashboard. Behind those two are four faces: `dashboard`, `choose`,
+`practise` and `summary`. The Practice tab goes to the live session if there
+is one and to Choose if there is not.
 
-**The dashboard.** One screen, little vertical spread. A row of numbers:
-the streak (days in a row with a correct answer, ending today or
-yesterday), lifetime points, and how many concepts are due, with a "Review
-N due" button that starts a session on them here. Under it, a card per open
-practice view that has a live session ("Exercise 3 of 10 · 4 points"),
-which activates that tab — this view's own card resumes in place. Then an
-activity heatmap in the GitHub manner: 52 weeks by 7 days, one cell a day,
-depth by the points earned that day across every book, today at the right
-edge, the date and the points in the hover title. Then a row per book in
-the library, this book first: title, a stacked bar of mastered, practised,
-due and untouched over the concepts the book teaches, and the points earned
-in it. Clicking a row opens that book's progress.
+**The dashboard.** One screen, little vertical spread. Three tiles: the
+streak (days in a row with a correct answer, ending today or yesterday),
+lifetime points, and how many concepts are due, with a "Review N due" button
+that starts a session on them here. Under them, a card per session still
+running. Then an activity heatmap in the GitHub manner: 52 weeks by 7 days,
+one cell a day, depth by the points earned that day across every book, today
+at the right edge, the date and the points in the hover title. Then Book
+Progress: a row per book in the library, this book first, with a stacked bar
+of mastered, practiced, due and untouched over the concepts the book teaches
+and the points earned in it, which opens its breakdown under it.
 
 **Choose, less busy.** A presets row (this section, this chapter, this
 book, everything due, clear); chips for the current picks, each with a ×;
 one tree of books over chapters over sections, folded until clicked, with
 the tri-state checkboxes as before but no count columns — the counts move
 into the hover title. A search box finds concepts of any kind to tick, in
-place of the full concept list. The foot reads "Practise N" with a − +
-stepper that writes the session size setting.
+place of the full concept list, each with its mastery box. The foot reads
+"Practice N" with a − + stepper that writes the session size setting.
 
 **Draw order.** The buckets are unchanged: review due first, then the
 frontier, then the rest. What changes is the tie-break inside a bucket: by
@@ -275,6 +278,50 @@ every Next, never drawing an exercise this session has already shown.
 switch that hides the mastery bars for that map alone, for a reader who
 wants the map as a map. Where a map starts is a setting, "Progress on the
 concept map" in Settings under Exercises, on by default.
+
+## Phase 5: sessions of their own, and one picture of mastery
+
+**A session is not a tab's.** Sessions live in a table of their own,
+`omnistax-practice-sessions-v1`, each with an id, the picks it was drawn
+from, what it drew, where the reader has got to and what they have earned. A
+page points at one by id. So several may run at once, a paused one stands
+until it is finished or thrown away, and closing a tab leaves the session
+where it is. A session is running while `at < drawn.length`; an answer is
+marked on every session standing on that exercise, not only the one it was
+typed into. A page whose stored session was written the old way — inside the
+page — has it lifted into the table on `init`.
+
+**Pause and End.** Pause leaves the session standing and goes back to the
+dashboard, still this page's, so the Practice tab comes back to it. End
+finishes the round here, after an inline confirmation, and shows the
+summary; Return to Dashboard is where the session is let go of. Starting a
+new session on a page that already has one leaves the old one in the table,
+detached, and the dashboard offers it back.
+
+**Still running.** Every running session is a card on every dashboard,
+headed by the day and time it began and reading "Exercise k of N · p
+points". A card says where its session is — this view, another view, or not
+open in any tab — and resting on it opens a popover of what it tests, the
+picks set out as the Choose face sets them. Clicking a card raises the tab
+it is running in; a session with no tab is taken onto this page when this
+page has nothing running, and into a page of its own when it has.
+
+**Book Progress, in place.** A book's row opens its breakdown under it, one
+book at a time, the open one kept on the page so a fetch finishing does not
+fold it. A concept row is not a button and does not jump: it carries
+`data-concept`, so the shell's hover card opens on it as it does on a
+glossary term, and the name wears the same dotted rule under the reader's
+Underlines setting.
+
+**The mastery box.** One drawing of how a concept stands, everywhere it is
+shown: a rounded square outlined in the colour of the state and filled from
+the bottom by the decayed score against the threshold. Untouched is an empty
+outline; practiced is `--m-low` below half the threshold and `--m-mid` at or
+above it; mastered is full `--m-high` under the ink; due is `--m-due` behind
+a dashed outline. A box that is filled at all is filled enough to be seen.
+The breakdown rows, the bars beside the running exercise, the concept search
+and the legend of the book bars wear it, the book bars are stacked in the
+same four colours, and the concept map's bars and legend follow them too.
 
 ## Decisions taken, and open
 

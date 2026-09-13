@@ -13,6 +13,14 @@
   :root:not([data-theme="light"]){ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --hl-yellow:#6B5410; --hl-green:#14532D; --hl-blue:#1E3A8A; --hl-pink:#831843; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
 }
 :root[data-theme="dark"]{ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --hl-yellow:#6B5410; --hl-green:#14532D; --hl-blue:#1E3A8A; --hl-pink:#831843; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
+/* How a concept stands, in the colours a practice app teaches with: red for a
+   score that has barely begun, yellow for one on its way, green for mastered,
+   orange for a mastered concept that has faded and is due. Untouched is the
+   grey of an empty box. These hold in both themes and do not follow the book's
+   colour coding, since they say how the reader stands and not what a thing is. */
+:root{ --m-low:#DC2626; --m-mid:#EAB308; --m-high:#16A34A; --m-due:#EA580C; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; --m-due:#FB923C; } }
+:root[data-theme="dark"]{ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; --m-due:#FB923C; }
 html:not(.cc){ --accent:var(--ink); --warm:var(--ink); }
 
 *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--thumb) transparent}
@@ -77,11 +85,13 @@ article > p, article li, .example p, .example li{max-width:66ch}
 .summary h2{margin-top:0;padding-top:0;font-size:1.2rem}
 .summary ul,.summary ol{padding-left:1.3rem}
 .summary li{max-width:66ch;margin-bottom:0.5rem}
-.section-end{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:40px;font-family:var(--sans);font-size:0.82rem}
-.section-end .practise{font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+/* The one way on from a text: the practice button, centred under the last words
+   of the section, with the pencil on the right of them. */
+.section-end{display:flex;justify-content:center;align-items:center;margin-top:40px;font-family:var(--sans);font-size:0.82rem}
+.section-end .practise{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+.section-end .practise svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .section-end .practise:hover{background:var(--soft)}
 .section-end .practise:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.section-end .problems{color:var(--muted)}
 .page-nav{display:flex;justify-content:space-between;gap:16px;margin-top:40px;font-family:var(--sans);font-size:0.9rem}
 .page-nav a{display:flex;flex-direction:column;gap:2px;max-width:48%;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;color:var(--ink);text-decoration:none;background:var(--panel)}
 .page-nav a:hover{background:var(--soft)}

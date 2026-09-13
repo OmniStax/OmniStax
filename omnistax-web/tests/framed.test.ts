@@ -9,6 +9,7 @@ import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
 import { bookDir, bookId } from '../src/lib/types/ids';
+import { ICON } from '../src/lib/icons';
 import { bookPagesOf, neighboursOf, pageDir, pageId, pageLabel, pageRoleOf, pagesOf } from '../src/lib/content/roles';
 
 /* ---------- the roles, pure ---------- */
@@ -101,6 +102,18 @@ test('a section’s summary stands at the end of its text, math rendered, before
   assert.ok(summary < html.indexOf('class="section-end"'), 'before the practise row');
   assert.match(html.slice(summary), /class="katex"/, 'the summary’s math is prerendered');
   assert.doesNotMatch(html.slice(summary, html.indexOf('class="section-end"')), /\$\\Delta/, 'and no dollar is left');
+});
+test('a text ends on one centred button: practice this section, with the pencil on it', () => {
+  const ch = TREE.chapters[0];
+  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
+  const row = /<div class="section-end">([\s\S]*?)<\/div>/.exec(html);
+  assert.ok(row, 'the row stands at the end of the text');
+  assert.equal(row![1], `<button type="button" class="practise" data-practise-section="2.1" title="Open a practice session on this section">Practice this section${ICON.exercises}</button>`);
+  assert.match(row![1], /<svg viewBox="0 0 24 24">/, 'the icon is inlined, not fetched');
+  assert.doesNotMatch(row![1], /Problems &amp; Exercises/, 'the link to the problem set is gone');
+  assert.doesNotMatch(html.slice(html.indexOf('class="section-end"')), /class="problems"/);
+  const exercises = html.slice(html.indexOf('data-doc="2.1/exercises"'));
+  assert.match(exercises, /<h2>Problems &amp; Exercises<\/h2>/, 'the problem set still heads itself that way');
 });
 test('the front of the book lists the preface before the chapters and the introduction before 2.1', () => {
   const html = bookHtml(M);

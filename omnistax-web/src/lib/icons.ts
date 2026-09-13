@@ -1,7 +1,8 @@
 /* Rail and strip icons: 24-unit strokes, coloured by currentColor. */
 export const ICON = {
   text: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7M9 8h3"/></svg>',
-  exercises: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/></svg>',
+  /* exercises: a pencil at work, its point on the line it has just drawn — practice is something the reader does, not a box to tick */
+  exercises: '<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0 0-3l-1-1a2.1 2.1 0 0 0-3 0L4 16z"/><path d="M13 7l4 4"/><path d="M12.5 20H20"/></svg>',
   folder: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   explorer: '<svg viewBox="0 0 24 24"><path d="M5 3v15a2 2 0 0 0 2 2h4"/><path d="M5 7.5h5M5 13h5"/><rect x="13" y="3" width="7" height="4.5" rx="1"/><rect x="13" y="10.5" width="7" height="4.5" rx="1"/><rect x="13" y="17.5" width="7" height="4.5" rx="1"/></svg>',
   concepts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M11 7.2 7 15.8M13 7.2l4 8.6"/></svg>',

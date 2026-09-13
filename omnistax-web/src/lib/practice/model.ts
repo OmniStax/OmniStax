@@ -37,6 +37,15 @@ export type ConceptRecord = { readonly score: number; readonly lastAt: number; r
 export type Mastery = Readonly<Record<string, ConceptRecord>>;   /* by concept id (canonical across books) */
 export type State = 'untouched' | 'practised' | 'mastered' | 'due';
 
+/* A session is a thing of its own rather than a corner of the tab that began
+   it: the reader may leave one paused while they read the section it came from,
+   start another beside it, and come back to the first in whichever tab is to
+   hand. So a session carries an id and a page points at it. The id is eight
+   letters and digits, the shape the other ids of the shell take. */
+export type SessionId = string & { readonly __brand: 'SessionId' };
+export const sessionId = (s: string): SessionId => s as SessionId;
+export const newSessionId = (): SessionId => sessionId(Math.random().toString(36).slice(2, 10).padEnd(8, '0'));
+
 /* The default weight of an exercise, by the Bloom level the pipeline gave it.
    Every concept the exercise lists receives the full amount: an exercise that
    joins two concepts is evidence for both. */
@@ -67,6 +76,22 @@ export const decayed = (r: ConceptRecord, now: number, s: PracticeSettings): num
    is queued for review. */
 export const stateOf = (r: ConceptRecord | undefined, now: number, s: PracticeSettings): State =>
   !r || r.earned === 0 ? 'untouched' : !r.mastered ? 'practised' : decayed(r, now, s) < s.threshold ? 'due' : 'mastered';
+/* How far a concept stands towards mastery, 0 to 1: its decayed score against
+   the threshold, which is the one number every drawing of a concept's standing
+   is made of — the length of the map's bar and the height of the fill in a
+   mastery box. A concept with no record at all stands at nothing. */
+export const shareOf = (r: ConceptRecord | undefined, now: number, s: PracticeSettings): number => {
+  if (!r) return 0;
+  if (s.threshold <= 0) return 1;
+  return Math.min(1, Math.max(0, decayed(r, now, s) / s.threshold));
+};
+/* How much of a mastery box is filled. A box that is filled at all is filled
+   enough to be seen, so a concept just begun reads as begun rather than as
+   untouched; a mastered one is full whatever its score has faded to, since the
+   box then says mastered and the hue says whether it is due. */
+export const MIN_FILL = 0.15;
+export const fillOf = (state: State, share: number): number =>
+  state === 'untouched' ? 0 : state === 'mastered' ? 1 : Math.max(MIN_FILL, Math.min(1, share));
 /* When a mastered concept comes due: the moment its decayed score reaches the
    threshold. Already below, it is due now; unmastered or with decay frozen,
    never. */
@@ -144,6 +169,17 @@ export const streakOf = (attempts: readonly Attempt[], now: number): number => {
   let n = 0;
   while (days.has(day)) { n += 1; day = stepDay(day, -1); }
   return n;
+};
+/* One list of concepts out of several, each named once. A chapter's
+   concepts.json carries every concept its own sections teach and every
+   prerequisite they reach, wherever it was taught, so a book's list flattened
+   out of its chapters says the same concept over and over: counting that list
+   counts a concept once per chapter that leans on it, and drawing it from a
+   keyed list is an error. The first of a repeated concept wins, which is the
+   chapter that comes first in the book. */
+export const uniqueById = <T extends { readonly id: string }>(list: readonly T[]): readonly T[] => {
+  const seen = new Set<string>();
+  return list.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
 };
 /* How a set of concepts stands, counted by state. Only the built ones are
    counted: a placeholder stands for a section nobody has written, so nothing

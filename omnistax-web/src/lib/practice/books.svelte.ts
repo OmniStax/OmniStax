@@ -11,6 +11,7 @@ import type { SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { library } from '../explorer/library.svelte';
 import { builtSections, parseConcepts, parseExercises, parseManifest, type ForeignBook } from './books';
+import { uniqueById } from './model';
 
 export type BookStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 
@@ -65,7 +66,8 @@ class Books {
     this.loaded = {
       ...this.loaded,
       [book]: {
-        manifest, concepts: parsed.flatMap((p) => p.concepts), coverage: parsed.flatMap((p) => p.coverage),
+        /* A chapter's concepts.json carries the prerequisites it reaches into other chapters, so the same concept arrives from every chapter that leans on it; it is kept once, as the registry keeps the home book's. */
+        manifest, concepts: uniqueById(parsed.flatMap((p) => p.concepts)), coverage: parsed.flatMap((p) => p.coverage),
         exercises: Object.fromEntries(exercises),
       },
     };

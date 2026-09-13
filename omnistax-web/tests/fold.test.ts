@@ -46,7 +46,7 @@ const deps = (): BuiltinDeps => ({
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, openFindTextbook: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
   scope: { activeView: () => 'view:concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
-  docs: { openView: () => {}, openExercises: () => {}, canOpenExercises: () => true },
+  docs: { openView: () => {}, openExercises: () => {}, canOpenExercises: () => true, openAbout: () => {} },
   notes: { newNote: () => {}, toggleMode: () => {}, canToggle: () => true },
   history: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'highlight in yellow', redoLabel: '' },
   colours: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'velocity in section 16.3', redoLabel: '' },

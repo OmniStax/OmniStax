@@ -63,9 +63,15 @@ class Registry {
     if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
-    /* A section's tab is named by its number and which document it is; an introduction or summary page by its own title. */
+    /* A section's tab carries the name the reader knows it by — "7.6 Momentum
+       and Force" — and the problem set says so after it, since the two tabs of a
+       section stand side by side and the number alone does not tell them apart.
+       A section the manifest does not name falls back to its number and the bare
+       word. An introduction or summary page is named by its own title. */
     if (pageRoleOf(id.section) !== 'section') { const e = this.entry(id.section); return e ? pageLabel(e) : id.section; }
-    return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
+    const title = this.entry(id.section)?.title;
+    if (title === undefined) return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
+    return id.doc === 'text' ? `${id.section} ${title}` : `${id.section} ${title} · Exercises`;
   }
   /* What the book calls an exercise's kind, once the section holding it has been loaded. */
   private exerciseLabel(sec: SectionId, ex: string): string | null {

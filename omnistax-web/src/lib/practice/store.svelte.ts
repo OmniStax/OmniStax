@@ -7,11 +7,17 @@
    because concept ids are canonical: mastering hookes-law in one book is
    mastering it in all. What is book-bound — an attempt, a drawn exercise —
    carries its book beside its section, since section ids are not unique across
-   books. What is page-bound is the practising itself: the curriculum, the
-   session running, the face showing and the shuffle, all keyed by the tab they
-   belong to, so a reader may open one practice view on this section and another
-   on a chapter they are revising and neither disturbs the other. A page goes
-   when its tab does. None of this is on the shell's undo stack, for the same
+   books.
+
+   A session is not page-bound. It is a course of study the reader began, and it
+   lives in a table of its own until it is finished or thrown away: pausing one
+   leaves it standing, closing its tab leaves it standing, and it can be picked
+   up again from the dashboard of whichever practice page is to hand. A page
+   points at the session it is showing by id, and holds what is properly its
+   own — the picks being made, the face showing, the shuffle, the book whose
+   breakdown stands open — so two pages may run two sessions at once and neither
+   disturbs the other. A page goes when its tab does; the session it was
+   showing does not. None of this is on the shell's undo stack, for the same
    reason the colours are not: answering a question is not an edit to take
    back. */
 import type { ExerciseDTO, ChapterEntry, ConceptDTO } from '../content/schema';
@@ -21,24 +27,40 @@ import { registry } from '../sections/registry.svelte';
 import { books } from './books.svelte';
 import { mergeCatalog } from './books';
 import {
-  DEFAULT_SETTINGS, dayOf, draw, pointsOf, rebuild, stateOf, summarize, togglePick, total,
-  type Attempt, type Catalog, type Curriculum, type Drawn, type Mastery, type Pick, type PracticeSettings, type State,
+  DEFAULT_SETTINGS, dayOf, draw, newSessionId, pointsOf, rebuild, sessionId, shareOf, stateOf, summarize, togglePick, total, uniqueById,
+  type Attempt, type Catalog, type Curriculum, type Drawn, type Mastery, type Pick, type PracticeSettings, type SessionId, type State,
 } from './model';
 
-/* The five faces a practice page may show. Dashboard is where a fresh page
+/* The four faces a practice page may show. Dashboard is where a fresh page
    opens: what the reader has done and what is waiting, with the practising one
-   click away. Progress is one book's standing, reached from that book's row. */
-export type Face = 'dashboard' | 'choose' | 'practise' | 'summary' | 'progress';
-export type Session = { readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why'] }[]; readonly at: number /* index of the current exercise */; readonly answered: readonly boolean[] /* per drawn: recorded */; readonly earned: number; readonly started: number; readonly before: Mastery /* snapshot at start, for the summary */ };
-/* One practice tab's own state. `book` is the book the progress face is scoped
-   to, and means nothing on any other face. */
-export type Page = { readonly curriculum: Curriculum; readonly session: Session | null; readonly face: Face; readonly book?: string; readonly shuffle: boolean };
+   click away, and every book's standing under a row that opens in place. */
+export type Face = 'dashboard' | 'choose' | 'practise' | 'summary';
+/* One course of study: what it was drawn from, what it drew, how far the reader
+   has come and what they have earned on the way. `before` is the standing as it
+   was when the session opened, which is what the summary reads to say what
+   moved. */
+export type Session = {
+  readonly id: SessionId;
+  readonly curriculum: Curriculum;   /* the picks as they stood when it was drawn */
+  readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why'] }[];
+  readonly at: number;               /* index of the current exercise */
+  readonly answered: readonly boolean[];   /* per drawn: recorded */
+  readonly earned: number;
+  readonly started: number;
+  readonly before: Mastery;
+};
+/* One practice tab's own state. `session` is the session this tab is showing,
+   which lives in the store's own table rather than here. `book` is the book
+   whose breakdown stands open on the dashboard, and means nothing on any other
+   face. */
+export type Page = { readonly curriculum: Curriculum; readonly session: SessionId | null; readonly face: Face; readonly book?: string; readonly shuffle: boolean };
 /* A page nobody has opened yet, and the page every closed tab goes back to. */
 export const BLANK: Page = { curriculum: [], session: null, face: 'dashboard', shuffle: false };
 
-const KEY = 'omnistax-practice-v1';          /* the attempts and the numbers: the reader's own record */
-const PAGES = 'omnistax-practice-pages-v1';  /* one entry per open practice tab */
-const FACES: readonly Face[] = ['dashboard', 'choose', 'practise', 'summary', 'progress'];
+const KEY = 'omnistax-practice-v1';             /* the attempts and the numbers: the reader's own record */
+const PAGES = 'omnistax-practice-pages-v1';     /* one entry per open practice tab */
+const SESSIONS = 'omnistax-practice-sessions-v1';   /* every session still to finish, whatever tab began it */
+const FACES: readonly Face[] = ['dashboard', 'choose', 'practise', 'summary'];
 const WHYS: readonly Drawn['why'][] = ['review', 'frontier', 'more'];
 /* A shuffled draw wants a seed that is new every time, where the ordinary one
    wants the day, so that a refresh draws the same session. */
@@ -78,7 +100,10 @@ const parseRecord = (raw: unknown): Mastery => {
     return [[id, { score: num(r.score, 0), lastAt: num(r.lastAt, 0), days: num(r.days, 0), lastDay: str(r.lastDay), mastered: r.mastered === true, halfLife: num(r.halfLife, DEFAULT_SETTINGS.halfLife), earned: num(r.earned, 0) }] as const];
   }));
 };
-const parseSession = (raw: unknown): Session | null => {
+/* A session as it was written down. The id it is filed under is the id it
+   carries, so a table whose keys have been meddled with still reads back with
+   every session pointing at itself. */
+const parseSession = (raw: unknown, id: SessionId): Session | null => {
   const o = obj(raw); if (!o || !Array.isArray(o.drawn)) return null;
   const drawn = o.drawn.flatMap((d) => {
     const e = obj(d); if (!e || !str(e.book) || !str(e.section) || !str(e.ex)) return [];
@@ -87,14 +112,40 @@ const parseSession = (raw: unknown): Session | null => {
   });
   if (!drawn.length) return null;
   const answered = drawn.map((_, i) => (Array.isArray(o.answered) ? o.answered[i] === true : false));
-  return { drawn, at: Math.min(Math.max(0, Math.round(num(o.at, 0))), drawn.length), answered, earned: num(o.earned, 0), started: num(o.started, 0), before: parseRecord(o.before) };
+  return {
+    id, curriculum: parseCurriculum(o.curriculum), drawn,
+    at: Math.min(Math.max(0, Math.round(num(o.at, 0))), drawn.length), answered,
+    earned: num(o.earned, 0), started: num(o.started, 0), before: parseRecord(o.before),
+  };
 };
-const parsePage = (raw: unknown): Page => {
-  const o = obj(raw); if (!o) return BLANK;
+const parseSessions = (raw: unknown): Record<SessionId, Session> => {
+  const o = obj(raw); if (!o) return {};
+  return Object.fromEntries(Object.entries(o).flatMap(([k, v]) => { const s = parseSession(v, sessionId(k)); return s ? [[k, s] as const] : []; }));
+};
+/* A page, and beside it the session an older reading kept inside it. That
+   reading wrote the session as an object where this one writes the id of a
+   session in the table; a page carrying one is read back whole and the session
+   is lifted out on `init`, so a round begun before this change goes on. */
+type Stored = { readonly page: Page; readonly lifted: Session | null };
+const parsePage = (raw: unknown): Stored => {
+  const o = obj(raw); if (!o) return { page: BLANK, lifted: null };
   const book = str(o.book);
-  return { curriculum: parseCurriculum(o.curriculum), session: parseSession(o.session), face: FACES.find((f) => f === o.face) ?? 'dashboard', ...(book ? { book } : {}), shuffle: o.shuffle === true };
+  const curriculum = parseCurriculum(o.curriculum);
+  const held = obj(o.session) ? parseSession(o.session, newSessionId()) : null;
+  /* A session kept inside its page was drawn from that page's picks, and had no
+     record of its own of what it was drawn from: the page's are its. */
+  const lifted = held && !held.curriculum.length ? { ...held, curriculum } : held;
+  const named = str(o.session);
+  return {
+    page: {
+      curriculum,
+      session: lifted ? lifted.id : named ? sessionId(named) : null,
+      face: FACES.find((f) => f === o.face) ?? 'dashboard', ...(book ? { book } : {}), shuffle: o.shuffle === true,
+    },
+    lifted,
+  };
 };
-const parsePages = (raw: unknown): Record<ItemKey, Page> => {
+const parsePages = (raw: unknown): Record<ItemKey, Stored> => {
   const o = obj(raw); if (!o) return {};
   return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, parsePage(v)] as const));
 };
@@ -105,6 +156,10 @@ class Practice {
   /* One entry per practice tab, by the key that tab holds. A tab with no entry
      is a fresh page; a key with no tab is pruned as the layout settles. */
   pages = $state.raw<Readonly<Record<ItemKey, Page>>>({});
+  /* Every session the reader has begun and not finished, by its own id. It
+     outlives the page that began it: a session goes only when the reader leaves
+     its summary or throws it away. */
+  sessions = $state.raw<Readonly<Record<SessionId, Session>>>({});
   /* Derived, never stored: the records follow from the attempts and the numbers
      in force, and the concept DAG says what a right answer freshens below it.
      The DAG is the catalogue's, not the registry's, so a prerequisite a foreign
@@ -115,18 +170,24 @@ class Practice {
     return rebuild(this.attempts, (id) => prereqs.get(id) ?? [], this.settings);
   });
 
-  /* The record is read from where it has always been kept, and the pages from
-     their own key. An older reading wrote one curriculum, one session and one
-     face into the record's key, for a view that was a singleton; those are left
-     where they lie rather than carried onto a page, since there is no longer
-     one page they would belong to. */
+  /* The record is read from where it has always been kept, the pages and the
+     sessions from their own keys. An older reading wrote one curriculum, one
+     session and one face into the record's key, for a view that was a
+     singleton; those are left where they lie rather than carried onto a page,
+     since there is no longer one page they would belong to. A session an
+     in-between reading kept inside its page is lifted into the table under a
+     fresh id, with the page left pointing at it. */
   init(): void {
     const o = obj(this.read(KEY));
     if (o) {
       this.attempts = parseAttempts(o.attempts);
       this.settings = parseSettings(o.settings);
     }
-    this.pages = parsePages(this.read(PAGES));
+    const stored = Object.entries(parsePages(this.read(PAGES)));
+    const lifted = stored.flatMap(([, s]) => (s.lifted ? [[s.lifted.id, s.lifted] as const] : []));
+    this.pages = Object.fromEntries(stored.map(([k, s]) => [k, s.page] as const));
+    this.sessions = { ...parseSessions(this.read(SESSIONS)), ...Object.fromEntries(lifted) };
+    if (lifted.length) { this.savePages(); this.saveSessions(); }
   }
 
   /* What the model is allowed to see of the library: the book the shell was
@@ -147,8 +208,19 @@ class Practice {
      beside an exercise drawn out of a book the reader is not reading. */
   conceptOf(id: string): ConceptDTO | undefined { return books.concept(id); }
   bookTitle(id: string): string { return books.title(id); }
+  /* What one book teaches, each concept once. The book being read has its list
+     off the registry, which has already joined its chapters; any other has one
+     list per chapter fetched, and a chapter carries the prerequisites it
+     reaches as well as the concepts it teaches, so the flattened list repeats
+     itself and has to be made one before it is counted or drawn. */
+  conceptsIn(book: string): readonly ConceptDTO[] {
+    return book === registry.manifest.id ? registry.concepts : uniqueById(books.loaded[book]?.concepts ?? []);
+  }
 
   stateOf(id: string, now = Date.now()): State { return stateOf(this.mastery[id], now, this.settings); }
+  /* How far a concept stands towards mastery, 0 to 1: the fill of its mastery
+     box and the length of its bar. */
+  share(id: string, now = Date.now()): number { return shareOf(this.mastery[id], now, this.settings); }
   /* The concepts waiting for review. Read off the records alone, which are
      keyed by the concept and know nothing of the library, so the count is true
      before a single chapter has loaded — which is what the rail needs. */
@@ -163,8 +235,8 @@ class Practice {
   /* An answer, written down once. A second right answer to the same exercise on
      the same day earns nothing — otherwise a card could be checked over and over
      for points — but tomorrow it counts again. The answer is marked on every
-     page standing on that exercise, not only the one the reader typed it in:
-     two tabs drawing the same problem both move on. */
+     session standing on that exercise, not only the one the reader typed it in:
+     two rounds drawing the same problem both move on. */
   record(book: string, section: SectionId, ex: ExerciseDTO, ok: boolean, self: boolean, now = Date.now()): Attempt | null {
     const day = dayOf(now);
     if (this.attempts.some((a) => a.ok && a.book === book && a.section === section && a.ex === ex.id && dayOf(a.at) === day)) return null;
@@ -173,12 +245,12 @@ class Practice {
     const attempt: Attempt = { book, section, ex: ex.id, at: now, ok, self, earned };
     this.attempts = [...this.attempts, attempt];
     const got = Object.values(earned).reduce((n, v) => n + v, 0);
-    const on = (p: Page): boolean => { const d = p.session?.drawn[p.session.at]; return !!d && d.book === book && d.section === section && d.ex === ex.id; };
+    const on = (s: Session): boolean => { const d = s.drawn[s.at]; return !!d && d.book === book && d.section === section && d.ex === ex.id; };
     const mark = (s: Session): Session => ({ ...s, answered: s.answered.map((v, i) => (i === s.at ? true : v)), earned: s.earned + got });
-    const pages = Object.entries(this.pages);
-    if (pages.some(([, p]) => on(p))) {
-      this.pages = Object.fromEntries(pages.map(([k, p]) => [k, on(p) && p.session ? { ...p, session: mark(p.session) } : p] as const));
-      this.savePages();
+    const sessions = Object.entries(this.sessions);
+    if (sessions.some(([, s]) => on(s))) {
+      this.sessions = Object.fromEntries(sessions.map(([k, s]) => [k, on(s) ? mark(s) : s] as const));
+      this.saveSessions();
     }
     this.save();
     return attempt;
@@ -191,14 +263,26 @@ class Practice {
   /* ---------- one page of practice ---------- */
 
   page(key: ItemKey): Page { return this.pages[key] ?? BLANK; }
+  /* The session this page is showing, if it is still in the table. */
+  sessionOf(key: ItemKey): Session | null { const id = this.page(key).session; return id ? this.sessions[id] ?? null : null; }
+  /* A session is running while it has an exercise left to stand on. Reaching
+     the end of the drawn list ends it, and so does the End button, which puts
+     the reader at the end of the list rather than leaving them in the middle of
+     a round they have said they are done with. */
+  private static running(s: Session): boolean { return s.at < s.drawn.length; }
   /* Whether this page has a session still to finish, which is what the
-     dashboard's cards and the Practise tab go back to. */
-  live(key: ItemKey): boolean { const s = this.page(key).session; return !!s && s.at < s.drawn.length; }
-  /* Every open page with a session running, for the dashboard to list: a reader
-     practising in two tabs sees both, and the card for the tab they are on
-     resumes in place. */
-  liveSessions(): readonly { readonly key: ItemKey; readonly session: Session }[] {
-    return Object.entries(this.pages).flatMap(([key, p]) => (p.session && p.session.at < p.session.drawn.length ? [{ key, session: p.session }] : []));
+     dashboard's cards and the Practice tab go back to. */
+  live(key: ItemKey): boolean { const s = this.sessionOf(key); return !!s && Practice.running(s); }
+  /* Every session still running, oldest first, each with the page showing it
+     where one is: a reader practising in two tabs sees both, the card for the
+     tab they are on resumes in place, and a session whose tab was closed says
+     so and can be taken up again here. */
+  liveSessions(): readonly { readonly session: Session; readonly key: ItemKey | null }[] {
+    const attached = new Map(Object.entries(this.pages).flatMap(([k, p]) => (p.session ? [[p.session, k] as const] : [])));
+    return Object.values(this.sessions)
+      .filter(Practice.running)
+      .sort((a, b) => a.started - b.started)
+      .map((session) => ({ session, key: attached.get(session.id) ?? null }));
   }
 
   toggle(key: ItemKey, p: Pick): void { const page = this.page(key); this.set(key, { ...page, curriculum: togglePick(page.curriculum, p) }); }
@@ -208,16 +292,38 @@ class Practice {
   replace(key: ItemKey, picks: readonly Pick[]): void { this.set(key, { ...this.page(key), curriculum: [...picks] }); }
   /* A page opened with something already chosen, on the face that shows it. */
   seed(key: ItemKey, picks: readonly Pick[], face: Face = 'choose'): void { this.set(key, { ...BLANK, curriculum: [...picks], face }); }
+  /* A page opened straight onto a session already running, which is what the
+     dashboard does when this page is busy with a round of its own: the new page
+     takes the session's picks for its own, so choosing again there goes on from
+     what that session is about. */
+  seedSession(key: ItemKey, id: SessionId): void {
+    const s = this.sessions[id]; if (!s) return;
+    this.set(key, { ...BLANK, curriculum: [...s.curriculum], session: id, face: 'practise' });
+  }
+  /* A session taken up by a page that has none of its own: the same move, onto
+     a page that already stands somewhere. */
+  attach(key: ItemKey, id: SessionId): void {
+    const s = this.sessions[id]; if (!s) return;
+    this.set(key, { ...this.page(key), curriculum: [...s.curriculum], session: id, face: 'practise' });
+  }
   setShuffle(key: ItemKey, on: boolean): void { this.set(key, { ...this.page(key), shuffle: on }); }
 
   /* The seed is the day, so a refresh draws the same session and tomorrow draws
      another; with the shuffle on it is a seed of its own, since the whole point
-     of shuffling is that the next draw is not the last one. */
+     of shuffling is that the next draw is not the last one. A page that was
+     already showing a session lets it go rather than ending it: the old round
+     stays in the table, detached, and the dashboard offers it back. */
   start(key: ItemKey, now = Date.now()): boolean {
     const page = this.page(key);
     const drawn = this.drawFor(page, now);
     if (!drawn.length) return false;
-    this.set(key, { ...page, session: { drawn: drawn.map((d) => ({ book: d.book, section: d.section, ex: d.ex.id, why: d.why })), at: 0, answered: drawn.map(() => false), earned: 0, started: now, before: this.mastery }, face: 'practise' });
+    const session: Session = {
+      id: newSessionId(), curriculum: [...page.curriculum],
+      drawn: drawn.map((d) => ({ book: d.book, section: d.section, ex: d.ex.id, why: d.why })),
+      at: 0, answered: drawn.map(() => false), earned: 0, started: now, before: this.mastery,
+    };
+    this.put(session);
+    this.set(key, { ...page, session: session.id, face: 'practise' });
     return true;
   }
   /* Review, straight off the dashboard: everything due becomes the curriculum,
@@ -231,24 +337,52 @@ class Practice {
      nothing while the section holding it — or the whole foreign book — is still
      being fetched. */
   current(key: ItemKey): { book: string; section: SectionId; ex: ExerciseDTO; why: Drawn['why'] } | null {
-    const s = this.page(key).session, d = s?.drawn[s.at];
+    const s = this.sessionOf(key), d = s?.drawn[s.at];
     if (!s || !d) return null;
     const ex = books.exercises(d.book, d.section)?.find((e) => e.id === d.ex);
     return ex ? { book: d.book, section: d.section, ex, why: d.why } : null;
   }
   skip(key: ItemKey): void { this.advance(key); }
   next(key: ItemKey): void { this.advance(key); }
-  end(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'summary' }); }
-  changed(key: ItemKey, now = Date.now()): ReturnType<typeof summarize> { const s = this.page(key).session; return s ? summarize(s.before, this.mastery, now, this.settings) : []; }
+  /* The reader says they are done before the round is. The answers already
+     given are kept and the session is taken to its end, so it stops asking to
+     be resumed, and the summary is what they see. */
+  end(key: ItemKey): void {
+    const s = this.sessionOf(key);
+    if (s && Practice.running(s)) this.put({ ...s, at: s.drawn.length });
+    this.set(key, { ...this.page(key), face: 'summary' });
+  }
+  /* The session is over and the reader has read its summary: it goes, and the
+     page is back on the dashboard with nothing running. */
+  finish(key: ItemKey): void {
+    const id = this.page(key).session;
+    if (id) this.drop(id);
+    this.set(key, { ...this.page(key), session: null, face: 'dashboard' });
+  }
+  /* A session paused: the page goes back to the dashboard and the session stays
+     where it is, still this page's, so the Practice tab comes back to it. */
+  pause(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
+  changed(key: ItemKey, now = Date.now()): ReturnType<typeof summarize> { const s = this.sessionOf(key); return s ? summarize(s.before, this.mastery, now, this.settings) : []; }
   /* The curriculum opened beside a session, which is not the end of it. */
   choose(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'choose' }); }
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
-  /* The standing of one book, which is a face rather than a session: it is
-     there to be read whether or not anything is running. */
-  progress(key: ItemKey, book?: string): void { const page = this.page(key); this.set(key, { ...page, face: 'progress', ...(book ? { book } : {}) }); }
-  resume(key: ItemKey): void { const page = this.page(key); if (page.session) this.set(key, { ...page, face: 'practise' }); }
-  discard(key: ItemKey): void { this.set(key, { ...this.page(key), session: null, face: 'choose' }); }
-  /* The tab has gone, and so has what it stood on. */
+  /* Which book's breakdown stands open under its row on the dashboard: one at a
+     time, and clicking the open one folds it again. It is kept on the page so
+     that a re-render — a book finishing its fetch, an answer recorded — leaves
+     it open. */
+  expand(key: ItemKey, book: string): void {
+    const { book: open, ...rest } = this.page(key);
+    this.set(key, open === book ? rest : { ...rest, book });
+  }
+  resume(key: ItemKey): void { const page = this.page(key); if (this.live(key)) this.set(key, { ...page, face: 'practise' }); }
+  discard(key: ItemKey): void {
+    const id = this.page(key).session;
+    if (id) this.drop(id);
+    this.set(key, { ...this.page(key), session: null, face: 'choose' });
+  }
+  /* The tab has gone, and so has the page it stood on. What it was showing is
+     not the page's to take with it: a session goes when it ends or is thrown
+     away, and until then the dashboard of any practice page offers it back. */
   forget(key: ItemKey): void {
     if (!(key in this.pages)) return;
     this.pages = Object.fromEntries(Object.entries(this.pages).filter(([k]) => k !== key));
@@ -256,7 +390,7 @@ class Practice {
   }
   /* Every page whose tab the layout no longer holds, dropped at once: the shell
      runs this as the layout settles, so a tab closed in one reading leaves
-     nothing behind in the next. */
+     nothing behind in the next. The sessions those pages were showing stay. */
   prune(open: readonly ItemKey[]): void {
     const keep = new Set(open);
     const kept = Object.entries(this.pages).filter(([k]) => keep.has(k));
@@ -277,10 +411,10 @@ class Practice {
      as they go, leaving out everything the session has already served, so the
      rest of the round is not the list it was when it began. */
   private advance(key: ItemKey): void {
-    const page = this.page(key), s = page.session; if (!s) return;
+    const page = this.page(key), s = this.sessionOf(key); if (!s) return;
     const at = Math.min(s.at + 1, s.drawn.length);
-    if (at >= s.drawn.length) { this.set(key, { ...page, session: { ...s, at }, face: 'summary' }); return; }
-    this.set(key, { ...page, session: page.shuffle ? this.reshuffle(page, s, at) : { ...s, at } });
+    if (at >= s.drawn.length) { this.put({ ...s, at }); this.set(key, { ...page, face: 'summary' }); return; }
+    this.put(page.shuffle ? this.reshuffle(page, s, at) : { ...s, at });
   }
   private reshuffle(page: Page, s: Session, at: number): Session {
     const served = new Set(s.drawn.slice(0, at).map(exKey));
@@ -294,10 +428,24 @@ class Practice {
   }
 
   private set(key: ItemKey, page: Page): void { this.pages = { ...this.pages, [key]: page }; this.savePages(); }
+  /* One session written back into the table, whether it is new or has moved on. */
+  private put(s: Session): void { this.sessions = { ...this.sessions, [s.id]: s }; this.saveSessions(); }
+  /* A session gone for good, and every page that was showing it left with
+     nothing running rather than pointing at a session that is not there. */
+  private drop(id: SessionId): void {
+    if (!(id in this.sessions)) return;
+    this.sessions = Object.fromEntries(Object.entries(this.sessions).filter(([k]) => k !== id));
+    this.saveSessions();
+    const pages = Object.entries(this.pages);
+    if (!pages.some(([, p]) => p.session === id)) return;
+    this.pages = Object.fromEntries(pages.map(([k, p]) => [k, p.session === id ? { ...p, session: null } : p] as const));
+    this.savePages();
+  }
   private read(key: string): unknown { try { return JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { return null; } }
   private save(): void {
     try { localStorage.setItem(KEY, JSON.stringify({ attempts: this.attempts, settings: this.settings })); } catch { /* private mode */ }
   }
   private savePages(): void { try { localStorage.setItem(PAGES, JSON.stringify(this.pages)); } catch { /* private mode */ } }
+  private saveSessions(): void { try { localStorage.setItem(SESSIONS, JSON.stringify(this.sessions)); } catch { /* private mode */ } }
 }
 export const practice = new Practice();

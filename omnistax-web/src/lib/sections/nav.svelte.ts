@@ -3,7 +3,7 @@
 import { layoutStore } from '../layout/store.svelte';
 import { openTab, openSide, activate, homeSide, where, toggleCollapsed } from '../layout/model';
 import { registry } from './registry.svelte';
-import { type SpanId, type ItemId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, docItem } from '../types/ids';
+import { type SpanId, type ItemId, itemKey, parseItemKey, spanId, sectionOfSpan, sectionOfItem, docItem } from '../types/ids';
 import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
 
@@ -61,10 +61,17 @@ export const goSpan = (id: SpanId | undefined): void => {
   const sec = sectionOfSpan(id);
   openDoc(sec, 'text').then(() => go(id));
 };
-export const cite = (id: string): void => {
-  const sec = findEl(id); if (!sec) return;
-  const tgt = sec.querySelector<HTMLElement>('.cite-target') ?? sec;
-  jump(tgt, 'center');
+/* The passage a problem was set on, landed in the middle of the pane so the
+   reader can read around it. The card may be standing in a practice session
+   with the section's text open nowhere, so a target that is not in the document
+   yet is not a dead end: the text is opened and the look retried over a few
+   frames, since the document may still be mounting when the open resolves — the
+   same wait ExerciseTab makes for the card it leads back to. */
+export const cite = (id: string, tries = 12): void => {
+  const sec = findEl(id);
+  if (sec) { jump(sec.querySelector<HTMLElement>('.cite-target') ?? sec, 'center'); return; }
+  if (tries <= 0) return;
+  openDoc(sectionOfSpan(spanId(id)), 'text').then(() => requestAnimationFrame(() => cite(id, tries - 1))).catch(() => {});
 };
 /* Open anything a tab can hold — a document, a figure, one exercise, a standing
    page, a note: activate it where it already is, or open it in the given group

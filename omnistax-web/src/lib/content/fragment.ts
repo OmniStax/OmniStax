@@ -6,6 +6,7 @@ import type { BookDTO, ChapterDTO, FigureEntry } from './schema';
 import { attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
+import { ICON } from '../icons';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -172,12 +173,15 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
   ].filter((line) => line !== '').join('\n');
 };
 
-/* The way on from the text: a button that opens a practice page on this
-   section, beside the page, and one that opens its problem set. Both are
-   plain markup the shell catches, so the built page needs no script of its
-   own to be sent somewhere. A section with no problems ends at its text. */
+/* The way on from the text: one button, centred under the last words of the
+   section, that opens a practice session on it. The pencil rides on the right
+   of the words, the same mark the rail wears for practice, so the reader meets
+   one sign for it wherever they find it. The button is plain markup the shell
+   catches, so the built page needs no script of its own to be sent somewhere,
+   and the icon is inlined here rather than fetched. A section with no problems
+   ends at its text. */
 const sectionEnd = (s: SectionSource): string => (s.exercises.length === 0 ? '' :
-  `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practise this section</button><a class="problems" href="#${s.meta.id}-exercises" data-open-doc="${s.meta.id}/exercises">Problems &amp; Exercises</a></div>`);
+  `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practice this section${ICON.exercises}</button></div>`);
 
 export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => [
   `<article ${articleAttrs(chapter, s, 'exercises', `${s.meta.id} Exercises`)}>`,

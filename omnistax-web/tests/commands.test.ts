@@ -125,7 +125,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`),
       previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
     },
-    docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt },
+    docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt, openAbout: () => log.push('about') },
     notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
     history: {
       undo: () => log.push('undo'), redo: () => log.push('redo'),
@@ -228,6 +228,14 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split', 'exercises']);
   assert.equal(available(by(BUILTIN.openExercises)), true);
   assert.equal(available(builtinCommands(deps(false, 2, {}, false)).find((c) => c.id === BUILTIN.openExercises)!), false, 'a section that is not built has no exercises to open');
+});
+test('the front of OmniStax can be opened again once its tab has been closed', () => {
+  const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;
+  by(BUILTIN.reopenAbout).run();
+  assert.deepEqual(d.log, ['about']);
+  assert.equal(by(BUILTIN.reopenAbout).label, 'Reopen OmniStax Introduction');
+  assert.equal(by(BUILTIN.reopenAbout).group, 'App');
+  assert.equal(available(by(BUILTIN.reopenAbout)), true, 'the page stands whether or not a tab holds it');
 });
 test('the underline affordance is the reader\u2019s to keep or to do without', () => {
   const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;
