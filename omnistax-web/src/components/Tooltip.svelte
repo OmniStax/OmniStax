@@ -3,17 +3,23 @@
      second and cannot be styled, so the shell takes the title off whatever the
      pointer is over — keeping the words in `data-tip`, which is where this
      reads them from ever after — and draws its own a quarter of a second later,
-     under the element where there is room and over it where there is not. An
+     below and to the right of the pointer, so that it never lies across the
+     element's neighbours; it turns to the left or upward only where the window
+     ends. A tooltip raised by keyboard focus, with no pointer to follow, sits
+     under the element's left edge. An
      element with no title of its own is named by its aria-label, so a button
      labelled for a screen reader is labelled for everyone. Nothing in a
      document or in the note editor is touched: their titles are the author's. */
   import { onMount } from 'svelte';
 
   const DELAY = 250;                  /* how long the pointer rests before the tooltip shows */
-  const GAP = 6;                      /* between the element and the tooltip */
+  const GAP = 12;                     /* between the pointer (or the element) and the tooltip */
   const EDGE = 8;                     /* the nearest the tooltip comes to the edge of the window */
-  type Tip = { readonly text: string; readonly x: number; readonly y: number; readonly above: boolean };
+  const WIDE = 260;                   /* the most a tooltip is allowed to be wide */
+  const TALL = 24;                    /* about a line of tooltip */
+  type Tip = { readonly text: string; readonly x: number; readonly y: number; readonly left: boolean; readonly above: boolean };
   let tip = $state<Tip | null>(null);
+  let pointer: { x: number; y: number } | null = null;   /* where the pointer last was, if it raised the tooltip */
   let timer: ReturnType<typeof setTimeout> | null = null;
   let held: HTMLElement | null = null;
   /* Counts what the tooltip has been told to do, so that a putting-away which
@@ -42,11 +48,14 @@
   const show = (el: HTMLElement): void => {
     const text = wordsOf(el); if (!text || !el.isConnected) return;
     const r = el.getBoundingClientRect();
-    const above = r.bottom + GAP + 34 > window.innerHeight;
+    const at = pointer ?? { x: r.left, y: r.bottom - GAP };
+    const left = at.x + GAP + WIDE > window.innerWidth - EDGE;
+    const above = at.y + GAP + TALL > window.innerHeight - EDGE;
     turn++;
-    tip = { text, x: Math.min(Math.max(r.left + r.width / 2, EDGE + 70), window.innerWidth - EDGE - 70), y: above ? r.top - GAP : r.bottom + GAP, above };
+    tip = { text, x: left ? at.x - GAP : at.x + GAP, y: above ? at.y - GAP : at.y + GAP, left, above };
   };
   const enter = (e: Event): void => {
+    pointer = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : null;
     const el = namedAt(e.target); if (!el || el === held) return;
     hide(); held = el; wordsOf(el);            /* the title goes at once, so the browser never draws its own */
     timer = setTimeout(() => { if (held === el) show(el); }, DELAY);
@@ -69,10 +78,12 @@
 </script>
 
 {#if tip}
-  <div class="tip" class:above={tip.above} style="left:{tip.x}px;top:{tip.y}px" role="tooltip">{tip.text}</div>
+  <div class="tip" class:left={tip.left} class:above={tip.above} style="left:{tip.x}px;top:{tip.y}px" role="tooltip">{tip.text}</div>
 {/if}
 
 <style>
-  .tip{position:fixed;z-index:120;transform:translateX(-50%);max-width:260px;padding:3px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.75rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px rgb(0 0 0 / 0.14);pointer-events:none}
-  .tip.above{transform:translate(-50%,-100%)}
+  .tip{position:fixed;z-index:120;max-width:260px;padding:3px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.75rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px rgb(0 0 0 / 0.14);pointer-events:none}
+  .tip.left{transform:translateX(-100%)}
+  .tip.above{transform:translateY(-100%)}
+  .tip.left.above{transform:translate(-100%,-100%)}
 </style>
