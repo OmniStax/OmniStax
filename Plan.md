@@ -78,7 +78,7 @@ Prep for the next wave starts while the current wave's sections build.
 | 1 | 4, 5, 6 | 17 | sections built 2026-09-11; chapter passes interrupted (see Record) |
 | 2 | 7, 8, 9 | 22 | all built 2026-09-11; Chapter 7's pass done (LOG pass 28), passes of 8 and 9 still owed |
 | 3 | 10, 11, 12 | 23 | built 2026-09-14 (LOG passes 35 to 37) |
-| 4 | 13, 14, 15 | 20 | |
+| 4 | 13, 14, 15 | 20 | built 2026-09-14 (LOG passes 38 to 40) |
 | 5 | 17, 18, 19 | 22 | |
 | 6 | 20, 21, 22 | 24 | |
 | 7 | 23, 24, 25 | 23 | |
@@ -206,3 +206,20 @@ schema; the validator should refuse a `place.after` with no host; the
 section `lead` is not swept for math (6.5 and 7.4 print raw `$…$`);
 `p.tnote` has no style; a slider with a long label collapses to zero
 width in the controls grid. Next: wave 4 (13, 14, 15).
+
+**2026-09-14, wave 4 built.** Chapters 13, 14 and 15 whole, all Opus 5,
+eight agents at a time: 20 section pages and three introductions, LOG
+passes 38 (13), 40 (14) and 39 (15); `temperature` and `entropy` declared,
+twenty-four types in all; 285 anchors; Chapter 13's equation rows given
+their coloured forms in a follow-up; the book's `COLOR.md` table brought
+to every declared type and its prose to the four families the built
+chapters now use. Checks: validator clean at 16 chapters and 105
+sections, 405 tests, astro check clean, every page of the three chapters
+smoke-tested in light and dark by its pass. Recurring findings for Chen:
+the scheme's pressure hue is a pale yellow illegible on the light theme
+on every PV diagram, and temperature, energy and entropy are near-identical
+magentas; the app prints `choice` option strings raw, so an option cannot
+carry math; `p.tnote` (a table footnote) has no style; a segmented control
+of four options wraps to a grid and its labels clip past about sixteen
+characters. Left for a later pass: a constants and materials sheet
+(Tables 11.1 to 11.3, 13.2, 14.1 to 14.4). Next: wave 5 (17, 18, 19).
