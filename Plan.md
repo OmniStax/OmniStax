@@ -77,7 +77,7 @@ Prep for the next wave starts while the current wave's sections build.
 |---|---|---|---|
 | 1 | 4, 5, 6 | 17 | sections built 2026-09-11; chapter passes interrupted (see Record) |
 | 2 | 7, 8, 9 | 22 | all built 2026-09-11; Chapter 7's pass done (LOG pass 28), passes of 8 and 9 still owed |
-| 3 | 10, 11, 12 | 23 | started 2026-09-14 (see Record) |
+| 3 | 10, 11, 12 | 23 | built 2026-09-14 (LOG passes 35 to 37) |
 | 4 | 13, 14, 15 | 20 | |
 | 5 | 17, 18, 19 | 22 | |
 | 6 | 20, 21, 22 | 24 | |
@@ -183,3 +183,26 @@ scratchpad (`brief-{common,prep,section,final}.md`), filled from
 `docs/prompts/briefs`; root rules 22 and 23 are in them, and the
 Chapter 10 prep agent writes the book's missing `COLOR.md`. Sections
 build eight or so at a time per chapter as each prep finishes.
+
+**2026-09-14, wave 3 built.** The Fable section agents hit the monthly
+spend limit an hour in; Chen switched the job to Opus 5 for every agent,
+planning included, and capped it at eight agents at once for this
+repository. Chapter 10's seven sections resumed from the plan, text and
+figure files the Fable agents had left (credited "Claude Opus 5, with
+Claude Fable 5.1"); Chapters 11 and 12 were built by Opus from the
+start. Three chapter passes (LOG passes 35 to 37): 112, about 130 and
+97 anchors, three, three and two new types, `L_len` for a bare length,
+the grindstone problem moved to 10.3, a stranded conceptual question
+given a home in 10.6, cross-references settled as plain text book-wide.
+Found on the way and fixed: seven inline Check Your Understanding cards
+(4.4, 4.7, 6.3, 9.1, 9.2, 10.x, 11.2) never rendered because their
+`text.html` had no `<div class="exercises" data-place=…>` host, and the
+validator does not catch it; eight concept rows of Chapter 11 carried
+tab characters from a single backslash before `times` and `text` in
+the staged JSON. Left for Chen: the app's scheme hands out near-identical
+hues past about fifteen types (four magentas on one Bernoulli page, a
+pale surface tension); root rule 20's `weights_by` is not in the
+schema; the validator should refuse a `place.after` with no host; the
+section `lead` is not swept for math (6.5 and 7.4 print raw `$…$`);
+`p.tnote` has no style; a slider with a long label collapses to zero
+width in the controls grid. Next: wave 4 (13, 14, 15).
