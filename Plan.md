@@ -77,7 +77,7 @@ Prep for the next wave starts while the current wave's sections build.
 |---|---|---|---|
 | 1 | 4, 5, 6 | 17 | sections built 2026-09-11; chapter passes interrupted (see Record) |
 | 2 | 7, 8, 9 | 22 | all built 2026-09-11; Chapter 7's pass done (LOG pass 28), passes of 8 and 9 still owed |
-| 3 | 10, 11, 12 | 23 | |
+| 3 | 10, 11, 12 | 23 | started 2026-09-14 (see Record) |
 | 4 | 13, 14, 15 | 20 | |
 | 5 | 17, 18, 19 | 22 | |
 | 6 | 20, 21, 22 | 24 | |
@@ -172,3 +172,14 @@ section it touched. Checks: validator clean, 378 tests, astro check
 clean, 75 pages, all 72 pages smoke-tested in light and dark. Root
 `RULES.md` items were not renumbered because Chen's own items 22 and
 23 are uncommitted on main; the figure rules live in the figure prompt.
+
+**2026-09-14, wave 3 begun.** Chen asked for the remaining chapters. The
+job runs from the main checkout, no worktree, committing onto main after
+each chapter lands. The split is the one above with the 2026-09-12
+refinement: prep and chapter passes are Opus agents, the section pages
+are Fable 5.1 agents, so a section's `ai` reads Claude Fable 5.1 and an
+introduction's Claude Opus 5. Briefs for this job are in the session
+scratchpad (`brief-{common,prep,section,final}.md`), filled from
+`docs/prompts/briefs`; root rules 22 and 23 are in them, and the
+Chapter 10 prep agent writes the book's missing `COLOR.md`. Sections
+build eight or so at a time per chapter as each prep finishes.
