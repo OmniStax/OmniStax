@@ -64,17 +64,33 @@ export const huesOf = (p: Palette, n: number): readonly Hex[] | null => {
 
    Every place after the twenty-ninth is dealt one at a time and for keeps, by
    the same measure but append-only: a new quantity takes the angle, off the
-   half-step grid of 6°, that stands furthest from the place before it in the
-   order and from every place it is drawn beside, and the places already dealt
-   are never dealt again. So a chapter that declares a quantity never moves the
-   colour of one already published. Dealt this way the scheme holds both floors
-   all the way out: from twenty-nine places to forty-eight the neighbouring
-   places stay 84° apart and the pairs drawn together 60° apart, which is the
-   whole of what the thirty-place anneal achieved, so neither floor has had to be
-   relaxed. Place thirty, current, is the one exception to append-only and was
-   re-dealt: the anneal had put it at 204°, 36° from voltage, which is the very
-   clash a circuit page cannot afford, and it was declared the same day as this,
-   before any chapter drew it. */
+   half-step grid of 6°, that stands furthest above the two floors — 84° from the
+   place before it in the order, 60° from every place it is drawn beside — and
+   the places a chapter has already published are never dealt again. So a chapter
+   that declares a quantity never moves the colour of one already in print. Dealt
+   this way the neighbouring floor holds the whole way out, from twenty-nine
+   places to forty-eight, and so does the co-drawn floor wherever the pairs leave
+   an angle for it.
+
+   Two of the dealt places have been dealt a second time, both of them before any
+   chapter drew them and both for the one reason: the dealer had been asked to
+   place a quantity against pairs the file did not yet carry. Place thirty,
+   current, the anneal had put at 204°, 36° from voltage, which is the very clash
+   a circuit page cannot afford. Places thirty-three and thirty-four, the magnetic
+   flux and the inductance, took 150° and 318° while no pair stood for either, and
+   that set the flux 18° from voltage and the inductance 6° from capacitance and
+   12° from the magnetic field — while Chapter 23 draws the flux against the emf
+   and the inductance against the capacitance on one figure. With the pairs of the
+   electromagnetic chapters written down below, the two were dealt again, to 234°
+   and 114°. The flux clears both floors: 96° from the magnetic field, which is
+   also the place before it, 66° from voltage, 162° from time and 168° from
+   current. The inductance cannot be given the 60°: six quantities are drawn
+   beside it and no angle left in the grid stands 60° from all six, so it takes
+   the best the grid holds, 48° from current and 54° from voltage, and 78° or more
+   from the frequency, time, resistance and capacitance. Force and current are
+   drawn on one loop in Chapter 22 and stand 30° apart; current went to press with
+   Chapter 20 and is not moved for it, but the pair is written down all the same,
+   so that every place dealt after it keeps its distance from both. */
 
 /* Linear light to the sRGB a screen is asked for, and back to a hex byte. */
 const encodeSrgb = (x: number): number => (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
@@ -122,19 +138,32 @@ const TUNED_HUES: readonly Hex[] = [
   '#0070A6', '#AD3665', '#607200', '#6754BE', '#905C00', '#007397', '#B33738', '#007C5D', '#94419C',
 ];
 
+/* The angles the dealer gave places thirty, thirty-one and thirty-two — current,
+   resistance and the magnetic field — which Chapters 20, 21 and 22 went to press
+   in. They are written down here rather than dealt again, so that a pair added
+   later, force with current below, cannot move a colour a built chapter wears. */
+const DEALT_DEG: readonly number[] = [66, 246, 330];
+
+/* Every place the book has published, dealt once and fixed from here on. */
+const PINNED_DEG: readonly number[] = [...TUNED_DEG, ...DEALT_DEG];
+
 /* The places whose quantities are drawn on one page together, as places in the
    book's order rather than names, since a palette knows places and not
-   quantities: force with pressure, position with velocity and acceleration,
-   energy with temperature and entropy, voltage with electric field and with
-   current, current with resistance and with the magnetic field, the magnetic
-   field with force, velocity and the electric field, and the thirty-odd other
-   pairs the test beside this file names. */
+   quantities: force with pressure and with current, position with velocity and
+   acceleration, energy with temperature and entropy, voltage with electric field
+   and with current, current with resistance and with the magnetic field, the
+   magnetic field with force, velocity, the electric field and the magnetic flux,
+   the flux again with voltage, current and time, the inductance with capacitance,
+   resistance, frequency, voltage, current and time, and the forty-odd other pairs
+   the test beside this file names by the type ids the book declares, which is
+   where a pair is held to the book's own order. */
 const TOGETHER_PLACES: readonly (readonly [number, number])[] = [
-  [0, 1], [0, 2], [1, 2], [1, 3], [1, 5], [1, 17], [1, 18], [1, 24], [1, 27], [2, 3],
-  [2, 20], [2, 25], [2, 31], [4, 5], [4, 9], [4, 13], [4, 17], [4, 31], [5, 11], [5, 22],
-  [5, 23], [5, 24], [5, 27], [6, 26], [8, 14], [9, 10], [12, 16], [17, 18], [17, 19], [17, 20],
-  [17, 21], [18, 20], [22, 23], [24, 25], [24, 27], [25, 27], [25, 31], [27, 28], [27, 29], [29, 30],
-  [29, 31],
+  [0, 1], [0, 2], [0, 32], [0, 33], [1, 2], [1, 3], [1, 5], [1, 17], [1, 18], [1, 24],
+  [1, 27], [2, 3], [2, 20], [2, 25], [2, 31], [4, 5], [4, 9], [4, 13], [4, 17], [4, 29],
+  [4, 31], [5, 11], [5, 22], [5, 23], [5, 24], [5, 27], [6, 26], [6, 33], [8, 14], [9, 10],
+  [12, 16], [17, 18], [17, 19], [17, 20], [17, 21], [18, 20], [22, 23], [24, 25], [24, 27], [25, 27],
+  [25, 31], [27, 28], [27, 29], [27, 32], [27, 33], [28, 33], [29, 30], [29, 31], [29, 32], [29, 33],
+  [30, 33], [31, 32],
 ];
 
 /* The shorter way round the hue circle, in degrees. */
@@ -145,18 +174,29 @@ const gapDeg = (a: number, b: number): number => { const d = Math.abs(a - b) % 3
    quantities than the longest book the app carries declares. */
 export const SCHEME_PLACES = 48;
 
-/* The angles for n places: the tuned prefix, then one place at a time, each
-   taking the angle left in the grid that stands furthest from the place before
-   it and from every place it is drawn beside. Append-only, so the angles for n
-   are always the angles for n − 1 with one more on the end. */
+/* The two floors a dealt place is held to: how far it must stand from the place
+   before it in the order, which a reader meets beside it in every list, and how
+   far from a place drawn with it on one figure, which he must tell from it by
+   the colour alone. */
+const NEIGHBOUR_FLOOR = 84;
+const TOGETHER_FLOOR = 60;
+
+/* The angles for n places: the published prefix, then one place at a time, each
+   taking the angle left in the grid whose worst standing above the two floors is
+   the best on offer — so a place that can clear both takes an angle that clears
+   both, and one that cannot, as the inductance cannot, comes as near as the grid
+   allows. Append-only, so the angles for n are always the angles for n − 1 with
+   one more on the end. */
 const dealDegrees = (n: number): readonly number[] => {
-  const deg: number[] = TUNED_DEG.slice(0, n);
+  const deg: number[] = PINNED_DEG.slice(0, n);
   const pool = Array.from({ length: 60 }, (_, i) => 6 * i).filter((a) => !deg.includes(a));
   while (deg.length < n) {
     const k = deg.length;
-    const bound = [...TOGETHER_PLACES.flatMap(([a, b]) => (b === k && a < k ? [a] : a === k && b < k ? [b] : [])), k - 1];
+    const drawnWith = TOGETHER_PLACES.flatMap(([a, b]) => (b === k && a < k ? [a] : a === k && b < k ? [b] : []));
+    const bound: readonly (readonly [number, number])[] =
+      [[k - 1, NEIGHBOUR_FLOOR], ...drawnWith.map((j) => [j, TOGETHER_FLOOR] as const)];
     const score = (c: number): readonly [number, number] =>
-      [Math.min(...bound.map((j) => gapDeg(c, deg[j]))), Math.min(...deg.map((a) => gapDeg(c, a)))];
+      [Math.min(...bound.map(([j, floor]) => gapDeg(c, deg[j]) - floor)), Math.min(...deg.map((a) => gapDeg(c, a)))];
     const best = pool.reduce((won, c) => {
       const [p, q] = score(c), [wp, wq] = score(won);
       return p > wp || (p === wp && q > wq) ? c : won;

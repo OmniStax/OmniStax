@@ -58,7 +58,7 @@ function scheme(type: string): { light: string; dark: string } {
 const FLOOR = 4.5;
 
 test('however many quantities the book declares, the scheme built for it dresses them', () => {
-  assert.ok(TYPES.length >= 32, `the book declares ${TYPES.length} types`);
+  assert.ok(TYPES.length >= 34, `the book declares ${TYPES.length} types`);
   assert.ok(TYPES.length <= SCHEME_PLACES, `the scheme deals ${SCHEME_PLACES} places and the book wants ${TYPES.length}`);
   assert.equal(palette.id, 'omnistax');
   assert.ok(hues && hues.length === TYPES.length);
@@ -141,17 +141,55 @@ const TOGETHER: readonly (readonly [string, string])[] = [
   ['magnetic-field', 'velocity'],
   ['electric-field', 'magnetic-field'],
   ['emf', 'current'],
+  /* The electromagnetic chapters. Chapter 22 draws the force on a current-
+     carrying loop, and Chapter 23 the flux against the emf, which this book
+     dresses as voltage, and the inductance against the capacitance. */
+  ['force', 'current'],
+  ['magnetic-flux', 'magnetic-field'],
+  ['magnetic-flux', 'voltage'],
+  ['magnetic-flux', 'current'],
+  ['magnetic-flux', 'time'],
+  ['inductance', 'capacitance'],
+  ['inductance', 'resistance'],
+  ['inductance', 'frequency'],
+  ['inductance', 'voltage'],
+  ['inductance', 'current'],
+  ['inductance', 'time'],
 ];
 /* Five twelfths of the circle is the floor the hues were laid out to; a hex is
    eight bits a channel, so a hue read back off one can fall a degree short. */
 const TOGETHER_DEG = 59;
-/* A pair the book has not declared both halves of yet — emf waits on Chapter 21
-   — is not a pair the scheme can be held to. */
+/* A pair the book has not declared both halves of yet — emf is not a type of its
+   own, since the book dresses an emf in voltage — is not a pair the scheme can
+   be held to. */
 const declared = ([a, b]: readonly [string, string]): boolean => TYPES.includes(a) && TYPES.includes(b);
+
+/* The three pairs the scheme cannot lift to that floor, with the standing each
+   one does keep, so that a change which makes one of them worse is caught. Six
+   quantities are drawn beside the inductance and no angle left in the grid
+   stands 60° from all six, so it takes the best there is; force and current are
+   drawn on one loop in Chapter 22, but current went to press with Chapter 20 and
+   is not moved for a pair written down after it. */
+const SHORT: readonly (readonly [string, string, number])[] = [
+  ['inductance', 'voltage', 53],
+  ['inductance', 'current', 47],
+  ['force', 'current', 29],
+];
+const isShort = ([a, b]: readonly [string, string]): boolean =>
+  SHORT.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+
 test('the quantities drawn on one page together are told apart by their colour', () => {
-  TOGETHER.filter(declared).forEach(([a, b]) => {
+  TOGETHER.filter(declared).filter((p) => !isShort(p)).forEach(([a, b]) => {
     const d = gap(angleOf(a), angleOf(b));
     assert.ok(d >= TOGETHER_DEG, `${a} and ${b} are only ${d.toFixed(0)}° apart on the hue circle`);
+  });
+});
+
+test('the pairs the circle has no room for keep the standing they were dealt', () => {
+  SHORT.forEach(([a, b, least]) => {
+    assert.ok(TOGETHER.some(([x, y]) => (x === a && y === b) || (x === b && y === a)), `${a} and ${b} are a declared pair`);
+    const d = gap(angleOf(a), angleOf(b));
+    assert.ok(d >= least, `${a} and ${b} are only ${d.toFixed(0)}° apart, below the ${least}° they were dealt`);
   });
 });
 
@@ -167,6 +205,28 @@ test('the first places of the order keep the hue family they were tuned to', () 
     const d = gap(angleOf(t), a);
     assert.ok(d <= 21, `${t} stayed within 21° of the hue it wore (${d.toFixed(0)}°)`);
   });
+});
+
+/* The colours Chapters 1 to 22 went to press in, written out here rather than
+   worked out, so that dealing a later place again — as the magnetic flux and the
+   inductance were dealt again once the electromagnetic pairs were written down —
+   cannot move one of them unnoticed. Every one of these thirty-two is fixed. */
+const PUBLISHED: readonly string[] = [
+  '#B23B19', '#8747AA', '#487901', '#0069BF', '#7C6800', '#B13550', '#067976', '#706D00', '#02768B', '#A73879',
+  '#007D49', '#535BC3', '#137F1F', '#3862C4', '#A74900', '#794DB6', '#9A5500', '#027A6B', '#866302', '#9E3C8B',
+  '#0070A6', '#AD3665', '#607200', '#6754BE', '#905C00', '#007397', '#B33738', '#007C5D', '#94419C', '#955900',
+  '#006DB0', '#993F94',
+];
+test('the places the built chapters wear have not moved', () => {
+  const all = huesOf(SCHEME, SCHEME_PLACES);
+  assert.ok(all);
+  PUBLISHED.forEach((hex, i) => assert.equal(normHex(all[i]), normHex(hex), `place ${i + 1}, ${TYPES[i]}, is the colour it was published in`));
+});
+
+/* The two places dealt again for Chapter 23, which no chapter had drawn. */
+test('the flux and the inductance wear the colours they were dealt again', () => {
+  assert.equal(normHex(scheme('magnetic-flux').light), '#00729E');
+  assert.equal(normHex(scheme('inductance').light), '#697000');
 });
 
 /* The scheme has to go on dealing after this book: Chapters 23 to 34 will name
