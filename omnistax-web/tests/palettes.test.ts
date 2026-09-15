@@ -11,6 +11,7 @@ import { isHex, normHex } from '../src/lib/colours/model';
    answer for as many as they are asked, up to their own ceiling, and every
    published list stops at its length. */
 const LIMIT: Readonly<Record<string, number>> = {
+  omnistax: 48,
   oklch: Infinity,
   rainbow: Infinity,
   'tol-rainbow': 23,
@@ -30,9 +31,9 @@ const LIMIT: Readonly<Record<string, number>> = {
    quantities to colour. */
 const CEILING = 40;
 
-test('the page offers the generated palettes first and then the published lists', () => {
+test("the page offers the book's own list, then the generated palettes, then the published lists", () => {
   assert.deepEqual(PALETTES.map((p) => p.id), [
-    'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
+    'omnistax', 'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
     'category10', 'dark2', 'set1', 'kelly', 'polychrome', 'glasbey',
   ]);
   assert.equal(new Set(PALETTES.map((p) => p.id)).size, PALETTES.length, 'no id is used twice');
@@ -67,16 +68,18 @@ test('the two generated palettes never refuse a level', () => {
   });
 });
 
-test('the scheme is the first published list long enough, and the ring when none is', () => {
+test('the scheme is the first list long enough, and the ring when none is', () => {
   /* Every published list is passed over until one of them can dress the whole
-     book, so a book of nine quantities takes Paul Tol muted and one of ten takes
-     Tableau 10, the next along. */
-  assert.equal(schemePalette(4).id, paletteId('okabe-ito'));
-  assert.equal(schemePalette(8).id, paletteId('okabe-ito'));
-  assert.equal(schemePalette(9).id, paletteId('tol-muted'));
-  assert.equal(schemePalette(10).id, paletteId('tableau-10'));
-  assert.equal(schemePalette(34).id, paletteId('polychrome'), 'the longest published list of all');
-  assert.equal(schemePalette(35).id, OKLCH.id, 'and past it the ring, which lays out as many as are asked for');
+     book. The book's own list heads them and dresses anything up to forty-eight,
+     so it is what every book the app carries wears; past that the published lists
+     answer in turn, and since the longest of them holds only thirty-four, past
+     the scheme it is the ring that answers. */
+  assert.equal(schemePalette(4).id, paletteId('omnistax'));
+  assert.equal(schemePalette(29).id, paletteId('omnistax'), 'a physics book of twenty-nine quantities');
+  assert.equal(schemePalette(30).id, paletteId('omnistax'));
+  assert.equal(schemePalette(31).id, paletteId('omnistax'), 'and so does a book that has gone on declaring');
+  assert.equal(schemePalette(48).id, paletteId('omnistax'), 'out to the last place the scheme deals');
+  assert.equal(schemePalette(49).id, OKLCH.id, 'past forty-eight even the longest published list is short, so the ring lays them out');
   assert.equal(schemePalette(0).id, OKLCH.id, 'a book with no quantities is left to the ring as well');
   for (let n = 1; n <= CEILING; n++) {
     const hues = huesOf(schemePalette(n), n);
@@ -94,7 +97,7 @@ test("Tol's rainbow is cut afresh for each count rather than trimmed from one li
   assert.deepEqual(huesOf(tol, 2), ['#1965B0', '#DC050C'], 'two take a blue and a red, as far apart as the set goes');
   assert.notDeepEqual(huesOf(tol, 9)?.slice(0, 2), huesOf(tol, 2), 'so the cut for nine is not the cut for two with more added');
   assert.equal(huesOf(tol, 24), null, 'past twenty-three Tol names no cut');
-  assert.equal(schemePalette(9).id, paletteId('tol-muted'), 'and being cut rather than published, it is never the scheme');
+  assert.notEqual(schemePalette(9).id, tol.id, 'and being cut rather than published, it is never the scheme');
 });
 
 test('the long published lists begin where their authors begin', () => {

@@ -12,7 +12,8 @@ import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
 /* A book of two chapters and four quantities. Section 16.1 is listed but never
    built, so what it would colour counts for nothing; 16.4 binds nothing, which
    means it colours everything. The book pins no hues at all: what its
-   quantities wear is the scheme, which for four of them is Okabe–Ito. */
+   quantities wear is the scheme, the book's own list of forty-eight, which dresses
+   four as readily as it dresses twenty-nine. */
 const section = (id: string, binds: readonly string[], built: boolean) =>
   ({ id, title: id, built, url: '', fragment: '', figuresJs: '', figures: [], binds, exercises: [] });
 const manifestOf = (types: Readonly<Record<string, { label: string; dimension?: string }>>, chapters: readonly unknown[] = [], macros: Readonly<Record<string, string>> = {}) =>
@@ -54,7 +55,9 @@ const CH2: Place = { level: 'chapter', chapter: chapterId('2') };
 const S163: Place = { level: 'section', chapter: chapterId('16'), section: sectionId('16.3') };
 const hue = (light: string, dark: string): Hue => ({ light, dark });
 const chose = (order: readonly string[]): Choices => ({ ...NO_CHOICES, order });
-const OKABE = ['#E69F00', '#56B4E9', '#009E73', '#F0E442'];
+/* The first four hues of the scheme, which is what a book of four quantities
+   wears before the reader touches anything. */
+const SCHEME = ['#B23B19', '#8747AA', '#487901', '#0069BF'];
 
 test('a target names a place, and a section names its chapter as well', () => {
   assert.deepEqual(placeOf({ level: 'book' }), BOOK);
@@ -91,27 +94,28 @@ test('a quantity moved lands where it was dropped, and the whole order is kept',
   assert.deepEqual(twice.order, ['frequency', 'time', 'stiffness', 'position']);
 });
 
-test('the scheme is the first published palette that dresses every quantity, else the ring', () => {
-  assert.equal(schemeOf(MANIFEST, NO_CHOICES).palette.id, paletteId('okabe-ito'), 'four quantities take the eight of Okabe–Ito');
-  assert.equal(schemeOf(bookOf(9), NO_CHOICES).palette.id, paletteId('tol-muted'), 'nine take Paul Tol muted, the first list long enough');
-  assert.equal(schemeOf(bookOf(40), NO_CHOICES).palette.id, paletteId('oklch'), 'forty are past every published list, so the ring lays them out');
-  assert.equal(schemePalette(9).name, 'Paul Tol muted');
+test('the scheme is the first palette that dresses every quantity, else the ring', () => {
+  assert.equal(schemeOf(MANIFEST, NO_CHOICES).palette.id, paletteId('omnistax'), "four quantities take the first four of the book's own forty-eight");
+  assert.equal(schemeOf(bookOf(29), NO_CHOICES).palette.id, paletteId('omnistax'), 'and so do the twenty-nine of the physics book');
+  assert.equal(schemeOf(bookOf(40), NO_CHOICES).palette.id, paletteId('omnistax'), 'and so do forty, since the scheme goes on dealing places');
+  assert.equal(schemeOf(bookOf(60), NO_CHOICES).palette.id, paletteId('oklch'), 'sixty are past every list, so the ring lays them out');
+  assert.equal(schemePalette(9).name, 'OmniStax');
   assert.equal(paletteById(paletteId('tol-muted'))?.name, 'Paul Tol muted');
   assert.equal(paletteById(paletteId('nothing')), null);
 });
 
 test('the scheme lays its hues along the reader\'s order, so a quantity moved changes colour', () => {
   const plain = schemeOf(MANIFEST, NO_CHOICES);
-  assert.deepEqual(['time', 'position', 'frequency', 'stiffness'].map((k) => plain.hues[k].light), OKABE);
-  assert.deepEqual(plain.hues.time, hue(OKABE[0], darkOf(OKABE[0])), 'and the dark ground is worked out from the light one');
+  assert.deepEqual(['time', 'position', 'frequency', 'stiffness'].map((k) => plain.hues[k].light), SCHEME);
+  assert.deepEqual(plain.hues.time, hue(SCHEME[0], darkOf(SCHEME[0])), 'and the dark ground is worked out from the light one');
   const moved = schemeOf(MANIFEST, moveType(MANIFEST, NO_CHOICES, 'stiffness', 'time'));
-  assert.equal(moved.hues.stiffness.light, OKABE[0], 'the quantity now first takes the first hue');
-  assert.equal(moved.hues.time.light, OKABE[1]);
+  assert.equal(moved.hues.stiffness.light, SCHEME[0], 'the quantity now first takes the first hue');
+  assert.equal(moved.hues.time.light, SCHEME[1]);
 });
 
 test('a section wins over its chapter, a chapter over the book, and the book over the scheme', () => {
   const at = (c: Choices) => effectiveHue(MANIFEST, c, 'time', S163);
-  assert.deepEqual(at(NO_CHOICES), { hue: hue(OKABE[0], darkOf(OKABE[0])), from: { kind: 'scheme', palette: paletteId('okabe-ito') } });
+  assert.deepEqual(at(NO_CHOICES), { hue: hue(SCHEME[0], darkOf(SCHEME[0])), from: { kind: 'scheme', palette: paletteId('omnistax') } });
   const book = setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222'));
   assert.deepEqual(at(book), { hue: hue('#111111', '#222222'), from: { kind: 'book' } });
   const chapter = setHue(book, CH16, 'time', hue('#333333', '#444444'));
@@ -123,11 +127,11 @@ test('a section wins over its chapter, a chapter over the book, and the book ove
   /* Clearing hands the type back to the tier above, one step at a time. */
   assert.deepEqual(at(clearHue(sec, S163, 'time')), { hue: hue('#333333', '#444444'), from: { kind: 'chapter', chapter: chapterId('16') } });
   assert.deepEqual(at(clearHue(clearHue(sec, S163, 'time'), CH16, 'time')), { hue: hue('#111111', '#222222'), from: { kind: 'book' } });
-  assert.deepEqual(at(clearPlace(clearPlace(clearPlace(sec, S163), CH16), BOOK)).from, { kind: 'scheme', palette: paletteId('okabe-ito') });
+  assert.deepEqual(at(clearPlace(clearPlace(clearPlace(sec, S163), CH16), BOOK)).from, { kind: 'scheme', palette: paletteId('omnistax') });
 });
 
 test('every quantity of the book has a colour, and only a stranger has none', () => {
-  assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'stiffness', S163).from, { kind: 'scheme', palette: paletteId('okabe-ito') },
+  assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'stiffness', S163).from, { kind: 'scheme', palette: paletteId('omnistax') },
     'a page that does not bind a quantity still knows what colour it would be');
   assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'energy', BOOK), { hue: null, from: { kind: 'none' } },
     'a key the book does not declare is not a quantity of it');
@@ -205,7 +209,7 @@ test("the rainbow samples d3's curve n times, so its ends never meet", () => {
 
 test('the stylesheet carries the scheme even when the reader has chosen nothing', () => {
   const scheme = (mode: 'light' | 'dark') =>
-    orderOf(MANIFEST, NO_CHOICES).map((k, i) => `--c-${k}:${mode === 'light' ? OKABE[i] : darkOf(OKABE[i])}`).join(';');
+    orderOf(MANIFEST, NO_CHOICES).map((k, i) => `--c-${k}:${mode === 'light' ? SCHEME[i] : darkOf(SCHEME[i])}`).join(';');
   const guarded = ':root:not([data-theme="light"])';
   assert.equal(cssFor(MANIFEST, NO_CHOICES),
     `:root{${scheme('light')}}`
@@ -216,7 +220,7 @@ test('the stylesheet carries the scheme even when the reader has chosen nothing'
 test('the stylesheet writes the three blocks the book writes, and the section rule outranks its chapter', () => {
   const c = setHue(setHue(setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222')), CH16, 'frequency', hue('#333333', '#444444')), S163, 'position', hue('#555555', '#666666'));
   const css = cssFor(MANIFEST, c);
-  assert.match(css, /^:root\{--c-time:#E69F00;[^}]*\}:root\{--c-time:#111111\}/,
+  assert.match(css, /^:root\{--c-time:#B23B19;[^}]*\}:root\{--c-time:#111111\}/,
     'the scheme first and the reader after it, so theirs wins without either being marked important');
   assert.ok(css.includes('[data-chapter="ch16"], [data-chapter="ch16"]{--c-frequency:#333333}'));
   assert.ok(css.includes('[data-chapter="ch16"][data-sec="16.3"], [data-chapter="ch16"][data-sec="16.3"]{--c-position:#555555}'));
@@ -324,9 +328,13 @@ test('a type carries the symbols the book marks with its class', () => {
 test('a palette answers with as many colours as the level needs, or with nothing', () => {
   const okabe = paletteById(paletteId('okabe-ito'));
   assert.ok(okabe);
-  assert.deepEqual(huesOf(okabe, 4), OKABE);
+  assert.deepEqual(huesOf(okabe, 4), ['#E69F00', '#56B4E9', '#009E73', '#F0E442']);
   assert.equal(huesOf(okabe, 9), null, 'eight colours cannot dress nine quantities');
   assert.equal(huesOf(okabe, 0), null, 'and no palette dresses nothing');
+  const scheme = paletteById(paletteId('omnistax'));
+  assert.ok(scheme);
+  assert.deepEqual(huesOf(scheme, 4), SCHEME);
+  assert.equal(huesOf(scheme, 49), null, 'forty-eight colours cannot dress forty-nine quantities');
 });
 
 /* Four symbols twenty wide with six between them: 20, 46, 72, 98 as they are added. */

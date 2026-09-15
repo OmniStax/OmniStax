@@ -36,6 +36,149 @@ export const huesOf = (p: Palette, n: number): readonly Hex[] | null => {
   return p.huesFor(n);
 };
 
+/* The book's own scheme: one hue for every place in the order the book declares
+   its quantities in, and the list the scheme is drawn from before any published
+   set. The published lists were made for a chart of eight or ten series and fail
+   a textbook of thirty: Polychrome, the only one long enough for a physics
+   book's quantities, hands pressure a pale yellow that no reader can read as an
+   axis title on a white page, and puts five near-identical magentas on the same
+   shelf. These are built instead, and built to two rules.
+
+   Legibility first. Every hue is OKLCH lightness 0.52 — the light value of the
+   categorical palette — at the deepest chroma that lightness holds in gamut,
+   capped at 0.16 so that the reds and violets, where the gamut is widest, do not
+   shout over the greens and teals, where it is narrow. Each one reads as text on
+   the page's white and its dark counterpart, which the colour arithmetic carries
+   to HSL lightness 0.7, reads on the dark ground. Nothing here is a pale yellow,
+   because nothing here is pale.
+
+   Distinctness second, and by place rather than by chance. The first
+   twenty-nine places — every quantity Chapters 1 to 19 wear — hold the angles an
+   annealing search dealt them: the twelfths of the circle, laid along the book's
+   order so that no two neighbouring places lie within 84° of each other and no
+   two places of quantities drawn on one page together lie within 60°. The first
+   nine places keep the hue family they wore before, none of them turned by more
+   than 21°, since Chapters 1 to 9 were tuned to them: what was a garish red,
+   magenta, green, blue and amber is the same red, magenta, green, blue and
+   amber, only deep enough to read.
+
+   Every place after the twenty-ninth is dealt one at a time and for keeps, by
+   the same measure but append-only: a new quantity takes the angle, off the
+   half-step grid of 6°, that stands furthest from the place before it in the
+   order and from every place it is drawn beside, and the places already dealt
+   are never dealt again. So a chapter that declares a quantity never moves the
+   colour of one already published. Dealt this way the scheme holds both floors
+   all the way out: from twenty-nine places to forty-eight the neighbouring
+   places stay 84° apart and the pairs drawn together 60° apart, which is the
+   whole of what the thirty-place anneal achieved, so neither floor has had to be
+   relaxed. Place thirty, current, is the one exception to append-only and was
+   re-dealt: the anneal had put it at 204°, 36° from voltage, which is the very
+   clash a circuit page cannot afford, and it was declared the same day as this,
+   before any chapter drew it. */
+
+/* Linear light to the sRGB a screen is asked for, and back to a hex byte. */
+const encodeSrgb = (x: number): number => (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
+const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
+const byte = (x: number): string => Math.round(255 * clamp01(x)).toString(16).padStart(2, '0').toUpperCase();
+
+/* One OKLCH colour as linear sRGB, by Björn Ottosson's OKLab. */
+const linearOf = (l: number, c: number, deg: number): readonly [number, number, number] => {
+  const h = (deg * Math.PI) / 180, a = c * Math.cos(h), b = c * Math.sin(h);
+  const lc = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const mc = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const sc = (l - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  return [
+    4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc,
+    -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc,
+    -0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc,
+  ];
+};
+
+const SCHEME_L = 0.52;
+const SCHEME_C_CAP = 0.16;
+
+/* The hue at an angle: lightness 0.52 at the deepest chroma the screen can show
+   there, found by halving the interval, and never deeper than the cap. */
+const deepHue = (deg: number): Hex => {
+  const shows = (c: number): boolean => linearOf(SCHEME_L, c, deg).every((v) => v >= -1e-9 && v <= 1 + 1e-9);
+  let lo = 0, hi = SCHEME_C_CAP;
+  if (shows(hi)) lo = hi;
+  else for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (shows(mid)) lo = mid; else hi = mid; }
+  return '#' + linearOf(SCHEME_L, lo, deg).map((v) => byte(encodeSrgb(clamp01(v)))).join('');
+};
+
+/* The angles the anneal dealt the first twenty-nine places, and the hues it
+   published for them. The hues are written out rather than worked out from the
+   angles: eight of them fall a single channel step from what the arithmetic here
+   gives, and a chapter already drawn is not worth even that much of a move. */
+const TUNED_DEG: readonly number[] = [
+  36, 312, 132, 252, 96, 12, 192, 108, 216, 348,
+  156, 276, 144, 264, 48, 300, 60, 180, 84, 336,
+  240, 0, 120, 288, 72, 228, 24, 168, 324,
+];
+const TUNED_HUES: readonly Hex[] = [
+  '#B23B19', '#8747AA', '#487901', '#0069BF', '#7C6800', '#B13550', '#067976', '#706D00', '#02768B', '#A73879',
+  '#007D49', '#535BC3', '#137F1F', '#3862C4', '#A74900', '#794DB6', '#9A5500', '#027A6B', '#866302', '#9E3C8B',
+  '#0070A6', '#AD3665', '#607200', '#6754BE', '#905C00', '#007397', '#B33738', '#007C5D', '#94419C',
+];
+
+/* The places whose quantities are drawn on one page together, as places in the
+   book's order rather than names, since a palette knows places and not
+   quantities: force with pressure, position with velocity and acceleration,
+   energy with temperature and entropy, voltage with electric field and with
+   current, current with resistance and with the magnetic field, the magnetic
+   field with force, velocity and the electric field, and the thirty-odd other
+   pairs the test beside this file names. */
+const TOGETHER_PLACES: readonly (readonly [number, number])[] = [
+  [0, 1], [0, 2], [1, 2], [1, 3], [1, 5], [1, 17], [1, 18], [1, 24], [1, 27], [2, 3],
+  [2, 20], [2, 25], [2, 31], [4, 5], [4, 9], [4, 13], [4, 17], [4, 31], [5, 11], [5, 22],
+  [5, 23], [5, 24], [5, 27], [6, 26], [8, 14], [9, 10], [12, 16], [17, 18], [17, 19], [17, 20],
+  [17, 21], [18, 20], [22, 23], [24, 25], [24, 27], [25, 27], [25, 31], [27, 28], [27, 29], [29, 30],
+  [29, 31],
+];
+
+/* The shorter way round the hue circle, in degrees. */
+const gapDeg = (a: number, b: number): number => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+/* How many places the scheme can deal: the half-step grid of 6° holds sixty
+   angles, and the scheme is built out to forty-eight, which is a dozen more
+   quantities than the longest book the app carries declares. */
+export const SCHEME_PLACES = 48;
+
+/* The angles for n places: the tuned prefix, then one place at a time, each
+   taking the angle left in the grid that stands furthest from the place before
+   it and from every place it is drawn beside. Append-only, so the angles for n
+   are always the angles for n − 1 with one more on the end. */
+const dealDegrees = (n: number): readonly number[] => {
+  const deg: number[] = TUNED_DEG.slice(0, n);
+  const pool = Array.from({ length: 60 }, (_, i) => 6 * i).filter((a) => !deg.includes(a));
+  while (deg.length < n) {
+    const k = deg.length;
+    const bound = [...TOGETHER_PLACES.flatMap(([a, b]) => (b === k && a < k ? [a] : a === k && b < k ? [b] : [])), k - 1];
+    const score = (c: number): readonly [number, number] =>
+      [Math.min(...bound.map((j) => gapDeg(c, deg[j]))), Math.min(...deg.map((a) => gapDeg(c, a)))];
+    const best = pool.reduce((won, c) => {
+      const [p, q] = score(c), [wp, wq] = score(won);
+      return p > wp || (p === wp && q > wq) ? c : won;
+    }, pool[0]);
+    deg.push(best);
+    pool.splice(pool.indexOf(best), 1);
+  }
+  return deg;
+};
+
+/* The scheme's hues, in place order: the tuned ones as they were published, and
+   every later place worked out from the angle it was dealt. */
+export const SCHEME_DEGREES: readonly number[] = dealDegrees(SCHEME_PLACES);
+const SCHEME_HUES: readonly Hex[] = SCHEME_DEGREES.map((d, i) => TUNED_HUES[i] ?? deepHue(d));
+
+export const SCHEME: Palette = fixed(
+  'omnistax',
+  'OmniStax',
+  'Forty-eight deep hues that read as text on either ground, spaced so that neighbouring quantities and the quantities drawn together on one page are far apart.',
+  SCHEME_HUES,
+);
+
 /* Paul Tol's discrete rainbow, which is not one list cut short but a different
    cut for every count: the whole set of twenty-nine below, and then the indices
    into it that Tol's own tol_colors.py names for each number of quantities, so
@@ -86,10 +229,13 @@ export const OKLCH: Palette = generated(
 );
 
 /* The order the page shows them in, and the order the scheme is chosen from:
-   the two that never refuse first, since they answer for any level the book can
-   have; then Tol's rainbow, which is cut rather than trimmed; then the published
-   lists, the short and careful ones before the long ones. */
+   the book's own list first, since it is the one built for a textbook's count
+   and the one the scheme takes; then the two that never refuse, since they
+   answer for any level the book can have; then Tol's rainbow, which is cut
+   rather than trimmed; then the published lists, the short and careful ones
+   before the long ones. */
 export const PALETTES: readonly Palette[] = [
+  SCHEME,
   OKLCH,
   generated(
     'rainbow',
@@ -187,9 +333,11 @@ export const PALETTES: readonly Palette[] = [
 export const paletteById = (id: PaletteId): Palette | null => PALETTES.find((p) => p.id === id) ?? null;
 
 /* The scheme a book of n quantities wears before the reader chooses anything:
-   the first published list that can dress every one of them, and the ring when
-   none of them can. A published set is what a reader recognises, so it is
-   preferred; the ring is there so that no book is left without colours. */
+   the first list that can dress every one of them, and the ring when none of
+   them can. The book's own list stands at the head, so it is what every book up
+   to forty-eight quantities wears; the published sets follow it, for a reader who
+   asks for one by name; the ring is there so that no book is left without
+   colours. */
 export const schemePalette = (n: number): Palette =>
   PALETTES.find((p) => p.kind === 'fixed' && huesOf(p, n) !== null) ?? OKLCH;
 
