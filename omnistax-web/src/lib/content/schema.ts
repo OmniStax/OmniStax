@@ -305,6 +305,7 @@ export const ExerciseConceptSchema = z.object({
   exercise: z.string().describe('The local id of the exercise.'),
   concept: CONCEPT_REF.describe('A concept the exercise tests.'),
   weight: z.number().optional().describe('What the exercise is worth for this concept, overriding the points its Bloom level would earn. Always written by the pipeline.'),
+  weights_by: z.literal('ai').optional().describe('Set to ai on a row whose weight was chosen by the agent rather than the Bloom table (root rule 20).'),
 }).strict();
 export type ExerciseConceptDTO = z.infer<typeof ExerciseConceptSchema>;
 

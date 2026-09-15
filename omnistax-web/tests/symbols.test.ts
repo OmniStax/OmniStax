@@ -41,7 +41,10 @@ test('every macro of the book belongs to a symbol, and no two symbols claim one 
   const named = rows.flatMap((s) => (s.macro ? [s.macro] : []));
   assert.deepEqual(named.filter((m, i) => named.indexOf(m) !== i), []);
   assert.deepEqual(kMacros.filter((m) => !named.includes(m)), []);
-  assert.deepEqual(Object.values(symbols).filter((m) => m.startsWith('\\k') && !(m in macros)), []);
+  /* An untyped symbol's entry is its own LaTeX, which may begin with \k on its
+     own account (\kappa), so only a row that claims a macro is held to it. */
+  const claimed = new Set(named);
+  assert.deepEqual(Object.values(symbols).filter((m) => claimed.has(m) && !(m in macros)), []);
 });
 test('every \\k macro carries its own key as data-sym inside its type class', () => {
   const keyOf = Object.fromEntries(rows.flatMap((s) => (s.macro ? [[s.macro, s.sym] as const] : [])));

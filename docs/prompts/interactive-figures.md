@@ -34,15 +34,30 @@ The logical canvas is 1400 units wide; `begin()` scales it. Primitives, all in l
 ```
 line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
-headline(ctx,s) / topline(ctx,s)          block(...)  reserves the headline band
-hbracket(ctx,x1,x2,y,color,label)         vbracket(ctx,x,y1,y2,color,label,side)
+headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count
+label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
+hbracket(ctx,x1,x2,y,color,label,{side})  vbracket(ctx,x,y1,y2,color,label,side,{side})  label clamped when the span is short
+note(ctx,box,text,avoid) -> box           a sentence in whichever corner of a graph box the forbidden boxes leave clear
+angleArc(ctx,{x,y},r,a0,a1,text,labeller) an angle's arc, its two arms and its name at the bisector
+fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the greatest extents the sliders reach
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
 labeller()                                a label beside its thing, stepped out and leadered when the slot is taken
+labeller.beside(seg,side,text)            beside the midpoint of a segment; flush() returns the labels that found no slot
 person(...)                               a jointed, filled body anchored at the feet, hands to what it holds (reach, lean, phase, crouch)
+silhouette(ctx,{x,y,s,face,pose,color,...joints})   a filled body posed by name (stand, walk, run, lean, crouch, push, pull, sit, reach)
+                                          or by joint; limbs never pass 3 units, and F.silhouette.height(s) is how tall it stands
 view({yaw,pitch,dist,cx,cy}) -> {P,shade}  face(ctx,pts,k,stroke)     a locked perspective of a solid, no orbit
 runner/car/plane/dragster(ctx,x,y,color,s) sprites; a new one stays under 12 path commands, 80 to 120 units long
+crate(ctx,x,y,w,h,color)                  a framed box of planks with a batten down each end, filling w by h
+house(ctx,x,y,w,stories,color) -> height  w wide on the ground line, 0.62 w a story under a roof half as wide again
+shopfront(ctx,x,y,w,h,name,color)         a scalloped awning over a door and a window, the name on the sign above
+horse(ctx,x,y,s,phase,color,face)         about 156 by 120 at s = 1; phase runs the gallop
+helicopterTop(ctx,x,y,s,a,rotor,color)    seen from above, about 150 by 88 at s = 1; a is the heading in radians
+rowboat(ctx,x,y,s,heading,color)          seen from above, about 64 by 66 at s = 1, oars included
+sailboat(ctx,x,y,s,color)                 waterline at (x, y), about 78 by 76 at s = 1
+skydiver(ctx,x,y,s,color)                 spread-eagled and seen from below, about 92 by 112 at s = 1
 ```
 
 Controls beyond the slider (root rule 26.1):
@@ -67,7 +82,7 @@ F.mesh.polyline(g,pts,color)       F.mesh.box(g,p,[w,h,d],color,extra)   F.mesh.
 
 `spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.
 
-Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, `F.cat(i)` for instances with no type and no element, and a hex only where the colour is the physical fact and the plan names it. No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
+Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.cat(i)` for instances with no type and no element, and a hex only where the colour is the physical fact and the plan names it. No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
 
 Axis ranges are fixed per figure from the slider maxima (or from the default range where the maximum would leave the default state tiny), rounded to ticks, stated in a comment, never rescaled; a value outside the range goes through `pinned()`.
 

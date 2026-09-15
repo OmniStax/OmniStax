@@ -18,10 +18,12 @@ type Scale = (v: number) => Logical;
 type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
 type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
 type Label = { s: string; x: Logical; y: Logical; hx: Logical; hy: Logical; color: Color; sz: number; align: CanvasTextAlign };
+export type Seg = { readonly x1: Logical; readonly y1: Logical; readonly x2: Logical; readonly y2: Logical };
 export type Labeller = {
   block: (l: Logical, t: Logical, r: Logical, b: Logical) => void;
   add: (s: string, hx: Logical, hy: Logical, ux: number, uy: number, color: Color, size?: number, start?: number) => void;
-  flush: () => void;
+  beside: (seg: Seg, side: 'left' | 'right' | number, s: string, color?: Color, size?: number) => void;
+  flush: () => string[];
 };
 export type Vec3 = readonly [number, number, number];   /* a point or direction in the scene: y up, z toward the viewer */
 export type Pt = readonly [Logical, Logical];                 /* a projected point on the canvas */
@@ -97,6 +99,7 @@ function C(k: string): Color {
    hues already drawn. */
 const cat = (i: number): Color => catOf(i, darkTheme, [...bound]);
 function alpha(hex: Color, a: number): Color {
+  if (!hex || hex[0] !== '#') return hex;   /* a colour the palette has not set, or one already given as rgb */
   let h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const n = parseInt(h, 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
@@ -285,14 +288,42 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
   runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
   ctx.restore();
 }
-const headline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
-function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, label?: string): void {
-  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.moveTo(x1, y - 10); ctx.lineTo(x1, y + 10); ctx.moveTo(x2, y - 10); ctx.lineTo(x2, y + 10); ctx.stroke(); ctx.restore();
-  if (label) text(ctx, label, (x1 + x2) / 2, y - 22, color, { align: 'center', weight: 600 });
+const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
+/* The headline of a figure. It wraps exactly as `topline` does — one line where it
+   fits and two otherwise — so a headline built from live numbers can never run off
+   the canvas, and it returns the number of lines it took. */
+const headline = (ctx: Ctx, s: string, color?: Color): 1 | 2 => topline(ctx, s, color);
+/* The side a bracket's label is set on, and the canvas height it is kept inside.
+   A bracket over a short span carries a label wider than the span, so the label is
+   clamped to the canvas rather than allowed to hang off the edge. */
+export type BracketSide = 'above' | 'below' | 'left' | 'right';
+type BracketOpts = { side?: BracketSide; H?: Logical; size?: number };
+const canvasH = (ctx: Ctx, o?: { H?: Logical }): Logical => o?.H ?? +((ctx as { canvas?: { dataset?: Record<string, string> } }).canvas?.dataset?.h ?? 0);
+/* the label's half width at the weight and size a bracket and a note set their text */
+function halfWidth(ctx: Ctx, s: string, size: number): Logical {
+  ctx.save(); ctx.font = '600 ' + size + 'px ' + FONT; const w = ctx.measureText(s).width; ctx.restore(); return w / 2 + 9;
 }
-function vbracket(ctx: Ctx, x: Logical, y1: Logical, y2: Logical, color: Color, label?: string, side = 1): void {
+function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, label?: string, o: BracketOpts = {}): void {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.moveTo(x1, y - 10); ctx.lineTo(x1, y + 10); ctx.moveTo(x2, y - 10); ctx.lineTo(x2, y + 10); ctx.stroke(); ctx.restore();
+  if (!label) return;
+  const sz = o.size ?? 22, H = canvasH(ctx, o), below = o.side === 'below';
+  const half = halfWidth(ctx, label, sz);
+  const x = Math.min(Math.max((x1 + x2) / 2, 16 + half), LW - 16 - half);
+  let ly = below ? y + 24 : y - 22;
+  if (H > 0) ly = Math.min(Math.max(ly, 16 + sz / 2), H - 16 - sz / 2);
+  text(ctx, label, x, ly, color, { align: 'center', weight: 600, size: sz });
+}
+function vbracket(ctx: Ctx, x: Logical, y1: Logical, y2: Logical, color: Color, label?: string, side = 1, o: BracketOpts = {}): void {
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.moveTo(x - 10, y1); ctx.lineTo(x + 10, y1); ctx.moveTo(x - 10, y2); ctx.lineTo(x + 10, y2); ctx.stroke(); ctx.restore();
-  if (label) text(ctx, label, x + side * 16, (y1 + y2) / 2, color, { align: side > 0 ? 'left' : 'right', weight: 600 });
+  if (!label) return;
+  const sz = o.size ?? 22, H = canvasH(ctx, o);
+  const s = o.side === 'left' ? -1 : o.side === 'right' ? 1 : side;
+  const half = halfWidth(ctx, label, sz) * 2;
+  /* a label that would leave the canvas on the side asked for is set on the other side */
+  const turn = s > 0 && x + 16 + half > LW - 16 ? -1 : s < 0 && x - 16 - half < 16 ? 1 : s;
+  let ly = (y1 + y2) / 2;
+  if (H > 0) ly = Math.min(Math.max(ly, 16 + sz / 2), H - 16 - sz / 2);
+  text(ctx, label, x + turn * 16, ly, color, { align: turn > 0 ? 'left' : 'right', weight: 600, size: sz });
 }
 function strip(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, h: Logical): void {
   ctx.save(); ctx.fillStyle = PAL.soft; ctx.fillRect(x1, y - h / 2, x2 - x1, h); ctx.restore();
@@ -397,10 +428,18 @@ function plane(ctx: Ctx, x: Logical, y: Logical, color: Color, s = 1): void {
   ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(-12, -50); ctx.lineTo(-24, -50); ctx.lineTo(-16, -6); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(6, 6); ctx.lineTo(-12, 50); ctx.lineTo(-24, 50); ctx.lineTo(-16, 6); ctx.closePath(); ctx.fill(); ctx.restore();
 }
+/* a dragster, its nose to the right and its wheels on (x, y): a long low body with the engine and
+   the wing behind the driver, a big slick at the back and a small wheel at the front; its footprint
+   at s = 1 is about 140 by 60 */
 function dragster(ctx: Ctx, x: Logical, y: Logical, color: Color, s = 1): void {
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = color;
-  ctx.fillRect(-60, -6, 90, 12); ctx.fillRect(20, -4, 26, 8); ctx.fillRect(-64, -22, 24, 6);
-  ctx.beginPath(); ctx.arc(-44, 12, 14, 0, Math.PI * 2); ctx.arc(30, 8, 8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-62, 8); ctx.lineTo(-62, -14); ctx.lineTo(-40, -22); ctx.lineTo(-16, -22); ctx.lineTo(-6, -10); ctx.lineTo(50, -6); ctx.lineTo(68, 0); ctx.lineTo(68, 8); ctx.closePath(); ctx.fill();
+  ctx.fillRect(-70, -40, 26, 5); ctx.fillRect(-52, -36, 4, 14);            /* the wing on its strut */
+  ctx.beginPath(); ctx.arc(-40, 8, 16, 0, Math.PI * 2); ctx.fill();        /* the rear slick */
+  ctx.beginPath(); ctx.arc(52, 12, 7, 0, Math.PI * 2); ctx.fill();         /* the front wheel */
+  ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.arc(-40, 8, 6, 0, Math.PI * 2); ctx.arc(52, 12, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-14, -22); ctx.lineTo(-8, -30); ctx.lineTo(-2, -22); ctx.closePath(); ctx.fill();   /* the driver's helmet */
+  ctx.restore();
 }
 /* A locked view of a solid the book draws in perspective. The drawing layer has no
    3D primitive, so the projection is done here: a pinhole camera stands at a fixed
@@ -447,6 +486,240 @@ function fixed(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical): void {
   line(ctx, x, y, x + w, y, PAL.muted, 3); line(ctx, x, y + h, x + w, y + h, PAL.muted, 3);
 }
 
+/* ---------- a scene's scale ----------
+   A figure that must state one fixed scale — a track ruled in metres, a column of
+   air a kilometre deep — works out its units per metre once, from the box the
+   scene is drawn in and the greatest extents the sliders can reach, and never
+   rescales afterwards. The scale is the smaller of the two fits, so nothing the
+   sliders can do sends the scene past the box. */
+export type Extents = { readonly w: number; readonly h: number };   /* the scene's greatest width and height, in metres */
+function fitScale(box: Box, ext: Extents): number {
+  const bw = Math.abs(box.r - box.l), bh = Math.abs(box.b - box.t);
+  const kx = ext.w > 0 ? bw / ext.w : Infinity, ky = ext.h > 0 ? bh / ext.h : Infinity;
+  const k = Math.min(kx, ky);
+  return isFinite(k) ? k : 0;
+}
+
+/* ---------- a label on its own ----------
+   The labeller places a whole figure's labels against one another. One label set
+   beside one thing — the name of a body, a reading beside a gauge — needs no
+   queue: `label` sets the text in a panel on the side asked for, keeps it inside
+   the canvas whatever the sliders do, and draws a dotted leader back to the point
+   where the clamp has moved it away. It returns the box it took, so a figure may
+   hand that box to `note` or to `labeller.block`. */
+type LabelOpts = { side?: BracketSide; size?: number; weight?: number; color?: Color; gap?: Logical; leader?: boolean; H?: Logical; bg?: Color };
+function label(ctx: Ctx, s: string, x: Logical, y: Logical, o: LabelOpts = {}): Box {
+  const sz = o.size ?? 20, gap = o.gap ?? 20, H = canvasH(ctx, o), side = o.side ?? 'above';
+  const ux = side === 'left' ? -1 : side === 'right' ? 1 : 0, uy = side === 'above' ? -1 : side === 'below' ? 1 : 0;
+  const align: CanvasTextAlign = ux < 0 ? 'right' : ux > 0 ? 'left' : 'center';
+  const half = halfWidth(ctx, s, sz), bh = sz + 8;
+  let lx = x + ux * gap, ly = y + uy * gap;
+  const l0 = align === 'center' ? lx - half : align === 'right' ? lx - 2 * half + 9 : lx - 9;
+  const dx = l0 < 16 ? 16 - l0 : l0 + 2 * half > LW - 16 ? LW - 16 - l0 - 2 * half : 0;
+  lx += dx;
+  if (H > 0) ly = Math.min(Math.max(ly, 16 + bh / 2), H - 16 - bh / 2);
+  const box: Box = { l: lx - (align === 'center' ? half : align === 'right' ? 2 * half - 9 : 9), r: 0, t: ly - bh / 2, b: ly + bh / 2 } as Box;
+  const out: Box = { l: box.l, r: box.l + 2 * half, t: box.t, b: box.b };
+  const d = Math.hypot(lx - x, ly - y);
+  if ((o.leader ?? true) && d > 40) line(ctx, x + ((lx - x) / d) * 14, y + ((ly - y) / d) * 14, lx - ((lx - x) / d) * 16, ly - ((ly - y) / d) * 16, alpha(o.color ?? PAL.ink, 0.5), 1.5, [5, 6]);
+  text(ctx, s, lx, ly, o.color ?? PAL.ink, { weight: o.weight ?? 600, size: sz, align, bg: o.bg ?? PAL.panel });
+  return out;
+}
+
+/* ---------- a note in a clear corner of a graph ----------
+   A sentence a graph carries — what the shaded area is, why the curve levels off —
+   goes in whichever corner of the box nothing else has taken. The figure hands over
+   the boxes already spoken for (the curve's own bounding box, a legend, a pinned
+   marker) and the corner with the least overlap wins. Returns the box the note took. */
+function note(ctx: Ctx, box: Box, s: string, avoid: readonly Box[] = [], size = 17): Box {
+  const half = halfWidth(ctx, s, size), bh = size + 8, pad = 12;
+  const corners: readonly Pt[] = [[box.l + pad + half, box.t + pad + bh / 2], [box.r - pad - half, box.t + pad + bh / 2], [box.r - pad - half, box.b - pad - bh / 2], [box.l + pad + half, box.b - pad - bh / 2]];
+  const boxAt = (p: Pt): Box => ({ l: p[0] - half, r: p[0] + half, t: p[1] - bh / 2, b: p[1] + bh / 2 });
+  const overlap = (a: Box): number => avoid.reduce((sum, b) => sum + Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t)), 0);
+  const best = corners.map(boxAt).reduce((a, b) => (overlap(b) < overlap(a) ? b : a));
+  text(ctx, s, (best.l + best.r) / 2, (best.t + best.b) / 2, PAL.muted, { size, align: 'center', bg: PAL.panel });
+  return best;
+}
+
+/* ---------- the arc of an angle ----------
+   The angle at p between the directions a0 and a1, both counterclockwise from +x
+   on the page, drawn as an arc of radius r with two faint arms and its name set
+   outside the arc at the bisector. Given a labeller it queues the name there
+   instead, so the angle's name takes its turn with the rest of the figure's text. */
+function angleArc(ctx: Ctx, p: { x: Logical; y: Logical }, r: Logical, a0: number, a1: number, s?: string, lab?: Labeller, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.strokeStyle = alpha(c, 0.9); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(p.x, p.y, r, -a0, -a1, a1 > a0); ctx.stroke(); ctx.restore();
+  [a0, a1].forEach((a) => line(ctx, p.x, p.y, p.x + (r + 14) * Math.cos(a), p.y - (r + 14) * Math.sin(a), alpha(c, 0.35), 2, [6, 6]));
+  if (!s) return;
+  const m = (a0 + a1) / 2, ux = Math.cos(m), uy = -Math.sin(m);
+  if (lab) lab.add(s, p.x + r * ux, p.y + r * uy, ux, uy, c, 20, 16);
+  else text(ctx, s, p.x + (r + 20) * ux, p.y + (r + 20) * uy, c, { size: 20, weight: 600, align: ux < -0.3 ? 'right' : ux > 0.3 ? 'left' : 'center', bg: PAL.panel });
+}
+
+/* ---------- the silhouette ----------
+   A person drawn as a filled body rather than a stick figure: a round head, a solid
+   torso, and limbs that bend at the knee and the elbow toward the point each one
+   reaches. The joints are given in a frame 150 units tall with the feet at the
+   origin and the person facing +x; `face` of -1 turns the drawing round and `s`
+   scales it, so a caller scales to the scene with `F.silhouette.height(s)`. The
+   limbs are bodies, not lines, but they are never drawn heavier than 3 units, which
+   keeps every one of them thinner than the force arrows set beside it. A pose names
+   a set of joints; any joint given in the options overrides the pose's own. */
+export type Joint = { x: Logical; y: Logical };
+export type Pose = 'stand' | 'walk' | 'run' | 'lean' | 'crouch' | 'push' | 'pull' | 'sit' | 'reach';
+type Skeleton = { hip: Joint; shoulder: Joint; head: Joint; feet: readonly [Joint, Joint]; hands: readonly [Joint, Joint]; kneeSide?: number; elbowSide?: number };
+type SilhouetteOpts = Partial<Skeleton> & { x: Logical; y: Logical; s?: number; face?: number; pose?: Pose; color?: Color };
+const SIL_H = 150;
+const POSES: Readonly<Record<Pose, Skeleton>> = {
+  stand: { hip: { x: 0, y: -72 }, shoulder: { x: 2, y: -118 }, head: { x: 6, y: -140 }, feet: [{ x: 9, y: 0 }, { x: -9, y: 0 }], hands: [{ x: 9, y: -76 }, { x: -6, y: -76 }] },
+  walk: { hip: { x: 0, y: -72 }, shoulder: { x: 4, y: -118 }, head: { x: 9, y: -140 }, feet: [{ x: 24, y: 0 }, { x: -24, y: 0 }], hands: [{ x: 20, y: -76 }, { x: -16, y: -80 }] },
+  run: { hip: { x: -4, y: -74 }, shoulder: { x: 18, y: -114 }, head: { x: 28, y: -134 }, feet: [{ x: 32, y: -10 }, { x: -30, y: -4 }], hands: [{ x: 36, y: -96 }, { x: -22, y: -92 }] },
+  lean: { hip: { x: 0, y: -70 }, shoulder: { x: 22, y: -110 }, head: { x: 33, y: -128 }, feet: [{ x: 10, y: 0 }, { x: -24, y: 0 }], hands: [{ x: 44, y: -96 }, { x: 40, y: -88 }] },
+  crouch: { hip: { x: 0, y: -54 }, shoulder: { x: 8, y: -98 }, head: { x: 14, y: -118 }, feet: [{ x: 15, y: 0 }, { x: -15, y: 0 }], hands: [{ x: 28, y: -70 }, { x: 22, y: -66 }] },
+  push: { hip: { x: 2, y: -68 }, shoulder: { x: 26, y: -108 }, head: { x: 37, y: -126 }, feet: [{ x: 8, y: 0 }, { x: -34, y: 0 }], hands: [{ x: 56, y: -100 }, { x: 58, y: -92 }] },
+  pull: { hip: { x: 4, y: -68 }, shoulder: { x: 22, y: -110 }, head: { x: 34, y: -130 }, feet: [{ x: 30, y: 0 }, { x: -32, y: 0 }], hands: [{ x: 50, y: -98 }, { x: 54, y: -92 }] },
+  sit: { hip: { x: -10, y: -46 }, shoulder: { x: -6, y: -92 }, head: { x: -2, y: -112 }, feet: [{ x: 36, y: 0 }, { x: 28, y: 0 }], hands: [{ x: 8, y: -52 }, { x: 2, y: -50 }] },
+  reach: { hip: { x: 0, y: -72 }, shoulder: { x: 4, y: -116 }, head: { x: 10, y: -136 }, feet: [{ x: 10, y: 0 }, { x: -12, y: 0 }], hands: [{ x: 38, y: -148 }, { x: 32, y: -144 }] },
+};
+/* the bend of a two-segment limb from a to b, lengths l1 and l2, the joint thrown to the side given */
+function bend(a: Joint, b: Joint, l1: number, l2: number, side: number): Joint {
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+  if (L >= l1 + l2) return { x: a.x + (dx * l1) / (l1 + l2), y: a.y + (dy * l1) / (l1 + l2) };
+  const q = (l1 * l1 - l2 * l2 + L * L) / (2 * L), h = Math.sqrt(Math.max(0, l1 * l1 - q * q));
+  return { x: a.x + (dx * q) / L - (dy * h * side) / L, y: a.y + (dy * q) / L + (dx * h * side) / L };
+}
+function drawSilhouette(ctx: Ctx, o: SilhouetteOpts): void {
+  const base = POSES[o.pose ?? 'stand'], s = o.s ?? 1, face = o.face ?? 1, color = o.color ?? PAL.ink;
+  const P: Skeleton = { ...base, ...o } as Skeleton;
+  /* the limb stroke is set in canvas units and never passes 3, so every limb stays thinner than a force arrow */
+  const W = Math.min(3, 3 * s) / (s || 1);
+  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(s * face, s); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const limb = (a: Joint, b: Joint, l1: number, l2: number, side: number, k: number): void => {
+    const j = bend(a, b, l1, l2, side); ctx.lineWidth = W * k; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(j.x, j.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  };
+  const ks = P.kneeSide ?? -1, es = P.elbowSide ?? 1;
+  limb(P.hip, P.feet[1], 38, 38, ks, 2.6); limb(P.shoulder, P.hands[1], 30, 30, es, 2.1);
+  const tx = P.shoulder.x - P.hip.x, ty = P.shoulder.y - P.hip.y, L = Math.hypot(tx, ty) || 1, nx = -ty / L, ny = tx / L;
+  ctx.lineWidth = W; ctx.beginPath();
+  ctx.moveTo(P.hip.x + nx * 7, P.hip.y + ny * 7); ctx.lineTo(P.shoulder.x + nx * 11, P.shoulder.y + ny * 11);
+  ctx.lineTo(P.shoulder.x - nx * 11, P.shoulder.y - ny * 11); ctx.lineTo(P.hip.x - nx * 7, P.hip.y - ny * 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = W * 2; ctx.beginPath(); ctx.moveTo(P.shoulder.x, P.shoulder.y); ctx.lineTo(P.head.x, P.head.y); ctx.stroke();
+  ctx.beginPath(); ctx.arc(P.head.x, P.head.y, 12, 0, Math.PI * 2); ctx.fill();
+  limb(P.hip, P.feet[0], 38, 38, ks, 3); limb(P.shoulder, P.hands[0], 30, 30, es, 2.4);
+  ctx.restore();
+}
+/* `F.silhouette.height(s)` is the person's height in canvas units, so a scene with a
+   scale of its own places the feet and asks the library how tall the drawing stands. */
+const silhouette = Object.assign(drawSilhouette, { height: (s = 1): Logical => SIL_H * s, pose: (p: Pose): Skeleton => POSES[p] });
+
+/* ---------- sprites with a stated footprint ----------
+   Each takes its place and its size and draws in ink unless a colour is given, so a
+   figure never carries the body itself. The footprint is the rectangle the drawing
+   fills, which is what a caller needs to set its arrows and labels clear of it. */
+/* a wooden crate centred on (x, y), filling w by h: a framed box of horizontal planks with a batten down each end */
+function crate(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, color?: Color): void {
+  const c = color ?? PAL.ink, l = x - w / 2, t = y - h / 2;
+  ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+  ctx.fillRect(l, t, w, h); ctx.strokeRect(l, t, w, h);
+  ctx.strokeStyle = PAL.muted; ctx.lineWidth = 2;
+  ctx.beginPath(); for (let i = 1; i < 4; i++) { ctx.moveTo(l + 4, t + (h * i) / 4); ctx.lineTo(l + w - 4, t + (h * i) / 4); } ctx.stroke();
+  ctx.strokeStyle = c; ctx.lineWidth = 3;
+  const b = Math.min(22, w / 5);
+  ctx.beginPath(); ctx.moveTo(l + b, t + 2); ctx.lineTo(l + b, t + h - 2); ctx.moveTo(l + w - b, t + 2); ctx.lineTo(l + w - b, t + h - 2); ctx.stroke();
+  ctx.restore();
+}
+/* a house standing on (x, y) — the ground line — w wide, with `stories` stories.
+   Its footprint is w by the height returned: 0.62 w a story and a roof half as wide again. */
+function house(ctx: Ctx, x: Logical, y: Logical, w: Logical, stories = 1, color?: Color): Logical {
+  const c = color ?? PAL.ink, sh = w * 0.62, wallH = sh * Math.max(1, stories), roof = w * 0.5, H = wallH + roof;
+  ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = c; ctx.lineWidth = 4;
+  ctx.fillRect(x - w / 2, y - wallH, w, wallH); ctx.strokeRect(x - w / 2, y - wallH, w, wallH);
+  ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - w / 2 - 8, y - wallH); ctx.lineTo(x, y - wallH - roof); ctx.lineTo(x + w / 2 + 8, y - wallH); ctx.closePath(); ctx.fill();
+  ctx.fillRect(x - w * 0.11, y - sh * 0.52, w * 0.22, sh * 0.52);                             /* the door */
+  for (let i = 1; i < Math.max(1, stories); i++) { ctx.fillRect(x - w * 0.34, y - sh * i - sh * 0.46, w * 0.2, sh * 0.26); ctx.fillRect(x + w * 0.14, y - sh * i - sh * 0.46, w * 0.2, sh * 0.26); }
+  ctx.restore();
+  return H;
+}
+/* a shopfront standing on (x, y), w by h, its name on the sign above a scalloped awning */
+function shopfront(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, name = 'CAFÉ', color?: Color): void {
+  const c = color ?? PAL.ink, l = x - w / 2, t = y - h, sign = h * 0.2;
+  ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = c; ctx.lineWidth = 3;
+  ctx.fillRect(l, t + sign, w, h - sign); ctx.strokeRect(l, t + sign, w, h - sign);            /* the front */
+  ctx.fillStyle = c; ctx.fillRect(l - w * 0.06, t, w * 1.12, sign);                            /* the sign */
+  const n = Math.max(3, Math.round(w / 17)), r = (w * 1.12) / (2 * n);
+  ctx.beginPath(); for (let i = 0; i < n; i++) ctx.arc(l - w * 0.06 + r + 2 * r * i, t + sign + h * 0.13, r, 0, Math.PI); ctx.fill();   /* the awning */
+  ctx.fillRect(x - w * 0.13, y - h * 0.36, w * 0.26, h * 0.36);                                /* the door */
+  ctx.strokeRect(x + w * 0.2, y - h * 0.33, w * 0.2, h * 0.17);                                /* the window */
+  ctx.fillStyle = PAL.panel; ctx.font = '700 ' + Math.max(9, sign * 0.7) + 'px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, x, t + sign / 2);
+  ctx.restore();
+}
+/* a horse standing on (x, y) at scale s, `phase` running its gallop and `face` of -1 turning it round;
+   its footprint at s = 1 is about 156 by 120 */
+function horse(ctx: Ctx, x: Logical, y: Logical, s = 1, phase = 0, color?: Color, face = 1): void {
+  const c = color ?? PAL.ink, sw = Math.sin(phase) * 16;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s * face, s); ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.lineWidth = 6; ctx.beginPath();                                                          /* the legs, so the barrel covers their tops */
+  ctx.moveTo(-36, -40); ctx.lineTo(-44 - sw, -18); ctx.lineTo(-48 - sw * 1.4, 0);
+  ctx.moveTo(-24, -40); ctx.lineTo(-18 + sw * 0.6, -18); ctx.lineTo(-14 + sw, 0);
+  ctx.moveTo(26, -40); ctx.lineTo(22 - sw * 0.6, -18); ctx.lineTo(16 - sw, 0);
+  ctx.moveTo(40, -40); ctx.lineTo(48 + sw, -18); ctx.lineTo(54 + sw * 1.4, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-32, -66); ctx.lineTo(32, -66); ctx.quadraticCurveTo(46, -66, 46, -50); ctx.quadraticCurveTo(46, -34, 32, -34); ctx.lineTo(-32, -34); ctx.quadraticCurveTo(-46, -34, -46, -50); ctx.quadraticCurveTo(-46, -66, -32, -66); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(30, -62); ctx.quadraticCurveTo(48, -80, 58, -104); ctx.lineTo(72, -108); ctx.lineTo(84, -96); ctx.lineTo(84, -86); ctx.lineTo(66, -84); ctx.quadraticCurveTo(56, -72, 46, -46); ctx.closePath(); ctx.fill();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(64, -106); ctx.lineTo(60, -118); ctx.moveTo(72, -108); ctx.lineTo(74, -120); ctx.stroke();   /* the ears */
+  ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(40, -74); ctx.quadraticCurveTo(48, -88, 60, -104); ctx.stroke();                            /* the mane */
+  ctx.beginPath(); ctx.moveTo(-44, -60); ctx.quadraticCurveTo(-66, -56, -72, -30 + sw * 0.3); ctx.stroke();                                  /* the tail */
+  ctx.restore();
+}
+/* a helicopter seen from above, centred on (x, y) at scale s, its nose turned to `a` radians
+   counterclockwise on the page and its rotor to `r`; its footprint at s = 1 is about 150 by 88 */
+function helicopterTop(ctx: Ctx, x: Logical, y: Logical, s = 1, a = 0, r = 0, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.rotate(-a); ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineCap = 'round';
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(14, -20); ctx.moveTo(-14, 20); ctx.lineTo(14, 20); ctx.stroke();      /* the skids */
+  ctx.beginPath(); ctx.moveTo(24, 0); ctx.quadraticCurveTo(22, -16, 4, -16); ctx.lineTo(-18, -12); ctx.lineTo(-18, 12); ctx.lineTo(4, 16); ctx.quadraticCurveTo(22, 16, 24, 0); ctx.closePath(); ctx.fill();
+  ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-62, 0); ctx.stroke();                                                  /* the tail boom */
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-62, -14); ctx.lineTo(-62, 14); ctx.moveTo(-58, -4); ctx.lineTo(-66, -4); ctx.stroke();
+  ctx.fillStyle = alpha(c, 0.12); ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.fill();                                            /* the rotor disc */
+  ctx.rotate(r); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-44, 0); ctx.lineTo(44, 0); ctx.moveTo(0, -44); ctx.lineTo(0, 44); ctx.stroke();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+/* a rowing boat seen from above, centred on (x, y) at scale s, its bow along `heading` degrees
+   counterclockwise from +x; its footprint at s = 1 is about 64 by 66, oars included */
+function rowboat(ctx: Ctx, x: Logical, y: Logical, s = 1, heading = 0, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.rotate((-heading * Math.PI) / 180); ctx.scale(s, s); ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(34, 0); ctx.quadraticCurveTo(14, -14, -20, -14); ctx.quadraticCurveTo(-30, -14, -30, 0); ctx.quadraticCurveTo(-30, 14, -20, 14); ctx.quadraticCurveTo(14, 14, 34, 0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.moveTo(24, 0); ctx.quadraticCurveTo(10, -8, -18, -8); ctx.quadraticCurveTo(-24, -8, -24, 0); ctx.quadraticCurveTo(-24, 8, -18, 8); ctx.quadraticCurveTo(10, 8, 24, 0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = c; ctx.fillRect(-6, -8, 5, 16); ctx.fillRect(12, -8, 4, 16);                                                               /* two thwarts */
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(2, -10); ctx.lineTo(-14, -30); ctx.moveTo(2, 10); ctx.lineTo(-14, 30); ctx.stroke();        /* the oars */
+  ctx.beginPath(); ctx.ellipse(-16, -33, 6, 3, 0.9, 0, Math.PI * 2); ctx.ellipse(-16, 33, 6, 3, -0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+/* a sailing boat whose waterline is at (x, y), at scale s; its footprint at s = 1 is about 78 by 76 */
+function sailboat(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-38, 0); ctx.lineTo(40, 0); ctx.lineTo(30, 14); ctx.quadraticCurveTo(0, 20, -26, 14); ctx.closePath(); ctx.fill();   /* the hull */
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -56); ctx.stroke();                                                                             /* the mast */
+  ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.moveTo(3, -52); ctx.lineTo(34, -8); ctx.lineTo(3, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3, -44); ctx.lineTo(-30, -8); ctx.lineTo(-3, -8); ctx.closePath(); ctx.fill(); ctx.stroke();                         /* the jib */
+  ctx.restore();
+}
+/* a skydiver spread-eagled, belly to the earth and seen from below, centred on (x, y) at scale s;
+   its footprint at s = 1 is about 92 by 112 */
+function skydiver(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const limb = (pts: readonly (readonly number[])[], w: number): void => { ctx.lineWidth = w; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke(); };
+  limb([[-11, -24], [-30, -34], [-46, -50]], 8); limb([[11, -24], [30, -34], [46, -50]], 8);
+  limb([[-7, 10], [-22, 30], [-36, 54]], 9); limb([[7, 10], [22, 30], [36, 54]], 9);
+  ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(-11, -26); ctx.lineTo(11, -26); ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -44, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 /* ---------- the label discipline ----------
    A label is set beside the thing it names and never on it. It starts one
    gap beyond the arrowhead, along the arrow's own direction; where that slot
@@ -467,8 +740,18 @@ function labeller(ctx: Ctx, H: Logical): Labeller {
     return { l, r: l + bw, t: y - bh / 2, b: y + bh / 2 };
   };
   const clash = (a: Box): boolean => placed.some((b) => a.l < b.r + 8 && b.l < a.r + 8 && a.t < b.b + 6 && b.t < a.b + 6);
-  return {
+  const missed: string[] = [];
+  const self: Labeller = {
     block(l, t, r, b) { placed.push({ l, t, r, b }); },
+    /* Beside the midpoint of a segment, on the side asked for: the label starts one
+       gap out along the segment's own normal and steps further out, with a leader,
+       where that slot is taken. `side` is 'left' or 'right' of the segment's
+       direction, or a sign for the same two. */
+    beside(seg, side, s, color, size) {
+      const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1, L = Math.hypot(dx, dy) || 1;
+      const sign = side === 'left' || side === -1 ? -1 : 1;
+      self.add(s, (seg.x1 + seg.x2) / 2, (seg.y1 + seg.y2) / 2, (sign * -dy) / L, (sign * dx) / L, color ?? PAL.ink, size, 22);
+    },
     add(s, hx, hy, ux, uy, color, size, start) {
       const sz = size || 20, gaps = [start || 20, 58, 96, 138, 184];
       const align: CanvasTextAlign = ux < -0.3 ? 'right' : ux > 0.3 ? 'left' : 'center';
@@ -479,32 +762,37 @@ function labeller(ctx: Ctx, H: Logical): Labeller {
         const dy = b.t < 16 ? 16 - b.t : b.b > H - 16 ? H - 16 - b.b : 0;
         if (dx || dy) { x += dx; y += dy; b = boxOf(s, x, y, sz, align); }
         if (clash(b) && i < gaps.length - 1) continue;
+        if (clash(b)) missed.push(s);   /* every slot was taken: it is drawn all the same, and flush reports it */
         placed.push(b); queue.push({ s, x, y, hx, hy, color, sz, align });
         return;
       }
     },
+    /* Draws the queue, text above the arrows, and hands back the labels that found no
+       clear slot, so a figure can say in its own check which ones to move by hand. */
     flush() {
       for (const q of queue) {
         const dx = q.x - q.hx, dy = q.y - q.hy, L = Math.hypot(dx, dy);
         if (L > 40) line(ctx, q.hx + (dx / L) * 15, q.hy + (dy / L) * 15, q.x - (dx / L) * 17, q.y - (dy / L) * 17, alpha(q.color, 0.5), 1.5, [5, 6]);
         text(ctx, q.s, q.x, q.y, q.color, { weight: 600, size: q.sz, align: q.align, bg: PAL.panel });
       }
+      return missed.slice();
     },
   };
+  return self;
 }
 /* a headline that never runs to the border: one line where it fits, and
    otherwise two, broken at the space that leaves the two halves most even */
-function topline(ctx: Ctx, s: string): 1 | 2 {
+function topline(ctx: Ctx, s: string, color?: Color): 1 | 2 {
   const wide = (t: string): number => { ctx.save(); ctx.font = '400 26px ' + FONT; const q = ctx.measureText(t).width; ctx.restore(); return q; };
-  if (wide(s) <= LW - 220) { headline(ctx, s); return 1; }
+  if (wide(s) <= LW - 220) { oneline(ctx, s, color); return 1; }
   const words = s.split(' ');
   let cut = 1, best = Infinity;
   for (let i = 1; i < words.length; i++) {
     const q = Math.abs(wide(words.slice(0, i).join(' ')) - wide(words.slice(i).join(' ')));
     if (q < best) { best = q; cut = i; }
   }
-  text(ctx, words.slice(0, cut).join(' '), LW / 2, 38, PAL.ink, { size: 26, align: 'center' });
-  text(ctx, words.slice(cut).join(' '), LW / 2, 74, PAL.ink, { size: 26, align: 'center' });
+  text(ctx, words.slice(0, cut).join(' '), LW / 2, 38, color ?? PAL.ink, { size: 26, align: 'center' });
+  text(ctx, words.slice(cut).join(' '), LW / 2, 74, color ?? PAL.ink, { size: 26, align: 'center' });
   return 2;
 }
 
@@ -850,7 +1138,8 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, car, plane, dragster, spring, block, fixed, view, face, FONT,
+  register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
+  label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
 };
 export type Fig = typeof FIG;
 

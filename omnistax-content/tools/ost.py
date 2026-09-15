@@ -121,8 +121,8 @@ TABLES: dict[TableName, Table] = {
         "figure": _f(kind="obj"), "prompt": _f(True), "answer": _f(True, kind="obj")},
         ("id", "kind", "bloom", "place", "prompt")),
     "exercise_concepts": Table("section", ("exercise", "concept"), {
-        "exercise": _f(True), "concept": _f(True), "weight": _f(kind="num")},
-        ("exercise", "concept", "weight")),
+        "exercise": _f(True), "concept": _f(True), "weight": _f(kind="num"), "weights_by": _f(enum=("ai",))},
+        ("exercise", "concept", "weight", "weights_by")),
 }
 
 KINDS_OK = {"str": str, "num": (int, float), "bool": bool, "list": list, "obj": dict}

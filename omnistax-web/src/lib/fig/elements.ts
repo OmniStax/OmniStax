@@ -9,7 +9,12 @@
    black and would vanish on a dark page, so it takes a dark gray in light and a
    mid gray in dark. The map carries the ten elements Chemistry 2e names in its
    captions and the rest of the CPK table the later chapters draw, with an
-   "other" fallback for anything unlisted. */
+   "other" fallback for anything unlisted. The three particles a physics
+   figure draws on their own, the electron, the proton and the neutron, are
+   keyed with their charge sign ("e-", "p+", "n0") so that no HTML tag can
+   collide with them; a charge's sign is told by the label and the sign, and
+   these hues are the particle's identity, never a stand-in for the charge
+   type's hue. */
 import type { Color } from './figlib';
 
 /* An element's symbol as the periodic table writes it: "H", "Cl", "Na". */
@@ -56,6 +61,10 @@ export const ELEMENTS: Readonly<Record<string, ElementHues>> = {
   Zn: { light: '#6E7B8B', dark: '#A3B1C2' },
   Au: { light: '#B58B18', dark: '#E3BE4A' },
   Ag: { light: '#7E8A97', dark: '#B8C2CC' },
+  /* The particles physics draws on their own. */
+  'e-': { light: '#2B5BD7', dark: '#6E93F5' },   /* electron: the blue convention */
+  'p+': { light: '#D93025', dark: '#F0564B' },   /* proton: the red convention */
+  'n0': { light: '#6B7280', dark: '#9CA3AF' },   /* neutron: gray */
   other: { light: '#B05C8E', dark: '#E08CBC' },
 };
 
