@@ -160,9 +160,14 @@ export const formulasOf = (chapter: ChapterDTO): FormulasDTO => ({ variables: ch
 /* Where a page stands: the address the site serves it at, and its page at the publisher, where the book keeps one. */
 type PagePlace = { readonly url: string; readonly openstax?: string };
 
-const metaOf = (s: SectionDTO, place: PagePlace): SectionMetaDTO => ({
-  id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: s.lead, objectives: s.objectives,
-  summaryHtml: s.summaryHtml, notes: s.notes, binds: bindsOf(s.figures), ai: s.ai, openstax: place.openstax,
+/* Every reader-facing string of a page is swept for math, not only the prose and the
+   summary: the book writes $v$ in a lead and in the notes under the footer exactly as it
+   writes it in a sentence, and a page that left one unswept printed the dollars. The swept
+   strings reach the page as HTML, which is what their two readers — the article's own lead
+   and the attribution footer — already set them as. */
+export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => string): SectionMetaDTO => ({
+  id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: render(s.lead), objectives: s.objectives,
+  summaryHtml: s.summaryHtml, notes: render(s.notes), binds: bindsOf(s.figures), ai: s.ai, openstax: place.openstax,
 });
 
 /* One page's folder read into a source, or nothing where the folder holds no page. */
@@ -175,7 +180,7 @@ const loadPage = async (dir: string, place: PagePlace, macros: MacroMap): Promis
   ]);
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place), textHtml: prerenderMath(text, macros), summaryHtml: rendered(dto.summaryHtml), figuresJs,
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered), textHtml: prerenderMath(text, macros), summaryHtml: rendered(dto.summaryHtml), figuresJs,
     figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
   };
 };

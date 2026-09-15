@@ -79,7 +79,7 @@ Prep for the next wave starts while the current wave's sections build.
 | 2 | 7, 8, 9 | 22 | all built 2026-09-11; Chapter 7's pass done (LOG pass 28), passes of 8 and 9 still owed |
 | 3 | 10, 11, 12 | 23 | built 2026-09-14 (LOG passes 35 to 37) |
 | 4 | 13, 14, 15 | 20 | built 2026-09-14 (LOG passes 38 to 40) |
-| 5 | 17, 18, 19 | 22 | |
+| 5 | 17, 18, 19 | 22 | built 2026-09-14 and 15 (LOG passes 42 to 44), with 16.7 to 16.11 (pass 41) |
 | 6 | 20, 21, 22 | 24 | |
 | 7 | 23, 24, 25 | 23 | |
 | 8 | 26, 27, 28 | 21 | |
@@ -223,3 +223,29 @@ carry math; `p.tnote` (a table footnote) has no style; a segmented control
 of four options wraps to a grid and its labels clip past about sixteen
 characters. Left for a later pass: a constants and materials sheet
 (Tables 11.1 to 11.3, 13.2, 14.1 to 14.4). Next: wave 5 (17, 18, 19).
+
+**2026-09-14 and 15, wave 5 built, and the figure sweep.** Chapter 16's
+last five sections, which the early passes had never built, went first
+(LOG pass 41), then Chapters 17, 18 and 19 (passes 43, 42, 44); the
+types intensity, charge, electric field, voltage and capacitance, and
+twenty-nine in all. In the middle of the wave Chen looked at the figures
+and said they did not look good enough, so every interactive figure of
+Chapters 1 to 19 got a Fable 5.1 pass, one agent per chapter under the
+cap of eight: people redrawn as filled silhouettes with limbs thinner
+than force arrows, objects at recognisable fidelity, labels off their
+lines and inside the canvas at every slider position, scenes on one
+fixed scale, and every figure Chen named in his list fixed. What the
+passes kept hand-drawing went into figlib in two rounds (the
+silhouette with poses and a stride, twenty sprites, clamped labels, a
+headline that wraps, brackets with a side, a graph-corner note, angle
+arcs, a fixed-scale helper, a vector triangle, a cable round pulleys,
+a headline on a 3D stage). App fixes on the way: the element palette
+names the electron, proton and neutron; a lead or note is swept for
+math; the schema and the content tool accept the weights_by mark; an
+untyped LaTeX may begin with a backslash k; the scheme is being reworked
+so that twenty-nine types stay legible and distinct on both themes. The
+usage limit cut the job twice, once on Fable and once on everything at
+the session cap, and each time the agents were resumed from disk.
+Left for Chen: 19.4 carries no problems because all ten are unkeyed
+sketches; the election of a hue for pressure once the scheme lands.
+Next: wave 6 (20, 21, 22).

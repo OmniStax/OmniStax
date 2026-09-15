@@ -9,7 +9,7 @@
 import ShellPage from './ShellPage.astro';
 import { config } from '../../omnistax.config';
 import { type BookTree, type ChapterTree, type SectionSource, pageNav } from '../lib/content/load';
-import { fragment } from '../lib/content/fragment';
+import { fragment, plainText } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
 import { pageLabel } from '../lib/content/roles';
 import { docItem, sectionId } from '../lib/types/ids';
@@ -21,7 +21,8 @@ const sec = section.meta;
 const canonical = new URL(section.url, config.site.baseUrl).href;
 const label = pageLabel(sec);
 const title = `${label} · ${book.title}`;
-const description = sec.objectives.join(' ') || sec.lead || sec.title;
+/* The lead is swept for math on the way in, so the head's description takes it back to plain text. */
+const description = sec.objectives.join(' ') || plainText(sec.lead) || sec.title;
 /* The pages before and after this one among the built pages of the book, in its reading order: the head names them and the text ends on them. */
 const nav = pageNav(tree, section);
 const credit = attributionOf(book, sec);

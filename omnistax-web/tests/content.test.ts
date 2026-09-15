@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
-import { bindsOf, conceptsOfChapter, coverageOf, exercisesOf } from '../src/lib/content/load';
+import { bindsOf, conceptsOfChapter, coverageOf, exercisesOf, metaOf } from '../src/lib/content/load';
+import { prerenderMath } from '../src/lib/math/prerender';
 
 /* The tables as the three files write them, small enough to read whole: a book
    whose chapter 16 rests on a chapter 2 that has been built and on a chapter 4
@@ -88,4 +89,23 @@ test('an exercise carries the concepts it tests, and the points the pipeline gav
   assert.deepEqual(p1.concepts, ['hookes-law', 'displacement']);
   assert.deepEqual(p1.weights, { 'hookes-law': 5 });
   assert.deepEqual(p1.place, { at: 'end' });
+});
+
+/* Every reader-facing string of section.json is swept for math on the way in, not only the
+   prose and the summary: a lead or a footer note that writes $F = kx$ reaches the page as
+   rendered markup, the way the text does, rather than printing its dollars. */
+test('the lead and the notes are swept for math like the text', () => {
+  const dto = SectionSchema.parse({
+    id: '16.1', chapter: '16', title: 'Hooke’s Law', built: '2026-09-07',
+    lead: 'The restoring force $F = -kx$ grows with the stretch.',
+    notes: 'The deformation table was left out; $x$ is measured from the rest length.',
+  });
+  const meta = metaOf(dto, { url: '/x/' }, (h) => prerenderMath(h, {}));
+  assert.ok(!meta.lead.includes('$'), 'the lead carries no dollars');
+  assert.ok(meta.lead.includes('katex'), 'the lead carries rendered math');
+  assert.ok(meta.lead.startsWith('The restoring force '), 'the words around the math are kept');
+  assert.ok(!meta.notes.includes('$') && meta.notes.includes('katex'), 'the notes are swept the same way');
+  /* a page with neither stays empty, so the footer and the lead are still left off */
+  const bare = SectionSchema.parse({ id: '16.3', chapter: '16', title: 'Simple Harmonic Motion', built: '2026-09-07' });
+  assert.equal(metaOf(bare, { url: '/y/' }, (h) => (h ? prerenderMath(h, {}) : '')).lead, '');
 });

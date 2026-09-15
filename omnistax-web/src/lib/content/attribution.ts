@@ -16,7 +16,7 @@ export type Attribution = {
   readonly sourceUrl?: string;      /* this section at the publisher */
   readonly license: string;
   readonly licenseUrl?: string;
-  readonly notes: string;           /* what this section left out, one sentence, from section.json */
+  readonly notes: string;           /* what this section left out, one sentence, from section.json, swept for math and so already HTML */
   readonly ai?: AiCreditDTO;        /* who transformed the text and who built the simulations, from section.json */
 };
 
@@ -70,6 +70,6 @@ export const footerHtml = (a: Attribution): string => {
   const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same licence.`;
   const access = a.sourceUrl ? ` Access for free at ${link(a.sourceUrl, esc(bare(a.sourceUrl)))}.` : '';
   const ai = a.ai ? `<p>${esc(aiSentence(a.ai))}</p>` : '';
-  const notes = a.notes ? `<p>${esc(a.notes)}</p>` : '';
+  const notes = a.notes ? `<p>${a.notes}</p>` : '';   /* swept for math on the way in, so it is set as it stands */
   return `<footer class="footer"><p>${credit}${access}</p>${ai}${notes}</footer>`;
 };

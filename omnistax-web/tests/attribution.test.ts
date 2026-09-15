@@ -48,9 +48,11 @@ test('footer without optional fields still reads', () => {
   assert.doesNotMatch(html, /Access for free/);
   assert.doesNotMatch(html, /<p><\/p>/);
 });
-test('footer escapes content fields', () => {
-  const html = footerHtml(attributionOf({ ...book, title: 'A <b>' }, { openstax: AT, notes: 'x < y & "z"', ai: undefined }));
-  assert.match(html, /<cite>A &lt;b&gt;<\/cite>/); assert.match(html, /x &lt; y &amp; &quot;z&quot;/);
+test('footer escapes the book\u2019s own fields and sets the notes as the swept markup they are', () => {
+  const html = footerHtml(attributionOf({ ...book, title: 'A <b>' }, { openstax: AT, notes: 'measured from <span class="katex">x</span>', ai: undefined }));
+  assert.match(html, /<cite>A &lt;b&gt;<\/cite>/);
+  /* the notes are swept for math when the page is read, so the footer sets them rather than escaping them away */
+  assert.match(html, /<p>measured from <span class="katex">x<\/span><\/p>/);
 });
 test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, { openstax: AT, notes: '', ai: undefined })),

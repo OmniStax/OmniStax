@@ -19,12 +19,16 @@ type Cycle = { tau: number; wait: number; period: () => number; step: (dt: numbe
 type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
 type Label = { s: string; x: Logical; y: Logical; hx: Logical; hy: Logical; color: Color; sz: number; align: CanvasTextAlign };
 export type Seg = { readonly x1: Logical; readonly y1: Logical; readonly x2: Logical; readonly y2: Logical };
+export type BesideOpts = { offset?: number; gap?: Logical };   /* where along the line the label sits, 0 at the tail and 1 at the head, and how far out it starts */
 export type Labeller = {
   block: (l: Logical, t: Logical, r: Logical, b: Logical) => void;
   add: (s: string, hx: Logical, hy: Logical, ux: number, uy: number, color: Color, size?: number, start?: number) => void;
-  beside: (seg: Seg, side: 'left' | 'right' | number, s: string, color?: Color, size?: number) => void;
+  beside: (seg: Seg, side: 'left' | 'right' | number, s: string, color?: Color, size?: number, o?: BesideOpts) => void;
+  place: (box: LabelBox, s?: string) => LabelBox;
+  halo: (seg: Seg, w?: Logical) => void;
   flush: () => string[];
 };
+export type LabelBox = { readonly l: Logical; readonly r: Logical; readonly t: Logical; readonly b: Logical };
 export type Vec3 = readonly [number, number, number];   /* a point or direction in the scene: y up, z toward the viewer */
 export type Pt = readonly [Logical, Logical];                 /* a projected point on the canvas */
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
@@ -567,9 +571,13 @@ function angleArc(ctx: Ctx, p: { x: Logical; y: Logical }, r: Logical, a0: numbe
    a set of joints; any joint given in the options overrides the pose's own. */
 export type Joint = { x: Logical; y: Logical };
 export type Pose = 'stand' | 'walk' | 'run' | 'lean' | 'crouch' | 'push' | 'pull' | 'sit' | 'reach';
-type Skeleton = { hip: Joint; shoulder: Joint; head: Joint; feet: readonly [Joint, Joint]; hands: readonly [Joint, Joint]; kneeSide?: number; elbowSide?: number };
-type SilhouetteOpts = Partial<Skeleton> & { x: Logical; y: Logical; s?: number; face?: number; pose?: Pose; color?: Color };
+/* The side each knee is thrown to: one sign for both legs, or one for the near leg and
+   one for the far leg, which is what a frontal crouch needs. */
+export type KneeSide = number | readonly [number, number];
+type Skeleton = { hip: Joint; shoulder: Joint; head: Joint; feet: readonly [Joint, Joint]; hands: readonly [Joint, Joint]; kneeSide?: KneeSide; elbowSide?: number };
+type SilhouetteOpts = Partial<Skeleton> & { x: Logical; y: Logical; s?: number; face?: number; pose?: Pose; color?: Color; phase?: number; front?: boolean };
 const SIL_H = 150;
+const ARM = 60;                  /* the reach of an arm, shoulder to hand */
 const POSES: Readonly<Record<Pose, Skeleton>> = {
   stand: { hip: { x: 0, y: -72 }, shoulder: { x: 2, y: -118 }, head: { x: 6, y: -140 }, feet: [{ x: 9, y: 0 }, { x: -9, y: 0 }], hands: [{ x: 9, y: -76 }, { x: -6, y: -76 }] },
   walk: { hip: { x: 0, y: -72 }, shoulder: { x: 4, y: -118 }, head: { x: 9, y: -140 }, feet: [{ x: 24, y: 0 }, { x: -24, y: 0 }], hands: [{ x: 20, y: -76 }, { x: -16, y: -80 }] },
@@ -581,6 +589,13 @@ const POSES: Readonly<Record<Pose, Skeleton>> = {
   sit: { hip: { x: -10, y: -46 }, shoulder: { x: -6, y: -92 }, head: { x: -2, y: -112 }, feet: [{ x: 36, y: 0 }, { x: 28, y: 0 }], hands: [{ x: 8, y: -52 }, { x: 2, y: -50 }] },
   reach: { hip: { x: 0, y: -72 }, shoulder: { x: 4, y: -116 }, head: { x: 10, y: -136 }, feet: [{ x: 10, y: 0 }, { x: -12, y: 0 }], hands: [{ x: 38, y: -148 }, { x: 32, y: -144 }] },
 };
+/* How far the feet and the hands swing, and how high the leading foot lifts, in the two
+   poses that carry a stride. `phase` runs 0 to 1 over one full cycle: at 0 the figure
+   stands square, at a quarter the near foot is forward and the near hand back. */
+const STRIDE: Partial<Record<Pose, { foot: Logical; hand: Logical; lift: Logical }>> = {
+  walk: { foot: 24, hand: 18, lift: 6 },
+  run: { foot: 32, hand: 30, lift: 12 },
+};
 /* the bend of a two-segment limb from a to b, lengths l1 and l2, the joint thrown to the side given */
 function bend(a: Joint, b: Joint, l1: number, l2: number, side: number): Joint {
   const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
@@ -588,29 +603,64 @@ function bend(a: Joint, b: Joint, l1: number, l2: number, side: number): Joint {
   const q = (l1 * l1 - l2 * l2 + L * L) / (2 * L), h = Math.sqrt(Math.max(0, l1 * l1 - q * q));
   return { x: a.x + (dx * q) / L - (dy * h * side) / L, y: a.y + (dy * q) / L + (dx * h * side) / L };
 }
+/* A hand asked for beyond the arm's reach is brought back to the reach along the same
+   direction, so an arm never straightens into a line longer than the body it belongs to:
+   a figure may name any grip it likes and the drawing stays a person. */
+const capped = (a: Joint, b: Joint, reach: number): Joint => {
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+  return L <= reach ? b : { x: a.x + (dx / L) * reach, y: a.y + (dy / L) * reach };
+};
+/* a joint the caller named, ignoring one passed as undefined so that a figure may write
+   `kneeSide: front ? 1 : undefined` without losing the pose's own joint */
+const given = <T>(v: T | undefined, fallback: T): T => (v === undefined ? fallback : v);
+/* the feet and hands of a stride at phase p, where the pose carries one and the caller has not set them */
+function strideOf(pose: Pose, base: Skeleton, p: number): Pick<Skeleton, 'feet' | 'hands'> {
+  const st = STRIDE[pose]; if (!st) return { feet: base.feet, hands: base.hands };
+  const sw = Math.sin(p * 2 * Math.PI), sx = base.shoulder.x;
+  return {
+    feet: [{ x: st.foot * sw, y: -st.lift * Math.max(0, sw) }, { x: -st.foot * sw, y: -st.lift * Math.max(0, -sw) }],
+    hands: [{ x: sx - st.hand * sw, y: base.hands[0].y }, { x: sx + st.hand * sw, y: base.hands[1].y }],
+  };
+}
 function drawSilhouette(ctx: Ctx, o: SilhouetteOpts): void {
-  const base = POSES[o.pose ?? 'stand'], s = o.s ?? 1, face = o.face ?? 1, color = o.color ?? PAL.ink;
-  const P: Skeleton = { ...base, ...o } as Skeleton;
+  const pose = o.pose ?? 'stand', base = POSES[pose], s = o.s ?? 1, face = o.face ?? 1, color = o.color ?? PAL.ink;
+  const swung = o.phase === undefined ? { feet: base.feet, hands: base.hands } : strideOf(pose, base, o.phase);
+  const hip = given(o.hip, base.hip), shoulder = given(o.shoulder, base.shoulder);
+  const feet = given(o.feet, swung.feet), hands0 = given(o.hands, swung.hands);
+  const P: Skeleton = {
+    hip, shoulder, head: given(o.head, base.head), feet,
+    hands: [capped(shoulder, hands0[0], ARM), capped(shoulder, hands0[1], ARM)],
+    kneeSide: given(o.kneeSide, base.kneeSide), elbowSide: given(o.elbowSide, base.elbowSide),
+  };
   /* the limb stroke is set in canvas units and never passes 3, so every limb stays thinner than a force arrow */
   const W = Math.min(3, 3 * s) / (s || 1);
   ctx.save(); ctx.translate(o.x, o.y); ctx.scale(s * face, s); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const limb = (a: Joint, b: Joint, l1: number, l2: number, side: number, k: number): void => {
     const j = bend(a, b, l1, l2, side); ctx.lineWidth = W * k; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(j.x, j.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   };
-  const ks = P.kneeSide ?? -1, es = P.elbowSide ?? 1;
-  limb(P.hip, P.feet[1], 38, 38, ks, 2.6); limb(P.shoulder, P.hands[1], 30, 30, es, 2.1);
+  /* one knee side for both legs, or one apiece; `front` splays them outward, which is
+     how a crouch reads when the figure faces the reader rather than the side */
+  const ks = P.kneeSide ?? (o.front ? ([1, -1] as const) : -1), es = P.elbowSide ?? 1;
+  const knee = (i: number): number => (typeof ks === 'number' ? ks : ks[i]);
+  limb(P.hip, P.feet[1], 38, 38, knee(1), 2.6); limb(P.shoulder, P.hands[1], 30, 30, es, 2.1);
   const tx = P.shoulder.x - P.hip.x, ty = P.shoulder.y - P.hip.y, L = Math.hypot(tx, ty) || 1, nx = -ty / L, ny = tx / L;
   ctx.lineWidth = W; ctx.beginPath();
   ctx.moveTo(P.hip.x + nx * 7, P.hip.y + ny * 7); ctx.lineTo(P.shoulder.x + nx * 11, P.shoulder.y + ny * 11);
   ctx.lineTo(P.shoulder.x - nx * 11, P.shoulder.y - ny * 11); ctx.lineTo(P.hip.x - nx * 7, P.hip.y - ny * 7); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.lineWidth = W * 2; ctx.beginPath(); ctx.moveTo(P.shoulder.x, P.shoulder.y); ctx.lineTo(P.head.x, P.head.y); ctx.stroke();
   ctx.beginPath(); ctx.arc(P.head.x, P.head.y, 12, 0, Math.PI * 2); ctx.fill();
-  limb(P.hip, P.feet[0], 38, 38, ks, 3); limb(P.shoulder, P.hands[0], 30, 30, es, 2.4);
+  limb(P.hip, P.feet[0], 38, 38, knee(0), 3); limb(P.shoulder, P.hands[0], 30, 30, es, 2.4);
   ctx.restore();
 }
 /* `F.silhouette.height(s)` is the person's height in canvas units, so a scene with a
-   scale of its own places the feet and asks the library how tall the drawing stands. */
-const silhouette = Object.assign(drawSilhouette, { height: (s = 1): Logical => SIL_H * s, pose: (p: Pose): Skeleton => POSES[p] });
+   scale of its own places the feet and asks the library how tall the drawing stands.
+   `F.silhouette.reach(s)` is how far a hand may be set from the shoulder, and a hand
+   set further is drawn at the reach. */
+const silhouette = Object.assign(drawSilhouette, {
+  height: (s = 1): Logical => SIL_H * s,
+  reach: (s = 1): Logical => ARM * s,
+  pose: (p: Pose): Skeleton => POSES[p],
+});
 
 /* ---------- sprites with a stated footprint ----------
    Each takes its place and its size and draws in ink unless a colour is given, so a
@@ -720,6 +770,247 @@ function skydiver(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void 
   ctx.restore();
 }
 
+/* a fist gripping at (x, y) with the forearm reaching back along the unit vector (ux, uy):
+   a tapered forearm, a rounded fist, the knuckles along its leading edge and a thumb closed
+   over the grip. The grip point is the drawing's origin, so a figure sets it on the bar, the
+   rope or the rim it holds; its footprint at s = 1 reaches about 40 units ahead of the grip
+   and 115 back along (ux, uy), and about 25 either side. */
+function fist(ctx: Ctx, x: Logical, y: Logical, ux: number, uy: number, s = 1, color?: Color): void {
+  const L = Math.hypot(ux, uy) || 1, vx = ux / L, vy = uy / L, px = -vy, py = vx;
+  const c = color ?? PAL.ink, ang = Math.atan2(vy, vx);
+  const P = (a: number, b: number): readonly [Logical, Logical] => [x + vx * a * s + px * b * s, y + vy * a * s + py * b * s];
+  ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = c; ctx.lineWidth = 3.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(...P(26, 15)); ctx.lineTo(...P(112, 12)); ctx.lineTo(...P(112, -12)); ctx.lineTo(...P(26, -15)); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(...P(12, 0), 23 * s, 19 * s, ang, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  for (const b of [-11, 0, 11]) { ctx.beginPath(); ctx.arc(...P(-8, b), 5 * s, ang + Math.PI / 2, ang + (3 * Math.PI) / 2); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(...P(14, -16)); ctx.quadraticCurveTo(...P(-6, -22), ...P(-10, -4)); ctx.stroke();
+  ctx.restore();
+}
+/* a cart in side view: a body w by h whose floor rests on two wheels, centred on (x, y) with
+   the wheels standing on the line y + h / 2. Its footprint is w by h + 2 r, the wheels a
+   twelfth of the width, so a caller puts the track at y + h / 2 + 2 r. */
+function cart(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, color?: Color): void {
+  const c = color ?? PAL.ink, r = Math.max(6, Math.min(w, h) / 6);
+  block(ctx, x, y, w, h, c);
+  ctx.save(); ctx.fillStyle = c; ctx.beginPath();
+  ctx.arc(x - w / 2 + r + 4, y + h / 2 + r, r, 0, Math.PI * 2); ctx.arc(x + w / 2 - r - 4, y + h / 2 + r, r, 0, Math.PI * 2);
+  ctx.fill(); ctx.restore();
+}
+/* a person seen from above at (x, y), s times the base size: the shoulders as a lens across
+   `heading` radians counterclockwise from +x, the head on them, and the arms reaching to the
+   two points given, in canvas units. Its footprint at s = 1 is about 56 by 26, the reach apart. */
+function personTop(ctx: Ctx, x: Logical, y: Logical, s = 1, heading = 0, color?: Color, reach?: readonly [Joint, Joint]): void {
+  const c = color ?? PAL.ink, ux = Math.cos(heading), uy = Math.sin(heading), px = -uy, py = ux;
+  const L: Joint = { x: x + px * 24 * s, y: y + py * 24 * s }, R: Joint = { x: x - px * 24 * s, y: y - py * 24 * s };
+  ctx.save(); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineCap = 'round'; ctx.lineWidth = 3;
+  if (reach) for (const [sh, to] of [[L, reach[0]], [R, reach[1]]] as const) { ctx.lineWidth = 7 * Math.min(1, s); ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(to.x, to.y); ctx.stroke(); }
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 26 * s, 11 * s, heading, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.arc(x + ux * 3 * s, y + uy * 3 * s, 12 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+/* a motorcycle in side view facing right, its wheel hubs on the line y and its wheelbase s
+   times the base 300 units: two wheels, a swing arm and a fork, an engine, a tank, a seat,
+   fenders, a headlight, handlebars, an exhaust and a footpeg. (x, y) is the rear hub, and its
+   footprint at s = 1 is about 330 wide and 200 tall, the wheels of radius 52 included. */
+function motorcycle(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const rw = 52, rear = 0, front = 300, bx = 150;
+  ctx.strokeStyle = c; ctx.fillStyle = PAL.soft;
+  for (const h of [rear, front]) { ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(h, 0, rw, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  line(ctx, rear, 0, bx - 46, -34, c, 7);                                        /* the swing arm */
+  line(ctx, front, 0, front - 34, -116, c, 7);                                   /* the fork */
+  ctx.strokeStyle = c; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(rear, 0, rw + 12, -2.55, -0.75); ctx.stroke();        /* the rear fender */
+  ctx.beginPath(); ctx.arc(front, 0, rw + 12, -2.45, -0.55); ctx.stroke();       /* the front fender */
+  line(ctx, bx - 4, -12, rear + 34, -2, c, 8);                                   /* the exhaust */
+  ctx.fillStyle = PAL.soft; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.rect(bx - 62, -74, 104, 64); ctx.fill(); ctx.stroke();    /* the engine */
+  ctx.beginPath(); ctx.moveTo(bx - 32, -84); ctx.lineTo(bx - 32, -100); ctx.quadraticCurveTo(bx + 14, -134, bx + 84, -106);
+  ctx.lineTo(bx + 78, -84); ctx.closePath(); ctx.fill(); ctx.stroke();           /* the tank */
+  ctx.fillStyle = c;
+  ctx.beginPath(); ctx.moveTo(bx - 30, -100); ctx.lineTo(bx - 138, -92); ctx.quadraticCurveTo(bx - 152, -108, bx - 130, -112);
+  ctx.lineTo(bx - 34, -110); ctx.closePath(); ctx.fill();                        /* the seat */
+  ctx.fillStyle = PAL.soft; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(front - 40, -126, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();   /* the headlight */
+  line(ctx, front - 66, -118, front - 14, -128, c, 6);                           /* the handlebars */
+  line(ctx, bx - 4, 4, bx + 24, 4, c, 5);                                        /* the footpeg */
+  ctx.restore();
+}
+/* a helicopter in side view, nose to the right, centred on its cabin at (x, y) at scale s; the
+   main rotor is a bar the caller may turn by drawing over it. Its footprint at s = 1 is about
+   215 by 110, from the tail rotor to the nose and from the rotor disc to the skids. */
+function helicopterSide(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = PAL.soft; ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-40, -12); ctx.lineTo(-152, -2); ctx.lineTo(-152, 8); ctx.lineTo(-36, 20); ctx.closePath(); ctx.fill(); ctx.stroke();       /* the tail boom */
+  ctx.beginPath(); ctx.moveTo(-150, -2); ctx.lineTo(-162, -44); ctx.lineTo(-142, -44); ctx.lineTo(-136, -2); ctx.closePath(); ctx.fill(); ctx.stroke();   /* the fin */
+  ctx.beginPath(); ctx.moveTo(-152, -26); ctx.lineTo(-152, -62); ctx.stroke();                                                   /* the tail rotor */
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(-152, -44, 3, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = PAL.soft;
+  ctx.beginPath(); ctx.moveTo(-48, -30); ctx.quadraticCurveTo(20, -42, 60, -12); ctx.quadraticCurveTo(80, 10, 52, 28);           /* the cabin */
+  ctx.lineTo(-30, 30); ctx.quadraticCurveTo(-58, 22, -48, -30); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = alpha(c, 0.28); ctx.beginPath(); ctx.moveTo(6, -32); ctx.quadraticCurveTo(46, -30, 64, -8); ctx.lineTo(6, -8); ctx.closePath(); ctx.fill();   /* the window */
+  ctx.strokeStyle = c; ctx.beginPath(); ctx.moveTo(-20, 30); ctx.lineTo(-26, 46); ctx.moveTo(28, 30); ctx.lineTo(34, 46); ctx.moveTo(-46, 46); ctx.lineTo(56, 46); ctx.stroke();   /* the skids */
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-2, -34); ctx.lineTo(-2, -44); ctx.moveTo(-58, -44); ctx.lineTo(54, -44); ctx.stroke();                 /* the mast and the rotor */
+  ctx.restore();
+}
+/* a roller-coaster car with one rider in side view, its wheels on the rail at (x, y) and its
+   floor level; its footprint at s = 1 is about 62 wide and 58 tall above the rail. A car on a
+   banked or looping rail is drawn by turning the context about (x, y) first. */
+function coasterCar(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.strokeStyle = c; ctx.fillStyle = PAL.panel; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-30, -6); ctx.lineTo(-26, -34); ctx.lineTo(26, -34); ctx.lineTo(30, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(-18, -4, 5, 0, Math.PI * 2); ctx.arc(18, -4, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(2, -48, 8, 0, Math.PI * 2); ctx.fill();                                    /* the rider's head */
+  ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(2, -40); ctx.lineTo(2, -30); ctx.stroke();
+  ctx.restore();
+}
+/* a cardboard box centred on (x, y), filling w by h on the front face, with the lid's flaps and
+   the tape drawn in perspective above it. Its footprint is w + h / 4 by h + h / 4, the perspective
+   depth running up and to the right, so a caller that must clear the whole drawing allows for it. */
+function cardboardBox(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, color?: Color): void {
+  const c = color ?? PAL.ink, l = x - w / 2, r = x + w / 2, t = y - h / 2, b = y + h / 2, dp = Math.max(8, h / 4);
+  ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.fillStyle = PAL.soft; ctx.beginPath(); ctx.rect(l, t, w, h); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = alpha(c, 0.35); ctx.beginPath(); ctx.moveTo(r, t); ctx.lineTo(r + dp, t - dp); ctx.lineTo(r + dp, b - dp); ctx.lineTo(r, b); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = alpha(c, 0.12); ctx.beginPath(); ctx.moveTo(l, t); ctx.lineTo(l + dp, t - dp); ctx.lineTo(r + dp, t - dp); ctx.lineTo(r, t); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(l + dp / 2, t - dp / 2); ctx.lineTo(r + dp / 2, t - dp / 2); ctx.stroke();      /* the seam */
+  ctx.fillStyle = PAL.panel; ctx.strokeStyle = alpha(c, 0.6); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x - 7, t); ctx.lineTo(x - 7 + dp, t - dp); ctx.lineTo(x + 7 + dp, t - dp); ctx.lineTo(x + 7, t); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(x - 7, t, 14, h); ctx.fill(); ctx.stroke();                                                          /* the tape */
+  ctx.restore();
+}
+/* a foam cup lying on its side, its mouth at (x, y) and its base s times 84 units to the right:
+   the drink a cooling problem pours. Its footprint at s = 1 is about 84 by 66, above (x, y). */
+function cupOnSide(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.strokeStyle = c; ctx.fillStyle = PAL.panel; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -66); ctx.lineTo(84, -52); ctx.lineTo(84, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(4, -2); ctx.lineTo(4, -64); ctx.stroke();                     /* the rim */
+  ctx.lineWidth = 2; ctx.strokeStyle = PAL.muted; ctx.beginPath(); ctx.moveTo(72, -50); ctx.lineTo(72, -2); ctx.stroke();
+  ctx.restore();
+}
+/* a classical guitar lying on its side, nut to the left and bridge to the right, its string along
+   the line y at scale s: the body a figure of eight, the neck with its frets, the sound hole, the
+   headstock and its pegs. Its footprint at s = 1 is about 980 by 280, from (x, y) at the headstock;
+   `F.guitar.string(x, s)` gives the two ends of the string a figure then plucks itself. */
+function guitar(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = PAL.soft; ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  const nut = 84, bridge = 834, bl = 494, br = 974;
+  ctx.beginPath(); ctx.moveTo(bl + 26, -70);
+  ctx.bezierCurveTo(bl - 10, -70, bl - 10, 70, bl + 26, 70);
+  ctx.bezierCurveTo(bl + 90, 100, bl + 150, 100, bl + 200, 66);
+  ctx.bezierCurveTo(bl + 250, 40, bl + 300, 40, bl + 340, 80);
+  ctx.bezierCurveTo(bl + 400, 135, br + 30, 110, br, 0);
+  ctx.bezierCurveTo(br + 30, -110, bl + 400, -135, bl + 340, -80);
+  ctx.bezierCurveTo(bl + 300, -40, bl + 250, -40, bl + 200, -66);
+  ctx.bezierCurveTo(bl + 150, -100, bl + 90, -100, bl + 26, -70);
+  ctx.closePath(); ctx.fill(); ctx.stroke();                                                    /* the body */
+  ctx.beginPath(); ctx.moveTo(nut, -22); ctx.lineTo(12, -32); ctx.lineTo(0, -18); ctx.lineTo(0, 18); ctx.lineTo(12, 32); ctx.lineTo(nut, 22); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 2; for (const px of [20, 42, 64]) { ctx.beginPath(); ctx.moveTo(px, -26); ctx.lineTo(px, -46); ctx.moveTo(px - 6, -46); ctx.lineTo(px + 6, -46); ctx.stroke(); }
+  ctx.lineWidth = 3; ctx.fillStyle = alpha(c, 0.12); ctx.beginPath(); ctx.rect(nut, -19, 500, 38); ctx.fill(); ctx.stroke();      /* the neck */
+  ctx.lineWidth = 2; for (let i = 1; i <= 14; i++) { const fx = nut + 520 * (1 - Math.pow(2, -i / 12)); ctx.beginPath(); ctx.moveTo(fx, -19); ctx.lineTo(fx, 19); ctx.stroke(); }
+  ctx.fillStyle = PAL.muted; for (const i of [3, 5, 7, 9, 12]) { const fx = nut + 520 * (1 - Math.pow(2, -(i - 0.5) / 12)); ctx.beginPath(); ctx.arc(fx, 9, 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = alpha(c, 0.55); ctx.strokeStyle = PAL.muted; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(656, 0, 42, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(656, 0, 36, 0, Math.PI * 2); ctx.fill();                                                              /* the sound hole */
+  ctx.fillStyle = c; ctx.fillRect(nut - 5, -24, 10, 48); ctx.fillRect(bridge - 10, -50, 20, 100);                                /* the nut and the bridge */
+  ctx.fillStyle = PAL.panel; for (const o of [-36, -18, 0, 18, 36]) { ctx.beginPath(); ctx.arc(bridge, o, 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+/* the two ends of the string of a guitar drawn at (x, y) at scale s: the nut and the bridge,
+   in canvas units, which is what a figure that plucks the string needs */
+const guitarSprite = Object.assign(guitar, { string: (x: Logical, s = 1): { nut: Logical; bridge: Logical } => ({ nut: x + 84 * s, bridge: x + 834 * s }) });
+/* a book standing closed, filling w by h centred on (x, y): a cover, a spine and its pages */
+function book(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, color?: Color): void {
+  const c = color ?? PAL.ink, l = x - w / 2, t = y - h / 2;
+  ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.fillRect(l, t, w, h); ctx.strokeRect(l, t, w, h);
+  ctx.fillStyle = c; ctx.fillRect(l, t, w, Math.max(5, h / 12));                                  /* the cover */
+  ctx.strokeStyle = PAL.muted; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let q = t + h / 6; q < t + h - 4; q += Math.max(5, h / 9)) { ctx.moveTo(l + 6, q); ctx.lineTo(l + w - 6, q); }
+  ctx.stroke(); ctx.restore();
+}
+/* a backpack hanging by its straps, the top of the pack at (x, y) and s times the base size:
+   a rounded pack, a lid with its buckle and two shoulder straps. Its footprint at s = 1 is
+   about 96 wide and 130 tall below (x, y), the straps included. */
+function backpack(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void {
+  const c = color ?? PAL.ink;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = PAL.soft; ctx.strokeStyle = c; ctx.lineWidth = 3.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-40, 8); ctx.quadraticCurveTo(-48, 0, -40, -6); ctx.quadraticCurveTo(0, -26, 40, -6);
+  ctx.quadraticCurveTo(48, 0, 40, 8); ctx.lineTo(44, 96); ctx.quadraticCurveTo(44, 112, 28, 112);
+  ctx.lineTo(-28, 112); ctx.quadraticCurveTo(-44, 112, -44, 96); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = alpha(c, 0.22); ctx.beginPath(); ctx.moveTo(-42, 24); ctx.quadraticCurveTo(0, 42, 42, 24); ctx.lineTo(42, 8);
+  ctx.quadraticCurveTo(0, -18, -42, 8); ctx.closePath(); ctx.fill(); ctx.stroke();                 /* the lid */
+  ctx.fillStyle = c; ctx.fillRect(-9, 26, 18, 14);                                                 /* the buckle */
+  ctx.fillStyle = alpha(c, 0.18); ctx.beginPath(); ctx.moveTo(-26, 58); ctx.lineTo(26, 58); ctx.lineTo(26, 96); ctx.quadraticCurveTo(0, 104, -26, 96); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-22, 2); ctx.quadraticCurveTo(-56, 30, -34, 96); ctx.moveTo(22, 2); ctx.quadraticCurveTo(56, 30, 34, 96); ctx.stroke();   /* the straps */
+  ctx.restore();
+}
+
+/* ---------- two vectors from one tail ----------
+   A difference of vectors is read twice: once with both drawn from the same tail, where the
+   difference closes the triangle between their heads, and once with that difference set out on
+   its own a row below, where its length and direction can be measured. The helper draws both:
+   the two vectors from `tail`, the closing side dashed between the heads, and b - a from a tail
+   `dy` below the first, in the difference's own colour. It hands back the tail and head of that
+   copy, so the figure may label or dimension it. */
+export type VectorTriangleOpts = { color?: Color; color2?: Color; diff?: Color; names?: readonly [string, string, string]; dy?: Logical; lab?: Labeller };
+function vectorTriangle(ctx: Ctx, tail: Joint, a: Joint, b: Joint, o: VectorTriangleOpts = {}): { tail: Joint; head: Joint } {
+  const c1 = o.color ?? PAL.ink, c2 = o.color2 ?? c1, cd = o.diff ?? PAL.muted, dy = o.dy ?? 170;
+  const A: Joint = { x: tail.x + a.x, y: tail.y + a.y }, B: Joint = { x: tail.x + b.x, y: tail.y + b.y };
+  arrow(ctx, tail.x, tail.y, A.x, A.y, c1, 5); arrow(ctx, tail.x, tail.y, B.x, B.y, c2, 5);
+  line(ctx, A.x, A.y, B.x, B.y, alpha(cd, 0.7), 2.5, [9, 7]);
+  const t2: Joint = { x: tail.x, y: tail.y + dy }, h2: Joint = { x: t2.x + (b.x - a.x), y: t2.y + (b.y - a.y) };
+  arrow(ctx, t2.x, t2.y, h2.x, h2.y, cd, 5);
+  dot(ctx, t2.x, t2.y, cd, false, 5);
+  if (o.names) {
+    const put = (s: string, p: Joint, q: Joint, c: Color): void => {
+      const dx = p.x - q.x, dyy = p.y - q.y, L = Math.hypot(dx, dyy) || 1;
+      if (o.lab) o.lab.add(s, p.x, p.y, dx / L, dyy / L, c, 20, 20);
+      else label(ctx, s, p.x, p.y, { side: dyy < 0 ? 'above' : 'below', color: c });
+    };
+    put(o.names[0], A, tail, c1); put(o.names[1], B, tail, c2); put(o.names[2], h2, t2, cd);
+  }
+  return { tail: t2, head: h2 };
+}
+
+/* ---------- a cable round pulleys ----------
+   A cable is one line, so it is drawn as one: the two ends in `path` — where it leaves the load
+   and where it is anchored or held — with the pulley centres it passes over in between, all of
+   radius r. Between consecutive points it runs along the outside tangent, round each pulley it
+   follows the rim on the side the turn asks for, and each pulley is drawn as a wheel on its axle.
+   A cable that passes no pulley is the straight line between its ends. */
+function wrap(ctx: Ctx, path: readonly Joint[], pulleys: readonly Joint[], r: Logical, color?: Color): void {
+  const c = color ?? PAL.ink;
+  const pts: Joint[] = [path[0], ...pulleys, ...path.slice(1)];
+  ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  /* the rim point of pulley i on the side the cable passes, for the run that arrives from `from` and leaves toward `to` */
+  const side = (p: Joint, from: Joint, to: Joint): number => {
+    const ax = p.x - from.x, ay = p.y - from.y, bx = to.x - p.x, by = to.y - p.y;
+    return Math.sign(ax * by - ay * bx) || 1;
+  };
+  const offs = (p: Joint, q: Joint, sgn: number): Joint => {
+    const dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1;
+    return { x: (-dy / L) * r * sgn, y: (dx / L) * r * sgn };
+  };
+  ctx.beginPath();
+  let prev = pts[0];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i], next = pts[i + 1], sgn = side(p, prev, next);
+    const oIn = offs(prev, p, sgn), oOut = offs(p, next, sgn);
+    ctx.moveTo(prev.x + oIn.x, prev.y + oIn.y); ctx.lineTo(p.x + oIn.x, p.y + oIn.y);
+    ctx.arc(p.x, p.y, r, Math.atan2(oIn.y, oIn.x), Math.atan2(oOut.y, oOut.x), sgn > 0);
+    ctx.moveTo(p.x + oOut.x, p.y + oOut.y); ctx.lineTo(next.x + oOut.x, next.y + oOut.y);
+    prev = next;
+  }
+  if (pts.length === 2) { ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); }
+  ctx.stroke();
+  for (const p of pulleys) { ctx.fillStyle = PAL.panel; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(3, r / 5), 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 /* ---------- the label discipline ----------
    A label is set beside the thing it names and never on it. It starts one
    gap beyond the arrowhead, along the arrow's own direction; where that slot
@@ -731,7 +1022,8 @@ function skydiver(ctx: Ctx, x: Logical, y: Logical, s = 1, color?: Color): void 
    last, which puts text above the arrows and the arrows above the bodies.
    block() reserves a region, such as the headline band, that no label may
    enter. */
-function labeller(ctx: Ctx, H: Logical): Labeller {
+export type LabellerOpts = { headline?: boolean | 1 | 2 };
+function labeller(ctx: Ctx, H: Logical, o: LabellerOpts = {}): Labeller {
   const placed: Box[] = [], queue: Label[] = [];
   const boxOf = (s: string, x: Logical, y: Logical, size: number, align: CanvasTextAlign): Box => {
     ctx.save(); ctx.font = '600 ' + size + 'px ' + FONT; const tw = ctx.measureText(s).width; ctx.restore();
@@ -743,14 +1035,24 @@ function labeller(ctx: Ctx, H: Logical): Labeller {
   const missed: string[] = [];
   const self: Labeller = {
     block(l, t, r, b) { placed.push({ l, t, r, b }); },
+    /* A box a figure drew itself — the panel `label` returned, a readout, a legend — joins the
+       collision set, so the queued labels step around it instead of landing on top of it. The
+       text is optional and only names the box in what `flush` reports. */
+    place(box, s) { placed.push({ l: box.l, t: box.t, r: box.r, b: box.b }); if (s && clash({ l: box.l, t: box.t, r: box.r, b: box.b })) missed.push(s); return box; },
+    /* A panel the colour of the page laid along a segment before the arrow is drawn over it, so
+       an arrow that crosses a body reads as being in front of it rather than drawn into it. */
+    halo(seg, w = 14) {
+      ctx.save(); ctx.strokeStyle = PAL.panel; ctx.lineWidth = w; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(seg.x1, seg.y1); ctx.lineTo(seg.x2, seg.y2); ctx.stroke(); ctx.restore();
+    },
     /* Beside the midpoint of a segment, on the side asked for: the label starts one
        gap out along the segment's own normal and steps further out, with a leader,
        where that slot is taken. `side` is 'left' or 'right' of the segment's
        direction, or a sign for the same two. */
-    beside(seg, side, s, color, size) {
+    beside(seg, side, s, color, size, o2 = {}) {
       const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1, L = Math.hypot(dx, dy) || 1;
-      const sign = side === 'left' || side === -1 ? -1 : 1;
-      self.add(s, (seg.x1 + seg.x2) / 2, (seg.y1 + seg.y2) / 2, (sign * -dy) / L, (sign * dx) / L, color ?? PAL.ink, size, 22);
+      const sign = side === 'left' || side === -1 ? -1 : 1, f = o2.offset ?? 0.5;
+      self.add(s, seg.x1 + dx * f, seg.y1 + dy * f, (sign * -dy) / L, (sign * dx) / L, color ?? PAL.ink, size, o2.gap ?? 22);
     },
     add(s, hx, hy, ux, uy, color, size, start) {
       const sz = size || 20, gaps = [start || 20, 58, 96, 138, 184];
@@ -778,6 +1080,10 @@ function labeller(ctx: Ctx, H: Logical): Labeller {
       return missed.slice();
     },
   };
+  /* The headline band, blocked on construction so that no label may enter it: one line
+     deep by default and two where the figure says its headline wrapped, which is what
+     `F.headline` returns. */
+  if (o.headline) self.block(0, 0, LW, o.headline === 2 ? 96 : 68);
   return self;
 }
 /* a headline that never runs to the border: one line where it fits, and
@@ -936,6 +1242,7 @@ export type View3d = {
   readonly wrap: HTMLElement; readonly scene: Obj3; readonly camera: Obj3;
   part: (x?: number) => Obj3;
   label: (s: string, p: Vec3, g: Obj3, dy?: number, cls?: string) => HTMLElement;
+  headline: (s: string) => HTMLElement;
   clear: () => void;
   project: (p: Vec3, g: Obj3) => Pt;
   move: (e: HTMLElement, p: Vec3) => void;
@@ -1030,7 +1337,7 @@ function vbtn(bar: HTMLElement, html: string, title: string, cls = ''): HTMLButt
 const stub = (stage: HTMLElement): View3d => {
   const wrap = el('div', 'three-wrap'); wrap.appendChild(el('p', 'lab3d', 'This figure needs WebGL, which this browser does not provide.')); stage.appendChild(wrap);
   const nil = (): void => {};
-  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; } };
+  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; } };
 };
 
 function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
@@ -1046,6 +1353,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(30, 2, 0.1, 100); camera.position.set(0, 0, dist); camera.lookAt(0, 0, 0);
   const lamp = new T.DirectionalLight(0xffffff, 0.8); lamp.position.set(-3, 5, 7); scene.add(lamp); scene.add(new T.AmbientLight(0xffffff, 0.62));
+  let head: HTMLElement | null = null;
   const parts: Obj3[] = [], labels: { el: HTMLElement; p: Obj3; g: Obj3; dy: number }[] = [], picks: { m: Obj3; name: string }[] = [];
   let yaw = 0, pitch = opts.tilt ?? 0.32, zoom = 1;
   let spinning = spinMode === 'idle' && !REDUCED, dragging = false, last: readonly [number, number] = [0, 0], need = true, alive = true, seen = true, turned = false;
@@ -1062,6 +1370,14 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     part(x = 0) { const g = new T.Group(); g.position.set(x, 0, 0); scene.add(g); parts.push(g); orient(); return g; },
     /* the label s at point p of group g, in the page's face, kept dy pixels above the point */
     label(s, p, g, dy = 0, cls = '') { const e = el('div', 'lab3d' + (cls ? ' ' + cls : ''), s); wrap.appendChild(e); labels.push({ el: e, p: vec3(p), g, dy }); return e; },
+    /* The scene's headline. A `.lab3d` label is one line pinned to a point of the scene; a
+       headline belongs to the stage rather than to the scene, so it sits centred at the top
+       edge and wraps over as many lines as the sentence takes, the way `F.headline` does on
+       a canvas. Calling it again rewrites the same band. */
+    headline(s) {
+      if (!head) { head = el('div', 'lab3d head3d'); wrap.appendChild(head); }
+      head.innerHTML = s; return head;
+    },
     clear() {
       const shared = Object.values(geo());
       parts.forEach((g: Obj3) => { g.traverse((o: Obj3) => { if (o.material) o.material.dispose(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); }); g.clear(); });
@@ -1140,6 +1456,8 @@ export const FIG = {
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
+  fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
+  vectorTriangle, wrap,
 };
 export type Fig = typeof FIG;
 

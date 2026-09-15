@@ -43,11 +43,18 @@ fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the 
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
-labeller()                                a label beside its thing, stepped out and leadered when the slot is taken
-labeller.beside(seg,side,text)            beside the midpoint of a segment; flush() returns the labels that found no slot
+labeller(ctx,H,{headline})                a label beside its thing, stepped out and leadered when the slot is taken; headline blocks the band
+labeller.beside(seg,side,text,color,size,{offset,gap})   beside the line, offset 0 at the tail and 1 at the head (0.5 default)
+labeller.place(box,text) -> box           a box the figure drew itself joins the collision set, so queued labels step round it
+labeller.halo(seg,w)                      a panel band under an arrow that crosses a body; flush() returns the labels that found no slot
+vectorTriangle(ctx,tail,a,b,{color,color2,diff,names,dy,lab}) -> {tail,head}   two vectors from one tail and their difference a row below
+wrap(ctx,[start,end],pulleys,r,color)     one cable: outside tangents, the rim round each pulley, the wheels drawn
 person(...)                               a jointed, filled body anchored at the feet, hands to what it holds (reach, lean, phase, crouch)
-silhouette(ctx,{x,y,s,face,pose,color,...joints})   a filled body posed by name (stand, walk, run, lean, crouch, push, pull, sit, reach)
-                                          or by joint; limbs never pass 3 units, and F.silhouette.height(s) is how tall it stands
+silhouette(ctx,{x,y,s,face,pose,color,phase,front,kneeSide,...joints})   a filled body posed by name (stand, walk, run, lean, crouch,
+                                          push, pull, sit, reach) or by joint, a joint passed as undefined keeping the pose's own;
+                                          phase 0..1 swings the feet and hands of walk and run; kneeSide is one sign or one per leg and
+                                          front splays the knees for a frontal crouch; a hand past F.silhouette.reach(s) is drawn at the
+                                          reach; limbs never pass 3 units, and F.silhouette.height(s) is how tall it stands
 view({yaw,pitch,dist,cx,cy}) -> {P,shade}  face(ctx,pts,k,stroke)     a locked perspective of a solid, no orbit
 runner/car/plane/dragster(ctx,x,y,color,s) sprites; a new one stays under 12 path commands, 80 to 120 units long
 crate(ctx,x,y,w,h,color)                  a framed box of planks with a batten down each end, filling w by h
@@ -58,6 +65,17 @@ helicopterTop(ctx,x,y,s,a,rotor,color)    seen from above, about 150 by 88 at s 
 rowboat(ctx,x,y,s,heading,color)          seen from above, about 64 by 66 at s = 1, oars included
 sailboat(ctx,x,y,s,color)                 waterline at (x, y), about 78 by 76 at s = 1
 skydiver(ctx,x,y,s,color)                 spread-eagled and seen from below, about 92 by 112 at s = 1
+fist(ctx,x,y,ux,uy,s,color)               a gripping hand on a forearm; (x, y) is the grip, (ux, uy) the way the forearm runs back
+cart(ctx,x,y,w,h,color)                   a block w by h on two wheels, the wheels standing on y + h / 2 + 2 r
+personTop(ctx,x,y,s,heading,color,reach)  head and shoulders from above, about 56 by 26 at s = 1; reach is the two points the hands hold
+motorcycle(ctx,x,y,s,color)               side view facing right, (x, y) the rear hub, about 330 by 200 at s = 1
+helicopterSide(ctx,x,y,s,color)           side view, nose right, about 215 by 110 at s = 1
+coasterCar(ctx,x,y,s,color)               a car and its rider, wheels on the rail at (x, y), about 62 by 58 at s = 1
+cardboardBox(ctx,x,y,w,h,color)           a taped box, w by h on the front face and h / 4 of perspective up and to the right
+cupOnSide(ctx,x,y,s,color)                a foam cup lying on its side, mouth at (x, y), about 84 by 66 at s = 1
+guitar(ctx,x,y,s,color)                   a classical guitar lying flat, about 980 by 280 at s = 1; F.guitar.string(x,s) -> {nut,bridge}
+book(ctx,x,y,w,h,color)                   a closed book with its cover, spine and pages, filling w by h
+backpack(ctx,x,y,s,color)                 a pack hanging by its straps, top at (x, y), about 96 by 130 at s = 1
 ```
 
 Controls beyond the slider (root rule 26.1):
@@ -73,14 +91,14 @@ Three dimensions (root rules 24.8, 26.2, 26.3):
 
 ```
 const v = F.view3d(d.stage, {h, dist, tilt, spin, views, pitch, yaw, zoomMin, zoomMax, onRender});
-v.part(x)  v.label(s,p,g,dy)  v.clear()  v.project(p,g)  v.pickable(mesh,name)  v.setView(yaw,pitch)  v.invalidate()
+v.part(x)  v.label(s,p,g,dy)  v.headline(s)  v.clear()  v.project(p,g)  v.pickable(mesh,name)  v.setView(yaw,pitch)  v.invalidate()
 F.mesh.sphere(g,p,r,color,extra)   F.mesh.stick(g,a,b,r,color,extra) / setStick(m,a,b)
 F.mesh.bond(g,a,b,order,r,color)   F.mesh.lobe(g,from,dir,len,color) / setLobe(m,from,dir,len)
 F.mesh.arrow(g,a,b,r,color)        F.mesh.arc(g,a,b,R,centre,color) -> the label's point
 F.mesh.polyline(g,pts,color)       F.mesh.box(g,p,[w,h,d],color,extra)   F.mesh.vec(p)  F.mesh.mat(color,extra)  F.mesh.geo()
 ```
 
-`spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.
+`v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band, centred at the top edge and wrapped over as many lines as the sentence takes. `spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.
 
 Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.cat(i)` for instances with no type and no element, and a hex only where the colour is the physical fact and the plan names it. No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
 
