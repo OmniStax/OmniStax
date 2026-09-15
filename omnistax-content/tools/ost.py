@@ -153,6 +153,34 @@ def validate(table: Table, row: RowDTO) -> None:
     for name, field in table.fields.items():
         if field.required and row.get(name) in (None, ""):
             raise Refused(f"field {name!r} is required")
+    if "answer" in table.fields and isinstance(row.get("answer"), dict):
+        validate_answer(row["answer"])
+
+
+# The answer is an ADT in the app's schema (src/lib/content/schema.ts,
+# AnswerSchema): each type carries its own fields and the schema is strict, so a
+# field the type does not take fails the build. Refuse it here instead.
+ANSWER_FIELDS = {
+    "number": {"type", "value", "unit", "part", "hint", "solution", "generated_by"},
+    "multi": {"type", "parts", "solution", "generated_by"},
+    "choice": {"type", "options", "correct", "hint", "solution", "generated_by"},
+    "open": {"type", "solution", "generated_by"},
+}
+PART_FIELDS = {"part", "value", "unit", "hint"}
+
+
+def validate_answer(answer: dict) -> None:
+    kind = answer.get("type")
+    if kind not in ANSWER_FIELDS:
+        raise Refused(f"answer type is {kind!r}; it must be one of {', '.join(ANSWER_FIELDS)}")
+    extra = set(answer) - ANSWER_FIELDS[kind]
+    if extra:
+        raise Refused(f"an answer of type {kind!r} does not take {', '.join(sorted(extra))}; its fields are {', '.join(sorted(ANSWER_FIELDS[kind]))}")
+    if kind == "multi":
+        for i, part in enumerate(answer.get("parts") or []):
+            bad = set(part) - PART_FIELDS if isinstance(part, dict) else {"(not an object)"}
+            if bad:
+                raise Refused(f"answer part {i} does not take {', '.join(sorted(bad))}; a part's fields are {', '.join(sorted(PART_FIELDS))}")
 
 
 # ------------------------------------------------------------ reading the disk

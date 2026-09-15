@@ -80,8 +80,8 @@ Prep for the next wave starts while the current wave's sections build.
 | 3 | 10, 11, 12 | 23 | built 2026-09-14 (LOG passes 35 to 37) |
 | 4 | 13, 14, 15 | 20 | built 2026-09-14 (LOG passes 38 to 40) |
 | 5 | 17, 18, 19 | 22 | built 2026-09-14 and 15 (LOG passes 42 to 44), with 16.7 to 16.11 (pass 41) |
-| 6 | 20, 21, 22 | 24 | |
-| 7 | 23, 24, 25 | 23 | |
+| 6 | 20, 21, 22 | 24 | prepared 2026-09-15; 20 passed (LOG 45), 21 and 22 in their passes |
+| 7 | 23, 24, 25 | 23 | prepared 2026-09-15 (types magnetic flux, inductance; none for 24 and 25); sections building |
 | 8 | 26, 27, 28 | 21 | |
 | 9 | 29, 30, 31 | 24 | |
 | 10 | 32, 33, 34 | 20 | |
@@ -249,3 +249,22 @@ the session cap, and each time the agents were resumed from disk.
 Left for Chen: 19.4 carries no problems because all ten are unkeyed
 sketches; the election of a hue for pressure once the scheme lands.
 Next: wave 6 (20, 21, 22).
+
+**2026-09-15, waves 6 and 7.** Chapters 20 to 22 prepared with the types
+current, resistance and magnetic field and built section by section
+under the eight-agent cap; Chapter 20 passed (LOG pass 45) and is on
+main. Chapter 22 carries three full 3D scenes, the right-hand rule, the
+motor and the wire, loop and solenoid fold, as Chen asked for true 3D
+where the book draws an arrangement in space. Chapters 23 to 25 prepared
+the same day (magnetic flux and inductance declared; optics adds no
+type, its rays coloured by wavelength as the physical fact); 23.1's
+tilted loop, 23.5's generator and 24.7's electromagnetic wave are argued
+for 3D, the rainbow's cone of 25.24 left to its plan. A restart wiped
+the session scratchpad and with it the job briefs; they were rewritten
+and are now also kept under `/home/flober/.claude/jobs/e1acb7c5/briefs/`.
+Tool fixes on the way: the merge keeps a chapter's type and symbol rows
+where they stand (the types' order is the scheme's order), and `ost`
+refuses an answer field the app's schema does not take. The scheme's
+co-drawn pairs did not name force with current, which the magnetic
+chapters draw on one loop; the two hues sit close and are told apart by
+label and position, for Chen to weigh.
