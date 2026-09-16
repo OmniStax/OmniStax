@@ -81,7 +81,7 @@ Prep for the next wave starts while the current wave's sections build.
 | 4 | 13, 14, 15 | 20 | built 2026-09-14 (LOG passes 38 to 40) |
 | 5 | 17, 18, 19 | 22 | built 2026-09-14 and 15 (LOG passes 42 to 44), with 16.7 to 16.11 (pass 41) |
 | 6 | 20, 21, 22 | 24 | prepared 2026-09-15; 20 passed (LOG 45), 21 and 22 in their passes |
-| 7 | 23, 24, 25 | 23 | prepared 2026-09-15 (types magnetic flux, inductance; none for 24 and 25); sections building |
+| 7 | 23, 24, 25 | 23 | 23 and 24 built, passed and given their figure passes 2026-09-16 (LOG passes 48, 49); 25 prepared, sections not built |
 | 8 | 26, 27, 28 | 21 | |
 | 9 | 29, 30, 31 | 24 | |
 | 10 | 32, 33, 34 | 20 | |
@@ -277,3 +277,14 @@ partners. Flux now sits 6 degrees from the electric field; no chapter
 draws the two together, but if one ever does the pair must be declared
 and one of them re-dealt. Force and current stay 30 degrees apart since
 current is in print. For Chen to weigh.
+
+**2026-09-16.** On Chen's word the job narrowed to finishing Chapters 23
+and 24 and committing section by section: twelve and four sections,
+passes 49 and 48, a Fable figure pass over each, all on main. Chapter
+25 stays prepared and unbuilt; Chapters 26 to 34 are untouched. The
+figure passes over Chapters 21 and 22 were cut off by the usage limit and
+are owed. Queued library items: a gripping hand, a submarine, a can, a
+bottle and a pipe fitting as sprites; a wider dropdown and a segmented
+control that takes its own row when it would wrap; a real WebGL probe in
+the two oldest 3D scenes. Known close hue pairs: force and current,
+magnetic field and position, flux and the electric field.
