@@ -268,3 +268,12 @@ refuses an answer field the app's schema does not take. The scheme's
 co-drawn pairs did not name force with current, which the magnetic
 chapters draw on one loop; the two hues sit close and are told apart by
 label and position, for Chen to weigh.
+Later the same day the scheme learned the electromagnetic pairs
+(commit 2b50ac4): magnetic flux moved to a blue apart from the field,
+voltage, current and time; inductance to an olive apart from
+capacitance, resistance and frequency, though only 48 degrees from
+current and 54 from voltage, the best any free angle allows against six
+partners. Flux now sits 6 degrees from the electric field; no chapter
+draws the two together, but if one ever does the pair must be declared
+and one of them re-dealt. Force and current stay 30 degrees apart since
+current is in print. For Chen to weigh.
