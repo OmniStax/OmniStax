@@ -15,7 +15,8 @@ import type {
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
-import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs } from './fragment';
+import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs, sizedImages } from './fragment';
+import { type MediaRoot, imageSizes } from './mediasize';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, bookDir, bookId, qualifiedId } from '../types/ids';
 import type { BookSelection } from '../../../omnistax.config';
@@ -58,6 +59,8 @@ const exists = (file: string): Promise<boolean> => fs.access(file).then(() => tr
    a chapter's introduction or summary at /<book>/<chapterDir>/intro/, and the book's own at /<book>/intro/. */
 export const sectionUrl = (bookId: string, chapterDir: string, sectionId: string): string => `/${bookId}/${chapterDir}/${sectionId}/`;
 const chapterUrl = (bookId: string, chapterDir: string): string => `/${bookId}/${chapterDir}/`;
+/* The address a book's own pages and files stand under. */
+const bookUrl = (bookId: string): string => `/${bookId}/`;
 export const frontPageUrl = (bookId: string, chapterDir: string | null, role: FrontRole): string =>
   (chapterDir === null ? `/${bookId}/${role}/` : `/${bookId}/${chapterDir}/${role}/`);
 /* A sheet stands at the book's root, beside the chapters rather than inside one. */
@@ -176,7 +179,7 @@ export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => s
 });
 
 /* One page's folder read into a source, or nothing where the folder holds no page. */
-const loadPage = async (dir: string, place: PagePlace, macros: MacroMap): Promise<SectionSource | null> => {
+const loadPage = async (dir: string, place: PagePlace, macros: MacroMap, media: readonly MediaRoot[]): Promise<SectionSource | null> => {
   if (!(await exists(path.join(dir, 'section.json')))) return null;
   const [dto, text, figuresJs] = await Promise.all([
     readJson(path.join(dir, 'section.json'), SectionSchema),
@@ -184,8 +187,12 @@ const loadPage = async (dir: string, place: PagePlace, macros: MacroMap): Promis
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
   ]);
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
+  /* The text is measured once, here, so that the full page and the doc.html
+     fragment carry the same width and height on every image. */
+  const prose = prerenderMath(text, macros);
+  const textHtml = sizedImages(prose, await imageSizes(media, prose));
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered), textHtml: prerenderMath(text, macros), summaryHtml: rendered(dto.summaryHtml), figuresJs,
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
     figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
   };
 };
@@ -193,8 +200,8 @@ const loadPage = async (dir: string, place: PagePlace, macros: MacroMap): Promis
    folder where the folder holds one. The folder names the role, so a record
    there that calls itself anything else is refused before it can shadow a
    section. */
-const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, macros: MacroMap): Promise<SectionSource | undefined> => {
-  const page = await loadPage(path.join(base, role), place, macros);
+const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, macros: MacroMap, media: readonly MediaRoot[]): Promise<SectionSource | undefined> => {
+  const page = await loadPage(path.join(base, role), place, macros, media);
   if (page !== null && page.role !== role) throw new Error(`${path.join(base, role, 'section.json')}: id is "${page.dto.id}", but a page in ${role}/ must be the literal "${role}"`);
   return page ?? undefined;
 };
@@ -206,14 +213,14 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
 };
 
 type ChapterLoaded = Omit<ChapterTree, 'concepts' | 'formulas'>;
-const loadChapter = async (root: string, book: BookDTO, dir: string, macros: MacroMap): Promise<ChapterLoaded> => {
+const loadChapter = async (root: string, book: BookDTO, dir: string, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
   const dto = await readJson(path.join(base, 'chapter.json'), ChapterSchema);
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
-    loadFrontPage(base, 'intro', front('intro'), macros),
-    Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, macros))),
-    loadFrontPage(base, 'summary', front('summary'), macros),
+    loadFrontPage(base, 'intro', front('intro'), macros, media),
+    Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, macros, media))),
+    loadFrontPage(base, 'summary', front('summary'), macros, media),
   ]);
   const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }));
   const role = (r: PageRole): SectionSource | undefined => linked.find((s) => s.role === r);
@@ -249,6 +256,7 @@ const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | '
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),
+  exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`, formulas: `${bookUrl(book.id)}formulas.json`,
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
   chapters: tree.chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
@@ -268,11 +276,14 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   const dto = await readJson(path.join(root, 'book.json'), BookSchema);
   if (dto.id !== id) throw new Error(`book.json is "${dto.id}", expected "${id}"`);
   const macros = macrosOf(dto.symbols);
+  /* The books share one `/media/` address space, but a book's own pages only
+     ever name its own media, so its own folder is the whole of the root here. */
+  const media: readonly MediaRoot[] = [path.join(root, 'media')];
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
   const [intro, loaded, summary, sheets] = await Promise.all([
-    loadFrontPage(root, 'intro', front('intro'), macros),
-    Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dto, dir, macros))),
-    loadFrontPage(root, 'summary', front('summary'), macros),
+    loadFrontPage(root, 'intro', front('intro'), macros, media),
+    Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dto, dir, macros, media))),
+    loadFrontPage(root, 'summary', front('summary'), macros, media),
     loadSheets(root, dto),
   ]);
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */

@@ -11,7 +11,7 @@
    half-loaded is still worth practising from. */
 import { z } from 'zod';
 import { BookConceptsSchema, ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
-import type { BookConceptsDTO, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, FormulasDTO, SectionEntry } from '../content/schema';
+import type { BookConceptsDTO, BookFileUrls, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, FormulasDTO, SectionEntry } from '../content/schema';
 import { parseFormulas } from '../search/books';
 import { bookId, sectionId } from '../types/ids';
 import type { Catalog } from './model';
@@ -53,11 +53,14 @@ const parseChapter = (raw: unknown): ChapterEntry[] => {
    name, its chapters and their built sections — and the rest is defaulted, so
    a manifest written by a later build still loads. Nothing comes of a file
    without an id or without chapters: there would be nothing to practise. */
-export const parseManifest = (raw: unknown): BookManifest | null => {
+export const parseManifest = (raw: unknown): (BookManifest & BookFileUrls) | null => {
   const o = obj(raw); if (!o || !str(o.id) || !Array.isArray(o.chapters)) return null;
+  const id = str(o.id);
+  const fallback = bookFiles(bookBase(id));   /* a manifest written before the book carried its own file urls */
   return {
-    id: bookId(str(o.id)), title: str(o.title), publisher: '', authors: [], license: '',
+    id: bookId(id), title: str(o.title), publisher: '', authors: [], license: '',
     types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [],
+    exercises: str(o.exercises) || fallback.exercises, concepts: str(o.concepts) || fallback.concepts, formulas: str(o.formulas) || fallback.formulas,
     chapters: o.chapters.flatMap(parseChapter),
   };
 };
@@ -76,9 +79,9 @@ export const parseExercises = (raw: unknown): ExerciseDTO[] => {
 };
 
 /* Where a book's book-level files are served, off the address its pages are
-   under: the manifest could carry them (as it carries the per-chapter concepts
-   and formulas), and until it does they are derived the way `/${book}/book.json`
-   already is. */
+   under. The manifest carries the three of them, so this is the one fallback:
+   how book.json itself is addressed, and what a manifest written without them
+   is read as. */
 export type BookFiles = { readonly book: string; readonly exercises: string; readonly concepts: string; readonly formulas: string };
 export const bookFiles = (base: string): BookFiles =>
   ({ book: `${base}book.json`, exercises: `${base}exercises.json`, concepts: `${base}concepts.json`, formulas: `${base}formulas.json` });

@@ -58,7 +58,8 @@ class Books {
   private async fetchHome(): Promise<void> {
     const book = registry.manifest.id;
     try {
-      const r = await fetch(bookFiles(bookBase(book)).exercises); if (!r.ok) throw new Error(String(r.status));
+      /* The manifest names the file; the empty manifest the shell starts on does not, and falls back. */
+      const r = await fetch(registry.manifest.exercises ?? bookFiles(bookBase(book)).exercises); if (!r.ok) throw new Error(String(r.status));
       this.homeExercises = parseBookExercises(await r.json());
       this.setStatus(book, 'loaded');
     } catch { this.setStatus(book, 'failed'); }
@@ -74,10 +75,10 @@ class Books {
       try { const r = await fetch(url); if (!r.ok) throw new Error(String(r.status)); return await r.json(); }
       catch { missed.push(url); return null; }
     };
-    const files = bookFiles(bookBase(book));
-    const manifest = parseManifest(await get(files.book));
+    const manifest = parseManifest(await get(bookFiles(bookBase(book)).book));
     if (!manifest) { this.setStatus(book, 'failed'); return; }
-    const [concepts, exercises] = await Promise.all([get(files.concepts), get(files.exercises)]);
+    /* The manifest says where the book's own files are; book.json is the one address derived here. */
+    const [concepts, exercises] = await Promise.all([get(manifest.concepts), get(manifest.exercises)]);
     const parsed = parseBookConcepts(concepts);
     this.loaded = {
       ...this.loaded,

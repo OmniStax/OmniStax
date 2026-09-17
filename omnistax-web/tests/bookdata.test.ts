@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bookConceptsOf, bookExercisesOf, bookFormulasOf, chapterConceptsOf, type ChapterTables } from '../src/lib/content/bookdata';
-import { parseBookConcepts, parseBookExercises, parseBookFormulas } from '../src/lib/practice/books';
+import { parseBookConcepts, parseBookExercises, parseBookFormulas, parseManifest } from '../src/lib/practice/books';
 import type { ConceptDTO, ConceptsDTO, ExerciseDTO, FormulasDTO } from '../src/lib/content/schema';
 import { conceptId, sectionId, spanId } from '../src/lib/types/ids';
 
@@ -53,6 +53,17 @@ test('the book files survive the round trip over the wire', () => {
   assert.equal(formulas.ch03.variables[0].sym, 'a');
   const exercises = parseBookExercises(JSON.parse(JSON.stringify(bookExercisesOf([{ id: '2.3', exercises: [ex('p1'), ex('p2')] }]))));
   assert.deepEqual(exercises['2.3'].map((e) => e.id), ['p1', 'p2']);
+});
+
+/* The manifest is where the three files are named, so that nothing but
+   book.json is addressed by convention. A manifest written before it carried
+   them still says where they are. */
+test('the manifest carries the book-level file urls, and falls back where it does not', () => {
+  const chapters = [{ dir: 'ch15', sections: [{ id: '15.1', built: true, url: '/up/ch15/15.1/' }] }];
+  const m = parseManifest({ id: 'up', chapters, exercises: '/up/exercises.json', concepts: '/up/concepts.json', formulas: '/up/formulas.json' })!;
+  assert.deepEqual([m.exercises, m.concepts, m.formulas], ['/up/exercises.json', '/up/concepts.json', '/up/formulas.json']);
+  const old = parseManifest({ id: 'up', chapters })!;
+  assert.deepEqual([old.exercises, old.concepts, old.formulas], ['/up/exercises.json', '/up/concepts.json', '/up/formulas.json']);
 });
 
 test('a file that is not an object at all comes back empty', () => {

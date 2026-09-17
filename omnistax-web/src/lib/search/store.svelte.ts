@@ -75,10 +75,10 @@ class Search {
      its text, its concepts and its formula sheets, four files rather than two
      per chapter. A file that failed leaves the rest standing. */
   private async fetchForeign(book: string): Promise<void> {
-    const files = bookFiles(this.base(book));
-    const manifest = parseManifest(await get(files.book));
+    const manifest = parseManifest(await get(bookFiles(this.base(book)).book));
     if (!manifest) { this.set(emptyCorpus(book, this.titleOf(book)), true); return; }
-    const [index, concepts, formulas] = await Promise.all([get(`${this.base(book)}search.json`), get(files.concepts), get(files.formulas)]);
+    /* The manifest says where the book's own files are; book.json and its text index are the addresses derived here. */
+    const [index, concepts, formulas] = await Promise.all([get(`${this.base(book)}search.json`), get(manifest.concepts), get(manifest.formulas)]);
     const sheets = Object.values(parseBookFormulas(formulas));
     this.set({
       book, title: manifest.title || this.titleOf(book),
