@@ -457,6 +457,40 @@ export type FormulasDTO = {
   readonly glossary: readonly GlossaryDTO[];
 };
 
+/* ---------- the same three things for a whole book ----------
+
+   A view that stands over the whole library — the practice picker, the search —
+   wants every section's problem set and every chapter's concepts at once, and
+   fetching them a page at a time is hundreds of requests. The build writes
+   these three beside `book.json`, carrying exactly what the per-page files
+   carry and nothing more, so the per-page files stay the cheaper thing for one
+   open page to read. */
+
+/* Every built section's problem set, by section id: section ids are unique
+   inside a book, which is all this key has to be. */
+export const BookExercisesSchema = z.record(z.array(ServedExerciseSchema));
+export type BookExercisesDTO = z.infer<typeof BookExercisesSchema>;
+
+/* Every concept of the book once, and per chapter the ids it reaches and the
+   coverage of its own sections. A chapter reaches into the chapters before it,
+   so the same concept is named by many of them; repeating it per chapter is
+   most of what the per-chapter files weigh. `chapterConceptsOf` in
+   content/bookdata.ts rebuilds a chapter's `ConceptsDTO` from the two. */
+export const BookConceptsSchema = z.object({
+  concepts: z.array(ServedConceptSchema).default([]),
+  chapters: z.record(z.object({
+    concepts: z.array(CONCEPT_REF).default([]),
+    coverage: z.array(ServedCoverageSchema).default([]),
+  })).default({}),
+});
+export type BookConceptsDTO = z.infer<typeof BookConceptsSchema>;
+export type ChapterConceptsDTO = BookConceptsDTO['chapters'][string];
+
+/* Every chapter's formula sheet, by chapter directory. Formulas are built
+   rather than read from disk, so there is no zod schema for them here and the
+   wire is read leniently by `parseFormulas` in search/books.ts. */
+export type BookFormulasDTO = Readonly<Record<string, FormulasDTO>>;
+
 /* What one section's page carries about itself: enough to draw its head, its
    footer and its colours, and nothing of the tables below it. */
 export type SectionMetaDTO = {

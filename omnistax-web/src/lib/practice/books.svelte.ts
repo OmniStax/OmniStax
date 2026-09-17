@@ -10,8 +10,7 @@ import type { BookManifest, ConceptDTO, ExerciseDTO } from '../content/schema';
 import type { SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { library } from '../explorer/library.svelte';
-import { builtSections, parseConcepts, parseExercises, parseManifest, type ForeignBook } from './books';
-import { uniqueById } from './model';
+import { bookBase, bookFiles, parseBookConcepts, parseBookExercises, parseManifest, type ForeignBook } from './books';
 
 export type BookStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 
@@ -53,39 +52,39 @@ class Books {
   private setStatus(book: string, status: BookStatus): void { this.status = { ...this.status, [book]: status }; }
 
   /* The current book already has its manifest and concepts in memory. Fetching
-     only each section's exercises.json avoids constructing every document and
-     importing every figure module merely to populate the practice picker. */
+     the one exercises.json the book keeps beside book.json avoids constructing
+     every document and importing every figure module merely to populate the
+     practice picker, and costs one request rather than one per section. */
   private async fetchHome(): Promise<void> {
     const book = registry.manifest.id;
-    let failed = false;
-    const rows = await Promise.all(builtSections(registry.manifest).filter((s) => s.url).map(async (s) => {
-      try {
-        const r = await fetch(`${s.url}exercises.json`); if (!r.ok) throw new Error(String(r.status));
-        return [s.id, parseExercises(await r.json())] as const;
-      } catch { failed = true; return [s.id, []] as const; }
-    }));
-    this.homeExercises = Object.fromEntries(rows);
-    this.setStatus(book, failed ? 'failed' : 'loaded');
+    try {
+      const r = await fetch(bookFiles(bookBase(book)).exercises); if (!r.ok) throw new Error(String(r.status));
+      this.homeExercises = parseBookExercises(await r.json());
+      this.setStatus(book, 'loaded');
+    } catch { this.setStatus(book, 'failed'); }
   }
 
+  /* Any other book: its manifest, its concepts and its problem sets, three
+     files the build wrote beside its pages. A file that failed marks the book
+     failed and leaves what did arrive standing, so a book with one missing
+     file is still practised from. */
   private async fetchBook(book: string): Promise<void> {
     const missed: string[] = [];
     const get = async (url: string): Promise<unknown> => {
       try { const r = await fetch(url); if (!r.ok) throw new Error(String(r.status)); return await r.json(); }
       catch { missed.push(url); return null; }
     };
-    const manifest = parseManifest(await get(`/${book}/book.json`));
+    const files = bookFiles(bookBase(book));
+    const manifest = parseManifest(await get(files.book));
     if (!manifest) { this.setStatus(book, 'failed'); return; }
-    const chapters = manifest.chapters.filter((c) => c.concepts && c.sections.some((s) => s.built));
-    const parsed = await Promise.all(chapters.map(async (c) => parseConcepts(await get(c.concepts))));
-    const sections = builtSections(manifest).filter((s) => s.url);
-    const exercises = await Promise.all(sections.map(async (s) => [s.id, parseExercises(await get(`${s.url}exercises.json`))] as const));
+    const [concepts, exercises] = await Promise.all([get(files.concepts), get(files.exercises)]);
+    const parsed = parseBookConcepts(concepts);
     this.loaded = {
       ...this.loaded,
       [book]: {
-        /* A chapter's concepts.json carries the prerequisites it reaches into other chapters, so the same concept arrives from every chapter that leans on it; it is kept once, as the registry keeps the home book's. */
-        manifest, concepts: uniqueById(parsed.flatMap((p) => p.concepts)), coverage: parsed.flatMap((p) => p.coverage),
-        exercises: Object.fromEntries(exercises),
+        /* The book file carries every concept once already, which is what the registry keeps for the book being read too. */
+        manifest, concepts: parsed.concepts, coverage: Object.values(parsed.chapters).flatMap((c) => c.coverage),
+        exercises: parseBookExercises(exercises),
       },
     };
     this.setStatus(book, missed.length ? 'failed' : 'loaded');

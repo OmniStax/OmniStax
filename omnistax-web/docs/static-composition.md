@@ -47,8 +47,10 @@ Svelte 5 island for the shell.
 1. **Routes from content.** `src/lib/content/load.ts` reads the content
    tree into DTOs. `[book]/[chapter]/[section]/index.astro` is the page;
    `doc.html.ts` and `figures.js.ts` beside it emit the fragment and the
-   figure module; chapter `concepts.json` and `formulas.json` and the
-   `book.json` manifest are endpoints too.
+   figure module; chapter `concepts.json` and `formulas.json`, a section's
+   `exercises.json`, the `book.json` manifest and the three book-level
+   files beside it — `exercises.json`, `concepts.json`, `formulas.json`
+   — are endpoints too.
 2. **Shared assets are bundled once.** KaTeX, the shell and the figure
    library ship as hashed files under `assets/`; three.js is a vendor
    script. A section page costs its own HTML plus cached shared assets.
@@ -59,7 +61,13 @@ Svelte 5 island for the shell.
    are per chapter and grow across sections. Element ids are qualified by
    section at build time (`2.1-distance`, `2.1-ex-p1`), and the views
    scope to the focused section, showing other sections' nodes only as
-   prerequisites.
+   prerequisites. One open page reads the chapter's own files; a view
+   that stands over the whole book — the practice picker, the search —
+   reads the book-level `concepts.json`, `formulas.json` and
+   `exercises.json` instead, which is three requests rather than one per
+   section and two per chapter. The book file carries each concept once
+   and each chapter only the ids it reaches, and `content/bookdata.ts`
+   rebuilds a chapter's own data from it.
 5. **Book manifest.** `book.json` lists chapters, sections, titles,
    fragment URLs and figure module URLs, plus the book's colour set,
    macros, symbol table and exercise kind labels. The "+" on each tab

@@ -13,6 +13,15 @@ import { originalButtons } from './original';
 import { decorateTerms } from '../hover';
 import { foldControls } from './fold.svelte';
 import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
+import { EMPTY_FORMULAS, chapterConceptsOf } from '../content/bookdata';
+import { bookBase, bookFiles, parseBookConcepts, parseBookFormulas } from '../practice/books';
+
+/* When the book's own concepts.json and formulas.json are worth fetching over
+   the chapters' own files: a chapter file is about a tenth of the book file, so
+   the pair pays for itself only once most of the book is wanted at once, which
+   is what the practice, the search and a book-scoped view ask for; the reading
+   path asks for one chapter, and gets that chapter's files. */
+const bulkWorthwhile = (wanted: number, chapters: number): boolean => wanted > chapters / 2;
 
 /* A figure's tab title: its local id without the sim-/fig- prefix, "sim-plane" → "plane". */
 const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').replace(/-/g, ' ');
@@ -96,7 +105,35 @@ class Registry {
       .finally(() => { delete this.loadingChapters[dir]; });
     return this.loadingChapters[dir]!;
   }
-  async loadChapters(dirs: readonly string[]): Promise<void> { await Promise.all(dirs.map((d) => this.loadChapter(d))); }
+  /* Several chapters at once. Past a handful of them the two book-level files
+     are the cheaper read — the Exercises view and the search ask for every
+     built chapter, while the reading path asks for the one chapter it is in —
+     and what is already loaded or in flight is left to the fetch that owns it. */
+  async loadChapters(dirs: readonly string[]): Promise<void> {
+    const wanted = dirs.filter((d) => !this.chapters[d] && !this.loadingChapters[d]);
+    if (bulkWorthwhile(wanted.length, this.manifest.chapters.length)) await this.loadBulk(wanted);
+    await Promise.all(dirs.map((d) => this.loadChapter(d)));
+  }
+
+  /* The book's concepts and formulas in one pair of requests, spread over the
+     chapters asked for. Each of them is marked loading against this one
+     promise, so a chapter the shell asks for meanwhile waits on it rather than
+     fetching its own file; a pair that will not load leaves them all failed,
+     as a chapter of its own would be. */
+  private loadBulk(dirs: readonly string[]): Promise<void> {
+    const files = bookFiles(bookBase(this.manifest.id));
+    dirs.forEach((d) => this.setChapterStatus(d, 'loading'));
+    const run = Promise.all([fetch(files.concepts).then((r) => r.json()), fetch(files.formulas).then((r) => r.json())])
+      .then(([concepts, formulas]) => {
+        const book = parseBookConcepts(concepts);
+        const sheets = parseBookFormulas(formulas);
+        dirs.forEach((d) => this.setChapter(d, { concepts: chapterConceptsOf(book, d), formulas: sheets[d] ?? EMPTY_FORMULAS }));
+      })
+      .catch(() => dirs.forEach((d) => this.setChapterStatus(d, 'failed')))
+      .finally(() => dirs.forEach((d) => { delete this.loadingChapters[d]; }));
+    dirs.forEach((d) => { this.loadingChapters[d] = run; });
+    return run;
+  }
 
   /* Take the articles and data block out of a container (the static pool or a
      fetched fragment). A standing page is an article of its own, named by the

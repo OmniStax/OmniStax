@@ -10,8 +10,9 @@
    that will not parse comes back empty rather than thrown, because a book that
    half-loaded is still worth practising from. */
 import { z } from 'zod';
-import { ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
-import type { BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, SectionEntry } from '../content/schema';
+import { BookConceptsSchema, ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
+import type { BookConceptsDTO, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, FormulasDTO, SectionEntry } from '../content/schema';
+import { parseFormulas } from '../search/books';
 import { bookId, sectionId } from '../types/ids';
 import type { Catalog } from './model';
 
@@ -72,6 +73,36 @@ export const parseConcepts = (raw: unknown): { concepts: ConceptDTO[]; coverage:
 export const parseExercises = (raw: unknown): ExerciseDTO[] => {
   const p = z.array(ServedExerciseSchema).safeParse(raw);
   return p.success ? p.data : [];
+};
+
+/* Where a book's book-level files are served, off the address its pages are
+   under: the manifest could carry them (as it carries the per-chapter concepts
+   and formulas), and until it does they are derived the way `/${book}/book.json`
+   already is. */
+export type BookFiles = { readonly book: string; readonly exercises: string; readonly concepts: string; readonly formulas: string };
+export const bookFiles = (base: string): BookFiles =>
+  ({ book: `${base}book.json`, exercises: `${base}exercises.json`, concepts: `${base}concepts.json`, formulas: `${base}formulas.json` });
+/* The address a book's pages stand under, where the catalogue has not said. */
+export const bookBase = (book: string): string => `/${book}/`;
+
+/* The book's problem sets in one file. One bad row fails its own section only,
+   for the same reason a bad row fails one section's file: a section the app
+   cannot read is one it must not set. */
+export const parseBookExercises = (raw: unknown): Record<string, ExerciseDTO[]> => {
+  const o = obj(raw); if (!o) return {};
+  return Object.fromEntries(Object.entries(o).map(([section, rows]) => [section, parseExercises(rows)]));
+};
+/* The book's concepts in one file: every concept once, and what each chapter
+   reaches. A file that will not parse comes back empty, as a chapter's does. */
+export const parseBookConcepts = (raw: unknown): BookConceptsDTO => {
+  const p = BookConceptsSchema.safeParse(raw);
+  return p.success ? p.data : { concepts: [], chapters: {} };
+};
+/* The book's formula sheets in one file, by chapter directory, read as
+   leniently as one chapter's is. */
+export const parseBookFormulas = (raw: unknown): Record<string, FormulasDTO> => {
+  const o = obj(raw); if (!o) return {};
+  return Object.fromEntries(Object.entries(o).map(([dir, sheet]) => [dir, parseFormulas(sheet)]));
 };
 
 const builtOf = (c: ChapterEntry) => c.sections.filter((s) => s.built).map((s) => sectionId(s.id));

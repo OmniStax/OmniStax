@@ -7,10 +7,10 @@
    build output, cheaper to fetch again than to keep in step. */
 import { registry } from '../sections/registry.svelte';
 import { library } from '../explorer/library.svelte';
-import { parseConcepts, parseManifest } from '../practice/books';
+import { bookFiles, parseBookConcepts, parseBookFormulas, parseManifest } from '../practice/books';
 import { bookPagesOf } from '../content/roles';
 import type { BookManifest } from '../content/schema';
-import { parseFormulas, parseIndex } from './books';
+import { parseIndex } from './books';
 import { type Corpus, emptyCorpus } from './model';
 
 /* Where every built page of a book is served, by its id. */
@@ -71,25 +71,22 @@ class Search {
       pages: parseIndex(index).pages, urls: urlsOf(m),
     }, index === null || chapters.length < dirs.length);
   }
-  /* Any other book: everything off the build beside its pages. A file that failed leaves the rest standing. */
+  /* Any other book: everything off the build beside its pages — the manifest,
+     its text, its concepts and its formula sheets, four files rather than two
+     per chapter. A file that failed leaves the rest standing. */
   private async fetchForeign(book: string): Promise<void> {
-    const raw = await get(`${this.base(book)}book.json`);
-    const manifest = parseManifest(raw);
+    const files = bookFiles(this.base(book));
+    const manifest = parseManifest(await get(files.book));
     if (!manifest) { this.set(emptyCorpus(book, this.titleOf(book)), true); return; }
-    const chapters = manifest.chapters.filter((c) => c.concepts && c.sections.some((s) => s.built));
-    const [index, concepts, formulas] = await Promise.all([
-      get(`${this.base(book)}search.json`),
-      Promise.all(chapters.map(async (c) => get(c.concepts))),
-      Promise.all(chapters.map(async (c) => get(c.formulas))),
-    ]);
-    const seen = new Set<string>();
-    const sheets = formulas.map(parseFormulas);
+    const [index, concepts, formulas] = await Promise.all([get(`${this.base(book)}search.json`), get(files.concepts), get(files.formulas)]);
+    const sheets = Object.values(parseBookFormulas(formulas));
     this.set({
       book, title: manifest.title || this.titleOf(book),
-      concepts: concepts.flatMap((c) => parseConcepts(c).concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true))),
+      /* The book file carries every concept once, so nothing has to be deduplicated here. */
+      concepts: parseBookConcepts(concepts).concepts,
       variables: sheets.flatMap((s) => s.variables), glossary: sheets.flatMap((s) => s.glossary), equations: sheets.flatMap((s) => s.equations),
       pages: parseIndex(index).pages, urls: urlsOf(manifest),
-    }, index === null || concepts.includes(null) || formulas.includes(null));
+    }, index === null || concepts === null || formulas === null);
   }
 }
 export const searchStore = new Search();
