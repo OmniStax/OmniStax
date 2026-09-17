@@ -38,7 +38,7 @@ order they are built.
 ## Layout of the source
 
 ```
-src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages), textindex.ts (the text of a book as blocks with their span and heading, for search.json)
+src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered, the trees cached against the content version), version.ts (that stamp, on globalThis so the watcher in content.mjs and the pages share it), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages), textindex.ts (the text of a book as blocks with their span and heading, for search.json)
 src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag

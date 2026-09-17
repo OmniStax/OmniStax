@@ -9,6 +9,7 @@
    the vendored three.js. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { bumpContent } from './src/lib/content/version.ts';
 
 const TYPES = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
@@ -66,8 +67,14 @@ export default function content(root, books) {
     hooks: {
       'astro:server:setup': ({ server }) => {
         server.watcher.add(root);
-        const onChange = (file) => { if (file.startsWith(root)) server.ws.send({ type: 'full-reload', path: '*' }); };
-        server.watcher.on('change', onChange); server.watcher.on('add', onChange); server.watcher.on('unlink', onChange);
+        /* The stamp is moved before the reload goes out, so the pages the reload
+           asks for again read the files afresh and everything else keeps its tree. */
+        const onEvent = (event) => (file) => {
+          if (!file.startsWith(root)) return;
+          bumpContent(root, file, event);
+          server.ws.send({ type: 'full-reload', path: '*' });
+        };
+        for (const event of ['change', 'add', 'unlink']) server.watcher.on(event, onEvent(event));
         server.middlewares.use('/media', async (req, res, next) => {
           const found = await readMedia(mediaRoots, `/media/${String(req.url ?? '')}`);
           if (found === null) { next(); return; }

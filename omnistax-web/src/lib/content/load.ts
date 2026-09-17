@@ -19,6 +19,7 @@ import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs } fr
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, bookDir, bookId, qualifiedId } from '../types/ids';
 import type { BookSelection } from '../../../omnistax.config';
+import { type ContentVersion, bookVersion, rootVersion } from './version';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -325,7 +326,25 @@ export const chooseBooks = (found: readonly BookFolder[], books: BookSelection):
 export const loadBooks = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> =>
   Promise.all(chooseBooks(await findBooks(root), books).map((f) => loadBook(f.dir, f.id)));
 
-/* The trees are read once per build. In dev every request reads the files again, so a content edit shows on reload. */
-let cached: Promise<readonly BookTree[]> | null = null;
-export const bookTrees = (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> =>
-  (import.meta.env.PROD ? (cached ??= loadBooks(root, books)) : loadBooks(root, books));
+/* The trees are read once and kept until the file they were read from moves.
+   A build never moves a version, so the cache is filled once and stands; in dev
+   the watcher bumps the book a change lies under, so an edit to College Physics
+   rereads that book alone and every other book's tree survives. The entries are
+   promises rather than values, so concurrent first hits share the one load. */
+type Cached<T> = { readonly at: ContentVersion; readonly value: Promise<T> };
+
+let folders: Cached<readonly BookFolder[]> | null = null;
+const trees = new Map<BookDir, Cached<BookTree>>();
+
+const freshOr = <T>(held: Cached<T> | null | undefined, at: ContentVersion, load: () => Promise<T>): Cached<T> =>
+  (held && held.at === at ? held : { at, value: load() });
+
+export const bookTrees = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> => {
+  folders = freshOr(folders, rootVersion(), () => findBooks(root));
+  const chosen = chooseBooks(await folders.value, books);
+  return Promise.all(chosen.map((f) => {
+    const held = freshOr(trees.get(f.dir), bookVersion(f.dir), () => loadBook(f.dir, f.id));
+    trees.set(f.dir, held);
+    return held.value;
+  }));
+};
