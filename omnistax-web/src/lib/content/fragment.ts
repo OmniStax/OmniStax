@@ -215,13 +215,13 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
    ends at its text. */
 const sectionEnd = (s: SectionSource): string => {
   if (s.meta.role !== 'section') return '';
-  const available = s.exercises.some((e) => e.place.at === 'end');
+  const available = s.exercises.length > 0;
   return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${available ? 'Open a practice session on this section' : 'This section has no exercises'}"${available ? '' : ' disabled'}>Practice this section${ICON.exercises}</button></div>`;
 };
 
 /* The fragment carries its own data so a tab can be opened from it alone. */
 export const sectionData = (s: SectionSource): string =>
-  `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
+  `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta }).replace(/</g, '\\u003c')}</script>`;
 
 /* A section's fragment is its two documents and its data; an introduction or
    summary page sets no exercises and so has no problem set to open. The text

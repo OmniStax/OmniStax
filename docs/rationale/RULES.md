@@ -196,16 +196,21 @@ sub-concepts (item 3) is the agent's call; joining sections is not.
 Exercises are sourced from several locations in a book (inline Check Your
 Understanding boxes, end-of-section problem sets, end-of-chapter problem
 sets, test-prep sections, worked examples) and they come in different
-types. The source decides where an exercise shows up on the page:
+types. They all go to the same place: the Exercises system, which is where
+the reader practises and the only thing attainment and freshness are built
+from.
 
-- **Inline**, in the running text where the book printed it: typically a
-  Check Your Understanding item. It is a Try It with immediate feedback
-  and no persisted attainment or freshness effect.
-- **Exercises system**: every question the book puts in a problem set,
-  review, or test-prep collection, including Remember and Understand items.
+The reading itself carries no questions. A card standing in the middle of a
+paragraph asked the reader to stop and be graded while they were still
+taking the idea in, and it split practice in two, so that a question the
+book happened to print in its running text never counted for anything. One
+system and one record of what the reader has done is the simpler thing and
+the more honest one.
 
-The agent records the source location and the type of every exercise so
-the placement is a rule, not a per-item choice.
+The agent still records the source location and the type of every exercise.
+The location is provenance now rather than placement: `place` says where the
+book printed the question, and an inline one still names the span of the text
+it followed, so a later reader can find it in the source it came from.
 
 An exercise goes with the section that introduces what it tests, not
 where the book happens to put it. The reader should be ready for an
@@ -419,9 +424,9 @@ after every section and before every stop for feedback.
 
 ## 20. Exercise evidence is discrete
 
-A completed Exercises-system question adds one correct or incorrect step to
-every concept in its `exercise_concepts` rows. Inline Try Its add none. Legacy
-weights remain readable in old content but do not affect practice.
+A completed question adds one correct or incorrect step to every concept in
+its `exercise_concepts` rows, wherever the book printed it. Legacy weights
+remain readable in old content but do not affect practice.
 
 ## 21. The book's introductions and summaries keep their place
 

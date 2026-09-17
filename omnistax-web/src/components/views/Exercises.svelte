@@ -191,12 +191,11 @@
   const drawn = $derived(session?.drawn ?? []);
   const cur = $derived(practice.current(item));
   const pending = $derived(session ? session.drawn[at] : undefined);
-  /* A problem of the book being read waits on its section; one drawn out of
-     another book waits on that book, which arrives whole. */
+  /* Every book's problems arrive as one file, the book being read included, so
+     a drawn problem waits on that book and on nothing else. */
   $effect(() => {
     if (!pending || cur) return;
-    if (pending.book === book) registry.load(pending.section).catch(() => {});
-    else if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
+    if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
   });
   const outcome = $derived(session?.outcomes[at] ?? null);
   const allDone = $derived(!!session && session.outcomes.every((v) => v !== null));
@@ -209,14 +208,11 @@
   $effect(() => { if (root && cur) registry.decorateRoot(root); });
   let allRoot = $state<HTMLElement | null>(null);
   $effect(() => { if (allRoot && page.showAll) { drawn; registry.decorateRoot(allRoot); } });
-  /* All mode needs every local section at once; foreign books were fetched as a
-     unit while the curriculum was assembled. */
+  /* All mode draws from the same book files, which were fetched as a unit while
+     the curriculum was assembled. */
   $effect(() => {
     if (!page.showAll) return;
-    drawn.forEach((d) => {
-      if (d.book === book) registry.load(d.section).catch(() => {});
-      else if (statusOf(d.book) === 'idle') books.load(d.book).catch(() => {});
-    });
+    drawn.forEach((d) => { if (statusOf(d.book) === 'idle') books.load(d.book).catch(() => {}); });
   });
   const answeredAt = (i: number, ok: boolean): void => { if (!page.showAll) practice.afterAnswer(item, i); };
 
@@ -625,7 +621,7 @@
       {:else if pending && statusOf(pending.book) === 'failed'}
         <p class="quiet">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another square to continue.</p>
       {:else}
-        <p class="quiet">{pending && pending.book !== book ? 'Loading the book this exercise comes from…' : 'Loading the section this exercise comes from…'}</p>
+        <p class="quiet">Loading the book this exercise comes from…</p>
       {/if}
     {/if}
     {#if ending}

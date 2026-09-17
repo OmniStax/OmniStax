@@ -79,9 +79,9 @@ After exploration, list the defaults one setting per line with its value (start 
 
 A section is a page even when thin. Splitting into sub-concepts is the agent's call; joining sections is never.
 
-## 12. Exercises come from different places and go to different places
+## 12. Exercises come from different places and go to one place
 
-Every exercise records its source location and kind, and its source location decides placement. A question printed inline in the reading stays inline as a short Try It. It gives immediate feedback only: revealing or checking it never records attainment or freshness and never asks for a self-reported verdict. A question printed in a problem set, review, test-prep set or other end exercise collection goes to the Exercises system, including Remember and Understand questions. Bloom level describes the thinking; it never moves a question. An exercise goes with the section that introduces what it tests; one the book places early is held for the later page, and both sections' notes say so. Every exercise is tagged with the concepts it tests.
+Every exercise records its source location and kind, and every one of them goes to the Exercises system: a question printed in the running reading, one printed in a problem set, a review, a test-prep set or any other end collection, Remember and Understand questions alike. Nothing is set in the text itself, and the reader meets the section's questions by opening a practice session on it. The `place` row stays as the record of where the book printed the question, `{"at": "inline", "after": "<span>"}` for one the reading carried, and the span it names must still be an id of the text. Bloom level describes the thinking; it never moves a question. An exercise goes with the section that introduces what it tests; one the book places early is held for the later page, and both sections' notes say so. Every exercise is tagged with the concepts it tests.
 
 ## 13. What the agent may generate, and what it must not
 
@@ -125,7 +125,7 @@ Every reference must resolve. `npm run check:content` in `omnistax-web`, with th
 
 ## 20. Exercise evidence is discrete
 
-A completed Exercises-system question supplies one step of evidence to every concept in its `exercise_concepts` rows. Correct adds one and incorrect subtracts one until mastery; Bloom and legacy `weight` fields do not change attainment. Inline Try Its supply no persisted evidence.
+A completed question supplies one step of evidence to every concept in its `exercise_concepts` rows, whatever the book's own placement of it was. Correct adds one and incorrect subtracts one until mastery; Bloom and legacy `weight` fields do not change attainment.
 
 ## 21. The book's introductions and summaries keep their place
 

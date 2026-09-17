@@ -14,10 +14,10 @@
 
   let {
     section, ex, hidden = false, book = registry.manifest.id,
-    outcome = null, onanswer, inline = false, session,
+    outcome = null, onanswer, session,
   }: {
     section: SectionId; ex: ExerciseDTO; hidden?: boolean; book?: string;
-    outcome?: boolean | null; onanswer?: (ok: boolean) => void; inline?: boolean; session?: SessionId;
+    outcome?: boolean | null; onanswer?: (ok: boolean) => void; session?: SessionId;
   } = $props();
 
   const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
@@ -63,8 +63,8 @@
   const recorded = $derived(outcome ?? localOutcome);
   const record = (ok: boolean, self: boolean): void => {
     if (completed) return;
-    if (!inline) practice.record(book, section, ex, ok, self, Date.now(), session);
-    earned = inline ? null : ok ? 'Recorded as correct.' : 'Recorded as incorrect.';
+    practice.record(book, section, ex, ok, self, Date.now(), session);
+    earned = ok ? 'Recorded as correct.' : 'Recorded as incorrect.';
     localOutcome = ok;
     localDone = true;
     onanswer?.(ok);
@@ -103,14 +103,14 @@
         <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</div>
         <div use:math={sol}>{@html sol}</div>
       </div>
-      {#if !completed && !inline}
+      {#if !completed}
         <div class="selfcheck" aria-label="Mark your answer">
           <button type="button" class="right" onclick={() => record(true, true)}>I got it right</button>
           <button type="button" class="wrong" onclick={() => record(false, true)}>I got it wrong</button>
         </div>
       {/if}
     {:else}
-      <div class="reveal"><button type="button" class="btn reveal-btn" onclick={() => (solutionOpen = true)}>{inline ? 'Reveal answer' : 'Reveal and check'}</button></div>
+      <div class="reveal"><button type="button" class="btn reveal-btn" onclick={() => (solutionOpen = true)}>Reveal and check</button></div>
     {/if}
   {:else}
     <p class="no-solution">No answer was supplied for this exercise, so it cannot be self-checked.</p>

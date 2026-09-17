@@ -229,13 +229,14 @@ The exercises the section sets.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card and its tab. |
+| `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card. |
 | `source_id` | `string` | yes | The publisher’s own id for the exercise, so that it can be found again in the source. |
 | `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. |
+| `source_number` | `string?` | no | The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it. |
 | `kind` | `string` | yes | The kind of exercise it is, naming a row of the book’s exercise kinds. |
 | `bloom` | `"Remember" \| "Understand" \| "Apply" \| "Analyze" \| "Evaluate" \| "Create"` | yes | The level of thinking the exercise asks for. |
 | `tag` | `string?` | no | A word the book prints beside the exercise, such as the topic of an AP item. |
-| `place` | `{ at: "end" } \| { at: "inline", after }` | yes | Where the exercise is set: at the end with the problem set, or inline after a span of the text. |
+| `place` | `{ at: "end" } \| { at: "inline", after }` | yes | Where the book printed the exercise: at the end with the problem set, or in the running text after a span of it. The exercise is practised in the Exercises view either way. |
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
 | `figure` | `{ src, alt?, caption? }?` | no | A book figure the problem refers to, kept in the card. |
 | `prompt` | `string` | yes | The question as the book asks it. |
@@ -249,24 +250,24 @@ Which concepts each exercise tests, and what it is worth for them.
 | --- | --- | --- | --- |
 | `exercise` | `string` | yes | The local id of the exercise. |
 | `concept` | `string` | yes | A concept the exercise tests. |
-| `weight` | `number?` | no | What the exercise is worth for this concept, overriding the points its Bloom level would earn. Always written by the pipeline. |
+| `weight` | `number?` | no | Legacy relative concept weight retained for compatibility; practice attainment is discrete. |
 | `weights_by` | `"ai"?` | no | Legacy marker for a concept weight chosen by the agent; practice attainment is discrete. |
 
 ### `place`
 
-Where an exercise is set: at the end with the problem set, or inline after a span.
+Where the book printed an exercise: at the end with the problem set, or in the running text after a span. The Exercises view holds every one of them.
 
-**`at = "end"`** — The exercise is set at the end of the section, with the problem set.
-
-| field | type | required | description |
-| --- | --- | --- | --- |
-| `at` | `"end"` | yes | The exercise is set at the end of the section, with the problem set. |
-
-**`at = "inline"`** — The exercise is set in the text itself, as a "Try it" beside what it tests.
+**`at = "end"`** — The book prints the exercise at the end of the section, with the problem set.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `at` | `"inline"` | yes | The exercise is set in the text itself, as a "Try it" beside what it tests. |
+| `at` | `"end"` | yes | The book prints the exercise at the end of the section, with the problem set. |
+
+**`at = "inline"`** — The book prints the exercise in the running text, after the passage it tests.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `at` | `"inline"` | yes | The book prints the exercise in the running text, after the passage it tests. |
 | `after` | `string` | yes | The local id of the span the exercise follows. |
 
 ### `answer`

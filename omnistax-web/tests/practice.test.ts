@@ -69,9 +69,11 @@ test('an unmastered concept uses a discrete fraction and a lower target can mast
 
 test('concepts with one or two exercises use their available count as the denominator', () => {
   const available = availabilityOf(cat);
-  assert.deepEqual(available, { a: 3, b: 3, c: 1 });
-  const c = rebuild([attempt('c1', D1, true, ['c'])], [], {}, DEFAULT_SETTINGS, available).c;
-  assert.equal(c.target, 1); assert.equal(c.mastered, true);
+  assert.deepEqual(available, { a: 3, b: 3, c: 2 });
+  const one = rebuild([attempt('c1', D1, true, ['c'])], [], {}, DEFAULT_SETTINGS, available).c;
+  assert.equal(one.target, 2); assert.equal(one.mastered, false);
+  const both = rebuild([attempt('c1', D1, true, ['c']), attempt('try', D1, true, ['c'])], [], {}, DEFAULT_SETTINGS, available).c;
+  assert.equal(both.target, 2); assert.equal(both.mastered, true);
 });
 
 test('freshness begins at mastery, becomes due at one half-life, and successful due reviews double it', () => {
@@ -100,10 +102,10 @@ test('self-assessment is separate, reversible, and can disable decay', () => {
   assert.equal(rebuild([], [], {}, DEFAULT_SETTINGS, { a: 3 }).a, undefined);
 });
 
-test('inline Try Its never enter the practice pool or availability', () => {
+test('an exercise the book printed inline is practised like any other', () => {
   assert.deepEqual([...conceptsOf([{ book: 'cp', section: sec('1.2') }], cat)], ['c']);
-  assert.deepEqual(poolOf([{ concept: conceptId('c') }], cat).map((r) => r.ex.id), ['c1']);
-  assert.equal(availabilityOf(cat).c, 1);
+  assert.deepEqual(poolOf([{ concept: conceptId('c') }], cat).map((r) => r.ex.id), ['c1', 'try']);
+  assert.equal(availabilityOf(cat).c, 2);
 });
 
 test('the planner unions per-concept quotas, keeps shared coverage, and has no duplicate exercise', () => {

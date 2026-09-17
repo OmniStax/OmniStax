@@ -176,11 +176,11 @@ export const keyOf = (e: { readonly book: string; readonly section: SectionId; r
 export const poolOf = (c: Curriculum, cat: Catalog): readonly CatalogExercise[] => {
   const selected = conceptsOf(c, cat), places = new Set(sectionsOfCurriculum(c, cat).map((p) => `${p.book}/${p.section}`));
   const explicit = new Set(c.filter(isConcept).map((p) => String(p.concept)));
-  return cat.exercises.filter((e) => e.ex.place.at === 'end' && e.ex.concepts.some((id) => selected.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => explicit.has(id))));
+  return cat.exercises.filter((e) => e.ex.concepts.some((id) => selected.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => explicit.has(id))));
 };
 export const availabilityOf = (cat: Catalog): Readonly<Record<string, number>> => {
   const sets: Record<string, Set<string>> = {};
-  cat.exercises.filter((e) => e.ex.place.at === 'end').forEach((e) => e.ex.concepts.forEach((id) => (sets[id] ??= new Set()).add(keyOf(e))));
+  cat.exercises.forEach((e) => e.ex.concepts.forEach((id) => (sets[id] ??= new Set()).add(keyOf(e))));
   return Object.fromEntries(Object.entries(sets).map(([id, keys]) => [id, keys.size]));
 };
 
