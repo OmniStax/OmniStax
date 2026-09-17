@@ -17,7 +17,7 @@ import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard,
 import { openItem } from '../sections/nav.svelte';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .ex-root a[href^="#"], .katex-display, [data-concept], .formula[data-formula]';
+export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display, [data-concept], .formula[data-formula]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;

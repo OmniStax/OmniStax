@@ -30,8 +30,6 @@ export const bookRoutes = async (): Promise<BookRoute[]> =>
 /* Every page under a chapter: its sections at their numbers, its introduction and summary at their folder names. */
 export const sectionRoutes = async (): Promise<SectionRoute[]> =>
   (await trees()).flatMap((t) => t.chapters.flatMap((chapter) => pagesOf(chapter).map((section) => ({ params: { book: t.dto.id, chapter: chapter.dto.dir, section: pageDir(section.meta.id) }, props: { tree: t, chapter, section } }))));
-/* The sections alone: what has a problem set of its own to serve. */
-export const problemSetRoutes = async (): Promise<SectionRoute[]> => (await sectionRoutes()).filter((r) => r.props.section.role === 'section');
 /* The book's own introduction or summary, where it is built: one route per book that keeps one. */
 export const frontRoutes = (role: FrontRole) => async (): Promise<FrontRoute[]> =>
   (await trees()).flatMap((t) => { const section = t[role]; return section ? [{ params: { book: t.dto.id }, props: { tree: t, chapter: null, section } }] : []; });

@@ -47,8 +47,8 @@ Svelte 5 island for the shell.
 1. **Routes from content.** `src/lib/content/load.ts` reads the content
    tree into DTOs. `[book]/[chapter]/[section]/index.astro` is the page;
    `doc.html.ts` and `figures.js.ts` beside it emit the fragment and the
-   figure module; chapter `concepts.json` and `formulas.json`, a section's
-   `exercises.json`, the `book.json` manifest and the three book-level
+   figure module; chapter `concepts.json` and `formulas.json`, the
+   `book.json` manifest and the three book-level
    files beside it — `exercises.json`, `concepts.json`, `formulas.json`
    — are endpoints too.
 2. **Shared assets are bundled once.** KaTeX, the shell and the figure
