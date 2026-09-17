@@ -1,0 +1,45 @@
+<script lang="ts">
+  /* The cards for one host inside a document: an inline "Try it" spot, or the
+     end-of-section list with its all-at-once / one-at-a-time switch. The way on
+     to a practice session stands below the cards rather than in the bar above
+     them, centred and wearing the same pencil the section's text ends on, since
+     it is what the reader reaches for once the problems are behind them. The
+     shell catches that button's click, the way it catches the rail's split
+     buttons: the list says which section it is, and the shell knows which group
+     it sits in. */
+  import { registry } from '../../lib/sections/registry.svelte';
+  import type { SectionId } from '../../lib/types/ids';
+  import { placeKey } from '../../lib/content/schema';
+  import { ICON } from '../../lib/icons';
+  import ExerciseCard from './ExerciseCard.svelte';
+  let { section, place }: { section: SectionId; place: string } = $props();
+  const all = $derived(registry.state(section)?.exercises ?? []);
+  const items = $derived(all.filter((e) => placeKey(e.place) === place));
+  const isEnd = $derived(place === 'end');
+</script>
+
+{#if items.length}
+  <div class="list">
+    {#if isEnd}
+      <div class="practice-row">
+        <button type="button" class="practise" data-practise-section={section} title="Open a practice session on this section">Practice this section{@html ICON.exercises}</button>
+      </div>
+    {:else}
+      <div class="eyebrow">Try it</div>
+      {#each items as ex (ex.id)}
+        <ExerciseCard {section} {ex} inline />
+      {/each}
+    {/if}
+  </div>
+{/if}
+
+<style>
+  .list{margin:1.6rem 0}
+  .list > .eyebrow{margin-bottom:8px}
+  /* the same button the section's text ends on, mirrored here */
+  .practice-row{display:flex;justify-content:center;margin-top:16px;font-family:var(--sans)}
+  .practise{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .practise :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .practise:hover{background:var(--soft)}
+  .practise:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+</style>

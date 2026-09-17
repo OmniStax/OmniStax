@@ -9,20 +9,19 @@ answers, a completion streak, and concept counts.
 
 ## What counts
 
-Every exercise the book sets belongs to the Exercises system, and the reading
-carries none of them.
+Source placement is authoritative.
 
-- A question the book printed in an end exercise collection and one it printed
-  in the running text are the same thing here. Remember and Understand
-  questions are valid. Open answers are graded by the reader's
-  `I got it right` / `I got it wrong` verdict.
-- Every submitted question is one completed exercise. Repeats in later rounds
-  count again.
-- `place` says where the book printed the question. It is provenance, shown on
-  the card's source line, and it decides nothing about practice.
+- A question printed inline in the reading remains an inline **Try It**. It may
+  give immediate feedback or reveal its answer, but it never records an
+  attempt, attainment, freshness, streak, heatmap activity, or completion.
+- A question printed in an end exercise collection belongs to the Exercises
+  system. Remember and Understand questions are valid here. Open answers are
+  graded by the reader's `I got it right` / `I got it wrong` verdict.
+- Every submitted Exercises-system question is one completed exercise. Repeats
+  in later rounds count again.
 
 Bloom level remains descriptive metadata and may break a scheduling tie. It
-does not determine the amount of evidence.
+does not determine placement or the amount of evidence.
 
 ## Attainment
 
@@ -134,7 +133,6 @@ exercise counts toward the calendar-day streak, regardless of correctness.
 Book progress remains a flat count of unpracticed, practiced, and mastered
 concepts, without chapter or section categories.
 
-The practice catalogue fetches the book-level `exercises.json` of each book on
-the shelf, one request apiece. It does not load document HTML or figure modules,
-either to populate the picker or to show a drawn card, and a loading catalogue
-is never reported as zero exercises.
+The practice catalogue fetches each built section's `exercises.json` directly.
+It does not load document HTML or figure modules to populate the picker, and a
+loading catalogue is never reported as zero exercises.

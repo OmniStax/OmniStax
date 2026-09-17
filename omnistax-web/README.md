@@ -39,7 +39,7 @@ order they are built.
 
 ```
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered, image sizes read off the book's media folder, the trees cached against the content version), version.ts (that stamp, on globalThis so the watcher in content.mjs and the pages share it), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages), textindex.ts (the text of a book as blocks with their span and heading, for search.json)
-src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, a standing page, one of the book's reference sheets, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
+src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag, boot (the page's boot data — the manifest and the chapter's concepts and formulas — written into the page's one JSON script and parsed back out of it)
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes); md/: links.ts (the wiki-link grammar, one place), render.ts (markdown to HTML, pure, the cards a note holds), complete.ts (the rows the picker offers), dragout.ts (a panel row dragged into a note)
@@ -55,7 +55,7 @@ src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
 src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations, Search (every book of the library: its text, concepts, definitions and formulas, under a filter; a hit opens the page and lands on the thing, or links out to another book)
 src/components/notes      NoteTab (one note in a tab of its own)
-src/components/exercises  ExerciseCard (multiple choice or reveal-and-self-check), ChoiceAnswer — the Exercises view is the one place they are drawn
+src/components/exercises  ExerciseList, ExerciseCard (multiple choice or reveal-and-self-check), ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the boot script (the manifest and the chapter's concepts and formulas as one JSON script rather than island props, written and read back by src/lib/sections/boot.ts), the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts
@@ -76,11 +76,11 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   are adopted into panes, never re-rendered. Views and exercise cards are components.
 - A figure can be split into a tab of its own: the registry builds a root holding
   just that figure's static markup and boots the section script on it; the other
-  figures of the script get detached scaffolds and never draw.
-- The text of a section carries no exercises. Every question the book sets is
-  reached through the Exercises view, which draws its cards from the book-level
-  `exercises.json` and so needs no section fetched to show one; the text ends on
-  a button that opens a practice session on the section it stands in.
+  figures of the script get detached scaffolds and never draw. One exercise opens
+  the same way — the `ex` kind of `ItemId`, reached from the card's own button or
+  from the Open browser — but as a card the shell renders rather than adopted
+  markup, so what is answered there is that card's own, as it is for a document
+  cloned into a second group.
 - Every page of the site is the same shell over a different item: `/` carries
   `page:about`, `/<book>/` carries `page:book`, a section page carries its text.
   That item is the shell's `own`, what `ensureOwn` keeps open, and what the

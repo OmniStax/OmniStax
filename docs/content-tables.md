@@ -142,9 +142,7 @@ Tables:
   exercise with the concept it tests rather than with the section it is
   printed in; absent when it is the section's own. `place` is an ADT:
   `{ "at": "end" }` or
-  `{ "at": "inline", "after": "<local id>" }`, the record of where the
-  book printed the question; every exercise is practised in the Exercises
-  view either way, and the `after` id must be an id of the text. `answer` is the existing
+  `{ "at": "inline", "after": "<local id>" }`. `answer` is the existing
   ADT on `type`.
 - `exercise_concepts`: `{ exercise, concept, weight? }`. `weight` is the
   pipeline's override of the Bloom points table, always AI-written, so it

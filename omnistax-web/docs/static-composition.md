@@ -78,8 +78,8 @@ Svelte 5 island for the shell.
    strip lists its sections. The page carries the manifest, and the
    concepts and formulas of the chapter it stands in, in one
    `<script type="application/json" id="omnistax-boot">` — the same way
-   the fragment carries a section's own meta beside its article — and the
-   shell parses it at setup. It is far the largest
+   the fragment carries a section's own meta and exercises beside its
+   article — and the shell parses it at setup. It is far the largest
    thing the shell boots from and none of it is the reader's, so it does
    not go through the island's props: Astro serialises those into an
    attribute of `<astro-island>`, wrapping every value in a typed tuple

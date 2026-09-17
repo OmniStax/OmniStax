@@ -4,7 +4,7 @@
    copy built from the fragment source with its own exercises and figures. A
    chapter's concepts and formulas are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
-import type { SectionMetaDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
+import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
 import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, bookId, sectionId, itemKey, figItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import type { Fig } from '../fig/figlib';
@@ -30,6 +30,7 @@ const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').repl
 export type SectionStatus = 'loaded' | 'loading' | 'failed';
 export type SectionState = {
   readonly meta: SectionMetaDTO | null;
+  readonly exercises: readonly ExerciseDTO[];
   readonly docs: Partial<Record<DocKind, HTMLElement>>;
   readonly src: Partial<Record<DocKind, string>>;
   readonly status: SectionStatus;
@@ -37,8 +38,9 @@ export type SectionState = {
 };
 export type ChapterData = { readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO };
 export type ChapterStatus = SectionStatus;
+export type Mounter = (root: HTMLElement, section: SectionId) => void;
 
-const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO } => JSON.parse(s.textContent ?? '{}');
+const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
   manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '', formulas: '' });
@@ -48,6 +50,7 @@ class Registry {
   chapterStatus = $state.raw<Readonly<Record<string, ChapterStatus>>>({});   /* by chapter dir, beside the data above */
   private fig: Fig | null = null;
   private threeUrl: ThreeUrl = '';                                          /* the vendor script, fetched the first time a figure draws in three dimensions */
+  private mountExercises: Mounter = () => {};
   private decorate: (root: HTMLElement) => void = () => {};
   private owner: Record<string, GroupKey> = {};
   private clones: Record<string, HTMLElement> = {};
@@ -55,7 +58,7 @@ class Registry {
   private loadingChapters: Partial<Record<string, Promise<void>>> = {};
   private loadingPages: Partial<Record<PageKind, Promise<void>>> = {};
 
-  init(manifest: BookManifest, fig: Fig, decorate?: (root: HTMLElement) => void, threeUrl?: ThreeUrl): void { this.manifest = manifest; this.fig = fig; if (decorate) this.decorate = decorate; if (threeUrl) this.threeUrl = threeUrl; }
+  init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void, threeUrl?: ThreeUrl): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; if (threeUrl) this.threeUrl = threeUrl; }
 
   /* Any page of the book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
   entry(sec: SectionId): SectionEntry | undefined { return bookPagesOf(this.manifest).find((s) => s.id === sec); }
@@ -146,11 +149,11 @@ class Registry {
     });
     container.querySelectorAll<HTMLScriptElement>('script[data-section]').forEach((s) => {
       const sec = sectionId(s.dataset.section ?? ''); const d = sectionDataOf(s);
-      next[sec] = { ...(next[sec] ?? { docs: {}, src: {} }), meta: d.meta, status: 'loaded' }; seen.add(sec); s.remove();
+      next[sec] = { ...(next[sec] ?? { docs: {}, src: {} }), meta: d.meta, exercises: d.exercises, status: 'loaded' }; seen.add(sec); s.remove();
     });
     container.querySelectorAll<HTMLElement>('article[data-doc]').forEach((a) => {
       const [sec, doc] = (a.dataset.doc ?? '').split('/') as [SectionId, DocKind];
-      const cur = next[sec] ?? { meta: null, docs: {}, src: {}, status: 'loaded' as const };
+      const cur = next[sec] ?? { meta: null, exercises: [], docs: {}, src: {}, status: 'loaded' as const };
       next[sec] = { ...cur, docs: { ...cur.docs, [doc]: a }, src: { ...cur.src, [doc]: a.outerHTML }, status: 'loaded' }; seen.add(sec);
     });
     this.sections = next;
@@ -159,6 +162,7 @@ class Registry {
   }
   private prepare(root: HTMLElement, sec: SectionId): void {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
+    this.mountExercises(root, sec);
     this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec);
     this.decorate(root);
   }
@@ -204,14 +208,14 @@ class Registry {
     const pending = this.loading[sec]; if (pending) return pending;
     const e = this.entry(sec), ch = this.chapterOf(sec);
     if (!e || !e.built) return Promise.reject(new Error(`unknown section ${sec}`));
-    this.sections = { ...this.sections, [sec]: { meta: null, docs: {}, src: {}, status: 'loading' } };
+    this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'loading' } };
     /* A page of the book's own has no chapter, and so no concepts or formulas to fetch beside it. */
     const chapterData = ch ? this.loadChapter(ch.dir) : Promise.resolve();
     const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
     const html = fetch(e.fragment).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); });
     this.loading[sec] = Promise.all([chapterData, script, html])
       .then(([, , text]) => { const t = document.createElement('template'); t.innerHTML = text; this.adopt(t.content); })
-      .catch((err: Error) => { this.sections = { ...this.sections, [sec]: { meta: null, docs: {}, src: {}, status: 'failed', error: err.message } }; })
+      .catch((err: Error) => { this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'failed', error: err.message } }; })
       .finally(() => { delete this.loading[sec]; });
     return this.loading[sec]!;
   }

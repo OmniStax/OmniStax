@@ -10,7 +10,7 @@ export type Speaker = {
 };
 
 /* Not read: figures and sims, exercise cards, transport chrome, KaTeX's visual branch. */
-const SKIP = 'figure, .sim, .photo, .katex-html, .fig-split, .footer, .transport, .controls, .readout, script, style, button, nav';
+const SKIP = 'figure, .exercises, .sim, .photo, .katex-html, .fig-split, .footer, .transport, .controls, .readout, script, style, button, nav';
 const BLOCKS = new Set(['P', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'DIV', 'SECTION', 'ARTICLE', 'BLOCKQUOTE', 'TR', 'DT', 'DD']);
 const TEXT_NODE = 3, ELEMENT_NODE = 1;
 

@@ -34,6 +34,7 @@
   import Tooltip from './Tooltip.svelte';
   import Browser from './Browser.svelte';
   import FindTextbook from './explorer/FindTextbook.svelte';
+  import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { sheets } from '../lib/sheets/store.svelte';
   import { markFormulas } from '../lib/sheets/mark';
@@ -70,6 +71,10 @@
     if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
     return registry.isBuilt(id.section);
   };
+  const mountExercises = (root: HTMLElement, sec: SectionId) => {
+    root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { section: sec, place: host.dataset.place ?? 'end' } }); });
+  };
+
   /* highlights: paint a document from the notes that belong to it */
   const paintDoc = (root: HTMLElement) => {
     const [sec, doc] = (root.dataset.doc ?? '').split('/'); if (!sec) return;
@@ -83,7 +88,7 @@
     explorer.init();
     library.init(manifest.id, manifest.title);
     practice.init();
-    registry.init(manifest, fig, paintDoc, threeUrl);
+    registry.init(manifest, fig, mountExercises, paintDoc, threeUrl);
     sheets.init(markFormulas);
     colours.init(manifest);
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);

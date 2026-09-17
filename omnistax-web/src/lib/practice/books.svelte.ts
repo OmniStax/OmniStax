@@ -43,11 +43,10 @@ class Books {
   concept(id: string): ConceptDTO | undefined {
     return registry.concept(id) ?? Object.values(this.loaded).flatMap((b) => b.concepts).find((c) => c.id === id);
   }
-  /* A section's exercises, out of the book file either way: the book being read
-     keeps its own cache beside the foreign ones, so nothing here depends on the
-     section being open in a tab. */
+  /* A section's exercises: out of the registry for the book being read, since
+     that section may be open in a tab, and out of the cache for any other. */
   exercises(book: string, section: SectionId): readonly ExerciseDTO[] | undefined {
-    return book === registry.manifest.id ? this.homeExercises[section] : this.loaded[book]?.exercises[section];
+    return book === registry.manifest.id ? this.homeExercises[section] ?? registry.sections[section]?.exercises : this.loaded[book]?.exercises[section];
   }
 
   private setStatus(book: string, status: BookStatus): void { this.status = { ...this.status, [book]: status }; }

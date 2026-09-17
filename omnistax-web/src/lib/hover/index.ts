@@ -22,7 +22,7 @@ export type { Card, Action, Kind } from './resolve';
 
 /* The prose blocks a term may be marked in: not a caption, not an exercise card, not a heading. */
 const blocks = (root: HTMLElement): HTMLElement[] =>
-  Array.from(root.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('figure, .hover-card') && !b.querySelector('p, li'));
+  Array.from(root.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('figure, .exercises, .hover-card') && !b.querySelector('p, li'));
 
 const glossaryOf = (section: SectionId): readonly Term[] => {
   const dir = registry.chapterOf(section)?.dir; const data = dir ? registry.chapters[dir] : undefined;

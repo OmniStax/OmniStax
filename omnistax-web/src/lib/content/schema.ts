@@ -227,18 +227,18 @@ export const CoverageSchema = z.object({
 }).strict();
 export type CoverageRowDTO = z.infer<typeof CoverageSchema>;
 
-/* Where the book printed the exercise: at the end of the section with the rest
-   of the problem set, or in the running text, right after the span it follows
-   on from. Every exercise is practised in the Exercises view whichever it is;
-   the place is the record of where the book set it. */
+/* Where an exercise is set: at the end of the section with the rest of the
+   problem set, or inline in the text, right after the span it follows on from. */
 export const PlaceSchema = z.discriminatedUnion('at', [
-  z.object({ at: z.literal('end').describe('The book prints the exercise at the end of the section, with the problem set.') }).strict(),
+  z.object({ at: z.literal('end').describe('The exercise is set at the end of the section, with the problem set.') }).strict(),
   z.object({
-    at: z.literal('inline').describe('The book prints the exercise in the running text, after the passage it tests.'),
+    at: z.literal('inline').describe('The exercise is set in the text itself, as a "Try it" beside what it tests.'),
     after: z.string().describe('The local id of the span the exercise follows.'),
   }).strict(),
 ]);
 export type PlaceDTO = z.infer<typeof PlaceSchema>;
+/* What the DOM calls a place: "end", or the local id an inline exercise follows. */
+export const placeKey = (p: PlaceDTO): string => (p.at === 'end' ? 'end' : p.after);
 
 /* Answers are an ADT: each type carries its own fields and its own checker. */
 const GEN = z.enum(GENERATED_BY).default('source').describe('Whether the answer comes from the book\u2019s own key or was written by the AI that built the section.');
@@ -294,7 +294,7 @@ export const ExerciseSchema = z.object({
   kind: z.string().describe('The kind of exercise it is, naming a row of the book\u2019s exercise kinds.'),
   bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for.'),
   tag: z.string().optional().describe('A word the book prints beside the exercise, such as the topic of an AP item.'),
-  place: PlaceSchema.describe('Where the book printed the exercise: at the end with the problem set, or in the running text after a span of it. The exercise is practised in the Exercises view either way.'),
+  place: PlaceSchema.describe('Where the exercise is set: at the end with the problem set, or inline after a span of the text.'),
   cite: z.string().optional().describe('The local id of the passage the exercise turns on, which the card can show the reader.'),
   figure: ExerciseFigureSchema.optional().describe('A book figure the problem refers to, kept in the card.'),
   prompt: z.string().describe('The question as the book asks it.'),
@@ -368,7 +368,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   coverage: { level: 'section', file: '<chapter>/<section>/section.json', field: 'coverage', schema: CoverageSchema, note: 'Which spans of the text introduce, use and reinforce each concept.' },
   exercises: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises', schema: ExerciseSchema, note: 'The exercises the section sets.' },
   exercise_concepts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercise_concepts', schema: ExerciseConceptSchema, note: 'Which concepts each exercise tests, and what it is worth for them.' },
-  place: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].place', schema: PlaceSchema, note: 'Where the book printed an exercise: at the end with the problem set, or in the running text after a span. The Exercises view holds every one of them.' },
+  place: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].place', schema: PlaceSchema, note: 'Where an exercise is set: at the end with the problem set, or inline after a span.' },
   answer: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer', schema: AnswerSchema, note: 'An exercise\u2019s answer, one shape per way of checking it.' },
   ai: { level: 'section', file: '<chapter>/<section>/section.json', field: 'ai', schema: AiCreditSchema, note: 'The AI the section was built with, by role.' },
 };
