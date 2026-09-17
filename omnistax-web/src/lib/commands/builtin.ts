@@ -3,7 +3,7 @@
    real ones), so the command list can be checked in tests. Add a builtin here;
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
-import type { Theme, ExerciseMode, ZoomStep } from '../settings/store.svelte';
+import type { Theme, ZoomStep } from '../settings/store.svelte';
 import { zoomLabel } from '../settings/zoom';
 import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../types/ids';
 import type { ItemKey } from '../layout/model';
@@ -14,9 +14,9 @@ export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly exerciseMode: ExerciseMode; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
+    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
     zoomIn(): void; zoomOut(): void; resetZoom(): void;
-    setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setExerciseMode(m: ExerciseMode): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
+    setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
   };
   readonly layout: {
     reset(): void;
@@ -67,7 +67,6 @@ export const BUILTIN = {
   focusGroupLeft: commandId('focus-group-left'), focusGroupRight: commandId('focus-group-right'),
   focusGroupUp: commandId('focus-group-up'), focusGroupDown: commandId('focus-group-down'),
   nextTab: commandId('next-tab'), previousTab: commandId('previous-tab'),
-  exerciseAll: commandId('exercise-all'), exerciseOne: commandId('exercise-one'),
   voice: commandId('voice'), readAloud: commandId('read-aloud'), stopReading: commandId('stop-reading'),
   foldAll: commandId('fold-all'), unfoldAll: commandId('unfold-all'), hideFigures: commandId('hide-figures'), showFigures: commandId('show-figures'),
   scopeWiden: commandId('scope-widen'), scopeNarrow: commandId('scope-narrow'),
@@ -86,8 +85,6 @@ export const showViewId = (kind: ViewKind): CommandId => commandId(`show-view-${
 const onOff = (v: boolean): string => (v ? 'on' : 'off');
 const themeCommand = (d: BuiltinDeps, id: CommandId, t: Theme): Command =>
   ({ id, label: `Theme: ${t}`, group: 'Appearance', run: () => d.settings.setTheme(t), detail: () => (d.settings.theme === t ? 'current' : '') });
-const modeCommand = (d: BuiltinDeps, id: CommandId, m: ExerciseMode, label: string): Command =>
-  ({ id, label: `Exercise mode: ${label}`, group: 'Reading', run: () => d.settings.setExerciseMode(m), detail: () => (d.settings.exerciseMode === m ? 'current' : '') });
 /* Moving the focus between groups only means anything once there are several. */
 const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: string): Command =>
   ({ id, label: `Focus group ${label}`, group: 'Layout', run: () => d.layout.focusGroup(dir), when: () => d.layout.groupCount > 1 });
@@ -126,7 +123,6 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.zoomOut, label: 'Smaller text', group: 'Appearance', run: () => d.settings.zoomOut(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomReset, label: 'Text size back to normal', group: 'Appearance', run: () => d.settings.resetZoom(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.animations, label: 'Toggle animations', group: 'Reading', run: () => d.settings.setAnimations(!d.settings.animations), detail: () => onOff(d.settings.animations) },
-  modeCommand(d, BUILTIN.exerciseAll, 'all', 'all'), modeCommand(d, BUILTIN.exerciseOne, 'one', 'one at a time'),
   { id: BUILTIN.voice, label: 'Toggle voice', group: 'Reading', run: () => d.settings.setVoice(!d.settings.voice), detail: () => (d.reader.supported ? onOff(d.settings.voice) : 'no speech in this browser') },
   { id: BUILTIN.readAloud, label: 'Read section aloud', group: 'Reading', run: () => d.reader.readFocused(), when: () => d.settings.voice && d.reader.supported && !d.reader.speaking },
   { id: BUILTIN.stopReading, label: 'Stop reading', group: 'Reading', run: () => d.reader.stop(), when: () => d.reader.speaking },

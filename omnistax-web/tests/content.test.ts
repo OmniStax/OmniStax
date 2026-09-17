@@ -83,7 +83,7 @@ test('coverage folds to one row per span, qualified by its section', () => {
 test('an exercise carries the concepts it tests, and the points the pipeline gave them', () => {
   const [cq1, p1] = exercisesOf(SECTION);
   assert.deepEqual(cq1.concepts, ['restoring-force']);
-  assert.equal(cq1.weights, undefined, 'no override leaves the Bloom table to say what it is worth');
+  assert.equal(cq1.weights, undefined, 'legacy weights remain optional');
   assert.deepEqual(cq1.place, { at: 'inline', after: 'hookes-law' });
   assert.equal(cq1.sourceId, 'fs-1');
   assert.equal(cq1.sourceNumber, '5.17');

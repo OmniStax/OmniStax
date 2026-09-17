@@ -22,7 +22,7 @@ const TYPE_REF = z.string().transform(typeId);
 const EQUATION_REF = z.string().transform(equationId);
 
 /* The levels of thinking the pipeline sorts exercises by, from recalling a fact
-   to making something new. An exercise is worth points by its level. */
+   to making something new. Practice keeps the level as descriptive metadata. */
 export const BLOOM_LEVELS = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'] as const;
 export type Bloom = (typeof BLOOM_LEVELS)[number];
 /* What a concept is: an idea in the usual sense, a result derived from ideas, or
@@ -292,7 +292,7 @@ export const ExerciseSchema = z.object({
   source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own.'),
   source_number: z.string().optional().describe('The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it.'),
   kind: z.string().describe('The kind of exercise it is, naming a row of the book\u2019s exercise kinds.'),
-  bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for, which is what it is worth in points.'),
+  bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for.'),
   tag: z.string().optional().describe('A word the book prints beside the exercise, such as the topic of an AP item.'),
   place: PlaceSchema.describe('Where the exercise is set: at the end with the problem set, or inline after a span of the text.'),
   cite: z.string().optional().describe('The local id of the passage the exercise turns on, which the card can show the reader.'),
@@ -305,8 +305,8 @@ export type ExerciseRowDTO = z.infer<typeof ExerciseSchema>;
 export const ExerciseConceptSchema = z.object({
   exercise: z.string().describe('The local id of the exercise.'),
   concept: CONCEPT_REF.describe('A concept the exercise tests.'),
-  weight: z.number().optional().describe('What the exercise is worth for this concept, overriding the points its Bloom level would earn. Always written by the pipeline.'),
-  weights_by: z.literal('ai').optional().describe('Set to ai on a row whose weight was chosen by the agent rather than the Bloom table (root rule 20).'),
+  weight: z.number().optional().describe('Legacy relative concept weight retained for compatibility; practice attainment is discrete.'),
+  weights_by: z.literal('ai').optional().describe('Legacy marker for a concept weight chosen by the agent; practice attainment is discrete.'),
 }).strict();
 export type ExerciseConceptDTO = z.infer<typeof ExerciseConceptSchema>;
 
@@ -408,9 +408,9 @@ export const ServedConceptsSchema = z.object({
 export type ConceptsDTO = z.infer<typeof ServedConceptsSchema>;
 
 /* An exercise as a card sets it: the concepts it tests folded in from the join
-   table, and the points it is worth for them where the pipeline overrode the
-   Bloom table. */
-export const ServedExerciseSchema = ExerciseSchema
+   table. `weights` remains readable for older built books but practice uses one
+   discrete evidence step for every tested concept. */
+const SourceNamedServedExerciseSchema = ExerciseSchema
   .extend({
     concepts: z.array(CONCEPT_REF).default([]),
     weights: z.record(z.number()).optional(),
@@ -421,6 +421,21 @@ export const ServedExerciseSchema = ExerciseSchema
     ...(source_section === undefined ? {} : { sourceSection: source_section }),
     ...(source_number === undefined ? {} : { sourceNumber: source_number }),
   }));
+/* The generated exercises.json is already in runtime form (sourceId,
+   sourceSection, sourceNumber). Older generated books may still carry the
+   source-table spellings, so normalize the runtime names before applying the
+   one strict parser and transformation. */
+export const ServedExerciseSchema = z.preprocess((raw) => {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const row = raw as Record<string, unknown>;
+  if (typeof row.sourceId !== 'string' || typeof row.source_id === 'string') return raw;
+  return {
+    ...row,
+    source_id: row.sourceId,
+    ...(row.sourceSection === undefined ? {} : { source_section: row.sourceSection }),
+    ...(row.sourceNumber === undefined ? {} : { source_number: row.sourceNumber }),
+  };
+}, SourceNamedServedExerciseSchema);
 export type ExerciseDTO = z.infer<typeof ServedExerciseSchema>;
 
 /* An equation as the sheet prints it: the coloured form where the chapter wrote

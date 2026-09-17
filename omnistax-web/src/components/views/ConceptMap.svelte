@@ -14,9 +14,9 @@
      seconds the shape, and the dashed rule is kept for another section's work.
      How the reader stands on a concept is a second reading drawn inside the node
      rather than a change of its shape or its hue: a thin bar along the bottom
-     edge, as long as the concept's score stands towards the mastery threshold,
+     edge, as long as the concept's discrete evidence stands towards mastery,
      in the three colours the mastery box wears everywhere else — low
-     for a concept begun, middling once its score is half the threshold, high
+     for a concept begun, middling once its evidence is halfway to mastery, high
      for one mastered. A switch at the end of the states
      legend takes that second reading away again, for a reader who wants the map
      as a map; it belongs to this map alone, and opens the way the setting
@@ -44,7 +44,7 @@
      and is this map's own from then on: another map, or this one opened again,
      starts from the setting afresh. */
   let showProgress = $state(settings.mapProgress);
-  /* How far the concept's score stands towards the threshold, 0 to 1. */
+  /* How far the concept's discrete evidence stands towards mastery, 0 to 1. */
   const share = (id: string): number => practice.share(id);
   const click = (id: string) => {
     const c = node(id);
@@ -134,12 +134,12 @@
   .node.pinned{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
   .node:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   /* The practice cue, inside the node and never on its fill or its rule: a bar
-     as long as the score stands towards the threshold. Its colours are
+     as long as the evidence stands towards mastery. Its colours are
      the app's own, so the kind hues go on saying only what the node is. */
   .node::after{content:"";position:absolute;left:6px;bottom:2px;height:3px;width:calc(var(--m,0) * (100% - 12px));border-radius:2px;background:var(--m-colour);pointer-events:none}
   /* The colours of the mastery box, which is how the practice is drawn
-     everywhere the reader meets it: a concept begun is low until its score is
-     half the threshold and middling after it, and a mastered one is high. */
+     everywhere the reader meets it: a concept begun is low until its evidence
+     is halfway to mastery and middling after it, and a mastered one is high. */
   .node[data-state="practised"]{--m-colour:var(--m-low)}
   .node[data-state="practised"][data-half]{--m-colour:var(--m-mid)}
   .node[data-state="mastered"]{--m-colour:var(--m-high)}

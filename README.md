@@ -37,10 +37,10 @@ Structure of the Observed Learning Outcome, Biggs and Collis: SOLO is better use
 The Math Academy Way, Justin Skycak: This is a brillant read about how to upskill in general. Mathematics is especially hard and gritty.
 - Skill decay is real (so our mastery DAG should have a decay parameter), so spaced repetition is important. 
 - Pre-learning is an educational life hack. Positioning OmniStax as a pre-learn tool may inspire more than it as a replacement for textbooks if OmniStax wants to make itself way into the general curriculum.
-- Only exercises contribute XP.
+- Only completed practice exercises affect attainment and freshness; inline Try Its do not.
 
 ## Pipe dream and OmniStax's Roadmap
-1. Static-time eyecandy. Enhance 4 textbooks: Physics, Math, Chem, and CS. Great visuals, interactives, and edtech user experience. Solid `pdf->OmniStax course` extraction pipeline. Basic mastery point system. The selling point of OmniStax is in the UX and interactive simulations.
+1. Static-time eyecandy. Enhance 4 textbooks: Physics, Math, Chem, and CS. Great visuals, interactives, and edtech user experience. Solid `pdf->OmniStax course` extraction pipeline. Basic attainment and freshness system. The selling point of OmniStax is in the UX and interactive simulations.
 
 From this point on, OmniStax should run on donations because the servers will be expensive.
 

@@ -1,7 +1,7 @@
 # Todo: Milestone 1, "Static-time eyecandy"
 
 Target from the README: a dozen courses, great visuals and interactives, solid
-`pdf -> OmniStax course` pipeline, basic mastery point system. No runtime AI. The
+`pdf -> OmniStax course` pipeline, basic attainment and freshness system. No runtime AI. The
 selling point is UX and interactive simulations.
 
 ## Working principle
@@ -93,13 +93,12 @@ budget the most time here.
 - [ ] Course catalog, chapter navigation, search.
 - [ ] Static build, lazy-load 3D, page load budget, accessibility pass, mobile reading layout.
 
-## Phase 5: Basic mastery point system
+## Phase 5: Attainment and freshness
 
-- [ ] Postgres schema: users, courses, attempts, per-concept mastery (score, last_practiced, propagated_downwards).
+- [ ] Postgres schema: users, courses, attempts, presentations, review rounds and per-concept attainment/freshness.
 - [ ] Auth via a hosted provider.
-- [ ] XP only from exercises; points per Bloom level.
-- [ ] Propagation on correct answer: walk downward through the course DAG only, cache with `propagated_downwards`. No global DAG.
-- [ ] Decay parameter and a simple review queue.
+- [ ] Discrete correct/incorrect evidence only from completed practice exercises.
+- [ ] Configurable mastery target and half-life review queue.
 - [ ] Learner DAG view with a "next thing" suggestion.
 
 ## Phase 6: Scale to a dozen courses

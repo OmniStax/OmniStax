@@ -36,7 +36,7 @@ test('the foldable and hideable selectors name only spans and figures that carry
 
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
-  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setExerciseMode: () => {}, setVoice: () => {}, setUnderlines: () => {} },
+  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colorCoding: true, theme: 'system', animations: true, voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, setUnderlines: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeTab: () => {}, closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},

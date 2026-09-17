@@ -92,8 +92,7 @@ export const bindsOf = (figures: readonly FigureRowDTO[]): readonly string[] =>
   [...new Set(figures.flatMap((f) => f.draws))].sort();
 
 /* The exercises of a section with the concepts they test folded in, in the order
-   the join table lists them, and the pipeline's points where it overrode the
-   Bloom table. */
+   the join table lists them, including legacy weights written by older builds. */
 export const exercisesOf = (s: SectionDTO): readonly ExerciseDTO[] => {
   const rowsOf = (id: string) => s.exerciseConcepts.filter((r) => r.exercise === id);
   return s.exercises.map(({ source_id, source_section, source_number, ...e }) => {

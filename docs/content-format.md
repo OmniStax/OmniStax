@@ -233,7 +233,7 @@ The exercises the section sets.
 | `source_id` | `string` | yes | The publisher’s own id for the exercise, so that it can be found again in the source. |
 | `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. |
 | `kind` | `string` | yes | The kind of exercise it is, naming a row of the book’s exercise kinds. |
-| `bloom` | `"Remember" \| "Understand" \| "Apply" \| "Analyze" \| "Evaluate" \| "Create"` | yes | The level of thinking the exercise asks for, which is what it is worth in points. |
+| `bloom` | `"Remember" \| "Understand" \| "Apply" \| "Analyze" \| "Evaluate" \| "Create"` | yes | The level of thinking the exercise asks for. |
 | `tag` | `string?` | no | A word the book prints beside the exercise, such as the topic of an AP item. |
 | `place` | `{ at: "end" } \| { at: "inline", after }` | yes | Where the exercise is set: at the end with the problem set, or inline after a span of the text. |
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
@@ -250,7 +250,7 @@ Which concepts each exercise tests, and what it is worth for them.
 | `exercise` | `string` | yes | The local id of the exercise. |
 | `concept` | `string` | yes | A concept the exercise tests. |
 | `weight` | `number?` | no | What the exercise is worth for this concept, overriding the points its Bloom level would earn. Always written by the pipeline. |
-| `weights_by` | `"ai"?` | no | Set to ai on a row whose weight was chosen by the agent rather than the Bloom table (root rule 20). |
+| `weights_by` | `"ai"?` | no | Legacy marker for a concept weight chosen by the agent; practice attainment is discrete. |
 
 ### `place`
 

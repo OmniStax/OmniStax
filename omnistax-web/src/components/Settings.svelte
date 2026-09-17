@@ -26,15 +26,16 @@
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
     theme: 'Theme system light dark', zoom: 'Text size zoom larger smaller root font', zoomKeys: 'Zoom keys ctrl plus minus zero browser page zoom', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
-    anim: 'Play animations sim figure transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
-    threshold: 'Mastery threshold score concept points mastered', days: 'Days in a row distinct correct streak mastered',
-    session: 'Exercises in a session how many a session draws',
-    selfChecked: 'Count self-checked answers solution multiple choice points', record: 'Practice record forget my practice recorded answers points mastery',
+    anim: 'Play animations sim figure transport', voice: 'Voice read aloud speech',
+    masteryTarget: 'Mastery target correct exercises concept mastered', decay: 'Freshness decay review half life',
+    startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
+    order: 'Exercise order Mixed Grouped', includeFresh: 'Include fresh mastered concepts',
+    record: 'Practice record forget my practice recorded answers mastery freshness',
     mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
-  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.session, ROWS.selfChecked, ROWS.mapProgress, ROWS.record];
+  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.voice];
+  const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
     commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
@@ -43,17 +44,23 @@
   $effect(() => { if (!ui.settings) { rec = null; q = ''; } });
 
   /* The numbers under Exercises commit on change or on a stepper click, clamped. */
-  type NumKey = 'threshold' | 'days' | 'session';
+  type NumKey = 'masteryTarget' | 'startingHalfLife' | 'maxHalfLife';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
   const NUMS: readonly NumRow[] = [
-    { key: 'threshold', words: ROWS.threshold, name: 'Mastery threshold', hint: 'The score a concept must reach to count as mastered.', min: 1, max: 100, step: 1, scale: 1, restore: 'Back to a threshold of ten points' },
-    { key: 'days', words: ROWS.days, name: 'Days in a row', hint: 'How many different days in a row you must answer a concept correctly before it is mastered.', min: 1, max: 14, step: 1, scale: 1, restore: 'Back to three days in a row' },
-    { key: 'session', words: ROWS.session, name: 'Exercises in a session', hint: 'How many exercises a session draws.', min: 1, max: 50, step: 1, scale: 1, restore: 'Back to eight exercises in a session' },
+    { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct steps needed for mastery, capped by the distinct exercises available for each concept.', min: 1, max: 12, step: 1, scale: 1, restore: 'Back to three exercises for mastery' },
+    { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days before a newly mastered concept first becomes due.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Back to a three-day starting half-life' },
+    { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest interval between successful reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Back to a 240-day maximum half-life' },
   ];
   const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
   const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
   const commit = (n: NumRow, v: number): void => { if (Number.isFinite(v)) practice.setSetting(n.key, clamp(v, n.min, n.max) / n.scale); };
-  const forget = () => { if (confirm('Forget every recorded answer? Points and mastery start again from nothing.')) practice.wipe(); };
+  const forget = () => { if (confirm('Forget every completed exercise, self-assessment, and mastery record?')) practice.wipe(); };
+  const intervals = $derived.by(() => {
+    const out: number[] = [], max = practice.settings.maxHalfLife;
+    let value = practice.settings.startingHalfLife;
+    while (value < max) { out.push(value); value *= 2; }
+    out.push(max); return [...new Set(out)].join(' → ') + ' days';
+  });
 
   const plain = (e: KeyboardEvent): boolean => !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
   const onKey = (e: KeyboardEvent) => {
@@ -131,24 +138,24 @@
       <section hidden={!READING.some(hit)}>
         <h3>Reading</h3>
         <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every interactive figure; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
-        <div class="row" hidden={!hit(ROWS.ex)}>
-          <span class="name">Exercises{@render back(settings.exerciseMode !== DEFAULTS.exerciseMode, 'Back to all exercises at once', () => settings.setExerciseMode(DEFAULTS.exerciseMode))}</span>
-          <div class="seg" role="radiogroup" aria-label="Exercise mode">
-            <button type="button" class:on={settings.exerciseMode === 'all'} role="radio" aria-checked={settings.exerciseMode === 'all'} onclick={() => settings.setExerciseMode('all')}>all</button>
-            <button type="button" class:on={settings.exerciseMode === 'one'} role="radio" aria-checked={settings.exerciseMode === 'one'} onclick={() => settings.setExerciseMode('one')}>one at a time</button>
-          </div>
-        </div>
         <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Back to voice off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </section>
 
       <section hidden={!PRACTICE.some(hit)}>
         <h3>Exercises</h3>
         {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
-        <label class="row switch" hidden={!hit(ROWS.selfChecked)}><span class="name">Count self-checked answers{@render back(practice.settings.selfChecked !== DEFAULT_SETTINGS.selfChecked, 'Back to counting self-checked answers', () => practice.setSetting('selfChecked', DEFAULT_SETTINGS.selfChecked))}</span><span class="hint">A problem you check against the book’s solution yourself earns points when you say you got it. Off makes only multiple-choice answers count.</span><input type="checkbox" checked={practice.settings.selfChecked} onchange={(e) => practice.setSetting('selfChecked', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">Freshness decay{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, 'Back to freshness decay on', () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">Mastered concepts become due for review as their freshness falls. Turning this off keeps every mastered concept fresh.</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
+        <div class="row" hidden={!hit(`${ROWS.startingHalfLife} ${ROWS.maxHalfLife}`)}><span class="name">Review intervals</span><span class="hint">{intervals}</span><span></span></div>
+        <div class="row" hidden={!hit(ROWS.order)}>
+          <span class="name">Exercise order{@render back(practice.settings.order !== DEFAULT_SETTINGS.order, 'Back to mixed order', () => practice.setSetting('order', DEFAULT_SETTINGS.order))}</span>
+          <span class="hint">Mixed spreads concepts through a round. Grouped keeps exercises for the same concept together.</span>
+          <div class="seg" role="radiogroup" aria-label="Exercise order"><button type="button" class:on={practice.settings.order === 'mixed'} role="radio" aria-checked={practice.settings.order === 'mixed'} onclick={() => practice.setSetting('order', 'mixed')}>Mixed</button><button type="button" class:on={practice.settings.order === 'grouped'} role="radio" aria-checked={practice.settings.order === 'grouped'} onclick={() => practice.setSetting('order', 'grouped')}>Grouped</button></div>
+        </div>
+        <label class="row switch" hidden={!hit(ROWS.includeFresh)}><span class="name">Include fresh concepts{@render back(practice.settings.includeFresh !== DEFAULT_SETTINGS.includeFresh, 'Back to omitting fresh mastered concepts', () => practice.setSetting('includeFresh', DEFAULT_SETTINGS.includeFresh))}</span><span class="hint">Allow mastered concepts that are not due yet into newly prepared rounds.</span><input type="checkbox" checked={practice.settings.includeFresh} onchange={(e) => practice.setSetting('includeFresh', e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Back to the bars drawn on the map', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">Every concept map opens with the mastery bars drawn on its nodes. The map's own switch hides them for that map.</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(ROWS.record)}>
           <span class="name">Practice record</span>
-          <span class="hint">Every answer you have recorded, and the points and mastery that come from it.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One answer' : `${practice.attempts.length} answers`} so far.{/if}</span>
+          <span class="hint">Every completed exercise, self-assessment, and the attainment and freshness derived from them.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One completed exercise' : `${practice.attempts.length} completed exercises`} so far.{/if}</span>
           <button class="btn-sm" type="button" onclick={forget}>Forget my practice</button>
         </div>
       </section>

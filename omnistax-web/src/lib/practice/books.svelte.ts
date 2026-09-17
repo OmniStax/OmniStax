@@ -18,6 +18,7 @@ export type BookStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 class Books {
   loaded = $state.raw<Readonly<Record<string, ForeignBook>>>({});
   status = $state.raw<Readonly<Record<string, BookStatus>>>({});
+  homeExercises = $state.raw<Readonly<Record<string, readonly ExerciseDTO[]>>>({});
   private loading: Partial<Record<string, Promise<void>>> = {};
 
   /* One foreign book, fetched once however many askers there are: its manifest,
@@ -25,11 +26,11 @@ class Books {
      A fetch that fails marks the book failed and keeps what did arrive, so a
      book with one missing file is still practised from. */
   load(book: string): Promise<void> {
-    if (!book || book === registry.manifest.id) return Promise.resolve();
+    if (!book) return Promise.resolve();
     const pending = this.loading[book]; if (pending) return pending;
     if (this.status[book] === 'loaded') return Promise.resolve();
     this.setStatus(book, 'loading');
-    const run = this.fetchBook(book).finally(() => { delete this.loading[book]; });
+    const run = (book === registry.manifest.id ? this.fetchHome() : this.fetchBook(book)).finally(() => { delete this.loading[book]; });
     this.loading[book] = run;
     return run;
   }
@@ -46,10 +47,26 @@ class Books {
   /* A section's exercises: out of the registry for the book being read, since
      that section may be open in a tab, and out of the cache for any other. */
   exercises(book: string, section: SectionId): readonly ExerciseDTO[] | undefined {
-    return book === registry.manifest.id ? registry.sections[section]?.exercises : this.loaded[book]?.exercises[section];
+    return book === registry.manifest.id ? this.homeExercises[section] ?? registry.sections[section]?.exercises : this.loaded[book]?.exercises[section];
   }
 
   private setStatus(book: string, status: BookStatus): void { this.status = { ...this.status, [book]: status }; }
+
+  /* The current book already has its manifest and concepts in memory. Fetching
+     only each section's exercises.json avoids constructing every document and
+     importing every figure module merely to populate the practice picker. */
+  private async fetchHome(): Promise<void> {
+    const book = registry.manifest.id;
+    let failed = false;
+    const rows = await Promise.all(builtSections(registry.manifest).filter((s) => s.url).map(async (s) => {
+      try {
+        const r = await fetch(`${s.url}exercises.json`); if (!r.ok) throw new Error(String(r.status));
+        return [s.id, parseExercises(await r.json())] as const;
+      } catch { failed = true; return [s.id, []] as const; }
+    }));
+    this.homeExercises = Object.fromEntries(rows);
+    this.setStatus(book, failed ? 'failed' : 'loaded');
+  }
 
   private async fetchBook(book: string): Promise<void> {
     const missed: string[] = [];

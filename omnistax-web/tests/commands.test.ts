@@ -107,7 +107,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
-    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colorCoding: true, theme: 'system', animations: true, exerciseMode: 'all', voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setExerciseMode: (m) => log.push(`mode ${m}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`) },
+    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colorCoding: true, theme: 'system', animations: true, voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`) },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
@@ -149,9 +149,9 @@ test('builtin command ids are unique and every fixed id is present', () => {
 });
 test('builtin commands act on their stores', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  by(BUILTIN.animations).run(); by(BUILTIN.themeDark).run(); by(BUILTIN.themeCycle).run(); by(BUILTIN.exerciseOne).run(); by(BUILTIN.open).run(); by(BUILTIN.resetLayout).run();
+  by(BUILTIN.animations).run(); by(BUILTIN.themeDark).run(); by(BUILTIN.themeCycle).run(); by(BUILTIN.open).run(); by(BUILTIN.resetLayout).run();
   by(BUILTIN.splitDown).run(); by(BUILTIN.moveRight).run(); by(BUILTIN.focusGroupLeft).run(); by(BUILTIN.nextTab).run(); by(BUILTIN.closeOtherGroups).run();
-  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'mode one', 'browser 1', 'reset', 'split down', 'move right', 'focus left', 'next tab', 'close others']);
+  assert.deepEqual(d.log, ['anim false', 'theme dark', 'cycle', 'browser 1', 'reset', 'split down', 'move right', 'focus left', 'next tab', 'close others']);
   assert.equal(by(BUILTIN.themeSystem).detail?.(), 'current'); assert.equal(by(BUILTIN.themeDark).detail?.(), '');
   assert.equal(available(by(BUILTIN.readAloud)), false, 'voice off hides read aloud');
   assert.equal(available(by(BUILTIN.stopReading)), false);

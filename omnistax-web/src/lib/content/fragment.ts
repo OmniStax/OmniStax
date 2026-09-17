@@ -180,8 +180,11 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
    catches, so the built page needs no script of its own to be sent somewhere,
    and the icon is inlined here rather than fetched. A section with no problems
    ends at its text. */
-const sectionEnd = (s: SectionSource): string => (s.exercises.length === 0 ? '' :
-  `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practice this section${ICON.exercises}</button></div>`);
+const sectionEnd = (s: SectionSource): string => {
+  if (s.meta.role !== 'section') return '';
+  const available = s.exercises.some((e) => e.place.at === 'end');
+  return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${available ? 'Open a practice session on this section' : 'This section has no exercises'}"${available ? '' : ' disabled'}>Practice this section${ICON.exercises}</button></div>`;
+};
 
 /* The fragment carries its own data so a tab can be opened from it alone. */
 export const sectionData = (s: SectionSource): string =>

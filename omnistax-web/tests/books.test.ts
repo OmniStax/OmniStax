@@ -74,9 +74,11 @@ test('a chapter’s concepts are read by the schema the book being read uses, an
   assert.deepEqual(p.coverage.map((c) => c.span), ['15.4']);
   assert.deepEqual(parseConcepts('not a file'), { concepts: [], coverage: [] });
 });
-test('a problem set with a row the app cannot read comes back empty rather than half read', () => {
-  const good = { id: 'u1', source_id: 'fs-u1', kind: 'problem', bloom: 'Apply', concepts: ['torque'], place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } };
-  assert.deepEqual(parseExercises([good]).map((e) => e.id), ['u1']);
+test('a generated problem set is read in runtime form, with older source names still accepted', () => {
+  const good = { id: 'u1', sourceId: 'fs-u1', sourceSection: '15.1', sourceNumber: '15.7', kind: 'problem', bloom: 'Apply', concepts: ['torque'], place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } };
+  const parsed = parseExercises([good]);
+  assert.deepEqual(parsed.map((e) => [e.id, e.sourceId, e.sourceSection, e.sourceNumber]), [['u1', 'fs-u1', '15.1', '15.7']]);
+  assert.deepEqual(parseExercises([{ ...good, sourceId: undefined, source_id: 'fs-old', sourceSection: undefined, sourceNumber: undefined }]).map((e) => e.sourceId), ['fs-old']);
   assert.deepEqual(parseExercises([good, { id: 'u2' }]), [], 'the whole array fails: an exercise that will not parse is one the session must not draw');
   assert.deepEqual(parseExercises(null), []);
 });
