@@ -24,7 +24,7 @@
   import { parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
   import { pageLabel } from '../lib/content/roles';
-  import type { BookManifest, ConceptsDTO, FormulasDTO, SectionMetaDTO, ExerciseDTO } from '../lib/content/schema';
+  import { parseBoot } from '../lib/sections/boot';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
@@ -46,8 +46,14 @@
   import { openPractice } from '../lib/practice/open.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
 
-  type Props = { manifest: BookManifest; own: ItemId; chapterDir?: string; chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO }; section?: SectionMetaDTO; exercises?: readonly ExerciseDTO[]; threeUrl?: string };
-  let { manifest, own, chapterDir, chapterData, threeUrl }: Props = $props();
+  type Props = { own: ItemId; threeUrl?: string };
+  let { own, threeUrl }: Props = $props();
+  /* The bulk of what the shell boots from — the manifest, and the concepts and
+     formulas of the chapter this page stands in — rides in one JSON script
+     rather than in the island's props. The shell is `client:only`, so this body
+     runs in the browser and the read is an ordinary synchronous one, done here
+     at setup and long before `registry.init` in `onMount`. */
+  const { manifest, chapterDir, chapterData } = parseBoot(document);
   const page = untrack(() => own);   /* the page's own item never changes */
   let ready = $state(false);
   let narrow = $state(false);

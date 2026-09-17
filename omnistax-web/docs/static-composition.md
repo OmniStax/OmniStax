@@ -75,7 +75,22 @@ Svelte 5 island for the shell.
 5. **Book manifest.** `book.json` lists chapters, sections, titles,
    fragment URLs and figure module URLs, plus the book's colour set,
    macros, symbol table and exercise kind labels. The "+" on each tab
-   strip lists its sections.
+   strip lists its sections. The page carries the manifest, and the
+   concepts and formulas of the chapter it stands in, in one
+   `<script type="application/json" id="omnistax-boot">` — the same way
+   the fragment carries a section's own meta and exercises beside its
+   article — and the shell parses it at setup. It is far the largest
+   thing the shell boots from and none of it is the reader's, so it does
+   not go through the island's props: Astro serialises those into an
+   attribute of `<astro-island>`, wrapping every value in a typed tuple
+   and escaping every quote, which on a section page cost about 570KB of
+   a 720KB file against the 45KB the article itself takes. As one JSON
+   script the same data is about 330KB and the page about 475KB. The
+   island keeps only what is small — the item the page is, and the
+   three.js address. `src/lib/sections/boot.ts` holds both ends, the
+   `BootDTO` and the one escaping rule (`<` goes in as `\u003c`, so
+   nothing in the data can close the element early); a page without the
+   script is a build bug and the parse says so.
 6. **Pre-rendered math.** `src/lib/math/prerender.ts` runs KaTeX at build
    time with the book's macros, so the article reads without JS.
 
