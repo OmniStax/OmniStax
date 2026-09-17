@@ -118,7 +118,11 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
    than the column and never taller than three fifths of the viewport. Where the book says how wide it prints the image
    (the CNXML width attribute, carried as --book-w on the <img>), that width is honoured on our column: the book lays its
    pages out on a 600 px column and the article is 740 px wide (820 less two 40 px paddings), so one of the book's
-   pixels is 740 / 600 of ours, which --book-px names. */
+   pixels is 740 / 600 of ours, which --book-px names.
+   The build also writes the file's own pixel size onto the <img> as width and height, so that the browser keeps the
+   space before the picture lands. Those attributes only give the image a size to stand at while it is on its way:
+   width stays auto and height stays auto here, so the caps above still decide how wide it ends up and the ratio the
+   attributes set keeps the height in step. */
 :root{--book-px:1.2333px}
 .photo{margin:2rem 0;font-family:var(--sans)}
 .photo img,.sim .original img{display:block;width:auto;max-width:100%;max-height:60vh;height:auto;margin:0 auto;border:1px solid var(--rule);border-radius:6px}

@@ -7,6 +7,7 @@ import { attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
 import { ICON } from '../icons';
+import type { SizeLookup } from './imagesize';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -22,6 +23,38 @@ export const qualifyIds = (html: string, section: string): string =>
 const IMG_WITH_WIDTH = /<img\b[^>]*\bdata-width="(\d+)"[^>]*>/g;
 export const sizeImages = (html: string): string =>
   html.replace(IMG_WITH_WIDTH, (tag, width: string) => (tag.includes('--book-w') ? tag : `${tag.slice(0, -1)} style="--book-w:${width}">`));
+
+/* Every <img> of a page but the first waits until the reader scrolls near it,
+   and every one of them is decoded off the main thread. The first is left eager
+   because it is the one likely to be above the fold, and deferring it would
+   only delay the picture the reader opened the page on. A tag that already says
+   how it loads is left alone, so a book may still ask for something else. */
+const IMG = /<img\b[^>]*>/g;
+export const lazyImages = (html: string): string => {
+  let n = 0;
+  return html.replace(IMG, (tag) => {
+    n += 1;
+    const decoding = tag.includes('decoding=') ? '' : ' decoding="async"';
+    const loading = n === 1 || tag.includes('loading=') ? '' : ' loading="lazy"';
+    return loading === '' && decoding === '' ? tag : `${tag.slice(0, -1)}${loading}${decoding}>`;
+  });
+};
+
+/* The size the image file itself says it is, written onto the tag so the
+   browser keeps the space before the picture lands. The lookup is the caller's:
+   this module reads no files. An address the caller knows nothing about, or a
+   tag that already carries a width, is left as it was. */
+const IMG_SRC = /<img\b([^>]*)>/g;
+const SRC_ATTR = /\bsrc="([^"]*)"/;
+const HAS_SIZE = /(?:^|\s)(?:width|height)=/;
+export const sizedImages = (html: string, sizes: SizeLookup): string => {
+  if (sizes.size === 0) return html;
+  return html.replace(IMG_SRC, (tag, attrs: string) => {
+    if (HAS_SIZE.test(attrs)) return tag;   /* data-width is the book's printed width, not a pixel size, and is not one of these */
+    const d = sizes.get(SRC_ATTR.exec(attrs)?.[1] ?? '');
+    return d ? `${tag.slice(0, -1)} width="${d.width}" height="${d.height}">` : tag;
+  });
+};
 
 /* Book figure numbers as the prose writes them: "16.4". */
 export type FigureNumber = string & { readonly __brand: 'FigureNumber' };
@@ -158,7 +191,7 @@ const pageNav = (nav: PageNav): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
-  const body = sizeImages(qualifyIds(s.textHtml, s.meta.id)), summary = summaryBlock(s);
+  const body = lazyImages(sizeImages(qualifyIds(s.textHtml, s.meta.id))), summary = summaryBlock(s);
   return [
   `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
