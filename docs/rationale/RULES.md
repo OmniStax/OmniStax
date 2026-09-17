@@ -196,15 +196,13 @@ sub-concepts (item 3) is the agent's call; joining sections is not.
 Exercises are sourced from several locations in a book (inline Check Your
 Understanding boxes, end-of-section problem sets, end-of-chapter problem
 sets, test-prep sections, worked examples) and they come in different
-types. The type decides where an exercise shows up on the page:
+types. The source decides where an exercise shows up on the page:
 
-- **Inline**, in the running text right after the idea it tests: typically
-  Check Your Understanding items and other Remember/Understand level
-  questions. These are the short, low-effort checks that belong next to
-  the passage.
-- **Exercises tab**, as a separate document: the problem sets that the
-  book puts at the end of a section or chapter, test prep, and anything
-  at the Apply/Analyze level that takes real work.
+- **Inline**, in the running text where the book printed it: typically a
+  Check Your Understanding item. It is a Try It with immediate feedback
+  and no persisted attainment or freshness effect.
+- **Exercises system**: every question the book puts in a problem set,
+  review, or test-prep collection, including Remember and Understand items.
 
 The agent records the source location and the type of every exercise so
 the placement is a rule, not a per-item choice.
@@ -216,15 +214,9 @@ ideas it needs (the AP test-prep blocks do this: 16.1 carries a question
 about amplitude and period, which are 16.2 and 16.3 ideas), the exercise
 is held and placed on the later page, and both sections' notes say so.
 
-Every exercise is tagged with the concepts it tests, and the app scores a
-correct answer into each of them by the exercise's Bloom level. Where an
-exercise leans on one concept and only touches another, the agent may write
-`weights`, points per concept id, so the practice gives credit where the
-work is: a problem that turns on Hooke's law and merely names displacement
-gives displacement less. The field is marked `"weights_by": "ai"` and the
-Bloom table applies wherever it is absent, so it is never required. A
-weight is a small whole number in the Bloom range (1 to 6), and the
-concept that the exercise is really about keeps the full Bloom value.
+Every exercise is tagged with the concepts it tests. A completed practice
+exercise supplies one discrete evidence step to every tagged concept. Bloom
+describes the thinking it asks for and does not change attainment.
 
 ## 13. What the agent may generate, and what it must not
 
@@ -425,15 +417,11 @@ row matches a figure in the text, and that every built concept has its
 `why`, its `evidence` and a span that introduces it. The agent runs it
 after every section and before every stop for feedback.
 
-## 20. Exercise weights
+## 20. Exercise evidence is discrete
 
-An exercise is evidence for every concept in its `exercise_concepts` rows,
-and the app scores it into each of them by the Bloom table. When an
-exercise leans on one concept and merely touches another, the agent may
-write a `weight` on the row, so that a Hooke's law problem that mentions
-displacement gives displacement less. Weights are always the agent's
-judgement and are documented as such; where the field is absent the Bloom
-table applies.
+A completed Exercises-system question adds one correct or incorrect step to
+every concept in its `exercise_concepts` rows. Inline Try Its add none. Legacy
+weights remain readable in old content but do not affect practice.
 
 ## 21. The book's introductions and summaries keep their place
 

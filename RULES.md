@@ -81,7 +81,7 @@ A section is a page even when thin. Splitting into sub-concepts is the agent's c
 
 ## 12. Exercises come from different places and go to different places
 
-Every exercise records its source location and its kind, and the kind decides placement: inline after the idea it tests for short Remember and Understand checks, the Exercises tab for problem sets, test prep and anything at Apply or above. An exercise goes with the section that introduces what it tests; one the book places early is held for the later page, and both sections' notes say so. Every exercise is tagged with the concepts it tests; item 20 says how weights work.
+Every exercise records its source location and kind, and its source location decides placement. A question printed inline in the reading stays inline as a short Try It. It gives immediate feedback only: revealing or checking it never records attainment or freshness and never asks for a self-reported verdict. A question printed in a problem set, review, test-prep set or other end exercise collection goes to the Exercises system, including Remember and Understand questions. Bloom level describes the thinking; it never moves a question. An exercise goes with the section that introduces what it tests; one the book places early is held for the later page, and both sections' notes say so. Every exercise is tagged with the concepts it tests.
 
 ## 13. What the agent may generate, and what it must not
 
@@ -123,9 +123,9 @@ Agents read and write the tables through `omnistax-content/tools/ost.py`, a chea
 
 Every reference must resolve. `npm run check:content` in `omnistax-web`, with the book's environment variables, checks every id, anchor, span, cite, place and figure row against the text, and that every built concept has `why`, `evidence` and an introducing span. Run it after every JSON write and before every stop.
 
-## 20. Exercise weights
+## 20. Exercise evidence is discrete
 
-An exercise scores into each concept in its `exercise_concepts` rows by the Bloom table. Where it leans on one concept and merely touches another, a row may carry `weight`, a whole number from 1 to 6, the main concept keeping the full Bloom value, marked `"weights_by": "ai"`. Absent, the Bloom table applies.
+A completed Exercises-system question supplies one step of evidence to every concept in its `exercise_concepts` rows. Correct adds one and incorrect subtracts one until mastery; Bloom and legacy `weight` fields do not change attainment. Inline Try Its supply no persisted evidence.
 
 ## 21. The book's introductions and summaries keep their place
 
