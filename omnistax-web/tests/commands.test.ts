@@ -102,7 +102,7 @@ type ViewState = { readonly view?: string | null; readonly level?: Level; readon
 /* The timeline the undo and redo commands read: what each way would take back,
    and nothing at all where the reader has done nothing. */
 type Timeline = { readonly undoLabel?: string; readonly redoLabel?: string };
-const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true, colourTimeline: Timeline = { undoLabel: 'velocity in section 16.3', redoLabel: 'every colour of chapter 16 cleared' }): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true, colourTimeline: Timeline = { undoLabel: 'velocity in section 16.3', redoLabel: 'every colour of chapter 16 cleared' }): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
@@ -125,7 +125,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, exercisesBu
       widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`),
       previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
     },
-    docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openExercises: () => log.push('exercises'), canOpenExercises: () => exercisesBuilt, openAbout: () => log.push('about') },
+    docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openAbout: () => log.push('about') },
     notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
     history: {
       undo: () => log.push('undo'), redo: () => log.push('redo'),
@@ -224,10 +224,8 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a split');
   assert.equal(by(openViewId('explorer')).label, 'Open Explorer in a group');
   assert.equal(by(showViewId('annotations')).label, 'Show Annotations in the sidebar');
-  by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run(); by(BUILTIN.openExercises).run();
-  assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split', 'exercises']);
-  assert.equal(available(by(BUILTIN.openExercises)), true);
-  assert.equal(available(builtinCommands(deps(false, 2, {}, false)).find((c) => c.id === BUILTIN.openExercises)!), false, 'a section that is not built has no exercises to open');
+  by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run();
+  assert.deepEqual(d.log, ['view annotations group', 'view annotations side', 'view concepts split']);
 });
 test('the front of OmniStax can be opened again once its tab has been closed', () => {
   const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;

@@ -287,9 +287,10 @@ const ExerciseFigureSchema = z.object({
 }).strict();
 
 export const ExerciseSchema = z.object({
-  id: z.string().describe('The exercise\u2019s local id, such as cq1 or p3, which names its card and its tab.'),
+  id: z.string().describe('The exercise\u2019s local id, such as cq1 or p3, which names its card.'),
   source_id: z.string().describe('The publisher\u2019s own id for the exercise, so that it can be found again in the source.'),
   source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own.'),
+  source_number: z.string().optional().describe('The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it.'),
   kind: z.string().describe('The kind of exercise it is, naming a row of the book\u2019s exercise kinds.'),
   bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for, which is what it is worth in points.'),
   tag: z.string().optional().describe('A word the book prints beside the exercise, such as the topic of an AP item.'),
@@ -415,7 +416,11 @@ export const ServedExerciseSchema = ExerciseSchema
     weights: z.record(z.number()).optional(),
   })
   .strip()
-  .transform(({ source_id, source_section, ...e }) => ({ ...e, sourceId: source_id, ...(source_section === undefined ? {} : { sourceSection: source_section }) }));
+  .transform(({ source_id, source_section, source_number, ...e }) => ({
+    ...e, sourceId: source_id,
+    ...(source_section === undefined ? {} : { sourceSection: source_section }),
+    ...(source_number === undefined ? {} : { sourceNumber: source_number }),
+  }));
 export type ExerciseDTO = z.infer<typeof ServedExerciseSchema>;
 
 /* An equation as the sheet prints it: the coloured form where the chapter wrote

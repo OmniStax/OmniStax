@@ -27,15 +27,14 @@
   const ROWS = {
     theme: 'Theme system light dark', zoom: 'Text size zoom larger smaller root font', zoomKeys: 'Zoom keys ctrl plus minus zero browser page zoom', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references',
     anim: 'Play animations sim figure transport', ex: 'Exercises all one at a time', voice: 'Voice read aloud speech',
-    threshold: 'Mastery threshold score concept fading points mastered', days: 'Days in a row distinct correct streak mastered',
-    halfLife: 'Half-life in days fading decay unpractised score halved', session: 'Exercises in a session how many a session draws',
-    reviewShare: 'Share given to review due percentage session new work', spaced: 'Spaced review scores fade with time mastered come due again',
+    threshold: 'Mastery threshold score concept points mastered', days: 'Days in a row distinct correct streak mastered',
+    session: 'Exercises in a session how many a session draws',
     selfChecked: 'Count self-checked answers solution multiple choice points', record: 'Practice record forget my practice recorded answers points mastery',
     mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.ex, ROWS.voice];
-  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.halfLife, ROWS.session, ROWS.reviewShare, ROWS.spaced, ROWS.selfChecked, ROWS.mapProgress, ROWS.record];
+  const PRACTICE = [ROWS.threshold, ROWS.days, ROWS.session, ROWS.selfChecked, ROWS.mapProgress, ROWS.record];
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
     commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
@@ -43,17 +42,13 @@
   });
   $effect(() => { if (!ui.settings) { rec = null; q = ''; } });
 
-  /* The five numbers under Exercises. `scale` turns what the store keeps into
-     what the reader sees: the review share is held as a fraction and shown as
-     a percentage. A value commits on change or on a stepper click, clamped. */
-  type NumKey = 'threshold' | 'days' | 'halfLife' | 'session' | 'reviewShare';
+  /* The numbers under Exercises commit on change or on a stepper click, clamped. */
+  type NumKey = 'threshold' | 'days' | 'session';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
   const NUMS: readonly NumRow[] = [
-    { key: 'threshold', words: ROWS.threshold, name: 'Mastery threshold', hint: 'The score a concept must reach, after fading, to count as mastered.', min: 1, max: 100, step: 1, scale: 1, restore: 'Back to a threshold of ten points' },
+    { key: 'threshold', words: ROWS.threshold, name: 'Mastery threshold', hint: 'The score a concept must reach to count as mastered.', min: 1, max: 100, step: 1, scale: 1, restore: 'Back to a threshold of ten points' },
     { key: 'days', words: ROWS.days, name: 'Days in a row', hint: 'How many different days in a row you must answer a concept correctly before it is mastered.', min: 1, max: 14, step: 1, scale: 1, restore: 'Back to three days in a row' },
-    { key: 'halfLife', words: ROWS.halfLife, name: 'Half-life in days', hint: 'How quickly an unpractised concept fades: after this many days its score is halved. Each day in a row you keep a concept doubles its half-life.', min: 1, max: 90, step: 1, scale: 1, restore: 'Back to a half-life of seven days' },
     { key: 'session', words: ROWS.session, name: 'Exercises in a session', hint: 'How many exercises a session draws.', min: 1, max: 50, step: 1, scale: 1, restore: 'Back to eight exercises in a session' },
-    { key: 'reviewShare', words: ROWS.reviewShare, name: 'Share given to review', hint: 'When something is due, this much of a session goes to reviewing it before new work.', min: 0, max: 100, step: 5, scale: 100, unit: '%', restore: 'Back to a third of a session' },
   ];
   const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
   const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
@@ -149,7 +144,6 @@
       <section hidden={!PRACTICE.some(hit)}>
         <h3>Exercises</h3>
         {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
-        <label class="row switch" hidden={!hit(ROWS.spaced)}><span class="name">Spaced review{@render back(practice.settings.spaced !== DEFAULT_SETTINGS.spaced, 'Back to spaced review on', () => practice.setSetting('spaced', DEFAULT_SETTINGS.spaced))}</span><span class="hint">Scores fade with time and mastered concepts come due again. Off keeps every score as it is.</span><input type="checkbox" checked={practice.settings.spaced} onchange={(e) => practice.setSetting('spaced', e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.selfChecked)}><span class="name">Count self-checked answers{@render back(practice.settings.selfChecked !== DEFAULT_SETTINGS.selfChecked, 'Back to counting self-checked answers', () => practice.setSetting('selfChecked', DEFAULT_SETTINGS.selfChecked))}</span><span class="hint">A problem you check against the book’s solution yourself earns points when you say you got it. Off makes only multiple-choice answers count.</span><input type="checkbox" checked={practice.settings.selfChecked} onchange={(e) => practice.setSetting('selfChecked', e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Back to the bars drawn on the map', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">Every concept map opens with the mastery bars drawn on its nodes. The map's own switch hides them for that map.</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(ROWS.record)}>
@@ -161,7 +155,7 @@
 
       <section hidden={!hit(ROWS.layout)}>
         <h3>Layout</h3>
-        <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section's text and exercises, views in their home sidebars.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
+        <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section text and the explorer in its home sidebar.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
       </section>
 
       <section hidden={!groups.length}>

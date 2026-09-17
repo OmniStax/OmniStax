@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, exItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
+import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
 const s = sectionId('2.1');
 const own = docItem(s, 'text');
-const text = 'doc:2.1/text', ex = 'doc:2.1/exercises', map = 'view:concepts', notes = 'view:annotations';
+const text = 'doc:2.1/text', second = 'fig:2.1/demo', map = 'view:concepts', notes = 'view:annotations';
 /* The layout functions all take the item a page is; every test below reads the section page. */
 const defaultLayout = (id = own) => make(id);
 
@@ -15,9 +15,9 @@ test('an introduction page opens alone, since it sets no exercises', () => {
   const l = defaultLayout(docItem(sectionId('2.intro'), 'text'));
   assert.deepEqual(l.groups[0].tabs, ['doc:2.intro/text']);
 });
-test('default layout opens text and exercises as tabs, and the explorer in the sidebar', () => {
+test('default layout opens the text alone, and the explorer in the sidebar', () => {
   const l = defaultLayout();
-  assert.deepEqual(l.groups[0].tabs, [text, ex]); assert.equal(l.groups[0].active, text);
+  assert.deepEqual(l.groups[0].tabs, [text]); assert.equal(l.groups[0].active, text);
   assert.deepEqual(l.sides.left.items, ['view:explorer']); assert.deepEqual(l.sides.right.items, []);
 });
 test('a page of its own opens alone', () => {
@@ -26,7 +26,7 @@ test('a page of its own opens alone', () => {
 });
 test('split right duplicates the active document and focuses the new group', () => {
   const l = splitRight(defaultLayout(), 0);
-  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, [text, ex]); assert.deepEqual(l.groups[1].tabs, [text]); assert.equal(l.focus, 1);
+  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, [text]); assert.deepEqual(l.groups[1].tabs, [text]); assert.equal(l.focus, 1);
   assert.deepEqual(groupsWith(l, text), [0, 1]);
 });
 test('split right moves a view instead of copying it', () => {
@@ -36,24 +36,24 @@ test('split right moves a view instead of copying it', () => {
 });
 test('closing one copy leaves the other', () => {
   const l = closeItem(splitRight(defaultLayout(), 0), text, 0);
-  assert.deepEqual(l.groups[0].tabs, [ex]); assert.deepEqual(l.groups[1].tabs, [text]);
+  assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, [text]);
 });
 test('closing the last tab of a second group prunes it', () => {
   const l = closeItem(splitRight(defaultLayout(), 0), text, 1);
   assert.equal(l.groups.length, 1); assert.equal(l.focus, 0);
 });
 test('openTab with from moves a tab between groups', () => {
-  const two = splitRight(defaultLayout(), 0);
-  const l = openTab(two, ex, 1, { from: two.groups[0].key });
-  assert.deepEqual(l.groups[0].tabs, [text]); assert.deepEqual(l.groups[1].tabs, [text, ex]); assert.equal(l.groups[1].active, ex);
+  const two = openTab(splitRight(defaultLayout(), 0), second, 0);
+  const l = openTab(two, second, 1, { from: two.groups[0].key });
+  assert.deepEqual(l.groups[0].tabs, [text]); assert.deepEqual(l.groups[1].tabs, [text, second]); assert.equal(l.groups[1].active, second);
 });
 test('openTab on an already open tab only activates it', () => {
   const l = openTab(defaultLayout(), text, 0);
-  assert.deepEqual(l.groups[0].tabs, [text, ex]); assert.equal(l.groups[0].active, text);
+  assert.deepEqual(l.groups[0].tabs, [text]); assert.equal(l.groups[0].active, text);
 });
 test('openTab with before reorders', () => {
-  const l = openTab(defaultLayout(), ex, 0, { before: text });
-  assert.deepEqual(l.groups[0].tabs, [ex, text]);
+  const l = openTab(defaultLayout(), second, 0, { before: text });
+  assert.deepEqual(l.groups[0].tabs, [second, text]);
 });
 test('a view opened in a sidebar leaves every other place', () => {
   const l = openSide(openTab(defaultLayout(), notes, 0), notes, 'left');
@@ -87,7 +87,7 @@ test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
   const bare = ensureOwn(defaultLayout(pageItem('about')), pageItem('book'));
   assert.deepEqual(bare.groups[0].tabs, ['page:book', 'page:about']); assert.equal(bare.groups[0].active, 'page:book');
   const already = ensureOwn(defaultLayout(), own);
-  assert.deepEqual(already.groups[0].tabs, [text, ex], 'the item is where it was, and is made active');
+  assert.deepEqual(already.groups[0].tabs, [text], 'the item is where it was, and is made active');
   assert.equal(already.groups[0].active, text);
 });
 test('a view key names a kind, and one page of that kind when it carries an instance', () => {
@@ -128,7 +128,7 @@ test('a saved layout names its figure tabs under the new prefix', () => {
   assert.equal(renamedSimKeys('{"tabs":["fig:2.5/demo-avg","fig:2.5/fig-paths","doc:2.5/text"]}'), '{"tabs":["fig:2.5/sim-avg","fig:2.5/fig-paths","doc:2.5/text"]}');
 });
 test('parseLayout rejects unknown items and duplicate tabs, assigns keys', () => {
-  const known = (k: string) => [text, ex, map].includes(k);
+  const known = (k: string) => [text, second, map].includes(k);
   assert.equal(parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: ['doc:9.9/text'], active: 'doc:9.9/text' }] }, known), null);
   assert.equal(parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: [text, text], active: text }] }, known), null);
   const ok = parseLayout({ sides: { left: { width: 250, items: [map] }, right: { width: 300, items: [] } }, groups: [{ tabs: [text], active: text }], focus: 5 }, known);
@@ -139,9 +139,9 @@ test('prune keeps one empty group', () => {
   assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, []);
 });
 test('an empty group keeps its place until it is closed', () => {
-  const l = prune(closeItem(defaultLayout(), ex, 0));
+  const l = prune(closeItem(defaultLayout(), second, 0));
   assert.equal(l.groups.length, 1); assert.deepEqual(l.groups[0].tabs, [text], 'a group with tabs is untouched');
-  const empty = closeItem(closeItem(defaultLayout(), ex, 0), text, 0);
+  const empty = closeItem(defaultLayout(), text, 0);
   assert.equal(empty.groups.length, 1); assert.deepEqual(empty.groups[0].tabs, [], 'the last group stays, empty');
 });
 
@@ -153,12 +153,9 @@ test('figure keys round-trip and belong to their section', () => {
   assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
 });
 
-test('exercise keys round-trip and belong to their section', () => {
-  const k = itemKey(exItem(s, 'cq1'));
-  assert.equal(k, 'ex:2.1/cq1'); assert.deepEqual(parseItemKey(k), exItem(s, 'cq1'));
-  assert.equal(parseItemKey('ex:2.1/'), null); assert.equal(parseItemKey('ex:2.1/a/b'), null);
-  const l = splitRight(defaultLayout(), 0, k);
-  assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
+test('removed exercise tabs and exercise documents are not parsed', () => {
+  assert.equal(parseItemKey('ex:2.1/cq1'), null);
+  assert.equal(parseItemKey('doc:2.1/exercises'), null);
 });
 
 /* The shape of a tree, with each group written as its position in the array. */
@@ -201,15 +198,15 @@ test('the group array follows the depth-first order of the tree', () => {
   assert.equal(groupIndex(l, l.groups[l.focus].key), l.focus);
 });
 test('parseLayout without a tree arranges the saved groups in a row', () => {
-  const known = (k: string) => [text, ex, map].includes(k);
-  const l = parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }] }, known);
+  const known = (k: string) => [text, second, map].includes(k);
+  const l = parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [second], active: second }] }, known);
   assert.ok(l); assert.deepEqual(shape(l!), { row: [0, 1] });
 });
 test('parseLayout repairs a tree that names a group it has not got', () => {
-  const known = (k: string) => [text, ex, map].includes(k);
+  const known = (k: string) => [text, second, map].includes(k);
   const raw = {
     sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } },
-    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }],
+    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [second], active: second }],
     tree: { type: 'split', dir: 'column', children: [{ type: 'leaf', group: 'a' }, { type: 'leaf', group: 'gone' }] },
   };
   const l = parseLayout(raw, known);
@@ -219,7 +216,7 @@ test('parseLayout repairs a tree that names a group it has not got', () => {
 /* The shares a split hands out, as the layout has them written down. */
 const sizesAt = (l: Layout, path: SplitPath): readonly number[] | undefined => { const n = nodeAt(l.tree, path); return n && n.type === 'split' ? n.sizes : undefined; };
 const sides = { left: { width: 1, items: [] }, right: { width: 1, items: [] } };
-const known = (k: string) => [text, ex, map].includes(k);
+const known = (k: string) => [text, second, map].includes(k);
 
 test('splitting a group inside a sized row halves that group alone', () => {
   const sized = resizeSplit(splitRight(defaultLayout(), 0), [], [3, 1]);
@@ -245,7 +242,7 @@ test('opening a view beside a group and closing it again leaves the shares as th
 test('a row nested in a row is flattened, its shares scaled into the slot it had', () => {
   const raw = {
     sides,
-    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }, { key: 'c', tabs: [map], active: map }],
+    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [second], active: second }, { key: 'c', tabs: [map], active: map }],
     tree: { type: 'split', dir: 'row', sizes: [1, 3], children: [{ type: 'leaf', group: 'a' }, { type: 'split', dir: 'row', sizes: [1, 3], children: [{ type: 'leaf', group: 'b' }, { type: 'leaf', group: 'c' }] }] },
   };
   const l = parseLayout(raw, known);
@@ -272,7 +269,7 @@ test('evenSizes forgets every share in the tree', () => {
 test('parseLayout keeps sound shares and ignores the rest', () => {
   const saved = (sizes: unknown) => ({
     sides,
-    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [ex], active: ex }],
+    groups: [{ key: 'a', tabs: [text], active: text }, { key: 'b', tabs: [second], active: second }],
     tree: { type: 'split', dir: 'row', sizes, children: [{ type: 'leaf', group: 'a' }, { type: 'leaf', group: 'b' }] },
   });
   assert.deepEqual(sizesAt(parseLayout(saved([2, 1]), known)!, []), [2, 1]);
@@ -290,14 +287,14 @@ test('focusNext walks the groups and wraps at either end', () => {
   assert.equal(focusNext(defaultLayout(), 1).focus, 0, 'one group has nowhere to go');
 });
 test('activateNext steps through the tabs of a group and wraps', () => {
-  const l = defaultLayout();
-  assert.equal(activateNext(l, 0, 1).groups[0].active, ex);
-  assert.equal(activateNext(l, 0, -1).groups[0].active, ex);
+  const l = activate(openTab(defaultLayout(), second, 0), 0, text);
+  assert.equal(activateNext(l, 0, 1).groups[0].active, second);
+  assert.equal(activateNext(l, 0, -1).groups[0].active, second);
   assert.equal(activateNext(activateNext(l, 0, 1), 0, 1).groups[0].active, text);
 });
 test('moveToNewGroup takes the tab away from the group it came from', () => {
-  const l = moveToNewGroup(defaultLayout(), 0, 'down');
-  assert.deepEqual(l.groups[0].tabs, [ex]); assert.deepEqual(l.groups[1].tabs, [text]);
+  const l = moveToNewGroup(activate(openTab(defaultLayout(), second, 0), 0, text), 0, 'down');
+  assert.deepEqual(l.groups[0].tabs, [second]); assert.deepEqual(l.groups[1].tabs, [text]);
   assert.deepEqual(shape(l), { column: [0, 1] }); assert.deepEqual(groupsWith(l, text), [1]);
 });
 test('splitting a group with nothing open gives it an empty neighbour', () => {
@@ -318,30 +315,30 @@ test('an empty group sits out the work done in the others', () => {
   const two = splitRight(closeGroup(defaultLayout(), 0), 0);       /* two empty groups */
   const opened = openTab(two, text, 1);
   assert.equal(opened.groups.length, 2); assert.deepEqual(opened.groups[0].tabs, []);
-  const more = openTab(opened, ex, 1);
+  const more = openTab(opened, second, 1);
   assert.equal(activate(more, 1, text).groups.length, 2);
   assert.equal(resizeSplit(more, [], [1, 3]).groups.length, 2);
   assert.deepEqual(sizesAt(resizeSplit(more, [], [1, 3]), []), [1, 3]);
 });
 test('a group that is emptied by an operation goes, one that was empty stays', () => {
-  const two = splitRight(defaultLayout(), 0);
+  const two = splitRight(activate(openTab(defaultLayout(), second, 0), 0, text), 0);
   assert.equal(closeItem(two, text, 1).groups.length, 1, 'closing the last tab drops the group');
   const moved = openTab(two, text, 0, { from: two.groups[1].key });
   assert.equal(moved.groups.length, 1, 'moving the only tab out drops the source');
-  assert.deepEqual(moved.groups[0].tabs, [text, ex]);
+  assert.deepEqual(moved.groups[0].tabs, [text, second]);
 });
 test('closeGroup takes an empty group away, closeOtherGroups keeps one with its tabs', () => {
   const two = splitRight(closeGroup(defaultLayout(), 0), 0);
   const l = closeGroup(two, 1);
   assert.equal(l.groups.length, 1); assert.equal(l.groups[0].key, two.groups[0].key); assert.deepEqual(shape(l), 0);
-  const three = splitRight(splitRight(defaultLayout(), 0), 1);
+  const three = splitRight(splitRight(activate(openTab(defaultLayout(), second, 0), 0, text), 0), 1);
   const alone = closeOtherGroups(three, 0);
   assert.equal(alone.groups.length, 1); assert.equal(alone.groups[0].key, three.groups[0].key);
-  assert.deepEqual(alone.groups[0].tabs, [text, ex]); assert.equal(alone.focus, 0);
+  assert.deepEqual(alone.groups[0].tabs, [text, second]); assert.equal(alone.focus, 0);
 });
 test('parseLayout keeps in a sidebar only what a sidebar holds', () => {
   const raw = { sides: { left: { width: 250, items: ['view:explorer', map, 'view:gone', text] }, right: { width: 300, items: [notes] } }, groups: [{ key: 'a', tabs: [text], active: text }] };
-  const l = parseLayout(raw, (k) => [text, ex, map, notes, 'view:explorer'].includes(k));
+  const l = parseLayout(raw, (k) => [text, second, map, notes, 'view:explorer'].includes(k));
   assert.ok(l);
   assert.deepEqual(l!.sides.left.items, ['view:explorer'], 'a tab-only view, an unknown one and a document all go');
   assert.deepEqual(l!.sides.right.items, [notes]);

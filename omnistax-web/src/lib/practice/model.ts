@@ -5,9 +5,8 @@
 
    The rules come from omnistax-web/docs/exercises-curriculum.md. Only
    exercises earn points; points follow the Bloom level of the exercise unless
-   the pipeline has weighted them; a score decays with a half-life in days, so
-   mastery has to be kept up and review is spaced; a correct answer also
-   freshens what the concept rests on, downward through the DAG and never up.
+   the pipeline has weighted them; mastery requires enough points over enough
+   consecutive days and, once earned, remains earned.
    Concept ids are canonical across books, so a record is keyed by the concept
    alone while an attempt carries the book, the section and the exercise it was
    answered in. */
@@ -20,22 +19,19 @@ export const DAY = 86_400_000;
    applies to old work as well as new, because the records are rebuilt from the
    attempts each time one changes. */
 export type PracticeSettings = {
-  readonly threshold: number;    /* decayed score that counts as mastered, default 10 */
+  readonly threshold: number;    /* score that counts as mastered, default 10 */
   readonly days: number;         /* distinct days in a row with a correct answer before mastery, default 3 */
-  readonly halfLife: number;     /* base half-life in days, default 7 */
   readonly session: number;      /* exercises per session, default 8 */
-  readonly reviewShare: number;  /* share of a session given to due concepts, default 1/3 */
-  readonly spaced: boolean;      /* off freezes decay, default true */
   readonly selfChecked: boolean; /* self-reported answers count, default true */
 };
-export const DEFAULT_SETTINGS: PracticeSettings = { threshold: 10, days: 3, halfLife: 7, session: 8, reviewShare: 1 / 3, spaced: true, selfChecked: true };
+export const DEFAULT_SETTINGS: PracticeSettings = { threshold: 10, days: 3, session: 8, selfChecked: true };
 
 /* One answer. `earned` is points per concept the exercise tests (already weighted); zero for every concept when not ok. */
 export type Attempt = { readonly book: string; readonly section: SectionId; readonly ex: string; readonly at: number /* ms since epoch */; readonly ok: boolean; readonly self: boolean; readonly earned: Readonly<Record<string, number>> };
 
-export type ConceptRecord = { readonly score: number; readonly lastAt: number; readonly days: number; readonly lastDay: string /* local YYYY-MM-DD of the last correct answer */; readonly mastered: boolean; readonly halfLife: number; readonly earned: number /* lifetime, never decays */ };
+export type ConceptRecord = { readonly score: number; readonly lastAt: number; readonly days: number; readonly lastDay: string /* local YYYY-MM-DD of the last correct answer */; readonly mastered: boolean; readonly earned: number /* lifetime */ };
 export type Mastery = Readonly<Record<string, ConceptRecord>>;   /* by concept id (canonical across books) */
-export type State = 'untouched' | 'practised' | 'mastered' | 'due';
+export type State = 'untouched' | 'practised' | 'mastered';
 
 /* A session is a thing of its own rather than a corner of the tab that began
    it: the reader may leave one paused while they read the section it came from,
@@ -70,82 +66,51 @@ export const stepDay = (day: string, by: number): string => {
    streak alive. */
 const isNextDay = (prev: string, day: string): boolean => day !== '' && stepDay(prev, 1) === day;
 
-export const decayed = (r: ConceptRecord, now: number, s: PracticeSettings): number => (s.spaced ? r.score * 0.5 ** ((now - r.lastAt) / (r.halfLife * DAY)) : r.score);
-/* The four states the reader sees. A mastered concept whose score has faded
-   below the threshold stays mastered in name — the reader did master it — and
-   is queued for review. */
-export const stateOf = (r: ConceptRecord | undefined, now: number, s: PracticeSettings): State =>
-  !r || r.earned === 0 ? 'untouched' : !r.mastered ? 'practised' : decayed(r, now, s) < s.threshold ? 'due' : 'mastered';
-/* How far a concept stands towards mastery, 0 to 1: its decayed score against
-   the threshold, which is the one number every drawing of a concept's standing
+/* The three states the reader sees. Mastery is an achievement, not a score that
+   can later be taken away. */
+export const stateOf = (r: ConceptRecord | undefined): State =>
+  !r || r.earned === 0 ? 'untouched' : r.mastered ? 'mastered' : 'practised';
+/* How far a concept stands towards mastery, 0 to 1: its score against the
+   threshold, which is the one number every drawing of a concept's standing
    is made of — the length of the map's bar and the height of the fill in a
    mastery box. A concept with no record at all stands at nothing. */
-export const shareOf = (r: ConceptRecord | undefined, now: number, s: PracticeSettings): number => {
+export const shareOf = (r: ConceptRecord | undefined, s: PracticeSettings): number => {
   if (!r) return 0;
   if (s.threshold <= 0) return 1;
-  return Math.min(1, Math.max(0, decayed(r, now, s) / s.threshold));
+  return Math.min(1, Math.max(0, r.score / s.threshold));
 };
 /* How much of a mastery box is filled. A box that is filled at all is filled
    enough to be seen, so a concept just begun reads as begun rather than as
-   untouched; a mastered one is full whatever its score has faded to, since the
-   box then says mastered and the hue says whether it is due. */
+   untouched; a mastered one is full. */
 export const MIN_FILL = 0.15;
 export const fillOf = (state: State, share: number): number =>
   state === 'untouched' ? 0 : state === 'mastered' ? 1 : Math.max(MIN_FILL, Math.min(1, share));
-/* When a mastered concept comes due: the moment its decayed score reaches the
-   threshold. Already below, it is due now; unmastered or with decay frozen,
-   never. */
-export const dueAt = (r: ConceptRecord, s: PracticeSettings): number | null => {
-  if (!r.mastered || !s.spaced || s.threshold <= 0) return null;
-  return r.score <= s.threshold ? r.lastAt : r.lastAt + r.halfLife * DAY * Math.log2(r.score / s.threshold);
-};
-
 /* One answer folded into the records. A correct answer adds its points to the
-   decayed score, carries the streak on if it lands on the next calendar day,
-   and doubles the half-life for each day the streak gains — which is the whole
-   of the spacing rule. A wrong answer earns nothing, drops the streak and
-   halves the half-life, never below the base. */
-export const applyAttempt = (m: Mastery, a: Attempt, prereqsOf: (id: string) => readonly string[], s: PracticeSettings): Mastery => {
+   score and carries the streak on if it lands on the next calendar day. A
+   wrong answer earns nothing and drops the streak. */
+export const applyAttempt = (m: Mastery, a: Attempt, s: PracticeSettings): Mastery => {
   if (a.self && !s.selfChecked) return m;
   const next: Record<string, ConceptRecord> = { ...m };
   const day = dayOf(a.at);
   const tested = Object.keys(a.earned);
   tested.forEach((id) => {
-    const r = next[id] ?? { score: 0, lastAt: a.at, days: 0, lastDay: '', mastered: false, halfLife: s.halfLife, earned: 0 };
-    const faded = decayed(r, a.at, s);
-    if (!a.ok) { next[id] = { ...r, score: faded, days: 0, lastDay: '', halfLife: Math.max(s.halfLife, r.halfLife / 2), lastAt: a.at }; return; }
+    const r = next[id] ?? { score: 0, lastAt: a.at, days: 0, lastDay: '', mastered: false, earned: 0 };
+    if (!a.ok) { next[id] = { ...r, days: 0, lastDay: '', lastAt: a.at }; return; }
     const points = a.earned[id];
-    const score = faded + points;
+    const score = r.score + points;
     const days = day === r.lastDay ? r.days : isNextDay(r.lastDay, day) ? r.days + 1 : 1;
     next[id] = {
-      score, lastAt: a.at, days, lastDay: day, halfLife: days > r.days && r.days > 0 ? r.halfLife * 2 : r.halfLife,   /* each further day of the streak doubles it; the first day sets it */
+      score, lastAt: a.at, days, lastDay: day,
       mastered: r.mastered || (score >= s.threshold && days >= s.days), earned: r.earned + points,
     };
   });
-  if (!a.ok) return next;
-  /* Downward propagation, done as freshness rather than as score: using Hooke's
-     law keeps "restoring force" from fading, but earns it nothing and leaves its
-     streak alone. The walk is breadth-first over a seen set, so a concept graph
-     that has picked up a cycle still terminates. */
-  const seen = new Set<string>(tested);
-  const queue = [...tested];
-  while (queue.length) {
-    const id = queue.shift()!;
-    prereqsOf(id).forEach((p) => {
-      if (seen.has(p)) return;
-      seen.add(p); queue.push(p);
-      const r = next[p]; if (!r) return;
-      next[p] = { ...r, score: decayed(r, a.at, s), lastAt: a.at };
-    });
-  }
   return next;
 };
 /* The records are derived, never stored: this is what a change of settings runs
    to make old work count under the new numbers. */
-export const rebuild = (attempts: readonly Attempt[], prereqsOf: (id: string) => readonly string[], s: PracticeSettings): Mastery =>
-  [...attempts].sort((x, y) => x.at - y.at).reduce<Mastery>((m, a) => applyAttempt(m, a, prereqsOf, s), {});
-/* The reader's one running number: what was earned, not what remains after
-   decay, so it never goes down. */
+export const rebuild = (attempts: readonly Attempt[], s: PracticeSettings): Mastery =>
+  [...attempts].sort((x, y) => x.at - y.at).reduce<Mastery>((m, a) => applyAttempt(m, a, s), {});
+/* The reader's one running number: what was earned, so it never goes down. */
 export const total = (m: Mastery): number => Object.values(m).reduce((n, r) => n + r.earned, 0);
 /* The same number book by book, which the records cannot give: they are keyed
    by the concept alone, since mastering a concept in one book is mastering it
@@ -185,9 +150,9 @@ export const uniqueById = <T extends { readonly id: string }>(list: readonly T[]
    counted: a placeholder stands for a section nobody has written, so nothing
    tests it and the reader cannot be behind on it. */
 export type Standing = Readonly<Record<State, number>>;
-export const standingOf = (concepts: readonly ConceptDTO[], m: Mastery, s: PracticeSettings, now: number): Standing =>
+export const standingOf = (concepts: readonly ConceptDTO[], m: Mastery): Standing =>
   concepts.filter((c) => c.status === 'built')
-    .reduce<Standing>((out, c) => { const st = stateOf(m[c.id], now, s); return { ...out, [st]: out[st] + 1 }; }, { untouched: 0, practised: 0, mastered: 0, due: 0 });
+    .reduce<Standing>((out, c) => { const st = stateOf(m[c.id]); return { ...out, [st]: out[st] + 1 }; }, { untouched: 0, practised: 0, mastered: 0 });
 /* The calendar the heatmap is drawn on: `weeks` columns of seven days, a column
    to a week beginning on Sunday, the last of them the week today falls in. The
    days after today are empty strings rather than dates, so the last column
@@ -244,7 +209,7 @@ export const conceptsOf = (c: Curriculum, cat: Catalog): ReadonlySet<string> => 
 
 /* ---------- drawing a session ---------- */
 
-export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'review' | 'frontier' | 'more' };
+export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'frontier' | 'more' };
 /* FNV-1a over the seed and the exercise's place, which is what breaks a tie: a
    page refresh draws the same session and tomorrow's seed draws another. */
 export const hash = (s: string): number => {
@@ -253,7 +218,7 @@ export const hash = (s: string): number => {
   return h >>> 0;
 };
 
-type Cand = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly key: string; readonly h: number; readonly pos: number; readonly last: number; readonly ok: number };
+type Cand = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly key: string; readonly h: number; readonly pos: number; readonly ok: number };
 
 /* How a session may break a tie between two exercises that serve the same
    concept equally well: by where they stand in the library, which is the order
@@ -280,8 +245,8 @@ const positionsOf = (cat: Catalog): ReadonlyMap<string, number> => {
     .map((e, i) => [e.key, i] as const));
 };
 
-/* Review first, then the frontier of the DAG, then whatever is left, so that a
-   session is always full while exercises remain. */
+/* Draw from the frontier of the DAG, then whatever is left, so that a session
+   is always full while exercises remain. */
 /* The exercises a curriculum can draw on. A pick of a concept reaches into any
    section of any book that tests it; a pick of a place reaches only its own
    sections. The Choose face counts with this same rule, so what it promises is
@@ -300,26 +265,22 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
      shuffle asks for the hash instead, and a seed of its own each time. */
   const pos = opts.order === 'random' ? null : positionsOf(cat);
   const tie = (a: Cand, b: Cand): number => (pos ? a.pos - b.pos : a.h - b.h);
-  const state = (id: string): State => stateOf(m[id], now, s);
+  const state = (id: string): State => stateOf(m[id]);
   const prereqs = new Map<string, readonly string[]>(cat.concepts.map((k) => [k.id, k.prereqs]));
 
-  const last = new Map<string, number>(), lastOk = new Map<string, number>();
+  const lastOk = new Map<string, number>();
   attempts.forEach((a) => {
     const k = `${a.book}/${a.section}/${a.ex}`;
-    last.set(k, Math.max(last.get(k) ?? 0, a.at));
     if (a.ok) lastOk.set(k, Math.max(lastOk.get(k) ?? 0, a.at));
   });
-  /* An exercise answered rightly in the last two days is left alone unless one
-     of its concepts has come due. */
+  /* An exercise answered rightly in the last two days is left alone. */
   const pool: Cand[] = poolOf(c, cat)
-    .map((e) => { const key = `${e.book}/${e.section}/${e.ex.id}`; return { book: e.book, section: e.section, ex: e.ex, key, h: hash(`${seed}:${key}`), pos: pos?.get(key) ?? 0, last: last.get(key) ?? 0, ok: lastOk.get(key) ?? 0 }; })
+    .map((e) => { const key = `${e.book}/${e.section}/${e.ex.id}`; return { book: e.book, section: e.section, ex: e.ex, key, h: hash(`${seed}:${key}`), pos: pos?.get(key) ?? 0, ok: lastOk.get(key) ?? 0 }; })
     .filter((e) => !opts.exclude?.has(e.key))
-    .filter((e) => e.ok === 0 || now - e.ok > DAY * 2 || e.ex.concepts.some((id) => inSet.has(id) && state(id) === 'due'));
+    .filter((e) => e.ok === 0 || now - e.ok > DAY * 2);
 
   const ids = [...inSet];
-  const overdue = (id: string): number => { const r = m[id]; return r ? decayed(r, now, s) / (s.threshold || 1) : 1; };
   const byId = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
-  const due = ids.filter((id) => state(id) === 'due').sort((a, b) => overdue(a) - overdue(b) || byId(a, b));
   const open = ids.filter((id) => state(id) === 'untouched' || state(id) === 'practised');
   /* The frontier: an unmastered concept everything it rests on inside the
      curriculum has been mastered, so the reader works upward through the DAG. A
@@ -353,22 +314,25 @@ export const draw = (c: Curriculum, m: Mastery, cat: Catalog, attempts: readonly
     }
   };
 
-  const byStale = (a: Cand, b: Cand): number => a.last - b.last || tie(a, b);
-
-  const reviewMax = Math.min(size, Math.max(0, Math.round(size * s.reviewShare)));
-  due.forEach((id) => { if (out.length >= reviewMax) return; const e = pick(id, byStale); if (e) take(e, 'review'); });
   rounds(frontier, 'frontier', byLevel);
   rounds(rest, 'more', byLevel);
   rounds(held, 'more', byHardest);
-  /* The review share caps what review takes off the top, not what the session
-     holds: with everything else drawn and room to spare, the due concepts come
-     back round to fill it, so a session is always full while exercises remain. */
-  rounds(due, 'more', () => byStale);
   return out.slice(0, size);
 };
 
-/* What the summary says moved: the concepts whose state is not the one they had
-   when the session began, in an order that does not wander. */
-export const summarize = (before: Mastery, after: Mastery, now: number, s: PracticeSettings): readonly { id: string; from: State; to: State }[] =>
+/* What a completed session can show as progress. A concept belongs here when
+   its lifetime earned points increased, even if both ends still have the same
+   state name: the two mastery boxes can then show a practiced concept filling
+   from, say, two tenths to five tenths rather than hiding that gain. */
+export type Progress = {
+  readonly id: string;
+  readonly from: State;
+  readonly to: State;
+  readonly fromShare: number;
+  readonly toShare: number;
+};
+export const progressOf = (before: Mastery, after: Mastery, s: PracticeSettings): readonly Progress[] =>
   [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()
-    .flatMap((id) => { const from = stateOf(before[id], now, s), to = stateOf(after[id], now, s); return from === to ? [] : [{ id, from, to }]; });
+    .flatMap((id) => ((after[id]?.earned ?? 0) > (before[id]?.earned ?? 0)
+      ? [{ id, from: stateOf(before[id]), to: stateOf(after[id]), fromShare: shareOf(before[id], s), toShare: shareOf(after[id], s) }]
+      : []));

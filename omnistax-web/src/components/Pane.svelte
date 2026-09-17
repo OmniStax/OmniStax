@@ -1,16 +1,15 @@
 <script lang="ts">
   /* One scroll pane for one tab. A document tab adopts its DOM instance; a
      figure tab adopts a root holding that one figure; a standing page adopts
-     the article the registry keeps for it; a view tab renders the view, an
-     exercise tab the one card and a note tab the note, each with the room a tab
-     gives it. The focused group's active pane feeds the scroll spy. */
+     the article the registry keeps for it; a view tab renders the view and a
+     note tab renders the note, each with the room a tab gives it. The focused
+     group's active pane feeds the scroll spy. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { parseItemKey, sectionOfItem, type GroupKey } from '../lib/types/ids';
   import { adopt } from './actions/adopt';
   import View from './views/View.svelte';
-  import ExerciseTab from './exercises/ExerciseTab.svelte';
   import NoteTab from './notes/NoteTab.svelte';
   import Sheet from './sheets/Sheet.svelte';
   let { groupKey, groupIndex, itemKey, active }: { groupKey: GroupKey; groupIndex: number; itemKey: string; active: boolean } = $props();
@@ -37,8 +36,6 @@
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
   {:else if status === 'failed'}
     <article class="placeholder"><div class="loading bad">Could not load {sec ?? ''} ({error}). Loading other sections needs the site served over http; <a href={entry?.url}>open it as its own page</a>.</div></article>
-  {:else if id && id.kind === 'ex'}
-    <ExerciseTab {groupKey} section={id.section} ex={id.ex} />
   {:else}
     <article class="placeholder"><div class="loading">Loading {id ? registry.title(id) : itemKey}…</div></article>
   {/if}

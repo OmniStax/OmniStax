@@ -112,8 +112,7 @@ test('a text ends on one centred button: practice this section, with the pencil 
   assert.match(row![1], /<svg viewBox="0 0 24 24">/, 'the icon is inlined, not fetched');
   assert.doesNotMatch(row![1], /Problems &amp; Exercises/, 'the link to the problem set is gone');
   assert.doesNotMatch(html.slice(html.indexOf('class="section-end"')), /class="problems"/);
-  const exercises = html.slice(html.indexOf('data-doc="2.1/exercises"'));
-  assert.match(exercises, /<h2>Problems &amp; Exercises<\/h2>/, 'the problem set still heads itself that way');
+  assert.doesNotMatch(html, /data-doc="2\.1\/exercises"/, 'the old section exercise document is no longer generated');
 });
 test('the front of the book lists the preface before the chapters and the introduction before 2.1', () => {
   const html = bookHtml(M);
@@ -136,7 +135,7 @@ test('every text ends on the way to the page before and the page after, across t
   const section = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
   assert.ok(section.indexOf('class="section-end"') < section.indexOf('<nav class="page-nav"'), 'after the practise row');
   assert.doesNotMatch(section, /class="next"/);
-  assert.doesNotMatch(section.slice(section.indexOf('data-doc="2.1/exercises"')), /page-nav/, 'the problem set carries no row of its own');
+  assert.doesNotMatch(section, /data-doc="2\.1\/exercises"/, 'the old problem-set document is absent');
   assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.sections[0], {}), /page-nav/, 'a page with no neighbour prints no row');
 });
 test('a link to a front page opens as a tab like a link to a section', () => {

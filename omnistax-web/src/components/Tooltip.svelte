@@ -32,11 +32,14 @@
     if (title !== null) { if (title.trim()) el.dataset.tip = title.trim(); el.removeAttribute('title'); }
     return el.dataset.tip ?? el.getAttribute('aria-label') ?? null;
   };
-  /* What the pointer is on: the nearest named thing of the shell, and nothing inside
-     a document, a figure or the note editor, whose titles belong to what is written there. */
+  /* What the pointer is on: the nearest named thing inside the shell, but never
+     the shell itself. Its aria-label names the application for assistive
+     technology; it is not a fallback tooltip for every otherwise unnamed spot.
+     Nothing inside a document, a figure or the note editor is touched, since
+     those titles belong to what is written there. */
   const namedAt = (target: EventTarget | null): HTMLElement | null => {
     const el = target instanceof Element ? target.closest<HTMLElement>('[title], [data-tip], [aria-label]') : null;
-    return el && !el.closest('.cm-content, article, .fig-root, .hover-card') ? el : null;
+    return el && !el.classList.contains('shell') && !el.closest('.cm-content, article, .fig-root, .hover-card') ? el : null;
   };
   /* Some of what puts a tooltip away happens while the shell is taking a piece
      of the page apart — the focusout of a name box that has just closed reaches

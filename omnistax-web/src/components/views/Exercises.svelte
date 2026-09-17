@@ -2,36 +2,31 @@
   /* Practice, as a course of study rather than as a page of problems.
 
      Four faces, under two tabs. The dashboard is where a fresh view opens and
-     what the Dashboard tab goes back to: the standing in three tiles, every
+     what the Dashboard tab goes back to: the standing in summary tiles, every
      session still running anywhere in the shell, a year of days coloured by
-     what each one earned, and a row for every book on the shelf whose
-     breakdown opens under it. Nothing on it is a paragraph — it is meant to be
-     read at a glance and clicked through.
+     what each one earned, and concept counts for each book on the shelf.
 
      The Practice tab leads to the three faces of the practising itself. On the
-     first the reader says what to practise: presets for the obvious answers,
-     the picks so far as chips, a tree of books, chapters and sections whose
-     boxes are half-checked the way a file tree's are, and a search for a single
-     concept. On the second the session runs one exercise at a time in the
+     first the reader says what to practise: a folded tree of books, chapters
+     and sections whose boxes are half-checked the way a file tree's are,
+     and a search for a single concept. Selected items and Clear sit at the
+     bottom, beside the controls that start practice. On the second the session runs one exercise at a time in the
      ordinary card, standing alone as it does in a tab of its own; the card
      records the answer into the store by itself, so Next arrives when the
-     problem has been answered and not before. The third is the reckoning: what
-     was earned, and which concepts moved.
+     problem has been answered and not before. The third is Progress: what was
+     earned, and how each concept's mastery box moved.
 
      A session belongs to the store rather than to this page: pausing one leaves
      it standing, closing its tab leaves it standing, and any dashboard offers
      it back. So this view holds only what is properly a tab's own — the picks
-     being made, the face showing, the shuffle, and which book's breakdown is
-     open.
+     being made, the face showing, and which choice-tree chapters are open.
 
      How a concept stands is drawn one way everywhere: a mastery box, a small
      rounded square outlined in the colour of the state and filled from the
-     bottom by how far the decayed score stands towards the threshold. The
-     breakdown rows, the bars beside the running exercise, the concept search
-     and the legend of the book bars all wear it, so the reader learns one
-     picture and reads it in four places. */
+     bottom by how far the score stands towards the threshold. The
+     dashboard rows, the concept search and the progress screen all wear it,
+     so the reader learns one picture everywhere. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
   import { library } from '../../lib/explorer/library.svelte';
   import { sectionId, conceptId, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, ChapterEntry, SectionEntry } from '../../lib/content/schema';
@@ -43,7 +38,7 @@
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { activate, groupsWith, type ItemKey } from '../../lib/layout/model';
   import {
-    DAY, conceptsOf, dueAt, fillOf, heatWeeks, pointsByBook, pointsByDay, samePick, standingOf, streakOf,
+    DAY, conceptsOf, fillOf, heatWeeks, pointsByDay, samePick, standingOf, streakOf,
     type Curriculum, type Pick, type SessionId, type Standing, type State, poolOf,
   } from '../../lib/practice/model';
 
@@ -97,12 +92,12 @@
   const conceptName = (id: string): string => practice.conceptOf(id)?.name ?? id;
   const conceptKind = (id: string): string => practice.conceptOf(id)?.kind ?? '';
   /* The reader's words are American, whatever the code calls the state. */
-  const STATE_WORD: Readonly<Record<State, string>> = { untouched: 'untouched', practised: 'practiced', mastered: 'mastered', due: 'due' };
+  const STATE_WORD: Readonly<Record<State, string>> = { untouched: 'unpracticed', practised: 'practiced', mastered: 'mastered' };
   const points = (n: number): string => (n === 1 ? 'one point' : `${n} points`);
 
   /* ---------- the two tabs ---------- */
 
-  /* The dashboard is one tab; the choosing, the session and its reckoning are
+  /* The dashboard is one tab; choosing, the session and its Progress screen are
      the other. The Practice tab goes back to a session still running, and
      otherwise to the choice. */
   const onDash = $derived(page.face === 'dashboard');
@@ -123,25 +118,23 @@
   const bookOn = (id: string): boolean => { const ch = chaptersOf(id); return has(bookPick(id)) || (ch.length > 0 && ch.every((c) => chapOn(id, c))); };
   const bookSome = (id: string): boolean => !bookOn(id) && chaptersOf(id).some((c) => chapSome(id, c));
 
-  /* What a pick comes to: the concepts it holds, how many of them are waiting
-     for review, and how many problems in the library test any of them. The tree
+  /* What a pick comes to: the concepts it holds and how many problems in the
+     library test any of them. The tree
      no longer sets this out in a column of its own — it is what the row says
      when the pointer rests on it. */
-  type Sum = { readonly concepts: number; readonly due: number; readonly exercises: number };
+  type Sum = { readonly concepts: number; readonly exercises: number };
   const sumOf = (picks: readonly Pick[]): Sum => {
     const ids = conceptsOf(picks, cat);
-    let due = 0;
-    ids.forEach((id) => { if (practice.stateOf(id) === 'due') due += 1; });
-    return { concepts: ids.size, due, exercises: poolOf(picks, cat).length };
+    return { concepts: ids.size, exercises: poolOf(picks, cat).length };
   };
   const countTitle = (s: Sum): string =>
     s.concepts === 0 ? 'Nothing here has a concept attached to it yet.'
-      : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`}, ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}, and ${
-        s.due === 0 ? 'nothing due for review' : s.due === 1 ? 'one of them due for review' : `${s.due} of them due for review`}.`;
+      : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`} and ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}.`;
 
-  /* The tree opens book by book and stays folded at the chapters, which is what
-     keeps a shelf of long books readable; which chapters this view has opened
-     is its own, and is not worth keeping past the reading. */
+  /* Books and chapters start folded. Expanding a row does not change its
+     selection, and folding it keeps the selected items visible in the footer. */
+  let openBooks = $state<readonly string[]>([]);
+  const toggleBook = (id: string): void => { openBooks = openBooks.includes(id) ? openBooks.filter((b) => b !== id) : [...openBooks, id]; };
   let open = $state<readonly string[]>([]);
   const isOpen = (id: string, c: ChapterEntry): boolean => open.includes(`${id}/${c.id}`);
   const toggleOpen = (id: string, c: ChapterEntry): void => { const k = `${id}/${c.id}`; open = open.includes(k) ? open.filter((x) => x !== k) : [...open, k]; };
@@ -171,12 +164,6 @@
      section or a chapter they picked brings it in. */
   const curriculumConcepts = $derived(conceptsOf(page.curriculum, cat));
 
-  /* The presets replace the choice rather than adding to it, which is what makes
-     them a quick way back to a clean start. */
-  const here = $derived(focus.section);
-  const hereChapter = $derived(registry.chapterOf(here));
-  const dueNow = $derived(cat.concepts.filter((c) => c.status === 'built' && practice.stateOf(c.id) === 'due'));
-
   const choice = $derived(sumOf(page.curriculum));
   /* The number beside Practice is what this choice can give, never more than
      the session size the reader keeps in Settings; stepping it writes that
@@ -190,9 +177,7 @@
         : 'How many exercises a session draws.');
   const choiceLine = $derived(
     page.curriculum.length === 0 ? 'You have not chosen anything to practice yet.'
-      : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`}, ${
-        choice.due === 0 ? 'none of them due' : choice.due === 1 ? '1 of them due' : `${choice.due} of them due`}, in ${
-        choice.exercises === 1 ? '1 exercise' : `${choice.exercises} exercises`}.`,
+      : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`} in ${choice.exercises === 1 ? '1 exercise' : `${choice.exercises} exercises`}.`,
   );
   const why = $derived(
     page.curriculum.length === 0 ? 'Tick a chapter, a section or a concept above, and a session will be drawn from what you tick.'
@@ -200,15 +185,14 @@
         : '',
   );
   let note = $state('');
-  const NOTHING = 'There is nothing left to draw on just now. Choose more of the book, or come back when the last answers have had time to fade.';
+  const NOTHING = 'There is nothing left to draw on just now. Choose more of the book or try again later.';
   const begin = (): void => { note = practice.start(item) ? '' : NOTHING; };
 
   /* ---------- practising ---------- */
 
-  /* The card writes the answer into the store; this face reads the store back,
-     so Next arrives the moment the answer is recorded, however the card came to
-     record it. The drawn list is read live rather than held, since a shuffled
-     round rewrites the slots the reader has not reached yet. */
+  /* The card writes the answer into the store. One-at-a-time mode advances to
+     the next unanswered square; the all-exercises mode leaves every card in
+     place. The numbered grid is the session's navigation and progress display. */
   const session = $derived(practice.sessionOf(item));
   const at = $derived(session?.at ?? 0);
   const drawn = $derived(session?.drawn ?? []);
@@ -221,35 +205,41 @@
     if (pending.book === book) registry.load(pending.section).catch(() => {});
     else if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
   });
-  const answered = $derived(session?.answered[at] === true);
-  const last = $derived(session !== null && at === drawn.length - 1);
-  const WHY: Readonly<Record<string, string>> = { review: 'review', frontier: 'new', more: 'more' };
+  const outcome = $derived(session?.outcomes[at] ?? null);
+  const allDone = $derived(!!session && session.outcomes.every((v) => v !== null));
 
   /* The card's root is decorated the way a prepared document's root is, so the
      goto cards and the notes layer read it as they read any other. */
   let root = $state<HTMLElement | null>(null);
   $effect(() => { if (root && cur) registry.decorateRoot(root); });
-  /* Next takes the focus as it appears, so a reader who has just answered can go
-     on with the Enter key without reaching for the pointer. */
-  let nextBtn = $state<HTMLButtonElement | null>(null);
-  $effect(() => { if (answered && nextBtn) nextBtn.focus({ preventScroll: true }); });
+  let allRoot = $state<HTMLElement | null>(null);
+  $effect(() => { if (allRoot && page.showAll) { drawn; registry.decorateRoot(allRoot); } });
+  /* All mode needs every local section at once; foreign books were fetched as a
+     unit while the curriculum was assembled. */
+  $effect(() => {
+    if (!page.showAll) return;
+    drawn.forEach((d) => {
+      if (d.book === book) registry.load(d.section).catch(() => {});
+      else if (statusOf(d.book) === 'idle') books.load(d.book).catch(() => {});
+    });
+  });
+  const answeredAt = (i: number, ok: boolean): void => { if (!page.showAll) practice.afterAnswer(item, i); };
 
   /* Ending a round early is asked about first, in a strip that takes the place
      of the buttons rather than in a dialog the browser draws. The question is
      dropped the moment the reader moves on by any other way. */
   let ending = $state(false);
-  $effect(() => { at; page.face; ending = false; });
+  $effect(() => { at; page.face; page.showAll; ending = false; });
 
   const boxTitle = (id: string, s: State): string =>
     s === 'untouched' ? 'You have not answered anything on this concept yet.'
-      : s === 'mastered' ? 'You have mastered this one; the box shows how much of its score is left.'
-        : s === 'due' ? 'This one has faded below the threshold and is waiting for a review.'
-          : `The box is how far your score on this concept stands towards the ${practice.settings.threshold} points that count as mastery.`;
+      : s === 'mastered' ? 'You have mastered this concept.'
+        : `The box is how far your score on this concept stands towards the ${practice.settings.threshold} points that count as mastery.`;
 
-  /* ---------- the reckoning ---------- */
+  /* ---------- progress after the session ---------- */
 
-  const changed = $derived(page.face === 'summary' ? practice.changed(item) : []);
-  const done = $derived(drawn.filter((_, i) => session?.answered[i] === true).length);
+  const progressed = $derived(page.face === 'progress' ? practice.progress(item) : []);
+  const done = $derived(drawn.filter((_, i) => session?.outcomes[i] !== null).length);
   const skipped = $derived(drawn.length - done);
   const earnedLine = (n: number): string => (n === 0 ? 'You earned no points this round.' : n === 1 ? 'You earned one point this round.' : `You earned ${n} points this round.`);
   const workLine = $derived(
@@ -266,7 +256,6 @@
   const weeks = heatWeeks(opened);
   const byDay = $derived(pointsByDay(practice.attempts));
   const streak = $derived(streakOf(practice.attempts, Date.now()));
-  const byBook = $derived(pointsByBook(practice.attempts));
   /* Five depths over the empty cell, so a day of steady work and a day of a
      great deal of it are told apart without a legend. */
   const depth = (day: string): number => { const n = byDay[day] ?? 0; return n === 0 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 10 ? 3 : n < 15 ? 4 : 5; };
@@ -303,9 +292,7 @@
   const whereWord = (key: ItemKey | null): string => (key === item ? 'this view' : key !== null ? 'another view' : 'not open in any tab');
 
   /* What a session tests, for the card's popover: the picks it was drawn from,
-     as the Choose face sets them out but without the boxes to tick. A session
-     drawn from everything due can hold a great many concepts, so the list is
-     capped and says how many it did not name. */
+     as the Choose face sets them out but without the boxes to tick. */
   type PeekRow = { readonly level: 'book' | 'chapter' | 'section' | 'concept'; readonly label: string; readonly kind: string };
   const PEEK = 12;
   const peekRows = (cur: Curriculum): readonly PeekRow[] => {
@@ -325,69 +312,38 @@
      popover at a time, drawn by this component under the card it belongs to. */
   let peek = $state<SessionId | null>(null);
 
-  const reviewDue = (): void => { note = practice.startDue(item) ? '' : NOTHING; };
+  /* ---------- book-wide concept progress ---------- */
 
-  /* A book's standing is counted over the concepts it teaches and has built,
-     which for the book being read is the registry's and for any other is what
-     the cache fetched, each concept counted once. */
-  const standing = (id: string): Standing => standingOf(practice.conceptsIn(id), practice.mastery, practice.settings, Date.now());
-  const totalOf = (s: Standing): number => s.mastered + s.practised + s.due + s.untouched;
-  const share = (n: number, of: number): number => (of === 0 ? 0 : (n / of) * 100);
-  const standTitle = (id: string, s: Standing): string => {
-    const n = totalOf(s);
-    if (n === 0) return statusOf(id) === 'failed' ? 'This book could not be loaded, so its concepts cannot be counted.' : 'Its concepts have not arrived yet.';
-    return `${s.mastered} mastered, ${s.practised} practiced, ${s.due} due, ${s.untouched} untouched.`;
+  // conceptsIn deduplicates chapter prerequisites; standingOf excludes placeholders.
+  const bookStanding = (id: string): Standing => standingOf(practice.conceptsIn(id), practice.mastery);
+  const allConcepts = $derived([...new Map(cat.concepts.filter((c) => c.status === 'built').map((c) => [c.id, c] as const)).values()]);
+  const overall = $derived(standingOf(allConcepts, practice.mastery));
+  const progressStatus = (id: string): string => {
+    if (id !== book) return statusOf(id);
+    const states = dirs.map((d) => registry.chapterStatus[d]);
+    if (states.some((s) => s === 'failed')) return 'failed';
+    return states.some((s) => !s || s === 'loading') ? 'loading' : 'loaded';
   };
 
-  /* ---------- one book's breakdown, under its row ---------- */
-
-  /* Which book stands open is the page's, so a fetch finishing or an answer
-     recorded does not fold it again. */
-  const openBook = $derived(page.book ?? null);
-  const STATES: readonly State[] = ['due', 'practised', 'mastered', 'untouched'];
-  type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly at: number | null; readonly meta: string };
+  type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly meta: string };
 
   const ago = (t: number, now: number): string => {
     const days = Math.round((now - t) / DAY);
     return days <= 0 ? 'last practiced today' : days === 1 ? 'last practiced yesterday' : `last practiced ${days} days ago`;
   };
   const inARow = (n: number): string => (n <= 0 ? '' : n === 1 ? 'one day in a row' : `${n} days in a row`);
-  const nextUp = (t: number, now: number): string => {
-    if (t <= now) return 'now';
-    const days = Math.round((t - now) / DAY);
-    return days <= 0 ? 'later today' : days === 1 ? 'in a day' : `in ${days} days`;
+  const rowOf = (id: string, now: number): Row | null => {
+    const c = practice.conceptOf(id); if (!c || c.status !== 'built') return null;
+    const r = practice.mastery[c.id], st = practice.stateOf(c.id);
+    return {
+      id: c.id, name: c.name, kind: c.kind, state: st, bar: practice.share(c.id),
+      meta: [inARow(r?.days ?? 0), r && r.earned > 0 ? ago(r.lastAt, now) : ''].filter(Boolean).join(' · '),
+    };
   };
-  const rows = $derived.by((): readonly Row[] => {
-    if (page.face !== 'dashboard' || !openBook) return [];
+  const progressRows = $derived.by(() => {
+    if (page.face !== 'progress') return [];
     const now = Date.now();
-    return practice.conceptsIn(openBook).filter((c) => c.status === 'built').map((c): Row => {
-      const r = practice.mastery[c.id], st = practice.stateOf(c.id, now);
-      const t = r ? dueAt(r, practice.settings) : null;
-      return {
-        id: c.id, name: c.name, kind: c.kind, state: st, bar: practice.share(c.id, now), at: t,
-        meta: [inARow(r?.days ?? 0), r && r.earned > 0 ? ago(r.lastAt, now) : '', t !== null && (st === 'mastered' || st === 'due') ? `due ${nextUp(t, now)}` : ''].filter(Boolean).join(' · '),
-      };
-    });
-  });
-  /* Each group in the order the reader would work through it: the most overdue
-     first, then the concept nearest to mastery, then the mastered one that
-     comes round soonest, and the untouched by name. */
-  const byName = (a: Row, b: Row): number => plain(a.name).trim().localeCompare(plain(b.name).trim()) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  const ORDER: Readonly<Record<State, (a: Row, b: Row) => number>> = {
-    due: (a, b) => a.bar - b.bar || byName(a, b),
-    practised: (a, b) => b.bar - a.bar || byName(a, b),
-    mastered: (a, b) => (a.at ?? Infinity) - (b.at ?? Infinity) || byName(a, b),
-    untouched: byName,
-  };
-  const groups = $derived(
-    STATES.flatMap((st) => { const items = rows.filter((r) => r.state === st).sort(ORDER[st]); return items.length ? [{ state: st, items }] : []; }),
-  );
-  const bookLine = $derived.by(() => {
-    if (!openBook) return '';
-    const earned = byBook[openBook] ?? 0;
-    const due = rows.filter((r) => r.state === 'due').length;
-    const first = earned === 0 ? 'You have earned nothing in this book yet.' : `You have earned ${points(earned)} in this book.`;
-    return due === 0 ? first : `${first} ${due === 1 ? 'One of its concepts is due now.' : `${due} of its concepts are due now.`}`;
+    return progressed.flatMap((p) => { const row = rowOf(p.id, now); return row ? [{ ...row, ...p }] : []; });
   });
 </script>
 
@@ -412,13 +368,11 @@
     <div class="tiles">
       <div class="tile"><b>{streak}</b><span>{streak === 1 ? 'day in a row' : 'days in a row'}</span></div>
       <div class="tile"><b>{practice.lifetime}</b><span>{practice.lifetime === 1 ? 'point in all' : 'points in all'}</span></div>
-      <div class="tile"><b>{practice.due.length}</b><span>due for review</span></div>
+      <div class="tile"><b>{overall.practised}</b><span>{overall.practised === 1 ? 'concept practiced' : 'concepts practiced'}</span></div>
+      <div class="tile"><b>{overall.mastered}</b><span>{overall.mastered === 1 ? 'concept mastered' : 'concepts mastered'}</span></div>
     </div>
     <div class="acts">
-      <button type="button" class="btn go" disabled={practice.due.length === 0}
-        title={practice.due.length === 0 ? 'Nothing is waiting for review at the moment.' : 'Draw a session from the concepts whose score has faded below the threshold.'}
-        onclick={reviewDue}>Review {practice.due.length} due</button>
-      <button type="button" class="btn" onclick={() => practice.choose(item)}>Choose what to practice</button>
+      <button type="button" class="btn go" onclick={() => practice.choose(item)}>Choose what to practice</button>
     </div>
     {#if note}<p class="quiet">{note}</p>{/if}
 
@@ -472,48 +426,23 @@
       </div>
     </section>
 
-    <section class="panel">
-      <h3 class="head">Book Progress</h3>
-      <div class="key">
-        <span>{@render box('mastered', 1, 'A concept you have mastered.')}mastered</span>
-        <span>{@render box('practised', 0.6, 'A concept you have begun and not yet mastered.')}practiced</span>
-        <span>{@render box('due', 0.4, 'A concept whose score has faded below the threshold.')}due</span>
-        <span>{@render box('untouched', 0, 'A concept you have not answered anything on yet.')}untouched</span>
-      </div>
+    <section class="panel book-progress" aria-label="Book concept progress">
+      <h3 class="head">Concept progress</h3>
       {#each shelf as b (b)}
-        {@const st = standing(b)}
-        {@const n = totalOf(st)}
-        {@const shown = openBook === b}
-        <button type="button" class="brow" class:open={shown} aria-expanded={shown} title={standTitle(b, st)} onclick={() => practice.expand(item, b)}>
-          <span class="twist" aria-hidden="true">▸</span>
-          <span class="lab">{bookTitle(b)}</span>
-          <span class="stack" aria-hidden="true">
-            <i class="seg st-mastered" style="width:{share(st.mastered, n)}%"></i>
-            <i class="seg st-practised" style="width:{share(st.practised, n)}%"></i>
-            <i class="seg st-due" style="width:{share(st.due, n)}%"></i>
-            <i class="seg st-untouched" style="width:{share(st.untouched, n)}%"></i>
-          </span>
-          <span class="pts">{byBook[b] ?? 0}</span>
-        </button>
-        {#if shown}
-          <div class="breakdown">
-            <p class="sum">{bookLine}</p>
-            {#if rows.length === 0}
-              <p class="quiet">{statusOf(b) === 'failed' ? 'This book could not be loaded, so its concepts cannot be listed.' : 'The concepts of this book have not arrived yet.'}</p>
-            {/if}
-            {#each groups as g (g.state)}
-              <div class="eyebrow">{STATE_WORD[g.state]}</div>
-              {#each g.items as r (r.id)}
-                <div class="row prow" tabindex="0" data-concept={r.id}>
-                  {@render masteryBox(r.id)}
-                  <i class="dot k-{r.kind}" aria-hidden="true"></i>
-                  <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
-                  <span class="meta">{r.meta}</span>
-                </div>
-              {/each}
-            {/each}
-          </div>
-        {/if}
+        {@const status = progressStatus(b)}
+        <div class="book-standing">
+          <h4>{bookTitle(b)}</h4>
+          {#if status === 'loaded'}
+            {@const counts = bookStanding(b)}
+            <dl class="concept-counts">
+              <div><dt>Unpracticed</dt><dd>{counts.untouched}</dd></div>
+              <div><dt>Practiced</dt><dd>{counts.practised}</dd></div>
+              <div><dt>Mastered</dt><dd>{counts.mastered}</dd></div>
+            </dl>
+          {:else}
+            <p class="quiet">{status === 'failed' ? 'Concept progress could not be loaded.' : 'Loading concept progress…'}</p>
+          {/if}
+        </div>
       {/each}
     </section>
   </div>
@@ -521,70 +450,52 @@
 {:else if page.face === 'choose'}
   <div class="choose">
     {#if loading}<p class="quiet">Loading the book’s problems…</p>{/if}
-    <div class="presets">
-      <button type="button" class="btn" onclick={() => practice.replace(item, [{ book, section: here }])}>This section</button>
-      <button type="button" class="btn" disabled={!hereChapter} onclick={() => hereChapter && practice.replace(item, [chapPick(book, hereChapter)])}>This chapter</button>
-      <button type="button" class="btn" onclick={() => practice.replace(item, [bookPick(book)])}>This book</button>
-      <button type="button" class="btn" disabled={dueNow.length === 0}
-        title={dueNow.length === 0 ? 'Nothing is waiting for review at the moment.' : 'The concepts whose score has faded below the threshold since you last practised them.'}
-        onclick={() => practice.replace(item, dueNow.map((c) => conceptPick(c.id)))}>Everything due</button>
-      <button type="button" class="btn" disabled={page.curriculum.length === 0} onclick={() => practice.clear(item)}>Clear</button>
-    </div>
-
-    {#if page.curriculum.length}
-      <div class="chips">
-        {#each page.curriculum as p, i (i)}
-          <span class="pick">
-            <span class="lab"><span use:math={pickLabel(p)}>{@html pickLabel(p)}</span></span>
-            <button type="button" class="x" aria-label="Take this out of the curriculum" title="Take this out" onclick={() => practice.toggle(item, p)}>×</button>
-          </span>
-        {/each}
-      </div>
-    {/if}
-
     <div class="tree">
       {#each shelf as b (b)}
         {@const on = bookOn(b)}
-        <label class="row lvl-book" title={countTitle(sumOf([bookPick(b)]))}>
-          <span class="twist" aria-hidden="true"></span>
-          <input type="checkbox" checked={on} use:tri={bookSome(b)} onchange={() => practice.toggle(item, bookPick(b))}>
-          <span class="lab">{bookTitle(b)}</span>
-        </label>
-        {#if !manifestOf(b)}
-          <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
-            <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
-          </div>
-        {/if}
-        {#each chaptersOf(b) as c (c.id)}
-          {@const chOn = chapOn(b, c)}
-          {@const shown = isOpen(b, c)}
-          <div class="row lvl-chapter" title={countTitle(sumOf([chapPick(b, c)]))}>
-            <button type="button" class="twist" class:open={shown} aria-expanded={shown} aria-label={shown ? 'Fold this chapter' : 'Open this chapter'} onclick={() => toggleOpen(b, c)}>▸</button>
-            <input type="checkbox" checked={chOn} use:tri={!chOn && chapSome(b, c)} onchange={() => practice.toggle(item, chapPick(b, c))}>
-            <button type="button" class="lab plain" onclick={() => toggleOpen(b, c)}>{c.id} · {c.title}</button>
-          </div>
-          {#if shown}
-            {#each c.sections as s (s.id)}
-              {#if s.built}
-                <label class="row lvl-section" title={countTitle(sumOf([secPick(b, s)]))}>
-                  <span class="twist" aria-hidden="true"></span>
-                  <input type="checkbox" checked={secOn(b, c, s)} onchange={() => practice.toggle(item, secPick(b, s))}>
-                  <span class="lab">{s.id} · {s.title}</span>
-                </label>
-              {:else}
-                <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
-                  <span class="twist" aria-hidden="true"></span>
-                  <input type="checkbox" disabled>
-                  <span class="lab">{s.id} · {s.title}</span>
-                </div>
-              {/if}
-            {/each}
+        {@const bookShown = openBooks.includes(b)}
+        <div class="row lvl-book" title={countTitle(sumOf([bookPick(b)]))}>
+          <button type="button" class="twist" class:open={bookShown} aria-expanded={bookShown} aria-label={bookShown ? 'Fold this book' : 'Open this book'} onclick={() => toggleBook(b)}>▸</button>
+          <input type="checkbox" aria-label={`Select ${bookTitle(b)}`} checked={on} use:tri={bookSome(b)} onchange={() => practice.toggle(item, bookPick(b))}>
+          <button type="button" class="lab plain" aria-expanded={bookShown} onclick={() => toggleBook(b)}>{bookTitle(b)}</button>
+        </div>
+        {#if bookShown}
+          {#if !manifestOf(b)}
+            <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
+              <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
+            </div>
           {/if}
-        {/each}
+          {#each chaptersOf(b) as c (c.id)}
+            {@const chOn = chapOn(b, c)}
+            {@const shown = isOpen(b, c)}
+            <div class="row lvl-chapter" title={countTitle(sumOf([chapPick(b, c)]))}>
+              <button type="button" class="twist" class:open={shown} aria-expanded={shown} aria-label={shown ? 'Fold this chapter' : 'Open this chapter'} onclick={() => toggleOpen(b, c)}>▸</button>
+              <input type="checkbox" aria-label={`Select ${c.id} · ${c.title}`} checked={chOn} use:tri={!chOn && chapSome(b, c)} onchange={() => practice.toggle(item, chapPick(b, c))}>
+              <button type="button" class="lab plain" aria-expanded={shown} onclick={() => toggleOpen(b, c)}>{c.id} · {c.title}</button>
+            </div>
+            {#if shown}
+              {#each c.sections as s (s.id)}
+                {#if s.built}
+                  <label class="row lvl-section" title={countTitle(sumOf([secPick(b, s)]))}>
+                    <span class="twist" aria-hidden="true"></span>
+                    <input type="checkbox" checked={secOn(b, c, s)} onchange={() => practice.toggle(item, secPick(b, s))}>
+                    <span class="lab">{s.id} · {s.title}</span>
+                  </label>
+                {:else}
+                  <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
+                    <span class="twist" aria-hidden="true"></span>
+                    <input type="checkbox" disabled>
+                    <span class="lab">{s.id} · {s.title}</span>
+                  </div>
+                {/if}
+              {/each}
+            {/if}
+          {/each}
+        {/if}
       {/each}
     </div>
 
-    <div class="eyebrow">A concept on its own</div>
+    <div class="eyebrow">Add by concept</div>
     <input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept by name" bind:value={q}>
     {#if q.trim() && found.length === 0}
       <p class="quiet">{loading ? 'The concepts are still loading.' : 'No concept in your library is named that.'}</p>
@@ -603,6 +514,22 @@
     {#if found.length === FOUND}<p class="quiet">The first {FOUND} are listed; type more of the name to narrow them.</p>{/if}
 
     <div class="foot">
+      <section class="selection" aria-label="Selected items">
+        <div class="selection-head">
+          <h3 class="eyebrow">Selected items</h3>
+          <button type="button" class="btn" disabled={page.curriculum.length === 0} onclick={() => practice.clear(item)}>Clear</button>
+        </div>
+        {#if page.curriculum.length}
+          <ul class="chips">
+            {#each page.curriculum as p, i (i)}
+              <li class="pick">
+                <span class="lab"><span use:math={pickLabel(p)}>{@html pickLabel(p)}</span></span>
+                <button type="button" class="x" aria-label={`Remove ${plain(pickLabel(p))} from selected items`} title="Remove from selected items" onclick={() => practice.toggle(item, p)}>×</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
       <p class="sum">{choiceLine}</p>
       {#if why}<p class="quiet">{why}</p>{/if}
       {#if note}<p class="quiet">{note}</p>{/if}
@@ -620,68 +547,85 @@
 
 {:else if page.face === 'practise' && session}
   <div class="practise">
-    <div class="strip">
-      <span class="where">Exercise {at + 1} of {drawn.length}</span>
-      <span class="points">{session.earned === 1 ? '1 point so far' : `${session.earned} points so far`}</span>
-      {#if pending}<span class="chip why-{pending.why}">{WHY[pending.why] ?? pending.why}</span>{/if}
-      <label class="shuffle" title="Draw the rest of the round again at random as you go, instead of taking it in the order the book sets.">
-        <input type="checkbox" checked={page.shuffle} onchange={(e) => practice.setShuffle(item, e.currentTarget.checked)}>shuffle
-      </label>
-    </div>
-    <div class="pips" aria-hidden="true">
-      {#each drawn as _, i (i)}
-        <i class="pip" class:done={session.answered[i]} class:now={i === at}></i>
-      {/each}
-    </div>
-    {#if cur}
-      <div class="bars">
-        {#each cur.ex.concepts as id (id)}
-          <div class="one">
-            {@render masteryBox(id)}
-            <span class="nm"><span use:math={conceptName(id)}>{@html conceptName(id)}</span></span>
-          </div>
+    {#if page.showAll}
+      <div class="all-head"><button type="button" class="btn" onclick={() => practice.setShowAll(item, false)}>Show one at a time</button></div>
+      <div class="all-list" bind:this={allRoot}>
+        {#each drawn as d, i (`${d.book}/${d.section}/${d.ex}`)}
+          {@const row = practice.exerciseAt(item, i)}
+          <section class="all-exercise" aria-label="Exercise {i + 1} of {drawn.length}">
+            <div class="exercise-number">Exercise {i + 1}</div>
+            {#if row}
+              <div class="card-root" data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
+                <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={session.outcomes[i]} onanswer={(ok) => answeredAt(i, ok)} />
+              </div>
+            {:else if statusOf(d.book) === 'failed'}
+              <p class="quiet">This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.</p>
+            {:else}
+              <p class="quiet">Loading this exercise…</p>
+            {/if}
+          </section>
         {/each}
       </div>
-      {#if cur.book !== book}<div class="eyebrow from">From {practice.bookTitle(cur.book)} · {cur.section}</div>{/if}
-      {#key `${cur.book}/${cur.section}/${cur.ex.id}/${at}`}
-        <div class="card-root" data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
-          <ExerciseCard book={cur.book} section={cur.section} ex={cur.ex} standalone />
-        </div>
-      {/key}
-    {:else if pending && statusOf(pending.book) === 'failed'}
-      <p class="quiet">This problem comes from {practice.bookTitle(pending.book)}, and that book would not load. Skip it and the session goes on without it.</p>
     {:else}
-      <p class="quiet">{pending && pending.book !== book ? 'Loading the book this problem comes from…' : 'Loading the section this problem comes from…'}</p>
+      {#if cur}
+        {#key `${cur.book}/${cur.section}/${cur.ex.id}/${at}`}
+          <div class="card-root" data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
+            <ExerciseCard book={cur.book} section={cur.section} ex={cur.ex} {outcome} onanswer={(ok) => answeredAt(at, ok)} />
+          </div>
+        {/key}
+      {:else if pending && statusOf(pending.book) === 'failed'}
+        <p class="quiet">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another square to continue.</p>
+      {:else}
+        <p class="quiet">{pending && pending.book !== book ? 'Loading the book this exercise comes from…' : 'Loading the section this exercise comes from…'}</p>
+      {/if}
     {/if}
     {#if ending}
       <div class="confirm">
-        <span class="ask">End this session? Your answers so far are kept.</span>
+        <span class="ask">{allDone ? 'End this session? You have answered all of the questions.' : 'End this session? Your answers so far are kept.'}</span>
         <button type="button" class="btn go" onclick={() => practice.end(item)}>End session</button>
         <button type="button" class="btn" onclick={() => (ending = false)}>Keep going</button>
       </div>
     {:else}
-      <div class="acts">
-        <button type="button" class="btn" onclick={() => practice.skip(item)}>Skip</button>
-        {#if answered}<button type="button" class="btn go" bind:this={nextBtn} onclick={() => practice.next(item)}>{last ? 'Finish' : 'Next'}</button>{/if}
+      {#if !page.showAll}
+        <nav class="question-grid" aria-label="Exercises in this session">
+          {#each drawn as _, i (i)}
+            {@const result = session.outcomes[i]}
+            <button type="button" class:now={i === at} class:right={result === true} class:wrong={result === false}
+              aria-label="Exercise {i + 1}{result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
+              aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{i + 1}</button>
+          {/each}
+        </nav>
+      {/if}
+      <div class="acts session-actions">
+        {#if !page.showAll}<button type="button" class="btn" onclick={() => practice.setShowAll(item, true)}>Show all exercises</button>{/if}
         <button type="button" class="btn" title="Leave this session standing and go back to the dashboard. It will be waiting there." onclick={() => practice.pause(item)}>Pause</button>
-        <button type="button" class="btn" title="Finish this session here, and see what it came to." onclick={() => (ending = true)}>End</button>
+        <button type="button" class="btn" class:go={allDone} title="Finish this session here, and see what it came to." onclick={() => (ending = true)}>End</button>
       </div>
     {/if}
   </div>
 
-{:else if page.face === 'summary' && session}
-  <div class="summary">
+{:else if page.face === 'progress' && session}
+  <div class="progress">
+    <h2 class="progress-title">Progress</h2>
     <p class="sum">{earnedLine(session.earned)} {workLine}</p>
-    {#if changed.length}
-      <section class="panel">
-        <h3 class="head">What moved</h3>
-        <ul class="moved">
-          {#each changed as c (c.id)}
-            <li><span use:math={conceptName(c.id)}>{@html conceptName(c.id)}</span>: {STATE_WORD[c.from]} → {STATE_WORD[c.to]}</li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
+    <section class="panel concept-progress">
+      {#if progressRows.length}
+        {#each progressRows as r (r.id)}
+          <div class="row prow progress-row" tabindex="0" data-concept={r.id}>
+            <span class="transition" aria-label="Progress from {STATE_WORD[r.from]} to {STATE_WORD[r.to]}">
+              {@render box(r.from, r.fromShare, `Before this session: ${STATE_WORD[r.from]}`)}
+              <span class="arrow" aria-hidden="true">→</span>
+              {@render box(r.to, r.toShare, `After this session: ${STATE_WORD[r.to]}`)}
+            </span>
+            <i class="dot k-{r.kind}" aria-hidden="true"></i>
+            <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
+            <span class="meta">{r.meta}</span>
+          </div>
+        {/each}
+      {:else}
+        <p class="quiet">No concept progress was earned in this session.</p>
+      {/if}
+    </section>
     <div class="acts">
       <button type="button" class="btn go" onclick={() => practice.finish(item)}>Return to Dashboard</button>
     </div>
@@ -689,7 +633,7 @@
 {/if}
 
 <style>
-  .dash,.choose,.practise,.summary{font-family:var(--sans);font-size:0.84rem;color:var(--ink);container-type:inline-size;display:flex;flex-direction:column;gap:12px}
+  .dash,.choose,.practise,.progress{font-family:var(--sans);font-size:0.84rem;color:var(--ink);container-type:inline-size;display:flex;flex-direction:column;gap:12px}
   /* the two tabs over the faces: the eyebrow's small capitals, and the face showing underlined in the accent */
   .faces{display:flex;gap:14px;margin:0 0 12px;border-bottom:1px solid var(--rule)}
   .tab{font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:2px 0 6px;margin-bottom:-1px;cursor:pointer}
@@ -702,7 +646,6 @@
   .head{font-family:var(--sans);font-size:1.08rem;font-weight:700;letter-spacing:-0.01em;margin:0 0 8px}
   /* a band of the view, as a card with a hairline round it */
   .panel{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
-  .presets{display:flex;flex-wrap:wrap;gap:6px}
   .btn{font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:8px;cursor:pointer}
   .btn:hover:not(:disabled){background:var(--soft)}
   .btn:disabled{opacity:.5;cursor:default}
@@ -722,8 +665,6 @@
   .mbox.st-practised.hi::after{background:var(--m-mid)}
   .mbox.st-mastered{border-color:var(--ink)}
   .mbox.st-mastered::after{background:var(--m-high)}
-  .mbox.st-due{border-style:dashed;border-color:var(--ink)}
-  .mbox.st-due::after{background:var(--m-due)}
   /* ---------- the dashboard ---------- */
   /* the three numbers, each on a tile of its own */
   .tiles{display:flex;flex-wrap:wrap;gap:10px}
@@ -758,29 +699,19 @@
   .cell[data-d="3"]{background:color-mix(in srgb,var(--ok) 62%,var(--soft2))}
   .cell[data-d="4"]{background:color-mix(in srgb,var(--ok) 82%,var(--soft2))}
   .cell[data-d="5"]{background:var(--ok)}
-  /* the legend of the book bars, drawn in the same boxes the rows wear */
-  .key{display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:8px;font-size:0.72rem;color:var(--muted)}
-  .key span{display:inline-flex;align-items:center;gap:5px}
-  /* one book: what it is called, how it stands, what it has earned, and the twisty that opens it */
-  .brow{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;font:inherit;font-size:inherit;text-align:left;padding:5px 4px;border:0;border-radius:8px;background:none;color:inherit;cursor:pointer}
-  .brow:hover{background:var(--soft)}
-  .brow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-  .brow .lab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-  .brow .pts{flex:none;color:var(--muted);font-size:0.74rem;font-variant-numeric:tabular-nums}
-  .brow .twist{flex:none;width:12px;font-size:0.7rem;line-height:1;color:var(--muted);transition:transform .12s}
-  .brow.open .twist{transform:rotate(90deg)}
-  .stack{flex:none;display:flex;width:150px;height:7px;border-radius:4px;overflow:hidden;background:var(--rule)}
-  .seg{display:block;height:100%}
-  .seg.st-mastered{background:var(--m-high)}
-  .seg.st-practised{background:var(--m-mid)}
-  .seg.st-due{background:var(--m-due)}
-  .seg.st-untouched{background:var(--rule)}
-  /* the breakdown, opened under the row it belongs to */
-  .breakdown{margin:2px 0 10px;padding:8px 10px 6px;border-left:2px solid var(--rule);background:var(--soft)}
-  .breakdown .sum{margin:0 0 4px}
+  /* Each book counts concepts directly, without chapter or section rollups. */
+  .book-standing{padding:10px 0}
+  .book-standing + .book-standing{border-top:1px solid var(--rule)}
+  .book-standing h4{font:600 .85rem/1.4 var(--sans);margin:0 0 8px;overflow-wrap:anywhere}
+  .concept-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+  .concept-counts div{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .concept-counts dt{font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
+  .concept-counts dd{font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;margin:0}
   /* ---------- choosing ---------- */
   /* the picks as they stand, each carrying the × that takes it out again */
-  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .selection-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .selection-head h3{margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;list-style:none;margin:0 0 10px;padding:0}
   .pick{display:inline-flex;align-items:center;gap:4px;max-width:100%;font-size:0.74rem;padding:2px 4px 2px 8px;border:1px solid var(--rule);border-radius:11px;background:var(--soft)}
   .pick .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pick .x{font:inherit;font-size:0.9rem;line-height:1;color:var(--muted);background:none;border:0;border-radius:50%;padding:0 3px;cursor:pointer}
@@ -822,36 +753,31 @@
   .stepb:disabled{opacity:.4;cursor:default}
   .stepb:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .step .n{min-width:1.6em;text-align:center;font-size:0.78rem;font-weight:600;font-variant-numeric:tabular-nums}
-  /* the strip over the session: where the reader is, what they have earned, why this problem was drawn, and the shuffle */
-  .strip{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
-  .strip .where{font-weight:700}
-  .strip .points{color:var(--muted);font-variant-numeric:tabular-nums}
-  .chip.why-review{color:var(--m-due)}
-  .chip.why-frontier{color:var(--accent)}
-  /* one segment a problem: answered, the one in hand, and the ones still ahead */
-  .pips{display:flex;flex-wrap:wrap;gap:3px;margin:-4px 0 0}
-  .pip{flex:1 1 8px;max-width:40px;height:5px;border-radius:3px;background:var(--soft2)}
-  .pip.done{background:var(--m-high)}
-  .pip.now{background:var(--accent)}
-  /* the same small switch the concept map's legend carries */
-  .shuffle{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted);cursor:pointer;user-select:none}
-  .shuffle input{appearance:none;flex:none;width:22px;height:13px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--panel);position:relative;cursor:pointer}
-  .shuffle input::after{content:"";position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:var(--muted);transition:left .15s}
-  .shuffle input:checked{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 50%,var(--rule))}
-  .shuffle input:checked::after{left:11px;background:var(--accent)}
-  .shuffle input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .bars{display:flex;flex-wrap:wrap;gap:4px 16px}
-  .bars .one{display:flex;align-items:center;gap:7px;min-width:0}
-  .bars .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
-  .eyebrow.from{margin:0;opacity:.85}
+  /* The numbered grid is navigation and progress in one place. The outline marks
+     the question in hand; a completed square carries its verdict's colour. */
+  .question-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;padding-top:2px}
+  .question-grid button{height:32px;min-width:32px;font:inherit;font-size:.76rem;font-weight:650;font-variant-numeric:tabular-nums;border:1px solid var(--rule);border-radius:7px;background:var(--panel);color:var(--muted);cursor:pointer}
+  .question-grid button:hover{background:var(--soft);color:var(--ink)}
+  .question-grid button.now{outline:2px solid var(--accent);outline-offset:1px;color:var(--ink)}
+  .question-grid button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--panel));color:var(--ok)}
+  .question-grid button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--panel));color:var(--bad)}
+  .question-grid button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .session-actions{justify-content:flex-end}
+  .all-head{display:flex;justify-content:flex-end}
+  .all-list{display:flex;flex-direction:column;gap:18px}
+  .all-exercise{scroll-margin-top:12px}
+  .exercise-number{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 5px 3px}
   .card-root{margin:0}
   /* the question asked before a round is ended, in the place the buttons stand */
   .confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--rule);border-radius:10px;background:var(--soft)}
   .confirm .ask{flex:1 1 220px;min-width:0}
-  .moved{list-style:none;margin:0;padding:0}
-  .moved li{padding:2px 0;display:flex;gap:8px;align-items:baseline;min-width:0}
+  .progress-title{font:700 1.45rem/1.15 var(--sans);letter-spacing:-.02em;margin:2px 0 0}
+  .concept-progress{display:flex;flex-direction:column;gap:3px}
+  .transition{display:inline-flex;align-items:center;gap:6px;flex:none}
+  .arrow{color:var(--muted);font-size:.9rem;line-height:1}
+  .progress-row{padding-block:5px}
   /* one concept's standing: the box, the kind's dot, the name, and the small
-     print about the streak, the last answer and the next review. The row is not
+     print about the streak and last answer. The row is not
      a button — it is a place the concept's own card opens on, the way a term in
      the text is — so it wears the dotted rule the glossary terms wear, and the
      reader's Underlines setting takes it away with theirs. */
@@ -859,9 +785,13 @@
   .row.prow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .row.prow .meta{flex:none;color:var(--muted);font-size:0.7rem;font-variant-numeric:tabular-nums}
   :global(html:not(.no-underlines)) .prow .lab{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
-  @container (max-width:520px){ .row.prow{flex-wrap:wrap} .row.prow .lab{flex:1 1 70%;white-space:normal} .row.prow .meta{display:none} .stack{width:96px} }   /* in a narrow box the name takes a line of its own and the meta drops away */
+  @container (max-width:520px){
+    .row.prow{flex-wrap:wrap}
+    .row.prow .lab{flex:1 1 70%;white-space:normal}
+    .row.prow .meta{display:none}
+  }
   /* a page has room for the reading size the rest of the views take in one */
-  :global(.view-pane) .dash,:global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .summary{font-size:0.95rem;max-width:900px;margin:0 auto;gap:16px}
+  :global(.view-pane) .dash,:global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto;gap:16px}
   :global(.view-pane) .faces{max-width:900px;margin:0 auto 14px}
   :global(.view-pane) .tab{font-size:0.8rem}
   :global(.view-pane) .head{font-size:1.2rem}
@@ -873,5 +803,4 @@
   :global(.view-pane) .chip{font-size:0.7rem}
   :global(.view-pane) .mbox{width:16px;height:16px}
   :global(.view-pane) .tile b{font-size:1.9rem}
-  :global(.view-pane) .stack{width:200px}
 </style>

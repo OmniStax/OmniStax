@@ -62,7 +62,6 @@ class Registry {
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
     if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
-    if (id.kind === 'ex') { const label = this.exerciseLabel(id.section, id.ex); return label ? `${id.section} · ${label} ${id.ex}` : `${id.section} · exercise ${id.ex}`; }
     /* A section's tab carries the name the reader knows it by — "7.6 Momentum
        and Force" — and the problem set says so after it, since the two tabs of a
        section stand side by side and the number alone does not tell them apart.
@@ -70,13 +69,8 @@ class Registry {
        word. An introduction or summary page is named by its own title. */
     if (pageRoleOf(id.section) !== 'section') { const e = this.entry(id.section); return e ? pageLabel(e) : id.section; }
     const title = this.entry(id.section)?.title;
-    if (title === undefined) return `${id.section} ${id.doc === 'text' ? 'Text' : 'Exercises'}`;
-    return id.doc === 'text' ? `${id.section} ${title}` : `${id.section} ${title} · Exercises`;
-  }
-  /* What the book calls an exercise's kind, once the section holding it has been loaded. */
-  private exerciseLabel(sec: SectionId, ex: string): string | null {
-    const kind = this.sections[sec]?.exercises.find((e) => e.id === ex)?.kind;
-    return kind === undefined ? null : this.manifest.exerciseKinds[kind] ?? kind;
+    if (title === undefined) return `${id.section} Text`;
+    return `${id.section} ${title}`;
   }
   /* Concept ids are canonical and a chapter reaches into the chapters before it, so two loaded chapters may name the same concept; the map draws it once. */
   get concepts(): readonly ConceptDTO[] {
@@ -124,13 +118,13 @@ class Registry {
       next[sec] = { ...cur, docs: { ...cur.docs, [doc]: a }, src: { ...cur.src, [doc]: a.outerHTML }, status: 'loaded' }; seen.add(sec);
     });
     this.sections = next;
-    seen.forEach((sec) => { const s = next[sec]; (['text', 'exercises'] as const).forEach((d) => { const root = s.docs[d]; if (root) this.prepare(root, sec, d); }); });
+    seen.forEach((sec) => { const root = next[sec].docs.text; if (root) this.prepare(root, sec); });
     return [...seen];
   }
-  private prepare(root: HTMLElement, sec: SectionId, doc: DocKind): void {
+  private prepare(root: HTMLElement, sec: SectionId): void {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
     this.mountExercises(root, sec);
-    if (doc === 'text') { this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec); }
+    this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the
@@ -212,7 +206,7 @@ class Registry {
     if (!held) { this.owner[key] = group; return primary; }
     const src = s.src[id.doc]; if (!src) return null;
     const t = document.createElement('template'); t.innerHTML = src;
-    const a = t.content.firstElementChild as HTMLElement; this.prepare(a, id.section, id.doc);
+    const a = t.content.firstElementChild as HTMLElement; this.prepare(a, id.section);
     return (this.clones[ck] = a);
   }
   /* Drop copies no group shows any more. */

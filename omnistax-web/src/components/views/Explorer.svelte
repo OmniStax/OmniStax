@@ -26,12 +26,12 @@
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { docItem, itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
+  import { itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
 
-  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'exercises' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -105,10 +105,6 @@
         key: `${key}#${h.id}`, kind: 'heading', depth: depth + 1, label: h.label, icon: '', domId: h.id,
         expandable: false, open: false, dim: false, active: spy.current.section === h.id,
       }));
-      if (s.exercises.length) out.push({
-        key: `${key}!ex`, kind: 'exercises', depth: depth + 1, label: 'Problems & Exercises', icon: ICON.exercises, section: sec,
-        expandable: false, open: false, dim: false, active: activeKey === itemKey(docItem(sec, 'exercises')),
-      });
     };
     /* A book's own introduction stands before its chapters and its summary after
        them, and a chapter's stand either side of its sections, as the book
@@ -263,7 +259,6 @@
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
     if (r.kind === 'section' && r.section && !r.dim && !r.href) { void openDoc(r.section, 'text'); return; }
-    if (r.kind === 'exercises' && r.section) { void openDoc(r.section, 'exercises'); return; }
     if (r.kind === 'heading' && r.domId) go(r.domId);
   };
 

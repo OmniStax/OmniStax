@@ -66,15 +66,15 @@ export const goSpan = (id: SpanId | undefined): void => {
    with the section's text open nowhere, so a target that is not in the document
    yet is not a dead end: the text is opened and the look retried over a few
    frames, since the document may still be mounting when the open resolves — the
-   same wait ExerciseTab makes for the card it leads back to. */
+   same wait used for any asynchronously mounted section content. */
 export const cite = (id: string, tries = 12): void => {
   const sec = findEl(id);
   if (sec) { jump(sec.querySelector<HTMLElement>('.cite-target') ?? sec, 'center'); return; }
   if (tries <= 0) return;
   openDoc(sectionOfSpan(spanId(id)), 'text').then(() => requestAnimationFrame(() => cite(id, tries - 1))).catch(() => {});
 };
-/* Open anything a tab can hold — a document, a figure, one exercise, a standing
-   page, a note: activate it where it already is, or open it in the given group
+/* Open anything a tab can hold — a document, a figure, a standing page, or a
+   note: activate it where it already is, or open it in the given group
    (default: focused), and load the section it comes out of. A page and a note
    come out of no section, so for them there is nothing to fetch. */
 export const openItem = (key: string, group?: number): Promise<void> => {
@@ -85,5 +85,5 @@ export const openItem = (key: string, group?: number): Promise<void> => {
   const id = parseItemKey(key); const sec = id ? sectionOfItem(id) : null;
   return sec ? registry.load(sec) : Promise.resolve();
 };
-export const openDoc = (sec: SectionId, doc: 'text' | 'exercises', group?: number): Promise<void> => openItem(itemKey(docItem(sec, doc)), group);
+export const openDoc = (sec: SectionId, doc: 'text', group?: number): Promise<void> => openItem(itemKey(docItem(sec, doc)), group);
 type SectionId = import('../types/ids').SectionId;

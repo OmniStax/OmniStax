@@ -2,8 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, docItem, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
-import { pageRoleOf } from '../content/roles';
+import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -72,8 +71,7 @@ const handOn = ({ kept, owed }: Handout, gained: readonly Slot[], weight: number
    sets no exercises, so it opens alone. */
 export const defaultLayout = (own: ItemId): Layout => {
   const k = keyOf(own);
-  const tabs = own.kind === 'doc' && own.doc === 'text' && pageRoleOf(own.section) === 'section' ? [k, keyOf(docItem(own.section, 'exercises'))] : [k];
-  const group: Group = { key: newGroupKey(), tabs, active: k };
+  const group: Group = { key: newGroupKey(), tabs: [k], active: k };
   return {
     sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },
     home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key),

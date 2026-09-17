@@ -96,10 +96,15 @@ export const bindsOf = (figures: readonly FigureRowDTO[]): readonly string[] =>
    Bloom table. */
 export const exercisesOf = (s: SectionDTO): readonly ExerciseDTO[] => {
   const rowsOf = (id: string) => s.exerciseConcepts.filter((r) => r.exercise === id);
-  return s.exercises.map(({ source_id, source_section, ...e }) => {
+  return s.exercises.map(({ source_id, source_section, source_number, ...e }) => {
     const rows = rowsOf(e.id);
     const weighted = rows.flatMap((r) => (r.weight === undefined ? [] : [[r.concept, r.weight] as const]));
-    return { ...e, sourceId: source_id, ...(source_section === undefined ? {} : { sourceSection: source_section }), concepts: rows.map((r) => r.concept), ...(weighted.length ? { weights: Object.fromEntries(weighted) } : {}) };
+    return {
+      ...e, sourceId: source_id,
+      ...(source_section === undefined ? {} : { sourceSection: source_section }),
+      ...(source_number === undefined ? {} : { sourceNumber: source_number }),
+      concepts: rows.map((r) => r.concept), ...(weighted.length ? { weights: Object.fromEntries(weighted) } : {}),
+    };
   });
 };
 

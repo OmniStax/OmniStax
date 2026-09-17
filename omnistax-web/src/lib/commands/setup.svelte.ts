@@ -11,7 +11,7 @@ import { layoutStore } from '../layout/store.svelte';
 import { split, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, type ItemKey } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
-import { focusedArticle, openDoc, openItem } from '../sections/nav.svelte';
+import { focusedArticle, openItem } from '../sections/nav.svelte';
 import { noteModes } from '../notes/modes.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { createNote } from '../explorer/edits';
@@ -19,7 +19,6 @@ import { history } from '../history/store.svelte';
 import { colours } from '../colours/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
-import { registry } from '../sections/registry.svelte';
 import { itemKey, newViewItem, noteItem, pageItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
@@ -77,8 +76,6 @@ const docs = {
     const key = itemKey(viewItem(kind));
     layoutStore.apply((x) => (at === 'group' ? openTab(x, key, ui.palette.group ?? x.focus) : at === 'split' ? split(x, x.focus, 'right', newViewItem(kind)) : openSide(x, key, homeSide(x, key))));
   },
-  openExercises: (): void => { void openDoc(focus.section, 'exercises', ui.palette.group ?? undefined); },
-  canOpenExercises: (): boolean => registry.isBuilt(focus.section),
   /* The front of OmniStax, as a tab of the group the palette was opened from,
      or of the focused group. The registry fetches the article when the pool
      never carried it, and the pane draws it as soon as it is adopted. */

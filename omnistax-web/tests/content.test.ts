@@ -38,7 +38,7 @@ const SECTION = SectionSchema.parse({
     { span: 'ex-car', concept: 'hookes-law', verb: 'reinforces' },
   ],
   exercises: [
-    { id: 'cq1', source_id: 'fs-1', kind: 'conceptual-question', bloom: 'Understand', place: { at: 'inline', after: 'hookes-law' }, prompt: 'Why?', answer: { type: 'open' } },
+    { id: 'cq1', source_id: 'fs-1', source_number: '5.17', kind: 'conceptual-question', bloom: 'Understand', place: { at: 'inline', after: 'hookes-law' }, prompt: 'Why?', answer: { type: 'open' } },
     { id: 'p1', source_id: 'fs-2', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'How far?', answer: { type: 'number', value: 1.5, unit: 'm' } },
   ],
   exercise_concepts: [
@@ -86,6 +86,7 @@ test('an exercise carries the concepts it tests, and the points the pipeline gav
   assert.equal(cq1.weights, undefined, 'no override leaves the Bloom table to say what it is worth');
   assert.deepEqual(cq1.place, { at: 'inline', after: 'hookes-law' });
   assert.equal(cq1.sourceId, 'fs-1');
+  assert.equal(cq1.sourceNumber, '5.17');
   assert.deepEqual(p1.concepts, ['hookes-law', 'displacement']);
   assert.deepEqual(p1.weights, { 'hookes-law': 5 });
   assert.deepEqual(p1.place, { at: 'end' });

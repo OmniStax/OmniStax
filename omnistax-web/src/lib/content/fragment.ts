@@ -123,7 +123,7 @@ const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): s
   return s.role === 'section' ? `${where} · ${s.meta.id}` : where;
 };
 /* The attributes every article of a page carries: what page and chapter it belongs to, and the name its tab takes. */
-const articleAttrs = (chapter: ChapterDTO | null, s: SectionSource, doc: 'text' | 'exercises', title: string): string =>
+const articleAttrs = (chapter: ChapterDTO | null, s: SectionSource, doc: 'text', title: string): string =>
   `data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
 const textTitle = (s: SectionSource): string => (s.role === 'section' ? `${s.meta.id} Text` : s.meta.title);
 
@@ -183,13 +183,6 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
 const sectionEnd = (s: SectionSource): string => (s.exercises.length === 0 ? '' :
   `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="Open a practice session on this section">Practice this section${ICON.exercises}</button></div>`);
 
-export const exercisesArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => [
-  `<article ${articleAttrs(chapter, s, 'exercises', `${s.meta.id} Exercises`)}>`,
-  `<section id="${s.meta.id}-exercises"><h2>Problems &amp; Exercises</h2>${s.exercisesLead ? `<p class="lead">${s.exercisesLead}</p>` : ''}<div class="exercises" data-place="end"></div></section>`,
-  footer(book, s),
-  `</article>`,
-].join('\n');
-
 /* The fragment carries its own data so a tab can be opened from it alone. */
 export const sectionData = (s: SectionSource): string =>
   `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
@@ -198,4 +191,4 @@ export const sectionData = (s: SectionSource): string =>
    summary page sets no exercises and so has no problem set to open. The text
    carries the way to its neighbours, which the caller reads off the book. */
 export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string =>
-  [textArticle(book, chapter, s, nav), ...(s.role === 'section' ? [exercisesArticle(book, chapter, s)] : []), sectionData(s)].join('\n');
+  [textArticle(book, chapter, s, nav), sectionData(s)].join('\n');

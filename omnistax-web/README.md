@@ -46,7 +46,7 @@ src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a docum
 src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/settings    colour coding, theme, animations, exercise mode, underlines
-src/lib/practice    model.ts (points by Bloom level, decaying mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build, and joining them to the book being read; pure), books.svelte.ts (that cache, one fetch a book)
+src/lib/practice    model.ts (points by Bloom level, mastery per concept, the curriculum and how a session is drawn; pure), store.svelte.ts (the reader's attempts, curriculum, numbers and running session, persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build, and joining them to the book being read; pure), books.svelte.ts (that cache, one fetch a book)
 src/lib/search      model.ts (a corpus per book and what a query finds in it, by kind, with the prose capped; pure), books.ts (a formula sheet and a text index off the wire, leniently; pure), store.svelte.ts (the corpora, the book being read out of the registry and the rest off the build, fetched once), go.ts (landing on a hit: the block, the span, the term, or a link out)
 src/lib/exercises   check.ts: pure answer checking
 src/lib/sheets      elements.ts (where a cell stands, what fills it, what a filter lets through; pure), formula.ts (the chemical formulas of the prose, found and read; pure), mark.ts (the one pass over a document), store.svelte.ts (the sheets fetched, and the element the page stands on)
@@ -55,7 +55,7 @@ src/lib/math        prerender.ts: KaTeX at build time
 src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
 src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations, Search (every book of the library: its text, concepts, definitions and formulas, under a filter; a hit opens the page and lands on the thing, or links out to another book)
 src/components/notes      NoteTab (one note in a tab of its own)
-src/components/exercises  ExerciseList, ExerciseCard, ExerciseTab (one exercise in a tab of its own), NumberAnswer, MultiAnswer, ChoiceAnswer
+src/components/exercises  ExerciseList, ExerciseCard (multiple choice or reveal-and-self-check), ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
 src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts

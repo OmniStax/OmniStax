@@ -12,17 +12,15 @@ answering the problems that sit inside a section's text. It always opens on
 a choice: which books, chapters, sections or concepts to practise. From that
 choice it draws a session of exercises, one at a time, scores each answer
 into the concepts the exercise tests, and shows how those concepts stand:
-practised, mastered, or due for review. A session is the reader's own and not
+unpracticed, practiced, or mastered. A session is the reader's own and not
 the tab's: it can be paused, ended early, and taken up again from any
 practice page. Progress is kept across every textbook
 in the reader's library, because concept ids are canonical and
 book-independent (`docs/content-tables.md`, the `concepts` table): mastering
 `hookes-law` in one book is mastering it in all.
 
-The README fixes three things this design keeps: only exercises earn
-points; points depend on the Bloom level of the exercise; mastery decays,
-so review is spaced. The phase-5 todo adds a fourth: a correct answer
-propagates downward through the concept DAG, never up.
+The README fixes two things this design keeps: only exercises earn points,
+and points depend on the Bloom level of the exercise. Mastery does not decay.
 
 ## The model
 
@@ -59,44 +57,27 @@ Each concept the reader has practised has a record:
 
 ```
 { score, lastAt, days: number of distinct days in a row with a correct answer,
-  mastered: boolean, halfLife }
+  mastered: boolean, earned }
 ```
 
-- `score` is points earned, decayed. The decay is exponential with a
-  half-life in days. Reading the score at time `t` gives
-  `score * 0.5 ^ ((t - lastAt) / halfLife)`; a correct answer adds its
-  points to the decayed score and resets `lastAt`.
-- A concept becomes **mastered** when its decayed score reaches the
+- `score` is points earned toward mastery. A correct answer adds its points.
+- A concept becomes **mastered** when its score reaches the
   mastery threshold and the reader has answered it correctly on N distinct
-  days in a row (the "multiple days in a row" rule). Each further day in
-  the streak doubles the half-life, which is what spaces the reviews: the
-  first review comes soon, the fifth comes weeks later. A wrong answer
-  resets the streak and halves the half-life, back to no shorter than the
-  base.
-- A mastered concept becomes **due** when its decayed score falls below the
-  threshold. It stays mastered in name (the reader did master it) but is
-  queued for review. A correct review answer restores the score.
-- A correct answer also touches the concept's prerequisites: their
-  `lastAt` moves to now, so using Hooke's law keeps "restoring force" from
-  decaying, but they earn no points. This is the downward propagation the
-  phase-5 note asks for, done as freshness rather than as score.
+  days in a row (the "multiple days in a row" rule). A wrong answer resets
+  the streak but does not take away earned points or mastery.
 
-There are no tiers above mastered. The four states a concept can be in are
+There are no tiers above mastered. The three states a concept can be in are
 what the reader sees: **untouched**, **practised** (some score, not yet
-mastered), **mastered**, and **due**. Total points across all concepts is
-the reader's one running number, and it is the sum of what was earned, not
-what remains after decay, so it never goes down.
+mastered), and **mastered**. Total points across all concepts is the
+reader's one running number, so it never goes down.
 
 The numbers are the reader's to set, in Settings under Exercises:
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Mastery threshold | 10 points | decayed score that counts as mastered |
+| Mastery threshold | 10 points | score that counts as mastered |
 | Days in a row | 3 | distinct days with a correct answer before mastery |
-| Base half-life | 7 days | how fast an unpractised concept fades |
 | Session size | 8 exercises | how many a session draws |
-| Review share | one third | how much of a session is review when anything is due |
-| Spaced review | on | off freezes decay: scores never fade, nothing comes due |
 | Count self-checked answers | on | open questions score by the reader's own verdict |
 
 ### The curriculum
@@ -119,21 +100,15 @@ problems on the same concepts once that book is loaded.
 `draw(curriculum, mastery, exercises, settings, today)` returns an ordered
 list of `(book, section, exercise)` of the session size:
 
-1. Review first: concepts that are due, most overdue first, up to the
-   review share of the session. One exercise per due concept, preferring
-   one the reader has not seen recently.
-2. Then the frontier: unmastered concepts whose prerequisites are either
+1. The frontier: unmastered concepts whose prerequisites are either
    mastered or outside the curriculum, so the reader works upward through
    the DAG. Within the frontier, a concept with no score gets its lowest
    Bloom exercise first (the expert-reversal note: pattern before problem),
    and a concept with score gets a higher one.
-3. Then the rest of the unmastered concepts, and finally exercises on
-   mastered concepts that are not due, so a session is always full while
-   exercises remain.
-4. Exercises answered correctly in the last two days are skipped unless
-   the concept is due; exercises answered wrongly this session come back
-   at the end of it.
-5. Ties break on a hash of the day and the exercise id, so a page refresh
+2. Then the rest of the unmastered concepts, and finally exercises on
+   mastered concepts, so a session is always full while exercises remain.
+3. Exercises answered correctly in the last two days are skipped.
+4. Ties break on a hash of the day and the exercise id, so a page refresh
    gives the same session and tomorrow gives a different one.
 
 Attempts are recorded as `{ book, section, ex, at, ok, self, points }`;
@@ -146,33 +121,31 @@ them, which is how a change of settings takes effect on old work.
 rail button above the map's. It has four faces, and the store remembers
 which one is showing so reopening resumes.
 
-**Choose.** The opening face, and the one a reader always sees first. A
-tree of the library's books, with chapters and sections under each, every
-row a tri-state checkbox; beside it a concept list of the loaded chapters,
-searchable, each a checkbox, with its state shown. A row of presets above:
-"this section", "this chapter", "this book", "everything due". The foot
-says what the choice comes to, "14 concepts, 3 due, 41 exercises", and the
-button starts the session. This face is a purpose-built tree, not the
-Open browser: the browser is a single-select place picker.
+**Choose.** The builder shows the library's books, with chapters and sections
+under each. Books and chapters start folded; disclosure buttons expand them
+without changing their tri-state selection checkboxes. Concept search adds
+individual concepts. Selected items appear at the bottom with remove buttons
+and Clear, followed by the concept/exercise totals and the Practice button.
+This face is a purpose-built selection tree, not the single-select Open browser.
 
-**Practise.** One exercise at a time in the existing card, standalone, with
-a strip above it: exercise k of N, points this session, why this problem was
-drawn, and a segment per problem of the round coloured answered, in hand or
-still ahead. Beside it the concepts the exercise tests, each with its mastery
-box. A check writes the attempt and the card shows what it earned, "+3
-Hooke's law". Skip moves on; an open question shows the book's solution and
-asks for the reader's verdict. Four buttons: Skip, Next (Finish on the last),
-Pause, and End, which asks first in a strip of its own.
+**Practise.** One exercise at a time, with a numbered grid below it as both
+navigation and progress. A completed square is green or red; selecting any
+square jumps directly to it. Multiple choice keeps radio choices and is marked
+by the app. Every other answer reveals the book solution and asks the reader
+for a green “I got it right” or red “I got it wrong” verdict. The card folds
+Bloom level, concepts and source provenance into Exercise Meta. Show all
+exercises stacks the cards and leaves only Pause and End below them.
 
-**Summary.** What the round came to in one sentence — the points earned and
-how many of its problems were answered — and, where any concept changed
-state, the list of what moved. One button, Return to Dashboard, which is
-also where the session is let go of.
+**Progress.** What the round came to in one sentence — the points earned and
+how many of its problems were answered — and every concept that gained points,
+shown as its old mastery box → new mastery box. One button, Return to
+Dashboard, which is also where the session is let go of.
 
-**Book Progress.** Every book on the shelf is a row on the dashboard, and a
-row opens its breakdown under it: every concept the book teaches, grouped by
-state, with its mastery box, the streak, when it was last practiced and when
-it comes round again.
+**Book concept progress.** Each book on the shelf shows three counts:
+unpracticed, practiced, and mastered concepts. Each built concept is counted
+once, including concepts repeated as prerequisites in chapter data; placeholders
+are excluded. Practiced means begun but not mastered. There is no chapter or
+section breakdown. Loading and failed books show a status instead of zero counts.
 
 ## What changes where
 
@@ -186,7 +159,7 @@ it comes round again.
   `ExerciseCard` records it, and adds the self-check row under the solution
   for every other answer type. Cards inside a section's text record to the
   same store, so reading and answering there counts too.
-- `src/lib/practice/model.ts` (points, decay, mastery, draw; tested in
+- `src/lib/practice/model.ts` (points, mastery, draw; tested in
   `tests/practice.test.ts`), `store.svelte.ts` (`omnistax-practice-v1`,
   one key across books, book id inside every record; not on the shell's
   undo stack, like colours).
@@ -205,16 +178,15 @@ it comes round again.
 
 1. Model and store with tests; `oncheck` on the choice widget and the
    self-check on the cards; the view
-   with Choose (current book only), Practise and the summary; the Settings
+   with Choose (current book only), Practise and Progress; the Settings
    group; rail placement. This is the whole loop for one book.
-2. The Progress face; concept map nodes tinted by state; the due count on
-   the rail button.
+2. The Progress face and concept map nodes tinted by state.
 3. Cross-book: manifest cache, library-wide Choose tree, foreign sections
    loaded on demand; `weights` in the schema and the pipeline rule.
 4. The practice desk: the dashboard, practice state per view instance, the
-   way in from the end of a section, book order with a shuffle, and the
+   way in from the end of a section, book order, and the
    concept map's progress switch. Below.
-5. Sessions of their own, the Book Progress accordion and the mastery box.
+5. Sessions of their own, the Progress hierarchy and the mastery box.
    Below.
 
 ## Phase 4: the practice desk
@@ -234,45 +206,41 @@ list writes `data-practise-section`, the shell reads the group from the
 enclosing pane. No chapter button yet — that waits for chapter summary
 pages to have somewhere to put one.
 
-**Practice state per view instance.** Curriculum, face, shuffle and which
-book's breakdown stands open belong to the view's page, keyed by the tab's
-item key the way a document's scope is. Attempts, mastery and the settings
+**Practice state per view instance.** Curriculum, face and show-all mode belong
+to the view's page, keyed by the tab's item key the way a document's scope is.
+Attempts, mastery and the settings
 stay global, one record across every book. Two practice views can therefore
-run two sessions at once — one on the section just read, one on everything
-due — and closing a tab takes its page with it. Phase 5 takes the session
+run two sessions at once — for example, one on the section just read and one
+on the whole chapter — and closing a tab takes its page with it. Phase 5 takes the session
 itself out of the page; see below.
 
 **Faces.** The tab row is `Dashboard | Practice`. A fresh view opens on the
 dashboard. Behind those two are four faces: `dashboard`, `choose`,
-`practise` and `summary`. The Practice tab goes to the live session if there
+`practise` and `progress`. The Practice tab goes to the live session if there
 is one and to Choose if there is not.
 
-**The dashboard.** One screen, little vertical spread. Three tiles: the
+**The dashboard.** One screen, little vertical spread. Four tiles: the
 streak (days in a row with a correct answer, ending today or yesterday),
-lifetime points, and how many concepts are due, with a "Review N due" button
-that starts a session on them here. Under them, a card per session still
-running. Then an activity heatmap in the GitHub manner: 52 weeks by 7 days,
+lifetime points, skills practiced and skills mastered. Under them, a card per
+session still running. Then an activity heatmap in the GitHub manner: 52 weeks by 7 days,
 one cell a day, depth by the points earned that day across every book, today
-at the right edge, the date and the points in the hover title. Then Book
-Progress: a row per book in the library, this book first, with a stacked bar
-of mastered, practiced, due and untouched over the concepts the book teaches
-and the points earned in it, which opens its breakdown under it.
+at the right edge, the date and the points in the hover title. Then Progress:
+one row per book with counts of unpracticed, practiced and mastered concepts.
+The counts use distinct built concepts directly, not aggregated chapter or
+section states.
 
-**Choose, less busy.** A presets row (this section, this chapter, this
-book, everything due, clear); chips for the current picks, each with a ×;
-one tree of books over chapters over sections, folded until clicked, with
-the tri-state checkboxes as before but no count columns — the counts move
-into the hover title. A search box finds concepts of any kind to tick, in
-place of the full concept list, each with its mastery box. The foot reads
+**Choose, less busy.** Books and chapters start folded and open independently
+of their selection checkboxes. The builder has no “This section,” “This
+chapter” or “This book” shortcuts. Tri-state checkboxes select books,
+chapters and sections, with counts in hover titles. A search box finds
+individual concepts, each with its mastery box. At the bottom, Selected
+items lists the current picks with individual removal buttons, beside Clear.
+Folding a book keeps its selections in this list. The footer also shows
 "Practice N" with a − + stepper that writes the session size setting.
 
-**Draw order.** The buckets are unchanged: review due first, then the
-frontier, then the rest. What changes is the tie-break inside a bucket: by
-default it is now book order — the book on the shelf, the section in the
-manifest, the exercise in the section — so a session reads in the order the
-book teaches. A "Shuffle" toggle on the practise strip puts the old random
-tie-break back and, while it is on, re-draws the slots not yet answered on
-every Next, never drawing an exercise this session has already shown.
+**Draw order.** The frontier comes first, then the rest. Within a bucket the order is the book on the shelf, the section in the
+manifest, and the exercise in the section, so a session reads in the order the
+book teaches.
 
 **Progress on the concept map.** The states legend grows a "progress"
 switch that hides the mastery bars for that map alone, for a reader who
@@ -293,8 +261,10 @@ page — has it lifted into the table on `init`.
 
 **Pause and End.** Pause leaves the session standing and goes back to the
 dashboard, still this page's, so the Practice tab comes back to it. End
-finishes the round here, after an inline confirmation, and shows the
-summary; Return to Dashboard is where the session is let go of. Starting a
+finishes the round here, after an inline confirmation, and shows Progress.
+That screen repeats the rich concept rows from the dashboard and draws each
+gain as the previous mastery box, an arrow, and the new mastery box. Return to
+Dashboard is where the session is let go of. Starting a
 new session on a page that already has one leaves the old one in the table,
 detached, and the dashboard offers it back.
 
@@ -306,29 +276,21 @@ picks set out as the Choose face sets them. Clicking a card raises the tab
 it is running in; a session with no tab is taken onto this page when this
 page has nothing running, and into a page of its own when it has.
 
-**Book Progress, in place.** A book's row opens its breakdown under it, one
-book at a time, the open one kept on the page so a fetch finishing does not
-fold it. A concept row is not a button and does not jump: it carries
-`data-concept`, so the shell's hover card opens on it as it does on a
-glossary term, and the name wears the same dotted rule under the reader's
-Underlines setting.
+**Book progress, at a glance.** Each book's concept counts are always visible,
+with no disclosures or chapter/section categories. Individual concept detail
+remains available in the concept map, concept search and session progress.
 
 **The mastery box.** One drawing of how a concept stands, everywhere it is
 shown: a rounded square outlined in the colour of the state and filled from
-the bottom by the decayed score against the threshold. Untouched is an empty
+the bottom by the score against the threshold. Untouched is an empty
 outline; practiced is `--m-low` below half the threshold and `--m-mid` at or
-above it; mastered is full `--m-high` under the ink; due is `--m-due` behind
-a dashed outline. A box that is filled at all is filled enough to be seen.
+above it; mastered is full `--m-high` under the ink. A box that is filled at all is filled enough to be seen.
 The breakdown rows, the bars beside the running exercise, the concept search
-and the legend of the book bars wear it, the book bars are stacked in the
-same four colours, and the concept map's bars and legend follow them too.
+and the concept map's bars and legend follow it too.
 
 ## Decisions taken, and open
 
 Taken here, all reversible: no tiers above mastered; every answer but a
-multiple choice scores by self-report; propagation is freshness, not points; the Bloom table is
-the default weight and the agent's `weights` the override; the half-life
-doubles per streak day and that is the whole spacing rule.
-
-Chen agreed the self-report and the name "due" on 2026-09-09 and said go
-with the defaults above; a wrong answer costs nothing.
+multiple choice scores by self-report; the Bloom table is the default weight
+and the agent's `weights` the override; a wrong answer costs nothing and
+mastery does not decay.

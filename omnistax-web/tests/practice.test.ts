@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, MIN_FILL, applyAttempt, conceptsOf, dayOf, decayed, draw, dueAt, fillOf, hash, heatWeeks, newSessionId, pointsByBook, pointsByDay, pointsOf, rebuild, shareOf, standingOf, stateOf, stepDay, streakOf, summarize, togglePick, total, uniqueById,
+  BLOOM_POINTS, DAY, DEFAULT_SETTINGS, MIN_FILL, applyAttempt, conceptsOf, dayOf, draw, fillOf, hash, heatWeeks, newSessionId, pointsByBook, pointsByDay, pointsOf, progressOf, rebuild, shareOf, standingOf, stateOf, stepDay, streakOf, togglePick, total, uniqueById,
   type Attempt, type Catalog, type ConceptRecord, type Curriculum, type Mastery, type PracticeSettings,
 } from '../src/lib/practice/model';
 import type { Bloom, ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
@@ -9,8 +9,7 @@ import { conceptId, sectionId } from '../src/lib/types/ids';
 
 /* dayOf reads the local calendar, so every timestamp here is built at local
    noon: twelve hours from either boundary, whatever the zone and whatever the
-   clock does in the spring. Elapsed time is counted in whole DAYs of
-   milliseconds, which is what the decay uses. */
+   clock does in the spring. */
 const noon = (y: number, m: number, d: number): number => new Date(y, m - 1, d, 12).getTime();
 const D1 = noon(2026, 3, 2), D2 = noon(2026, 3, 3), D3 = noon(2026, 3, 4), D5 = noon(2026, 3, 6);
 const S = DEFAULT_SETTINGS;
@@ -30,7 +29,6 @@ const CONCEPTS: readonly ConceptDTO[] = [
   concept('period', '16.3', ['shm']),
   concept('ghost', '16.3', [], true),
 ];
-const prereqsOf = (id: string): readonly string[] => CONCEPTS.find((c) => c.id === id)?.prereqs ?? [];
 
 /* The pipeline writes the level as the schema spells it; these fixtures also spell it as it never would, since the points table is meant to hold whatever comes. */
 const ex = (id: string, bloom: string, concepts: string[], weights?: Record<string, number>): ExerciseDTO =>
@@ -57,7 +55,7 @@ const CAT: Catalog = {
 
 const attempt = (id: string, at: number, ok: boolean, earned: Record<string, number>, self = false): Attempt =>
   ({ book: 'cp', section: sec('16.1'), ex: id, at, ok, self, earned: ok ? earned : Object.fromEntries(Object.keys(earned).map((k) => [k, 0])) });
-const rec = (over: Partial<ConceptRecord> = {}): ConceptRecord => ({ score: 12, lastAt: D1, days: 3, lastDay: dayOf(D1), mastered: true, halfLife: 7, earned: 12, ...over });
+const rec = (over: Partial<ConceptRecord> = {}): ConceptRecord => ({ score: 12, lastAt: D1, days: 3, lastDay: dayOf(D1), mastered: true, earned: 12, ...over });
 const ids = (drawn: readonly { ex: ExerciseDTO }[]): string[] => drawn.map((d) => d.ex.id);
 
 /* ---------- points ---------- */
@@ -72,90 +70,54 @@ test('the weights the pipeline wrote stand in for the table, so a passing mentio
   assert.deepEqual(pointsOf(ex('x', 'analyze', ['hookes-law', 'displacement'], { 'hookes-law': 4, displacement: 1 })), { 'hookes-law': 4, displacement: 1 });
 });
 
-/* ---------- decay ---------- */
-
-test('a score halves over a half-life, and stands still when spaced review is off', () => {
-  const r = rec({ score: 12, lastAt: D1, halfLife: 7 });
-  assert.equal(decayed(r, D1, S), 12);
-  assert.equal(decayed(r, D1 + 7 * DAY, S), 6);
-  assert.equal(decayed(r, D1 + 14 * DAY, S), 3);
-  assert.equal(decayed(r, D1 + 14 * DAY, { ...S, spaced: false }), 12);
-});
-
 /* ---------- one answer at a time ---------- */
 
 test('a right answer adds its points and starts the streak', () => {
-  const m = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 3 }), prereqsOf, S);
+  const m = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 3 }), S);
   const r = m['hookes-law'];
   assert.equal(r.score, 3); assert.equal(r.earned, 3); assert.equal(r.days, 1); assert.equal(r.lastDay, dayOf(D1)); assert.equal(r.mastered, false);
-  assert.equal(stateOf(r, D1, S), 'practised');
+  assert.equal(stateOf(r), 'practised');
 });
-test('a wrong answer earns nothing, drops the streak and halves the half-life, never below the base', () => {
-  const day2 = applyAttempt(applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 5 }), prereqsOf, S), attempt('h2', D2, true, { 'hookes-law': 5 }), prereqsOf, S);
-  assert.equal(day2['hookes-law'].days, 2); assert.equal(day2['hookes-law'].halfLife, 14, 'each further day of the streak doubles it');
-  const wrong = applyAttempt(day2, attempt('h3', D3, false, { 'hookes-law': 4 }), prereqsOf, S);
+test('a wrong answer earns nothing and drops the streak without taking away points', () => {
+  const day2 = applyAttempt(applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 5 }), S), attempt('h2', D2, true, { 'hookes-law': 5 }), S);
+  assert.equal(day2['hookes-law'].days, 2);
+  const wrong = applyAttempt(day2, attempt('h3', D3, false, { 'hookes-law': 4 }), S);
   const r = wrong['hookes-law'];
   assert.equal(r.earned, day2['hookes-law'].earned, 'a wrong answer is worth nothing');
-  assert.ok(r.score < day2['hookes-law'].score, 'and the score has only faded');
+  assert.equal(r.score, day2['hookes-law'].score, 'and does not remove an earned score');
   assert.equal(r.days, 0); assert.equal(r.lastDay, '');
-  assert.equal(r.halfLife, 7);
-  assert.equal(applyAttempt(wrong, attempt('h3', D5, false, { 'hookes-law': 4 }), prereqsOf, S)['hookes-law'].halfLife, 7, 'and never shorter than the base');
 });
 test('the streak counts distinct days in a row: twice in one day is one, and a day missed starts again', () => {
-  const once = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 3 }), prereqsOf, S);
-  const twice = applyAttempt(once, attempt('h2', D1 + 3600_000, true, { 'hookes-law': 3 }), prereqsOf, S);
+  const once = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 3 }), S);
+  const twice = applyAttempt(once, attempt('h2', D1 + 3600_000, true, { 'hookes-law': 3 }), S);
   assert.equal(twice['hookes-law'].days, 1); assert.equal(twice['hookes-law'].earned, 6, 'though both answers are worth their points');
-  assert.equal(twice['hookes-law'].halfLife, once['hookes-law'].halfLife, 'a second answer the same day does not stretch the spacing');
-  const next = applyAttempt(twice, attempt('h3', D2, true, { 'hookes-law': 3 }), prereqsOf, S);
+  const next = applyAttempt(twice, attempt('h3', D2, true, { 'hookes-law': 3 }), S);
   assert.equal(next['hookes-law'].days, 2);
-  assert.equal(applyAttempt(next, attempt('h3', D5, true, { 'hookes-law': 3 }), prereqsOf, S)['hookes-law'].days, 1, 'two days later the run is broken');
+  assert.equal(applyAttempt(next, attempt('h3', D5, true, { 'hookes-law': 3 }), S)['hookes-law'].days, 1, 'two days later the run is broken');
 });
 test('mastery wants the threshold and the days in a row, not one of them', () => {
-  const big = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 20 }), prereqsOf, S);
+  const big = applyAttempt({}, attempt('h1', D1, true, { 'hookes-law': 20 }), S);
   assert.equal(big['hookes-law'].mastered, false, 'twenty points in one sitting is not three days');
-  const slow = [D1, D2, D3].reduce((m, at) => applyAttempt(m, attempt('h1', at, true, { 'hookes-law': 1 }), prereqsOf, S), {} as Mastery);
+  const slow = [D1, D2, D3].reduce((m, at) => applyAttempt(m, attempt('h1', at, true, { 'hookes-law': 1 }), S), {} as Mastery);
   assert.equal(slow['hookes-law'].days, 3);
   assert.equal(slow['hookes-law'].mastered, false, 'three days of one point apiece is not the threshold');
-  const both = [D1, D2, D3].reduce((m, at) => applyAttempt(m, attempt('h1', at, true, { 'hookes-law': 5 }), prereqsOf, S), {} as Mastery);
+  const both = [D1, D2, D3].reduce((m, at) => applyAttempt(m, attempt('h1', at, true, { 'hookes-law': 5 }), S), {} as Mastery);
   assert.equal(both['hookes-law'].mastered, true);
   assert.ok(both['hookes-law'].score >= S.threshold);
-  assert.equal(stateOf(both['hookes-law'], D3, S), 'mastered');
+  assert.equal(stateOf(both['hookes-law']), 'mastered');
 });
 test('a self-checked answer is ignored outright when the reader has turned them off', () => {
   const a = attempt('h1', D1, true, { 'hookes-law': 3 }, true);
-  assert.deepEqual(applyAttempt({}, a, prereqsOf, { ...S, selfChecked: false }), {});
-  assert.equal(applyAttempt({}, a, prereqsOf, S)['hookes-law'].earned, 3);
-});
-test('a right answer keeps what it rests on fresh, all the way down, without paying it anything', () => {
-  const before: Mastery = { displacement: rec({ score: 8, lastAt: D1, days: 1, lastDay: dayOf(D1), mastered: false, halfLife: 7, earned: 8 }) };
-  /* period sits on shm sits on hookes-law sits on displacement, and shm has no record of its own to stop the walk. */
-  const after = applyAttempt(before, attempt('p1', D3, true, { period: 2 }), prereqsOf, S);
-  const d = after.displacement;
-  assert.equal(d.lastAt, D3, 'its clock is put back to now');
-  assert.equal(d.score, 8 * 0.5 ** (2 / 7), 'having faded for the two days since it was last used');
-  assert.equal(d.earned, 8, 'and earned nothing');
-  assert.equal(d.days, 1); assert.equal(d.lastDay, dayOf(D1), 'the streak is untouched');
-  assert.equal(after.shm, undefined, 'a concept never practised gets no record out of it');
-  assert.equal(decayed(d, D3, S), d.score, 'which is what keeps it from decaying further');
-});
-test('a wrong answer freshens nothing below it', () => {
-  const before: Mastery = { displacement: rec({ score: 8, lastAt: D1, earned: 8 }) };
-  assert.equal(applyAttempt(before, attempt('h1', D3, false, { 'hookes-law': 3 }), prereqsOf, S).displacement.lastAt, D1);
-});
-test('a cycle in the prerequisites is walked once and let go', () => {
-  const loop = (id: string): readonly string[] => (id === 'a' ? ['b'] : id === 'b' ? ['a'] : []);
-  const before: Mastery = { b: rec({ score: 4, lastAt: D1, earned: 4 }) };
-  const after = applyAttempt(before, attempt('x', D3, true, { a: 3 }), loop, S);
-  assert.equal(after.b.lastAt, D3);
-  assert.equal(after.a.earned, 3);
+  assert.deepEqual(applyAttempt({}, a, { ...S, selfChecked: false }), {});
+  assert.equal(applyAttempt({}, a, S)['hookes-law'].earned, 3);
 });
 test('the records are a fold over the attempts, whatever order they arrive in, and the total never goes down', () => {
   const list = [attempt('h1', D3, true, { 'hookes-law': 5 }), attempt('h1', D1, true, { 'hookes-law': 5 }), attempt('h1', D2, true, { 'hookes-law': 5 })];
-  const m = rebuild(list, prereqsOf, S);
+  const m = rebuild(list, S);
   assert.equal(m['hookes-law'].days, 3);
   assert.equal(total(m), 15);
-  assert.equal(total(rebuild([...list].reverse(), prereqsOf, S)), 15);
-  assert.equal(rebuild([], prereqsOf, S)['hookes-law'], undefined);
+  assert.equal(total(rebuild([...list].reverse(), S)), 15);
+  assert.equal(rebuild([], S)['hookes-law'], undefined);
 });
 test('the points are counted book by book, and a book answered only wrongly still has a line', () => {
   const list: readonly Attempt[] = [
@@ -167,29 +129,26 @@ test('the points are counted book by book, and a book answered only wrongly stil
   assert.deepEqual(pointsByBook([]), {});
 });
 
-/* ---------- the four states ---------- */
+/* ---------- the three states ---------- */
 
-test('untouched, practised, mastered and due', () => {
-  assert.equal(stateOf(undefined, D1, S), 'untouched');
-  assert.equal(stateOf(rec({ earned: 0, mastered: false }), D1, S), 'untouched', 'a record with nothing earned is nothing yet');
-  assert.equal(stateOf(rec({ score: 4, mastered: false, earned: 4 }), D1, S), 'practised');
-  assert.equal(stateOf(rec({ score: 12 }), D1, S), 'mastered');
-  assert.equal(stateOf(rec({ score: 12 }), D1 + 7 * DAY, S), 'due', 'six points left of the ten it wants');
-  assert.equal(stateOf(rec({ score: 12 }), D1 + 7 * DAY, { ...S, spaced: false }), 'mastered', 'with decay frozen nothing ever comes due');
+test('untouched, practised and mastered', () => {
+  assert.equal(stateOf(undefined), 'untouched');
+  assert.equal(stateOf(rec({ earned: 0, mastered: false })), 'untouched', 'a record with nothing earned is nothing yet');
+  assert.equal(stateOf(rec({ score: 4, mastered: false, earned: 4 })), 'practised');
+  assert.equal(stateOf(rec({ score: 12 })), 'mastered');
+  assert.equal(stateOf(rec({ score: 12, lastAt: D1 })), 'mastered', 'mastery does not fade with time');
 });
 test('how far a concept stands towards the threshold, which is what every drawing of it is made of', () => {
-  assert.equal(shareOf(undefined, D1, S), 0, 'nothing answered is nothing to show');
-  assert.equal(shareOf(rec({ score: 5, mastered: false, earned: 5 }), D1, S), 0.5);
-  assert.equal(shareOf(rec({ score: 12 }), D1, S), 1, 'and it is never more than full');
-  assert.equal(shareOf(rec({ score: 12, lastAt: D1, halfLife: 7 }), D1 + 7 * DAY, S), 0.6, 'read after the decay, not before it');
-  assert.equal(shareOf(rec({ score: 4 }), D1, { ...S, threshold: 0 }), 1, 'a threshold of nothing is met by anything');
+  assert.equal(shareOf(undefined, S), 0, 'nothing answered is nothing to show');
+  assert.equal(shareOf(rec({ score: 5, mastered: false, earned: 5 }), S), 0.5);
+  assert.equal(shareOf(rec({ score: 12 }), S), 1, 'and it is never more than full');
+  assert.equal(shareOf(rec({ score: 4 }), { ...S, threshold: 0 }), 1, 'a threshold of nothing is met by anything');
 });
 test('a mastery box is empty when nothing has been answered, full when mastered, and never so nearly empty that it cannot be seen', () => {
   assert.equal(fillOf('untouched', 0.4), 0);
-  assert.equal(fillOf('mastered', 0.2), 1, 'a mastered concept keeps a full box; the hue says whether it is due');
+  assert.equal(fillOf('mastered', 0.2), 1, 'a mastered concept keeps a full box');
   assert.equal(fillOf('practised', 0.6), 0.6);
   assert.equal(fillOf('practised', 0.01), MIN_FILL, 'a concept just begun still reads as begun');
-  assert.equal(fillOf('due', 0.05), MIN_FILL);
   assert.equal(fillOf('practised', 4), 1, 'and never over the top of the box');
 });
 test('a list of concepts gathered out of several chapters names each of them once', () => {
@@ -202,14 +161,6 @@ test('a session id is eight letters and digits, and a new one is not the last on
   assert.match(id, /^[a-z0-9]{8}$/);
   assert.notEqual(id, newSessionId());
 });
-test('when a mastered concept comes due', () => {
-  assert.equal(dueAt(rec({ score: 20, lastAt: D1, halfLife: 7 }), S), D1 + 7 * DAY, 'twenty points is one half-life above ten');
-  assert.equal(dueAt(rec({ score: 40, lastAt: D1, halfLife: 7 }), S), D1 + 14 * DAY);
-  assert.equal(dueAt(rec({ score: 6, lastAt: D1 }), S), D1, 'already below, it is due as of its last answer');
-  assert.equal(dueAt(rec({ mastered: false, earned: 4, score: 4 }), S), null);
-  assert.equal(dueAt(rec({ score: 20 }), { ...S, spaced: false }), null);
-});
-
 /* ---------- the curriculum ---------- */
 
 test('a pick of a section, a chapter or a book comes to the concepts those sections teach', () => {
@@ -254,22 +205,10 @@ test('the frontier is what the reader is ready for: a concept whose prerequisite
   assert.deepEqual(ids(next).slice(0, 3), ['h1', 'h2', 'h3'], 'with displacement mastered, Hookes law is the frontier');
   assert.deepEqual([...new Set(next.slice(0, 3).map((d) => d.why))], ['frontier']);
 });
-test('review comes first and takes no more of the session than its share', () => {
-  /* Four concepts due at once, each further past the threshold than the last. */
-  const due = (halves: number): ConceptRecord => rec({ score: 16, halfLife: 7, lastAt: D3 - halves * 7 * DAY, earned: 16 });
-  const m: Mastery = { displacement: due(4), 'hookes-law': due(3), shm: due(2), period: due(1) };
-  const out = draw([{ book: 'cp' }], m, CAT, [], SMALL, D3, 'seed');
-  assert.equal(out.length, 8);
-  assert.deepEqual(out.map((d) => d.why).slice(0, 3), ['review', 'review', 'review'], 'a third of eight, rounded, is three');
-  assert.equal(out[3].why, 'more');
-  assert.deepEqual(out.slice(0, 3).map((d) => d.ex.concepts[0]), ['displacement', 'hookes-law', 'shm'], 'the most overdue first');
-});
 test('an exercise answered rightly in the last two days is left alone', () => {
   const done: Attempt = { book: 'cp', section: sec('16.1'), ex: 'h1', at: D3 - DAY, ok: true, self: false, earned: { 'hookes-law': 1 } };
   assert.deepEqual(ids(draw([{ book: 'cp', section: sec('16.1') }], {}, CAT, [done], SMALL, D3, 'seed')), ['h2', 'h3']);
   assert.deepEqual(ids(draw([{ book: 'cp', section: sec('16.1') }], {}, CAT, [{ ...done, at: D3 - 3 * DAY }], SMALL, D3, 'seed')), ['h1', 'h2', 'h3'], 'three days on it comes round again');
-  const overdue: Mastery = { 'hookes-law': rec({ score: 16, lastAt: D3 - 28 * DAY, earned: 16 }) };
-  assert.ok(ids(draw([{ book: 'cp', section: sec('16.1') }], overdue, CAT, [done], SMALL, D3, 'seed')).includes('h1'), 'unless the concept has come due');
 });
 test('a session never draws the same exercise twice and never draws more than its size', () => {
   const out = draw([{ book: 'cp' }], {}, CAT, [], SMALL, D3, 'seed');
@@ -360,8 +299,8 @@ test('how a set of concepts stands, counted by state and only where the book is 
     shm: rec({ score: 16, lastAt: D3 - 28 * DAY, earned: 16 }),
     ghost: rec({ score: 12, lastAt: D3, earned: 12 }),
   };
-  assert.deepEqual(standingOf(CONCEPTS, m, S, D3), { untouched: 1, practised: 1, mastered: 1, due: 1 }, 'period is untouched and the placeholder is not counted at all');
-  assert.deepEqual(standingOf([], {}, S, D3), { untouched: 0, practised: 0, mastered: 0, due: 0 });
+  assert.deepEqual(standingOf(CONCEPTS, m), { untouched: 1, practised: 1, mastered: 2 }, 'period is untouched and the placeholder is not counted at all');
+  assert.deepEqual(standingOf([], {}), { untouched: 0, practised: 0, mastered: 0 });
 });
 test('the heatmap is fifty-two weeks of seven days, ending on today', () => {
   const weeks = heatWeeks(D3);
@@ -376,12 +315,16 @@ test('the heatmap is fifty-two weeks of seven days, ending on today', () => {
   assert.equal(heatWeeks(D3, 4).length, 4);
 });
 
-/* ---------- what the summary says ---------- */
+/* ---------- what the Progress screen says ---------- */
 
-test('the summary names only what moved, in an order that does not wander', () => {
+test('progress names every concept that earned points, including gains within one state', () => {
   const before: Mastery = { displacement: rec({ score: 12, lastAt: D3, earned: 12 }), shm: rec({ score: 4, mastered: false, earned: 4, lastAt: D3 }) };
   const after: Mastery = { ...before, shm: rec({ score: 12, lastAt: D3, earned: 12 }), period: rec({ score: 3, mastered: false, earned: 3, lastAt: D3 }) };
-  assert.deepEqual(summarize(before, after, D3, S), [{ id: 'period', from: 'untouched', to: 'practised' }, { id: 'shm', from: 'practised', to: 'mastered' }]);
-  assert.deepEqual(summarize(before, before, D3, S), []);
-  assert.deepEqual(summarize(before, before, D3 + 28 * DAY, S), [], 'a state read at the same moment on both sides cannot have moved');
+  assert.deepEqual(progressOf(before, after, S), [
+    { id: 'period', from: 'untouched', to: 'practised', fromShare: 0, toShare: 0.3 },
+    { id: 'shm', from: 'practised', to: 'mastered', fromShare: 0.4, toShare: 1 },
+  ]);
+  const within = { ...before, shm: rec({ score: 7, mastered: false, earned: 7, lastAt: D3 }) };
+  assert.deepEqual(progressOf(before, within, S), [{ id: 'shm', from: 'practised', to: 'practised', fromShare: 0.4, toShare: 0.7 }]);
+  assert.deepEqual(progressOf(before, before, S), []);
 });

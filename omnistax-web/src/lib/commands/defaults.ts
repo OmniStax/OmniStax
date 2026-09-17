@@ -47,7 +47,6 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
      keep their own undo there, which is what the reader means by them. */
   ['Ctrl+Z', 'undo'], ['Ctrl+Shift+Z', 'redo'], ['Ctrl+Y', 'redo'],
   ['ArrowLeft', 'scope-widen'], ['ArrowRight', 'scope-narrow'],
-  ['Ctrl+Shift+E', 'open-exercises'],
   /* The search in the sidebar, under the chord every editor finds across files with. */
   ['Ctrl+Shift+F', 'show-view-search'],
   ['Ctrl+E', 'note-toggle-mode'],

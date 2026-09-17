@@ -14,18 +14,16 @@
      seconds the shape, and the dashed rule is kept for another section's work.
      How the reader stands on a concept is a second reading drawn inside the node
      rather than a change of its shape or its hue: a thin bar along the bottom
-     edge, as long as the concept's decayed score stands towards the mastery
-     threshold, in the four colours the mastery box wears everywhere else — low
+     edge, as long as the concept's score stands towards the mastery threshold,
+     in the three colours the mastery box wears everywhere else — low
      for a concept begun, middling once its score is half the threshold, high
-     for one mastered, and the due colour over a track for one that has faded
-     and is waiting for review. A switch at the end of the states
+     for one mastered. A switch at the end of the states
      legend takes that second reading away again, for a reader who wants the map
      as a map; it belongs to this map alone, and opens the way the setting
      "Progress on the concept map" says. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
-  import { decayed } from '../../lib/practice/model';
   import { getContext as getCtx } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { pin, spansOf } from '../../lib/sections/concepts.svelte';
@@ -46,14 +44,8 @@
      and is this map's own from then on: another map, or this one opened again,
      starts from the setting afresh. */
   let showProgress = $state(settings.mapProgress);
-  /* How far the concept's decayed score stands towards the threshold, 0 to 1: the
-     length of the bar. No record at all leaves it at 0, and nothing is drawn. */
-  const share = (id: string): number => {
-    const r = practice.mastery[id];
-    if (!r) return 0;
-    const t = practice.settings.threshold;
-    return t > 0 ? Math.min(1, decayed(r, Date.now(), practice.settings) / t) : 1;
-  };
+  /* How far the concept's score stands towards the threshold, 0 to 1. */
+  const share = (id: string): number => practice.share(id);
   const click = (id: string) => {
     const c = node(id);
     if (c.status === 'placeholder') { const e = registry.entry(sectionId(c.section)); if (e?.built) { openDoc(sectionId(c.section), 'text'); return; } window.open(e?.openstax ?? registry.manifest.openstax, '_blank', 'noopener'); return; }
@@ -93,7 +85,6 @@
     <span class="s-practised"><i class="sw"></i>practiced</span>
     <span class="s-half"><i class="sw"></i>halfway</span>
     <span class="s-mastered"><i class="sw"></i>mastered</span>
-    <span class="s-due"><i class="sw"></i>due</span>
   {/if}
   <label class="prog" title="Draw how the practice stands on each node"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
 </div>
@@ -143,22 +134,17 @@
   .node.pinned{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
   .node:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   /* The practice cue, inside the node and never on its fill or its rule: a bar
-     as long as the decayed score stands towards the threshold. Its colours are
+     as long as the score stands towards the threshold. Its colours are
      the app's own, so the kind hues go on saying only what the node is. */
   .node::after{content:"";position:absolute;left:6px;bottom:2px;height:3px;width:calc(var(--m,0) * (100% - 12px));border-radius:2px;background:var(--m-colour);pointer-events:none}
-  /* The four colours of the mastery box, which is how the practice is drawn
+  /* The colours of the mastery box, which is how the practice is drawn
      everywhere the reader meets it: a concept begun is low until its score is
-     half the threshold and middling after it, a mastered one is high, and one
-     that has faded is due. */
+     half the threshold and middling after it, and a mastered one is high. */
   .node[data-state="practised"]{--m-colour:var(--m-low)}
   .node[data-state="practised"][data-half]{--m-colour:var(--m-mid)}
   .node[data-state="mastered"]{--m-colour:var(--m-high)}
-  .node[data-state="due"]{--m-colour:var(--m-due)}
-  /* a concept that has faded carries the whole track behind its bar, faintly, so the reader sees how much of it is gone */
-  .node[data-state="due"]::before{content:"";position:absolute;left:6px;right:6px;bottom:2px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--m-due) 20%,transparent);pointer-events:none}
   /* a skill's pill is round-ended, so its bar keeps further clear */
   .node.k-skill::after{left:10px;width:calc(var(--m,0) * (100% - 20px))}
-  .node.k-skill[data-state="due"]::before{left:10px;right:10px}
   /* nothing is drawn for a concept never practised, nor for another section's work: this map is not where that stands */
   .node[data-state="untouched"]::after,.node.ext::after,.node.ext::before{content:none}
   .row.dense{font-size:0.7rem}
@@ -182,7 +168,6 @@
   .legend.states .s-practised{--m:0.3;--m-colour:var(--m-low)}
   .legend.states .s-half{--m:0.7;--m-colour:var(--m-mid)}
   .legend.states .s-mastered{--m:1;--m-colour:var(--m-high)}
-  .legend.states .s-due{--m:0.35;--m-colour:var(--m-due)}
   /* the switch sits at the end of the same row, the size of a swatch */
   .legend.states .prog{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
   .legend.states .prog input{appearance:none;flex:none;width:22px;height:13px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--panel);position:relative;cursor:pointer}
@@ -190,7 +175,6 @@
   .legend.states .prog input:checked{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 50%,var(--rule))}
   .legend.states .prog input:checked::after{left:11px;background:var(--accent)}
   .legend.states .prog input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .legend.states .s-due .sw::before{content:"";position:absolute;left:3px;right:3px;bottom:2px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--m-due) 20%,transparent)}
   :global(.view-pane) .node{font-size:0.9rem;max-width:180px;padding:7px 10px}
   :global(.view-pane) .node.k-result{padding:5px 8px}
   :global(.view-pane) .node.k-skill,:global(.view-pane) .node.k-skill.ext{padding:7px 14px}

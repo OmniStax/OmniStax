@@ -1,13 +1,13 @@
-/* The book as a small file tree: chapters, one chapter's sections, one
-   section's two documents, and below a document the figures or the single
-   exercises it holds. Pure, so the walk is testable without a DOM; the
+/* The book as a small file tree: chapters, one chapter's sections, the
+   section text, and below it the figures it holds. Pure, so the walk is
+   testable without a DOM; the
    component keeps only where it stands (Level), what it filtered and what is
    selected. A Level names a place in the tree, a Row is one line drawn at that
    place, and the keys are stable so a row survives filtering and a step back
    re-selects the row it came from. The same tree is walked to pick a place in
    the book rather than to open something — that is the Mode, and in it the
    rows stop at sections and stand for a scope a view can be pinned to. */
-import { type DocKind, type SectionId, sectionId, chapterId, docItem, figItem, exItem, itemKey } from '../types/ids';
+import { type SectionId, sectionId, chapterId, docItem, figItem, itemKey } from '../types/ids';
 import type { Target } from '../sections/scope';   /* type only: scope.ts reads BookTree from here */
 
 /* What the tree needs of the book; the manifest (content/schema) is assignable to it.
@@ -23,8 +23,7 @@ export type Level =
   | { readonly kind: 'chapters' }
   | { readonly kind: 'sections'; readonly chapter: string }                                 /* chapter id */
   | { readonly kind: 'docs'; readonly chapter: string; readonly section: SectionId }
-  | { readonly kind: 'figures'; readonly chapter: string; readonly section: SectionId }
-  | { readonly kind: 'exercises'; readonly chapter: string; readonly section: SectionId };
+  | { readonly kind: 'figures'; readonly chapter: string; readonly section: SectionId };
 export const CHAPTERS: Level = { kind: 'chapters' };
 
 /* Opening a document, a figure or an exercise, or picking the place a view stands at. */
@@ -34,23 +33,18 @@ export type Row =
   | { readonly kind: 'book'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: false; readonly openable: true }
   | { readonly kind: 'chapter'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: true; readonly openable: boolean; readonly chapter: string }
   | { readonly kind: 'section'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: boolean; readonly openable: boolean; readonly section: SectionId; readonly built: boolean }
-  | { readonly kind: 'doc'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: boolean; readonly openable: true; readonly section: SectionId; readonly doc: DocKind }
-  | { readonly kind: 'fig'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: false; readonly openable: true; readonly section: SectionId; readonly fig: string }
-  | { readonly kind: 'ex'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: false; readonly openable: true; readonly section: SectionId; readonly ex: string };
+  | { readonly kind: 'doc'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: boolean; readonly openable: true; readonly section: SectionId; readonly doc: 'text' }
+  | { readonly kind: 'fig'; readonly key: string; readonly label: string; readonly detail: string; readonly enterable: false; readonly openable: true; readonly section: SectionId; readonly fig: string };
 
-const DOCS: readonly (readonly [DocKind, string])[] = [['text', 'Text'], ['exercises', 'Exercises']];
 export const chapterKey = (id: string): string => `ch:${id}`;
 export const sectionKey = (id: string): string => `sec:${id}`;
 export const BOOK_KEY = 'book';
 
-type Below = Extract<Level, { kind: 'docs' | 'figures' | 'exercises' }>;
+type Below = Extract<Level, { kind: 'docs' | 'figures' }>;
 const chapterOf = (tree: BookTree, id: string): ChapterNode | undefined => tree.chapters.find((c) => c.id === id);
 const sectionOf = (tree: BookTree, level: Below): SectionNode | undefined =>
   chapterOf(tree, level.chapter)?.sections.find((s) => s.id === level.section);
 const named = (id: string, title: string): string => `${id} ${title}`;
-/* What a document leads to one level further in: the section's figures, or its single exercises. */
-const listOf = (s: SectionNode, doc: DocKind): readonly { readonly id: string }[] => (doc === 'text' ? s.figures ?? [] : s.exercises ?? []);
-
 /* A chapter's detail counts every section it lists, since the level below draws them all;
    when some are not yet built it says how many of them can be opened. */
 const chapterRow = (c: ChapterNode, mode: Mode): Row => {
@@ -61,12 +55,10 @@ const chapterRow = (c: ChapterNode, mode: Mode): Row => {
 /* A section is entered for its documents when it is built; picking one names it whether or not it is. */
 const sectionRow = (s: SectionNode, mode: Mode): Row =>
   ({ kind: 'section', key: sectionKey(s.id), label: named(s.id, s.title), detail: s.built ? '' : 'not yet built', enterable: mode === 'open' && s.built, openable: mode === 'pick', section: sectionId(s.id), built: s.built });
-const docRow = (s: SectionNode, doc: DocKind, label: string): Row =>
-  ({ kind: 'doc', key: itemKey(docItem(sectionId(s.id), doc)), label, detail: '', enterable: listOf(s, doc).length > 0, openable: true, section: sectionId(s.id), doc });
+const docRow = (s: SectionNode): Row =>
+  ({ kind: 'doc', key: itemKey(docItem(sectionId(s.id), 'text')), label: 'Text', detail: '', enterable: (s.figures ?? []).length > 0, openable: true, section: sectionId(s.id), doc: 'text' });
 const figRow = (sec: SectionId, f: FigureNode): Row =>
   ({ kind: 'fig', key: itemKey(figItem(sec, f.id)), label: f.label, detail: '', enterable: false, openable: true, section: sec, fig: f.id });
-const exRow = (tree: BookTree, sec: SectionId, e: ExerciseNode): Row =>
-  ({ kind: 'ex', key: itemKey(exItem(sec, e.id)), label: `${tree.exerciseKinds?.[e.kind] ?? e.kind} ${e.id}`, detail: '', enterable: false, openable: true, section: sec, ex: e.id });
 const bookRow = (): Row => ({ kind: 'book', key: BOOK_KEY, label: 'Whole book', detail: '', enterable: false, openable: true });
 
 /* The lines at a level; an id the book does not know gives nothing to draw. */
@@ -74,9 +66,8 @@ export const rowsAt = (tree: BookTree, level: Level, mode: Mode = 'open'): reado
   if (level.kind === 'chapters') { const cs = tree.chapters.map((c) => chapterRow(c, mode)); return mode === 'pick' ? [bookRow(), ...cs] : cs; }
   if (level.kind === 'sections') return chapterOf(tree, level.chapter)?.sections.map((s) => sectionRow(s, mode)) ?? [];
   const s = sectionOf(tree, level); if (!s) return [];
-  if (level.kind === 'docs') return DOCS.map(([doc, label]) => docRow(s, doc, label));
-  if (level.kind === 'figures') return (s.figures ?? []).map((f) => figRow(level.section, f));
-  return (s.exercises ?? []).map((e) => exRow(tree, level.section, e));
+  if (level.kind === 'docs') return [docRow(s)];
+  return (s.figures ?? []).map((f) => figRow(level.section, f));
 };
 
 /* One step in: a chapter, a section that has been built, or a document that has
@@ -85,15 +76,14 @@ export const enter = (level: Level, row: Row, mode: Mode = 'open'): Level | null
   if (row.kind === 'chapter') return { kind: 'sections', chapter: row.chapter };
   if (mode === 'pick') return null;
   if (row.kind === 'section' && row.built && level.kind === 'sections') return { kind: 'docs', chapter: level.chapter, section: row.section };
-  if (row.kind === 'doc' && row.enterable && level.kind === 'docs') return { kind: row.doc === 'text' ? 'figures' : 'exercises', chapter: level.chapter, section: level.section };
+  if (row.kind === 'doc' && row.enterable && level.kind === 'docs') return { kind: 'figures', chapter: level.chapter, section: level.section };
   return null;
 };
 export const up = (level: Level): Level | null =>
-  level.kind === 'figures' || level.kind === 'exercises' ? { kind: 'docs', chapter: level.chapter, section: level.section }
+  level.kind === 'figures' ? { kind: 'docs', chapter: level.chapter, section: level.section }
     : level.kind === 'docs' ? { kind: 'sections', chapter: level.chapter }
       : level.kind === 'sections' ? CHAPTERS : null;
 
-const DOC_LABEL: Readonly<Record<DocKind, string>> = { text: 'Text', exercises: 'Exercises' };
 /* The book, then the chapter, then the section, then the document: an id the book has lost keeps its raw form. */
 export const crumbs = (tree: BookTree, level: Level): readonly string[] => {
   if (level.kind === 'chapters') return [tree.title];
@@ -102,7 +92,7 @@ export const crumbs = (tree: BookTree, level: Level): readonly string[] => {
   if (level.kind === 'sections') return [tree.title, chapter];
   const s = sectionOf(tree, level);
   const trail = [tree.title, chapter, s ? named(s.id, s.title) : level.section];
-  return level.kind === 'docs' ? trail : [...trail, DOC_LABEL[level.kind === 'figures' ? 'text' : 'exercises']];
+  return level.kind === 'docs' ? trail : [...trail, 'Text'];
 };
 
 const depthOf = (level: Level): number => (level.kind === 'chapters' ? 0 : level.kind === 'sections' ? 1 : level.kind === 'docs' ? 2 : 3);
@@ -120,8 +110,7 @@ export const start = (tree: BookTree, focused: SectionId | null): { readonly lev
 export const keyOfLevel = (level: Level): string | null =>
   level.kind === 'sections' ? chapterKey(level.chapter)
     : level.kind === 'docs' ? sectionKey(level.section)
-      : level.kind === 'figures' ? itemKey(docItem(level.section, 'text'))
-        : level.kind === 'exercises' ? itemKey(docItem(level.section, 'exercises')) : null;
+      : level.kind === 'figures' ? itemKey(docItem(level.section, 'text')) : null;
 
 /* The place in the book a picked row stands for; rows below a section name no scope. */
 export const pickTarget = (level: Level, row: Row): Target | null => {

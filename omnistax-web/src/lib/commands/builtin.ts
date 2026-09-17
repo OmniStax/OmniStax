@@ -36,7 +36,7 @@ export type BuiltinDeps = {
   /* The view the commands act on is whichever page the reader last touched, named by
      its item key, since a kind may be open in several; with none there is nothing to scope. */
   readonly scope: { activeView(): ItemKey | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
-  readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openExercises(): void; canOpenExercises(): boolean; openAbout(): void };
+  readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openAbout(): void };
   /* The reader's own notes: a new one, and the mode of the note tab in the focused group. */
   readonly notes: { newNote(): void; toggleMode(): void; canToggle(): boolean };
   /* One timeline of the reader's own edits: what the next step back or forward
@@ -74,7 +74,7 @@ export const BUILTIN = {
   scopePrevious: commandId('scope-previous'), scopeNext: commandId('scope-next'),
   scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
   scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
-  openExercises: commandId('open-exercises'), reopenAbout: commandId('reopen-about'),
+  reopenAbout: commandId('reopen-about'),
   noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
   findTextbook: commandId('explorer-find-textbook'),
   coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
@@ -159,7 +159,6 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.scopeUnpin, label: 'Unpin view: follow the page', group: 'View', run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.pinned() },
   { id: BUILTIN.scopePick, label: 'Pin view to…', group: 'View', run: () => d.scope.pickTarget(), when: () => d.scope.activeView() !== null },
   ...viewCommands(d),
-  { id: BUILTIN.openExercises, label: "Open this section's exercises", group: 'App', run: () => d.docs.openExercises(), when: () => d.docs.canOpenExercises() },
   /* The front of OmniStax is a standing page like any other, and a reader who
      closed its tab has nothing in the book's own tree that leads back to it.
      This is that way back, and it opens the page wherever a tab opens. */

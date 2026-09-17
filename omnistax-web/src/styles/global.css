@@ -14,13 +14,12 @@
 }
 :root[data-theme="dark"]{ --bg:#121418; --panel:#1A1D23; --ink:#E7E9EE; --muted:#9AA2AF; --rule:#2B303A; --soft:#20242C; --soft2:#2A2F39; --thumb:#3B414D; --hl-yellow:#6B5410; --hl-green:#14532D; --hl-blue:#1E3A8A; --hl-pink:#831843; --ok:#4ADE80; --bad:#F87171; color-scheme:dark; }
 /* How a concept stands, in the colours a practice app teaches with: red for a
-   score that has barely begun, yellow for one on its way, green for mastered,
-   orange for a mastered concept that has faded and is due. Untouched is the
-   grey of an empty box. These hold in both themes and do not follow the book's
+   score that has barely begun, yellow for one on its way, and green for
+   mastered. Untouched is the grey of an empty box. These hold in both themes and do not follow the book's
    colour coding, since they say how the reader stands and not what a thing is. */
-:root{ --m-low:#DC2626; --m-mid:#EAB308; --m-high:#16A34A; --m-due:#EA580C; }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; --m-due:#FB923C; } }
-:root[data-theme="dark"]{ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; --m-due:#FB923C; }
+:root{ --m-low:#DC2626; --m-mid:#EAB308; --m-high:#16A34A; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; } }
+:root[data-theme="dark"]{ --m-low:#F87171; --m-mid:#FACC15; --m-high:#4ADE80; }
 html:not(.cc){ --accent:var(--ink); --warm:var(--ink); }
 
 *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--thumb) transparent}

@@ -1,7 +1,7 @@
 <script lang="ts">
   /* The Open browser: the book as a small file tree in the palette's frame —
-     chapters, then a chapter's sections, then a section's Text and Exercises,
-     and below those the figures the text draws and the exercises it sets.
+     chapters, then a chapter's sections, then a section's text, and below it
+     the figures the text draws.
      The box filters the level you stand on; Right steps in, Left and an empty
      Backspace step out, Enter opens what it stands on in the group the browser
      was opened for. Opened by the "Open…" command or a tab strip's "+", and by
@@ -30,8 +30,8 @@
   const mode = $derived(ui.browser.mode);
   const items = $derived(rank(query, rowsAt(manifest, level, mode), (r) => r.label));
   const trail = $derived(crumbs(manifest, level));
-  const ICONS: Readonly<Record<Row['kind'], string>> = { book: ICON.folder, chapter: ICON.folder, section: ICON.folder, doc: ICON.text, fig: ICON.split, ex: ICON.exercises };
-  const iconOf = (r: Row): string => (r.kind === 'doc' && r.doc === 'exercises' ? ICON.exercises : ICONS[r.kind]);
+  const ICONS: Readonly<Record<Row['kind'], string>> = { book: ICON.folder, chapter: ICON.folder, section: ICON.folder, doc: ICON.text, fig: ICON.split };
+  const iconOf = (r: Row): string => ICONS[r.kind];
 
   /* Stand at a level, unfiltered, on the row `key` names (the one we came from) or on the first. */
   const goto = (next: Level | null, key: string | null): void => {
@@ -48,7 +48,7 @@
       if (t) { ui.browser.onPick?.(t); ui.closeBrowser(); return; }
       goto(enter(level, r, mode), null); return;
     }
-    if (r.kind === 'doc' || r.kind === 'fig' || r.kind === 'ex') { openItem(r.key, ui.browser.group ?? undefined); ui.closeBrowser(); return; }
+    if (r.kind === 'doc' || r.kind === 'fig') { openItem(r.key, ui.browser.group ?? undefined); ui.closeBrowser(); return; }
     goto(enter(level, r), null);
   };
 

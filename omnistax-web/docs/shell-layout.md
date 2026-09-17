@@ -4,11 +4,11 @@ The page is a shell of movable items rather than a fixed three-column
 article. Implementation: Svelte 5 components under
 `omnistax-web/src/components/` over a pure layout model in
 `src/lib/layout/model.ts`; see `omnistax-web/README.md` for the file map.
-Documents are per section (`doc:2.1/text`, `doc:2.1/exercises`) and other
+Documents are section text (`doc:2.1/text`); exercises live in the Practice view. Other
 sections load on demand through the "+" on each tab strip; see
 `static-composition.md`. A chapter's or the book's own introduction or
-summary page (root `RULES.md` item 21) is a text document with no problem
-set beside it, keyed by the chapter and its role (`doc:2.intro/text`, or
+summary page (root `RULES.md` item 21) is a text document keyed by the
+chapter and its role (`doc:2.intro/text`, or
 `doc:intro/text` for the book's own) and titled by its own title; the
 explorer and the book's front page list it where the book prints it,
 before the first section or after the last.
@@ -20,8 +20,7 @@ element that gets moved around, never re-rendered. A document is one
 such element too, plus a fresh copy for every further group it is open
 in:
 
-- **Documents** (`[data-doc]`): the section text and the problem set of
-  every section that has been opened.
+- **Documents** (`[data-doc]`): the text of every section that has been opened.
 - **Views** (`.view`): concept map, contents, formulas, definitions, and
   notes. Comments and search are planned as further views.
 
@@ -38,8 +37,8 @@ The chrome:
 
 - **Activity rails** on both edges, 44px. Left rail: the views that live
   on the left, then the gear. Right rail: the views that live on the
-  right. Documents have no rail icon; the page opens with its text and
-  exercises as tabs, and the "+" on a tab strip brings any of them back.
+  right. Documents have no rail icon; the page opens with its text, and
+  the "+" on a tab strip brings any section text back.
   There is no top bar; the tab strip is the top of the page. A view's
   icon is lit when it is open anywhere and carries a dot when it is open
   as a tab.
@@ -48,7 +47,7 @@ The chrome:
 - **Document area** holds one or two groups side by side. Each group has a
   tab strip and one scroll pane per tab, so scroll positions survive tab
   switches. The strip ends with a "+" that lists the book's sections and
-  opens the chosen text or exercises as a tab in that group. The focused group has the underlined tab, and the companion
+  opens the chosen text as a tab in that group. The focused group has the underlined tab, and the companion
   views follow its scroll position.
 - **Settings** is a popover from the gear, not a view: colour coding, dark
   mode, text size, a "Play animations" switch that pauses every figure in every
@@ -88,8 +87,7 @@ in each sidebar and their widths, collapsed boxes, the groups with their
 tabs and active tab, a stable key per group, the focused group, and each
 view's home side. It is
 validated against the registered items on load and falls back to the
-default: text and exercises as tabs, concept map and contents on the left,
-formulas, definitions and notes on the right.
+default: the text as a tab and the explorer on the left.
 
 ## What a view describes: following and pinning
 

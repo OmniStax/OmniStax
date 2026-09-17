@@ -18,7 +18,7 @@ const parse = (raw: unknown): Note[] => {
     if (typeof n !== 'object' || n === null) return [];
     const o = n as Record<string, unknown>; const a = o.anchor as Record<string, unknown> | undefined;
     if (typeof o.id !== 'string' || typeof o.section !== 'string' || !a || typeof a.quote !== 'string') return [];
-    return [{ id: o.id, section: o.section as SectionId, doc: o.doc === 'exercises' ? 'exercises' : 'text', anchor: { quote: a.quote, prefix: String(a.prefix ?? ''), suffix: String(a.suffix ?? '') },
+    return [{ id: o.id, section: o.section as SectionId, doc: 'text', anchor: { quote: a.quote, prefix: String(a.prefix ?? ''), suffix: String(a.suffix ?? '') },
       color: isColor(o.color) ? o.color : 'yellow', text: typeof o.text === 'string' ? o.text : '', created: Number(o.created) || Date.now(), updated: Number(o.updated) || Date.now() }];
   });
 };

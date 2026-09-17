@@ -37,7 +37,7 @@
   <div class="note" data-id={n.id} use:dragout={{ kind: 'highlight', id: n.id }}>
     <div class="head">
       <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} title="Colour {c}" aria-label="Colour {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
-      <span class="when">{n.doc === 'exercises' ? 'exercises · ' : ''}{when(n.updated)}</span>
+      <span class="when">{when(n.updated)}</span>
       <button type="button" class="x" data-nodrag title="Remove this highlight" aria-label="Remove this highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
     <button type="button" class="quote hl-{n.color}" title="Show it in the text" onclick={() => goNote(n)}>{n.anchor.quote}</button>

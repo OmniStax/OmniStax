@@ -1,184 +1,160 @@
 <script lang="ts">
-  /* One exercise: the prompt, an answer widget chosen by the answer's type, and
-     the book's solution or an AI-marked approach. What the problem asks of the
-     reader — the level of thinking it wants and the concepts it tests — is folded
-     away behind the small button at the top right, which opens a panel of two
-     labelled rows; each concept chip pins the concept when clicked and opens a
-     goto card when hovered. What kind of problem the book calls it, and the tag
-     it files it under, are the book's own filing and say nothing about the work,
-     so the panel leaves them out. Beside it a second button opens this one
-     problem in a split of its own; a card that is already standing in such a tab
-     is `standalone` and does not offer it again.
-
-     Every answer is recorded into the reader's practice, wherever the card stands:
-     a card inside a section's text counts as much as one drawn by a session, and
-     under the book it belongs to, which is the book being read unless a session
-     drew the problem out of another one. A
-     multiple choice is the one kind the card can mark itself, so the card records
-     the widget's verdict. Everything else — a number, a set of parts, an open
-     question — the reader marks: open the solution and the card asks whether you
-     got it, and your own verdict is the attempt. Either way the card then says
-     once what the answer earned. */
+  /* One exercise. Multiple choice keeps its native radio choices and can be
+     marked by the app; every other answer is self-checked after the solution is
+     revealed. Provenance, Bloom level and concepts live below the question. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { pin } from '../../lib/sections/concepts.svelte';
-  import { cite } from '../../lib/sections/nav.svelte';
-  import { conceptId, exerciseDomId, exItem, itemKey, type SectionId } from '../../lib/types/ids';
+  import { conceptId, exerciseDomId, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
   import { solutionText, type Verdict } from '../../lib/exercises/check';
-  import { solutionParts } from '../../lib/exercises/parts';
   import { pointsOf, type Attempt } from '../../lib/practice/model';
   import { practice } from '../../lib/practice/store.svelte';
-  import { ICON } from '../../lib/icons';
   import { math, mathHtml } from '../actions/math';
-  import NumberAnswer from './NumberAnswer.svelte';
-  import MultiAnswer from './MultiAnswer.svelte';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
-  let { section, ex, hidden = false, standalone = false, book = registry.manifest.id }: { section: SectionId; ex: ExerciseDTO; hidden?: boolean; standalone?: boolean; book?: string } = $props();
+
+  let {
+    section, ex, hidden = false, book = registry.manifest.id,
+    outcome = null, onanswer,
+  }: {
+    section: SectionId; ex: ExerciseDTO; hidden?: boolean; book?: string;
+    outcome?: boolean | null; onanswer?: (ok: boolean) => void;
+  } = $props();
+
   const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
-  /* Concepts are canonical across the library, so a problem drawn out of another
-     book names them from wherever they are known; the passage behind the problem
-     is not, so it is offered only while the card stands in the book being read. */
   const concept = (id: string) => practice.conceptOf(id);
-  const reading = $derived(book === registry.manifest.id);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
-  /* A book problem that asks (a), (b), (c) keys all of them in one run of prose. The
-     card reads that run as it draws and sets a row per part, with the part's keyed
-     number beside it; a solution written as one piece has no rows and is printed whole. */
-  const parts = $derived(solutionParts(sol ?? '', ex.prompt, a));
   const nameOf = (id: string): string => practice.conceptOf(id)?.name ?? id;
-  /* The Bloom level reads as a name, "Understand", whichever way the book wrote it. */
   const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-  /* An answer goes into the practice store the moment it is marked, and the card says
-     what came of it. The store refuses an exercise already answered correctly today,
-     which is what a null attempt means: nothing was lost, it was simply counted once. */
+
+  const BLOOM_HELP: Readonly<Record<string, string>> = {
+    remember: 'Remember: recall a fact, term, definition or procedure.',
+    understand: 'Understand: explain an idea or interpret it in your own words.',
+    apply: 'Apply: use a known method in a problem.',
+    analyze: 'Analyze: break a problem apart and relate its pieces.',
+    analyse: 'Analyze: break a problem apart and relate its pieces.',
+    evaluate: 'Evaluate: judge a result or method using evidence.',
+    create: 'Create: produce and justify a new solution or design.',
+  };
+  const bloomHelp = $derived(BLOOM_HELP[ex.bloom.trim().toLowerCase()] ?? `${titled(ex.bloom)} is the kind of thinking this exercise asks for.`);
+
+  /* The source schema keeps the publisher's opaque id and original section. Most
+     conventional local ids also retain the printed ordinal (p17, cq3, ap2), so
+     show it where it is genuinely present and never manufacture a book number. */
+  const sourceSection = $derived(ex.sourceSection ?? section);
+  const kindName = $derived(
+    book === registry.manifest.id
+      ? registry.manifest.exerciseKinds[ex.kind] ?? titled(ex.kind.replace(/-/g, ' '))
+      : titled(ex.kind.replace(/-/g, ' ')),
+  );
+  const sourceExercise = $derived.by(() => {
+    if (ex.sourceNumber) return `Exercise ${ex.sourceNumber}`;
+    const m = /^(?:p|cq|ap|cyu|cyl|ct|e)(\d+)$/i.exec(ex.id);
+    return m ? `${kindName} ${Number(m[1])}` : kindName;
+  });
+  const sourceBook = $derived(book === registry.manifest.id ? registry.manifest.title : practice.bookTitle(book));
+
   let earned = $state<string | null>(null);
-  let selfDone = $state(false);
+  let localDone = $state(false);
+  let localOutcome = $state<boolean | null>(null);
   let solutionOpen = $state(false);
+  const completed = $derived(outcome !== null || localDone);
+  const recorded = $derived(outcome ?? localOutcome);
   const said = (att: Attempt | null, ok: boolean): string =>
     att === null ? 'Already counted today.'
       : ok ? Object.entries(pointsOf(ex)).map(([id, p]) => `+${p} ${nameOf(id)}`).join(' · ')
-      : `No points this time. The concepts it tests: ${ex.concepts.map(nameOf).join(', ')}.`;
-  const record = (ok: boolean, self: boolean): void => { earned = said(practice.record(book, section, ex, ok, self), ok); };
-  const selfCheck = (ok: boolean): void => { selfDone = true; record(ok, true); };
-  /* The panel closes on a click outside the card and on Escape — unless a goto card is
-     open, whose own Escape closes it first (this listener captures, so it sees the card before it goes). */
-  let open = $state(false);
-  let root = $state<HTMLElement | null>(null);
-  $effect(() => {
-    if (!open) return;
-    const down = (e: PointerEvent) => { const t = e.target; if (!(t instanceof Node)) return; if (!root?.contains(t) && !(t instanceof Element && t.closest('.hover-card'))) open = false; };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.hover-card')) open = false; };
-    document.addEventListener('pointerdown', down, true); document.addEventListener('keydown', key, true);
-    return () => { document.removeEventListener('pointerdown', down, true); document.removeEventListener('keydown', key, true); };
-  });
+      : 'No points this time.';
+  const record = (ok: boolean, self: boolean): void => {
+    if (completed) return;
+    earned = said(practice.record(book, section, ex, ok, self), ok);
+    localOutcome = ok;
+    localDone = true;
+    onanswer?.(ok);
+  };
 </script>
 
-<div class="exercise" class:hot class:standalone id={domId} {hidden} bind:this={root}>
-  <button type="button" class="ex-info" aria-expanded={open} aria-controls="{domId}-meta" title="What this problem tests" onclick={() => (open = !open)}><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
-  {#if !standalone}<button type="button" class="ex-split" data-split-key={itemKey(exItem(section, ex.id))} title="Open in a split" aria-label="Open exercise {ex.id} in a split">{@html ICON.split}</button>{/if}
-  {#if open}
-    <div class="meta" id="{domId}-meta" role="group" aria-label="What this problem tests">
-      <div class="row"><span class="lab">Bloom level</span>
-        <span class="chip bloom">{titled(ex.bloom)}</span>
-      </div>
+<div class="exercise" class:hot id={domId} {hidden}>
+
+  <div class="prompt" use:math={ex.prompt}><p>{@html ex.prompt}</p></div>
+  {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
+
+  <details class="meta">
+    <summary>Exercise meta</summary>
+    <div class="meta-body">
+      <div class="meta-row"><span class="lab">Bloom level</span><span class="chip bloom" title={bloomHelp}>{titled(ex.bloom)} <span aria-hidden="true">ⓘ</span></span></div>
       {#if ex.concepts.length}
-        <div class="row"><span class="lab">Tests</span>
+        <div class="meta-row"><span class="lab">Concepts tested</span><span class="chips">
           {#each ex.concepts as c (c)}
             {@const k = concept(c)}
             <button type="button" class="chip concept k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span use:math={k?.name}>{@html k?.name ?? c}</span></button>
           {/each}
-        </div>
+        </span></div>
       {/if}
+      <div class="meta-row"><span class="lab">Source</span><span class="source" title="Publisher source id: {ex.sourceId}">{sourceBook} · Section {sourceSection} · {sourceExercise}</span></div>
     </div>
-  {/if}
-  <div class="prompt" use:math={ex.prompt}><p>{@html ex.prompt}</p></div>
-  {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
-  {#if a.type === 'number'}<NumberAnswer answer={a} />
-  {:else if a.type === 'multi'}<MultiAnswer answer={a} />
-  {:else if a.type === 'choice'}<ChoiceAnswer answer={a} name="c-{section}-{ex.id}" oncheck={(v: Verdict) => record(v.ok, false)} />{/if}
-  {#if earned}<div class="earned" use:mathHtml={earned}></div>{/if}
-  {#if (ex.cite && reading) || a.solution}
-    <div class="foot">
-      {#if ex.cite && reading}<button type="button" class="cite" onclick={() => cite(`${section}-${ex.cite}`)}>Show me the passage</button>{/if}
-    </div>
-  {/if}
-  {#if sol}
-    <details class="solution" ontoggle={(e) => (solutionOpen = e.currentTarget.open)}><summary>{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</summary>
-      {#if parts.rows.length === 0}
-        <div use:math={sol}>{@html sol}</div>
-      {:else}
-        <div class="parts">
-          {#if parts.lead}<p class="plead" use:mathHtml={parts.lead}></p>{/if}
-          {#each parts.rows as r (r.label)}
-            <div class="prow">
-              <span class="plabel">{r.label}</span>
-              <div class="pbody">
-                {#if r.ask}<span class="pask" use:mathHtml={r.ask}></span>{/if}
-                <span class="ptext" use:mathHtml={r.text}></span>
-              </div>
-              {#if r.value}<span class="pval" use:mathHtml={r.value}></span>{/if}
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </details>
-    {#if solutionOpen && a.type !== 'choice'}
-      <div class="selfcheck"><span class="lead">Did you get it?</span>
-        <button type="button" disabled={selfDone} onclick={() => selfCheck(true)}>Got it</button>
-        <button type="button" disabled={selfDone} onclick={() => selfCheck(false)}>Missed it</button>
-      </div>
+  </details>
+
+  {#if a.type === 'choice'}
+    <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} />
+    {#if completed && sol}
+      <div class="solution-block"><div class="solution-head">Solution ({a.generated_by === 'ai' ? 'AI' : 'book'})</div><div use:math={sol}>{@html sol}</div></div>
     {/if}
+  {:else if sol}
+    {#if solutionOpen || completed}
+      <div class="solution-block">
+        <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</div>
+        <div use:math={sol}>{@html sol}</div>
+      </div>
+      {#if !completed}
+        <div class="selfcheck" aria-label="Mark your answer">
+          <button type="button" class="right" onclick={() => record(true, true)}>I got it right</button>
+          <button type="button" class="wrong" onclick={() => record(false, true)}>I got it wrong</button>
+        </div>
+      {/if}
+    {:else}
+      <div class="reveal"><button type="button" class="btn reveal-btn" onclick={() => (solutionOpen = true)}>Reveal and check</button></div>
+    {/if}
+  {:else}
+    <p class="no-solution">No answer was supplied for this exercise, so it cannot be self-checked.</p>
   {/if}
+
+  {#if earned}<div class="earned" use:mathHtml={earned}></div>{/if}
+  {#if recorded !== null}<div class:answer-right={recorded} class:answer-wrong={!recorded} class="recorded">{recorded ? 'Answered correctly' : 'Answered incorrectly'}</div>{/if}
 </div>
 
 <style>
-  .exercise{position:relative;border:1px solid var(--rule);border-left:3px solid var(--warm);border-radius:6px;background:var(--panel);padding:12px 16px;margin:0 0 12px;font-size:0.97rem}
+  .exercise{position:relative;border:1px solid var(--rule);border-left:3px solid var(--warm);border-radius:8px;background:var(--panel);padding:14px 16px;margin:0 0 12px;font-size:0.97rem}
   .exercise.hot{border-color:var(--accent)}
   .exercise[hidden]{display:none}
-  .ex-info,.ex-split{position:absolute;top:8px;width:26px;height:24px;display:grid;place-items:center;padding:0;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer}
-  .ex-info{right:8px}
-  .ex-split{right:38px}
-  .ex-info:hover,.ex-split:hover{color:var(--ink);background:var(--soft)}
-  .ex-info:focus-visible,.ex-split:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .ex-info[aria-expanded="true"]{color:var(--accent)}
-  .ex-info svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
-  .ex-split :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8}
-  .meta{position:absolute;top:36px;right:8px;z-index:5;max-width:calc(100% - 16px);padding:8px 10px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,0.14),0 1px 3px rgba(0,0,0,0.08);font-family:var(--sans);font-size:0.72rem;display:flex;flex-direction:column;gap:6px}
-  .meta .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-  .meta .lab{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
-  .chip.bloom{background:color-mix(in srgb,var(--warm) 14%,transparent);color:var(--warm)}
-  .chip.concept{font:inherit;border:1px solid transparent;cursor:pointer}
-  .chip.concept.k-idea{background:var(--soft2)}
-  .chip.concept.k-skill{font-style:italic;background:transparent;border-color:var(--rule)}
-  .chip.concept.hot{border-color:var(--accent);color:var(--ink)}
-  .chip.concept:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .prompt{margin-bottom:8px;padding-right:64px}
-  .exercise.standalone .prompt{padding-right:34px}
+  .prompt{margin-bottom:8px}
   .prompt :global(p){margin:0}
   .prompt :global(table.data){border-collapse:collapse;font-family:var(--sans);font-size:0.85rem;margin:8px 0;font-variant-numeric:tabular-nums}
   .prompt :global(table.data th),.prompt :global(table.data td){border:1px solid var(--rule);padding:2px 10px;text-align:right}
-  .foot{display:flex;gap:8px;align-items:center;margin-top:6px;font-family:var(--sans);font-size:0.88rem}
-  .cite{font-family:var(--sans);font-size:0.8rem;color:var(--muted);text-decoration:underline dotted;cursor:pointer;background:none;border:0;padding:0}
-  details.solution{font-family:var(--sans);font-size:0.9rem;margin-top:8px}
-  details.solution summary{cursor:pointer;color:var(--muted);font-weight:600;font-size:0.8rem}
-  details.solution > div{padding:6px 0 2px;font-family:var(--serif);font-size:0.95rem}
-  /* a row per part: the letter, what the part asked and what it comes to, and the
-     keyed number standing in its own column so the answers read down the card */
-  .parts{display:flex;flex-direction:column;gap:2px}
-  .plead{margin:0 0 4px}
-  .prow{display:flex;align-items:baseline;gap:8px;padding:3px 0;border-top:1px solid var(--rule)}
-  .prow:first-child{border-top:0}
-  .plabel{flex:none;min-width:1.8em;font-family:var(--sans);font-size:0.8rem;font-weight:600;color:var(--muted)}
-  .pbody{flex:1;min-width:0}
-  .pask{color:var(--muted);font-size:0.88rem}
-  .pval{flex:none;max-width:40%;text-align:right;color:var(--accent)}
-  .selfcheck{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-family:var(--sans);font-size:0.8rem}
-  .selfcheck .lead{color:var(--muted)}
-  .selfcheck button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
-  .selfcheck button:hover{background:var(--soft)}
-  .selfcheck button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .selfcheck button:disabled{color:var(--muted);background:var(--panel);cursor:default}
-  .earned{margin-top:4px;font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
+  .meta{font-family:var(--sans);font-size:0.78rem;margin:10px 0}
+  .meta summary{width:max-content;color:var(--muted);font-weight:600;cursor:pointer}
+  .meta-body{display:flex;flex-direction:column;gap:7px;margin-top:7px;padding:9px 10px;border:1px solid var(--rule);border-radius:7px;background:var(--soft)}
+  .meta-row{display:grid;grid-template-columns:minmax(92px,auto) 1fr;gap:10px;align-items:start}
+  .meta .lab{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);padding-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{display:inline-flex;align-items:center;width:max-content;font:inherit;font-size:0.72rem;padding:2px 7px;border-radius:10px}
+  .chip.bloom{background:color-mix(in srgb,var(--warm) 14%,transparent);color:var(--warm);cursor:help}
+  .chip.concept{border:1px solid transparent;cursor:pointer;color:var(--ink)}
+  .chip.concept.k-idea{background:var(--soft2)}
+  .chip.concept.k-skill{font-style:italic;background:transparent;border-color:var(--rule)}
+  .chip.concept.hot{border-color:var(--accent)}
+  .chip.concept:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .source{color:var(--ink);line-height:1.35}
+  .solution-block{font-family:var(--serif);font-size:0.95rem;margin-top:10px;padding:10px 12px;border-left:3px solid var(--rule);background:var(--soft)}
+  .solution-head{font-family:var(--sans);font-size:0.76rem;font-weight:700;color:var(--muted);margin-bottom:5px}
+  .reveal,.selfcheck{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:10px;font-family:var(--sans)}
+  .btn,.selfcheck button{font:inherit;font-size:0.78rem;font-weight:650;padding:6px 11px;border:1px solid var(--rule);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .btn:hover,.selfcheck button:hover{background:var(--soft)}
+  .btn:focus-visible,.selfcheck button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .selfcheck .right{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+  .selfcheck .wrong{border-color:var(--bad);color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+  .earned,.recorded,.no-solution{margin:7px 0 0;font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
+  .recorded.answer-right{color:var(--ok)}
+  .recorded.answer-wrong{color:var(--bad)}
+  @media (max-width:520px){.meta-row{grid-template-columns:1fr;gap:3px}}
 </style>
