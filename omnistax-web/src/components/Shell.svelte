@@ -47,7 +47,7 @@
   import { paint, setNoted } from '../lib/notes/paint';
 
   type Props = { manifest: BookManifest; own: ItemId; chapterDir?: string; chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO }; section?: SectionMetaDTO; exercises?: readonly ExerciseDTO[]; threeUrl?: string };
-  let { manifest, own, chapterDir, chapterData }: Props = $props();
+  let { manifest, own, chapterDir, chapterData, threeUrl }: Props = $props();
   const page = untrack(() => own);   /* the page's own item never changes */
   let ready = $state(false);
   let narrow = $state(false);
@@ -82,7 +82,7 @@
     explorer.init();
     library.init(manifest.id, manifest.title);
     practice.init();
-    registry.init(manifest, fig, mountExercises, paintDoc);
+    registry.init(manifest, fig, mountExercises, paintDoc, threeUrl);
     sheets.init(markFormulas);
     colours.init(manifest);
     if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);

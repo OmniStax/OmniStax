@@ -1232,9 +1232,10 @@ function hover(stage: HTMLElement, hits: () => readonly Hit[]): Tip {
 }
 
 /* ---------- three dimensions ----------
-   The shell loads three.js (r128) on every page as a classic script, so it
-   has no types of its own here: `Three` names that global and `Obj3` the
-   scene objects the helpers below pass back to the figure.
+   three.js (r128) is a classic script the shell loads on demand, the first
+   time a section's figures need it, so it has no types of its own here:
+   `Three` names that global and `Obj3` the scene objects the helpers below
+   pass back to the figure.
    A viewer mounts a WebGL renderer with a transparent clear colour inside the
    figure's stage, so the page's own panel shows through in both themes, and
    every colour of the scene is read from the palette as it is built, so a

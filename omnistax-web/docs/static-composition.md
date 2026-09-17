@@ -52,8 +52,12 @@ Svelte 5 island for the shell.
    files beside it — `exercises.json`, `concepts.json`, `formulas.json`
    — are endpoints too.
 2. **Shared assets are bundled once.** KaTeX, the shell and the figure
-   library ship as hashed files under `assets/`; three.js is a vendor
-   script. A section page costs its own HTML plus cached shared assets.
+   library ship as hashed files under `assets/`. A section page costs its
+   own HTML plus cached shared assets. three.js is a vendor script no page
+   carries: only a handful of figures draw in three dimensions, so the
+   registry fetches it the first time a section's script reaches for
+   `F.view3d` or `F.mesh` (`src/lib/fig/three.ts`), once for the browsing
+   session, and that section's figures boot when it lands.
 3. **Figures are scoped to a root.** Each section's `figures.js` registers
    `OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}` and finds its
    canvases inside `root`, so two sections can share one DOM.

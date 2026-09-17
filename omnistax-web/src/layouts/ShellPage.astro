@@ -58,9 +58,6 @@ const shellProps = { manifest: tree.manifest, own, chapterDir, chapterData, sect
 </head>
 <body>
 <div id="pool" set:html={pool}></div>
-<!-- Three comes before anything that draws: a section reached from the front of
-     the book opens its figures in this document, so every page carries it. -->
-<script is:inline src={config.build.threeUrl}></script>
 <slot name="scripts" />
 <Shell client:only="svelte" {...shellProps} />
 </body>

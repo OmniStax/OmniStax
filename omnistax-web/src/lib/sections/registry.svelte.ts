@@ -8,6 +8,7 @@ import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO,
 import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, bookId, sectionId, itemKey, figItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import type { Fig } from '../fig/figlib';
+import { type ThreeUrl, ensureThree, hasThree, needsThree } from '../fig/three';
 import { ICON } from '../icons';
 import { originalButtons } from './original';
 import { decorateTerms } from '../hover';
@@ -48,6 +49,7 @@ class Registry {
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
   chapterStatus = $state.raw<Readonly<Record<string, ChapterStatus>>>({});   /* by chapter dir, beside the data above */
   private fig: Fig | null = null;
+  private threeUrl: ThreeUrl = '';                                          /* the vendor script, fetched the first time a figure draws in three dimensions */
   private mountExercises: Mounter = () => {};
   private decorate: (root: HTMLElement) => void = () => {};
   private owner: Record<string, GroupKey> = {};
@@ -56,7 +58,7 @@ class Registry {
   private loadingChapters: Partial<Record<string, Promise<void>>> = {};
   private loadingPages: Partial<Record<PageKind, Promise<void>>> = {};
 
-  init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; }
+  init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void, threeUrl?: ThreeUrl): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; if (threeUrl) this.threeUrl = threeUrl; }
 
   /* Any page of the book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
   entry(sec: SectionId): SectionEntry | undefined { return bookPagesOf(this.manifest).find((s) => s.id === sec); }
@@ -179,11 +181,25 @@ class Registry {
       head.appendChild(b);
     });
   }
+  /* Boot a section's figures on a root, once. A script that draws in three
+     dimensions and finds no THREE yet waits for the vendor script — the root is
+     marked booted straight away, so nothing boots it a second time while the
+     fetch is in flight — and a root the reader has closed meanwhile is left
+     alone. Every other script runs where it always did, in this same turn. */
   private bootFigures(root: HTMLElement, sec: SectionId): void {
     const figs = (window as unknown as { OMNISTAX_FIGURES?: Record<string, (root: HTMLElement, F: Fig) => void> }).OMNISTAX_FIGURES;
     const f = figs?.[sec]; if (!f || !this.fig || root.dataset.booted) return;
     root.dataset.booted = '1';
-    try { f(root, this.fig); } catch (e) { console.error(`figures ${sec}`, e); }
+    if (!needsThree(f) || hasThree()) { this.runFigures(root, sec, f); return; }
+    /* The script is run whether or not the root is in the document by then: a
+       figure split into its own tab is booted detached and mounted after, and
+       the library draws only while a figure is on screen anyway. */
+    ensureThree(this.threeUrl)
+      .then(() => this.runFigures(root, sec, f))
+      .catch((e: Error) => console.error(`figures ${sec}`, e));
+  }
+  private runFigures(root: HTMLElement, sec: SectionId, f: (root: HTMLElement, F: Fig) => void): void {
+    try { f(root, this.fig!); } catch (e) { console.error(`figures ${sec}`, e); }
   }
 
   /* Fetch a section's chapter data, figure module and fragment, then adopt it. */
