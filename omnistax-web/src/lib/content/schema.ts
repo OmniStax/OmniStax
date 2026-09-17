@@ -552,12 +552,9 @@ export type BookManifest = {
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
   readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
   readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
-} & Partial<BookFileUrls>;
+} & BookFileUrls;
 /* The book's own files, one apiece, beside its pages: every section's problem
    set, every concept once, and every chapter's formula sheet. The manifest
    names them, so that it is the one contract for where a book's files are, as
-   it already is for a chapter's concepts and formulas. They are optional on the
-   manifest only because the shell holds an empty one before a book is read;
-   every manifest the build writes and every one read off the wire carries all
-   three. */
+   it already is for a chapter's concepts and formulas. */
 export type BookFileUrls = { readonly exercises: string; readonly concepts: string; readonly formulas: string };

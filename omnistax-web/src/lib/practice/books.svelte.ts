@@ -59,7 +59,7 @@ class Books {
     const book = registry.manifest.id;
     try {
       /* The manifest names the file; the empty manifest the shell starts on does not, and falls back. */
-      const r = await fetch(registry.manifest.exercises ?? bookFiles(bookBase(book)).exercises); if (!r.ok) throw new Error(String(r.status));
+      const r = await fetch(registry.manifest.exercises); if (!r.ok) throw new Error(String(r.status));
       this.homeExercises = parseBookExercises(await r.json());
       this.setStatus(book, 'loaded');
     } catch { this.setStatus(book, 'failed'); }

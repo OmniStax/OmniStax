@@ -53,7 +53,7 @@ const parseChapter = (raw: unknown): ChapterEntry[] => {
    name, its chapters and their built sections — and the rest is defaulted, so
    a manifest written by a later build still loads. Nothing comes of a file
    without an id or without chapters: there would be nothing to practise. */
-export const parseManifest = (raw: unknown): (BookManifest & BookFileUrls) | null => {
+export const parseManifest = (raw: unknown): BookManifest | null => {
   const o = obj(raw); if (!o || !str(o.id) || !Array.isArray(o.chapters)) return null;
   const id = str(o.id);
   const fallback = bookFiles(bookBase(id));   /* a manifest written before the book carried its own file urls */

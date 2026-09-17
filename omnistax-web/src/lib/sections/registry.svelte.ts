@@ -15,7 +15,7 @@ import { decorateTerms } from '../hover';
 import { foldControls } from './fold.svelte';
 import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { EMPTY_FORMULAS, chapterConceptsOf } from '../content/bookdata';
-import { bookBase, bookFiles, parseBookConcepts, parseBookFormulas } from '../practice/books';
+import { parseBookConcepts, parseBookFormulas } from '../practice/books';
 
 /* When the book's own concepts.json and formulas.json are worth fetching over
    the chapters' own files: a chapter file is about a tenth of the book file, so
@@ -43,7 +43,7 @@ export type Mounter = (root: HTMLElement, section: SectionId) => void;
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [] });
+  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '', formulas: '' });
   sections = $state.raw<Readonly<Record<string, SectionState>>>({});
   pages = $state.raw<Partial<Record<PageKind, HTMLElement>>>({});             /* the standing pages, adopted from a pool or fetched */
   chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
@@ -123,7 +123,7 @@ class Registry {
      fetching its own file; a pair that will not load leaves them all failed,
      as a chapter of its own would be. */
   private loadBulk(dirs: readonly string[]): Promise<void> {
-    const files = bookFiles(bookBase(this.manifest.id));
+    const files = this.manifest;
     dirs.forEach((d) => this.setChapterStatus(d, 'loading'));
     const run = Promise.all([fetch(files.concepts).then((r) => r.json()), fetch(files.formulas).then((r) => r.json())])
       .then(([concepts, formulas]) => {

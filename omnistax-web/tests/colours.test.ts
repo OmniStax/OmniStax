@@ -19,7 +19,7 @@ const section = (id: string, binds: readonly string[], built: boolean) =>
 const manifestOf = (types: Readonly<Record<string, { label: string; dimension?: string }>>, chapters: readonly unknown[] = [], macros: Readonly<Record<string, string>> = {}) =>
   ({
     id: bookId('college-physics-2e'), title: 'College Physics', publisher: 'OpenStax', authors: [], license: 'CC BY',
-    types, macros, symbols: {}, exerciseKinds: {}, chapters,
+    types, macros, symbols: {}, exerciseKinds: {}, chapters, exercises: '', concepts: '', formulas: '',
   } as unknown as BookManifest);
 
 const MANIFEST = manifestOf(
