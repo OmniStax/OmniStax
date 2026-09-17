@@ -12,7 +12,9 @@
      and a card of the book goes to where the book says it. The note takes a
      drop as well: a row dragged out of a panel is appended as an embed, so a
      card is gathered by hand and not by typing. */
-  import { render, setImageWidth, type Resolver } from '../../lib/notes/md/render';
+  import type { Resolver } from '../../lib/notes/md/render';
+  import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
+  import { setImageWidth } from '../../lib/notes/md/width';
   import { isBook, parseLink, type BookKind } from '../../lib/notes/md/links';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -76,7 +78,15 @@
     },
   });
 
-  const html = $derived(body.trim() ? render(body, resolver()) : '');
+  /* The markdown renderer carries marked and KaTeX with it, which no page needs
+     until a note is read, so it is fetched the first time one is. Until it
+     lands the note shows nothing rather than its own source: the wait is a tick
+     and a half-rendered note would only flicker. Once it is here the rendering
+     is ordinary and synchronous, and every later note goes straight through. */
+  let render = $state<RenderFn | null>(loaded());
+  if (render === null) void loadRenderer().then((f) => { render = f; });
+
+  const html = $derived(render !== null && body.trim() ? render(body, resolver()) : '');
 
   /* ── what the rendered HTML still needs ────────────────────────────────── */
 

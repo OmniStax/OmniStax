@@ -12,6 +12,8 @@
    whose address is not one of the few shapes allowed loses it. */
 import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } from 'marked';
 import katex from 'katex';
+import { splitAlt } from './width';
+export { setImageWidth } from './width';
 import { isBook, linkInner, parseLink, type BookTarget, type ConceptRef, type EquationRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
 export type NoteRef = string;    /* the id of a note document, what a resolved note link points at */
@@ -145,15 +147,6 @@ const ASSET = /^asset:(.+)$/;
 const SAFE_SRC = /^(?:https?:\/\/|data:image\/|#|\/|\.{1,2}\/)/i;
 const SAFE_HREF = /^(?:https?:\/\/|mailto:|#|\/|\.{1,2}\/|[^:]*$)/i;
 
-/* `![alt|320](src)` is Obsidian's way of sizing an image; the width is kept in
-   `data-width` as well so the drag handle can read back what it set. */
-const splitAlt = (alt: string): { readonly name: string; readonly width: string | null } => {
-  const bar = alt.indexOf('|');
-  if (bar < 0) return { name: alt, width: null };
-  const w = alt.slice(bar + 1).trim();
-  return { name: alt.slice(0, bar), width: /^\d+$/.test(w) ? w : null };
-};
-
 const renderImage = (href: string, alt: string, r: Resolver): string => {
   const { name, width } = splitAlt(alt);
   const asset = ASSET.exec(href);
@@ -164,18 +157,6 @@ const renderImage = (href: string, alt: string, r: Resolver): string => {
     (src ? ` src="${esc(src)}"` : '') +
     (asset ? ` data-asset="${esc(asset[1])}"` : '') +
     (width ? ` width="${width}" data-width="${width}"` : '') + '>';
-};
-
-/* Rewrite the one image with this address so it carries a width, whether or
-   not it had one. Pure, and the inverse of what the renderer reads: dragging
-   the handle writes the new width back into the note's markdown. */
-export const setImageWidth = (markdown: string, src: string, width: number): string => {
-  let done = false;
-  return markdown.replace(/!\[([^\]\n]*)\]\(([^)\s]*)([^)]*)\)/g, (whole, alt: string, href: string, rest: string) => {
-    if (done || href !== src) return whole;
-    done = true;
-    return `![${splitAlt(alt).name}|${Math.max(1, Math.round(width))}](${href}${rest})`;
-  });
 };
 
 /* ── math ───────────────────────────────────────────────────────────────── */

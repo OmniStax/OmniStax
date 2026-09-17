@@ -10,7 +10,7 @@
      other notes, the sections the book has built, and every highlight they have
      annotated — so that a link is chosen from a list rather than remembered. */
   import { tick } from 'svelte';
-  import MarkdownEditor from './MarkdownEditor.svelte';
+  import type MarkdownEditorType from './MarkdownEditor.svelte';
   import NoteView from './NoteView.svelte';
   import { noteDocs } from '../../lib/notes/docs.svelte';
   import { noteModes } from '../../lib/notes/modes.svelte';
@@ -57,6 +57,17 @@
 
   let editor = $state<{ focus(): void } | null>(null);
   const toggle = (): void => noteModes.toggleMode(groupKey, noteId);
+
+  /* CodeMirror is the largest thing the shell can pull in and a reader may
+     never write a word, so the editor is fetched the first time a note is
+     turned over to its writing side. The reading side stands until it lands,
+     and the cursor goes into it then, since the effect below runs again once
+     the component is here. */
+  let Editor = $state<typeof MarkdownEditorType | null>(null);
+  $effect(() => {
+    if (mode !== 'edit' || Editor !== null) return;
+    void import('./MarkdownEditor.svelte').then((m) => { Editor = m.default; });
+  });
   /* Opening the writing side puts the cursor in it, but only where the reader
      can see it: a tab in a group that is not showing has no claim on focus. */
   let host = $state<HTMLElement | null>(null);
@@ -125,9 +136,10 @@
       <button type="button" class="mode-toggle" title="Edit or read this note (Ctrl+E)" onclick={toggle}>{mode === 'view' ? 'Edit' : 'View'}</button>
     </header>
     <div class="note-body" class:writing={mode === 'edit'}>
-      {#if mode === 'edit'}
-        <MarkdownEditor bind:this={editor} value={doc.body} onchange={onbody} complete={candidates} {onimage} />
-      {:else}
+      {#if mode === 'edit' && Editor}
+        {@const Ed = Editor}
+        <Ed bind:this={editor} value={doc.body} onchange={onbody} complete={candidates} {onimage} />
+      {:else if mode !== 'edit'}
         <NoteView {noteId} body={doc.body} />
       {/if}
     </div>

@@ -2,8 +2,6 @@
    transport per figure, and the drawing primitives in a fixed 1400-unit
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
-import katex from 'katex';
-import renderMathInElement from 'katex/contrib/auto-render';
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf } from './cat';
 
@@ -46,9 +44,31 @@ let macros: Macros = {};
 let SYM: SymbolMap = {};
 const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /* the book's colour macros: a type class and a symbol key */
 const KOPT = () => ({ macros: { ...macros }, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
-function tex(el: HTMLElement, s: string, display = false): void { katex.render(s, el, { ...KOPT(), displayMode: display }); }
+
+/* KaTeX is the heaviest thing the shell can ask for, and a page of the book
+   arrives with its maths already set at build time, so the library is fetched
+   only when something on the client actually has TeX to set: an exercise
+   prompt, a hover card, a note. The two calls below keep the signature the
+   figure scripts are written against — they are handed `F.tex` and
+   `F.renderMath` and neither waits on them — so where the library has not
+   landed yet the work is queued and done once, in order, when it does. */
+type Katex = typeof import('katex').default;
+type AutoRender = typeof import('katex/contrib/auto-render').default;
+type MathLib = { readonly katex: Katex; readonly auto: AutoRender };
+let mathLib: MathLib | null = null;
+let mathPending: Promise<MathLib> | null = null;
+const loadMath = (): Promise<MathLib> =>
+  (mathPending ??= Promise.all([import('katex'), import('katex/contrib/auto-render')])
+    .then(([k, a]): MathLib => (mathLib = { katex: k.default, auto: a.default })));
+/* Do this now if the library is here, otherwise once it is. Nothing is set twice:
+   the call is made on exactly one of the two paths. */
+const withMath = (use: (m: MathLib) => void): void => { if (mathLib) use(mathLib); else void loadMath().then(use).catch(() => {}); };
+
+function tex(el: HTMLElement, s: string, display = false): void {
+  withMath((m) => m.katex.render(s, el, { ...KOPT(), displayMode: display }));
+}
 function renderMath(root: HTMLElement): void {
-  renderMathInElement(root, { ...KOPT(), delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] });
+  withMath((m) => m.auto(root, { ...KOPT(), delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
 
 /* ---------- palette & colour coding ---------- */
