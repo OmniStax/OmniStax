@@ -35,7 +35,10 @@ export const downloadBackup = async (): Promise<void> => {
   a.click(); URL.revokeObjectURL(url);
 };
 
-export const readBackupFile = async (file: File): Promise<ReaderBackup> => parseBackupText(await file.text());
+export const readBackupFile = async (file: File): Promise<ReaderBackup> => {
+  if (file.size > MAX_BACKUP_BYTES) throw new Error('This backup exceeds the 50 MB import limit.');
+  return parseBackupText(await file.text());
+};
 
 export const importBackup = async (backup: ReaderBackup): Promise<void> => {
   await restoreWithJournal(backup.records, backup.assets.map((asset) => ({ ...asset, id: assetId(asset.id) })));

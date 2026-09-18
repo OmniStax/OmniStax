@@ -1,10 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, parseBackupText, summarizeBackup, validReaderRecord } from '../src/lib/backup/schema';
+import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, categoryOf, parseBackupText, summarizeBackup, validReaderRecord } from '../src/lib/backup/schema';
+import { readBackupFile } from '../src/lib/backup/adapters';
 
 const backup = (records: unknown[] = []) => JSON.stringify({
   format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: '2026-09-18T12:00:00.000Z',
   app: { readerFormat: 1 }, records, assets: [], books: [],
+});
+
+test('oversized backup files are rejected before allocating their text', async () => {
+  const file = { size: MAX_BACKUP_BYTES + 1, text: () => { throw new Error('must not read oversized file'); } } as unknown as File;
+  await assert.rejects(readBackupFile(file), /50 MB import limit/);
 });
 
 test('reader key inventory is exact and excludes unrelated or future keys', () => {

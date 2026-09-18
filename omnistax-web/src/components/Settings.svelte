@@ -21,13 +21,11 @@
   import { downloadBackup, importBackup, readBackupFile } from '../lib/backup/adapters';
   import { summarizeBackup, type ReaderBackup } from '../lib/backup/schema';
 
-  // Draft feature: enable only after restore locking and round-trip browser tests pass.
-  const BACKUPS_READY = true;
-
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
   let q = $state('');
-  let backup = $state<ReaderBackup | null>(null);
+  // IndexedDB journals require cloneable plain records, not reactive proxies.
+  let backup = $state.raw<ReaderBackup | null>(null);
   let backupMessage = $state('');
   let importing = $state(false);
   let exporting = $state(false);
@@ -195,7 +193,6 @@
         <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section text and the explorer in its home sidebar.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
       </section>
 
-      {#if BACKUPS_READY}
       <section hidden={!hit(ROWS.backup)}>
         <h3>Backup and restore</h3>
         <div class="row">
@@ -221,7 +218,6 @@
         {#if backupMessage}<p class="backup-error" role="alert">{backupMessage}</p>{/if}
       </section>
 
-      {/if}
       <section hidden={!groups.length}>
         <h3>Keyboard shortcuts</h3>
         <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>

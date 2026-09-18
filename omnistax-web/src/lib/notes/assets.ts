@@ -33,9 +33,11 @@ const withStore = async <T>(mode: IDBTransactionMode, f: (s: IDBObjectStore) => 
   return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(STORE, mode);
     const req = f(tx.objectStore(STORE));
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('IndexedDB refused the request'));
-    tx.oncomplete = () => db.close();
+    let result: T;
+    req.onsuccess = () => { result = req.result; };
+    tx.oncomplete = () => { db.close(); resolve(result); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? req.error ?? new Error('IndexedDB refused the request')); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('The image transaction was interrupted')); };
   });
 };
 

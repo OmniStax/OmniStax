@@ -1,10 +1,5 @@
 # Reader backups
 
-**Draft, not released.** Implementation was interrupted by the subagent usage
-limit. The Settings UI is gated by BACKUPS_READY=false and ShellLoader is not
-wired into ShellPage. The behavior below is the intended contract, not verified
-functionality. See offline-books-plan.md for the outstanding review findings.
-
 OmniStax Settings can export and replace a reader profile as a versioned JSON
 file. The file contains reader-owned data, not textbook files. Clearing browser
 site data removes downloaded books and reader data; a backup saved outside the
@@ -39,3 +34,9 @@ the before and after localStorage records and note images. Startup finishes or
 rolls back an interrupted restore before importing the modules that initialize
 reader stores. Browsers without IndexedDB/Web Locks can still read and export,
 but refuse unsafe import.
+
+Backups are limited to 50 MB. Oversized files are rejected before reading their
+contents. Browser regression tests cover a fresh-profile import, pasted images,
+cross-tab refusal, a quota failure during replacement, and interrupted-restore
+recovery. Import previews remain plain immutable records so the restore journal
+can store them with IndexedDB's structured-clone algorithm.

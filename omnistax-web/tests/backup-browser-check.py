@@ -54,6 +54,64 @@ with sync_playwright() as playwright:
         assert "omnistax-colours-other-book" in keys
         assert exported["assets"][0]["id"] == "a1"
 
+        # Import into a genuinely empty profile, without bringing along book
+        # caches or installation metadata. Reader backups never install books.
+        fresh_context = browser.new_context()
+        fresh = fresh_context.new_page()
+        fresh_dialogs = []
+        fresh.on("dialog", lambda dialog: (fresh_dialogs.append(dialog.message), dialog.accept()))
+        fresh.goto(BASE + PATH)
+        fresh.wait_for_selector(".shell")
+        open_settings(fresh)
+        fresh.locator('input[type="file"]').set_input_files(backup_path)
+        with fresh.expect_navigation(wait_until="domcontentloaded"):
+            fresh.get_by_role("button", name="Replace profile and reload").click()
+        fresh.wait_for_selector(".shell")
+        assert not fresh_dialogs, fresh_dialogs
+        restored_notes = fresh.evaluate("localStorage.getItem('omnistax-notes-other-book')")
+        expected_notes = next(r["value"] for r in exported["records"] if r["key"] == "omnistax-notes-other-book")
+        assert restored_notes is not None, (restored_notes, expected_notes)
+        assert json.loads(restored_notes) == json.loads(expected_notes)
+        assert fresh.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
+        assert fresh.evaluate("""async () => {
+          const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+          if (!db.objectStoreNames.contains('installations')) { db.close(); return 0; }
+          return new Promise((ok,no)=>{const tx=db.transaction('installations');const r=tx.objectStore('installations').count();r.onsuccess=()=>{db.close();ok(r.result)};r.onerror=()=>no(r.error)});
+        }""") == 0
+        fresh_context.close()
+
+        # Fail a localStorage write partway through replacement. The journal
+        # must recover the prior profile, including the image and removed keys.
+        failed_profile = dict(exported)
+        failed_profile["records"] = [
+            {"key": "omnistax-theme", "category": "appearance", "value": "light"},
+            {"key": "omnistax-underlines", "category": "appearance", "value": "0"},
+        ]
+        failed_path = pathlib.Path(tmp) / "quota.json"
+        failed_path.write_text(json.dumps(failed_profile))
+        page.locator('input[type="file"]').set_input_files(failed_path)
+        page.get_by_role("button", name="Replace profile and reload").wait_for()
+        page.evaluate("""() => {
+          const original = Storage.prototype.setItem;
+          let injected = false;
+          Storage.prototype.setItem = function(key, value) {
+            if (!injected && key === 'omnistax-underlines' && value === '0') {
+              injected = true; throw new DOMException('Injected quota failure', 'QuotaExceededError');
+            }
+            return original.call(this, key, value);
+          };
+        }""")
+        failure_dialog = []
+        page.once("dialog", lambda dialog: (failure_dialog.append(dialog.message), dialog.accept()))
+        with page.expect_navigation(wait_until="domcontentloaded"):
+            page.get_by_role("button", name="Replace profile and reload").click()
+        page.wait_for_selector(".shell")
+        assert failure_dialog and "quota" in failure_dialog[0].lower()
+        assert page.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
+        assert page.evaluate("localStorage.getItem('omnistax-notes-other-book')") is not None
+        assert page.evaluate("localStorage.getItem('omnistax-restore-pending')") is None
+        open_settings(page)
+
         # A second initialized tab holds the shared lifetime lock. Import must
         # refuse, force a controlled reload, and leave the profile untouched.
         page.keyboard.press("Escape")
