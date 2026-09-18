@@ -3,6 +3,7 @@
    writes; the choice of what to add is kept in this browser. Adding a book
    also puts its row under User, so the two never drift apart. */
 import { explorer } from './store.svelte';
+import { readerWritesAllowed } from '../backup/guard';
 
 export type LibraryStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 export type LibraryBookDTO = {
@@ -59,6 +60,6 @@ class Library {
   }
   book(id: string): LibraryBookDTO | undefined { return this.books.find((b) => b.id === id); }
 
-  private save(): void { try { localStorage.setItem(KEY, JSON.stringify(this.added)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.added)); } catch { /* private mode */ } }
 }
 export const library = new Library();

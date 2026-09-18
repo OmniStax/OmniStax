@@ -74,6 +74,14 @@ test('concepts with one or two exercises use their available count as the denomi
   assert.equal(c.target, 1); assert.equal(c.mastered, true);
 });
 
+test('earned mastery survives a later increase in available exercises', () => {
+  const earned: Attempt = { ...attempt('c1', D1, true, ['c']), mastered: ['c'], release: 'release-a' };
+  const afterUpdate = rebuild([earned], [], {}, DEFAULT_SETTINGS, { c: 3 }).c;
+  assert.equal(afterUpdate.mastered, true);
+  assert.equal(afterUpdate.target, 3);
+  assert.equal(afterUpdate.level, 3);
+});
+
 test('freshness begins at mastery, becomes due at one half-life, and successful due reviews double it', () => {
   const first: RoundEnd = { id: newSessionId(), started: D1, at: D1, concepts: [], newlyMastered: ['a'] };
   const base = rebuild([], [first], {}, DEFAULT_SETTINGS, { a: 3 }).a;

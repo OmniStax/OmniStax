@@ -55,11 +55,15 @@ with sync_playwright() as playwright:
     assert exercises.locator(".question-grid button").count() > 0
     assert exercises.get_by_role("button", name="Show all exercises").count() == 1
 
-    # Dashboard mastery override is a flat concept list with decay opt-out gated
-    # behind an explicit self-assessed Mastered state.
+    # Dashboard progress drills from book to chapter to section; its inline
+    # override keeps decay opt-out gated behind an explicit Mastered state.
     exercises.get_by_role("button", name="Dashboard", exact=True).click()
-    exercises.get_by_role("button", name="Self-set mastery", exact=True).click()
-    row = exercises.locator(".self-row").first
+    progress = exercises.get_by_role("region", name="Concept progress")
+    progress.locator(".chapter-node").first.wait_for(state="visible")
+    progress.locator(".chapter-node").first.click()
+    progress.locator(".section-node").first.click()
+    progress.get_by_role("button", name="Override progress", exact=True).click()
+    row = progress.locator(".concept-progress-row").first
     select = row.locator("select")
     no_decay = row.locator('.no-decay input[type="checkbox"]')
     assert no_decay.is_disabled()

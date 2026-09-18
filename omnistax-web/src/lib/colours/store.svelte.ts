@@ -15,11 +15,12 @@ import {
   NO_CHOICES, applyPalette, clearHue, clearPlace, cssFor, effectiveHue, fromFile, hueFrom, isEmpty, moveType, orderOf,
   ownHue, schemeOf, setHue, toFile,
 } from './model';
+import { readerWritesAllowed } from '../backup/guard';
 
 const STYLE_ID = 'omnistax-colours';
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
-const write = (key: string, v: string): void => { try { localStorage.setItem(key, v); } catch { /* private mode */ } };
-const remove = (key: string): void => { try { localStorage.removeItem(key); } catch { /* private mode */ } };
+const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
+const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
 
 /* What a step of the timeline is called. The book's voice, and short enough to
    sit in a button's title: "velocity in section 16.3". A type whose label names

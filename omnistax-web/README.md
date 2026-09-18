@@ -15,6 +15,14 @@ python3 tests/e2e.py # browser scenarios against a served dist/ (Playwright for 
 Serve `dist/` over http (`python3 -m http.server -d dist 8080`). Loading a
 second section into a tab fetches its fragment, so `file://` is not enough.
 
+Settings provides validated full reader-profile export/import, including pasted
+note images and reader records for every book. The textbook finder can also
+download a verified book snapshot for offline use, repair an evicted download,
+and explicitly install an available update. See
+[`docs/reader-backups.md`](docs/reader-backups.md) and
+[`docs/offline-books.md`](docs/offline-books.md) for the contracts and publishing
+requirements. Desktop/Electron support remains a later project.
+
 ## Configuration
 
 `omnistax.config.ts` is the only place user-settable values live, grouped by
@@ -26,6 +34,7 @@ concern and read from the environment with defaults:
 | content | books | `OMNISTAX_BOOKS` | every book under the root |
 | site | baseUrl | `OMNISTAX_BASE_URL` | `https://omnistax.local` |
 | build | threeUrl | `OMNISTAX_THREE_URL` | `/vendor/three.min.js` |
+| publishing | release archive | `OMNISTAX_RELEASE_ARCHIVE_DIR` | none (fresh build contains current releases only) |
 
 The content root holds one folder per book, named for the book's title; a
 book's id comes from its `book.json`, and a folder without one (`tools/`) is
@@ -34,6 +43,13 @@ sets the order they are built and listed in; left empty, the build carries every
 book it finds, alphabetically by id. `OMNISTAX_BOOK` is the one-book form of
 the same setting. The books share one `/media/` address space, merged in the
 order they are built.
+
+Production publication must set `OMNISTAX_RELEASE_ARCHIVE_DIR` to the previous
+deployed static output (or an equivalent retained artifact directory). The
+offline build copies its immutable release tree before adding current releases;
+retain at least each catalogued current release and the previous installed
+release. Deploy the generated `_headers` file with `dist/` so release artifacts
+are immutable while the catalog, entry HTML, and service worker revalidate.
 
 ## Layout of the source
 

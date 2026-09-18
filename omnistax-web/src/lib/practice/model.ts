@@ -22,11 +22,11 @@ export const DEFAULT_SETTINGS: PracticeSettings = {
 export type Attempt = {
   readonly book: string; readonly section: SectionId; readonly ex: string;
   readonly at: number; readonly ok: boolean; readonly concepts: readonly string[];
-  readonly round?: SessionId;
+  readonly round?: SessionId; readonly release?: string; readonly mastered?: readonly string[];
 };
 export type Presentation = {
   readonly book: string; readonly section: SectionId; readonly ex: string;
-  readonly at: number; readonly round: SessionId;
+  readonly at: number; readonly round: SessionId; readonly release?: string;
 };
 export type SelfAssessment = { readonly level: number; readonly mastered: boolean; readonly at: number; readonly noDecay: boolean };
 export type SelfAssessments = Readonly<Record<string, SelfAssessment>>;
@@ -90,7 +90,10 @@ export const rebuild = (
     const relevant = attempts.filter((a) => (!a.round || ended.has(a.round)) && a.concepts.includes(id) && (!own || a.at > own.at)).sort((a, b) => a.at - b.at);
     let level = own ? (own.mastered ? target : clamp(Math.round(own.level), 0, target)) : 0;
     relevant.forEach((a) => { level = clamp(level + (a.ok ? 1 : -1), 0, target); });
-    const achievements = rounds.filter((r) => (!own || r.at > own.at) && r.newlyMastered.includes(id)).map((r) => r.at);
+    const achievements = [
+      ...rounds.filter((r) => (!own || r.at > own.at) && r.newlyMastered.includes(id)).map((r) => r.at),
+      ...attempts.filter((attempt) => (!own || attempt.at > own.at) && attempt.mastered?.includes(id)).map((attempt) => attempt.at),
+    ].sort((a, b) => a - b);
     const mastered = own ? own.mastered || achievements.length > 0 || level >= target : achievements.length > 0 || level >= target;
     if (!mastered && level === 0 && !own && relevant.length === 0) return;
     const masteredAt = own?.mastered ? own.at : achievements[0] ?? (mastered ? relevant.at(-1)?.at ?? 0 : 0);

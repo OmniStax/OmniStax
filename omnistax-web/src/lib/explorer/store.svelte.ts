@@ -7,6 +7,7 @@ import {
   addBook, addFolder, addNote, childrenOf, descendants, emptyTree, entryById, isExpanded,
   move, newEntryId, parseTree, pathOf, remove, rename, toggleExpanded, uniqueName,
 } from './model';
+import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-explorer-v1';
 const load = (): Tree => {
@@ -64,6 +65,6 @@ class Explorer {
   /* The entries of one kind, in reading order, for the pickers that list them. */
   ofKind(kind: Entry['kind']): Entry[] { return this.tree.entries.filter((e) => e.kind === kind); }
 
-  private save(): void { try { localStorage.setItem(KEY, JSON.stringify(this.tree)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.tree)); } catch { /* private mode */ } }
 }
 export const explorer = new Explorer();

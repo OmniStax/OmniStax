@@ -61,11 +61,10 @@
   const manifestOf = (id: string): BookManifest | undefined => (id === book ? registry.manifest : books.manifest(id));
   const chaptersOf = (id: string): readonly ChapterEntry[] => manifestOf(id)?.chapters ?? [];
   const statusOf = (id: string): string => books.status[id] ?? 'idle';
-  /* The catalogue of what the library holds, and then each book on the shelf. A
-     book is asked for only while nothing has been tried, so a book that will not
-     load is reported rather than fetched again and again. */
+  /* The catalogue of what the library holds. Books themselves are loaded by
+     the face that needs them: Choose loads the full shelf, while Dashboard
+     waits until a progress accordion is opened. */
   $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
-  $effect(() => { shelf.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); }); });
   const bookTitle = (id: string): string => (id === book ? registry.manifest.title || 'This book' : practice.bookTitle(id));
   const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
   const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
@@ -77,7 +76,6 @@
      concepts, and every built section, whose exercises only join the catalog
      once the section itself has been fetched. */
   const dirs = $derived(chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir));
-  $effect(() => { if (dirs.length) registry.loadChapters(dirs).catch(() => {}); });
   const loading = $derived(shelf.some((id) => statusOf(id) === 'idle' || statusOf(id) === 'loading') || dirs.some((d) => (registry.chapterStatus[d] ?? 'loading') === 'loading'));
 
   /* A checkbox that is neither on nor off: the browser takes that as a property
@@ -98,6 +96,10 @@
      otherwise to the choice. */
   const onDash = $derived(page.face === 'dashboard');
   const toPractise = (): void => { if (practice.live(item)) practice.resume(item); else practice.choose(item); };
+  const reopenRelease = (): void => {
+    const required = practice.requiredRelease(item); if (!required) return;
+    const url = new URL(location.href); url.searchParams.set('_omnistax_release', required.release); location.assign(url);
+  };
 
   /* ---------- choosing ---------- */
 
@@ -229,7 +231,7 @@
   const freshnessTitle = (id: string, now = Date.now()): string => {
     const record = practice.mastery[id]; if (!record?.mastered) return '';
     const fresh = freshnessOf(record, practice.settings, now);
-    if (fresh.permanent) return `${record.selfAssessed ? 'Self-assessed mastery' : 'Mastered'} · freshness decay off`;
+    if (fresh.permanent) return `${record.selfAssessed ? 'Progress override' : 'Mastered'} · freshness decay off`;
     const days = Math.ceil(Math.abs(fresh.dueAt - now) / DAY);
     return fresh.due ? `Mastered · ${days === 0 ? 'due now' : `overdue by ${days} ${days === 1 ? 'day' : 'days'}`}` : `Mastered · fresh for ${days} more ${days === 1 ? 'day' : 'days'}`;
   };
@@ -316,6 +318,47 @@
 
   /* ---------- book-wide concept progress ---------- */
 
+  /* Progress is deliberately demand-loaded. The book being read opens first,
+     so its standing is immediately useful; another book costs nothing beyond
+     its library row until the reader unfolds it. Choose still asks for every
+     book because it must be able to draw a complete round. */
+  let openProgressBooks = $state<readonly string[]>([]);
+  let progressSeeded = $state(false);
+  let openProgressChapters = $state<readonly string[]>([]);
+  let openProgressSections = $state<readonly string[]>([]);
+  const progressBookOpen = (id: string): boolean => openProgressBooks.includes(id);
+  const progressChapterKey = (id: string, chapter: ChapterEntry): string => `${id}/${chapter.id}`;
+  const progressSectionKey = (id: string, section: SectionEntry): string => `${id}/${section.id}`;
+  const progressChapterOpen = (id: string, chapter: ChapterEntry): boolean => openProgressChapters.includes(progressChapterKey(id, chapter));
+  const progressSectionOpen = (id: string, section: SectionEntry): boolean => openProgressSections.includes(progressSectionKey(id, section));
+  const toggleProgressBook = (id: string): void => { openProgressBooks = progressBookOpen(id) ? openProgressBooks.filter((x) => x !== id) : [...openProgressBooks, id]; };
+  const toggleProgressChapter = (id: string, chapter: ChapterEntry): void => {
+    const key = progressChapterKey(id, chapter);
+    openProgressChapters = openProgressChapters.includes(key) ? openProgressChapters.filter((x) => x !== key) : [...openProgressChapters, key];
+  };
+  const toggleProgressSection = (id: string, section: SectionEntry): void => {
+    const key = progressSectionKey(id, section);
+    openProgressSections = openProgressSections.includes(key) ? openProgressSections.filter((x) => x !== key) : [...openProgressSections, key];
+  };
+  $effect(() => {
+    if (!progressSeeded && book) { progressSeeded = true; openProgressBooks = [book]; }
+  });
+  $effect(() => {
+    if (page.face === 'choose') {
+      if (dirs.length) registry.loadChapters(dirs).catch(() => {});
+      shelf.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
+      return;
+    }
+    if (page.face !== 'dashboard') return;
+    if (progressBookOpen(book)) {
+      if (dirs.length) registry.loadChapters(dirs).catch(() => {});
+      /* Availability determines each mastery fraction's denominator, so the
+         current book's one compact exercise index belongs to its summary too. */
+      if (statusOf(book) === 'idle') books.load(book).catch(() => {});
+    }
+    openProgressBooks.filter((id) => id !== book).forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
+  });
+
   // conceptsIn deduplicates chapter prerequisites; standingOf excludes placeholders.
   const bookStanding = (id: string): Standing => standingOf(practice.conceptsIn(id), practice.mastery);
   const allConcepts = $derived([...new Map(cat.concepts.filter((c) => c.status === 'built').map((c) => [c.id, c] as const)).values()]);
@@ -325,6 +368,17 @@
     const states = dirs.map((d) => registry.chapterStatus[d]);
     if (states.some((s) => s === 'failed')) return 'failed';
     return states.some((s) => !s || s === 'loading') ? 'loading' : 'loaded';
+  };
+
+  const builtConcepts = (id: string) => practice.conceptsIn(id).filter((c) => c.status === 'built');
+  const sectionConcepts = (id: string, section: SectionEntry) => builtConcepts(id).filter((c) => c.section === section.id);
+  const chapterConcepts = (id: string, chapter: ChapterEntry) => {
+    const sections = new Set(chapter.sections.map((s) => s.id));
+    return builtConcepts(id).filter((c) => sections.has(c.section));
+  };
+  const standingLine = (standing: Standing): string => {
+    const total = standing.untouched + standing.practised + standing.mastered;
+    return total === 0 ? 'No concepts yet' : `${standing.mastered}/${total} mastered · ${standing.practised} practiced`;
   };
 
   type Row = { readonly id: string; readonly name: string; readonly kind: string; readonly state: State; readonly bar: number; readonly meta: string };
@@ -338,7 +392,7 @@
     const r = practice.mastery[c.id], st = practice.stateOf(c.id);
     return {
       id: c.id, name: c.name, kind: c.kind, state: st, bar: practice.share(c.id),
-        meta: [r?.selfAssessed ? 'self-assessed' : '', r?.lastAt ? ago(r.lastAt, now) : '', r?.mastered ? freshnessTitle(c.id, now) : `${r?.level ?? 0}/${r?.target ?? practice.settings.masteryTarget}`].filter(Boolean).join(' · '),
+        meta: [r?.selfAssessed ? 'overridden' : '', r?.lastAt ? ago(r.lastAt, now) : '', r?.mastered ? freshnessTitle(c.id, now) : `${r?.level ?? 0}/${r?.target ?? practice.settings.masteryTarget}`].filter(Boolean).join(' · '),
     };
   };
   const progressRows = $derived.by(() => {
@@ -347,14 +401,15 @@
     return progressed.flatMap((p) => { const row = rowOf(p.id, now); return row ? [{ ...row, ...p }] : []; });
   });
 
-  /* Self-assessment is an explicit editor under Progress. It includes concepts
-     with no exercises because prior knowledge is valid evidence too. */
-  let selfMode = $state(false);
+  /* An override is edited in the progress hierarchy itself. It includes
+     concepts with no exercises because prior knowledge is valid evidence too. */
+  let overrideMode = $state(false);
   let selfQuery = $state('');
-  const selfRows = $derived.by(() => {
-    const needle = selfQuery.trim().toLowerCase();
-    return allConcepts.filter((c) => !needle || plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle));
-  });
+  const progressNeedle = $derived(selfQuery.trim().toLowerCase());
+  const conceptMatches = (c: { readonly id: string; readonly name: string }): boolean => !progressNeedle || plain(c.name).toLowerCase().includes(progressNeedle) || c.id.includes(progressNeedle);
+  const visibleSectionConcepts = (id: string, section: SectionEntry) => sectionConcepts(id, section).filter(conceptMatches);
+  const chapterMatches = (id: string, chapter: ChapterEntry): boolean => !progressNeedle || chapterConcepts(id, chapter).some(conceptMatches);
+  const bookMatches = (id: string): boolean => !progressNeedle || progressStatus(id) !== 'loaded' || builtConcepts(id).some(conceptMatches);
   const setSelfValue = (id: string, value: string): void => {
     if (value === 'none') { practice.clearSelf(id); return; }
     const mastered = value === 'mastered';
@@ -373,6 +428,16 @@
   {@const fresh = practice.freshness(id)}
   {@render box(st, practice.share(id), boxTitle(id, st), fresh.value, fresh.due)}
 {/snippet}
+{#snippet standingMeter(standing: Standing)}
+  {@const total = standing.untouched + standing.practised + standing.mastered}
+  <span class="standing-meter" role="img" aria-label={standingLine(standing)} title={standingLine(standing)}>
+    {#if total > 0}
+      <i class="meter-mastered" style:width={`${standing.mastered / total * 100}%`}></i>
+      <i class="meter-practised" style:width={`${standing.practised / total * 100}%`}></i>
+      <i class="meter-untouched" style:width={`${standing.untouched / total * 100}%`}></i>
+    {/if}
+  </span>
+{/snippet}
 
 <div class="faces">
   <button type="button" class="tab" class:on={onDash} aria-current={onDash ? 'true' : undefined} onclick={() => practice.dashboard(item)}>Dashboard</button>
@@ -389,37 +454,8 @@
     </div>
     <div class="acts">
       <button type="button" class="btn go" onclick={() => practice.choose(item)}>Choose what to practice</button>
-      <button type="button" class="btn" onclick={() => (selfMode = !selfMode)}>{selfMode ? 'Close self-set mastery' : 'Self-set mastery'}</button>
     </div>
     {#if note}<p class="quiet">{note}</p>{/if}
-
-    {#if selfMode}
-      <section class="panel self-editor">
-        <div class="self-head"><h3 class="head">Self-set mastery</h3><input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept to assess" bind:value={selfQuery}></div>
-        <p class="quiet">Set your own attainment independently of exercise history. Removing it restores the state rebuilt from completed exercises.</p>
-        <div class="self-list">
-          {#each selfRows as c (c.id)}
-            {@const own = practice.self[c.id]}
-            {@const record = practice.mastery[c.id]}
-            {@const fresh = practice.freshness(c.id)}
-            <div class="self-row">
-              <i class="dot k-{c.kind}" aria-hidden="true"></i>
-              <span class="lab"><span use:math={c.name}>{@html c.name}</span></span>
-              <select aria-label={`Self-assessed mastery for ${plain(c.name)}`} value={own ? own.mastered ? 'mastered' : String(own.level) : 'none'} onchange={(e) => setSelfValue(c.id, e.currentTarget.value)}>
-                <option value="none">Use exercise history</option>
-                <option value="0">Unpracticed</option>
-                {#each Array.from({ length: Math.max(0, practice.settings.masteryTarget - 1) }, (_, i) => i + 1) as level (level)}<option value={level}>{level}/{practice.settings.masteryTarget}</option>{/each}
-                <option value="mastered">Mastered</option>
-              </select>
-              <label class="no-decay" title="Available only for self-assessed mastery"><input type="checkbox" disabled={!own?.mastered} checked={own?.mastered && own.noDecay} onchange={(e) => practice.setSelf(c.id, practice.settings.masteryTarget, true, e.currentTarget.checked)}> No freshness decay</label>
-              {#if own?.mastered && practice.available(c.id) === 0 && fresh.due}
-                <span class="manual"><button type="button" class="btn" onclick={() => practice.manualReview(c.id, true)}>Still mastered</button><button type="button" class="btn" onclick={() => practice.manualReview(c.id, false)}>Needs review</button></span>
-              {:else if record?.mastered}<span class="self-fresh">{freshnessTitle(c.id)}</span>{/if}
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/if}
 
     {#if running.length}
       <section class="panel">
@@ -471,24 +507,104 @@
       </div>
     </section>
 
-    <section class="panel book-progress" aria-label="Book concept progress">
-      <h3 class="head">Concept progress</h3>
-      {#each shelf as b (b)}
-        {@const status = progressStatus(b)}
-        <div class="book-standing">
-          <h4>{bookTitle(b)}</h4>
-          {#if status === 'loaded'}
-            {@const counts = bookStanding(b)}
-            <dl class="concept-counts">
-              <div><dt>Unpracticed</dt><dd>{counts.untouched}</dd></div>
-              <div><dt>Practiced</dt><dd>{counts.practised}</dd></div>
-              <div><dt>Mastered</dt><dd>{counts.mastered}</dd></div>
-            </dl>
-          {:else}
-            <p class="quiet">{status === 'failed' ? 'Concept progress could not be loaded.' : 'Loading concept progress…'}</p>
-          {/if}
+    <section class="panel book-progress" aria-label="Concept progress">
+      <div class="progress-head">
+        <div><h3 class="head">Concept progress</h3><p class="quiet">Trace your mastery from each book down to the concepts in a section.</p></div>
+        <button type="button" class="btn override" class:on={overrideMode} aria-pressed={overrideMode} onclick={() => (overrideMode = !overrideMode)}>{overrideMode ? 'Done overriding' : 'Override progress'}</button>
+      </div>
+      {#if overrideMode}
+        <div class="override-tools">
+          <p class="quiet">Choose a concept’s progress independently of exercise history. “Use exercise history” removes the override.</p>
+          <input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept to override" bind:value={selfQuery}>
         </div>
-      {/each}
+      {/if}
+      <div class="progress-tree">
+        {#each shelf as b (b)}
+          {#if bookMatches(b)}
+            {@const status = progressStatus(b)}
+            {@const bookShown = progressBookOpen(b) || (!!progressNeedle && status === 'loaded')}
+            {@const counts = bookStanding(b)}
+            <div class="progress-branch book-branch">
+              <button type="button" class="progress-node book-node" aria-expanded={bookShown} onclick={() => toggleProgressBook(b)}>
+                <span class="progress-twisty" class:open={bookShown}>▸</span>
+                <span class="node-copy"><strong>{bookTitle(b)}</strong><small>{status === 'loaded' ? standingLine(counts) : status === 'failed' ? 'Progress unavailable' : bookShown ? 'Loading progress…' : 'Open to load progress'}</small></span>
+                {#if status === 'loaded'}{@render standingMeter(counts)}{/if}
+              </button>
+              {#if bookShown}
+                <div class="branch-children">
+                  {#if status === 'loaded'}
+                    {#each chaptersOf(b) as c (c.id)}
+                      {#if chapterMatches(b, c)}
+                        {@const chapterShown = progressChapterOpen(b, c) || !!progressNeedle}
+                        {@const chapterStanding = standingOf(chapterConcepts(b, c), practice.mastery)}
+                        <div class="progress-branch chapter-branch">
+                          <button type="button" class="progress-node chapter-node" aria-expanded={chapterShown} onclick={() => toggleProgressChapter(b, c)}>
+                            <span class="progress-twisty" class:open={chapterShown}>▸</span>
+                            <span class="node-copy"><strong>{c.id} · {c.title}</strong><small>{standingLine(chapterStanding)}</small></span>
+                            {@render standingMeter(chapterStanding)}
+                          </button>
+                          {#if chapterShown}
+                            <div class="branch-children">
+                              {#each c.sections.filter((s) => s.built) as s (s.id)}
+                                {@const concepts = visibleSectionConcepts(b, s)}
+                                {#if !progressNeedle || concepts.length}
+                                  {@const sectionShown = progressSectionOpen(b, s) || !!progressNeedle}
+                                  {@const sectionStanding = standingOf(sectionConcepts(b, s), practice.mastery)}
+                                  <div class="progress-branch section-branch">
+                                    <button type="button" class="progress-node section-node" aria-expanded={sectionShown} onclick={() => toggleProgressSection(b, s)}>
+                                      <span class="progress-twisty" class:open={sectionShown}>▸</span>
+                                      <span class="node-copy"><strong>{s.id} · {s.title}</strong><small>{standingLine(sectionStanding)}</small></span>
+                                      {@render standingMeter(sectionStanding)}
+                                    </button>
+                                    {#if sectionShown}
+                                      <div class="concept-leaves">
+                                        {#each concepts as c (c.id)}
+                                          {@const own = practice.self[c.id]}
+                                          {@const record = practice.mastery[c.id]}
+                                          {@const fresh = practice.freshness(c.id)}
+                                          <div class="concept-progress-row prow" tabindex="0" data-concept={c.id}>
+                                            {@render masteryBox(c.id)}
+                                            <i class="dot k-{c.kind}" aria-hidden="true"></i>
+                                            <span class="lab"><span use:math={c.name}>{@html c.name}</span></span>
+                                            {#if overrideMode}
+                                              <div class="override-controls">
+                                                <select aria-label={`Override progress for ${plain(c.name)}`} value={own ? own.mastered ? 'mastered' : String(own.level) : 'none'} onchange={(e) => setSelfValue(c.id, e.currentTarget.value)}>
+                                                  <option value="none">Use exercise history</option>
+                                                  <option value="0">Unpracticed</option>
+                                                  {#each Array.from({ length: Math.max(0, practice.settings.masteryTarget - 1) }, (_, i) => i + 1) as level (level)}<option value={level}>{level}/{practice.settings.masteryTarget}</option>{/each}
+                                                  <option value="mastered">Mastered</option>
+                                                </select>
+                                                <label class="no-decay" title="Available only for overridden mastery"><input type="checkbox" disabled={!own?.mastered} checked={own?.mastered && own.noDecay} onchange={(e) => practice.setSelf(c.id, practice.settings.masteryTarget, true, e.currentTarget.checked)}> No decay</label>
+                                                {#if own?.mastered && practice.available(c.id) === 0 && fresh.due}
+                                                  <span class="manual"><button type="button" class="btn" onclick={() => practice.manualReview(c.id, true)}>Still mastered</button><button type="button" class="btn" onclick={() => practice.manualReview(c.id, false)}>Needs review</button></span>
+                                                {:else if record?.mastered}<span class="self-fresh">{freshnessTitle(c.id)}</span>{/if}
+                                              </div>
+                                            {:else}
+                                              <span class="concept-state">{STATE_WORD[practice.stateOf(c.id)]}</span>
+                                            {/if}
+                                          </div>
+                                        {:else}
+                                          <p class="empty-section">No concepts are introduced in this section yet.</p>
+                                        {/each}
+                                      </div>
+                                    {/if}
+                                  </div>
+                                {/if}
+                              {/each}
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
+                    {/each}
+                  {:else}
+                    <p class="progress-message">{status === 'failed' ? 'Concept progress could not be loaded.' : 'Loading this book’s concept map…'}</p>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      </div>
     </section>
   </div>
 
@@ -589,7 +705,9 @@
       <div class="acts">
         <button type="button" class="btn go" disabled={plan.drawn.length === 0} onclick={begin}>Start {plan.drawn.length}</button>
         <span class="diagnostic">{diagnostic}</span>
-        {#if practice.live(item)}<button type="button" class="btn" onclick={() => practice.resume(item)}>Back to the session</button>{/if}
+        {#if practice.live(item) && practice.requiredRelease(item)}
+          <span class="diagnostic">This saved session uses textbook release {practice.requiredRelease(item)?.release.slice(0, 10)}…</span><button type="button" class="btn" onclick={reopenRelease}>Reopen its original release</button>
+        {:else if practice.live(item)}<button type="button" class="btn" onclick={() => practice.resume(item)}>Back to the session</button>{/if}
       </div>
     </div>
   </div>
@@ -751,14 +869,44 @@
   .cell[data-d="3"]{background:color-mix(in srgb,var(--ok) 62%,var(--soft2))}
   .cell[data-d="4"]{background:color-mix(in srgb,var(--ok) 82%,var(--soft2))}
   .cell[data-d="5"]{background:var(--ok)}
-  /* Each book counts concepts directly, without chapter or section rollups. */
-  .book-standing{padding:10px 0}
-  .book-standing + .book-standing{border-top:1px solid var(--rule)}
-  .book-standing h4{font:600 .85rem/1.4 var(--sans);margin:0 0 8px;overflow-wrap:anywhere}
-  .concept-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
-  .concept-counts div{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .concept-counts dt{font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
-  .concept-counts dd{font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;margin:0}
+  /* Concept progress is a compact curriculum map rather than a flat report.
+     The left rail visibly carries the reader from book to chapter to section;
+     each node repeats the same three-part standing meter. */
+  .book-progress{padding:0;overflow:hidden}
+  .progress-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 9%,var(--panel)),var(--panel) 56%);border-bottom:1px solid var(--rule)}
+  .progress-head .head{margin:0 0 3px}
+  .progress-head .quiet{font-size:.75rem}
+  .override{flex:none;border-color:color-mix(in srgb,var(--accent) 45%,var(--rule));color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}
+  .override.on{color:var(--panel);border-color:var(--accent);background:var(--accent)}
+  .override-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,280px);align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--rule);background:var(--soft)}
+  .progress-tree{padding:8px 10px 12px}
+  .progress-branch{position:relative;min-width:0}
+  .branch-children{position:relative;margin-left:14px;padding-left:14px;border-left:1px solid color-mix(in srgb,var(--accent) 24%,var(--rule))}
+  .progress-node{width:100%;display:grid;grid-template-columns:14px minmax(0,1fr) minmax(64px,120px);align-items:center;gap:8px;text-align:left;font:inherit;color:var(--ink);border:0;border-radius:8px;background:none;padding:7px 8px;cursor:pointer}
+  .progress-node:hover{background:var(--soft)}
+  .progress-node:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .book-node{padding-block:10px}
+  .node-copy{display:flex;flex-direction:column;min-width:0;gap:1px}
+  .node-copy strong{font-size:.82rem;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .book-node .node-copy strong{font-size:.9rem;font-weight:750}
+  .section-node .node-copy strong{font-weight:550}
+  .node-copy small{font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  .progress-twisty{color:var(--muted);font-size:.7rem;line-height:1;transition:transform .14s ease}
+  .progress-twisty.open{transform:rotate(90deg);color:var(--accent)}
+  .standing-meter{height:6px;display:flex;overflow:hidden;border-radius:999px;background:var(--soft2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rule) 70%,transparent)}
+  .standing-meter i{height:100%;display:block}
+  .meter-mastered{background:var(--m-high)}
+  .meter-practised{background:var(--m-mid)}
+  .meter-untouched{background:var(--soft2)}
+  .progress-message,.empty-section{font-size:.74rem;color:var(--muted);margin:4px 8px 8px}
+  .concept-leaves{display:flex;flex-direction:column;padding:2px 0 7px}
+  .concept-progress-row{display:grid;grid-template-columns:auto auto minmax(100px,1fr) auto;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;min-width:0}
+  .concept-progress-row:hover{background:var(--soft)}
+  .concept-progress-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .concept-progress-row .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .concept-state{text-transform:uppercase;letter-spacing:.055em;font-size:.62rem;font-weight:650;color:var(--muted)}
+  .override-controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .override-controls select{font:inherit;font-size:.72rem;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:4px 6px}
   /* ---------- choosing ---------- */
   /* the picks as they stand, each carrying the × that takes it out again */
   .selection-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
@@ -805,10 +953,6 @@
   .round-settings .seg button.on{background:var(--soft);color:var(--ink);font-weight:650}
   .fresh-toggle{color:var(--muted);display:flex;align-items:center;gap:5px}
   .diagnostic{color:var(--muted);font-size:.74rem;flex:1 1 280px}
-  .self-head{display:flex;align-items:center;gap:12px}.self-head .head{margin:0;flex:none}.self-head .find{margin-left:auto;max-width:280px}
-  .self-list{display:flex;flex-direction:column;gap:4px;margin-top:10px;max-height:55vh;overflow:auto}
-  .self-row{display:grid;grid-template-columns:auto minmax(120px,1fr) auto auto;align-items:center;gap:8px;padding:5px 4px;border-top:1px solid var(--rule)}
-  .self-row select{font:inherit;font-size:.76rem;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:4px 6px}
   .no-decay{font-size:.72rem;color:var(--muted);white-space:nowrap}.manual{display:flex;gap:4px}.self-fresh{font-size:.7rem;color:var(--muted)}
   /* The numbered grid is navigation and progress in one place. The outline marks
      the question in hand; a completed square carries its verdict's colour. */
@@ -846,7 +990,13 @@
     .row.prow{flex-wrap:wrap}
     .row.prow .lab{flex:1 1 70%;white-space:normal}
     .row.prow .meta{display:none}
-    .self-row{grid-template-columns:auto 1fr}.self-row select,.self-row .no-decay,.self-row .manual,.self-row .self-fresh{grid-column:2}
+    .progress-head{align-items:stretch;flex-direction:column}.progress-head .override{align-self:flex-start}
+    .override-tools{grid-template-columns:1fr}
+    .progress-node{grid-template-columns:12px minmax(0,1fr) 72px}
+    .branch-children{margin-left:7px;padding-left:7px}
+    .concept-progress-row{grid-template-columns:auto auto minmax(0,1fr)}
+    .concept-progress-row .concept-state,.concept-progress-row .override-controls{grid-column:3;justify-content:flex-start}
+    .concept-progress-row .lab{white-space:normal}
   }
   /* a page has room for the reading size the rest of the views take in one */
   :global(.view-pane) .dash,:global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto;gap:16px}

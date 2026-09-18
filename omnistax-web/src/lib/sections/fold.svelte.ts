@@ -5,6 +5,7 @@
    document is prepared (registry.svelte.ts), one delegated click listener
    per root, like the "Original" button. */
 import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, renamedSimId } from './fold';
+import { readerWritesAllowed } from '../backup/guard';
 export { FOLDABLE, HIDEABLE, foldableOf, hideableOf, headingOf } from './fold';
 
 type StorageKey = 'omnistax-folded' | 'omnistax-hidden-figs';
@@ -12,7 +13,7 @@ const load = (key: StorageKey): readonly string[] => {
   if (typeof localStorage === 'undefined') return [];
   try { return parseIds(JSON.parse(localStorage.getItem(key) ?? 'null'))?.map(renamedSimId) ?? []; } catch { return []; }
 };
-const save = (key: StorageKey, ids: readonly string[]): void => { try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* private mode */ } };
+const save = (key: StorageKey, ids: readonly string[]): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* private mode */ } };
 
 class IdSet {
   ids = $state.raw<readonly string[]>([]);

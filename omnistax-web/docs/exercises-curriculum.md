@@ -106,19 +106,25 @@ Settings expose mastery target, freshness decay, starting half-life, maximum
 half-life, Mixed/Grouped order, and whether fresh mastered concepts are
 included. Turning global freshness decay off keeps all mastered concepts fresh.
 
-## Self-set mastery
+## Override progress
 
-Dashboard Progress has a flat, searchable self-set mastery editor. It includes
-every concept, including concepts with no exercise. The reader can choose
-Unpracticed, an exact fraction, or Mastered. This is stored as a separate
-self-assessment rather than as fake attempts; removing it restores the state
-rebuilt from exercise history.
+Dashboard Concept progress is a nested book → chapter → section accordion.
+Every level reports its current practiced/mastered standing, and a section
+opens to the concepts it introduces. The current book is loaded first; other
+books load their progress only when opened. Practice still loads the full
+shelf before it composes a round.
 
-A self-assessed mastered concept begins at the starting half-life. Concepts
+`Override progress` exposes the controls on those concept rows and adds a
+search that unfolds matching paths. It includes every built concept, including
+concepts with no exercise. The reader can choose Unpracticed, an exact fraction,
+or Mastered. This is stored as a separate self-assessment rather than as fake
+attempts; removing it restores the state rebuilt from exercise history.
+
+An overridden mastered concept begins at the starting half-life. Concepts
 with exercises use normal exercise reviews. A due concept with no exercises
-offers `Still mastered` and `Needs review` manual checks. Only self-assessed
+offers `Still mastered` and `Needs review` manual checks. Only overridden
 mastery can enable the per-concept `No freshness decay` option. Such a concept
-is permanently fresh and displays the self-assessment and infinity state.
+is permanently fresh and displays the override and infinity state.
 
 ## Persistence and activity
 

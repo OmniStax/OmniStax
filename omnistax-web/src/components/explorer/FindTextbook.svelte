@@ -8,8 +8,9 @@
   import { explorer } from '../../lib/explorer/store.svelte';
   import { bookKey } from '../../lib/explorer/model';
   import { ICON } from '../../lib/icons';
+  import { offlineBooks } from '../../lib/offline/store.svelte';
 
-  $effect(() => { if (ui.findTextbook) void library.load(); });
+  $effect(() => { if (ui.findTextbook) { void library.load(); void offlineBooks.check(); } });
 
   /* Adding a book puts its row under User; the row opens as well, so that the
      chapters are there to be read straight away. */
@@ -21,6 +22,16 @@
     [b.publisher, b.authors.join(', ')].filter((s) => s.length > 0).join(' · ');
   const size = (b: LibraryBookDTO): string =>
     `${b.chapters} ${b.chapters === 1 ? 'chapter' : 'chapters'} · ${b.sections} ${b.sections === 1 ? 'section' : 'sections'}`;
+  const bytes = (n: number): string => n < 1024 * 1024 ? `${Math.ceil(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
+  const offlineSize = (id: string): string => { const n = offlineBooks.catalog?.books.find((book) => book.id === id)?.totalBytes; return n ? bytes(n) : ''; };
+  const countChanges = (id: string): string => {
+    const change = offlineBooks.changes[id]?.changes; if (!change) return '';
+    const s = change.sections, r = change.resources;
+    return `${s.added.length} sections added · ${s.changed.length} changed · ${s.removed.length} removed; ${r.added.length} resources added · ${r.changed.length} changed · ${r.removed.length} removed`;
+  };
+  const when = (value: string | number | undefined): string => value ? new Date(value).toLocaleString() : 'never';
+  const releaseWhen = (value: string | undefined): string => !value || value.startsWith('1970-01-01') ? 'date not provided' : new Date(value).toLocaleDateString();
+  const lastCheck = $derived(offlineBooks.lastCheck ?? Math.max(0, ...Object.values(offlineBooks.records).map((record) => record.lastCheck ?? 0)));
 </script>
 
 {#if ui.findTextbook}
@@ -33,19 +44,39 @@
       <button type="button" class="x" title="Close" aria-label="Close" onclick={() => ui.closeFindTextbook()}>×</button>
     </header>
     <div class="list">
+      <div class="updates"><button type="button" class="add" disabled={offlineBooks.checking} onclick={() => void offlineBooks.check()}>{offlineBooks.checking ? 'Checking…' : 'Check for updates'}</button><span>Last successful check: {when(lastCheck || undefined)}</span>{#if offlineBooks.message}<span class="bad">{offlineBooks.message}</span>{/if}</div>
       {#if library.status === 'loading'}
         <div class="none">Looking for books…</div>
       {:else if library.status === 'failed'}
         <div class="none bad">The catalogue could not be read.</div>
       {:else}
         {#each library.books as b (b.id)}
+          {@const installed = offlineBooks.records[b.id]}
+          {@const available = offlineBooks.catalog?.books.find((book) => book.id === b.id)}
+          {@const progress = offlineBooks.progress[b.id]}
           <div class="book" data-book={b.id}>
             <span class="bico">{@html ICON.book}</span>
             <span class="what">
               <span class="name">{b.title}</span>
               {#if parts(b)}<span class="who">{parts(b)}</span>{/if}
-              <span class="counts">{size(b)}</span>
+              <span class="counts">{size(b)}{offlineSize(b.id) ? ` · ${offlineSize(b.id)} offline` : ''}</span>
+              {#if installed?.publishedAt}<span class="counts">Installed release: {releaseWhen(installed.publishedAt)}{installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact) ? ' · update available' : ''}</span>{/if}
+              {#if available && installed?.installedRelease && (available.releaseId !== installed.installedRelease || available.artifactId !== installed.installedArtifact)}<span class="counts">Available release: {releaseWhen(available.publishedAt)}</span>{/if}
+              {#if progress}<progress value={progress.bytes} max={progress.totalBytes}></progress><span class="counts">{progress.files} / {progress.totalFiles} files</span>{/if}
             </span>
+            <span class="offline-actions">
+              {#if offlineBooks.downloading(b.id)}
+                <button type="button" class="add" onclick={() => offlineBooks.cancel(b.id)}>Cancel</button>
+              {:else if installed?.installedRelease && installed.status === 'ready'}
+                <span class="available">Available offline</span>
+                {#if installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact)}<button type="button" class="add" onclick={() => void offlineBooks.loadChanges(b.id)}>View changes</button><button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>Update</button>{/if}
+                <button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>Remove download</button>
+              {:else}
+                <button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>{installed?.installedRelease ? 'Repair download' : installed?.status === 'failed' ? 'Retry download' : 'Download for offline use'}</button>
+                {#if installed?.installedRelease}<button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>Remove download</button>{/if}
+              {/if}
+            </span>
+            {#if offlineBooks.changes[b.id]}<span class="change-note">{offlineBooks.changes[b.id].notes ?? countChanges(b.id)}</span>{/if}
             {#if library.has(b.id)}
               <button type="button" class="add" disabled title="Already under User">Added</button>
             {:else}
@@ -80,6 +111,11 @@
   .add:hover:not(:disabled){background:var(--soft2)}
   .add:disabled{color:var(--muted);cursor:default;opacity:.7}
   .add:focus-visible{outline:2px solid var(--accent)}
+  .offline-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:230px}
+  .available{font-size:.72rem;color:var(--good,#16803c);white-space:nowrap}
+  progress{width:100%;height:5px}
+  .updates{display:flex;align-items:center;gap:10px;padding:6px 14px;border-bottom:1px solid var(--rule);font-size:.76rem;color:var(--muted)}
+  .change-note{flex-basis:100%;margin-left:28px;color:var(--muted);font-size:.74rem}
   .none{padding:16px 14px;color:var(--muted)}
   .none.bad{color:var(--bad)}
 </style>

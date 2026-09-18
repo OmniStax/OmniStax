@@ -30,6 +30,7 @@
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
+  import { offlineBooks } from '../../lib/offline/store.svelte';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
@@ -46,6 +47,8 @@
     readonly open: boolean;
     readonly dim: boolean;           /* not built, or nothing to say yet */
     readonly active: boolean;        /* what the focused group is showing */
+    readonly book?: string;
+    readonly updated?: boolean;
   };
 
   /* The manifests of the books that are not this page's, fetched once each. */
@@ -96,7 +99,8 @@
       out.push({
         key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: sec,
         href: own ? undefined : s.url, expandable: own && s.built, open,
-        dim: !s.built, active: own && s.built && focus.section === sec,
+        dim: !s.built, active: own && s.built && focus.section === sec, book: bookId,
+        updated: (offlineBooks.updatedSections[bookId] ?? []).includes(s.id),
       });
       if (!own || !s.built || !open) return;
       const heads = headingsOf(sec);
@@ -258,7 +262,7 @@
     if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
-    if (r.kind === 'section' && r.section && !r.dim && !r.href) { void openDoc(r.section, 'text'); return; }
+    if (r.kind === 'section' && r.section && !r.dim && !r.href) { if (r.book) offlineBooks.markSeen(r.book, r.section); void openDoc(r.section, 'text'); return; }
     if (r.kind === 'heading' && r.domId) go(r.domId);
   };
 
@@ -384,6 +388,7 @@
           {:else}
             <span class="lbl">{r.label}</span>
           {/if}
+          {#if r.updated}<span class="updated" title="Updated since your last visit">Updated</span>{/if}
           {#if r.entry && r.kind !== 'book'}
             {@const own = r.entry}
             <button type="button" class="dots" tabindex="-1" title="More" aria-label="More for {r.label}"
@@ -434,6 +439,7 @@
   .dots{flex:none;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;padding:0;line-height:1;opacity:0}
   .row:hover .dots,.row.sel .dots,.dots:focus-visible{opacity:1}
   .dots:hover{background:var(--soft2);color:var(--ink)}
+  .updated{font-size:.65rem;color:var(--accent);font-weight:600}
 
   :global(.view-pane) .row{font-size:0.92rem;line-height:2}
   :global(.view-pane) .row.r-heading .lbl{font-size:0.88rem}

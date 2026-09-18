@@ -12,13 +12,15 @@ import {
   type PracticeSettings, type Presentation, type RoundEnd, type RoundPlan,
   type SelfAssessments, type SessionId, type State,
 } from './model';
+import { readerWritesAllowed } from '../backup/guard';
+import { offlineBooks } from '../offline/store.svelte';
 
 export type Face = 'dashboard' | 'choose' | 'practise' | 'progress';
 export type Session = {
   readonly id: SessionId;
   readonly curriculum: Curriculum;
   readonly concepts: readonly string[];
-  readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why'] }[];
+  readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why']; release?: string }[];
   readonly at: number;
   readonly outcomes: readonly (boolean | null)[];
   readonly started: number;
@@ -45,11 +47,11 @@ const oldConcepts = (raw: unknown): string[] => Object.keys(obj(raw) ?? {});
 const parseAttempts = (raw: unknown): Attempt[] => !Array.isArray(raw) ? [] : raw.flatMap((value) => {
   const o = obj(value); if (!o || !str(o.book) || !str(o.section) || !str(o.ex) || !Number.isFinite(o.at)) return [];
   const concepts = strings(o.concepts); const round = str(o.round);
-  return [{ book: str(o.book), section: sectionId(str(o.section)), ex: str(o.ex), at: num(o.at), ok: o.ok === true, concepts: concepts.length ? concepts : oldConcepts(o.earned), ...(round ? { round: sessionId(round) } : {}) }];
+  return [{ book: str(o.book), section: sectionId(str(o.section)), ex: str(o.ex), at: num(o.at), ok: o.ok === true, concepts: concepts.length ? concepts : oldConcepts(o.earned), ...(round ? { round: sessionId(round) } : {}), ...(str(o.release) ? { release: str(o.release) } : {}), ...(strings(o.mastered).length ? { mastered: strings(o.mastered) } : {}) }];
 });
 const parseShown = (raw: unknown): Presentation[] => !Array.isArray(raw) ? [] : raw.flatMap((value) => {
   const o = obj(value); if (!o || !str(o.book) || !str(o.section) || !str(o.ex) || !str(o.round) || !Number.isFinite(o.at)) return [];
-  return [{ book: str(o.book), section: sectionId(str(o.section)), ex: str(o.ex), at: num(o.at), round: sessionId(str(o.round)) }];
+  return [{ book: str(o.book), section: sectionId(str(o.section)), ex: str(o.ex), at: num(o.at), round: sessionId(str(o.round)), ...(str(o.release) ? { release: str(o.release) } : {}) }];
 });
 const parseSettings = (raw: unknown): PracticeSettings => {
   const o = obj(raw); if (!o) return DEFAULT_SETTINGS;
@@ -101,7 +103,7 @@ const parseSession = (raw: unknown, id: SessionId): Session | null => {
   const drawn = o.drawn.flatMap((value) => {
     const d = obj(value); if (!d || !str(d.book) || !str(d.section) || !str(d.ex)) return [];
     const why: Drawn['why'] = d.why === 'new' || d.why === 'unanswered' || d.why === 'review' ? d.why : 'review';
-    return [{ book: str(d.book), section: sectionId(str(d.section)), ex: str(d.ex), why }];
+    return [{ book: str(d.book), section: sectionId(str(d.section)), ex: str(d.ex), why, ...(str(d.release) ? { release: str(d.release) } : {}) }];
   });
   if (!drawn.length) return null;
   const oldAnswered = Array.isArray(o.answered) ? o.answered : [];
@@ -168,7 +170,9 @@ class Practice {
 
   record(book: string, section: SectionId, ex: ExerciseDTO, ok: boolean, _self = true, now = Date.now(), inRound?: SessionId): Attempt {
     const round = inRound ?? Object.values(this.sessions).find((s) => s.drawn[s.at]?.book === book && s.drawn[s.at]?.section === section && s.drawn[s.at]?.ex === ex.id)?.id;
-    const attempt: Attempt = { book, section, ex: ex.id, at: now, ok, concepts: [...ex.concepts], ...(round ? { round } : {}) };
+    const release = offlineBooks.releaseOf(book);
+    const mastered = ok ? ex.concepts.filter((id) => { const before = this.mastery[id]; const target = before?.target ?? Math.min(this.settings.masteryTarget, Math.max(1, this.available(id))); return !before?.mastered && (before?.level ?? 0) + 1 >= target; }) : [];
+    const attempt: Attempt = { book, section, ex: ex.id, at: now, ok, concepts: [...ex.concepts], ...(round ? { round } : {}), ...(release ? { release } : {}), ...(mastered.length ? { mastered } : {}) };
     this.attempts = [...this.attempts, attempt];
     if (round) {
       const session = this.sessions[round];
@@ -183,7 +187,7 @@ class Practice {
   markShownAt(key: ItemKey, at: number, now = Date.now()): void {
     const session = this.sessionOf(key), d = session?.drawn[at]; if (!session || !d) return;
     if (this.shown.some((p) => p.round === session.id && p.book === d.book && p.section === d.section && p.ex === d.ex)) return;
-    this.shown = [...this.shown, { book: d.book, section: d.section, ex: d.ex, at: now, round: session.id }]; this.save();
+    this.shown = [...this.shown, { book: d.book, section: d.section, ex: d.ex, at: now, round: session.id, ...(d.release ? { release: d.release } : {}) }]; this.save();
   }
   setSetting<K extends keyof PracticeSettings>(key: K, value: PracticeSettings[K]): void {
     let next = { ...this.settings, [key]: value };
@@ -223,7 +227,7 @@ class Practice {
     const page = this.page(key), plan = this.plan(key, now); if (!plan.drawn.length) return false;
     const session: Session = {
       id: newSessionId(), curriculum: [...page.curriculum], concepts: [...plan.concepts],
-      drawn: plan.drawn.map((d) => ({ book: d.book, section: d.section, ex: d.ex.id, why: d.why })),
+      drawn: plan.drawn.map((d) => { const release = offlineBooks.releaseOf(d.book); return { book: d.book, section: d.section, ex: d.ex.id, why: d.why, ...(release ? { release } : {}) }; }),
       at: 0, outcomes: plan.drawn.map(() => null), started: now, before: this.mastery,
     };
     this.put(session); this.set(key, { ...page, session: session.id, face: 'practise' }); return true;
@@ -265,7 +269,12 @@ class Practice {
   progress(key: ItemKey): ReturnType<typeof progressOf> { const s = this.sessionOf(key); return s ? progressOf(s.before, this.mastery) : []; }
   choose(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'choose' }); }
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
-  resume(key: ItemKey): void { if (this.live(key)) this.set(key, { ...this.page(key), face: 'practise' }); }
+  requiredRelease(key: ItemKey): { readonly book: string; readonly release: string } | null {
+    const session = this.sessionOf(key); if (!session) return null;
+    const mismatch = session.drawn.find((drawn) => drawn.release && offlineBooks.releaseOf(drawn.book) && drawn.release !== offlineBooks.releaseOf(drawn.book));
+    return mismatch?.release ? { book: mismatch.book, release: mismatch.release } : null;
+  }
+  resume(key: ItemKey): boolean { if (!this.live(key) || this.requiredRelease(key)) return false; this.set(key, { ...this.page(key), face: 'practise' }); return true; }
   discard(key: ItemKey): void { const id = this.page(key).session; if (id) this.drop(id); this.set(key, { ...this.page(key), session: null, face: 'choose' }); }
   forget(key: ItemKey): void { if (key in this.pages) { this.pages = Object.fromEntries(Object.entries(this.pages).filter(([id]) => id !== key)); this.savePages(); } }
   prune(open: readonly ItemKey[]): void { const keep = new Set(open), entries = Object.entries(this.pages).filter(([key]) => keep.has(key)); if (entries.length !== Object.keys(this.pages).length) { this.pages = Object.fromEntries(entries); this.savePages(); } }
@@ -277,8 +286,8 @@ class Practice {
     this.pages = Object.fromEntries(Object.entries(this.pages).map(([key, page]) => [key, page.session === id ? { ...page, session: null } : page])); this.savePages();
   }
   private read(key: string): unknown { try { return JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { return null; } }
-  private save(): void { try { localStorage.setItem(KEY, JSON.stringify({ attempts: this.attempts, shown: this.shown, rounds: this.rounds, self: this.self, settings: this.settings })); } catch { /* private mode */ } }
-  private savePages(): void { try { localStorage.setItem(PAGES, JSON.stringify(this.pages)); } catch { /* private mode */ } }
-  private saveSessions(): void { try { localStorage.setItem(SESSIONS, JSON.stringify(this.sessions)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify({ attempts: this.attempts, shown: this.shown, rounds: this.rounds, self: this.self, settings: this.settings })); } catch { /* private mode */ } }
+  private savePages(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(PAGES, JSON.stringify(this.pages)); } catch { /* private mode */ } }
+  private saveSessions(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(SESSIONS, JSON.stringify(this.sessions)); } catch { /* private mode */ } }
 }
 export const practice = new Practice();

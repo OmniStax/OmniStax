@@ -10,6 +10,7 @@ import { focus } from './focus.svelte';
 import { registry } from './registry.svelte';
 import { atLevel, choose, levelOf, narrow, parseScopes, resolve, scopeAt, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
 import type { ItemKey } from '../layout/model';
+import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-scope-v2';
 const OLD = 'omnistax-scope';   /* { [kind]: sectionId }, the pins before views had levels */
@@ -18,7 +19,7 @@ const read = (key: string): unknown => { try { return JSON.parse(localStorage.ge
 const load = (): Scopes => {
   try {
     if (localStorage.getItem(KEY) !== null) return parseScopes(read(KEY));
-    const old = parseScopes(read(OLD)); localStorage.removeItem(OLD); return old;
+    const old = parseScopes(read(OLD)); if (readerWritesAllowed()) localStorage.removeItem(OLD); return old;
   } catch { return {}; }   /* private mode, or no browser at all */
 };
 
@@ -41,6 +42,6 @@ class Scope {
   pin(key: ItemKey, target: Target = this.targetFor(key)): void { if (target.level !== 'book') this.set(key, { follow: false, target }); }
   unpin(key: ItemKey): void { this.set(key, { follow: true, level: this.levelFor(key) }); }
   togglePin(key: ItemKey): void { if (this.isPinned(key)) this.unpin(key); else this.pin(key); }
-  private save(): void { try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }
 }
 export const scope = new Scope();

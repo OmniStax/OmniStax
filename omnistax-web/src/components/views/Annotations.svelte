@@ -41,6 +41,7 @@
       <button type="button" class="x" data-nodrag title="Remove this highlight" aria-label="Remove this highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
     <button type="button" class="quote hl-{n.color}" title="Show it in the text" onclick={() => goNote(n)}>{n.anchor.quote}</button>
+    {#if notes.unresolved.has(n.id)}<div class="lost" role="status">This highlight no longer matches the updated text. Its note is preserved.</div>{/if}
     <!-- A burst of typing is one step of the shell's timeline; leaving the box
          ends the burst, so the next one begins a step of its own. -->
     <textarea data-note={n.id} rows="2" placeholder="Add a note…" value={n.text}
@@ -98,6 +99,7 @@
   .quote:active{cursor:grabbing}
   .quote.hl-green{background:var(--hl-green)} .quote.hl-blue{background:var(--hl-blue)} .quote.hl-pink{background:var(--hl-pink)}
   .quote:hover{filter:brightness(.96)}
+  .lost{margin-top:5px;color:var(--bad);font-size:.74rem}
   textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:0.84rem;line-height:1.4;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:5px 7px;resize:vertical;box-sizing:border-box}
   textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
   :global(.view-pane) .note{font-size:1rem}

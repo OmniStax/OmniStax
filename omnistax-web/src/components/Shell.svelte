@@ -45,6 +45,8 @@
   import { practice } from '../lib/practice/store.svelte';
   import { openPractice } from '../lib/practice/open.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
+  import { offlineBooks } from '../lib/offline/store.svelte';
+  import { registerOfflineWorker } from '../lib/offline/register';
 
   type Props = { own: ItemId; threeUrl?: string };
   let { own, threeUrl }: Props = $props();
@@ -78,7 +80,9 @@
   /* highlights: paint a document from the notes that belong to it */
   const paintDoc = (root: HTMLElement) => {
     const [sec, doc] = (root.dataset.doc ?? '').split('/'); if (!sec) return;
-    paint(root, notes.list.filter((n) => n.section === sec && n.doc === doc).map((n) => ({ id: n.id, anchor: n.anchor, color: n.color, noted: !!n.text })));
+    const relevant = notes.list.filter((n) => n.section === sec && n.doc === doc);
+    const lost = paint(root, relevant.map((n) => ({ id: n.id, anchor: n.anchor, color: n.color, noted: !!n.text })));
+    notes.setUnresolved(sec, lost);
   };
 
   onMount(() => {
@@ -87,6 +91,8 @@
     noteDocs.init();
     explorer.init();
     library.init(manifest.id, manifest.title);
+    void offlineBooks.init();
+    void registerOfflineWorker();
     practice.init();
     registry.init(manifest, fig, mountExercises, paintDoc, threeUrl);
     sheets.init(markFormulas);

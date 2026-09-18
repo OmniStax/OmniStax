@@ -4,6 +4,7 @@
    Each is remembered in this browser and applied to the document as a class or
    attribute. */
 import { type ZoomStep, ZOOM_DEFAULT, nearestZoom, zoomBy } from './zoom';
+import { readerWritesAllowed } from '../backup/guard';
 export type { ZoomStep } from './zoom';
 export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
 export type Theme = 'system' | 'light' | 'dark';
@@ -13,8 +14,8 @@ export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underline
 
 const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
-const write = (key: string, v: string): void => { try { localStorage.setItem(key, v); } catch { /* private mode */ } };
-const remove = (key: string): void => { try { localStorage.removeItem(key); } catch { /* private mode */ } };
+const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
+const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
 const sysDark = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 const readTheme = (): Theme => { const t = read(KEYS.theme); return t === 'light' || t === 'dark' ? t : 'system'; };
 const readZoom = (): ZoomStep => { const v = Number(read(KEYS.zoom)); return Number.isFinite(v) && v > 0 ? nearestZoom(v) : ZOOM_DEFAULT; };

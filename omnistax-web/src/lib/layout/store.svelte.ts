@@ -3,6 +3,7 @@
 import type { ItemKey, Layout } from './model';
 import { closeGroup, closeItem, defaultLayout, ensureOwn, openTab, parseLayout, renamedSimKeys } from './model';
 import { type ItemId, pageItem } from '../types/ids';
+import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-layout-v5';
 /* How many closed tabs the shell can hand back, this reading only. */
@@ -52,6 +53,6 @@ class LayoutStore {
     this.closed = next.length > REOPEN ? next.slice(next.length - REOPEN) : next;
   }
   reset(): void { this.layout = ensureOwn(defaultLayout(this.own), this.own); this.overlay = null; this.save(); }
-  private save(): void { try { localStorage.setItem(KEY, JSON.stringify(this.layout)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.layout)); } catch { /* private mode */ } }
 }
 export const layoutStore = new LayoutStore();

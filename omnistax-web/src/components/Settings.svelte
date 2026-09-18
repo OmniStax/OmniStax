@@ -18,10 +18,19 @@
   import { host, kept, BROWSER_NAMES } from '../lib/commands/host.svelte';
   import { practice } from '../lib/practice/store.svelte';
   import { DEFAULT_SETTINGS } from '../lib/practice/model';
+  import { downloadBackup, importBackup, readBackupFile } from '../lib/backup/adapters';
+  import { summarizeBackup, type ReaderBackup } from '../lib/backup/schema';
+
+  // Draft feature: enable only after restore locking and round-trip browser tests pass.
+  const BACKUPS_READY = true;
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
   let q = $state('');
+  let backup = $state<ReaderBackup | null>(null);
+  let backupMessage = $state('');
+  let importing = $state(false);
+  let exporting = $state(false);
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
@@ -33,9 +42,30 @@
     record: 'Practice record forget my practice recorded answers mastery freshness',
     mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
+    backup: 'Backup export import restore reader data notes progress colours settings sessions',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
+  const chooseBackup = async (file: File | undefined): Promise<void> => {
+    backup = null; backupMessage = '';
+    if (!file) return;
+    try { backup = await readBackupFile(file); } catch (error) { backupMessage = error instanceof Error ? error.message : 'The backup could not be read.'; }
+  };
+  const restoreBackup = async (): Promise<void> => {
+    if (!backup || importing) return;
+    importing = true; backupMessage = '';
+    try { await importBackup(backup); location.reload(); }
+    catch (error) {
+      backupMessage = error instanceof Error ? error.message : 'The backup could not be restored; the previous profile was recovered.';
+      alert(backupMessage); location.reload();
+    }
+  };
+  const exportBackup = async (): Promise<void> => {
+    exporting = true; backupMessage = '';
+    try { await downloadBackup(); }
+    catch (error) { backupMessage = error instanceof Error ? error.message : 'The backup could not be exported.'; }
+    finally { exporting = false; }
+  };
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
     commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
@@ -165,6 +195,33 @@
         <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section text and the explorer in its home sidebar.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
       </section>
 
+      {#if BACKUPS_READY}
+      <section hidden={!hit(ROWS.backup)}>
+        <h3>Backup and restore</h3>
+        <div class="row">
+          <span class="name">Export my data</span>
+          <span class="hint">Saves notes and pasted images, colours, practice history and sessions, library organization, layout, shortcuts, and preferences. Textbook files are not included.</span>
+          <button class="btn-sm" type="button" disabled={exporting} onclick={() => void exportBackup()}>{exporting ? 'Exporting…' : 'Export'}</button>
+        </div>
+        <label class="row">
+          <span class="name">Import backup</span>
+          <span class="hint">Choose a backup to inspect it. Import replaces this reader profile; it does not merge. Downloaded textbooks are unchanged and referenced books may need downloading.</span>
+          <input class="file" type="file" accept="application/json,.json" onchange={(e) => void chooseBackup(e.currentTarget.files?.[0])}>
+        </label>
+        {#if backup}
+          {@const summary = summarizeBackup(backup)}
+          <div class="backup-review" role="status">
+            <strong>Ready to replace this profile</strong>
+            <span>Exported {new Date(summary.exportedAt).toLocaleString()} · {summary.records} saved records · {summary.assets} note images</span>
+            <span>{Object.entries(summary.categories).map(([category, count]) => `${category}: ${count}`).join(' · ') || 'No local records'}</span>
+            <span>Export the current profile first if you may want to return to it. A recovery snapshot is retained until the restore commits.</span>
+            <button class="btn-sm danger" type="button" disabled={importing} onclick={() => void restoreBackup()}>{importing ? 'Restoring…' : 'Replace profile and reload'}</button>
+          </div>
+        {/if}
+        {#if backupMessage}<p class="backup-error" role="alert">{backupMessage}</p>{/if}
+      </section>
+
+      {/if}
       <section hidden={!groups.length}>
         <h3>Keyboard shortcuts</h3>
         <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>
@@ -244,6 +301,11 @@
   .btn-sm{font:inherit;font-size:0.82rem;padding:5px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer;align-self:flex-start}
   .btn-sm:hover:not(:disabled){background:var(--soft)}
   .btn-sm:disabled{opacity:.5;cursor:default}
+  .file{max-width:190px;font:inherit;font-size:.78rem;color:var(--muted)}
+  .backup-review{margin-left:162px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);display:flex;flex-direction:column;align-items:flex-start;gap:5px;color:var(--muted);font-size:.8rem}
+  .backup-review strong{color:var(--ink)}
+  .danger{color:var(--bad)}
+  .backup-error{margin:0 0 0 162px;color:var(--bad);font-size:.8rem}
   small{color:var(--muted);font-size:0.75rem}
   .switch{cursor:pointer;user-select:none}
   .switch input{appearance:none;width:38px;height:22px;border-radius:11px;background:var(--soft2);position:relative;cursor:pointer;margin:0;transition:background .15s}
@@ -266,5 +328,5 @@
   .recording{color:var(--muted);font-style:italic}
   .conflict{color:var(--bad);font-size:0.8rem}
   .conflict em{font-style:normal;font-weight:600}
-  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .seg{grid-column:auto} }
+  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .seg{grid-column:auto} .backup-review,.backup-error{margin-left:0} }
 </style>

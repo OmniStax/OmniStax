@@ -4,6 +4,7 @@
    typing does not write on every keystroke. */
 import { newNoteId, noteId, type NoteId } from '../types/ids';
 import { history } from '../history/store.svelte';
+import { readerWritesAllowed } from '../backup/guard';
 
 export type NoteDoc = { readonly id: NoteId; readonly name: string; readonly body: string; readonly created: number; readonly updated: number };
 
@@ -75,6 +76,7 @@ class NoteDocs {
   }
   private save(): void {
     if (this.timer !== null) { clearTimeout(this.timer); this.timer = null; }
+    if (!readerWritesAllowed()) return;
     try { localStorage.setItem(KEY, JSON.stringify(this.list)); } catch { /* private mode */ }
   }
 }

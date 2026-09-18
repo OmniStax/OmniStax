@@ -9,6 +9,7 @@ import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBinding
 import { defaultBindings } from './defaults';
 import { host } from './host.svelte';
 import type { CommandId } from './command';
+import { readerWritesAllowed } from '../backup/guard';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
@@ -22,7 +23,7 @@ export { DEFAULT_BINDINGS } from './defaults';
 const load = (): Bindings | null => {
   try { return parseBindings(JSON.parse(localStorage.getItem(KEY) ?? 'null')); } catch { return null; }
 };
-const save = (b: Bindings): void => { try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* private mode */ } };
+const save = (b: Bindings): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* private mode */ } };
 
 class Keys {
   #edited = $state.raw<Bindings | null>(typeof localStorage === 'undefined' ? null : load());
@@ -39,7 +40,7 @@ class Keys {
   set(id: CommandId, c: Chord): void { this.edit(rebind(this.bindings, id, c)); }
   clear(id: CommandId): void { this.edit(withoutCommand(this.bindings, id)); }
   private edit(b: Bindings): void { this.#edited = b; save(b); }
-  restoreDefaults(): void { this.#edited = null; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
+  restoreDefaults(): void { this.#edited = null; if (!readerWritesAllowed()) return; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
   get isDefault(): boolean { return this.#edited === null; }
   /* One command back to the chords it shipped with; whoever holds them now loses them. */
   restoreDefault(id: CommandId): void {

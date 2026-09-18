@@ -10,6 +10,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bumpContent } from './src/lib/content/version.ts';
+import { buildOfflineArtifacts } from './scripts/build-offline.mjs';
 
 const TYPES = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
@@ -84,6 +85,8 @@ export default function content(root, books) {
       },
       'astro:build:done': async ({ dir }) => {
         await copyMedia(mediaRoots, path.join(dir.pathname, 'media'));
+        const indexed = await Promise.all(books.map(async (book) => ({ id: JSON.parse(await fs.readFile(path.join(book, 'book.json'), 'utf8')).id, dir: book })));
+        await buildOfflineArtifacts(dir.pathname, indexed, process.env.OMNISTAX_RELEASE_ARCHIVE_DIR);
       },
     },
   };

@@ -4,6 +4,7 @@
 import type { Anchor } from './anchor';
 import type { SectionId, DocKind } from '../types/ids';
 import { history } from '../history/store.svelte';
+import { readerWritesAllowed } from '../backup/guard';
 
 export const HL_COLORS = ['yellow', 'green', 'blue', 'pink'] as const;
 export type HlColor = (typeof HL_COLORS)[number];
@@ -29,6 +30,7 @@ class Notes {
   /* bumps when marks must be repainted (a note added, removed or recoloured); annotation edits do not repaint */
   paintVersion = $state(0);
   editing = $state<string | null>(null);   /* the note whose annotation should take focus in the view */
+  unresolved = $state.raw<ReadonlySet<string>>(new Set());
   private key = 'omnistax-notes';
 
   init(bookId: string): void {
@@ -50,6 +52,10 @@ class Notes {
     this.record('remove highlight', () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; });
   }
   forSection(section: SectionId): readonly Note[] { return this.list.filter((n) => n.section === section); }
+  setUnresolved(section: string, ids: readonly string[]): void {
+    const inSection = new Set(this.list.filter((note) => note.section === section).map((note) => note.id));
+    this.unresolved = new Set([...this.unresolved].filter((id) => !inSection.has(id)).concat(ids));
+  }
 
   /* A change the reader can take back. The list is an immutable value, so the
      two sides of an edit are simply the list before and the list after: undoing
@@ -69,6 +75,6 @@ class Notes {
     if (this.editing !== null && !this.get(this.editing)) this.editing = null;
   }
   private patch(id: string, p: Partial<Note>): void { this.list = this.list.map((n) => (n.id === id ? { ...n, ...p, updated: Date.now() } : n)); this.save(); }
-  private save(): void { try { localStorage.setItem(this.key, JSON.stringify(this.list)); } catch { /* private mode */ } }
+  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(this.key, JSON.stringify(this.list)); } catch { /* private mode */ } }
 }
 export const notes = new Notes();
