@@ -1,6 +1,7 @@
 import { BookReleaseManifestSchema, OfflineCatalogSchema, type BookReleaseManifest, type OfflineCatalog, type OfflineResource } from './schema';
 import { cacheName, deleteInstallation, getInstallation, listInstallations, putInstallation, type InstallationRecord } from './storage';
-import { releaseChanges, type ReleaseChanges } from './model';
+import { releaseChanges, savedSessionReleaseReferences, type ReleaseChanges } from './model';
+import { liveWorkerPins } from './register';
 
 export type InstallProgress = { readonly files: number; readonly totalFiles: number; readonly bytes: number; readonly totalBytes: number };
 export type InstallOptions = { readonly signal?: AbortSignal; readonly progress?: (progress: InstallProgress) => void };
@@ -39,11 +40,37 @@ const enoughSpace = async (bytes: number): Promise<void> => {
   if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < bytes) throw new Error('The browser reports too little storage for this download.');
 };
 
+const savedReferences = () => {
+  for (const key of ['omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1']) {
+    try { const value = localStorage.getItem(key); if (value) return savedSessionReleaseReferences(JSON.parse(value)); } catch { /* malformed legacy data is not a valid reference */ }
+  }
+  return [];
+};
+const clearPreviousIfUnused = async (record: InstallationRecord): Promise<InstallationRecord> => {
+  const release = record.previousRelease, artifact = record.previousArtifact ?? record.previousManifest?.runtime.artifactId;
+  if (!release || !artifact || !navigator.locks) return record;
+  if (savedReferences().some((reference) => reference.bookId === record.bookId && reference.release === release)) return record;
+  const live = await liveWorkerPins();
+  if (live === null || live.some((pin) => pin.bookId === record.bookId && pin.release === release)) return record;
+  await caches.delete(cacheName(record.bookId, release, artifact));
+  const next = { ...record, previousRelease: undefined, previousArtifact: undefined, updatedAt: Date.now() };
+  await putInstallation(next); return next;
+};
+
+export const reclaimPreviousRelease = async (bookId: string): Promise<InstallationRecord | undefined> => lock(bookId, async () => {
+  const record = await getInstallation(bookId); return record ? clearPreviousIfUnused(record) : undefined;
+});
+
 export const installRelease = async (manifest: BookReleaseManifest, options: InstallOptions = {}): Promise<InstallationRecord> => lock(manifest.book.id, async () => {
   if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error('This browser does not support offline textbook storage.');
   await enoughSpace(manifest.totalBytes);
   void navigator.storage?.persist?.().catch(() => false);
-  const existing = await getInstallation(manifest.book.id);
+  let existing = await getInstallation(manifest.book.id);
+  if (existing?.previousRelease) {
+    existing = await clearPreviousIfUnused(existing);
+    const changingActive = existing.installedRelease !== manifest.releaseId || (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) !== manifest.runtime.artifactId;
+    if (changingActive && existing.previousRelease) throw new Error('An older release is still used by an open tab or saved practice session. Close that tab or finish/discard the session before installing another update.');
+  }
   const completed = existing?.stagingRelease === manifest.releaseId && existing.stagingArtifact === manifest.runtime.artifactId ? new Set(existing.completed ?? []) : new Set<string>();
   const cache = await caches.open(cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId));
   for (const resource of manifest.resources.filter((item) => completed.has(item.logicalUrl))) {
@@ -88,10 +115,12 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
 export const installFromCatalog = async (bookId: string, options?: InstallOptions): Promise<InstallationRecord> => {
   const catalog = await fetchCatalog(options?.signal); const entry = catalog.books.find((book) => book.id === bookId);
   if (!entry) throw new Error('This book is not in the offline catalogue.');
-  return installRelease(await fetchManifest(entry.manifestUrl, options?.signal), options);
+  const manifest = await fetchManifest(entry.manifestUrl, options?.signal);
+  if (manifest.book.id !== entry.id || manifest.releaseId !== entry.releaseId || manifest.runtime.artifactId !== entry.artifactId || manifest.totalBytes !== entry.totalBytes) throw new Error('The release manifest does not match the catalogue entry.');
+  return installRelease(manifest, options);
 };
 
-export const inspectInstallation = async (bookId: string): Promise<InstallationRecord | undefined> => {
+export const inspectInstallation = async (bookId: string): Promise<InstallationRecord | undefined> => lock(bookId, async () => {
   const record = await getInstallation(bookId); if (!record?.manifest || !record.installedRelease) return record;
   const artifact = record.installedArtifact ?? record.manifest.runtime.artifactId;
   const cache = await caches.open(cacheName(bookId, record.installedRelease, artifact));
@@ -100,7 +129,7 @@ export const inspectInstallation = async (bookId: string): Promise<InstallationR
   if (!missing.length) return record;
   const failed = { ...record, status: 'failed' as const, stagingRelease: record.installedRelease, stagingArtifact: artifact, completed: presence.filter((item) => item.present).map((item) => item.logicalUrl), error: `${missing.length} downloaded resource${missing.length === 1 ? ' is' : 's are'} missing. Repair the download.`, updatedAt: Date.now() };
   await putInstallation(failed); return failed;
-};
+});
 
 export const removeDownload = async (bookId: string): Promise<void> => lock(bookId, async () => {
   const record = await getInstallation(bookId); if (!record) return;
@@ -116,11 +145,14 @@ export const removeDownload = async (bookId: string): Promise<void> => lock(book
 export const checkForUpdates = async (): Promise<{ catalog: OfflineCatalog; records: InstallationRecord[] }> => {
   const catalog = await fetchCatalog(); const records = await listInstallations(); const now = Date.now();
   const updated = await Promise.all(records.map(async (record) => {
-    const available = catalog.books.find((book) => book.id === record.bookId);
-    const next = { ...record, availableRelease: available?.releaseId ?? record.availableRelease, availableArtifact: available?.artifactId ?? record.availableArtifact, lastCheck: now, updatedAt: now };
-    await putInstallation(next); return next;
+    return lock(record.bookId, async () => {
+      const current = await getInstallation(record.bookId); if (!current) return undefined;
+      const available = catalog.books.find((book) => book.id === record.bookId);
+      const next = { ...current, availableRelease: available?.releaseId ?? current.availableRelease, availableArtifact: available?.artifactId ?? current.availableArtifact, lastCheck: now, updatedAt: now };
+      await putInstallation(next); return next;
+    });
   }));
-  return { catalog, records: updated };
+  return { catalog, records: updated.flatMap((record): InstallationRecord[] => record ? [record] : []) };
 };
 
 export const changesForAvailable = async (bookId: string): Promise<{ readonly changes: ReleaseChanges; readonly notes?: string; readonly publishedAt: string }> => {

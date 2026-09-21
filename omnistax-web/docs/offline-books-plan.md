@@ -15,9 +15,9 @@ executable by a coding agent without reopening routine design decisions.
   quota handling, eviction detection, repair, and removal.
 - [x] Milestone 4: production service worker, cold offline opening, durable
   per-client book/release/runtime pinning, and useful missing-route responses.
-- [ ] Milestone 5: update discovery, changes, provenance, retained prior release,
-  updated-section/lost-anchor UI, and mastery preservation are implemented;
-  reference-aware reclamation and a real two-published-build update fixture remain.
+- [x] Milestone 5: update discovery, changes, provenance, retained prior release,
+  updated-section/lost-anchor UI, mastery preservation, reference-aware
+  reclamation of the prior release, and a real two-published-build update fixture.
 
 ### Milestone 1 validation — September 18
 
@@ -60,13 +60,41 @@ injected Cache Storage quota failure and retry, verified download, two clients
 pinned to different releases, a closed warm tab, cold offline deep/root
 navigation and feature-resource loads, deliberate resource eviction, and repair.
 
-Remaining Milestone 5 work is deliberately recorded rather than hidden: old
-release caches are retained safely but are not yet reclaimed after consulting
-live-client and saved-session references; the synthetic two-cache pin test is not
-a full publish-A/archive/publish-B/update browser fixture; cancellation, failed
-update checks, and removal isolation are implemented but do not yet have dedicated
-browser cases. Hosting must retain current and previous immutable artifacts; no
-deployment or external provisioning was performed.
+### Milestone 5 completion — September 21
+
+The service worker now keeps one pin per book for each client, so a tab that
+reads one textbook while practising from another fetches each book from its own
+verified release. The worker answers two messages: the client's current pin,
+which the reader uses as the authoritative release for new practice provenance,
+and the set of pins held by live windows. A previous release is reclaimed at
+startup and before the next update only when no live window and no saved
+practice session still names it; while one does, installing a further update is
+refused with an explanation. Inspection and update-check writes take the same
+per-book lock as installs, and a catalogue entry must agree with the manifest
+it points at before a download begins.
+
+Cancelling a download aborts its requests and leaves a resumable failed record.
+The Cancel button had never rendered because the in-flight set was a plain Map
+that Svelte could not observe; it is now a reactive map.
+
+Validation on September 21 against production build output: `npm run check`
+(zero errors, four pre-existing hints), all 439 unit tests in 37 files,
+`npm run build`, `tests/backup-browser-check.py`, `tests/practice-browser-check.py`,
+`tests/offline-browser-check.py` (now also cancellation, a failed offline update
+check, a second installed book served from its own cache, a missing-resource
+503, and removal isolation), `tests/offline-layout-check.py` at 390 and 1280
+pixels, and `tests/offline-update-browser-check.py`, which publishes release A,
+archives it, publishes release B from a changed source, and checks discovery,
+the changes count, the old tab staying on A, a new tab receiving B, retention
+while a saved session references A, and reclamation once it no longer does.
+
+One limit of the browser checks is recorded rather than hidden: Chromium exempts
+service-worker fetches from Playwright's offline emulation, so the cold offline
+navigation scenario proves that the cached release serves every request, not
+that the network was unreachable. Genuine network-down coverage would need
+request interception or a stopped origin server. Hosting must retain current and
+previous immutable artifacts; no deployment or external provisioning was
+performed.
 
 ## Goal and boundaries
 

@@ -26,3 +26,24 @@ export const failInstall = (state: InstallState, error: string): InstallState =>
 export const commitInstall = (state: InstallState, release: string): InstallState => ({ phase: 'ready', installedRelease: release, availableRelease: state.availableRelease });
 export const removeInstall = (state: InstallState): InstallState => ({ phase: 'absent', availableRelease: state.availableRelease });
 
+export type ReleaseReference = { readonly bookId: string; readonly release: string };
+export const savedSessionReleaseReferences = (raw: unknown): readonly ReleaseReference[] => {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return [];
+  const found = new Map<string, ReleaseReference>();
+  for (const session of Object.values(raw as Record<string, unknown>)) {
+    if (typeof session !== 'object' || session === null || !Array.isArray((session as { drawn?: unknown }).drawn)) continue;
+    for (const value of (session as { drawn: unknown[] }).drawn) {
+      if (typeof value !== 'object' || value === null) continue;
+      const { book, release } = value as { book?: unknown; release?: unknown };
+      if (typeof book === 'string' && book && typeof release === 'string' && release) found.set(`${book}\0${release}`, { bookId: book, release });
+    }
+  }
+  return [...found.values()];
+};
+
+export const releaseForBook = (
+  bookId: string,
+  clientPins: Readonly<Record<string, string>>,
+  installed: Readonly<Record<string, string | undefined>>,
+  available: Readonly<Record<string, string | undefined>>,
+): string | undefined => clientPins[bookId] ?? installed[bookId] ?? available[bookId];

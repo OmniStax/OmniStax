@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { buildOfflineArtifacts } from '../scripts/build-offline.mjs';
 import { BookReleaseManifestSchema } from '../src/lib/offline/schema';
-import { beginInstall, commitInstall, failInstall, releaseChanges } from '../src/lib/offline/model';
+import { beginInstall, commitInstall, failInstall, releaseChanges, releaseForBook, savedSessionReleaseReferences } from '../src/lib/offline/model';
 
 const put = async (root: string, rel: string, body: string) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
 const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string) => {
@@ -69,4 +69,19 @@ test('failed updates retain an existing ready release', () => {
   const updating = beginInstall({ ...ready, availableRelease: 'b' }, 'b');
   assert.equal(updating.phase, 'ready');
   assert.deepEqual(failInstall(updating, 'network'), { phase: 'ready', installedRelease: 'a', availableRelease: 'b', stagingRelease: undefined, error: 'network' });
+});
+
+test('saved practice releases are exact, typed cache-retention references', () => {
+  const refs = savedSessionReleaseReferences({
+    one: { drawn: [{ book: 'a', release: 'release-a' }, { book: 'a', release: 'release-a' }, { book: 'b' }] },
+    two: { drawn: [{ book: 'b', release: 'release-b' }, null, 'bad'] },
+    malformed: { drawn: 'nope' },
+  });
+  assert.deepEqual(refs, [{ bookId: 'a', release: 'release-a' }, { bookId: 'b', release: 'release-b' }]);
+});
+
+test('a live client pin is authoritative for new practice provenance', () => {
+  assert.equal(releaseForBook('a', { a: 'release-a' }, { a: 'release-b' }, { a: 'release-c' }), 'release-a');
+  assert.equal(releaseForBook('a', {}, { a: 'release-b' }, { a: 'release-c' }), 'release-b');
+  assert.equal(releaseForBook('a', {}, {}, { a: 'release-c' }), 'release-c');
 });

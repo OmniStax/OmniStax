@@ -14,6 +14,16 @@ const walk = async (dir) => {
 const role = (logical) => logical.endsWith('.html') || logical.endsWith('/') ? 'page' : logical.endsWith('.json') || logical.endsWith('.webmanifest') ? 'data' : /\.(?:png|jpe?g|gif|svg|webp|avif|mp4)$/.test(logical) ? 'media' : /\.(?:woff2?|ttf)$/.test(logical) ? 'font' : logical.endsWith('.css') ? 'style' : logical.endsWith('.js') ? 'script' : 'app';
 const logicalOf = (rel) => `/${rel.split(path.sep).join('/')}`;
 const publishedAt = () => new Date(Number(process.env.SOURCE_DATE_EPOCH ?? Math.floor(Date.now() / 1000)) * 1000).toISOString();
+const archivedPublishedAt = async (archive, id, releaseId) => {
+  if (!archive) return null;
+  const root = path.resolve(archive, 'offline', 'releases', id, releaseId);
+  for (const artifact of await fs.readdir(root, { withFileTypes: true }).catch(() => [])) {
+    if (!artifact.isDirectory()) continue;
+    const value = await fs.readFile(path.join(root, artifact.name, 'manifest.json'), 'utf8').then((body) => JSON.parse(body).publishedAt).catch(() => null);
+    if (typeof value === 'string' && !Number.isNaN(Date.parse(value))) return value;
+  }
+  return null;
+};
 
 const mergeArchive = async (archive, out) => {
   if (!archive) return;
@@ -63,7 +73,13 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     const sourceBook = JSON.parse(await fs.readFile(path.join(dir, 'book.json'), 'utf8'));
     const bookRels = (await walk(bookRoot)).map((file) => path.join(id, file));
     const text = (await Promise.all(bookRels.filter((file) => /\.(?:html|js|json|css)$/.test(file)).map((file) => fs.readFile(path.join(out, file), 'utf8')))).join('\n');
-    const mediaUrls = [...new Set([...text.matchAll(/(\/media\/[^"',\]\s?#\\]+?\.(?:png|jpe?g|gif|svg|webp|avif|mp4|webm))/gi)].map((match) => decodeURI(match[1])))];
+    const mediaMatches = [...text.matchAll(/(\/media\/[^"',\]\s?#\\]+?\.(?:png|jpe?g|gif|svg|webp|avif|mp4|webm))/gi)];
+    const mediaUrls = [...new Set(mediaMatches.map((match) => decodeURI(match[1])))];
+    for (let at = text.indexOf('/media/'); at >= 0; at = text.indexOf('/media/', at + 1)) {
+      if (!mediaMatches.some((match) => match.index !== undefined && match.index <= at && at < match.index + match[0].length)) throw new Error(`Unsupported dynamic media dependency in ${id} near ${text.slice(at, at + 80)}`);
+    }
+    const remote = text.match(/<(?:script|img|source|video|audio)\b[^>]*\bsrc=["']https?:\/\/|<link\b[^>]*\brel=["'](?:stylesheet|preload|modulepreload|icon|manifest)["'][^>]*\bhref=["']https?:\/\/|url\(\s*["']?https?:\/\/|\b(?:import|fetch)\s*\(\s*["']https?:\/\//i);
+    if (remote) throw new Error(`Unsupported remote offline dependency in ${id}: ${remote[0]}`);
     const mediaRels = mediaUrls.map((url) => url.slice(1)).filter((rel) => !rel.split('/').includes('..'));
     const semanticRels = (await Promise.all([...new Set([...bookRels, ...mediaRels])].map(async (rel) => await fs.stat(path.join(out, rel)).then(() => rel).catch(() => null)))).filter(Boolean);
     /* Semantic identity comes from the actual content inputs, not generated
@@ -94,11 +110,12 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     });
     const authoredDate = sourceBook.release_date ?? sourceBook.releaseDate;
     const authoredNotes = sourceBook.release_notes ?? sourceBook.releaseNotes;
-    const manifest = { schemaVersion: 1, contentFormat: 1, book: { id, title: bookJson.title }, releaseId, publishedAt: authoredDate ? new Date(authoredDate).toISOString() : new Date(0).toISOString(), ...(typeof authoredNotes === 'string' && authoredNotes.trim() ? { releaseNotes: authoredNotes.trim() } : {}), runtime: { artifactId, compatibleReaderFormat: 1 }, resources, sections, totalBytes: resources.reduce((sum, item) => sum + item.bytes, 0) };
+    const releasePublishedAt = authoredDate ? new Date(authoredDate).toISOString() : await archivedPublishedAt(archive, id, releaseId) ?? publishedAt();
+    const manifest = { schemaVersion: 1, contentFormat: 1, book: { id, title: bookJson.title }, releaseId, publishedAt: releasePublishedAt, ...(typeof authoredNotes === 'string' && authoredNotes.trim() ? { releaseNotes: authoredNotes.trim() } : {}), runtime: { artifactId, compatibleReaderFormat: 1 }, resources, sections, totalBytes: resources.reduce((sum, item) => sum + item.bytes, 0) };
     const manifestRel = `offline/releases/${id}/${releaseId}/${artifactId}/manifest.json`;
     await writeImmutable(path.join(out, manifestRel), Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
     catalog.push({ id, title: bookJson.title, releaseId, artifactId, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
   }
   await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), books: catalog }, null, 2)}\n`);
-  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n`);
+  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
 }

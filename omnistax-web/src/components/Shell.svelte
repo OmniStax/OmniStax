@@ -91,8 +91,8 @@
     noteDocs.init();
     explorer.init();
     library.init(manifest.id, manifest.title);
-    void offlineBooks.init();
-    void registerOfflineWorker();
+    void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
+      .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage could not be initialized.'; });
     practice.init();
     registry.init(manifest, fig, mountExercises, paintDoc, threeUrl);
     sheets.init(markFormulas);

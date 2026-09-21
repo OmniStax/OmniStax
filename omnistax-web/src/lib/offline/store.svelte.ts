@@ -1,9 +1,11 @@
-import { changesForAvailable, checkForUpdates, inspectInstallation, installFromCatalog, listInstallations, removeDownload, type InstallProgress } from './service';
+import { changesForAvailable, checkForUpdates, inspectInstallation, installFromCatalog, listInstallations, reclaimPreviousRelease, removeDownload, type InstallProgress } from './service';
+import { currentWorkerPin } from './register';
 import type { InstallationRecord } from './storage';
 import type { OfflineCatalog } from './schema';
 import type { ReleaseChanges } from './model';
-import { releaseChanges } from './model';
+import { releaseChanges, releaseForBook } from './model';
 import { readerWritesAllowed } from '../backup/guard';
+import { SvelteMap } from 'svelte/reactivity';
 
 const SEEN = 'omnistax-seen-releases-v1';
 type Seen = Readonly<Record<string, Readonly<Record<string, string>>>>;
@@ -17,7 +19,8 @@ class OfflineBooks {
   catalog = $state.raw<OfflineCatalog | null>(null);
   changes = $state.raw<Readonly<Record<string, { changes: ReleaseChanges; notes?: string; publishedAt: string }>>>({});
   updatedSections = $state.raw<Readonly<Record<string, readonly string[]>>>({});
-  private abort = new Map<string, AbortController>();
+  clientReleases = $state.raw<Readonly<Record<string, string>>>({});
+  private abort = new SvelteMap<string, AbortController>();
   private inFlight: Promise<void> | null = null;
   async init(): Promise<void> {
     const saved = await listInstallations();
@@ -31,6 +34,14 @@ class OfflineBooks {
     }));
     const last = Math.max(0, ...Object.values(this.records).map((record) => record.lastCheck ?? 0));
     if (navigator.onLine && Date.now() - last > 24 * 60 * 60 * 1000) void this.check();
+  }
+  async refreshClientPin(): Promise<void> {
+    const pin = await currentWorkerPin();
+    this.clientReleases = pin ? { [pin.bookId]: pin.release } : {};
+  }
+  async reclaim(): Promise<void> {
+    const records = await Promise.all(Object.keys(this.records).map((bookId) => reclaimPreviousRelease(bookId)));
+    this.records = { ...this.records, ...Object.fromEntries(records.filter((record): record is InstallationRecord => !!record).map((record) => [record.bookId, record])) };
   }
   async check(): Promise<void> {
     if (this.inFlight) return this.inFlight;
@@ -52,9 +63,14 @@ class OfflineBooks {
     } finally { this.abort.delete(bookId); this.progress = Object.fromEntries(Object.entries(this.progress).filter(([id]) => id !== bookId)); }
   }
   cancel(bookId: string): void { this.abort.get(bookId)?.abort(); }
-  async remove(bookId: string): Promise<void> { await removeDownload(bookId); this.records = Object.fromEntries(Object.entries(this.records).filter(([id]) => id !== bookId)); }
+  async remove(bookId: string): Promise<void> {
+    try { await removeDownload(bookId); this.records = Object.fromEntries(Object.entries(this.records).filter(([id]) => id !== bookId)); }
+    catch (error) { this.message = error instanceof Error ? error.message : 'The offline download could not be removed.'; }
+  }
   downloading(bookId: string): boolean { return this.abort.has(bookId); }
-  releaseOf(bookId: string): string | undefined { return this.records[bookId]?.installedRelease ?? this.catalog?.books.find((book) => book.id === bookId)?.releaseId; }
+  releaseOf(bookId: string): string | undefined {
+    return releaseForBook(bookId, this.clientReleases, Object.fromEntries(Object.entries(this.records).map(([id, record]) => [id, record.installedRelease])), Object.fromEntries((this.catalog?.books ?? []).map((book) => [book.id, book.releaseId])));
+  }
   async loadChanges(bookId: string): Promise<void> {
     try { this.changes = { ...this.changes, [bookId]: await changesForAvailable(bookId) }; }
     catch (error) { this.message = error instanceof Error ? error.message : 'Changes could not be loaded.'; }

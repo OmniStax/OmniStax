@@ -35,7 +35,7 @@
 </script>
 
 {#if ui.findTextbook}
-  <div class="finder" role="dialog" aria-label="Find a textbook"
+  <div class="finder" role="dialog" aria-label="Find a textbook" tabindex="-1"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); ui.closeFindTextbook(); } }}>
     <header>
@@ -100,22 +100,24 @@
   .x{width:24px;height:24px;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1}
   .x:hover{background:var(--soft2);color:var(--ink)}
   .list{max-height:min(52vh,440px);overflow:auto;padding:6px 0}
-  .book{display:flex;align-items:center;gap:10px;padding:9px 14px}
+  .book{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:12px 14px}
   .book:hover{background:var(--soft)}
-  .bico{display:grid;place-items:center;color:var(--muted);flex:none}
+  .bico{grid-column:1;grid-row:1;display:grid;place-items:center;color:var(--muted)}
   .bico :global(svg){width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5}
-  .what{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .what{grid-column:2;grid-row:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .book > .add{grid-column:3;grid-row:1}
   .name{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .who,.counts{color:var(--muted);font-size:0.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .add{flex:none;border:1px solid var(--rule);border-radius:5px;background:transparent;color:var(--ink);font:inherit;font-size:0.8rem;padding:4px 12px;cursor:pointer}
   .add:hover:not(:disabled){background:var(--soft2)}
   .add:disabled{color:var(--muted);cursor:default;opacity:.7}
   .add:focus-visible{outline:2px solid var(--accent)}
-  .offline-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:230px}
+  .offline-actions{grid-column:2 / -1;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .available{font-size:.72rem;color:var(--good,#16803c);white-space:nowrap}
   progress{width:100%;height:5px}
-  .updates{display:flex;align-items:center;gap:10px;padding:6px 14px;border-bottom:1px solid var(--rule);font-size:.76rem;color:var(--muted)}
-  .change-note{flex-basis:100%;margin-left:28px;color:var(--muted);font-size:.74rem}
+  .updates{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--rule);font-size:.76rem;color:var(--muted);overflow-wrap:anywhere}
+  .change-note{grid-column:2 / -1;color:var(--muted);font-size:.74rem;overflow-wrap:anywhere}
   .none{padding:16px 14px;color:var(--muted)}
-  .none.bad{color:var(--bad)}
+  .bad{color:var(--bad)}
+  @media (max-width:600px){.name,.counts{white-space:normal;overflow-wrap:anywhere}.offline-actions .add{max-width:100%;white-space:normal}}
 </style>

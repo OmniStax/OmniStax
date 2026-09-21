@@ -271,7 +271,7 @@ class Practice {
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
   requiredRelease(key: ItemKey): { readonly book: string; readonly release: string } | null {
     const session = this.sessionOf(key); if (!session) return null;
-    const mismatch = session.drawn.find((drawn) => drawn.release && offlineBooks.releaseOf(drawn.book) && drawn.release !== offlineBooks.releaseOf(drawn.book));
+    const mismatch = session.drawn.find((drawn) => drawn.release && drawn.release !== offlineBooks.releaseOf(drawn.book));
     return mismatch?.release ? { book: mismatch.book, release: mismatch.release } : null;
   }
   resume(key: ItemKey): boolean { if (!this.live(key) || this.requiredRelease(key)) return false; this.set(key, { ...this.page(key), face: 'practise' }); return true; }

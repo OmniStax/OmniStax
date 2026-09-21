@@ -34,7 +34,12 @@ cache entries are detected at startup and offered as a repair.
 The production service worker is registered only on HTTPS or localhost. Each
 client is pinned to the book release and runtime artifact chosen at navigation,
 so activating an update does not mix its HTML, data, media, scripts, or styles
-into an already open reader. The catalog always uses a network request. Unknown
+into an already open reader. A client holds one pin per book, so practising
+from a second downloaded textbook reads that book's own release. After an
+update the previous release stays cached until no open window and no saved
+practice session still names it, then it is reclaimed at the next startup; a
+further update is refused while an older release is still in use. The catalog
+always uses a network request. Unknown
 offline navigations receive an explanatory HTML response; missing non-page
 resources receive an HTTP 503 rather than unrelated fallback HTML.
 
