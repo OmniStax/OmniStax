@@ -3,7 +3,8 @@
    vendored under `public/vendor/pdfjs/` and fetched the first time a file tab
    asks — the way `fig/three.ts` fetches three.js, and for the same reason.
    Nothing of pdf.js is in the app bundle: the import below is a dynamic import
-   of a URL string, which the bundler leaves alone.
+   of an address made at run time, which neither the bundler nor the dev
+   server tries to resolve.
 
    The version that was copied in is recorded in `public/vendor/pdfjs/VERSION`
    beside the two files. */
@@ -39,7 +40,11 @@ let pending: Promise<Pdfjs> | null = null;
 
 export const loadPdfjs = (): Promise<Pdfjs> => {
   if (pending) return pending;
-  pending = import(/* @vite-ignore */ PDFJS_URL)
+  /* The address is built at run time on purpose: a literal in an import()
+     is one the dev server resolves itself, and it refuses a file under
+     public/, which is served as-is and only ever reached by its URL. */
+  const url = new URL(PDFJS_URL, document.baseURI).href;
+  pending = import(/* @vite-ignore */ url)
     .then((mod: unknown) => {
       const lib = mod as Pdfjs;
       /* The worker is where the parsing happens, so extraction and rendering
