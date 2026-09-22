@@ -1,8 +1,9 @@
 # The Drawer: free-hand drawings (#17)
 
-Implementation handoff. Status: in progress. Decisions settled with Chen on
-2026-09-22; not reopened here. Depends on milestone 0 of `imports.md` (the
-`drawing` entry and item kinds, the `ex` item kind and link prefixes).
+Implementation handoff. Status: milestones 0 to 4 built. Decisions settled
+with Chen on 2026-09-22; not reopened here. Depends on milestone 0 of
+`imports.md` (the `drawing` entry and item kinds, the `ex` item kind and the
+link prefixes).
 
 ## What the reader gets
 
@@ -107,10 +108,23 @@ scratch drawing; the card's existing "open" button uses this.
 
 - `src/lib/drawer/{model.ts, store.svelte.ts, geometry.ts (lasso hit test,
   smoothing, shape maths), render.ts (strokes to a canvas context, pure over
-  a context), snapshot.ts (a figure root to a data URL)}`
-- `src/components/drawer/{DrawingTab.svelte, Toolbar.svelte, Frame.svelte}`
-  and `src/components/ui/TextBox.svelte` shared with the PDF reader.
-- `types/ids.ts` `drawing:<id>` (from milestone 0); `links.ts` a drawing by
+  a context), snapshot.ts (a figure root to a data URL)}`, and three the
+  building added: `db.ts`, the two IndexedDB stores apart from the reactive
+  face over them, because the backup must read and write them and a module
+  carrying runes cannot be imported by a plain test; `tools.ts`, the tool set
+  and its letters, which the toolbar draws, the tab acts on and the defaults
+  name, so all three agree; `cards.ts`, the lookups a frame's card needs,
+  which are the note view's own; and `thumb.ts`, the small picture of a
+  drawing that a note's card is filled with.
+- `src/components/drawer/{DrawingTab.svelte, Toolbar.svelte, Frame.svelte}`,
+  with `DrawingPane.svelte` and `ScratchPane.svelte` over the tab — one binds
+  a drawing of the reader's own to its row and its name, the other binds the
+  private page of an exercise — and `src/components/ui/TextBox.svelte` shared
+  with the PDF reader.
+- `types/ids.ts` `drawing:<id>` (from milestone 0), and the one kind the
+  building had to add, `scratch:<book>/<section>/<ex>`: the private page of an
+  exercise is a tab like any other and is named by the thing it belongs to,
+  since it has no record of its own to be named by. `links.ts` a drawing by
   name resolves like a note by name (the resolver checks notes then
   drawings), so no new prefix is needed in the grammar beyond milestone 0's.
 - `views/Explorer.svelte`: the row, the icon, rename, delete with undo.
@@ -120,17 +134,59 @@ scratch drawing; the card's existing "open" button uses this.
 
 ## Milestones
 
-- [ ] 1. Model, store, explorer entry, tab with pen, highlighter, eraser,
+- [x] 1. Model, store, explorer entry, tab with pen, highlighter, eraser,
   colour, size, pan, zoom, growth, local undo, pencil and palm handling,
   backup whitelist. `tests/drawer.test.ts` for the model and geometry.
   `tests/drawer-browser-check.py` draws with synthetic pointer events,
   reloads, sees the stroke.
-- [ ] 2. Lasso select, move, resize, delete; shapes with Shift snapping and
+- [x] 2. Lasso select, move, resize, delete; shapes with Shift snapping and
   fill; text boxes with markdown.
-- [ ] 3. Frames: cards live, figures as snapshots that open live in a split,
+- [x] 3. Frames: cards live, figures as snapshots that open live in a split,
   images; drop from every existing drag source; the note embed of a
   drawing.
-- [ ] 4. Exercise scratch: the button, the private store, save-as-drawing,
+- [x] 4. Exercise scratch: the button, the private store, save-as-drawing,
   detach, the card chip, the `ex` tab.
 
 ## Progress
+
+2026-09-22 — Milestones 1 to 4 built. A drawing is a row under Your Files, a
+tab of its own, a link and an embed, and the ink is an immutable value:
+`drawer/model.ts` is a pure Drawing with an Item ADT and an undo stack that is
+nothing but the values it hands back, `geometry.ts` holds the lasso, eraser,
+smoothing, snapping and handle sums, and `render.ts` puts ink on a context and
+nothing else. `store.svelte.ts` is the reactive face over `db.ts`, which is a
+plain module so that the backup can read and write the two IndexedDB stores
+without pulling a rune into a test; the names are mirrored in
+`omnistax-drawings-v1` so the explorer and the link resolver never open a
+database to draw a row, and the scratch index in `omnistax-scratch-v1`. Both
+keys are whitelisted and validated in `backup/schema.ts`, and the ink travels
+as `drawings` and `scratch` beside the chats and the files.
+
+The tab draws finished strokes into an offscreen bitmap and the live stroke
+over it, both under one CSS transform with the boxes and frames as HTML;
+pointer events only, coalesced for smooth ink, pressure on the nib, and a
+touch while a pen is down is a palm and is ignored. Lasso, move, resize and
+delete; shapes with Shift snapping and a fill toggle; text boxes through the
+`TextBox.svelte` the PDF reader shares. Anything that drags out of a panel
+lands as a frame: a card is the very card the note renderer makes, live, and a
+figure is a snapshot stored as an asset with a glyph that opens the live
+figure in a split — a sim reads pointer positions off its own canvas and would
+read them wrongly under the page's transform, which is why the picture is
+deliberate. Undo inside the tab is the drawing's own.
+
+An exercise card gained Open and Scratch. Scratch splits a private drawing
+keyed by book, section and exercise, with a mark on the card while work
+exists; "Save as drawing" gives it a row and a chip, "Detach" hands it back,
+and both are one step of the shell's timeline. One exercise opens alone
+through the `ex` tab, and a new `scratch:` item kind names the private page.
+
+Two decisions worth recording. The drawing thumbnail a note embeds is filled
+in after the rendering rather than during it — a picture takes a turn of the
+loop to make, and a resolver called inside a `$derived` may not write state —
+so the renderer leaves a waiting card carrying the id and the view fills it,
+which is the rule every asset in a note already follows. And a snapshot is
+composited on white: it is a picture of paper, looked at on a page of paper,
+so a figure drawn for the dark theme still reads.
+
+Left out: a frame holding a live sim (decided against, above); rotating a
+selection; and pressure curves beyond the linear one in `geometry.nib`.

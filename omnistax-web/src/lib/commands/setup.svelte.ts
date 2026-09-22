@@ -15,14 +15,16 @@ import { focusedArticle, openItem } from '../sections/nav.svelte';
 import { noteModes } from '../notes/modes.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { createNote } from '../explorer/edits';
+import { createDrawing } from '../drawer/edits';
 import { history } from '../history/store.svelte';
 import { colours } from '../colours/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
-import { itemKey, newViewItem, noteItem, pageItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
+import { drawingItem, itemKey, newViewItem, noteItem, pageItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
+import { newChatTab } from '../chat/open.svelte';
 
 const GROUP_COMMANDS = 9;   /* the palette lists this many groups by number */
 
@@ -105,6 +107,21 @@ const notesDeps = {
   canToggle: (): boolean => activeNote() !== null,
 };
 
+/* A new drawing, under the reader's own root and opened where they are
+   standing: a page of ink is made to be drawn on at once, so it opens with no
+   name box over it and is renamed from the bar when they have something worth
+   calling by a name. */
+const drawingDeps = {
+  newDrawing: (): void => {
+    const made = createDrawing(null, explorer.uniqueName(null, 'Untitled drawing'));
+    void openItem(itemKey(drawingItem(made.id)), ui.palette.group ?? layoutStore.layout.focus);
+  },
+};
+
+/* A chat is opened the way a page of a view is: in a split beside what is
+   being read, and every asking opens another. */
+const chatDeps = { newChat: (): void => { newChatTab(); } };
+
 export const installCommands = (): void => {
   const fold = { foldAll: () => foldAllIn(focusedArticle()), unfoldAll: () => unfoldAllIn(focusedArticle()), hideFigures: () => hideFigsIn(focusedArticle()), showFigures: () => showFigsIn(focusedArticle()) };
   const layout = {
@@ -144,6 +161,6 @@ export const installCommands = (): void => {
     get undoLabel(): string { return colours.undoLabel; },
     get redoLabel(): string { return colours.redoLabel; },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, history: historyDeps, colours: coloursDeps }), ...groupCommands()]);
+  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

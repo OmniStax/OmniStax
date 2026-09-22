@@ -12,6 +12,12 @@
   import { math, mathHtml } from '../actions/math';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
   import AiMark from '../ui/AiMark.svelte';
+  import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
+  import { detachScratch } from '../../lib/drawer/edits';
+  import { drawings } from '../../lib/drawer/store.svelte';
+  import { openItem } from '../../lib/sections/nav.svelte';
+  import { layoutStore } from '../../lib/layout/store.svelte';
+  import { drawingItem, exItem, itemKey } from '../../lib/types/ids';
 
   let {
     section, ex, hidden = false, book = registry.manifest.id,
@@ -70,12 +76,44 @@
     localDone = true;
     onanswer?.(ok);
   };
+
+  /* ── scratch work ──────────────────────────────────────────────────────── */
+
+  /* A reader working a problem wants paper. The button splits a drawing pane
+     to the right of this card, and that page belongs to this exercise: it is
+     no row of the tree and it is there again when they come back. Work worth
+     keeping is saved as a drawing, and then the chip stands here instead and
+     opens it. */
+  const at = $derived({ book, section, ex: ex.id });
+  const scratched = $derived(hasScratch(at));
+  const linked = $derived(linkedDrawing(at));
+  const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
+  const scratch = (): void => openScratch(at, layoutStore.layout.focus);
+  const openLinked = (): void => { if (linked) void openItem(itemKey(drawingItem(linked))); };
+  const openAlone = (): void => void openItem(itemKey(exItem(section, ex.id)));
 </script>
 
 <div class="exercise" class:hot id={domId} {hidden}>
 
   <div class="prompt" use:math={ex.prompt}><p>{@html ex.prompt}</p></div>
   {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
+
+  {#if !inline}
+    <div class="tools">
+      <button type="button" class="tool" onclick={openAlone} title="Open this exercise in a tab of its own">Open</button>
+      <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}
+        title={scratched ? 'Your scratch work for this exercise' : 'Open a page to work this out on'}>
+        Scratch{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
+      </button>
+      {#if linked && linkedName}
+        <span class="chip-link">
+          <button type="button" class="tool link" onclick={openLinked} title="Open the drawing this work was saved as">{linkedName}</button>
+          <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
+            title="Turn this drawing back into private scratch work">Detach</button>
+        </span>
+      {/if}
+    </div>
+  {/if}
 
   <details class="meta">
     <summary>Exercise meta</summary>
@@ -129,6 +167,17 @@
   .prompt :global(p){margin:0}
   .prompt :global(table.data){border-collapse:collapse;font-family:var(--sans);font-size:0.85rem;margin:8px 0;font-variant-numeric:tabular-nums}
   .prompt :global(table.data th),.prompt :global(table.data td){border:1px solid var(--rule);padding:2px 10px;text-align:right}
+  /* The row of things a reader does with an exercise rather than to it: open
+     it alone, and reach for paper. */
+  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 0;font-family:var(--sans)}
+  .tool{font:inherit;font-size:0.74rem;color:var(--muted);background:transparent;border:1px solid var(--rule);border-radius:6px;padding:3px 9px;cursor:pointer}
+  .tool:hover{color:var(--ink);background:var(--soft);border-color:var(--accent)}
+  .tool:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .tool .mark{color:var(--accent);font-size:1rem;line-height:0;margin-left:4px}
+  .tool.marked{color:var(--ink);border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+  .chip-link{display:inline-flex;align-items:center;gap:0}
+  .chip-link .link{border-radius:6px 0 0 6px;color:var(--accent);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip-link .detach{border-radius:0 6px 6px 0;border-left:0}
   .meta{font-family:var(--sans);font-size:0.78rem;margin:10px 0}
   .meta summary{width:max-content;color:var(--muted);font-weight:600;cursor:pointer}
   .meta-body{display:flex;flex-direction:column;gap:7px;margin-top:7px;padding:9px 10px;border:1px solid var(--rule);border-radius:7px;background:var(--soft)}

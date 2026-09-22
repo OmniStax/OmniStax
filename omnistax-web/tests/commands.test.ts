@@ -127,11 +127,13 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
     },
     docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openAbout: () => log.push('about') },
     notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
+    drawings: { newDrawing: () => log.push('new drawing') },
     history: {
       undo: () => log.push('undo'), redo: () => log.push('redo'),
       canUndo: timeline.undoLabel !== undefined, canRedo: timeline.redoLabel !== undefined,
       undoLabel: timeline.undoLabel ?? '', redoLabel: timeline.redoLabel ?? '',
     },
+    chat: { newChat: () => {} },
     colours: {
       undo: () => log.push('colours undo'), redo: () => log.push('colours redo'),
       canUndo: colourTimeline.undoLabel !== undefined, canRedo: colourTimeline.redoLabel !== undefined,

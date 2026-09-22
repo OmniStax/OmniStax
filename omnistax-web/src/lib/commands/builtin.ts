@@ -39,6 +39,12 @@ export type BuiltinDeps = {
   readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openAbout(): void };
   /* The reader's own notes: a new one, and the mode of the note tab in the focused group. */
   readonly notes: { newNote(): void; toggleMode(): void; canToggle(): boolean };
+  /* The reader's own drawings. Only the making of one is a command: everything
+     else a drawing does is done inside its own tab, under the bare letters its
+     toolbar names, which never reach the shell. */
+  readonly drawings: { newDrawing(): void };
+  /* A chat of the reader's own with the model they brought a key for. */
+  readonly chat: { newChat(): void };
   /* One timeline of the reader's own edits: what the next step back or forward
      would undo or redo, and whether there is one at all. */
   readonly history: { undo(): void; redo(): void; readonly canUndo: boolean; readonly canRedo: boolean; readonly undoLabel: string; readonly redoLabel: string };
@@ -75,6 +81,8 @@ export const BUILTIN = {
   scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
   reopenAbout: commandId('reopen-about'),
   noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
+  drawingNew: commandId('drawing-new'),
+  chatNew: commandId('chat-new'),
   findTextbook: commandId('explorer-find-textbook'),
   coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
 } as const;
@@ -161,6 +169,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.reopenAbout, label: 'Reopen OmniStax Introduction', group: 'App', run: () => d.docs.openAbout() },
   { id: BUILTIN.noteNew, label: 'New note', group: 'App', run: () => d.notes.newNote() },
   { id: BUILTIN.noteToggleMode, label: 'Note: edit or read', group: 'App', run: () => d.notes.toggleMode(), when: () => d.notes.canToggle() },
+  { id: BUILTIN.drawingNew, label: 'New drawing', group: 'App', run: () => d.drawings.newDrawing() },
+  { id: BUILTIN.chatNew, label: 'New chat', group: 'App', run: () => d.chat.newChat() },
   { id: BUILTIN.findTextbook, label: 'Find a textbook', group: 'App', run: () => d.ui.openFindTextbook() },
   /* The colour timeline is the colour menu's own, so these two say so by name and
      the detail says which colour would come back. */

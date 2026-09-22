@@ -48,7 +48,9 @@ const deps = (): BuiltinDeps => ({
   scope: { activeView: () => 'view:concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
   docs: { openView: () => {}, openAbout: () => {} },
   notes: { newNote: () => {}, toggleMode: () => {}, canToggle: () => true },
+  drawings: { newDrawing: () => {} },
   history: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'highlight in yellow', redoLabel: '' },
+  chat: { newChat: () => {} },
   colours: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'velocity in section 16.3', redoLabel: '' },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {

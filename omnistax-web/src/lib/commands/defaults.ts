@@ -51,6 +51,14 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Shift+F', 'show-view-search'],
   ['Ctrl+E', 'note-toggle-mode'],
   ['Ctrl+Alt+N', 'note-new'],   /* Ctrl+N opens a window of the browser's own, so the note takes Alt as well */
+  /* A chat of the reader's own; Ctrl+L is the browser's address bar in a tab,
+     so the chat ships with Alt in a tab and with Ctrl installed as an app. */
+  ['Ctrl+Shift+L', 'chat-new'],
+  /* A drawing of the reader's own. Ctrl+D is the browser's bookmark in a tab,
+     so the drawing ships with Alt as well, and Ctrl+Shift+D is already the
+     theme's; the tool keys inside a drawing tab are bare letters the tab keeps
+     to itself and are not bindings at all. */
+  ['Ctrl+Alt+D', 'drawing-new'],
 ];
 /* The same chord with Alt in place of Ctrl, and nothing when there is no Ctrl
    to swap or the binding is a sequence, which stays as it is. */
