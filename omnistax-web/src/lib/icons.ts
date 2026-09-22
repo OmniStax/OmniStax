@@ -31,6 +31,8 @@ export const ICON = {
   palette: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.2l2.4 1.9-2.4 1.9"/><path d="M12.4 14h4.1"/></svg>',
   /* the grip a row is dragged by: six dots, the handle a reader knows from every list they can reorder */
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.3" fill="currentColor"/><circle cx="15" cy="6" r="1.3" fill="currentColor"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/><circle cx="9" cy="18" r="1.3" fill="currentColor"/><circle cx="15" cy="18" r="1.3" fill="currentColor"/></svg>',
+  /* the pomodoro clock: the tomato the kitchen timer was shaped like, with its leaves and its stem, and the hand it counts down on */
+  pomodoro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.8"/><path d="M8.5 5.2c1.1 1.1 2.2 1.6 3.5 1.6s2.4-.5 3.5-1.6"/><path d="M12 6.8V4"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', colours: 'Colours' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', pomodoro: 'Pomodoro', colours: 'Colours' };

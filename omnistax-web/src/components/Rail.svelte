@@ -16,9 +16,15 @@
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
+  import { pomodoro } from '../lib/pomodoro/store.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const kindOf = (k: string): ViewKind => viewKindOf(k) as ViewKind;   /* every key the rail draws is a view's */
+  const iconOf = (kind: ViewKind): string => ICON[kind as keyof typeof ICON] ?? '';
+  const titleOf = (kind: ViewKind): string => VIEW_TITLE[kind] ?? kind;
+  /* The clock reads itself back from this browser as soon as the shell is up, so
+     that a countdown can stand under the icon wherever the panel happens to be. */
+  $effect(() => { pomodoro.init(); });
   let drop = $state(false);
   /* A sidebar view: into the sidebar when it is nowhere, out of it when it is
      there, and to its tab when the reader has dragged it into a group. */
@@ -41,16 +47,17 @@
   <div class="section">
     {#each SIDEBAR_VIEW_KEYS as k (k)}
       {@const loc = where(l, k)}
-      <button type="button" class:on={!!loc} title={VIEW_TITLE[kindOf(k)]} aria-label={VIEW_TITLE[kindOf(k)]}
-        use:draggable={{ key: k, from: null }} onclick={() => toggleSide(k)}>{@html ICON[kindOf(k) as keyof typeof ICON]}</button>
+      {@const count = kindOf(k) === 'pomodoro' ? pomodoro.railText : ''}
+      <button type="button" class:on={!!loc} class:counting={!!count} title={count ? `${titleOf(kindOf(k))} — ${count} left` : titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
+        use:draggable={{ key: k, from: null }} onclick={() => toggleSide(k)}>{@html iconOf(kindOf(k))}{#if count}<span class="count">{count}</span>{/if}</button>
     {/each}
   </div>
   <div class="spacer"></div>
   <div class="section">
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
-      <button type="button" class:on={open} title="{VIEW_TITLE[kindOf(k)]} (opens a page of its own in a split)" aria-label={VIEW_TITLE[kindOf(k)]}
-        use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html ICON[kindOf(k) as keyof typeof ICON]}</button>
+      <button type="button" class:on={open} title="{titleOf(kindOf(k))} (opens a page of its own in a split)" aria-label={titleOf(kindOf(k))}
+        use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html iconOf(kindOf(k))}</button>
     {/each}
   </div>
   <div class="spacer"></div>
@@ -77,5 +84,9 @@
   button :global(svg){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   button[draggable="true"]{cursor:grab}
+  /* While a session runs, the time left stands under the icon, which shifts up to make room for it. */
+  .count{position:absolute;left:0;right:0;bottom:1px;font-size:0.56rem;font-variant-numeric:tabular-nums;letter-spacing:0.02em;color:var(--accent);line-height:1}
+  button.counting{color:var(--accent)}
+  button.counting :global(svg){transform:translateY(-4px)}
   .rail.drop{background:var(--soft)}
 </style>

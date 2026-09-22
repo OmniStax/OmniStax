@@ -26,6 +26,7 @@
   import Definitions from './Definitions.svelte';
   import Annotations from './Annotations.svelte';
   import Colours from './Colours.svelte';
+  import Pomodoro from './Pomodoro.svelte';
   let { item }: { item: string } = $props();
   /* The tab is the page; its key says which kind of view to draw and, when the
      reader has opened several of one kind, which of them this one is. */
@@ -34,8 +35,9 @@
      have added — so it stands nowhere in particular and wears no bar; so does
      the search, which reads every book of the library, and the exercises view,
      whose curriculum is chosen across books rather than read off the place the
-     reader is standing in. */
-  const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'exercises');
+     reader is standing in; so does the pomodoro clock, which times the reader
+     rather than the book. */
+  const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'exercises' && kind !== 'pomodoro');
   const target = $derived(scope.targetFor(item));
   const pinned = $derived(scope.isPinned(item));
   /* The trail is read from the narrowest place this view could stand at, so every crumb
@@ -109,6 +111,7 @@
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />
   {:else if kind === 'colours'}<Colours />
+  {:else if kind === 'pomodoro'}<Pomodoro />
   {:else}<Annotations />{/if}
 </div>
 

@@ -24,15 +24,16 @@ export type Layout = {
   readonly groups: readonly Group[];
   readonly focus: number;
   readonly tree: SplitNode;                   /* arranges the groups above; every group appears once as a leaf */
+  readonly offered?: readonly ItemKey[];      /* views a saved layout has already been shown once, so a new one arrives and is never forced back */
 };
 export type Location = { readonly type: 'side'; readonly side: Side } | { readonly type: 'group'; readonly index: number };
 export type SplitSide = 'left' | 'right' | 'up' | 'down';
 export const SIDE_WIDTH = { min: 200, max: 520 } as const;
 
-/* The three views that may stand in a sidebar all call the left one home; the
+/* The four views that may stand in a sidebar all call the left one home; the
    rest are only ever tabs, so they name no side. A page of a view opened by the
    rail carries an instance of its own and calls no side home either. */
-const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:search': 'left', 'view:annotations': 'left' };
+const DEFAULT_HOME: Readonly<Record<ItemKey, Side>> = { 'view:explorer': 'left', 'view:search': 'left', 'view:annotations': 'left', 'view:pomodoro': 'left' };
 const keyOf = (id: ItemId | ItemKey): ItemKey => (typeof id === 'string' ? id : itemKey(id));
 const viewKey = (k: ItemKey): boolean => { const id = parseItemKey(k); return id !== null && isView(id); };
 /* What a sidebar will hold: the explorer, the search and the annotations, and nothing else. */
@@ -65,7 +66,12 @@ const handOn = ({ kept, owed }: Handout, gained: readonly Slot[], weight: number
       : { kept, owed: owed + weight }
     : { kept: [...kept, ...gained.map((g, i) => (i === 0 ? { ...g, weight: g.weight + owed } : g))], owed: 0 };
 
-/* A layout for a page that has nothing saved: the explorer in the left sidebar,
+/* The views a reader who has read here before has not met yet: a layout saved
+   before one of these existed gains it in the left sidebar, once. Closing it
+   afterwards closes it for good, because the layout remembers it was offered. */
+export const OFFERED: readonly ItemKey[] = ['view:pomodoro'];
+
+/* A layout for a page that has nothing saved: the explorer and the pomodoro clock in the left sidebar,
    the page's own item in the one group, and beside a section's text its
    exercises, which is how a section is read. An introduction or summary page
    sets no exercises, so it opens alone. */
@@ -73,8 +79,8 @@ export const defaultLayout = (own: ItemId): Layout => {
   const k = keyOf(own);
   const group: Group = { key: newGroupKey(), tabs: [k], active: k };
   return {
-    sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },
-    home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key),
+    sides: { left: { width: 270, items: ['view:explorer', 'view:pomodoro'] }, right: { width: 300, items: [] } },
+    home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key), offered: OFFERED,
   };
 };
 
@@ -345,8 +351,12 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const row = groups.length === 1 ? leaf(groups[0].key) : { type: 'split' as const, dir: 'row' as const, children: groups.map((g) => leaf(g.key)) };
   const home = isRec(raw.home) ? Object.fromEntries(Object.entries(raw.home).filter((e): e is [string, Side] => e[1] === 'left' || e[1] === 'right')) : {};
   const collapsed = strs(raw.collapsed) ? raw.collapsed : [];
+  /* A view this saved layout has never been offered joins the left sidebar as it is read back, and is marked offered so it is only ever put there once. */
+  const was = strs(raw.offered) ? raw.offered : [];
+  const fresh = OFFERED.filter((k) => !was.includes(k) && known(k));
+  const items = fresh.length ? [...left.items, ...fresh.filter((k) => !left.items.includes(k))] : left.items;
   const focus = typeof raw.focus === 'number' ? Math.max(0, Math.min(raw.focus, groups.length - 1)) : 0;
-  return normalize({ sides: { left, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row });
+  return normalize({ sides: { left: { ...left, items }, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row, offered: [...new Set([...was, ...OFFERED])] });
 };
 export const VIEW_KEYS: readonly ItemKey[] = VIEW_KINDS.map((v) => keyOf(viewItem(v)));
 /* Every page of one kind of view that is open, in the sidebars and in the groups:

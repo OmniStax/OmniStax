@@ -15,10 +15,10 @@ test('an introduction page opens alone, since it sets no exercises', () => {
   const l = defaultLayout(docItem(sectionId('2.intro'), 'text'));
   assert.deepEqual(l.groups[0].tabs, ['doc:2.intro/text']);
 });
-test('default layout opens the text alone, and the explorer in the sidebar', () => {
+test('default layout opens the text alone, and the explorer and the clock in the sidebar', () => {
   const l = defaultLayout();
   assert.deepEqual(l.groups[0].tabs, [text]); assert.equal(l.groups[0].active, text);
-  assert.deepEqual(l.sides.left.items, ['view:explorer']); assert.deepEqual(l.sides.right.items, []);
+  assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro']); assert.deepEqual(l.sides.right.items, []);
 });
 test('a page of its own opens alone', () => {
   const l = defaultLayout(pageItem('about'));
@@ -61,11 +61,11 @@ test('a view opened in a sidebar leaves every other place', () => {
 });
 test('a view that no sidebar holds is asked for there and opens as a tab', () => {
   const l = openSide(defaultLayout(), map, 'left');
-  assert.deepEqual(l.sides.left.items, ['view:explorer'], 'the concept map is not a sidebar view');
+  assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro'], 'the concept map is not a sidebar view');
   assert.equal(where(l, map)?.type, 'group'); assert.equal(l.groups[0].active, map);
 });
-test('the rail draws the two sidebar views first and the four group views below, exercises above the map', () => {
-  assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:annotations']);
+test('the rail draws the four sidebar views first and the four group views below, exercises above the map', () => {
+  assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:annotations', 'view:pomodoro']);
   assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:formulas', 'view:definitions']);
   /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
   assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:colours']);
@@ -81,7 +81,7 @@ test('openInSplit opens the view beside what is being read, and finds it where i
 test('openInSplit takes a view out of the sidebar and gives it a group', () => {
   const side = openSide(defaultLayout(), notes, 'left');
   const l = openInSplit(side, notes);
-  assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, ['view:explorer']);
+  assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro']);
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
   const bare = ensureOwn(defaultLayout(pageItem('about')), pageItem('book'));
