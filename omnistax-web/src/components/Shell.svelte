@@ -34,6 +34,7 @@
   import Tooltip from './Tooltip.svelte';
   import Browser from './Browser.svelte';
   import FindTextbook from './explorer/FindTextbook.svelte';
+  import DragToast from './ui/DragToast.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { sheets } from '../lib/sheets/store.svelte';
@@ -235,6 +236,7 @@
   <Palette />
   <Browser {manifest} />
   <FindTextbook />
+  <DragToast />
 {/if}
 
 <style>

@@ -10,9 +10,9 @@ export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
-export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true } as const;
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false } as const;
 
-const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys' } as const;
+const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -40,6 +40,11 @@ class Settings {
      three commands stay in the palette either way. */
   zoom = $state<ZoomStep>(readZoom());
   zoomKeys = $state(read(KEYS.zoomKeys) !== '0');
+  /* Which mouse button drags a card out of a panel. Off — the way the book
+     comes — the left button drags and the right one sweeps a selection across
+     the words; on, the two trade places, for a reader who would rather keep
+     the left button on the text. */
+  swapDragButtons = $state(read(KEYS.swapDrag) === '1');
 
   get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
   setColorCoding(on: boolean): void { this.colorCoding = on; write(KEYS.cc, on ? '1' : '0'); }
@@ -56,6 +61,7 @@ class Settings {
   zoomOut(): void { this.setZoom(zoomBy(this.zoom, -1)); }
   resetZoom(): void { this.setZoom(ZOOM_DEFAULT); }
   setZoomKeys(on: boolean): void { this.zoomKeys = on; write(KEYS.zoomKeys, on ? '1' : '0'); }
+  setSwapDragButtons(on: boolean): void { this.swapDragButtons = on; write(KEYS.swapDrag, on ? '1' : '0'); }
   setUnderlines(on: boolean): void { this.underlines = on; write(KEYS.underlines, on ? '1' : '0'); }
   reset(): void { Object.values(KEYS).forEach(remove); }
 }
