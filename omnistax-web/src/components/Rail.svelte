@@ -17,6 +17,7 @@
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
   import { pomodoro } from '../lib/pomodoro/store.svelte';
+  import { newChatTab } from '../lib/chat/open.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const kindOf = (k: string): ViewKind => viewKindOf(k) as ViewKind;   /* every key the rail draws is a view's */
@@ -40,6 +41,9 @@
   /* A page of the view of its own, beside what is being read; the ones already open stay. */
   const openPage = (kind: ViewKind) => layoutStore.apply((x) => split(x, x.focus, 'right', newViewItem(kind)));
   const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
+  /* The chat button lights while any chat stands open, as a view's button
+     lights while any page of it does. */
+  const chatsOpen = $derived(l.groups.some((g) => g.tabs.some((t) => t.startsWith('chat:'))));
 </script>
 
 <nav class="rail" class:drop aria-label="Views"
@@ -59,6 +63,11 @@
       <button type="button" class:on={open} title="{titleOf(kindOf(k))} (opens a page of its own in a split)" aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html iconOf(kindOf(k))}</button>
     {/each}
+    <!-- A chat is not a view: every click opens a chat of its own, which is a
+         tab holding that one conversation, so the button stands with the four
+         that open a page in a split and carries no view kind. -->
+    <button type="button" class:on={chatsOpen} title="New chat (opens a chat of its own in a split)" aria-label="New chat"
+      onclick={() => newChatTab()}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>
   <div class="section">

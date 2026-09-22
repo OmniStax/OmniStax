@@ -113,14 +113,41 @@ error text on the message with a Retry.
 
 ## Milestones
 
-- [ ] 1. Providers, Settings block, the chat tab with linear conversation,
+- [x] 1. Providers, Settings block, the chat tab with linear conversation,
   the pinned section chip, streaming, stop, retry, markdown output, storage
   and backup. `tests/chat.test.ts` for the model; `tests/chat-browser-check.py`
   against a local mock server that speaks the OpenAI SSE shape.
-- [ ] 2. The tree: edit-and-resend, sibling pager, fork breadcrumb, leaf
+- [x] 2. The tree: edit-and-resend, sibling pager, fork breadcrumb, leaf
   list; search corpus; the `chat:` embed and drag-out.
-- [ ] 3. The @ picker with every category, chips from it, and the note
+- [x] 3. The @ picker with every category, chips from it, and the note
   editor's `[[` completion moved onto it. "Ask AI" on the highlight bar.
-- [ ] 4. Widget blocks in a sandboxed iframe, opt-in.
+- [x] 4. Widget blocks in a sandboxed iframe, opt-in.
 
 ## Progress
+
+**2026-09-22.** Milestones 1 to 4 built. The chat is a tab of its own opened
+from a new rail button beside the four view buttons and from "New chat"
+(Ctrl+Shift+L); `lib/chat/model.ts` is the pure tree — the transcript is the
+path from a silent root to the leaf, edit-and-resend and Retry make siblings,
+and the pager, the fork breadcrumb and the leaf list are read off it.
+`providers/` holds one interface and four providers (Anthropic, OpenAI,
+Gemini, and OpenAI-compatible, which is the OpenAI one at the reader's own
+address), with `requestOf` pure so a body can be checked without a network and
+a `TypeError` from fetch reported as the CORS sentence. Keys live in
+`omnistax-ai-v1` and the backup adapter strips them; the chats live in
+IndexedDB `omnistax-chats` with the index in `omnistax-chats-v1`, and both
+travel in a backup (`chats: Chat[]`). The picker is `lib/picker/` over
+`components/ui/AtPicker.svelte`, opened by `@` in the composer and by `[[` in
+the note editor, which no longer uses CodeMirror's own completion. Widgets are
+opt-in per chat and mount in `<iframe sandbox="allow-scripts">`.
+
+The chat corpus is `lib/search/chats.ts`, pure and tested, and it is one more
+source of `lib/search/sources.ts`: `findAll` answers `chats` beside `books` and
+`files` under the same filters. What is left is the view — the Search page must
+hand the source its rows (`chatEntries` over the chats that have been opened)
+and draw the group — and landing on a hit, which is `chats.goTo` at that
+message. The widget toggle is per chat and per session rather than persisted. A
+chat has no row in the explorer tree; the index is what the picker, the search
+and links read it by. `components/notes/NoteTab.svelte` still gathers its own
+candidate list and hands it to the editor as `complete`, which the editor now
+ignores: that list is the next thing to delete.

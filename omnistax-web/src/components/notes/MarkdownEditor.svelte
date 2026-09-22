@@ -12,14 +12,21 @@
   import { markdown } from '@codemirror/lang-markdown';
   import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
   import { tags } from '@lezer/highlight';
-  import { autocompletion, completionStatus, startCompletion, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
   import type { Extension } from '@codemirror/state';
   import type { Candidate } from '../../lib/notes/md/complete';
+  import AtPicker from '../ui/AtPicker.svelte';
+  import { allRows } from '../../lib/picker/sources';
+  import { embedText, linkInner } from '../../lib/notes/md/links';
+  import type { PickerRow } from '../../lib/picker/model';
 
+  /* `complete` is the list the note tab gathered before the picker existed. The
+     picker reads the same stores and more, so the rows come from there now and
+     the prop is kept only so that the tab need not change; it is the next thing
+     to go from the note tab. */
   let { value, onchange, complete, onimage }: {
     value: string;
     onchange: (v: string) => void;
-    complete: () => readonly Candidate[];
+    complete?: () => readonly Candidate[];
     onimage: (file: File) => Promise<string>;
   } = $props();
 
@@ -30,36 +37,54 @@
 
   export function focus(): void { view?.focus(); }
 
-  /* ── the wiki-link completion ──────────────────────────────────────────── */
+  /* ── the wiki-link picker ─────────────────────────────────────────────── */
 
-  /* Open brackets with nothing but the link's own text after them: the reader
-     is inside a link, and only there does the list appear. */
-  const OPEN = /\[\[([^\]\n]*)$/;
+  /* A second `[` closes the pair and opens the picker, which is the same list a
+     chat composer opens with `@`. `at` is where the link's own text begins, so
+     what has been typed since is the query, and choosing a row writes the link
+     over it. The picker stands where the cursor is. */
+  let at = $state<number | null>(null);
+  let query = $state('');
+  let where = $state({ left: 0, top: 0 });
+  const rows = $derived(at === null ? [] : allRows());
+  let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
 
-  /* A row that writes a card rather than a link changes the brackets it was
-     opened inside: the completion reaches back over the `[[` and writes `![[`,
-     unless the reader had already typed the mark themselves. */
-  const apply = (c: Candidate) => (v: EditorView, _c: Completion, from: number, to: number): void => {
-    const closed = v.state.doc.sliceString(to, to + 2) === ']]';
-    const mark = c.embed === true && v.state.doc.sliceString(Math.max(0, from - 3), from - 2) !== '!';
-    const start = mark ? from - 2 : from;
-    const insert = (mark ? '![[' : '') + c.insert + (closed ? '' : ']]');
-    v.dispatch({
-      changes: { from: start, to, insert },
-      selection: { anchor: start + insert.length + (closed ? 2 : 0) },   /* past the closing brackets, either way */
-      userEvent: 'input.complete',
-    });
+  const closePicker = (): void => { at = null; query = ''; };
+
+  /* Where the picker hangs, in the editor's own coordinates. */
+  const place = (v: EditorView, pos: number): void => {
+    const box = v.coordsAtPos(pos), host = v.dom.getBoundingClientRect();
+    if (box) where = { left: box.left - host.left, top: box.bottom - host.top };
   };
 
-  const source = (ctx: CompletionContext): CompletionResult | null => {
-    const line = ctx.state.doc.lineAt(ctx.pos);
-    const open = OPEN.exec(line.text.slice(0, ctx.pos - line.from));
-    if (!open) return null;
-    return {
-      from: ctx.pos - open[1].length,
-      options: complete().map((c) => ({ label: c.label, detail: c.detail, apply: apply(c) })),
-      validFor: /^[^\]\n]*$/,
-    };
+  /* The text between `[[` and the cursor, and nothing once the reader has left
+     the brackets or closed them. */
+  const readQuery = (v: EditorView): void => {
+    const start = at; if (start === null) return;
+    const cursor = v.state.selection.main.head;
+    if (cursor < start) { closePicker(); return; }
+    const typedText = v.state.doc.sliceString(start, cursor);
+    if (/[\]\n]/.test(typedText)) { closePicker(); return; }
+    query = typedText;
+  };
+
+  const choose = (row: PickerRow): void => {
+    const v = view, start = at;
+    if (!v || start === null) return;
+    const cursor = v.state.selection.main.head;
+    const closed = v.state.doc.sliceString(cursor, cursor + 2) === ']]';
+    /* An embed reaches back over the `[[` to write the bang, unless the reader
+       typed one themselves. */
+    const bang = row.embed === true && v.state.doc.sliceString(Math.max(0, start - 3), start - 2) !== '!';
+    const from = bang ? start - 2 : start;
+    const insert = (bang ? embedText(row.target).slice(0, -2) : linkInner(row.target)) + (closed ? '' : ']]');
+    v.dispatch({
+      changes: { from, to: cursor, insert },
+      selection: { anchor: from + insert.length + (closed ? 2 : 0) },
+      userEvent: 'input.complete',
+    });
+    closePicker();
+    v.focus();
   };
 
   /* ── typing the second bracket ─────────────────────────────────────────── */
@@ -69,8 +94,8 @@
     const before = v.state.doc.sliceString(Math.max(0, from - 2), from);
     if (!before.endsWith('[') || before === '[[') return false;
     v.dispatch({ changes: { from, to, insert: '[]]' }, selection: { anchor: from + 1 }, userEvent: 'input.type' });
-    /* after the dispatch has settled, so the source sees the brackets */
-    queueMicrotask(() => startCompletion(v));
+    /* after the dispatch has settled, so the position is the one the picker stands at */
+    queueMicrotask(() => { at = from + 1; query = ''; place(v, from + 1); });
     return true;
   });
 
@@ -103,7 +128,13 @@
   const handlers = EditorView.domEventHandlers({
     /* Escape belongs to the list of links while it is open, and to the shell
        once it is not. */
-    keydown: (e, v) => { if (!isExit(e) || (e.key === 'Escape' && completionStatus(v.state) !== null)) e.stopPropagation(); return false; },
+    keydown: (e, v) => {
+      /* The picker has the arrows, Enter and Escape while it is open; every
+         other key goes on typing into the brackets. */
+      if (at !== null && picker?.handleKey(e)) { e.preventDefault(); e.stopPropagation(); return true; }
+      if (!isExit(e) || (e.key === 'Escape' && at !== null)) e.stopPropagation();
+      return false;
+    },
     paste: (e, v) => {
       const files = imagesIn(e.clipboardData);
       if (!files.length) return false;
@@ -159,13 +190,12 @@
     EditorView.lineWrapping,
     markdown(),
     syntaxHighlighting(highlight, { fallback: true }),
-    /* before the plain keymap, so Enter and the arrows belong to the list while it is open */
-    autocompletion({ override: [source], icons: false, closeOnBlur: true }),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     brackets,
     handlers,
     theme,
     EditorView.updateListener.of((u) => {
+      if (at !== null && (u.docChanged || u.selectionSet)) { readQuery(u.view); if (at !== null) place(u.view, at); }
       if (!u.docChanged) return;
       emitted = u.state.doc.toString();
       onchange(emitted);
@@ -188,8 +218,17 @@
   });
 </script>
 
-<div class="md-editor" use:mount></div>
+<div class="md-editor" use:mount>
+  {#if at !== null}
+    <div class="picker-at" style:left="{where.left}px" style:top="{where.top}px">
+      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={closePicker} />
+    </div>
+  {/if}
+</div>
 
 <style>
-  .md-editor { height: 100%; overflow: hidden; background: var(--bg); }
+  .md-editor { position: relative; height: 100%; overflow: hidden; background: var(--bg); }
+  /* the picker hangs below the cursor, in a box of its own so that its own
+     rules — which put it above whatever opened it — have something to sit in */
+  .picker-at { position: absolute; width: 22rem; max-width: calc(100% - 24px); height: 0; z-index: 30; }
 </style>
