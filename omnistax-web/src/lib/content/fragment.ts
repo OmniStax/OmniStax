@@ -7,6 +7,7 @@ import { attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
 import { ICON } from '../icons';
+import { AI_MARK_HTML } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -145,6 +146,16 @@ export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, Spa
   }).join('');
 };
 
+/* Every generated thing says so on itself. The head of a simulation carries the mark beside its
+   eyebrow — "Sim" where the figure replaces nothing in the book, "Figure 1.6" where it transforms
+   one — since both are built by the AI the section names in its footer, and the reader meets the
+   same glyph on the lead below and on a suggested approach in the exercises. A section whose
+   figures the book drew itself, which is a section with no ai.figures, is left unmarked. */
+const SIM_EYEBROW = /(<div\b[^>]*\bclass="[^"]*\bsim-head\b[^"]*"[^>]*>\s*<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?)<\/span>/g;
+/* The mark goes inside the eyebrow, not after it: the head lays its children out in a
+   row of its own, and a mark of its own would drop to a line below the word. */
+export const markAiFigures = (html: string): string => html.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${AI_MARK_HTML}</span>`);
+
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
 const footer = (book: BookDTO, s: SectionSource): string => footerHtml(attributionOf(book, s.meta));
 
@@ -191,12 +202,14 @@ const pageNav = (nav: PageNav): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
-  const body = lazyImages(sizeImages(qualifyIds(s.textHtml, s.meta.id))), summary = summaryBlock(s);
+  const marked = s.meta.ai?.figures ? markAiFigures(s.textHtml) : s.textHtml;
+  const body = lazyImages(sizeImages(qualifyIds(marked, s.meta.id))), summary = summaryBlock(s);
+  const lead = s.meta.ai?.text ? `${s.meta.lead}${AI_MARK_HTML}` : s.meta.lead;
   return [
   `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
-  ...(s.meta.lead === '' ? [] : [`<p class="lead">${s.meta.lead}</p>`]),
+  ...(s.meta.lead === '' ? [] : [`<p class="lead">${lead}</p>`]),
   body,
   summary,
   sectionEnd(s),

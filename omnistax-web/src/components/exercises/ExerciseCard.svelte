@@ -11,6 +11,7 @@
   import type { SessionId } from '../../lib/practice/model';
   import { math, mathHtml } from '../actions/math';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
+  import AiMark from '../ui/AiMark.svelte';
 
   let {
     section, ex, hidden = false, book = registry.manifest.id,
@@ -95,12 +96,12 @@
   {#if a.type === 'choice'}
     <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} />
     {#if completed && sol}
-      <div class="solution-block"><div class="solution-head">Solution ({a.generated_by === 'ai' ? 'AI' : 'book'})</div><div use:math={sol}>{@html sol}</div></div>
+      <div class="solution-block"><div class="solution-head">Solution{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div><div use:math={sol}>{@html sol}</div></div>
     {/if}
   {:else if sol}
     {#if solutionOpen || completed}
       <div class="solution-block">
-        <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'} ({a.generated_by === 'ai' ? 'AI' : 'book'})</div>
+        <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'}{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div>
         <div use:math={sol}>{@html sol}</div>
       </div>
       {#if !completed && !inline}
