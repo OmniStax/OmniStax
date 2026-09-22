@@ -14,7 +14,7 @@ const GLYPH =
   + '<path d="M18 13.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z"/>'
   + '</svg>';
 
-const STYLE = 'display:inline-block;width:0.85em;height:0.85em;line-height:0;margin-left:0.3em;vertical-align:-0.08em;opacity:0.55';
+const STYLE = 'display:inline-block;width:1.05em;height:1.05em;line-height:0;margin-left:0.3em;vertical-align:-0.16em;opacity:0.55';
 
 export const AI_MARK_HTML =
   `<span class="ai-mark" style="${STYLE}" role="img" title="${AI_MARK_LABEL}" aria-label="${AI_MARK_LABEL}">${GLYPH}</span>`;
