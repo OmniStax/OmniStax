@@ -21,10 +21,12 @@
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
+  import { docItem, parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
   import { pageLabel } from '../lib/content/roles';
   import { parseBoot } from '../lib/sections/boot';
+  import { BOOK_RULES_ID, bookRulesCss } from '../lib/colours/rules';
+  import type { BookManifest } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
@@ -56,7 +58,12 @@
      rather than in the island's props. The shell is `client:only`, so this body
      runs in the browser and the read is an ordinary synchronous one, done here
      at setup and long before `registry.init` in `onMount`. */
-  const { manifest, chapterDir, chapterData } = parseBoot(document);
+  const boot = parseBoot(document);
+  const { chapterDir, chapterData } = boot;
+  /* The book the shell is standing in. It changes when the reader walks into
+     another book from the explorer or the about page, which the shell does in
+     place rather than by loading a new page. */
+  let manifest = $state.raw(boot.manifest);
   const page = untrack(() => own);   /* the page's own item never changes */
   let ready = $state(false);
   let narrow = $state(false);
@@ -148,6 +155,54 @@
     const clearView = (e: Event) => { const el = e.target as HTMLElement | null; if (!el?.closest?.('.view')) focus.view = null; };
     /* The group an element was clicked in, or the focused one when it stands outside every pane. */
     const groupOf = (el: HTMLElement): number => { const pane = el.closest<HTMLElement>('.pane'); return pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; };
+    /* The parts of a path of this site: the first of them names the book. */
+    const segmentsOf = (p: string): string[] => p.split('/').filter(Boolean);
+    /* Another book, reached from the explorer or from a page that points into
+       it. A section is known by its number alone and the shell dresses one book
+       at a time, so walking into a book is a change of what the shell stands
+       in — its manifest, its colours, its rules, its macros — and the layout is
+       read again as a fresh page of that book would read it. The page itself is
+       never left, so the app is not fetched a second time and nothing flashes. */
+    const walkInto = async (book: string, pathname: string, hash: string): Promise<boolean> => {
+      const res = await fetch(`/${book}/book.json`).catch(() => null);
+      if (!res?.ok) return false;
+      const m = (await res.json()) as BookManifest;
+      const sec = sectionOfUrl(m, pathname);
+      if (!sec) return false;
+      manifest = m;
+      registry.switchTo(m);
+      initFig({ macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) });
+      colours.init(m);
+      const rules = document.getElementById(BOOK_RULES_ID);
+      if (rules) rules.textContent = bookRulesCss(m);
+      notes.init(m.id);
+      library.init(m.id, m.title);
+      const item = docItem(sec, 'text');
+      focus.own = item;
+      layoutStore.init(item, known);
+      urlSec = null;
+      await openDoc(sec, 'text');
+      /* A link out of the search names the span it found, as a page opened at
+         one does; the document is only now in its pane, so the landing waits. */
+      const at = decodeURIComponent(hash.slice(1));
+      if (at) requestAnimationFrame(() => jump(findEl(at)));
+      return true;
+    };
+    /* A page of another book is written as a plain link, so that it can still be
+       opened in a window of its own; a left click on one opens the book here
+       instead of loading the page. The listen is on the way down, since the row
+       a link stands in may keep the click to itself, and a book this build does
+       not carry falls back to the link, which is what it always did. */
+    const onLink = (e: MouseEvent) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented) return;
+      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
+      if (!link || link.target || link.origin !== location.origin) return;
+      const path = segmentsOf(link.pathname);
+      if (path.length < 3 || path[0] === manifest.id) return;
+      const { href, pathname, hash } = link;
+      e.preventDefault();
+      void walkInto(path[0], pathname, hash).then((ok) => { if (!ok) location.assign(href); });
+    };
     const onClick = (e: MouseEvent) => {
       clearView(e);
       ui.closeAll();
@@ -170,10 +225,10 @@
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
-    document.addEventListener('keydown', onKey); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
+    document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
   });
 
   /* settings → document */

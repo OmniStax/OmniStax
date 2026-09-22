@@ -13,7 +13,7 @@ import type { ItemId } from '../lib/types/ids';
 import type { ConceptsDTO, FormulasDTO } from '../lib/content/schema';
 import { BOOT_ID, bootJson } from '../lib/sections/boot';
 import { NO_CHOICES, cssFor } from '../lib/colours/model';
-import { bookPagesOf } from '../lib/content/roles';
+import { BOOK_RULES_ID, bookRulesCss } from '../lib/colours/rules';
 
 export type Props = {
   tree: BookTree;
@@ -31,11 +31,10 @@ const { tree, own, pool, title, description, book, chapter, section, chapterDir,
    own style element comes after this one in the head, so the colours the reader
    has chosen win over it. Dark comes in three states: system, forced, or light. */
 const colourCss = cssFor(tree.manifest, NO_CHOICES);
-const kvRules = Object.keys(tree.manifest.types).map((k) => `.kv-${k}{color:var(--c-${k})} html:not(.cc) .kv-${k}{color:inherit} html.cc .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc .s-${k}::-moz-range-thumb{background:var(--c-${k})}`).join('\n');
-const unbound = bookPagesOf(tree).filter((s) => s.meta.binds.length).map((s) => {
-  const off = Object.keys(tree.manifest.types).filter((k) => !s.meta.binds.includes(k));
-  return off.length ? `article[data-sec="${s.meta.id}"] :is(${off.map((k) => `.kv-${k}`).join(',')}){color:inherit}` : '';
-}).join('\n');
+/* Which classes the colours reach and which pages hold them back: written from
+   the manifest, and rewritten by the shell if the reader walks into another
+   book without leaving the app. */
+const bookRules = bookRulesCss(tree.manifest);
 /* The island gets only what is small. The manifest and the chapter's concepts
    and formulas go into the boot script below, since Astro serialises island
    props into an attribute — every value wrapped in a typed tuple and every
@@ -58,7 +57,8 @@ const boot = bootJson({ manifest: tree.manifest, chapterDir, chapterData });
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <!-- Offline releases have no cross-origin runtime dependency. The font stacks
      use locally installed faces and their system fallbacks. -->
-<style is:inline set:html={`${colourCss}\n${kvRules}\n${unbound}`}></style>
+<style is:inline set:html={colourCss}></style>
+<style id={BOOK_RULES_ID} is:inline set:html={bookRules}></style>
 <script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('omnistax-underlines')==="0")document.documentElement.classList.add('no-underlines')}catch(e){}</script>
 <slot name="head" />
 </head>

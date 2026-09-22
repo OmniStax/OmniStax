@@ -60,6 +60,27 @@ class Registry {
 
   init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void, threeUrl?: ThreeUrl): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; if (threeUrl) this.threeUrl = threeUrl; }
 
+  /* The reader walks into another book. A section is known by its number alone,
+     so two books cannot stand loaded at once: what the old book left behind is
+     dropped — its documents, its copies, its chapter data and the fetches still
+     in flight — and the new manifest takes its place. The book's own page is
+     kept out of the standing pages for the same reason; the about page is the
+     app's and belongs to no book, so it stays. */
+  switchTo(manifest: BookManifest): void {
+    if (manifest.id === this.manifest.id) return;
+    this.primaryDocs().forEach((a) => a.remove());
+    Object.values(this.clones).forEach((a) => a.remove());
+    this.clones = {}; this.owner = {}; this.loading = {}; this.loadingChapters = {}; this.loadingPages = {};
+    this.sections = {}; this.chapters = {}; this.chapterStatus = {};
+    const { about } = this.pages;
+    this.pages = about ? { about } : {};
+    /* The figure modules are registered under the section's number too, so the
+       old book's scripts would draw on the new book's pages. */
+    const w = window as unknown as { OMNISTAX_FIGURES?: Record<string, unknown> };
+    if (w.OMNISTAX_FIGURES) w.OMNISTAX_FIGURES = {};
+    this.manifest = manifest;
+  }
+
   /* Any page of the book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
   entry(sec: SectionId): SectionEntry | undefined { return bookPagesOf(this.manifest).find((s) => s.id === sec); }
   /* The chapter a page belongs to; the book's own pages belong to none. */
