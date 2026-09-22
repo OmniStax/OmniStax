@@ -31,7 +31,7 @@
 {/if}
 
 <style>
-  .drag-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:130;pointer-events:none;white-space:nowrap;padding:5px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--muted);font-family:var(--sans);font-size:0.78rem;line-height:1.5;box-shadow:0 2px 10px rgb(0 0 0 / 0.16);animation:drag-toast-in 120ms ease-out}
+  .drag-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:130;pointer-events:none;white-space:nowrap;padding:9px 16px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);color:var(--muted);font-family:var(--sans);font-size:1.15rem;line-height:1.4;box-shadow:0 2px 10px rgb(0 0 0 / 0.16);animation:drag-toast-in 120ms ease-out}
   @keyframes drag-toast-in{from{opacity:0}to{opacity:1}}
   @media (prefers-reduced-motion:reduce){ .drag-toast{animation:none} }
 </style>
