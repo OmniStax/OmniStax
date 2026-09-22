@@ -15,9 +15,9 @@
   import type { Extension } from '@codemirror/state';
   import type { Candidate } from '../../lib/notes/md/complete';
   import AtPicker from '../ui/AtPicker.svelte';
-  import { allRows } from '../../lib/picker/sources';
+  import { allRows, warm } from '../../lib/picker/sources';
   import { embedText, linkInner } from '../../lib/notes/md/links';
-  import type { PickerRow } from '../../lib/picker/model';
+  import type { PickerCategory, PickerRow } from '../../lib/picker/model';
 
   /* `complete` is the list the note tab gathered before the picker existed. The
      picker reads the same stores and more, so the rows come from there now and
@@ -45,17 +45,30 @@
      over it. The picker stands where the cursor is. */
   let at = $state<number | null>(null);
   let query = $state('');
-  let where = $state({ left: 0, top: 0 });
-  const rows = $derived(at === null ? [] : allRows());
+  let where = $state({ left: 0, top: 0, down: false });
+  /* Gathered once, when the brackets open the list, and held until it closes:
+     reading every store and every loaded section is far too much work to do
+     again on every keystroke. */
+  let rows = $state<readonly PickerRow[]>([]);
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
 
-  const closePicker = (): void => { at = null; query = ''; };
+  const gather = (): void => { rows = allRows(); };
+  const onCategory = (category: PickerCategory | null): void => { gather(); void warm(category).then(gather); };
+
+  const closePicker = (): void => { at = null; query = ''; rows = []; };
 
   /* Where the picker hangs, in the editor's own coordinates. */
   const place = (v: EditorView, pos: number): void => {
     const box = v.coordsAtPos(pos), host = v.dom.getBoundingClientRect();
-    if (box) where = { left: box.left - host.left, top: box.bottom - host.top };
+    /* The list stands above the cursor, where it does not cover what is being
+       written — unless the cursor is near the top of the note, where there is
+       nothing above to stand in and the list would be cut off by the window;
+       then it hangs below instead. */
+    if (box) where = { left: box.left - host.left, top: box.bottom - host.top, down: box.top - host.top < LIST_HEIGHT };
   };
+
+  /* as tall as the list can grow: `max-height: 16rem` in the picker's own rules */
+  const LIST_HEIGHT = 256;
 
   /* The text between `[[` and the cursor, and nothing once the reader has left
      the brackets or closed them. */
@@ -95,7 +108,7 @@
     if (!before.endsWith('[') || before === '[[') return false;
     v.dispatch({ changes: { from, to, insert: '[]]' }, selection: { anchor: from + 1 }, userEvent: 'input.type' });
     /* after the dispatch has settled, so the position is the one the picker stands at */
-    queueMicrotask(() => { at = from + 1; query = ''; place(v, from + 1); });
+    queueMicrotask(() => { at = from + 1; query = ''; gather(); place(v, from + 1); });
     return true;
   });
 
@@ -185,6 +198,11 @@
   /* ── mounting ──────────────────────────────────────────────────────────── */
 
   const extensions = (): readonly Extension[] => [
+    /* First of all, because an extension named earlier is asked first: while
+       the list of links is open, Enter chooses a row and the arrows walk it,
+       and the editor's own keymap — which would make a line of Enter and move
+       the cursor — must not see those keys before the list has had them. */
+    handlers,
     history(),
     drawSelection(),
     EditorView.lineWrapping,
@@ -192,7 +210,6 @@
     syntaxHighlighting(highlight, { fallback: true }),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     brackets,
-    handlers,
     theme,
     EditorView.updateListener.of((u) => {
       if (at !== null && (u.docChanged || u.selectionSet)) { readQuery(u.view); if (at !== null) place(u.view, at); }
@@ -220,8 +237,8 @@
 
 <div class="md-editor" use:mount>
   {#if at !== null}
-    <div class="picker-at" style:left="{where.left}px" style:top="{where.top}px">
-      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={closePicker} />
+    <div class="picker-at" class:down={where.down} style:left="{where.left}px" style:top="{where.top}px">
+      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={closePicker} oncategory={onCategory} />
     </div>
   {/if}
 </div>
@@ -231,4 +248,7 @@
   /* the picker hangs below the cursor, in a box of its own so that its own
      rules — which put it above whatever opened it — have something to sit in */
   .picker-at { position: absolute; width: 22rem; max-width: calc(100% - 24px); height: 0; z-index: 30; }
+  /* near the top of the note there is no room above the cursor, so the list
+     hangs below it rather than off the top of the window */
+  .picker-at.down :global(.picker) { bottom: auto; top: 6px; margin-bottom: 0; }
 </style>

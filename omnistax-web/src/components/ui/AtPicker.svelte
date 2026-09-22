@@ -3,12 +3,14 @@
      composer and by `[[` in the note editor. The model in `lib/picker/model.ts`
      says what is shown and where the cursor is; this draws it and hands the
      keys to it. Left, Right, Up, Down, Enter and Escape drive it, and a click
-     does the same thing as Enter on the row it lands on.
+     does the same thing as Enter on the row it lands on. The click is taken on
+     the press rather than on the release, and the press is refused its default,
+     because letting it through would take the focus out of the field the picker
+     was opened from and close the picker before the click ever arrived.
 
      The component owns no rows of its own: whoever opens it hands them over,
      so the same picker serves a chat, a note, and whatever asks next. */
-  import { atCursor, faceOf, into, move, open as openState, out, typed, CATEGORY_LABEL, type Face, type PickerCategory, type PickerRow, type PickerState } from '../../lib/picker/model';
-  import { warm } from '../../lib/picker/sources';
+  import { atCursor, faceOf, into, nextIndex, open as openState, out, queryIn, CATEGORY_LABEL, type Face, type PickerCategory, type PickerRow, type PickerState } from '../../lib/picker/model';
 
   let { rows, query, onchoose, onclose, oncategory }: {
     rows: readonly PickerRow[];
@@ -18,16 +20,28 @@
     oncategory?: (category: PickerCategory | null) => void;
   } = $props();
 
-  let state = $state<PickerState>(openState(query));
-  /* What is typed after the `@` belongs to the field, not to the list, so the
-     query follows it while the reader is in a category too. */
-  $effect(() => { state = typed(state, query); });
-  const face = $derived<Face>(faceOf(state, rows));
+  /* What is typed after the `@` belongs to the field, so it is read from the
+     prop wherever it is wanted and never copied into this component's state —
+     a copy would need an effect that reads the state it writes, and Svelte
+     stops such an effect after a few rounds, which leaves a list that draws
+     but answers to nothing.
+
+     The cursor is the one thing kept, and it is kept beside the list it was
+     counted in: when the category or the words change, the key changes, and
+     the cursor is back at the top without anything having to reset it. */
+  let where = $state<{ readonly category: PickerCategory | null; readonly mark: string; readonly key: string; readonly index: number }>(
+    { ...openState(), key: '', index: 0 });
+  const key = $derived(`${where.category ?? ''}\u0000${queryIn(where, query)}`);
+  const state = $derived<PickerState>({ category: where.category, mark: where.mark, index: where.key === key ? where.index : 0 });
+  const face = $derived<Face>(faceOf(state, rows, query));
   const count = $derived(face.rows.length);
   const cursor = $derived(atCursor(state, face));
 
-  const enter = (category: PickerCategory): void => { state = into(state, category); warm(category); oncategory?.(category); };
-  const leave = (): void => { state = out(state); oncategory?.(null); };
+  const put = (index: number): void => { where = { ...where, key, index }; };
+  const settle = (next: PickerState): void => { where = { ...next, key: `${next.category ?? ''}\u0000${queryIn(next, query)}`, index: next.index }; };
+
+  const enter = (category: PickerCategory): void => { settle(into(category, query)); oncategory?.(category); };
+  const leave = (): void => { settle(out(state)); oncategory?.(null); };
 
   const take = (row: PickerCategory | PickerRow | null): void => {
     if (row === null) return;
@@ -38,8 +52,8 @@
   /* The keys the list claims while it is open; everything else belongs to
      whatever opened it. The answer says whether the key was taken. */
   export function handleKey(e: KeyboardEvent): boolean {
-    if (e.key === 'ArrowDown') { state = move(state, 1, count); return true; }
-    if (e.key === 'ArrowUp') { state = move(state, -1, count); return true; }
+    if (e.key === 'ArrowDown') { put(nextIndex(state.index, 1, count)); return true; }
+    if (e.key === 'ArrowUp') { put(nextIndex(state.index, -1, count)); return true; }
     if (e.key === 'ArrowRight' && face.kind === 'categories') { take(cursor); return true; }
     if (e.key === 'ArrowLeft' && state.category !== null) { leave(); return true; }
     if (e.key === 'Enter' || e.key === 'Tab') { take(cursor); return true; }
@@ -54,7 +68,7 @@
 
 <div class="picker" role="listbox" aria-label="Insert something">
   {#if state.category !== null}
-    <div class="crumb"><button type="button" onclick={leave} title="Back to the categories (Left)">‹ {CATEGORY_LABEL[state.category]}</button></div>
+    <div class="crumb"><button type="button" onmousedown={(e) => { e.preventDefault(); leave(); }} title="Back to the categories (Left)">‹ {CATEGORY_LABEL[state.category]}</button></div>
   {/if}
   {#if count === 0}
     <p class="empty">Nothing here yet.</p>
@@ -63,7 +77,7 @@
       {#each face.rows as row, i (keyOf(row))}
         <li>
           <button type="button" role="option" aria-selected={i === state.index} class:on={i === state.index}
-            onmouseenter={() => (state = { ...state, index: i })} onclick={() => take(row)}>
+            onmouseenter={() => put(i)} onmousedown={(e) => { e.preventDefault(); take(row); }}>
             <span class="label">{label(row)}</span><span class="detail">{detail(row)}</span>
           </button>
         </li>

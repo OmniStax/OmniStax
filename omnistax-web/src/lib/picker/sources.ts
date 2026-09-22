@@ -65,20 +65,41 @@ const sectionRows = (): readonly PickerRow[] =>
   })));
 
 /* Only the sections that have been fetched hold figures, because a figure is in
-   the section's own HTML; the others are reached by opening them. */
+   the section's own HTML; the others are reached by opening them.
+
+   Reading them means walking the whole of a section's DOM, and with a chapter
+   open that is the slowest thing the list does, so each section's rows are
+   held against the document they were read from. The registry hands out a new
+   element when a section is fetched again and never touches the old one, so
+   the identity of that element is exactly the question "are these rows still
+   the section's?", and a map that holds its keys weakly lets a section that is
+   dropped take its rows with it. */
+const figureCache = new WeakMap<HTMLElement, readonly PickerRow[]>();
+
+const figuresOf = (id: string, doc: HTMLElement): readonly PickerRow[] => {
+  const held = figureCache.get(doc);
+  if (held) return held;
+  const read = readFigures(id, doc);
+  figureCache.set(doc, read);
+  return read;
+};
+
 const figureRows = (): readonly PickerRow[] =>
   Object.entries(registry.sections).flatMap(([id, state]) => {
     const doc = state.docs.text; if (!doc) return [];
-    return [...doc.querySelectorAll<HTMLElement>('figure[id]')].flatMap((fig) => {
-      const local = fig.id.startsWith(`${id}-`) ? fig.id.slice(id.length + 1) : fig.id;
-      const info = figureInfo(doc, sectionId(id), local);
-      if (!info) return [];
-      return [{
-        category: 'figures' as const, key: `${id}:${local}`, label: cut(plain(`${info.eyebrow} ${info.title}`), 60), detail: `section ${id}`,
-        target: { kind: 'figure' as const, section: id, id: local }, embed: true,
-        text: [info.eyebrow, info.title, info.caption].filter((s) => s !== '').join('\n'),
-      }];
-    });
+    return figuresOf(id, doc);
+  });
+
+const readFigures = (id: string, doc: HTMLElement): readonly PickerRow[] =>
+  [...doc.querySelectorAll<HTMLElement>('figure[id]')].flatMap((fig): readonly PickerRow[] => {
+    const local = fig.id.startsWith(`${id}-`) ? fig.id.slice(id.length + 1) : fig.id;
+    const info = figureInfo(doc, sectionId(id), local);
+    if (!info) return [];
+    return [{
+      category: 'figures' as const, key: `${id}:${local}`, label: cut(plain(`${info.eyebrow} ${info.title}`), 60), detail: `section ${id}`,
+      target: { kind: 'figure' as const, section: id, id: local }, embed: true,
+      text: [info.eyebrow, info.title, info.caption].filter((s) => s !== '').join('\n'),
+    }];
   });
 
 const chapterRows = (): readonly PickerRow[] => Object.values(registry.chapters).flatMap((ch) => [
@@ -127,12 +148,14 @@ export const allRows = (): readonly PickerRow[] => [
 
 /* What a category needs fetched before its rows mean anything: the exercises
    are one file, and the chapters' tables are what the companion views already
-   ask for. Called when the reader opens the category, not before. */
-export const warm = (category: PickerCategory | null): void => {
-  if (category === 'exercises') void books.load(registry.manifest.id).catch(() => {});
+   ask for. Called when the reader opens the category, not before. It answers
+   when what it asked for has landed, because the rows are gathered once when
+   the picker opens and whoever opened it must gather them again after this. */
+export const warm = async (category: PickerCategory | null): Promise<void> => {
+  if (category === 'exercises') await books.load(registry.manifest.id).catch(() => {});
   if (category === 'concepts' || category === 'equations' || category === 'definitions') {
     const dirs = registry.manifest.chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
-    void registry.loadChapters(dirs).catch(() => {});
+    await registry.loadChapters(dirs).catch(() => {});
   }
 };
 

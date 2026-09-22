@@ -151,3 +151,32 @@ chat has no row in the explorer tree; the index is what the picker, the search
 and links read it by. `components/notes/NoteTab.svelte` still gathers its own
 candidate list and hands it to the editor as `complete`, which the editor now
 ignores: that list is the next thing to delete.
+
+**2026-09-22, the picker.** Typing `@` was very slow and neither Enter nor a
+click chose anything. Three faults, all now mended. `AtPicker.svelte` copied
+the query out of its prop into its own state through an effect that read the
+state it wrote, which Svelte stops after a few rounds with
+`effect_update_depth_exceeded` — and a component whose effects have been
+stopped draws but answers to nothing. The query is no longer held at all: it is
+read from the prop wherever it is wanted, `PickerState` keeps only the
+category, the cursor and `mark` — what the field said when the category was
+opened, so that only what is typed after it narrows the rows — and the cursor
+is kept beside the key of the list it was counted in, so a change of category
+or of words puts it back at the top without anything having to reset it. The
+composer and the note editor gathered the rows in a `$derived`, which walked
+the DOM of every loaded section and read every store again on any store change,
+once per streamed word; the rows are now gathered once when the picker opens
+and again only when a category has had to fetch something (`warm` answers when
+it has). `figureRows` holds each section's figures against the document they
+were read from, in a `WeakMap`. A row is chosen on `mousedown` with the
+default refused, so the press does not take the focus off the field and close
+the picker before the click arrives. Two things the note editor needed besides:
+its `domEventHandlers` now come first among the extensions, because
+CodeMirror's own keymap was taking Enter and making a line of it before the
+list saw it; and the list hangs below the cursor when there is no room above,
+where before it stood off the top of the window and could not be clicked. The
+browser checks cover all of it: `tests/chat-browser-check.py` opens six
+sections of three chapters, asserts the picker opens in well under 100 ms, and
+walks Enter-on-category, Enter-on-row and click-on-row to a chip;
+`tests/note-picker-browser-check.py` is the same walk in a note, ending in
+`[[1.2]] and [[3.1]]`.

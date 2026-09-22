@@ -115,6 +115,90 @@ with sync_playwright() as playwright:
     quoted.wait_for(state="visible")
     page.wait_for_function("() => document.querySelector('.chat-tab .composer textarea').value.startsWith('>')", timeout=10_000)
 
+    # ── the @ picker ──────────────────────────────────────────────────────
+    # Sections of three chapters are opened first, because the picker's rows are
+    # read out of every section that is loaded and that is where it used to go
+    # slow: the rows were gathered again on every keystroke and on every word of
+    # an answer arriving.
+    # The Open browser stands in the chapter being read, so Left widens it to
+    # the book, a word of the chapter's title narrows it again, and Right steps
+    # in; the same two keys then step from the section to its text.
+    def open_section(chapter: str, sec: str) -> None:
+        page.locator(".tabstrip .plus").first.click()
+        page.locator(".browser").wait_for(state="visible")
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(250)
+        page.keyboard.type(chapter)
+        page.wait_for_timeout(250)
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(350)
+        page.keyboard.type(sec)
+        page.wait_for_timeout(250)
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(250)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(1200)
+
+    for chapter, sec in (("Nature of Science", "1.2"), ("Nature of Science", "1.3"),
+                         ("2 Kinematics", "2.1"), ("2 Kinematics", "2.2"),
+                         ("Two-Dimensional", "3.1"), ("Two-Dimensional", "3.2")):
+        open_section(chapter, sec)
+    loaded = page.locator("article[data-doc]").count()
+    assert loaded >= 6, f"only {loaded} sections were opened"
+
+    field.click()
+    field.fill("")
+    page.evaluate("() => { window.__t0 = performance.now(); }")
+    page.keyboard.type("@")
+    picker = composer.locator(".picker")
+    picker.wait_for(state="visible")
+    opened = page.evaluate("() => performance.now() - window.__t0")
+    print(f"the picker opened in {opened:.0f} ms with {loaded} sections loaded")
+    assert opened < 100, f"the picker took {opened:.0f} ms to open"
+
+    # Enter on a category goes into it, and what is typed next narrows its rows
+    # rather than being read as the name of a category again.
+    assert picker.locator("li button").first.inner_text().startswith("Notes"), picker.locator("li button").first.inner_text()
+    page.keyboard.type("sections")
+    page.wait_for_timeout(200)
+    assert picker.locator("li button").count() == 1, "one category is named"
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(200)
+    assert "Sections" in picker.locator(".crumb").inner_text(), picker.locator(".crumb").inner_text()
+    page.keyboard.type("1.2")
+    page.wait_for_timeout(200)
+    named = [picker.locator("li button").nth(i).inner_text() for i in range(picker.locator("li button").count())]
+    assert named and all("1.2" in row for row in named), named
+    assert named[0].startswith("1.2 ·"), named[0]
+
+    # Enter on a row cuts the `@…` from the field and puts a chip up instead.
+    before = chips.count()
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(300)
+    assert picker.count() == 0, "the picker stayed open"
+    assert field.input_value() == "", field.input_value()
+    assert chips.count() == before + 1, f"{chips.count()} chips, was {before}"
+    assert "1.2" in chips.last.inner_text(), chips.last.inner_text()
+
+    # And a click on a row does the same, though the press moves the focus off
+    # the field: it is taken on the press, with the default refused.
+    page.keyboard.type("@sections")
+    picker.wait_for(state="visible")
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(200)
+    page.keyboard.type("3.1")
+    page.wait_for_timeout(200)
+    picker.locator("li button").first.click()
+    page.wait_for_timeout(300)
+    assert picker.count() == 0, "the picker stayed open after a click"
+    assert field.input_value() == "", field.input_value()
+    assert "3.1" in chips.last.inner_text(), chips.last.inner_text()
+
+    # The picker closes and leaves nothing behind.
+    for chip in range(chips.count() - 1, 0, -1):
+        chips.nth(chip).locator("button").click()
+    page.wait_for_timeout(200)
+
     # A widget is opt-in per chat: with the toggle on, a block tagged `widget`
     # is the page it holds, in a sandbox that cannot reach this one.
     composer.get_by_role("button", name="Widgets off").click()

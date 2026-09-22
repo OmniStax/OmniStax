@@ -8,9 +8,9 @@
      Enter sends and Shift+Enter makes a line. While an answer is arriving the
      button is Stop, which keeps the words that came. */
   import AtPicker from '../ui/AtPicker.svelte';
-  import { allRows, chipOf } from '../../lib/picker/sources';
+  import { allRows, chipOf, warm } from '../../lib/picker/sources';
   import { withChip, withoutChip, type Chip } from '../../lib/chat/context';
-  import type { PickerRow } from '../../lib/picker/model';
+  import type { PickerCategory, PickerRow } from '../../lib/picker/model';
 
   let { chips, onchips, onsend, onstop, streaming, widgets, onwidgets, offer, onoffer, ready }: {
     chips: readonly Chip[];
@@ -32,7 +32,15 @@
      been typed after it. */
   let at = $state<number | null>(null);
   let query = $state('');
-  const rows = $derived(at === null ? [] : allRows());
+  /* The rows are gathered once, when the picker opens, and held until it
+     closes. Gathering them reads every store and walks the DOM of every
+     section that is loaded, and as a derived value it was done again on any
+     change to any of those stores — which, while an answer is arriving, is
+     once per word. What is typed narrows the rows that were gathered; only a
+     category that had to fetch something asks for them again. */
+  let rows = $state<readonly PickerRow[]>([]);
+  const gather = (): void => { rows = allRows(); };
+  const onCategory = (category: PickerCategory | null): void => { gather(); void warm(category).then(gather); };
 
   export function focus(): void { field?.focus(); }
   /* What the highlight bar pastes in: the selection goes where the cursor is,
@@ -49,12 +57,13 @@
   const read = (): void => {
     const cut = field?.selectionStart ?? text.length;
     const m = AT.exec(text.slice(0, cut));
-    if (!m) { at = null; query = ''; return; }
+    if (!m) { close(); return; }
+    if (at === null) gather();
     at = cut - m[1].length - 1;
     query = m[1];
   };
 
-  const close = (): void => { at = null; query = ''; };
+  const close = (): void => { at = null; query = ''; rows = []; };
 
   const choose = (row: PickerRow): void => {
     const start = at; if (start === null) return;
@@ -102,7 +111,7 @@
 
   <div class="field">
     {#if at !== null}
-      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={close} />
+      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={close} oncategory={onCategory} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} oninput={read} onclick={read}
       placeholder={ready ? 'Ask about what you are reading. @ adds what the model sees.' : 'Choose a provider and paste a key under Settings → AI.'}

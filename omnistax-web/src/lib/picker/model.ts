@@ -41,8 +41,20 @@ export type PickerRow = {
   readonly text?: string;
 };
 
-export type PickerState = { readonly category: PickerCategory | null; readonly query: string; readonly index: number };
-export const open = (query = ''): PickerState => ({ category: null, query, index: 0 });
+/* Where the list stands. The words themselves are never held here: they belong
+   to the field the reader is typing in, and a second copy of them here would
+   have to be kept in step with the first, which is what the effect that once
+   did it could not do without writing what it had just read. So the state
+   holds only what the list itself decides — which category is open, and where
+   the cursor is — beside `mark`, which remembers what stood in the field when
+   the category was opened, since the words that named a category are not the
+   words inside it and only what is typed after them narrows its rows. */
+export type PickerState = { readonly category: PickerCategory | null; readonly mark: string; readonly index: number };
+export const open = (): PickerState => ({ category: null, mark: '', index: 0 });
+
+/* What the field says, less whatever named the category. */
+export const queryIn = (state: PickerState, field: string): string =>
+  field.startsWith(state.mark) ? field.slice(state.mark.length) : field;
 
 /* Every word typed must be somewhere in the row, case aside: the way the
    command palette and the search read a query. */
@@ -65,23 +77,31 @@ export type Face =
   | { readonly kind: 'categories'; readonly rows: readonly PickerCategory[] }
   | { readonly kind: 'rows'; readonly rows: readonly PickerRow[] };
 
-export const faceOf = (state: PickerState, all: readonly PickerRow[]): Face => {
-  if (state.category !== null) return { kind: 'rows', rows: rowsIn(all, state.category, state.query) };
-  const cats = categoriesFor(state.query);
-  if (cats.length > 0 || state.query.trim() === '') return { kind: 'categories', rows: cats };
-  return { kind: 'rows', rows: rowsIn(all, null, state.query) };
+export const faceOf = (state: PickerState, all: readonly PickerRow[], field: string): Face => {
+  const query = queryIn(state, field);
+  if (state.category !== null) return { kind: 'rows', rows: rowsIn(all, state.category, query) };
+  const cats = categoriesFor(query);
+  if (cats.length > 0 || query.trim() === '') return { kind: 'categories', rows: cats };
+  return { kind: 'rows', rows: rowsIn(all, null, query) };
 };
 
 export const countOf = (face: Face): number => face.rows.length;
 
 /* The keys. Down and Up walk the list and wrap, Right and Enter go into a
    category, Left comes back out of one, and Escape is the component's. */
-export const move = (state: PickerState, delta: number, count: number): PickerState =>
-  count === 0 ? { ...state, index: 0 } : { ...state, index: (state.index + delta + count * 2) % count };
+export const nextIndex = (index: number, delta: number, count: number): number =>
+  count === 0 ? 0 : (index + delta + count * 2) % count;
 
-export const into = (state: PickerState, category: PickerCategory): PickerState => ({ category, query: '', index: 0 });
-export const out = (state: PickerState): PickerState => (state.category === null ? state : { category: null, query: '', index: 0 });
-export const typed = (state: PickerState, query: string): PickerState => ({ ...state, query, index: 0 });
+export const move = (state: PickerState, delta: number, count: number): PickerState =>
+  ({ ...state, index: nextIndex(state.index, delta, count) });
+
+/* Going in marks what the field held, so that the rows are narrowed by what is
+   typed next and not by the word that named the category; coming out forgets
+   the mark, and the whole of what is typed reads the categories again. */
+export const into = (category: PickerCategory, field: string): PickerState =>
+  ({ category, mark: field, index: 0 });
+export const out = (state: PickerState): PickerState =>
+  (state.category === null ? state : { category: null, mark: '', index: 0 });
 
 /* Where the reader is: the row or category under the cursor, and nothing when
    the list is empty. */
