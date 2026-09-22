@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addBook, addFolder, addNote, bookKey, chapterKey, childrenOf, descendants, emptyTree, entryById,
-  entryId, isExpanded, move, newEntryId, parseTree, pathOf, remove, rename, sectionKey, toggleExpanded, uniqueName,
+  entryId, isExpanded, migrateTree, move, newEntryId, parseTree, pathOf, remove, rename, sectionKey, toggleExpanded, uniqueName,
   type Tree,
 } from '../src/lib/explorer/model';
 
@@ -125,4 +125,43 @@ test('garbage is refused and half-sound trees are made whole', () => {
   assert.deepEqual(twice?.entries.map((e) => e.name), ['A'], 'an id is kept once');
 
   assert.deepEqual(parseTree({ entries: [] }), emptyTree());
+});
+
+test('a book never moves, and a note only ever goes into a folder', () => {
+  let t = addFolder(emptyTree(), null, 'Physics', id('f'));
+  t = addNote(t, null, id('n'), 'Beats');
+  t = addBook(t, 'cp2e', 'College Physics 2e', id('b'));
+  assert.equal(move(t, id('b'), id('f')), t, 'a book stays under Books');
+  assert.equal(move(t, id('n'), id('b')), t, 'a note may not go into a book');
+  assert.equal(entryById(move(t, id('n'), id('f')), id('n'))?.parent, id('f'));
+});
+
+test('an old User tree migrates into the two roots, losing nothing', () => {
+  /* The shape as it was saved: notes, folders and books all mixed under one
+     root, with a folder inside a folder and a book dragged into one of them. */
+  const old = {
+    entries: [
+      { id: 'f1', parent: null, kind: 'folder', name: 'Physics' },
+      { id: 'f2', parent: 'f1', kind: 'folder', name: 'Waves' },
+      { id: 'n1', parent: 'f2', kind: 'note', name: 'Beats' },
+      { id: 'n2', parent: null, kind: 'note', name: 'Scratch' },
+      { id: 'b1', parent: null, kind: 'book', name: 'College Physics 2e', bookId: 'cp2e' },
+      { id: 'b2', parent: 'f1', kind: 'book', name: 'Chemistry 2e', bookId: 'chem2e' },
+    ],
+    expanded: ['f1', bookKey('cp2e')],
+  };
+  const t = migrateTree(old);
+  assert.ok(t);
+  assert.equal(t.entries.length, 6, 'every row survives');
+  /* The books come out of the folders and stand under Books. */
+  assert.deepEqual(t.entries.filter((e) => e.kind === 'book').map((e) => [e.bookId, e.parent]),
+    [['cp2e', null], ['chem2e', null]]);
+  /* The notes and folders keep the shape they had under Notes. */
+  assert.equal(entryById(t, id('f2'))?.parent, id('f1'));
+  assert.equal(entryById(t, id('n1'))?.parent, id('f2'));
+  assert.deepEqual(names(t, null).filter((n) => n !== 'College Physics 2e' && n !== 'Chemistry 2e'), ['Physics', 'Scratch']);
+  assert.deepEqual(t.expanded, ['f1', bookKey('cp2e')], 'what was open stays open');
+  /* Migrating again changes nothing. */
+  assert.deepEqual(migrateTree(JSON.parse(JSON.stringify(t))), t);
+  assert.equal(migrateTree('not a tree'), null);
 });

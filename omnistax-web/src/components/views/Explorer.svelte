@@ -1,12 +1,14 @@
 <script lang="ts">
-  /* The explorer: everything the reader has, drawn as one tree under a row
-     called User — the folders they have made, the notes they have written and
-     the textbooks they have added. A textbook opens into its chapters and its
+  /* The explorer: everything the reader has, drawn under two fixed roots —
+     Books, which holds the textbooks they have added and the row that finds
+     more, and Notes, which holds the folders they have made and the notes they
+     have written. A textbook opens into its chapters and its
      chapters into their sections; a section is a file, so clicking it opens the
      text, and it opens further into the subconcepts of that text and the
      problems set at its end. The rows of the reader's own things can be made,
-     named, moved and deleted here; the rows of a book are read only, since the
-     book is the book.
+     named, moved and deleted here, all of it inside Notes; a book and its rows
+     are read only, since the book is the book, and the only thing a reader does
+     to one is take it out of Books again.
 
      The tree the rows are drawn from is the explorer store, which keeps the
      entries and which rows are open; the chapters and sections come from the
@@ -16,7 +18,7 @@
   import { onMount } from 'svelte';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { bookKey, chapterKey, entryId, sectionKey, type Entry, type EntryId } from '../../lib/explorer/model';
-  import { createFolder, createNote, deleteEntry, moveEntry, renameEntry } from '../../lib/explorer/edits';
+  import { createFolder, createNote, deleteEntry, moveEntry, removeBook, renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
@@ -49,7 +51,10 @@
     readonly active: boolean;        /* what the focused group is showing */
     readonly book?: string;
     readonly updated?: boolean;
+    readonly root?: RootName;     /* which of the two fixed roots this row is */
   };
+  type RootName = 'books' | 'notes';
+  const ROOT_KEY: Readonly<Record<RootName, string>> = { books: 'root:books', notes: 'root:notes' };
 
   /* The manifests of the books that are not this page's, fetched once each. */
   let others = $state.raw<Readonly<Record<string, BookManifest>>>({});
@@ -145,6 +150,7 @@
     };
     const walk = (parent: EntryId | null, depth: number): void => {
       explorer.children(parent).forEach((e) => {
+        if (e.kind === 'book') return;
         if (e.kind === 'folder') {
           const open = explorer.expanded(e.id);
           out.push({ key: e.id, kind: 'folder', depth, label: e.name, icon: ICON.folder, entry: e, expandable: true, open, dim: false, active: false });
@@ -158,17 +164,20 @@
           });
           return;
         }
-        const bookId = e.bookId ?? '';
-        const key = bookKey(bookId);
-        const open = explorer.expanded(key);
-        out.push({ key, kind: 'book', depth, label: e.name, icon: ICON.book, entry: e, expandable: true, open, dim: false, active: false });
-        if (open) book(bookId, depth + 1);
       });
     };
-    out.push({ key: 'root', kind: 'root', depth: 0, label: 'User', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
-    /* The catalogue stands where a reader looks for a book they have not got
-       yet: the first row under their own, above the books they have. */
-    out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find, add new textbooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
+    /* Books first, each opening into the book itself, and the catalogue last,
+       where a reader looks for one they have not got yet. */
+    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'Books', icon: ICON.book, expandable: false, open: true, dim: false, active: false });
+    explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
+      const bookId = e.bookId ?? '';
+      const key = bookKey(bookId);
+      const open = explorer.expanded(key);
+      out.push({ key, kind: 'book', depth: 1, label: e.name, icon: ICON.book, entry: e, expandable: true, open, dim: false, active: false });
+      if (open) book(bookId, 2);
+    });
+    out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find new textbooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
+    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Notes', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
     walk(null, 1);
     return out;
   });
@@ -204,6 +213,12 @@
   };
   /* The row, the documents it stood for and their tabs all go at once, and the
      whole of it is one step of the shell's timeline. */
+  /* A book leaves Books whole: nothing of the reader's is inside it, so there
+     is nothing to lose, but it is asked for all the same. */
+  const removeBookRow = (e: Entry): void => {
+    if (!confirm(`Remove \u201c${e.name}\u201d from your books?`)) return;
+    removeBook(e);
+  };
   const remove = (e: Entry): void => {
     const kids = explorer.children(e.id);
     if (kids.length && !confirm(`Delete “${e.name}” and the ${kids.length === 1 ? 'row' : 'rows'} inside it?`)) return;
@@ -273,6 +288,7 @@
     const m = menu;
     if (!m) return [];
     const e = m.entry;
+    if (e.kind === 'book') return [{ label: 'Remove from Books', run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       { label: 'New note here', run: () => newNote(inside) },
@@ -292,7 +308,8 @@
      move below only listens for the rows this tree knows. */
   let dragged = $state.raw<EntryId | null>(null);
   let over = $state.raw<string | null>(null);
-  const canDrop = (r: Row): boolean => dragged !== null && (r.kind === 'root' || r.kind === 'folder') && r.entry?.id !== dragged;
+  const canDrop = (r: Row): boolean =>
+    dragged !== null && (r.root === 'notes' || r.kind === 'folder') && r.entry?.id !== dragged;
   const dropInto = (r: Row): void => {
     const id = dragged;
     if (id !== null) moveEntry(id, r.kind === 'root' ? null : r.entry?.id ?? null);
@@ -345,11 +362,6 @@
 </script>
 
 <div class="explorer">
-  <div class="tools">
-    <button type="button" class="tool" title="New note" aria-label="New note" onclick={() => newNote(parentForNew())}>{@html ICON.notePlus}</button>
-    <button type="button" class="tool" title="New folder" aria-label="New folder" onclick={() => newFolder(parentForNew())}>{@html ICON.folderPlus}</button>
-  </div>
-
   <div class="tree" role="tree" aria-label="Your notes and books" tabindex="0" onkeydown={onKey}>
     {#each rows as r (r.key)}
       {#if r.kind === 'hint'}
@@ -360,7 +372,7 @@
           role="treeitem" tabindex="-1" aria-selected={explorer.selected === r.key} aria-expanded={r.expandable ? r.open : undefined}
           style:padding-left="{6 + r.depth * 13}px"
           onclick={(ev) => activate(r, ev)}
-          oncontextmenu={(e) => { if (r.entry && r.kind !== 'book') openMenu(e, r.entry); }}
+          oncontextmenu={(e) => { if (r.entry) openMenu(e, r.entry); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
           ondragover={(e) => { if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); over = r.key; } }}
@@ -389,7 +401,13 @@
             <span class="lbl">{r.label}</span>
           {/if}
           {#if r.updated}<span class="updated" title="Updated since your last visit">Updated</span>{/if}
-          {#if r.entry && r.kind !== 'book'}
+          {#if r.root === 'notes'}
+            <button type="button" class="tool" tabindex="-1" title="New note" aria-label="New note"
+              onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
+            <button type="button" class="tool" tabindex="-1" title="New folder" aria-label="New folder"
+              onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
+          {/if}
+          {#if r.entry}
             {@const own = r.entry}
             <button type="button" class="dots" tabindex="-1" title="More" aria-label="More for {r.label}"
               onclick={(e) => openMenu(e, own)}>…</button>
@@ -406,12 +424,11 @@
 
 <style>
   .explorer{display:flex;flex-direction:column;min-width:0}
-  /* The two things a reader makes here are icons, kept to the right above the tree. */
-  .tools{display:flex;justify-content:flex-end;gap:2px;padding:0 0 4px}
-  .tool{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
+  /* The two things a reader makes are icons on the Notes root itself. */
+  .tool{flex:none;display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}
   .tool:focus-visible{outline:2px solid var(--accent)}
-  .tool :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .tool :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
   .tree{display:flex;flex-direction:column;min-width:0;outline:none}
   .tree:focus-visible{outline:2px solid var(--accent);border-radius:4px}
@@ -443,7 +460,7 @@
 
   :global(.view-pane) .row{font-size:0.92rem;line-height:2}
   :global(.view-pane) .row.r-heading .lbl{font-size:0.88rem}
-  :global(.view-pane) .tool{width:28px;height:28px}
-  :global(.view-pane) .tool :global(svg){width:17px;height:17px}
+  :global(.view-pane) .tool{width:24px;height:24px}
+  :global(.view-pane) .tool :global(svg){width:16px;height:16px}
   :global(.view-pane) .ico :global(svg){width:16px;height:16px}
 </style>

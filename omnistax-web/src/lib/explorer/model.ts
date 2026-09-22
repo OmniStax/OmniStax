@@ -1,5 +1,8 @@
 /* The reader's own tree: the folders they make, the notes they write and the
-   textbooks they have added, all hanging under a root row called User. The
+   textbooks they have added, hanging under two fixed roots — Books and Notes.
+   Which root a row belongs to is its kind: a book is always under Books, a
+   folder or a note always under Notes, so a row at the top of the tree needs
+   nothing said about it beyond what it is. The
    tree is a plain immutable value — a flat list of entries, each naming its
    parent, and the set of rows the reader has opened — and every operation
    here is a pure function from Tree to Tree; the store applies them and
@@ -97,10 +100,12 @@ export const remove = (t: Tree, id: EntryId): Tree => {
   return withEntries(t, t.entries.filter((e) => !gone.has(e.id)));
 };
 
-/* A row may go anywhere but inside itself. */
+/* A row may go anywhere but inside itself, and only within its own root: a
+   book never moves, and a note or a folder only ever goes into a folder. */
 export const move = (t: Tree, id: EntryId, parent: EntryId | null): Tree => {
-  if (!entryById(t, id) || isAncestor(t, id, parent)) return t;
-  if (parent !== null && !entryById(t, parent)) return t;
+  const e = entryById(t, id);
+  if (!e || e.kind === 'book' || isAncestor(t, id, parent)) return t;
+  if (parent !== null && entryById(t, parent)?.kind !== 'folder') return t;
   return withEntries(t, t.entries.map((e) => (e.id === id ? { ...e, parent } : e)));
 };
 
@@ -129,7 +134,7 @@ const parseEntry = (raw: unknown): Entry | null => {
   const kind = o.kind as EntryKind;
   if (kind === 'book' && typeof o.bookId !== 'string') return null;
   const base = { id: entryId(o.id), parent: o.parent === null ? null : entryId(o.parent as string), kind, name: o.name };
-  return kind === 'book' ? { ...base, parent: null, bookId: o.bookId as string } : base;
+  return kind === 'book' ? { ...base, bookId: o.bookId as string } : base;
 };
 export const parseTree = (raw: unknown): Tree | null => {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -152,4 +157,20 @@ export const parseTree = (raw: unknown): Tree | null => {
   const rooted = entries.map((e) => (sound(e) ? e : { ...e, parent: null }));
   const expanded = Array.isArray(o.expanded) ? o.expanded.filter((k): k is string => typeof k === 'string') : [];
   return { entries: rooted, expanded };
+};
+
+/* ── the two roots ───────────────────────────────────────────────────────── */
+
+/* The tree once held one root, User, with the notes, the folders and the books
+   all mixed under it; it now holds Books and Notes, and a row's kind says which
+   it is under. Reading an older tree therefore only has to lift the books out
+   of whatever folder they were sitting in — nothing else about the shape has
+   changed, and no note, folder or added book is lost doing it. */
+export const toRoots = (t: Tree): Tree =>
+  withEntries(t, t.entries.map((e) => (e.kind === 'book' && e.parent !== null ? { ...e, parent: null } : e)));
+
+/* What the store loads: the storage boundary, then the lift above. */
+export const migrateTree = (raw: unknown): Tree | null => {
+  const t = parseTree(raw);
+  return t === null ? null : toRoots(t);
 };

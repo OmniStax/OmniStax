@@ -10,6 +10,7 @@
    here, so that there is one place where a row is made and one where it goes. */
 import { entryId, type Entry, type EntryId, type Tree } from './model';
 import { explorer } from './store.svelte';
+import { library } from './library.svelte';
 import { noteDocs, type NoteDoc } from '../notes/docs.svelte';
 import { history, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
@@ -127,4 +128,15 @@ export const deleteEntry = (e: Entry): void => {
   if (gone.length) noteDocs.removeMany(gone);
   commit(`delete ${e.kind === 'folder' ? 'folder' : 'note'}`, before, { onRedo: gone });
   closeTabs(gone);
+};
+
+/* A book is not the reader's to edit, only to keep or to let go of: taking its
+   row away also forgets that it was added, so the two never drift apart. It is
+   not a step of the timeline, since the book itself is untouched and adding it
+   back is one click in the finder. */
+export const removeBook = (e: Entry): void => {
+  fresh = null;
+  if (e.kind !== 'book') return;
+  explorer.remove(e.id);
+  if (e.bookId) library.remove(e.bookId);
 };

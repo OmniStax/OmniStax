@@ -5,13 +5,13 @@
 import type { Entry, EntryId, Tree } from './model';
 import {
   addBook, addFolder, addNote, childrenOf, descendants, emptyTree, entryById, isExpanded,
-  move, newEntryId, parseTree, pathOf, remove, rename, toggleExpanded, uniqueName,
+  migrateTree, move, newEntryId, pathOf, remove, rename, toggleExpanded, uniqueName,
 } from './model';
 import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-explorer-v1';
 const load = (): Tree => {
-  try { return parseTree(JSON.parse(localStorage.getItem(KEY) ?? 'null')) ?? emptyTree(); } catch { return emptyTree(); }
+  try { return migrateTree(JSON.parse(localStorage.getItem(KEY) ?? 'null')) ?? emptyTree(); } catch { return emptyTree(); }
 };
 
 class Explorer {

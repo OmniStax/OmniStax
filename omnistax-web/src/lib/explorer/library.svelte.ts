@@ -58,6 +58,14 @@ class Library {
     if (!this.has(id)) { this.added = [...this.added, id]; this.save(); }
     explorer.addBook(id, title ?? this.books.find((b) => b.id === id)?.title ?? id);
   }
+  /* Taking a book out of the Books root: the tree row goes with the choice, so
+     that the two stay the one thing. The book of the page being read is added
+     again on the next load, which is what keeps a section's tree from emptying. */
+  remove(id: string): void {
+    if (!this.has(id)) return;
+    this.added = this.added.filter((b) => b !== id);
+    this.save();
+  }
   book(id: string): LibraryBookDTO | undefined { return this.books.find((b) => b.id === id); }
 
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.added)); } catch { /* private mode */ } }
