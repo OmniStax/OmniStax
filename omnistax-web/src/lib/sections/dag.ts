@@ -28,6 +28,13 @@ export const dagRows = (list: readonly DagNode[]): string[][] => {
   own.forEach((c) => { const k = d(c); byDepth.set(k, [...(byDepth.get(k) ?? []), c.id]); });
   return [ext, ...[...byDepth.keys()].sort((a, b) => a - b).map((k) => byDepth.get(k)!)].filter((r) => r.length);
 };
+/* The same ranking as a lookup: how deep each node's prerequisites run, which
+   the force layout turns into the ring the node sits on. */
+export const depthsOf = (list: readonly DagNode[]): Map<string, number> => {
+  const at = new Map<string, number>();
+  dagRows(list).forEach((row, i) => row.forEach((id) => at.set(id, i)));
+  return at;
+};
 export const edgesOf = (list: readonly DagNode[]): Array<[string, string]> => {
   const ids = new Set(list.map((c) => c.id));
   return list.flatMap((c) => c.prereqs.filter((p) => ids.has(p)).map((p): [string, string] => [p, c.id]));
