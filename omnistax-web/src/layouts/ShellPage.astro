@@ -10,10 +10,8 @@ import ShellLoader from '../components/ShellLoader.svelte';
 import { config } from '../../omnistax.config';
 import type { BookTree } from '../lib/content/load';
 import type { ItemId } from '../lib/types/ids';
-import type { ConceptsDTO, FormulasDTO } from '../lib/content/schema';
-import { BOOT_ID, bootJson } from '../lib/sections/boot';
-import { NO_CHOICES, cssFor } from '../lib/colours/model';
-import { BOOK_RULES_ID, bookRulesCss } from '../lib/colours/rules';
+import type { BootUrls } from '../lib/sections/boot';
+import { BOOK_RULES_ID, bookColoursHref } from '../lib/colours/rules';
 
 export type Props = {
   tree: BookTree;
@@ -23,26 +21,22 @@ export type Props = {
   description: string;
   book?: string; chapter?: string; section?: string;    /* what the html element says this page is */
   chapterDir?: string;
-  chapterData?: { concepts: ConceptsDTO; formulas: FormulasDTO };
 };
-const { tree, own, pool, title, description, book, chapter, section, chapterDir, chapterData } = Astro.props as Props;
+const { tree, own, pool, title, description, book, chapter, section, chapterDir } = Astro.props as Props;
 /* Colour is a function of type. The book declares its quantities and the app
-   dresses them from its scheme, which is what these tokens carry; the shell's
-   own style element comes after this one in the head, so the colours the reader
-   has chosen win over it. Dark comes in three states: system, forced, or light. */
-const colourCss = cssFor(tree.manifest, NO_CHOICES);
-/* Which classes the colours reach and which pages hold them back: written from
-   the manifest, and rewritten by the shell if the reader walks into another
-   book without leaving the app. */
-const bookRules = bookRulesCss(tree.manifest);
-/* The island gets only what is small. The manifest and the chapter's concepts
-   and formulas go into the boot script below, since Astro serialises island
-   props into an attribute — every value wrapped in a typed tuple and every
-   quote escaped — and that made three quarters of a section page. The section's
-   own meta and exercises the page already carries in the pool, beside its
-   article, and the registry adopts them from there. */
-const shellProps = { own, threeUrl: config.build.threeUrl };
-const boot = bootJson({ manifest: tree.manifest, chapterDir, chapterData });
+   dresses them from its scheme: the book's colours.css carries the scheme's
+   tokens and which classes wear them, one file for every page of the book, and
+   the shell points it at another book if the reader walks into one without
+   leaving the app. The shell's own style element comes after it in the head,
+   so the colours the reader has chosen win over it. */
+const colourHref = bookColoursHref(tree.manifest.id);
+/* The island gets only what is small: where the manifest and the chapter's
+   concepts and formulas live, which the loader fetches (src/lib/sections/boot.ts).
+   Every page of a book names the same files, so a reader, and an offline copy,
+   holds one of each rather than one inside every page. */
+const ch = chapterDir ? tree.manifest.chapters.find((c) => c.dir === chapterDir) : undefined;
+const boot: BootUrls = { manifest: `/${tree.manifest.id}/book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts, formulas: ch.formulas } } : {}) };
+const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>
 <html lang="en" data-book={book} data-chapter={chapter} data-section={section}>
@@ -57,13 +51,14 @@ const boot = bootJson({ manifest: tree.manifest, chapterDir, chapterData });
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <!-- Offline releases have no cross-origin runtime dependency. The font stacks
      use locally installed faces and their system fallbacks. -->
-<style is:inline set:html={colourCss}></style>
-<style id={BOOK_RULES_ID} is:inline set:html={bookRules}></style>
+<link id={BOOK_RULES_ID} rel="stylesheet" href={colourHref}>
+<link rel="preload" href={boot.manifest} as="fetch" crossorigin="anonymous">
+{boot.chapter && <link rel="preload" href={boot.chapter.concepts} as="fetch" crossorigin="anonymous">}
+{boot.chapter && <link rel="preload" href={boot.chapter.formulas} as="fetch" crossorigin="anonymous">}
 <script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('omnistax-underlines')==="0")document.documentElement.classList.add('no-underlines')}catch(e){}</script>
 <slot name="head" />
 </head>
 <body>
-<script id={BOOT_ID} type="application/json" is:inline set:html={boot}></script>
 <div id="pool" set:html={pool}></div>
 <slot name="scripts" />
 <ShellLoader client:only="svelte" {...shellProps} />

@@ -52,6 +52,9 @@ const cached = async (pin, request, installs) => {
   return manifest?.resources?.some((resource) => resource.logicalUrl === pathname || resource.logicalUrl === logical)
     ? new Response('Installed offline resource is missing. Repair this download.', { status: 503 }) : null;
 };
+/* A downloaded book carries one page, its own front, and the shell on it opens
+   whichever section the address names. */
+const shellOf = async (pin) => (await caches.open(cacheName(pin.bookId, pin.release, pin.artifact))).match(`/${pin.bookId}/index.html`);
 const offlinePage = () => new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OmniStax offline</title><style>body{font:16px system-ui;max-width:42rem;margin:12vh auto;padding:1rem}a{color:#1d4ed8}</style><h1>This page is not downloaded</h1><p>Open an available offline textbook from the <a href="/">OmniStax library</a>, or reconnect to download it.</p>', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
 self.addEventListener('install', () => { /* Activation waits naturally; no skipWaiting. */ });
@@ -94,7 +97,7 @@ self.addEventListener('fetch', (event) => {
         pins.set(event.resultingClientId, next); await pinWrite(event.resultingClientId, next).catch(() => undefined);
       }
     } else pin = await pinnedFor(event, installs, url.pathname);
-    if (pin) { const response = await cached(pin, event.request, installs); if (response) return response; }
+    if (pin) { const response = await cached(pin, event.request, installs) ?? (event.request.mode === 'navigate' ? await shellOf(pin) : undefined); if (response) return response; }
     try { return await fetch(event.request); }
     catch { return event.request.mode === 'navigate' ? offlinePage() : new Response('Offline resource unavailable', { status: 503 }); }
   };

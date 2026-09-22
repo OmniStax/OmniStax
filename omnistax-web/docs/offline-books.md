@@ -39,8 +39,13 @@ from a second downloaded textbook reads that book's own release. After an
 update the previous release stays cached until no open window and no saved
 practice session still names it, then it is reclaimed at the next startup; a
 further update is refused while an older release is still in use. The catalog
-always uses a network request. Unknown
-offline navigations receive an explanatory HTML response; missing non-page
+always uses a network request. A release carries one page per book, the book's
+front page: any navigation into a downloaded book that is not a file of the
+release is answered with it, and the shell opens the section the address
+names. Section pages stay on the server for crawlers and cold loads. Figures
+(JPEG) are re-encoded for the release at quality 80 and at most 1200 px on the
+long side, and only where that is smaller; the served site keeps the
+originals. Navigations outside any downloaded book receive an explanatory HTML response; missing non-page
 resources receive an HTTP 503 rather than unrelated fallback HTML.
 
 The browser may evict site storage, and clearing site data removes downloaded

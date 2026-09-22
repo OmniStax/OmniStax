@@ -61,7 +61,7 @@ are immutable while the catalog, entry HTML, and service worker revalidate.
 src/lib/content     schema.ts (DTOs, zod), load.ts (disk → DTOs, math prerendered, image sizes read off the book's media folder, the trees cached against the content version), version.ts (that stamp, on globalThis so the watcher in content.mjs and the pages share it), fragment.ts (section HTML), attribution.ts (the credit, one wording), paths.ts (routes), endpoints.ts (the fragment and figure module every page serves), roles.ts (a page as a section, an introduction or a summary, and the reading order of a book's pages), textindex.ts (the text of a book as blocks with their span and heading, for search.json)
 src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one figure split out of a document, one exercise on its own, a standing page, or one of the reader's notes) and its key/parse pair; VIEW_KINDS and the two of them a sidebar holds
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
-src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag, boot (the page's boot data — the manifest and the chapter's concepts and formulas — written into the page's one JSON script and parsed back out of it)
+src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag, boot (the page's boot data — the manifest and the chapter's concepts and formulas — fetched from the book's and the chapter's own files before the shell mounts)
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes); md/: links.ts (the wiki-link grammar, one place), render.ts (markdown to HTML, pure, the cards a note holds), complete.ts (the rows the picker offers), dragout.ts (a panel row dragged into a note)
 src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
@@ -79,11 +79,11 @@ src/components/views      View dispatcher (with the scope header, which the expl
 src/components/notes      NoteTab (one note in a tab of its own)
 src/components/exercises  ExerciseList, ExerciseCard (multiple choice or reveal-and-self-check), ChoiceAnswer
 src/components/actions    adopt (move a DOM node into a component), math (render $…$)
-src/layouts/ShellPage.astro  what every page shares: fonts, the colour tokens of the book's scheme, the theme script, the boot script (the manifest and the chapter's concepts and formulas as one JSON script rather than island props, written and read back by src/lib/sections/boot.ts), the static pool and the shell island, over the one item the page is
+src/layouts/ShellPage.astro  what every page shares: fonts, the link to the book's colours.css (its scheme's tokens and colour rules), the theme script, the addresses of the boot data (the manifest and the chapter's concepts and formulas, fetched by src/lib/sections/boot.ts rather than written into every page), the static pool and the shell island, over the one item the page is
 src/layouts/Page.astro    one page of the book over ShellPage — a section, or the introduction or summary a chapter or the book keeps — with its metadata, its canonical link and its figure scripts
 src/lib/content/pages.ts  the two standing pages as HTML: the front of OmniStax and the front of the book
 src/components/sheets     Sheet (one sheet as a tab, dispatched by kind), Elements (the periodic table), TableSheet (a plain reference table)
-src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/sheets/[sheet]/{index.astro,sheet.json.ts} (one reference sheet and its data), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json (concepts.json, formulas.json), book.json, the book-level exercises.json, concepts.json and formulas.json (every section's problem set, every concept once with what each chapter reaches, every chapter's sheet), search.json (the book's text as blocks), library.json
+src/pages                 index.astro (the about page), [book]/index.astro (the book page), [book]/sheets/[sheet]/{index.astro,sheet.json.ts} (one reference sheet and its data), [book]/[chapter]/[section]/{index.astro,doc.html.ts,figures.js.ts} (a section, or a chapter's intro/ or summary/), [book]/{intro,summary}/ (the book's own pages), about.html, book.html, chapter json (concepts.json, formulas.json), book.json, colours.css, the book-level exercises.json, concepts.json and formulas.json (every section's problem set, every concept once with what each chapter reaches, every chapter's sheet), search.json (the book's text as blocks), library.json
 src/styles/global.css     tokens, typography, styles for adopted content (articles, sims)
 ```
 
@@ -145,8 +145,8 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   A book of n types wears a scheme: the first of the recommended palettes that
   can dress all n, and when none of them can, hues spaced evenly round the OKLCH
   circle. The scheme's hues are laid along the order the quantities stand in, so
-  the first quantity takes the first hue. ShellPage writes that scheme onto the
-  root at build time; the shell's own style element comes after it in the head
+  the first quantity takes the first hue. The build writes that scheme into the
+  book's colours.css, which every page links; the shell's own style element comes after it in the head
   and carries what the reader has chosen over it.
 - The reader may choose all of it for themselves in the colour menu, a view of
   kind `colours` opened from the command palette ("Open the colour menu") and

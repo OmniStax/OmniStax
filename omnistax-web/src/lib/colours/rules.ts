@@ -1,7 +1,7 @@
 /* The colour rules a book wears: which classes the type colours reach, and
-   which pages hold them back. The page writes them into the head at build time
-   and the shell writes them again when the reader walks into another book
-   without leaving the app, so the two say the same thing from one place. */
+   which pages hold them back. They go into the book's colours.css at build
+   time, and the shell links another book's when the reader walks into it
+   without leaving the app. */
 import type { BookManifest } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
 
@@ -28,3 +28,5 @@ const unboundRules = (m: BookManifest): string => {
 
 export const BOOK_RULES_ID = 'omnistax-book-rules';
 export const bookRulesCss = (m: BookManifest): string => `${typeRules(m)}\n${unboundRules(m)}`;
+/* The book's stylesheet, its scheme's tokens and these rules together: the link every page of the book carries, by the id above. */
+export const bookColoursHref = (book: string): string => `/${book}/colours.css`;

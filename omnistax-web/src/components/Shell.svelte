@@ -25,8 +25,8 @@
   import { sectionOfUrl } from '../lib/content/urls';
   import { bookPagesOf, pageLabel } from '../lib/content/roles';
   import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
-  import { parseBoot } from '../lib/sections/boot';
-  import { BOOK_RULES_ID, bookRulesCss } from '../lib/colours/rules';
+  import type { BootDTO } from '../lib/sections/boot';
+  import { BOOK_RULES_ID, bookColoursHref } from '../lib/colours/rules';
   import type { BookManifest } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -58,20 +58,22 @@
   import { offlineBooks } from '../lib/offline/store.svelte';
   import { registerOfflineWorker } from '../lib/offline/register';
 
-  type Props = { own: ItemId; threeUrl?: string };
-  let { own, threeUrl }: Props = $props();
-  /* The bulk of what the shell boots from — the manifest, and the concepts and
-     formulas of the chapter this page stands in — rides in one JSON script
-     rather than in the island's props. The shell is `client:only`, so this body
-     runs in the browser and the read is an ordinary synchronous one, done here
-     at setup and long before `registry.init` in `onMount`. */
-  const boot = parseBoot(document);
+  type Props = { own: ItemId; threeUrl?: string; boot: BootDTO };
+  let { own, threeUrl, boot: booted }: Props = $props();
+  /* The manifest, and the concepts and formulas of the chapter this page
+     stands in, fetched by the loader before the shell mounts. */
+  const boot = untrack(() => booted);
   const { chapterDir, chapterData } = boot;
   /* The book the shell is standing in. It changes when the reader walks into
      another book from the explorer or the about page, which the shell does in
      place rather than by loading a new page. */
   let manifest = $state.raw(boot.manifest);
-  const page = untrack(() => own);   /* the page's own item never changes */
+  /* The page's own item never changes. An offline copy answers every address
+     of a book with the book's page, so the address, not the page, names the
+     section a reader asked for. */
+  const carried = untrack(() => own);
+  const addressed = sectionOfUrl(boot.manifest, location.pathname);
+  const page = addressed && sectionOfItem(carried) !== addressed ? docItem(addressed, 'text') : carried;
   let ready = $state(false);
   let narrow = $state(false);
 
@@ -134,6 +136,7 @@
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
+    if (addressed && page !== carried) void openDoc(addressed, 'text');
     /* A page opened at a span — a search hit in another book links here with the span in
        the hash — lands on it once the document stands in its pane, since the browser's own
        landing came while it still stood in the pool; a hash that changes under the shell
@@ -204,7 +207,7 @@
       initFig({ macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) });
       colours.init(m);
       const rules = document.getElementById(BOOK_RULES_ID);
-      if (rules) rules.textContent = bookRulesCss(m);
+      if (rules instanceof HTMLLinkElement) rules.href = bookColoursHref(m.id);
       notes.init(m.id);
       library.init(m.id, m.title);
       const item = docItem(sec, 'text');

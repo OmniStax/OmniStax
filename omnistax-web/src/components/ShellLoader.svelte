@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount, mount } from 'svelte';
   import type { ItemId } from '../lib/types/ids';
+  import { loadBoot, type BootUrls } from '../lib/sections/boot';
   import { hasInterruptedRestore, recoverInterruptedRestore } from '../lib/backup/journal';
   import { startReaderLifetimeLock } from '../lib/backup/guard';
 
-  type Props = { own: ItemId; threeUrl?: string };
+  type Props = { own: ItemId; threeUrl?: string; boot: BootUrls };
   let props: Props = $props();
   let host: HTMLElement;
   let failed = $state(false);
@@ -12,7 +13,12 @@
   onMount(() => {
     let stopLock: () => Promise<void> = async () => undefined;
     let component: ReturnType<typeof mount> | undefined;
-    const start = async () => { const { default: Shell } = await import('./Shell.svelte'); component = mount(Shell, { target: host, props }); };
+    const booting = loadBoot(props.boot);
+    booting.catch(() => undefined);
+    const start = async () => {
+      const [{ default: Shell }, boot] = await Promise.all([import('./Shell.svelte'), booting]);
+      component = mount(Shell, { target: host, props: { own: props.own, threeUrl: props.threeUrl, boot } });
+    };
     const bootstrap = async () => {
       /* Inspect the journal only while this tab holds the same shared lock that
          protects initialized stores. If recovery is needed, release it, recover

@@ -1,33 +1,38 @@
 /* The page's boot data: the book's manifest and, on a page of the book, the
    concepts and formulas of the chapter it stands in. It is far the largest
-   thing the shell needs and none of it is the reader's, so the page carries it
-   as one JSON script rather than as island props, which Astro would have to
-   wrap and escape value by value into an attribute. The shell reads it at
-   setup, synchronously, the way the registry reads a section's own data out of
-   the pool — see `sectionDataOf` in registry.svelte.ts and the script
-   `fragment.ts` writes beside every article. */
+   thing the shell needs and none of it is the page's own, so the page carries
+   only where it lives — the book's book.json and the chapter's two files, the
+   same addresses the registry fetches for any other chapter — and every page
+   of a book shares one copy of each. The loader fetches them beside the shell's
+   own module and hands the shell the result, so the shell still reads them at
+   setup, before `registry.init` in `onMount`. */
 import type { BookManifest, ConceptsDTO, FormulasDTO } from '../content/schema';
 
-export type BootId = 'omnistax-boot';
-export const BOOT_ID: BootId = 'omnistax-boot';
+export type BootUrls = {
+  readonly manifest: string;
+  readonly chapter?: { readonly dir: string; readonly concepts: string; readonly formulas: string };
+};
 
-/* What the page carries and the shell parses. The chapter pair is absent on the
-   two standing pages, which stand in no chapter. */
+/* What the shell boots from. The chapter pair is absent on the two standing
+   pages, which stand in no chapter. */
 export type BootDTO = {
   readonly manifest: BookManifest;
   readonly chapterDir?: string;
   readonly chapterData?: { readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO };
 };
 
-/* The body of the script element. A `<` anywhere in the data — a title, a bit of
-   prose in a concept — would otherwise be free to close the element early, so
-   every one of them goes in escaped; JSON reads `<` back as `<`. */
-export const bootJson = (boot: BootDTO): string => JSON.stringify(boot).replace(/</g, '\\u003c');
+const getJson = async <T>(url: string): Promise<T> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return (await res.json()) as T;
+};
 
-/* The other end, in the browser. A page without the script is a build that did
-   not write one, which is a bug to hear about rather than a state to run in. */
-export const parseBoot = (doc: ParentNode): BootDTO => {
-  const el = doc.querySelector(`script#${BOOT_ID}`);
-  if (!el) throw new Error(`no #${BOOT_ID} script on this page`);
-  return JSON.parse(el.textContent ?? '') as BootDTO;
+export const loadBoot = async (urls: BootUrls): Promise<BootDTO> => {
+  const ch = urls.chapter;
+  const [manifest, concepts, formulas] = await Promise.all([
+    getJson<BookManifest>(urls.manifest),
+    ch ? getJson<ConceptsDTO>(ch.concepts).catch(() => undefined) : undefined,
+    ch ? getJson<FormulasDTO>(ch.formulas).catch(() => undefined) : undefined,
+  ]);
+  return ch && concepts && formulas ? { manifest, chapterDir: ch.dir, chapterData: { concepts, formulas } } : { manifest };
 };

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { constants } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
 const mime = (file) => TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
@@ -33,6 +34,19 @@ const mergeArchive = async (archive, out) => {
     await fs.copyFile(path.join(source, rel), dest);
   }
 };
+
+/* A figure goes into a download re-encoded, never larger than the file it came
+   from and no wider than a figure is shown; the served site keeps the original. */
+const FIGURE_EDGE = 1200, FIGURE_QUALITY = 80;
+const FIGURE_ENCODING = `jpeg:q${FIGURE_QUALITY}:${FIGURE_EDGE}`;
+const shrinkFigure = async (rel, body) => {
+  if (!/\.jpe?g$/i.test(rel)) return body;
+  const sharp = createRequire(import.meta.url)('sharp');
+  const smaller = await sharp(body).rotate().resize({ width: FIGURE_EDGE, height: FIGURE_EDGE, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: FIGURE_QUALITY, mozjpeg: true }).toBuffer().catch(() => body);
+  return smaller.byteLength < body.byteLength ? smaller : body;
+};
+/* Every page of the book in reading order, as book.json lists them. */
+const pagesOf = (book) => [book.intro, ...(book.chapters ?? []).flatMap((c) => [c.intro, ...(c.sections ?? []), c.summary]), book.summary].filter(Boolean);
 
 const materialize = async (source, dest) => {
   await fs.mkdir(path.dirname(dest), { recursive: true });
@@ -92,13 +106,21 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
        this book will actually receive so a same-path collision cannot mutate an
        existing release directory without changing its semantic identity. */
     const resolvedMediaRows = await Promise.all(mediaRels.map(async (rel) => [`@resolved/${rel.split(path.sep).join('/')}`, sha(await fs.readFile(path.join(out, rel)))]));
-    const releaseId = canonicalHash([...inputRows, ...resolvedMediaRows]);
-    const allRels = [...new Set([...semanticRels, ...runtimeRels])];
+    const releaseId = canonicalHash([...inputRows, ...resolvedMediaRows, ['@figures', FIGURE_ENCODING]]);
+    /* A page of the book is opened offline by the shell on the book's front
+       page, which fetches its fragment; its own page stays on the server for
+       crawlers and cold loads. */
+    const pageFiles = new Set(pagesOf(bookJson).map((page) => `${page.url}index.html`));
+    const allRels = [...new Set([...semanticRels, ...runtimeRels])].filter((rel) => !pageFiles.has(logicalOf(rel)));
+    const media = new Set(mediaRels);
     const resources = [];
     for (const rel of allRels) {
-      const source = path.join(out, rel); const body = await fs.readFile(source); const logicalUrl = logicalOf(rel);
+      const source = path.join(out, rel); const logicalUrl = logicalOf(rel);
       const downloadUrl = `/offline/releases/${encodeURIComponent(id)}/${releaseId}/${artifactId}/${rel.split(path.sep).join('/')}`;
-      await materialize(source, path.join(out, downloadUrl.slice(1)));
+      const original = await fs.readFile(source);
+      const body = media.has(rel) ? await shrinkFigure(rel, original) : original;
+      if (body === original) await materialize(source, path.join(out, downloadUrl.slice(1)));
+      else await writeImmutable(path.join(out, downloadUrl.slice(1)), body);
       resources.push({ logicalUrl, downloadUrl, sha256: sha(body), bytes: body.byteLength, mime: mime(rel), role: role(logicalUrl) });
     }
     resources.sort((a, b) => a.logicalUrl.localeCompare(b.logicalUrl));
