@@ -218,7 +218,7 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
   VIEW_KINDS.forEach((k) => {
     assert.ok(cmds.some((c) => c.id === openViewId(k)), k);
     assert.equal(cmds.some((c) => c.id === showViewId(k)), isSidebarKind(k), k);
-    if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, 'Appearance', k);
+    if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, k === 'colours' ? 'Appearance' : 'View', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'search', 'annotations', 'pomodoro']);
   assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a split');
@@ -281,7 +281,7 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
 });
 test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  assert.deepEqual([...PALETTE_ONLY_KINDS], ['colours']);
+  assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours']);
   assert.equal(by(openViewId('colours')).label, 'Open the colour menu');
   assert.equal(by(openViewId('colours')).group, 'Appearance');
   assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');

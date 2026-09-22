@@ -101,7 +101,7 @@ const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap(
     { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
   ]
   : isPaletteOnlyKind(kind)
-    ? [{ id: openViewId(kind), label: 'Open the colour menu', group: 'Appearance', run: () => d.docs.openView(kind, 'group') }]
+    ? [{ id: openViewId(kind), label: kind === 'colours' ? 'Open the colour menu' : `Open ${VIEW_TITLE[kind]}`, group: kind === 'colours' ? 'Appearance' : 'View', run: () => d.docs.openView(kind, 'group') }]
     : [{ id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a split`, group: 'View', run: () => d.docs.openView(kind, 'split') }]));
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },

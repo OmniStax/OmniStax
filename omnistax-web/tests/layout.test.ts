@@ -68,7 +68,7 @@ test('the rail draws the four sidebar views first and the four group views below
   assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:annotations', 'view:pomodoro']);
   assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:formulas', 'view:definitions']);
   /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
-  assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:colours']);
+  assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:pomodoro-stats', 'view:colours']);
   assert.equal(GROUP_VIEW_KEYS.includes('view:colours'), false);
   assert.equal(VIEW_KEYS.length, SIDEBAR_VIEW_KEYS.length + GROUP_VIEW_KEYS.length + PALETTE_ONLY_KINDS.length);
 });

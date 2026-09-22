@@ -35,4 +35,4 @@ export const ICON = {
   pomodoro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.8"/><path d="M8.5 5.2c1.1 1.1 2.2 1.6 3.5 1.6s2.4-.5 3.5-1.6"/><path d="M12 6.8V4"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', pomodoro: 'Pomodoro', colours: 'Colours' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colours' };

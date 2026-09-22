@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  type Instant, type Session, LENGTH, clampLength, clockText, idle, instant, isOver, logged, lose, parseLog, pause, record, remaining, resume, setLength, start, stop, tick,
+  type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, categoryTotals, clampLength, clampSeed, clockText, colorOf, dayBars, dayBefore, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, nameOf, nextColor, onlyUnder, parseLog, pause, ranMs, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, totalMs, unfiled,
 } from '../src/lib/pomodoro/model';
 
 /* A clock the test winds by hand: every function takes the instant it reckons
@@ -10,6 +10,9 @@ const at = (ms: number): Instant => instant(1_000_000 + ms);
 const MIN = 60_000;
 /* Run the clock forward to an instant, as the store's beat does. */
 const run = (s: Session, ms: number): Session => tick(s, at(ms));
+/* One written-down sitting, as the stats read it. */
+const entry = (id: string, start: number, ran: number, categories: readonly string[]): Pomodoro =>
+  ({ id, start, end: start + ran, minutes: Math.round(ran / 60_000), summary: id, completed: true, mode: 'pomodoro', categories: [...categories] });
 
 test('a fresh session is idle, at the length it was asked for', () => {
   const s = idle();
@@ -96,23 +99,135 @@ test('the length is the reader\'s between sessions and never during one', () => 
 test('only an ended session is written down, and it says whether it got there', () => {
   const going = start(setLength(idle(), 1), at(0));
   assert.equal(record(going, at(10_000)), null);
-  const done = record(run(going, MIN), at(MIN), '  read the second section  ');
-  assert.deepEqual(done, { start: at(0), end: at(MIN), minutes: 1, summary: 'read the second section', completed: true });
+  const done = record(run(going, MIN), at(MIN), '  read the second section  ', ['cat1'], 'e1');
+  assert.deepEqual(done, { id: 'e1', start: at(0), end: at(MIN), minutes: 1, summary: 'read the second section', completed: true, mode: 'pomodoro', categories: ['cat1'] });
   const lost = record(lose(going, at(20_000)), at(20_000));
   assert.equal(lost?.completed, false);
   assert.equal(lost?.summary, '');
 });
 
 test('the history keeps the newest first and no more than its cap', () => {
-  const one = (i: number) => ({ start: i, end: i + MIN, minutes: 1, summary: `#${i}`, completed: true });
+  const one = (i: number) => ({ id: `#${i}`, start: i, end: i + MIN, minutes: 1, summary: `#${i}`, completed: true, mode: 'pomodoro' as const, categories: [] });
   const log = [3, 2, 1].reduce<readonly ReturnType<typeof one>[]>((acc, i) => logged(acc, one(i), 2), []);
   assert.deepEqual(log.map((p) => p.summary), ['#1', '#2']);
 });
 
 test('a history read back from this browser is only as much of it as parses', () => {
   const good = [{ start: 1, end: 2, minutes: 25, summary: 'x', completed: true }];
-  assert.deepEqual(parseLog(good), good);
+  /* An entry written before categories and modes existed reads as a countdown filed under nothing, and is given a steady id. */
+  assert.deepEqual(parseLog(good), [{ ...good[0], id: '1-0', mode: 'pomodoro', categories: [] }]);
+  assert.deepEqual(parseLog([good[0], { start: 'soon' }, { ...good[0], start: 5, categories: ['a'], mode: 'stopwatch' }]).map((p) => p.mode), ['pomodoro', 'stopwatch'], 'a bad entry is dropped and the rest are kept');
   assert.deepEqual(parseLog([{ start: 'soon' }]), []);
   assert.deepEqual(parseLog(null), []);
   assert.deepEqual(parseLog('[]'), []);
+});
+
+/* Round two: the stopwatch, the categories, and the figures the stats are drawn from. */
+test('a stopwatch counts up from nothing, or from the stretch it was seeded with', () => {
+  const watch = setMode(idle(), 'stopwatch');
+  assert.equal(watch.mode, 'stopwatch');
+  assert.equal(faceMs(watch, at(0)), 0);
+  const seeded = setSeed(watch, seedOf(0, 10));
+  assert.equal(seeded.seed, 10 * MIN);
+  assert.equal(clockText(faceMs(seeded, at(0))), '10:00');
+  const going = start(seeded, at(0));
+  assert.equal(clockText(faceMs(going, at(90_000))), '11:30');
+  /* It has no end of its own: a tick never finishes it, only the reader does. */
+  assert.equal(run(going, 60 * MIN).phase, 'running');
+  const done = finish(going, at(5 * MIN));
+  assert.equal(done.phase, 'done');
+  assert.equal(isOver(done), true);
+  /* Written down, it reads as having begun where the seed put it. */
+  const p = record(done, at(5 * MIN), 'a walk', [], 'e1');
+  assert.equal(p?.start, at(-10 * MIN));
+  assert.equal(ranMs(p!), 15 * MIN);
+  assert.equal(p?.mode, 'stopwatch');
+});
+
+test('the mode and the seed are the reader\'s between sittings and never during one', () => {
+  const going = start(setMode(idle(), 'stopwatch'), at(0));
+  assert.equal(setMode(going, 'pomodoro').mode, 'stopwatch');
+  assert.equal(setSeed(going, 60_000).seed, 0);
+  /* A countdown has no seed at all, and going back to one puts it away. */
+  assert.equal(setSeed(idle(), 60_000).seed, 0);
+  assert.equal(setMode(setSeed(setMode(idle(), 'stopwatch'), 60_000), 'pomodoro').seed, 0);
+  assert.equal(seedOf(1, 30), 90 * MIN);
+  assert.equal(seedOf(Number.NaN, 90), 90 * MIN);
+  assert.equal(clampSeed(-5), 0);
+});
+
+test('a sitting lost to the screen lock is written down too, under its summary, and says it never got there', () => {
+  const lost = lose(start(setLength(idle(), 25), at(0)), at(9 * MIN));
+  const p = record(lost, at(9 * MIN), 'reading, then gone', ['c1'], 'e2');
+  assert.equal(p?.completed, false);
+  assert.equal(p?.summary, 'reading, then gone');
+  assert.deepEqual(p?.categories, ['c1']);
+  assert.equal(ranMs(p!), 9 * MIN);
+});
+
+test('categories are made, renamed, recoloured and struck out, and a sitting keeps the rest', () => {
+  const one = addCategory([], ' Physics ', CATEGORY_COLORS[0], 'c1');
+  assert.deepEqual(one, [{ id: 'c1', name: 'Physics', color: CATEGORY_COLORS[0] }]);
+  assert.equal(addCategory(one, '  ', CATEGORY_COLORS[1], 'c2'), one, 'a nameless category is not made');
+  assert.equal(addCategory(one, 'physics', CATEGORY_COLORS[1], 'c2'), one, 'nor a second of the same name');
+  const two = addCategory(one, 'Chemistry', nextColor(one), 'c2');
+  assert.equal(two[1].color, CATEGORY_COLORS[1], 'a new one takes the first hue no other has');
+  assert.equal(renameCategory(two, 'c2', 'Chem')[1].name, 'Chem');
+  assert.equal(renameCategory(two, 'c2', '  ')[1].name, 'Chemistry', 'and is never left nameless');
+  assert.equal(recolourCategory(two, 'c1', '#123456')[0].color, '#123456');
+  assert.deepEqual(removeCategory(two, 'c1').map((c) => c.id), ['c2']);
+  const log = [entry('e1', 0, MIN, ['c1', 'c2']), entry('e2', 0, MIN, ['c1'])];
+  assert.deepEqual(unfiled(log, 'c1').map((p) => p.categories), [['c2'], []]);
+  assert.equal(colorOf(two, 'c2'), CATEGORY_COLORS[1]);
+  assert.equal(nameOf(two, 'nobody'), '');
+});
+
+test('an entry is amended and struck out by its id, not by where it stands', () => {
+  const log = [entry('e1', 0, MIN, []), entry('e2', MIN, MIN, [])];
+  const moved = { ...log[0], start: 5 * MIN, end: 6 * MIN };
+  assert.deepEqual(amended(log, moved).map((p) => p.start), [5 * MIN, MIN]);
+  assert.deepEqual(dropped(log, 'e1').map((p) => p.id), ['e2']);
+});
+
+test('the last fortnight is cut into days, and a sitting under two categories is shared between them', () => {
+  const noon = new Date(2026, 8, 21, 12, 0, 0).getTime();
+  const dayAgo = new Date(2026, 8, 20, 12, 0, 0).getTime();
+  const old = new Date(2026, 7, 1, 12, 0, 0).getTime();
+  const log = [
+    { ...entry('a', noon, 30 * MIN, ['c1']) },
+    { ...entry('b', noon, 30 * MIN, ['c1', 'c2']) },
+    { ...entry('c', dayAgo, 20 * MIN, []) },
+    { ...entry('d', old, 60 * MIN, ['c1']) },
+  ];
+  const bars = dayBars(log, ['c1', 'c2', ''], instant(noon));
+  assert.equal(bars.length, 14);
+  assert.equal(bars[13].day, dayKey(noon), 'today stands last');
+  assert.equal(bars[0].day, dayBefore(dayKey(noon), 13));
+  assert.equal(bars[13].total, 60 * MIN, 'both of today\'s sittings, each counted once');
+  assert.deepEqual(bars[13].parts, [{ id: 'c1', ms: 45 * MIN }, { id: 'c2', ms: 15 * MIN }]);
+  assert.equal(bars[12].total, 20 * MIN);
+  assert.deepEqual(bars[12].parts, [{ id: '', ms: 20 * MIN }], 'a sitting under nothing falls under the empty id');
+  assert.equal(bars.reduce((n, b) => n + b.total, 0), 80 * MIN, 'anything older than the fortnight is left out');
+  /* Asking for one category alone gives it the whole of every sitting it was on,
+     since the time is only ever shared between the categories on show. */
+  assert.equal(dayBars(log, ['c1'], instant(noon))[13].total, 60 * MIN);
+  assert.equal(dayBars(log, ['c2'], instant(noon))[13].total, 30 * MIN);
+});
+
+test('a category total is the whole of what was filed under it, largest first', () => {
+  const log = [entry('a', 0, 30 * MIN, ['c1']), entry('b', 0, 10 * MIN, ['c2']), entry('c', 0, 20 * MIN, ['c1', 'c2'])];
+  assert.deepEqual(categoryTotals(log, ['c1', 'c2']), [
+    { id: 'c1', ms: 50 * MIN, count: 2 },
+    { id: 'c2', ms: 30 * MIN, count: 2 },
+  ]);
+  assert.deepEqual(onlyUnder(log, ['c2']).map((p) => p.id), ['b', 'c']);
+  assert.equal(totalMs(onlyUnder(log, ['c2'])), 30 * MIN);
+});
+
+test('a stretch of time is said the short way, and a long clock grows an hour', () => {
+  assert.equal(spanText(0), '0s');
+  assert.equal(spanText(45 * MIN), '45m');
+  assert.equal(spanText(125 * MIN), '2h 05m');
+  assert.equal(clockText(millis(45 * MIN)), '45:00');
+  assert.equal(clockText(millis(65 * MIN)), '1:05:00');
 });
