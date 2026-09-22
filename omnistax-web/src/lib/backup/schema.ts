@@ -20,6 +20,7 @@ const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-underlines', (v) => v === '0' || v === '1'],
   ['omnistax-map-progress', (v) => v === '0' || v === '1'],
   ['omnistax-zoom-keys', (v) => v === '0' || v === '1'],
+  ['omnistax-tips', (v) => v === '0' || v === '1'],
   ['omnistax-zoom', (v) => Number.isFinite(Number(v)) && Number(v) > 0],
 ]);
 
