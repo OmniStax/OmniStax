@@ -96,6 +96,9 @@
   const cache = new Map<string, Settled>();
   const key = $derived(keyOf(list));
   let table = $state<LayoutFileDTO | null>(null);   /* the build's file, once it has been fetched */
+  /* How long the map will hold still for that file before settling its own. */
+  const FILE_GRACE_MS = 1200;
+  let waited = $state(false);
   let settled = $state<Settled>({ pos: new Map(), ms: 0, source: 'seed' });
   const pos = $derived(settled.pos);
   const laying = $derived(settled.source === 'seed' && list.length > 0);
@@ -105,7 +108,8 @@
     if (!url) { table = {}; return; }
     let live = true;
     loadLayouts(url).then((t) => { if (live) table = t; });
-    return () => { live = false; };
+    const t = setTimeout(() => { if (live) waited = true; }, FILE_GRACE_MS);
+    return () => { live = false; clearTimeout(t); };
   });
 
   /* One worker for this map, made the first time a scope needs it. A reply that
@@ -135,8 +139,12 @@
     const nodes = layoutNodes(here);
     /* nothing is drawn in the wrong place while the answer is on its way */
     settled = { pos: seedPositions(nodes), ms: 0, source: 'seed' };
-    if (!file) return;                                   /* the build's file is still in flight */
-    const built = positionsOf(file, k);
+    /* The build's file is worth a short wait and no more. Where it is slow to
+       come — a development server settles it on request — the map settles the
+       scope itself rather than sitting on its seed rings; the file is still
+       taken up for any scope reached after it lands. */
+    if (!file && !waited) return;
+    const built = file ? positionsOf(file, k) : null;
     if (built) { const answer: Settled = { pos: built, ms: 0, source: 'build' }; cache.set(k, answer); settled = answer; return; }
     const w = here.length > MAIN_THREAD_MAX ? workerFor() : null;
     if (w) { w.postMessage({ key: k, nodes, edges: wires } satisfies LayoutRequest); return; }
@@ -165,6 +173,9 @@
      a window of the whole plane would draw every node of the book at once. */
   let view = $state<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   let zoomer: ZoomBehavior<SVGSVGElement, unknown> | null = null;
+  /* How far in and out the wheel goes; the floor gives way to whatever fitting
+     the whole map asks for, which a wide scope may need to be well under. */
+  const MIN_SCALE = 0.15, MAX_SCALE = 2.5;
   /* Once the reader has walked the map it is theirs: a new size, or a new
      layout, no longer moves it under them. */
   let walked = $state(false);
@@ -180,7 +191,12 @@
      reader walks it. */
   const fitAll = () => {
     const el = svgEl, z = zoomer; if (!el || !z || !el.clientWidth || !el.clientHeight) return;
-    const k = Math.max(0.15, Math.min(1, Math.min(el.clientWidth / extent.w, el.clientHeight / extent.h) || 1));
+    const k = Math.min(1, Math.min(el.clientWidth / extent.w, el.clientHeight / extent.h) || 1);
+    /* The floor on the scale is what the map needs it to be, never a constant:
+       a scope too wide to fit at the usual floor would otherwise be clamped
+       there, and the reader would open on the crowded middle of the map with
+       the rest of it off screen — which reads as a pile rather than a map. */
+    z.scaleExtent([Math.min(MIN_SCALE, k * 0.9), MAX_SCALE]);
     const t = zoomIdentity.translate(el.clientWidth / 2 - (extent.x + extent.w / 2) * k, el.clientHeight / 2 - (extent.y + extent.h / 2) * k).scale(k);
     select(el).call(z.transform, t);
     settle(t);
@@ -188,7 +204,7 @@
 
   $effect(() => {
     const el = svgEl; if (!el) return;
-    const z = d3zoom<SVGSVGElement, unknown>().scaleExtent([0.15, 2.5])
+    const z = d3zoom<SVGSVGElement, unknown>().scaleExtent([MIN_SCALE, MAX_SCALE])
       /* the background pans; a node keeps its own press, so dragging one out to a note still works */
       .filter((e: Event) => e.type === 'wheel' || !(e.target as Element | null)?.closest?.('.node'))
       .on('zoom', (e: { transform: ZoomTransform; sourceEvent: Event | null }) => { tf = e.transform; if (e.sourceEvent) { walked = true; close(); } })
