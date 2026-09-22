@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TEXT_CAP, emptyCorpus, excerpt, search, wordsOf, type Corpus } from '../src/lib/search/model';
+import { emptyCorpus, excerpt, wordsOf, type Corpus } from '../src/lib/search/model';
+import { TEXT_CAP, search } from '../src/lib/search/index';
 import { parseFormulas, parseIndex } from '../src/lib/search/books';
 import { conceptId, equationId, sectionId } from '../src/lib/types/ids';
 

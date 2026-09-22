@@ -32,11 +32,14 @@ export const parseFormulas = (raw: unknown): FormulasDTO => {
 
 const parseBlock = (raw: unknown): TextBlockDTO[] => {
   const o = obj(raw); if (!o || !str(o.text)) return [];
-  return [{ span: str(o.span), head: str(o.head), text: str(o.text) }];
+  return [{ span: str(o.span), head: str(o.head), text: str(o.text), toks: str(o.toks) }];
 };
 const parsePage = (raw: unknown): TextPageDTO[] => {
   const o = obj(raw); if (!o || !str(o.id)) return [];
-  return [{ id: str(o.id), title: str(o.title), url: str(o.url), chapter: str(o.chapter), blocks: arr(o.blocks).flatMap(parseBlock) }];
+  /* A page's dictionary and a block's pointers into it are read as leniently as the rest:
+     where either is missing or bent, the index tokenises the text itself. */
+  const terms = arr(o.terms).flatMap((t) => (typeof t === 'string' && t !== '' ? [t] : []));
+  return [{ id: str(o.id), title: str(o.title), url: str(o.url), chapter: str(o.chapter), terms, blocks: arr(o.blocks).flatMap(parseBlock) }];
 };
 /* A book's search.json: its pages in reading order, each with its blocks. */
 export const parseIndex = (raw: unknown): TextIndexDTO => ({ pages: arr(obj(raw)?.pages).flatMap(parsePage) });

@@ -8,7 +8,7 @@ import type { BookProps } from '../../lib/content/paths';
 import type { BookTree, ChapterTree, SectionSource } from '../../lib/content/load';
 import { SUMMARY_ID } from '../../lib/content/fragment';
 import { pagesOf } from '../../lib/content/roles';
-import { textBlocks, type TextIndexDTO, type TextPageDTO } from '../../lib/content/textindex';
+import { textBlocks, withTokens, type TextIndexDTO, type TextPageDTO } from '../../lib/content/textindex';
 
 const html = (s: SectionSource): string => [
   s.meta.lead === '' ? '' : `<p>${s.meta.lead}</p>`,
@@ -16,7 +16,7 @@ const html = (s: SectionSource): string => [
   s.summaryHtml === '' ? '' : `<section id="${SUMMARY_ID}"><h2>Section summary</h2>${s.summaryHtml}</section>`,
 ].join('\n');
 const page = (s: SectionSource, chapter: ChapterTree | null): TextPageDTO =>
-  ({ id: s.meta.id, title: s.meta.title, url: s.url, chapter: chapter?.dto.id ?? '', blocks: textBlocks(html(s), s.meta.id) });
+  withTokens({ id: s.meta.id, title: s.meta.title, url: s.url, chapter: chapter?.dto.id ?? '', blocks: textBlocks(html(s), s.meta.id) });
 const index = (t: BookTree): TextIndexDTO => ({
   pages: [
     ...(t.intro ? [page(t.intro, null)] : []),

@@ -11,9 +11,12 @@ import { plainText } from './fragment';
 
 /* One block of prose: the qualified id of the span it lies in ("16.3-shm-period"; the
    page's own id when it lies in none), the heading over that span, and its text. */
-export type TextBlockDTO = { readonly span: string; readonly head: string; readonly text: string };
-/* One page of the book with its blocks, named as the explorer names it. */
-export type TextPageDTO = { readonly id: string; readonly title: string; readonly url: string; readonly chapter: string; readonly blocks: readonly TextBlockDTO[] };
+export type TextBlockDTO = { readonly span: string; readonly head: string; readonly text: string; readonly toks?: string };
+/* One page of the book with its blocks, named as the explorer names it. Its terms are
+   the words of the whole page, once each and sorted, and a block's toks are which of
+   them it holds: the search builds its index off these without scanning a line of prose.
+   A page written before they existed has neither, and the client tokenises the text. */
+export type TextPageDTO = { readonly id: string; readonly title: string; readonly url: string; readonly chapter: string; readonly terms?: readonly string[]; readonly blocks: readonly TextBlockDTO[] };
 export type TextIndexDTO = { readonly pages: readonly TextPageDTO[] };
 
 const tagName = (t: string): string => /^<\/?([a-zA-Z][\w-]*)/.exec(t)?.[1]?.toLowerCase() ?? '';
@@ -70,5 +73,44 @@ export const textBlocks = (html: string, page: string): readonly TextBlockDTO[] 
     if (BLOCKS.has(n) && (figure === 0 || n === 'figcaption')) block = { tag: n, html: '', depth: 0 };
   }
   emit();
+  return out;
+};
+
+/* The words of a line as both the index and a query are cut: lowercased, split on
+   everything that is neither letter nor digit, so that "\\sqrt{m/k}" and "sqrt m k"
+   are the same three words. Pure. */
+export const tokensOf = (s: string): readonly string[] => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((t) => t !== '');
+
+/* A page with its dictionary: every word it holds once, sorted, and each block pointing
+   at the ones it holds. The text stays as it is — a hit is still shown as the page
+   prints it — and only the words are laid out for the index. */
+export const withTokens = (page: TextPageDTO): TextPageDTO => {
+  const terms = [...new Set(page.blocks.flatMap((b) => tokensOf(b.text)))].sort();
+  const at = new Map(terms.map((t, i) => [t, i]));
+  const toks = (text: string): readonly number[] => [...new Set(tokensOf(text).map((t) => at.get(t) ?? -1))].sort((a, b) => a - b);
+  return { ...page, terms, blocks: page.blocks.map((b) => ({ ...b, toks: packToks(toks(b.text)) })) };
+};
+
+/* Which words a block holds, written small: the gaps between them rather than the
+   numbers themselves, five bits to a character with a sixth saying more follows, so
+   that a word costs about one character where a plain list of numbers costs five. */
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+export const packToks = (ids: readonly number[]): string => {
+  let prev = 0, out = '';
+  for (const id of ids) {
+    let d = id - prev; prev = id;
+    do { const low = d & 31; d >>>= 5; out += ALPHABET[low | (d > 0 ? 32 : 0)]; } while (d > 0);
+  }
+  return out;
+};
+export const unpackToks = (packed: string): readonly number[] => {
+  const out: number[] = [];
+  let cur = 0, shift = 0, prev = 0;
+  for (const ch of packed) {
+    const v = ALPHABET.indexOf(ch); if (v < 0) return out;
+    cur |= (v & 31) << shift; shift += 5;
+    if (v & 32) continue;
+    prev += cur; out.push(prev); cur = 0; shift = 0;
+  }
   return out;
 };

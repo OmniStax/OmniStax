@@ -5,10 +5,11 @@
    case aside. The reader may ask for one kind of thing or for all of them; with
    all, the things the book names stand first — a concept, a definition, a
    formula — and the prose that merely mentions the words comes after, cut off
-   at a count that keeps the list readable. Pure: the store fetches, this only
-   reads. */
+   at a count that keeps the list readable. What a query finds is worked out over
+   an inverted index (index.ts); this file is what the index is built of and what
+   a hit looks like. Pure: the store fetches, this only reads. */
 import type { ConceptDTO, EquationDTO, GlossaryDTO, VariableDTO } from '../content/schema';
-import type { TextPageDTO } from '../content/textindex';
+import { tokensOf, type TextPageDTO } from '../content/textindex';
 import { type Piece, pieces } from '../commands/pieces';
 
 export const SEARCH_KINDS = ['concept', 'definition', 'formula', 'text'] as const;
@@ -39,9 +40,9 @@ export type Hit =
   | { readonly kind: 'formula'; readonly book: string; readonly equation: EquationDTO }
   | { readonly kind: 'text'; readonly book: string; readonly page: TextPageDTO; readonly span: string; readonly head: string; readonly text: string; readonly excerpt: readonly Piece[] };
 
-/* The words of a query, lowercased; a blank query has none and finds nothing. */
-export const wordsOf = (query: string): readonly string[] => query.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
-const hasAll = (s: string, words: readonly string[]): boolean => { const l = s.toLowerCase(); return words.every((w) => l.includes(w)); };
+/* The words of a query, lowercased and cut the way the index cuts a line; a blank
+   query has none and finds nothing. */
+export const wordsOf = (query: string): readonly string[] => tokensOf(query);
 
 /* The window of a block shown for a hit: from a little before the first word found to
    the width, cut on word boundaries and marked with an ellipsis where it was cut, and
@@ -62,38 +63,7 @@ export const excerpt = (text: string, words: readonly string[], width = WIDTH): 
 };
 
 /* What each thing is searched by: the name it is printed under and the line beside it. */
-const conceptText = (c: ConceptDTO): string => `${c.id} ${c.name} ${c.status === 'built' ? c.why ?? '' : ''}`;
-const symbolText = (v: VariableDTO): string => `${v.sym} ${v.meaning} ${v.unit}`;
-const termText = (t: GlossaryDTO): string => `${t.term} ${t.definition}`;
-const equationText = (e: EquationDTO): string => `${e.id} ${e.latex} ${e.condition ?? ''}`;
-
-/* How many blocks of prose the list will hold with everything asked for; asked for on its own, the prose runs longer. */
-export const TEXT_CAP = { all: 60, text: 300 } as const;
-
-const conceptsOf = (c: Corpus, words: readonly string[]): Hit[] => c.concepts.filter((k) => hasAll(conceptText(k), words)).map((concept) => ({ kind: 'concept', book: c.book, concept }));
-const definitionsOf = (c: Corpus, words: readonly string[]): Hit[] => [
-  ...c.variables.filter((v) => hasAll(symbolText(v), words)).map((symbol): Hit => ({ kind: 'definition', book: c.book, def: { kind: 'symbol', symbol } })),
-  ...c.glossary.filter((t) => hasAll(termText(t), words)).map((term): Hit => ({ kind: 'definition', book: c.book, def: { kind: 'term', term } })),
-];
-const formulasOf = (c: Corpus, words: readonly string[]): Hit[] => c.equations.filter((e) => e.important && hasAll(equationText(e), words)).map((equation) => ({ kind: 'formula', book: c.book, equation }));
-const textOf = (c: Corpus, words: readonly string[]): Hit[] =>
-  c.pages.flatMap((page) => page.blocks.filter((b) => hasAll(b.text, words)).map((b): Hit => ({ kind: 'text', book: c.book, page, span: b.span, head: b.head, text: b.text, excerpt: excerpt(b.text, words) })));
-
-/* Everything the query finds across the corpora given, in the order the books were given:
-   the things the books name first, each kind in turn, and the prose after them, with
-   how many blocks of prose were found beyond the cap. */
-export type Found = { readonly hits: readonly Hit[]; readonly cut: number };
-export const NOTHING: Found = { hits: [], cut: 0 };
-export const search = (query: string, corpora: readonly Corpus[], filter: Filter): Found => {
-  const words = wordsOf(query);
-  if (!words.length) return NOTHING;
-  const want = (k: SearchKind): boolean => filter === 'all' || filter === k;
-  const named = [
-    ...(want('concept') ? corpora.flatMap((c) => conceptsOf(c, words)) : []),
-    ...(want('definition') ? corpora.flatMap((c) => definitionsOf(c, words)) : []),
-    ...(want('formula') ? corpora.flatMap((c) => formulasOf(c, words)) : []),
-  ];
-  const prose = want('text') ? corpora.flatMap((c) => textOf(c, words)) : [];
-  const cap = filter === 'text' ? TEXT_CAP.text : TEXT_CAP.all;
-  return { hits: [...named, ...prose.slice(0, cap)], cut: Math.max(0, prose.length - cap) };
-};
+export const conceptText = (c: ConceptDTO): string => `${c.id} ${c.name} ${c.status === 'built' ? c.why ?? '' : ''}`;
+export const symbolText = (v: VariableDTO): string => `${v.sym} ${v.meaning} ${v.unit}`;
+export const termText = (t: GlossaryDTO): string => `${t.term} ${t.definition}`;
+export const equationText = (e: EquationDTO): string => `${e.id} ${e.latex} ${e.condition ?? ''}`;

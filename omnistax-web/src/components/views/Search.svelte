@@ -9,32 +9,49 @@
      read the first time this view opens and kept for the session. */
   import { onMount } from 'svelte';
   import { searchStore } from '../../lib/search/store.svelte';
-  import { FILTERS, FILTER_LABEL, NOTHING, search, type Filter, type Hit } from '../../lib/search/model';
+  import { FILTERS, FILTER_LABEL, type Filter, type Hit } from '../../lib/search/model';
+  import { EMPTY, NOTHING, buildIndex, find } from '../../lib/search/index';
   import { goHit } from '../../lib/search/go';
   import { registry } from '../../lib/sections/registry.svelte';
   import { pageLabel } from '../../lib/content/roles';
   import { ICON } from '../../lib/icons';
   import { FIG } from '../../lib/fig/figlib';
   import { mathHtml } from '../actions/math';
+  /* how long the box must stand still before the list is redrawn, and how many hits
+     are drawn at a time: the rest wait behind a button so a broad query stays light */
+  const PAUSE = 120;
+  const PAGE = 60;
   let query = $state('');
+  /* what the list is showing: the box's text once it has stood still, so that a
+     letter typed mid-word costs nothing */
+  let asked = $state('');
   let filter = $state<Filter>('all');
   let sel = $state(0);
+  let shown = $state(PAGE);
   let input = $state<HTMLInputElement | null>(null);
   let list = $state<HTMLElement | null>(null);
   const corpora = $derived(searchStore.loaded);
-  const found = $derived(query.trim() ? search(query, corpora, filter) : NOTHING);
+  /* The index is built once for the library as it stands, not once per keystroke. */
+  const index = $derived(corpora.length ? buildIndex(corpora) : EMPTY);
+  const found = $derived(asked ? find(asked, index, filter) : NOTHING);
   const hits = $derived(found.hits);
+  $effect(() => {
+    const q = query.trim();
+    if (q === asked) return;
+    const t = setTimeout(() => (asked = q), PAUSE);
+    return () => clearTimeout(t);
+  });
   /* The hits by book, in the order the books were read, each book named where more than one has anything. */
-  const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, urls: c.urls, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book) })).filter((b) => b.hits.length > 0));
+  const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, urls: c.urls, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
   const failed = $derived(searchStore.books.filter((b) => searchStore.status[b] === 'failed'));
-  $effect(() => { query; filter; sel = 0; });
+  $effect(() => { asked; filter; sel = 0; shown = PAGE; });
   onMount(() => { void searchStore.loadAll(); input?.focus(); });
   const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h, corpora.find((c) => c.book === h.book)?.urls ?? {}); };
-  const move = (d: 1 | -1): void => { const n = hits.length; if (n) sel = (((sel + d) % n) + n) % n; };
+  const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
   const onKey = (e: KeyboardEvent): void => {
     e.stopPropagation();
-    if (e.key === 'Escape') { e.preventDefault(); query = ''; return; }
+    if (e.key === 'Escape') { e.preventDefault(); query = ''; asked = ''; return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return; }
     if (e.key === 'Enter') { e.preventDefault(); go(sel); }
@@ -63,7 +80,7 @@
   </div>
   {#if searchStore.busy}<div class="status">Reading the library…</div>
   {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
-  {#if !query.trim()}
+  {#if !asked}
     <div class="hint">Every textbook of the library: its text, its concepts, its definitions and its formulas.</div>
   {:else if !hits.length && !searchStore.busy}
     <div class="hint">Nothing matches.</div>
@@ -93,6 +110,7 @@
           </button>
         {/each}
       {/each}
+      {#if hits.length > shown}<button type="button" class="more" onclick={() => (shown += PAGE)}>Show more ({hits.length - shown})</button>{/if}
       {#if found.cut > 0}<div class="hint">…and {found.cut} more in the text{#if filter === 'all'}: choose Text to see them{/if}.</div>{/if}
     </div>
   {/if}
@@ -118,6 +136,9 @@
   .hint{font-size:0.78rem;color:var(--muted);line-height:1.45;padding:4px 0}
   .hits{display:flex;flex-direction:column;gap:2px;min-width:0}
   .book{margin:8px 0 2px}
+  .more{align-self:flex-start;margin-top:6px;font:inherit;font-size:0.74rem;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
+  .more:hover{color:var(--ink);background:var(--soft)}
+  .more:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .hit{display:flex;flex-direction:column;gap:2px;width:100%;min-width:0;text-align:left;font:inherit;padding:5px 8px;border:0;border-radius:5px;background:transparent;color:var(--ink);cursor:pointer}
   .hit:hover,.hit.sel{background:var(--soft)}
   .hit:focus-visible{outline:2px solid var(--accent)}
