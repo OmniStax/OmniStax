@@ -28,13 +28,17 @@
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
+  import { fileId, fileItem, itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
+  import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
+  import { drawingId, drawingItem } from '../../lib/types/ids';
+  import { importFiles, importSummary } from '../../lib/files/import';
+  import ImportToast from '../files/ImportToast.svelte';
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
   import { offlineBooks } from '../../lib/offline/store.svelte';
 
-  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -164,6 +168,24 @@
           });
           return;
         }
+        /* A file the reader imported sits beside their notes and opens in a tab
+           of its own, which is the only thing that tells it apart here. */
+        if (e.kind === 'file') {
+          out.push({
+            key: e.id, kind: 'file', depth, label: e.name, icon: ICON.file, entry: e,
+            expandable: false, open: false, dim: false, active: activeKey === itemKey(fileItem(fileId(e.fileId ?? e.id))),
+          });
+          return;
+        }
+        /* A drawing sits beside them and opens in a tab of its own too; it is
+           the reader's to rename and to delete, as a note is. */
+        if (e.kind === 'drawing') {
+          out.push({
+            key: e.id, kind: 'drawing', depth, label: e.name, icon: ICON.drawing, entry: e,
+            expandable: false, open: false, dim: false, active: activeKey === itemKey(drawingItem(drawingId(e.drawingId ?? e.id))),
+          });
+          return;
+        }
       });
     };
     /* Books first, each opening into the book itself, and the catalogue last,
@@ -222,7 +244,22 @@
   const remove = (e: Entry): void => {
     const kids = explorer.children(e.id);
     if (kids.length && !confirm(`Delete “${e.name}” and the ${kids.length === 1 ? 'row' : 'rows'} inside it?`)) return;
+    /* A drawing is a row and the ink under it, kept by a store of its own, so
+       its own compound edit takes both away together. */
+    if (e.kind === 'drawing') { deleteDrawing(e); return; }
     deleteEntry(e);
+  };
+
+  /* A drawing is made as a note is: the ink is written first, the row takes its
+     id, the tab opens, and the name box follows so that the reader names the
+     row and not the page. */
+  const newDrawing = (parent: EntryId | null): void => {
+    openUpTo(parent);
+    const made = createDrawing(parent);
+    const id = entryId(made.id);
+    explorer.selected = id;
+    void openItem(itemKey(drawingItem(made.id)));
+    requestAnimationFrame(() => requestAnimationFrame(() => { explorer.renaming = id; }));
   };
 
   /* Renaming happens in place: the label gives way to a box, Enter and losing
@@ -233,6 +270,8 @@
     explorer.renaming = null;
     const next = name.trim();
     if (!next || next === e.name) return;
+    /* A drawing's name is its row and its record, renamed as one step. */
+    if (e.kind === 'drawing') { renameDrawing(e.id, next); return; }
     renameEntry(e.id, next);
   };
   const renameKey = (ev: KeyboardEvent, e: Entry): void => {
@@ -276,6 +315,8 @@
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
+    if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))); return; }
+    if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))); return; }
     if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
     if (r.kind === 'section' && r.section && !r.dim && !r.href) { if (r.book) offlineBooks.markSeen(r.book, r.section); void openDoc(r.section, 'text'); return; }
     if (r.kind === 'heading' && r.domId) go(r.domId);
@@ -292,6 +333,8 @@
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       { label: 'New note here', run: () => newNote(inside) },
+      { label: 'New drawing here', run: () => newDrawing(inside) },
+      { label: 'Import files here', run: () => { pickInto = inside; picker?.click(); } },
       ...(e.kind === 'folder' ? [{ label: 'New folder here', run: () => newFolder(inside) }] : []),
       { label: 'Rename', run: () => { explorer.selected = e.id; explorer.renaming = e.id; } },
       { label: 'Delete', run: () => remove(e) },
@@ -302,6 +345,37 @@
     explorer.selected = e.id;
     menu = { entry: e, x: ev.clientX, y: ev.clientY };
   };
+
+  /* ── importing the reader's own files ─────────────────────────── */
+
+  /* The icon on the Your Files row and a drop on the tree are the same thing,
+     so both come through here: one call, one step of the timeline, and one
+     line at the foot of the window saying what happened. The line stays a
+     moment after the last file lands, so that a refusal is read and not
+     glimpsed. */
+  const TOAST_LINGER_MS = 3000;
+  let importLine = $state<string | null>(null);
+  let importTimer = 0;
+  let picker = $state<HTMLInputElement | null>(null);
+  /* Which folder the chooser was opened for; the root when it was the icon. */
+  let pickInto: EntryId | null = null;
+  const say = (line: string | null): void => {
+    if (importTimer) { clearTimeout(importTimer); importTimer = 0; }
+    importLine = line;
+  };
+  const runImport = async (list: FileList | readonly File[], parent: EntryId | null): Promise<void> => {
+    openUpTo(parent);
+    const done = await importFiles(list, parent, say);
+    say(importSummary(done));
+    importTimer = window.setTimeout(() => { importTimer = 0; importLine = null; }, TOAST_LINGER_MS);
+  };
+  /* Where a drop lands: inside the folder it was dropped on, and under Your
+     Files when it was dropped on the root itself. */
+  const importInto = (r: Row): EntryId | null => (r.kind === 'folder' ? r.entry?.id ?? null : null);
+  /* Whether what is being dragged is files from outside the window rather than
+     a row of the tree: only the former is an import. */
+  const hasFiles = (e: DragEvent): boolean => (e.dataTransfer?.types ?? []).includes('Files');
+  const canImport = (r: Row): boolean => r.root === 'notes' || r.kind === 'folder';
 
   /* Dragging inside the tree moves a row; a note row is draggable into a
      document group as well, which the layout's own action takes care of, so the
@@ -375,11 +449,24 @@
           oncontextmenu={(e) => { if (r.entry) openMenu(e, r.entry); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
-          ondragover={(e) => { if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); over = r.key; } }}
+          ondragover={(e) => {
+            if (hasFiles(e) && canImport(r)) { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; over = r.key; return; }
+            if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); over = r.key; }
+          }}
           ondragleave={() => { if (over === r.key) over = null; }}
-          ondrop={(e) => { if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); dropInto(r); } }}
-          draggable={r.kind === 'folder' || r.kind === 'note'}
-          use:noteDrag={r.kind === 'note' && r.entry ? itemKey(noteItem(noteId(r.entry.id))) : null}>
+          ondrop={(e) => {
+            if (hasFiles(e) && canImport(r)) {
+              e.preventDefault(); e.stopPropagation(); over = null;
+              const dropped = e.dataTransfer?.files;
+              if (dropped?.length) void runImport(dropped, importInto(r));
+              return;
+            }
+            if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); dropInto(r); }
+          }}
+          draggable={r.kind === 'folder' || r.kind === 'note' || r.kind === 'file' || r.kind === 'drawing'}
+          use:noteDrag={r.kind === 'note' && r.entry ? itemKey(noteItem(noteId(r.entry.id)))
+            : r.kind === 'file' && r.entry ? itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))
+              : r.kind === 'drawing' && r.entry ? itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id))) : null}>
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
               title={r.open ? 'Collapse' : 'Expand'} aria-label={r.open ? 'Collapse' : 'Expand'}
@@ -402,8 +489,12 @@
           {/if}
           {#if r.updated}<span class="updated" title="Updated since your last visit">Updated</span>{/if}
           {#if r.root === 'notes'}
+            <button type="button" class="tool" id="import-files" tabindex="-1" title="Import files (PDF, images, markdown)" aria-label="Import files"
+              onclick={(e) => { e.stopPropagation(); pickInto = null; picker?.click(); }}>{@html ICON.importFile}</button>
             <button type="button" class="tool" tabindex="-1" title="New note" aria-label="New note"
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
+            <button type="button" class="tool" tabindex="-1" title="New drawing" aria-label="New drawing"
+              onclick={(e) => { e.stopPropagation(); newDrawing(parentForNew()); }}>{@html ICON.drawingPlus}</button>
             <button type="button" class="tool" tabindex="-1" title="New folder" aria-label="New folder"
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
           {/if}
@@ -418,12 +509,23 @@
   </div>
 </div>
 
+<input class="picker" type="file" multiple bind:this={picker} accept=".pdf,.md,.markdown,.txt,application/pdf,text/markdown,text/plain,image/*"
+  onchange={(e) => {
+    const chosen = e.currentTarget.files;
+    const parent = pickInto; pickInto = null;
+    if (chosen?.length) void runImport(chosen, parent);
+    e.currentTarget.value = '';
+  }} />
+<ImportToast line={importLine} />
+
 {#if menu}
   <RowMenu x={menu.x} y={menu.y} items={menuItems} onclose={() => (menu = null)} />
 {/if}
 
 <style>
   .explorer{display:flex;flex-direction:column;min-width:0}
+  /* the file chooser the import icon opens: never drawn, only clicked */
+  .picker{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
   /* The two things a reader makes are icons on the Notes root itself. */
   .tool{flex:none;display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}

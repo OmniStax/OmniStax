@@ -103,7 +103,12 @@ export type ItemId =
   | { readonly kind: 'file'; readonly file: FileId }      /* a file the reader imported: a PDF read in the tab, or an image shown in it */
   | { readonly kind: 'drawing'; readonly drawing: DrawingId }
   | { readonly kind: 'chat'; readonly chat: ChatId }
-  | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string };   /* ex: the exercise's local id within its section, e.g. p3 or cq1 */
+  | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string }   /* ex: the exercise's local id within its section, e.g. p3 or cq1 */
+  /* The scratch work of one exercise: a drawing with no row in the tree and no
+     name, named instead by the thing it belongs to, since that is the only way
+     back to it. The book is in the key because a reader practises across books
+     and two of them may number a section alike. */
+  | { readonly kind: 'scratch'; readonly book: BookId; readonly section: SectionId; readonly ex: string };
 
 export const docItem = (section: SectionId, doc: DocKind): ItemId => ({ kind: 'doc', section, doc });
 export const viewItem = (view: ViewKind, instance?: ViewInstance): ItemId => (instance ? { kind: 'view', view, instance } : { kind: 'view', view });
@@ -117,6 +122,7 @@ export const fileItem = (file: FileId): ItemId => ({ kind: 'file', file });
 export const drawingItem = (drawing: DrawingId): ItemId => ({ kind: 'drawing', drawing });
 export const chatItem = (chat: ChatId): ItemId => ({ kind: 'chat', chat });
 export const exItem = (section: SectionId, ex: string): ItemId => ({ kind: 'ex', section, ex });
+export const scratchOf = (book: BookId, section: SectionId, ex: string): ItemId => ({ kind: 'scratch', book, section, ex });
 /* Documents, figures and exercises belong to a section; a view describes a
    scope of its own, and a page and everything the reader owns belong to no
    section at all. */
@@ -129,6 +135,7 @@ export const itemKey = (id: ItemId): string => {
     case 'doc': return `doc:${id.section}/${id.doc}`;
     case 'fig': return `fig:${id.section}/${id.fig}`;
     case 'ex': return `ex:${id.section}/${id.ex}`;
+    case 'scratch': return `scratch:${id.book}/${id.section}/${id.ex}`;
     case 'page': return `page:${id.page}`;
     case 'note': return `note:${id.note}`;
     case 'sheet': return `sheet:${id.sheet}`;
@@ -156,6 +163,8 @@ export const parseItemKey = (s: string): ItemId | null => {
   if (chat) return chatItem(chatId(chat[1]));
   const ex = /^ex:([^/]+)\/([\w-]+)$/.exec(s);
   if (ex) return exItem(sectionId(ex[1]), ex[2]);
+  const scratch = /^scratch:([^/]+)\/([^/]+)\/([\w-]+)$/.exec(s);
+  if (scratch) return scratchOf(bookId(scratch[1]), sectionId(scratch[2]), scratch[3]);
   const doc = /^doc:([^/]+)\/(text)$/.exec(s);
   if (doc) return docItem(sectionId(doc[1]), 'text');
   const fig = /^fig:([^/]+)\/([\w-]+)$/.exec(s);

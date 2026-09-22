@@ -10,7 +10,7 @@ const backup = (records: unknown[] = []) => JSON.stringify({
 
 test('oversized backup files are rejected before allocating their text', async () => {
   const file = { size: MAX_BACKUP_BYTES + 1, text: () => { throw new Error('must not read oversized file'); } } as unknown as File;
-  await assert.rejects(readBackupFile(file), /50 MB import limit/);
+  await assert.rejects(readBackupFile(file), /500 MB import limit/);
 });
 
 test('reader key inventory is exact and excludes unrelated or future keys', () => {

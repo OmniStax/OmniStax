@@ -14,7 +14,7 @@ import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } f
 import katex from 'katex';
 import { splitAlt } from './width';
 export { setImageWidth } from './width';
-import { isBook, linkInner, parseLink, type BookTarget, type ChatRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
+import { isBook, linkInner, parseLink, type BookTarget, type ChatRef, type MessageRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
 export type NoteRef = string;    /* the id of a note document, what a resolved note link points at */
 export type AssetRef = string;   /* the id of a stored image */
@@ -40,6 +40,22 @@ export type FigureInfo = { readonly eyebrow: string; readonly title: string; rea
 /* All a stub card can say about a file, a drawing, a chat or an exercise until
    the feature that owns it lands: what the reader calls it. */
 export type StubInfo = { readonly name: string };
+/* A file the reader imported, as a card in a note says it: what it is called,
+   what kind of thing it is, how many pages a PDF has, and — for an image, and
+   for a page of a PDF the store has already drawn — a picture of it. The name
+   alone is a sound answer, so a resolver that knows only that still lends one. */
+export type FileInfo = { readonly name: string; readonly type?: 'pdf' | 'image'; readonly pages?: number; readonly src?: string };
+/* A drawing the reader has made. The card shows it rather than naming it — a
+   drawing is a picture, and a picture of it is what the reader means by
+   holding one in a note — so the name comes with a thumbnail where one has
+   been made. The thumbnail is a scaled export of the drawing's own bitmap,
+   produced on demand and cached against its `updated`, so a note full of
+   drawings costs one small image each and no ink is rendered twice. */
+export type DrawingInfo = { readonly name: string; readonly thumb?: DataUrl };
+/* One message of a chat, held in a note or in another answer: who said it, the
+   chat it was said in, and its first words. The card is the whole link, and it
+   opens the chat at that message's branch. */
+export type ChatMessageInfo = { readonly name: string; readonly role: 'user' | 'assistant'; readonly line: string };
 export type ConceptInfo = { readonly name: string; readonly kind: 'idea' | 'result' | 'skill'; readonly why?: string; readonly section: string; readonly eqTex?: string; readonly placeholder: boolean };
 
 /* Everything the renderer cannot know by itself. Each lookup answers null when
@@ -62,10 +78,19 @@ export type Resolver = {
      nothing of them leaves them out altogether and a link to one renders as
      the words it was written with; one that knows them hands back a name, and
      the stub card shows it until the real card is built. */
-  file?(id: FileRef): StubInfo | null;
-  drawing?(id: DrawingRef): StubInfo | null;
+  file?(id: FileRef): FileInfo | null;
+  drawing?(id: DrawingRef): DrawingInfo | null;
+  /* A drawing written by its name rather than its id. The reader types a name
+     and not an id, and `[[Some drawing]]` parses as a note name, so the note
+     is looked for first and the drawings after it: one namespace, as the
+     reader sees it, settled here and not in the grammar. */
+  drawingByName?(name: NoteName): { readonly id: DrawingRef; readonly name: string; readonly thumb?: DataUrl } | null;
   chat?(id: ChatRef): StubInfo | null;
   exercise?(section: SectionRef, id: ExerciseRef): StubInfo | null;
+  /* One message of a chat, which the chat feature answers and nothing else
+     does: a resolver that knows only the chats by name leaves it out, and the
+     card falls back to naming the chat. */
+  chatMessage?(id: ChatRef, message: MessageRef): ChatMessageInfo | null;
 };
 
 const esc = (s: string): string =>
@@ -189,7 +214,60 @@ const stubLink = (t: StubLink, r: Resolver, embed: boolean): string => {
     `<div class="embed-body">${esc(t.alias ?? name ?? inner)}</div></div>`;
 };
 
+/* A drawing held in a note is shown and not named: the reader made a picture,
+   and a picture is what they mean by putting one here. The thumbnail is a
+   small export of the drawing's own ink; a drawing that has not made one yet
+   — the store is asked for it and it arrives a turn later — shows its name in
+   the same card, which the view fills in when the picture lands. The whole
+   card is the link that opens the drawing. */
+const drawingEmbed = (inner: string, info: DrawingInfo, alias?: string): string =>
+  `<div class="drawing-embed" data-embed="${esc(inner)}" data-drawing="${esc(inner.replace(/^drawing:/, ''))}">` +
+  `<div class="embed-eyebrow">${esc(meta('Drawing', alias ?? info.name))}</div>` +
+  (info.thumb ? `<img class="drawing-thumb" src="${esc(info.thumb)}" alt="${esc(info.name)}">` : '<div class="drawing-waiting"></div>') +
+  '</div>';
+
+/* A bubble dragged out of a chat is written `![[chat:<chat>:<message>]]`, and
+   it is a card of its own rather than a stub: the role, the first line, and the
+   chat it was said in, the whole of it the link back to that branch. */
+const chatMessageEmbed = (t: Extract<Link, { readonly kind: 'chat' }>, info: ChatMessageInfo): string => {
+  const inner = linkInner(t);
+  return `<div class="chat-embed role-${esc(info.role)}" data-embed="${esc(inner)}">` +
+    `<div class="embed-eyebrow">${esc(meta('Chat', info.role === 'user' ? 'you' : 'the model', info.name))}</div>` +
+    `<div class="embed-body">${esc(t.alias ?? info.line)}</div></div>`;
+};
+
+/* A file held in a note: the name it is filed under, what it is, and how far
+   through it the link points. An image is shown, since a reader who puts a
+   picture in a note means the picture; a PDF is named, because a page of one
+   is not a thumbnail's worth of reading. The whole card opens the file, at the
+   page it names where it names one. */
+const fileEmbed = (t: Extract<Link, { readonly kind: 'file' }>, info: FileInfo): string => {
+  const inner = linkInner(t);
+  const eyebrow = meta('File', info.type === 'pdf' ? 'PDF' : info.type === 'image' ? 'image' : undefined,
+    t.page !== undefined ? `page ${t.page}` : info.pages ? `${info.pages} pages` : undefined);
+  const picture = info.src !== undefined && SAFE_SRC.test(info.src) ? `<img class="file-still" src="${esc(info.src)}" alt="${esc(info.name)}">` : '';
+  return `<div class="file-embed kind-${esc(info.type ?? 'file')}" data-embed="${esc(inner)}">` +
+    `<div class="embed-eyebrow">${esc(eyebrow)}</div>` +
+    `<div class="embed-body">${esc(t.alias ?? info.name)}</div>${picture}</div>`;
+};
+
 const renderLink = (link: Link, r: Resolver, embed = false): string => {
+  /* A file is shown whole where a stub would only name it. */
+  if (link.kind === 'file') {
+    const f = r.file?.(link.file) ?? null;
+    if (f && embed) return fileEmbed(link, f);
+    if (f) return anchor(linkInner(link), link.alias ?? (link.page === undefined ? f.name : `${f.name} · page ${link.page}`));
+  }
+  if (link.kind === 'chat' && link.message !== undefined) {
+    const info = r.chatMessage?.(link.chat, link.message) ?? null;
+    if (info) return embed ? chatMessageEmbed(link, info) : anchor(linkInner(link), link.alias ?? (info.line || info.name));
+  }
+  /* A drawing is shown whole where a stub would only name it. */
+  if (link.kind === 'drawing') {
+    const d = r.drawing?.(link.id) ?? null;
+    if (d && embed) return drawingEmbed(linkInner(link), d, link.alias);
+    if (d) return anchor(linkInner(link), link.alias ?? d.name);
+  }
   if (isStub(link)) return stubLink(link, r, embed);
   if (link.kind === 'highlight') return highlightEmbed(link.id, r, link.alias ?? `hl:${link.id}`);
   if (link.kind === 'figure') return figureEmbed(link, r);
@@ -201,7 +279,14 @@ const renderLink = (link: Link, r: Resolver, embed = false): string => {
   }
   const id = r.note(link.name);
   const label = link.alias ?? link.name;
-  return id ? anchor(`note:${id}`, label) : dead(label);
+  if (id) return anchor(`note:${id}`, label);
+  /* No note of that name: the reader may mean a drawing, since they type a
+     name and not an id and the two share one namespace as far as they are
+     concerned. The note is looked for first, so a note and a drawing of the
+     same name go to the note, which is the older of the two meanings. */
+  const d = r.drawingByName?.(link.name) ?? null;
+  if (d) return embed ? drawingEmbed(`drawing:${d.id}`, d, link.alias) : anchor(`drawing:${d.id}`, label);
+  return dead(label);
 };
 
 /* ── images ─────────────────────────────────────────────────────────────── */

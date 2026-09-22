@@ -43,7 +43,13 @@
   import { markFormulas } from '../lib/sheets/mark';
   import { notes } from '../lib/notes/store.svelte';
   import { noteDocs } from '../lib/notes/docs.svelte';
+  import { ai } from '../lib/chat/settings.svelte';
+  import { chats } from '../lib/chat/store.svelte';
   import { explorer } from '../lib/explorer/store.svelte';
+  import { files } from '../lib/files/store.svelte';
+  import { drawings } from '../lib/drawer/store.svelte';
+  import { fileMarks } from '../lib/files/marks.svelte';
+  import { sweepBlobs } from '../lib/files/import';
   import { library } from '../lib/explorer/library.svelte';
   import { practice } from '../lib/practice/store.svelte';
   import { openPractice } from '../lib/practice/open.svelte';
@@ -79,6 +85,14 @@
     if (id.kind === 'page') return true;
     if (id.kind === 'sheet') return registry.manifest.sheets.some((s) => s.id === id.sheet);
     if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
+    /* A file the reader still keeps; one they have deleted leaves no tab. */
+    if (id.kind === 'file') return files.get(id.file) !== undefined;
+    /* The same for a drawing and a chat, each read off the list its own store
+       mirrors in localStorage, so a saved layout is settled without opening a
+       database. The scratch page of an exercise is named by the exercise and
+       not by a record, so it stands as long as its section does. */
+    if (id.kind === 'drawing') return drawings.row(id.drawing) !== undefined;
+    if (id.kind === 'chat') return chats.entry(id.chat) !== null;
     return registry.isBuilt(id.section);
   };
   const mountExercises = (root: HTMLElement, sec: SectionId) => {
@@ -97,7 +111,15 @@
     const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types) });
     notes.init(manifest.id);
     noteDocs.init();
+    ai.init();
+    chats.init();
+    files.init();
+    fileMarks.init();
+    drawings.init();
     explorer.init();
+    /* The bytes of a file deleted are kept until now, so that an undo in that
+       session had something to come back to; this session is not that one. */
+    void sweepBlobs().catch(() => {});
     library.init(manifest.id, manifest.title);
     void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage could not be initialized.'; });
@@ -119,6 +141,12 @@
     onHash(); window.addEventListener('hashchange', onHash);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
+    /* A drawing is written a short pause after the last stroke, so a page left
+       within that pause would owe the database the stroke that finished it.
+       Going away is the moment to make every pending write good. */
+    const onLeave = () => { if (document.visibilityState === 'hidden') drawings.flush(); };
+    document.addEventListener('visibilitychange', onLeave);
+    const onHide = () => drawings.flush(); window.addEventListener('pagehide', onHide);
     /* Where the reader is typing, undo and redo are not the shell's: a field has
        the browser's own history and the note editor has CodeMirror's, and either
        is what Ctrl+Z means there. Every other chord behaves as it does anywhere. */
@@ -212,6 +240,11 @@
          beside the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
       if (pb?.dataset.practiseSection) { const gi = groupOf(pb); openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      /* A link a pane has already answered — a wiki link in a note or a text
+         box, which opens a note, a file or a section of its own accord — is
+         not the shell's to follow as well: it says so by preventing the
+         default, and its own `href="#"` would otherwise read as this page. */
+      if (e.defaultPrevented) return;
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       /* A link inside a pane that names a page of this book — the way on at the
          end of a text, a section the about page points at — opens as a tab of
@@ -228,7 +261,7 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); reader.stop(); };
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
   });
 
   /* settings → document */

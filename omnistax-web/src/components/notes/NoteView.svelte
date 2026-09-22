@@ -22,14 +22,17 @@
   import { noteDocs } from '../../lib/notes/docs.svelte';
   import { notes } from '../../lib/notes/store.svelte';
   import { goNote } from '../../lib/notes/go';
+  import { anyHighlight, fileStub, goMark } from '../../lib/files/resolver';
   import { registry } from '../../lib/sections/registry.svelte';
   import { label } from '../../lib/sections/grouping';
   import { spansOf } from '../../lib/sections/concepts.svelte';
-  import { goSpan, openDoc, openItem } from '../../lib/sections/nav.svelte';
+  import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
   import { lookupVariable, symKey } from '../../lib/hover/data';
   import { dragging } from '../../lib/layout/drag.svelte';
   import { FIG } from '../../lib/fig/figlib';
-  import { conceptId, itemKey, noteId as asNoteId, noteItem, qualifiedId, sectionId, spanId, type NoteId } from '../../lib/types/ids';
+  import { conceptId, drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, qualifiedId, sectionId, spanId, type NoteId } from '../../lib/types/ids';
+  import { drawingInfo, drawingNamed } from '../../lib/drawer/cards';
+  import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
 
   let { noteId, body }: { noteId: NoteId; body: string } = $props();
 
@@ -46,12 +49,18 @@
      cards read them, so a card in a note says what a card over the text says. */
   const resolver = (): Resolver => ({
     note: (name) => noteDocs.byName(name)?.id ?? null,
+    /* A drawing is shown small in the note and opens on a click. A name with
+       no note behind it may be one, so both lookups are lent here and the
+       renderer tries the note first. */
+    drawing: (id) => drawingInfo(id),
+    drawingByName: (name) => drawingNamed(name),
     section: (id) => { const e = registry.entry(sectionId(id)); return e?.built ? { title: e.title } : null; },
-    highlight: (id) => {
-      const n = notes.get(id); if (!n) return null;
-      return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(n.section)?.title ?? '') };
-    },
+    /* A highlight may be the book's or one written on a file; the two stores
+       keep ids of different shapes, and `anyHighlight` reads which. */
+    highlight: (id) => anyHighlight(id),
     asset: () => null,
+    /* A file the reader imported: the card names it, and the tab shows it. */
+    file: (id) => fileStub(id),
     /* An equation's id is its chapter's, so the section says which chapter to
        read and the id finds the row in it; what the equation states is the
        concept that names it as its own. */
@@ -211,6 +220,13 @@
       const id = img.dataset.asset ?? '';
       void getAsset(assetId(id)).then((url) => { if (mine === pass && url) img.src = url; });
     }
+    /* A drawing held in the note is shown as a small picture of its ink. The
+       picture is made from the drawing itself, which takes a turn of the loop,
+       so the card is rendered waiting and filled here — the same way a pasted
+       image is filled once the asset store hands its blob over. */
+    for (const id of waitingThumbs(el)) {
+      void thumbnailOf(asDrawingId(id)).then((url) => { if (mine === pass && url) void fillThumbs(el, asDrawingId(id), url); });
+    }
     for (const img of el.querySelectorAll<HTMLImageElement>('img')) grip(img);
     fetchChapters(el);
     fetchFigures(el);
@@ -257,8 +273,15 @@
     const a = t.closest<HTMLAnchorElement>('a.wiki[data-link]');
     const link = a?.dataset.link; if (!link) return;
     e.preventDefault();
+    /* A file opens in its tab, at the page the link named. */
+    const file = /^file:([^:]+)(?::p(\d+))?$/.exec(link);
+    if (file) { void openFile(asFileId(file[1]), file[2] ? Number(file[2]) : undefined); return; }
+    const hl = /^hl:(.+)$/.exec(link);
+    if (hl) { goMark(hl[1]); return; }
     const note = /^note:(.+)$/.exec(link);
     if (note) { void openItem(itemKey(noteItem(asNoteId(note[1])))); return; }
+    const drawing = /^drawing:(.+)$/.exec(link);
+    if (drawing) { void openItem(itemKey(drawingItem(asDrawingId(drawing[1])))); return; }
     const sec = /^section:(.+)$/.exec(link);
     if (sec) void openDoc(sectionId(sec[1]), 'text');
   };
@@ -356,6 +379,12 @@
 
   /* a thing of the book, held whole in the note: the same card as a highlight,
      with a left rule in the colour of what it holds */
+  /* A drawing held in a note is the picture of it, with its name above: the
+     whole card opens the drawing. */
+  .note-view :global(.drawing-embed){margin:1.1em 0;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);cursor:pointer;max-width:320px}
+  .note-view :global(.drawing-embed:hover){border-color:var(--accent)}
+  .note-view :global(.drawing-thumb){display:block;width:100%;height:auto;margin-top:8px;border:1px solid var(--rule);border-radius:4px;background:#fff}
+  .note-view :global(.drawing-waiting){height:80px;margin-top:8px;border-radius:4px;background:var(--soft2)}
   .note-view :global(.book-embed){margin:1.1em 0;padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-left-color:var(--accent);border-radius:6px;background:var(--soft);cursor:pointer}
   .note-view :global(.book-embed:hover){border-color:var(--accent)}
   .note-view :global(.book-embed.kind-term){border-left-color:var(--warm)}

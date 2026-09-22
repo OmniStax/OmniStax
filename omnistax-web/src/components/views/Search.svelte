@@ -10,8 +10,11 @@
   import { onMount } from 'svelte';
   import { searchStore } from '../../lib/search/store.svelte';
   import { FILTERS, FILTER_LABEL, type Filter, type Hit } from '../../lib/search/model';
-  import { EMPTY, NOTHING, buildIndex, find } from '../../lib/search/index';
+  import { EMPTY, buildIndex } from '../../lib/search/index';
   import { goHit } from '../../lib/search/go';
+  import { fileCorpus } from '../../lib/search/filecorpus.svelte';
+  import { findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
+  import { openFile } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { pageLabel } from '../../lib/content/roles';
   import { ICON } from '../../lib/icons';
@@ -33,8 +36,17 @@
   const corpora = $derived(searchStore.loaded);
   /* The index is built once for the library as it stands, not once per keystroke. */
   const index = $derived(corpora.length ? buildIndex(corpora) : EMPTY);
-  const found = $derived(asked ? find(asked, index, filter) : NOTHING);
+  /* What the search reads: the books, and beside them the reader's own files.
+     One list of sources, so that a third kind of thing is one more entry in it
+     and not a change to the books' own search. */
+  const sources = $derived<readonly Source[]>([
+    { kind: 'books', rows: corpora },
+    { kind: 'files', rows: fileCorpus.entries },
+  ]);
+  const results = $derived(asked ? findAll(asked, sources, index, filter) : NOTHING_FOUND);
+  const found = $derived(results.books);
   const hits = $derived(found.hits);
+  const fileHits = $derived(results.files);
   $effect(() => {
     const q = query.trim();
     if (q === asked) return;
@@ -45,7 +57,7 @@
   const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, urls: c.urls, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
   const failed = $derived(searchStore.books.filter((b) => searchStore.status[b] === 'failed'));
   $effect(() => { asked; filter; sel = 0; shown = PAGE; });
-  onMount(() => { void searchStore.loadAll(); input?.focus(); });
+  onMount(() => { void searchStore.loadAll(); void fileCorpus.load(); input?.focus(); });
   const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h, corpora.find((c) => c.book === h.book)?.urls ?? {}); };
   const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
@@ -82,7 +94,7 @@
   {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
   {#if !asked}
     <div class="hint">Every textbook of the library: its text, its concepts, its definitions and its formulas.</div>
-  {:else if !hits.length && !searchStore.busy}
+  {:else if !hits.length && !fileHits.length && !searchStore.busy}
     <div class="hint">Nothing matches.</div>
   {:else}
     <div class="hits" bind:this={list}>
@@ -110,6 +122,17 @@
           </button>
         {/each}
       {/each}
+      <!-- The reader's own files stand after the books: a page of a PDF is
+           prose like the book's prose, and a hit opens the file at it. -->
+      {#if fileHits.length}
+        <div class="eyebrow book">Your Files</div>
+        {#each fileHits as f (`${f.file}:${f.page}`)}
+          <button type="button" class="hit k-text" onclick={() => void openFile(f.file, f.page)}>
+            <span class="where">{f.name} · page {f.page}</span>
+            <span class="line">{#each f.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
+          </button>
+        {/each}
+      {/if}
       {#if hits.length > shown}<button type="button" class="more" onclick={() => (shown += PAGE)}>Show more ({hits.length - shown})</button>{/if}
       {#if found.cut > 0}<div class="hint">…and {found.cut} more in the text{#if filter === 'all'}: choose Text to see them{/if}.</div>{/if}
     </div>

@@ -20,6 +20,8 @@
   import { DEFAULT_SETTINGS } from '../lib/practice/model';
   import { downloadBackup, importBackup, readBackupFile } from '../lib/backup/adapters';
   import { summarizeBackup, type ReaderBackup } from '../lib/backup/schema';
+  import Storage from './settings/Storage.svelte';
+  import Ai from './settings/Ai.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
@@ -41,6 +43,7 @@
     mapProgress: 'Progress on the concept map mastery bars nodes practice',
     layout: 'Panes and tabs reset layout views sidebars',
     backup: 'Backup export import restore reader data notes progress colours settings sessions',
+    storage: 'Storage space quota persist persistent browser clear data safe imported files backup size',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines], READING = [ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
@@ -188,10 +191,14 @@
         </div>
       </section>
 
+      <Ai {hit} />
+
       <section hidden={!hit(ROWS.layout)}>
         <h3>Layout</h3>
         <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section text and the explorer in its home sidebar.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
       </section>
+
+      <Storage show={hit(ROWS.storage)} />
 
       <section hidden={!hit(ROWS.backup)}>
         <h3>Backup and restore</h3>

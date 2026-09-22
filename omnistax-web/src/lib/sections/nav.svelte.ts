@@ -3,7 +3,8 @@
 import { layoutStore } from '../layout/store.svelte';
 import { openTab, openSide, activate, homeSide, where, toggleCollapsed } from '../layout/model';
 import { registry } from './registry.svelte';
-import { type SpanId, type ItemId, itemKey, parseItemKey, spanId, sectionOfSpan, sectionOfItem, docItem } from '../types/ids';
+import { type SpanId, type ItemId, type FileId, itemKey, parseItemKey, spanId, sectionOfSpan, sectionOfItem, docItem, fileItem } from '../types/ids';
+import { fileOpens } from '../files/open.svelte';
 import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
 
@@ -86,4 +87,11 @@ export const openItem = (key: string, group?: number): Promise<void> => {
   return sec ? registry.load(sec) : Promise.resolve();
 };
 export const openDoc = (sec: SectionId, doc: 'text', group?: number): Promise<void> => openItem(itemKey(docItem(sec, doc)), group);
+/* A file the reader imported, at the page a link named. The page is asked for
+   beside the tab rather than written into its key: a file open twice is one
+   document, so the key names the file and nothing else. */
+export const openFile = (file: FileId, page?: number, group?: number): Promise<void> => {
+  if (page !== undefined) fileOpens.askPage(file, page);
+  return openItem(itemKey(fileItem(file)), group);
+};
 type SectionId = import('../types/ids').SectionId;

@@ -167,18 +167,18 @@ and `npm run build` clean, plus the browser check named.
   them; root labels OmniBooks and Your Files. Tests in `tests/urls.test.ts`,
   `explorer.test.ts`, `md.test.ts`. Commit as "feat: seams for files, drawings
   and chats (#16 #17 #3)".
-- [ ] 1. File store, blobs, import of markdown, images and PDFs, explorer
+- [x] 1. File store, blobs, import of markdown, images and PDFs, explorer
   rows, delete with undo, image tab, backup whitelist and the 500 MB cap.
   `tests/files.test.ts` for the pure model; extend
   `tests/backup-browser-check.py` with one PDF and one image round trip.
-- [ ] 2. PDF reader tab with lazy pdf.js, page rendering, text layer, zoom,
+- [x] 2. PDF reader tab with lazy pdf.js, page rendering, text layer, zoom,
   `file:` links and embeds, page links. `tests/pdf-browser-check.py` opens a
   fixture PDF (put a two-page one under `tests/fixtures/`), scrolls, and
   follows a page link from a note.
-- [ ] 3. Highlights and text boxes on PDF pages, painted and undoable through
+- [x] 3. Highlights and text boxes on PDF pages, painted and undoable through
   the shell timeline, in the Annotations view, dragging out as `hl:` embeds.
   Browser check adds a highlight, reloads, sees it painted.
-- [ ] 4. Search corpus per file with text extracted at import, and the
+- [x] 4. Search corpus per file with text extracted at import, and the
   Storage block in Settings with persist and estimate. Browser check searches
   a word that only the fixture PDF holds.
 
@@ -201,3 +201,69 @@ mounts `ui/Placeholder.svelte` for each new kind and the tab reads its name
 from the explorer row. The roots read OmniBooks and Your Files. The stub card
 is deliberately unstyled: milestones 1 to 3 bring the real cards and their CSS
 with them.
+
+**2026-09-22 — milestone 1, the files themselves.** `files/model.ts` is the pure
+list — a `FileDoc` of eight base-36 characters, what the app takes (`takeOf`
+answers file, note or refused, on the browser's type first and the name after
+it), and the storage boundary; `store.svelte.ts` keeps it under
+`omnistax-files-v1`. `files/blobs.ts` is the one IndexedDB for heavy things,
+`omnistax-files`, with a `blobs` store of Blobs and a `text` store of a PDF's
+pages. `files/import.ts` is the single way in for the import icon on the Your
+Files row and for a drop on the tree: markdown becomes an ordinary note, an
+image and a PDF become file rows, and anything else is named in a line at the
+foot of the window rather than thrown. A file row deletes as one compound edit
+of `explorer/edits.ts` — the row, the record and its marks together — and its
+bytes are left behind until the next boot sweeps them, so undo has something to
+come back to. The backup carries `omnistax-files-v1` and `omnistax-filemarks-v1`
+as validated records and the bytes as `files: [{ id, type, mime, base64,
+created }]`; `MAX_BACKUP_BYTES` is 500 MB with a warning above 50.
+
+**2026-09-22 — milestone 2, reading a PDF.** pdf.js 4.10.38 is vendored under
+`public/vendor/pdfjs/` (the minified ESM build, its worker, the fourteen
+standard fonts and a `VERSION` file) and fetched on demand by
+`files/pdfjs.ts`, the way `fig/three.ts` fetches three; nothing of it is in the
+app bundle until a PDF opens. `components/files/FileTab.svelte` shows an image
+or mounts `PdfReader.svelte`, which stands every page in one scroller at the
+size the document says it is and draws a page only as it nears the viewport,
+releasing it again when it is far. The text layer is pdf.js's own `TextLayer`,
+dressed by the component since the vendored build carries no stylesheet. Zoom
+is fit-width by default and the two buttons step from there; Ctrl+wheel is left
+alone. `[[file:<id>]]` and `[[file:<id>:p12]]` render as a card naming the file
+and open the tab at that page, the page being asked for beside the tab
+(`files/open.svelte.ts`) rather than written into its key, since a file open
+twice is one document.
+
+**2026-09-22 — milestone 3, marks on a page.** `files/marks.ts` is the pure ADT
+— a highlight anchored by the book's own `Anchor` against the page's text, or a
+box in fractions of the page's width and height — and `marks.svelte.ts` the
+store, every change a step of the shell's timeline. A mark's id is ten base-36
+characters where a book highlight's is eight, which is how one `[[hl:…]]`
+resolver answers for both without asking each in turn. `HighlightBar` now
+stands over a page of a file as it stands over a document of the book, and the
+same painter lays the marks into the text layer, so they survive a redraw at
+another zoom. `components/ui/TextBox.svelte` is the positioned markdown box,
+written to the Drawer's own shape so the two share it: a rectangle in whatever
+units the parent counts in, handed back as the reader drags it. The Annotations
+view grows a "Your Files" group after the book's own, one heading per file, its
+marks in page order, each dragging out as `![[hl:<id>]]`.
+
+**2026-09-22 — milestone 4, search and storage.** The search now reads a list of
+sources rather than a list of books: `search/sources.ts` holds
+`{ kind, rows }`, with the books asked through their index as before and every
+other source a straight read of its rows — `search/files.ts` for a page of a
+PDF, and the chats beside it when #3 landed. The pages are extracted once, at
+import, by pdf.js's worker into the `text` store; a profile restored from a
+backup carries the bytes and not the pages, so `search/filecorpus.svelte.ts`
+extracts what is missing the first time it looks. `storage/health.ts` answers
+whether the data is safe — `navigator.storage.persist()` asked once on the
+first blob written and remembered, the estimate, and the words per platform,
+Safari's seven days included — and `components/settings/Storage.svelte` is the
+one place that says so, with the size of a backup worked out on request and
+written from the same block.
+
+**Left out, and why.** An image embedded in a note still shows its card rather
+than the picture: the bytes are in IndexedDB and the renderer is pure, so it
+would need the asynchronous decoration pass that pasted images use, which
+belongs with whoever next touches `NoteView`. Ctrl+F inside a PDF tab is still
+the later milestone the document says it is; the global search covers the text.
+A file tab reopens at its first page rather than where the reader left off.

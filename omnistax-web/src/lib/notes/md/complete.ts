@@ -17,3 +17,10 @@ export type Candidate = {
    highlight are pointed at, and write a link. */
 export const candidate = (target: LinkTarget, label: string, detail: string, embed = false): Candidate =>
   ({ label, detail, insert: linkInner(target), ...(embed ? { embed } : {}) });
+
+/* The rows of the picker, as candidates. The picker is now the one list of
+   everything that can be pointed at — a chat composer opens it with `@` and the
+   note editor with `[[` — and this is the door between the two: whatever still
+   asks for candidates is given the picker's rows in the shape it knows. */
+export const candidatesOf = (rows: readonly { readonly label: string; readonly detail: string; readonly target: LinkTarget; readonly embed?: boolean }[]): readonly Candidate[] =>
+  rows.map((r) => candidate(r.target, r.label, r.detail, r.embed === true));

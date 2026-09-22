@@ -35,7 +35,20 @@ with sync_playwright() as playwright:
       localStorage.setItem('omnistax-notes-other-book', JSON.stringify([{id:'h1',section:'x.1',doc:'text',anchor:{quote:'quoted',prefix:'',suffix:''},color:'blue',text:'note',created:1,updated:2}]));
       localStorage.setItem('omnistax-colours-other-book', JSON.stringify({format:'omnistax-colours',version:1,book:'other-book',order:['length'],overrides:{book:{length:{light:'#112233',dark:'#AABBCC'}},chapters:{},sections:{}}}));
       localStorage.setItem('omnistax-notedocs-v1', JSON.stringify([{id:'n1',name:'My note',body:'![x](asset:a1)',created:1,updated:2}]));
+      localStorage.setItem('omnistax-files-v1', JSON.stringify([
+        {id:'ffffffff',name:'Paper',type:'pdf',mime:'application/pdf',size:9,pages:2,created:1,updated:2},
+        {id:'gggggggg',name:'Swatch',type:'image',mime:'image/png',size:3,created:1,updated:2}]));
+      localStorage.setItem('omnistax-filemarks-v1', JSON.stringify([
+        {kind:'highlight',id:'abcdefghij',file:'ffffffff',page:2,anchor:{quote:'zyxomni',prefix:'',suffix:''},color:'green',text:'odd',created:1,updated:2}]));
     """)
+    # The bytes of the two imported files, which travel as base64 in the backup.
+    page.evaluate("""async () => {
+      const db = await new Promise((ok, no) => { const r=indexedDB.open('omnistax-files',1); r.onupgradeneeded=()=>{r.result.createObjectStore('blobs',{keyPath:'id'});r.result.createObjectStore('text',{keyPath:'id'})}; r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); });
+      await new Promise((ok,no)=>{const tx=db.transaction('blobs','readwrite');const s=tx.objectStore('blobs');
+        s.put({id:'ffffffff',blob:new Blob([new Uint8Array([37,80,68,70,45,49,46,52,10])],{type:'application/pdf'}),created:1});
+        s.put({id:'gggggggg',blob:new Blob([new Uint8Array([1,2,3])],{type:'image/png'}),created:1});
+        tx.oncomplete=ok;tx.onerror=()=>no(tx.error)}); db.close();
+    }""")
     page.evaluate("""async () => {
       const db = await new Promise((ok, no) => { const r=indexedDB.open('omnistax-assets',1); r.onupgradeneeded=()=>r.result.createObjectStore('assets',{keyPath:'id'}); r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); });
       await new Promise((ok,no)=>{const tx=db.transaction('assets','readwrite');tx.objectStore('assets').put({id:'a1',type:'image/png',dataUrl:'data:image/png;base64,AA==',created:1});tx.oncomplete=ok;tx.onerror=()=>no(tx.error)}); db.close();
@@ -53,6 +66,13 @@ with sync_playwright() as playwright:
         assert "omnistax-notes-other-book" in keys
         assert "omnistax-colours-other-book" in keys
         assert exported["assets"][0]["id"] == "a1"
+        # A PDF and an image make the round trip: the metadata as records, the
+        # bytes as base64 beside them.
+        assert "omnistax-files-v1" in keys and "omnistax-filemarks-v1" in keys
+        carried = {f["id"]: f for f in exported["files"]}
+        assert set(carried) == {"ffffffff", "gggggggg"}, carried
+        assert carried["ffffffff"]["type"] == "pdf" and carried["ffffffff"]["mime"] == "application/pdf"
+        assert carried["gggggggg"]["base64"] == "AQID", carried["gggggggg"]
 
         # Import into a genuinely empty profile, without bringing along book
         # caches or installation metadata. Reader backups never install books.
@@ -63,7 +83,7 @@ with sync_playwright() as playwright:
         fresh.goto(BASE + PATH)
         fresh.wait_for_selector(".shell")
         open_settings(fresh)
-        fresh.locator('input[type="file"]').set_input_files(backup_path)
+        fresh.locator('#settings input[type="file"]').set_input_files(backup_path)
         with fresh.expect_navigation(wait_until="domcontentloaded"):
             fresh.get_by_role("button", name="Replace profile and reload").click()
         fresh.wait_for_selector(".shell")
@@ -73,6 +93,13 @@ with sync_playwright() as playwright:
         assert restored_notes is not None, (restored_notes, expected_notes)
         assert json.loads(restored_notes) == json.loads(expected_notes)
         assert fresh.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
+        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-files-v1')"))[0]["name"] == "Paper"
+        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-filemarks-v1')"))[0]["id"] == "abcdefghij"
+        assert fresh.evaluate("""async () => {
+          const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-files',1);r.onupgradeneeded=()=>{r.result.createObjectStore('blobs',{keyPath:'id'});r.result.createObjectStore('text',{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+          const keys=await new Promise((ok,no)=>{const tx=db.transaction('blobs');const q=tx.objectStore('blobs').getAllKeys();q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+          db.close(); return keys.sort().join(',');
+        }""") == "ffffffff,gggggggg"
         assert fresh.evaluate("""async () => {
           const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
           if (!db.objectStoreNames.contains('installations')) { db.close(); return 0; }
@@ -89,7 +116,7 @@ with sync_playwright() as playwright:
         ]
         failed_path = pathlib.Path(tmp) / "quota.json"
         failed_path.write_text(json.dumps(failed_profile))
-        page.locator('input[type="file"]').set_input_files(failed_path)
+        page.locator('#settings input[type="file"]').set_input_files(failed_path)
         page.get_by_role("button", name="Replace profile and reload").wait_for()
         page.evaluate("""() => {
           const original = Storage.prototype.setItem;
@@ -119,7 +146,7 @@ with sync_playwright() as playwright:
         peer.goto(BASE + PATH)
         peer.wait_for_selector(".shell")
         open_settings(page)
-        page.locator('input[type="file"]').set_input_files(backup_path)
+        page.locator('#settings input[type="file"]').set_input_files(backup_path)
         page.get_by_role("button", name="Replace profile and reload").wait_for()
         dialog_text = []
         page.once("dialog", lambda dialog: (dialog_text.append(dialog.message), dialog.accept()))
@@ -132,7 +159,7 @@ with sync_playwright() as playwright:
         # With the peer closed, replacement succeeds and note images return.
         peer.close()
         open_settings(page)
-        page.locator('input[type="file"]').set_input_files(backup_path)
+        page.locator('#settings input[type="file"]').set_input_files(backup_path)
         with page.expect_navigation(wait_until="domcontentloaded"):
             page.get_by_role("button", name="Replace profile and reload").click()
         page.wait_for_selector(".shell")

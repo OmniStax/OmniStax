@@ -3,7 +3,13 @@ import { chord } from '../commands/chord';
 
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
 export const BACKUP_VERSION = 1 as const;
-export const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
+/* A profile now carries whole PDFs, so the cap is what a browser can be asked
+   to read in one go rather than what a profile of notes would ever reach. Past
+   the warning the export still happens: the reader is told that some devices
+   may refuse to load a backup that large, and it is their file to keep. */
+export const MAX_BACKUP_BYTES = 500 * 1024 * 1024;
+export const WARN_BACKUP_BYTES = 50 * 1024 * 1024;
+export const MAX_BACKUP_LABEL = '500 MB';
 
 const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-cc', (v) => v === '0' || v === '1'],
@@ -25,10 +31,23 @@ const jsonKeys = new Set([
   'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope',
   'omnistax-folded', 'omnistax-hidden-figs',
   'omnistax-seen-releases-v1',
+  /* The files the reader imported and what they have written on them. Only the
+     metadata is here; the bytes travel as `files` below. */
+  'omnistax-files-v1', 'omnistax-filemarks-v1',
+  /* Which provider and model the reader chose for AI, and the index of the
+     chats they have held. The keys they pasted are not here: the adapter
+     strips them on the way out, and the validator below refuses a record
+     that still carries one. */
+  'omnistax-ai-v1', 'omnistax-chats-v1',
+  /* The drawings the reader has made and the scratch pages of their exercises.
+     Only the names and the index are here; the ink travels as `drawings` and
+     `scratch` below, since a page of strokes is far heavier than localStorage
+     should ever hold. */
+  'omnistax-drawings-v1', 'omnistax-scratch-v1',
 ]);
 const JSON_KEY_LIST = [...jsonKeys];
 
-export type ReaderCategory = 'appearance' | 'shortcuts' | 'practice' | 'library' | 'notes' | 'layout' | 'reading';
+export type ReaderCategory = 'appearance' | 'shortcuts' | 'practice' | 'library' | 'notes' | 'layout' | 'reading' | 'chats';
 export type ReaderRecord = { readonly key: string; readonly value: string; readonly category: ReaderCategory };
 export type BackupAsset = { readonly id: string; readonly type: string; readonly dataUrl: string; readonly created: number };
 
@@ -37,9 +56,12 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (key === 'omnistax-keys') return 'shortcuts';
   if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1'].includes(key)) return 'practice';
   if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1') return 'library';
-  if (key === 'omnistax-notedocs-v1' || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
+  if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
+    || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
+    || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   if (key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
   if (key === 'omnistax-folded' || key === 'omnistax-hidden-figs' || key === 'omnistax-seen-releases-v1') return 'reading';
+  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1') return 'chats';
   return null;
 };
 
@@ -66,7 +88,84 @@ const scope = z.union([z.object({ follow: z.literal(true), level: z.enum(['book'
 const scopes = z.record(scope);
 const binding = z.record(z.string().min(1)).superRefine((value, ctx) => { Object.keys(value).forEach((key) => { if (!chord(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${key}` }); }); });
 const tree = z.object({ entries: z.array(z.object({ id: z.string().min(1), parent: z.string().nullable(), kind: z.enum(['folder', 'note', 'book', 'drawing', 'file']), name: z.string(), bookId: z.string().optional(), fileId: z.string().optional(), drawingId: z.string().optional() }).strict()), expanded: z.array(z.string()) }).strict();
+/* A file the reader imported, and the two things they write on one. The ids
+   are the shapes the stores generate: eight of base 36 for a file, as a note's
+   id is, and ten for a mark, which is what tells a file mark from a book
+   highlight where a `[[hl:…]]` link names either. */
+const fileDoc = z.object({
+  id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), type: z.enum(['pdf', 'image']),
+  mime: z.string().max(200), size: finite.nonnegative(), pages: finite.positive().optional(),
+  created: finite.nonnegative(), updated: finite.nonnegative(),
+}).strict();
+const markId = z.string().regex(/^[a-z0-9]{10}$/);
+const fileMark = z.union([
+  z.object({
+    kind: z.literal('highlight'), id: markId, file: z.string().min(1), page: finite.positive(),
+    anchor: z.object({ quote: z.string().min(1), prefix: z.string(), suffix: z.string() }).strict(),
+    color: z.enum(['yellow', 'green', 'blue', 'pink']), text: z.string(),
+    created: finite.nonnegative(), updated: finite.nonnegative(),
+  }).strict(),
+  z.object({
+    kind: z.literal('box'), id: markId, file: z.string().min(1), page: finite.positive(),
+    x: finite, y: finite, w: finite, h: finite, body: z.string(),
+    created: finite.nonnegative(), updated: finite.nonnegative(),
+  }).strict(),
+]);
+/* The AI block as the backup may carry it: the provider and the model of each,
+   and the address of a host the reader runs themselves. Every key must be the
+   empty string — a backup is a file readers send to themselves across machines
+   and post to each other for help, and a key that could be spent has no
+   business in one. */
+const PROVIDERS = ['anthropic', 'openai', 'gemini', 'compatible'] as const;
+const byProvider = z.record(z.enum(PROVIDERS), z.string());
+const aiSettings = z.object({
+  provider: z.enum(PROVIDERS),
+  models: byProvider,
+  baseUrl: z.string(),
+  keys: byProvider.refine((k) => Object.values(k).every((v) => v === ''), 'a backup carries no API key'),
+}).strict();
+/* The index of the chats: one row per chat, the records themselves being far
+   too heavy for localStorage and carried by `chats` below. */
+const chatIndex = z.array(z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict());
+const chatMessage = z.object({
+  id: z.string().min(1), parent: z.string().min(1).nullable(), role: z.enum(['user', 'assistant']), text: z.string(),
+  chips: z.array(z.object({ kind: z.string().min(1), key: z.string(), label: z.string(), text: z.string(), pinned: z.boolean().optional() }).strict()),
+  model: z.string().optional(), at: finite.nonnegative(), state: z.enum(['done', 'streaming', 'stopped', 'failed']), error: z.string().optional(),
+}).strict();
+export const ChatSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), root: z.string().min(1), messages: z.record(chatMessage),
+  leaf: z.string().min(1), created: finite.nonnegative(), updated: finite.nonnegative(),
+}).strict();
+
+/* The rows the explorer and the link resolver draw a drawing from: its name
+   and its dates, never its ink, which is why they are in localStorage at all. */
+const drawingRows = z.array(z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict());
+/* What the reader's scratch pages are indexed by — book, section and exercise
+   — and, where the work has been kept, the drawing it became. */
+const scratchIndex = z.record(z.object({ linked: z.string().regex(/^[a-z0-9]{8}$/).optional() }).strict());
+
+/* One drawing whole, as the database keeps it: a page of ink with boxes and
+   frames standing on it. A point is a triple, x, y and pressure. */
+const drawPoint = z.tuple([finite, finite, finite]);
+const drawItem = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('stroke'), id: z.string().min(1), tool: z.enum(['pen', 'highlighter']), color: z.string(), size: finite, points: z.array(drawPoint).min(1) }).strict(),
+  z.object({ kind: z.literal('shape'), id: z.string().min(1), shape: z.enum(['line', 'arrow', 'rect', 'ellipse']), color: z.string(), size: finite, fill: z.boolean(), from: z.tuple([finite, finite]), to: z.tuple([finite, finite]) }).strict(),
+  z.object({ kind: z.literal('box'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, body: z.string() }).strict(),
+  z.object({ kind: z.literal('frame'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, embed: z.string().min(1), open: z.string().min(1).optional() }).strict(),
+]);
+export const DrawingSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), width: finite.positive(), height: finite.positive(),
+  items: z.array(drawItem), created: finite.nonnegative(), updated: finite.nonnegative(),
+}).strict();
+/* A scratch page is named by the thing it belongs to rather than by an id, so
+   it travels as that key and the page it holds. */
+export const ScratchSchema = z.object({ key: z.string().min(1), drawing: DrawingSchema }).strict();
+
 const validators: Readonly<Record<string, z.ZodTypeAny>> = {
+  'omnistax-ai-v1': aiSettings,
+  'omnistax-drawings-v1': drawingRows,
+  'omnistax-scratch-v1': scratchIndex,
+  'omnistax-chats-v1': chatIndex,
   'omnistax-keys': binding,
   'omnistax-practice-v2': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
   'omnistax-practice-v1': object,
@@ -75,6 +174,8 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-library-v1': z.array(z.string()),
   'omnistax-explorer-v1': tree,
   'omnistax-notedocs-v1': z.array(noteDoc),
+  'omnistax-files-v1': z.array(fileDoc),
+  'omnistax-filemarks-v1': z.array(fileMark),
   'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
   'omnistax-folded': z.array(z.string()), 'omnistax-hidden-figs': z.array(z.string()),
   'omnistax-seen-releases-v1': z.record(z.record(z.string().min(1))),
@@ -101,13 +202,35 @@ export const validReaderRecord = (record: ReaderRecord): boolean => {
   return false;
 };
 
-const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading']) }).strict()
+const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats']) }).strict()
   .refine(validReaderRecord, 'invalid reader record');
+export type BackupChat = z.infer<typeof ChatSchema>;
+/* One imported file's bytes on their way through a backup. The text pulled out
+   of a PDF is not carried: it is derived from these bytes and is pulled out
+   again on the way back in. */
+const FileBlobSchema = z.object({
+  id: z.string().min(1).max(200), type: z.enum(['pdf', 'image']), mime: z.string().min(1).max(200),
+  base64: z.string(), created: z.number().finite().nonnegative(),
+}).strict();
+export type BackupFile = z.infer<typeof FileBlobSchema>;
 const AssetSchema = z.object({ id: z.string().min(1).max(200), type: z.string().min(1).max(200), dataUrl: z.string().startsWith('data:'), created: z.number().finite().nonnegative() }).strict();
 const BackupSchema = z.object({
   format: z.literal(BACKUP_FORMAT), version: z.literal(BACKUP_VERSION), exportedAt: z.string().datetime(),
   app: z.object({ readerFormat: z.literal(1) }).strict(),
   records: z.array(RecordSchema), assets: z.array(AssetSchema),
+  /* The chats themselves, which live in a database of their own rather than in
+     localStorage. A backup written before chats existed carries none, and
+     parses all the same. */
+  chats: z.array(ChatSchema).default([]),
+  /* The bytes of the imported files, base64 where the store keeps Blobs. A
+     backup written before files existed carries none, and parses all the same. */
+  files: z.array(FileBlobSchema).default([]),
+  /* The ink of the drawings, and the scratch page of every exercise the reader
+     has worked on: both live in a database of their own, since a page of
+     strokes is heavier than localStorage should hold. A backup written before
+     drawings existed carries neither, and parses all the same. */
+  drawings: z.array(DrawingSchema).default([]),
+  scratch: z.array(ScratchSchema).default([]),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
 }).strict().superRefine((value, ctx) => {
   const keys = new Set<string>();
@@ -120,7 +243,7 @@ const BackupSchema = z.object({
 export type ReaderBackup = z.infer<typeof BackupSchema>;
 
 export const parseBackupText = (text: string): ReaderBackup => {
-  if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error('The backup is larger than 50 MB.');
+  if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(`The backup is larger than ${MAX_BACKUP_LABEL}.`);
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { throw new Error('This file is not valid JSON.'); }
   const parsed = BackupSchema.safeParse(raw);
@@ -128,9 +251,10 @@ export const parseBackupText = (text: string): ReaderBackup => {
   return parsed.data;
 };
 
-export const summarizeBackup = (backup: ReaderBackup): { readonly exportedAt: string; readonly categories: Readonly<Record<string, number>>; readonly records: number; readonly assets: number } => ({
+export const summarizeBackup = (backup: ReaderBackup): { readonly exportedAt: string; readonly categories: Readonly<Record<string, number>>; readonly records: number; readonly assets: number; readonly files: number } => ({
   exportedAt: backup.exportedAt,
   categories: Object.fromEntries(Array.from(new Set(backup.records.map((r) => r.category))).sort().map((category) => [category, backup.records.filter((r) => r.category === category).length])),
   records: backup.records.length,
   assets: backup.assets.length,
+  files: backup.files.length,
 });

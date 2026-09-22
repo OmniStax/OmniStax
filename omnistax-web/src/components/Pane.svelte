@@ -13,6 +13,11 @@
   import NoteTab from './notes/NoteTab.svelte';
   import Sheet from './sheets/Sheet.svelte';
   import Placeholder from './ui/Placeholder.svelte';
+  import FileTab from './files/FileTab.svelte';
+  import DrawingPane from './drawer/DrawingPane.svelte';
+  import ScratchPane from './drawer/ScratchPane.svelte';
+  import ExerciseTab from './exercises/ExerciseTab.svelte';
+  import ChatTab from './chat/ChatTab.svelte';
   let { groupKey, groupIndex, itemKey, active }: { groupKey: GroupKey; groupIndex: number; itemKey: string; active: boolean } = $props();
   const id = $derived(parseItemKey(itemKey));
   const holds = (g: GroupKey, k: string) => layoutStore.layout.groups.some((x) => x.key === g && x.tabs.includes(k));
@@ -34,13 +39,15 @@
   {:else if id && id.kind === 'sheet'}
     <div class="sheet-pane"><Sheet id={id.sheet} /></div>
   {:else if id && id.kind === 'file'}
-    <Placeholder kind="file" id={id.file} />
+    <FileTab fileId={id.file} {groupKey} />
   {:else if id && id.kind === 'drawing'}
-    <Placeholder kind="drawing" id={id.drawing} />
+    <DrawingPane id={id.drawing} {groupKey} />
   {:else if id && id.kind === 'chat'}
-    <Placeholder kind="chat" id={id.chat} />
+    <ChatTab chatId={id.chat} />
   {:else if id && id.kind === 'ex'}
-    <Placeholder kind="exercise" id={`${id.section}/${id.ex}`} />
+    <ExerciseTab section={id.section} ex={id.ex} {groupKey} />
+  {:else if id && id.kind === 'scratch'}
+    <ScratchPane book={id.book} section={id.section} ex={id.ex} {groupKey} />
   {:else if el}
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
   {:else if status === 'failed'}

@@ -17,6 +17,7 @@
   import { putAsset } from '../../lib/notes/assets';
   import { notes } from '../../lib/notes/store.svelte';
   import { candidate, type Candidate } from '../../lib/notes/md/complete';
+  import { files } from '../../lib/files/store.svelte';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { entryId } from '../../lib/explorer/model';
   import { renameEntry } from '../../lib/explorer/edits';
@@ -118,6 +119,9 @@
     ...noteDocs.list.filter((d) => d.id !== noteId).map((d) => candidate({ kind: 'note', name: d.name }, d.name, folderOf(d.id))),
     ...registry.manifest.chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', section: s.id }, label(s.id, s.title), c.title))),
     ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `highlight · ${n.section}`)),
+    /* The files the reader imported, listed under their names beside the
+       notes: a link to one opens its tab. */
+    ...files.list.map((f) => candidate({ kind: 'file', file: f.id }, f.name, f.type === 'pdf' ? `file · PDF${f.pages ? ` · ${f.pages} pages` : ''}` : 'file · image')),
     ...bookRows(),
   ];
 

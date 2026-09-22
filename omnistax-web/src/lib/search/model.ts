@@ -11,6 +11,9 @@
 import type { ConceptDTO, EquationDTO, GlossaryDTO, VariableDTO } from '../content/schema';
 import { tokensOf, type TextPageDTO } from '../content/textindex';
 import { type Piece, pieces } from '../commands/pieces';
+/* The marked pieces of an excerpt travel with a hit, so whoever draws one
+   needs the type; it is the search's to hand on. */
+export type { Piece };
 
 export const SEARCH_KINDS = ['concept', 'definition', 'formula', 'text'] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];

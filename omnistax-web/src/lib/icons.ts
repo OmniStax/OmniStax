@@ -24,6 +24,16 @@ export const ICON = {
   /* the two things the explorer makes: a page and a folder, each with a plus */
   notePlus: '<svg viewBox="0 0 24 24"><path d="M13 3H6v18h12V8z"/><path d="M13 3v5h5"/><path d="M12 12v6M9 15h6"/></svg>',
   folderPlus: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v7M8.5 13.5h7"/></svg>',
+  /* an imported file: a page with a folded corner, plainer than a note's lined page */
+  file: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>',
+  /* the import icon on the Your Files row: a page coming down into a tray */
+  importFile: '<svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M8.5 9.5 12 13l3.5-3.5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>',
+  /* a chat with a model: a speech bubble with the three dots of an answer on its way */
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4z"/><circle cx="8.5" cy="9.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><circle cx="15.5" cy="9.5" r="1" fill="currentColor"/></svg>',
+  /* a drawing the reader made: a pencil that has left a curve behind it */
+  drawing: '<svg viewBox="0 0 24 24"><path d="M4 18c3-6 6-8 8-6s-1 6 1 7 5-3 6-6"/><path d="M15.5 3.5 18 6l-2.5 2.5L13 6z"/></svg>',
+  /* the new-drawing icon on the Your Files row: the same curve with a plus */
+  drawingPlus: '<svg viewBox="0 0 24 24"><path d="M3.5 17c2.6-5.2 5.2-7 7-5.2s-.9 5.2.9 6.1 4.3-2.6 5.2-5.2"/><path d="M17 3.5v6M14 6.5h6"/></svg>',
   /* the highlight bar: a marker for the note, a bin for the removal */
   highlighter: '<svg viewBox="0 0 24 24"><path d="M15 3.5l5.5 5.5-8.5 8.5H7l-1.5-3z"/><path d="M4 21h7"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg>',
