@@ -226,33 +226,45 @@ export const dayBefore = (day: DayKey, back: number): DayKey => {
   return dayKey(new Date(y, m - 1, d - back).getTime());
 };
 export type DayPart = { readonly id: string; readonly ms: number };
-export type DayBar = { readonly day: DayKey; readonly total: number; readonly parts: readonly DayPart[] };
-/* The last so many days, oldest first, each with what was spent on it and how
-   that time divides between the categories asked for. A sitting filed under
-   several counts once towards the day's total, its time shared out evenly
-   between them, so the bars stay honest; one filed under nothing at all counts
-   under the empty id, which is how the picker names "uncategorized". */
+export type DayBar = {
+  readonly day: DayKey;
+  readonly total: number;      /* what was really spent that day, counting every sitting once */
+  readonly stacked: number;    /* the parts added up, which stands higher than the total when a sitting carries several categories */
+  readonly parts: readonly DayPart[];
+};
+/* The last so many days, oldest first. A category is a tag rather than a share:
+   a sitting filed under three of them gives its whole length to each, so a
+   stacked bar may well add up to more than the day itself held. The day's own
+   total counts every sitting once, and the view marks it on the bar, so that
+   the reader is never told they read for more hours than there were. A sitting
+   filed under nothing at all counts under the empty id, which is how the picker
+   names "uncategorized". */
 export const dayBars = (log: readonly Pomodoro[], ids: readonly string[], now: Instant, days = 14): readonly DayBar[] => {
   const today = dayKey(now);
   const wanted = new Set(ids);
   const keys = Array.from({ length: days }, (_, i) => dayBefore(today, days - 1 - i));
   const rows = new Map<DayKey, Map<string, number>>(keys.map((k) => [k, new Map<string, number>()]));
+  const totals = new Map<DayKey, number>(keys.map((k) => [k, 0]));
   for (const p of log) {
-    const row = rows.get(dayKey(p.start));
+    const day = dayKey(p.start);
+    const row = rows.get(day);
     if (!row) continue;
     const on = p.categories.filter((c) => wanted.has(c));
     const under = on.length ? on : wanted.has('') && !p.categories.length ? [''] : [];
     if (!under.length) continue;
-    const share = ranMs(p) / under.length;
-    for (const id of under) row.set(id, (row.get(id) ?? 0) + share);
+    const ran = ranMs(p);
+    totals.set(day, (totals.get(day) ?? 0) + ran);
+    for (const id of under) row.set(id, (row.get(id) ?? 0) + ran);
   }
   return keys.map((day) => {
     const row = rows.get(day) ?? new Map<string, number>();
     const parts = [...row.entries()].map(([id, ms]) => ({ id, ms }));
-    return { day, total: parts.reduce((n, q) => n + q.ms, 0), parts };
+    return { day, total: totals.get(day) ?? 0, stacked: parts.reduce((n, q) => n + q.ms, 0), parts };
   });
 };
-/* What each category asked for holds in all, largest first. */
+/* What each category asked for holds in all, largest first. A sitting under
+   several is counted in full under each of them, since a category is a tag and
+   not a share; the totals therefore need not add up to the time really spent. */
 export const categoryTotals = (log: readonly Pomodoro[], ids: readonly string[]): readonly { readonly id: string; readonly ms: number; readonly count: number }[] => {
   const wanted = new Set(ids);
   const out = new Map<string, { ms: number; count: number }>();

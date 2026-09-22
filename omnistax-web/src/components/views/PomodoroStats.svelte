@@ -1,8 +1,11 @@
 <script lang="ts">
   /* What the clock has added up to. Two faces: the sittings one by one, which
      the reader can correct or strike out, and the categories they were filed
-     under, with the last fortnight drawn as a bar a day. Nothing here draws a
-     chart from a library — a bar is a row of divs whose widths are the shares
+     under, with the last fortnight drawn as a bar a day. A category is a tag,
+     so a sitting filed under two of them stands at its full length under each,
+     and a day's stack can reach past the day's own total — which is why the
+     true total is marked on every bar and quoted beside it. Nothing here draws
+     a chart from a library: a bar is a row of divs whose widths are the shares
      they stand for, which is all a stacked bar has ever been. */
   import { CATEGORY_COLORS, type Pomodoro, categoryTotals, colorOf, dayBars, instant, nameOf, onlyUnder, ranMs, spanText, totalMs } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
@@ -63,7 +66,8 @@
   const toggle = (id: string): void => { dropped = dropped.includes(id) ? dropped.filter((d) => d !== id) : [...dropped, id]; };
   const shown = $derived(onlyUnder(log, picked));
   const bars = $derived(dayBars(log, picked, instant(Date.now())));
-  const peak = $derived(Math.max(1, ...bars.map((b) => b.total)));
+  /* Every bar is drawn to the tallest stack, so the widths stay comparable even where the tags overlap. */
+  const peak = $derived(Math.max(1, ...bars.map((b) => b.stacked)));
   const totals = $derived(categoryTotals(log, picked));
   const most = $derived(Math.max(1, ...totals.map((t) => t.ms)));
   const hue = (id: string): string => (id === NONE ? 'var(--muted)' : colorOf(cats, id));
@@ -123,17 +127,19 @@
       {/each}
     </div>
 
-    <p class="total"><strong>{spanText(totalMs(shown))}</strong> over {shown.length} {shown.length === 1 ? 'session' : 'sessions'}</p>
+    <p class="total"><strong>{spanText(totalMs(shown))}</strong> in all, over {shown.length} {shown.length === 1 ? 'session' : 'sessions'}</p>
 
     <h3 class="eyebrow">Last 14 days</h3>
+    <p class="note">A session counts in full under every category it carries, so a bar can run past the day's own total; the notch marks what the day really held.</p>
     <div class="chart">
       {#each bars as b (b.day)}
         <div class="bar-row">
           <span class="bar-day">{dayLabel(b.day)}</span>
-          <div class="bar" title="{spanText(b.total)}">
+          <div class="bar" title="{b.stacked > b.total ? `${spanText(b.total)} in all, ${spanText(b.stacked)} across its categories` : spanText(b.total)}">
             {#each b.parts as part (part.id)}
               <div class="part" style="--hue:{hue(part.id)};width:{(part.ms / peak) * 100}%" title="{label(part.id)}: {spanText(part.ms)}"></div>
             {/each}
+            {#if b.total}<div class="mark" style="left:{(b.total / peak) * 100}%" aria-hidden="true"></div>{/if}
           </div>
           <span class="bar-num">{b.total ? spanText(b.total) : ''}</span>
         </div>
@@ -228,11 +234,14 @@
   .pick{display:flex;align-items:center;gap:5px;font:inherit;font-size:0.78rem;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--muted);cursor:pointer}
   .pick.on{border-color:var(--hue);color:var(--hue);background:color-mix(in srgb,var(--hue) 12%,transparent)}
   .total{margin:0;font-size:0.9rem;color:var(--ink)}
+  .note{margin:0;font-size:0.72rem;line-height:1.4;color:var(--muted)}
   .eyebrow{margin:6px 0 0;font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)}
   .chart{display:flex;flex-direction:column;gap:3px}
   .bar-row{display:flex;align-items:center;gap:8px;font-size:0.76rem}
   .bar-day{min-width:4.4em;color:var(--muted)}
-  .bar{flex:1;display:flex;height:12px;border-radius:3px;background:var(--soft);overflow:hidden}
+  .bar{position:relative;flex:1;display:flex;height:12px;border-radius:3px;background:var(--soft);overflow:hidden}
+  /* The notch stands where the day's real total falls, which is at the end of the stack unless the tags overlap. */
+  .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--ink);opacity:.65;transform:translateX(-1px)}
   .part{background:var(--hue);height:100%}
   .bar-num{min-width:3.4em;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
   .cat-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}

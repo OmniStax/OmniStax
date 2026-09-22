@@ -189,7 +189,7 @@ test('an entry is amended and struck out by its id, not by where it stands', () 
   assert.deepEqual(dropped(log, 'e1').map((p) => p.id), ['e2']);
 });
 
-test('the last fortnight is cut into days, and a sitting under two categories is shared between them', () => {
+test('the last fortnight is cut into days, and a sitting under two categories stands at its full length under each', () => {
   const noon = new Date(2026, 8, 21, 12, 0, 0).getTime();
   const dayAgo = new Date(2026, 8, 20, 12, 0, 0).getTime();
   const old = new Date(2026, 7, 1, 12, 0, 0).getTime();
@@ -204,14 +204,21 @@ test('the last fortnight is cut into days, and a sitting under two categories is
   assert.equal(bars[13].day, dayKey(noon), 'today stands last');
   assert.equal(bars[0].day, dayBefore(dayKey(noon), 13));
   assert.equal(bars[13].total, 60 * MIN, 'both of today\'s sittings, each counted once');
-  assert.deepEqual(bars[13].parts, [{ id: 'c1', ms: 45 * MIN }, { id: 'c2', ms: 15 * MIN }]);
+  /* A category is a tag: the half-hour under both stands whole under each, so the stack runs past the day. */
+  assert.deepEqual(bars[13].parts, [{ id: 'c1', ms: 60 * MIN }, { id: 'c2', ms: 30 * MIN }]);
+  assert.equal(bars[13].stacked, 90 * MIN);
+  assert.equal(bars[12].stacked, bars[12].total, 'a day whose sittings carry one tag apiece stacks to its own total');
   assert.equal(bars[12].total, 20 * MIN);
   assert.deepEqual(bars[12].parts, [{ id: '', ms: 20 * MIN }], 'a sitting under nothing falls under the empty id');
   assert.equal(bars.reduce((n, b) => n + b.total, 0), 80 * MIN, 'anything older than the fortnight is left out');
-  /* Asking for one category alone gives it the whole of every sitting it was on,
-     since the time is only ever shared between the categories on show. */
-  assert.equal(dayBars(log, ['c1'], instant(noon))[13].total, 60 * MIN);
-  assert.equal(dayBars(log, ['c2'], instant(noon))[13].total, 30 * MIN);
+  /* Setting a category aside drops the sittings that only it held, and never
+     changes what the ones still on show are worth. */
+  const one = dayBars(log, ['c1'], instant(noon))[13];
+  assert.equal(one.total, 60 * MIN);
+  assert.deepEqual(one.parts, [{ id: 'c1', ms: 60 * MIN }]);
+  const other = dayBars(log, ['c2'], instant(noon))[13];
+  assert.equal(other.total, 30 * MIN);
+  assert.deepEqual(other.parts, [{ id: 'c2', ms: 30 * MIN }]);
 });
 
 test('a category total is the whole of what was filed under it, largest first', () => {
