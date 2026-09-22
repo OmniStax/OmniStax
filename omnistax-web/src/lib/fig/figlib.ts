@@ -248,6 +248,17 @@ function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () 
   fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
+/* A figure taken out of the page for good — one a note held and then let go —
+   leaves the loop. A three-dimensional view disposes of itself once its wrap
+   has been out of the document a while, and the drawings of a canvas stop as
+   soon as the observer says the figure is off screen, so this is about not
+   keeping what nobody will show again. */
+function release(root: HTMLElement): void {
+  for (let i = sims.length - 1; i >= 0; i -= 1) {
+    const d = sims[i]; if (!root.contains(d.fig)) continue;
+    vio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
+  }
+}
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
@@ -1401,7 +1412,12 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     },
     clear() {
       const shared = Object.values(geo());
-      parts.forEach((g: Obj3) => { g.traverse((o: Obj3) => { if (o.material) o.material.dispose(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); }); g.clear(); });
+      /* A mesh may wear several materials — a box with a different face on each
+         side — and a list of them has no dispose of its own; letting that throw
+         would leave the renderer itself undisposed, since the teardown runs
+         through here. */
+      const drop = (m: Obj3): void => { (Array.isArray(m) ? m : [m]).forEach((x: Obj3) => x?.dispose?.()); };
+      parts.forEach((g: Obj3) => { g.traverse((o: Obj3) => { if (o.material) drop(o.material); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); }); g.clear(); });
       labels.forEach((l) => l.el.remove()); labels.length = 0; picks.length = 0; need = true;
     },
     /* the point p of group g on the canvas, in canvas pixels */
@@ -1475,7 +1491,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
 export const FIG = {
   $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
+  register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,

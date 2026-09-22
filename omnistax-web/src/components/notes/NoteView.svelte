@@ -17,6 +17,7 @@
   import { setImageWidth } from '../../lib/notes/md/width';
   import { isBook, parseLink, type BookKind } from '../../lib/notes/md/links';
   import { figureInfo } from '../../lib/notes/md/figinfo';
+  import { FigureMounts } from '../../lib/notes/md/figlive';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
   import { notes } from '../../lib/notes/store.svelte';
@@ -101,6 +102,11 @@
   /* A note swapped in under this view leaves its asset lookups in flight; only
      the newest pass may write what it finds. */
   let pass = 0;
+  /* The figures this note holds live. They are the note's own: a rendering puts
+     the same ones back, and they are let go when the note is closed or another
+     note takes its place. */
+  const mounts = new FigureMounts();
+  $effect(() => { void noteId; return () => mounts.releaseAll(); });
 
   const startDrag = (e: PointerEvent, bar: HTMLElement, img: HTMLImageElement): void => {
     e.preventDefault(); e.stopPropagation();
@@ -209,6 +215,9 @@
     fetchChapters(el);
     fetchFigures(el);
     setMath(el);
+    /* Last, so that a figure's own markup is not walked by the passes above:
+       the book's script draws it and the book's styles dress it. */
+    mounts.fill(el);
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead')) d.title = deadTitle(d);
   };
 
@@ -233,8 +242,16 @@
     const t = e.target as HTMLElement;
     const card = t.closest<HTMLElement>('.hl-embed[data-hl]');
     if (card?.dataset.hl) { const n = notes.get(card.dataset.hl); if (n) goNote(n); return; }
+    /* A figure the note holds live is a figure to use, not a link to follow:
+       the sliders, the buttons and the orbit are its own. Its eyebrow — the
+       line that names it — still goes to where the book prints it, as the whole
+       card does while it is only a card. */
     const fig = t.closest<HTMLElement>('.fig-embed[data-embed]');
-    if (fig?.dataset.embed) { const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(qualifiedId(sectionId(f.section), f.id)); return; }
+    if (fig?.dataset.embed) {
+      if (fig.classList.contains('live') && !t.closest('.eyebrow')) return;
+      const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(qualifiedId(sectionId(f.section), f.id));
+      return;
+    }
     const book = t.closest<HTMLElement>('.book-embed[data-embed]');
     if (book?.dataset.embed) { goBook(book.dataset.embed); return; }
     const a = t.closest<HTMLAnchorElement>('a.wiki[data-link]');
@@ -358,6 +375,14 @@
   .note-view :global(.fig-embed .embed-body){margin-top:5px;font-family:var(--serif);font-size:0.92rem;line-height:1.5;color:var(--ink)}
   .note-view :global(.fig-embed .fig-still){margin:9px 0 0;max-width:100%;height:auto}
   .note-view :global(.fig-embed .fig-caption){margin-top:6px;font-family:var(--sans);font-size:0.82rem;line-height:1.5;color:var(--muted)}
+
+  /* A figure the note holds live wears no card: it is the figure the book
+     draws, in the book's own dress, and only the room around it is the note's.
+     The line that names it says so by the pointer, since that line is the way
+     back to the section. */
+  .note-view :global(.fig-embed.live){padding:0;border:0;border-radius:0;background:none;cursor:default}
+  .note-view :global(.fig-embed.live .eyebrow){cursor:pointer}
+  .note-view :global(.fig-embed.live .fig-root){margin:0}
 
   /* while something is being dragged over the note, which will land at its end */
   .note-view.dropping{outline:2px dashed var(--accent);outline-offset:-6px;border-radius:8px}

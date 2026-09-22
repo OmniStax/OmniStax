@@ -262,12 +262,21 @@ class Registry {
   figureFor(group: GroupKey, id: Extract<ItemId, { kind: 'fig' }>): HTMLElement | null {
     const ck = `${group}|${itemKey(id)}`;
     if (this.clones[ck]) return this.clones[ck];
-    const src = this.sections[id.section]?.src.text; if (!src) return null;
-    const t = document.createElement('template'); t.innerHTML = src;
-    const f = t.content.querySelector<HTMLElement>(`[id="${id.section}-${id.fig}"]`); if (!f) return null;
-    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = id.section; root.dataset.chapter = this.chapterOf(id.section)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
-    originalButtons(root); this.bootFigures(root, id.section);
+    const root = this.figureRoot(id.section, id.fig); if (!root) return null;
     return (this.clones[ck] = root);
+  }
+  /* The same root, built for a holder that keeps it itself: a note holding a
+     figure of the book shows the very figure, live, and answers for its life
+     rather than leaving it among the copies the panes release. The figure is
+     built from the section's source, so it is a figure nothing has drawn on
+     yet, and the section's script is booted on it as it is on a pane's. */
+  figureRoot(sec: SectionId, fig: string): HTMLElement | null {
+    const src = this.sections[sec]?.src.text; if (!src) return null;
+    const t = document.createElement('template'); t.innerHTML = src;
+    const f = t.content.querySelector<HTMLElement>(`[id="${sec}-${fig}"]`); if (!f) return null;
+    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = sec; root.dataset.chapter = this.chapterOf(sec)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
+    originalButtons(root); this.bootFigures(root, sec);
+    return root;
   }
   /* One element per (group, document). */
   instanceFor(group: GroupKey, id: ItemId, holds: (group: GroupKey, key: string) => boolean): HTMLElement | null {
