@@ -21,6 +21,7 @@ export type EquationRef = string;   /* the id of an equation in its chapter's ta
 export type TermRef = string;       /* a glossary term as the book spells it: "deformation" */
 export type SymbolRef = string;     /* the key of a symbol in the book's table: "F", "Δx" */
 export type ConceptRef = string;    /* a concept's canonical id: "hookes-law" */
+export type FigureRef = string;     /* the id a section's HTML gives a figure, without its section: "sim-area", "fig-kangaroo" */
 
 export type LinkTarget =
   | { readonly kind: 'note'; readonly name: NoteName }
@@ -29,7 +30,8 @@ export type LinkTarget =
   | { readonly kind: 'equation'; readonly section: SectionRef; readonly id: EquationRef }
   | { readonly kind: 'term'; readonly section: SectionRef; readonly term: TermRef }
   | { readonly kind: 'symbol'; readonly section: SectionRef; readonly sym: SymbolRef }
-  | { readonly kind: 'concept'; readonly section: SectionRef; readonly id: ConceptRef };
+  | { readonly kind: 'concept'; readonly section: SectionRef; readonly id: ConceptRef }
+  | { readonly kind: 'figure'; readonly section: SectionRef; readonly id: FigureRef };
 
 /* The kinds that live in the book's tables rather than in the reader's own
    things: every one of them is written as kind, section, key. */
@@ -43,10 +45,16 @@ export type Link = LinkTarget & { readonly alias?: string };
 
 /* A section is written the way the book numbers it; anything after hl: is a
    highlight; eq:, def:, sym: and concept: name the book's own things, section
-   first; whatever is left is the name of a note. */
+   first; fig: names a figure or a simulation of one section, which lives in
+   that section's HTML rather than in any table; whatever is left is the name of
+   a note. */
 const SECTION = /^\d+\.\d+$/;
 const HIGHLIGHT = /^hl:(.+)$/;
 const BOOK = /^(eq|def|sym|concept):(\d+\.\d+):(.+)$/;
+/* A page of a chapter's own — an introduction or a summary — numbers itself by
+   word, so a figure of one is `fig:7.intro:fig-wind-farm`. */
+export const FIGURE_PREFIX = 'fig';
+const FIGURE = /^fig:(\d+\.\w+):(.+)$/;
 const bookTarget = (prefix: string, section: SectionRef, key: string): LinkTarget =>
   prefix === 'eq' ? { kind: 'equation', section, id: key }
     : prefix === 'def' ? { kind: 'term', section, term: key }
@@ -64,6 +72,8 @@ export const parseLink = (inner: string): Link => {
   const alias = bar < 0 ? undefined : inner.slice(bar + 1).trim() || undefined;
   const hl = HIGHLIGHT.exec(target);
   if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, alias);
+  const fig = FIGURE.exec(target);
+  if (fig) return withAlias({ kind: 'figure', section: fig[1], id: fig[2].trim() }, alias);
   const book = BOOK.exec(target);
   if (book) return withAlias(bookTarget(book[1], book[2], book[3].trim()), alias);
   if (SECTION.test(target)) return withAlias({ kind: 'section', section: target }, alias);
@@ -85,7 +95,8 @@ export const linkInner = (target: LinkTarget): string =>
   target.kind === 'note' ? target.name
     : target.kind === 'section' ? target.section
       : target.kind === 'highlight' ? `hl:${target.id}`
-        : `${BOOK_PREFIX[target.kind]}:${target.section}:${bookKey(target)}`;
+        : target.kind === 'figure' ? `${FIGURE_PREFIX}:${target.section}:${target.id}`
+          : `${BOOK_PREFIX[target.kind]}:${target.section}:${bookKey(target)}`;
 
 /* The text a note holds to show a thing whole, as a card: what a row dragged
    out of a panel drops into the editor, and what the picker writes for one. */

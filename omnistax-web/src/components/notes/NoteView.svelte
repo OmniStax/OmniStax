@@ -16,6 +16,7 @@
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { setImageWidth } from '../../lib/notes/md/width';
   import { isBook, parseLink, type BookKind } from '../../lib/notes/md/links';
+  import { figureInfo } from '../../lib/notes/md/figinfo';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
   import { notes } from '../../lib/notes/store.svelte';
@@ -27,7 +28,7 @@
   import { lookupVariable, symKey } from '../../lib/hover/data';
   import { dragging } from '../../lib/layout/drag.svelte';
   import { FIG } from '../../lib/fig/figlib';
-  import { conceptId, itemKey, noteId as asNoteId, noteItem, sectionId, spanId, type NoteId } from '../../lib/types/ids';
+  import { conceptId, itemKey, noteId as asNoteId, noteItem, qualifiedId, sectionId, spanId, type NoteId } from '../../lib/types/ids';
 
   let { noteId, body }: { noteId: NoteId; body: string } = $props();
 
@@ -69,6 +70,13 @@
       const d = chapterData(section); if (!d) return null;
       const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
       return { sym, tex: registry.manifest.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
+    },
+    /* A figure is in the section's own HTML rather than in a table, so it is
+       read out of the document the registry holds; a section nobody has opened
+       resolves to nothing, and `fetchFigures` asks for it below. */
+    figure: (section, id) => {
+      const doc = registry.state(sectionId(section))?.docs.text;
+      return doc ? figureInfo(doc, sectionId(section), id) : null;
     },
     concept: (section, id) => {
       const d = chapterData(section); if (!d) return null;
@@ -141,10 +149,24 @@
       const dir = chapterDir(t.section);
       return dir && registry.chapterStatus[dir] === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
     }
+    if (t?.kind === 'figure') return registry.state(sectionId(t.section)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
     const words = el.textContent ?? '';
     return words.startsWith('hl:') ? 'That highlight is gone.'
       : /^\d+\.\d+/.test(words) ? `Section ${words.split(/\s/)[0]} is not in the book yet.`
         : `No note named “${words}”.`;
+  };
+
+  /* A figure card that resolved to nothing may only be waiting on its section:
+     the document is what holds it, so the section is loaded and the rendering,
+     which reads the registry, runs again when it lands. */
+  const fetchFigures = (el: HTMLElement): void => {
+    const asked = new Set<string>();
+    for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
+      const t = parseLink(d.dataset.embed ?? '');
+      if (t.kind !== 'figure' || asked.has(t.section)) continue;
+      asked.add(t.section);
+      void registry.load(sectionId(t.section)).catch(() => {});
+    }
   };
 
   /* A card of the book that resolved to nothing may only be waiting on its
@@ -185,6 +207,7 @@
     }
     for (const img of el.querySelectorAll<HTMLImageElement>('img')) grip(img);
     fetchChapters(el);
+    fetchFigures(el);
     setMath(el);
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead')) d.title = deadTitle(d);
   };
@@ -210,6 +233,8 @@
     const t = e.target as HTMLElement;
     const card = t.closest<HTMLElement>('.hl-embed[data-hl]');
     if (card?.dataset.hl) { const n = notes.get(card.dataset.hl); if (n) goNote(n); return; }
+    const fig = t.closest<HTMLElement>('.fig-embed[data-embed]');
+    if (fig?.dataset.embed) { const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(qualifiedId(sectionId(f.section), f.id)); return; }
     const book = t.closest<HTMLElement>('.book-embed[data-embed]');
     if (book?.dataset.embed) { goBook(book.dataset.embed); return; }
     const a = t.closest<HTMLAnchorElement>('a.wiki[data-link]');
@@ -323,6 +348,16 @@
   .note-view :global(.book-embed .embed-tex .katex){font-size:1.05em}
   .note-view :global(.book-embed .embed-body){margin-top:5px;font-family:var(--serif);font-size:0.92rem;line-height:1.5;color:var(--ink)}
   .note-view :global(.book-embed .embed-body .katex),.note-view :global(.book-embed .embed-title .katex){font-size:1em}
+
+  /* a figure of the book, held in the note: the head it prints, the still
+     picture where it has one, and its caption. The simulation itself stays in
+     the book; what the note holds is what the figure says it is. */
+  .note-view :global(.fig-embed){margin:1.1em 0;padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-left-color:var(--accent);border-radius:6px;background:var(--soft);cursor:pointer}
+  .note-view :global(.fig-embed:hover){border-color:var(--accent)}
+  .note-view :global(.fig-embed .embed-eyebrow){font-family:var(--sans);font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
+  .note-view :global(.fig-embed .embed-body){margin-top:5px;font-family:var(--serif);font-size:0.92rem;line-height:1.5;color:var(--ink)}
+  .note-view :global(.fig-embed .fig-still){margin:9px 0 0;max-width:100%;height:auto}
+  .note-view :global(.fig-embed .fig-caption){margin-top:6px;font-family:var(--sans);font-size:0.82rem;line-height:1.5;color:var(--muted)}
 
   /* while something is being dragged over the note, which will land at its end */
   .note-view.dropping{outline:2px dashed var(--accent);outline-offset:-6px;border-radius:8px}

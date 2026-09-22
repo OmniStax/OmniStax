@@ -19,12 +19,30 @@ const r: Resolver = {
     (section === '16.1' && term === 'deformation' ? { term: 'deformation', definition: 'displacement from equilibrium', section: '16.1' } : null),
   symbol: (section, sym) =>
     (section === '16.1' && sym === 'F' ? { sym: 'F', tex: '\\kF', meaning: 'restoring force', unit: 'N', typeLabel: 'force', section: '16.1', anchor: '16.1-hookes-law' } : null),
+  figure: (section, id) =>
+    (section === '16.1' && id === 'sim-spring'
+      ? { eyebrow: 'Sim', title: 'A block on a spring', caption: 'Drag the block and let it go.', section: '16.1', src: '/media/ch16/spring.jpg' }
+      : null),
   concept: (section, id) =>
     section !== '16.1' ? null
       : id === 'hookes-law' ? { name: 'Hooke’s law, $\\kF = -\\kk\\kx$', kind: 'result', why: 'the restoring force grows with the deformation', section: '16.1', eqTex: '\\kF = -\\kk\\kx', placeholder: false }
         : id === 'later-idea' ? { name: 'Something later', kind: 'idea', section: '16.1', placeholder: true }
           : null,
 };
+
+test('a figure of a section is a link and a card of its own', () => {
+  assert.deepEqual(parseLink('fig:16.1:sim-spring'), { kind: 'figure', section: '16.1', id: 'sim-spring' });
+  assert.equal(linkInner({ kind: 'figure', section: '16.1', id: 'sim-spring' }), 'fig:16.1:sim-spring');
+  assert.equal(embedText({ kind: 'figure', section: '16.1', id: 'sim-spring' }), '![[fig:16.1:sim-spring]]');
+  assert.equal(linkKey(parseLink('fig:16.1:sim-spring')), 'fig:16.1:sim-spring');
+  const card = render('![[fig:16.1:sim-spring]]', r);
+  assert.match(card, /<div class="fig-embed" data-embed="fig:16\.1:sim-spring">/);
+  assert.match(card, /Sim · 16\.1/);
+  assert.match(card, /A block on a spring/);
+  assert.match(card, /Drag the block and let it go\./);
+  assert.match(card, /<img class="fig-still" src="\/media\/ch16\/spring\.jpg"/);
+  assert.match(render('![[fig:16.4:sim-none]]', r), /<span class="wiki dead" data-embed="fig:16\.4:sim-none">/);
+});
 
 test('a link names a note, a section or a highlight', () => {
   assert.deepEqual(parseLink('Damped motion'), { kind: 'note', name: 'Damped motion' });

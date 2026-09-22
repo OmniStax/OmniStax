@@ -14,7 +14,7 @@ import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } f
 import katex from 'katex';
 import { splitAlt } from './width';
 export { setImageWidth } from './width';
-import { isBook, linkInner, parseLink, type BookTarget, type ConceptRef, type EquationRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
+import { isBook, linkInner, parseLink, type BookTarget, type ConceptRef, type EquationRef, type FigureRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
 export type NoteRef = string;    /* the id of a note document, what a resolved note link points at */
 export type AssetRef = string;   /* the id of a stored image */
@@ -31,6 +31,12 @@ export type HighlightInfo = { readonly quote: string; readonly color: string; re
 export type EquationInfo = { readonly tex: string; readonly condition?: string; readonly important: boolean; readonly conceptName?: string; readonly anchor?: string; readonly section: string };
 export type TermInfo = { readonly term: string; readonly definition: string; readonly section: string };
 export type SymbolInfo = { readonly sym: string; readonly tex: string; readonly meaning: string; readonly unit: string; readonly typeLabel?: string; readonly section: string; readonly anchor?: string };
+/* A figure of the book, held in a note: the eyebrow the section prints above it
+   ("Sim", "Figure 7.3"), the words of its head, and its caption. A picture the
+   section draws with an <img> is worth showing again, so its address comes too;
+   a simulation draws itself with a script and has none, and the note shows the
+   words alone rather than trying to run it. */
+export type FigureInfo = { readonly eyebrow: string; readonly title: string; readonly caption: string; readonly section: string; readonly src?: string };
 export type ConceptInfo = { readonly name: string; readonly kind: 'idea' | 'result' | 'skill'; readonly why?: string; readonly section: string; readonly eqTex?: string; readonly placeholder: boolean };
 
 /* Everything the renderer cannot know by itself. Each lookup answers null when
@@ -48,6 +54,7 @@ export type Resolver = {
   term(section: SectionRef, term: TermRef): TermInfo | null;
   symbol(section: SectionRef, sym: SymbolRef): SymbolInfo | null;
   concept(section: SectionRef, id: ConceptRef): ConceptInfo | null;
+  figure(section: SectionRef, id: FigureRef): FigureInfo | null;
 };
 
 const esc = (s: string): string =>
@@ -68,6 +75,24 @@ const highlightEmbed = (id: HighlightRef, r: Resolver, fallback: string): string
   if (!h) return dead(fallback);
   return `<div class="hl-embed hl-${esc(h.color)}" data-hl="${esc(id)}"><blockquote>${esc(h.quote)}</blockquote>` +
     `<div class="hl-meta">${esc(h.section)}</div><div class="hl-text">${esc(h.text)}</div></div>`;
+};
+
+/* A figure is not in any table: it is in the section's own HTML, as a highlight
+   is in the reader's own store, so it is looked up the same way and shown as a
+   card of the same shape. The card is the head the section prints — its eyebrow
+   and its words — the picture where there is a still one, and the caption; the
+   whole card is the link that opens the section at the figure. */
+type FigureLink = Extract<Link, { readonly kind: 'figure' }>;
+const figureEmbed = (t: FigureLink, r: Resolver): string => {
+  const f = r.figure(t.section, t.id);
+  if (!f) return dead(t.alias ?? linkInner(t), linkInner(t));
+  const body = [
+    f.title === '' ? '' : `<div class="embed-body" data-math="1">${esc(f.title)}</div>`,
+    f.src === undefined || !SAFE_SRC.test(f.src) ? '' : `<img class="fig-still" src="${esc(f.src)}" alt="${esc(f.caption || f.title)}">`,
+    f.caption === '' ? '' : `<div class="fig-caption" data-math="1">${esc(f.caption)}</div>`,
+  ].join('');
+  return `<div class="fig-embed" data-embed="${esc(linkInner(t))}">` +
+    `<div class="embed-eyebrow">${esc(meta(f.eyebrow, f.section))}</div>${body}</div>`;
 };
 
 /* ── the book's own things, as cards ────────────────────────────────────── */
@@ -128,6 +153,7 @@ const bookEmbed = (t: BookTarget & { readonly alias?: string }, r: Resolver): st
    with the four things the book itself holds. */
 const renderLink = (link: Link, r: Resolver): string => {
   if (link.kind === 'highlight') return highlightEmbed(link.id, r, link.alias ?? `hl:${link.id}`);
+  if (link.kind === 'figure') return figureEmbed(link, r);
   if (isBook(link)) return bookEmbed(link, r);
   if (link.kind === 'section') {
     const s = r.section(link.section);
@@ -197,12 +223,12 @@ const inlineMath: TokenizerAndRendererExtension = {
 
 const WIKI = /^(!?)\[\[([^\]\n]+)\]\]/;
 
-/* Everything that renders as a card rather than as words: a highlight, and the
-   four things of the book. Written alone on a line, each becomes a block of its
+/* Everything that renders as a card rather than as words: a highlight, a
+   figure, and the four things of the book. Written alone on a line, each becomes a block of its
    own, so the card is not wrapped in a paragraph. The shapes are links.ts's own
    grammar, narrowed to what a card is made of, so that a note named `eq:later`
    stays a note. */
-const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):\d+\.\d+:[^\]\n]+`;
+const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):\d+\.\d+:[^\]\n]+|fig:\d+\.\w+:[^\]\n]+`;
 
 const cardBlock = (r: Resolver): TokenizerAndRendererExtension => ({
   name: 'cardBlock', level: 'block',

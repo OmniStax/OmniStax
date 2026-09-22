@@ -12,6 +12,7 @@ import { type ThreeUrl, ensureThree, hasThree, needsThree } from '../fig/three';
 import { ICON } from '../icons';
 import { originalButtons } from './original';
 import { decorateTerms } from '../hover';
+import { dragFigures } from '../notes/md/dragfig';
 import { foldControls } from './fold.svelte';
 import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { EMPTY_FORMULAS, chapterConceptsOf } from '../content/bookdata';
@@ -184,7 +185,7 @@ class Registry {
   private prepare(root: HTMLElement, sec: SectionId): void {
     if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
     this.mountExercises(root, sec);
-    this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec);
+    this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec); dragFigures(root, sec);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the
