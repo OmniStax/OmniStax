@@ -57,6 +57,46 @@ def focus_surface(page):
     page.evaluate("document.querySelector('.pane:not([hidden]) .drawing-tab .surface').focus()")
 
 
+RECORD = """async () => {
+    const db = await new Promise((res) => { const r = indexedDB.open('omnistax-drawings', 1); r.onsuccess = () => res(r.result); });
+    const all = await new Promise((res) => {
+        const tx = db.transaction('drawings', 'readonly');
+        const req = tx.objectStore('drawings').getAll();
+        req.onsuccess = () => res(req.result);
+    });
+    db.close();
+    return all[0] ?? null;
+}"""
+
+
+def record(page):
+    """The whole of the first drawing record, straight out of IndexedDB."""
+    return page.evaluate(RECORD)
+
+
+def wheel(page, surface, dx, dy, ctrl=False, shift=False):
+    """A wheel turned over the canvas.
+
+    Playwright's own wheel carries no modifiers, and Ctrl+wheel is the zoom
+    while Shift and a wheel walks the plane sideways, so the event is made by
+    hand the way the pointer events above are.
+    """
+    box = surface.bounding_box()
+    page.evaluate(
+        """({ selector, x, y, dx, dy, ctrl, shift }) => {
+            document.querySelector(selector).dispatchEvent(new WheelEvent('wheel', {
+                bubbles: true, cancelable: true, composed: true,
+                clientX: x, clientY: y, deltaX: dx, deltaY: dy, ctrlKey: ctrl, shiftKey: shift,
+            }));
+        }""",
+        {
+            "selector": ".pane:not([hidden]) .drawing-tab .surface",
+            "x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2,
+            "dx": dx, "dy": dy, "ctrl": ctrl, "shift": shift,
+        },
+    )
+
+
 def item_count(page, kind=None):
     """How many items the open drawing holds, read off the store itself."""
     return page.evaluate(
@@ -127,7 +167,52 @@ with sync_playwright() as playwright:
     assert len(strokes) == 1, f"one stroke was laid down, got {len(strokes)}"
     assert len(strokes[0]["points"]) >= 2, "the stroke keeps the points it was drawn through"
 
-    # ── the ink survives a reload ─────────────────────────────────────────
+    # ── the whole pane is drawable from the first frame ───────────────────
+    # There is no page and no scroller: the far right and the foot of the pane
+    # take ink without anything being scrolled to first.
+    geometry = page.evaluate(
+        """(selector) => {
+            const el = document.querySelector(selector);
+            return { sw: el.scrollWidth, cw: el.clientWidth, sh: el.scrollHeight, ch: el.clientHeight };
+        }""",
+        ".pane:not([hidden]) .drawing-tab .surface",
+    )
+    assert geometry["sw"] <= geometry["cw"] + 1, "the surface has nothing to scroll sideways"
+    assert geometry["sh"] <= geometry["ch"] + 1, "nor up and down"
+
+    box = surface.bounding_box()
+    stroke(page, surface, [(box["width"] - 80, box["height"] - 80), (box["width"] - 4, box["height"] - 4)])
+    page.wait_for_timeout(400)
+    assert len(record(page)["items"]) == 2, "the corner of the pane is drawable ground"
+
+    # ── panning far off shows more plane, and it takes ink too ────────────
+    focus_surface(page)
+    page.keyboard.press("v")                      # the hand tool
+    stroke(page, surface, [(900, 620), (150, 120)])
+    page.wait_for_timeout(400)
+    moved = record(page)["view"]
+    assert moved["x"] > 400 and moved["y"] > 300, f"the drag walked the plane ({moved})"
+
+    focus_surface(page)
+    page.keyboard.press("p")
+    stroke(page, surface, [(200, 200), (300, 280)])
+    page.wait_for_timeout(400)
+    far = record(page)["items"][-1]
+    assert far["points"][0][0] > 400, "a stroke laid after the pan stands where it was drawn, not at the origin"
+
+    # ── Ctrl and the wheel zooms, Shift and the wheel walks sideways ──────
+    wheel(page, surface, 0, -240, ctrl=True)
+    page.wait_for_timeout(800)   # the view is written 200 ms after the wheel rests, then the store 300 ms after that
+    zoomed = record(page)["view"]
+    assert zoomed["zoom"] > 1.05, f"Ctrl+wheel zoomed in ({zoomed})"
+    wheel(page, surface, 0, 200, shift=True)
+    page.wait_for_timeout(800)
+    walked = record(page)["view"]
+    assert walked["x"] != zoomed["x"] and walked["y"] == zoomed["y"], "Shift and the wheel walks sideways only"
+
+    strokes_before = len([i for i in record(page)["items"] if i["kind"] == "stroke"])
+
+    # ── the ink survives a reload, and so does the view ───────────────────
     page.reload()
     page.wait_for_load_state("networkidle")
     surviving = page.evaluate(
@@ -144,6 +229,13 @@ with sync_playwright() as playwright:
     )
     assert surviving >= 1, "the stroke is still there after a reload"
 
+    back = record(page)
+    assert len([i for i in back["items"] if i["kind"] == "stroke"]) == strokes_before, \
+        f"every stroke came back ({strokes_before})"
+    assert abs(back["view"]["x"] - walked["x"]) < 1 and abs(back["view"]["zoom"] - walked["zoom"]) < 0.001, \
+        f"the drawing opens where the reader left it ({back['view']} vs {walked})"
+    assert "width" not in back and "height" not in back, "a record carries no page"
+
     # The row is still in the tree, and opening it shows the ink again: the
     # name list is read from localStorage and the ink from the database.
     show_explorer()
@@ -152,6 +244,14 @@ with sync_playwright() as playwright:
     tab = page.locator(".pane:not([hidden]) .drawing-tab")
     tab.wait_for(state="visible")
     assert tab.locator("canvas.ink").count() == 1, "the drawing opens again from its row"
+
+    # Fit frames everything there is; Reset view goes home to the origin.
+    tab.get_by_role("button", name="Fit", exact=True).click()
+    page.wait_for_timeout(400)
+    assert record(page)["view"]["zoom"] <= 1, "fitting a wide drawing zooms out rather than in"
+    tab.get_by_role("button", name="Reset view", exact=True).click()
+    page.wait_for_timeout(400)
+    assert record(page)["view"] == {"x": 0, "y": 0, "zoom": 1}, "reset view goes back to the origin"
 
     # ── palm rejection: a touch while a pen is down lays no ink ───────────
     surface = tab.locator(".surface")

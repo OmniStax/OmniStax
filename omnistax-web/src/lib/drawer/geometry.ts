@@ -2,7 +2,7 @@
    stands, what a lasso has caught, what the eraser has crossed, and the corner
    a shape snaps to when Shift is held. Everything here is pure, so the tests
    read it directly and the tab only calls it. */
-import type { Box, DrawItem, Point, ShapeKind } from './model';
+import { clampZoom, type Box, type DrawItem, type Point, type ShapeKind, type View } from './model';
 
 export type Vec = readonly [number, number];
 
@@ -14,8 +14,22 @@ const boxOf = (xs: readonly number[], ys: readonly number[]): Box => {
 };
 
 /* The rectangle an item occupies, its ink width included: a stroke laid with a
-   fat nib reaches half a nib beyond the points it was drawn through. */
+   fat nib reaches half a nib beyond the points it was drawn through.
+
+   An item is immutable, so its box is the same every time it is asked for and
+   is kept against the item itself. That is what makes culling a filter rather
+   than a walk of every point on the plane: a pan asks a thousand strokes where
+   they stand and a thousand answers come out of the map. */
+const boxes = new WeakMap<DrawItem & object, Box>();
 export const bounds = (i: DrawItem): Box => {
+  const had = boxes.get(i);
+  if (had) return had;
+  const made = measure(i);
+  boxes.set(i, made);
+  return made;
+};
+
+const measure = (i: DrawItem): Box => {
   if (i.kind === 'stroke') {
     const b = boxOf(i.points.map((p) => p[0]), i.points.map((p) => p[1]));
     const pad = i.size / 2;
@@ -39,9 +53,28 @@ export const boundsOf = (items: readonly DrawItem[]): Box | null => {
 
 export const inBox = (b: Box, x: number, y: number): boolean => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 
-/* The lowest ink on the page, which is what tells the page when to grow. */
-export const lowestPoint = (items: readonly DrawItem[]): number =>
-  items.reduce((low, i) => { const b = bounds(i); return Math.max(low, b.y + b.h); }, 0);
+/* Whether two rectangles touch at all, which is the whole of the culling: an
+   item whose box does not meet the window is not drawn this frame. */
+export const meets = (a: Box, b: Box): boolean =>
+  a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
+
+/* ── the window onto the plane ───────────────────────────────────────────── */
+
+/* The rectangle of the plane a pane of this size shows from this view. */
+export const viewBox = (v: View, paneW: number, paneH: number): Box =>
+  ({ x: v.x, y: v.y, w: paneW / v.zoom, h: paneH / v.zoom });
+
+/* The view that frames everything drawn, with a margin round it, and nothing
+   at all when there is nothing to frame. It never zooms in past 1: a single
+   small stroke should be shown at the size it was drawn, not blown up to fill
+   the pane. */
+export const fitView = (items: readonly DrawItem[], paneW: number, paneH: number, pad = 48): View | null => {
+  const b = boundsOf(items);
+  if (!b || paneW <= 0 || paneH <= 0) return null;
+  const w = b.w + 2 * pad, h = b.h + 2 * pad;
+  const zoom = clampZoom(Math.min(1, Math.min(paneW / Math.max(1, w), paneH / Math.max(1, h))));
+  return { x: b.x + b.w / 2 - paneW / (2 * zoom), y: b.y + b.h / 2 - paneH / (2 * zoom), zoom };
+};
 
 /* ── the lasso ───────────────────────────────────────────────────────────── */
 

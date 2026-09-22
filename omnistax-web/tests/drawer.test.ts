@@ -5,13 +5,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addItem, amend, canRedo, canUndo, emptyDrawing, grownTo, moveItems, newDrawItemId, parseDrawing,
-  parseRows, redo, removeItems, replaceItem, rowByName, rowOf, scaleItems, setBoxBody, step, timeline, undo,
-  GROW_STEP, PAGE_HEIGHT, type Drawing, type DrawItem, type Point,
+  addItem, amend, canRedo, canUndo, clampZoom, emptyDrawing, moveItems, newDrawItemId, parseDrawing,
+  parseRows, redo, removeItems, replaceItem, rowByName, rowOf, scaleItems, setBoxBody, setView, step,
+  timeline, undo, MAX_ZOOM, MIN_ZOOM, ORIGIN, type Drawing, type DrawItem, type Point,
 } from '../src/lib/drawer/model';
 import {
-  bounds, boundsOf, distanceToSegment, erasedAt, handleUnder, inPolygon, lassoed, lowestPoint,
-  nib, resized, simplify, snapped, type Vec,
+  bounds, boundsOf, distanceToSegment, erasedAt, fitView, handleUnder, inPolygon, lassoed, meets,
+  nib, resized, simplify, snapped, viewBox, type Vec,
 } from '../src/lib/drawer/geometry';
 import { toolForKey, isInk, TOOL_KEY, TOOLS } from '../src/lib/drawer/tools';
 import { assetEmbed, assetOfEmbed } from '../src/lib/drawer/snapshot';
@@ -88,16 +88,47 @@ test('replacing an item that is not there leaves the drawing alone', () => {
   assert.equal(replaceItem(d, box(0, 0)), d);
 });
 
-/* ── the page that grows ─────────────────────────────────────────────────── */
+/* ── the plane has no edge ───────────────────────────────────────────────── */
 
-test('the page grows downward in steps and never shrinks back', () => {
+test('a drawing carries no page, only the view it was left at', () => {
   const d = emptyDrawing('d');
-  assert.equal(d.height, PAGE_HEIGHT);
-  assert.equal(grownTo(d, 100), d, 'ink well inside the page changes nothing');
-  const taller = grownTo(d, PAGE_HEIGHT + 10);
-  assert.ok(taller.height > PAGE_HEIGHT);
-  assert.equal(taller.height % GROW_STEP, 0, 'it grows a whole step at a time');
-  assert.equal(grownTo(taller, 10), taller, 'rubbing the ink out does not take the room back');
+  assert.equal('width' in d, false, 'there is no page to be as wide as');
+  assert.equal('height' in d, false);
+  assert.deepEqual(d.view, ORIGIN, 'a fresh drawing opens at the origin at zoom 1');
+  /* Ink runs as far either way as the reader cares to go: nothing clamps it. */
+  const far = addItem(d, stroke([at(-9000, -9000), at(-8900, -8880)]));
+  const b = boundsOf(far.items);
+  assert.ok(b && b.x < -8000, 'a stroke laid off to the north west stays there');
+});
+
+test('the view is remembered without counting as a change to the drawing', () => {
+  const d = addItem(emptyDrawing('d', drawingId('aaaaaaaa'), 1), stroke([at(0, 0)]), 2);
+  const looked = setView(d, { x: 400, y: -250, zoom: 2 });
+  assert.deepEqual(looked.view, { x: 400, y: -250, zoom: 2 });
+  assert.equal(looked.updated, d.updated, 'a pan is not a change to the ink');
+  assert.equal(looked.items, d.items);
+  assert.equal(setView(looked, { x: 400, y: -250, zoom: 2 }), looked, 'the very same view is no change');
+  /* However far the reader asks to go, the scale stays within reach. */
+  assert.equal(setView(d, { x: 0, y: 0, zoom: 500 }).view.zoom, MAX_ZOOM);
+  assert.equal(clampZoom(0), MIN_ZOOM);
+});
+
+test('the window onto the plane is a rectangle, and culling is whether a box meets it', () => {
+  const w = viewBox({ x: 100, y: 50, zoom: 2 }, 800, 400);
+  assert.deepEqual(w, { x: 100, y: 50, w: 400, h: 200 });
+  assert.equal(meets(w, { x: 0, y: 0, w: 150, h: 100 }), true, 'a box lapping the corner is drawn');
+  assert.equal(meets(w, { x: 900, y: 0, w: 10, h: 10 }), false, 'one off to the east is not');
+});
+
+test('zoom to fit frames everything there is, and nothing frames nothing', () => {
+  assert.equal(fitView([], 800, 400), null);
+  const items = [stroke([at(0, 0), at(200, 100)]), box(1000, 600, 100, 100)];
+  const v = fitView(items, 800, 400, 0);
+  assert.ok(v);
+  const w = viewBox(v, 800, 400);
+  const all = boundsOf(items);
+  assert.ok(all && meets(w, all), 'the window takes the whole of the ink in');
+  assert.ok(v.zoom <= 1, 'it never blows a small drawing up past the size it was drawn');
 });
 
 /* ── the drawing's own undo ──────────────────────────────────────────────── */
@@ -154,10 +185,9 @@ test('an item’s bounds take in the width of its own ink', () => {
   assert.equal(boundsOf([]), null, 'a selection of nothing has no box');
 });
 
-test('the lowest ink is what tells the page when to grow', () => {
-  assert.equal(lowestPoint([]), 0);
-  const low = lowestPoint([stroke([at(0, 10)]), box(0, 100, 10, 40)]);
-  assert.equal(low, 140);
+test('an item’s box is measured once and kept against the item itself', () => {
+  const s = stroke([at(0, 0), at(10, 0)]);
+  assert.equal(bounds(s), bounds(s), 'the very same box comes back, which is what makes culling a filter');
 });
 
 test('a point is inside a closed path by the crossing rule', () => {
@@ -267,7 +297,7 @@ test('a record of the wrong shape is refused, and one bad item is dropped rather
   assert.equal(parseDrawing({ name: 'no id', items: [] }), null);
   assert.equal(parseDrawing({ id: 'x', name: 'no items' }), null);
   const mixed = parseDrawing({
-    id: 'cccccccc', name: 'mixed', width: 100, height: 100, created: 1, updated: 2,
+    id: 'cccccccc', name: 'mixed', width: 100, height: 100, created: 1, updated: 2,   /* an old record's page */
     items: [
       { kind: 'stroke', id: 'a', tool: 'pen', color: '#000', size: 2, points: [[0, 0, 0.5]] },
       { kind: 'stroke', id: 'b', tool: 'pen', color: '#000', size: 2, points: [] },   /* no points at all */
@@ -277,6 +307,18 @@ test('a record of the wrong shape is refused, and one bad item is dropped rather
   });
   assert.ok(mixed);
   assert.deepEqual(mixed.items.map((i) => i.id), ['a'], 'one good stroke survives its bad neighbours');
+  assert.equal('width' in mixed, false, 'the page an old record carried is read past and dropped');
+  assert.deepEqual(mixed.view, ORIGIN, 'and it opens at the origin');
+});
+
+test('a record that says where the reader was looking opens there again', () => {
+  const back = parseDrawing({
+    id: 'eeeeeeee', name: 'far', created: 1, updated: 2, items: [],
+    view: { x: -1200, y: 640, zoom: 3 },
+  });
+  assert.deepEqual(back?.view, { x: -1200, y: 640, zoom: 3 });
+  const silly = parseDrawing({ id: 'eeeeeeee', name: 'far', items: [], view: { x: 'no', y: 0, zoom: 900 } });
+  assert.deepEqual(silly?.view, { x: 0, y: 0, zoom: MAX_ZOOM }, 'nonsense in a view is read as the origin, and the scale is capped');
 });
 
 test('a frame keeps what it opens, and only when it has one', () => {

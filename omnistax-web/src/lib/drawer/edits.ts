@@ -74,7 +74,7 @@ export const createDrawing = (parent: EntryId | null, name?: string, ink?: Drawi
   const label = name ?? explorer.uniqueName(parent, 'Untitled drawing');
   const before = shot();
   const drawing = drawings.create(label);
-  if (ink) drawings.put({ ...drawing, width: ink.width, height: ink.height, items: ink.items });
+  if (ink) drawings.put({ ...drawing, items: ink.items, view: ink.view });
   explorer.addDrawing(parent, entryId(drawing.id), label);
   commit('new drawing', before, { onUndo: [drawing.id] });
   return drawing;
@@ -119,7 +119,7 @@ export const saveScratchAsDrawing = (book: string, section: string, ex: string, 
   if (!work) return null;
   const before = shot();
   const made = drawings.create(explorer.uniqueName(null, name));
-  drawings.put({ ...made, width: work.width, height: work.height, items: work.items, updated: Date.now() });
+  drawings.put({ ...made, items: work.items, view: work.view, updated: Date.now() });
   explorer.addDrawing(null, entryId(made.id), made.name);
   drawings.linkScratch(key, made.id);
   commit('save scratch as drawing', before, { onUndo: [made.id] });

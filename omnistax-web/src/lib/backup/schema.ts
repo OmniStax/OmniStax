@@ -153,8 +153,13 @@ const drawItem = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('box'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, body: z.string() }).strict(),
   z.object({ kind: z.literal('frame'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, embed: z.string().min(1), open: z.string().min(1).optional() }).strict(),
 ]);
+/* The plane is unbounded, so a drawing carries no page: `width` and `height`
+   are the page a record written before that carried, read past and dropped,
+   and `view` is the corner the reader was last looking from. */
 export const DrawingSchema = z.object({
-  id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), width: finite.positive(), height: finite.positive(),
+  id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(),
+  width: finite.positive().optional(), height: finite.positive().optional(),
+  view: z.object({ x: finite, y: finite, zoom: finite.positive() }).strict().optional(),
   items: z.array(drawItem), created: finite.nonnegative(), updated: finite.nonnegative(),
 }).strict();
 /* A scratch page is named by the thing it belongs to rather than by an id, so

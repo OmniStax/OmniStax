@@ -1,16 +1,21 @@
 <script lang="ts">
-  /* One drawing in a tab of its own. The page is as wide as the pane and as
-     tall as it needs to be: it grows downward as the reader draws near the
-     foot of it, as a pad of paper does, and never shrinks back under what is
-     already on it.
+  /* One drawing in a tab of its own. The whole of the pane is drawable from
+     the first frame and the plane under it has no edge: there is no page, no
+     sheet and no scrollbar, and dragging or zooming only shows more of the
+     same plane. What the tab holds instead is a view — the canvas point at the
+     top left of the pane and the scale — which is its own while it is open and
+     is written into the drawing so that opening it again lands where the
+     reader left off.
 
-     What is on the page is drawn twice over. The finished strokes go into an
-     offscreen bitmap, redrawn only when the drawing itself changes, and the
-     stroke the pen is laying down this moment goes onto the canvas above it,
-     so a page of a thousand strokes costs no more per frame than a page of
-     one. The boxes and the frames are HTML, laid over both inside a single
-     transformed container, because a card sets KaTeX and follows links and a
-     picture of one would do neither.
+     What is on the plane is drawn twice over. The canvas is the size of the
+     pane; on every change, and on every pan or zoom frame, the items whose
+     box meets the view are drawn into an offscreen bitmap under the view's
+     transform, and that bitmap stands as the cache of this view until either
+     the view or the items move. The stroke the pen is laying down this moment
+     goes onto the canvas above it, so a plane of a thousand strokes costs no
+     more per frame than a plane of one. The boxes and the frames are HTML,
+     laid over both inside a single transformed container, because a card sets
+     KaTeX and follows links and a picture of one would do neither.
 
      Pointers, not mice: `pointerType` says whether this is a pen, a finger or
      a mouse, and each is answered in its own way. While a pen is touching the
@@ -27,11 +32,11 @@
   import Frame from './Frame.svelte';
   import TextBox from '../ui/TextBox.svelte';
   import {
-    addItem, amend, canRedo, canUndo, grownTo, moveItems, newDrawItemId, redo, removeItems,
-    replaceItem, scaleItems, setBoxBody, step, timeline, undo,
-    type Box, type Drawing, type DrawItem, type DrawItemId, type Point, type ShapeKind,
+    addItem, amend, canRedo, canUndo, clampZoom, moveItems, newDrawItemId, ORIGIN, redo, removeItems,
+    replaceItem, scaleItems, setBoxBody, setView, step, timeline, undo,
+    type Box, type Drawing, type DrawItem, type DrawItemId, type Point, type ShapeKind, type View,
   } from '../../lib/drawer/model';
-  import { boundsOf, erasedAt, handleUnder, inBox, lassoed, lowestPoint, resized, simplify, snapped, type Handle, type Vec } from '../../lib/drawer/geometry';
+  import { bounds, boundsOf, erasedAt, fitView, handleUnder, inBox, lassoed, meets, resized, simplify, snapped, viewBox, type Handle, type Vec } from '../../lib/drawer/geometry';
   import { drawItems, drawLasso, drawLive, fitCanvas } from '../../lib/drawer/render';
   import { CURSOR, isInk, toolForKey, type Tool } from '../../lib/drawer/tools';
   import { assetEmbed, frameSize, snapshotFigure, snapshotImage } from '../../lib/drawer/snapshot';
@@ -88,34 +93,50 @@
   const takeBack = (): void => { if (canUndo(history)) { history = undo(history); onchange(history.now); } };
   const putBack = (): void => { if (canRedo(history)) { history = redo(history); onchange(history.now); } };
 
-  /* ── the view: where the page stands under the pane ────────────────────── */
+  /* ── the view: the window the pane is onto the plane ───────────────────── */
 
-  let scale = $state(1);
-  let panX = $state(0);
-  let panY = $state(0);
-  const MIN_SCALE = 0.2, MAX_SCALE = 6;
+  /* The canvas point at the top left of the pane, and the scale. The tab opens
+     on the view the drawing was left at, and a drawing that has never been
+     opened opens at the origin. */
+  let view = $state<View>(drawing.view ?? ORIGIN);
+  const scale = $derived(view.zoom);
 
   let host = $state<HTMLElement | null>(null);
   let canvas = $state<HTMLCanvasElement | null>(null);
   let paneW = $state(900);
   let paneH = $state(600);
 
-  /* The point of the page under a point of the screen, which is what every
+  /* Where the reader was looking is written down a change behind the drawing
+     itself, and never as a step of its own: taking back a stroke should not
+     take back a pan. */
+  const rememberView = (): void => nudge(setView(drawing, view));
+
+  /* The point of the plane under a point of the screen, which is what every
      press asks first. */
   const at = (clientX: number, clientY: number): Vec => {
     const r = host?.getBoundingClientRect();
-    return [((clientX - (r?.left ?? 0)) - panX) / scale, ((clientY - (r?.top ?? 0)) - panY) / scale];
+    return [view.x + (clientX - (r?.left ?? 0)) / view.zoom, view.y + (clientY - (r?.top ?? 0)) / view.zoom];
   };
 
-  const zoomAbout = (factor: number, clientX: number, clientY: number): void => {
-    const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
-    if (next === scale) return;
+  /* Zoom about a point of the screen: the plane point under the pointer is the
+     one place that does not move, which is what makes a pinch feel like one. */
+  const zoomTo = (next: number, clientX: number, clientY: number): void => {
+    const zoom = clampZoom(next);
+    if (zoom === view.zoom) return;
     const [px, py] = at(clientX, clientY);
     const r = host?.getBoundingClientRect();
-    panX = (clientX - (r?.left ?? 0)) - px * next;
-    panY = (clientY - (r?.top ?? 0)) - py * next;
-    scale = next;
+    view = { x: px - (clientX - (r?.left ?? 0)) / zoom, y: py - (clientY - (r?.top ?? 0)) / zoom, zoom };
   };
+  const zoomAbout = (factor: number, clientX: number, clientY: number): void => zoomTo(view.zoom * factor, clientX, clientY);
+
+  /* The two ways back to the ink: one frames everything there is, the other
+     goes home to the origin at the size the ink was drawn. */
+  const zoomToFit = (): void => {
+    const fitted = fitView(drawing.items, paneW, paneH);
+    view = fitted ?? ORIGIN;
+    rememberView();
+  };
+  const resetView = (): void => { view = ORIGIN; rememberView(); };
 
   /* ── what is being done this moment ────────────────────────────────────── */
 
@@ -129,7 +150,7 @@
     | { readonly kind: 'lasso'; readonly poly: Vec[] }
     | { readonly kind: 'move'; readonly from: Vec; last: Vec; readonly base: Drawing }
     | { readonly kind: 'resize'; readonly handle: Handle; readonly box: Box; readonly from: Vec; readonly base: Drawing }
-    | { readonly kind: 'pan'; readonly x: number; readonly y: number; readonly panX: number; readonly panY: number }
+    | { readonly kind: 'pan'; readonly x: number; readonly y: number; readonly from: View }
     | { readonly kind: 'erase' };
   let gesture = $state.raw<Gesture | null>(null);
   let selection = $state.raw<readonly DrawItemId[]>([]);
@@ -150,20 +171,29 @@
 
   /* ── the two canvases ──────────────────────────────────────────────────── */
 
-  /* The finished strokes, drawn once into a bitmap and kept until the drawing
-     changes. It is the page's own size in CSS pixels, so zooming does not
-     redraw it — the canvas element is scaled by the same transform the HTML
-     layer wears. */
+  /* The finished ink of this view, drawn into a bitmap the size of the pane
+     and kept until either the items or the view move. Only the items whose
+     box meets the window are drawn, so a plane with a mile of ink on it costs
+     what is on the screen and nothing more. */
   let bitmap: HTMLCanvasElement | null = null;
   let bitmapFor: readonly DrawItem[] | null = null;
+  let bitmapAt: string = '';
+
+  /* What the cache was made for: the items it drew and the window it drew
+     them in, as one string, since that is all that has to be compared. */
+  const viewKey = (): string => `${view.x},${view.y},${view.zoom},${paneW},${paneH}`;
 
   const rebuild = (): void => {
     if (typeof document === 'undefined') return;
     bitmap ??= document.createElement('canvas');
-    const ctx = fitCanvas(bitmap, drawing.width, drawing.height);
+    const ctx = fitCanvas(bitmap, paneW, paneH);
     if (!ctx) return;
-    drawItems(ctx, drawing.items);
+    const window = viewBox(view, paneW, paneH);
+    ctx.scale(view.zoom, view.zoom);
+    ctx.translate(-view.x, -view.y);
+    drawItems(ctx, drawing.items.filter((i) => meets(bounds(i), window)));
     bitmapFor = drawing.items;
+    bitmapAt = viewKey();
   };
 
   /* The one paint: the bitmap, then whatever is being done this moment. It is
@@ -178,30 +208,35 @@
   const draw = (): void => {
     const c = canvas;
     if (!c) return;
-    const ctx = fitCanvas(c, drawing.width, drawing.height);
+    const ctx = fitCanvas(c, paneW, paneH);
     if (!ctx) return;
-    if (bitmapFor !== drawing.items) rebuild();
-    if (bitmap) ctx.drawImage(bitmap, 0, 0, drawing.width, drawing.height);
+    if (bitmapFor !== drawing.items || bitmapAt !== viewKey()) rebuild();
+    if (bitmap) ctx.drawImage(bitmap, 0, 0, paneW, paneH);
+    /* Whatever is being done this moment is drawn on top, in plane units
+       under the same transform the cache was drawn with. */
     const g = gesture;
-    if (g?.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', color, size, g.points);
-    if (g?.kind === 'shape') drawItems(ctx, [{ kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }]);
-    if (g?.kind === 'lasso') drawLasso(ctx, g.poly, color, scale);
+    if (!g || (g.kind !== 'ink' && g.kind !== 'shape' && g.kind !== 'lasso')) return;
+    ctx.scale(view.zoom, view.zoom);
+    ctx.translate(-view.x, -view.y);
+    if (g.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', color, size, g.points);
+    if (g.kind === 'shape') drawItems(ctx, [{ kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }]);
+    if (g.kind === 'lasso') drawLasso(ctx, g.poly, color, view.zoom);
   };
 
-  $effect(() => { void drawing.items; void drawing.width; void drawing.height; void gesture; void scale; paint(); });
+  $effect(() => { void drawing.items; void view; void gesture; void paneW; void paneH; paint(); });
 
-  /* The page is as wide as the pane, which is what "a page as wide as the
-     pane" means: the width follows the room the tab has, and the ink already
-     on it keeps the coordinates it was laid at. */
-  const fitWidth = (): void => {
+  /* The canvas is the pane, so it is measured rather than given a size: the
+     whole of the tab is drawable from the first frame, and it stays so when
+     the pane is dragged wider. */
+  const measurePane = (): void => {
     const el = host; if (!el) return;
     const r = el.getBoundingClientRect();
     paneW = r.width; paneH = r.height;
   };
   onMount(() => {
-    fitWidth();
+    measurePane();
     if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(fitWidth);
+    const ro = new ResizeObserver(measurePane);
     if (host) ro.observe(host);
     return () => ro.disconnect();
   });
@@ -251,7 +286,7 @@
     const panning = tool === 'pan' || e.button === 1 || spaceHeld || (e.pointerType === 'touch' && touches.size === 1);
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     drawingPointer = e.pointerId;
-    if (panning) { gesture = { kind: 'pan', x: e.clientX, y: e.clientY, panX, panY }; return; }
+    if (panning) { gesture = { kind: 'pan', x: e.clientX, y: e.clientY, from: view }; return; }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     const p = at(e.clientX, e.clientY);
     if (tool === 'lasso') { if (beginSelectionDrag(p)) return; selection = []; gesture = { kind: 'lasso', poly: [p] }; return; }
@@ -278,14 +313,17 @@
         const gap = touchGap();
         if (pinch.gap > 0 && gap > 0) {
           const [a, b] = [...touches.values()];
-          zoomAboutAbsolute(pinch.scale * (gap / pinch.gap), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+          zoomTo(pinch.scale * (gap / pinch.gap), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
         }
         return;
       }
     }
     const g = gesture;
     if (!g || (drawingPointer !== null && e.pointerId !== drawingPointer && e.pointerType !== 'touch')) return;
-    if (g.kind === 'pan') { panX = g.panX + (e.clientX - g.x); panY = g.panY + (e.clientY - g.y); return; }
+    if (g.kind === 'pan') {
+      view = { ...g.from, x: g.from.x - (e.clientX - g.x) / g.from.zoom, y: g.from.y - (e.clientY - g.y) / g.from.zoom };
+      return;
+    }
     const p = at(e.clientX, e.clientY);
     if (g.kind === 'ink') {
       /* Every point the browser held back between frames, so the ink is as
@@ -305,37 +343,33 @@
     }
   };
 
-  const zoomAboutAbsolute = (next: number, clientX: number, clientY: number): void => {
-    const capped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
-    zoomAbout(capped / scale, clientX, clientY);
-  };
-
-  /* Where the page must reach to hold what has just been drawn. */
-  const grown = (d: Drawing): Drawing => grownTo(d, lowestPoint(d.items));
-
   const onpointerup = (e: PointerEvent): void => {
     touches.delete(e.pointerId);
-    if (touches.size < 2) pinch = null;
+    /* A pinch ends when a finger leaves, and what it changed is the view. */
+    if (touches.size < 2 && pinch) { pinch = null; rememberView(); }
     if (e.pointerType === 'pen') penDown = false;
     const g = gesture;
     gesture = null;
     drawingPointer = null;
     release(e.currentTarget as HTMLElement, e.pointerId);
     if (!g) return;
+    /* A pan is not a change to the drawing, only to where it is looked at
+       from, so what it leaves behind is the view and nothing else. */
+    if (g.kind === 'pan') { rememberView(); return; }
     if (g.kind === 'ink') {
-      const points = simplify(g.points, 0.8 / scale);
-      if (points.length) commit(grown(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points })));
+      const points = simplify(g.points, 0.8 / view.zoom);
+      if (points.length) commit(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points }));
       return;
     }
     if (g.kind === 'shape') {
-      const moved = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]) > 2 / scale;
-      if (moved) commit(grown(addItem(drawing, { kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to })));
+      const moved = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]) > 2 / view.zoom;
+      if (moved) commit(addItem(drawing, { kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }));
       return;
     }
     if (g.kind === 'lasso') { selection = lassoed(drawing.items, g.poly).map((i) => i.id); return; }
     if (g.kind === 'move' || g.kind === 'resize') {
       /* The drag was one nudge after another; the step is the whole of it. */
-      const settled = grown(history.now);
+      const settled = history.now;
       history = step({ ...history, now: g.base }, settled);
       onchange(settled);
       return;
@@ -350,12 +384,24 @@
 
   const oncancel = (e: PointerEvent): void => { touches.delete(e.pointerId); pinch = null; gesture = null; drawingPointer = null; if (e.pointerType === 'pen') penDown = false; };
 
-  /* Ctrl and the wheel zooms, as it does in every canvas; the wheel alone
-     scrolls the page up and down, which is how a long drawing is read. */
+  /* Ctrl and the wheel zooms about the pointer, as it does in every canvas;
+     the wheel alone walks the plane up and down, and with Shift held it walks
+     it sideways. A wheel is a run of events with no end of its own, so the
+     view it leaves is written down once the turning stops. */
+  let wheelRest: ReturnType<typeof setTimeout> | null = null;
+  const afterWheel = (): void => {
+    if (wheelRest !== null) clearTimeout(wheelRest);
+    wheelRest = setTimeout(() => { wheelRest = null; rememberView(); }, 200);
+  };
   const onwheel = (e: WheelEvent): void => {
-    if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomAbout(Math.exp(-e.deltaY / 400), e.clientX, e.clientY); return; }
     e.preventDefault();
-    panX -= e.deltaX; panY -= e.deltaY;
+    if (e.ctrlKey || e.metaKey) { zoomAbout(Math.exp(-e.deltaY / 400), e.clientX, e.clientY); afterWheel(); return; }
+    /* Shift and a wheel that only turns one way is a sideways walk; a trackpad
+       that reports both already says which way it went. */
+    const dx = e.shiftKey && e.deltaX === 0 ? e.deltaY : e.deltaX;
+    const dy = e.shiftKey && e.deltaX === 0 ? 0 : e.deltaY;
+    view = { ...view, x: view.x + dx / view.zoom, y: view.y + dy / view.zoom };
+    afterWheel();
   };
 
   /* ── the keys ──────────────────────────────────────────────────────────── */
@@ -381,6 +427,13 @@
       return;
     }
     if (e.key === 'Escape') { selection = []; return; }
+    /* Zero frames everything there is; with Shift it goes home instead. The
+       plane has no edge, so these two are the way back to the ink. */
+    if (e.key === '0' || e.key === ')') {
+      e.preventDefault(); e.stopPropagation();
+      if (e.shiftKey) resetView(); else zoomToFit();
+      return;
+    }
     const t = toolForKey(e.key);
     if (t) { e.preventDefault(); e.stopPropagation(); tool = t; }
   };
@@ -430,15 +483,23 @@
     const item: DrawItem = open
       ? { kind: 'frame', id, x: p[0], y: p[1], w, h, embed, open }
       : { kind: 'frame', id, x: p[0], y: p[1], w, h, embed };
-    commit(grownTo(addItem(drawing, item), p[1] + h));
+    commit(addItem(drawing, item));
     selection = [id];
   };
 
-  const dropImage = async (file: File, p: Vec): Promise<void> => {
+  /* Where something with no drop point of its own lands: the middle of what
+     the reader is looking at, less half of itself, so it arrives centred. */
+  const middle = (w: number, h: number): Vec =>
+    [view.x + paneW / (2 * view.zoom) - w / 2, view.y + paneH / (2 * view.zoom) - h / 2];
+
+  /* An image dropped lands at the point it was let go of; one placed from the
+     toolbar has no such point and lands centred on what is being looked at,
+     which is where the reader is looking for it. */
+  const dropImage = async (file: File, p: Vec | null): Promise<void> => {
     const shot = await snapshotImage(file);
     if (!shot) return;
     const { w, h } = frameSize(shot);
-    placeFrame(assetEmbed(shot.asset), p, w, h);
+    placeFrame(assetEmbed(shot.asset), p ?? middle(w, h), w, h);
   };
 
   const ondragover = (e: DragEvent): void => {
@@ -547,7 +608,8 @@
     ontool={(t) => (tool = t)} oncolor={(c) => (color = c)} onsize={(n) => (size = n)}
     onfill={(on) => (fill = on)} onshape={(s) => (shape = s)}
     onundo={takeBack} onredo={putBack} {onsave}
-    onimage={(f) => void dropImage(f, [(-panX + paneW / 2) / scale, (-panY + paneH / 3) / scale])} />
+    onfit={zoomToFit} onreset={resetView} canFit={drawing.items.length > 0}
+    onimage={(f) => void dropImage(f, null)} />
 
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="surface" class:dropping bind:this={host} role="application" tabindex="0"
@@ -555,9 +617,11 @@
     style:cursor={gesture?.kind === 'pan' ? 'grabbing' : CURSOR[tool]}
     {onpointerdown} {onpointermove} {onpointerup} onpointercancel={oncancel}
     {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop}>
-    <div class="page" style:transform="translate({panX}px,{panY}px) scale({scale})"
-      style:width="{drawing.width}px" style:height="{drawing.height}px">
-      <canvas class="ink" bind:this={canvas} style:width="{drawing.width}px" style:height="{drawing.height}px"></canvas>
+    <!-- The canvas is the pane; the boxes and the frames stand on a container
+         of no size at all, carrying the view's transform, so they are placed
+         in plane units and follow the ink exactly. -->
+    <canvas class="ink" bind:this={canvas} style:width="{paneW}px" style:height="{paneH}px"></canvas>
+    <div class="plane" style:transform="translate({-view.x * view.zoom}px,{-view.y * view.zoom}px) scale({view.zoom})">
       <div class="layer">
         {#each frames as f (f.id)}
           <Frame x={f.x} y={f.y} w={f.w} h={f.h} embed={f.embed} open={f.open}
@@ -567,7 +631,7 @@
             ondecorate={decorate} />
         {/each}
         {#each boxes as b (b.id)}
-          <!-- The box is placed by whoever holds it, which here is the page:
+          <!-- The box is placed by whoever holds it, which here is the plane:
                TextBox fills the rectangle it is given and says where the
                reader dragged it to. -->
           <div class="boxed" style:left="{b.x}px" style:top="{b.y}px" style:width="{b.w}px" style:height="{b.h}px">
@@ -596,18 +660,24 @@
 </article>
 
 <style>
-  .drawing-tab{position:absolute;inset:0;display:flex;flex-direction:column;font-family:var(--sans);background:var(--bg)}
+  /* The tab is an `article`, and the book's own rule for one is a column of
+     prose 820px wide with a wide margin under it. Here it is the pane itself,
+     so that rule is turned off: the whole of the panel is drawable ground. */
+  .drawing-tab{position:absolute;inset:0;max-width:none;margin:0;padding:0;display:flex;flex-direction:column;font-family:var(--sans);background:var(--bg)}
   /* The canvas takes every pointer for itself: no scrolling, no pinch of the
      browser's own, no long-press menu, because all of those are gestures the
      drawing means something else by. */
-  .surface{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;background:var(--soft)}
+  .surface{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;background:var(--panel)}
   .surface:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .surface.dropping{box-shadow:inset 0 0 0 2px var(--accent)}
-  .page{position:absolute;left:0;top:0;transform-origin:0 0;background:var(--panel);box-shadow:0 1px 8px rgba(0,0,0,.12)}
+  /* The plane has no size and no ground of its own: it is a point at the top
+     left of the pane carrying the view's transform, and everything standing on
+     it is placed in plane units. The ground the reader sees is the pane's. */
+  .plane{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0}
   .ink{position:absolute;left:0;top:0;display:block}
-  .layer{position:absolute;left:0;top:0;width:100%;height:100%}
-  /* A text box fills whatever rectangle it is put in, so the page is what puts
-     it somewhere. */
+  .layer{position:absolute;left:0;top:0}
+  /* A text box fills whatever rectangle it is put in, so the plane is what
+     puts it somewhere. */
   .boxed{position:absolute}
   .sel{position:absolute;border-style:dashed;border-color:var(--accent);pointer-events:none}
   .handle{position:absolute;background:var(--accent);border-radius:1px}

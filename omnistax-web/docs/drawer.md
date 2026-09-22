@@ -13,12 +13,18 @@ tab of its own (`drawing:<id>`), a name they rename like a note, a link
 `[[Some drawing]]` and an embed `![[Some drawing]]` in notes (the embed
 shows the drawing rendered small and opens the tab on click).
 
-The canvas is a page as wide as the pane and as tall as it needs to be: it
-grows downward as the reader draws near the bottom, like Notability. Pan
+The canvas is an unbounded plane and the whole of the pane is drawable from
+the first frame: no page, no sheet edge, no scrollbars, and the ground is
+the pane's own. Dragging and zooming only show more of the same plane. Pan
 with a finger, two fingers to zoom, and draw with the pencil; on a desktop
-the mouse draws, space-drag or middle-drag pans, Ctrl+wheel zooms. While a
-pen is touching, touches are ignored (palm rejection). Pressure sets the
-pen width when the device reports it.
+the mouse draws, space-drag, middle-drag or the hand tool pans, Ctrl+wheel
+zooms about the pointer and a plain wheel walks the plane (Shift for
+sideways). Zoom is held between 0.1 and 8. "Fit" on the toolbar, or 0 while
+in the tab, frames everything there is; "Reset view", or Shift+0, goes home
+to the origin at full size. Where the reader was looking is kept with the
+drawing, so opening it again lands where they left off. While a pen is
+touching, touches are ignored (palm rejection). Pressure sets the pen width
+when the device reports it.
 
 Tools, on a toolbar at the top of the tab: pen, highlighter (wide, half
 transparent, multiply blend), eraser (stroke-wise), lasso (select strokes,
@@ -77,7 +83,12 @@ scratch drawing; the card's existing "open" button uses this.
 ## Storage
 
 - `src/lib/drawer/model.ts` (pure): `Drawing { id: DrawingId (8 base36),
-  name, width, height, items: Item[], created, updated }`, where `Item` is an
+  name, items: Item[], view: { x, y, zoom }, created, updated }` — there is
+  no page, so no width and no height; `view` is the plane point at the top
+  left of the pane and the scale, written down so that reopening lands where
+  the reader was, and setting it does not touch `updated`. A record written
+  before the plane was unbounded carries `width` and `height`; the parser
+  reads past them and drops them, so old backups still load. `Item` is an
   ADT: `stroke { id, tool: 'pen' | 'highlighter', color, size, points:
   [x, y, p][] }`, `shape { id, shape: 'line' | 'arrow' | 'rect' | 'ellipse',
   color, size, fill, from, to }`, `box { id, x, y, w, h, body }` (markdown,
@@ -97,12 +108,16 @@ scratch drawing; the card's existing "open" button uses this.
 - Backup: both localStorage keys validated in `backup/schema.ts`, and the
   two IndexedDB stores exported as `drawings: Drawing[]` and `scratch:
   { key, drawing }[]`.
-- Strokes are rendered to one `<canvas>` (2D) with the DPR handled as
-  `fig/figlib.ts` does; boxes and frames are HTML positioned over it inside
-  one transformed container. Rendering is incremental: a finished stroke is
-  drawn into an offscreen bitmap, the live stroke on top, so a long drawing
-  costs nothing per frame. The embed thumbnail for notes is a scaled export
-  of the bitmap, produced on demand and cached by `updated`.
+- Strokes are rendered to one `<canvas>` (2D) the size of the pane, with the
+  DPR handled as `fig/figlib.ts` does; boxes and frames are HTML positioned
+  over it inside one transformed container of no size. Rendering is cached by
+  view: the items whose bounding box meets the window are drawn into an
+  offscreen bitmap under the view's transform, and that bitmap stands until
+  either the items or the view move; the live stroke is drawn on top. Every
+  item's box is a pure function in `geometry.ts` memoised against the item
+  itself, so culling is a filter and not a walk of points. The embed
+  thumbnail for notes is the bounding box of everything on the plane, padded,
+  produced on demand and cached by `updated`.
 
 ## Files
 
@@ -190,3 +205,35 @@ so a figure drawn for the dark theme still reads.
 
 Left out: a frame holding a live sim (decided against, above); rotating a
 selection; and pressure curves beyond the linear one in `geometry.nib`.
+
+2026-09-22 — The canvas is unbounded. Chen booted into a drawing and found a
+sheet with an edge in the middle of the pane, which was two things at once: a
+`Drawing` carried a `width` and a `height` that grew downward like a pad of
+paper, and the tab is an `article`, so the book's own rule for one — 820px of
+prose, centred, with a wide margin under it — had been boxing the whole tab in.
+Both are gone. The value is now a plane with no edge and a `view` on it, the
+tab fills the panel from the first frame, and the ground the reader draws on is
+the pane's own rather than a sheet laid over it.
+
+What the rendering became: the canvas is the size of the pane and the finished
+ink is cached per view, not per page — on every change and every pan or zoom
+frame the items whose box meets the window are drawn into the bitmap under the
+view's transform, and the live stroke goes over it as before. `geometry.ts`
+gained `meets`, `viewBox` and `fitView`, and `bounds` now keeps each item's box
+against the item itself in a `WeakMap`: an item is immutable, so its box is the
+same every time it is asked for, and culling is a filter rather than a walk of
+every point on the plane. `grownTo`, the page constants and `lowestPoint` are
+gone with the page they served.
+
+A pan is not a change to the ink, so `setView` leaves `updated` alone: a
+thumbnail is not remade and a row is not touched because the reader looked
+somewhere else. The view is written down when a gesture ends — a drag lifted, a
+pinch let go, the wheel come to rest — and it rides the tab's own timeline as a
+nudge, so taking back a stroke never takes back a pan. Zoom is held between 0.1
+and 8; "Fit" and 0 frame everything there is, "Reset view" and Shift+0 go home.
+
+One thing was read more narrowly than the brief wrote it. A card, a figure or
+an image dragged onto the plane still lands under the pointer, where it was let
+go of, rather than centred on the view: a drop that jumped away from the hand
+would read as a bug. Centring is what something with no drop point of its own
+gets, which is the toolbar's "place an image".

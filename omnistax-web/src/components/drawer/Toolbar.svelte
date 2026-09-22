@@ -15,17 +15,21 @@
   import { SHAPE_KINDS, type ShapeKind } from '../../lib/drawer/model';
 
   let {
-    tool, color, size, fill, shape, canUndo, canRedo, scratch = false, busy = false,
-    ontool, oncolor, onsize, onfill, onshape, onundo, onredo, onsave, onimage,
+    tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false,
+    ontool, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onreset, onsave, onimage,
   }: {
     tool: Tool; color: string; size: number; fill: boolean; shape: ShapeKind;
     canUndo: boolean; canRedo: boolean;
+    /* There is nothing to frame on a plane with nothing on it. */
+    canFit?: boolean;
     /* A scratch page carries one button a drawing does not: the way to make it
        a drawing of the reader's own. */
     scratch?: boolean; busy?: boolean;
     ontool: (t: Tool) => void; oncolor: (c: string) => void; onsize: (n: number) => void;
     onfill: (on: boolean) => void; onshape: (s: ShapeKind) => void;
     onundo: () => void; onredo: () => void;
+    /* The two ways back to the ink on an unbounded plane. */
+    onfit: () => void; onreset: () => void;
     onsave?: () => void; onimage?: (file: File) => void;
   } = $props();
 
@@ -129,6 +133,11 @@
     {/each}
   </div>
 
+  <div class="group view">
+    <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="Frame everything on the canvas (0)">Fit</button>
+    <button type="button" class="chip" onclick={onreset} title="Back to the origin at full size (Shift+0)">Reset view</button>
+  </div>
+
   <div class="group right">
     <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Undo (Ctrl+Z)">Undo</button>
     <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Redo (Ctrl+Shift+Z)">Redo</button>
@@ -142,6 +151,7 @@
   .toolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font-family:var(--sans)}
   .group{display:flex;align-items:center;gap:3px}
   .group.right{margin-left:auto;gap:6px}
+  .group.view{gap:6px}
   .tool{display:grid;place-items:center;width:28px;height:28px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}
   .tool.on{background:var(--soft2);color:var(--accent);border-color:var(--accent)}

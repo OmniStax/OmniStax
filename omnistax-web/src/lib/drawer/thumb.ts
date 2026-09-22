@@ -22,11 +22,12 @@ const PAD = 12;
 
 const paint = (d: Drawing): string | null => {
   if (typeof document === 'undefined') return null;
-  /* The ink is drawn at the size it occupies rather than the size of the page:
-     a stroke in the corner of an empty page should fill its own card, not sit
-     as a speck in the middle of one. */
-  const ink = boundsOf(d.items.filter((i) => i.kind === 'stroke' || i.kind === 'shape'));
-  const box = ink ?? { x: 0, y: 0, w: d.width, h: Math.min(d.height, d.width) };
+  /* There is no page to draw, so the card is the room the drawing takes up:
+     everything on the plane, boxes and frames included, with a margin round
+     it. A stroke alone in an empty plane fills its own card rather than
+     sitting as a speck in the middle of one. */
+  const ink = boundsOf(d.items);
+  const box = ink ?? { x: 0, y: 0, w: THUMB_WIDTH, h: THUMB_WIDTH * 0.6 };
   const w = Math.max(1, box.w + 2 * PAD), h = Math.max(1, box.h + 2 * PAD);
   const k = THUMB_WIDTH / w;
   const tw = THUMB_WIDTH, th = Math.min(THUMB_WIDTH * MAX_RATIO, Math.max(40, h * k));

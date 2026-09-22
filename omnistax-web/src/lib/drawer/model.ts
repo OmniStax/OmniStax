@@ -1,14 +1,14 @@
-/* A drawing the reader has made: a page of ink with boxes and frames standing
-   on it. The value is immutable and every operation here is a pure function
-   from Drawing to Drawing, so the undo stack is nothing more than the values
-   this module has handed back — a stroke is one of them, a drag is one of
-   them — and they share everything they have not changed.
+/* A drawing the reader has made: an unbounded plane of ink with boxes and
+   frames standing on it. The value is immutable and every operation here is a
+   pure function from Drawing to Drawing, so the undo stack is nothing more
+   than the values this module has handed back — a stroke is one of them, a
+   drag is one of them — and they share everything they have not changed.
 
-   Coordinates are canvas units at zoom 1, with the origin at the top left of
-   the page; the view's pan and zoom are the tab's own and are never written
-   down here. The page is as wide as the pane and as tall as it needs to be, so
-   `height` grows as the reader draws near the foot of it and nothing else in
-   the value knows about the screen. */
+   There is no page and no edge. Coordinates are canvas units at zoom 1 and
+   they run as far either way as the reader cares to go; what the tab shows is
+   a window onto them, and the only thing the value knows about that window is
+   `view`, the corner the reader was last looking from, so that reopening a
+   drawing lands where they left it. */
 import { newDrawingId, type DrawingId } from '../types/ids';
 
 /* One item of a drawing: the id it is named by within its own drawing, eight
@@ -44,27 +44,29 @@ export type DrawItem =
   | { readonly kind: 'box'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly body: string }
   | { readonly kind: 'frame'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly embed: FrameEmbed; readonly open?: string };
 
+/* Where the reader is looking: the canvas point that stands at the top left of
+   the pane, and the scale it is drawn at. It is the tab's own while the tab is
+   open; it is written down here only so that opening the drawing again lands
+   on the ink rather than on the origin. */
+export type View = { readonly x: number; readonly y: number; readonly zoom: number };
+export const ORIGIN: View = { x: 0, y: 0, zoom: 1 };
+/* How far in and out the reader may go. Nearer than a tenth and a stroke is a
+   speck; further in than eight and the nib is a wall. */
+export const MIN_ZOOM = 0.1;
+export const MAX_ZOOM = 8;
+export const clampZoom = (z: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
 export type Drawing = {
   readonly id: DrawingId;
   readonly name: string;
-  readonly width: number;
-  readonly height: number;
   readonly items: readonly DrawItem[];
+  readonly view: View;
   readonly created: number;
   readonly updated: number;
 };
 
-/* A fresh page: wide enough for a pane of the usual width and one screen tall,
-   which is where the growth below starts from. */
-export const PAGE_WIDTH = 1200;
-export const PAGE_HEIGHT = 1600;
-/* How much room is kept below the lowest ink, and how much the page grows by
-   when the reader draws into it. */
-export const GROW_MARGIN = 240;
-export const GROW_STEP = 800;
-
 export const emptyDrawing = (name: string, id: DrawingId = newDrawingId(), now: number = Date.now()): Drawing =>
-  ({ id, name, width: PAGE_WIDTH, height: PAGE_HEIGHT, items: [], created: now, updated: now });
+  ({ id, name, items: [], view: ORIGIN, created: now, updated: now });
 
 /* Every change goes through here, so that nothing can change a drawing without
    saying when it happened. */
@@ -125,13 +127,12 @@ export const setBoxBody = (d: Drawing, id: DrawItemId, body: string, now?: numbe
   return replaceItem(d, { ...box, body }, now);
 };
 
-/* The page grows downward as the reader works near the foot of it, and never
-   shrinks under what is already drawn: a stroke laid at the bottom and then
-   rubbed out leaves the room it made, which is what a paper notebook does. */
-export const grownTo = (d: Drawing, y: number): Drawing => {
-  if (y + GROW_MARGIN <= d.height) return d;
-  return { ...d, height: Math.ceil((y + GROW_MARGIN) / GROW_STEP) * GROW_STEP };
-};
+/* Where the reader was looking, remembered. It is not a change to the drawing
+   — nothing that is on the plane has moved — so it does not touch `updated`,
+   which is what keeps a pan from making a new thumbnail and a new row. */
+export const setView = (d: Drawing, view: View): Drawing =>
+  d.view.x === view.x && d.view.y === view.y && d.view.zoom === view.zoom
+    ? d : { ...d, view: { x: view.x, y: view.y, zoom: clampZoom(view.zoom) } };
 
 export const rename = (d: Drawing, name: string, now?: number): Drawing =>
   d.name === name ? d : { ...d, name, updated: now ?? Date.now() };
@@ -214,6 +215,15 @@ const parseItem = (raw: unknown): DrawItem | null => {
   return null;
 };
 
+/* A record written before the plane was unbounded carries a `width` and a
+   `height`, which named a page that no longer exists: they are read past
+   rather than refused, so a backup made then still opens. */
+const parseView = (raw: unknown): View => {
+  if (typeof raw !== 'object' || raw === null) return ORIGIN;
+  const o = raw as Record<string, unknown>;
+  return { x: num(o.x, 0), y: num(o.y, 0), zoom: clampZoom(num(o.zoom, 1)) };
+};
+
 export const parseDrawing = (raw: unknown): Drawing | null => {
   if (typeof raw !== 'object' || raw === null) return null;
   const o = raw as Record<string, unknown>;
@@ -223,9 +233,8 @@ export const parseDrawing = (raw: unknown): Drawing | null => {
   return {
     id: o.id as DrawingId,
     name: str(o.name, 'Untitled drawing'),
-    width: Math.max(1, num(o.width, PAGE_WIDTH)),
-    height: Math.max(1, num(o.height, PAGE_HEIGHT)),
     items: o.items.map(parseItem).filter((i): i is DrawItem => i !== null),
+    view: parseView(o.view),
     created: num(o.created, now),
     updated: num(o.updated, now),
   };
