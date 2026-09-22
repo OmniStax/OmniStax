@@ -188,19 +188,20 @@
         }
       });
     };
-    /* Books first, each opening into the book itself, and the catalogue last,
-       where a reader looks for one they have not got yet. */
-    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'OmniBooks', icon: ICON.book, expandable: false, open: true, dim: false, active: false });
-    explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
+    /* A root is open by default, so its key in the expanded set means shut. */
+    const booksOpen = !explorer.expanded(ROOT_KEY.books);
+    const notesOpen = !explorer.expanded(ROOT_KEY.notes);
+    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'OmniBooks', icon: ICON.book, expandable: true, open: booksOpen, dim: false, active: false });
+    if (booksOpen) explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
       const bookId = e.bookId ?? '';
       const key = bookKey(bookId);
       const open = explorer.expanded(key);
       out.push({ key, kind: 'book', depth: 1, label: e.name, icon: ICON.book, entry: e, expandable: true, open, dim: false, active: false });
       if (open) book(bookId, 2);
     });
-    out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find new textbooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
-    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Your Files', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
-    walk(null, 1);
+    if (booksOpen) out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find new OmniBooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
+    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Your Files', icon: ICON.folder, expandable: true, open: notesOpen, dim: false, active: false });
+    if (notesOpen) walk(null, 1);
     return out;
   });
 
@@ -313,7 +314,7 @@
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
-    if (r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
+    if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))); return; }
     if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))); return; }
@@ -436,7 +437,7 @@
 </script>
 
 <div class="explorer">
-  <div class="tree" role="tree" aria-label="Your notes and books" tabindex="0" onkeydown={onKey}>
+  <div class="tree" role="tree" aria-label="Explorer" tabindex="0" onkeydown={onKey}>
     {#each rows as r (r.key)}
       {#if r.kind === 'hint'}
         <div class="row hint" style:padding-left="{6 + r.depth * 13}px">{r.label}</div>

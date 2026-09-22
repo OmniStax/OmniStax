@@ -23,7 +23,8 @@
   import { reader } from '../lib/voice.svelte';
   import { docItem, parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
   import { sectionOfUrl } from '../lib/content/urls';
-  import { pageLabel } from '../lib/content/roles';
+  import { bookPagesOf, pageLabel } from '../lib/content/roles';
+  import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
   import { parseBoot } from '../lib/sections/boot';
   import { BOOK_RULES_ID, bookRulesCss } from '../lib/colours/rules';
   import type { BookManifest } from '../lib/content/schema';
@@ -185,18 +186,19 @@
     const groupOf = (el: HTMLElement): number => { const pane = el.closest<HTMLElement>('.pane'); return pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; };
     /* The parts of a path of this site: the first of them names the book. */
     const segmentsOf = (p: string): string[] => p.split('/').filter(Boolean);
-    /* Another book, reached from the explorer or from a page that points into
-       it. A section is known by its number alone and the shell dresses one book
-       at a time, so walking into a book is a change of what the shell stands
-       in — its manifest, its colours, its rules, its macros — and the layout is
-       read again as a fresh page of that book would read it. The page itself is
-       never left, so the app is not fetched a second time and nothing flashes. */
-    const walkInto = async (book: string, pathname: string, hash: string): Promise<boolean> => {
+    /* The shell dresses one book at a time, so walking into another swaps its
+       manifest, colours, rules and macros and re-reads the layout, without
+       leaving the page. */
+    const manifestOf = async (book: string): Promise<BookManifest | null> => {
       const res = await fetch(`/${book}/book.json`).catch(() => null);
-      if (!res?.ok) return false;
-      const m = (await res.json()) as BookManifest;
-      const sec = sectionOfUrl(m, pathname);
-      if (!sec) return false;
+      return res?.ok ? ((await res.json()) as BookManifest) : null;
+    };
+    const walkInto = async (book: string, pathname: string, hash: string): Promise<boolean> => {
+      const m = await manifestOf(book);
+      const sec = m ? sectionOfUrl(m, pathname) : null;
+      return m && sec ? enter(m, sec, hash) : false;
+    };
+    const enter = async (m: BookManifest, sec: SectionId, hash: string): Promise<boolean> => {
       manifest = m;
       registry.switchTo(m);
       initFig({ macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) });
@@ -216,6 +218,15 @@
       if (at) requestAnimationFrame(() => jump(findEl(at)));
       return true;
     };
+    setBookWalk(async (book) => {
+      if (book === manifest.id) return true;
+      const m = await manifestOf(book);
+      if (!m) return false;
+      const last = lastPage(book);
+      const first = bookPagesOf(m).find((p) => p.built);
+      const sec = (last ? sectionOfUrl(m, last) : null) ?? (first ? sectionId(first.id) : null);
+      return sec ? enter(m, sec, '') : false;
+    });
     /* A page of another book is written as a plain link, so that it can still be
        opened in a window of its own; a left click on one opens the book here
        instead of loading the page. The listen is on the way down, since the row
@@ -299,6 +310,7 @@
       FIG.redrawAll(); spy.read(activePane(l.focus));
       if (!sec || sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
       try { history.replaceState(null, '', e.url); } catch { /* file:// */ }
+      rememberPage(manifest.id, e.url);
       document.title = `${pageLabel(e)} · ${manifest.title}`;
     });
   });

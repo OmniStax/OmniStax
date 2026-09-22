@@ -17,8 +17,7 @@ import { findInChats, type ChatEntry, type ChatHit } from './chats';
 export type Source =
   | { readonly kind: 'books'; readonly rows: readonly Corpus[] }
   | { readonly kind: 'files'; readonly rows: readonly FileEntry[] }
-  /* One row per message of every chat the reader has opened; a hit opens the
-     chat at that message's branch. */
+  /* One row per message of every chat; a hit opens the chat at its branch. */
   | { readonly kind: 'chats'; readonly rows: readonly ChatEntry[] };
 
 /* What a query found, source by source. The books' own hits keep the shape

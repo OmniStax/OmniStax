@@ -104,7 +104,7 @@ class Registry {
        something the tree has no row for falls back to its key. */
     if (id.kind === 'file') return entryName(id.file) ?? itemKey(id);
     if (id.kind === 'drawing') return entryName(id.drawing) ?? itemKey(id);
-    if (id.kind === 'chat') return entryName(id.chat) ?? itemKey(id);
+    if (id.kind === 'chat') return entryName(id.chat) ?? 'New chat';
     if (id.kind === 'ex') return `${id.section} ${id.ex}`;
     if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;

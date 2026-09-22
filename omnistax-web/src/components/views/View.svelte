@@ -1,15 +1,7 @@
 <script lang="ts">
-  /* Dispatch a view by kind, under the bar that says where it stands. A view
-     stands at a level of the book — the whole book, one chapter, or one section
-     — and the bar is the trail to that place as well as the control that walks
-     it. Every crumb reads the same way: its label sends the view to that level,
-     and the chevron beside the chapter and the section opens the menu of the
-     other chapters, or of the other sections of that chapter, to send it
-     somewhere else. Choosing the place the open page lies in is the view
-     following again; choosing any other place pins it there, which the pin
-     button says and undoes. Above the section, the chapters in scope are asked
-     for on the spot, since their concepts and formulas are wanted before any of
-     their sections is open. */
+  /* Dispatch a view by kind, under the bar that says where it stands. Choosing
+     the open page's place follows again; any other place pins the view there.
+     Above the section, the chapters in scope are fetched on the spot. */
   import { setContext } from 'svelte';
   import { scope } from '../../lib/sections/scope.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
@@ -17,6 +9,8 @@
   import { atLevel, crumbsOf, resolve, sameTarget, siblingsOf, type Level, type Target } from '../../lib/sections/scope';
   import { viewKindOf } from '../../lib/types/ids';
   import { ICON } from '../../lib/icons';
+  import { explorer } from '../../lib/explorer/store.svelte';
+  import { walkToBook } from '../../lib/sections/books';
   import CrumbMenu from './CrumbMenu.svelte';
   import ConceptMap from './ConceptMap.svelte';
   import Exercises from './Exercises.svelte';
@@ -58,6 +52,9 @@
   const choose = (place: Target): void => { scope.choose(item, place); closeMenu(); };
   /* The places the open menu offers: the crumb's own place is the one the view stands on,
      and the place the open page lies in is named, since choosing it is following again. */
+  const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
+  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === registry.manifest.id, page: false })));
+  const chooseBook = (book: string): void => { closeMenu(); if (book !== registry.manifest.id) void walkToBook(book); };
   const entries = $derived.by(() => {
     const level = menu;
     if (!level || level === 'book') return [];
@@ -86,10 +83,9 @@
         <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} class:pinned={pinned && i === at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(item, c.level)}>
           <span class="short">{c.short}</span><span class="long">{c.long}</span>
         </button>
-        {#if c.level !== 'book'}
+        {#if c.level !== 'book' || books.length > 1}
           <button type="button" class="chev" bind:this={chevrons[c.level]} aria-haspopup="listbox" aria-expanded={menu === c.level}
-            aria-label={c.level === 'chapter' ? 'Choose the chapter this view describes' : 'Choose the section this view describes'}
-            title={c.level === 'chapter' ? 'Choose another chapter' : 'Choose another section'}
+            aria-label={`Choose another ${c.level}`} title={`Choose another ${c.level}`}
             onclick={(e) => openMenu(c.level, e.currentTarget)}>▾</button>
         {/if}
       {/each}
@@ -99,7 +95,8 @@
     {/if}
     {#if menu}
       <div class="menuhold" style="margin-left:min({menuLeft}px, max(0px, 100% - 220px))">
-        <CrumbMenu {entries} onchoose={choose} onclose={closeMenu} />
+        {#if menu === 'book'}<CrumbMenu entries={bookEntries} onchoose={chooseBook} onclose={closeMenu} />
+        {:else}<CrumbMenu {entries} onchoose={choose} onclose={closeMenu} />{/if}
       </div>
     {/if}
   </div>

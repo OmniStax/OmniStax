@@ -1,17 +1,8 @@
-<script lang="ts">
-  /* The menu one crumb of the scope bar opens: the chapters of the book, or the
-     sections of one chapter, so a reader can send a view somewhere else without
-     leaving the bar. Every place the book names is listed, and the ones nothing
-     has been built for are dimmed and refuse to be chosen, so the shape of the
-     book is never a surprise. The entry the view stands on is marked, the entry
-     the open page lies in says so, and choosing one hands its target back — the
-     bar decides what following or pinning to it means. Hover moves the mark, the
-     arrows move it, Enter chooses, Escape closes, and a press anywhere outside
-     closes too, except on the chevron that opened this, which closes it itself.
-     The keys stop here, so the chords the shell listens for stay quiet. */
-  import type { Target } from '../../lib/sections/scope';
-  type Entry = { readonly target: Target; readonly label: string; readonly enabled: boolean; readonly here: boolean; readonly page: boolean };
-  type Props = { entries: readonly Entry[]; onchoose: (target: Target) => void; onclose: () => void };
+<script lang="ts" generics="T">
+  /* The menu a crumb's chevron opens. Places nothing is built for are dimmed and
+     refuse the choice. Keys stop here so the shell's chords stay quiet. */
+  type Entry = { readonly target: T; readonly label: string; readonly enabled: boolean; readonly here: boolean; readonly page: boolean };
+  type Props = { entries: readonly Entry[]; onchoose: (target: T) => void; onclose: () => void };
   let { entries, onchoose, onclose }: Props = $props();
 
   const uid = $props.id();
@@ -48,7 +39,7 @@
   });
 </script>
 
-<div class="menu" role="listbox" tabindex="-1" aria-label="Choose the place this view describes" aria-activedescendant="{uid}-{sel}" bind:this={list} onkeydown={onKey}>
+<div class="menu" role="listbox" tabindex="-1" aria-label="Choose a place" aria-activedescendant="{uid}-{sel}" bind:this={list} onkeydown={onKey}>
   {#each entries as e, i (e.label)}
     <div class="row" id="{uid}-{i}" class:sel={i === sel} class:here={e.here} class:off={!e.enabled} role="option" aria-selected={e.here} aria-disabled={!e.enabled} onmousemove={() => (sel = i)} onclick={() => take(i)}>
       <span class="lbl">{e.label}</span>

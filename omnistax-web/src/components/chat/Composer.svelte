@@ -1,12 +1,4 @@
 <script lang="ts">
-  /* Where the reader writes. Above the field stand the chips — everything the
-     model will be shown — each of which can be taken away, and the one offered
-     for the section being read, which is never added behind the reader's back.
-     Typing `@` opens the picker, and what is typed after it filters the list;
-     choosing a row takes the `@…` out of the field and puts a chip up instead.
-
-     Enter sends and Shift+Enter makes a line. While an answer is arriving the
-     button is Stop, which keeps the words that came. */
   import AtPicker from '../ui/AtPicker.svelte';
   import { allRows, chipOf, warm } from '../../lib/picker/sources';
   import { withChip, withoutChip, type Chip } from '../../lib/chat/context';
@@ -28,31 +20,21 @@
   let text = $state('');
   let field = $state<HTMLTextAreaElement | null>(null);
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
-  /* Where the `@` stands in the field while the picker is open, and what has
-     been typed after it. */
   let at = $state<number | null>(null);
   let query = $state('');
-  /* The rows are gathered once, when the picker opens, and held until it
-     closes. Gathering them reads every store and walks the DOM of every
-     section that is loaded, and as a derived value it was done again on any
-     change to any of those stores — which, while an answer is arriving, is
-     once per word. What is typed narrows the rows that were gathered; only a
-     category that had to fetch something asks for them again. */
+  /* Gathered once per open: allRows walks every store and loaded section, too
+     costly to redo per streamed word. */
   let rows = $state<readonly PickerRow[]>([]);
   const gather = (): void => { rows = allRows(); };
   const onCategory = (category: PickerCategory | null): void => { gather(); void warm(category).then(gather); };
 
   export function focus(): void { field?.focus(); }
-  /* What the highlight bar pastes in: the selection goes where the cursor is,
-     and the composer takes the focus so the reader can say what they want. */
   export function insert(words: string): void {
     const cut = field?.selectionStart ?? text.length;
     text = `${text.slice(0, cut)}${text.slice(0, cut) && !/\s$/.test(text.slice(0, cut)) ? '\n\n' : ''}${words}${text.slice(cut) ? '\n\n' : ''}${text.slice(cut)}`;
     focus();
   }
 
-  /* An `@` with no space after it, ending where the cursor is: that is the
-     reader reaching for the picker, and nothing else is. */
   const AT = /(?:^|\s)@([^\s@]*)$/;
   const read = (): void => {
     const cut = field?.selectionStart ?? text.length;
@@ -93,8 +75,8 @@
 <div class="composer">
   {#if offer}
     <div class="offer">
-      <span>You have moved to {offer.label}.</span>
-      <button type="button" onclick={onoffer}>Add it</button>
+      <span>Now reading {offer.label}</span>
+      <button type="button" class="btn ghost sm" onclick={onoffer}>Add</button>
     </div>
   {/if}
 
@@ -114,16 +96,16 @@
       <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={close} oncategory={onCategory} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} oninput={read} onclick={read}
-      placeholder={ready ? 'Ask about what you are reading. @ adds what the model sees.' : 'Choose a provider and paste a key under Settings → AI.'}
-      aria-label="Ask the model" rows="3"></textarea>
+      placeholder={ready ? 'Ask anything · @ to add context' : 'Add a provider key in Settings → AI'}
+      aria-label="Message" rows="2"></textarea>
     <div class="acts">
-      <button type="button" class="widget-toggle" class:on={widgets} onclick={onwidgets}
-        title="Let the answer hold a small interactive page, shown in a sandbox">Widgets {widgets ? 'on' : 'off'}</button>
+      <button type="button" class="toggle" class:on={widgets} aria-pressed={widgets} onclick={onwidgets}
+        title="Let answers include a small interactive page">Widgets</button>
       <span class="spacer"></span>
       {#if streaming}
-        <button type="button" class="send" onclick={onstop}>Stop</button>
+        <button type="button" class="btn sm" onclick={onstop}>Stop</button>
       {:else}
-        <button type="button" class="send" disabled={text.trim() === ''} onclick={send}>Send</button>
+        <button type="button" class="btn primary sm" disabled={text.trim() === ''} onclick={send}>Send <kbd>↵</kbd></button>
       {/if}
     </div>
   </div>
@@ -131,21 +113,19 @@
 
 <style>
   .composer{flex:none;border-top:1px solid var(--rule);padding:8px 40px 12px;background:var(--bg);font-family:var(--sans)}
-  .field{position:relative}
-  textarea{width:100%;font:inherit;font-size:0.95rem;line-height:1.5;padding:9px 11px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);color:var(--ink);resize:vertical}
-  textarea:focus{outline:none;border-color:var(--accent)}
-  .acts{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .field{position:relative;border-radius:12px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow 120ms}
+  .field:focus-within{box-shadow:inset 0 0 0 1px var(--accent),0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+  textarea{display:block;width:100%;font:inherit;font-size:0.92rem;line-height:1.5;padding:11px 14px 4px;border:0;background:transparent;color:var(--ink);resize:none;max-height:40vh}
+  textarea::placeholder{color:var(--muted);opacity:0.8}
+  textarea:focus{outline:none}
+  .acts{display:flex;align-items:center;gap:8px;padding:4px 8px 8px}
   .spacer{flex:1}
-  .acts button{font:inherit;font-size:0.8rem;padding:3px 12px;border:1px solid var(--rule);border-radius:5px;background:var(--soft);color:var(--ink);cursor:pointer}
-  .acts button:disabled{opacity:0.45;cursor:default}
-  .widget-toggle{color:var(--muted)}
-  .widget-toggle.on{color:var(--ink);border-color:var(--accent)}
+  kbd{font:inherit;font-weight:500;opacity:0.6}
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 6px;padding:0;list-style:none}
-  .chips li{display:inline-flex;align-items:center;gap:4px;font-size:0.76rem;color:var(--ink);background:var(--soft);border:1px solid var(--rule);border-radius:999px;padding:1px 4px 1px 9px;max-width:22rem}
+  .chips li{display:inline-flex;align-items:center;gap:2px;height:24px;font-size:0.76rem;font-weight:600;color:var(--ink);background:var(--soft);border-radius:999px;padding:0 4px 0 10px;max-width:22rem}
   .chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .chips button{font:inherit;line-height:1;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 4px}
-  .chips button:hover{color:var(--ink)}
+  .chips button{font:inherit;line-height:1;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;padding:0}
+  .chips button:hover{color:var(--ink);background:var(--soft2)}
   .offer{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.78rem;color:var(--muted)}
-  .offer button{font:inherit;font-size:0.76rem;padding:1px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--soft);color:var(--ink);cursor:pointer}
   @media (max-width:900px){ .composer{padding:8px 18px 12px} }
 </style>

@@ -1,14 +1,4 @@
 <script lang="ts">
-  /* One message of the transcript. What the reader wrote is shown as they
-     wrote it, with the chips it was asked with standing above it; what the
-     model answered is markdown, rendered the way a note is rendered, so the
-     maths is set and a link into the book is a link. A block tagged `widget`
-     becomes the page it holds, in a sandbox, when the chat has widgets on.
-
-     Every message that has siblings wears a pager, because the reader has been
-     here more than once; a reader message can be edited and sent again, and an
-     answer can be asked for again, and both of those make a sibling rather than
-     writing over what stands. The bubble drags out as a card. */
   import { tick } from 'svelte';
   import Widget from './Widget.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
@@ -28,14 +18,9 @@
   const mine = $derived(message.role === 'user');
   const parts = $derived(partsOf(message.text, chats.widgetsOn(chatId)));
 
-  /* The renderer is the note's own, fetched the first time anything is read
-     with it; until it lands the answer stands as its own words, which is what
-     a stream shows anyway. */
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
   const html = (markdown: string): string => (render === null ? '' : render(markdown, chatResolver()));
-
-  /* ── editing and resending ─────────────────────────────────────────────── */
 
   let editing = $state(false);
   let draft = $state('');
@@ -48,11 +33,7 @@
   };
   const takeFocus = (node: HTMLTextAreaElement) => { node.focus(); node.select(); };
 
-  /* ── what the rendered answer still needs ──────────────────────────────── */
-
-  /* The book writes its symbols with macros of its own, so anything carrying
-     `$…$` is set by the book's renderer, as it is in a note. A fenced block
-     gets the one button a reader wants on code. */
+  /* Maths goes through the book's renderer for its macros. */
   const decorate = (el: HTMLElement): void => {
     for (const m of el.querySelectorAll<HTMLElement>('[data-math]')) {
       if (m.dataset.math === 'set') continue;
@@ -63,7 +44,7 @@
       if (pre.dataset.copy === '1') continue;
       pre.dataset.copy = '1';
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'copy'; button.textContent = 'Copy';
+      button.type = 'button'; button.className = 'copy btn ghost sm'; button.textContent = 'Copy';
       button.addEventListener('click', () => {
         void navigator.clipboard?.writeText(pre.querySelector('code')?.textContent ?? '').then(() => {
           button.textContent = 'Copied';
@@ -91,17 +72,17 @@
     <span class="role">{mine ? 'You' : message.model || 'Assistant'}</span>
     {#if pager}
       <span class="pager" data-nodrag>
-        <button type="button" title="The one before this" aria-label="Previous version" disabled={pager.index === 0} onclick={() => chats.choose(chatId, message.id, pager.index - 1)}>‹</button>
-        <span class="count">{pager.index + 1} of {pager.count}</span>
-        <button type="button" title="The one after this" aria-label="Next version" disabled={pager.index === pager.count - 1} onclick={() => chats.choose(chatId, message.id, pager.index + 1)}>›</button>
+        <button type="button" class="btn ghost icon sm" aria-label="Previous version" disabled={pager.index === 0} onclick={() => chats.choose(chatId, message.id, pager.index - 1)}>‹</button>
+        <span class="count">{pager.index + 1}/{pager.count}</span>
+        <button type="button" class="btn ghost icon sm" aria-label="Next version" disabled={pager.index === pager.count - 1} onclick={() => chats.choose(chatId, message.id, pager.index + 1)}>›</button>
       </span>
     {/if}
     <span class="spacer"></span>
     <span class="acts" data-nodrag>
       {#if mine}
-        <button type="button" onclick={startEdit}>Edit</button>
+        <button type="button" class="btn ghost sm" onclick={startEdit}>Edit</button>
       {:else if message.state !== 'streaming'}
-        <button type="button" onclick={() => void chats.retry(chatId, message.id)}>Retry</button>
+        <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>Retry</button>
       {/if}
     </span>
   </div>
@@ -112,7 +93,7 @@
 
   {#if editing}
     <textarea class="edit" bind:value={draft} onkeydown={onEditKey} use:takeFocus aria-label="Edit and send again" data-nodrag></textarea>
-    <div class="edit-acts" data-nodrag><button type="button" onclick={commit}>Send again</button><button type="button" class="plain" onclick={() => (editing = false)}>Cancel</button></div>
+    <div class="edit-acts" data-nodrag><button type="button" class="btn primary sm" onclick={commit}>Send</button><button type="button" class="btn ghost sm" onclick={() => (editing = false)}>Cancel</button></div>
   {:else if mine}
     <p class="said">{message.text}</p>
   {:else}
@@ -141,21 +122,20 @@
   .spacer{flex:1}
   .role{font-weight:600}
   .pager{display:inline-flex;align-items:center;gap:2px;text-transform:none;letter-spacing:0}
-  .pager button,.acts button{font:inherit;font-size:0.72rem;background:transparent;border:1px solid transparent;border-radius:4px;color:var(--muted);cursor:pointer;padding:1px 5px}
-  .pager button:hover:not(:disabled),.acts button:hover{color:var(--ink);background:var(--soft)}
-  .pager button:disabled{opacity:0.35;cursor:default}
+  .count{font-variant-numeric:tabular-nums}
+  .acts{display:flex;gap:2px;text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
+  .bubble:hover .acts,.acts:focus-within{opacity:1}
   .said{margin:6px 0 0;white-space:pre-wrap;font-size:0.95rem;line-height:1.55}
   .answer{margin-top:6px;font-size:0.95rem;line-height:1.6}
   .answer :global(pre){position:relative;overflow:auto;padding:10px 12px;background:var(--soft);border-radius:6px}
-  .answer :global(pre .copy){position:absolute;top:6px;right:6px;font:inherit;font-size:0.72rem;padding:2px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--muted);cursor:pointer}
+  .answer :global(pre .copy){position:absolute;top:6px;right:6px}
   .answer :global(a.wiki){color:var(--accent);cursor:pointer}
   .answer :global(.wiki.dead){color:var(--muted);text-decoration:underline dotted}
   .chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;padding:0;list-style:none}
-  .chips li{font-size:0.72rem;color:var(--muted);background:var(--soft);border-radius:999px;padding:1px 8px}
-  .edit{width:100%;min-height:5rem;font:inherit;font-size:0.95rem;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--panel);color:var(--ink);resize:vertical}
+  .chips li{font-size:0.72rem;font-weight:600;color:var(--muted);background:var(--soft);border-radius:999px;padding:2px 9px}
+  .edit{width:100%;min-height:5rem;font:inherit;font-size:0.92rem;padding:10px 12px;border:0;border-radius:10px;box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel);color:var(--ink);resize:vertical}
+  .edit:focus{outline:none}
   .edit-acts{display:flex;gap:6px;margin-top:6px}
-  .edit-acts button{font:inherit;font-size:0.8rem;padding:3px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--soft);color:var(--ink);cursor:pointer}
-  .edit-acts .plain{background:transparent;color:var(--muted)}
   .waiting,.note-line{color:var(--muted);font-size:0.85rem;margin:6px 0 0}
   .bad{color:var(--bad, #b42318);font-size:0.85rem;margin:6px 0 0}
 </style>

@@ -71,7 +71,7 @@ const handOn = ({ kept, owed }: Handout, gained: readonly Slot[], weight: number
    afterwards closes it for good, because the layout remembers it was offered. */
 export const OFFERED: readonly ItemKey[] = ['view:pomodoro'];
 
-/* A layout for a page that has nothing saved: the explorer and the pomodoro clock in the left sidebar,
+/* A layout for a page that has nothing saved: the explorer in the left sidebar,
    the page's own item in the one group, and beside a section's text its
    exercises, which is how a section is read. An introduction or summary page
    sets no exercises, so it opens alone. */
@@ -79,7 +79,7 @@ export const defaultLayout = (own: ItemId): Layout => {
   const k = keyOf(own);
   const group: Group = { key: newGroupKey(), tabs: [k], active: k };
   return {
-    sides: { left: { width: 270, items: ['view:explorer', 'view:pomodoro'] }, right: { width: 300, items: [] } },
+    sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },
     home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key), offered: OFFERED,
   };
 };
@@ -176,12 +176,11 @@ export const dropEmptied = (before: Layout, after: Layout): Layout => {
 };
 const focusOn = (l: Layout, key: GroupKey): Layout => { const i = groupIndex(l, key); return i < 0 ? l : { ...l, focus: i }; };
 
-/* A sidebar holds the two views that call one home; anything else asked for
-   there — a document, or a view that is only ever a tab — opens in a group. */
+/* A sidebar shows one view: the one opened displaces the one there. A document, or a view that is only ever a tab, opens in a group. */
 export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout => {
   const k = keyOf(id); if (!sideKey(k)) return openTab(l, k, l.focus);
   const d = detach(l, k);
-  return dropEmptied(l, { ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [...d.sides[side].items, k] } }, home: { ...d.home, [k]: side } });
+  return dropEmptied(l, { ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [k] } }, home: { ...d.home, [k]: side } });
 };
 
 export type OpenOpts = { readonly before?: ItemKey | null; readonly from?: GroupKey | null };
@@ -351,12 +350,12 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const row = groups.length === 1 ? leaf(groups[0].key) : { type: 'split' as const, dir: 'row' as const, children: groups.map((g) => leaf(g.key)) };
   const home = isRec(raw.home) ? Object.fromEntries(Object.entries(raw.home).filter((e): e is [string, Side] => e[1] === 'left' || e[1] === 'right')) : {};
   const collapsed = strs(raw.collapsed) ? raw.collapsed : [];
-  /* A view this saved layout has never been offered joins the left sidebar as it is read back, and is marked offered so it is only ever put there once. */
+  /* A view never offered takes an empty left sidebar, once; a sidebar saved with several views keeps its first. */
   const was = strs(raw.offered) ? raw.offered : [];
   const fresh = OFFERED.filter((k) => !was.includes(k) && known(k));
-  const items = fresh.length ? [...left.items, ...fresh.filter((k) => !left.items.includes(k))] : left.items;
+  const items = (left.items.length ? left.items : fresh).slice(0, 1);
   const focus = typeof raw.focus === 'number' ? Math.max(0, Math.min(raw.focus, groups.length - 1)) : 0;
-  return normalize({ sides: { left: { ...left, items }, right }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row, offered: [...new Set([...was, ...OFFERED])] });
+  return normalize({ sides: { left: { ...left, items }, right: { ...right, items: right.items.slice(0, 1) } }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row, offered: [...new Set([...was, ...OFFERED])] });
 };
 export const VIEW_KEYS: readonly ItemKey[] = VIEW_KINDS.map((v) => keyOf(viewItem(v)));
 /* Every page of one kind of view that is open, in the sidebars and in the groups:

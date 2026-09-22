@@ -12,7 +12,7 @@ import { bodyOf as openaiBody } from '../src/lib/chat/providers/openai';
 import { bodyOf as geminiBody } from '../src/lib/chat/providers/gemini';
 import { heightOf, partsOf } from '../src/lib/chat/widget';
 import { parseAi, withoutKeys } from '../src/lib/chat/settings';
-import { chatEntries, findInChats } from '../src/lib/search/chats';
+import { chatEntries, currentChats, findInChats } from '../src/lib/search/chats';
 import { chatId } from '../src/lib/types/ids';
 
 /* A chat with one question and one answer, the times set by hand so that the
@@ -176,4 +176,13 @@ test('the first words of a message name a chat and a branch', () => {
   assert.equal(firstWords('one two three', 2), 'one two…');
   assert.equal(firstWords('  '), '');
   assert.equal(spokenIn(newChat(chatId('abcd1234'))).length, 0, 'the silent root is nobody\'s words');
+});
+
+test('the chat corpus reads the session over the disk and drops deleted chats', () => {
+  const disk = { ...conversation(), name: 'old' };
+  const live = { ...conversation(), name: 'new' };
+  const other = { ...newChat(chatId('zzzz0000')), name: 'gone' };
+  const got = currentChats([disk, other], { [live.id]: live }, new Set([live.id]));
+  assert.deepEqual(got.map((c) => c.name), ['new']);
+  assert.equal(chatEntries(got)[0].name, 'new');
 });

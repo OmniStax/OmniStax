@@ -27,11 +27,9 @@
      that a countdown can stand under the icon wherever the panel happens to be. */
   $effect(() => { pomodoro.init(); });
   let drop = $state(false);
-  /* A sidebar view: into the sidebar when it is nowhere, out of it when it is
-     there, and to its tab when the reader has dragged it into a group. */
   const toggleSide = (k: string) => {
     const loc = where(l, k);
-    if (!loc) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
+    if (!loc || (loc.type === 'side' && loc.side !== 'left')) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
     if (loc.type === 'side') {
       if (narrow && layoutStore.overlay !== 'left') { layoutStore.overlay = 'left'; return; }
       layoutStore.apply((x) => closeItem(x, k)); return;
@@ -60,13 +58,10 @@
   <div class="section">
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
-      <button type="button" class:on={open} title="{titleOf(kindOf(k))} (opens a page of its own in a split)" aria-label={titleOf(kindOf(k))}
+      <button type="button" class:on={open} title={titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html iconOf(kindOf(k))}</button>
     {/each}
-    <!-- A chat is not a view: every click opens a chat of its own, which is a
-         tab holding that one conversation, so the button stands with the four
-         that open a page in a split and carries no view kind. -->
-    <button type="button" class:on={chatsOpen} title="New chat (opens a chat of its own in a split)" aria-label="New chat"
+    <button type="button" class:on={chatsOpen} title="New chat" aria-label="New chat"
       onclick={() => newChatTab()}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>

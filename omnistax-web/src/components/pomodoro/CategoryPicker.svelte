@@ -1,8 +1,4 @@
 <script lang="ts">
-  /* What a sitting is filed under. The button says how many categories the
-     sitting has, and opens a small list of every category the reader has made,
-     each with its own hue beside a checkbox. The last row makes a new one: a
-     name, and a grid of fifteen colours to give it. */
   import { CATEGORY_COLORS, type Category } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
   let { picked, onpick, label = 'Categories' }: { picked: readonly string[]; onpick: (ids: readonly string[]) => void; label?: string } = $props();
@@ -20,7 +16,6 @@
     if (id) onpick([...picked, id]);
     name = ''; adding = false; open = false; colour = CATEGORY_COLORS[0];
   };
-  /* A click anywhere else puts the list away, as a menu should. */
   $effect(() => {
     if (!open) return;
     const away = (e: MouseEvent): void => { if (root && !root.contains(e.target as Node)) { open = false; adding = false; } };
@@ -53,15 +48,15 @@
       {#if adding}
         <form class="new" onsubmit={(e) => { e.preventDefault(); make(); }}>
           <!-- svelte-ignore a11y_autofocus -->
-          <input class="name-field" bind:value={name} type="text" autocomplete="off" placeholder="Category name" autofocus />
+          <input class="input name-field" bind:value={name} type="text" autocomplete="off" placeholder="Category name" autofocus />
           <div class="grid">
             {#each CATEGORY_COLORS as c (c)}
               <button type="button" class="swatch" class:on={colour === c} style="--hue:{c}" aria-label="Colour {c}" onclick={() => (colour = c)}></button>
             {/each}
           </div>
           <div class="acts">
-            <button type="submit" class="go">Add</button>
-            <button type="button" onclick={() => { adding = false; name = ''; }}>Cancel</button>
+            <button type="submit" class="btn primary sm">Add</button>
+            <button type="button" class="btn ghost sm" onclick={() => { adding = false; name = ''; }}>Cancel</button>
           </div>
         </form>
       {:else}
@@ -73,7 +68,7 @@
 
 <style>
   .picker{position:relative;min-width:0}
-  .head{display:flex;align-items:center;gap:6px;width:100%;font:inherit;font-size:0.8rem;text-align:left;padding:4px 7px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .head{display:flex;align-items:center;gap:6px;width:100%;min-height:30px;font:inherit;font-size:0.8rem;text-align:left;padding:3px 10px;border:0;border-radius:7px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
   .head:hover{background:var(--soft)}
   .tags{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
   .tag{font-size:0.72rem;padding:1px 6px;border-radius:999px;border:1px solid var(--hue);color:var(--hue);background:color-mix(in srgb,var(--hue) 14%,transparent)}
@@ -89,12 +84,10 @@
   .add{font:inherit;font-size:0.78rem;text-align:left;padding:4px 5px;margin-top:2px;border:0;border-top:1px solid var(--rule);border-radius:0;background:none;color:var(--muted);cursor:pointer}
   .add:hover{color:var(--accent)}
   .new{display:flex;flex-direction:column;gap:6px;padding:6px 5px 2px;border-top:1px solid var(--rule);margin-top:2px}
-  .name-field{font:inherit;font-size:0.8rem;padding:4px 6px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink)}
+  .name-field{height:28px;font-size:0.8rem}
   .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
   .swatch{width:100%;aspect-ratio:1;border-radius:5px;border:2px solid transparent;background:var(--hue);cursor:pointer;padding:0}
   .swatch.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--panel) inset}
   .acts{display:flex;gap:6px}
-  .acts button,.go{font:inherit;font-size:0.78rem;padding:3px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
-  .acts button.go{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
-  button:focus-visible{outline:2px solid var(--accent)}
+  .head:focus-visible,.add:focus-visible{outline:2px solid var(--accent)}
 </style>

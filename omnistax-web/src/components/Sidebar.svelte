@@ -1,6 +1,4 @@
 <script lang="ts">
-  /* The sidebar, down the left beside the rail: a stack of view boxes and a
-     grip to resize it. Disappears when it holds nothing. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { openSide, openTab, setWidth } from '../lib/layout/model';
   import { dropzone } from '../lib/layout/drag.svelte';
@@ -31,7 +29,7 @@
 <style>
   .sidebar{grid-area:sl;display:flex;font-family:var(--sans);font-size:0.86rem;background:var(--bg);border-right:1px solid var(--rule);min-width:0;overflow:hidden}
   .sidebar[hidden]{display:none}
-  .stack{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column}
+  .stack{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column}
   .grip{width:6px;cursor:col-resize;flex:none;margin:0 -3px;z-index:2}
   .grip:hover{background:var(--soft2)}
   .sidebar.drop .stack{box-shadow:inset 0 0 0 2px var(--muted)}

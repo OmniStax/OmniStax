@@ -1,12 +1,4 @@
 <script lang="ts">
-  /* One chat in a tab of its own. Across the top: the chat's name, which a
-     click renames, the branches toggle, and the fork trail. Below it the
-     transcript — the path from the root to the leaf — and at the foot the
-     composer with the chips the model will be shown.
-
-     When a chat opens, the section being read is pinned as the first chip; the
-     reader may take it away, and moving to another section offers a chip for
-     that one rather than swapping it behind their back. */
   import { tick } from 'svelte';
   import Bubble from './Bubble.svelte';
   import Composer from './Composer.svelte';
@@ -33,11 +25,7 @@
   const path = $derived(chat ? transcript(chat) : []);
   const streaming = $derived(chats.streaming(chatId));
 
-  /* The record is read once per tab; a chat already open in another tab is the
-     same value, so the two tabs are one conversation. */
   $effect(() => { if (!chats.get(chatId)) void chats.load(chatId); });
-
-  /* ── the chips ─────────────────────────────────────────────────────────── */
 
   const chipFor = (id: string): Chip | null => {
     const entry = registry.entry(sectionId(id));
@@ -46,31 +34,24 @@
   };
 
   let chips = $state.raw<readonly Chip[]>([]);
-  /* Which section the pinned chip stands for, so that moving away is noticed
-     once and not on every scroll. */
   let pinnedSection = $state<string | null>(null);
   let started = false;
   $effect(() => {
     if (started) return;
     started = true;
     const id = focus.section;
-    /* The text is in the section's own document, which may still be loading;
-       the chip is put up either way and filled in when it lands. */
     void registry.load(sectionId(id)).catch(() => {}).then(() => {
       const c = chipFor(id);
       if (c) { chips = withChip(chips, c); pinnedSection = id; }
     });
   });
 
-  /* Moving to another section is offered, never taken. */
   const offer = $derived.by((): Chip | null => {
     const here = focus.section;
     if (here === pinnedSection || chips.some((c) => c.kind === 'section' && c.key === here)) return null;
     return chipFor(here);
   });
   const takeOffer = (): void => { const c = offer; if (!c) return; chips = withChip(chips, c); pinnedSection = c.key; };
-
-  /* ── the words waiting from the highlight bar ──────────────────────────── */
 
   let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
   $effect(() => {
@@ -79,8 +60,6 @@
     const c = composer;
     void tick().then(() => c.insert(pending.take(chatId)));
   });
-
-  /* ── the name ──────────────────────────────────────────────────────────── */
 
   let renaming = $state(false);
   let draft = $state('');
@@ -94,8 +73,6 @@
   const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
 
   let branches = $state(false);
-
-  /* ── following a link out of an answer ─────────────────────────────────── */
 
   const follow = (target: string): void => {
     const t = parseLink(target.replace(/^note:/, ''));
@@ -120,16 +97,13 @@
       <button type="button" class="name" title="Rename this chat" onclick={startRename}>{chat?.name || 'New chat'}</button>
     {/if}
     <span class="model">{ai.model || 'no model chosen'}</span>
-    <button type="button" class="toggle" class:on={branches} onclick={() => (branches = !branches)} title="The branches of this chat">Branches</button>
+    <button type="button" class="toggle" class:on={branches} aria-pressed={branches} onclick={() => (branches = !branches)}>Branches</button>
   </header>
 
   {#if chat}
     {#if branches}<Leaves {chatId} {chat} />{/if}
     <Crumbs {chatId} {chat} />
     <div class="messages">
-      {#if path.length === 0}
-        <p class="empty">Ask about what you are reading. The model is shown only what stands as a chip below.</p>
-      {/if}
       {#each path as m (m.id)}
         <Bubble {chatId} {chat} message={m} onfollow={follow} />
       {/each}
@@ -150,9 +124,7 @@
   .name-input{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:5px;padding:2px 5px;margin-left:-6px}
   .name-input:focus{outline:none}
   .model{flex:none;font-size:0.72rem;color:var(--muted)}
-  .toggle{flex:none;font:inherit;font-size:0.78rem;color:var(--muted);background:var(--soft);border:1px solid var(--rule);border-radius:5px;padding:3px 10px;cursor:pointer}
-  .toggle.on{color:var(--ink);border-color:var(--accent)}
   .messages{flex:1;min-height:0;overflow:auto;padding:4px 40px 20px}
-  .empty{color:var(--muted);font-size:0.9rem;margin:18px 0}
+  .empty{color:var(--muted);font-size:0.86rem;margin:18px 0}
   @media (max-width:900px){ .chat-head{padding:10px 18px 8px} .messages{padding:4px 18px 20px} }
 </style>

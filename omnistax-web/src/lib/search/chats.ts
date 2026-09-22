@@ -1,13 +1,4 @@
-/* The chats as something the search can read. A book comes to the search as a
-   corpus of what the book names and what it says; a chat is neither, so it is
-   a corpus of its own: one entry per message, found by the words in it, and a
-   hit that opens the chat at that message's branch.
-
-   It stands apart from `model.ts` and `index.ts` on purpose. The search view is
-   being reworked beside this to read a list of sources rather than a list of
-   books, and when that lands this module is one more source in it; until then
-   it is a pure function the view can call without anything else moving, and
-   nothing in the book search has been disturbed to make room for it. */
+/* One entry per message of every chat; a hit opens the chat at that message's branch. */
 import { excerpt, wordsOf } from './model';
 import type { Piece } from '../commands/pieces';
 import { spokenIn, type Chat, type MessageId, type Role } from '../chat/model';
@@ -23,17 +14,19 @@ export type ChatHit = {
   readonly excerpt: readonly Piece[];
 };
 
-/* One entry per message with words in it: the chat's name comes along so a hit
-   can say which conversation it was in without reading the chat again. */
 export type ChatEntry = { readonly chat: ChatId; readonly name: string; readonly message: MessageId; readonly role: Role; readonly at: number; readonly text: string };
+
+/* What the store holds this session outruns what was read from disk; a chat gone from the index was deleted. */
+export const currentChats = (stored: readonly Chat[], open: Readonly<Record<string, Chat>>, live: ReadonlySet<string>): readonly Chat[] => {
+  const byId = new Map<string, Chat>(stored.map((c) => [c.id, c]));
+  Object.values(open).forEach((c) => byId.set(c.id, c));
+  return [...byId.values()].filter((c) => live.has(c.id));
+};
 
 export const chatEntries = (chats: readonly Chat[]): readonly ChatEntry[] =>
   chats.flatMap((c) => spokenIn(c).map((m) => ({ chat: c.id, name: c.name, message: m.id, role: m.role, at: m.at, text: m.text })));
 
-/* Every word of the query must be in the message, as it must be in a block of
-   the book's prose; the newest messages come first, since a reader looking for
-   something they were told is usually looking for the last time they were told
-   it. `cap` keeps the list readable beside the book's own hits. */
+/* Newest first: a reader looking for something they were told usually wants the last time. */
 export const CHAT_CAP = 40;
 
 export const findInChats = (entries: readonly ChatEntry[], query: string, cap = CHAT_CAP): readonly ChatHit[] => {

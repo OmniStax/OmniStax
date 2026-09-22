@@ -1,32 +1,22 @@
 <script lang="ts">
-  /* The search in the rail: one box over every textbook of the library. Under
-     the box the reader chooses what to look for — everything, or only the
-     concepts, the definitions, the formulas or the prose — and the hits stand
-     below, book by book, the things a book names before the prose that merely
-     mentions the words. A hit is gone to with a click, or with Enter on the
-     marked one: in the book being read it opens the page as a tab and lands on
-     the thing; in another book it is a link out to that page. The library is
-     read the first time this view opens and kept for the session. */
   import { onMount } from 'svelte';
   import { searchStore } from '../../lib/search/store.svelte';
   import { FILTERS, FILTER_LABEL, type Filter, type Hit } from '../../lib/search/model';
   import { EMPTY, buildIndex } from '../../lib/search/index';
   import { goHit } from '../../lib/search/go';
   import { fileCorpus } from '../../lib/search/filecorpus.svelte';
-  import { findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
+  import { chatCorpus } from '../../lib/search/chatcorpus.svelte';
+  import { showChatAt } from '../../lib/chat/open.svelte';
+  import { countFound, findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
   import { openFile } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { pageLabel } from '../../lib/content/roles';
   import { ICON } from '../../lib/icons';
   import { FIG } from '../../lib/fig/figlib';
   import { mathHtml } from '../actions/math';
-  /* how long the box must stand still before the list is redrawn, and how many hits
-     are drawn at a time: the rest wait behind a button so a broad query stays light */
   const PAUSE = 120;
   const PAGE = 60;
   let query = $state('');
-  /* what the list is showing: the box's text once it has stood still, so that a
-     letter typed mid-word costs nothing */
   let asked = $state('');
   let filter = $state<Filter>('all');
   let sel = $state(0);
@@ -34,30 +24,27 @@
   let input = $state<HTMLInputElement | null>(null);
   let list = $state<HTMLElement | null>(null);
   const corpora = $derived(searchStore.loaded);
-  /* The index is built once for the library as it stands, not once per keystroke. */
   const index = $derived(corpora.length ? buildIndex(corpora) : EMPTY);
-  /* What the search reads: the books, and beside them the reader's own files.
-     One list of sources, so that a third kind of thing is one more entry in it
-     and not a change to the books' own search. */
   const sources = $derived<readonly Source[]>([
     { kind: 'books', rows: corpora },
     { kind: 'files', rows: fileCorpus.entries },
+    { kind: 'chats', rows: chatCorpus.entries },
   ]);
   const results = $derived(asked ? findAll(asked, sources, index, filter) : NOTHING_FOUND);
   const found = $derived(results.books);
   const hits = $derived(found.hits);
   const fileHits = $derived(results.files);
+  const chatHits = $derived(results.chats);
   $effect(() => {
     const q = query.trim();
     if (q === asked) return;
     const t = setTimeout(() => (asked = q), PAUSE);
     return () => clearTimeout(t);
   });
-  /* The hits by book, in the order the books were read, each book named where more than one has anything. */
   const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, urls: c.urls, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
   const failed = $derived(searchStore.books.filter((b) => searchStore.status[b] === 'failed'));
   $effect(() => { asked; filter; sel = 0; shown = PAGE; });
-  onMount(() => { void searchStore.loadAll(); void fileCorpus.load(); input?.focus(); });
+  onMount(() => { void searchStore.loadAll(); void fileCorpus.load(); void chatCorpus.load(); input?.focus(); });
   const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h, corpora.find((c) => c.book === h.book)?.urls ?? {}); };
   const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
@@ -68,7 +55,6 @@
     if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return; }
     if (e.key === 'Enter') { e.preventDefault(); go(sel); }
   };
-  /* The marked row stays in sight as the arrows walk past the edge of the list. */
   $effect(() => {
     const r = list?.querySelector<HTMLElement>(`[data-hit="${sel}"]`); if (!r) return;
     r.scrollIntoView({ block: 'nearest' });
@@ -77,6 +63,11 @@
   /* A symbol is set from the book's own table where this is the book being read; another book's is set as it is keyed. */
   const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => FIG.tex(node, x.book === registry.manifest.id ? registry.manifest.symbols[x.sym] ?? x.sym : x.sym); set(v); return { update: set }; };
   const KIND: Readonly<Record<Hit['kind'], string>> = { concept: 'concept', definition: 'definition', formula: 'formula', text: 'text' };
+  const DAY = 86_400_000;
+  const when = (t: number): string => {
+    const days = Math.floor((Date.now() - t) / DAY);
+    return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days < 30 ? `${days} days ago` : new Date(t).toLocaleDateString();
+  };
   const where = (h: Hit): string => h.kind === 'text' ? pageLabel(h.page) : h.kind === 'concept' ? h.concept.section : h.kind === 'formula' ? h.equation.section : h.def.kind === 'symbol' ? h.def.symbol.section : h.def.term.section;
 </script>
 
@@ -94,7 +85,7 @@
   {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
   {#if !asked}
     <div class="hint">Every textbook of the library: its text, its concepts, its definitions and its formulas.</div>
-  {:else if !hits.length && !fileHits.length && !searchStore.busy}
+  {:else if !countFound(results) && !searchStore.busy}
     <div class="hint">Nothing matches.</div>
   {:else}
     <div class="hits" bind:this={list}>
@@ -122,14 +113,21 @@
           </button>
         {/each}
       {/each}
-      <!-- The reader's own files stand after the books: a page of a PDF is
-           prose like the book's prose, and a hit opens the file at it. -->
       {#if fileHits.length}
         <div class="eyebrow book">Your Files</div>
         {#each fileHits as f (`${f.file}:${f.page}`)}
           <button type="button" class="hit k-text" onclick={() => void openFile(f.file, f.page)}>
             <span class="where">{f.name} · page {f.page}</span>
             <span class="line">{#each f.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
+          </button>
+        {/each}
+      {/if}
+      {#if chatHits.length}
+        <div class="eyebrow book">Chats</div>
+        {#each chatHits as c (`${c.chat}:${c.message}`)}
+          <button type="button" class="hit k-text" onclick={() => void showChatAt(c.chat, c.message)}>
+            <span class="where">{c.name || 'Chat'} · {c.role === 'user' ? 'you' : 'AI'} · {when(c.at)}</span>
+            <span class="line">{#each c.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           </button>
         {/each}
       {/if}
@@ -148,7 +146,6 @@
   input{flex:1;min-width:0;border:0;padding:6px 0;font:inherit;font-size:0.84rem;background:transparent;color:var(--ink);outline:none}
   input::placeholder{color:var(--muted)}
   input::-webkit-search-cancel-button{appearance:none}
-  /* what to look for, as a row of chips; the chosen one is inked */
   .filters{display:flex;flex-wrap:wrap;gap:4px}
   .chip{font:inherit;font-size:0.72rem;padding:2px 8px;border:1px solid var(--rule);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
   .chip:hover{color:var(--ink);background:var(--soft)}
@@ -170,7 +167,6 @@
   .line{font-size:0.8rem;line-height:1.4;overflow-wrap:anywhere}
   .line b{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--warm) 22%,transparent);border-radius:2px}
   .name{font-weight:600}
-  /* a concept's why and a term's definition are cut to a few lines; the page has the rest */
   .why{color:var(--muted);font-size:0.74rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .eq :global(.katex){font-size:1em}
   .sym :global(.katex){font-size:1.1em}

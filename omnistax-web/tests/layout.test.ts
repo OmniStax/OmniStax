@@ -15,10 +15,10 @@ test('an introduction page opens alone, since it sets no exercises', () => {
   const l = defaultLayout(docItem(sectionId('2.intro'), 'text'));
   assert.deepEqual(l.groups[0].tabs, ['doc:2.intro/text']);
 });
-test('default layout opens the text alone, and the explorer and the clock in the sidebar', () => {
+test('default layout opens the text alone, and the explorer in the sidebar', () => {
   const l = defaultLayout();
   assert.deepEqual(l.groups[0].tabs, [text]); assert.equal(l.groups[0].active, text);
-  assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro']); assert.deepEqual(l.sides.right.items, []);
+  assert.deepEqual(l.sides.left.items, ['view:explorer']); assert.deepEqual(l.sides.right.items, []);
 });
 test('a page of its own opens alone', () => {
   const l = defaultLayout(pageItem('about'));
@@ -58,10 +58,15 @@ test('openTab with before reorders', () => {
 test('a view opened in a sidebar leaves every other place', () => {
   const l = openSide(openTab(defaultLayout(), notes, 0), notes, 'left');
   assert.equal(where(l, notes)?.type, 'side'); assert.deepEqual(groupsWith(l, notes), []); assert.equal(l.home[notes], 'left');
+  assert.deepEqual(l.sides.left.items, [notes], 'the sidebar shows one view; the explorer leaves it');
+});
+test('a saved sidebar with several views keeps its first', () => {
+  const l = parseLayout({ sides: { left: { width: 250, items: ['view:explorer', 'view:pomodoro'] }, right: { width: 300, items: [] } }, groups: [{ tabs: [text], active: text }] }, () => true);
+  assert.deepEqual(l!.sides.left.items, ['view:explorer']);
 });
 test('a view that no sidebar holds is asked for there and opens as a tab', () => {
   const l = openSide(defaultLayout(), map, 'left');
-  assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro'], 'the concept map is not a sidebar view');
+  assert.deepEqual(l.sides.left.items, ['view:explorer'], 'the concept map is not a sidebar view');
   assert.equal(where(l, map)?.type, 'group'); assert.equal(l.groups[0].active, map);
 });
 test('the rail draws the four sidebar views first and the four group views below, exercises above the map', () => {
@@ -81,7 +86,7 @@ test('openInSplit opens the view beside what is being read, and finds it where i
 test('openInSplit takes a view out of the sidebar and gives it a group', () => {
   const side = openSide(defaultLayout(), notes, 'left');
   const l = openInSplit(side, notes);
-  assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, ['view:explorer', 'view:pomodoro']);
+  assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, []);
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
   const bare = ensureOwn(defaultLayout(pageItem('about')), pageItem('book'));

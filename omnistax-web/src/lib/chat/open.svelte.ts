@@ -7,6 +7,7 @@ import { layoutStore } from '../layout/store.svelte';
 import { openInSplit, split } from '../layout/model';
 import { chatItem, itemKey, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
+import type { MessageId } from './model';
 
 /* A chat of its own, opened in a split to the right of what is being read,
    like a page of one of the middle four views: every asking opens another. */
@@ -49,3 +50,9 @@ export const askAi = (selection: string): void => {
 };
 
 export const chatTabKey = (id: ChatId): string => itemKey(chatItem(id));
+
+export const showChatAt = async (id: ChatId, message: MessageId): Promise<void> => {
+  showChat(id);
+  await chats.load(id);
+  chats.goTo(id, message);
+};
