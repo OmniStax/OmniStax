@@ -14,7 +14,7 @@ import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } f
 import katex from 'katex';
 import { splitAlt } from './width';
 export { setImageWidth } from './width';
-import { isBook, linkInner, parseLink, type BookTarget, type ConceptRef, type EquationRef, type FigureRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
+import { isBook, linkInner, parseLink, type BookTarget, type ChatRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
 export type NoteRef = string;    /* the id of a note document, what a resolved note link points at */
 export type AssetRef = string;   /* the id of a stored image */
@@ -37,6 +37,9 @@ export type SymbolInfo = { readonly sym: string; readonly tex: string; readonly 
    a simulation draws itself with a script and has none, and the note shows the
    words alone rather than trying to run it. */
 export type FigureInfo = { readonly eyebrow: string; readonly title: string; readonly caption: string; readonly section: string; readonly src?: string };
+/* All a stub card can say about a file, a drawing, a chat or an exercise until
+   the feature that owns it lands: what the reader calls it. */
+export type StubInfo = { readonly name: string };
 export type ConceptInfo = { readonly name: string; readonly kind: 'idea' | 'result' | 'skill'; readonly why?: string; readonly section: string; readonly eqTex?: string; readonly placeholder: boolean };
 
 /* Everything the renderer cannot know by itself. Each lookup answers null when
@@ -55,6 +58,14 @@ export type Resolver = {
   symbol(section: SectionRef, sym: SymbolRef): SymbolInfo | null;
   concept(section: SectionRef, id: ConceptRef): ConceptInfo | null;
   figure(section: SectionRef, id: FigureRef): FigureInfo | null;
+  /* The four things whose features have not landed yet. A resolver that knows
+     nothing of them leaves them out altogether and a link to one renders as
+     the words it was written with; one that knows them hands back a name, and
+     the stub card shows it until the real card is built. */
+  file?(id: FileRef): StubInfo | null;
+  drawing?(id: DrawingRef): StubInfo | null;
+  chat?(id: ChatRef): StubInfo | null;
+  exercise?(section: SectionRef, id: ExerciseRef): StubInfo | null;
 };
 
 const esc = (s: string): string =>
@@ -151,7 +162,35 @@ const bookEmbed = (t: BookTarget & { readonly alias?: string }, r: Resolver): st
 /* A highlight is shown whole, as a quote card, whether it was written as a
    link or as an embed; the reader means the same thing by both, and so it is
    with the four things the book itself holds. */
-const renderLink = (link: Link, r: Resolver): string => {
+/* ── what the reader owns, before the features land ─────────────────────── */
+
+/* A file, a drawing, a chat and one exercise on its own are named in a note
+   long before the tabs that show them exist, so the renderer answers for them
+   rather than leaving a note half drawn. A link is the words and an anchor the
+   shell can follow once it knows how; an embed is a card saying what kind of
+   thing is meant, which the feature replaces with the thing itself. */
+const STUB_EYEBROW: Readonly<Record<'file' | 'drawing' | 'chat' | 'exercise', string>> =
+  { file: 'File', drawing: 'Drawing', chat: 'Chat', exercise: 'Exercise' };
+type StubLink = Extract<Link, { readonly kind: 'file' | 'drawing' | 'chat' | 'exercise' }>;
+const isStub = (t: Link): t is StubLink => t.kind in STUB_EYEBROW;
+
+const stubInfo = (t: StubLink, r: Resolver): StubInfo | null =>
+  t.kind === 'file' ? r.file?.(t.file) ?? null
+    : t.kind === 'drawing' ? r.drawing?.(t.id) ?? null
+      : t.kind === 'chat' ? r.chat?.(t.chat) ?? null
+        : r.exercise?.(t.section, t.id) ?? null;
+
+const stubLink = (t: StubLink, r: Resolver, embed: boolean): string => {
+  const inner = linkInner(t);
+  const name = stubInfo(t, r)?.name;
+  if (!embed) return anchor(inner, t.alias ?? name ?? inner);
+  return `<div class="stub-embed kind-${t.kind}" data-embed="${esc(inner)}">` +
+    `<div class="embed-eyebrow">${esc(STUB_EYEBROW[t.kind])}</div>` +
+    `<div class="embed-body">${esc(t.alias ?? name ?? inner)}</div></div>`;
+};
+
+const renderLink = (link: Link, r: Resolver, embed = false): string => {
+  if (isStub(link)) return stubLink(link, r, embed);
   if (link.kind === 'highlight') return highlightEmbed(link.id, r, link.alias ?? `hl:${link.id}`);
   if (link.kind === 'figure') return figureEmbed(link, r);
   if (isBook(link)) return bookEmbed(link, r);
@@ -229,15 +268,25 @@ const WIKI = /^(!?)\[\[([^\]\n]+)\]\]/;
    grammar, narrowed to what a card is made of, so that a note named `eq:later`
    stays a note. */
 const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):\d+\.\d+:[^\]\n]+|fig:\d+\.\w+:[^\]\n]+`;
+/* The four stubs become cards only when they are written as embeds: a plain
+   link to one is words in a sentence and stays in its paragraph. */
+const STUB_EMBED = String.raw`(?:file|drawing|chat):[^\]\n]+|ex:\d+\.\w+:[^\]\n]+`;
+const BLOCK_LINK = String.raw`(?:!?\[\[(?:${CARD_LINK})\]\]|!\[\[(?:${STUB_EMBED})\]\])`;
+
+/* Whether the bang was written: an embed shows the thing whole, a link names it. */
+const isEmbed = (token: Tokens.Generic): boolean => (token as Tokens.Generic & { embed?: boolean }).embed === true;
 
 const cardBlock = (r: Resolver): TokenizerAndRendererExtension => ({
   name: 'cardBlock', level: 'block',
-  start: (src: string) => { const m = new RegExp(String.raw`\n!?\[\[(?:${CARD_LINK})\]\][ \t]*(?:\n|$)`).exec(src); return m ? m.index + 1 : undefined; },
+  start: (src: string) => { const m = new RegExp(String.raw`\n${BLOCK_LINK}[ \t]*(?:\n|$)`).exec(src); return m ? m.index + 1 : undefined; },
   tokenizer(src: string) {
-    const m = new RegExp(String.raw`^!?\[\[(${CARD_LINK})\]\][ \t]*(?:\n+|$)`).exec(src);
-    return m ? { type: 'cardBlock', raw: m[0], text: m[1] } : undefined;
+    const m = new RegExp(String.raw`^(!?)\[\[(${CARD_LINK}|${STUB_EMBED})\]\][ \t]*(?:\n+|$)`).exec(src);
+    if (!m) return undefined;
+    /* A stub written without the bang is not a block of its own. */
+    if (m[1] !== '!' && !new RegExp(String.raw`^(?:${CARD_LINK})$`).test(m[2])) return undefined;
+    return { type: 'cardBlock', raw: m[0], text: m[2], embed: m[1] === '!' };
   },
-  renderer: (token) => renderLink(parseLink(textOf(token)), r),
+  renderer: (token) => renderLink(parseLink(textOf(token)), r, isEmbed(token)),
 });
 
 const wikiLink = (r: Resolver): TokenizerAndRendererExtension => ({
@@ -245,9 +294,9 @@ const wikiLink = (r: Resolver): TokenizerAndRendererExtension => ({
   start: (src: string) => { const i = src.search(/!?\[\[/); return i < 0 ? undefined : i; },
   tokenizer(src: string) {
     const m = WIKI.exec(src);
-    return m ? { type: 'wikiLink', raw: m[0], text: m[2] } : undefined;
+    return m ? { type: 'wikiLink', raw: m[0], text: m[2], embed: m[1] === '!' } : undefined;
   },
-  renderer: (token) => renderLink(parseLink(textOf(token)), r),
+  renderer: (token) => renderLink(parseLink(textOf(token)), r, isEmbed(token)),
 });
 
 /* ── the whole ──────────────────────────────────────────────────────────── */

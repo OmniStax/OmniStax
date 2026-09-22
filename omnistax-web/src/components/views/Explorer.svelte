@@ -168,7 +168,7 @@
     };
     /* Books first, each opening into the book itself, and the catalogue last,
        where a reader looks for one they have not got yet. */
-    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'Books', icon: ICON.book, expandable: false, open: true, dim: false, active: false });
+    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'OmniBooks', icon: ICON.book, expandable: false, open: true, dim: false, active: false });
     explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
       const bookId = e.bookId ?? '';
       const key = bookKey(bookId);
@@ -177,7 +177,7 @@
       if (open) book(bookId, 2);
     });
     out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find new textbooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
-    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Notes', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
+    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Your Files', icon: ICON.folder, expandable: false, open: true, dim: false, active: false });
     walk(null, 1);
     return out;
   });
@@ -288,7 +288,7 @@
     const m = menu;
     if (!m) return [];
     const e = m.entry;
-    if (e.kind === 'book') return [{ label: 'Remove from Books', run: () => removeBookRow(e) }];
+    if (e.kind === 'book') return [{ label: 'Remove from OmniBooks', run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       { label: 'New note here', run: () => newNote(inside) },

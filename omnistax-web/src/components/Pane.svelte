@@ -12,6 +12,7 @@
   import View from './views/View.svelte';
   import NoteTab from './notes/NoteTab.svelte';
   import Sheet from './sheets/Sheet.svelte';
+  import Placeholder from './ui/Placeholder.svelte';
   let { groupKey, groupIndex, itemKey, active }: { groupKey: GroupKey; groupIndex: number; itemKey: string; active: boolean } = $props();
   const id = $derived(parseItemKey(itemKey));
   const holds = (g: GroupKey, k: string) => layoutStore.layout.groups.some((x) => x.key === g && x.tabs.includes(k));
@@ -32,6 +33,14 @@
     <NoteTab noteId={id.note} {groupKey} />
   {:else if id && id.kind === 'sheet'}
     <div class="sheet-pane"><Sheet id={id.sheet} /></div>
+  {:else if id && id.kind === 'file'}
+    <Placeholder kind="file" id={id.file} />
+  {:else if id && id.kind === 'drawing'}
+    <Placeholder kind="drawing" id={id.drawing} />
+  {:else if id && id.kind === 'chat'}
+    <Placeholder kind="chat" id={id.chat} />
+  {:else if id && id.kind === 'ex'}
+    <Placeholder kind="exercise" id={`${id.section}/${id.ex}`} />
   {:else if el}
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
   {:else if status === 'failed'}

@@ -159,7 +159,7 @@ A "Storage" block in Settings, backed by `src/lib/storage/health.ts`:
 Each is a commit onto the working branch with `npm run check`, `npm test`
 and `npm run build` clean, plus the browser check named.
 
-- [ ] 0. Shared seams: `ItemId` kinds `file`, `drawing`, `chat` and `ex`
+- [x] 0. Shared seams: `ItemId` kinds `file`, `drawing`, `chat` and `ex`
   (`ex:<section>/<exId>`, the exercise as a tab, which #17 needs) with keys,
   parsers and a Pane placeholder for each; `EntryKind` `file` and `drawing`
   with RANK and migration; link prefixes `file`, `drawing`, `chat`, `ex` in
@@ -183,3 +183,21 @@ and `npm run build` clean, plus the browser check named.
   a word that only the fixture PDF holds.
 
 ## Progress
+
+**2026-09-22 — milestone 0, the shared seams.** `ItemId` now holds `file`,
+`drawing`, `chat` and `ex`, with branded `FileId`, `DrawingId` and `ChatId`
+beside `NoteId`, one `base36(8)` generator behind all four of the reader's own
+ids, keys and parsers that round-trip, and `sectionOfItem` answering for an
+exercise. `EntryKind` gains `file` and `drawing`, each naming its record in a
+field of its own the way a book names its book; RANK is folder, book, note,
+drawing, file; the storage boundary refuses a row of those kinds that names no
+record, and the old User migration is untouched. `links.ts` parses `file:<id>`,
+`file:<id>:p<n>`, `drawing:<id>`, `chat:<id>`, `chat:<id>:<msg>` and
+`ex:<section>:<exId>`, and writes each of them back. The renderer answers for
+all four: a link is an anchor carrying the inner text, an embed is a stub card
+with an eyebrow naming the kind, and a `Resolver` may now lend one its name
+through the optional `file`, `drawing`, `chat` and `exercise` lookups. The Pane
+mounts `ui/Placeholder.svelte` for each new kind and the tab reads its name
+from the explorer row. The roots read OmniBooks and Your Files. The stub card
+is deliberately unstyled: milestones 1 to 3 bring the real cards and their CSS
+with them.

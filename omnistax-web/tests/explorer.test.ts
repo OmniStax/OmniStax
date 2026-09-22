@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addBook, addFolder, addNote, bookKey, chapterKey, childrenOf, descendants, emptyTree, entryById,
+  addBook, addDrawing, addFile, addFolder, addNote, bookKey, chapterKey, childrenOf, descendants, emptyTree, entryById,
   entryId, isExpanded, migrateTree, move, newEntryId, parseTree, pathOf, remove, rename, sectionKey, toggleExpanded, uniqueName,
   type Tree,
 } from '../src/lib/explorer/model';
@@ -164,4 +164,36 @@ test('an old User tree migrates into the two roots, losing nothing', () => {
   /* Migrating again changes nothing. */
   assert.deepEqual(migrateTree(JSON.parse(JSON.stringify(t))), t);
   assert.equal(migrateTree('not a tree'), null);
+});
+
+test('a drawing and a file sit beside the notes, name their record and move like a note', () => {
+  const f = id('f1');
+  let t = addFolder(emptyTree(), null, 'Physics', f);
+  t = addDrawing(t, null, id('d1'), 'Free body');
+  t = addFile(t, null, id('x1'), 'Lab handout.pdf');
+  t = addNote(t, null, id('n1'), 'Beats');
+  assert.equal(entryById(t, id('x1'))?.fileId, 'x1', 'a file names its record as a book names its book');
+  assert.equal(entryById(t, id('d1'))?.drawingId, 'd1');
+  /* Folders lead, then the books, then the notes, the drawings and the files. */
+  assert.deepEqual(names(t, null), ['Physics', 'Beats', 'Free body', 'Lab handout.pdf']);
+  assert.equal(entryById(move(t, id('x1'), f), id('x1'))?.parent, f, 'a file goes into a folder');
+  assert.equal(entryById(move(t, id('d1'), f), id('d1'))?.parent, f);
+  assert.equal(move(t, id('d1'), id('n1')), t, 'and into nothing else');
+});
+
+test('a saved drawing or file reads back, and one that names no record is refused', () => {
+  const raw = {
+    entries: [
+      { id: 'd1', parent: null, kind: 'drawing', name: 'Free body', drawingId: 'd1' },
+      { id: 'x1', parent: null, kind: 'file', name: 'Handout', fileId: 'x1' },
+    ],
+    expanded: [],
+  };
+  const t = migrateTree(raw);
+  assert.ok(t);
+  assert.equal(t.entries.length, 2);
+  assert.deepEqual(migrateTree(JSON.parse(JSON.stringify(t))), t, 'and reading it again changes nothing');
+  assert.equal(parseTree({ entries: [{ id: 'x1', parent: null, kind: 'file', name: 'Handout' }], expanded: [] }), null);
+  assert.equal(parseTree({ entries: [{ id: 'd1', parent: null, kind: 'drawing', name: 'Sketch' }], expanded: [] }), null);
+  assert.equal(parseTree({ entries: [{ id: 'z1', parent: null, kind: 'chat', name: 'Chat' }], expanded: [] }), null, 'a chat is not a row of the tree');
 });

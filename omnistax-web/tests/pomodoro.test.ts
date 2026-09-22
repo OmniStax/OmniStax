@@ -108,7 +108,7 @@ test('only an ended session is written down, and it says whether it got there', 
 
 test('the history keeps the newest first and no more than its cap', () => {
   const one = (i: number) => ({ id: `#${i}`, start: i, end: i + MIN, minutes: 1, summary: `#${i}`, completed: true, mode: 'pomodoro' as const, categories: [] });
-  const log = [3, 2, 1].reduce<readonly ReturnType<typeof one>[]>((acc, i) => logged(acc, one(i), 2), []);
+  const log = [3, 2, 1].reduce<readonly Pomodoro[]>((acc, i) => logged(acc, one(i), 2), []);
   assert.deepEqual(log.map((p) => p.summary), ['#1', '#2']);
 });
 

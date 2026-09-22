@@ -7,6 +7,8 @@
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
 import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, bookId, sectionId, itemKey, figItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
+import { explorer } from '../explorer/store.svelte';
+import { entryId } from '../explorer/model';
 import type { Fig } from '../fig/figlib';
 import { type ThreeUrl, ensureThree, hasThree, needsThree } from '../fig/three';
 import { ICON } from '../icons';
@@ -27,6 +29,10 @@ const bulkWorthwhile = (wanted: number, chapters: number): boolean => wanted > c
 
 /* A figure's tab title: its local id without the sim-/fig- prefix, "sim-plane" → "plane". */
 const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').replace(/-/g, ' ');
+/* What the reader calls one of their own things: the name on its explorer row,
+   since a file, a drawing and a chat share their id with the row that holds
+   them, and nothing where the tree has no such row. */
+const entryName = (id: string): string | undefined => explorer.tree.entries.find((e) => e.id === entryId(id))?.name;
 
 export type SectionStatus = 'loaded' | 'loading' | 'failed';
 export type SectionState = {
@@ -93,6 +99,13 @@ class Registry {
     if (id.kind === 'view') return id.view;
     if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.manifest.title || 'The book';
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
+    /* A file, a drawing and a chat are the reader's own, and the name they
+       know one by is the one on its row of the explorer; a tab opened for
+       something the tree has no row for falls back to its key. */
+    if (id.kind === 'file') return entryName(id.file) ?? itemKey(id);
+    if (id.kind === 'drawing') return entryName(id.drawing) ?? itemKey(id);
+    if (id.kind === 'chat') return entryName(id.chat) ?? itemKey(id);
+    if (id.kind === 'ex') return `${id.section} ${id.ex}`;
     if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
     /* A section's tab carries the name the reader knows it by — "7.6 Momentum

@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sectionOfUrl } from '../src/lib/content/urls';
+import {
+  chatId, chatItem, drawingId, drawingItem, exItem, fileId, fileItem, itemKey, newChatId, newDrawingId, newFileId,
+  parseItemKey, sectionId, sectionOfItem,
+} from '../src/lib/types/ids';
 import type { BookManifest, SectionEntry } from '../src/lib/content/schema';
 
 /* A book of two chapters, one section of which was never built. */
@@ -32,4 +36,44 @@ test('everything else is nobody: an unbuilt section, a chapter, a front page, an
   assert.equal(sectionOfUrl(MANIFEST, '/college-physics-2e/'), null);
   assert.equal(sectionOfUrl(MANIFEST, '/'), null);
   assert.equal(sectionOfUrl(MANIFEST, '/other-book/ch02/2.1/'), null);
+});
+
+/* ── the keys of the things the reader owns ─────────────────────────────── */
+
+test('a fresh file, drawing and chat id is eight characters of base 36', () => {
+  for (let i = 0; i < 200; i++) {
+    assert.match(newFileId(), /^[a-z0-9]{8}$/);
+    assert.match(newDrawingId(), /^[a-z0-9]{8}$/);
+    assert.match(newChatId(), /^[a-z0-9]{8}$/);
+  }
+});
+
+test('a file, a drawing, a chat and an exercise each write a key and read back as themselves', () => {
+  const pairs = [
+    ['file:abcd1234', fileItem(fileId('abcd1234'))],
+    ['drawing:abcd1234', drawingItem(drawingId('abcd1234'))],
+    ['chat:abcd1234', chatItem(chatId('abcd1234'))],
+    ['ex:2.1/cq1', exItem(sectionId('2.1'), 'cq1')],
+    ['ex:7.intro/p3', exItem(sectionId('7.intro'), 'p3')],
+  ] as const;
+  pairs.forEach(([key, item]) => {
+    assert.equal(itemKey(item), key);
+    assert.deepEqual(parseItemKey(key), item, `${key} reads back as itself`);
+  });
+});
+
+test('nothing of another shape is one of them, and two keys tell two things apart', () => {
+  assert.equal(parseItemKey('file:ABCD1234'), null, 'an id is eight lowercase letters and digits');
+  assert.equal(parseItemKey('file:abcd123'), null);
+  assert.equal(parseItemKey('drawing:'), null);
+  assert.equal(parseItemKey('chat:abcd1234:m1'), null, 'a message of a chat is a link, not a tab');
+  assert.equal(parseItemKey('ex:2.1/'), null);
+  assert.notEqual(itemKey(fileItem(fileId('abcd1234'))), itemKey(drawingItem(drawingId('abcd1234'))));
+});
+
+test('an exercise belongs to its section and the reader’s own things belong to none', () => {
+  assert.equal(sectionOfItem(exItem(sectionId('2.1'), 'cq1')), '2.1');
+  assert.equal(sectionOfItem(fileItem(fileId('abcd1234'))), null);
+  assert.equal(sectionOfItem(drawingItem(drawingId('abcd1234'))), null);
+  assert.equal(sectionOfItem(chatItem(chatId('abcd1234'))), null);
 });

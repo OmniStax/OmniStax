@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, pageItem, noteItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
+import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, pageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -153,8 +153,13 @@ test('figure keys round-trip and belong to their section', () => {
   assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
 });
 
-test('removed exercise tabs and exercise documents are not parsed', () => {
-  assert.equal(parseItemKey('ex:2.1/cq1'), null);
+/* The old per-section exercise document is gone for good; one exercise on its
+   own is a tab again, and belongs to the section that sets it. */
+test('an exercise tab round-trips and exercise documents are not parsed', () => {
+  const k = itemKey(exItem(s, 'cq1'));
+  assert.equal(k, 'ex:2.1/cq1'); assert.deepEqual(parseItemKey(k), exItem(s, 'cq1'));
+  assert.equal(sectionOfItem(exItem(s, 'cq1')), '2.1');
+  assert.equal(parseItemKey('ex:2.1/'), null);
   assert.equal(parseItemKey('doc:2.1/exercises'), null);
 });
 

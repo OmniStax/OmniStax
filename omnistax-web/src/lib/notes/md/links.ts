@@ -22,6 +22,11 @@ export type TermRef = string;       /* a glossary term as the book spells it: "d
 export type SymbolRef = string;     /* the key of a symbol in the book's table: "F", "Δx" */
 export type ConceptRef = string;    /* a concept's canonical id: "hookes-law" */
 export type FigureRef = string;     /* the id a section's HTML gives a figure, without its section: "sim-area", "fig-kangaroo" */
+export type FileRef = string;       /* the id of a file the reader imported: eight of base 36 */
+export type DrawingRef = string;    /* the id of a drawing the reader made */
+export type ChatRef = string;       /* the id of one chat the reader held */
+export type MessageRef = string;    /* the id of one message within a chat */
+export type ExerciseRef = string;   /* the local id of one exercise within its section: "p3", "cq1" */
 
 export type LinkTarget =
   | { readonly kind: 'note'; readonly name: NoteName }
@@ -31,7 +36,16 @@ export type LinkTarget =
   | { readonly kind: 'term'; readonly section: SectionRef; readonly term: TermRef }
   | { readonly kind: 'symbol'; readonly section: SectionRef; readonly sym: SymbolRef }
   | { readonly kind: 'concept'; readonly section: SectionRef; readonly id: ConceptRef }
-  | { readonly kind: 'figure'; readonly section: SectionRef; readonly id: FigureRef };
+  | { readonly kind: 'figure'; readonly section: SectionRef; readonly id: FigureRef }
+  /* The three things the reader owns beside their notes, and one exercise of
+     the book on its own. A file may name a page within itself and a chat one
+     message within itself, since that is the part the reader meant; a drawing
+     is whole, and one written by its name parses as a note name, which the
+     resolver settles, since the reader types a name and not an id. */
+  | { readonly kind: 'file'; readonly file: FileRef; readonly page?: number }
+  | { readonly kind: 'drawing'; readonly id: DrawingRef }
+  | { readonly kind: 'chat'; readonly chat: ChatRef; readonly message?: MessageRef }
+  | { readonly kind: 'exercise'; readonly section: SectionRef; readonly id: ExerciseRef };
 
 /* The kinds that live in the book's tables rather than in the reader's own
    things: every one of them is written as kind, section, key. */
@@ -55,6 +69,15 @@ const BOOK = /^(eq|def|sym|concept):(\d+\.\d+):(.+)$/;
    word, so a figure of one is `fig:7.intro:fig-wind-farm`. */
 export const FIGURE_PREFIX = 'fig';
 const FIGURE = /^fig:(\d+\.\w+):(.+)$/;
+/* What the reader owns is named by its id after its own prefix, and the part
+   of it they meant after that: a page of a file is written the way the reader
+   says it, `p12`, and a message of a chat by its own id. An exercise is named
+   the way the book's own things are, section first, because that is where its
+   id is unique. An id is anything but a colon, so that the tail is the tail. */
+const FILE = /^file:([^:\]\n]+?)(?::p(\d+))?$/;
+const DRAWING = /^drawing:([^:\]\n]+)$/;
+const CHAT = /^chat:([^:\]\n]+?)(?::([^:\]\n]+))?$/;
+const EXERCISE = /^ex:(\d+\.\w+):(.+)$/;
 const bookTarget = (prefix: string, section: SectionRef, key: string): LinkTarget =>
   prefix === 'eq' ? { kind: 'equation', section, id: key }
     : prefix === 'def' ? { kind: 'term', section, term: key }
@@ -74,6 +97,14 @@ export const parseLink = (inner: string): Link => {
   if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, alias);
   const fig = FIGURE.exec(target);
   if (fig) return withAlias({ kind: 'figure', section: fig[1], id: fig[2].trim() }, alias);
+  const file = FILE.exec(target);
+  if (file) return withAlias(file[2] ? { kind: 'file', file: file[1].trim(), page: Number(file[2]) } : { kind: 'file', file: file[1].trim() }, alias);
+  const drawing = DRAWING.exec(target);
+  if (drawing) return withAlias({ kind: 'drawing', id: drawing[1].trim() }, alias);
+  const chat = CHAT.exec(target);
+  if (chat) return withAlias(chat[2] ? { kind: 'chat', chat: chat[1].trim(), message: chat[2].trim() } : { kind: 'chat', chat: chat[1].trim() }, alias);
+  const exercise = EXERCISE.exec(target);
+  if (exercise) return withAlias({ kind: 'exercise', section: exercise[1], id: exercise[2].trim() }, alias);
   const book = BOOK.exec(target);
   if (book) return withAlias(bookTarget(book[1], book[2], book[3].trim()), alias);
   if (SECTION.test(target)) return withAlias({ kind: 'section', section: target }, alias);
@@ -91,12 +122,19 @@ export const bookKey = (t: BookTarget): string =>
 
 /* The inner text that writes this link, the inverse of parseLink for the
    autocomplete: what goes between the brackets when a candidate is chosen. */
-export const linkInner = (target: LinkTarget): string =>
-  target.kind === 'note' ? target.name
-    : target.kind === 'section' ? target.section
-      : target.kind === 'highlight' ? `hl:${target.id}`
-        : target.kind === 'figure' ? `${FIGURE_PREFIX}:${target.section}:${target.id}`
-          : `${BOOK_PREFIX[target.kind]}:${target.section}:${bookKey(target)}`;
+export const linkInner = (target: LinkTarget): string => {
+  switch (target.kind) {
+    case 'note': return target.name;
+    case 'section': return target.section;
+    case 'highlight': return `hl:${target.id}`;
+    case 'figure': return `${FIGURE_PREFIX}:${target.section}:${target.id}`;
+    case 'file': return target.page === undefined ? `file:${target.file}` : `file:${target.file}:p${target.page}`;
+    case 'drawing': return `drawing:${target.id}`;
+    case 'chat': return target.message === undefined ? `chat:${target.chat}` : `chat:${target.chat}:${target.message}`;
+    case 'exercise': return `ex:${target.section}:${target.id}`;
+    default: return `${BOOK_PREFIX[target.kind]}:${target.section}:${bookKey(target)}`;
+  }
+};
 
 /* The text a note holds to show a thing whole, as a card: what a row dragged
    out of a panel drops into the editor, and what the picker writes for one. */

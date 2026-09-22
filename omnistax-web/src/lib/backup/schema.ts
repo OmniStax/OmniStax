@@ -65,7 +65,7 @@ const layout = z.object({ sides: z.object({ left: side, right: side }).strict(),
 const scope = z.union([z.object({ follow: z.literal(true), level: z.enum(['book', 'chapter', 'section']) }).strict(), z.object({ follow: z.literal(false), target: z.union([z.object({ level: z.literal('book') }).strict(), z.object({ level: z.literal('chapter'), chapter: z.string() }).strict(), z.object({ level: z.literal('section'), section: z.string() }).strict()]) }).strict()]);
 const scopes = z.record(scope);
 const binding = z.record(z.string().min(1)).superRefine((value, ctx) => { Object.keys(value).forEach((key) => { if (!chord(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${key}` }); }); });
-const tree = z.object({ entries: z.array(z.object({ id: z.string().min(1), parent: z.string().nullable(), kind: z.enum(['folder', 'note', 'book']), name: z.string(), bookId: z.string().optional() }).strict()), expanded: z.array(z.string()) }).strict();
+const tree = z.object({ entries: z.array(z.object({ id: z.string().min(1), parent: z.string().nullable(), kind: z.enum(['folder', 'note', 'book', 'drawing', 'file']), name: z.string(), bookId: z.string().optional(), fileId: z.string().optional(), drawingId: z.string().optional() }).strict()), expanded: z.array(z.string()) }).strict();
 const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-keys': binding,
   'omnistax-practice-v2': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),

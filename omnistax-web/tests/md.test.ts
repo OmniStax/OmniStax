@@ -217,3 +217,54 @@ test('setting an image width rewrites the one image that has that address', () =
   assert.equal(setImageWidth('![a](asset:img1)', 'asset:nope', 80), '![a](asset:img1)');
   assert.equal(setImageWidth('![a](p.png "cap")', 'p.png', 60), '![a|60](p.png "cap")');
 });
+
+/* ── the seams: what the reader owns, before the features land ──────────── */
+
+test('a file, a drawing, a chat and an exercise parse and write themselves back', () => {
+  const cases: readonly [string, object][] = [
+    ['file:abcd1234', { kind: 'file', file: 'abcd1234' }],
+    ['file:abcd1234:p12', { kind: 'file', file: 'abcd1234', page: 12 }],
+    ['drawing:abcd1234', { kind: 'drawing', id: 'abcd1234' }],
+    ['chat:abcd1234', { kind: 'chat', chat: 'abcd1234' }],
+    ['chat:abcd1234:m7', { kind: 'chat', chat: 'abcd1234', message: 'm7' }],
+    ['ex:2.1:cq1', { kind: 'exercise', section: '2.1', id: 'cq1' }],
+    ['ex:7.intro:p3', { kind: 'exercise', section: '7.intro', id: 'p3' }],
+  ];
+  cases.forEach(([inner, target]) => {
+    assert.deepEqual(parseLink(inner), target, inner);
+    assert.equal(linkInner(parseLink(inner)), inner, `${inner} writes itself back`);
+    assert.equal(linkKey(parseLink(inner)), inner);
+    assert.equal(embedText(parseLink(inner)), `![[${inner}]]`);
+  });
+  assert.deepEqual(parseLink('file:abcd1234|the handout'), { kind: 'file', file: 'abcd1234', alias: 'the handout' });
+});
+
+test('a drawing named by its name is a note name, which the resolver settles', () => {
+  assert.deepEqual(parseLink('Free body'), { kind: 'note', name: 'Free body' });
+  assert.deepEqual(parseLink('drawing:Free body'), { kind: 'drawing', id: 'Free body' });
+});
+
+test('a link to one of them is an anchor and an embed is a stub card', () => {
+  const link = render('See [[file:abcd1234:p12]] and [[ex:2.1:cq1|that question]].', r);
+  assert.match(link, /<a class="wiki" data-link="file:abcd1234:p12" href="#">file:abcd1234:p12<\/a>/);
+  assert.match(link, /<a class="wiki" data-link="ex:2.1:cq1" href="#">that question<\/a>/);
+  const embed = render('![[drawing:abcd1234]]', r);
+  assert.match(embed, /class="stub-embed kind-drawing" data-embed="drawing:abcd1234"/);
+  assert.match(embed, /<div class="embed-eyebrow">Drawing<\/div>/);
+  assert.doesNotMatch(embed, /<p>/, 'a card alone on a line is a block of its own');
+  assert.match(render('![[chat:abcd1234:m7]]', r), /<div class="embed-eyebrow">Chat<\/div>/);
+  assert.match(render('![[file:abcd1234]]', r), /<div class="embed-eyebrow">File<\/div>/);
+  assert.match(render('![[ex:2.1:cq1]]', r), /<div class="embed-eyebrow">Exercise<\/div>/);
+});
+
+test('a resolver that knows one of them lends the stub its name', () => {
+  const knowing: Resolver = { ...r, file: (id) => (id === 'abcd1234' ? { name: 'Lab handout.pdf' } : null) };
+  assert.match(render('[[file:abcd1234]]', knowing), />Lab handout\.pdf</);
+  assert.match(render('![[file:abcd1234]]', knowing), /class="embed-body">Lab handout\.pdf</);
+  assert.match(render('[[file:zzzz9999]]', knowing), />file:zzzz9999</, 'one it does not know is still its own words');
+});
+
+test('the links a note makes count the new kinds among them', () => {
+  const found = findLinks('[[file:abcd1234]] and ![[drawing:abcd1234]] and [[16.4]]');
+  assert.deepEqual(found.map((l) => l.kind), ['file', 'drawing', 'section']);
+});
