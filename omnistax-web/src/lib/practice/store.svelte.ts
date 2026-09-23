@@ -211,8 +211,11 @@ class Practice {
   clear(key: ItemKey): void { this.set(key, { ...this.page(key), curriculum: [] }); }
   replace(key: ItemKey, picks: readonly Pick[]): void { this.set(key, { ...this.page(key), curriculum: [...picks] }); }
   seed(key: ItemKey, picks: readonly Pick[], face: Face = 'choose'): void { this.set(key, { ...BLANK, curriculum: [...picks], face }); }
-  seedSession(key: ItemKey, id: SessionId): void { const s = this.sessions[id]; if (s) this.set(key, { ...BLANK, curriculum: [...s.curriculum], session: id, face: 'practise' }); }
-  attach(key: ItemKey, id: SessionId): void { const s = this.sessions[id]; if (s) this.set(key, { ...this.page(key), curriculum: [...s.curriculum], session: id, face: 'practise' }); }
+  take(key: ItemKey, id: SessionId): void {
+    const s = this.sessions[id]; if (!s) return;
+    this.pages = Object.fromEntries(Object.entries(this.pages).map(([k, page]) => [k, k !== key && page.session === id ? { ...page, session: null, face: 'dashboard' as Face } : page]));
+    this.set(key, { ...this.page(key), curriculum: [...s.curriculum], session: id, face: 'practise' });
+  }
   setShowAll(key: ItemKey, on: boolean): void { this.set(key, { ...this.page(key), showAll: on }); }
   plan(key: ItemKey, now = Date.now()): RoundPlan { return prepare(this.page(key).curriculum, this.mastery, this.catalog(), this.attempts, this.shown, this.settings, now); }
   start(key: ItemKey, now = Date.now()): boolean {
@@ -259,15 +262,13 @@ class Practice {
   finish(key: ItemKey): void { const id = this.page(key).session; if (id) this.drop(id); this.set(key, { ...this.page(key), session: null, face: 'dashboard' }); }
   pause(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
   progress(key: ItemKey): ReturnType<typeof progressOf> { const s = this.sessionOf(key); return s ? progressOf(s.before, this.mastery) : []; }
-  choose(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'choose' }); }
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
-  requiredRelease(key: ItemKey): { readonly book: string; readonly release: string } | null {
-    const session = this.sessionOf(key); if (!session) return null;
+  releaseFor(id: SessionId): { readonly book: string; readonly release: string } | null {
+    const session = this.sessions[id]; if (!session) return null;
     const mismatch = session.drawn.find((drawn) => drawn.release && drawn.release !== offlineBooks.releaseOf(drawn.book));
     return mismatch?.release ? { book: mismatch.book, release: mismatch.release } : null;
   }
-  resume(key: ItemKey): boolean { if (!this.live(key) || this.requiredRelease(key)) return false; this.set(key, { ...this.page(key), face: 'practise' }); return true; }
-  discard(key: ItemKey): void { const id = this.page(key).session; if (id) this.drop(id); this.set(key, { ...this.page(key), session: null, face: 'choose' }); }
+  discard(id: SessionId): void { this.drop(id); }
   forget(key: ItemKey): void { if (key in this.pages) { this.pages = Object.fromEntries(Object.entries(this.pages).filter(([id]) => id !== key)); this.savePages(); } }
   prune(open: readonly ItemKey[]): void { const keep = new Set(open), entries = Object.entries(this.pages).filter(([key]) => keep.has(key)); if (entries.length !== Object.keys(this.pages).length) { this.pages = Object.fromEntries(entries); this.savePages(); } }
 
@@ -275,7 +276,7 @@ class Practice {
   private put(session: Session): void { this.sessions = { ...this.sessions, [session.id]: session }; this.saveSessions(); }
   private drop(id: SessionId): void {
     this.sessions = Object.fromEntries(Object.entries(this.sessions).filter(([key]) => key !== id)); this.saveSessions();
-    this.pages = Object.fromEntries(Object.entries(this.pages).map(([key, page]) => [key, page.session === id ? { ...page, session: null } : page])); this.savePages();
+    this.pages = Object.fromEntries(Object.entries(this.pages).map(([key, page]) => [key, page.session === id ? { ...page, session: null, face: page.face === 'choose' ? 'choose' : 'dashboard' as Face } : page])); this.savePages();
   }
   private read(key: string): unknown { try { return JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { return null; } }
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify({ attempts: this.attempts, shown: this.shown, rounds: this.rounds, self: this.self, settings: this.settings })); } catch { /* private mode */ } }

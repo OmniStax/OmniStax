@@ -1,25 +1,27 @@
 <script lang="ts">
   /* Practice, as a course of study rather than as a page of problems.
 
-     Four faces, under two tabs. The dashboard is where a fresh view opens and
-     what the Dashboard tab goes back to: the standing in summary tiles, every
-     session still running anywhere in the shell, a year of days coloured by
-     what each one earned, and concept counts for each book on the shelf.
+     Four faces, one after another in the same tab. The dashboard is where a
+     fresh view opens and where every other face returns: the standing in
+     summary tiles, every session still running anywhere in the shell, a year
+     of days coloured by what each one earned, and concept counts for each book
+     on the shelf. The only ways on from it are a new session, which leads to
+     the choice, and a running session taken up from its list.
 
-     The Practice tab leads to the three faces of the practising itself. On the
-     first the reader says what to practise: a folded tree of books, chapters
-     and sections whose boxes are half-checked the way a file tree's are,
-     and a search for a single concept. Selected items and Clear sit at the
-     bottom, beside the controls that start practice. On the second the session runs one exercise at a time in the
-     ordinary card, standing alone as it does in a tab of its own; the card
-     records the answer into the store by itself, so Next arrives when the
-     problem has been answered and not before. The third is Progress: what was
-     earned, and how each concept's mastery box moved.
+     On the choice the reader says what to practise: a folded tree of books,
+     chapters and sections whose boxes are half-checked the way a file tree's
+     are, and a search for a single concept. Selected items and Clear sit at
+     the bottom, beside the controls that start practice. The session runs one
+     exercise at a time in the ordinary card; the card records the answer into
+     the store by itself, so Next arrives when the problem has been answered
+     and not before. Progress closes it: what was earned, and how each
+     concept's mastery box moved.
 
-     A session belongs to the store rather than to this page: pausing one leaves
-     it standing, closing its tab leaves it standing, and any dashboard offers
-     it back. So this view holds only what is properly a tab's own — the picks
-     being made, the face showing, and which choice-tree chapters are open.
+     A session belongs to the store rather than to this page: returning to the
+     dashboard leaves it standing, closing its tab leaves it standing, and any
+     dashboard offers it back. So this view holds only what is properly a tab's
+     own — the picks being made, the face showing, and which choice-tree
+     chapters are open.
 
      How a concept stands is drawn one way everywhere: a mastery box, a small
      rounded square outlined in the colour of the state and filled from the
@@ -31,13 +33,11 @@
   import { bookId, sectionId, conceptId, type SectionId } from '../../lib/types/ids';
   import { focus } from '../../lib/sections/focus.svelte';
   import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
-  import { math } from '../actions/math';
+  import { mathHtml } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
   import { practice } from '../../lib/practice/store.svelte';
-  import { openSession } from '../../lib/practice/open.svelte';
   import { books } from '../../lib/practice/books.svelte';
-  import { layoutStore } from '../../lib/layout/store.svelte';
-  import { activate, groupsWith, type ItemKey } from '../../lib/layout/model';
+  import type { ItemKey } from '../../lib/layout/model';
   import {
     DAY, conceptsOf, fillOf, freshnessOf, heatWeeks, samePick, standingOf, streakOf, workByDay,
     type Curriculum, type Pick, type SessionId, type Standing, type State, poolOf,
@@ -82,16 +82,8 @@
   const STATE_WORD: Readonly<Record<State, string>> = { untouched: 'unpracticed', practised: 'practiced', mastered: 'mastered' };
   const exercises = (n: number): string => (n === 1 ? 'one exercise' : `${n} exercises`);
 
-  /* ---------- the two tabs ---------- */
-
-  /* The dashboard is one tab; choosing, the session and its Progress screen are
-     the other. The Practice tab goes back to a session still running, and
-     otherwise to the choice. */
-  const onDash = $derived(page.face === 'dashboard');
-  const toPractise = (): void => { if (practice.live(item)) practice.resume(item); else practice.choose(item); };
-  const reopenRelease = (): void => {
-    const required = practice.requiredRelease(item); if (!required) return;
-    const url = new URL(location.href); url.searchParams.set('_omnistax_release', required.release); location.assign(url);
+  const reopenRelease = (release: string): void => {
+    const url = new URL(location.href); url.searchParams.set('_omnistax_release', release); location.assign(url);
   };
 
   /* ---------- choosing ---------- */
@@ -258,25 +250,17 @@
      the same and can be taken up here. */
   const running = $derived(practice.liveSessions());
   const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-  const raise = (key: ItemKey): void => {
-    if (key === item) { practice.resume(item); return; }
-    const g = groupsWith(layoutStore.layout, key)[0];
-    if (g !== undefined) layoutStore.apply((l) => activate(l, g, key));
+  /* Taking a card up happens here, in this tab: a session another tab was
+     holding comes over to this one, and that tab is left on its dashboard. A
+     session drawn from another release of a book reopens that release first. */
+  const takeUp = (id: SessionId): void => {
+    const required = practice.releaseFor(id);
+    if (required) reopenRelease(required.release); else practice.take(item, id);
   };
-  /* Taking a card up. A session its own tab is still showing is reached by
-     raising that tab; one whose tab has been closed is taken onto this page
-     when this page has nothing running, and into a page of its own when it
-     has, so a round in hand is never pushed aside by one picked up. */
-  const takeUp = (id: SessionId, key: ItemKey | null): void => {
-    if (key !== null) { raise(key); return; }
-    if (!practice.live(item)) { practice.attach(item, id); return; }
-    const g = groupsWith(layoutStore.layout, item)[0];
-    if (g !== undefined) openSession(id, g);
+  const cardTitle = (id: SessionId): string => {
+    const required = practice.releaseFor(id);
+    return required ? `Reopen textbook release ${required.release.slice(0, 10)} to continue` : 'Continue this session';
   };
-  const cardTitle = (key: ItemKey | null): string =>
-    key === item ? 'Back to the session running in this view.'
-      : key !== null ? 'Raise the view this session is running in.'
-        : 'Take this session up again. The tab it was running in has been closed.';
   const whereWord = (key: ItemKey | null): string => (key === item ? 'this view' : key !== null ? 'another view' : 'not open in any tab');
 
   /* What a session tests, for the card's popover: the picks it was drawn from,
@@ -411,11 +395,6 @@
   </span>
 {/snippet}
 
-<div class="faces">
-  <button type="button" class="tab" class:on={onDash} aria-current={onDash ? 'true' : undefined} onclick={() => practice.dashboard(item)}>Dashboard</button>
-  <button type="button" class="tab" class:on={!onDash} aria-current={!onDash ? 'true' : undefined} onclick={toPractise}>Practice</button>
-</div>
-
 {#if page.face === 'dashboard'}
   <div class="dash">
     <div class="tiles">
@@ -425,7 +404,7 @@
       <div class="tile"><b>{overall.mastered}</b><span>{overall.mastered === 1 ? 'concept mastered' : 'concepts mastered'}</span></div>
     </div>
     <div class="acts">
-      <button type="button" class="btn go" onclick={() => practice.choose(item)}>Choose what to practice</button>
+      <button type="button" class="btn go" onclick={() => practice.seed(item, [])}>New Practice Session</button>
     </div>
     {#if note}<p class="quiet">{note}</p>{/if}
 
@@ -437,11 +416,12 @@
             <div class="cardwrap"
               onmouseenter={() => (peek = r.session.id)} onmouseleave={() => (peek = null)}
               onfocusin={() => (peek = r.session.id)} onfocusout={() => (peek = null)}>
-              <button type="button" class="card" title={cardTitle(r.key)} onclick={() => takeUp(r.session.id, r.key)}>
+              <button type="button" class="card" title={cardTitle(r.session.id)} onclick={() => takeUp(r.session.id)}>
                 <span class="l">{when.format(r.session.started)}</span>
                 <span class="k">Exercise {Math.min(r.session.at + 1, r.session.drawn.length)} of {r.session.drawn.length} · {r.session.outcomes.filter((v) => v !== null).length} completed</span>
                 <span class="k where">{whereWord(r.key)}</span>
               </button>
+              <button type="button" class="discard" aria-label="Discard this session" title="Discard" onclick={() => practice.discard(r.session.id)}>×</button>
               {#if peek === r.session.id}
                 {@const list = peekRows(r.session.curriculum)}
                 <div class="pop">
@@ -452,7 +432,7 @@
                   {#each list.slice(0, PEEK) as row, i (i)}
                     <div class="peek lvl-{row.level}">
                       {#if row.level === 'concept'}<i class="dot k-{row.kind}" aria-hidden="true"></i>{/if}
-                      <span class="lab"><span use:math={row.label}>{@html row.label}</span></span>
+                      <span class="lab"><span use:mathHtml={row.label}></span></span>
                     </div>
                   {/each}
                   {#if list.length > PEEK}<p class="quiet">and {list.length - PEEK} more</p>{/if}
@@ -537,7 +517,7 @@
                                           <div class="concept-progress-row prow" tabindex="0" data-book={b} data-concept={c.id}>
                                             {@render masteryBox(c.id)}
                                             <i class="dot k-{c.kind}" aria-hidden="true"></i>
-                                            <span class="lab"><span use:math={c.name}>{@html c.name}</span></span>
+                                            <span class="lab"><span use:mathHtml={c.name}></span></span>
                                             {#if overrideMode}
                                               <div class="override-controls">
                                                 <select aria-label={`Override progress for ${plain(c.name)}`} value={own ? own.mastered ? 'mastered' : String(own.level) : 'none'} onchange={(e) => setSelfValue(c.id, e.currentTarget.value)}>
@@ -641,7 +621,7 @@
         <input type="checkbox" checked={own} use:tri={brought} onchange={() => practice.toggle(item, conceptPick(f.c.id))}
           title={brought ? 'A section you have already chosen brings this concept in.' : 'Practice this concept on its own.'}>
         <i class="dot k-{f.c.kind}" aria-hidden="true"></i>
-        <span class="lab"><span use:math={f.c.name}>{@html f.c.name}</span></span>
+        <span class="lab"><span use:mathHtml={f.c.name}></span></span>
         {@render masteryBox(f.c.id)}
       </label>
     {/each}
@@ -657,7 +637,7 @@
           <ul class="chips">
             {#each page.curriculum as p, i (i)}
               <li class="pick">
-                <span class="lab"><span use:math={pickLabel(p)}>{@html pickLabel(p)}</span></span>
+                <span class="lab"><span use:mathHtml={pickLabel(p)}></span></span>
                 <button type="button" class="x" aria-label={`Remove ${plain(pickLabel(p))} from selected items`} title="Remove from selected items" onclick={() => practice.toggle(item, p)}>×</button>
               </li>
             {/each}
@@ -677,9 +657,7 @@
       <div class="acts">
         <button type="button" class="btn go" disabled={plan.drawn.length === 0} onclick={begin}>Start {plan.drawn.length}</button>
         <span class="diagnostic">{diagnostic}</span>
-        {#if practice.live(item) && practice.requiredRelease(item)}
-          <span class="diagnostic">This saved session uses textbook release {practice.requiredRelease(item)?.release.slice(0, 10)}…</span><button type="button" class="btn" onclick={reopenRelease}>Reopen its original release</button>
-        {:else if practice.live(item)}<button type="button" class="btn" onclick={() => practice.resume(item)}>Back to the session</button>{/if}
+        <button type="button" class="btn" onclick={() => practice.dashboard(item)}>Return to Dashboard</button>
       </div>
     </div>
   </div>
@@ -738,7 +716,7 @@
       {/if}
       <div class="acts session-actions">
         {#if !page.showAll}<button type="button" class="btn" onclick={() => practice.setShowAll(item, true)}>Show all exercises</button>{/if}
-        <button type="button" class="btn" title="Leave this session standing and go back to the dashboard. It will be waiting there." onclick={() => practice.pause(item)}>Pause</button>
+        <button type="button" class="btn" onclick={() => practice.pause(item)}>Return to Dashboard</button>
         <button type="button" class="btn" class:go={allDone} title="Finish this session here, and see what it came to." onclick={() => (ending = true)}>End</button>
       </div>
     {/if}
@@ -758,7 +736,7 @@
               {@render box(r.to, r.toShare, `After this session: ${STATE_WORD[r.to]}`)}
             </span>
             <i class="dot k-{r.kind}" aria-hidden="true"></i>
-            <span class="lab"><span use:math={r.name}>{@html r.name}</span></span>
+            <span class="lab"><span use:mathHtml={r.name}></span></span>
             <span class="meta">{r.meta}</span>
           </div>
         {/each}
@@ -774,12 +752,6 @@
 
 <style>
   .dash,.choose,.practise,.progress{font-family:var(--sans);font-size:0.84rem;color:var(--ink);container-type:inline-size;display:flex;flex-direction:column;gap:12px}
-  /* the two tabs over the faces: the eyebrow's small capitals, and the face showing underlined in the accent */
-  .faces{display:flex;gap:14px;margin:0 0 12px;border-bottom:1px solid var(--rule)}
-  .tab{font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:2px 0 6px;margin-bottom:-1px;cursor:pointer}
-  .tab:hover{color:var(--ink)}
-  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
-  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .quiet{color:var(--muted);margin:2px 0}
   .eyebrow{margin:8px 0 3px}
   /* a heading names a band of the view; the eyebrow is kept for the sub-labels inside one */
@@ -823,6 +795,10 @@
   .card .l{font-weight:700}
   .card .k{font-size:0.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
   .card .where{text-transform:uppercase;letter-spacing:0.07em;font-size:0.64rem}
+  .discard{position:absolute;top:4px;right:4px;font:inherit;font-size:0.9rem;line-height:1;color:var(--muted);background:none;border:0;border-radius:50%;padding:0 3px;cursor:pointer}
+  .discard:hover{color:var(--ink);background:var(--soft2)}
+  .discard:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .card{padding-right:24px}
   .pop{position:absolute;top:100%;left:0;z-index:5;margin-top:4px;min-width:220px;max-width:320px;padding:8px 10px;border:1px solid var(--rule);border-radius:10px;background:var(--panel);box-shadow:0 6px 20px rgba(0,0,0,.14)}
   .pop .peek{display:flex;align-items:center;gap:6px;padding:1px 0;min-width:0;font-size:0.76rem}
   .pop .peek .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -972,8 +948,6 @@
   }
   /* a page has room for the reading size the rest of the views take in one */
   :global(.view-pane) .dash,:global(.view-pane) .choose,:global(.view-pane) .practise,:global(.view-pane) .progress{font-size:0.95rem;max-width:900px;margin:0 auto;gap:16px}
-  :global(.view-pane) .faces{max-width:900px;margin:0 auto 14px}
-  :global(.view-pane) .tab{font-size:0.8rem}
   :global(.view-pane) .head{font-size:1.2rem}
   :global(.view-pane) .panel{padding:14px 18px}
   :global(.view-pane) .row.prow .meta{font-size:0.78rem}

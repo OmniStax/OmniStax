@@ -25,6 +25,7 @@ import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
+import { practice } from '../practice/store.svelte';
 
 const GROUP_COMMANDS = 9;   /* the palette lists this many groups by number */
 
@@ -75,7 +76,7 @@ const scopeDeps = {
    its own, so asking twice gives two of them; the exercises are the focused section's. */
 const docs = {
   openView: (kind: ViewKind, at: ViewWhere): void => {
-    const key = itemKey(viewItem(kind));
+    const key = itemKey(viewItem(kind)); if (kind === 'exercises') practice.pause(key);
     layoutStore.apply((x) => (at === 'group' ? openTab(x, key, ui.palette.group ?? x.focus) : at === 'split' ? split(x, x.focus, 'right', newViewItem(kind)) : openSide(x, key, homeSide(x, key))));
   },
   /* The front of OmniStax, as a tab of the group the palette was opened from,

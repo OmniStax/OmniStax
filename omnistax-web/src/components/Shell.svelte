@@ -237,11 +237,11 @@
       if ((e.target as HTMLElement).closest('[data-find-textbook]')) { ui.openFindTextbook(); return; }
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { const gi = groupOf(sb); layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
-      /* "Practice this section" at the end of a section: a practice view opens
-         beside the group the section is reading in, with that one section picked. */
+      /* "Practice this section" at the end of a section: a practice view opens as a
+         tab of the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
       const pbook = pb && bookOfEl(pb);
-      if (pb?.dataset.practiseSection && pbook) { const gi = groupOf(pb); openPractice([{ book: pbook, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      if (pb?.dataset.practiseSection && pbook) { openPractice([{ book: pbook, section: sectionId(pb.dataset.practiseSection) }], groupOf(pb)); return; }
       /* A link a pane has already answered — a wiki link in a note or a text
          box, which opens a note, a file or a section of its own accord — is
          not the shell's to follow as well: it says so by preventing the

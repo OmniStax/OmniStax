@@ -9,15 +9,16 @@
   import { solutionText, type Verdict } from '../../lib/exercises/check';
   import { practice } from '../../lib/practice/store.svelte';
   import type { SessionId } from '../../lib/practice/model';
-  import { math, mathHtml } from '../actions/math';
+  import { mathHtml } from '../actions/math';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
   import AiMark from '../ui/AiMark.svelte';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
   import { detachScratch } from '../../lib/drawer/edits';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { openItem } from '../../lib/sections/nav.svelte';
+  import { ICON } from '../../lib/icons';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { bookId, drawingItem, exItem, itemKey, sectionRef } from '../../lib/types/ids';
+  import { bookId, drawingItem, itemKey } from '../../lib/types/ids';
 
   let {
     book, section, ex, hidden = false,
@@ -89,31 +90,28 @@
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
   const scratch = (): void => openScratch(at, layoutStore.layout.focus);
+  const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed);
   const openLinked = (): void => { if (linked) void openItem(itemKey(drawingItem(linked))); };
-  const openAlone = (): void => void openItem(itemKey(exItem(sectionRef(bookId(book), section), ex.id)));
 </script>
 
-<div class="exercise" class:hot id={domId} {hidden}>
-
-  <div class="prompt" use:math={ex.prompt}><p>{@html ex.prompt}</p></div>
-  {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
-
-  {#if !inline}
-    <div class="tools">
-      <button type="button" class="tool" onclick={openAlone} title="Open this exercise in a tab of its own">Open</button>
-      <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}
-        title={scratched ? 'Your scratch work for this exercise' : 'Open a page to work this out on'}>
-        Scratch{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
-      </button>
-      {#if linked && linkedName}
-        <span class="chip-link">
-          <button type="button" class="tool link" onclick={openLinked} title="Open the drawing this work was saved as">{linkedName}</button>
-          <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
-            title="Turn this drawing back into private scratch work">Detach</button>
-        </span>
-      {/if}
-    </div>
+{#snippet scratchpad()}
+  <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}
+    title={scratched ? 'Your scratch work for this exercise' : 'Open a page to work this out on'}>
+    Scratchpad{@html ICON.drawing}{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
+  </button>
+  {#if linked && linkedName}
+    <span class="chip-link">
+      <button type="button" class="tool link" onclick={openLinked} title="Open the drawing this work was saved as">{linkedName}</button>
+      <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
+        title="Turn this drawing back into private scratch work">Detach</button>
+    </span>
   {/if}
+{/snippet}
+
+<div class="exercise" class:hot id={domId} data-book={book} {hidden}>
+
+  <div class="prompt"><p use:mathHtml={ex.prompt}></p></div>
+  {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
 
   <details class="meta">
     <summary>Exercise meta</summary>
@@ -123,24 +121,24 @@
         <div class="meta-row"><span class="lab">Concepts tested</span><span class="chips">
           {#each ex.concepts as c (c)}
             {@const k = concept(c)}
-            <button type="button" class="chip concept k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-book={book} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span use:math={k?.name}>{@html k?.name ?? c}</span></button>
+            <button type="button" class="chip concept k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-book={book} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span use:mathHtml={k?.name ?? c}></span></button>
           {/each}
         </span></div>
       {/if}
-      <div class="meta-row"><span class="lab">Source</span><span class="source" title="Publisher source id: {ex.sourceId}">{sourceBook} · Section {sourceSection} · {sourceExercise}</span></div>
+      <div class="meta-row"><span class="lab">Source</span><span class="source">{sourceBook} · Section {sourceSection} · {sourceExercise}</span></div>
     </div>
   </details>
 
   {#if a.type === 'choice'}
-    <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} />
+    <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} tools={inline ? undefined : scratchpad} />
     {#if completed && sol}
-      <div class="solution-block"><div class="solution-head">Solution{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div><div use:math={sol}>{@html sol}</div></div>
+      <div class="solution-block"><div class="solution-head">Solution{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div><div use:mathHtml={sol}></div></div>
     {/if}
   {:else if sol}
     {#if solutionOpen || completed}
       <div class="solution-block">
         <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'}{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div>
-        <div use:math={sol}>{@html sol}</div>
+        <div use:mathHtml={sol}></div>
       </div>
       {#if !completed && !inline}
         <div class="selfcheck" aria-label="Mark your answer">
@@ -148,11 +146,16 @@
           <button type="button" class="wrong" onclick={() => record(false, true)}>I got it wrong</button>
         </div>
       {/if}
-    {:else}
-      <div class="reveal"><button type="button" class="btn reveal-btn" onclick={() => (solutionOpen = true)}>{inline ? 'Reveal answer' : 'Reveal and check'}</button></div>
     {/if}
   {:else}
     <p class="no-solution">No answer was supplied for this exercise, so it cannot be self-checked.</p>
+  {/if}
+
+  {#if (!inline && a.type !== 'choice') || revealable}
+    <div class="reveal">
+      {#if !inline}{@render scratchpad()}{/if}
+      {#if revealable}<button type="button" class="btn reveal-btn" onclick={() => (solutionOpen = true)}>{inline ? 'Reveal answer' : 'Reveal and check'}</button>{/if}
+    </div>
   {/if}
 
   {#if earned}<div class="earned" use:mathHtml={earned}></div>{/if}
@@ -167,12 +170,11 @@
   .prompt :global(p){margin:0}
   .prompt :global(table.data){border-collapse:collapse;font-family:var(--sans);font-size:0.85rem;margin:8px 0;font-variant-numeric:tabular-nums}
   .prompt :global(table.data th),.prompt :global(table.data td){border:1px solid var(--rule);padding:2px 10px;text-align:right}
-  /* The row of things a reader does with an exercise rather than to it: open
-     it alone, and reach for paper. */
-  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 0;font-family:var(--sans)}
-  .tool{font:inherit;font-size:0.74rem;color:var(--muted);background:transparent;border:1px solid var(--rule);border-radius:6px;padding:3px 9px;cursor:pointer}
+  .reveal{align-items:center}
+  .tool{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:0.74rem;color:var(--muted);background:transparent;border:1px solid var(--rule);border-radius:6px;padding:3px 9px;cursor:pointer}
   .tool:hover{color:var(--ink);background:var(--soft);border-color:var(--accent)}
   .tool:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .tool :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .tool .mark{color:var(--accent);font-size:1rem;line-height:0;margin-left:4px}
   .tool.marked{color:var(--ink);border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
   .chip-link{display:inline-flex;align-items:center;gap:0}
