@@ -15,15 +15,17 @@
   import { isGroup, marked, nextSort, rowCount, sortable, viewRows, type Sort } from '../../lib/sheets/table';
   import type { TableBlockDTO, TableSheetDTO } from '../../lib/content/sheets';
 
-  let { sheet }: { sheet: TableSheetDTO } = $props();
+  import type { BookId } from '../../lib/types/ids';
+
+  let { book, sheet }: { book: BookId; sheet: TableSheetDTO } = $props();
 
   let query = $state('');
   /* One sort at a time, and it belongs to the table it was set on. */
   let sort = $state<{ readonly table: string; readonly sort: Sort } | null>(null);
 
   /* The formula hover reads the elements sheet; a cell is drawn unmarked until it arrives. */
-  $effect(() => { const e = sheets.elementsEntry; if (e) void sheets.load(e.id); });
-  const table = $derived(sheets.table);
+  $effect(() => { const e = sheets.elementsEntry(book); if (e) void sheets.load(book, e.id); });
+  const table = $derived(sheets.table(book));
 
   const sortOf = (block: TableBlockDTO): Sort | null => (sort && sort.table === block.id ? sort.sort : null);
   const rowsOf = (block: TableBlockDTO): readonly (readonly string[])[] => viewRows(block.rows, query, sortOf(block));

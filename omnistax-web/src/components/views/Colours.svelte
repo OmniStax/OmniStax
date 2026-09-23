@@ -17,7 +17,7 @@
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { bookId, type BookId } from '../../lib/types/ids';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
@@ -27,8 +27,14 @@
 
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
-  const place = $derived(placeOf(target));
-  const manifest = $derived(registry.manifest(assumedBook()));
+  const targetBook = $derived(target.book);
+  const loaded = $derived(Object.values(registry.books));
+  let picked = $state<BookId | null>(null);
+  const book = $derived(picked ?? targetBook);
+  /* The scope's chapter or section belongs to its own book; another book is edited whole. */
+  const place = $derived(book === targetBook ? placeOf(target) : placeOf({ level: 'book', book }));
+  $effect.pre(() => { colours.select(book); });
+  const manifest = $derived(registry.manifest(book));
   const types = $derived(typesAt(manifest, colours.choices, place));
   /* The chapter the page stands in, which a badge names when a colour comes from there. */
   const chapter = $derived(place.level === 'book' ? '' : place.chapter);
@@ -206,6 +212,13 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="colours" tabindex="-1" bind:this={root}>
+  {#if loaded.length > 1}
+    <label class="book">Book
+      <select value={book} onchange={(e) => { trouble = ''; picked = bookId(e.currentTarget.value); }}>
+        {#each loaded as m (m.id)}<option value={m.id}>{m.title || m.id}</option>{/each}
+      </select>
+    </label>
+  {/if}
   <p class="lead">{lead}</p>
   {#if !settings.colorCoding}
     <p class="off">Colour coding is off; the colours you choose show when it is on.</p>
@@ -306,6 +319,7 @@
   /* Focusable so that a click on the page's prose brings Ctrl+Z here; the ring would say nothing, so it is off. */
   .colours{font-size:0.82rem;outline:none}
   .lead{margin:0 0 8px;color:var(--muted);line-height:1.45}
+  .book{display:flex;gap:6px;align-items:center;margin:0 0 8px;color:var(--muted);font-size:0.85rem}
   .off{margin:0 0 8px;color:var(--muted);font-size:0.78rem}
   .bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
   .bar button{font:inherit;font-size:0.78rem;padding:3px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}

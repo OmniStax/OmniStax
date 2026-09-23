@@ -9,7 +9,8 @@ export const CHIP_KINDS = ['section', 'note', 'drawing', 'file', 'figure', 'conc
 export type ChipKind = (typeof CHIP_KINDS)[number];
 
 /* `key` is what the chip stands for, in the wiki-link grammar where there is
-   one (`16.4`, `note:a1b2c3d4`), so the same thing is never added twice. */
+   one (`college-physics-2e/16.4`, `note:a1b2c3d4`), so the same thing is
+   never added twice. */
 export type Chip = {
   readonly kind: ChipKind;
   readonly key: string;
@@ -37,9 +38,12 @@ const HEADING: Readonly<Record<ChipKind, string>> = {
 
 /* The chips of one message, as the block that goes before its words. Chips
    with no text of their own are left out rather than sent as a bare name. */
+/* A thing of the book names the link to it, book and all, so the model can
+   link back to it. */
+const LINKED: ReadonlySet<ChipKind> = new Set(['section', 'figure', 'concept', 'equation', 'definition', 'exercise']);
 export const contextBlock = (chips: readonly Chip[]): string =>
   chips.filter((c) => c.text.trim() !== '')
-    .map((c) => `## ${HEADING[c.kind]}: ${c.label}\n\n${c.text.trim()}`)
+    .map((c) => `## ${HEADING[c.kind]}: ${c.label}${LINKED.has(c.kind) ? ` [[${c.key}]]` : ''}\n\n${c.text.trim()}`)
     .join('\n\n');
 
 /* A reader message as the provider is given it: the chips first, under one

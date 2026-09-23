@@ -12,12 +12,10 @@ import { fileMarks } from './marks.svelte';
 import { isMarkId } from './marks';
 import { noteDocs } from '../notes/docs.svelte';
 import { notes } from '../notes/store.svelte';
-import { registry } from '../sections/registry.svelte';
-import { label } from '../sections/grouping';
+import { bookHighlight, BookResolver } from '../notes/resolve';
 import { openItem, openFile } from '../sections/nav.svelte';
 import { fileOpens } from './open.svelte';
-import { itemKey, noteId as asNoteId, noteItem, parseSecKey, sectionId, sectionRef, fileId as asFileId } from '../types/ids';
-import { assumedBook } from '../sections/focus.svelte';
+import { itemKey, noteId as asNoteId, noteItem, parseSecKey, fileId as asFileId } from '../types/ids';
 import { goNote } from '../notes/go';
 import type { HighlightInfo, Resolver, StubInfo } from '../notes/md/render';
 import { openDoc } from '../sections/nav.svelte';
@@ -35,11 +33,7 @@ export const fileHighlight = (id: string): HighlightInfo | null => {
 
 /* The book's highlights first and the file marks after, as the grammar says. */
 export const anyHighlight = (id: string): HighlightInfo | null => {
-  if (!isMarkId(id)) {
-    const n = notes.get(id);
-    if (n) return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(sectionRef(assumedBook(), n.section))?.title ?? '') };
-  }
-  return fileHighlight(id);
+  return (isMarkId(id) ? null : bookHighlight(id)) ?? fileHighlight(id);
 };
 
 export const fileStub = (id: string): StubInfo | null => {
@@ -47,10 +41,12 @@ export const fileStub = (id: string): StubInfo | null => {
   return doc ? { name: doc.name } : null;
 };
 
+const books = new BookResolver();
+
 /* The resolver a box on a page is rendered with. */
 export const fileResolver = (): Resolver => ({
   note: (name) => noteDocs.byName(name)?.id ?? null,
-  section: (id) => { const e = registry.entry(sectionRef(assumedBook(), sectionId(id))); return e?.built ? { title: e.title } : null; },
+  section: books.lookups().section,
   highlight: anyHighlight,
   asset: () => null,
   equation: () => null,
@@ -68,7 +64,7 @@ export const followLink = (link: string): void => {
   const note = /^note:(.+)$/.exec(link);
   if (note) { void openItem(itemKey(noteItem(asNoteId(note[1])))); return; }
   const sec = /^section:(.+)$/.exec(link);
-  if (sec) { void openDoc(parseSecKey(sec[1]) ?? sectionRef(assumedBook(), sectionId(sec[1])), 'text'); return; }
+  if (sec) { void openDoc(parseSecKey(sec[1]) ?? books.ref(sec[1]), 'text'); return; }
   const file = /^file:([^:]+)(?::p(\d+))?$/.exec(link);
   if (file) { void openFile(asFileId(file[1]), file[2] ? Number(file[2]) : undefined); return; }
   const hl = /^hl:(.+)$/.exec(link);

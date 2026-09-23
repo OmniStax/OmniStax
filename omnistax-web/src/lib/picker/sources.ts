@@ -15,8 +15,8 @@ import { figureInfo } from '../notes/md/figinfo';
 import { chats } from '../chat/store.svelte';
 import { firstWords, spokenIn } from '../chat/model';
 import { chip, type Chip } from '../chat/context';
-import { sectionId, sectionRef, type ChatId, type SectionId } from '../types/ids';
-import { assumedBook } from '../sections/focus.svelte';
+import { bookId, sectionId, sectionRef, type BookId, type ChatId, type SectionRef } from '../types/ids';
+import { focus } from '../sections/focus.svelte';
 import { linkInner } from '../notes/md/links';
 import { CATEGORY_CHIP, type PickerCategory, type PickerRow } from './model';
 
@@ -30,8 +30,8 @@ const plain = (s: string): string => s.replace(/\$[^$]*\$/g, '').replace(/\s+/g,
    model and "Figure 16.3: a pendulum of length L" is something. A section that
    has not been fetched has no text here, and the caller asks the registry for
    it first. */
-export const sectionTextOf = (id: SectionId): string => {
-  const doc = registry.state(sectionRef(assumedBook(), id))?.docs.text;
+export const sectionTextOf = (ref: SectionRef): string => {
+  const doc = registry.state(ref)?.docs.text;
   if (!doc) return '';
   const copy = doc.cloneNode(true) as HTMLElement;
   for (const fig of copy.querySelectorAll('figure')) {
@@ -60,9 +60,17 @@ const ownRows = (kind: 'file' | 'drawing', category: PickerCategory): readonly P
     return [{ category, key: id, label: e.name, detail: kind, target: kind === 'file' ? { kind: 'file' as const, file: id } : { kind: 'drawing' as const, id } }];
   });
 
-const sectionRows = (): readonly PickerRow[] =>
-  registry.manifest(assumedBook()).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => ({
-    category: 'sections' as const, key: s.id, label: sectionLabel(s.id, s.title), detail: c.title, target: { kind: 'section' as const, section: s.id },
+/* Every book standing loaded gives its rows, the focused one first; a row of
+   another book says which book it is. */
+export const loadedBooks = (): readonly BookId[] => {
+  const here = focus.book;
+  return [here, ...Object.keys(registry.books).map(bookId).filter((b) => b !== here)].filter((b) => registry.hasBook(b));
+};
+export const inBook = (book: BookId, detail: string): string => (book === focus.book ? detail : `${registry.manifest(book).title} · ${detail}`);
+
+const sectionRows = (book: BookId): readonly PickerRow[] =>
+  registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => ({
+    category: 'sections' as const, key: `${book}/${s.id}`, label: sectionLabel(s.id, s.title), detail: inBook(book, c.title), target: { kind: 'section' as const, book, section: s.id },
   })));
 
 /* Only the sections that have been fetched hold figures, because a figure is in
@@ -77,61 +85,59 @@ const sectionRows = (): readonly PickerRow[] =>
    dropped take its rows with it. */
 const figureCache = new WeakMap<HTMLElement, readonly PickerRow[]>();
 
-const figuresOf = (id: string, doc: HTMLElement): readonly PickerRow[] => {
+const figuresOf = (book: BookId, id: string, doc: HTMLElement): readonly PickerRow[] => {
   const held = figureCache.get(doc);
   if (held) return held;
-  const read = readFigures(id, doc);
+  const read = readFigures(book, id, doc);
   figureCache.set(doc, read);
   return read;
 };
 
-const figureRows = (): readonly PickerRow[] =>
-  registry.sectionsOf(assumedBook()).flatMap(([id, state]) => {
+const figureRows = (book: BookId): readonly PickerRow[] =>
+  registry.sectionsOf(book).flatMap(([id, state]) => {
     const doc = state.docs.text; if (!doc) return [];
-    return figuresOf(id, doc);
+    return figuresOf(book, id, doc);
   });
 
-const readFigures = (id: string, doc: HTMLElement): readonly PickerRow[] =>
+const readFigures = (book: BookId, id: string, doc: HTMLElement): readonly PickerRow[] =>
   [...doc.querySelectorAll<HTMLElement>('figure[id]')].flatMap((fig): readonly PickerRow[] => {
     const local = fig.id.startsWith(`${id}-`) ? fig.id.slice(id.length + 1) : fig.id;
     const info = figureInfo(doc, sectionId(id), local);
     if (!info) return [];
     return [{
-      category: 'figures' as const, key: `${id}:${local}`, label: cut(plain(`${info.eyebrow} ${info.title}`), 60), detail: `section ${id}`,
-      target: { kind: 'figure' as const, section: id, id: local }, embed: true,
+      category: 'figures' as const, key: `${book}/${id}:${local}`, label: cut(plain(`${info.eyebrow} ${info.title}`), 60), detail: inBook(book, `section ${id}`),
+      target: { kind: 'figure' as const, book, section: id, id: local }, embed: true,
       text: [info.eyebrow, info.title, info.caption].filter((s) => s !== '').join('\n'),
     }];
   });
 
-const chapterRows = (): readonly PickerRow[] => registry.chaptersOf(assumedBook()).flatMap((ch) => [
+const chapterRows = (book: BookId): readonly PickerRow[] => registry.chaptersOf(book).flatMap((ch) => [
   ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c): PickerRow => ({
-    category: 'concepts', key: c.id, label: plain(c.name), detail: `concept · ${c.section}`, target: { kind: 'concept', section: c.section, id: c.id }, embed: true,
+    category: 'concepts', key: `${book}/${c.id}`, label: plain(c.name), detail: inBook(book, `concept · ${c.section}`), target: { kind: 'concept', book, section: c.section, id: c.id }, embed: true,
     text: [plain(c.name), c.status === 'built' ? c.why ?? '' : ''].filter((s) => s !== '').join('\n'),
   })),
   ...ch.formulas.equations.map((e): PickerRow => ({
-    category: 'equations', key: e.id, label: cut(e.latex || e.id, 60), detail: ['equation', e.section, e.condition].filter((s) => !!s).join(' · '), target: { kind: 'equation', section: e.section, id: e.id }, embed: true,
+    category: 'equations', key: `${book}/${e.id}`, label: cut(e.latex || e.id, 60), detail: inBook(book, ['equation', e.section, e.condition].filter((s) => !!s).join(' · ')), target: { kind: 'equation', book, section: e.section, id: e.id }, embed: true,
     text: [`$$${e.latex || e.tex}$$`, e.condition ? `Holds under: ${e.condition}` : ''].filter((s) => s !== '').join('\n'),
   })),
   ...ch.formulas.glossary.map((g): PickerRow => ({
-    category: 'definitions', key: `term:${g.section}:${g.term}`, label: g.term, detail: `term · ${g.section}`, target: { kind: 'term', section: g.section, term: g.term }, embed: true,
+    category: 'definitions', key: `term:${book}/${g.section}:${g.term}`, label: g.term, detail: inBook(book, `term · ${g.section}`), target: { kind: 'term', book, section: g.section, term: g.term }, embed: true,
     text: `${g.term}: ${g.definition}`,
   })),
   ...ch.formulas.variables.map((v): PickerRow => ({
-    category: 'definitions', key: `sym:${v.section}:${v.sym}`, label: cut(`${v.sym} · ${v.meaning}`, 60), detail: `symbol · ${v.section}`, target: { kind: 'symbol', section: v.section, sym: v.sym }, embed: true,
+    category: 'definitions', key: `sym:${book}/${v.section}:${v.sym}`, label: cut(`${v.sym} · ${v.meaning}`, 60), detail: inBook(book, `symbol · ${v.section}`), target: { kind: 'symbol', book, section: v.section, sym: v.sym }, embed: true,
     text: `${v.sym}: ${v.meaning}${v.unit ? ` (${v.unit})` : ''}`,
   })),
 ]);
 
 /* The book's whole problem set, which is one file beside the book's pages;
    `warm` asks for it, and until it lands the category is empty. */
-const exerciseRows = (): readonly PickerRow[] => {
-  const book = assumedBook();
-  return registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).flatMap((s) =>
+const exerciseRows = (book: BookId): readonly PickerRow[] =>
+  registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).flatMap((s) =>
     (books.exercises(book, sectionId(s.id)) ?? []).map((ex): PickerRow => ({
-      category: 'exercises', key: `${s.id}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: `${registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind} · ${s.id}`,
-      target: { kind: 'exercise', section: s.id, id: ex.id }, embed: true, text: plain(ex.prompt),
+      category: 'exercises', key: `${book}/${s.id}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: inBook(book, `${registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind} · ${s.id}`),
+      target: { kind: 'exercise', book, section: s.id, id: ex.id }, embed: true, text: plain(ex.prompt),
     }))));
-};
 
 /* Every message of every chat that has been opened in this session. A chat
    nobody has opened is one record in a database, and reading them all to fill
@@ -144,7 +150,7 @@ const messageRows = (): readonly PickerRow[] =>
 
 export const allRows = (): readonly PickerRow[] => [
   ...noteRows(), ...ownRows('drawing', 'drawings'), ...ownRows('file', 'files'),
-  ...sectionRows(), ...figureRows(), ...chapterRows(), ...exerciseRows(), ...messageRows(),
+  ...loadedBooks().flatMap((b) => [...sectionRows(b), ...figureRows(b), ...chapterRows(b), ...exerciseRows(b)]), ...messageRows(),
 ];
 
 /* What a category needs fetched before its rows mean anything: the exercises
@@ -153,10 +159,11 @@ export const allRows = (): readonly PickerRow[] => [
    when what it asked for has landed, because the rows are gathered once when
    the picker opens and whoever opened it must gather them again after this. */
 export const warm = async (category: PickerCategory | null): Promise<void> => {
-  if (category === 'exercises') await books.load(assumedBook()).catch(() => {});
+  const book = focus.book;
+  if (category === 'exercises') await books.load(book).catch(() => {});
   if (category === 'concepts' || category === 'equations' || category === 'definitions') {
-    const dirs = registry.manifest(assumedBook()).chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
-    await registry.loadChapters(assumedBook(), dirs).catch(() => {});
+    const dirs = registry.manifest(book).chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
+    await registry.loadChapters(book, dirs).catch(() => {});
   }
 };
 
@@ -167,8 +174,7 @@ export const chipOf = (row: PickerRow): Chip => {
   const kind = CATEGORY_CHIP[row.category];
   const key = linkInner(row.target);
   if (row.category === 'sections' && row.target.kind === 'section') {
-    const id = sectionId(row.target.section);
-    return chip(kind, key, row.label, sectionTextOf(id));
+    return chip(kind, key, row.label, sectionTextOf(sectionRef(row.target.book ?? focus.book, sectionId(row.target.section))));
   }
   return chip(kind, key, row.label, row.text ?? row.label);
 };

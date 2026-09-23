@@ -30,3 +30,8 @@ export const removeIds = (ids: readonly string[], drop: readonly string[]): read
 export const renamedSimId = (id: string): string => id.replace(/^(\d+\.\d+)-demo-/, '$1-sim-');
 /* What was remembered, kept only when it is a list of strings. */
 export const parseIds = (raw: unknown): readonly string[] | null => (Array.isArray(raw) && raw.every((x) => typeof x === 'string') ? raw : null);
+
+/* A remembered span or figure is named with its book, "college-physics-2e|2.5-notation", so the same
+   number in two books folds apart. A key kept before books were named takes the book the page was served for. */
+export const foldKey = (book: string, id: string): string => `${book}|${id}`;
+export const qualifyIds = (ids: readonly string[], book: string): readonly string[] => ids.map((x) => (x.includes('|') ? x : foldKey(book, x)));

@@ -1,10 +1,10 @@
 /* Persistent practice evidence and the lifecycle of a prepared round. */
-import type { ExerciseDTO, ChapterEntry, ConceptDTO } from '../content/schema';
-import { type SectionId, sectionId, conceptId } from '../types/ids';
+import type { ExerciseDTO, ConceptDTO } from '../content/schema';
+import { type SectionId, sectionId, conceptId, bookId } from '../types/ids';
 import type { ItemKey } from '../layout/model';
 import { registry } from '../sections/registry.svelte';
 import { books } from './books.svelte';
-import { mergeCatalog } from './books';
+import { emptyCatalog, mergeCatalog } from './books';
 import {
   DEFAULT_SETTINGS, availabilityOf, freshnessOf, newSessionId, prepare, progressOf, rebuild,
   sessionId, shareOf, stateOf, togglePick, uniqueById,
@@ -149,19 +149,11 @@ class Practice {
   }
 
   catalog(): Catalog {
-    const book = registry.home;
-    const built = (c: ChapterEntry): SectionId[] => c.sections.filter((x) => x.built).map((x) => sectionId(x.id));
-    const home: Catalog = {
-      concepts: registry.concepts(book),
-      sectionsOf: (id, chapter) => { const c = id === book ? registry.manifest(book).chapters.find((x) => x.id === chapter || x.dir === chapter) : undefined; return c ? built(c) : []; },
-      allSections: (id) => id === book ? registry.manifest(book).chapters.flatMap(built) : [],
-      exercises: Object.entries(books.homeExercises).flatMap(([section, list]) => list.map((ex) => ({ book, section: sectionId(section), ex }))),
-    };
-    return mergeCatalog(home, Object.entries(books.loaded).filter(([id]) => id !== book));
+    return mergeCatalog(emptyCatalog, Object.entries(books.loaded));
   }
-  conceptOf(id: string): ConceptDTO | undefined { return books.concept(id); }
+  conceptOf(id: string, book?: string): ConceptDTO | undefined { return books.concept(id, book); }
   bookTitle(id: string): string { return books.title(id); }
-  conceptsIn(book: string): readonly ConceptDTO[] { return book === registry.home ? registry.concepts(registry.home) : uniqueById(books.loaded[book]?.concepts ?? []); }
+  conceptsIn(book: string): readonly ConceptDTO[] { const b = books.loaded[book]; return b ? uniqueById(b.concepts) : registry.concepts(bookId(book)); }
   stateOf(id: string): State { return stateOf(this.mastery[id]); }
   share(id: string): number { return shareOf(this.mastery[id]); }
   freshness(id: string, now = Date.now()) { return freshnessOf(this.mastery[id], this.settings, now); }

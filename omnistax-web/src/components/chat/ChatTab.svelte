@@ -10,14 +10,14 @@
   import { transcript, type Chat } from '../../lib/chat/model';
   import { chip, withChip, type Chip } from '../../lib/chat/context';
   import { sectionTextOf } from '../../lib/picker/sources';
-  import { focus, assumedBook } from '../../lib/sections/focus.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { label as sectionLabel } from '../../lib/sections/grouping';
   import { goSpan, openDoc, openItem } from '../../lib/sections/nav.svelte';
   import { parseLink } from '../../lib/notes/md/links';
-  import { conceptId, itemKey, noteId as asNoteId, noteItem, qualifiedId, sectionId, sectionRef, spanId, spanRef, type ChatId } from '../../lib/types/ids';
-  import { spansOf } from '../../lib/sections/concepts.svelte';
-  import { chatResolver } from '../../lib/chat/resolve';
+  import { itemKey, noteId as asNoteId, noteItem, parseSecKey, secKey, type ChatId, type SectionRef } from '../../lib/types/ids';
+  import { isSpan } from '../../lib/notes/resolve';
+  import { chatBooks } from '../../lib/chat/resolve';
 
   let { chatId }: { chatId: ChatId } = $props();
 
@@ -27,10 +27,10 @@
 
   $effect(() => { if (!chats.get(chatId)) void chats.load(chatId); });
 
-  const chipFor = (id: string): Chip | null => {
-    const entry = registry.entry(sectionRef(assumedBook(), sectionId(id)));
+  const chipFor = (ref: SectionRef): Chip | null => {
+    const entry = registry.entry(ref);
     if (!entry?.built) return null;
-    return chip('section', id, sectionLabel(id, entry.title), sectionTextOf(sectionId(id)), true);
+    return chip('section', secKey(ref), sectionLabel(ref.section, entry.title), sectionTextOf(ref), true);
   };
 
   let chips = $state.raw<readonly Chip[]>([]);
@@ -39,16 +39,16 @@
   $effect(() => {
     if (started) return;
     started = true;
-    const id = focus.section.section;
-    void registry.load(focus.section).then(() => {
-      const c = chipFor(id);
-      if (c) { chips = withChip(chips, c); pinnedSection = id; }
+    const ref = focus.section;
+    void registry.load(ref).then(() => {
+      const c = chipFor(ref);
+      if (c) { chips = withChip(chips, c); pinnedSection = c.key; }
     });
   });
 
   const offer = $derived.by((): Chip | null => {
-    const here = focus.section.section;
-    if (here === pinnedSection || chips.some((c) => c.kind === 'section' && c.key === here)) return null;
+    const here = focus.section; const key = secKey(here);
+    if (key === pinnedSection || chips.some((c) => c.kind === 'section' && c.key === key)) return null;
     return chipFor(here);
   });
   const takeOffer = (): void => { const c = offer; if (!c) return; chips = withChip(chips, c); pinnedSection = c.key; };
@@ -75,15 +75,13 @@
   let branches = $state(false);
 
   const follow = (target: string): void => {
-    const t = parseLink(target.replace(/^note:/, ''));
+    const t = parseLink(target.replace(/^(note|section):/, ''));
     if (target.startsWith('note:')) { void openItem(itemKey(noteItem(asNoteId(target.slice(5))))); return; }
-    if (t.kind === 'section') { void openDoc(sectionRef(t.book ?? assumedBook(), sectionId(t.section)), 'text'); return; }
-    if (t.kind === 'figure') { goSpan(spanRef(t.book ?? assumedBook(), qualifiedId(sectionId(t.section), t.id))); return; }
+    if (t.kind === 'section') { void openDoc(chatBooks.ref(t.section, t.book), 'text'); return; }
     if (t.kind === 'chat') { if (t.message) chats.goTo(t.chat as ChatId, t.message as never); return; }
-    if (t.kind === 'equation') { const e = chatResolver().equation(t.section, t.id); if (e?.anchor) { goSpan(spanRef(t.book ?? assumedBook(), spanId(e.anchor))); return; } }
-    if (t.kind === 'symbol') { const v = chatResolver().symbol(t.section, t.sym); if (v?.anchor) { goSpan(spanRef(t.book ?? assumedBook(), spanId(v.anchor))); return; } }
-    if (t.kind === 'concept') { const intro = spansOf(conceptId(t.id)).intro[0]; if (intro) { goSpan(spanRef(t.book ?? assumedBook(), intro)); return; } }
-    if ('section' in t) void openDoc(sectionRef(t.book ?? assumedBook(), sectionId(t.section)), 'text');
+    const to = chatBooks.target(target);
+    if (to) { if (isSpan(to)) goSpan(to); else void openDoc(to, 'text'); return; }
+    if ('section' in t) void openDoc(chatBooks.ref(t.section, t.book), 'text');
   };
 
   const send = (text: string): void => { void chats.ask(chatId, text, chips); };

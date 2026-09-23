@@ -40,19 +40,17 @@
   import { drawItems, drawLasso, drawLive, fitCanvas } from '../../lib/drawer/render';
   import { CURSOR, isInk, toolForKey, type Tool } from '../../lib/drawer/tools';
   import { assetEmbed, frameSize, snapshotFigure, snapshotImage } from '../../lib/drawer/snapshot';
-  import { cardResolver } from '../../lib/drawer/cards';
+  import { cardBooks, cardResolver } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { split } from '../../lib/layout/model';
   import { parseLink } from '../../lib/notes/md/links';
   import { dragging } from '../../lib/layout/drag.svelte';
-  import { FIG } from '../../lib/fig/figlib';
   import {
     chatId, chatItem, docItem, drawingId, drawingItem, exItem, fileId, fileItem, figItem,
-    itemKey, noteId, noteItem, parseSecKey, sectionId, sectionRef, type BookId, type GroupKey,
+    itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type SectionRef,
   } from '../../lib/types/ids';
 
   let {
@@ -461,9 +459,9 @@
      pane would show, it is left to draw one frame off the page, and what it
      drew is stored. A figure that draws nothing photographable keeps its card,
      which still says what it is and still opens. */
-  const framedFigure = async (book: BookId, section: string, fig: string, p: Vec): Promise<void> => {
-    const embed = `fig:${section}:${fig}`;
-    const root = registry.figureRoot(sectionRef(book, sectionId(section)), fig);
+  const framedFigure = async (ref: SectionRef, fig: string, p: Vec): Promise<void> => {
+    const embed = `fig:${secKey(ref)}:${fig}`;
+    const root = registry.figureRoot(ref, fig);
     if (!root) { placeFrame(embed, p, CARD_SIZE.w, CARD_SIZE.h); return; }
     /* The root must be in the document to be laid out and drawn, so it is put
        somewhere the reader cannot see and taken away again. */
@@ -522,7 +520,7 @@
     if (!m) return;
     const inner = m[1];
     const link = parseLink(inner);
-    if (link.kind === 'figure') { void framedFigure(link.book ?? assumedBook(), link.section, link.id, p); return; }
+    if (link.kind === 'figure') { void framedFigure(cardBooks.ref(link.section, link.book), link.id, p); return; }
     placeFrame(inner, p, CARD_SIZE.w, CARD_SIZE.h);
   };
 
@@ -537,15 +535,15 @@
     const link = parseLink(key);
     if (link.kind === 'figure') {
       const group = layoutStore.layout.groups.findIndex((g) => g.key === groupKey);
-      layoutStore.apply((l) => split(l, group < 0 ? l.focus : group, 'right', figItem(sectionRef(link.book ?? assumedBook(), sectionId(link.section)), link.id)));
+      layoutStore.apply((l) => split(l, group < 0 ? l.focus : group, 'right', figItem(cardBooks.ref(link.section, link.book), link.id)));
       return;
     }
-    const item = link.kind === 'exercise' ? exItem(sectionRef(link.book ?? assumedBook(), sectionId(link.section)), link.id)
+    const item = link.kind === 'exercise' ? exItem(cardBooks.ref(link.section, link.book), link.id)
       : link.kind === 'file' ? fileItem(fileId(link.file))
         : link.kind === 'chat' ? chatItem(chatId(link.chat))
           : link.kind === 'drawing' ? drawingItem(drawingId(link.id))
             : link.kind === 'note' ? noteOf(link.name)
-              : link.kind === 'section' ? docItem(sectionRef(link.book ?? assumedBook(), sectionId(link.section)), 'text')
+              : link.kind === 'section' ? docItem(cardBooks.ref(link.section, link.book), 'text')
                 : null;
     if (item) void openItem(itemKey(item)).catch(() => {});
   };
@@ -560,7 +558,7 @@
     const note = /^note:(.+)$/.exec(link);
     if (note) { void openItem(itemKey(noteItem(noteId(note[1])))); return; }
     const sec = /^section:(.+)$/.exec(link);
-    if (sec) { void openItem(itemKey(docItem(parseSecKey(sec[1]) ?? sectionRef(assumedBook(), sectionId(sec[1])), 'text'))); return; }
+    if (sec) { void openItem(itemKey(docItem(parseSecKey(sec[1]) ?? cardBooks.ref(sec[1]), 'text'))); return; }
     openFrame(link);
   };
 
@@ -573,16 +571,7 @@
     for (const id of waitingThumbs(el)) {
       void thumbnailOf(drawingId(id)).then((url) => { if (url) void fillThumbs(el, drawingId(id), url); });
     }
-    for (const t of el.querySelectorAll<HTMLElement>('.embed-tex[data-tex]')) {
-      if (t.dataset.set === '1') continue;
-      t.dataset.set = '1';
-      FIG.tex(t, t.dataset.tex ?? '');
-    }
-    for (const m of el.querySelectorAll<HTMLElement>('[data-math]')) {
-      if (m.dataset.math === 'set') continue;
-      m.dataset.math = 'set';
-      FIG.renderMath(m);
-    }
+    cardBooks.setMath(el);
   };
 
   /* ── the boxes and the frames ──────────────────────────────────────────── */

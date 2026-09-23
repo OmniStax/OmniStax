@@ -32,7 +32,7 @@ export type Place =
 /* A section id names its chapter: "16.3" lies in chapter 16. */
 const chapterOfSection = (s: SectionId): ChapterId => chapterId(String(s).split('.')[0]);
 export const placeOf = (t: Target): Place =>
-  t.level === 'section' ? { level: 'section', chapter: chapterOfSection(t.section), section: t.section } : t;
+  t.level === 'section' ? { level: 'section', chapter: chapterOfSection(t.section), section: t.section } : t.level === 'chapter' ? { level: 'chapter', chapter: t.chapter } : { level: 'book' };
 export const placeKey = (p: Place): string =>
   p.level === 'book' ? 'book' : p.level === 'chapter' ? `chapter:${p.chapter}` : `section:${p.section}`;
 export const samePlace = (a: Place, b: Place): boolean => placeKey(a) === placeKey(b);

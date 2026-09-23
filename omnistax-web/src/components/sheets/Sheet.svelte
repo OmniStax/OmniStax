@@ -6,20 +6,21 @@
   import { sheets } from '../../lib/sheets/store.svelte';
   import Elements from './Elements.svelte';
   import Table from './Table.svelte';
-  let { id }: { id: string } = $props();
-  const entry = $derived(sheets.entry(id));
-  const data = $derived(sheets.data[id]);
-  const status = $derived(sheets.status[id]);
-  $effect(() => { if (entry && !data) void sheets.load(id); });
+  import type { BookId } from '../../lib/types/ids';
+  let { book, id }: { book: BookId; id: string } = $props();
+  const entry = $derived(sheets.entry(book, id));
+  const data = $derived(sheets.dataOf(book, id));
+  const status = $derived(sheets.statusOf(book, id));
+  $effect(() => { if (entry && !data) void sheets.load(book, id); });
 </script>
 
-<div class="sheet" data-sheet={id}>
+<div class="sheet" data-book={book} data-sheet={id}>
   {#if !entry}
     <p class="note">This book keeps no sheet called “{id}”.</p>
   {:else if data && data.kind === 'elements'}
-    <Elements sheet={data} />
+    <Elements {book} sheet={data} />
   {:else if data && data.kind === 'table'}
-    <Table sheet={data} />
+    <Table {book} sheet={data} />
   {:else if status === 'failed'}
     <p class="note bad">Could not read {entry.title}.</p>
   {:else}

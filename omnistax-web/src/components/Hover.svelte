@@ -8,16 +8,14 @@
      A concept's card carries more than a sentence: under it stand the places
      the text introduces it, uses it and tests it, each one a link to go there. */
   import { onMount, tick } from 'svelte';
-  import { targetOf, cardFor, openDelay } from '../lib/hover/cards';
+  import { targetOf, cardFor, openDelay, readyFor } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
   import { glyphOf } from '../lib/hover/data';
   import { bookOfEl, findEl, goSpan } from '../lib/sections/nav.svelte';
-  import { assumedBook } from '../lib/sections/focus.svelte';
   import { spanId, spanRef } from '../lib/types/ids';
-  import { FIG } from '../lib/fig/figlib';
+  import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
   import { settings } from '../lib/settings/store.svelte';
-  import { math } from './actions/math';
 
   const CLOSE_GRACE = 200;
   type Placed = { readonly top: number; readonly left: number; readonly ready: boolean };
@@ -26,13 +24,19 @@
   let box = $state<HTMLElement | null>(null);
   let pos = $state<Placed>({ top: 0, left: 0, ready: false });
   const chapter = $derived(anchor?.closest<HTMLElement>('[data-chapter]')?.dataset.chapter ?? '');
+  const book = $derived(anchor ? bookOfEl(anchor) ?? '' : '');
   const symColor = $derived.by(() => { const g = anchor ? glyphOf(anchor) : null; return g ? getComputedStyle(g).color : ''; });   /* the glyph's own hue: chapter, binds and colour coding all applied */
 
   let openT = 0, closeT = 0, pending: HTMLElement | null = null;
   let mouseDown = false, touch = false;
   const clearTimers = () => { clearTimeout(openT); clearTimeout(closeT); pending = null; };
   const close = () => { clearTimers(); card = null; anchor = null; };
-  const show = (t: HTMLElement) => { clearTimers(); const c = cardFor(t); if (!c) { if (anchor) close(); return; } card = c; anchor = t; pos = { ...pos, ready: false }; };
+  /* A card whose facts are still on their way opens once they arrive, if the pointer is still there. */
+  const show = (t: HTMLElement, waited = false) => {
+    clearTimers();
+    const wait = waited ? null : readyFor(t);
+    if (wait) { pending = t; void wait.then(() => { if (pending === t) show(t, true); }); return; }
+    const c = cardFor(t); if (!c) { if (anchor) close(); return; } card = c; anchor = t; pos = { ...pos, ready: false }; };
   const scheduleOpen = (t: HTMLElement) => { if (t === anchor || t === pending) { clearTimeout(closeT); return; } clearTimers(); pending = t; openT = window.setTimeout(() => show(t), openDelay(t)); };
   const scheduleClose = () => { clearTimers(); if (card) closeT = window.setTimeout(close, CLOSE_GRACE); };
   const inCard = (n: EventTarget | null): boolean => n instanceof Node && !!box && box.contains(n);
@@ -48,7 +52,8 @@
   };
   $effect(() => { if (!card || !anchor) return; tick().then(place); });
 
-  const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
+  const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
+  const math = (node: HTMLElement, _dep?: unknown) => { figFor(book).renderMath(node); return { update() { figFor(book).renderMath(node); } }; };
   const run = (a: { run: () => void }) => { a.run(); close(); };
 
   onMount(() => {
@@ -76,7 +81,7 @@
       const t = targetOf(e.target); if (!t) return;
       if (touch && t !== anchor) { e.preventDefault(); e.stopPropagation(); show(t); return; }
       const a = t.closest<HTMLAnchorElement>('a.figref, a.xref'); if (!a) return;
-      const id = a.getAttribute('href')?.slice(1); const book = bookOfEl(a) ?? assumedBook(); if (!id || findEl(book, id)) return;
+      const id = a.getAttribute('href')?.slice(1); const book = bookOfEl(a); if (!id || !book || findEl(book, id)) return;
       e.preventDefault(); goSpan(spanRef(book, spanId(id))); close();
     };
     const onScroll = () => { if (card) place(); };
@@ -94,7 +99,7 @@
 </script>
 
 {#if card}{#key card}
-  <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
+  <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
     <div class="eyebrow">{card.eyebrow}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}

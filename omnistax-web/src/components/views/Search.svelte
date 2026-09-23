@@ -10,11 +10,11 @@
   import { countFound, findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
   import { openFile } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
   import { bookId } from '../../lib/types/ids';
   import { pageLabel } from '../../lib/content/roles';
   import { ICON } from '../../lib/icons';
-  import { FIG } from '../../lib/fig/figlib';
+  import { figFor } from '../../lib/fig/figlib';
   import { mathHtml } from '../actions/math';
   const PAUSE = 120;
   const PAGE = 60;
@@ -43,11 +43,11 @@
     const t = setTimeout(() => (asked = q), PAUSE);
     return () => clearTimeout(t);
   });
-  const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, urls: c.urls, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
+  const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
   const failed = $derived(searchStore.books.filter((b) => searchStore.status[b] === 'failed'));
   $effect(() => { asked; filter; sel = 0; shown = PAGE; });
   onMount(() => { void searchStore.loadAll(); void fileCorpus.load(); void chatCorpus.load(); input?.focus(); });
-  const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h, corpora.find((c) => c.book === h.book)?.urls ?? {}); };
+  const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h); };
   const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
   const onKey = (e: KeyboardEvent): void => {
@@ -61,9 +61,8 @@
     const r = list?.querySelector<HTMLElement>(`[data-hit="${sel}"]`); if (!r) return;
     r.scrollIntoView({ block: 'nearest' });
   });
-  const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
-  /* A symbol is set from the book's own table where this is the book being read; another book's is set as it is keyed. */
-  const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => FIG.tex(node, registry.manifest(bookId(x.book)).symbols[x.sym] ?? x.sym); set(v); return { update: set }; };
+  const tex = (node: HTMLElement, v: { readonly book: string; readonly tex: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, x.tex); set(v); return { update: set }; };
+  const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, registry.manifest(bookId(x.book)).symbols[x.sym] ?? x.sym); set(v); return { update: set }; };
   const KIND: Readonly<Record<Hit['kind'], string>> = { concept: 'concept', definition: 'definition', formula: 'formula', text: 'text' };
   const DAY = 86_400_000;
   const when = (t: number): string => {
@@ -92,9 +91,9 @@
   {:else}
     <div class="hits" bind:this={list}>
       {#each byBook as b (b.book)}
-        {#if byBook.length > 1 || b.book !== assumedBook()}<div class="eyebrow book">{b.title}</div>{/if}
+        {#if byBook.length > 1 || b.book !== focus.book}<div class="eyebrow book">{b.title}</div>{/if}
         {#each b.hits as { h, i } (i)}
-          <button type="button" class="hit k-{h.kind}" class:sel={i === sel} data-hit={i} onmousemove={() => (sel = i)} onclick={() => go(i)}>
+          <button type="button" class="hit k-{h.kind}" class:sel={i === sel} data-book={h.book} data-hit={i} onmousemove={() => (sel = i)} onclick={() => go(i)}>
             {#if h.kind === 'text'}
               <span class="where">{where(h)}{#if h.head} › {h.head}{/if}</span>
               <span class="line">{#each h.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
@@ -104,7 +103,7 @@
               {#if h.concept.status === 'built' && h.concept.why}<span class="line why">{h.concept.why}</span>{/if}
             {:else if h.kind === 'formula'}
               <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)}{#if h.equation.condition} · {h.equation.condition}{/if}</span>
-              <span class="line eq" use:tex={h.equation.tex}></span>
+              <span class="line eq" use:tex={{ book: h.book, tex: h.equation.tex }}></span>
             {:else if h.def.kind === 'symbol'}
               <span class="where">{#if filter === 'all'}<i class="kind">symbol</i>{/if}{where(h)}</span>
               <span class="line"><span class="sym" use:sym={{ book: h.book, sym: h.def.symbol.sym }}></span> {h.def.symbol.meaning}{#if h.def.symbol.unit} <span class="unit">{h.def.symbol.unit}</span>{/if}</span>

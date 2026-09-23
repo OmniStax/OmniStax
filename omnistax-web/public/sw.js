@@ -29,18 +29,20 @@ const pinnedFor = async (event, installs, pathname) => {
   const held = await pinsFor(event.clientId);
   const requested = bookOf(pathname, installs);
   if (requested?.installedRelease) {
-    if (held.pins[requested.bookId]) return held.pins[requested.bookId];
-    const artifact = artifactFor(requested, requested.installedRelease); if (!artifact) return null;
+    if (held.pins[requested.bookId]) return [held.pins[requested.bookId]];
+    const artifact = artifactFor(requested, requested.installedRelease); if (!artifact) return [];
     const pin = { bookId: requested.bookId, release: requested.installedRelease, artifact };
-    const next = { ...held, pins: { ...held.pins, [requested.bookId]: pin } }; pins.set(event.clientId, next); await pinWrite(event.clientId, next).catch(() => undefined); return pin;
+    const next = { ...held, pins: { ...held.pins, [requested.bookId]: pin } }; pins.set(event.clientId, next); await pinWrite(event.clientId, next).catch(() => undefined); return [pin];
   }
-  if (held.primaryBook && held.pins[held.primaryBook]) return held.pins[held.primaryBook];
+  const others = (primary) => Object.values(held.pins).filter((pin) => pin.bookId !== primary);
+  if (held.primaryBook && held.pins[held.primaryBook]) return [held.pins[held.primaryBook], ...others(held.primaryBook)];
   const client = event.clientId ? await clients.get(event.clientId) : null;
   const found = client ? bookOf(new URL(client.url).pathname, installs) : null;
-  if (!found?.installedRelease) return null;
-  const artifact = artifactFor(found, found.installedRelease); if (!artifact) return null;
+  const artifact = found?.installedRelease ? artifactFor(found, found.installedRelease) : null;
+  if (!artifact) return others(undefined);
   const pin = { bookId: found.bookId, release: found.installedRelease, artifact };
-  const next = { ...held, primaryBook: found.bookId, pins: { ...held.pins, [found.bookId]: pin } }; pins.set(event.clientId, next); await pinWrite(event.clientId, next).catch(() => undefined); return pin;
+  const next = { ...held, primaryBook: found.bookId, pins: { ...held.pins, [found.bookId]: pin } }; pins.set(event.clientId, next); await pinWrite(event.clientId, next).catch(() => undefined);
+  return [pin, ...others(found.bookId)];
 };
 const cached = async (pin, request, installs) => {
   const cache = await caches.open(cacheName(pin.bookId, pin.release, pin.artifact));
@@ -51,6 +53,17 @@ const cached = async (pin, request, installs) => {
   const manifest = record && pin.release === record.installedRelease ? record.manifest : record && pin.release === record.previousRelease ? record.previousManifest : null;
   return manifest?.resources?.some((resource) => resource.logicalUrl === pathname || resource.logicalUrl === logical)
     ? new Response('Installed offline resource is missing. Repair this download.', { status: 503 }) : null;
+};
+/* A path without a book prefix (/media, /assets, /about.html) may sit in any
+   book the client holds; a miss in one is only final when no other has it. */
+const fromPins = async (held, request, installs) => {
+  let miss = null;
+  for (const pin of held) {
+    const response = await cached(pin, request, installs);
+    if (response?.ok) return response;
+    miss ??= response;
+  }
+  return miss;
 };
 /* A downloaded book carries one page, its own front, and the shell on it opens
    whichever section the address names. */
@@ -96,8 +109,11 @@ self.addEventListener('fetch', (event) => {
         const held = await pinsFor(event.resultingClientId); const next = { ...held, primaryBook: pin.bookId, pins: { ...held.pins, [pin.bookId]: pin } };
         pins.set(event.resultingClientId, next); await pinWrite(event.resultingClientId, next).catch(() => undefined);
       }
-    } else pin = await pinnedFor(event, installs, url.pathname);
-    if (pin) { const response = await cached(pin, event.request, installs) ?? (event.request.mode === 'navigate' ? await shellOf(pin) : undefined); if (response) return response; }
+      if (pin) { const response = await cached(pin, event.request, installs) ?? await shellOf(pin); if (response) return response; }
+    } else {
+      const response = await fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs);
+      if (response) return response;
+    }
     try { return await fetch(event.request); }
     catch { return event.request.mode === 'navigate' ? offlinePage() : new Response('Offline resource unavailable', { status: 503 }); }
   };

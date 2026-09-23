@@ -44,7 +44,7 @@
   /* Enter takes the row: a place to pin to, a thing to open, or one level further in. */
   const act = (r: Row): void => {
     if (mode === 'pick') {
-      const t = pickTarget(level, r);
+      const t = pickTarget(manifest, level, r);
       if (t) { ui.browser.onPick?.(t); ui.closeBrowser(); return; }
       goto(enter(level, r, mode), null); return;
     }

@@ -18,22 +18,21 @@
   import { openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { bookId, drawingItem, exItem, itemKey, sectionRef } from '../../lib/types/ids';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
 
   let {
-    section, ex, hidden = false, book = assumedBook(),
+    book, section, ex, hidden = false,
     outcome = null, onanswer, inline = false, session,
   }: {
-    section: SectionId; ex: ExerciseDTO; hidden?: boolean; book?: string;
+    book: string; section: SectionId; ex: ExerciseDTO; hidden?: boolean;
     outcome?: boolean | null; onanswer?: (ok: boolean) => void; inline?: boolean; session?: SessionId;
   } = $props();
 
   const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
-  const concept = (id: string) => practice.conceptOf(id);
+  const concept = (id: string) => practice.conceptOf(id, book);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
-  const nameOf = (id: string): string => practice.conceptOf(id)?.name ?? id;
+  const nameOf = (id: string): string => practice.conceptOf(id, book)?.name ?? id;
   const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
   const BLOOM_HELP: Readonly<Record<string, string>> = {
@@ -124,7 +123,7 @@
         <div class="meta-row"><span class="lab">Concepts tested</span><span class="chips">
           {#each ex.concepts as c (c)}
             {@const k = concept(c)}
-            <button type="button" class="chip concept k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span use:math={k?.name}>{@html k?.name ?? c}</span></button>
+            <button type="button" class="chip concept k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-book={book} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span use:math={k?.name}>{@html k?.name ?? c}</span></button>
           {/each}
         </span></div>
       {/if}

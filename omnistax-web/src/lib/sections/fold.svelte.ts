@@ -1,10 +1,12 @@
 /* Folded headings and hidden figures, remembered in this browser. Both are
-   sets of qualified ids, so the state follows a document into every pane it
-   is open in: applyState() puts the class on every element with the id.
+   sets of keys, each a qualified id after its book, so the state follows a
+   document into every pane it is open in: applyState() puts the class on
+   every element of that book with the id.
    The toggles are buttons put into the headings and figure heads when a
    document is prepared (registry.svelte.ts), one delegated click listener
    per root, like the "Original" button. */
-import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, renamedSimId } from './fold';
+import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, renamedSimId, foldKey, qualifyIds } from './fold';
+import { focus } from './focus.svelte';
 import { readerWritesAllowed } from '../backup/guard';
 export { FOLDABLE, HIDEABLE, foldableOf, hideableOf, headingOf } from './fold';
 
@@ -18,6 +20,8 @@ const save = (key: StorageKey, ids: readonly string[]): void => { if (!readerWri
 class IdSet {
   ids = $state.raw<readonly string[]>([]);
   constructor(private readonly key: StorageKey) { this.ids = load(key); }
+  /* Old keys name no book; they are given the boot book once it is known. */
+  settle(): void { if (focus.boot && this.ids.some((x) => !x.includes('|'))) this.set(qualifyIds(this.ids, focus.boot)); }
   has(id: string): boolean { return this.ids.includes(id); }
   toggle(id: string): void { this.set(toggleId(this.ids, id)); }
   add(ids: readonly string[]): void { this.set(addIds(this.ids, ids)); }
@@ -28,16 +32,18 @@ export const folded = new IdSet('omnistax-folded');
 export const hiddenFigs = new IdSet('omnistax-hidden-figs');
 
 /* Whole-document actions, for the commands. */
-export const foldAllIn = (root: ParentNode | null): void => { if (root) folded.add(foldableOf(root).map((e) => e.id)); };
-export const unfoldAllIn = (root: ParentNode | null): void => { if (root) folded.remove(foldableOf(root).map((e) => e.id)); };
-export const hideFigsIn = (root: ParentNode | null): void => { if (root) hiddenFigs.add(hideableOf(root).map((e) => e.id)); };
-export const showFigsIn = (root: ParentNode | null): void => { if (root) hiddenFigs.remove(hideableOf(root).map((e) => e.id)); };
+const keyOf = (e: Element, id = e.id): string => foldKey(e.closest<HTMLElement>('[data-book]')?.dataset.book ?? '', id);
+
+export const foldAllIn = (root: ParentNode | null): void => { if (root) folded.add(foldableOf(root).map((e) => keyOf(e))); };
+export const unfoldAllIn = (root: ParentNode | null): void => { if (root) folded.remove(foldableOf(root).map((e) => keyOf(e))); };
+export const hideFigsIn = (root: ParentNode | null): void => { if (root) hiddenFigs.add(hideableOf(root).map((e) => keyOf(e))); };
+export const showFigsIn = (root: ParentNode | null): void => { if (root) hiddenFigs.remove(hideableOf(root).map((e) => keyOf(e))); };
 /* Before scrolling to an element, open whatever folded or hidden thing holds it. */
 export const revealFolds = (target: Element): void => {
   const spans: string[] = [];
-  for (let e = target.closest<HTMLElement>(FOLDABLE); e; e = e.parentElement?.closest<HTMLElement>(FOLDABLE) ?? null) spans.push(e.id);
-  if (spans.some((id) => folded.has(id))) folded.remove(spans);
-  const fig = target.closest<HTMLElement>(HIDEABLE); if (fig && hiddenFigs.has(fig.id)) hiddenFigs.remove([fig.id]);
+  for (let e = target.closest<HTMLElement>(FOLDABLE); e; e = e.parentElement?.closest<HTMLElement>(FOLDABLE) ?? null) spans.push(keyOf(e));
+  if (spans.some((k) => folded.has(k))) folded.remove(spans);
+  const fig = target.closest<HTMLElement>(HIDEABLE); if (fig && hiddenFigs.has(keyOf(fig))) hiddenFigs.remove([keyOf(fig)]);
 };
 
 /* ---------- buttons and classes in the DOM ---------- */
@@ -60,9 +66,10 @@ const syncFig = (fig: HTMLElement, on: boolean): void => {
 /* Put the remembered state on every span and figure under `root`. Reads the
    stores, so an effect that calls it follows them. */
 export const applyState = (root: ParentNode): void => {
+  folded.settle(); hiddenFigs.settle();
   const f = folded.ids, h = hiddenFigs.ids;
-  foldableOf(root).forEach((s) => syncSpan(s, f.includes(s.id)));
-  hideableOf(root).forEach((g) => syncFig(g, h.includes(g.id)));
+  foldableOf(root).forEach((s) => syncSpan(s, f.includes(keyOf(s))));
+  hideableOf(root).forEach((g) => syncFig(g, h.includes(keyOf(g))));
 };
 
 /* A chevron before each span's heading. In document order a section comes
@@ -92,6 +99,6 @@ export const foldControls = (root: HTMLElement): void => {
   root.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button.fold, button.fig-hide'); if (!b) return;
     e.preventDefault();
-    if (b.dataset.fold) folded.toggle(b.dataset.fold); else if (b.dataset.fig) hiddenFigs.toggle(b.dataset.fig);
+    if (b.dataset.fold) folded.toggle(keyOf(b, b.dataset.fold)); else if (b.dataset.fig) hiddenFigs.toggle(keyOf(b, b.dataset.fig));
   });
 };

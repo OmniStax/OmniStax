@@ -113,9 +113,9 @@ export const keyOfLevel = (tree: BookTree, level: Level): string | null =>
       : level.kind === 'figures' ? itemKey(docItem(sectionRef(tree.id, level.section), 'text')) : null;
 
 /* The place in the book a picked row stands for; rows below a section name no scope. */
-export const pickTarget = (level: Level, row: Row): Target | null => {
-  if (row.kind === 'book') return { level: 'book' };
-  if (row.kind === 'chapter') return { level: 'chapter', chapter: chapterId(row.chapter) };
-  if (row.kind === 'section' && row.built && level.kind === 'sections') return { level: 'section', section: row.section };
+export const pickTarget = (tree: BookTree, level: Level, row: Row): Target | null => {
+  if (row.kind === 'book') return { level: 'book', book: tree.id };
+  if (row.kind === 'chapter') return { level: 'chapter', book: tree.id, chapter: chapterId(row.chapter) };
+  if (row.kind === 'section' && row.built && level.kind === 'sections') return { level: 'section', book: tree.id, section: row.section };
   return null;
 };

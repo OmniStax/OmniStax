@@ -1,28 +1,18 @@
-/* The reader's notes for one book: highlights, each with a colour and an
-   optional annotation, anchored to the text they mark. Kept in this browser
-   under the book's id. */
+/* The reader's notes over every book: highlights, each with a colour and an
+   optional annotation, anchored to the text they mark. One list in memory;
+   in this browser each book's notes are kept under that book's id. */
 import type { Anchor } from './anchor';
-import type { SectionId, DocKind } from '../types/ids';
+import { sameSection, type BookId, type SectionRef, type DocKind } from '../types/ids';
 import { history } from '../history/store.svelte';
 import { readerWritesAllowed } from '../backup/guard';
+import { bookOfNotesKey, notesKey, notesOfBook, parseNotes, type HlColor, type Note } from './stored';
 
-export const HL_COLORS = ['yellow', 'green', 'blue', 'pink'] as const;
-export type HlColor = (typeof HL_COLORS)[number];
-export type Note = {
-  readonly id: string; readonly section: SectionId; readonly doc: DocKind; readonly anchor: Anchor;
-  readonly color: HlColor; readonly text: string; readonly created: number; readonly updated: number;
+export { HL_COLORS, type HlColor, type Note } from './stored';
+const storedBooks = (): readonly BookId[] => {
+  const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i) ?? '');
+  return keys.flatMap((k) => { const b = bookOfNotesKey(k); return b ? [b] : []; });
 };
-const isColor = (c: unknown): c is HlColor => (HL_COLORS as readonly unknown[]).includes(c);
-const parse = (raw: unknown): Note[] => {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((n) => {
-    if (typeof n !== 'object' || n === null) return [];
-    const o = n as Record<string, unknown>; const a = o.anchor as Record<string, unknown> | undefined;
-    if (typeof o.id !== 'string' || typeof o.section !== 'string' || !a || typeof a.quote !== 'string') return [];
-    return [{ id: o.id, section: o.section as SectionId, doc: 'text', anchor: { quote: a.quote, prefix: String(a.prefix ?? ''), suffix: String(a.suffix ?? '') },
-      color: isColor(o.color) ? o.color : 'yellow', text: typeof o.text === 'string' ? o.text : '', created: Number(o.created) || Date.now(), updated: Number(o.updated) || Date.now() }];
-  });
-};
+const readBook = (book: BookId): Note[] => { try { return parseNotes(book, JSON.parse(localStorage.getItem(notesKey(book)) ?? '[]')); } catch { return []; } };
 const newId = (): string => Math.random().toString(36).slice(2, 10);
 
 class Notes {
@@ -31,14 +21,14 @@ class Notes {
   paintVersion = $state(0);
   editing = $state<string | null>(null);   /* the note whose annotation should take focus in the view */
   unresolved = $state.raw<ReadonlySet<string>>(new Set());
-  private key = 'omnistax-notes';
+  /* every book this browser has kept notes for, so emptying one still writes its key */
+  private books: ReadonlySet<BookId> = new Set();
 
-  init(bookId: string): void {
-    this.key = `omnistax-notes-${bookId}`;
-    try { this.list = parse(JSON.parse(localStorage.getItem(this.key) ?? '[]')); } catch { this.list = []; }
+  init(): void {
+    try { this.books = new Set(storedBooks()); this.list = [...this.books].flatMap(readBook); } catch { this.list = []; }
   }
-  add(section: SectionId, doc: DocKind, anchor: Anchor, color: HlColor): Note {
-    const now = Date.now(); const n: Note = { id: newId(), section, doc, anchor, color, text: '', created: now, updated: now };
+  add(ref: SectionRef, doc: DocKind, anchor: Anchor, color: HlColor): Note {
+    const now = Date.now(); const n: Note = { id: newId(), book: ref.book, section: ref.section, doc, anchor, color, text: '', created: now, updated: now };
     this.record(`highlight in ${color}`, () => { this.list = [...this.list, n]; this.save(); this.paintVersion++; });
     return n;
   }
@@ -51,9 +41,9 @@ class Notes {
     if (!this.get(id)) return;
     this.record('remove highlight', () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; });
   }
-  forSection(section: SectionId): readonly Note[] { return this.list.filter((n) => n.section === section); }
-  setUnresolved(section: string, ids: readonly string[]): void {
-    const inSection = new Set(this.list.filter((note) => note.section === section).map((note) => note.id));
+  forSection(ref: SectionRef): readonly Note[] { return this.list.filter((n) => sameSection(n, ref)); }
+  setUnresolved(ref: SectionRef, ids: readonly string[]): void {
+    const inSection = new Set(this.forSection(ref).map((note) => note.id));
     this.unresolved = new Set([...this.unresolved].filter((id) => !inSection.has(id)).concat(ids));
   }
 
@@ -75,6 +65,10 @@ class Notes {
     if (this.editing !== null && !this.get(this.editing)) this.editing = null;
   }
   private patch(id: string, p: Partial<Note>): void { this.list = this.list.map((n) => (n.id === id ? { ...n, ...p, updated: Date.now() } : n)); this.save(); }
-  private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(this.key, JSON.stringify(this.list)); } catch { /* private mode */ } }
+  private save(): void {
+    if (!readerWritesAllowed()) return;
+    this.books = new Set([...this.books, ...this.list.map((n) => n.book)]);
+    try { this.books.forEach((b) => localStorage.setItem(notesKey(b), JSON.stringify(notesOfBook(this.list, b)))); } catch { /* private mode */ }
+  }
 }
 export const notes = new Notes();

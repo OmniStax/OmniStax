@@ -28,8 +28,9 @@
      so the reader learns one picture everywhere. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { library } from '../../lib/explorer/library.svelte';
-  import { sectionId, sectionRef, conceptId, type SectionId } from '../../lib/types/ids';
-  import type { BookManifest, ChapterEntry, SectionEntry } from '../../lib/content/schema';
+  import { bookId, sectionId, conceptId, type SectionId } from '../../lib/types/ids';
+  import { focus } from '../../lib/sections/focus.svelte';
+  import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
   import { math } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
   import { practice } from '../../lib/practice/store.svelte';
@@ -53,30 +54,22 @@
      library, each fetched once and then held. Everything the store keeps is keyed
      by book already, so a chapter of one book and a section of another sit in the
      curriculum side by side. */
-  const book = $derived(registry.home);
+  const book = $derived(focus.book);
   const cat = $derived(practice.catalog());
   const shelf = $derived([book, ...library.added.filter((id) => id !== book)]);
-  /* A book's shape is read from its own manifest: the one the shell was started
-     with for the book being read, a fetched one for every other. */
-  const manifestOf = (id: string): BookManifest | undefined => (id === book ? registry.manifest(book) : books.manifest(id));
-  const chaptersOf = (id: string): readonly ChapterEntry[] => manifestOf(id)?.chapters ?? [];
+  const chaptersOf = (id: string): readonly ChapterEntry[] => books.manifest(id)?.chapters ?? [];
   const statusOf = (id: string): string => books.status[id] ?? 'idle';
   /* The catalogue of what the library holds. Books themselves are loaded by
      the face that needs them: Choose loads the full shelf, while Dashboard
      waits until a progress accordion is opened. */
   $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
-  const bookTitle = (id: string): string => (id === book ? registry.manifest(book).title || 'This book' : practice.bookTitle(id));
+  const bookTitle = (id: string): string => practice.bookTitle(id);
   const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
   const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
   const chapterOf = (id: string, ch: string): ChapterEntry | undefined => chaptersOf(id).find((c) => c.id === ch || c.dir === ch);
-  const chapters = $derived(registry.manifest(book).chapters);
   const builtOf = (c: ChapterEntry): readonly SectionEntry[] => c.sections.filter((s) => s.built);
 
-  /* What the Choose face needs before it can say anything true: every chapter's
-     concepts, and every built section, whose exercises only join the catalog
-     once the section itself has been fetched. */
-  const dirs = $derived(chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir));
-  const loading = $derived(shelf.some((id) => statusOf(id) === 'idle' || statusOf(id) === 'loading') || dirs.some((d) => (registry.chapterStatusOf(book, d) ?? 'loading') === 'loading'));
+  const loading = $derived(shelf.some((id) => statusOf(id) === 'idle' || statusOf(id) === 'loading'));
 
   /* A checkbox that is neither on nor off: the browser takes that as a property
      only, so it is set here rather than written as an attribute. */
@@ -193,13 +186,12 @@
   const drawn = $derived(session?.drawn ?? []);
   const cur = $derived(practice.current(item));
   const pending = $derived(session ? session.drawn[at] : undefined);
-  /* A problem of the book being read waits on its section; one drawn out of
-     another book waits on that book, which arrives whole. */
-  $effect(() => {
-    if (!pending || cur) return;
-    if (pending.book === book) void registry.load(sectionRef(book, pending.section));
-    else if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
-  });
+  /* A drawn problem waits on its book, which arrives whole, and on the registry's manifest, which renders it. */
+  const need = (id: string): void => {
+    void registry.ensureBook(bookId(id));
+    if (statusOf(id) === 'idle') books.load(id).catch(() => {});
+  };
+  $effect(() => { if (pending && !cur) need(pending.book); });
   const outcome = $derived(session?.outcomes[at] ?? null);
   const allDone = $derived(!!session && session.outcomes.every((v) => v !== null));
   $effect(() => { if (page.face === 'practise' && session && cur) practice.markShown(item); });
@@ -211,15 +203,7 @@
   $effect(() => { if (root && cur) registry.decorateRoot(root); });
   let allRoot = $state<HTMLElement | null>(null);
   $effect(() => { if (allRoot && page.showAll) { drawn; registry.decorateRoot(allRoot); } });
-  /* All mode needs every local section at once; foreign books were fetched as a
-     unit while the curriculum was assembled. */
-  $effect(() => {
-    if (!page.showAll) return;
-    drawn.forEach((d) => {
-      if (d.book === book) void registry.load(sectionRef(book, d.section));
-      else if (statusOf(d.book) === 'idle') books.load(d.book).catch(() => {});
-    });
-  });
+  $effect(() => { if (page.showAll) drawn.forEach((d) => need(d.book)); });
   const answeredAt = (i: number, ok: boolean): void => { if (!page.showAll) practice.afterAnswer(item, i); };
 
   /* Ending a round early is asked about first, in a strip that takes the place
@@ -345,30 +329,18 @@
   });
   $effect(() => {
     if (page.face === 'choose') {
-      if (dirs.length) registry.loadChapters(book, dirs).catch(() => {});
       shelf.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
       return;
     }
     if (page.face !== 'dashboard') return;
-    if (progressBookOpen(book)) {
-      if (dirs.length) registry.loadChapters(book, dirs).catch(() => {});
-      /* Availability determines each mastery fraction's denominator, so the
-         current book's one compact exercise index belongs to its summary too. */
-      if (statusOf(book) === 'idle') books.load(book).catch(() => {});
-    }
-    openProgressBooks.filter((id) => id !== book).forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
+    openProgressBooks.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
   });
 
   // conceptsIn deduplicates chapter prerequisites; standingOf excludes placeholders.
   const bookStanding = (id: string): Standing => standingOf(practice.conceptsIn(id), practice.mastery);
   const allConcepts = $derived([...new Map(cat.concepts.filter((c) => c.status === 'built').map((c) => [c.id, c] as const)).values()]);
   const overall = $derived(standingOf(allConcepts, practice.mastery));
-  const progressStatus = (id: string): string => {
-    if (id !== book) return statusOf(id);
-    const states = dirs.map((d) => registry.chapterStatusOf(book, d));
-    if (states.some((s) => s === 'failed')) return 'failed';
-    return states.some((s) => !s || s === 'loading') ? 'loading' : 'loaded';
-  };
+  const progressStatus = statusOf;
 
   const builtConcepts = (id: string) => practice.conceptsIn(id).filter((c) => c.status === 'built');
   const sectionConcepts = (id: string, section: SectionEntry) => builtConcepts(id).filter((c) => c.section === section.id);
@@ -562,7 +534,7 @@
                                           {@const own = practice.self[c.id]}
                                           {@const record = practice.mastery[c.id]}
                                           {@const fresh = practice.freshness(c.id)}
-                                          <div class="concept-progress-row prow" tabindex="0" data-concept={c.id}>
+                                          <div class="concept-progress-row prow" tabindex="0" data-book={b} data-concept={c.id}>
                                             {@render masteryBox(c.id)}
                                             <i class="dot k-{c.kind}" aria-hidden="true"></i>
                                             <span class="lab"><span use:math={c.name}>{@html c.name}</span></span>
@@ -621,7 +593,7 @@
           <button type="button" class="lab plain" aria-expanded={bookShown} onclick={() => toggleBook(b)}>{bookTitle(b)}</button>
         </div>
         {#if bookShown}
-          {#if !manifestOf(b)}
+          {#if !books.manifest(b)}
             <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
               <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
             </div>
@@ -722,7 +694,7 @@
           <section class="all-exercise" aria-label="Exercise {i + 1} of {drawn.length}">
             <div class="exercise-number">Exercise {i + 1}</div>
             {#if row}
-              <div class="card-root" data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
+              <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
                 <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={session.outcomes[i]} session={session.id} onanswer={(ok) => answeredAt(i, ok)} />
               </div>
             {:else if statusOf(d.book) === 'failed'}
@@ -736,14 +708,14 @@
     {:else}
       {#if cur}
         {#key `${cur.book}/${cur.section}/${cur.ex.id}/${at}`}
-          <div class="card-root" data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
+          <div class="card-root" data-book={cur.book} data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
             <ExerciseCard book={cur.book} section={cur.section} ex={cur.ex} {outcome} session={session.id} onanswer={(ok) => answeredAt(at, ok)} />
           </div>
         {/key}
       {:else if pending && statusOf(pending.book) === 'failed'}
         <p class="quiet">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another square to continue.</p>
       {:else}
-        <p class="quiet">{pending && pending.book !== book ? 'Loading the book this exercise comes from…' : 'Loading the section this exercise comes from…'}</p>
+        <p class="quiet">Loading the book this exercise comes from…</p>
       {/if}
     {/if}
     {#if ending}
@@ -779,7 +751,7 @@
     <section class="panel concept-progress">
       {#if progressRows.length}
         {#each progressRows as r (r.id)}
-          <div class="row prow progress-row" tabindex="0" data-concept={r.id}>
+          <div class="row prow progress-row" tabindex="0" data-book={books.bookOf(r.id)} data-concept={r.id}>
             <span class="transition" aria-label="Progress from {STATE_WORD[r.from]} to {STATE_WORD[r.to]}">
               {@render box(r.from, r.fromShare, `Before this session: ${STATE_WORD[r.from]}`)}
               <span class="arrow" aria-hidden="true">→</span>

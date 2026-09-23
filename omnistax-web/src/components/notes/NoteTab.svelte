@@ -22,9 +22,9 @@
   import { entryId } from '../../lib/explorer/model';
   import { renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { inBook, loadedBooks } from '../../lib/picker/sources';
   import { label } from '../../lib/sections/grouping';
-  import type { GroupKey, NoteId } from '../../lib/types/ids';
+  import type { BookId, GroupKey, NoteId } from '../../lib/types/ids';
 
   let { noteId, groupKey }: { noteId: NoteId; groupKey: GroupKey } = $props();
 
@@ -96,8 +96,8 @@
   /* The sheet holds an equation in the book's own macros, one per symbol, so
      that each symbol wears the colour of its type. A row of the picker is read
      and not drawn, so the macros are put back into the symbols they stand for. */
-  const symbolOfMacro = (): Readonly<Record<string, string>> =>
-    Object.fromEntries(Object.entries(registry.manifest(assumedBook()).symbols).map(([sym, tex]) => [tex, sym] as const));
+  const symbolOfMacro = (book: BookId): Readonly<Record<string, string>> =>
+    Object.fromEntries(Object.entries(registry.manifest(book).symbols).map(([sym, tex]) => [tex, sym] as const));
   const plainTex = (tex: string, byMacro: Readonly<Record<string, string>>): string =>
     tex.replace(/\\[A-Za-z]+/g, (m) => byMacro[m] ?? m).replace(/\s+/g, ' ').trim();
 
@@ -105,25 +105,27 @@
      fetched: the equations of the formula sheet, the terms of the glossary, the
      symbols with a meaning, and the concepts of a section built here. Each is
      picked to be held whole in the note, so each writes a card. */
-  const bookRows = (): readonly Candidate[] => {
-    const byMacro = symbolOfMacro();
-    return registry.chaptersOf(assumedBook()).flatMap((ch) => [
+  const bookRows = (book: BookId): readonly Candidate[] => {
+    const byMacro = symbolOfMacro(book);
+    return registry.chaptersOf(book).flatMap((ch) => [
       ...ch.formulas.equations.filter((e) => e.important).map((e) =>
-        candidate({ kind: 'equation', section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · '), true)),
-      ...ch.formulas.glossary.map((g) => candidate({ kind: 'term', section: g.section, term: g.term }, g.term, `term · ${g.section}`, true)),
-      ...ch.formulas.variables.map((v) => candidate({ kind: 'symbol', section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), `symbol · ${v.section}`, true)),
-      ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', section: c.section, id: c.id }, plain(c.name), `concept · ${c.section}`, true)),
+        candidate({ kind: 'equation', book, section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), inBook(book, ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · ')), true)),
+      ...ch.formulas.glossary.map((g) => candidate({ kind: 'term', book, section: g.section, term: g.term }, g.term, inBook(book, `term · ${g.section}`), true)),
+      ...ch.formulas.variables.map((v) => candidate({ kind: 'symbol', book, section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), inBook(book, `symbol · ${v.section}`), true)),
+      ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', book, section: c.section, id: c.id }, plain(c.name), inBook(book, `concept · ${c.section}`), true)),
     ]);
   };
+  const sectionRows = (book: BookId): readonly Candidate[] =>
+    registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', book, section: s.id }, label(s.id, s.title), inBook(book, c.title))));
 
   const candidates = (): readonly Candidate[] => [
     ...noteDocs.list.filter((d) => d.id !== noteId).map((d) => candidate({ kind: 'note', name: d.name }, d.name, folderOf(d.id))),
-    ...registry.manifest(assumedBook()).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', section: s.id }, label(s.id, s.title), c.title))),
+    ...loadedBooks().flatMap(sectionRows),
     ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `highlight · ${n.section}`)),
     /* The files the reader imported, listed under their names beside the
        notes: a link to one opens its tab. */
     ...files.list.map((f) => candidate({ kind: 'file', file: f.id }, f.name, f.type === 'pdf' ? `file · PDF${f.pages ? ` · ${f.pages} pages` : ''}` : 'file · image')),
-    ...bookRows(),
+    ...loadedBooks().flatMap(bookRows),
   ];
 
   const onbody = (v: string): void => noteDocs.setBody(noteId, v);

@@ -129,10 +129,10 @@ test('picking offers the whole book above the chapters, and stops at the section
   assert.equal(enter(CHAPTERS, rowFor(CHAPTERS, 'book', 'pick'), 'pick'), null);
 });
 test('a picked row names the place in the book a view can be pinned to', () => {
-  assert.deepEqual(pickTarget(CHAPTERS, rowFor(CHAPTERS, 'book', 'pick')), { level: 'book' });
-  assert.deepEqual(pickTarget(CHAPTERS, rowFor(CHAPTERS, 'ch:2', 'pick')), { level: 'chapter', chapter: chapterId('2') });
-  assert.deepEqual(pickTarget(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.1', 'pick')), { level: 'section', section: sectionId('2.1') });
-  assert.equal(pickTarget(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.2', 'pick')), null, 'a section that is not built is no place to stand');
-  assert.equal(pickTarget(DOCS_21, rowFor(DOCS_21, 'doc:college-physics-2e/2.1/text')), null);
-  assert.equal(pickTarget(FIGURES_21, rowFor(FIGURES_21, 'fig:college-physics-2e/2.1/graph-x')), null);
+  assert.deepEqual(pickTarget(BOOK, CHAPTERS, rowFor(CHAPTERS, 'book', 'pick')), { level: 'book', book: BOOK.id });
+  assert.deepEqual(pickTarget(BOOK, CHAPTERS, rowFor(CHAPTERS, 'ch:2', 'pick')), { level: 'chapter', book: BOOK.id, chapter: chapterId('2') });
+  assert.deepEqual(pickTarget(BOOK, SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.1', 'pick')), { level: 'section', book: BOOK.id, section: sectionId('2.1') });
+  assert.equal(pickTarget(BOOK, SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.2', 'pick')), null, 'a section that is not built is no place to stand');
+  assert.equal(pickTarget(BOOK, DOCS_21, rowFor(DOCS_21, 'doc:college-physics-2e/2.1/text')), null);
+  assert.equal(pickTarget(BOOK, FIGURES_21, rowFor(FIGURES_21, 'fig:college-physics-2e/2.1/graph-x')), null);
 });

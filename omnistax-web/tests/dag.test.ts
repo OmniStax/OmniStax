@@ -27,9 +27,9 @@ const ALL: readonly ConceptDTO[] = [
   concept('period', '16.3', ['shm']),
   concept('pendulum', '16.4', ['shm']),
 ];
-const book: Target = { level: 'book' };
-const chapter: Target = { level: 'chapter', chapter: chapterId('16') };
-const section: Target = { level: 'section', section: sectionId('16.3') };
+const book: Target = { level: 'book', book: BOOK.id };
+const chapter: Target = { level: 'chapter', book: BOOK.id, chapter: chapterId('16') };
+const section: Target = { level: 'section', book: BOOK.id, section: sectionId('16.3') };
 const nodes = (target: Target) => scopedNodes(ALL, target, BOOK);
 const own = (list: readonly DagNode[]) => list.filter((c) => !c.ext).map((c) => c.id);
 const ext = (list: readonly DagNode[]) => list.filter((c) => c.ext).map((c) => c.id);

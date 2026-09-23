@@ -21,9 +21,9 @@ const ITEMS: readonly Item[] = [item('pendulum', '16.4'), item('period', '16.3')
 const group = (target: Target) => groupBySection(ITEMS, (i) => i.section, target, BOOK);
 const shape = <T extends Item>(groups: readonly ChapterGroup<T>[]) => groups.map((c) => [c.chapter, ...c.sections.map((s) => `${s.section}: ${s.items.map((i) => i.name).join(', ')}`)]);
 
-const book: Target = { level: 'book' };
-const chapter: Target = { level: 'chapter', chapter: chapterId('16') };
-const section: Target = { level: 'section', section: sectionId('16.3') };
+const book: Target = { level: 'book', book: BOOK.id };
+const chapter: Target = { level: 'chapter', book: BOOK.id, chapter: chapterId('16') };
+const section: Target = { level: 'section', book: BOOK.id, section: sectionId('16.3') };
 
 test('the book holds everything, in the order the book sets, and nothing is outside it', () => {
   const g = group(book);

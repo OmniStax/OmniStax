@@ -12,9 +12,10 @@
    whose address is not one of the few shapes allowed loses it. */
 import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } from 'marked';
 import katex from 'katex';
+import type { BookId } from '../../types/ids';
 import { splitAlt } from './width';
 export { setImageWidth } from './width';
-import { isBook, linkInner, parseLink, type BookTarget, type ChatRef, type MessageRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
+import { isBook, linkInner, linkKey, parseLink, type BookTarget, type ChatRef, type MessageRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
 export type NoteRef = string;    /* the id of a note document, what a resolved note link points at */
 export type AssetRef = string;   /* the id of a stored image */
@@ -66,14 +67,14 @@ export type ConceptInfo = { readonly name: string; readonly kind: 'idea' | 'resu
    when it lands. */
 export type Resolver = {
   note(name: NoteName): NoteRef | null;
-  section(id: SectionRef): SectionInfo | null;
+  section(id: SectionRef, book?: BookId): SectionInfo | null;
   highlight(id: HighlightRef): HighlightInfo | null;
   asset(id: AssetRef): DataUrl | null;
-  equation(section: SectionRef, id: EquationRef): EquationInfo | null;
-  term(section: SectionRef, term: TermRef): TermInfo | null;
-  symbol(section: SectionRef, sym: SymbolRef): SymbolInfo | null;
-  concept(section: SectionRef, id: ConceptRef): ConceptInfo | null;
-  figure(section: SectionRef, id: FigureRef): FigureInfo | null;
+  equation(section: SectionRef, id: EquationRef, book?: BookId): EquationInfo | null;
+  term(section: SectionRef, term: TermRef, book?: BookId): TermInfo | null;
+  symbol(section: SectionRef, sym: SymbolRef, book?: BookId): SymbolInfo | null;
+  concept(section: SectionRef, id: ConceptRef, book?: BookId): ConceptInfo | null;
+  figure(section: SectionRef, id: FigureRef, book?: BookId): FigureInfo | null;
   /* The four things whose features have not landed yet. A resolver that knows
      nothing of them leaves them out altogether and a link to one renders as
      the words it was written with; one that knows them hands back a name, and
@@ -86,7 +87,7 @@ export type Resolver = {
      reader sees it, settled here and not in the grammar. */
   drawingByName?(name: NoteName): { readonly id: DrawingRef; readonly name: string; readonly thumb?: DataUrl } | null;
   chat?(id: ChatRef): StubInfo | null;
-  exercise?(section: SectionRef, id: ExerciseRef): StubInfo | null;
+  exercise?(section: SectionRef, id: ExerciseRef, book?: BookId): StubInfo | null;
   /* One message of a chat, which the chat feature answers and nothing else
      does: a resolver that knows only the chats by name leaves it out, and the
      card falls back to naming the chat. */
@@ -120,7 +121,7 @@ const highlightEmbed = (id: HighlightRef, r: Resolver, fallback: string): string
    whole card is the link that opens the section at the figure. */
 type FigureLink = Extract<Link, { readonly kind: 'figure' }>;
 const figureEmbed = (t: FigureLink, r: Resolver): string => {
-  const f = r.figure(t.section, t.id);
+  const f = r.figure(t.section, t.id, t.book);
   if (!f) return dead(t.alias ?? linkInner(t), linkInner(t));
   const body = [
     f.title === '' ? '' : `<div class="embed-body" data-math="1">${esc(f.title)}</div>`,
@@ -163,18 +164,18 @@ const cardHtml = (t: BookTarget, c: Card): string =>
    instead, because it has nothing else to give. */
 const bookCard = (t: BookTarget, r: Resolver): Card | null => {
   if (t.kind === 'equation') {
-    const e = r.equation(t.section, t.id); if (!e) return null;
+    const e = r.equation(t.section, t.id, t.book); if (!e) return null;
     return { eyebrow: meta('Equation', e.important ? 'important' : undefined, e.section, e.condition), lines: [{ tex: e.tex }, { cls: 'embed-body', text: e.conceptName ?? '' }] };
   }
   if (t.kind === 'term') {
-    const g = r.term(t.section, t.term); if (!g) return null;
+    const g = r.term(t.section, t.term, t.book); if (!g) return null;
     return { eyebrow: meta('Term', g.section), lines: [{ cls: 'embed-title', text: g.term }, { cls: 'embed-body', text: sentence(g.definition) }] };
   }
   if (t.kind === 'symbol') {
-    const v = r.symbol(t.section, t.sym); if (!v) return null;
+    const v = r.symbol(t.section, t.sym, t.book); if (!v) return null;
     return { eyebrow: meta('Symbol', v.typeLabel, v.unit), lines: [{ tex: v.tex }, { cls: 'embed-body', text: sentence(v.meaning) }] };
   }
-  const c = r.concept(t.section, t.id); if (!c) return null;
+  const c = r.concept(t.section, t.id, t.book); if (!c) return null;
   const body = c.placeholder ? `Section ${c.section} is not built yet.` : sentence(c.why ?? '');
   return { eyebrow: meta('Concept', c.kind, `section ${c.section}`), lines: [{ cls: 'embed-title', text: c.name }, { cls: 'embed-body', text: body }, { tex: c.eqTex ?? '' }] };
 };
@@ -203,7 +204,7 @@ const stubInfo = (t: StubLink, r: Resolver): StubInfo | null =>
   t.kind === 'file' ? r.file?.(t.file) ?? null
     : t.kind === 'drawing' ? r.drawing?.(t.id) ?? null
       : t.kind === 'chat' ? r.chat?.(t.chat) ?? null
-        : r.exercise?.(t.section, t.id) ?? null;
+        : r.exercise?.(t.section, t.id, t.book) ?? null;
 
 const stubLink = (t: StubLink, r: Resolver, embed: boolean): string => {
   const inner = linkInner(t);
@@ -273,9 +274,9 @@ const renderLink = (link: Link, r: Resolver, embed = false): string => {
   if (link.kind === 'figure') return figureEmbed(link, r);
   if (isBook(link)) return bookEmbed(link, r);
   if (link.kind === 'section') {
-    const s = r.section(link.section);
+    const s = r.section(link.section, link.book);
     const label = link.alias ?? (s ? `${link.section} · ${s.title}` : link.section);
-    return s ? anchor(`section:${link.section}`, label) : dead(label);
+    return s ? anchor(linkKey(link), label) : dead(label);
   }
   const id = r.note(link.name);
   const label = link.alias ?? link.name;

@@ -16,7 +16,6 @@
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { setImageWidth } from '../../lib/notes/md/width';
   import { isBook, parseLink, type BookKind } from '../../lib/notes/md/links';
-  import { figureInfo } from '../../lib/notes/md/figinfo';
   import { FigureMounts } from '../../lib/notes/md/figlive';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -24,78 +23,37 @@
   import { goNote } from '../../lib/notes/go';
   import { anyHighlight, fileStub, goMark } from '../../lib/files/resolver';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { label } from '../../lib/sections/grouping';
-  import { spansOf } from '../../lib/sections/concepts.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { BookResolver, focusedBook, isSpan } from '../../lib/notes/resolve';
   import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
-  import { lookupVariable, symKey } from '../../lib/hover/data';
   import { dragging } from '../../lib/layout/drag.svelte';
-  import { FIG } from '../../lib/fig/figlib';
-  import { conceptId, drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, qualifiedId, sectionId, sectionRef, spanId, spanRef, type BookId, type NoteId, type SectionRef } from '../../lib/types/ids';
+  import { drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, secKey, type NoteId } from '../../lib/types/ids';
   import { drawingInfo, drawingNamed } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
 
   let { noteId, body }: { noteId: NoteId; body: string } = $props();
 
-  /* The chapter a section belongs to, and its tables if they have been fetched.
-     A note may name a section of a chapter nobody has opened, so this answers
-     nothing until `decorate` has asked for it. */
-  const refOf = (section: string, book?: BookId): SectionRef => sectionRef(book ?? assumedBook(), sectionId(section));
-  const chapterDir = (section: string, book?: BookId): string | undefined => registry.chapterOf(refOf(section, book))?.dir;
-  const chapterData = (section: string) => { const dir = chapterDir(section); return dir ? registry.chapter(assumedBook(), dir) : undefined; };
+  /* The book's things are found in the book each link names; a link without
+     one is read against the focused book. A note may name a section of a
+     chapter nobody has opened, so its tables answer nothing until `decorate`
+     has asked for them. */
+  const books = new BookResolver();
 
   /* Everything the renderer cannot know by itself. The asset is the one lookup
      that cannot be answered here and now: IndexedDB takes a turn of the loop,
-     so the image renders without a source and is filled in below. The four
-     things of the book are read out of the chapter's tables the way the hover
-     cards read them, so a card in a note says what a card over the text says. */
+     so the image renders without a source and is filled in below. */
   const resolver = (): Resolver => ({
+    ...books.lookups(),
     note: (name) => noteDocs.byName(name)?.id ?? null,
     /* A drawing is shown small in the note and opens on a click. A name with
        no note behind it may be one, so both lookups are lent here and the
        renderer tries the note first. */
     drawing: (id) => drawingInfo(id),
     drawingByName: (name) => drawingNamed(name),
-    section: (id) => { const e = registry.entry(refOf(id)); return e?.built ? { title: e.title } : null; },
     /* A highlight may be the book's or one written on a file; the two stores
        keep ids of different shapes, and `anyHighlight` reads which. */
     highlight: (id) => anyHighlight(id),
     asset: () => null,
-    /* A file the reader imported: the card names it, and the tab shows it. */
     file: (id) => fileStub(id),
-    /* An equation's id is its chapter's, so the section says which chapter to
-       read and the id finds the row in it; what the equation states is the
-       concept that names it as its own. */
-    equation: (section, id) => {
-      const d = chapterData(section); if (!d) return null;
-      const e = d.formulas.equations.find((x) => x.id === id); if (!e) return null;
-      return { tex: e.tex, condition: e.condition, important: e.important, conceptName: d.concepts.concepts.find((c) => c.eq === e.id)?.name, anchor: e.anchor, section: e.section };
-    },
-    term: (section, term) => {
-      const d = chapterData(section); if (!d) return null;
-      const g = d.formulas.glossary.find((x) => x.term.toLowerCase() === term.toLowerCase());
-      return g ? { term: g.term, definition: g.definition, section: g.section } : null;
-    },
-    /* A chapter may give one symbol two meanings in two sections, so the section
-       the note names picks which; the TeX is the book's own macro for it. */
-    symbol: (section, sym) => {
-      const d = chapterData(section); if (!d) return null;
-      const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
-      return { sym, tex: registry.manifest(assumedBook()).symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest(assumedBook()).types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
-    },
-    /* A figure is in the section's own HTML rather than in a table, so it is
-       read out of the document the registry holds; a section nobody has opened
-       resolves to nothing, and `fetchFigures` asks for it below. */
-    figure: (section, id) => {
-      const doc = registry.state(refOf(section))?.docs.text;
-      return doc ? figureInfo(doc, sectionId(section), id) : null;
-    },
-    concept: (section, id) => {
-      const d = chapterData(section); if (!d) return null;
-      const c = d.concepts.concepts.find((x) => x.id === id); if (!c) return null;
-      const eq = c.eq ? d.formulas.equations.find((e) => e.id === c.eq) : undefined;
-      return { name: c.name, kind: c.kind, why: c.status === 'built' ? c.why : undefined, section: c.section, eqTex: eq?.tex, placeholder: c.status === 'placeholder' };
-    },
   });
 
   /* The markdown renderer carries marked and KaTeX with it, which no page needs
@@ -116,7 +74,7 @@
   /* The figures this note holds live. They are the note's own: a rendering puts
      the same ones back, and they are let go when the note is closed or another
      note takes its place. */
-  const mounts = new FigureMounts();
+  const mounts = new FigureMounts(focusedBook);
   $effect(() => { void noteId; return () => mounts.releaseAll(); });
 
   const startDrag = (e: PointerEvent, bar: HTMLElement, img: HTMLImageElement): void => {
@@ -163,10 +121,10 @@
     const embed = el.dataset.embed;
     const t = embed ? parseLink(embed) : null;
     if (t && isBook(t)) {
-      const dir = chapterDir(t.section, t.book);
-      return dir && registry.chapterStatusOf(t.book ?? assumedBook(), dir) === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
+      const dir = books.chapterDir(t.section, t.book);
+      return dir && registry.chapterStatusOf(books.ref(t.section, t.book).book, dir) === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
     }
-    if (t?.kind === 'figure') return registry.state(refOf(t.section, t.book)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
+    if (t?.kind === 'figure') return registry.state(books.ref(t.section, t.book)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
     const words = el.textContent ?? '';
     return words.startsWith('hl:') ? 'That highlight is gone.'
       : /^\d+\.\d+/.test(words) ? `Section ${words.split(/\s/)[0]} is not in the book yet.`
@@ -180,9 +138,11 @@
     const asked = new Set<string>();
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
       const t = parseLink(d.dataset.embed ?? '');
-      if (t.kind !== 'figure' || asked.has(t.section)) continue;
-      asked.add(t.section);
-      void registry.load(refOf(t.section, t.book));
+      if (t.kind !== 'figure') continue;
+      const ref = books.ref(t.section, t.book);
+      if (asked.has(secKey(ref))) continue;
+      asked.add(secKey(ref));
+      void registry.load(ref);
     }
   };
 
@@ -193,26 +153,10 @@
     const asked = new Set<string>();
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
       const t = parseLink(d.dataset.embed ?? ''); if (!isBook(t)) continue;
-      const dir = chapterDir(t.section, t.book);
-      if (!dir || asked.has(dir)) continue;
-      asked.add(dir);
-      void registry.loadChapter(t.book ?? assumedBook(), dir).catch(() => {});
-    }
-  };
-
-  /* The book writes its symbols with macros of its own, which KaTeX alone does
-     not know, so every line of TeX and every name carrying `$…$` is set by the
-     book's own renderer. Each element is set once: a rendering replaces them. */
-  const setMath = (el: HTMLElement): void => {
-    for (const t of el.querySelectorAll<HTMLElement>('.embed-tex[data-tex]')) {
-      if (t.dataset.set === '1') continue;
-      t.dataset.set = '1';
-      FIG.tex(t, t.dataset.tex ?? '');
-    }
-    for (const m of el.querySelectorAll<HTMLElement>('[data-math]')) {
-      if (m.dataset.math === 'set') continue;
-      m.dataset.math = 'set';
-      FIG.renderMath(m);
+      const ref = books.ref(t.section, t.book); const dir = books.chapterDir(t.section, t.book);
+      if (!dir || asked.has(`${ref.book}/${dir}`)) continue;
+      asked.add(`${ref.book}/${dir}`);
+      void registry.loadChapter(ref.book, dir).catch(() => {});
     }
   };
 
@@ -232,7 +176,7 @@
     for (const img of el.querySelectorAll<HTMLImageElement>('img')) grip(img);
     fetchChapters(el);
     fetchFigures(el);
-    setMath(el);
+    books.setMath(el);
     /* Last, so that a figure's own markup is not walked by the passes above:
        the book's script draws it and the book's styles dress it. */
     mounts.fill(el);
@@ -244,16 +188,9 @@
 
   /* ── following a link ──────────────────────────────────────────────────── */
 
-  /* A card of the book goes where the book puts the thing: an equation and a
-     symbol to the span that states them, a concept to the span that introduces
-     it, and anything with no span of its own to the section that holds it. */
   const goBook = (embed: string): void => {
-    const t = parseLink(embed); if (!isBook(t)) return;
-    const sec = refOf(t.section, t.book); const bk = sec.book;
-    if (t.kind === 'equation') { const e = resolver().equation(t.section, t.id); if (e?.anchor) { goSpan(spanRef(bk, spanId(e.anchor))); return; } }
-    if (t.kind === 'symbol') { const v = resolver().symbol(t.section, t.sym); if (v?.anchor) { goSpan(spanRef(bk, spanId(v.anchor))); return; } }
-    if (t.kind === 'concept') { const intro = spansOf(conceptId(t.id)).intro[0]; if (intro) { goSpan(spanRef(bk, intro)); return; } }
-    void openDoc(sec, 'text');
+    const to = books.target(embed); if (!to) return;
+    if (isSpan(to)) goSpan(to); else void openDoc(to, 'text');
   };
 
   const onclick = (e: MouseEvent): void => {
@@ -267,7 +204,7 @@
     const fig = t.closest<HTMLElement>('.fig-embed[data-embed]');
     if (fig?.dataset.embed) {
       if (fig.classList.contains('live') && !t.closest('.eyebrow')) return;
-      const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(spanRef(f.book ?? assumedBook(), qualifiedId(sectionId(f.section), f.id)));
+      goBook(fig.dataset.embed);
       return;
     }
     const book = t.closest<HTMLElement>('.book-embed[data-embed]');
@@ -285,7 +222,7 @@
     const drawing = /^drawing:(.+)$/.exec(link);
     if (drawing) { void openItem(itemKey(drawingItem(asDrawingId(drawing[1])))); return; }
     const sec = /^section:(.+)$/.exec(link);
-    if (sec) void openDoc(parseSecKey(sec[1]) ?? refOf(sec[1]), 'text');
+    if (sec) void openDoc(parseSecKey(sec[1]) ?? books.ref(sec[1]), 'text');
   };
 
   /* ── a thing dropped into the note ─────────────────────────────────────── */

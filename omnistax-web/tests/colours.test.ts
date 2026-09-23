@@ -61,9 +61,9 @@ const chose = (order: readonly string[]): Choices => ({ ...NO_CHOICES, order });
 const SCHEME = ['#B23B19', '#8747AA', '#487901', '#0069BF'];
 
 test('a target names a place, and a section names its chapter as well', () => {
-  assert.deepEqual(placeOf({ level: 'book' }), BOOK);
-  assert.deepEqual(placeOf({ level: 'chapter', chapter: chapterId('16') }), CH16);
-  assert.deepEqual(placeOf({ level: 'section', section: sectionId('16.3') }), S163);
+  assert.deepEqual(placeOf({ level: 'book', book: bookId('college-physics-2e') }), BOOK);
+  assert.deepEqual(placeOf({ level: 'chapter', book: bookId('college-physics-2e'), chapter: chapterId('16') }), CH16);
+  assert.deepEqual(placeOf({ level: 'section', book: bookId('college-physics-2e'), section: sectionId('16.3') }), S163);
   assert.equal(placeKey(BOOK), 'book');
   assert.equal(placeKey(CH16), 'chapter:16');
   assert.equal(placeKey(S163), 'section:16.3');

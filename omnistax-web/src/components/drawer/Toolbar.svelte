@@ -5,12 +5,12 @@
      P and E never comes back up here.
 
      The colours are the app's ink tokens and, while a book is open, the
-     colours that book's quantities wear, so a force can be drawn in the force
-     colour and the drawing reads like the page beside it. They are read off
-     the root at the moment the bar is drawn, since the reader may have chosen
+     colours the focused book's quantities wear, so a force can be drawn in the
+     force colour and the drawing reads like the page beside it. They are read
+     off the page, or off the book's own row for its quantities, at the moment the bar is drawn, since the reader may have chosen
      them in the colour menu, and the scheme is the page's own. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
   import { ICON } from '../../lib/icons';
   import { TOOL_KEY, type Tool } from '../../lib/drawer/tools';
   import { SHAPE_KINDS, type ShapeKind } from '../../lib/drawer/model';
@@ -67,17 +67,19 @@
   /* A token read off the root as the colour it currently stands for: the
      canvas is painted with literal colours, since a stroke keeps the colour it
      was drawn in even after the reader changes the theme. */
-  const resolved = (token: string): string => {
-    if (typeof getComputedStyle === 'undefined') return '#111111';
-    const v = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  const resolved = (token: string, at: Element | null = document.documentElement): string => {
+    if (typeof getComputedStyle === 'undefined' || !at) return '#111111';
+    const v = getComputedStyle(at).getPropertyValue(token).trim();
     return v || '#111111';
   };
 
   /* The book's own quantities, in the order the book declares them, each in
      the colour that quantity wears on this page. A book with no types — or no
      book at all — leaves the row out. */
+  const book = $derived(focus.book);
+  let bookRow = $state<HTMLElement | null>(null);
   const quantities = $derived.by(() =>
-    Object.entries(registry.manifest(assumedBook()).types ?? {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
+    Object.entries(registry.manifest(book).types ?? {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
 
   const SIZES: readonly number[] = [1, 2, 4, 8, 16];
 
@@ -119,10 +121,12 @@
     {/each}
     {#if quantities.length}
       <span class="rule"></span>
-      {#each quantities as q (q.id)}
-        <button type="button" class="swatch" class:on={color === resolved(q.token)} title={q.label} aria-label={q.label}
-          style:background="var({q.token}, var(--muted))" onclick={() => oncolor(resolved(q.token))}></button>
-      {/each}
+      <span class="book-row" data-book={book} bind:this={bookRow}>
+        {#each quantities as q (q.id)}
+          <button type="button" class="swatch" class:on={color === resolved(q.token, bookRow)} title={q.label} aria-label={q.label}
+            style:background="var({q.token}, var(--muted))" onclick={() => oncolor(resolved(q.token, bookRow))}></button>
+        {/each}
+      </span>
     {/if}
   </div>
 
@@ -149,6 +153,7 @@
 </div>
 
 <style>
+  .book-row{display:contents}
   .toolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font-family:var(--sans)}
   .group{display:flex;align-items:center;gap:3px}
   .group.right{margin-left:auto;gap:6px}

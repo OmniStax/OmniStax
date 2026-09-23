@@ -49,3 +49,12 @@ test('backup parser rejects future versions, duplicates, and malformed assets', 
   assert.throws(() => parseBackupText(backup([row, row])));
   assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), assets: [{ id: 'x', type: 'image/png', dataUrl: 'https://example.test/x.png', created: 1 }] })));
 });
+
+test('book-qualified notes, pins, layout and fold keys pass the backup check', () => {
+  const note = { id: 'n1', book: 'chemistry-2e', section: '1.1', doc: 'text', anchor: { quote: 'q', prefix: '', suffix: '' }, color: 'yellow', text: '', created: 1, updated: 1 };
+  assert.equal(validReaderRecord({ key: 'omnistax-notes-chemistry-2e', value: JSON.stringify([note]), category: 'notes' }), true);
+  const pins = { 'view:1': { follow: false, target: { level: 'section', book: 'college-physics-2e', section: '15.4' } } };
+  assert.equal(validReaderRecord({ key: 'omnistax-scope-v2', value: JSON.stringify(pins), category: 'layout' }), true);
+  assert.equal(categoryOf('omnistax-layout-v6'), 'layout');
+  assert.equal(validReaderRecord({ key: 'omnistax-folded', value: JSON.stringify(['chemistry-2e|1.1-intro']), category: 'reading' }), true);
+});

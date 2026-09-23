@@ -11,10 +11,9 @@
    survives. What the note no longer shows is released: the figure leaves the
    drawing loop, and a three-dimensional view disposes of its own renderer once
    it has been out of the document a while. */
-import { FIG } from '../../fig/figlib';
+import { figFor } from '../../fig/figlib';
 import { registry } from '../../sections/registry.svelte';
-import { sectionId, sectionRef, type SectionRef } from '../../types/ids';
-import { assumedBook } from '../../sections/focus.svelte';
+import { sectionId, sectionRef, type BookId, type SectionRef } from '../../types/ids';
 import { parseLink } from './links';
 import { dragFigures } from './dragfig';
 
@@ -22,21 +21,22 @@ import { dragFigures } from './dragfig';
 const CARD = '.fig-embed[data-embed]';
 const LIVE = 'live';
 
-export type MountKey = string;   /* the embed text of the figure: "fig:7.2:sim-area" */
+export type MountKey = string;   /* the book, section and id of the figure: "college-physics-2e/7.2:sim-area" */
 
 const build = (sec: SectionRef, fig: string): HTMLElement | null => {
   const root = registry.figureRoot(sec, fig);
   if (!root) return null;
   root.classList.add('fig-note');
-  FIG.renderMath(root);
+  figFor(sec.book).renderMath(root);
   /* The head and the caption keep the drag, so a figure held in one note can be
      carried into another. */
-  dragFigures(root, sec.section);
+  dragFigures(root, sec);
   return root;
 };
 
 export class FigureMounts {
   private live: Record<MountKey, HTMLElement> = {};
+  constructor(private readonly fallback: () => BookId) {}
 
   /* Fill every figure card of one rendered note, and let go of the figures it
      no longer holds. A card whose section is not loaded yet is left as the
@@ -47,8 +47,9 @@ export class FigureMounts {
     for (const card of host.querySelectorAll<HTMLElement>(CARD)) {
       const t = parseLink(card.dataset.embed ?? '');
       if (t.kind !== 'figure') continue;
-      const key: MountKey = `${t.section}:${t.id}`;
-      const root = this.live[key] ?? build(sectionRef(t.book ?? assumedBook(), sectionId(t.section)), t.id);
+      const ref = sectionRef(t.book ?? this.fallback(), sectionId(t.section));
+      const key: MountKey = `${ref.book}/${ref.section}:${t.id}`;
+      const root = this.live[key] ?? build(ref, t.id);
       if (!root) continue;
       this.live[key] = root;
       shown.add(key);
@@ -65,7 +66,7 @@ export class FigureMounts {
   private drop(key: MountKey): void {
     const root = this.live[key]; if (!root) return;
     delete this.live[key];
-    FIG.release(root);
+    figFor(root.dataset.book ?? '').release(root);
     root.remove();
   }
 }

@@ -115,6 +115,7 @@ const builtOf = (c: ChapterEntry) => c.sections.filter((s) => s.built).map((s) =
    first seen wins, and the book being read is seen first. Places stay their
    own book's, since section ids are not unique across books, and every foreign
    exercise carries the book it came from. */
+export const emptyCatalog: Catalog = { concepts: [], sectionsOf: () => [], allSections: () => [], exercises: [] };
 export const mergeCatalog = (home: Catalog, foreign: readonly [bookId: string, ForeignBook][]): Catalog => {
   if (!foreign.length) return home;
   const byBook = new Map(foreign);

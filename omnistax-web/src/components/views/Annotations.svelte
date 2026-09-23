@@ -12,7 +12,7 @@
   import { history } from '../../lib/history/store.svelte';
   import { goNote } from '../../lib/notes/go';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { focus, assumedBook } from '../../lib/sections/focus.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
   import { targetLabel, type Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { dragout } from '../../lib/notes/md/dragout';
@@ -22,9 +22,9 @@
   import type { FileMark } from '../../lib/files/marks';
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
-  const grouped = $derived(groupBySection(notes.list, (n) => n.section, target, registry.manifest(assumedBook())));
+  const grouped = $derived(groupBySection(notes.list.filter((n) => n.book === target.book), (n) => n.section, target, registry.manifest(target.book)));
   const inside = $derived(countOf(grouped.inside));
-  const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
+  const openChapter = $derived(focus.section.book === target.book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
   /* what to say where a place has nothing marked in it yet */
@@ -109,7 +109,7 @@
   </details>
 {/snippet}
 
-<div class="eyebrow">{targetLabel(target, registry.manifest(assumedBook()))} · {plural(inside)}</div>
+<div class="eyebrow">{targetLabel(target, registry.manifest(target.book))} · {plural(inside)}</div>
 {#if inside === 0}
   <div class="blank">{blank}</div>
 {:else if target.level === 'section'}

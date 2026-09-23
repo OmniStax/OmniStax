@@ -51,9 +51,9 @@ export const GET: APIRoute = ({ props }) => {
   const reachable = bookConceptsOf(tables.filter((t) => live.has(t.dir)));
   const wholes = [reachable.concepts, book.concepts];
   const scopes: Scope[] = [
-    ...wholes.map((all): Scope => ({ target: { level: 'book' }, all })),
+    ...wholes.map((all): Scope => ({ target: { level: 'book', book: manifest.id }, all })),
     ...tree.chapters.flatMap((ch): Scope[] => {
-      const target: Target = { level: 'chapter', chapter: chapterId(ch.dto.id) };
+      const target: Target = { level: 'chapter', book: manifest.id, chapter: chapterId(ch.dto.id) };
       return [{ target, all: chapterConceptsOf(book, ch.dto.dir).concepts }, ...wholes.map((all): Scope => ({ target, all }))];
     }),
   ];

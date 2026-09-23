@@ -3,7 +3,6 @@
 import { layoutStore } from '../layout/store.svelte';
 import { activePane, jump, openDoc } from '../sections/nav.svelte';
 import type { Note } from './store.svelte';
-import { assumedBook } from '../sections/focus.svelte';
 import { sectionRef } from '../types/ids';
 
 const marksOf = (id: string): HTMLElement[] => Array.from(document.querySelectorAll<HTMLElement>(`mark.hl[data-note="${id}"]`));
@@ -13,5 +12,5 @@ export const goNote = (n: Note, tries = 3): void => {
   const m = marks.find((e) => ap?.contains(e)) ?? marks.find((e) => { const p = e.closest<HTMLElement>('.pane'); return p !== null && !p.hidden; }) ?? marks[0];
   if (m) { jump(m, 'center', false); m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 1600); return; }
   if (tries <= 0) return;
-  void openDoc(sectionRef(assumedBook(), n.section), n.doc).then(() => setTimeout(() => goNote(n, tries - 1), 350));
+  void openDoc(sectionRef(n.book, n.section), n.doc).then(() => setTimeout(() => goNote(n, tries - 1), 350));
 };

@@ -8,7 +8,7 @@
   import { onMount, mount, tick, untrack } from 'svelte';
   import { initFig, FIG, figFor, registerFigBook } from '../lib/fig/figlib';
   import { registry } from '../lib/sections/registry.svelte';
-  import { focus, assumedBook } from '../lib/sections/focus.svelte';
+  import { focus } from '../lib/sections/focus.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
@@ -110,15 +110,16 @@
 
   /* highlights: paint a document from the notes that belong to it */
   const paintDoc = (root: HTMLElement) => {
-    const [sec, doc] = (root.dataset.doc ?? '').split('/'); if (!sec) return;
-    const relevant = notes.list.filter((n) => n.section === sec && n.doc === doc);
+    const [sec, doc] = (root.dataset.doc ?? '').split('/'); if (!sec || !root.dataset.book) return;
+    const ref = sectionRef(bookId(root.dataset.book), sectionId(sec));
+    const relevant = notes.forSection(ref).filter((n) => n.doc === doc);
     const lost = paint(root, relevant.map((n) => ({ id: n.id, anchor: n.anchor, color: n.color, noted: !!n.text })));
-    notes.setUnresolved(sec, lost);
+    notes.setUnresolved(ref, lost);
   };
 
   onMount(() => {
     initFig({ id: home.id, macros: home.macros, symbols: home.symbols, colorKeys: Object.keys(home.types) });
-    notes.init(home.id);
+    notes.init();
     noteDocs.init();
     ai.init();
     chats.init();
@@ -239,14 +240,16 @@
       /* "Practice this section" at the end of a section: a practice view opens
          beside the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
-      if (pb?.dataset.practiseSection) { const gi = groupOf(pb); openPractice([{ book: bookOfEl(pb) ?? assumedBook(), section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      const pbook = pb && bookOfEl(pb);
+      if (pb?.dataset.practiseSection && pbook) { const gi = groupOf(pb); openPractice([{ book: pbook, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
       /* A link a pane has already answered — a wiki link in a note or a text
          box, which opens a note, a file or a section of its own accord — is
          not the shell's to follow as well: it says so by preventing the
          default, and its own `href="#"` would otherwise read as this page. */
       if (e.defaultPrevented) return;
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
-      const t = findEl(bookOfEl(a) ?? assumedBook(), a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
+      const id = a.getAttribute('href')!.slice(1), ab = bookOfEl(a);
+      const t = ab ? findEl(ab, id) : document.getElementById(id); if (!t) return; e.preventDefault(); jump(t);
     };
     /* A feature the about page names lights where it lives: the new note and
        new drawing buttons when the explorer shows them, the explorer's own

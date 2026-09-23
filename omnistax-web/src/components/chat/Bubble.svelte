@@ -2,11 +2,10 @@
   import { tick } from 'svelte';
   import Widget from './Widget.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
-  import { chatResolver } from '../../lib/chat/resolve';
+  import { chatBooks, chatResolver } from '../../lib/chat/resolve';
   import { partsOf } from '../../lib/chat/widget';
   import { CORS_MESSAGE } from '../../lib/chat/providers/index';
   import { dragout } from '../../lib/notes/md/dragout';
-  import { FIG } from '../../lib/fig/figlib';
   import type { Chat, Message } from '../../lib/chat/model';
   import { pagerOf } from '../../lib/chat/model';
   import { chats } from '../../lib/chat/store.svelte';
@@ -35,11 +34,7 @@
 
   /* Maths goes through the book's renderer for its macros. */
   const decorate = (el: HTMLElement): void => {
-    for (const m of el.querySelectorAll<HTMLElement>('[data-math]')) {
-      if (m.dataset.math === 'set') continue;
-      m.dataset.math = 'set';
-      FIG.renderMath(m);
-    }
+    chatBooks.setMath(el);
     for (const pre of el.querySelectorAll<HTMLPreElement>('pre')) {
       if (pre.dataset.copy === '1') continue;
       pre.dataset.copy = '1';

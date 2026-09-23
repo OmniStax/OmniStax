@@ -10,7 +10,7 @@
      row carries the embed that writes it out there as a card. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
-  import { focus, assumedBook } from '../../lib/sections/focus.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { settings } from '../../lib/settings/store.svelte';
@@ -18,20 +18,21 @@
   import { orderOf } from '../../lib/colours/model';
   import { sectionId } from '../../lib/types/ids';
   import type { VariableDTO, GlossaryDTO } from '../../lib/content/schema';
-  import { FIG } from '../../lib/fig/figlib';
+  import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   /* One definition: a symbol the book gives a meaning, or a term it defines. */
   type Def = { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO };
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
+  const book = $derived(target.book);
   const defs = $derived<readonly Def[]>([
-    ...registry.chaptersOf(assumedBook()).flatMap((c) => c.formulas.variables).map((symbol): Def => ({ kind: 'symbol', symbol })),
-    ...registry.chaptersOf(assumedBook()).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
+    ...registry.chaptersOf(book).flatMap((c) => c.formulas.variables).map((symbol): Def => ({ kind: 'symbol', symbol })),
+    ...registry.chaptersOf(book).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
   ]);
-  const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest(assumedBook())));
-  const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
-  const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest(assumedBook()).symbols[s] ?? s); return {}; };
-  const legend = $derived(orderOf(registry.manifest(assumedBook()), colours.choices).map((k) => [k, registry.manifest(assumedBook()).types[k]?.label ?? k] as const));
+  const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest(book)));
+  const openChapter = $derived(focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
+  const sym = (node: HTMLElement, s: string) => { figFor(book).tex(node, registry.manifest(book).symbols[s] ?? s); return {}; };
+  const legend = $derived(orderOf(registry.manifest(book), colours.choicesOf(book)).map((k) => [k, registry.manifest(book).types[k]?.label ?? k] as const));
 </script>
 
 {#snippet list(items: readonly Def[])}
@@ -39,11 +40,11 @@
   {@const terms = items.flatMap((d) => (d.kind === 'term' ? [d.term] : []))}
   {#if symbols.length}
     <div class="eyebrow">{symbols[0].section} · symbols</div>
-    <ul class="defs">{#each symbols as v (v.sym)}<li use:dragout={{ kind: 'symbol', section: v.section, sym: v.sym }}><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
+    <ul class="defs">{#each symbols as v (v.sym)}<li data-sec={v.section} use:dragout={{ kind: 'symbol', book, section: v.section, sym: v.sym }}><span class="sym" use:sym={v.sym}></span><span>{v.meaning}<span class="unit">{v.unit}</span></span></li>{/each}</ul>
   {/if}
   {#if terms.length}
     <div class="eyebrow">{terms[0].section} · terms</div>
-    <ul class="defs terms">{#each terms as t (t.term)}<li use:dragout={{ kind: 'term', section: t.section, term: t.term }}><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
+    <ul class="defs terms">{#each terms as t (t.term)}<li data-sec={t.section} use:dragout={{ kind: 'term', book, section: t.section, term: t.term }}><span class="term">{t.term}</span><span>{t.definition}</span></li>{/each}</ul>
   {/if}
 {/snippet}
 
@@ -58,6 +59,7 @@
   </details>
 {/snippet}
 
+<div class="rows" data-book={book}>
 {#if target.level === 'book'}
   {#each grouped.inside as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
 {:else}
@@ -72,8 +74,10 @@
 {#if settings.colorCoding}
   <div class="legend">{#each legend as [k, name] (k)}<i style:background="var(--c-{k})"></i><span>{name}</span>{/each}</div>
 {/if}
+</div>
 
 <style>
+  .rows{display:contents}
   .defs{list-style:none;padding:0;margin:0}
   /* the open hand says the row is a thing to take: it goes into a note by being dragged there */
   .defs li{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:0.82rem;align-items:baseline;cursor:grab}

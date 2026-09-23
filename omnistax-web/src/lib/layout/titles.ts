@@ -5,8 +5,7 @@
 import { parseItemKey, viewKindOf } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { scope } from '../sections/scope.svelte';
-import { focus } from '../sections/focus.svelte';
-import { targetLabel } from '../sections/scope';
+import { targetLabel, type Target } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
 import type { ItemKey } from './model';
 
@@ -17,10 +16,11 @@ import type { ItemKey } from './model';
    what they are and nothing more. View.svelte draws the bar by the same rule. */
 const PLACELESS: readonly string[] = ['explorer', 'search', 'exercises'];
 
+const placeOf = (t: Target): string => targetLabel(t, registry.manifest(t.book));
 export const tabTitle = (k: ItemKey): string => {
   const id = parseItemKey(k);
   if (!id) return k;
   const kind = viewKindOf(k);
   if (!kind) return registry.title(id);
-  return PLACELESS.includes(kind) ? VIEW_TITLE[kind] : `${VIEW_TITLE[kind]} · ${targetLabel(scope.targetFor(k), registry.manifest(focus.section.book))}`;
+  return PLACELESS.includes(kind) ? VIEW_TITLE[kind] : `${VIEW_TITLE[kind]} · ${placeOf(scope.targetFor(k))}`;
 };

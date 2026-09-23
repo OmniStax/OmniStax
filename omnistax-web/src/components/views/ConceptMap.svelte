@@ -46,7 +46,6 @@
      reading of the book rather than anything the book prints, so the legend
      wears the one AI mark the rest of the app wears. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { getContext as getCtx, onDestroy, tick } from 'svelte';
@@ -59,17 +58,26 @@
   import { loadLayouts, positionsOf, type LayoutFileDTO } from '../../lib/sections/layouts';
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
   import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
-  import { mathHtml } from '../actions/math';
+  import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   import AiMark from '../ui/AiMark.svelte';
   import { select } from 'd3-selection';
   import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
   const scoped = getCtx<() => Target>('scope');
-  const list = $derived(scopedNodes(registry.concepts(assumedBook()), scoped(), registry.manifest(assumedBook())));
+  const book = $derived(scoped().book);
+  const list = $derived(scopedNodes(registry.concepts(book), scoped(), registry.manifest(book)));
   const edges = $derived(edgesOf(list));
   const byId = $derived(new Map(list.map((c) => [c.id, c])));
   const node = (id: string) => byId.get(id)!;
-  const coverage = $derived(spy.current.span ? registry.coverage(assumedBook()).find((c) => c.span === spy.current.span) ?? registry.coverage(assumedBook()).find((c) => c.span === spy.current.section) : undefined);
+  const coverage = $derived.by(() => {
+    const { span, section } = spy.current; if (!span || span.book !== book) return undefined;
+    const all = registry.coverage(book); return all.find((c) => c.span === span.span) ?? all.find((c) => c.span === section?.span);
+  });
+  /* A concept's name, set in its own book's TeX. */
+  const mathHtml = (node: HTMLElement, html: string) => {
+    const write = (s: string): void => { node.innerHTML = s; figFor(book).renderMath(node); };
+    write(html); return { update: write };
+  };
   let hover = $state<string | null>(null);   /* the node under the pointer, which lights its edges and its neighbours */
   /* The node whose card is open. Only that node carries `data-concept`, which is
      what the shell's card layer opens for, so hovering any other node says
@@ -105,7 +113,7 @@
   const laying = $derived(settled.source === 'seed' && list.length > 0);
 
   $effect(() => {
-    const url = registry.manifest(assumedBook()).concepts;
+    const url = registry.manifest(book).concepts;
     if (!url) { table = {}; return; }
     let live = true;
     loadLayouts(url).then((t) => { if (live) table = t; });
@@ -254,9 +262,9 @@
     if (!tapped(id, e)) return;
     const c = node(id);
     if (c.status === 'placeholder') {
-      const entry = registry.entry(sectionRef(assumedBook(), sectionId(c.section)));
-      if (entry?.built) { openDoc(sectionRef(assumedBook(), sectionId(c.section)), 'text'); return; }
-      window.open(entry?.openstax ?? registry.manifest(assumedBook()).openstax, '_blank', 'noopener');
+      const ref = sectionRef(book, sectionId(c.section)); const entry = registry.entry(ref);
+      if (entry?.built) { openDoc(ref, 'text'); return; }
+      window.open(entry?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener');
       return;
     }
     if (open === id) { close(); if (pin.pinned === id) pin.toggle(conceptId(id)); return; }
@@ -297,7 +305,7 @@
   <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
 {/snippet}
 
-<div class="map" class:dimmed={!!hover}>
+<div class="map" class:dimmed={!!hover} data-book={book}>
   <svg bind:this={svgEl} role="presentation">
     <g transform="translate({tf.x},{tf.y}) scale({tf.k})">
       <g class="wires">
@@ -308,7 +316,7 @@
         {@const p = pos.get(c.id)!}
         <foreignObject x={p.x - b.w / 2} y={p.y - b.h / 2} width={b.w} height={b.h} class:lit={!lit || lit.has(c.id)}>
           <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === c.id} class:open={open === c.id} class:active={coverage?.introduces.includes(c.id)} class:active-weak={coverage?.uses.includes(c.id)} data-id={c.id} data-concept={open === c.id ? c.id : undefined}
-            use:dragout={{ kind: 'concept', section: c.section, id: c.id }}
+            use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}
             data-state={showProgress ? practice.stateOf(c.id) : undefined} data-half={showProgress && share(c.id) >= 0.5 ? '1' : undefined} style:--m={showProgress ? share(c.id) : undefined}
             onpointerdown={(e) => down(c.id, e)} onclick={(e) => click(c.id, e)}
             onmouseenter={() => (hover = c.id)} onfocus={() => (hover = c.id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>

@@ -12,9 +12,8 @@
 
      The tree the rows are drawn from is the explorer store, which keeps the
      entries and which rows are open; the chapters and sections come from the
-     manifest instead, since they are the book's and not the reader's. A book
-     that is not the one this page belongs to has its manifest fetched, and its
-     sections are links out to it, because the shell reads one book at a time. */
+     manifest instead, since they are the book's and not the reader's. Any
+     book's section opens as a tab. */
   import { onMount } from 'svelte';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { bookKey, chapterKey, entryId, sectionKey, type Entry, type EntryId } from '../../lib/explorer/model';
@@ -28,7 +27,7 @@
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { bookId, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
+  import { bookId, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, sameSection, type SectionId, type SectionRef } from '../../lib/types/ids';
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
   import { drawingId, drawingItem } from '../../lib/types/ids';
   import { importFiles, importSummary } from '../../lib/files/import';
@@ -47,7 +46,6 @@
     readonly icon: string;
     readonly entry?: Entry;          /* the reader's own rows carry theirs */
     readonly section?: SectionId;
-    readonly href?: string;          /* a section of another book is a link out to it */
     readonly domId?: string;         /* a heading to jump to */
     readonly expandable: boolean;
     readonly open: boolean;
@@ -60,20 +58,11 @@
   type RootName = 'books' | 'notes';
   const ROOT_KEY: Readonly<Record<RootName, string>> = { books: 'root:books', notes: 'root:notes' };
 
-  /* The manifests of the books that are not this page's, fetched once each. */
-  let others = $state.raw<Readonly<Record<string, BookManifest>>>({});
-  const asked = new Set<string>();
-  const manifestOf = (bookId: string): BookManifest | null => {
-    if (bookId === registry.home) return registry.manifest(registry.home);
-    const have = others[bookId];
-    if (have) return have;
-    if (!asked.has(bookId)) {
-      asked.add(bookId);
-      fetch(`/${bookId}/book.json`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((m: BookManifest | null) => { if (m) others = { ...others, [bookId]: m }; })
-        .catch(() => { /* the row says it could not be read */ });
-    }
+  /* A book's manifest out of the registry, asked for once; null while it has not arrived. */
+  const manifestOf = (id: string): BookManifest | null => {
+    const b = bookId(id);
+    if (registry.hasBook(b)) return registry.manifest(b);
+    void registry.ensureBook(b);
     return null;
   };
 
@@ -81,8 +70,8 @@
   /* The headings of a loaded section: its spans, each named by the first
      heading it carries, with the maths stripped out of the name. Null while the
      section has not been opened, which is a different thing from having none. */
-  const headingsOf = (sec: SectionId): { id: string; label: string }[] | null => {
-    const st = registry.state(sectionRef(registry.home, sec));
+  const headingsOf = (ref: SectionRef): { id: string; label: string }[] | null => {
+    const st = registry.state(ref);
     const root = st ? st.docs.text ?? Object.values(st.docs)[0] ?? null : null;
     if (!root) return null;
     return Array.from(root.querySelectorAll<HTMLElement>('section[id]')).flatMap((s) => {
@@ -100,23 +89,22 @@
     const hint = (key: string, depth: number, label: string): void => {
       out.push({ key, kind: 'hint', depth, label, icon: '', expandable: false, open: false, dim: true, active: false });
     };
-    const section = (bookId: string, s: SectionEntry, depth: number): void => {
-      const own = bookId === registry.home;
-      const key = sectionKey(bookId, s.id);
+    const section = (id: string, s: SectionEntry, depth: number): void => {
+      const key = sectionKey(id, s.id);
       const open = explorer.expanded(key);
-      const sec = sectionId(s.id);
+      const ref = sectionRef(bookId(id), sectionId(s.id));
       out.push({
-        key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: sec,
-        href: own ? undefined : s.url, expandable: own && s.built, open,
-        dim: !s.built, active: own && s.built && focus.section.book === registry.home && focus.section.section === sec, book: bookId,
-        updated: (offlineBooks.updatedSections[bookId] ?? []).includes(s.id),
+        key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: ref.section,
+        expandable: s.built, open,
+        dim: !s.built, active: s.built && sameSection(focus.section, ref), book: id,
+        updated: (offlineBooks.updatedSections[id] ?? []).includes(s.id),
       });
-      if (!own || !s.built || !open) return;
-      const heads = headingsOf(sec);
+      if (!s.built || !open) return;
+      const heads = headingsOf(ref);
       if (heads === null) hint(`${key}?`, depth + 1, 'Open the section to see its headings');
       else heads.forEach((h) => out.push({
-        key: `${key}#${h.id}`, kind: 'heading', depth: depth + 1, label: h.label, icon: '', domId: h.id,
-        expandable: false, open: false, dim: false, active: spy.current.section === h.id,
+        key: `${key}#${h.id}`, kind: 'heading', depth: depth + 1, label: h.label, icon: '', domId: h.id, book: id,
+        expandable: false, open: false, dim: false, active: spy.current.section?.book === id && spy.current.section.span === h.id,
       }));
     };
     /* A book's own introduction stands before its chapters and its summary after
@@ -132,8 +120,8 @@
          chapters are still the first thing under the book. */
       const sheetRow = (sh: SheetEntry, at: number): Row => ({
         key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth: at, label: sh.title, icon: ICON.formulas,
-        href: bookId === registry.home ? undefined : sh.url, expandable: false, open: false, dim: false,
-        active: bookId === registry.home && activeKey === itemKey(sheetItem(registry.home, sheetId(sh.id))),
+        expandable: false, open: false, dim: false, book: m.id,
+        active: activeKey === itemKey(sheetItem(m.id, sheetId(sh.id))),
       });
       const shelf = m.sheets.length > 3;
       if (!shelf) m.sheets.forEach((sh) => out.push(sheetRow(sh, depth)));
@@ -318,9 +306,10 @@
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))); return; }
     if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))); return; }
-    if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(registry.home, sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
-    if (r.kind === 'section' && r.section && !r.dim && !r.href) { if (r.book) offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(r.book ? bookId(r.book) : registry.home, r.section), 'text'); return; }
-    if (r.kind === 'heading' && r.domId) go(registry.home, r.domId);
+    if (!r.book) return;
+    if (r.kind === 'sheet') { void openItem(itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
+    if (r.kind === 'section' && r.section && !r.dim) { offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(bookId(r.book), r.section), 'text'); return; }
+    if (r.kind === 'heading' && r.domId) go(bookId(r.book), r.domId);
   };
 
   /* The row menu, hanging where the pointer or the button left it. */
@@ -428,7 +417,7 @@
   onMount(() => {
     if (seeded || explorer.tree.expanded.length) { seeded = true; return; }
     seeded = true;
-    const m = registry.manifest(registry.home);
+    const m = registry.manifest(focus.book);
     if (!m.id) return;
     explorer.toggle(bookKey(m.id));
     const ch = registry.chapterOf(focus.section);
@@ -483,8 +472,6 @@
               onclick={(ev) => ev.stopPropagation()}
               onkeydown={(ev) => renameKey(ev, own)}
               onblur={(ev) => leaveBox((ev.currentTarget as HTMLInputElement).value)} />
-          {:else if r.href}
-            <a class="lbl" href={r.href} onclick={(e) => e.stopPropagation()}>{r.label}</a>
           {:else}
             <span class="lbl">{r.label}</span>
           {/if}

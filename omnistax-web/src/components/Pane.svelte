@@ -37,7 +37,7 @@
   {:else if id && id.kind === 'note'}
     <NoteTab noteId={id.note} {groupKey} />
   {:else if id && id.kind === 'sheet'}
-    <div class="sheet-pane"><Sheet id={id.sheet} /></div>
+    <div class="sheet-pane"><Sheet book={id.book} id={id.sheet} /></div>
   {:else if id && id.kind === 'file'}
     <FileTab fileId={id.file} {groupKey} />
   {:else if id && id.kind === 'drawing'}

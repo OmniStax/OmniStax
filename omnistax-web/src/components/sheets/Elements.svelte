@@ -14,8 +14,7 @@
   import { sheets } from '../../lib/sheets/store.svelte';
   import { openDoc } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { sectionId, sectionRef } from '../../lib/types/ids';
-  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { type BookId, sectionId, sectionRef } from '../../lib/types/ids';
   import { elementColor } from '../../lib/fig/elements';
   import {
     type Cell, type Colouring, type Filters, type Trend, COLUMNS, PERIODS, TRENDS, TREND_META, NO_FILTERS,
@@ -24,7 +23,7 @@
   import type { ElementsSheetDTO } from '../../lib/content/sheets';
   import { ELEMENT_BLOCKS, ELEMENT_CATEGORIES, ELEMENT_STATES } from '../../lib/content/sheets';
 
-  let { sheet }: { sheet: ElementsSheetDTO } = $props();
+  let { book, sheet }: { book: BookId; sheet: ElementsSheetDTO } = $props();
 
   const GROUPS = Array.from({ length: COLUMNS }, (_, i) => i + 1);
   const ROWS = Array.from({ length: PERIODS }, (_, i) => i + 1);
@@ -75,8 +74,8 @@
     config.split(' ').map((part) => { const m = /^(.*?)(\d+)$/.exec(part); return m ? { text: m[1], sup: m[2] } : { text: part, sup: '' }; });
 
   const pick = (symbol: string): void => { pinned = pinned === symbol ? null : symbol; };
-  const goSection = (id: string): void => { void openDoc(sectionRef(assumedBook(), sectionId(id)), 'text'); };
-  const titleOf = (id: string): string => registry.entry(sectionRef(assumedBook(), sectionId(id)))?.title ?? '';
+  const goSection = (id: string): void => { void openDoc(sectionRef(book, sectionId(id)), 'text'); };
+  const titleOf = (id: string): string => registry.entry(sectionRef(book, sectionId(id)))?.title ?? '';
 
   /* The arrows walk the grid, Enter pins what they stand on, Escape lets it go. */
   const onKey = (e: KeyboardEvent, cell: Cell): void => {

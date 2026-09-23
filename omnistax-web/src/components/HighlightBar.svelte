@@ -16,7 +16,7 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { openSide, homeSide } from '../lib/layout/model';
   import { reveal } from '../lib/sections/nav.svelte';
-  import { sectionId, type SectionId, type DocKind, type FileId, fileId } from '../lib/types/ids';
+  import { bookId, sectionId, sectionRef, type SectionRef, type DocKind, type FileId, fileId } from '../lib/types/ids';
   import { fileMarks } from '../lib/files/marks.svelte';
   import { isMarkId } from '../lib/files/marks';
   import { askAi } from '../lib/chat/open.svelte';
@@ -26,7 +26,7 @@
      which the id's own shape says afterwards: ten of base 36 is a file mark
      and eight is the book's. */
   type Pending =
-    | { kind: 'doc'; section: SectionId; doc: DocKind; anchor: Anchor }
+    | { kind: 'doc'; ref: SectionRef; doc: DocKind; anchor: Anchor }
     | { kind: 'file'; file: FileId; page: number; anchor: Anchor };
   /* Which store owns a mark, read off its id, so that everything below acts on
      one of them without asking both. */
@@ -46,7 +46,7 @@
   const recolour = (id: string, c: HlColor): void => { if (isMarkId(id)) fileMarks.setColor(id, c); else notes.setColor(id, c); };
   const drop = (id: string): void => { if (isMarkId(id)) fileMarks.remove(id); else notes.remove(id); };
   const make = (p: Pending, c: HlColor): string =>
-    p.kind === 'doc' ? notes.add(p.section, p.doc, p.anchor, c).id : fileMarks.addHighlight(p.file, p.page, p.anchor, c).id;
+    p.kind === 'doc' ? notes.add(p.ref, p.doc, p.anchor, c).id : fileMarks.addHighlight(p.file, p.page, p.anchor, c).id;
   let open = $state(false), x = $state(0), y = $state(0), mode = $state<'new' | 'edit'>('new'), noteId = $state<string | null>(null);
   let pending: Pending | null = null;
   /* The words under the bar, kept because asking the model clears the
@@ -69,7 +69,7 @@
     if (sheet) pending = { kind: 'file', file: fileId(sheet.dataset.file ?? ''), page: Number(sheet.dataset.page), anchor };
     else {
       const [section, doc] = (art.dataset.doc ?? '').split('/') as [string, DocKind];
-      pending = { kind: 'doc', section: sectionId(section), doc, anchor };
+      pending = { kind: 'doc', ref: sectionRef(bookId(art.dataset.book ?? ''), sectionId(section)), doc, anchor };
     }
     mode = 'new'; noteId = null; place(range.getBoundingClientRect()); open = true;
   };

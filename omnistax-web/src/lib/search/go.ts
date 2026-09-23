@@ -1,13 +1,11 @@
-/* Going to a hit. In the book being read a hit opens the page it lies in as a
-   tab and lands on the thing itself: the paragraph a block of prose was cut
-   from, found again by its opening words; the span that introduces a concept;
-   the span a symbol or a formula is anchored to; the first mention of a term,
-   which the prose marks. In another book the shell has no page for it, so the
-   hit is a link out: the page's own address, with the span to land on in the
-   hash, which the shell reads when that page opens. */
+/* Going to a hit, of whatever book: it opens the page it lies in as a tab and
+   lands on the thing itself: the paragraph a block of prose was cut from, found
+   again by its opening words; the span that introduces a concept; the span a
+   symbol or a formula is anchored to; the first mention of a term, which the
+   prose marks. */
 import { spansOf } from '../sections/concepts.svelte';
 import { findEl, goSpan, jump, openDoc } from '../sections/nav.svelte';
-import { assumedBook } from '../sections/focus.svelte';
+import { registry } from '../sections/registry.svelte';
 import { bookId, conceptId, sectionId, sectionRef, spanId, spanRef, type BookId } from '../types/ids';
 import type { Hit } from './model';
 
@@ -37,28 +35,24 @@ const goTerm = (book: BookId, section: string, term: string): void => {
 };
 const goAnchored = (book: BookId, section: string, anchor: string | undefined): void => { if (anchor) goSpan(spanRef(book, spanId(anchor))); else void openDoc(sectionRef(book, sectionId(section)), 'text'); };
 
-/* Where a hit of another book is: the page's address with the span in the hash. */
-const away = (url: string | undefined, hash?: string): void => { if (url) location.assign(hash ? `${url}#${hash}` : url); };
+/* The concept's coverage lives in its chapter, which is loaded before the spans are read. */
+const goConcept = async (book: BookId, id: string, section: string): Promise<void> => {
+  const ref = sectionRef(book, sectionId(section));
+  await registry.ensureBook(book);
+  const ch = registry.chapterOf(ref); if (ch) await registry.loadChapter(book, ch.dir).catch(() => {});
+  const sp = spansOf(book, conceptId(id)); const t = sp.intro[0] ?? sp.uses[0];
+  if (t) goSpan(spanRef(book, t)); else void openDoc(ref, 'text');
+};
 
-export const goHit = (hit: Hit, urls: Readonly<Record<string, string>>): void => {
-  const home = hit.book === assumedBook(); const book = bookId(hit.book);
+export const goHit = (hit: Hit): void => {
+  const book = bookId(hit.book);
   switch (hit.kind) {
-    case 'text':
-      if (home) goText(book, hit.page.id, hit.span, hit.text); else away(urls[hit.page.id] ?? hit.page.url, hit.span === hit.page.id ? undefined : hit.span);
-      return;
-    case 'concept': {
-      const c = hit.concept;
-      if (!home) { away(urls[c.section]); return; }
-      const sp = spansOf(conceptId(c.id)); const t = sp.intro[0] ?? sp.uses[0];
-      if (t) goSpan(spanRef(book, t)); else void openDoc(sectionRef(book, sectionId(c.section)), 'text');
-      return;
-    }
+    case 'text': goText(book, hit.page.id, hit.span, hit.text); return;
+    case 'concept': void goConcept(book, hit.concept.id, hit.concept.section); return;
     case 'definition':
-      if (hit.def.kind === 'symbol') { const v = hit.def.symbol; if (home) goAnchored(book, v.section, v.anchor); else away(urls[v.section], v.anchor); return; }
-      { const t = hit.def.term; if (home) goTerm(book, t.section, t.term); else away(urls[t.section]); return; }
-    case 'formula': {
-      const e = hit.equation;
-      if (home) goAnchored(book, e.section, e.anchor); else away(urls[e.section], e.anchor);
-    }
+      if (hit.def.kind === 'symbol') goAnchored(book, hit.def.symbol.section, hit.def.symbol.anchor);
+      else goTerm(book, hit.def.term.section, hit.def.term.term);
+      return;
+    case 'formula': goAnchored(book, hit.equation.section, hit.equation.anchor);
   }
 };

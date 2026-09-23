@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { builtSections, mergeCatalog, parseConcepts, parseExercises, parseManifest, type ForeignBook } from '../src/lib/practice/books';
+import { builtSections, emptyCatalog, mergeCatalog, parseConcepts, parseExercises, parseManifest, type ForeignBook } from '../src/lib/practice/books';
 import type { Catalog } from '../src/lib/practice/model';
 import type { ConceptDTO, ExerciseDTO } from '../src/lib/content/schema';
 import { conceptId, sectionId } from '../src/lib/types/ids';
@@ -107,4 +107,10 @@ test('every exercise carries the book it came from, since section ids are not un
     ['up', '15.1', 'u1'],
     ['up', '15.1', 'u2'],
   ], 'the book being read first, then what the loaded books set');
+});
+test('every book joins the catalogue the same way, the one being read included', () => {
+  const cat = mergeCatalog(emptyCatalog, [['up', foreign()]]);
+  assert.deepEqual(cat.allSections('up'), [sec('15.1')]);
+  assert.deepEqual(cat.exercises.map((e) => [e.book, e.ex.id]), [['up', 'u1'], ['up', 'u2']]);
+  assert.deepEqual(mergeCatalog(emptyCatalog, []).exercises, []);
 });

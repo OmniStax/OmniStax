@@ -37,5 +37,3 @@ class Focus {
   }
 }
 export const focus = new Focus();
-/* The book a call site means when it has not been told. Phase 2 of no-book-lock deletes it. */
-export const assumedBook = (): BookId => focus.book;
