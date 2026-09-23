@@ -50,7 +50,7 @@
     {#each SIDEBAR_VIEW_KEYS as k (k)}
       {@const loc = where(l, k)}
       {@const count = kindOf(k) === 'pomodoro' ? pomodoro.railText : ''}
-      <button type="button" class:on={!!loc} class:counting={!!count} title={count ? `${titleOf(kindOf(k))} — ${count} left` : titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
+      <button type="button" class:on={!!loc} class:counting={!!count} class:spot={ui.spot === kindOf(k)} title={count ? `${titleOf(kindOf(k))} — ${count} left` : titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={() => toggleSide(k)}>{@html iconOf(kindOf(k))}{#if count}<span class="count">{count}</span>{/if}</button>
     {/each}
   </div>
@@ -61,7 +61,7 @@
       <button type="button" class:on={open} title={titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html iconOf(kindOf(k))}</button>
     {/each}
-    <button type="button" class:on={chatsOpen} title="New chat" aria-label="New chat"
+    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} title="New chat" aria-label="New chat"
       onclick={() => newChatTab()}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>

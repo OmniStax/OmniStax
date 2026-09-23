@@ -4,7 +4,7 @@ import path from 'node:path';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import { loadBook, pageNav } from '../src/lib/content/load';
 import { fragment, qualifyIds, spanHeads } from '../src/lib/content/fragment';
-import { aboutHtml, bookHtml } from '../src/lib/content/pages';
+import { bookHtml } from '../src/lib/content/pages';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
@@ -120,7 +120,6 @@ test('the front of the book lists the preface before the chapters and the introd
   assert.ok(at('href="/framed/intro/">Preface</a>') < at('Chapter 2'));
   assert.ok(at('href="/framed/ch02/intro/">Introduction to Kinematics</a>') < at('href="/framed/ch02/2.1/"'));
   assert.match(html, /<li class="front"><a href="\/framed\/ch02\/intro\/">Introduction to Kinematics<\/a><\/li>/, 'no number on an introduction');
-  assert.match(aboutHtml([M]), /1 chapter, 1 of 2 sections built/, 'the count is of sections');
 });
 test('every text ends on the way to the page before and the page after, across the book, and only to pages that are built', () => {
   const ch = TREE.chapters[0];

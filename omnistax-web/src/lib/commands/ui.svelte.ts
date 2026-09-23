@@ -12,11 +12,15 @@ export type BrowserState = { readonly open: boolean; readonly group: number | nu
 const PALETTE_CLOSED: PaletteState = { open: false, query: '', group: null };
 const BROWSER_CLOSED: BrowserState = { open: false, group: null, mode: 'open', onPick: null };
 
+/* What a feature named on the about page lights in the shell while it is hovered. */
+export type Spot = 'notes' | 'drawer' | 'pomodoro' | 'ai' | 'explorer';
+
 class Ui {
   palette = $state.raw<PaletteState>(PALETTE_CLOSED);
   browser = $state.raw<BrowserState>(BROWSER_CLOSED);
   settings = $state(false);
   findTextbook = $state(false);       /* the explorer's floater of books to add */
+  spot = $state<Spot | null>(null);
 
   /* `group` is the document group a section should open into (the "+" on a tab strip passes its own). */
   openPalette(query = '', opts: { group?: number } = {}): void { this.settings = false; this.closeBrowser(); this.palette = { open: true, query, group: opts.group ?? null }; }

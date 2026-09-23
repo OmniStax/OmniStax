@@ -492,9 +492,9 @@
           {#if r.root === 'notes'}
             <button type="button" class="tool" id="import-files" tabindex="-1" title="Import files (PDF, images, markdown)" aria-label="Import files"
               onclick={(e) => { e.stopPropagation(); pickInto = null; picker?.click(); }}>{@html ICON.importFile}</button>
-            <button type="button" class="tool" tabindex="-1" title="New note" aria-label="New note"
+            <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" title="New note" aria-label="New note"
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
-            <button type="button" class="tool" tabindex="-1" title="New drawing" aria-label="New drawing"
+            <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" title="New drawing" aria-label="New drawing"
               onclick={(e) => { e.stopPropagation(); newDrawing(parentForNew()); }}>{@html ICON.drawingPlus}</button>
             <button type="button" class="tool" tabindex="-1" title="New folder" aria-label="New folder"
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>

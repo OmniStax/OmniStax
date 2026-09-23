@@ -13,54 +13,26 @@ const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 
 const REPO = 'https://github.com/BlastWind/OmniStax';
 
-/* The count of sections that carry a built document, and of all of them. */
-const sectionCounts = (m: BookManifest): { readonly built: number; readonly all: number } => {
-  const sections = m.chapters.flatMap((c) => c.sections);
-  return { built: sections.filter((s) => s.built).length, all: sections.length };
-};
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
-
-/* One textbook, as a card on the front page: what it is, who wrote it, and how
-   much of it has been transformed so far. The counts come from the manifest so
-   they stay true as chapters are built. */
-const bookCard = (m: BookManifest): string => {
-  const { built, all } = sectionCounts(m);
-  const counts = `${plural(m.chapters.length, 'chapter', 'chapters')}, ${built} of ${plural(all, 'section', 'sections')} built`;
-  return `<a class="card" href="/${esc(m.id)}/" data-book="${esc(m.id)}">
-      <div class="eyebrow">${esc(m.publisher)}</div>
-      <h3>${esc(m.title)}</h3>
-      <p class="authors">${esc(m.authors.join(', '))}</p>
-      <p class="scope">${esc(counts)}</p>
-    </a>`;
-};
-
 const GITHUB_MARK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>';
 
-/* The front of OmniStax: the introduction in the author's own words, then a
-   card per book this build carries, in the order the build puts them in, and
-   the repository link last, centred, once there is nothing left to read. */
-export const aboutHtml = (manifests: readonly BookManifest[]): string => `<article class="page" data-page="about">
+/* The front of OmniStax: the title with the repository beside it, the
+   introduction in the author's own words, and a way into the books. Each
+   feature named in the introduction lights its place in the shell on hover. */
+export const aboutHtml = (): string => `<article class="page" data-page="about">
   <header>
-    <h1>OmniStax/万象</h1>
-    <p class="intro">OmniStax/万象 (beta) is a next-gen, self-hostable STEM learning platform. It mimics the user experience of programming IDEs, providing a tight, cognitive frictionless experience. As such, I'm calling it the first Integrated Learning Environment (ILE).</p>
-    <p class="intro">AI enhances open-source textbooks with interactive simulations. A book is fed into an agent from which the AI processes it section by section. AI also organizes the text by performing natural language tasks like exercise extraction and variable/definition coloring.</p>
-    <p class="intro">The following transformed textbooks stand as experiments.</p>
+    <div class="masthead">
+      <h1>OmniStax/万象</h1>
+      <a class="repo" href="${esc(REPO)}" target="_blank" rel="noopener noreferrer">
+        ${GITHUB_MARK}
+        <span class="name">BlastWind/OmniStax</span>
+      </a>
+    </div>
+    <p class="intro">OmniStax/万象 is a next-gen, open-sourced STEM learning platform. It mimics the user experience of programming IDEs to reduce cognitive friction. As such, I'm calling it the first Integrated Learning Environment (ILE).</p>
+    <p class="intro">The main contribution of OmniStax is our OmniBooks: Open-source textbooks transformed by AI. AI maintains the original writing but replaces old and static diagrams with interactive widgets. AI also organizes the text, doing natural language stuff to extract exercises and color code.</p>
+    <p class="intro">OmniStax is feature-rich. It has a <span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and even an annotator for your uploaded PDFs. Everything is integrated! For example, you can drag a formula or figure from an OmniBook and drop it into a note.</p>
   </header>
 
-  <section class="books">
-    <h2>Textbooks</h2>
-    ${manifests.map(bookCard).join('\n    ')}
-  </section>
-
-  <a class="repo repo-end" href="${esc(REPO)}" target="_blank" rel="noopener noreferrer">
-    ${GITHUB_MARK}
-    <span class="name">BlastWind/OmniStax</span>
-  </a>
-
-  <footer class="footer">
-    <p><a href="${esc(REPO)}">Source on GitHub</a>. Each edition is shared under the licence of the book it was adapted from.</p>
-  </footer>
+  <button type="button" class="try" data-find-textbook>Find and try an OmniBook now!</button>
 </article>`;
 
 /* One section of a book's contents: a link when the section is built, and a

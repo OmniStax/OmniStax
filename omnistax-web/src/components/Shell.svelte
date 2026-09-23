@@ -18,6 +18,7 @@
   import { settings, zoomPx } from '../lib/settings/store.svelte';
   import { colours } from '../lib/colours/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
+  import type { Spot } from '../lib/commands/ui.svelte';
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
@@ -249,6 +250,7 @@
     const onClick = (e: MouseEvent) => {
       clearView(e);
       ui.closeAll();
+      if ((e.target as HTMLElement).closest('[data-find-textbook]')) { ui.openFindTextbook(); return; }
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { const gi = groupOf(sb); layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
       /* "Practice this section" at the end of a section: a practice view opens
@@ -273,10 +275,19 @@
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
+    /* A feature the about page names lights where it lives: the new note and
+       new drawing buttons when the explorer shows them, the explorer's own
+       button on the rail when it does not. */
+    const onOver = (e: MouseEvent) => {
+      const f = (e.target as HTMLElement).closest<HTMLElement>('[data-feature]')?.dataset.feature as Spot | undefined;
+      const shown = (s: Spot) => [...document.querySelectorAll<HTMLElement>(`[data-spot="${s}"]`)].some((el) => el.getClientRects().length > 0);
+      ui.spot = !f ? null : (f === 'notes' || f === 'drawer') && !shown(f) ? 'explorer' : f;
+    };
+    document.addEventListener('mouseover', onOver);
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
+    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
   });
 
   /* settings → document */
