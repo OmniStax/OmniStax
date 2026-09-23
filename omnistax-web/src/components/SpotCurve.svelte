@@ -9,7 +9,6 @@
   type Pt = { readonly x: number; readonly y: number };
   let d = $state('');
   let end = $state<Pt | null>(null);
-  let drawn = $state(false);
 
   const route = (from: HTMLElement, to: HTMLElement): { d: string; end: Pt } | null => {
     const word = from.getClientRects()[0];
@@ -34,26 +33,27 @@
   };
 
   $effect(() => {
-    if (!ui.spot || !ui.spotFrom) { d = ''; end = null; drawn = false; return; }
-    drawn = false;
-    void tick().then(() => { redraw(); requestAnimationFrame(() => (drawn = true)); });
+    if (!ui.spot || !ui.spotFrom) { d = ''; end = null; return; }
+    void tick().then(redraw);
     window.addEventListener('scroll', redraw, true); window.addEventListener('resize', redraw);
     return () => { window.removeEventListener('scroll', redraw, true); window.removeEventListener('resize', redraw); };
   });
 </script>
 
-{#if d && end}
-  <svg class="curve" aria-hidden="true">
-    <path {d} pathLength="1" class:drawn />
-    <circle cx={end.x} cy={end.y} r="3" class:drawn />
-  </svg>
-{/if}
+{#key ui.spotFrom}
+  {#if d && end}
+    <svg class="curve" aria-hidden="true">
+      <path {d} pathLength="1" />
+      <circle cx={end.x} cy={end.y} r="3" />
+    </svg>
+  {/if}
+{/key}
 
 <style>
   .curve{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:40;overflow:visible}
-  path{fill:none;stroke:var(--spot);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .45s cubic-bezier(.3,.7,.3,1)}
-  path.drawn{stroke-dashoffset:0}
-  circle{fill:var(--spot);opacity:0;transition:opacity .15s .4s}
-  circle.drawn{opacity:1}
-  :global(html.anim-off) path, :global(html.anim-off) circle{transition:none}
+  path{fill:none;stroke:var(--spot);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:draw .45s cubic-bezier(.3,.7,.3,1) both}
+  circle{fill:var(--spot);animation:appear .15s .4s both}
+  @keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  @keyframes appear{from{opacity:0}to{opacity:1}}
+  :global(html.anim-off) path, :global(html.anim-off) circle{animation:none}
 </style>

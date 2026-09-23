@@ -33,7 +33,7 @@ export const aboutHtml = (): string => `<article class="page" data-page="about">
   </header>
 
   <div class="coda">
-    <button type="button" class="try" data-find-textbook><span class="label">Find and try an OmniBook now</span> <span class="arrow" aria-hidden="true">→</span></button>
+    <button type="button" class="try" data-find-textbook>Find and try an OmniBook now.</button>
   </div>
 </article>`;
 
