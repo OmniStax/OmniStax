@@ -286,12 +286,18 @@ article.page .repo svg{width:16px;height:16px;fill:currentColor;flex:none}
 article.page .repo .name{font-weight:600;font-size:0.9rem;line-height:1.3}
 article.page .feature{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-color:var(--spot);cursor:default}
 article.page .feature:hover{color:var(--spot)}
-article.page .try{display:block;margin:2.8rem auto 0;padding:14px 28px;font-family:var(--sans);font-size:1.1rem;font-weight:600;letter-spacing:0.01em;color:var(--ink);cursor:pointer;
-  border:1px solid var(--thumb);border-radius:10px;
-  background:repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--spot) 7%, transparent) 6px 7px), linear-gradient(180deg, var(--panel), var(--soft));
-  box-shadow:0 1px 0 var(--panel) inset, 0 2px 6px rgba(0,0,0,.08)}
-article.page .try:hover{border-color:var(--spot);color:var(--spot)}
-article.page .try:focus-visible{outline:2px solid var(--spot);outline-offset:2px}
+article.page[data-page="about"]{padding-bottom:24px}
+article.page[data-page="about"] .intro{margin-top:1rem}
+article.page[data-page="about"] .intro + .intro{margin-top:0.8rem}
+article.page[data-page="about"] header{margin-bottom:0}
+article.page .coda{text-align:center;margin-top:1.6rem}
+article.page .coda::before{content:"";display:block;width:56px;height:1px;margin:0 auto 1.1rem;background:var(--thumb)}
+article.page .try{font:inherit;font-family:var(--serif);font-size:1.45rem;font-weight:500;color:var(--ink);background:none;border:0;padding:4px 2px;cursor:pointer}
+article.page .try .label{text-decoration:underline;text-decoration-color:transparent;text-decoration-thickness:1px;text-underline-offset:6px;transition:text-decoration-color .2s}
+article.page .try .arrow{display:inline-block;color:var(--spot);transition:transform .2s}
+article.page .try:hover .label{text-decoration-color:var(--spot)}
+article.page .try:hover .arrow{transform:translateX(5px)}
+article.page .try:focus-visible{outline:2px solid var(--spot);outline-offset:4px;border-radius:4px}
 article.page .chapter h2{margin-top:2rem;border-top:1px solid var(--rule);padding-top:1.2rem}
 article.page .chapter ol{list-style:none;padding:0;margin:0.6rem 0 0}
 article.page .chapter li{margin:0;font-family:var(--sans);font-size:1rem}
@@ -303,6 +309,7 @@ article.page h2 .num{min-width:0;margin-right:0.4em;font-weight:500}
 article.page .soon{font-size:0.78rem;color:var(--muted);margin-left:0.5em}
 article.page .chapter.front{margin-top:2rem}
 article.page .chapter.front ol{margin-top:0}
+@media (max-height:800px){ article.page[data-page="about"]{padding-top:16px} article.page[data-page="about"] h1{font-size:2.2rem} article.page[data-page="about"] .intro{font-size:1.02rem;line-height:1.55} }
 @media (max-width:900px){ article.page{padding:20px 18px 80px} article.page h1{font-size:2.1rem} }
 
 /* the concept map's three kinds of node: one hue each, held apart from --accent

@@ -21,6 +21,7 @@ class Ui {
   settings = $state(false);
   findTextbook = $state(false);       /* the explorer's floater of books to add */
   spot = $state<Spot | null>(null);
+  spotFrom = $state.raw<HTMLElement | null>(null);   /* the words that named it */
 
   /* `group` is the document group a section should open into (the "+" on a tab strip passes its own). */
   openPalette(query = '', opts: { group?: number } = {}): void { this.settings = false; this.closeBrowser(); this.palette = { open: true, query, group: opts.group ?? null }; }

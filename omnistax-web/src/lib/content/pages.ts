@@ -32,7 +32,9 @@ export const aboutHtml = (): string => `<article class="page" data-page="about">
     <p class="intro">OmniStax is feature-rich. It has a <span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and even an annotator for your uploaded PDFs. Everything is integrated! For example, you can drag a formula or figure from an OmniBook and drop it into a note.</p>
   </header>
 
-  <button type="button" class="try" data-find-textbook>Find and try an OmniBook now!</button>
+  <div class="coda">
+    <button type="button" class="try" data-find-textbook><span class="label">Find and try an OmniBook now</span> <span class="arrow" aria-hidden="true">→</span></button>
+  </div>
 </article>`;
 
 /* One section of a book's contents: a link when the section is built, and a

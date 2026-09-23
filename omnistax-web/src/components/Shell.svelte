@@ -38,6 +38,7 @@
   import Tooltip from './Tooltip.svelte';
   import Browser from './Browser.svelte';
   import FindTextbook from './explorer/FindTextbook.svelte';
+  import SpotCurve from './SpotCurve.svelte';
   import DragToast from './ui/DragToast.svelte';
   import TipToast from './ui/TipToast.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
@@ -279,9 +280,11 @@
        new drawing buttons when the explorer shows them, the explorer's own
        button on the rail when it does not. */
     const onOver = (e: MouseEvent) => {
-      const f = (e.target as HTMLElement).closest<HTMLElement>('[data-feature]')?.dataset.feature as Spot | undefined;
+      const from = (e.target as HTMLElement).closest<HTMLElement>('[data-feature]');
+      const f = from?.dataset.feature as Spot | undefined;
       const shown = (s: Spot) => [...document.querySelectorAll<HTMLElement>(`[data-spot="${s}"]`)].some((el) => el.getClientRects().length > 0);
       ui.spot = !f ? null : (f === 'notes' || f === 'drawer') && !shown(f) ? 'explorer' : f;
+      ui.spotFrom = from;
     };
     document.addEventListener('mouseover', onOver);
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
@@ -351,6 +354,7 @@
   <Palette />
   <Browser {manifest} />
   <FindTextbook />
+  <SpotCurve />
   <DragToast />
   <TipToast />
 {/if}
