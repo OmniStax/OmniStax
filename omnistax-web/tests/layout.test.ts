@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -79,15 +79,17 @@ test('the rail draws the four sidebar views first and the four group views below
   assert.equal(GROUP_VIEW_KEYS.includes('view:colours'), false);
   assert.equal(VIEW_KEYS.length, SIDEBAR_VIEW_KEYS.length + GROUP_VIEW_KEYS.length + PALETTE_ONLY_KINDS.length);
 });
-test('openInSplit opens the view beside what is being read, and finds it where it already is', () => {
-  const l = openInSplit(defaultLayout(), map);
-  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[1].tabs, [map]); assert.equal(l.focus, 1);
-  const again = openInSplit(activate(l, 0, text), map);
-  assert.equal(again.groups.length, 2, 'a second ask makes no third group'); assert.equal(again.focus, 1); assert.equal(again.groups[1].active, map);
+test('openInFocus opens a tab in the focused group, and finds it where it already is', () => {
+  const l = openInFocus(defaultLayout(), map);
+  assert.equal(l.groups.length, 1, 'no split'); assert.deepEqual(l.groups[0].tabs, [text, map]); assert.equal(l.groups[0].active, map);
+  const two = openInFocus(splitRight(activate(l, 0, text), 0), 'chat:abcdefgh');
+  assert.equal(two.groups.length, 2); assert.equal(two.focus, 1); assert.deepEqual(two.groups[1].tabs.at(-1), 'chat:abcdefgh', 'the last focused group takes it');
+  const again = openInFocus(two, map);
+  assert.equal(again.focus, 0, 'shown where it stands'); assert.equal(again.groups[0].active, map);
 });
-test('openInSplit takes a view out of the sidebar and gives it a group', () => {
+test('openInFocus takes a view out of the sidebar and gives it a group', () => {
   const side = openSide(defaultLayout(), notes, 'left');
-  const l = openInSplit(side, notes);
+  const l = openInFocus(side, notes);
   assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, []);
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
@@ -110,11 +112,11 @@ test('a view key names a kind, and one page of that kind when it carries an inst
   assert.equal(parseItemKey('view:concepts@ab12c'), null);
 });
 test('the rail opens another page of a view and leaves the ones already open', () => {
-  const one = split(defaultLayout(), 0, 'right', newViewItem('concepts'));
-  const two = split(one, one.focus, 'right', newViewItem('concepts'));
+  const one = openTab(defaultLayout(), newViewItem('concepts'), 0);
+  const two = openTab(one, newViewItem('concepts'), one.focus);
   const open = instancesOf(two, 'concepts');
-  assert.equal(two.groups.length, 3, 'each page took a group of its own');
-  assert.equal(open.length, 2); assert.deepEqual(open, [two.groups[1].active, two.groups[2].active]);
+  assert.equal(two.groups.length, 1, 'each page is a tab of the focused group, not a split');
+  assert.equal(open.length, 2); assert.deepEqual(open, two.groups[0].tabs.slice(1));
   assert.deepEqual(instancesOf(two, 'formulas'), [], 'a view nobody opened stands nowhere');
   const gone = closeItem(two, open[1]);
   assert.deepEqual(instancesOf(gone, 'concepts'), [open[0]], 'closing one page leaves the other');

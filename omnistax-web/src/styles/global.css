@@ -33,6 +33,7 @@ html:not(.cc){ --accent:var(--ink); --warm:var(--ink); }
 *::-webkit-scrollbar-thumb{background:var(--thumb);border-radius:3px}
 *::-webkit-scrollbar-corner{background:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+:where(button:not(:disabled), [role="button"], [role="tab"], [role="option"], [role="menuitem"], a[href], summary, select, input[type="checkbox"], input[type="radio"], label:has(> input[type="checkbox"])){cursor:pointer}
 html.js body{height:100vh;overflow:hidden}
 a{color:inherit}
 h1,h2,h3,h4{font-family:var(--sans);line-height:1.2;text-wrap:balance;margin:0}

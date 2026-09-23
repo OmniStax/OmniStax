@@ -9,16 +9,20 @@ export type { ZoomStep } from './zoom';
 export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
+export type CardOpen = 'hover' | 'click';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
-export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true } as const;
+export const LOCK_GRACE = { min: 3, max: 120 } as const;
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10 } as const;
 
-const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips' } as const;
+const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
 const sysDark = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 const readTheme = (): Theme => { const t = read(KEYS.theme); return t === 'light' || t === 'dark' ? t : 'system'; };
 const readZoom = (): ZoomStep => { const v = Number(read(KEYS.zoom)); return Number.isFinite(v) && v > 0 ? nearestZoom(v) : ZOOM_DEFAULT; };
+const clampGrace = (v: number): number => Math.round(Math.min(LOCK_GRACE.max, Math.max(LOCK_GRACE.min, v)));
+const readGrace = (): number => { const s = read(KEYS.lockGrace); const v = Number(s); return s !== null && Number.isFinite(v) ? clampGrace(v) : DEFAULTS.lockGrace; };
 
 class Settings {
   colorCoding = $state(read(KEYS.cc) !== '0');
@@ -46,6 +50,11 @@ class Settings {
      the left button on the text. */
   swapDragButtons = $state(read(KEYS.swapDrag) === '1');
   tips = $state(read(KEYS.tips) !== '0');
+  /* Whether a card opens on hover or waits for a click and stays until the
+     next click elsewhere. */
+  cardOpen = $state<CardOpen>(read(KEYS.cardOpen) === 'click' ? 'click' : 'hover');
+  /* Seconds of grace before a focus lock takes hold. */
+  lockGrace = $state(readGrace());
 
   get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
   setColorCoding(on: boolean): void { this.colorCoding = on; write(KEYS.cc, on ? '1' : '0'); }
@@ -64,6 +73,8 @@ class Settings {
   setZoomKeys(on: boolean): void { this.zoomKeys = on; write(KEYS.zoomKeys, on ? '1' : '0'); }
   setSwapDragButtons(on: boolean): void { this.swapDragButtons = on; write(KEYS.swapDrag, on ? '1' : '0'); }
   setTips(on: boolean): void { this.tips = on; write(KEYS.tips, on ? '1' : '0'); }
+  setCardOpen(m: CardOpen): void { this.cardOpen = m; write(KEYS.cardOpen, m); }
+  setLockGrace(s: number): void { if (!Number.isFinite(s)) return; this.lockGrace = clampGrace(s); write(KEYS.lockGrace, String(this.lockGrace)); }
   setUnderlines(on: boolean): void { this.underlines = on; write(KEYS.underlines, on ? '1' : '0'); }
   reset(): void { Object.values(KEYS).forEach(remove); }
 }

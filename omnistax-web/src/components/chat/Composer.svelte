@@ -1,8 +1,8 @@
 <script lang="ts">
   import AtPicker from '../ui/AtPicker.svelte';
-  import { allRows, chipOf, warm } from '../../lib/picker/sources';
+  import { chipOf, pickerRoot } from '../../lib/picker/sources';
   import { withChip, withoutChip, type Chip } from '../../lib/chat/context';
-  import type { PickerCategory, PickerRow } from '../../lib/picker/model';
+  import type { PickerRow } from '../../lib/picker/model';
 
   let { chips, onchips, onsend, onstop, streaming, widgets, onwidgets, offer, onoffer, ready }: {
     chips: readonly Chip[];
@@ -22,11 +22,7 @@
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
   let at = $state<number | null>(null);
   let query = $state('');
-  /* Gathered once per open: allRows walks every store and loaded section, too
-     costly to redo per streamed word. */
-  let rows = $state<readonly PickerRow[]>([]);
-  const gather = (): void => { rows = allRows(); };
-  const onCategory = (category: PickerCategory | null): void => { gather(); void warm(category).then(gather); };
+  const root = pickerRoot();
 
   export function focus(): void { field?.focus(); }
   export function insert(words: string): void {
@@ -40,12 +36,11 @@
     const cut = field?.selectionStart ?? text.length;
     const m = AT.exec(text.slice(0, cut));
     if (!m) { close(); return; }
-    if (at === null) gather();
     at = cut - m[1].length - 1;
     query = m[1];
   };
 
-  const close = (): void => { at = null; query = ''; rows = []; };
+  const close = (): void => { at = null; query = ''; };
 
   const choose = (row: PickerRow): void => {
     const start = at; if (start === null) return;
@@ -93,7 +88,7 @@
 
   <div class="field">
     {#if at !== null}
-      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={close} oncategory={onCategory} />
+      <AtPicker bind:this={picker} {root} {query} onchoose={choose} onclose={close} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} oninput={read} onclick={read}
       placeholder={ready ? 'Ask anything · @ to add context' : 'Add a provider key in Settings → AI'}

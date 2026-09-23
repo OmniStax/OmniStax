@@ -15,9 +15,7 @@
   const DELAY = 250;                  /* how long the pointer rests before the tooltip shows */
   const GAP = 12;                     /* between the pointer (or the element) and the tooltip */
   const EDGE = 8;                     /* the nearest the tooltip comes to the edge of the window */
-  const WIDE = 260;                   /* the most a tooltip is allowed to be wide */
-  const TALL = 24;                    /* about a line of tooltip */
-  type Tip = { readonly text: string; readonly x: number; readonly y: number; readonly left: boolean; readonly above: boolean };
+  type Tip = { readonly text: string; readonly x: number; readonly y: number };
   let tip = $state<Tip | null>(null);
   let pointer: { x: number; y: number } | null = null;   /* where the pointer last was, if it raised the tooltip */
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -52,10 +50,8 @@
     const text = wordsOf(el); if (!text || !el.isConnected) return;
     const r = el.getBoundingClientRect();
     const at = pointer ?? { x: r.left, y: r.bottom - GAP };
-    const left = at.x + GAP + WIDE > window.innerWidth - EDGE;
-    const above = at.y + GAP + TALL > window.innerHeight - EDGE;
     turn++;
-    tip = { text, x: left ? at.x - GAP : at.x + GAP, y: above ? at.y - GAP : at.y + GAP, left, above };
+    tip = { text, x: at.x, y: at.y };
   };
   const enter = (e: Event): void => {
     pointer = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : null;
@@ -63,7 +59,17 @@
     hide(); held = el; wordsOf(el);            /* the title goes at once, so the browser never draws its own */
     timer = setTimeout(() => { if (held === el) show(el); }, DELAY);
   };
-  const leave = (e: Event): void => { if (held && !held.contains((e as MouseEvent).relatedTarget as Node | null)) hide(); };
+  /* Placed once drawn, since a tip may wrap onto several lines. */
+  const place = (node: HTMLElement, t: Tip) => {
+    const at = (p: Tip): void => {
+      const b = node.getBoundingClientRect(); const vw = window.innerWidth, vh = window.innerHeight;
+      const x = p.x + GAP + b.width > vw - EDGE ? p.x - GAP - b.width : p.x + GAP;
+      const y = p.y + GAP + b.height > vh - EDGE ? p.y - GAP - b.height : p.y + GAP;
+      node.style.left = `${Math.max(EDGE, x)}px`; node.style.top = `${Math.max(EDGE, y)}px`; node.style.visibility = 'visible';
+    };
+    at(t); return { update: at };
+  };
+  const leave =(e: Event): void => { if (held && !held.contains((e as MouseEvent).relatedTarget as Node | null)) hide(); };
 
   onMount(() => {
     const opts = { capture: true } as const;
@@ -81,12 +87,9 @@
 </script>
 
 {#if tip}
-  <div class="tip" class:left={tip.left} class:above={tip.above} style="left:{tip.x}px;top:{tip.y}px" role="tooltip">{tip.text}</div>
+  <div class="tip" use:place={tip} role="tooltip">{tip.text}</div>
 {/if}
 
 <style>
-  .tip{position:fixed;z-index:120;max-width:260px;padding:3px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.75rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px rgb(0 0 0 / 0.14);pointer-events:none}
-  .tip.left{transform:translateX(-100%)}
-  .tip.above{transform:translateY(-100%)}
-  .tip.left.above{transform:translate(-100%,-100%)}
+  .tip{position:fixed;z-index:120;max-width:min(320px,calc(100vw - 16px));width:max-content;box-sizing:border-box;visibility:hidden;padding:3px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.75rem;line-height:1.35;white-space:normal;overflow-wrap:break-word;box-shadow:0 2px 8px rgb(0 0 0 / 0.14);pointer-events:none}
 </style>

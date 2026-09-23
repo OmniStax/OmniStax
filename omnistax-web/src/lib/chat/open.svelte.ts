@@ -4,23 +4,23 @@
    tab that may not even be mounted yet — it says which chat is meant, and the
    tab takes the words when it is there. */
 import { layoutStore } from '../layout/store.svelte';
-import { openInSplit, split } from '../layout/model';
+import { openInFocus, openTab } from '../layout/model';
 import { chatItem, itemKey, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
 import type { MessageId } from './model';
 
-/* A chat of its own, opened in a split to the right of what is being read,
+/* A chat of its own, opened as a tab of the focused group,
    like a page of one of the middle four views: every asking opens another. */
 export const newChatTab = (): ChatId => {
   const chat = chats.create();
-  layoutStore.apply((l) => split(l, l.focus, 'right', chatItem(chat.id)));
+  layoutStore.apply((l) => openTab(l, chatItem(chat.id), l.focus));
   return chat.id;
 };
 
-/* An existing chat, shown where it already stands or opened beside what is
-   being read. */
+/* An existing chat, shown where it already stands or opened as a tab of the
+   focused group. */
 export const showChat = (id: ChatId): void => {
-  layoutStore.apply((l) => openInSplit(l, chatItem(id)));
+  layoutStore.apply((l) => openInFocus(l, chatItem(id)));
 };
 
 /* The chats that stand open as tabs, in the order the groups hold them. */

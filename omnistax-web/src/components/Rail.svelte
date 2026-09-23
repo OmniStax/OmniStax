@@ -3,13 +3,13 @@
      the two views that keep the sidebar — the explorer and the annotations —
      which a click shows there and a second click puts away. In the middle of the
      rail, held there by the spacers either side of it, the three that are only
-     ever tabs: a click on one opens a page of it in a split to the right of the
-     group being read, and every click opens another, so several concept maps can
+     ever tabs: a click on one opens a page of it as a tab of the focused
+     group, and every click opens another, so several concept maps can
      stand open at once, each following the section it was opened beside. At the
      bottom: read-aloud when voice is on, the command palette and the settings.
      Every button drags, so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, split, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { newViewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, VIEW_TITLE } from '../lib/icons';
@@ -36,8 +36,8 @@
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
-  /* A page of the view of its own, beside what is being read; the ones already open stay. */
-  const openPage = (kind: ViewKind) => layoutStore.apply((x) => split(x, x.focus, 'right', newViewItem(kind)));
+  /* A page of the view of its own, as a tab of the focused group; the ones already open stay. */
+  const openPage = (kind: ViewKind) => layoutStore.apply((x) => openTab(x, newViewItem(kind), x.focus));
   const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
-import { variableCard, figureCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
+import { variableCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
 import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
@@ -15,7 +15,7 @@ const ROOT = await bookRoot(PHYSICS);
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), showOriginal: (f) => calls.push(`orig:${f}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- terms ---------- */
@@ -78,16 +78,6 @@ test('a variable in a section whose sheet is not loaded says where it is defined
 test('an unknown symbol gets a card with no body and no actions', () => {
   const c = variableCard({ sym: 'q', tex: 'q', section: sec('16.1'), formulasLoaded: true }, nav);
   assert.equal(c.body, undefined); assert.deepEqual(c.actions, []);
-});
-
-/* ---------- figure ---------- */
-test('a figure card from the reference attributes', () => {
-  const c = figureCard({ number: '16.4', id: span('16.1-sim-spring-scale'), section: sec('16.1'), caption: 'Weights are hung on a spring.', hasOriginal: true }, nav);
-  assert.equal(c.title, 'Figure 16.4'); assert.equal(c.body, 'Weights are hung on a spring.');
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to figure', 'Show original']);
-  assert.equal(run('Go to figure', c), 'span:16.1-sim-spring-scale'); assert.equal(run('Show original', c), 'orig:16.1-sim-spring-scale');
-  const far = figureCard({ number: '16.9', id: span('16.3-sim-shm-oscillator'), section: sec('16.3'), hasOriginal: false }, nav);
-  assert.equal(far.body, 'Figure 16.9 is in section 16.3.'); assert.deepEqual(far.actions.map((a) => a.label), ['Go to figure']);
 });
 
 /* ---------- term ---------- */

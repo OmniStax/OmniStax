@@ -235,12 +235,11 @@ export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | I
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
 /* Step to a page that is named: it shows it where it already stands, and where it
-   stands nowhere it splits the focused group to the right and opens it there,
-   beside what is being read. */
-export const openInSplit = (l: Layout, id: ItemId | ItemKey): Layout => {
+   stands nowhere it opens as a tab of the focused group. */
+export const openInFocus = (l: Layout, id: ItemId | ItemKey): Layout => {
   const k = keyOf(id);
   const at = l.groups.findIndex((g) => g.tabs.includes(k));
-  return at >= 0 ? activate(l, at, k) : split(l, l.focus, 'right', k);
+  return at >= 0 ? activate(l, at, k) : openTab(l, k, l.focus);
 };
 
 /* Close a whole group, empty or not: it goes, and so do its tabs. A view that

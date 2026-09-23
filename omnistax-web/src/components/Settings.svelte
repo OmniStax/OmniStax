@@ -7,7 +7,7 @@
      shortcut cell records the next chord (Escape cancels, Backspace clears); a
      chord another command owns is shown as a conflict and taken only on Enter.
      Chords the browser keeps for itself on this surface are marked. */
-  import { settings, THEMES, DEFAULTS, zoomLabel } from '../lib/settings/store.svelte';
+  import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -35,7 +35,8 @@
   /* Every row's words, so a section can tell whether any of its rows survive the filter. */
   const ROWS = {
     theme: 'Theme system light dark', zoom: 'Text size zoom larger smaller root font', zoomKeys: 'Zoom keys ctrl plus minus zero browser page zoom', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references', tips: 'Tips tip of the day',
-    anim: 'Play animations sim figure transport', voice: 'Voice read aloud speech',
+    anim: 'Play animations sim figure transport', voice: 'Voice read aloud speech', cardOpen: 'Cards open hover click concept glossary symbol equation card',
+    lockGrace: 'Focus pomodoro lock grace seconds',
     masteryTarget: 'Mastery target correct exercises concept mastered', decay: 'Freshness decay review half life',
     startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
     order: 'Exercise order Mixed Grouped', includeFresh: 'Include fresh mastered concepts',
@@ -45,7 +46,7 @@
     backup: 'Backup export import restore reader data notes progress colours settings sessions',
     storage: 'Storage space quota persist persistent browser clear data safe imported files backup size',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.anim, ROWS.voice];
+  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
   const chooseBackup = async (file: File | undefined): Promise<void> => {
     backup = null; backupMessage = '';
@@ -169,6 +170,15 @@
 
       <section hidden={!READING.some(hit)}>
         <h3>Reading</h3>
+        <div class="row" hidden={!hit(ROWS.cardOpen)}>
+          <span class="name">Cards open on{@render back(settings.cardOpen !== DEFAULTS.cardOpen, 'Back to cards on hover', () => settings.setCardOpen(DEFAULTS.cardOpen))}</span>
+          <span class="hint">Click keeps a card open until you click elsewhere.</span>
+          <div class="seg" role="radiogroup" aria-label="Cards open on">
+            {#each ['hover', 'click'] as const as m (m)}
+              <button type="button" class:on={settings.cardOpen === m} role="radio" aria-checked={settings.cardOpen === m} onclick={() => settings.setCardOpen(m)}>{m}</button>
+            {/each}
+          </div>
+        </div>
         <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every interactive figure; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Back to voice off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </section>
@@ -189,6 +199,20 @@
           <span class="name">Practice record</span>
           <span class="hint">Every completed exercise, self-assessment, and the attainment and freshness derived from them.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One completed exercise' : `${practice.attempts.length} completed exercises`} so far.{/if}</span>
           <button class="btn-sm" type="button" onclick={forget}>Forget my practice</button>
+        </div>
+      </section>
+
+      <section hidden={!hit(ROWS.lockGrace)}>
+        <h3>Focus / Pomodoro</h3>
+        <div class="row num">
+          <span class="name">Lock grace{@render back(settings.lockGrace !== DEFAULTS.lockGrace, 'Back to ten seconds of grace', () => settings.setLockGrace(DEFAULTS.lockGrace))}</span>
+          <span class="hint">Seconds before a focus lock takes hold.</span>
+          <div class="num">
+            <button type="button" aria-label="Less" onclick={() => settings.setLockGrace(settings.lockGrace - 1)}>−</button>
+            <input type="number" min={LOCK_GRACE.min} max={LOCK_GRACE.max} step="1" inputmode="numeric" aria-label="Lock grace" value={settings.lockGrace} onchange={(e) => { settings.setLockGrace(e.currentTarget.valueAsNumber); e.currentTarget.value = String(settings.lockGrace); }}>
+            <span class="unit">s</span>
+            <button type="button" aria-label="More" onclick={() => settings.setLockGrace(settings.lockGrace + 1)}>+</button>
+          </div>
         </div>
       </section>
 

@@ -5,7 +5,7 @@
 import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
 import type { SpanId, SectionId } from '../types/ids';
 
-export type Kind = 'variable' | 'figure' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
+export type Kind = 'variable' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
 export type Action = { readonly label: string; readonly run: () => void };
 /* Places the card points at, under a lead of their own: "Introduced in", "Used
    in". A long list is cut short and the rest stand behind one
@@ -16,7 +16,7 @@ export type RefGroup = { readonly label: string; readonly links: readonly Action
 export type Chip = { readonly symbol: string; readonly name: string; readonly count: number; readonly run: () => void };
 export type Card = {
   readonly kind: Kind;
-  readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Figure", "Equation · important" */
+  readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Term", "Equation · important" */
   readonly title: string;            /* plain text, or text with $…$ for the math action */
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
   readonly body?: string;            /* one or two sentences, $…$ allowed */
@@ -30,12 +30,11 @@ export type Nav = {
   readonly goSpan: (id: SpanId) => void;
   readonly openSection: (sec: SectionId) => void;
   readonly showView: (view: 'definitions' | 'formulas' | 'concepts') => void;
-  readonly showOriginal: (figure: SpanId) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string) => void;   /* opens the book's elements sheet with that element pinned */
 };
 
-const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', figure: 'Figure', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept', formula: 'Formula' };
+const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept', formula: 'Formula' };
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
@@ -64,14 +63,6 @@ export const variableCard = (f: VariableFacts, nav: Nav): Card => {
     ],
   };
 };
-
-/* ---------- figure ---------- */
-export type FigureFacts = { readonly number: string; readonly id: SpanId; readonly section: SectionId; readonly caption?: string; readonly hasOriginal: boolean };
-export const figureCard = (f: FigureFacts, nav: Nav): Card => ({
-  kind: 'figure', eyebrow: KIND_LABEL.figure, title: `Figure ${f.number}`,
-  body: f.caption !== undefined ? f.caption : `Figure ${f.number} is in section ${f.section}.`,
-  actions: [{ label: 'Go to figure', run: () => nav.goSpan(f.id) }, ...(f.hasOriginal ? [{ label: 'Show original', run: () => nav.showOriginal(f.id) }] : [])],
-});
 
 /* ---------- glossary term ---------- */
 export type TermFacts = { readonly term: string; readonly definition?: string; readonly section: SectionId; readonly anchor?: SpanId };

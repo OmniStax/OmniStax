@@ -7,16 +7,16 @@ import { focus } from '../sections/focus.svelte';
 import { goSpan, findEl, openDoc, reveal, bookOfEl, openItem } from '../sections/nav.svelte';
 import { spansOf } from '../sections/concepts.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split } from '../layout/model';
+import { openTab } from '../layout/model';
 import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, sectionRef, spanId, spanRef, conceptId, sheetId, sectionOfSpan, newViewItem, sheetItem, itemKey } from '../types/ids';
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, lookupVariable } from './data';
-import { type Card, type Nav, variableCard, figureCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import { type Card, type Nav, variableCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], a.figref[data-figref], .term[data-term], a.xref, article a[href^="#"], .fig-root a[href^="#"], .katex-display, [data-concept], .formula[data-formula]';
+export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], .formula[data-formula]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
@@ -56,21 +56,15 @@ const places = (book: BookId, ids: readonly SpanId[]): { id: SpanId; title: stri
 
 /* A card sends the reader to a view of that kind: the page of it already open,
    wherever it stands, since a second one would only say the same thing; and where
-   none is open, a page of its own beside what is being read. */
+   none is open, a page of its own as a tab of the focused group. */
 const showView = (view: 'definitions' | 'formulas' | 'concepts'): void => {
   const host = document.querySelector<HTMLElement>(`.view[data-view="${view}"]`);
   if (host) { reveal(host); return; }
-  layoutStore.apply((x) => split(x, x.focus, 'right', newViewItem(view)));
+  layoutStore.apply((x) => openTab(x, newViewItem(view), x.focus));
 };
 /* What a card of one book can do, every place it names being in that book. */
 export const navFor = (book: BookId): Nav => {
   const go = (id: SpanId): void => goSpan(spanRef(book, id));
-  const showOriginal = (figure: SpanId): void => {
-    go(figure);
-    const show = () => { const f = findEl(book, figure); const b = f?.querySelector<HTMLButtonElement>('button.fig-original'); if (f && b && !f.classList.contains('show-original')) b.click(); };
-    if (findEl(book, figure)) { show(); return; }
-    openDoc(sectionRef(book, sectionOfSpan(figure)), 'text').then(() => requestAnimationFrame(show));
-  };
   const openExternal = (sec: SectionId): void => { window.open(registry.entry(sectionRef(book, sec))?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener'); };
   /* The elements sheet, standing on one element: the page of it, opened wherever
      a tab opens, with the element pinned before it draws. */
@@ -79,7 +73,7 @@ export const navFor = (book: BookId): Nav => {
     sheets.pin(symbol);
     void openItem(itemKey(sheetItem(book, sheetId(entry.id))));
   };
-  return { goSpan: go, openSection: (sec) => { openDoc(sectionRef(book, sec), 'text'); }, showView, showOriginal, openExternal, showElement };
+  return { goSpan: go, openSection: (sec) => { openDoc(sectionRef(book, sec), 'text'); }, showView, openExternal, showElement };
 };
 
 /* ---------- resolvers, one per kind ---------- */
@@ -88,12 +82,6 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   const data = chapterData(sectionRef(book, sec));
   const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
   return variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: data ? lookupVariable(data.formulas.variables, sym, sec) : undefined }, navFor(book));
-};
-const figure = (book: BookId, t: HTMLElement): Card | null => {
-  const n = t.dataset.figref; const id = t.getAttribute('href')?.slice(1); if (!n || !id) return null;
-  const fig = findEl(book, id);
-  const caption = fig ? (fig.querySelector('.sim-head span:not(.eyebrow)')?.textContent ?? fig.dataset.originalCaption)?.replace(/\s+/g, ' ').trim() : undefined;
-  return figureCard({ number: n, id: spanId(id), section: sectionOfSpan(spanId(id)), caption, hasOriginal: !!fig?.dataset.original }, navFor(book));
 };
 const term = (book: BookId, t: HTMLElement): Card | null => {
   const name = t.dataset.term; const sec = sectionOf(book, t); if (!name || !sec) return null;
@@ -152,7 +140,6 @@ const formula = (book: BookId, t: HTMLElement): Card | null => {
 export const cardFor = (t: HTMLElement): Card | null => {
   const book = bookOfEl(t); if (!book) return null;
   if (t.hasAttribute('data-sym')) return variable(book, t);
-  if (t.matches('a.figref')) return figure(book, t);
   if (t.matches('.term')) return term(book, t);
   if (t.matches('.katex-display')) return equation(book, t);
   if (t.matches('[data-concept]')) return concept(book, t);

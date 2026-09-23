@@ -5,7 +5,7 @@
    is built without reaching back into any store — which is what makes
    `requestOf` pure and testable. */
 
-export const CHIP_KINDS = ['section', 'note', 'drawing', 'file', 'figure', 'concept', 'equation', 'definition', 'exercise', 'message', 'selection'] as const;
+export const CHIP_KINDS = ['book', 'chapter', 'section', 'note', 'drawing', 'file', 'folder', 'figure', 'concept', 'equation', 'definition', 'exercise', 'message', 'selection'] as const;
 export type ChipKind = (typeof CHIP_KINDS)[number];
 
 /* `key` is what the chip stands for, in the wiki-link grammar where there is
@@ -30,6 +30,7 @@ export const withoutChip = (chips: readonly Chip[], c: Chip): readonly Chip[] =>
 /* The heading a chip wears in the request, so the model can tell a section of
    the book from a note the reader wrote about it. */
 const HEADING: Readonly<Record<ChipKind, string>> = {
+  book: 'A textbook', chapter: 'Chapter of the textbook', folder: 'A folder the reader keeps',
   section: 'Section of the textbook', note: 'A note the reader wrote', drawing: 'A drawing the reader made',
   file: 'A file the reader imported', figure: 'A figure of the textbook', concept: 'A concept of the textbook',
   equation: 'An equation of the textbook', definition: 'A definition of the textbook', exercise: 'An exercise of the textbook',

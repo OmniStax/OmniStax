@@ -2,8 +2,8 @@
   /* The goto card: one popover for every underlinable thing in a document.
      Mounted once. Listens on the document for the pointer or the focus
      reaching a target, opens after a short delay, and stays while the pointer
-     crosses into the card. Escape closes; on touch a tap opens and a tap
-     elsewhere closes. It also carries the underline rules for its targets and
+     crosses into the card. Escape closes; on touch, or with cards set to open
+     on click, a click opens and a click elsewhere closes. It also carries the underline rules for its targets and
      the click that follows a figure reference into a section not yet open.
      A concept's card carries more than a sentence: under it stand the places
      the text introduces it, uses it and tests it, each one a link to go there. */
@@ -51,36 +51,44 @@
     pos = { top: clamp(top, 8, Math.max(8, vh - b.height - 8)), left: clamp(r.left, 8, Math.max(8, vw - b.width - 8)), ready: true };
   };
   $effect(() => { if (!card || !anchor) return; tick().then(place); });
+  $effect(() => { const click = settings.cardOpen === 'click'; document.documentElement.classList.toggle('cards-click', click); if (click) close(); });
 
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
   const math = (node: HTMLElement, _dep?: unknown) => { figFor(book).renderMath(node); return { update() { figFor(book).renderMath(node); } }; };
   const run = (a: { run: () => void }) => { a.run(); close(); };
 
+  /* A tap, or a click when cards open on click: the card waits for it and stays until the next one elsewhere. */
+  const byClick = (): boolean => touch || settings.cardOpen === 'click';
+
   onMount(() => {
     const onOver = (e: MouseEvent) => {
-      if (mouseDown || touch) return;
+      if (mouseDown || byClick()) return;
       const t = targetOf(e.target);
       if (t) { scheduleOpen(t); return; }
       if (inCard(e.target)) { clearTimeout(closeT); return; }
       if (card || pending) scheduleClose();
     };
-    const onOut = (e: MouseEvent) => { if (e.relatedTarget === null && (card || pending)) scheduleClose(); };
-    const onFocusIn = (e: FocusEvent) => { const t = targetOf(e.target); if (t) show(t); else if (inCard(e.target)) clearTimeout(closeT); };
-    const onFocusOut = (e: FocusEvent) => { if (!card) return; const to = e.relatedTarget; if (inCard(to) || (to instanceof Element && targetOf(to) === anchor)) return; scheduleClose(); };
+    const onOut = (e: MouseEvent) => { if (!byClick() && e.relatedTarget === null && (card || pending)) scheduleClose(); };
+    const onFocusIn = (e: FocusEvent) => { if (byClick()) return; const t = targetOf(e.target); if (t) show(t); else if (inCard(e.target)) clearTimeout(closeT); };
+    const onFocusOut = (e: FocusEvent) => { if (!card || byClick()) return; const to = e.relatedTarget; if (inCard(to) || (to instanceof Element && targetOf(to) === anchor)) return; scheduleClose(); };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && card) close(); };
     const onPointerDown = (e: PointerEvent) => {
       touch = e.pointerType === 'touch'; mouseDown = !touch && e.button === 0;
       if (inCard(e.target)) return;
-      if (touch && targetOf(e.target) === anchor) return;   /* a second tap on the same target follows it */
+      if (byClick() && targetOf(e.target)) return;   /* the click that follows decides */
       close();
     };
     const onPointerUp = () => { mouseDown = false; };
     const onPointerMove = (e: PointerEvent) => { if (e.pointerType === 'mouse') touch = false; };   /* a mouse after a touch hovers again */
     /* Capture phase, so it runs before the shell's own link handler. */
     const onClick = (e: MouseEvent) => {
-      const t = targetOf(e.target); if (!t) return;
-      if (touch && t !== anchor) { e.preventDefault(); e.stopPropagation(); show(t); return; }
-      const a = t.closest<HTMLAnchorElement>('a.figref, a.xref'); if (!a) return;
+      const t = targetOf(e.target);
+      const link = (t ?? (e.target instanceof Element ? e.target : null))?.closest<HTMLAnchorElement>('a[href]') ?? null;
+      if (t && byClick()) {
+        if (t !== anchor) { if (link) { e.preventDefault(); e.stopPropagation(); } show(t); return; }   /* a link opens its card first, and a second click follows it */
+        close(); if (!link) return;
+      }
+      const a = link?.matches('a.figref, a.xref') ? link : null; if (!a) return;
       const id = a.getAttribute('href')?.slice(1); const book = bookOfEl(a); if (!id || !book || findEl(book, id)) return;
       e.preventDefault(); goSpan(spanRef(book, spanId(id))); close();
     };
@@ -150,7 +158,8 @@
   :global(.sim .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a sim's readouts and control labels stay clean; the card still opens */
   /* The card is where a symbol is explained, not another place to look it up. */
   :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card a.xref){text-decoration:none}
-  :global(.term[data-term]), :global(.formula[data-formula]){cursor:default}
+  :global(.term[data-term]), :global(.formula[data-formula]), :global([data-sym]), :global([data-concept]), :global(a.xref), :global(a.figref), :global(html.cards-click .katex-display){cursor:pointer}
+  :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card [data-sym]){cursor:auto}
   :global(.formula[data-formula]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
   :global(a.xref){color:inherit}
   :global(a.xref:hover){color:var(--accent)}

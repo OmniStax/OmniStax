@@ -79,9 +79,7 @@
     write(html); return { update: write };
   };
   let hover = $state<string | null>(null);   /* the node under the pointer, which lights its edges and its neighbours */
-  /* The node whose card is open. Only that node carries `data-concept`, which is
-     what the shell's card layer opens for, so hovering any other node says
-     nothing and the card is the click's alone. */
+  /* The node a click selected, whose concept is pinned. */
   let open = $state<string | null>(null);
   /* Whether this map draws the practice bars. It starts where the setting says
      and is this map's own from then on: another map, or this one opened again,
@@ -246,10 +244,10 @@
 
   /* ---------- the card a click opens ----------
 
-     The shell's card layer opens for anything carrying `data-concept`, so which
-     node carries it is the whole of the gesture: the open one does and no other
-     does, and the card is asked to open by the pointer entering the node it has
-     just been given. A press that travelled was a drag and opens nothing. */
+     Every node carries `data-concept`, so its card follows the reader's setting
+     like any other card. A click also selects the node and pins its concept;
+     with cards on hover the card is asked for again, since the press put it
+     away. A press that travelled was a drag and opens nothing. */
   const SLOP = 4;
   let press: { id: string; x: number; y: number } | null = null;
   const close = () => { open = null; };
@@ -270,8 +268,9 @@
     if (open === id) { close(); if (pin.pinned === id) pin.toggle(conceptId(id)); return; }
     open = id;
     if (pin.pinned !== id) pin.toggle(conceptId(id));
+    if (settings.cardOpen === 'click') return;
     const el = e.currentTarget as HTMLElement;
-    await tick();   /* the node carries data-concept only now, so the card layer can see it */
+    await tick();
     el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
   };
   /* Escape and a press anywhere else let the card go; the card layer closes
@@ -315,7 +314,7 @@
         {@const b = boxes.get(c.id)!}
         {@const p = pos.get(c.id)!}
         <foreignObject x={p.x - b.w / 2} y={p.y - b.h / 2} width={b.w} height={b.h} class:lit={!lit || lit.has(c.id)}>
-          <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === c.id} class:open={open === c.id} class:active={coverage?.introduces.includes(c.id)} class:active-weak={coverage?.uses.includes(c.id)} data-id={c.id} data-concept={open === c.id ? c.id : undefined}
+          <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === c.id} class:open={open === c.id} class:active={coverage?.introduces.includes(c.id)} class:active-weak={coverage?.uses.includes(c.id)} data-id={c.id} data-concept={c.status === 'placeholder' ? undefined : c.id}
             use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}
             data-state={showProgress ? practice.stateOf(c.id) : undefined} data-half={showProgress && share(c.id) >= 0.5 ? '1' : undefined} style:--m={showProgress ? share(c.id) : undefined}
             onpointerdown={(e) => down(c.id, e)} onclick={(e) => click(c.id, e)}

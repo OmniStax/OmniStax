@@ -15,9 +15,9 @@
   import type { Extension } from '@codemirror/state';
   import type { Candidate } from '../../lib/notes/md/complete';
   import AtPicker from '../ui/AtPicker.svelte';
-  import { allRows, warm } from '../../lib/picker/sources';
+  import { pickerRoot } from '../../lib/picker/sources';
   import { embedText, linkInner } from '../../lib/notes/md/links';
-  import type { PickerCategory, PickerRow } from '../../lib/picker/model';
+  import type { PickerRow } from '../../lib/picker/model';
 
   /* `complete` is the list the note tab gathered before the picker existed. The
      picker reads the same stores and more, so the rows come from there now and
@@ -46,16 +46,10 @@
   let at = $state<number | null>(null);
   let query = $state('');
   let where = $state({ left: 0, top: 0, down: false });
-  /* Gathered once, when the brackets open the list, and held until it closes:
-     reading every store and every loaded section is far too much work to do
-     again on every keystroke. */
-  let rows = $state<readonly PickerRow[]>([]);
+  const root = pickerRoot();
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
 
-  const gather = (): void => { rows = allRows(); };
-  const onCategory = (category: PickerCategory | null): void => { gather(); void warm(category).then(gather); };
-
-  const closePicker = (): void => { at = null; query = ''; rows = []; };
+  const closePicker = (): void => { at = null; query = ''; };
 
   /* Where the picker hangs, in the editor's own coordinates. */
   const place = (v: EditorView, pos: number): void => {
@@ -82,15 +76,15 @@
   };
 
   const choose = (row: PickerRow): void => {
-    const v = view, start = at;
-    if (!v || start === null) return;
+    const v = view, start = at, target = row.target;
+    if (!v || start === null || !target) return;
     const cursor = v.state.selection.main.head;
     const closed = v.state.doc.sliceString(cursor, cursor + 2) === ']]';
     /* An embed reaches back over the `[[` to write the bang, unless the reader
        typed one themselves. */
     const bang = row.embed === true && v.state.doc.sliceString(Math.max(0, start - 3), start - 2) !== '!';
     const from = bang ? start - 2 : start;
-    const insert = (bang ? embedText(row.target).slice(0, -2) : linkInner(row.target)) + (closed ? '' : ']]');
+    const insert = (bang ? embedText(target).slice(0, -2) : linkInner(target)) + (closed ? '' : ']]');
     v.dispatch({
       changes: { from, to: cursor, insert },
       selection: { anchor: from + insert.length + (closed ? 2 : 0) },
@@ -108,7 +102,7 @@
     if (!before.endsWith('[') || before === '[[') return false;
     v.dispatch({ changes: { from, to, insert: '[]]' }, selection: { anchor: from + 1 }, userEvent: 'input.type' });
     /* after the dispatch has settled, so the position is the one the picker stands at */
-    queueMicrotask(() => { at = from + 1; query = ''; gather(); place(v, from + 1); });
+    queueMicrotask(() => { at = from + 1; query = ''; place(v, from + 1); });
     return true;
   });
 
@@ -238,7 +232,7 @@
 <div class="md-editor" use:mount>
   {#if at !== null}
     <div class="picker-at" class:down={where.down} style:left="{where.left}px" style:top="{where.top}px">
-      <AtPicker bind:this={picker} {rows} {query} onchoose={choose} onclose={closePicker} oncategory={onCategory} />
+      <AtPicker bind:this={picker} {root} {query} needsTarget onchoose={choose} onclose={closePicker} />
     </div>
   {/if}
 </div>
