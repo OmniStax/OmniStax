@@ -3,6 +3,7 @@
   import { LENGTH_PRESETS, isOver, ranMs, seedOf, spanText } from '../../lib/pomodoro/model';
   import { itemKey, viewItem } from '../../lib/types/ids';
   import { openItem } from '../../lib/sections/nav.svelte';
+  import Vectors from '../pomodoro/Vectors.svelte';
   import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
   const s = $derived(pomodoro.session);
   const over = $derived(isOver(s));
@@ -52,6 +53,7 @@
   </div>
 
   <div class="face">
+    <Vectors running={s.phase === 'running'} />
     <svg viewBox="0 0 200 200" aria-hidden="true">
       <circle class="track" cx="100" cy="100" r={R} />
       <circle class="arc" cx="100" cy="100" r={R} stroke-dasharray={C} stroke-dashoffset={C * (1 - fraction)} />
