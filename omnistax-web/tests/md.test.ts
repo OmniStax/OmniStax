@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bookKey, embedText, findLinks, isBook, linkInner, linkKey, parseLink } from '../src/lib/notes/md/links';
+import { bookId } from '../src/lib/types/ids';
 import { render, setImageWidth, type Resolver } from '../src/lib/notes/md/render';
 
 /* One chapter's worth of the book, enough for one row of each of its tables:
@@ -59,6 +60,33 @@ test('a link has a key and an inner form that write it back', () => {
   assert.equal(linkKey(parseLink('Damped motion')), 'note:Damped motion');
   assert.equal(linkInner({ kind: 'highlight', id: 'h7' }), 'hl:h7');
   assert.equal(linkInner({ kind: 'section', section: '16.4' }), '16.4');
+});
+
+test('a link may name its book before the section, and writes it back', () => {
+  const B = bookId('college-physics-2e');
+  const cases: readonly [string, unknown][] = [
+    ['college-physics-2e/16.4', { kind: 'section', book: B, section: '16.4' }],
+    ['eq:college-physics-2e/16.1:eq-hooke', { kind: 'equation', book: B, section: '16.1', id: 'eq-hooke' }],
+    ['def:college-physics-2e/16.1:deformation', { kind: 'term', book: B, section: '16.1', term: 'deformation' }],
+    ['sym:college-physics-2e/16.1:F', { kind: 'symbol', book: B, section: '16.1', sym: 'F' }],
+    ['concept:college-physics-2e/16.1:hookes-law', { kind: 'concept', book: B, section: '16.1', id: 'hookes-law' }],
+    ['fig:college-physics-2e/7.intro:fig-wind-farm', { kind: 'figure', book: B, section: '7.intro', id: 'fig-wind-farm' }],
+    ['ex:chemistry-2e/15.4:p3', { kind: 'exercise', book: bookId('chemistry-2e'), section: '15.4', id: 'p3' }],
+  ];
+  cases.forEach(([inner, target]) => {
+    assert.deepEqual(parseLink(inner), target, inner);
+    assert.equal(linkInner(parseLink(inner)), inner, `${inner} writes back as itself`);
+  });
+  assert.equal(linkKey(parseLink('college-physics-2e/16.4|x')), 'section:college-physics-2e/16.4');
+  assert.notEqual(linkKey(parseLink('college-physics-2e/16.4')), linkKey(parseLink('chemistry-2e/16.4')));
+  assert.equal(embedText(parseLink('ex:chemistry-2e/15.4:p3')), '![[ex:chemistry-2e/15.4:p3]]');
+});
+
+test('a link written before links named their book still reads, with no book', () => {
+  assert.deepEqual(parseLink('eq:16.1:eq-hooke'), { kind: 'equation', section: '16.1', id: 'eq-hooke' });
+  assert.deepEqual(parseLink('ex:15.4:p3'), { kind: 'exercise', section: '15.4', id: 'p3' });
+  assert.equal('book' in parseLink('16.4'), false);
+  assert.deepEqual(parseLink('Some Book/16.4'), { kind: 'note', name: 'Some Book/16.4' }, 'a book id is lowercase letters, digits and dashes');
 });
 
 test('every link of a note is found, embeds included', () => {

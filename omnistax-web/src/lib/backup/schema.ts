@@ -29,7 +29,7 @@ const jsonKeys = new Set([
   'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1',
   'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1',
   'omnistax-library-v1', 'omnistax-explorer-v1', 'omnistax-notedocs-v1',
-  'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope',
+  'omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope',
   'omnistax-folded', 'omnistax-hidden-figs',
   'omnistax-seen-releases-v1',
   /* The files the reader imported and what they have written on them. Only the
@@ -60,7 +60,7 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
-  if (key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
+  if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
   if (key === 'omnistax-folded' || key === 'omnistax-hidden-figs' || key === 'omnistax-seen-releases-v1') return 'reading';
   if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1') return 'chats';
   return null;
@@ -182,7 +182,7 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-notedocs-v1': z.array(noteDoc),
   'omnistax-files-v1': z.array(fileDoc),
   'omnistax-filemarks-v1': z.array(fileMark),
-  'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
+  'omnistax-layout-v6': layout, 'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
   'omnistax-folded': z.array(z.string()), 'omnistax-hidden-figs': z.array(z.string()),
   'omnistax-seen-releases-v1': z.record(z.record(z.string().min(1))),
 };

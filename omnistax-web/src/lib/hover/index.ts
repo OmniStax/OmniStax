@@ -13,7 +13,7 @@
    Idempotent, touches only <p> and <li> elements, and leaves sims and
    exercise cards alone, so it may run after figures have booted.
    Hover.svelte: the card itself and its document-level listeners; mount once. */
-import type { SectionId } from '../types/ids';
+import { bookId, sectionRef, type BookId, type SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK, type Term, type Wrapped } from './terms';
 import { markFormulas } from '../sheets/mark';
@@ -24,13 +24,13 @@ export type { Card, Action, Kind } from './resolve';
 const blocks = (root: HTMLElement): HTMLElement[] =>
   Array.from(root.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('figure, .exercises, .hover-card') && !b.querySelector('p, li'));
 
-const glossaryOf = (section: SectionId): readonly Term[] => {
-  const dir = registry.chapterOf(section)?.dir; const data = dir ? registry.chapters[dir] : undefined;
+const glossaryOf = (book: BookId, section: SectionId): readonly Term[] => {
+  const dir = registry.chapterOf(sectionRef(book, section))?.dir; const data = dir ? registry.chapter(book, dir) : undefined;
   return data ? data.formulas.glossary.map((g) => g.term) : [];
 };
 
 export const decorateTerms = (root: HTMLElement, section: SectionId): void => {
-  const bs = blocks(root); const terms = glossaryOf(section);
+  const bs = blocks(root); const terms = glossaryOf(bookId(root.closest<HTMLElement>('[data-book]')?.dataset.book ?? ''), section);
   const examples = exampleIds(root.innerHTML);
   const done0 = new Set<Term>(Array.from(root.querySelectorAll<HTMLElement>('.term[data-term]')).map((t) => t.dataset.term ?? ''));
   const apply = (pass: (html: string, terms: readonly Term[], done: ReadonlySet<Term>) => Wrapped, done: ReadonlySet<Term>): ReadonlySet<Term> =>

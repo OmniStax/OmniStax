@@ -5,7 +5,7 @@
   import { hasInterruptedRestore, recoverInterruptedRestore } from '../lib/backup/journal';
   import { startReaderLifetimeLock } from '../lib/backup/guard';
 
-  type Props = { own: ItemId; threeUrl?: string; boot: BootUrls };
+  type Props = { own?: ItemId; threeUrl?: string; boot: BootUrls };
   let props: Props = $props();
   let host: HTMLElement;
   let failed = $state(false);

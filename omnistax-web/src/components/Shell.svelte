@@ -6,13 +6,13 @@
      Everything that touches document-wide state (theme, colour coding, pinned
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
-  import { initFig, FIG } from '../lib/fig/figlib';
+  import { initFig, FIG, figFor, registerFigBook } from '../lib/fig/figlib';
   import { registry } from '../lib/sections/registry.svelte';
-  import { focus } from '../lib/sections/focus.svelte';
+  import { focus, assumedBook } from '../lib/sections/focus.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { findEl, jump, activePane, openDoc } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane, openDoc, bookOfEl } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
@@ -22,13 +22,11 @@
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { docItem, parseItemKey, sectionId, sectionOfItem, viewKindOf, type ItemId, type SectionId } from '../lib/types/ids';
-  import { sectionOfUrl } from '../lib/content/urls';
+  import { aboutItem, bookId, bookOfItem, docItem, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
+  import { refOfPath, resolvePath, sectionOfUrl } from '../lib/content/urls';
   import { bookPagesOf, pageLabel } from '../lib/content/roles';
   import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
   import type { BootDTO } from '../lib/sections/boot';
-  import { BOOK_RULES_ID, bookColoursHref } from '../lib/colours/rules';
-  import type { BookManifest } from '../lib/content/schema';
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
@@ -61,35 +59,40 @@
   import { offlineBooks } from '../lib/offline/store.svelte';
   import { registerOfflineWorker } from '../lib/offline/register';
 
-  type Props = { own: ItemId; threeUrl?: string; boot: BootDTO };
+  /* own: the item the page was built for; the 404 page has none, and reads its address instead. */
+  type Props = { own?: ItemId; threeUrl?: string; boot: BootDTO };
   let { own, threeUrl, boot: booted }: Props = $props();
-  /* The manifest, and the concepts and formulas of the chapter this page
-     stands in, fetched by the loader before the shell mounts. */
+  /* The manifest the page was served for, and the concepts and formulas of the
+     chapter this page stands in, fetched by the loader before the shell mounts. */
   const boot = untrack(() => booted);
   const { chapterDir, chapterData } = boot;
-  /* The book the shell is standing in. It changes when the reader walks into
-     another book from the explorer or the about page, which the shell does in
-     place rather than by loading a new page. */
-  let manifest = $state.raw(boot.manifest);
+  const home = boot.manifest;
   /* The page's own item never changes. An offline copy answers every address
-     of a book with the book's page, so the address, not the page, names the
-     section a reader asked for. */
+     of a book with the book's page, and the 404 page every address at all, so
+     the address, not the page, names the section a reader asked for. */
   const carried = untrack(() => own);
-  const addressed = sectionOfUrl(boot.manifest, location.pathname);
-  const page = addressed && sectionOfItem(carried) !== addressed ? docItem(addressed, 'text') : carried;
+  const path = refOfPath(location.pathname);
+  const addressedBy = (): SectionRef | null => {
+    if (!path) return null;
+    if (!carried) return resolvePath(path.book === home.id ? home : null, path);
+    const s = path.book === home.id ? sectionOfUrl(home, location.pathname) : null;
+    return s ? sectionRef(home.id, s) : null;
+  };
+  const addressed = addressedBy();
+  const carriedRef = carried ? sectionOfItem(carried) : null;
+  const page: ItemId = addressed && !(carriedRef && sameSection(carriedRef, addressed)) ? docItem(addressed, 'text') : carried ?? aboutItem();
   let ready = $state(false);
   let narrow = $state(false);
 
   /* What a saved layout may name: a page of a view the shell still has — the
-     singleton or one of the reader's own pages of it — a document, figure or
-     exercise of a section that is built, either standing page, and a note the
-     reader still keeps. */
+     singleton or one of the reader's own pages of it — anything of a book,
+     whose pane says so when the book no longer has it, and a note the reader
+     still keeps. */
   const known = (k: string): boolean => {
     const id = parseItemKey(k);
     if (!id) return false;
     if (id.kind === 'view') return viewKindOf(k) !== null;
-    if (id.kind === 'page') return true;
-    if (id.kind === 'sheet') return registry.manifest.sheets.some((s) => s.id === id.sheet);
+    if (id.kind === 'page' || id.kind === 'sheet') return true;
     if (id.kind === 'note') return noteDocs.get(id.note) !== undefined;
     /* A file the reader still keeps; one they have deleted leaves no tab. */
     if (id.kind === 'file') return files.get(id.file) !== undefined;
@@ -99,10 +102,10 @@
        not by a record, so it stands as long as its section does. */
     if (id.kind === 'drawing') return drawings.row(id.drawing) !== undefined;
     if (id.kind === 'chat') return chats.entry(id.chat) !== null;
-    return registry.isBuilt(id.section);
+    return true;
   };
-  const mountExercises = (root: HTMLElement, sec: SectionId) => {
-    root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { section: sec, place: host.dataset.place ?? 'end' } }); });
+  const mountExercises = (root: HTMLElement, ref: SectionRef) => {
+    root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { book: ref.book, section: ref.section, place: host.dataset.place ?? 'end' } }); });
   };
 
   /* highlights: paint a document from the notes that belong to it */
@@ -114,8 +117,8 @@
   };
 
   onMount(() => {
-    const fig = initFig({ macros: manifest.macros, symbols: manifest.symbols, colorKeys: Object.keys(manifest.types) });
-    notes.init(manifest.id);
+    initFig({ id: home.id, macros: home.macros, symbols: home.symbols, colorKeys: Object.keys(home.types) });
+    notes.init(home.id);
     noteDocs.init();
     ai.init();
     chats.init();
@@ -126,16 +129,20 @@
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
-    library.init(manifest.id, manifest.title);
+    library.init(home.id, home.title);
     void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage could not be initialized.'; });
     practice.init();
-    registry.init(manifest, fig, mountExercises, paintDoc, threeUrl);
+    registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
+    registry.onBook((m) => { registerFigBook({ id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) }); colours.ensureBook(m); });
+    registry.home = home.id;
+    focus.boot = home.id;
+    registry.addBook(home);
     sheets.init(markFormulas);
-    colours.init(manifest);
-    if (chapterDir && chapterData) registry.setChapter(chapterDir, chapterData);
+    colours.init(home);
+    if (chapterDir && chapterData) registry.setChapter(home.id, chapterDir, chapterData);
     focus.own = page;
-    layoutStore.init(page, known);
+    layoutStore.init(page, known, home.id);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
@@ -144,7 +151,8 @@
        the hash — lands on it once the document stands in its pane, since the browser's own
        landing came while it still stood in the pool; a hash that changes under the shell
        lands the same way. */
-    const onHash = () => { const hash = decodeURIComponent(location.hash.slice(1)); if (hash) requestAnimationFrame(() => jump(findEl(hash))); };
+    const landAt = (book: string, hash: string) => { const at = decodeURIComponent(hash.slice(1)); if (at) requestAnimationFrame(() => jump(findEl(bookId(book), at))); };
+    const onHash = () => landAt(focus.book, location.hash);
     onHash(); window.addEventListener('hashchange', onHash);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
@@ -190,63 +198,37 @@
     const clearView = (e: Event) => { const el = e.target as HTMLElement | null; if (!el?.closest?.('.view')) focus.view = null; };
     /* The group an element was clicked in, or the focused one when it stands outside every pane. */
     const groupOf = (el: HTMLElement): number => { const pane = el.closest<HTMLElement>('.pane'); return pane ? +(pane.dataset.group ?? layoutStore.layout.focus) : layoutStore.layout.focus; };
-    /* The parts of a path of this site: the first of them names the book. */
-    const segmentsOf = (p: string): string[] => p.split('/').filter(Boolean);
-    /* The shell dresses one book at a time, so walking into another swaps its
-       manifest, colours, rules and macros and re-reads the layout, without
-       leaving the page. */
-    const manifestOf = async (book: string): Promise<BookManifest | null> => {
-      const res = await fetch(`/${book}/book.json`).catch(() => null);
-      return res?.ok ? ((await res.json()) as BookManifest) : null;
-    };
-    const walkInto = async (book: string, pathname: string, hash: string): Promise<boolean> => {
-      const m = await manifestOf(book);
-      const sec = m ? sectionOfUrl(m, pathname) : null;
-      return m && sec ? enter(m, sec, hash) : false;
-    };
-    const enter = async (m: BookManifest, sec: SectionId, hash: string): Promise<boolean> => {
-      manifest = m;
-      registry.switchTo(m);
-      initFig({ macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) });
-      colours.init(m);
-      const rules = document.getElementById(BOOK_RULES_ID);
-      if (rules instanceof HTMLLinkElement) rules.href = bookColoursHref(m.id);
-      notes.init(m.id);
-      library.init(m.id, m.title);
-      const item = docItem(sec, 'text');
-      focus.own = item;
-      layoutStore.init(item, known);
-      urlSec = null;
-      await openDoc(sec, 'text');
-      /* A link out of the search names the span it found, as a page opened at
-         one does; the document is only now in its pane, so the landing waits. */
-      const at = decodeURIComponent(hash.slice(1));
-      if (at) requestAnimationFrame(() => jump(findEl(at)));
-      return true;
-    };
+    /* A book's last page, else its first built page, opens as a tab beside what is open. */
     setBookWalk(async (book) => {
-      if (book === manifest.id) return true;
-      const m = await manifestOf(book);
+      const m = await registry.ensureBook(bookId(book));
       if (!m) return false;
       const last = lastPage(book);
       const first = bookPagesOf(m).find((p) => p.built);
       const sec = (last ? sectionOfUrl(m, last) : null) ?? (first ? sectionId(first.id) : null);
-      return sec ? enter(m, sec, '') : false;
+      if (!sec) return false;
+      await openDoc(sectionRef(m.id, sec), 'text');
+      return true;
     });
-    /* A page of another book is written as a plain link, so that it can still be
-       opened in a window of its own; a left click on one opens the book here
-       instead of loading the page. The listen is on the way down, since the row
-       a link stands in may keep the click to itself, and a book this build does
-       not carry falls back to the link, which is what it always did. */
+    /* A page of any book is written as a plain link, so that it can still be
+       opened in a window of its own; a left click on one opens it as a tab of
+       the group it was clicked in instead of loading the page. The listen is on
+       the way down, since the row a link stands in may keep the click to
+       itself. A page no book here has falls back to the link, which is what it
+       always did. */
     const onLink = (e: MouseEvent) => {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented) return;
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       if (!link || link.target || link.origin !== location.origin) return;
-      const path = segmentsOf(link.pathname);
-      if (path.length < 3 || path[0] === manifest.id) return;
-      const { href, pathname, hash } = link;
+      const at = refOfPath(link.pathname);
+      if (!at) return;
+      const { href, pathname, hash } = link; const group = groupOf(link);
       e.preventDefault();
-      void walkInto(path[0], pathname, hash).then((ok) => { if (!ok) location.assign(href); });
+      void registry.ensureBook(at.book).then(async (m) => {
+        const sec = m ? sectionOfUrl(m, pathname) : null;
+        if (!sec) { location.assign(href); return; }
+        await openDoc(sectionRef(at.book, sec), 'text', group);
+        landAt(at.book, hash);
+      });
     };
     const onClick = (e: MouseEvent) => {
       clearView(e);
@@ -257,24 +239,14 @@
       /* "Practice this section" at the end of a section: a practice view opens
          beside the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
-      if (pb?.dataset.practiseSection) { const gi = groupOf(pb); openPractice([{ book: manifest.id, section: sectionId(pb.dataset.practiseSection) }], gi); return; }
+      if (pb?.dataset.practiseSection) { const gi = groupOf(pb); openPractice([{ book: bookOfEl(pb) ?? assumedBook(), section: sectionId(pb.dataset.practiseSection) }], gi); return; }
       /* A link a pane has already answered — a wiki link in a note or a text
          box, which opens a note, a file or a section of its own accord — is
          not the shell's to follow as well: it says so by preventing the
          default, and its own `href="#"` would otherwise read as this page. */
       if (e.defaultPrevented) return;
-      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
-      /* A link inside a pane that names a page of this book — the way on at the
-         end of a text, a section the about page points at — opens as a tab of
-         the group it was clicked in rather than as a page of its own; anything
-         else — another host, the front of the book, a section this build has
-         not made — is left alone. */
-      if (link?.closest('.pane') && link.origin === location.origin && !link.hash && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
-        const sec = sectionOfUrl(manifest, link.pathname);
-        if (sec) { e.preventDefault(); void openDoc(sec, 'text', groupOf(link)); return; }
-      }
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
-      const t = findEl(a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
+      const t = findEl(bookOfEl(a) ?? assumedBook(), a.getAttribute('href')!.slice(1)); if (!t) return; e.preventDefault(); jump(t);
     };
     /* A feature the about page names lights where it lives: the new note and
        new drawing buttons when the explorer shows them, the explorer's own
@@ -316,20 +288,29 @@
      page whose tab the layout no longer holds is dropped as the layout settles. */
   $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
 
-  /* The section the focused tab is showing, if it is showing one at all: a
-     standing page and a note belong to no section and leave the address alone. */
-  const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; const id = a ? parseItemKey(a) : null; return id ? sectionOfItem(id) : null; });
+
+  /* The page the focused tab is showing, whatever its book: a section, or the
+     front of a book. A tab of no book leaves the address alone. */
+  type Addressed = { readonly key: string; readonly book: BookId; readonly url: string; readonly label: string };
+  const addressOf = (id: ItemId | null): Addressed | null => {
+    const ref = id ? sectionOfItem(id) : null;
+    if (ref) { const e = registry.entry(ref); return e ? { key: secKey(ref), book: ref.book, url: e.url, label: pageLabel(e) } : null; }
+    const book = id?.kind === 'page' ? bookOfItem(id) : null;
+    return book && registry.hasBook(book) ? { key: book, book, url: `/${book}/`, label: registry.manifest(book).title } : null;
+  };
+  const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; return addressOf(a ? parseItemKey(a) : null); });
   /* layout → address bar, title, released copies, spy, redraw */
-  let urlSec: SectionId | null = null;
+  let urlKey: SecKey | string | null = null;
   $effect(() => {
-    const l = layoutStore.layout; const sec = reading;
+    const l = layoutStore.layout; const at = reading;
     tick().then(() => {
       registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc], .pane .fig-root'))));
       FIG.redrawAll(); spy.read(activePane(l.focus));
-      if (!sec || sec === urlSec) return; const e = registry.entry(sec); if (!e) return; urlSec = sec;
-      try { history.replaceState(null, '', e.url); } catch { /* file:// */ }
-      rememberPage(manifest.id, e.url);
-      document.title = `${pageLabel(e)} · ${manifest.title}`;
+      if (!at || at.key === urlKey) return; urlKey = at.key;
+      try { history.replaceState(null, '', at.url); } catch { /* file:// */ }
+      const title = registry.manifest(at.book).title;
+      if (at.url !== `/${at.book}/`) rememberPage(at.book, at.url);
+      document.title = at.label === title ? title : `${at.label} · ${title}`;
     });
   });
   /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */
@@ -352,7 +333,7 @@
   <Tooltip />
   <HighlightBar />
   <Palette />
-  <Browser {manifest} />
+  <Browser manifest={registry.manifest(focus.book)} />
   <FindTextbook />
   <SpotCurve />
   <DragToast />

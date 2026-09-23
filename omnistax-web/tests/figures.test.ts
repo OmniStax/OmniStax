@@ -6,6 +6,7 @@ import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qu
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
 import { bookRoots } from './book-on-disk';
+import { bookFigures } from '../src/lib/content/endpoints';
 
 /* The tests over the real files below walk every book this build carries. */
 const ROOTS = await bookRoots();
@@ -155,4 +156,22 @@ test('a folded figure\'s eyebrow reads every number, and every folded image is a
       assert.ok(fig![1].split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
     });
   });
+});
+
+test('a figure script registers under its book as well as its section, in either quote', () => {
+  const js = "window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};\nwindow.OMNISTAX_FIGURES['15.4'] = function (root, F) {};";
+  assert.match(bookFigures('college-physics-2e', '15.4', js), /window\.OMNISTAX_FIGURES\['college-physics-2e\/15\.4'\] = function/);
+  assert.match(bookFigures('chemistry-2e', '1.2', 'OMNISTAX_FIGURES["1.2"]=(root, F) => {}'), /OMNISTAX_FIGURES\["chemistry-2e\/1\.2"\] =/);
+  assert.equal(bookFigures('college-physics-2e', '2.1', ''), '', 'a section with no figures has nothing to register');
+  assert.throws(() => bookFigures('college-physics-2e', '2.1', 'window.FIGS = function (root, F) {};'), /registers no OMNISTAX_FIGURES/);
+});
+
+test('every figure script on disk registers under a key the build can qualify', () => {
+  const scripts = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d)).flatMap((ch) =>
+    fs.readdirSync(path.join(root, ch)).map((s) => path.join(root, ch, s, 'figures.js')).filter((f) => fs.existsSync(f))));
+  assert.ok(scripts.length > 0);
+  for (const f of scripts) {
+    const out = bookFigures('b', path.basename(path.dirname(f)), fs.readFileSync(f, 'utf8'));
+    assert.doesNotMatch(out, /OMNISTAX_FIGURES\[(['"])(?!b\/)[^'"]+\1\]\s*=/, f);
+  }
 });

@@ -23,11 +23,11 @@
   const holds = (g: GroupKey, k: string) => layoutStore.layout.groups.some((x) => x.key === g && x.tabs.includes(k));
   let el = $state<HTMLElement | null>(null);
   const sec = $derived(id ? sectionOfItem(id) : null);
-  $effect(() => { el = !id ? null : id.kind === 'doc' ? registry.instanceFor(groupKey, id, holds) : id.kind === 'fig' ? registry.figureFor(groupKey, id) : id.kind === 'page' ? registry.pageFor(id.page) : null; });
+  $effect(() => { el = !id ? null : id.kind === 'doc' ? registry.instanceFor(groupKey, id, holds) : id.kind === 'fig' ? registry.figureFor(groupKey, id) : id.kind === 'page' ? registry.pageFor(id) : null; });
   const status = $derived(sec ? registry.state(sec)?.status ?? 'loading' : 'loaded');
   const error = $derived(sec ? registry.state(sec)?.error : undefined);
   const entry = $derived(sec ? registry.entry(sec) : undefined);
-  $effect(() => { if (sec && status === 'loading' && !registry.state(sec)?.docs.text) registry.load(sec).catch(() => {}); });
+  $effect(() => { if (sec && status === 'loading' && !registry.state(sec)?.docs.text) void registry.load(sec); });
   const onscroll = (e: Event) => { if (active && layoutStore.layout.focus === groupIndex) spy.read(e.currentTarget as HTMLElement); };
 </script>
 
@@ -45,13 +45,15 @@
   {:else if id && id.kind === 'chat'}
     <ChatTab chatId={id.chat} />
   {:else if id && id.kind === 'ex'}
-    <ExerciseTab section={id.section} ex={id.ex} {groupKey} />
+    <ExerciseTab book={id.book} section={id.section} ex={id.ex} {groupKey} />
   {:else if id && id.kind === 'scratch'}
     <ScratchPane book={id.book} section={id.section} ex={id.ex} {groupKey} />
   {:else if el}
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
+  {:else if sec && status === 'missing'}
+    <article class="placeholder"><div class="loading">{registry.missingLine(sec)}</div></article>
   {:else if status === 'failed'}
-    <article class="placeholder"><div class="loading bad">Could not load {sec ?? ''} ({error}). Loading other sections needs the site served over http; <a href={entry?.url}>open it as its own page</a>.</div></article>
+    <article class="placeholder"><div class="loading bad">Could not load {sec?.section ?? ''} ({error}). Loading other sections needs the site served over http; <a href={entry?.url}>open it as its own page</a>.</div></article>
   {:else}
     <article class="placeholder"><div class="loading">Loading {id ? registry.title(id) : itemKey}…</div></article>
   {/if}

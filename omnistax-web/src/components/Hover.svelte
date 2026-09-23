@@ -11,8 +11,9 @@
   import { targetOf, cardFor, openDelay } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
   import { glyphOf } from '../lib/hover/data';
-  import { findEl, goSpan } from '../lib/sections/nav.svelte';
-  import { spanId } from '../lib/types/ids';
+  import { bookOfEl, findEl, goSpan } from '../lib/sections/nav.svelte';
+  import { assumedBook } from '../lib/sections/focus.svelte';
+  import { spanId, spanRef } from '../lib/types/ids';
   import { FIG } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
   import { settings } from '../lib/settings/store.svelte';
@@ -75,8 +76,8 @@
       const t = targetOf(e.target); if (!t) return;
       if (touch && t !== anchor) { e.preventDefault(); e.stopPropagation(); show(t); return; }
       const a = t.closest<HTMLAnchorElement>('a.figref, a.xref'); if (!a) return;
-      const id = a.getAttribute('href')?.slice(1); if (!id || findEl(id)) return;
-      e.preventDefault(); goSpan(spanId(id)); close();
+      const id = a.getAttribute('href')?.slice(1); const book = bookOfEl(a) ?? assumedBook(); if (!id || findEl(book, id)) return;
+      e.preventDefault(); goSpan(spanRef(book, spanId(id))); close();
     };
     const onScroll = () => { if (card) place(); };
     document.addEventListener('mouseover', onOver); document.addEventListener('mouseout', onOut);

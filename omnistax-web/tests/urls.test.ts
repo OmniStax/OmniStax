@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sectionOfUrl } from '../src/lib/content/urls';
+import { refOfPath, resolvePath, sectionOfUrl } from '../src/lib/content/urls';
 import {
   chatId, chatItem, drawingId, drawingItem, exItem, fileId, fileItem, itemKey, newChatId, newDrawingId, newFileId,
-  parseItemKey, sectionId, sectionOfItem,
+  bookId, parseItemKey, sectionId, sectionOfItem, sectionRef,
 } from '../src/lib/types/ids';
 import type { BookManifest, SectionEntry } from '../src/lib/content/schema';
 
@@ -38,6 +38,21 @@ test('everything else is nobody: an unbuilt section, a chapter, a front page, an
   assert.equal(sectionOfUrl(MANIFEST, '/other-book/ch02/2.1/'), null);
 });
 
+test('a path says its book, chapter and section on its face', () => {
+  assert.deepEqual(refOfPath('/college-physics-2e/ch123/145.6/'), { book: 'college-physics-2e', chapterDir: 'ch123', section: '145.6' });
+  assert.deepEqual(refOfPath('/college-physics-2e/intro'), { book: 'college-physics-2e', chapterDir: null, section: 'intro' });
+  assert.equal(refOfPath('/college-physics-2e/'), null);
+  assert.equal(refOfPath('/'), null);
+  assert.equal(refOfPath('/College_Physics/ch02/2.1/'), null, 'a book id is lowercase letters, digits and dashes');
+});
+
+test('a path resolves against its book, and a page the book lacks stays as spelled', () => {
+  const B = bookId('college-physics-2e');
+  assert.deepEqual(resolvePath(MANIFEST, refOfPath('/college-physics-2e/ch02/2.1/')!), sectionRef(B, sectionId('2.1')));
+  assert.deepEqual(resolvePath(MANIFEST, refOfPath('/college-physics-2e/ch123/145.6/')!), sectionRef(B, sectionId('145.6')));
+  assert.deepEqual(resolvePath(null, refOfPath('/no-such-book/ch01/1.1/')!), sectionRef(bookId('no-such-book'), sectionId('1.1')));
+});
+
 /* ── the keys of the things the reader owns ─────────────────────────────── */
 
 test('a fresh file, drawing and chat id is eight characters of base 36', () => {
@@ -53,8 +68,8 @@ test('a file, a drawing, a chat and an exercise each write a key and read back a
     ['file:abcd1234', fileItem(fileId('abcd1234'))],
     ['drawing:abcd1234', drawingItem(drawingId('abcd1234'))],
     ['chat:abcd1234', chatItem(chatId('abcd1234'))],
-    ['ex:2.1/cq1', exItem(sectionId('2.1'), 'cq1')],
-    ['ex:7.intro/p3', exItem(sectionId('7.intro'), 'p3')],
+    ['ex:college-physics-2e/2.1/cq1', exItem(sectionRef(bookId('college-physics-2e'), sectionId('2.1')), 'cq1')],
+    ['ex:college-physics-2e/7.intro/p3', exItem(sectionRef(bookId('college-physics-2e'), sectionId('7.intro')), 'p3')],
   ] as const;
   pairs.forEach(([key, item]) => {
     assert.equal(itemKey(item), key);
@@ -67,12 +82,13 @@ test('nothing of another shape is one of them, and two keys tell two things apar
   assert.equal(parseItemKey('file:abcd123'), null);
   assert.equal(parseItemKey('drawing:'), null);
   assert.equal(parseItemKey('chat:abcd1234:m1'), null, 'a message of a chat is a link, not a tab');
-  assert.equal(parseItemKey('ex:2.1/'), null);
+  assert.equal(parseItemKey('ex:college-physics-2e/2.1/'), null);
   assert.notEqual(itemKey(fileItem(fileId('abcd1234'))), itemKey(drawingItem(drawingId('abcd1234'))));
 });
 
 test('an exercise belongs to its section and the reader’s own things belong to none', () => {
-  assert.equal(sectionOfItem(exItem(sectionId('2.1'), 'cq1')), '2.1');
+  const ref = sectionRef(bookId('college-physics-2e'), sectionId('2.1'));
+  assert.deepEqual(sectionOfItem(exItem(ref, 'cq1')), ref);
   assert.equal(sectionOfItem(fileItem(fileId('abcd1234'))), null);
   assert.equal(sectionOfItem(drawingItem(drawingId('abcd1234'))), null);
   assert.equal(sectionOfItem(chatItem(chatId('abcd1234'))), null);

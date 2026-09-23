@@ -17,10 +17,11 @@
   import { drawings } from '../../lib/drawer/store.svelte';
   import { openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { drawingItem, exItem, itemKey } from '../../lib/types/ids';
+  import { bookId, drawingItem, exItem, itemKey, sectionRef } from '../../lib/types/ids';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
 
   let {
-    section, ex, hidden = false, book = registry.manifest.id,
+    section, ex, hidden = false, book = assumedBook(),
     outcome = null, onanswer, inline = false, session,
   }: {
     section: SectionId; ex: ExerciseDTO; hidden?: boolean; book?: string;
@@ -51,8 +52,8 @@
      show it where it is genuinely present and never manufacture a book number. */
   const sourceSection = $derived(ex.sourceSection ?? section);
   const kindName = $derived(
-    book === registry.manifest.id
-      ? registry.manifest.exerciseKinds[ex.kind] ?? titled(ex.kind.replace(/-/g, ' '))
+    registry.hasBook(bookId(book))
+      ? registry.manifest(bookId(book)).exerciseKinds[ex.kind] ?? titled(ex.kind.replace(/-/g, ' '))
       : titled(ex.kind.replace(/-/g, ' ')),
   );
   const sourceExercise = $derived.by(() => {
@@ -60,7 +61,7 @@
     const m = /^(?:p|cq|ap|cyu|cyl|ct|e)(\d+)$/i.exec(ex.id);
     return m ? `${kindName} ${Number(m[1])}` : kindName;
   });
-  const sourceBook = $derived(book === registry.manifest.id ? registry.manifest.title : practice.bookTitle(book));
+  const sourceBook = $derived(registry.hasBook(bookId(book)) ? registry.manifest(bookId(book)).title : practice.bookTitle(book));
 
   let earned = $state<string | null>(null);
   let localDone = $state(false);
@@ -90,7 +91,7 @@
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
   const scratch = (): void => openScratch(at, layoutStore.layout.focus);
   const openLinked = (): void => { if (linked) void openItem(itemKey(drawingItem(linked))); };
-  const openAlone = (): void => void openItem(itemKey(exItem(section, ex.id)));
+  const openAlone = (): void => void openItem(itemKey(exItem(sectionRef(bookId(book), section), ex.id)));
 </script>
 
 <div class="exercise" class:hot id={domId} {hidden}>

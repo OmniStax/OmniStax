@@ -93,52 +93,73 @@ export const isPaletteOnlyKind = (kind: ViewKind): kind is PaletteOnlyKind => (P
 export const PAGE_KINDS = ['about', 'book'] as const;
 export type PageKind = (typeof PAGE_KINDS)[number];
 
+/* A page of one book: the section alone is book-local, so anything that names
+   one outside the book's own files carries the book beside it. */
+export type SectionRef = { readonly book: BookId; readonly section: SectionId };
+/* "<book>/<section>", what registries key by. A book id never holds a slash. */
+export type SecKey = string & { readonly __brand: 'SecKey' };
+export const sectionRef = (book: BookId, section: SectionId): SectionRef => ({ book, section });
+export const secKey = (ref: SectionRef): SecKey => `${ref.book}/${ref.section}` as SecKey;
+export const parseSecKey = (k: string): SectionRef | null => {
+  const m = /^([a-z0-9-]+)\/([^/]+)$/.exec(k);
+  return m ? sectionRef(bookId(m[1]), sectionId(m[2])) : null;
+};
+export const sameSection = (a: SectionRef, b: SectionRef): boolean => a.book === b.book && a.section === b.section;
+/* One span of one book's text. */
+export type SpanRef = { readonly book: BookId; readonly span: SpanId };
+export const spanRef = (book: BookId, span: SpanId): SpanRef => ({ book, span });
+
 export type ItemId =
-  | { readonly kind: 'doc'; readonly section: SectionId; readonly doc: DocKind }
+  | { readonly kind: 'doc'; readonly book: BookId; readonly section: SectionId; readonly doc: DocKind }
   | { readonly kind: 'view'; readonly view: ViewKind; readonly instance?: ViewInstance }   /* instance: one page of that view; none is the singleton a sidebar holds */
-  | { readonly kind: 'fig'; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
-  | { readonly kind: 'page'; readonly page: PageKind }
+  | { readonly kind: 'fig'; readonly book: BookId; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
+  | { readonly kind: 'page'; readonly page: 'about' }
+  | { readonly kind: 'page'; readonly page: 'book'; readonly book: BookId }
   | { readonly kind: 'note'; readonly note: NoteId }
-  | { readonly kind: 'sheet'; readonly sheet: SheetId }   /* one of the book's reference sheets, drawn by the app from the sheet's data */
+  | { readonly kind: 'sheet'; readonly book: BookId; readonly sheet: SheetId }   /* one of the book's reference sheets, drawn by the app from the sheet's data */
   | { readonly kind: 'file'; readonly file: FileId }      /* a file the reader imported: a PDF read in the tab, or an image shown in it */
   | { readonly kind: 'drawing'; readonly drawing: DrawingId }
   | { readonly kind: 'chat'; readonly chat: ChatId }
-  | { readonly kind: 'ex'; readonly section: SectionId; readonly ex: string }   /* ex: the exercise's local id within its section, e.g. p3 or cq1 */
+  | { readonly kind: 'ex'; readonly book: BookId; readonly section: SectionId; readonly ex: string }   /* ex: the exercise's local id within its section, e.g. p3 or cq1 */
   /* The scratch work of one exercise: a drawing with no row in the tree and no
      name, named instead by the thing it belongs to, since that is the only way
-     back to it. The book is in the key because a reader practises across books
-     and two of them may number a section alike. */
+     back to it. */
   | { readonly kind: 'scratch'; readonly book: BookId; readonly section: SectionId; readonly ex: string };
+export type PageItem = Extract<ItemId, { kind: 'page' }>;
 
-export const docItem = (section: SectionId, doc: DocKind): ItemId => ({ kind: 'doc', section, doc });
+export const docItem = (ref: SectionRef, doc: DocKind): ItemId => ({ kind: 'doc', book: ref.book, section: ref.section, doc });
 export const viewItem = (view: ViewKind, instance?: ViewInstance): ItemId => (instance ? { kind: 'view', view, instance } : { kind: 'view', view });
 /* A page of a view of its own, which is what the rail opens: every click is another one. */
 export const newViewItem = (view: ViewKind): ItemId => viewItem(view, newViewInstance());
-export const figItem = (section: SectionId, fig: string): ItemId => ({ kind: 'fig', section, fig });
-export const pageItem = (page: PageKind): ItemId => ({ kind: 'page', page });
+export const figItem = (ref: SectionRef, fig: string): ItemId => ({ kind: 'fig', book: ref.book, section: ref.section, fig });
+export const aboutItem = (): ItemId => ({ kind: 'page', page: 'about' });
+export const bookPageItem = (book: BookId): ItemId => ({ kind: 'page', page: 'book', book });
 export const noteItem = (note: NoteId): ItemId => ({ kind: 'note', note });
-export const sheetItem = (sheet: SheetId): ItemId => ({ kind: 'sheet', sheet });
+export const sheetItem = (book: BookId, sheet: SheetId): ItemId => ({ kind: 'sheet', book, sheet });
 export const fileItem = (file: FileId): ItemId => ({ kind: 'file', file });
 export const drawingItem = (drawing: DrawingId): ItemId => ({ kind: 'drawing', drawing });
 export const chatItem = (chat: ChatId): ItemId => ({ kind: 'chat', chat });
-export const exItem = (section: SectionId, ex: string): ItemId => ({ kind: 'ex', section, ex });
+export const exItem = (ref: SectionRef, ex: string): ItemId => ({ kind: 'ex', book: ref.book, section: ref.section, ex });
 export const scratchOf = (book: BookId, section: SectionId, ex: string): ItemId => ({ kind: 'scratch', book, section, ex });
 /* Documents, figures and exercises belong to a section; a view describes a
    scope of its own, and a page and everything the reader owns belong to no
    section at all. */
-export const sectionOfItem = (id: ItemId): SectionId | null =>
-  (id.kind === 'doc' || id.kind === 'fig' || id.kind === 'ex' ? id.section : null);
+export const sectionOfItem = (id: ItemId): SectionRef | null =>
+  (id.kind === 'doc' || id.kind === 'fig' || id.kind === 'ex' ? sectionRef(id.book, id.section) : null);
+/* The book an item is part of; the about page, a view and what the reader owns have none. */
+export const bookOfItem = (id: ItemId): BookId | null =>
+  (id.kind === 'doc' || id.kind === 'fig' || id.kind === 'ex' || id.kind === 'sheet' || id.kind === 'scratch' || (id.kind === 'page' && id.page === 'book') ? id.book : null);
 
 /* The string form is what layouts persist and what the DOM carries in data attributes. */
 export const itemKey = (id: ItemId): string => {
   switch (id.kind) {
-    case 'doc': return `doc:${id.section}/${id.doc}`;
-    case 'fig': return `fig:${id.section}/${id.fig}`;
-    case 'ex': return `ex:${id.section}/${id.ex}`;
+    case 'doc': return `doc:${id.book}/${id.section}/${id.doc}`;
+    case 'fig': return `fig:${id.book}/${id.section}/${id.fig}`;
+    case 'ex': return `ex:${id.book}/${id.section}/${id.ex}`;
     case 'scratch': return `scratch:${id.book}/${id.section}/${id.ex}`;
-    case 'page': return `page:${id.page}`;
+    case 'page': return id.page === 'book' ? `page:book/${id.book}` : 'page:about';
     case 'note': return `note:${id.note}`;
-    case 'sheet': return `sheet:${id.sheet}`;
+    case 'sheet': return `sheet:${id.book}/${id.sheet}`;
     case 'file': return `file:${id.file}`;
     case 'drawing': return `drawing:${id.drawing}`;
     case 'chat': return `chat:${id.chat}`;
@@ -148,12 +169,13 @@ export const itemKey = (id: ItemId): string => {
 export const parseItemKey = (s: string): ItemId | null => {
   const view = /^view:([\w-]+)(?:@([a-z0-9]{6}))?$/.exec(s);
   if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind, view[2] ? viewInstance(view[2]) : undefined) : null;
-  const page = /^page:(\w+)$/.exec(s);
-  if (page) return (PAGE_KINDS as readonly string[]).includes(page[1]) ? pageItem(page[1] as PageKind) : null;
+  if (s === 'page:about') return aboutItem();
+  const page = /^page:book\/([a-z0-9-]+)$/.exec(s);
+  if (page) return bookPageItem(bookId(page[1]));
   const note = /^note:([a-z0-9]{8})$/.exec(s);
   if (note) return noteItem(noteId(note[1]));
-  const sheet = /^sheet:([\w.-]+)$/.exec(s);
-  if (sheet) return sheetItem(sheetId(sheet[1]));
+  const sheet = /^sheet:([a-z0-9-]+)\/([\w.-]+)$/.exec(s);
+  if (sheet) return sheetItem(bookId(sheet[1]), sheetId(sheet[2]));
   /* The three things the reader owns are all named by eight of base 36. */
   const file = /^file:([a-z0-9]{8})$/.exec(s);
   if (file) return fileItem(fileId(file[1]));
@@ -161,15 +183,14 @@ export const parseItemKey = (s: string): ItemId | null => {
   if (drawing) return drawingItem(drawingId(drawing[1]));
   const chat = /^chat:([a-z0-9]{8})$/.exec(s);
   if (chat) return chatItem(chatId(chat[1]));
-  const ex = /^ex:([^/]+)\/([\w-]+)$/.exec(s);
-  if (ex) return exItem(sectionId(ex[1]), ex[2]);
-  const scratch = /^scratch:([^/]+)\/([^/]+)\/([\w-]+)$/.exec(s);
-  if (scratch) return scratchOf(bookId(scratch[1]), sectionId(scratch[2]), scratch[3]);
-  const doc = /^doc:([^/]+)\/(text)$/.exec(s);
-  if (doc) return docItem(sectionId(doc[1]), 'text');
-  const fig = /^fig:([^/]+)\/([\w-]+)$/.exec(s);
-  if (fig) return figItem(sectionId(fig[1]), fig[2]);
-  return null;
+  const m = /^(doc|fig|ex|scratch):([a-z0-9-]+)\/([^/]+)\/([\w-]+)$/.exec(s);
+  if (!m) return null;
+  const [, kind, book, sec, local] = m;
+  const ref = sectionRef(bookId(book), sectionId(sec));
+  if (kind === 'doc') return local === 'text' ? docItem(ref, 'text') : null;
+  if (kind === 'fig') return figItem(ref, local);
+  if (kind === 'ex') return exItem(ref, local);
+  return scratchOf(ref.book, ref.section, local);
 };
 export const sameItem = (a: ItemId, b: ItemId): boolean => itemKey(a) === itemKey(b);
 export const isView = (id: ItemId): id is Extract<ItemId, { kind: 'view' }> => id.kind === 'view';

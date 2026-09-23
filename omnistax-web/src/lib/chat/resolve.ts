@@ -9,27 +9,29 @@
    what the book holds, and what the reader owns and might be pointed back at,
    answer as they do everywhere else. */
 import { registry } from '../sections/registry.svelte';
+import { assumedBook } from '../sections/focus.svelte';
 import { noteDocs } from '../notes/docs.svelte';
 import { notes } from '../notes/store.svelte';
 import { label } from '../sections/grouping';
 import { figureInfo } from '../notes/md/figinfo';
 import { lookupVariable, symKey } from '../hover/data';
-import { sectionId, type ChatId } from '../types/ids';
+import { sectionId, sectionRef, type ChatId, type SectionRef } from '../types/ids';
 import type { Resolver } from '../notes/md/render';
 import { chats } from './store.svelte';
 import { firstWords, spokenIn } from './model';
 
+const refOf = (section: string): SectionRef => sectionRef(assumedBook(), sectionId(section));
 const chapterData = (section: string) => {
-  const dir = registry.chapterOf(sectionId(section))?.dir;
-  return dir ? registry.chapters[dir] : undefined;
+  const dir = registry.chapterOf(refOf(section))?.dir;
+  return dir ? registry.chapter(assumedBook(), dir) : undefined;
 };
 
 export const chatResolver = (): Resolver => ({
   note: (name) => noteDocs.byName(name)?.id ?? null,
-  section: (id) => { const e = registry.entry(sectionId(id)); return e?.built ? { title: e.title } : null; },
+  section: (id) => { const e = registry.entry(refOf(id)); return e?.built ? { title: e.title } : null; },
   highlight: (id) => {
     const n = notes.get(id); if (!n) return null;
-    return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(n.section)?.title ?? '') };
+    return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(refOf(n.section))?.title ?? '') };
   },
   asset: () => null,
   equation: (section, id) => {
@@ -45,10 +47,10 @@ export const chatResolver = (): Resolver => ({
   symbol: (section, sym) => {
     const d = chapterData(section); if (!d) return null;
     const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
-    return { sym, tex: registry.manifest.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
+    return { sym, tex: registry.manifest(assumedBook()).symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest(assumedBook()).types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
   },
   figure: (section, id) => {
-    const doc = registry.state(sectionId(section))?.docs.text;
+    const doc = registry.state(refOf(section))?.docs.text;
     return doc ? figureInfo(doc, sectionId(section), id) : null;
   },
   concept: (section, id) => {

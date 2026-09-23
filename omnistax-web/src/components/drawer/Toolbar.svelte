@@ -10,6 +10,7 @@
      the root at the moment the bar is drawn, since the reader may have chosen
      them in the colour menu, and the scheme is the page's own. */
   import { registry } from '../../lib/sections/registry.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { ICON } from '../../lib/icons';
   import { TOOL_KEY, type Tool } from '../../lib/drawer/tools';
   import { SHAPE_KINDS, type ShapeKind } from '../../lib/drawer/model';
@@ -76,7 +77,7 @@
      the colour that quantity wears on this page. A book with no types — or no
      book at all — leaves the row out. */
   const quantities = $derived.by(() =>
-    Object.entries(registry.manifest.types ?? {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
+    Object.entries(registry.manifest(assumedBook()).types ?? {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
 
   const SIZES: readonly number[] = [1, 2, 4, 8, 16];
 

@@ -1,32 +1,40 @@
 /* The live layout: one reactive value, changed only through the pure model
    functions, saved to this browser after every change. */
 import type { ItemKey, Layout } from './model';
-import { closeGroup, closeItem, defaultLayout, ensureOwn, openTab, parseLayout, renamedSimKeys } from './model';
-import { type ItemId, pageItem } from '../types/ids';
+import { closeGroup, closeItem, defaultLayout, ensureOwn, migratedV5, openTab, parseLayout, renamedSimKeys } from './model';
+import { type BookId, type ItemId, aboutItem } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 
-const KEY = 'omnistax-layout-v5';
+const KEY = 'omnistax-layout-v6';
+/* Keys named no book; read once, with the book the page was served for. */
+const V5 = 'omnistax-layout-v5';
 /* How many closed tabs the shell can hand back, this reading only. */
 const REOPEN = 20;
 
 /* A tab as it was closed: what it showed and which group it stood in. */
 type Closed = { readonly key: ItemKey; readonly group: number };
-const load = (own: ItemId, known: (k: string) => boolean): Layout => {
-  try { const parsed = parseLayout(JSON.parse(renamedSimKeys(localStorage.getItem(KEY) ?? 'null')), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
+const saved = (book: BookId): unknown => {
+  const v6 = localStorage.getItem(KEY);
+  if (v6 !== null) return JSON.parse(v6);
+  const v5 = localStorage.getItem(V5);
+  return v5 === null ? null : migratedV5(JSON.parse(renamedSimKeys(v5)), book);
+};
+const load = (own: ItemId, known: (k: string) => boolean, book: BookId): Layout => {
+  try { const parsed = parseLayout(saved(book), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
   return ensureOwn(defaultLayout(own), own);
 };
 
 class LayoutStore {
-  layout = $state.raw<Layout>(defaultLayout(pageItem('about')));
+  layout = $state.raw<Layout>(defaultLayout(aboutItem()));
   overlay = $state<'left' | 'right' | null>(null);      /* narrow screens show the sidebar over the documents */
-  private own: ItemId = pageItem('about');              /* what the page this shell mounted on is, until init says otherwise */
+  private own: ItemId = aboutItem();              /* what the page this shell mounted on is, until init says otherwise */
 
   /* The tabs the reader has closed, newest last, so that Reopen closed tab can
      put them back where they were. Kept for this reading of the page only:
      where a tab stood is not one of the reader's edits and is never saved. */
   private closed = $state.raw<readonly Closed[]>([]);
 
-  init(own: ItemId, known: (k: string) => boolean): void { this.own = own; this.layout = load(own, known); }
+  init(own: ItemId, known: (k: string) => boolean, book: BookId): void { this.own = own; this.layout = load(own, known, book); this.save(); }
   apply(f: (l: Layout) => Layout): void { this.layout = f(this.layout); this.save(); }
 
   /* Closing a tab from its own × remembers it; closing a group remembers every

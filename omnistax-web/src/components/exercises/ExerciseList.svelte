@@ -8,12 +8,12 @@
      buttons: the list says which section it is, and the shell knows which group
      it sits in. */
   import { registry } from '../../lib/sections/registry.svelte';
-  import type { SectionId } from '../../lib/types/ids';
+  import { sectionRef, type BookId, type SectionId } from '../../lib/types/ids';
   import { placeKey } from '../../lib/content/schema';
   import { ICON } from '../../lib/icons';
   import ExerciseCard from './ExerciseCard.svelte';
-  let { section, place }: { section: SectionId; place: string } = $props();
-  const all = $derived(registry.state(section)?.exercises ?? []);
+  let { book, section, place }: { book: BookId; section: SectionId; place: string } = $props();
+  const all = $derived(registry.state(sectionRef(book, section))?.exercises ?? []);
   const items = $derived(all.filter((e) => placeKey(e.place) === place));
   const isEnd = $derived(place === 'end');
 </script>
@@ -27,7 +27,7 @@
     {:else}
       <div class="eyebrow">Try it</div>
       {#each items as ex (ex.id)}
-        <ExerciseCard {section} {ex} inline />
+        <ExerciseCard {book} {section} {ex} inline />
       {/each}
     {/if}
   </div>

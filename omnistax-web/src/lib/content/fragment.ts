@@ -166,9 +166,9 @@ const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): s
   const where = `Chapter ${esc(chapter.id)} · ${esc(chapter.title)}`;
   return s.role === 'section' ? `${where} · ${s.meta.id}` : where;
 };
-/* The attributes every article of a page carries: what page and chapter it belongs to, and the name its tab takes. */
-const articleAttrs = (chapter: ChapterDTO | null, s: SectionSource, doc: 'text', title: string): string =>
-  `data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
+/* The attributes every article of a page carries: what book, page and chapter it belongs to, and the name its tab takes. */
+const articleAttrs = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, doc: 'text', title: string): string =>
+  `data-book="${book.id}" data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
 const textTitle = (s: SectionSource): string => (s.role === 'section' ? `${s.meta.id} Text` : s.meta.title);
 
 /* The section's own summary, where the book prints one, stands at the end of the text as the book stands it (rule 21).
@@ -206,7 +206,7 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
   const body = lazyImages(sizeImages(qualifyIds(marked, s.meta.id))), summary = summaryBlock(s);
   const lead = s.meta.ai?.text ? `${s.meta.lead}${AI_MARK_HTML}` : s.meta.lead;
   return [
-  `<article ${articleAttrs(chapter, s, 'text', textTitle(s))} data-math="rendered">`,
+  `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   ...(s.meta.lead === '' ? [] : [`<p class="lead">${lead}</p>`]),
@@ -233,11 +233,11 @@ const sectionEnd = (s: SectionSource): string => {
 };
 
 /* The fragment carries its own data so a tab can be opened from it alone. */
-export const sectionData = (s: SectionSource): string =>
-  `<script type="application/json" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
+export const sectionData = (book: BookDTO, s: SectionSource): string =>
+  `<script type="application/json" data-book="${book.id}" data-section="${s.meta.id}">${JSON.stringify({ meta: s.meta, exercises: s.exercises }).replace(/</g, '\\u003c')}</script>`;
 
 /* A section's fragment is its two documents and its data; an introduction or
    summary page sets no exercises and so has no problem set to open. The text
    carries the way to its neighbours, which the caller reads off the book. */
 export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string =>
-  [textArticle(book, chapter, s, nav), sectionData(s)].join('\n');
+  [textArticle(book, chapter, s, nav), sectionData(book, s)].join('\n');

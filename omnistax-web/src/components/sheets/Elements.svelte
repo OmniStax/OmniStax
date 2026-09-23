@@ -14,7 +14,8 @@
   import { sheets } from '../../lib/sheets/store.svelte';
   import { openDoc } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { sectionId } from '../../lib/types/ids';
+  import { sectionId, sectionRef } from '../../lib/types/ids';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { elementColor } from '../../lib/fig/elements';
   import {
     type Cell, type Colouring, type Filters, type Trend, COLUMNS, PERIODS, TRENDS, TREND_META, NO_FILTERS,
@@ -74,8 +75,8 @@
     config.split(' ').map((part) => { const m = /^(.*?)(\d+)$/.exec(part); return m ? { text: m[1], sup: m[2] } : { text: part, sup: '' }; });
 
   const pick = (symbol: string): void => { pinned = pinned === symbol ? null : symbol; };
-  const goSection = (id: string): void => { void openDoc(sectionId(id), 'text'); };
-  const titleOf = (id: string): string => registry.entry(sectionId(id))?.title ?? '';
+  const goSection = (id: string): void => { void openDoc(sectionRef(assumedBook(), sectionId(id)), 'text'); };
+  const titleOf = (id: string): string => registry.entry(sectionRef(assumedBook(), sectionId(id)))?.title ?? '';
 
   /* The arrows walk the grid, Enter pins what they stand on, Escape lets it go. */
   const onKey = (e: KeyboardEvent, cell: Cell): void => {

@@ -9,26 +9,26 @@
      text states it. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { focus, assumedBook } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { goSpan, findEl } from '../../lib/sections/nav.svelte';
   import { dragout } from '../../lib/notes/md/dragout';
-  import { spanId, sectionId } from '../../lib/types/ids';
+  import { spanId, spanRef, sectionId } from '../../lib/types/ids';
   import type { EquationDTO } from '../../lib/content/schema';
   import { FIG } from '../../lib/fig/figlib';
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
-  const eqs = $derived(Object.values(registry.chapters).flatMap((c) => c.formulas.equations).filter((e) => e.important));
-  const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.section), target, registry.manifest));
+  const eqs = $derived(registry.chaptersOf(assumedBook()).flatMap((c) => c.formulas.equations).filter((e) => e.important));
+  const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.section), target, registry.manifest(assumedBook())));
   const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
-  const spanTitle = (id: string): string => { const h = findEl(id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
+  const spanTitle = (id: string): string => { const h = findEl(assumedBook(), id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
   const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
 </script>
 
 {#snippet list(items: readonly EquationDTO[])}
   {#each items as e (e.id)}
-    <button type="button" class="formula" use:dragout={{ kind: 'equation', section: e.section, id: e.id }} onclick={() => goSpan(e.anchor ? spanId(e.anchor) : undefined)}>
+    <button type="button" class="formula" use:dragout={{ kind: 'equation', section: e.section, id: e.id }} onclick={() => goSpan(e.anchor ? spanRef(assumedBook(), spanId(e.anchor)) : undefined)}>
       <div use:tex={e.tex}></div>
       <small>{e.condition ? e.condition + ' · ' : ''}{e.anchor ? 'in “' + spanTitle(e.anchor) + '”' : ''}</small>
     </button>

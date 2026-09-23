@@ -149,19 +149,19 @@ class Practice {
   }
 
   catalog(): Catalog {
-    const book = registry.manifest.id;
+    const book = registry.home;
     const built = (c: ChapterEntry): SectionId[] => c.sections.filter((x) => x.built).map((x) => sectionId(x.id));
     const home: Catalog = {
-      concepts: registry.concepts,
-      sectionsOf: (id, chapter) => { const c = id === book ? registry.manifest.chapters.find((x) => x.id === chapter || x.dir === chapter) : undefined; return c ? built(c) : []; },
-      allSections: (id) => id === book ? registry.manifest.chapters.flatMap(built) : [],
+      concepts: registry.concepts(book),
+      sectionsOf: (id, chapter) => { const c = id === book ? registry.manifest(book).chapters.find((x) => x.id === chapter || x.dir === chapter) : undefined; return c ? built(c) : []; },
+      allSections: (id) => id === book ? registry.manifest(book).chapters.flatMap(built) : [],
       exercises: Object.entries(books.homeExercises).flatMap(([section, list]) => list.map((ex) => ({ book, section: sectionId(section), ex }))),
     };
     return mergeCatalog(home, Object.entries(books.loaded).filter(([id]) => id !== book));
   }
   conceptOf(id: string): ConceptDTO | undefined { return books.concept(id); }
   bookTitle(id: string): string { return books.title(id); }
-  conceptsIn(book: string): readonly ConceptDTO[] { return book === registry.manifest.id ? registry.concepts : uniqueById(books.loaded[book]?.concepts ?? []); }
+  conceptsIn(book: string): readonly ConceptDTO[] { return book === registry.home ? registry.concepts(registry.home) : uniqueById(books.loaded[book]?.concepts ?? []); }
   stateOf(id: string): State { return stateOf(this.mastery[id]); }
   share(id: string): number { return shareOf(this.mastery[id]); }
   freshness(id: string, now = Date.now()) { return freshnessOf(this.mastery[id], this.settings, now); }

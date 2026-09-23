@@ -28,7 +28,7 @@
      so the reader learns one picture everywhere. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { library } from '../../lib/explorer/library.svelte';
-  import { sectionId, conceptId, type SectionId } from '../../lib/types/ids';
+  import { sectionId, sectionRef, conceptId, type SectionId } from '../../lib/types/ids';
   import type { BookManifest, ChapterEntry, SectionEntry } from '../../lib/content/schema';
   import { math } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
@@ -53,30 +53,30 @@
      library, each fetched once and then held. Everything the store keeps is keyed
      by book already, so a chapter of one book and a section of another sit in the
      curriculum side by side. */
-  const book = $derived(registry.manifest.id);
+  const book = $derived(registry.home);
   const cat = $derived(practice.catalog());
   const shelf = $derived([book, ...library.added.filter((id) => id !== book)]);
   /* A book's shape is read from its own manifest: the one the shell was started
      with for the book being read, a fetched one for every other. */
-  const manifestOf = (id: string): BookManifest | undefined => (id === book ? registry.manifest : books.manifest(id));
+  const manifestOf = (id: string): BookManifest | undefined => (id === book ? registry.manifest(book) : books.manifest(id));
   const chaptersOf = (id: string): readonly ChapterEntry[] => manifestOf(id)?.chapters ?? [];
   const statusOf = (id: string): string => books.status[id] ?? 'idle';
   /* The catalogue of what the library holds. Books themselves are loaded by
      the face that needs them: Choose loads the full shelf, while Dashboard
      waits until a progress accordion is opened. */
   $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
-  const bookTitle = (id: string): string => (id === book ? registry.manifest.title || 'This book' : practice.bookTitle(id));
+  const bookTitle = (id: string): string => (id === book ? registry.manifest(book).title || 'This book' : practice.bookTitle(id));
   const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
   const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
   const chapterOf = (id: string, ch: string): ChapterEntry | undefined => chaptersOf(id).find((c) => c.id === ch || c.dir === ch);
-  const chapters = $derived(registry.manifest.chapters);
+  const chapters = $derived(registry.manifest(book).chapters);
   const builtOf = (c: ChapterEntry): readonly SectionEntry[] => c.sections.filter((s) => s.built);
 
   /* What the Choose face needs before it can say anything true: every chapter's
      concepts, and every built section, whose exercises only join the catalog
      once the section itself has been fetched. */
   const dirs = $derived(chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir));
-  const loading = $derived(shelf.some((id) => statusOf(id) === 'idle' || statusOf(id) === 'loading') || dirs.some((d) => (registry.chapterStatus[d] ?? 'loading') === 'loading'));
+  const loading = $derived(shelf.some((id) => statusOf(id) === 'idle' || statusOf(id) === 'loading') || dirs.some((d) => (registry.chapterStatusOf(book, d) ?? 'loading') === 'loading'));
 
   /* A checkbox that is neither on nor off: the browser takes that as a property
      only, so it is set here rather than written as an attribute. */
@@ -197,7 +197,7 @@
      another book waits on that book, which arrives whole. */
   $effect(() => {
     if (!pending || cur) return;
-    if (pending.book === book) registry.load(pending.section).catch(() => {});
+    if (pending.book === book) void registry.load(sectionRef(book, pending.section));
     else if (statusOf(pending.book) === 'idle') books.load(pending.book).catch(() => {});
   });
   const outcome = $derived(session?.outcomes[at] ?? null);
@@ -216,7 +216,7 @@
   $effect(() => {
     if (!page.showAll) return;
     drawn.forEach((d) => {
-      if (d.book === book) registry.load(d.section).catch(() => {});
+      if (d.book === book) void registry.load(sectionRef(book, d.section));
       else if (statusOf(d.book) === 'idle') books.load(d.book).catch(() => {});
     });
   });
@@ -345,13 +345,13 @@
   });
   $effect(() => {
     if (page.face === 'choose') {
-      if (dirs.length) registry.loadChapters(dirs).catch(() => {});
+      if (dirs.length) registry.loadChapters(book, dirs).catch(() => {});
       shelf.forEach((id) => { if (statusOf(id) === 'idle') books.load(id).catch(() => {}); });
       return;
     }
     if (page.face !== 'dashboard') return;
     if (progressBookOpen(book)) {
-      if (dirs.length) registry.loadChapters(dirs).catch(() => {});
+      if (dirs.length) registry.loadChapters(book, dirs).catch(() => {});
       /* Availability determines each mastery fraction's denominator, so the
          current book's one compact exercise index belongs to its summary too. */
       if (statusOf(book) === 'idle') books.load(book).catch(() => {});
@@ -365,7 +365,7 @@
   const overall = $derived(standingOf(allConcepts, practice.mastery));
   const progressStatus = (id: string): string => {
     if (id !== book) return statusOf(id);
-    const states = dirs.map((d) => registry.chapterStatus[d]);
+    const states = dirs.map((d) => registry.chapterStatusOf(book, d));
     if (states.some((s) => s === 'failed')) return 'failed';
     return states.some((s) => !s || s === 'loading') ? 'loading' : 'loaded';
   };

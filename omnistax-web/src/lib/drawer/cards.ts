@@ -10,16 +10,18 @@
 import { noteDocs } from '../notes/docs.svelte';
 import { notes } from '../notes/store.svelte';
 import { registry } from '../sections/registry.svelte';
+import { assumedBook } from '../sections/focus.svelte';
 import { label } from '../sections/grouping';
 import { lookupVariable, symKey } from '../hover/data';
 import { figureInfo } from '../notes/md/figinfo';
-import { drawingId, sectionId } from '../types/ids';
+import { drawingId, sectionId, sectionRef, type SectionRef } from '../types/ids';
 import type { Resolver } from '../notes/md/render';
 import { drawings } from './store.svelte';
 
+const refOf = (section: string): SectionRef => sectionRef(assumedBook(), sectionId(section));
 const chapterData = (section: string) => {
-  const dir = registry.chapterOf(sectionId(section))?.dir;
-  return dir ? registry.chapters[dir] : undefined;
+  const dir = registry.chapterOf(refOf(section))?.dir;
+  return dir ? registry.chapter(assumedBook(), dir) : undefined;
 };
 
 /* A drawing by its id: the row answers its name without the ink ever being
@@ -41,11 +43,11 @@ export const drawingNamed = (name: string): { readonly id: string; readonly name
 
 export const cardResolver = (): Resolver => ({
   note: (name) => noteDocs.byName(name)?.id ?? null,
-  section: (id) => { const e = registry.entry(sectionId(id)); return e?.built ? { title: e.title } : null; },
+  section: (id) => { const e = registry.entry(refOf(id)); return e?.built ? { title: e.title } : null; },
   highlight: (id) => {
     const n = notes.get(id);
     if (!n) return null;
-    return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(n.section)?.title ?? '') };
+    return { quote: n.anchor.quote, color: n.color, text: n.text, section: label(n.section, registry.entry(refOf(n.section))?.title ?? '') };
   },
   /* A frame reads its own picture out of the asset store, so the renderer is
      never asked to put one in the markup it writes. */
@@ -63,7 +65,7 @@ export const cardResolver = (): Resolver => ({
   symbol: (section, sym) => {
     const d = chapterData(section); if (!d) return null;
     const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
-    return { sym, tex: registry.manifest.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
+    return { sym, tex: registry.manifest(assumedBook()).symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest(assumedBook()).types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
   },
   concept: (section, id) => {
     const d = chapterData(section); if (!d) return null;
@@ -72,7 +74,7 @@ export const cardResolver = (): Resolver => ({
     return { name: c.name, kind: c.kind, why: c.status === 'built' ? c.why : undefined, section: c.section, eqTex: eq?.tex, placeholder: c.status === 'placeholder' };
   },
   figure: (section, id) => {
-    const doc = registry.state(sectionId(section))?.docs.text;
+    const doc = registry.state(refOf(section))?.docs.text;
     return doc ? figureInfo(doc, sectionId(section), id) : null;
   },
   drawing: (id) => drawingInfo(id),

@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CHAPTERS, rowsAt, enter, up, crumbs, levelAt, start, keyOfLevel, pickTarget, type BookTree, type Level, type Mode, type Row } from '../src/lib/commands/browser';
-import { sectionId, chapterId } from '../src/lib/types/ids';
+import { bookId, sectionId, chapterId } from '../src/lib/types/ids';
 
 /* The tree the Open browser walks: two chapters, one of them half built, and one
    built section that draws figures. Exercises belong to Practice, not this tree. */
 const BOOK: BookTree = {
-  title: 'College Physics',
+  id: bookId('college-physics-2e'), title: 'College Physics',
   exerciseKinds: { conceptual: 'Conceptual question', problem: 'Problem' },
   chapters: [
     { id: '2', title: 'Kinematics', sections: [
@@ -40,7 +40,7 @@ test('a chapter lists all its sections, the unbuilt ones marked and closed', () 
 });
 test('a section holds its text document, opened by Enter and entered for its figures', () => {
   const rows = rowsAt(BOOK, DOCS_21);
-  assert.deepEqual(keys(rows), ['doc:2.1/text']);
+  assert.deepEqual(keys(rows), ['doc:college-physics-2e/2.1/text']);
   assert.deepEqual(rows.map((r) => r.label), ['Text']);
   assert.deepEqual(rows.map((r) => (r.kind === 'doc' ? [r.section, r.doc] : null)), [['2.1', 'text']]);
   assert.deepEqual(rows.map((r) => r.openable), [true]);
@@ -50,7 +50,7 @@ test('a section holds its text document, opened by Enter and entered for its fig
 });
 test('the text leads to the figures it draws', () => {
   const figs = rowsAt(BOOK, FIGURES_21);
-  assert.deepEqual(keys(figs), ['fig:2.1/sim-walk', 'fig:2.1/graph-x']);
+  assert.deepEqual(keys(figs), ['fig:college-physics-2e/2.1/sim-walk', 'fig:college-physics-2e/2.1/graph-x']);
   assert.deepEqual(figs.map((r) => r.label), ['Figure 2.3 · A professor paces the front of the room.', 'Figure 2.4 · Position against time.']);
   assert.deepEqual(figs.map((r) => [r.openable, r.enterable, r.detail]), [[true, false, ''], [true, false, '']]);
   assert.deepEqual(figs.map((r) => (r.kind === 'fig' ? [r.section, r.fig] : null)), [['2.1', 'sim-walk'], ['2.1', 'graph-x']]);
@@ -60,7 +60,7 @@ test('an id the book does not know gives nothing to draw', () => {
   assert.deepEqual(rowsAt(BOOK, { kind: 'sections', chapter: '9' }), []);
   assert.deepEqual(rowsAt(BOOK, { kind: 'docs', chapter: '9', section: sectionId('9.1') }), []);
   assert.deepEqual(rowsAt(BOOK, { kind: 'docs', chapter: '2', section: sectionId('2.9') }), []);
-  assert.deepEqual(rowsAt({ title: 'Empty', chapters: [] }, CHAPTERS), []);
+  assert.deepEqual(rowsAt({ id: bookId('x'), title: 'Empty', chapters: [] }, CHAPTERS), []);
 });
 
 test('entering and going back are inverse steps down and up the tree', () => {
@@ -68,9 +68,9 @@ test('entering and going back are inverse steps down and up the tree', () => {
   assert.deepEqual(enter(CHAPTERS, chapter), SECTIONS_2);
   assert.deepEqual(enter(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.1')), DOCS_21);
   assert.equal(enter(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.2')), null, 'an unbuilt section opens nothing');
-  assert.deepEqual(enter(DOCS_21, rowFor(DOCS_21, 'doc:2.1/text')), FIGURES_21);
-  assert.equal(enter(DOCS_31, rowFor(DOCS_31, 'doc:3.1/text')), null, 'a document with nothing inside it is only opened');
-  assert.equal(enter(FIGURES_21, rowFor(FIGURES_21, 'fig:2.1/sim-walk')), null);
+  assert.deepEqual(enter(DOCS_21, rowFor(DOCS_21, 'doc:college-physics-2e/2.1/text')), FIGURES_21);
+  assert.equal(enter(DOCS_31, rowFor(DOCS_31, 'doc:college-physics-2e/3.1/text')), null, 'a document with nothing inside it is only opened');
+  assert.equal(enter(FIGURES_21, rowFor(FIGURES_21, 'fig:college-physics-2e/2.1/sim-walk')), null);
   assert.deepEqual(up(FIGURES_21), DOCS_21);
   assert.deepEqual(up(DOCS_21), SECTIONS_2);
   assert.deepEqual(up(SECTIONS_2), CHAPTERS);
@@ -106,13 +106,13 @@ test('the browser opens beside the section being read, or at the top of the book
   assert.deepEqual(start(BOOK, null), { level: CHAPTERS, select: null });
 });
 test('the key of a level names the row it was entered from, so going back re-selects it', () => {
-  assert.equal(keyOfLevel(CHAPTERS), null);
-  assert.equal(keyOfLevel(SECTIONS_2), 'ch:2');
-  assert.equal(keyOfLevel(DOCS_21), 'sec:2.1');
-  assert.equal(keyOfLevel(FIGURES_21), 'doc:2.1/text');
-  assert.ok(keys(rowsAt(BOOK, up(SECTIONS_2)!)).includes(keyOfLevel(SECTIONS_2)!));
-  assert.ok(keys(rowsAt(BOOK, up(DOCS_21)!)).includes(keyOfLevel(DOCS_21)!));
-  assert.ok(keys(rowsAt(BOOK, up(FIGURES_21)!)).includes(keyOfLevel(FIGURES_21)!));
+  assert.equal(keyOfLevel(BOOK, CHAPTERS), null);
+  assert.equal(keyOfLevel(BOOK, SECTIONS_2), 'ch:2');
+  assert.equal(keyOfLevel(BOOK, DOCS_21), 'sec:2.1');
+  assert.equal(keyOfLevel(BOOK, FIGURES_21), 'doc:college-physics-2e/2.1/text');
+  assert.ok(keys(rowsAt(BOOK, up(SECTIONS_2)!)).includes(keyOfLevel(BOOK, SECTIONS_2)!));
+  assert.ok(keys(rowsAt(BOOK, up(DOCS_21)!)).includes(keyOfLevel(BOOK, DOCS_21)!));
+  assert.ok(keys(rowsAt(BOOK, up(FIGURES_21)!)).includes(keyOfLevel(BOOK, FIGURES_21)!));
 });
 
 /* picking a place in the book, rather than opening what is in it */
@@ -133,6 +133,6 @@ test('a picked row names the place in the book a view can be pinned to', () => {
   assert.deepEqual(pickTarget(CHAPTERS, rowFor(CHAPTERS, 'ch:2', 'pick')), { level: 'chapter', chapter: chapterId('2') });
   assert.deepEqual(pickTarget(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.1', 'pick')), { level: 'section', section: sectionId('2.1') });
   assert.equal(pickTarget(SECTIONS_2, rowFor(SECTIONS_2, 'sec:2.2', 'pick')), null, 'a section that is not built is no place to stand');
-  assert.equal(pickTarget(DOCS_21, rowFor(DOCS_21, 'doc:2.1/text')), null);
-  assert.equal(pickTarget(FIGURES_21, rowFor(FIGURES_21, 'fig:2.1/graph-x')), null);
+  assert.equal(pickTarget(DOCS_21, rowFor(DOCS_21, 'doc:college-physics-2e/2.1/text')), null);
+  assert.equal(pickTarget(FIGURES_21, rowFor(FIGURES_21, 'fig:college-physics-2e/2.1/graph-x')), null);
 });

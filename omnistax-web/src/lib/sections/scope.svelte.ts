@@ -26,18 +26,18 @@ const load = (): Scopes => {
 class Scope {
   scopes = $state.raw<Scopes>(load());
   of(key: ItemKey): ViewScope { return scopeAt(this.scopes, key); }
-  targetFor(key: ItemKey): Target { return resolve(this.of(key), focus.section, registry.manifest); }
+  targetFor(key: ItemKey): Target { return resolve(this.of(key), focus.section.section, registry.manifest(focus.section.book)); }
   levelFor(key: ItemKey): Level { return levelOf(this.of(key)); }
   isPinned(key: ItemKey): boolean { return !this.of(key).follow; }
   set(key: ItemKey, scope: ViewScope): void { this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
-  widen(key: ItemKey): void { this.set(key, widen(this.of(key), registry.manifest)); }
-  narrow(key: ItemKey): void { this.set(key, narrow(this.of(key), focus.section, registry.manifest)); }
-  atLevel(key: ItemKey, level: Level): void { this.set(key, atLevel(this.of(key), level, focus.section, registry.manifest)); }
+  widen(key: ItemKey): void { this.set(key, widen(this.of(key), registry.manifest(focus.section.book))); }
+  narrow(key: ItemKey): void { this.set(key, narrow(this.of(key), focus.section.section, registry.manifest(focus.section.book))); }
+  atLevel(key: ItemKey, level: Level): void { this.set(key, atLevel(this.of(key), level, focus.section.section, registry.manifest(focus.section.book))); }
   /* Choosing a place from a crumb's menu: the view walks to that level, following again when
      the place chosen is the one the open page is in and pinning to it when it is anywhere else. */
-  choose(key: ItemKey, target: Target): void { this.set(key, choose(target, focus.section, registry.manifest)); }
-  previous(key: ItemKey): void { this.set(key, stepSibling(this.of(key), -1, focus.section, registry.manifest)); }
-  next(key: ItemKey): void { this.set(key, stepSibling(this.of(key), 1, focus.section, registry.manifest)); }
+  choose(key: ItemKey, target: Target): void { this.set(key, choose(target, focus.section.section, registry.manifest(focus.section.book))); }
+  previous(key: ItemKey): void { this.set(key, stepSibling(this.of(key), -1, focus.section.section, registry.manifest(focus.section.book))); }
+  next(key: ItemKey): void { this.set(key, stepSibling(this.of(key), 1, focus.section.section, registry.manifest(focus.section.book))); }
   /* Pinning holds where the view stands now, unless a place is named; at the book there is nothing to hold. */
   pin(key: ItemKey, target: Target = this.targetFor(key)): void { if (target.level !== 'book') this.set(key, { follow: false, target }); }
   unpin(key: ItemKey): void { this.set(key, { follow: true, level: this.levelFor(key) }); }

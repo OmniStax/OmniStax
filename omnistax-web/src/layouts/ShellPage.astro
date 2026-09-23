@@ -11,25 +11,25 @@ import { config } from '../../omnistax.config';
 import type { BookTree } from '../lib/content/load';
 import type { ItemId } from '../lib/types/ids';
 import type { BootUrls } from '../lib/sections/boot';
-import { BOOK_RULES_ID, bookColoursHref } from '../lib/colours/rules';
+import { bookColoursHref } from '../lib/colours/rules';
 
 export type Props = {
-  tree: BookTree;
-  own: ItemId;                  /* what this page is: the item the shell opens and keeps open */
+  tree: BookTree;               /* the book the shell boots on */
+  own?: ItemId;                 /* what this page is: the item the shell opens and keeps open; the 404 page has none */
   pool: string;                 /* the static HTML the registry adopts on mount */
   title: string;
   description: string;
-  book?: string; chapter?: string; section?: string;    /* what the html element says this page is */
   chapterDir?: string;
+  colours?: boolean;            /* whether the page links the book's colours; the 404 page stands for no book */
 };
-const { tree, own, pool, title, description, book, chapter, section, chapterDir } = Astro.props as Props;
+const { tree, own, pool, title, description, chapterDir, colours = true } = Astro.props as Props;
 /* Colour is a function of type. The book declares its quantities and the app
    dresses them from its scheme: the book's colours.css carries the scheme's
-   tokens and which classes wear them, one file for every page of the book, and
-   the shell points it at another book if the reader walks into one without
-   leaving the app. The shell's own style element comes after it in the head,
+   tokens and which classes wear them, scoped to the book, one file for every
+   page of it; another book's file is linked beside it when the reader opens
+   one of its pages. The shell's own style element comes after it in the head,
    so the colours the reader has chosen win over it. */
-const colourHref = bookColoursHref(tree.manifest.id);
+const colourBook = tree.manifest.id;
 /* The island gets only what is small: where the manifest and the chapter's
    concepts and formulas live, which the loader fetches (src/lib/sections/boot.ts).
    Every page of a book names the same files, so a reader, and an offline copy,
@@ -39,7 +39,7 @@ const boot: BootUrls = { manifest: `/${tree.manifest.id}/book.json`, ...(ch ? { 
 const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>
-<html lang="en" data-book={book} data-chapter={chapter} data-section={section}>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -51,7 +51,7 @@ const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <!-- Offline releases have no cross-origin runtime dependency. The font stacks
      use locally installed faces and their system fallbacks. -->
-<link id={BOOK_RULES_ID} rel="stylesheet" href={colourHref}>
+{colours && <link rel="stylesheet" data-book-rules={colourBook} href={bookColoursHref(colourBook)}>}
 <link rel="preload" href={boot.manifest} as="fetch" crossorigin="anonymous">
 {boot.chapter && <link rel="preload" href={boot.chapter.concepts} as="fetch" crossorigin="anonymous">}
 {boot.chapter && <link rel="preload" href={boot.chapter.formulas} as="fetch" crossorigin="anonymous">}

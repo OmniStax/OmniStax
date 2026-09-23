@@ -1,19 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout as make, openTab, splitRight, splitDown, split, openInSplit, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { sectionId, noteId, parseItemKey, itemKey, docItem, figItem, pageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
-import { focusedSection } from '../src/lib/layout/model';
+import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
+import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
-const s = sectionId('2.1');
+const B = bookId('college-physics-2e');
+const at = (sec: string) => sectionRef(B, sectionId(sec));
+const s = at('2.1');
 const own = docItem(s, 'text');
-const text = 'doc:2.1/text', second = 'fig:2.1/demo', map = 'view:concepts', notes = 'view:annotations';
+const text = 'doc:college-physics-2e/2.1/text', second = 'fig:college-physics-2e/2.1/demo', map = 'view:concepts', notes = 'view:annotations';
 /* The layout functions all take the item a page is; every test below reads the section page. */
 const defaultLayout = (id = own) => make(id);
 
 test('an introduction page opens alone, since it sets no exercises', () => {
-  const l = defaultLayout(docItem(sectionId('2.intro'), 'text'));
-  assert.deepEqual(l.groups[0].tabs, ['doc:2.intro/text']);
+  const l = defaultLayout(docItem(at('2.intro'), 'text'));
+  assert.deepEqual(l.groups[0].tabs, ['doc:college-physics-2e/2.intro/text']);
 });
 test('default layout opens the text alone, and the explorer in the sidebar', () => {
   const l = defaultLayout();
@@ -21,7 +23,7 @@ test('default layout opens the text alone, and the explorer in the sidebar', () 
   assert.deepEqual(l.sides.left.items, ['view:explorer']); assert.deepEqual(l.sides.right.items, []);
 });
 test('a page of its own opens alone', () => {
-  const l = defaultLayout(pageItem('about'));
+  const l = defaultLayout(aboutItem());
   assert.deepEqual(l.groups[0].tabs, ['page:about']); assert.equal(l.groups[0].active, 'page:about');
 });
 test('split right duplicates the active document and focuses the new group', () => {
@@ -89,8 +91,8 @@ test('openInSplit takes a view out of the sidebar and gives it a group', () => {
   assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, []);
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
-  const bare = ensureOwn(defaultLayout(pageItem('about')), pageItem('book'));
-  assert.deepEqual(bare.groups[0].tabs, ['page:book', 'page:about']); assert.equal(bare.groups[0].active, 'page:book');
+  const bare = ensureOwn(defaultLayout(aboutItem()), bookPageItem(B));
+  assert.deepEqual(bare.groups[0].tabs, ['page:book/college-physics-2e', 'page:about']); assert.equal(bare.groups[0].active, 'page:book/college-physics-2e');
   const already = ensureOwn(defaultLayout(), own);
   assert.deepEqual(already.groups[0].tabs, [text], 'the item is where it was, and is made active');
   assert.equal(already.groups[0].active, text);
@@ -119,25 +121,44 @@ test('the rail opens another page of a view and leaves the ones already open', (
   assert.deepEqual(instancesOf(openSide(defaultLayout(), notes, 'left'), 'annotations'), [notes], 'a sidebar view counts as the page it is');
 });
 test('page and note keys round-trip and belong to no section', () => {
-  assert.equal(itemKey(pageItem('about')), 'page:about'); assert.equal(itemKey(pageItem('book')), 'page:book');
-  assert.deepEqual(parseItemKey('page:about'), pageItem('about'));
+  assert.equal(itemKey(aboutItem()), 'page:about'); assert.equal(itemKey(bookPageItem(B)), 'page:book/college-physics-2e');
+  assert.deepEqual(parseItemKey('page:book/college-physics-2e'), bookPageItem(B)); assert.equal(parseItemKey('page:book'), null);
+  assert.deepEqual(parseItemKey('page:about'), aboutItem());
   assert.equal(parseItemKey('page:elsewhere'), null);
   const n = noteId('a1b2c3d4');
   assert.equal(itemKey(noteItem(n)), 'note:a1b2c3d4'); assert.deepEqual(parseItemKey('note:a1b2c3d4'), noteItem(n));
   assert.equal(parseItemKey('note:TOOLOUD'), null); assert.equal(parseItemKey('note:abc'), null);
   const l = splitRight(defaultLayout(), 0, 'note:a1b2c3d4');
   assert.deepEqual(l.groups[1].tabs, ['note:a1b2c3d4']);
-  assert.equal(focusedSection(l, sectionId('9.9')), '9.9', 'a note leaves the views where they stood');
+  assert.deepEqual(focusedSection(l, at('9.9')), at('9.9'), 'a note leaves the views where they stood');
 });
 test('a saved layout names its figure tabs under the new prefix', () => {
   assert.equal(renamedSimKeys('{"tabs":["fig:2.5/demo-avg","fig:2.5/fig-paths","doc:2.5/text"]}'), '{"tabs":["fig:2.5/sim-avg","fig:2.5/fig-paths","doc:2.5/text"]}');
 });
-test('parseLayout rejects unknown items and duplicate tabs, assigns keys', () => {
+test('parseLayout drops an unknown tab and keeps the rest, and dedupes, and assigns keys', () => {
   const known = (k: string) => [text, second, map].includes(k);
-  assert.equal(parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: ['doc:9.9/text'], active: 'doc:9.9/text' }] }, known), null);
-  assert.equal(parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: [text, text], active: text }] }, known), null);
+  const sides = { left: { width: 1, items: [] }, right: { width: 1, items: [] } };
+  const one = parseLayout({ sides, groups: [{ tabs: ['doc:x/9.9/text', text], active: 'doc:x/9.9/text' }] }, known);
+  assert.deepEqual(one!.groups[0].tabs, [text]); assert.equal(one!.groups[0].active, text);
+  assert.deepEqual(parseLayout({ sides, groups: [{ tabs: [text, text], active: text }] }, known)!.groups[0].tabs, [text]);
   const ok = parseLayout({ sides: { left: { width: 250, items: [map] }, right: { width: 300, items: [] } }, groups: [{ tabs: [text], active: text }], focus: 5 }, known);
   assert.ok(ok); assert.equal(ok!.focus, 0); assert.equal(typeof ok!.groups[0].key, 'string');
+});
+test('a tab of a section no book has stays in the layout, for its pane to say so', () => {
+  const missing = itemKey(docItem(at('145.6'), 'text'));
+  const l = parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: [text, missing], active: missing }] }, (k) => parseItemKey(k) !== null);
+  assert.deepEqual(l!.groups[0].tabs, [text, missing]); assert.equal(l!.groups[0].active, missing);
+});
+test('a v5 layout is read once with its keys qualified by the boot book', () => {
+  const v5 = { sides: { left: { width: 250, items: ['view:explorer'] }, right: { width: 300, items: [] } }, home: { 'doc:2.1/text': 'right' }, collapsed: [],
+    groups: [{ key: 'abc123', tabs: ['doc:2.1/text', 'fig:2.1/sim-plane', 'ex:7.intro/p3', 'sheet:elements', 'page:book', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1'], active: 'fig:2.1/sim-plane' }], focus: 0, tree: { type: 'leaf', group: 'abc123' } };
+  const m = migratedV5(v5, B) as { groups: { key: string; tabs: string[]; active: string }[]; home: Record<string, string>; tree: { group: string } };
+  assert.deepEqual(m.groups[0].tabs, ['doc:college-physics-2e/2.1/text', 'fig:college-physics-2e/2.1/sim-plane', 'ex:college-physics-2e/7.intro/p3', 'sheet:college-physics-2e/elements', 'page:book/college-physics-2e', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1']);
+  assert.equal(m.groups[0].active, 'fig:college-physics-2e/2.1/sim-plane');
+  assert.deepEqual(m.home, { 'doc:college-physics-2e/2.1/text': 'right' });
+  assert.equal(m.groups[0].key, 'abc123'); assert.equal(m.tree.group, 'abc123');
+  assert.ok(m.groups[0].tabs.every((k) => parseItemKey(k) !== null), 'every migrated key parses');
+  assert.equal(qualifiedV5Key('doc:college-physics-2e/2.1/text', B), 'doc:college-physics-2e/2.1/text', 'a v6 key is left alone');
 });
 test('prune keeps one empty group', () => {
   const l = prune({ ...defaultLayout(), groups: [] });
@@ -152,20 +173,20 @@ test('an empty group keeps its place until it is closed', () => {
 
 test('figure keys round-trip and belong to their section', () => {
   const k = itemKey(figItem(s, 'sim-plane'));
-  assert.equal(k, 'fig:2.1/sim-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'sim-plane'));
-  assert.equal(parseItemKey('fig:2.1/'), null);
+  assert.equal(k, 'fig:college-physics-2e/2.1/sim-plane'); assert.deepEqual(parseItemKey(k), figItem(s, 'sim-plane'));
+  assert.equal(parseItemKey('fig:college-physics-2e/2.1/'), null); assert.equal(parseItemKey('fig:2.1/sim-plane'), null, 'a key names its book');
   const l = splitRight(defaultLayout(), 0, k);
-  assert.deepEqual(l.groups[1].tabs, [k]); assert.equal(focusedSection(l, sectionId('9.9')), '2.1');
+  assert.deepEqual(l.groups[1].tabs, [k]); assert.deepEqual(focusedSection(l, at('9.9')), s);
 });
 
 /* The old per-section exercise document is gone for good; one exercise on its
    own is a tab again, and belongs to the section that sets it. */
 test('an exercise tab round-trips and exercise documents are not parsed', () => {
   const k = itemKey(exItem(s, 'cq1'));
-  assert.equal(k, 'ex:2.1/cq1'); assert.deepEqual(parseItemKey(k), exItem(s, 'cq1'));
-  assert.equal(sectionOfItem(exItem(s, 'cq1')), '2.1');
-  assert.equal(parseItemKey('ex:2.1/'), null);
-  assert.equal(parseItemKey('doc:2.1/exercises'), null);
+  assert.equal(k, 'ex:college-physics-2e/2.1/cq1'); assert.deepEqual(parseItemKey(k), exItem(s, 'cq1'));
+  assert.deepEqual(sectionOfItem(exItem(s, 'cq1')), s);
+  assert.equal(parseItemKey('ex:college-physics-2e/2.1/'), null);
+  assert.equal(parseItemKey('doc:college-physics-2e/2.1/exercises'), null);
 });
 
 /* The shape of a tree, with each group written as its position in the array. */

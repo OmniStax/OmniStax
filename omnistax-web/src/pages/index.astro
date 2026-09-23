@@ -5,7 +5,7 @@
 import ShellPage from '../layouts/ShellPage.astro';
 import { trees } from '../lib/content/paths';
 import { aboutHtml } from '../lib/content/pages';
-import { pageItem } from '../lib/types/ids';
+import { aboutItem } from '../lib/types/ids';
 const books = await trees();
 if (books.length === 0) throw new Error('this build carries no books: check OMNISTAX_CONTENT_DIR and OMNISTAX_BOOKS');
 /* The about page belongs to no book; it takes the first book's colour tokens, which is all the shell asks a tree for here. */
@@ -14,7 +14,7 @@ const description = 'OmniStax/万象 is a next-gen, self-hostable STEM learning 
 ---
 <ShellPage
   tree={t}
-  own={pageItem('about')}
+  own={aboutItem()}
   pool={aboutHtml()}
   title="OmniStax"
   description={description}

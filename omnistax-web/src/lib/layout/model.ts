@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type BookId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -96,7 +96,7 @@ export const where = (l: Layout, id: ItemId | ItemKey): Location | null => {
 export const groupsWith = (l: Layout, k: ItemKey): number[] => l.groups.flatMap((g, i) => (g.tabs.includes(k) ? [i] : []));
 export const groupIndex = (l: Layout, key: GroupKey): number => l.groups.findIndex((g) => g.key === key);
 export const focusedGroup = (l: Layout): Group => l.groups[l.focus] ?? l.groups[0];
-export const focusedSection = (l: Layout, fallback: SectionId): SectionId => {
+export const focusedSection = (l: Layout, fallback: SectionRef): SectionRef => {
   const active = focusedGroup(l).active; const id = active ? parseItemKey(active) : null;
   return (id && sectionOfItem(id)) ?? fallback;
 };
@@ -320,6 +320,20 @@ export const ensureOwn = (l: Layout, own: ItemId): Layout => {
 
 /* A layout saved before the sim rename of 2026-09-11 names a figure tab "fig:2.5/demo-avg" where the figure now says "fig:2.5/sim-avg"; read as saved, it would be thrown away whole. */
 export const renamedSimKeys = (saved: string): string => saved.replace(/"fig:(\d+\.\d+)\/demo-/g, '"fig:$1/sim-');
+/* A key saved by layout v5, before keys named their book, qualified with the book the page was served for. */
+export const qualifiedV5Key = (k: string, book: BookId): string => {
+  const inSection = /^(doc|fig|ex):([^/]+)\/([\w-]+)$/.exec(k);
+  if (inSection) return `${inSection[1]}:${book}/${inSection[2]}/${inSection[3]}`;
+  const sheet = /^sheet:([\w.-]+)$/.exec(k);
+  if (sheet) return `sheet:${book}/${sheet[1]}`;
+  return k === 'page:book' ? `page:book/${book}` : k;
+};
+/* Every string a saved v5 layout holds, keys qualified; group keys and numbers pass through. */
+export const migratedV5 = (raw: unknown, book: BookId): unknown =>
+  typeof raw === 'string' ? qualifiedV5Key(raw, book)
+    : Array.isArray(raw) ? raw.map((x) => migratedV5(x, book))
+      : typeof raw === 'object' && raw !== null ? Object.fromEntries(Object.entries(raw).map(([k, v]) => [qualifiedV5Key(k, book), migratedV5(v, book)]))
+        : raw;
 /* Persistence boundary: anything read from storage is untrusted and comes back as a Layout or not at all. */
 export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layout | null => {
   const isRec = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;
@@ -331,11 +345,12 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const seen = new Set<string>();
   const groups: Group[] = [];
   for (const g of raw.groups) {
-    if (!isRec(g) || !strs(g.tabs) || !g.tabs.every(known) || new Set(g.tabs).size !== g.tabs.length) return null;
-    const active = typeof g.active === 'string' && g.tabs.includes(g.active) ? g.active : g.tabs[0] ?? null;
-    if (g.tabs.length && active === null) return null;
+    if (!isRec(g) || !strs(g.tabs)) return null;
+    /* A tab the shell no longer knows is dropped on its own; the rest of the layout stands. */
+    const tabs = [...new Set(g.tabs.filter(known))];
+    const active = typeof g.active === 'string' && tabs.includes(g.active) ? g.active : tabs[0] ?? null;
     const key = typeof g.key === 'string' && !seen.has(g.key) ? (g.key as GroupKey) : newGroupKey(); seen.add(key);
-    groups.push({ key, tabs: g.tabs, active });
+    groups.push({ key, tabs, active });
   }
   /* A tree is kept only as far as it parses; normalize below repairs whatever it names wrongly, and a layout saved before there were trees simply gets a row.
      Shares are read only when every one of them is a positive number, and normalize drops a set that no longer fits its children. */

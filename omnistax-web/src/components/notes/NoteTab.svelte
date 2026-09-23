@@ -22,6 +22,7 @@
   import { entryId } from '../../lib/explorer/model';
   import { renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { label } from '../../lib/sections/grouping';
   import type { GroupKey, NoteId } from '../../lib/types/ids';
 
@@ -96,7 +97,7 @@
      that each symbol wears the colour of its type. A row of the picker is read
      and not drawn, so the macros are put back into the symbols they stand for. */
   const symbolOfMacro = (): Readonly<Record<string, string>> =>
-    Object.fromEntries(Object.entries(registry.manifest.symbols).map(([sym, tex]) => [tex, sym] as const));
+    Object.fromEntries(Object.entries(registry.manifest(assumedBook()).symbols).map(([sym, tex]) => [tex, sym] as const));
   const plainTex = (tex: string, byMacro: Readonly<Record<string, string>>): string =>
     tex.replace(/\\[A-Za-z]+/g, (m) => byMacro[m] ?? m).replace(/\s+/g, ' ').trim();
 
@@ -106,7 +107,7 @@
      picked to be held whole in the note, so each writes a card. */
   const bookRows = (): readonly Candidate[] => {
     const byMacro = symbolOfMacro();
-    return Object.values(registry.chapters).flatMap((ch) => [
+    return registry.chaptersOf(assumedBook()).flatMap((ch) => [
       ...ch.formulas.equations.filter((e) => e.important).map((e) =>
         candidate({ kind: 'equation', section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · '), true)),
       ...ch.formulas.glossary.map((g) => candidate({ kind: 'term', section: g.section, term: g.term }, g.term, `term · ${g.section}`, true)),
@@ -117,7 +118,7 @@
 
   const candidates = (): readonly Candidate[] => [
     ...noteDocs.list.filter((d) => d.id !== noteId).map((d) => candidate({ kind: 'note', name: d.name }, d.name, folderOf(d.id))),
-    ...registry.manifest.chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', section: s.id }, label(s.id, s.title), c.title))),
+    ...registry.manifest(assumedBook()).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', section: s.id }, label(s.id, s.title), c.title))),
     ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `highlight · ${n.section}`)),
     /* The files the reader imported, listed under their names beside the
        notes: a link to one opens its tab. */

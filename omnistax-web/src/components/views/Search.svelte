@@ -10,6 +10,8 @@
   import { countFound, findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
   import { openFile } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
+  import { bookId } from '../../lib/types/ids';
   import { pageLabel } from '../../lib/content/roles';
   import { ICON } from '../../lib/icons';
   import { FIG } from '../../lib/fig/figlib';
@@ -61,7 +63,7 @@
   });
   const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
   /* A symbol is set from the book's own table where this is the book being read; another book's is set as it is keyed. */
-  const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => FIG.tex(node, x.book === registry.manifest.id ? registry.manifest.symbols[x.sym] ?? x.sym : x.sym); set(v); return { update: set }; };
+  const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => FIG.tex(node, registry.manifest(bookId(x.book)).symbols[x.sym] ?? x.sym); set(v); return { update: set }; };
   const KIND: Readonly<Record<Hit['kind'], string>> = { concept: 'concept', definition: 'definition', formula: 'formula', text: 'text' };
   const DAY = 86_400_000;
   const when = (t: number): string => {
@@ -90,7 +92,7 @@
   {:else}
     <div class="hits" bind:this={list}>
       {#each byBook as b (b.book)}
-        {#if byBook.length > 1 || b.book !== registry.manifest.id}<div class="eyebrow book">{b.title}</div>{/if}
+        {#if byBook.length > 1 || b.book !== assumedBook()}<div class="eyebrow book">{b.title}</div>{/if}
         {#each b.hits as { h, i } (i)}
           <button type="button" class="hit k-{h.kind}" class:sel={i === sel} data-hit={i} onmousemove={() => (sel = i)} onclick={() => go(i)}>
             {#if h.kind === 'text'}

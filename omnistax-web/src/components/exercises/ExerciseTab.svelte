@@ -12,26 +12,29 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { openDoc } from '../../lib/sections/nav.svelte';
   import { label } from '../../lib/sections/grouping';
-  import type { GroupKey, SectionId } from '../../lib/types/ids';
+  import { sectionRef, type BookId, type GroupKey, type SectionId } from '../../lib/types/ids';
 
-  let { section, ex, groupKey }: { section: SectionId; ex: string; groupKey: GroupKey } = $props();
+  let { book, section, ex, groupKey }: { book: BookId; section: SectionId; ex: string; groupKey: GroupKey } = $props();
+  const ref = $derived(sectionRef(book, section));
 
-  $effect(() => { if (!registry.state(section)) void registry.load(section).catch(() => {}); });
+  $effect(() => { if (!registry.state(ref)) void registry.load(ref); });
 
-  const state = $derived(registry.state(section));
+  const state = $derived(registry.state(ref));
   const exercise = $derived(state?.exercises.find((e) => e.id === ex));
-  const title = $derived(label(section, registry.entry(section)?.title ?? ''));
+  const title = $derived(label(section, registry.entry(ref)?.title ?? ''));
 </script>
 
-<div class="ex-tab" data-section={section} data-ex={ex} data-group={groupKey}>
+<div class="ex-tab" data-book={book} data-section={section} data-ex={ex} data-group={groupKey}>
   <header class="head">
     <span class="what">Exercise</span>
     <button type="button" class="where" title="Open the section this exercise belongs to"
-      onclick={() => void openDoc(section, 'text')}>{title}</button>
+      onclick={() => void openDoc(ref, 'text')}>{title}</button>
   </header>
   <div class="body">
     {#if exercise}
-      <ExerciseCard {section} ex={exercise} />
+      <ExerciseCard {book} {section} ex={exercise} />
+    {:else if state?.status === 'missing'}
+      <p class="gone">{registry.missingLine(ref)}</p>
     {:else if state?.status === 'failed'}
       <p class="gone">Section {section} could not be loaded, so this exercise cannot be shown.</p>
     {:else if state}

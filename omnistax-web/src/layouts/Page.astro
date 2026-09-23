@@ -12,7 +12,7 @@ import { type BookTree, type ChapterTree, type SectionSource, pageNav } from '..
 import { fragment, plainText } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
 import { pageLabel } from '../lib/content/roles';
-import { docItem, sectionId } from '../lib/types/ids';
+import { bookId, docItem, sectionId, sectionRef } from '../lib/types/ids';
 
 type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
 const { tree, chapter, section } = Astro.props as Props;
@@ -36,13 +36,10 @@ const ld = {
 ---
 <ShellPage
   tree={tree}
-  own={docItem(sectionId(sec.id), 'text')}
+  own={docItem(sectionRef(bookId(book.id), sectionId(sec.id)), 'text')}
   pool={fragment(book, chapter?.dto ?? null, section, nav)}
   title={title}
   description={description}
-  book={book.id}
-  chapter={chapter?.dto.dir}
-  section={sec.id}
   chapterDir={chapter?.dto.dir}
 >
   <Fragment slot="head">

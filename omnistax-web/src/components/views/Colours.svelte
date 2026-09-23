@@ -17,6 +17,7 @@
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
@@ -27,7 +28,7 @@
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
   const place = $derived(placeOf(target));
-  const manifest = $derived(registry.manifest);
+  const manifest = $derived(registry.manifest(assumedBook()));
   const types = $derived(typesAt(manifest, colours.choices, place));
   /* The chapter the page stands in, which a badge names when a colour comes from there. */
   const chapter = $derived(place.level === 'book' ? '' : place.chapter);

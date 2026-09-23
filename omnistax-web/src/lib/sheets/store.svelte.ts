@@ -8,6 +8,7 @@
    elements sheet is fetched the first time anything asks for it, which is
    whichever comes first of the page opening and a document being prepared. */
 import { registry } from '../sections/registry.svelte';
+import { assumedBook } from '../sections/focus.svelte';
 import { SheetDataSchema } from '../content/sheets';
 import type { ElementsSheetDTO, SheetDataDTO } from '../content/sheets';
 import type { SheetEntry } from '../content/schema';
@@ -29,9 +30,9 @@ class Sheets {
      needs to know nothing about the prose. */
   init(mark: (root: HTMLElement) => void): void { this.mark = mark; }
 
-  entry(id: string): SheetEntry | undefined { return registry.manifest.sheets.find((s) => s.id === id); }
+  entry(id: string): SheetEntry | undefined { return registry.manifest(assumedBook()).sheets.find((s) => s.id === id); }
   /* The one elements sheet a book may declare; nothing for a book that declares none, and physics declares none. */
-  get elementsEntry(): SheetEntry | undefined { return registry.manifest.sheets.find((s) => s.kind === 'elements'); }
+  get elementsEntry(): SheetEntry | undefined { return registry.manifest(assumedBook()).sheets.find((s) => s.kind === 'elements'); }
   get elements(): ElementsSheetDTO | null {
     const e = this.elementsEntry; const d = e ? this.data[e.id] : undefined;
     return d && d.kind === 'elements' ? d : null;

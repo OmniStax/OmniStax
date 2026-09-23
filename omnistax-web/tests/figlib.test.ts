@@ -3,7 +3,7 @@
    the clamping and the wrapping are checked without a browser. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FIG } from '../src/lib/fig/figlib';
+import { FIG, figFor, registerFigBook } from '../src/lib/fig/figlib';
 
 /* a 2D context that measures every character as 10 units wide and records what it drew */
 type Drawn = { s: string; x: number; y: number };
@@ -152,4 +152,18 @@ test('a cable runs round its pulleys and a cable with none is the straight line'
   const ctx = stub(600);
   assert.doesNotThrow(() => FIG.wrap(ctx, [{ x: 200, y: 500 }, { x: 900, y: 500 }], [{ x: 400, y: 200 }, { x: 700, y: 200 }], 34));
   assert.doesNotThrow(() => FIG.wrap(ctx, [{ x: 200, y: 500 }, { x: 900, y: 500 }], [], 34));
+});
+
+test('each book sets TeX with its own macros and symbols, through a Fig of its own', () => {
+  registerFigBook({ id: 'book-a', macros: { '\\kT': '\\htmlClass{kv-time}{t}' }, symbols: { T: 't' }, colorKeys: ['time'] });
+  registerFigBook({ id: 'book-b', macros: { '\\kT': '\\htmlClass{kv-temperature}{T}' }, symbols: { T: 'T' }, colorKeys: ['temperature'] });
+  const a = figFor('book-a'), b = figFor('book-b');
+  assert.equal(a, figFor('book-a'), 'one Fig per book, made once');
+  assert.equal(a.KOPT.macros['\\kT'], '\\htmlClass{kv-time}{t}');
+  assert.equal(b.KOPT.macros['\\kT'], '\\htmlClass{kv-temperature}{T}');
+  assert.equal(a.SYM.T, 't');
+  assert.equal(b.macros['\\kT'], '\\htmlClass{kv-temperature}{T}');
+  assert.equal(FIG.KOPT.macros['\\kT'], undefined, 'neither leaks into the default table');
+  assert.equal(a.fitScale({ l: 0, r: 100, t: 0, b: 100 }, { w: 200, h: 100 }), 0.5, 'the rest of the surface is FIG\'s');
+  assert.equal(a.LW, FIG.LW);
 });

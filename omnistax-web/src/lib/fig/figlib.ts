@@ -40,10 +40,19 @@ const $$ = <T extends Element = Element>(s: string, r: ParentNode = document): T
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- math ---------- */
-let macros: Macros = {};
-let SYM: SymbolMap = {};
+/* What a book hands the drawing layer: its macros, its symbol table and its types. Two books may
+   spell the same macro or the same type differently, so every call that sets TeX runs under one
+   book's table, the one `cur` holds while it runs, and the boot book's otherwise. */
+export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[] };
+export type FigBook = FigBookConfig & { readonly id: string };
+const NO_BOOK: FigBookConfig = { macros: {}, symbols: {}, colorKeys: [] };
+const figBooks = new Map<string, FigBookConfig>();
+let bootBook = '';
+let cur: FigBookConfig | null = null;
+const configOf = (book: string): FigBookConfig => figBooks.get(book) ?? NO_BOOK;
+const active = (): FigBookConfig => cur ?? configOf(bootBook);
 const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /* the book's colour macros: a type class and a symbol key */
-const KOPT = () => ({ macros: { ...macros }, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
+const KOPT = () => ({ macros: { ...active().macros }, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
 
 /* KaTeX is the heaviest thing the shell can ask for, and a page of the book
    arrives with its maths already set at build time, so the library is fetched
@@ -65,17 +74,18 @@ const loadMath = (): Promise<MathLib> =>
 const withMath = (use: (m: MathLib) => void): void => { if (mathLib) use(mathLib); else void loadMath().then(use).catch(() => {}); };
 
 function tex(el: HTMLElement, s: string, display = false): void {
-  withMath((m) => m.katex.render(s, el, { ...KOPT(), displayMode: display }));
+  const opts = KOPT();
+  withMath((m) => m.katex.render(s, el, { ...opts, displayMode: display }));
 }
 function renderMath(root: HTMLElement): void {
-  withMath((m) => m.auto(root, { ...KOPT(), delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
+  const opts = KOPT();
+  withMath((m) => m.auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
 
 /* ---------- palette & colour coding ---------- */
 let CC = true;
 const PAL: Record<string, Color> = {};
 const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
-let colorKeys: readonly string[] = [];
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
 /* The element palette is not a type and takes nothing from the scheme, so it is
    read beside the palette rather than out of it: the only thing it needs from
@@ -84,25 +94,39 @@ const cssVar = (n: string, el: Element = document.documentElement): string => ge
 let darkTheme = false;
 const readTheme = (): boolean => (getComputedStyle(document.documentElement).colorScheme || '').includes('dark');
 const elColor = (s: ElementSymbol | string): Color => elementColor(s, darkTheme);
-/* The page's palette, plus the hues a figure's own chapter and section bind. */
-let base: Record<string, Color> = {};
-const chapterPal = new Map<string, Record<string, Color>>();
+/* The page's neutral inks, each book's scheme, and the hues a figure's own chapter and section bind.
+   A book's scheme lives on its own attribute, so it is read off a hidden element that carries it. */
+let neutral: Record<string, Color> = {};
+const bookPal = new Map<string, Record<string, Color>>();
+const scopePal = new Map<string, Record<string, Color>>();
+const makeProbe = (book: string): HTMLElement => {
+  const d = document.createElement('div'); d.hidden = true; d.dataset.book = book; d.dataset.figProbe = book;
+  return document.body.appendChild(d);
+};
+const probe = (book: string): HTMLElement => document.body.querySelector<HTMLElement>(`[data-fig-probe="${book}"]`) ?? makeProbe(book);
+const varsAt = (book: string, el: Element): Record<string, Color> =>
+  Object.fromEntries(configOf(book).colorKeys.map((k) => [k, cssVar('--c-' + k, el)]).filter(([, v]) => v));
+const baseOf = (book: string): Record<string, Color> => {
+  const got = bookPal.get(book) ?? varsAt(book, probe(book));
+  bookPal.set(book, got);
+  return got;
+};
 function readPal(): void {
-  const named = Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k)]));
   darkTheme = readTheme();
-  base = { ...named, ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
-  chapterPal.clear(); bound.clear(); Object.assign(PAL, base);
+  neutral = { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
+  bookPal.clear(); scopePal.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
 }
-/* A figure draws with the palette of the article it sits in, and a section may
-   colour a type differently from its chapter, so the scope is the nearest
-   element that names either — a section's root, which names both. */
+/* A figure draws with the palette of its own book and of the article it sits in, and a section may
+   colour a type differently from its chapter, so the scope is the nearest element that names either —
+   a section's root, which names both. */
 function usePal(fig: Element): void {
-  const scope = fig.closest<HTMLElement>('[data-sec], [data-chapter]'); const key = `${scope?.dataset.chapter ?? ''}|${scope?.dataset.sec ?? ''}`;
-  if (!scope || scope === document.documentElement) { Object.assign(PAL, base); return; }
-  const cached = chapterPal.get(key);
-  const over: Record<string, Color> = cached ?? Object.fromEntries(colorKeys.map((k) => [k, cssVar('--c-' + k, scope)]).filter(([, v]) => v));
-  if (!cached) chapterPal.set(key, over);
-  Object.assign(PAL, base, over);
+  const book = fig.closest<HTMLElement>('[data-book]')?.dataset.book ?? bootBook;
+  const scope = fig.closest<HTMLElement>('[data-sec], [data-chapter]');
+  if (!scope || scope === document.documentElement) { Object.assign(PAL, neutral, baseOf(book)); return; }
+  const key = `${book}|${scope.dataset.chapter ?? ''}|${scope.dataset.sec ?? ''}`;
+  const over = scopePal.get(key) ?? varsAt(book, scope);
+  scopePal.set(key, over);
+  Object.assign(PAL, neutral, baseOf(book), over);
 }
 /* The type hues the page has drawn so far. The book's types reach the page as
    CSS variables for all of them at once, so what a page actually binds is what
@@ -1489,7 +1513,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
 }
 
 export const FIG = {
-  $, $$, REDUCED, get macros() { return macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return SYM; },
+  $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
@@ -1498,9 +1522,41 @@ export const FIG = {
 };
 export type Fig = typeof FIG;
 
-/* Called once by the shell with the book's macros and symbol table. */
-export function initFig(book: { macros: Macros; symbols: SymbolMap; colorKeys: readonly string[] }): Fig {
-  macros = book.macros; SYM = book.symbols; colorKeys = book.colorKeys; readPal();
+/* A book's table, kept for every Fig handed out for it, those already handed out included. */
+export function registerFigBook(book: FigBook): void {
+  figBooks.set(book.id, { macros: book.macros, symbols: book.symbols, colorKeys: book.colorKeys });
+  bookPal.delete(book.id);
+}
+
+/* The Fig a book's figure scripts and TeX go through: the same surface as FIG, with every call run
+   under that book's table, so `F.tex`, `F.ctl` and `F.SYM` read its macros and symbols. */
+const withBook = (book: string) => <A extends unknown[], R>(f: (...a: A) => R) => (...a: A): R => {
+  const prev = cur; cur = configOf(book);
+  try { return f(...a); } finally { cur = prev; }
+};
+const figs = new Map<string, Fig>();
+const bookFig = (book: string): Fig => {
+  const run = withBook(book);
+  const own = Object.entries(Object.getOwnPropertyDescriptors(FIG)).map(([k, d]): [string, PropertyDescriptor] =>
+    [k, typeof d.value === 'function' ? { ...d, value: run(d.value as (...a: unknown[]) => unknown) } : d]);
+  return Object.defineProperties({}, {
+    ...Object.fromEntries(own),
+    macros: { get: () => configOf(book).macros, enumerable: true },
+    SYM: { get: () => configOf(book).symbols, enumerable: true },
+    KOPT: { get: run(KOPT), enumerable: true },
+  }) as Fig;
+};
+export const figFor = (book: string): Fig => {
+  const got = figs.get(book) ?? bookFig(book);
+  figs.set(book, got);
+  return got;
+};
+
+/* The boot book: registered, made the default table, and exposed as window.FIG. */
+export function initFig(book: FigBookConfig & { readonly id?: string }): Fig {
+  bootBook = book.id ?? document.documentElement.dataset.book ?? '';
+  registerFigBook({ ...book, id: bootBook });
+  readPal();
   (window as unknown as { FIG: Fig }).FIG = FIG;
   return FIG;
 }

@@ -14,11 +14,10 @@ const title = `${sheet.row.title} · ${m.title}`;
 ---
 <ShellPage
   tree={tree}
-  own={sheetItem(sheetId(sheet.row.id))}
+  own={sheetItem(m.id, sheetId(sheet.row.id))}
   pool={`<article class="page" data-page="sheet" data-sheet="${sheet.row.id}" hidden><h1>${sheet.row.title}</h1></article>`}
   title={title}
   description={`${sheet.row.title}, a reference sheet of ${m.title}.`}
-  book={m.id}
 >
   <Fragment slot="head">
     {m.licenseUrl && <link rel="license" href={m.licenseUrl} />}

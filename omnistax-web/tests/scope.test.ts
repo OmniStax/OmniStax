@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, parseScopes, resolve, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
-import { chapterId, sectionId } from '../src/lib/types/ids';
+import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
 /* The book a view is scoped in: two chapters, and in the second one the first section is not built. */
 const BOOK: BookTree = {
+  id: bookId('college-physics-2e'),
   title: 'College Physics',
   chapters: [
     { id: '2', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', built: true }, { id: '2.2', title: 'Vectors', built: false }] },
@@ -88,7 +89,7 @@ test('a section target names all three places, short and long', () => {
 test('a chapter target names the section narrowing would land on', () => {
   assert.deepEqual(crumbsOf(chapter, BOOK).map((c) => c.short), ['Book', 'Ch 16', '16.3']);
   assert.deepEqual(crumbsOf(book, BOOK).map((c) => c.short), ['Book', 'Ch 2', '2.1']);
-  assert.deepEqual(crumbsOf(book, { title: 'Empty', chapters: [] }).map((c) => c.short), ['Book']);
+  assert.deepEqual(crumbsOf(book, { id: bookId('empty'), title: 'Empty', chapters: [] }).map((c) => c.short), ['Book']);
 });
 test('a target is labelled by its own step of the trail', () => {
   assert.equal(targetLabel(book, BOOK), 'Book');
@@ -115,7 +116,7 @@ test('a chapter menu offers every chapter the book lists, and says which have so
     { target: { level: 'chapter', chapter: '2' }, id: '2', title: 'Kinematics', built: true },
     { target: chapter, id: '16', title: 'Oscillatory Motion and Waves', built: true },
   ]);
-  const unbuilt = { title: 'College Physics', chapters: [...BOOK.chapters, { id: '17', title: 'Physics of Hearing', sections: [{ id: '17.1', title: 'Sound', built: false }] }] };
+  const unbuilt = { id: bookId('college-physics-2e'), title: 'College Physics', chapters: [...BOOK.chapters, { id: '17', title: 'Physics of Hearing', sections: [{ id: '17.1', title: 'Sound', built: false }] }] };
   assert.deepEqual(siblingsOf('chapter', book, unbuilt).map((c) => [c.id, c.built]), [['2', true], ['16', true], ['17', false]]);
 });
 test('a section menu offers the sections of the chapter the trail runs through, built or not', () => {

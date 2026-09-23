@@ -10,7 +10,7 @@
      row carries the embed that writes it out there as a card. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { getContext as getCtx } from 'svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+  import { focus, assumedBook } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { settings } from '../../lib/settings/store.svelte';
@@ -25,13 +25,13 @@
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
   const defs = $derived<readonly Def[]>([
-    ...Object.values(registry.chapters).flatMap((c) => c.formulas.variables).map((symbol): Def => ({ kind: 'symbol', symbol })),
-    ...Object.values(registry.chapters).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
+    ...registry.chaptersOf(assumedBook()).flatMap((c) => c.formulas.variables).map((symbol): Def => ({ kind: 'symbol', symbol })),
+    ...registry.chaptersOf(assumedBook()).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
   ]);
-  const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest));
+  const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest(assumedBook())));
   const openChapter = $derived(registry.chapterOf(focus.section)?.id ?? '');
-  const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest.symbols[s] ?? s); return {}; };
-  const legend = $derived(orderOf(registry.manifest, colours.choices).map((k) => [k, registry.manifest.types[k]?.label ?? k] as const));
+  const sym = (node: HTMLElement, s: string) => { FIG.tex(node, registry.manifest(assumedBook()).symbols[s] ?? s); return {}; };
+  const legend = $derived(orderOf(registry.manifest(assumedBook()), colours.choices).map((k) => [k, registry.manifest(assumedBook()).types[k]?.label ?? k] as const));
 </script>
 
 {#snippet list(items: readonly Def[])}

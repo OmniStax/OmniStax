@@ -20,7 +20,7 @@ import { history } from '../history/store.svelte';
 import { colours } from '../colours/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
-import { drawingItem, itemKey, newViewItem, noteItem, pageItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
+import { drawingItem, itemKey, newViewItem, noteItem, aboutItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
@@ -81,7 +81,7 @@ const docs = {
   /* The front of OmniStax, as a tab of the group the palette was opened from,
      or of the focused group. The registry fetches the article when the pool
      never carried it, and the pane draws it as soon as it is adopted. */
-  openAbout: (): void => { void openItem(itemKey(pageItem('about')), ui.palette.group ?? undefined); },
+  openAbout: (): void => { void openItem(itemKey(aboutItem()), ui.palette.group ?? undefined); },
 };
 
 /* The note the commands act on is the one in the tab the reader is in: the

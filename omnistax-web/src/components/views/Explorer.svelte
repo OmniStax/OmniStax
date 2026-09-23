@@ -28,7 +28,7 @@
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { fileId, fileItem, itemKey, noteId, noteItem, sectionId, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
+  import { bookId, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, type SectionId } from '../../lib/types/ids';
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
   import { drawingId, drawingItem } from '../../lib/types/ids';
   import { importFiles, importSummary } from '../../lib/files/import';
@@ -64,7 +64,7 @@
   let others = $state.raw<Readonly<Record<string, BookManifest>>>({});
   const asked = new Set<string>();
   const manifestOf = (bookId: string): BookManifest | null => {
-    if (bookId === registry.manifest.id) return registry.manifest;
+    if (bookId === registry.home) return registry.manifest(registry.home);
     const have = others[bookId];
     if (have) return have;
     if (!asked.has(bookId)) {
@@ -82,7 +82,7 @@
      heading it carries, with the maths stripped out of the name. Null while the
      section has not been opened, which is a different thing from having none. */
   const headingsOf = (sec: SectionId): { id: string; label: string }[] | null => {
-    const st = registry.sections[sec];
+    const st = registry.state(sectionRef(registry.home, sec));
     const root = st ? st.docs.text ?? Object.values(st.docs)[0] ?? null : null;
     if (!root) return null;
     return Array.from(root.querySelectorAll<HTMLElement>('section[id]')).flatMap((s) => {
@@ -101,14 +101,14 @@
       out.push({ key, kind: 'hint', depth, label, icon: '', expandable: false, open: false, dim: true, active: false });
     };
     const section = (bookId: string, s: SectionEntry, depth: number): void => {
-      const own = bookId === registry.manifest.id;
+      const own = bookId === registry.home;
       const key = sectionKey(bookId, s.id);
       const open = explorer.expanded(key);
       const sec = sectionId(s.id);
       out.push({
         key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: sec,
         href: own ? undefined : s.url, expandable: own && s.built, open,
-        dim: !s.built, active: own && s.built && focus.section === sec, book: bookId,
+        dim: !s.built, active: own && s.built && focus.section.book === registry.home && focus.section.section === sec, book: bookId,
         updated: (offlineBooks.updatedSections[bookId] ?? []).includes(s.id),
       });
       if (!own || !s.built || !open) return;
@@ -132,8 +132,8 @@
          chapters are still the first thing under the book. */
       const sheetRow = (sh: SheetEntry, at: number): Row => ({
         key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth: at, label: sh.title, icon: ICON.formulas,
-        href: bookId === registry.manifest.id ? undefined : sh.url, expandable: false, open: false, dim: false,
-        active: bookId === registry.manifest.id && activeKey === itemKey(sheetItem(sheetId(sh.id))),
+        href: bookId === registry.home ? undefined : sh.url, expandable: false, open: false, dim: false,
+        active: bookId === registry.home && activeKey === itemKey(sheetItem(registry.home, sheetId(sh.id))),
       });
       const shelf = m.sheets.length > 3;
       if (!shelf) m.sheets.forEach((sh) => out.push(sheetRow(sh, depth)));
@@ -318,9 +318,9 @@
     if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
     if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))); return; }
     if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))); return; }
-    if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
-    if (r.kind === 'section' && r.section && !r.dim && !r.href) { if (r.book) offlineBooks.markSeen(r.book, r.section); void openDoc(r.section, 'text'); return; }
-    if (r.kind === 'heading' && r.domId) go(r.domId);
+    if (r.kind === 'sheet' && !r.href) { void openItem(itemKey(sheetItem(registry.home, sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
+    if (r.kind === 'section' && r.section && !r.dim && !r.href) { if (r.book) offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(r.book ? bookId(r.book) : registry.home, r.section), 'text'); return; }
+    if (r.kind === 'heading' && r.domId) go(registry.home, r.domId);
   };
 
   /* The row menu, hanging where the pointer or the button left it. */
@@ -428,7 +428,7 @@
   onMount(() => {
     if (seeded || explorer.tree.expanded.length) { seeded = true; return; }
     seeded = true;
-    const m = registry.manifest;
+    const m = registry.manifest(registry.home);
     if (!m.id) return;
     explorer.toggle(bookKey(m.id));
     const ch = registry.chapterOf(focus.section);

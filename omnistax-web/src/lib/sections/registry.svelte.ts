@@ -1,11 +1,13 @@
-/* Loaded sections and their DOM. The page's own section is adopted from the
-   static pool; others are fetched as fragments on demand. A document may be
-   shown in several groups: the first gets the adopted element, the rest get a
-   copy built from the fragment source with its own exercises and figures. A
+/* Loaded books, sections and their DOM. Any number of books stand loaded at
+   once, each known by its manifest; a section is known by its book and its
+   number together. The page's own section is adopted from the static pool;
+   others are fetched as fragments on demand. A document may be shown in
+   several groups: the first gets the adopted element, the rest get a copy
+   built from the fragment source with its own exercises and figures. A
    chapter's concepts and formulas are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type PageKind, PAGE_KINDS, bookId, sectionId, itemKey, figItem } from '../types/ids';
+import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, figItem, aboutItem, bookPageItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { entryId } from '../explorer/model';
@@ -34,7 +36,8 @@ const figName = (local: string): string => local.replace(/^(sim|fig)-/, '').repl
    them, and nothing where the tree has no such row. */
 const entryName = (id: string): string | undefined => explorer.tree.entries.find((e) => e.id === entryId(id))?.name;
 
-export type SectionStatus = 'loaded' | 'loading' | 'failed';
+/* 'missing': the book does not exist, or has no such page, or has not built it. */
+export type SectionStatus = 'loaded' | 'loading' | 'failed' | 'missing';
 export type SectionState = {
   readonly meta: SectionMetaDTO | null;
   readonly exercises: readonly ExerciseDTO[];
@@ -44,60 +47,97 @@ export type SectionState = {
   readonly error?: string;
 };
 export type ChapterData = { readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO };
-export type ChapterStatus = SectionStatus;
-export type Mounter = (root: HTMLElement, section: SectionId) => void;
+export type ChapterStatus = Exclude<SectionStatus, 'missing'>;
+/* "<book>/<dir>": a chapter's directory is book-local, like its sections. */
+export type ChapterKey = string & { readonly __brand: 'ChapterKey' };
+export const chapterKey = (book: BookId, dir: string): ChapterKey => `${book}/${dir}` as ChapterKey;
+export type Mounter = (root: HTMLElement, ref: SectionRef) => void;
+export type RegistryInit = {
+  readonly figFor: (book: BookId) => Fig;
+  readonly mounter: Mounter;
+  readonly decorate?: (root: HTMLElement) => void;
+  readonly threeUrl?: ThreeUrl;
+};
+type FigureScript = (root: HTMLElement, F: Fig) => void;
+
+const EMPTY_STATE: Omit<SectionState, 'status'> = { meta: null, exercises: [], docs: {}, src: {} };
+const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '', formulas: '' };
+const BOOK_ID = /^[a-z0-9-]+$/;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
+const templateOf = (html: string): DocumentFragment => { const t = document.createElement('template'); t.innerHTML = html; return t.content; };
+const getText = (url: string): Promise<string> => fetch(url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); });
+const pageKey = (p: PageItem): string => itemKey(p);
 
 class Registry {
-  manifest = $state.raw<BookManifest>({ id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '', formulas: '' });
-  sections = $state.raw<Readonly<Record<string, SectionState>>>({});
-  pages = $state.raw<Partial<Record<PageKind, HTMLElement>>>({});             /* the standing pages, adopted from a pool or fetched */
-  chapters = $state.raw<Readonly<Record<string, ChapterData>>>({});
-  chapterStatus = $state.raw<Readonly<Record<string, ChapterStatus>>>({});   /* by chapter dir, beside the data above */
-  private fig: Fig | null = null;
+  books = $state.raw<Readonly<Record<string, BookManifest>>>({});
+  /* Books asked for that the site does not carry. */
+  absent = $state.raw<ReadonlySet<BookId>>(new Set());
+  sections = $state.raw<Readonly<Record<SecKey, SectionState>>>({});
+  pages = $state.raw<Readonly<Record<string, HTMLElement>>>({});             /* the standing pages by item key, adopted from a pool or fetched */
+  chapters = $state.raw<Readonly<Record<ChapterKey, ChapterData>>>({});
+  chapterStatus = $state.raw<Readonly<Record<ChapterKey, ChapterStatus>>>({});
+  /* The book the page was served for, which an article without its own data-book belongs to. */
+  home: BookId = bookId('');
+  private figFor: ((book: BookId) => Fig) | null = null;
   private threeUrl: ThreeUrl = '';                                          /* the vendor script, fetched the first time a figure draws in three dimensions */
   private mountExercises: Mounter = () => {};
   private decorate: (root: HTMLElement) => void = () => {};
   private owner: Record<string, GroupKey> = {};
   private clones: Record<string, HTMLElement> = {};
-  private loading: Partial<Record<string, Promise<void>>> = {};
-  private loadingChapters: Partial<Record<string, Promise<void>>> = {};
-  private loadingPages: Partial<Record<PageKind, Promise<void>>> = {};
+  private loading: Partial<Record<SecKey, Promise<void>>> = {};
+  private loadingChapters: Partial<Record<ChapterKey, Promise<void>>> = {};
+  private loadingPages: Partial<Record<string, Promise<void>>> = {};
+  private loadingBooks: Partial<Record<BookId, Promise<BookManifest | null>>> = {};
+  private bookHooks: ((m: BookManifest) => void)[] = [];
 
-  init(manifest: BookManifest, fig: Fig, mounter: Mounter, decorate?: (root: HTMLElement) => void, threeUrl?: ThreeUrl): void { this.manifest = manifest; this.fig = fig; this.mountExercises = mounter; if (decorate) this.decorate = decorate; if (threeUrl) this.threeUrl = threeUrl; }
+  init(o: RegistryInit): void { this.figFor = o.figFor; this.mountExercises = o.mounter; if (o.decorate) this.decorate = o.decorate; if (o.threeUrl) this.threeUrl = o.threeUrl; }
 
-  /* The reader walks into another book. A section is known by its number alone,
-     so two books cannot stand loaded at once: what the old book left behind is
-     dropped — its documents, its copies, its chapter data and the fetches still
-     in flight — and the new manifest takes its place. The book's own page is
-     kept out of the standing pages for the same reason; the about page is the
-     app's and belongs to no book, so it stays. */
-  switchTo(manifest: BookManifest): void {
-    if (manifest.id === this.manifest.id) return;
-    this.primaryDocs().forEach((a) => a.remove());
-    Object.values(this.clones).forEach((a) => a.remove());
-    this.clones = {}; this.owner = {}; this.loading = {}; this.loadingChapters = {}; this.loadingPages = {};
-    this.sections = {}; this.chapters = {}; this.chapterStatus = {};
-    const { about } = this.pages;
-    this.pages = about ? { about } : {};
-    /* The figure modules are registered under the section's number too, so the
-       old book's scripts would draw on the new book's pages. */
-    const w = window as unknown as { OMNISTAX_FIGURES?: Record<string, unknown> };
-    if (w.OMNISTAX_FIGURES) w.OMNISTAX_FIGURES = {};
-    this.manifest = manifest;
+  /* A manifest the shell already holds, the boot book's. */
+  addBook(m: BookManifest): void {
+    if (this.books[m.id]) return;
+    this.books = { ...this.books, [m.id]: m };
+    this.bookHooks.forEach((cb) => cb(m));
+  }
+  /* Called once for every book, those already here included. */
+  onBook(cb: (m: BookManifest) => void): void { this.bookHooks.push(cb); Object.values(this.books).forEach(cb); }
+  /* The book's manifest, fetched once; null when the site carries no such book. */
+  ensureBook(book: BookId): Promise<BookManifest | null> {
+    const have = this.books[book]; if (have) return Promise.resolve(have);
+    if (this.absent.has(book) || !BOOK_ID.test(book)) { this.markAbsent(book); return Promise.resolve(null); }
+    const pending = this.loadingBooks[book]; if (pending) return pending;
+    const run = fetch(`/${book}/book.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<BookManifest>) : null))
+      .catch(() => null)
+      .then((m) => { if (m) this.addBook(m); else this.markAbsent(book); return m; })
+      .finally(() => { delete this.loadingBooks[book]; });
+    return (this.loadingBooks[book] = run);
+  }
+  private markAbsent(book: BookId): void { if (!this.absent.has(book)) this.absent = new Set([...this.absent, book]); }
+  /* The book's manifest, or an empty one with its id while it has not arrived. */
+  manifest(book: BookId): BookManifest { return this.books[book] ?? { ...EMPTY_MANIFEST, id: book }; }
+  hasBook(book: BookId): boolean { return this.books[book] !== undefined; }
+  /* What a pane says for a section that is 'missing'. */
+  missingLine(ref: SectionRef): string {
+    const m = this.books[ref.book];
+    return m ? `${m.title} has no section ${ref.section}.` : `There is no book called ${ref.book}.`;
   }
 
-  /* Any page of the book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
-  entry(sec: SectionId): SectionEntry | undefined { return bookPagesOf(this.manifest).find((s) => s.id === sec); }
+  /* Any page of a book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
+  entry(ref: SectionRef): SectionEntry | undefined { const m = this.books[ref.book]; return m ? bookPagesOf(m).find((s) => s.id === ref.section) : undefined; }
   /* The chapter a page belongs to; the book's own pages belong to none. */
-  chapterOf(sec: SectionId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => pagesOf(c).some((s) => s.id === sec)); }
-  chapterById(id: ChapterId): ChapterEntry | undefined { return this.manifest.chapters.find((c) => c.id === id); }
-  isBuilt(sec: SectionId): boolean { return this.entry(sec)?.built ?? false; }
-  state(sec: SectionId): SectionState | undefined { return this.sections[sec]; }
+  chapterOf(ref: SectionRef): ChapterEntry | undefined { return this.books[ref.book]?.chapters.find((c) => pagesOf(c).some((s) => s.id === ref.section)); }
+  chapterById(book: BookId, id: ChapterId): ChapterEntry | undefined { return this.books[book]?.chapters.find((c) => c.id === id); }
+  isBuilt(ref: SectionRef): boolean { return this.entry(ref)?.built ?? false; }
+  state(ref: SectionRef): SectionState | undefined { return this.sections[secKey(ref)]; }
+  /* Every section of one book that has any state, by its number. */
+  sectionsOf(book: BookId): readonly (readonly [SectionId, SectionState])[] {
+    const prefix = `${book}/`;
+    return Object.entries(this.sections).flatMap(([k, s]) => (k.startsWith(prefix) ? [[sectionId(k.slice(prefix.length)), s] as const] : []));
+  }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
-    if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.manifest.title || 'The book';
+    if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.books[id.book]?.title || id.book;
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
     /* A file, a drawing and a chat are the reader's own, and the name they
        know one by is the one on its row of the explorer; a tab opened for
@@ -106,99 +146,108 @@ class Registry {
     if (id.kind === 'drawing') return entryName(id.drawing) ?? itemKey(id);
     if (id.kind === 'chat') return entryName(id.chat) ?? 'New chat';
     if (id.kind === 'ex') return `${id.section} ${id.ex}`;
-    if (id.kind === 'sheet') return this.manifest.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
+    if (id.kind === 'sheet') return this.books[id.book]?.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
+    if (id.kind === 'scratch') return `${id.section} ${id.ex}`;
     /* A section's tab carries the name the reader knows it by — "7.6 Momentum
-       and Force" — and the problem set says so after it, since the two tabs of a
-       section stand side by side and the number alone does not tell them apart.
-       A section the manifest does not name falls back to its number and the bare
-       word. An introduction or summary page is named by its own title. */
-    if (pageRoleOf(id.section) !== 'section') { const e = this.entry(id.section); return e ? pageLabel(e) : id.section; }
-    const title = this.entry(id.section)?.title;
-    if (title === undefined) return `${id.section} Text`;
-    return `${id.section} ${title}`;
+       and Force". A section the manifest does not name falls back to its
+       number and the bare word. An introduction or summary page is named by
+       its own title. */
+    const e = this.entry(id);
+    if (pageRoleOf(id.section) !== 'section') return e ? pageLabel(e) : id.section;
+    return e === undefined ? `${id.section} Text` : `${id.section} ${e.title}`;
   }
+  /* One book's chapter data, loaded so far. */
+  chaptersOf(book: BookId): readonly ChapterData[] {
+    const prefix = `${book}/`;
+    return Object.entries(this.chapters).flatMap(([k, c]) => (k.startsWith(prefix) ? [c] : []));
+  }
+  chapter(book: BookId, dir: string): ChapterData | undefined { return this.chapters[chapterKey(book, dir)]; }
+  chapterStatusOf(book: BookId, dir: string): ChapterStatus | undefined { return this.chapterStatus[chapterKey(book, dir)]; }
   /* Concept ids are canonical and a chapter reaches into the chapters before it, so two loaded chapters may name the same concept; the map draws it once. */
-  get concepts(): readonly ConceptDTO[] {
+  concepts(book: BookId): readonly ConceptDTO[] {
     const seen = new Set<string>();
-    return Object.values(this.chapters).flatMap((c) => c.concepts.concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true)));
+    return this.chaptersOf(book).flatMap((c) => c.concepts.concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true)));
   }
-  get coverage(): readonly CoverageDTO[] { return Object.values(this.chapters).flatMap((c) => c.concepts.coverage); }
-  concept(id: string): ConceptDTO | undefined { return this.concepts.find((c) => c.id === id); }
-  setChapter(dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [dir]: data }; this.setChapterStatus(dir, 'loaded'); }
-  private setChapterStatus(dir: string, status: ChapterStatus): void { this.chapterStatus = { ...this.chapterStatus, [dir]: status }; }
+  coverage(book: BookId): readonly CoverageDTO[] { return this.chaptersOf(book).flatMap((c) => c.concepts.coverage); }
+  concept(book: BookId, id: string): ConceptDTO | undefined { return this.concepts(book).find((c) => c.id === id); }
+  setChapter(book: BookId, dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [chapterKey(book, dir)]: data }; this.setChapterStatus(chapterKey(book, dir), 'loaded'); }
+  private setChapterStatus(k: ChapterKey, status: ChapterStatus): void { this.chapterStatus = { ...this.chapterStatus, [k]: status }; }
 
   /* A chapter's concepts and formulas, fetched once however many askers there are;
      a chapter that will not load is remembered as failed rather than thrown at each of them. */
-  loadChapter(dir: string): Promise<void> {
-    if (this.chapters[dir]) return Promise.resolve();
-    const pending = this.loadingChapters[dir]; if (pending) return pending;
-    const ch = this.manifest.chapters.find((c) => c.dir === dir);
-    if (!ch) return Promise.reject(new Error(`unknown chapter ${dir}`));
-    this.setChapterStatus(dir, 'loading');
-    this.loadingChapters[dir] = Promise.all([fetch(ch.concepts).then((r) => r.json()), fetch(ch.formulas).then((r) => r.json())])
-      .then(([concepts, formulas]) => this.setChapter(dir, { concepts, formulas }))
-      .catch(() => this.setChapterStatus(dir, 'failed'))
-      .finally(() => { delete this.loadingChapters[dir]; });
-    return this.loadingChapters[dir]!;
+  loadChapter(book: BookId, dir: string): Promise<void> {
+    const k = chapterKey(book, dir);
+    if (this.chapters[k]) return Promise.resolve();
+    const pending = this.loadingChapters[k]; if (pending) return pending;
+    const ch = this.books[book]?.chapters.find((c) => c.dir === dir);
+    if (!ch) return Promise.reject(new Error(`unknown chapter ${k}`));
+    this.setChapterStatus(k, 'loading');
+    const run = Promise.all([fetch(ch.concepts).then((r) => r.json()), fetch(ch.formulas).then((r) => r.json())])
+      .then(([concepts, formulas]) => this.setChapter(book, dir, { concepts, formulas }))
+      .catch(() => this.setChapterStatus(k, 'failed'))
+      .finally(() => { delete this.loadingChapters[k]; });
+    return (this.loadingChapters[k] = run);
   }
-  /* Several chapters at once. Past a handful of them the two book-level files
-     are the cheaper read — the Exercises view and the search ask for every
-     built chapter, while the reading path asks for the one chapter it is in —
-     and what is already loaded or in flight is left to the fetch that owns it. */
-  async loadChapters(dirs: readonly string[]): Promise<void> {
-    const wanted = dirs.filter((d) => !this.chapters[d] && !this.loadingChapters[d]);
-    if (bulkWorthwhile(wanted.length, this.manifest.chapters.length)) await this.loadBulk(wanted);
-    await Promise.all(dirs.map((d) => this.loadChapter(d)));
+  /* Several chapters of one book at once. Past a handful of them the two
+     book-level files are the cheaper read, and what is already loaded or in
+     flight is left to the fetch that owns it. */
+  async loadChapters(book: BookId, dirs: readonly string[]): Promise<void> {
+    const m = await this.ensureBook(book); if (!m) return;
+    const wanted = dirs.filter((d) => !this.chapters[chapterKey(book, d)] && !this.loadingChapters[chapterKey(book, d)]);
+    if (bulkWorthwhile(wanted.length, m.chapters.length)) await this.loadBulk(m, wanted);
+    await Promise.all(dirs.map((d) => this.loadChapter(book, d)));
   }
 
   /* The book's concepts and formulas in one pair of requests, spread over the
      chapters asked for. Each of them is marked loading against this one
      promise, so a chapter the shell asks for meanwhile waits on it rather than
-     fetching its own file; a pair that will not load leaves them all failed,
-     as a chapter of its own would be. */
-  private loadBulk(dirs: readonly string[]): Promise<void> {
-    const files = this.manifest;
-    dirs.forEach((d) => this.setChapterStatus(d, 'loading'));
-    const run = Promise.all([fetch(files.concepts).then((r) => r.json()), fetch(files.formulas).then((r) => r.json())])
+     fetching its own file; a pair that will not load leaves them all failed. */
+  private loadBulk(m: BookManifest, dirs: readonly string[]): Promise<void> {
+    const keys = dirs.map((d) => chapterKey(m.id, d));
+    keys.forEach((k) => this.setChapterStatus(k, 'loading'));
+    const run = Promise.all([fetch(m.concepts).then((r) => r.json()), fetch(m.formulas).then((r) => r.json())])
       .then(([concepts, formulas]) => {
         const book = parseBookConcepts(concepts);
         const sheets = parseBookFormulas(formulas);
-        dirs.forEach((d) => this.setChapter(d, { concepts: chapterConceptsOf(book, d), formulas: sheets[d] ?? EMPTY_FORMULAS }));
+        dirs.forEach((d) => this.setChapter(m.id, d, { concepts: chapterConceptsOf(book, d), formulas: sheets[d] ?? EMPTY_FORMULAS }));
       })
-      .catch(() => dirs.forEach((d) => this.setChapterStatus(d, 'failed')))
-      .finally(() => dirs.forEach((d) => { delete this.loadingChapters[d]; }));
-    dirs.forEach((d) => { this.loadingChapters[d] = run; });
+      .catch(() => keys.forEach((k) => this.setChapterStatus(k, 'failed')))
+      .finally(() => keys.forEach((k) => { delete this.loadingChapters[k]; }));
+    keys.forEach((k) => { this.loadingChapters[k] = run; });
     return run;
   }
 
   /* Take the articles and data block out of a container (the static pool or a
-     fetched fragment). A standing page is an article of its own, named by the
-     page it is rather than by a section. */
-  adopt(container: ParentNode): SectionId[] {
-    const seen = new Set<SectionId>();
-    const next: Record<string, SectionState> = { ...this.sections };
+     fetched fragment). Each names its book; one that does not belongs to
+     `book`. A standing page is an article of its own, named by the page it is
+     rather than by a section. */
+  adopt(container: ParentNode, book: BookId = this.home): SectionRef[] {
+    const bookOf = (el: HTMLElement): BookId => bookId(el.dataset.book || book);
+    const seen = new Map<SecKey, SectionRef>();
+    const next: Record<SecKey, SectionState> = { ...this.sections };
     container.querySelectorAll<HTMLElement>('article[data-page]').forEach((a) => {
-      const kind = a.dataset.page as PageKind;
-      if ((PAGE_KINDS as readonly string[]).includes(kind)) this.pages = { ...this.pages, [kind]: a };
+      const page = a.dataset.page === 'about' ? aboutItem() : a.dataset.page === 'book' ? bookPageItem(bookOf(a)) : null;
+      if (page?.kind === 'page') this.pages = { ...this.pages, [pageKey(page)]: a };
     });
     container.querySelectorAll<HTMLScriptElement>('script[data-section]').forEach((s) => {
-      const sec = sectionId(s.dataset.section ?? ''); const d = sectionDataOf(s);
-      next[sec] = { ...(next[sec] ?? { docs: {}, src: {} }), meta: d.meta, exercises: d.exercises, status: 'loaded' }; seen.add(sec); s.remove();
+      const ref = sectionRef(bookOf(s), sectionId(s.dataset.section ?? '')); const k = secKey(ref); const d = sectionDataOf(s);
+      next[k] = { ...(next[k] ?? EMPTY_STATE), meta: d.meta, exercises: d.exercises, status: 'loaded' }; seen.set(k, ref); s.remove();
     });
     container.querySelectorAll<HTMLElement>('article[data-doc]').forEach((a) => {
       const [sec, doc] = (a.dataset.doc ?? '').split('/') as [SectionId, DocKind];
-      const cur = next[sec] ?? { meta: null, exercises: [], docs: {}, src: {}, status: 'loaded' as const };
-      next[sec] = { ...cur, docs: { ...cur.docs, [doc]: a }, src: { ...cur.src, [doc]: a.outerHTML }, status: 'loaded' }; seen.add(sec);
+      const ref = sectionRef(bookOf(a), sec); const k = secKey(ref); a.dataset.book = ref.book;
+      const cur = next[k] ?? { ...EMPTY_STATE, status: 'loaded' as const };
+      next[k] = { ...cur, docs: { ...cur.docs, [doc]: a }, src: { ...cur.src, [doc]: a.outerHTML }, status: 'loaded' }; seen.set(k, ref);
     });
     this.sections = next;
-    seen.forEach((sec) => { const root = next[sec].docs.text; if (root) this.prepare(root, sec); });
-    return [...seen];
+    seen.forEach((ref, k) => { const root = next[k].docs.text; if (root) this.prepare(root, ref); });
+    return [...seen.values()];
   }
-  private prepare(root: HTMLElement, sec: SectionId): void {
-    if (root.dataset.math !== 'rendered') this.fig?.renderMath(root);
-    this.mountExercises(root, sec);
-    this.splitButtons(root, sec); originalButtons(root); foldControls(root); this.bootFigures(root, sec); decorateTerms(root, sec); dragFigures(root, sec);
+  private prepare(root: HTMLElement, ref: SectionRef): void {
+    if (root.dataset.math !== 'rendered') this.figFor?.(ref.book).renderMath(root);
+    this.mountExercises(root, ref);
+    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); decorateTerms(root, ref.section); dragFigures(root, ref.section);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the
@@ -207,11 +256,11 @@ class Registry {
   /* Every figure in a document gets a button that opens it in a split of its own;
      the key it carries is the one the shell delegates on, the same attribute an
      exercise card's split button uses, so one selector finds them both. */
-  private splitButtons(root: HTMLElement, sec: SectionId): void {
+  private splitButtons(root: HTMLElement, ref: SectionRef): void {
     root.querySelectorAll<HTMLElement>('figure.sim[id] .sim-head').forEach((head) => {
       if (head.querySelector('.fig-split')) return;
-      const local = (head.closest('figure')!.id).replace(`${sec}-`, '');
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(sec, local));
+      const local = (head.closest('figure')!.id).replace(`${ref.section}-`, '');
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(ref, local));
       b.title = 'Open in a split'; b.setAttribute('aria-label', `Open ${figName(local)} in a split`); b.innerHTML = ICON.split;
       head.appendChild(b);
     });
@@ -219,53 +268,61 @@ class Registry {
   /* Boot a section's figures on a root, once. A script that draws in three
      dimensions and finds no THREE yet waits for the vendor script — the root is
      marked booted straight away, so nothing boots it a second time while the
-     fetch is in flight — and a root the reader has closed meanwhile is left
-     alone. Every other script runs where it always did, in this same turn. */
-  private bootFigures(root: HTMLElement, sec: SectionId): void {
-    const figs = (window as unknown as { OMNISTAX_FIGURES?: Record<string, (root: HTMLElement, F: Fig) => void> }).OMNISTAX_FIGURES;
-    const f = figs?.[sec]; if (!f || !this.fig || root.dataset.booted) return;
+     fetch is in flight. Every other script runs in this same turn. */
+  private bootFigures(root: HTMLElement, ref: SectionRef): void {
+    const figs = (window as unknown as { OMNISTAX_FIGURES?: Record<string, FigureScript> }).OMNISTAX_FIGURES;
+    const f = figs?.[secKey(ref)]; if (!f || !this.figFor || root.dataset.booted) return;
     root.dataset.booted = '1';
-    if (!needsThree(f) || hasThree()) { this.runFigures(root, sec, f); return; }
+    if (!needsThree(f) || hasThree()) { this.runFigures(root, ref, f); return; }
     /* The script is run whether or not the root is in the document by then: a
        figure split into its own tab is booted detached and mounted after, and
        the library draws only while a figure is on screen anyway. */
     ensureThree(this.threeUrl)
-      .then(() => this.runFigures(root, sec, f))
-      .catch((e: Error) => console.error(`figures ${sec}`, e));
+      .then(() => this.runFigures(root, ref, f))
+      .catch((e: Error) => console.error(`figures ${secKey(ref)}`, e));
   }
-  private runFigures(root: HTMLElement, sec: SectionId, f: (root: HTMLElement, F: Fig) => void): void {
-    try { f(root, this.fig!); } catch (e) { console.error(`figures ${sec}`, e); }
+  private runFigures(root: HTMLElement, ref: SectionRef, f: FigureScript): void {
+    try { f(root, this.figFor!(ref.book)); } catch (e) { console.error(`figures ${secKey(ref)}`, e); }
   }
 
-  /* Fetch a section's chapter data, figure module and fragment, then adopt it. */
-  load(sec: SectionId): Promise<void> {
-    if (this.sections[sec]?.docs.text) return Promise.resolve();
-    const pending = this.loading[sec]; if (pending) return pending;
-    const e = this.entry(sec), ch = this.chapterOf(sec);
-    if (!e || !e.built) return Promise.reject(new Error(`unknown section ${sec}`));
-    this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'loading' } };
-    /* A page of the book's own has no chapter, and so no concepts or formulas to fetch beside it. */
-    const chapterData = ch ? this.loadChapter(ch.dir) : Promise.resolve();
-    const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
-    const html = fetch(e.fragment).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); });
-    this.loading[sec] = Promise.all([chapterData, script, html])
-      .then(([, , text]) => { const t = document.createElement('template'); t.innerHTML = text; this.adopt(t.content); })
-      .catch((err: Error) => { this.sections = { ...this.sections, [sec]: { meta: null, exercises: [], docs: {}, src: {}, status: 'failed', error: err.message } }; })
-      .finally(() => { delete this.loading[sec]; });
-    return this.loading[sec]!;
+  private settle(ref: SectionRef, status: 'failed' | 'missing', error?: string): void {
+    this.sections = { ...this.sections, [secKey(ref)]: { ...EMPTY_STATE, status, ...(error ? { error } : {}) } };
+  }
+  /* Fetch a section's book, chapter data, figure module and fragment, then
+     adopt it. It never rejects: a section that cannot be shown is recorded as
+     failed or missing, and the pane says which. */
+  load(ref: SectionRef): Promise<void> {
+    const k = secKey(ref);
+    if (this.sections[k]?.docs.text) return Promise.resolve();
+    const pending = this.loading[k]; if (pending) return pending;
+    this.sections = { ...this.sections, [k]: { ...EMPTY_STATE, status: 'loading' } };
+    const run = this.ensureBook(ref.book).then((m) => {
+      const e = m ? this.entry(ref) : undefined;
+      if (!e || !e.built) { this.settle(ref, 'missing'); return; }
+      const ch = this.chapterOf(ref);
+      /* A page of the book's own has no chapter, and so no concepts or formulas to fetch beside it. */
+      const chapterData = ch ? this.loadChapter(ref.book, ch.dir) : Promise.resolve();
+      const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
+      return Promise.all([chapterData, script, getText(e.fragment)])
+        .then(([, , text]) => { this.adopt(templateOf(text), ref.book); if (!this.sections[k]?.docs.text) this.settle(ref, 'failed', 'empty fragment'); });
+    })
+      .catch((err: Error) => this.settle(ref, 'failed', err.message))
+      .finally(() => { delete this.loading[k]; });
+    return (this.loading[k] = run);
   }
 
   /* One of the standing pages, for a tab that holds it: the article the pool
      carried, or nothing yet and a fetch of its fragment, which adopts the
      article and so answers the next ask. */
-  pageFor(kind: PageKind): HTMLElement | null {
-    const have = this.pages[kind];
+  pageFor(page: PageItem): HTMLElement | null {
+    const k = pageKey(page);
+    const have = this.pages[k];
     if (have) return have;
-    if (!this.loadingPages[kind]) {
-      const url = kind === 'about' ? '/about.html' : `/${this.manifest.id}/book.html`;
-      this.loadingPages[kind] = fetch(url)
-        .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
-        .then((text) => { const t = document.createElement('template'); t.innerHTML = text; this.adopt(t.content); })
+    if (!this.loadingPages[k]) {
+      const url = page.page === 'about' ? '/about.html' : `/${page.book}/book.html`;
+      const book = page.page === 'book' ? page.book : this.home;
+      this.loadingPages[k] = getText(url)
+        .then((text) => { this.adopt(templateOf(text), book); })
         .catch(() => { /* the page stays empty; the pane says it is loading */ });
     }
     return null;
@@ -275,7 +332,7 @@ class Registry {
   figureFor(group: GroupKey, id: Extract<ItemId, { kind: 'fig' }>): HTMLElement | null {
     const ck = `${group}|${itemKey(id)}`;
     if (this.clones[ck]) return this.clones[ck];
-    const root = this.figureRoot(id.section, id.fig); if (!root) return null;
+    const root = this.figureRoot(id, id.fig); if (!root) return null;
     return (this.clones[ck] = root);
   }
   /* The same root, built for a holder that keeps it itself: a note holding a
@@ -283,12 +340,12 @@ class Registry {
      rather than leaving it among the copies the panes release. The figure is
      built from the section's source, so it is a figure nothing has drawn on
      yet, and the section's script is booted on it as it is on a pane's. */
-  figureRoot(sec: SectionId, fig: string): HTMLElement | null {
-    const src = this.sections[sec]?.src.text; if (!src) return null;
-    const t = document.createElement('template'); t.innerHTML = src;
-    const f = t.content.querySelector<HTMLElement>(`[id="${sec}-${fig}"]`); if (!f) return null;
-    const root = document.createElement('div'); root.className = 'fig-root'; root.dataset.sec = sec; root.dataset.chapter = this.chapterOf(sec)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
-    originalButtons(root); this.bootFigures(root, sec);
+  figureRoot(ref: SectionRef, fig: string): HTMLElement | null {
+    const src = this.state(ref)?.src.text; if (!src) return null;
+    const f = templateOf(src).querySelector<HTMLElement>(`[id="${ref.section}-${fig}"]`); if (!f) return null;
+    const root = document.createElement('div'); root.className = 'fig-root';
+    root.dataset.book = ref.book; root.dataset.sec = ref.section; root.dataset.chapter = this.chapterOf(ref)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
+    originalButtons(root); this.bootFigures(root, sectionRef(ref.book, ref.section));
     return root;
   }
   /* One element per (group, document). */
@@ -296,14 +353,13 @@ class Registry {
     if (id.kind !== 'doc') return null;
     const key = itemKey(id); const ck = `${group}|${key}`;
     if (this.clones[ck]) return this.clones[ck];
-    const s = this.sections[id.section]; const primary = s?.docs[id.doc];
-    if (!primary) return null;
+    const s = this.state(id); const primary = s?.docs[id.doc];
+    if (!s || !primary) return null;
     const owner = this.owner[key];
     const held = owner !== undefined && owner !== group && holds(owner, key);
     if (!held) { this.owner[key] = group; return primary; }
     const src = s.src[id.doc]; if (!src) return null;
-    const t = document.createElement('template'); t.innerHTML = src;
-    const a = t.content.firstElementChild as HTMLElement; this.prepare(a, id.section);
+    const a = templateOf(src).firstElementChild as HTMLElement; this.prepare(a, sectionRef(id.book, id.section));
     return (this.clones[ck] = a);
   }
   /* Drop copies no group shows any more. */

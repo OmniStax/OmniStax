@@ -4,7 +4,7 @@
 import ShellPage from '../../layouts/ShellPage.astro';
 import { bookRoutes } from '../../lib/content/paths';
 import { bookHtml } from '../../lib/content/pages';
-import { pageItem } from '../../lib/types/ids';
+import { bookPageItem } from '../../lib/types/ids';
 import type { BookTree } from '../../lib/content/load';
 export const getStaticPaths = bookRoutes;
 const { tree: t } = Astro.props as { tree: BookTree };
@@ -12,11 +12,10 @@ const m = t.manifest;
 ---
 <ShellPage
   tree={t}
-  own={pageItem('book')}
+  own={bookPageItem(m.id)}
   pool={bookHtml(m)}
   title={m.title}
   description={`Contents of ${m.title}, an interactive edition of the ${m.publisher} text.`}
-  book={m.id}
 >
   <Fragment slot="head">
     {m.licenseUrl && <link rel="license" href={m.licenseUrl} />}

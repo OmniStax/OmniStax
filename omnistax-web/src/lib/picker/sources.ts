@@ -15,7 +15,8 @@ import { figureInfo } from '../notes/md/figinfo';
 import { chats } from '../chat/store.svelte';
 import { firstWords, spokenIn } from '../chat/model';
 import { chip, type Chip } from '../chat/context';
-import { sectionId, type ChatId, type SectionId } from '../types/ids';
+import { sectionId, sectionRef, type ChatId, type SectionId } from '../types/ids';
+import { assumedBook } from '../sections/focus.svelte';
 import { linkInner } from '../notes/md/links';
 import { CATEGORY_CHIP, type PickerCategory, type PickerRow } from './model';
 
@@ -30,7 +31,7 @@ const plain = (s: string): string => s.replace(/\$[^$]*\$/g, '').replace(/\s+/g,
    has not been fetched has no text here, and the caller asks the registry for
    it first. */
 export const sectionTextOf = (id: SectionId): string => {
-  const doc = registry.state(id)?.docs.text;
+  const doc = registry.state(sectionRef(assumedBook(), id))?.docs.text;
   if (!doc) return '';
   const copy = doc.cloneNode(true) as HTMLElement;
   for (const fig of copy.querySelectorAll('figure')) {
@@ -60,7 +61,7 @@ const ownRows = (kind: 'file' | 'drawing', category: PickerCategory): readonly P
   });
 
 const sectionRows = (): readonly PickerRow[] =>
-  registry.manifest.chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => ({
+  registry.manifest(assumedBook()).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => ({
     category: 'sections' as const, key: s.id, label: sectionLabel(s.id, s.title), detail: c.title, target: { kind: 'section' as const, section: s.id },
   })));
 
@@ -85,7 +86,7 @@ const figuresOf = (id: string, doc: HTMLElement): readonly PickerRow[] => {
 };
 
 const figureRows = (): readonly PickerRow[] =>
-  Object.entries(registry.sections).flatMap(([id, state]) => {
+  registry.sectionsOf(assumedBook()).flatMap(([id, state]) => {
     const doc = state.docs.text; if (!doc) return [];
     return figuresOf(id, doc);
   });
@@ -102,7 +103,7 @@ const readFigures = (id: string, doc: HTMLElement): readonly PickerRow[] =>
     }];
   });
 
-const chapterRows = (): readonly PickerRow[] => Object.values(registry.chapters).flatMap((ch) => [
+const chapterRows = (): readonly PickerRow[] => registry.chaptersOf(assumedBook()).flatMap((ch) => [
   ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c): PickerRow => ({
     category: 'concepts', key: c.id, label: plain(c.name), detail: `concept · ${c.section}`, target: { kind: 'concept', section: c.section, id: c.id }, embed: true,
     text: [plain(c.name), c.status === 'built' ? c.why ?? '' : ''].filter((s) => s !== '').join('\n'),
@@ -124,10 +125,10 @@ const chapterRows = (): readonly PickerRow[] => Object.values(registry.chapters)
 /* The book's whole problem set, which is one file beside the book's pages;
    `warm` asks for it, and until it lands the category is empty. */
 const exerciseRows = (): readonly PickerRow[] => {
-  const book = registry.manifest.id;
-  return registry.manifest.chapters.flatMap((c) => c.sections.filter((s) => s.built).flatMap((s) =>
+  const book = assumedBook();
+  return registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).flatMap((s) =>
     (books.exercises(book, sectionId(s.id)) ?? []).map((ex): PickerRow => ({
-      category: 'exercises', key: `${s.id}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: `${registry.manifest.exerciseKinds[ex.kind] ?? ex.kind} · ${s.id}`,
+      category: 'exercises', key: `${s.id}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: `${registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind} · ${s.id}`,
       target: { kind: 'exercise', section: s.id, id: ex.id }, embed: true, text: plain(ex.prompt),
     }))));
 };
@@ -152,10 +153,10 @@ export const allRows = (): readonly PickerRow[] => [
    when what it asked for has landed, because the rows are gathered once when
    the picker opens and whoever opened it must gather them again after this. */
 export const warm = async (category: PickerCategory | null): Promise<void> => {
-  if (category === 'exercises') await books.load(registry.manifest.id).catch(() => {});
+  if (category === 'exercises') await books.load(assumedBook()).catch(() => {});
   if (category === 'concepts' || category === 'equations' || category === 'definitions') {
-    const dirs = registry.manifest.chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
-    await registry.loadChapters(dirs).catch(() => {});
+    const dirs = registry.manifest(assumedBook()).chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
+    await registry.loadChapters(assumedBook(), dirs).catch(() => {});
   }
 };
 

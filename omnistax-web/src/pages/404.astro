@@ -1,0 +1,17 @@
+---
+/* Any address the site has no page for: the shell, carrying no item of its own,
+   reads the address instead. A book's page it opens as a tab, which says what
+   is missing; anything else lands on the about page. It boots on the first
+   book, as the front of the site does, and links no book's colours. */
+import ShellPage from '../layouts/ShellPage.astro';
+import { trees } from '../lib/content/paths';
+const books = await trees();
+if (books.length === 0) throw new Error('this build carries no books: check OMNISTAX_CONTENT_DIR and OMNISTAX_BOOKS');
+---
+<ShellPage
+  tree={books[0]}
+  pool=""
+  title="Not found · OmniStax"
+  description="There is no page at this address."
+  colours={false}
+/>

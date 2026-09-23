@@ -5,6 +5,7 @@
 import { parseItemKey, viewKindOf } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { scope } from '../sections/scope.svelte';
+import { focus } from '../sections/focus.svelte';
 import { targetLabel } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
 import type { ItemKey } from './model';
@@ -21,5 +22,5 @@ export const tabTitle = (k: ItemKey): string => {
   if (!id) return k;
   const kind = viewKindOf(k);
   if (!kind) return registry.title(id);
-  return PLACELESS.includes(kind) ? VIEW_TITLE[kind] : `${VIEW_TITLE[kind]} · ${targetLabel(scope.targetFor(k), registry.manifest)}`;
+  return PLACELESS.includes(kind) ? VIEW_TITLE[kind] : `${VIEW_TITLE[kind]} · ${targetLabel(scope.targetFor(k), registry.manifest(focus.section.book))}`;
 };

@@ -12,6 +12,8 @@
    fetched only when something asks for them: the section says which chapter
    to fetch, and stands in the words while it is on its way. */
 
+import { bookId, type BookId } from '../../types/ids';
+
 /* The things a link can name. They are strings, but never the same string
    twice, so each is given a name of its own. */
 export type NoteName = string;      /* the name of a note, as the reader typed it: "Damped motion" */
@@ -30,13 +32,13 @@ export type ExerciseRef = string;   /* the local id of one exercise within its s
 
 export type LinkTarget =
   | { readonly kind: 'note'; readonly name: NoteName }
-  | { readonly kind: 'section'; readonly section: SectionRef }
+  | { readonly kind: 'section'; readonly book?: BookId; readonly section: SectionRef }
   | { readonly kind: 'highlight'; readonly id: HighlightRef }
-  | { readonly kind: 'equation'; readonly section: SectionRef; readonly id: EquationRef }
-  | { readonly kind: 'term'; readonly section: SectionRef; readonly term: TermRef }
-  | { readonly kind: 'symbol'; readonly section: SectionRef; readonly sym: SymbolRef }
-  | { readonly kind: 'concept'; readonly section: SectionRef; readonly id: ConceptRef }
-  | { readonly kind: 'figure'; readonly section: SectionRef; readonly id: FigureRef }
+  | { readonly kind: 'equation'; readonly book?: BookId; readonly section: SectionRef; readonly id: EquationRef }
+  | { readonly kind: 'term'; readonly book?: BookId; readonly section: SectionRef; readonly term: TermRef }
+  | { readonly kind: 'symbol'; readonly book?: BookId; readonly section: SectionRef; readonly sym: SymbolRef }
+  | { readonly kind: 'concept'; readonly book?: BookId; readonly section: SectionRef; readonly id: ConceptRef }
+  | { readonly kind: 'figure'; readonly book?: BookId; readonly section: SectionRef; readonly id: FigureRef }
   /* The three things the reader owns beside their notes, and one exercise of
      the book on its own. A file may name a page within itself and a chat one
      message within itself, since that is the part the reader meant; a drawing
@@ -45,7 +47,7 @@ export type LinkTarget =
   | { readonly kind: 'file'; readonly file: FileRef; readonly page?: number }
   | { readonly kind: 'drawing'; readonly id: DrawingRef }
   | { readonly kind: 'chat'; readonly chat: ChatRef; readonly message?: MessageRef }
-  | { readonly kind: 'exercise'; readonly section: SectionRef; readonly id: ExerciseRef };
+  | { readonly kind: 'exercise'; readonly book?: BookId; readonly section: SectionRef; readonly id: ExerciseRef };
 
 /* The kinds that live in the book's tables rather than in the reader's own
    things: every one of them is written as kind, section, key. */
@@ -57,18 +59,20 @@ export const isBook = (t: LinkTarget): t is BookTarget => t.kind in BOOK_PREFIX;
 /* Any target may carry an alias, the words the reader wants shown in its place. */
 export type Link = LinkTarget & { readonly alias?: string };
 
-/* A section is written the way the book numbers it; anything after hl: is a
+/* A section is written the way the book numbers it, after its book when the
+   link says which, `college-physics-2e/16.4`; anything after hl: is a
    highlight; eq:, def:, sym: and concept: name the book's own things, section
    first; fig: names a figure or a simulation of one section, which lives in
    that section's HTML rather than in any table; whatever is left is the name of
-   a note. */
-const SECTION = /^\d+\.\d+$/;
+   a note. A link written without its book is read against the note's own. */
+const IN_BOOK = '(?:([a-z0-9-]+)\\/)?';
+const SECTION = new RegExp(`^${IN_BOOK}(\\d+\\.\\d+)$`);
 const HIGHLIGHT = /^hl:(.+)$/;
-const BOOK = /^(eq|def|sym|concept):(\d+\.\d+):(.+)$/;
+const BOOK = new RegExp(`^(eq|def|sym|concept):${IN_BOOK}(\\d+\\.\\d+):(.+)$`);
 /* A page of a chapter's own — an introduction or a summary — numbers itself by
    word, so a figure of one is `fig:7.intro:fig-wind-farm`. */
 export const FIGURE_PREFIX = 'fig';
-const FIGURE = /^fig:(\d+\.\w+):(.+)$/;
+const FIGURE = new RegExp(`^fig:${IN_BOOK}(\\d+\\.\\w+):(.+)$`);
 /* What the reader owns is named by its id after its own prefix, and the part
    of it they meant after that: a page of a file is written the way the reader
    says it, `p12`, and a message of a chat by its own id. An exercise is named
@@ -77,12 +81,13 @@ const FIGURE = /^fig:(\d+\.\w+):(.+)$/;
 const FILE = /^file:([^:\]\n]+?)(?::p(\d+))?$/;
 const DRAWING = /^drawing:([^:\]\n]+)$/;
 const CHAT = /^chat:([^:\]\n]+?)(?::([^:\]\n]+))?$/;
-const EXERCISE = /^ex:(\d+\.\w+):(.+)$/;
-const bookTarget = (prefix: string, section: SectionRef, key: string): LinkTarget =>
-  prefix === 'eq' ? { kind: 'equation', section, id: key }
-    : prefix === 'def' ? { kind: 'term', section, term: key }
-      : prefix === 'sym' ? { kind: 'symbol', section, sym: key }
-        : { kind: 'concept', section, id: key };
+const EXERCISE = new RegExp(`^ex:${IN_BOOK}(\\d+\\.\\w+):(.+)$`);
+const inBook = (book: string | undefined): { book?: BookId } => (book ? { book: bookId(book) } : {});
+const bookTarget = (prefix: string, book: string | undefined, section: SectionRef, key: string): LinkTarget =>
+  prefix === 'eq' ? { kind: 'equation', ...inBook(book), section, id: key }
+    : prefix === 'def' ? { kind: 'term', ...inBook(book), section, term: key }
+      : prefix === 'sym' ? { kind: 'symbol', ...inBook(book), section, sym: key }
+        : { kind: 'concept', ...inBook(book), section, id: key };
 /* Both the link and the embed form, as they appear in a note's markdown. */
 export const LINK_PATTERN = /!?\[\[([^\]\n]+)\]\]/g;
 
@@ -96,7 +101,7 @@ export const parseLink = (inner: string): Link => {
   const hl = HIGHLIGHT.exec(target);
   if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, alias);
   const fig = FIGURE.exec(target);
-  if (fig) return withAlias({ kind: 'figure', section: fig[1], id: fig[2].trim() }, alias);
+  if (fig) return withAlias({ kind: 'figure', ...inBook(fig[1]), section: fig[2], id: fig[3].trim() }, alias);
   const file = FILE.exec(target);
   if (file) return withAlias(file[2] ? { kind: 'file', file: file[1].trim(), page: Number(file[2]) } : { kind: 'file', file: file[1].trim() }, alias);
   const drawing = DRAWING.exec(target);
@@ -104,17 +109,21 @@ export const parseLink = (inner: string): Link => {
   const chat = CHAT.exec(target);
   if (chat) return withAlias(chat[2] ? { kind: 'chat', chat: chat[1].trim(), message: chat[2].trim() } : { kind: 'chat', chat: chat[1].trim() }, alias);
   const exercise = EXERCISE.exec(target);
-  if (exercise) return withAlias({ kind: 'exercise', section: exercise[1], id: exercise[2].trim() }, alias);
+  if (exercise) return withAlias({ kind: 'exercise', ...inBook(exercise[1]), section: exercise[2], id: exercise[3].trim() }, alias);
   const book = BOOK.exec(target);
-  if (book) return withAlias(bookTarget(book[1], book[2], book[3].trim()), alias);
-  if (SECTION.test(target)) return withAlias({ kind: 'section', section: target }, alias);
+  if (book) return withAlias(bookTarget(book[1], book[2], book[3], book[4].trim()), alias);
+  const section = SECTION.exec(target);
+  if (section) return withAlias({ kind: 'section', ...inBook(section[1]), section: section[2] }, alias);
   return withAlias({ kind: 'note', name: target }, alias);
 };
+
+/* The section part of a link: the book before it when the link names one. */
+const sectionPart = (t: { readonly book?: BookId; readonly section: SectionRef }): string => (t.book ? `${t.book}/${t.section}` : t.section);
 
 /* The string form of a target, ignoring the alias: what a `data-link` carries,
    and what tells two links to the same place apart from two links elsewhere. */
 export const linkKey = (link: Link): string =>
-  link.kind === 'note' ? `note:${link.name}` : link.kind === 'section' ? `section:${link.section}` : linkInner(link);
+  link.kind === 'note' ? `note:${link.name}` : link.kind === 'section' ? `section:${sectionPart(link)}` : linkInner(link);
 
 /* The key of a book thing within its section: the part after the section. */
 export const bookKey = (t: BookTarget): string =>
@@ -125,16 +134,17 @@ export const bookKey = (t: BookTarget): string =>
 export const linkInner = (target: LinkTarget): string => {
   switch (target.kind) {
     case 'note': return target.name;
-    case 'section': return target.section;
+    case 'section': return sectionPart(target);
     case 'highlight': return `hl:${target.id}`;
-    case 'figure': return `${FIGURE_PREFIX}:${target.section}:${target.id}`;
+    case 'figure': return `${FIGURE_PREFIX}:${sectionPart(target)}:${target.id}`;
     case 'file': return target.page === undefined ? `file:${target.file}` : `file:${target.file}:p${target.page}`;
     case 'drawing': return `drawing:${target.id}`;
     case 'chat': return target.message === undefined ? `chat:${target.chat}` : `chat:${target.chat}:${target.message}`;
-    case 'exercise': return `ex:${target.section}:${target.id}`;
-    default: return `${BOOK_PREFIX[target.kind]}:${target.section}:${bookKey(target)}`;
+    case 'exercise': return `ex:${sectionPart(target)}:${target.id}`;
+    default: return `${BOOK_PREFIX[target.kind]}:${sectionPart(target)}:${bookKey(target)}`;
   }
 };
+
 
 /* The text a note holds to show a thing whole, as a card: what a row dragged
    out of a panel drops into the editor, and what the picker writes for one. */

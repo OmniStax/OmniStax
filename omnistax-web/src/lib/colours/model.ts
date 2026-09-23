@@ -348,38 +348,37 @@ const varsOf = (order: readonly TypeKey[], hues: Readonly<Record<TypeKey, Hue>>,
   return keys.map((k) => `--c-${k}:${hues[k][mode]}`).join(';');
 };
 
-/* One block of the sheet: the scheme on the root, then the reader's book
-   overrides on the root after it, so that theirs win without either rule having
-   to be marked important; then each chapter's, then each section's. The chapter
-   selector is the one ShellPage writes, so a reader's chapter colour lands
-   exactly where the scheme's does; a section names its chapter as well, and the
-   two attributes together outrank the chapter's rule. */
-const blockOf = (m: BookManifest, c: Choices, scheme: Scheme, mode: 'light' | 'dark', root: string, prefix: string): string => {
+/* One block of the sheet, all of it under the book's own attribute so two books on one page never colour each
+   other: the scheme on the book, then the reader's book overrides after it, so that theirs win without either
+   rule having to be marked important; then each chapter's, then each section's, later and so winning at equal
+   weight. A tier's attribute may sit on the element that carries the book or on one inside it, so each is
+   written both ways. The prefix is the theme's switch on an ancestor. */
+const blockOf = (m: BookManifest, c: Choices, scheme: Scheme, mode: 'light' | 'dark', prefix: string): string => {
   const order = orderOf(m, c);
   const o = c.overrides;
+  const book = `${prefix}[data-book="${m.id}"]`;
   const rule = (sel: string, hues: Readonly<Record<TypeKey, Hue>>): string => {
     const vars = varsOf(order, hues, mode);
     return vars ? `${sel}{${vars}}` : '';
   };
-  const both = (tail: string): string => `${prefix}${tail},${prefix} ${tail}`;
+  const both = (tier: string): string => `${book}${tier},${book} ${tier}`;
   const chapters = m.chapters.map((ch) => rule(both(`[data-chapter="${ch.dir}"]`), o.chapters[ch.id] ?? {})).join('');
-  const sections = m.chapters.flatMap((ch) => ch.sections.map((sec) => rule(both(`[data-chapter="${ch.dir}"][data-sec="${sec.id}"]`), o.sections[sec.id] ?? {}))).join('');
-  return rule(root, scheme.hues) + rule(root, o.book) + chapters + sections;
+  const sections = m.chapters.flatMap((ch) => ch.sections.map((sec) => rule(both(`[data-sec="${sec.id}"]`), o.sections[sec.id] ?? {}))).join('');
+  return rule(book, scheme.hues) + rule(book, o.book) + chapters + sections;
 };
 
-/* The whole sheet: the one the page is built with, and the one the store hangs
+/* The whole sheet: the one the book is built with, and the one the store hangs
    in the head over it. Dark comes in the three states the theme comes in —
    light, the system's dark, and dark asked for — so a colour follows the theme
    the way everything else does. The scheme is always there, so the sheet is
    never empty. */
 export const cssFor = (m: BookManifest, c: Choices): string => {
   const scheme = schemeOf(m, c);
-  const dark = ':root:not([data-theme="light"])';
-  const guarded = blockOf(m, c, scheme, 'dark', dark, dark);
+  const guarded = blockOf(m, c, scheme, 'dark', ':root:not([data-theme="light"]) ');
   return [
-    blockOf(m, c, scheme, 'light', ':root', ''),
+    blockOf(m, c, scheme, 'light', ''),
     guarded ? `@media (prefers-color-scheme: dark){${guarded}}` : '',
-    blockOf(m, c, scheme, 'dark', ':root[data-theme="dark"]', ':root[data-theme="dark"]'),
+    blockOf(m, c, scheme, 'dark', ':root[data-theme="dark"] '),
   ].join('');
 };
 

@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { dagRows, edgesOf, scopedNodes, type DagNode } from '../src/lib/sections/dag';
 import type { ConceptDTO } from '../src/lib/content/schema';
 import type { Target } from '../src/lib/sections/scope';
-import { chapterId, conceptId, sectionId } from '../src/lib/types/ids';
+import { bookId, chapterId, conceptId, sectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
 /* The book the map is read in: one chapter whose first section is not built, and one before it. */
 const BOOK: BookTree = {
+  id: bookId('college-physics-2e'),
   title: 'College Physics',
   chapters: [
     { id: '2', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', built: true }] },

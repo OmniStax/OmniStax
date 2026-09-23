@@ -8,6 +8,7 @@ import {
 import { SWATCHES, huesOf, paletteById, paletteId, schemePalette } from '../src/lib/colours/palettes';
 import type { BookManifest } from '../src/lib/content/schema';
 import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
+import { bookRulesCss } from '../src/lib/colours/rules';
 
 /* A book of two chapters and four quantities. Section 16.1 is listed but never
    built, so what it would colour counts for nothing; 16.4 binds nothing, which
@@ -210,31 +211,55 @@ test("the rainbow samples d3's curve n times, so its ends never meet", () => {
 test('the stylesheet carries the scheme even when the reader has chosen nothing', () => {
   const scheme = (mode: 'light' | 'dark') =>
     orderOf(MANIFEST, NO_CHOICES).map((k, i) => `--c-${k}:${mode === 'light' ? SCHEME[i] : darkOf(SCHEME[i])}`).join(';');
-  const guarded = ':root:not([data-theme="light"])';
+  const book = '[data-book="college-physics-2e"]';
   assert.equal(cssFor(MANIFEST, NO_CHOICES),
-    `:root{${scheme('light')}}`
-    + `@media (prefers-color-scheme: dark){${guarded}{${scheme('dark')}}}`
-    + `:root[data-theme="dark"]{${scheme('dark')}}`);
+    `${book}{${scheme('light')}}`
+    + `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ${book}{${scheme('dark')}}}`
+    + `:root[data-theme="dark"] ${book}{${scheme('dark')}}`);
 });
 
 test('the stylesheet writes the three blocks the book writes, and the section rule outranks its chapter', () => {
   const c = setHue(setHue(setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222')), CH16, 'frequency', hue('#333333', '#444444')), S163, 'position', hue('#555555', '#666666'));
   const css = cssFor(MANIFEST, c);
-  assert.match(css, /^:root\{--c-time:#B23B19;[^}]*\}:root\{--c-time:#111111\}/,
+  const b = '[data-book="college-physics-2e"]';
+  assert.ok(css.startsWith(`${b}{--c-time:#B23B19;`) && css.includes(`}${b}{--c-time:#111111}`),
     'the scheme first and the reader after it, so theirs wins without either being marked important');
-  assert.ok(css.includes('[data-chapter="ch16"], [data-chapter="ch16"]{--c-frequency:#333333}'));
-  assert.ok(css.includes('[data-chapter="ch16"][data-sec="16.3"], [data-chapter="ch16"][data-sec="16.3"]{--c-position:#555555}'));
-  const dark = ':root[data-theme="dark"]';
+  assert.ok(css.includes(`${b}[data-chapter="ch16"],${b} [data-chapter="ch16"]{--c-frequency:#333333}`));
+  assert.ok(css.includes(`${b}[data-sec="16.3"],${b} [data-sec="16.3"]{--c-position:#555555}`));
+  assert.ok(css.indexOf('[data-sec="16.3"]') > css.indexOf('[data-chapter="ch16"]'), 'the section comes after its chapter and wins at equal weight');
+  const dark = `:root[data-theme="dark"] ${b}`;
   assert.ok(css.includes(`${dark}[data-chapter="ch16"],${dark} [data-chapter="ch16"]{--c-frequency:#444444}`));
 });
 
 test('the stylesheet lists the types in the reader\'s order and names a chapter by its directory', () => {
   const c = setHue(setHue(NO_CHOICES, BOOK, 'position', hue('#555555', '#666666')), BOOK, 'time', hue('#111111', '#222222'));
-  assert.match(cssFor(MANIFEST, c), /:root\{--c-time:#111111;--c-position:#555555\}/, 'time is declared first, however it was set');
+  assert.match(cssFor(MANIFEST, c), /\]\{--c-time:#111111;--c-position:#555555\}/, 'time is declared first, however it was set');
   const moved = moveType(MANIFEST, c, 'position', 'time');
-  assert.match(cssFor(MANIFEST, moved), /:root\{--c-position:#555555;--c-time:#111111\}/, 'and the order the reader chose is the order they are written in');
+  assert.match(cssFor(MANIFEST, moved), /\]\{--c-position:#555555;--c-time:#111111\}/, 'and the order the reader chose is the order they are written in');
   const stray = setHue(NO_CHOICES, { level: 'chapter', chapter: chapterId('99') }, 'time', hue('#111111', '#222222'));
   assert.doesNotMatch(cssFor(MANIFEST, stray), /data-chapter="ch99"/, 'a chapter the book does not have has no selector to write');
+});
+
+/* Every selector of a book's sheet names the book, so two books' sheets on one page never reach each other's elements. */
+test('two books\' stylesheets never cross, and nothing is coloured on the root', () => {
+  const other = { ...MANIFEST, id: bookId('chemistry-2e') } as BookManifest;
+  const c = setHue(setHue(NO_CHOICES, CH16, 'frequency', hue('#333333', '#444444')), S163, 'position', hue('#555555', '#666666'));
+  const selectors = (css: string): string[] =>
+    css.replace(/@media[^{]*\{/g, '').replace(/:is\([^)]*\)/g, ':is()').split('}').map((r) => r.split('{')[0].trim()).filter(Boolean).flatMap((s) => s.split(','));
+  for (const [m, mine, theirs] of [[MANIFEST, 'college-physics-2e', 'chemistry-2e'], [other, 'chemistry-2e', 'college-physics-2e']] as const) {
+    const css = `${cssFor(m, c)}\n${bookRulesCss(m)}`;
+    for (const sel of selectors(css)) assert.ok(sel.includes(`[data-book="${mine}"]`), `${mine}: ${sel}`);
+    assert.ok(!css.includes(theirs));
+    assert.doesNotMatch(cssFor(m, c), /:root\{|:root\[data-theme="dark"\]\{|html\{/);
+  }
+});
+
+test('a book\'s rules colour its quantities and ink what a page does not bind, inside the book only', () => {
+  const css = bookRulesCss(MANIFEST);
+  const b = '[data-book="college-physics-2e"]';
+  assert.ok(css.includes(`${b} .kv-time{color:var(--c-time)} html:not(.cc) ${b} .kv-time{color:inherit}`));
+  assert.ok(css.includes(`html.cc ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
+  assert.match(css, /\[data-book="college-physics-2e"\]\[data-sec="2\.1"\] :is\([^)]*\.kv-frequency[^)]*\)\{color:inherit\}/);
 });
 
 test('the file and the storage hold one document, which reads back as it was written', () => {

@@ -46,6 +46,7 @@
      reading of the book rather than anything the book prints, so the legend
      wears the one AI mark the rest of the app wears. */
   import { registry } from '../../lib/sections/registry.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { getContext as getCtx, onDestroy, tick } from 'svelte';
@@ -57,18 +58,18 @@
   import { boxOf, extentOf, gridOf, idsIn, keyOf, layoutNodes, placesFor, seedPositions, type Positions, type Rect } from '../../lib/sections/forcelayout';
   import { loadLayouts, positionsOf, type LayoutFileDTO } from '../../lib/sections/layouts';
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
-  import { conceptId, sectionId } from '../../lib/types/ids';
+  import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
   import { mathHtml } from '../actions/math';
   import { dragout } from '../../lib/notes/md/dragout';
   import AiMark from '../ui/AiMark.svelte';
   import { select } from 'd3-selection';
   import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
   const scoped = getCtx<() => Target>('scope');
-  const list = $derived(scopedNodes(registry.concepts, scoped(), registry.manifest));
+  const list = $derived(scopedNodes(registry.concepts(assumedBook()), scoped(), registry.manifest(assumedBook())));
   const edges = $derived(edgesOf(list));
   const byId = $derived(new Map(list.map((c) => [c.id, c])));
   const node = (id: string) => byId.get(id)!;
-  const coverage = $derived(spy.current.span ? registry.coverage.find((c) => c.span === spy.current.span) ?? registry.coverage.find((c) => c.span === spy.current.section) : undefined);
+  const coverage = $derived(spy.current.span ? registry.coverage(assumedBook()).find((c) => c.span === spy.current.span) ?? registry.coverage(assumedBook()).find((c) => c.span === spy.current.section) : undefined);
   let hover = $state<string | null>(null);   /* the node under the pointer, which lights its edges and its neighbours */
   /* The node whose card is open. Only that node carries `data-concept`, which is
      what the shell's card layer opens for, so hovering any other node says
@@ -104,7 +105,7 @@
   const laying = $derived(settled.source === 'seed' && list.length > 0);
 
   $effect(() => {
-    const url = registry.manifest.concepts;
+    const url = registry.manifest(assumedBook()).concepts;
     if (!url) { table = {}; return; }
     let live = true;
     loadLayouts(url).then((t) => { if (live) table = t; });
@@ -253,9 +254,9 @@
     if (!tapped(id, e)) return;
     const c = node(id);
     if (c.status === 'placeholder') {
-      const entry = registry.entry(sectionId(c.section));
-      if (entry?.built) { openDoc(sectionId(c.section), 'text'); return; }
-      window.open(entry?.openstax ?? registry.manifest.openstax, '_blank', 'noopener');
+      const entry = registry.entry(sectionRef(assumedBook(), sectionId(c.section)));
+      if (entry?.built) { openDoc(sectionRef(assumedBook(), sectionId(c.section)), 'text'); return; }
+      window.open(entry?.openstax ?? registry.manifest(assumedBook()).openstax, '_blank', 'noopener');
       return;
     }
     if (open === id) { close(); if (pin.pinned === id) pin.toggle(conceptId(id)); return; }

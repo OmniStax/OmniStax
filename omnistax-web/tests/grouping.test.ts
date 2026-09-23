@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { countOf, groupBySection, label, outsideLabel, type ChapterGroup } from '../src/lib/sections/grouping';
-import { chapterId, sectionId, type SectionId } from '../src/lib/types/ids';
+import { bookId, chapterId, sectionId, type SectionId } from '../src/lib/types/ids';
 import type { Target } from '../src/lib/sections/scope';
 import type { BookTree } from '../src/lib/commands/browser';
 
 /* The book the views group in: two chapters, and in the second one the first section is not built. */
 const BOOK: BookTree = {
+  id: bookId('college-physics-2e'),
   title: 'College Physics',
   chapters: [
     { id: '2', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', built: true }, { id: '2.2', title: 'Vectors', built: false }] },

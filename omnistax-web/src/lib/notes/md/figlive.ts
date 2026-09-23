@@ -13,7 +13,8 @@
    it has been out of the document a while. */
 import { FIG } from '../../fig/figlib';
 import { registry } from '../../sections/registry.svelte';
-import { sectionId, type SectionId } from '../../types/ids';
+import { sectionId, sectionRef, type SectionRef } from '../../types/ids';
+import { assumedBook } from '../../sections/focus.svelte';
 import { parseLink } from './links';
 import { dragFigures } from './dragfig';
 
@@ -23,14 +24,14 @@ const LIVE = 'live';
 
 export type MountKey = string;   /* the embed text of the figure: "fig:7.2:sim-area" */
 
-const build = (sec: SectionId, fig: string): HTMLElement | null => {
+const build = (sec: SectionRef, fig: string): HTMLElement | null => {
   const root = registry.figureRoot(sec, fig);
   if (!root) return null;
   root.classList.add('fig-note');
   FIG.renderMath(root);
   /* The head and the caption keep the drag, so a figure held in one note can be
      carried into another. */
-  dragFigures(root, sec);
+  dragFigures(root, sec.section);
   return root;
 };
 
@@ -47,7 +48,7 @@ export class FigureMounts {
       const t = parseLink(card.dataset.embed ?? '');
       if (t.kind !== 'figure') continue;
       const key: MountKey = `${t.section}:${t.id}`;
-      const root = this.live[key] ?? build(sectionId(t.section), t.id);
+      const root = this.live[key] ?? build(sectionRef(t.book ?? assumedBook(), sectionId(t.section)), t.id);
       if (!root) continue;
       this.live[key] = root;
       shown.add(key);

@@ -6,6 +6,7 @@
    and search.json for its text. Nothing here is persisted: it is a copy of
    build output, cheaper to fetch again than to keep in step. */
 import { registry } from '../sections/registry.svelte';
+import { assumedBook } from '../sections/focus.svelte';
 import { library } from '../explorer/library.svelte';
 import { bookFiles, parseBookConcepts, parseBookFormulas, parseManifest } from '../practice/books';
 import { bookPagesOf } from '../content/roles';
@@ -29,7 +30,7 @@ class Search {
 
   /* Every book the library lists, in the library's order and the book being read first. */
   get books(): readonly string[] {
-    const home = registry.manifest.id;
+    const home = assumedBook();
     return [...(home ? [home] : []), ...library.books.map((b) => b.id).filter((id) => id !== home)];
   }
   /* The corpora that have arrived, in that order. */
@@ -45,7 +46,7 @@ class Search {
     const pending = this.loading[book]; if (pending) return pending;
     if (this.status[book] === 'loaded') return Promise.resolve();
     this.setStatus(book, 'loading');
-    const run = (book === registry.manifest.id ? this.fetchHome() : this.fetchForeign(book)).finally(() => { delete this.loading[book]; });
+    const run = (book === assumedBook() ? this.fetchHome() : this.fetchForeign(book)).finally(() => { delete this.loading[book]; });
     this.loading[book] = run;
     return run;
   }
@@ -60,13 +61,13 @@ class Search {
 
   /* The book being read: its chapters through the registry, which the views share, and its text off the build. */
   private async fetchHome(): Promise<void> {
-    const m = registry.manifest;
+    const m = registry.manifest(assumedBook());
     const dirs = m.chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
-    const [index] = await Promise.all([get(`${this.base(m.id)}search.json`), registry.loadChapters(dirs).catch(() => {})]);
-    const chapters = dirs.flatMap((d) => (registry.chapters[d] ? [registry.chapters[d]] : []));
+    const [index] = await Promise.all([get(`${this.base(m.id)}search.json`), registry.loadChapters(m.id, dirs).catch(() => {})]);
+    const chapters = dirs.flatMap((d) => { const c = registry.chapter(m.id, d); return c ? [c] : []; });
     this.set({
       book: m.id, title: m.title,
-      concepts: registry.concepts,
+      concepts: registry.concepts(m.id),
       variables: chapters.flatMap((c) => c.formulas.variables), glossary: chapters.flatMap((c) => c.formulas.glossary), equations: chapters.flatMap((c) => c.formulas.equations),
       pages: parseIndex(index).pages, urls: urlsOf(m),
     }, index === null || chapters.length < dirs.length);

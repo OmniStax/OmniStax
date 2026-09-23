@@ -39,8 +39,8 @@
     const i = key === null ? -1 : rowsAt(manifest, next, mode).findIndex((r) => r.key === key);
     level = next; query = ''; sel = Math.max(0, i);
   };
-  const goUp = (): void => goto(up(level), keyOfLevel(level));
-  const goCrumb = (depth: number): void => goto(levelAt(level, depth), keyOfLevel(levelAt(level, depth + 1)));
+  const goUp = (): void => goto(up(level), keyOfLevel(manifest, level));
+  const goCrumb = (depth: number): void => goto(levelAt(level, depth), keyOfLevel(manifest, levelAt(level, depth + 1)));
   /* Enter takes the row: a place to pin to, a thing to open, or one level further in. */
   const act = (r: Row): void => {
     if (mode === 'pick') {
@@ -55,7 +55,7 @@
   /* Opening places the tree beside what is being read; a later focus change must not move it. */
   $effect(() => {
     if (!ui.browser.open) return;
-    const s = untrack(() => start(manifest, focus.section));
+    const s = untrack(() => start(manifest, focus.section.book === manifest.id ? focus.section.section : null));
     goto(s.level, s.select);
     tick().then(() => input?.focus());
   });

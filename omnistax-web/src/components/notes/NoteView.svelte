@@ -26,11 +26,12 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { label } from '../../lib/sections/grouping';
   import { spansOf } from '../../lib/sections/concepts.svelte';
+  import { assumedBook } from '../../lib/sections/focus.svelte';
   import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
   import { lookupVariable, symKey } from '../../lib/hover/data';
   import { dragging } from '../../lib/layout/drag.svelte';
   import { FIG } from '../../lib/fig/figlib';
-  import { conceptId, drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, qualifiedId, sectionId, spanId, type NoteId } from '../../lib/types/ids';
+  import { conceptId, drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, qualifiedId, sectionId, sectionRef, spanId, spanRef, type BookId, type NoteId, type SectionRef } from '../../lib/types/ids';
   import { drawingInfo, drawingNamed } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
 
@@ -39,8 +40,9 @@
   /* The chapter a section belongs to, and its tables if they have been fetched.
      A note may name a section of a chapter nobody has opened, so this answers
      nothing until `decorate` has asked for it. */
-  const chapterDir = (section: string): string | undefined => registry.chapterOf(sectionId(section))?.dir;
-  const chapterData = (section: string) => { const dir = chapterDir(section); return dir ? registry.chapters[dir] : undefined; };
+  const refOf = (section: string, book?: BookId): SectionRef => sectionRef(book ?? assumedBook(), sectionId(section));
+  const chapterDir = (section: string, book?: BookId): string | undefined => registry.chapterOf(refOf(section, book))?.dir;
+  const chapterData = (section: string) => { const dir = chapterDir(section); return dir ? registry.chapter(assumedBook(), dir) : undefined; };
 
   /* Everything the renderer cannot know by itself. The asset is the one lookup
      that cannot be answered here and now: IndexedDB takes a turn of the loop,
@@ -54,7 +56,7 @@
        renderer tries the note first. */
     drawing: (id) => drawingInfo(id),
     drawingByName: (name) => drawingNamed(name),
-    section: (id) => { const e = registry.entry(sectionId(id)); return e?.built ? { title: e.title } : null; },
+    section: (id) => { const e = registry.entry(refOf(id)); return e?.built ? { title: e.title } : null; },
     /* A highlight may be the book's or one written on a file; the two stores
        keep ids of different shapes, and `anyHighlight` reads which. */
     highlight: (id) => anyHighlight(id),
@@ -79,13 +81,13 @@
     symbol: (section, sym) => {
       const d = chapterData(section); if (!d) return null;
       const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
-      return { sym, tex: registry.manifest.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
+      return { sym, tex: registry.manifest(assumedBook()).symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? registry.manifest(assumedBook()).types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
     },
     /* A figure is in the section's own HTML rather than in a table, so it is
        read out of the document the registry holds; a section nobody has opened
        resolves to nothing, and `fetchFigures` asks for it below. */
     figure: (section, id) => {
-      const doc = registry.state(sectionId(section))?.docs.text;
+      const doc = registry.state(refOf(section))?.docs.text;
       return doc ? figureInfo(doc, sectionId(section), id) : null;
     },
     concept: (section, id) => {
@@ -161,10 +163,10 @@
     const embed = el.dataset.embed;
     const t = embed ? parseLink(embed) : null;
     if (t && isBook(t)) {
-      const dir = chapterDir(t.section);
-      return dir && registry.chapterStatus[dir] === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
+      const dir = chapterDir(t.section, t.book);
+      return dir && registry.chapterStatusOf(t.book ?? assumedBook(), dir) === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
     }
-    if (t?.kind === 'figure') return registry.state(sectionId(t.section)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
+    if (t?.kind === 'figure') return registry.state(refOf(t.section, t.book)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
     const words = el.textContent ?? '';
     return words.startsWith('hl:') ? 'That highlight is gone.'
       : /^\d+\.\d+/.test(words) ? `Section ${words.split(/\s/)[0]} is not in the book yet.`
@@ -180,7 +182,7 @@
       const t = parseLink(d.dataset.embed ?? '');
       if (t.kind !== 'figure' || asked.has(t.section)) continue;
       asked.add(t.section);
-      void registry.load(sectionId(t.section)).catch(() => {});
+      void registry.load(refOf(t.section, t.book));
     }
   };
 
@@ -191,10 +193,10 @@
     const asked = new Set<string>();
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
       const t = parseLink(d.dataset.embed ?? ''); if (!isBook(t)) continue;
-      const dir = chapterDir(t.section);
+      const dir = chapterDir(t.section, t.book);
       if (!dir || asked.has(dir)) continue;
       asked.add(dir);
-      void registry.loadChapter(dir).catch(() => {});
+      void registry.loadChapter(t.book ?? assumedBook(), dir).catch(() => {});
     }
   };
 
@@ -247,10 +249,10 @@
      it, and anything with no span of its own to the section that holds it. */
   const goBook = (embed: string): void => {
     const t = parseLink(embed); if (!isBook(t)) return;
-    const sec = sectionId(t.section);
-    if (t.kind === 'equation') { const e = resolver().equation(t.section, t.id); if (e?.anchor) { goSpan(spanId(e.anchor)); return; } }
-    if (t.kind === 'symbol') { const v = resolver().symbol(t.section, t.sym); if (v?.anchor) { goSpan(spanId(v.anchor)); return; } }
-    if (t.kind === 'concept') { const intro = spansOf(conceptId(t.id)).intro[0]; if (intro) { goSpan(intro); return; } }
+    const sec = refOf(t.section, t.book); const bk = sec.book;
+    if (t.kind === 'equation') { const e = resolver().equation(t.section, t.id); if (e?.anchor) { goSpan(spanRef(bk, spanId(e.anchor))); return; } }
+    if (t.kind === 'symbol') { const v = resolver().symbol(t.section, t.sym); if (v?.anchor) { goSpan(spanRef(bk, spanId(v.anchor))); return; } }
+    if (t.kind === 'concept') { const intro = spansOf(conceptId(t.id)).intro[0]; if (intro) { goSpan(spanRef(bk, intro)); return; } }
     void openDoc(sec, 'text');
   };
 
@@ -265,7 +267,7 @@
     const fig = t.closest<HTMLElement>('.fig-embed[data-embed]');
     if (fig?.dataset.embed) {
       if (fig.classList.contains('live') && !t.closest('.eyebrow')) return;
-      const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(qualifiedId(sectionId(f.section), f.id));
+      const f = parseLink(fig.dataset.embed); if (f.kind === 'figure') goSpan(spanRef(f.book ?? assumedBook(), qualifiedId(sectionId(f.section), f.id)));
       return;
     }
     const book = t.closest<HTMLElement>('.book-embed[data-embed]');
@@ -283,7 +285,7 @@
     const drawing = /^drawing:(.+)$/.exec(link);
     if (drawing) { void openItem(itemKey(drawingItem(asDrawingId(drawing[1])))); return; }
     const sec = /^section:(.+)$/.exec(link);
-    if (sec) void openDoc(sectionId(sec[1]), 'text');
+    if (sec) void openDoc(parseSecKey(sec[1]) ?? refOf(sec[1]), 'text');
   };
 
   /* ── a thing dropped into the note ─────────────────────────────────────── */

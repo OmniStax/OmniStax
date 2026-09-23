@@ -1,9 +1,10 @@
-/* The live colours of the book: what the reader has chosen, the stylesheet it
-   makes, and a timeline of their own. Choosing a colour is not an edit of the
+/* The live colours of every book in use: what the reader has chosen, the
+   stylesheet it makes, and a timeline of their own. Choosing a colour is not an edit of the
    reader's notes, so it does not belong on the shell's timeline; it has a stack
    here instead, walked by the buttons on the Colours page, by two commands, and
-   by Ctrl+Z inside the page. Everything is remembered in this browser under the
-   book's id, as the very document the reader exports to a file. */
+   by Ctrl+Z inside the page. Each book is remembered in this browser under its
+   own id, as the very document the reader exports to a file, and the Colours
+   page edits one book at a time, the selected one. */
 import { FIG } from '../fig/figlib';
 import { settings } from '../settings/store.svelte';
 import { type Edit, type Stack, breakCoalescing, canRedo, canUndo, coalesce, emptyStack, push, redo, redoLabel, undo, undoLabel } from '../history/model';
@@ -16,8 +17,8 @@ import {
   ownHue, schemeOf, setHue, toFile,
 } from './model';
 import { readerWritesAllowed } from '../backup/guard';
+import { bookColoursHref } from './rules';
 
-const STYLE_ID = 'omnistax-colours';
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -30,46 +31,76 @@ const whereIn = (p: Place): string => (p.level === 'book' ? 'in the book' : p.le
 const whereFor = (p: Place): string => (p.level === 'book' ? 'for the book' : p.level === 'chapter' ? `for chapter ${p.chapter}` : `for section ${p.section}`);
 const whereOf = (p: Place): string => (p.level === 'book' ? 'the book' : p.level === 'chapter' ? `chapter ${p.chapter}` : `section ${p.section}`);
 
-/* Nothing is known about the book until the shell mounts, and a page may read
+/* Nothing is known about a book until its manifest arrives, and a page may read
    the scheme before then, so the ring standing over no quantities at all is
    what a store without a manifest answers with. */
 const NO_SCHEME: Scheme = { palette: OKLCH, hues: {} };
 
+/* One book's colours: its manifest, what the reader chose, and its own timeline. */
+type BookColours = { readonly manifest: BookManifest; readonly choices: Choices; readonly stack: Stack };
+const keyOf = (book: BookId): string => `omnistax-colours-${book}`;
+/* What this browser holds for a book, and no choices at all when it holds
+   nothing, holds something else, or holds what an older version of the app
+   wrote before the file had an envelope round it. */
+const stored = (book: BookId): Choices => {
+  try {
+    const got = fromFile(JSON.parse(read(keyOf(book)) ?? 'null'), book);
+    return got.ok ? got.choices : NO_CHOICES;
+  } catch { return NO_CHOICES; }
+};
+
+/* The head carries one stylesheet link and one style of the reader's choices per book in use. */
+const hasRules = (book: BookId): boolean =>
+  document.head.querySelector(`link[data-book-rules="${book}"]`) !== null
+  || [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].some((l) => l.getAttribute('href') === bookColoursHref(book));
+const linkRules = (book: BookId): void => {
+  if (hasRules(book)) return;
+  const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: bookColoursHref(book) });
+  link.dataset.bookRules = book;
+  document.head.appendChild(link);
+};
+const styleOf = (book: BookId): HTMLStyleElement => {
+  const got = document.head.querySelector<HTMLStyleElement>(`style[data-colours="${book}"]`);
+  if (got) return got;
+  const el = document.createElement('style'); el.dataset.colours = book;
+  return document.head.appendChild(el);
+};
+
 class Colours {
-  choices = $state.raw<Choices>(NO_CHOICES);
-  private manifest: BookManifest | null = null;
-  private book: BookId = bookId('');
-  private key = 'omnistax-colours';
-  private stack = $state.raw<Stack>(emptyStack());
+  private books = $state.raw<Readonly<Record<BookId, BookColours>>>({});
+  private book = $state.raw<BookId>(bookId(''));
   /* True while a step of this timeline is running, so that walking it never
      writes another step. */
   private applying = false;
 
-  /* The shell calls this once on mount: what was saved comes back, the sheet is
-     hung in the head, and every figure repaints with the colours it holds. */
-  init(manifest: BookManifest): void {
-    this.manifest = manifest;
-    this.book = manifest.id;
-    this.key = `omnistax-colours-${manifest.id}`;
-    this.choices = this.stored();
-    this.applyCss();
+  /* A book the page shows: its rules linked once, what was saved for it brought
+     back and written into its own style. */
+  ensureBook(manifest: BookManifest): void {
+    const book = manifest.id;
+    if (this.books[book]) return;
+    this.books = { ...this.books, [book]: { manifest, choices: stored(book), stack: emptyStack() } };
+    if (typeof document === 'undefined') return;
+    linkRules(book);
+    this.applyCss(book);
     FIG.redrawAll();
   }
-  /* What this browser holds for this book, and no choices at all when it holds
-     nothing, holds something else, or holds what an older version of the app
-     wrote before the file had an envelope round it. */
-  private stored(): Choices {
-    try {
-      const got = fromFile(JSON.parse(read(this.key) ?? 'null'), this.book);
-      return got.ok ? got.choices : NO_CHOICES;
-    } catch { return NO_CHOICES; }
-  }
+  /* The book the Colours page and the timeline commands work on. */
+  select(book: BookId): void { this.book = book; }
+  get selected(): BookId { return this.book; }
+  init(manifest: BookManifest): void { this.ensureBook(manifest); this.select(manifest.id); }
+
+  choicesOf(book: BookId): Choices { return this.books[book]?.choices ?? NO_CHOICES; }
+  schemeOf(book: BookId): Scheme { const b = this.books[book]; return b ? schemeOf(b.manifest, b.choices) : NO_SCHEME; }
+
+  private get cur(): BookColours | undefined { return this.books[this.book]; }
+  private get manifest(): BookManifest | null { return this.cur?.manifest ?? null; }
+  private get stack(): Stack { return this.cur?.stack ?? emptyStack(); }
+  get choices(): Choices { return this.choicesOf(this.book); }
 
   /* The colours the book wears under everything the reader has set, and the
      quantities in the order they have put them in. */
-  get scheme(): Scheme { return this.manifest ? schemeOf(this.manifest, this.choices) : NO_SCHEME; }
+  get scheme(): Scheme { return this.schemeOf(this.book); }
   get order(): readonly TypeKey[] { return this.manifest ? orderOf(this.manifest, this.choices) : []; }
-
   hueAt(type: TypeKey, place: Place): { readonly hue: Hue | null; readonly from: Source } {
     return this.manifest ? effectiveHue(this.manifest, this.choices, type, place) : { hue: ownHue(this.choices.overrides, type, place), from: { kind: 'none' } };
   }
@@ -124,50 +155,58 @@ class Colours {
     return { ok: true };
   }
 
-  undo(): void { const step = undo(this.stack); this.walk(step.stack, step.edit, 'undo'); }
-  redo(): void { const step = redo(this.stack); this.walk(step.stack, step.edit, 'redo'); }
+  undo(): void { const step = undo(this.stack); this.walk(this.book, step.stack, step.edit, 'undo'); }
+  redo(): void { const step = redo(this.stack); this.walk(this.book, step.stack, step.edit, 'redo'); }
   get canUndo(): boolean { return canUndo(this.stack); }
   get canRedo(): boolean { return canRedo(this.stack); }
   get undoLabel(): string { return undoLabel(this.stack); }
   get redoLabel(): string { return redoLabel(this.stack); }
-  breakCoalescing(): void { this.stack = breakCoalescing(this.stack); }
+  breakCoalescing(): void { this.setStack(this.book, breakCoalescing(this.stack)); }
 
-  /* A change the reader can take back. The choices are an immutable value, so
-     the two sides of a step are simply the value before and the value after. */
+  /* A change the reader can take back, on the selected book. The choices are an
+     immutable value, so the two sides of a step are simply the value before and
+     the value after. */
   private record(label: string, next: Choices, coalesceKey?: string): void {
-    const before = this.choices;
-    if (this.applying || next === before) return;
-    this.apply(next);
-    const edit: Edit = { label, undo: () => this.apply(before), redo: () => this.apply(next) };
-    this.stack = coalesceKey ? coalesce(this.stack, coalesceKey, edit, Date.now()) : push(this.stack, edit);
+    const book = this.book, before = this.choices;
+    if (this.applying || next === before || !this.cur) return;
+    this.apply(book, next);
+    const edit: Edit = { label, undo: () => this.apply(book, before), redo: () => this.apply(book, next) };
+    this.setStack(book, coalesceKey ? coalesce(this.stack, coalesceKey, edit, Date.now()) : push(this.stack, edit));
+  }
+  private setStack(book: BookId, stack: Stack): void {
+    const b = this.books[book];
+    if (b) this.books = { ...this.books, [book]: { ...b, stack } };
   }
   /* The one path a change takes, whether the reader made it or a step of the
      timeline put it back: hold it, save it, write the sheet, repaint. */
-  private apply(c: Choices): void {
-    this.choices = c;
-    this.save();
-    this.applyCss();
+  private apply(book: BookId, choices: Choices): void {
+    const b = this.books[book];
+    if (!b) return;
+    this.books = { ...this.books, [book]: { ...b, choices } };
+    this.save(book);
+    this.applyCss(book);
     FIG.redrawAll();
   }
   /* The stack moves first and the step runs after it, so that anything the step
      stirs up sees the timeline as it now stands. */
-  private walk(next: Stack, edit: Edit | null, way: 'undo' | 'redo'): void {
+  private walk(book: BookId, next: Stack, edit: Edit | null, way: 'undo' | 'redo'): void {
     if (!edit) return;
-    this.stack = next;
+    this.setStack(book, next);
     this.applying = true;
     try { edit[way](); } finally { this.applying = false; }
   }
 
-  private save(): void {
-    if (isEmpty(this.choices)) remove(this.key); else write(this.key, JSON.stringify(this.exportFile()));
+  private save(book: BookId): void {
+    const c = this.choicesOf(book);
+    if (isEmpty(c)) remove(keyOf(book)); else write(keyOf(book), JSON.stringify(toFile(book, c)));
   }
-  /* One style element in the head carries the scheme and every override over it.
-     It is written whole each time, so a colour cleared leaves nothing behind. */
-  private applyCss(): void {
-    if (typeof document === 'undefined' || !this.manifest) return;
-    const css = cssFor(this.manifest, this.choices);
-    const el = document.getElementById(STYLE_ID) ?? document.head.appendChild(Object.assign(document.createElement('style'), { id: STYLE_ID }));
-    el.textContent = css;
+  /* One style element per book carries its scheme and every override over it,
+     scoped to the book as its stylesheet is. It is written whole each time, so a
+     colour cleared leaves nothing behind. */
+  private applyCss(book: BookId): void {
+    const b = this.books[book];
+    if (typeof document === 'undefined' || !b) return;
+    styleOf(book).textContent = cssFor(b.manifest, b.choices);
   }
 }
 export const colours = new Colours();
