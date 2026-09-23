@@ -4,7 +4,8 @@
    owns the three things the model will not touch — the ticking clock, the
    chime, and the screen-lock watch — and says when the panel should come
    forward, which the panel itself listens for. */
-import { type Category, type Instant, type Millis, type Mode, type Pomodoro, type Session, LENGTH, LOCK_GRACE, addCategory, clampLength, clockText, dropped, faceMs, finish, idle, instant, isLive, logged, lose, amended, millis, nextColor, parseCategories, parseLog, pause, recolourCategory, record, removeCategory, renameCategory, resume, setLength, setMode, setSeed, start, stop, tick, unfiled } from './model';
+import { type Category, type Instant, type Millis, type Mode, type Pomodoro, type Session, LENGTH, addCategory, clampLength, clockText, dropped, faceMs, finish, idle, instant, isLive, logged, lose, amended, millis, nextColor, parseCategories, parseLog, pause, recolourCategory, record, removeCategory, renameCategory, resume, setLength, setMode, setSeed, start, stop, tick, unfiled } from './model';
+import { settings } from '../settings/store.svelte';
 import { armSound, chime } from './sound';
 import { type Unwatch, hasPointer, watchAway } from './lock';
 import { layoutStore } from '../layout/store.svelte';
@@ -34,6 +35,8 @@ class PomodoroStore {
   /* Bumped when a session ends: the panel watches it to scroll itself into view
      and put the cursor in the summary box. */
   ended = $state(0);
+  /* Set when screen lock gave up on the last session, until the next one starts. */
+  lost = $state(false);
   private timer: ReturnType<typeof setInterval> | null = null;
   private unwatch: Unwatch | null = null;
   private loaded = false;
@@ -49,6 +52,9 @@ class PomodoroStore {
     this.session = idle(len === null ? LENGTH.default : clampLength(Number(len)));
     this.screenLock = read(KEYS.lock) === '1' && hasPointer();
     this.left = faceMs(this.session, now());
+    const seed = new URLSearchParams(location.search).get('seed');
+    if (seed && (import.meta.env.DEV || ['localhost', '127.0.0.1'].includes(location.hostname)))
+      void import('./devseed').then((m) => m.runSeed(seed, (log, cats) => this.rewrite(log, cats)));
   }
 
   get phase(): Session['phase'] { return this.session.phase; }
@@ -63,6 +69,8 @@ class PomodoroStore {
 
   setMode(mode: Mode): void { this.session = setMode(this.session, mode); this.face(); }
   setSeed(ms: number): void { this.session = setSeed(this.session, ms); this.face(); }
+  /* What the reader typed into the face: the countdown's length, or where the stopwatch starts from. */
+  setClock(ms: number): void { if (this.session.mode === 'stopwatch') this.setSeed(ms); else this.setLength(ms / 60_000); }
   setLength(mins: number): void {
     this.session = setLength(this.session, mins);
     this.face();
@@ -77,6 +85,7 @@ class PomodoroStore {
   /* Start is the reader's gesture, so it is also where the sound is armed. */
   start(): void {
     armSound();
+    this.lost = false;
     this.session = start(this.session, now());
     this.face();
     this.run();
@@ -100,6 +109,11 @@ class PomodoroStore {
   /* Let an ended session go unrecorded. */
   discard(): void { this.session = idle(this.session.minutes, this.session.mode); this.face(); }
   clearLog(): void { this.writeLog([]); }
+  /* Whole-log rewrites, for the dev seed. */
+  rewrite(log: (l: readonly Pomodoro[]) => readonly Pomodoro[], cats: (c: readonly Category[]) => readonly Category[] = (c) => c): void {
+    this.writeCats(cats(this.categories));
+    this.writeLog(log(this.log));
+  }
 
   private writeLog(log: readonly Pomodoro[]): void { this.log = log; write(KEYS.log, JSON.stringify(log)); }
   private writeCats(cats: readonly Category[]): void { this.categories = cats; write(KEYS.cats, JSON.stringify(cats)); }
@@ -136,7 +150,7 @@ class PomodoroStore {
   private watch(): void {
     const wanted = this.session.phase === 'running' && this.screenLock;
     if (!wanted) { this.unwatch?.(); this.unwatch = null; return; }
-    this.unwatch ??= watchAway(() => this.end(lose(this.session, now())), LOCK_GRACE);
+    this.unwatch ??= watchAway(() => this.end(lose(this.session, now())), settings.lockGrace * 1000);
   }
   private beat(): void {
     const at = now();
@@ -148,14 +162,16 @@ class PomodoroStore {
      rings for the one that got there, and the panel is asked to come forward. */
   private end(next: Session): void {
     if (next === this.session) return;
-    this.session = next;
+    const gone = next.phase === 'lost';
+    this.session = gone ? stop(next) : next;
+    this.lost = gone;
     this.face();
     this.run();
-    if (next.phase === 'done') chime();
+    if (!gone) chime();
     if (!where(layoutStore.layout, POMODORO_KEY)) layoutStore.apply((l) => openSide(l, POMODORO_KEY, 'left'));
     /* On a narrow screen the sidebar lies over the text, so it has to be asked for. */
     if (window.innerWidth < 900) layoutStore.overlay = 'left';
-    this.ended += 1;
+    if (!gone) this.ended += 1;
   }
 }
 

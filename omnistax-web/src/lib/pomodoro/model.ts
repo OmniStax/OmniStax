@@ -35,17 +35,25 @@ export type Session = {
   readonly since: Instant | null;         /* when the current run began; only while running */
 };
 
-export const LENGTH = { min: minutes(1), max: minutes(120), default: minutes(25) } as const;
-/* The lengths a sitting is usually asked for, which the panel offers as chips;
-   anything else is typed into the custom field. */
-export const LENGTH_PRESETS: readonly Minutes[] = [minutes(15), minutes(25), minutes(45), minutes(60)];
+export const LENGTH = { min: minutes(1), max: minutes(999), default: minutes(25) } as const;
 /* The furthest back a stopwatch may be seeded: a day, which is longer than any sitting. */
 export const SEED_MAX = millis(24 * 3_600_000);
-/* How long the mouse may be away from the window before screen lock gives up on the session. */
+/* How long the mouse may be away from the window before screen lock gives up on the session, unless the reader says otherwise. */
 export const LOCK_GRACE = millis(10_000);
 
+/* Whole seconds, so a length typed as mm:ss survives the trip. */
 export const clampLength = (n: number): Minutes =>
-  minutes(Math.max(LENGTH.min, Math.min(LENGTH.max, Math.round(Number.isFinite(n) ? n : LENGTH.default))));
+  minutes(Math.max(LENGTH.min, Math.min(LENGTH.max, Math.round((Number.isFinite(n) ? n : LENGTH.default) * 60) / 60)));
+
+/* What the reader types into the clock face: plain minutes (up to three
+   digits), mm:ss, or h:mm:ss. Anything else reads as nothing. */
+export const parseClock = (text: string): Millis | null => {
+  const t = text.trim();
+  if (/^\d{1,3}$/.test(t)) return millis(Number(t) * 60_000);
+  const m = /^(?:(\d{1,2}):)?(\d{1,3}):(\d{1,2})$/.exec(t);
+  if (!m || Number(m[3]) > 59) return null;
+  return millis(((Number(m[1] ?? 0) * 60 + Number(m[2])) * 60 + Number(m[3])) * 1000);
+};
 
 export const idle = (len: Minutes = LENGTH.default, mode: Mode = 'pomodoro'): Session =>
   ({ phase: 'idle', mode, minutes: clampLength(len), seed: millis(0), startedAt: null, spent: millis(0), since: null });
@@ -106,8 +114,8 @@ export const stop = (s: Session): Session => ({ ...idle(s.minutes, s.mode), seed
 export const finish = (s: Session, now: Instant): Session =>
   !isLive(s) ? s : { ...s, phase: 'done', spent: spentAt(s, now), since: null };
 
-/* Screen lock caught the reader away from the window: the session is lost, with
-   whatever it had counted kept, so the history can say how far it got. */
+/* Screen lock caught the reader away from the window: the session is lost, and
+   nothing of it is ever written down. */
 export const lose = (s: Session, now: Instant): Session =>
   !isLive(s) ? s : { ...s, phase: 'lost', spent: spentAt(s, now), since: null };
 
@@ -173,7 +181,7 @@ export const PomodoroLogSchema = z.array(PomodoroSchema);
 export type Pomodoro = z.infer<typeof PomodoroSchema>;
 
 /* How many finished sessions are kept. */
-export const LOG_CAP = 200;
+export const LOG_CAP = 5000;
 export const logged = (log: readonly Pomodoro[], p: Pomodoro, cap = LOG_CAP): readonly Pomodoro[] => {
   const next = [p, ...log];
   return next.length > cap ? next.slice(0, cap) : next;
@@ -187,12 +195,12 @@ export const dropped = (log: readonly Pomodoro[], id: string): readonly Pomodoro
 export const unfiled = (log: readonly Pomodoro[], id: string): readonly Pomodoro[] =>
   log.map((e) => (e.categories.includes(id) ? { ...e, categories: e.categories.filter((c) => c !== id) } : e));
 
-/* A session that has ended, written down: when it ran, whether it reached its
-   end or was lost, and what the reader filed it under. A stopwatch that was
-   seeded reads as having begun that much earlier, which is the stretch the
-   reader means to record. */
+/* A session that got to its end, written down: when it ran and what the reader
+   filed it under. A lost one is never written. A stopwatch that was seeded
+   reads as having begun that much earlier, which is the stretch the reader
+   means to record. */
 export const record = (s: Session, now: Instant, summary = '', categories: readonly string[] = [], id = String(now)): Pomodoro | null =>
-  !isOver(s) || s.startedAt === null ? null
+  s.phase !== 'done' || s.startedAt === null ? null
     : {
       id,
       start: s.startedAt - (s.mode === 'stopwatch' ? s.seed : 0),
@@ -215,84 +223,97 @@ export const spanText = (ms: number): string => {
 };
 
 /* The day an instant falls in, as this reader's own calendar has it, which is
-   what a bar chart of the last fortnight is cut along. */
+   what a date field reads and writes. */
 export type DayKey = string & { readonly __brand: 'DayKey' };
 export const dayKey = (ms: number): DayKey => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` as DayKey;
 };
+const dayDate = (day: DayKey): Date => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d); };
 export const dayBefore = (day: DayKey, back: number): DayKey => {
-  const [y, m, d] = day.split('-').map(Number);
-  return dayKey(new Date(y, m - 1, d - back).getTime());
+  const d = dayDate(day);
+  return dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - back).getTime());
 };
-export type DayPart = { readonly id: string; readonly ms: number };
-export type DayBar = {
-  readonly day: DayKey;
-  readonly total: number;      /* what was really spent that day, counting every sitting once */
-  readonly stacked: number;    /* the parts added up, which stands higher than the total when a sitting carries several categories */
-  readonly parts: readonly DayPart[];
+export const monthBefore = (day: DayKey, back: number): DayKey => {
+  const d = dayDate(day);
+  return dayKey(new Date(d.getFullYear(), d.getMonth() - back, d.getDate()).getTime());
 };
-/* The last so many days, oldest first. A category is a tag rather than a share:
-   a sitting filed under three of them gives its whole length to each, so a
-   stacked bar may well add up to more than the day itself held. The day's own
-   total counts every sitting once, and the view marks it on the bar, so that
-   the reader is never told they read for more hours than there were. A sitting
-   filed under nothing at all counts under the empty id, which is how the picker
-   names "uncategorized". */
-export const dayBars = (log: readonly Pomodoro[], ids: readonly string[], now: Instant, days = 14): readonly DayBar[] => {
-  const today = dayKey(now);
-  const wanted = new Set(ids);
-  const keys = Array.from({ length: days }, (_, i) => dayBefore(today, days - 1 - i));
-  const rows = new Map<DayKey, Map<string, number>>(keys.map((k) => [k, new Map<string, number>()]));
-  const totals = new Map<DayKey, number>(keys.map((k) => [k, 0]));
+
+/* How a range is cut into bars: a week or less by the day, a month or less by
+   the week, a year or less by the month, and anything longer by the year. */
+export type Unit = 'day' | 'week' | 'month' | 'year';
+export const unitFor = (from: DayKey, to: DayKey): Unit => {
+  const a = dayDate(from);
+  const b = dayDate(to);
+  const days = Math.round((b.getTime() - a.getTime()) / 86_400_000) + 1;
+  if (days <= 7) return 'day';
+  if (b <= new Date(a.getFullYear(), a.getMonth() + 1, a.getDate())) return 'week';
+  if (b <= new Date(a.getFullYear() + 1, a.getMonth(), a.getDate())) return 'month';
+  return 'year';
+};
+/* The first instant of the unit an instant falls in; a week begins on Monday. */
+const unitStart = (ms: number, unit: Unit): Date => {
+  const d = new Date(ms);
+  if (unit === 'year') return new Date(d.getFullYear(), 0, 1);
+  if (unit === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+  if (unit === 'week') return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+};
+const unitAfter = (d: Date, unit: Unit): Date =>
+  unit === 'year' ? new Date(d.getFullYear() + 1, 0, 1)
+    : unit === 'month' ? new Date(d.getFullYear(), d.getMonth() + 1, 1)
+      : new Date(d.getFullYear(), d.getMonth(), d.getDate() + (unit === 'week' ? 7 : 1));
+
+export type BarPart = { readonly id: string; readonly ms: number };
+export type Bar = {
+  readonly start: number;          /* the first instant of its unit */
+  readonly total: number;          /* what was really spent, counting every sitting once */
+  readonly stacked: number;        /* the parts added up, higher than the total when a sitting carries several categories */
+  readonly parts: readonly BarPart[];
+};
+/* One bar per unit from the first day to the last, both whole. A category is
+   a tag rather than a share: a sitting filed under three of them gives its
+   whole length to each. One filed under nothing counts under the empty id. */
+export const rangeBars = (log: readonly Pomodoro[], from: DayKey, to: DayKey): { readonly unit: Unit; readonly bars: readonly Bar[] } => {
+  const unit = unitFor(from, to);
+  const lo = dayDate(from).getTime();
+  const hi = unitAfter(dayDate(to), 'day').getTime();
+  const starts: number[] = [];
+  for (let d = unitStart(lo, unit); d.getTime() < hi; d = unitAfter(d, unit)) starts.push(d.getTime());
+  const rows = new Map<number, Map<string, number>>(starts.map((s) => [s, new Map<string, number>()]));
+  const totals = new Map<number, number>();
   for (const p of log) {
-    const day = dayKey(p.start);
-    const row = rows.get(day);
+    if (p.start < lo || p.start >= hi) continue;
+    const at = unitStart(p.start, unit).getTime();
+    const row = rows.get(at);
     if (!row) continue;
-    const on = p.categories.filter((c) => wanted.has(c));
-    const under = on.length ? on : wanted.has('') && !p.categories.length ? [''] : [];
-    if (!under.length) continue;
     const ran = ranMs(p);
-    totals.set(day, (totals.get(day) ?? 0) + ran);
-    for (const id of under) row.set(id, (row.get(id) ?? 0) + ran);
+    totals.set(at, (totals.get(at) ?? 0) + ran);
+    for (const id of p.categories.length ? p.categories : ['']) row.set(id, (row.get(id) ?? 0) + ran);
   }
-  return keys.map((day) => {
-    const row = rows.get(day) ?? new Map<string, number>();
-    const parts = [...row.entries()].map(([id, ms]) => ({ id, ms }));
-    return { day, total: totals.get(day) ?? 0, stacked: parts.reduce((n, q) => n + q.ms, 0), parts };
-  });
+  return {
+    unit,
+    bars: starts.map((start) => {
+      const parts = [...(rows.get(start) ?? new Map<string, number>()).entries()].map(([id, ms]) => ({ id, ms }));
+      return { start, total: totals.get(start) ?? 0, stacked: parts.reduce((n, q) => n + q.ms, 0), parts };
+    }),
+  };
 };
-/* What each category asked for holds in all, largest first. A sitting under
-   several is counted in full under each of them, since a category is a tag and
-   not a share; the totals therefore need not add up to the time really spent. */
-export const categoryTotals = (log: readonly Pomodoro[], ids: readonly string[]): readonly { readonly id: string; readonly ms: number; readonly count: number }[] => {
-  const wanted = new Set(ids);
-  const out = new Map<string, { ms: number; count: number }>();
-  for (const p of log) {
-    const on = p.categories.filter((c) => wanted.has(c));
-    const under = on.length ? on : wanted.has('') && !p.categories.length ? [''] : [];
-    for (const id of under) {
-      const was = out.get(id) ?? { ms: 0, count: 0 };
-      out.set(id, { ms: was.ms + ranMs(p), count: was.count + 1 });
-    }
-  }
-  return [...out.entries()].map(([id, v]) => ({ id, ...v })).sort((a, b) => b.ms - a.ms);
-};
-/* Only the sittings filed under one of the categories asked for, which is what
-   the total on the category tab is reckoned from. */
-export const onlyUnder = (log: readonly Pomodoro[], ids: readonly string[]): readonly Pomodoro[] => {
-  const wanted = new Set(ids);
-  return log.filter((p) => (p.categories.length ? p.categories.some((c) => wanted.has(c)) : wanted.has('')));
+/* A round step for a time axis whose tallest bar is so long: about four lines. */
+export const axisStep = (peak: number): number => {
+  const steps = [5, 10, 15, 30, 60, 120, 180, 300, 600, 1200, 1800, 3000, 6000, 12000, 30000].map((m) => m * 60_000);
+  return steps.find((s) => peak / s <= 4) ?? steps[steps.length - 1];
 };
 
 /* Read back what this browser holds. A single entry that cannot be made sense
    of is dropped and the rest are kept, and an entry that never had an id is
-   given a steady one, so that an old log survives its own gaps. */
+   given a steady one, so that an old log survives its own gaps. A sitting an
+   older build wrote down as lost is forgotten here. */
 export const parseLog = (raw: unknown): readonly Pomodoro[] => {
   const rows = Array.isArray(raw) ? raw : [];
   return rows.flatMap((row, i): readonly Pomodoro[] => {
     const out = PomodoroSchema.safeParse(row);
-    return out.success ? [{ ...out.data, id: out.data.id ?? `${out.data.start}-${i}` }] : [];
+    return out.success && out.data.completed ? [{ ...out.data, id: out.data.id ?? `${out.data.start}-${i}` }] : [];
   });
 };
 export const parseCategories = (raw: unknown): readonly Category[] => {

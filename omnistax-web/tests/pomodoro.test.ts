@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, categoryTotals, clampLength, clampSeed, clockText, colorOf, dayBars, dayBefore, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, nameOf, nextColor, onlyUnder, parseLog, pause, ranMs, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, totalMs, unfiled,
+  type DayKey, type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, axisStep, clampLength, clampSeed, clockText, colorOf, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, monthBefore, nameOf, nextColor, parseClock, parseLog, pause, ranMs, rangeBars, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, unfiled, unitFor,
 } from '../src/lib/pomodoro/model';
 
 /* A clock the test winds by hand: every function takes the instant it reckons
@@ -24,8 +24,8 @@ test('a fresh session is idle, at the length it was asked for', () => {
 
 test('a length is clamped to what a sitting can be, and a nonsense one falls back to the default', () => {
   assert.equal(clampLength(0), LENGTH.min);
-  assert.equal(clampLength(500), LENGTH.max);
-  assert.equal(clampLength(24.6), 25);
+  assert.equal(clampLength(5000), LENGTH.max);
+  assert.equal(clampLength(24.5004), 24.5, 'to the whole second');
   assert.equal(clampLength(Number.NaN), LENGTH.default);
 });
 
@@ -101,9 +101,7 @@ test('only an ended session is written down, and it says whether it got there', 
   assert.equal(record(going, at(10_000)), null);
   const done = record(run(going, MIN), at(MIN), '  read the second section  ', ['cat1'], 'e1');
   assert.deepEqual(done, { id: 'e1', start: at(0), end: at(MIN), minutes: 1, summary: 'read the second section', completed: true, mode: 'pomodoro', categories: ['cat1'] });
-  const lost = record(lose(going, at(20_000)), at(20_000));
-  assert.equal(lost?.completed, false);
-  assert.equal(lost?.summary, '');
+  assert.equal(record(lose(going, at(20_000)), at(20_000), 'gone', ['c1']), null, 'a lost one is never written');
 });
 
 test('the history keeps the newest first and no more than its cap', () => {
@@ -156,13 +154,20 @@ test('the mode and the seed are the reader\'s between sittings and never during 
   assert.equal(clampSeed(-5), 0);
 });
 
-test('a sitting lost to the screen lock is written down too, under its summary, and says it never got there', () => {
-  const lost = lose(start(setLength(idle(), 25), at(0)), at(9 * MIN));
-  const p = record(lost, at(9 * MIN), 'reading, then gone', ['c1'], 'e2');
-  assert.equal(p?.completed, false);
-  assert.equal(p?.summary, 'reading, then gone');
-  assert.deepEqual(p?.categories, ['c1']);
-  assert.equal(ranMs(p!), 9 * MIN);
+test('a sitting an older build wrote down as lost is forgotten on reading', () => {
+  const kept = { start: 1, end: 2, minutes: 25, summary: 'x', completed: true };
+  assert.deepEqual(parseLog([kept, { ...kept, start: 3, completed: false }]).map((p) => p.start), [1]);
+});
+
+test('the clock face reads minutes, mm:ss or h:mm:ss, and a length keeps its seconds', () => {
+  assert.equal(parseClock('25'), 25 * MIN);
+  assert.equal(parseClock(' 999 '), 999 * MIN);
+  assert.equal(parseClock('12:30'), 12.5 * MIN);
+  assert.equal(parseClock('1:05:00'), 65 * MIN);
+  assert.equal(parseClock('1000'), null);
+  assert.equal(parseClock('5:75'), null);
+  assert.equal(parseClock('abc'), null);
+  assert.equal(clockText(remaining(setLength(idle(), 12.5), at(0))), '12:30');
 });
 
 test('categories are made, renamed, recoloured and struck out, and a sitting keeps the rest', () => {
@@ -189,46 +194,42 @@ test('an entry is amended and struck out by its id, not by where it stands', () 
   assert.deepEqual(dropped(log, 'e1').map((p) => p.id), ['e2']);
 });
 
-test('the last fortnight is cut into days, and a sitting under two categories stands at its full length under each', () => {
-  const noon = new Date(2026, 8, 21, 12, 0, 0).getTime();
-  const dayAgo = new Date(2026, 8, 20, 12, 0, 0).getTime();
-  const old = new Date(2026, 7, 1, 12, 0, 0).getTime();
-  const log = [
-    { ...entry('a', noon, 30 * MIN, ['c1']) },
-    { ...entry('b', noon, 30 * MIN, ['c1', 'c2']) },
-    { ...entry('c', dayAgo, 20 * MIN, []) },
-    { ...entry('d', old, 60 * MIN, ['c1']) },
-  ];
-  const bars = dayBars(log, ['c1', 'c2', ''], instant(noon));
-  assert.equal(bars.length, 14);
-  assert.equal(bars[13].day, dayKey(noon), 'today stands last');
-  assert.equal(bars[0].day, dayBefore(dayKey(noon), 13));
-  assert.equal(bars[13].total, 60 * MIN, 'both of today\'s sittings, each counted once');
-  /* A category is a tag: the half-hour under both stands whole under each, so the stack runs past the day. */
-  assert.deepEqual(bars[13].parts, [{ id: 'c1', ms: 60 * MIN }, { id: 'c2', ms: 30 * MIN }]);
-  assert.equal(bars[13].stacked, 90 * MIN);
-  assert.equal(bars[12].stacked, bars[12].total, 'a day whose sittings carry one tag apiece stacks to its own total');
-  assert.equal(bars[12].total, 20 * MIN);
-  assert.deepEqual(bars[12].parts, [{ id: '', ms: 20 * MIN }], 'a sitting under nothing falls under the empty id');
-  assert.equal(bars.reduce((n, b) => n + b.total, 0), 80 * MIN, 'anything older than the fortnight is left out');
-  /* Setting a category aside drops the sittings that only it held, and never
-     changes what the ones still on show are worth. */
-  const one = dayBars(log, ['c1'], instant(noon))[13];
-  assert.equal(one.total, 60 * MIN);
-  assert.deepEqual(one.parts, [{ id: 'c1', ms: 60 * MIN }]);
-  const other = dayBars(log, ['c2'], instant(noon))[13];
-  assert.equal(other.total, 30 * MIN);
-  assert.deepEqual(other.parts, [{ id: 'c2', ms: 30 * MIN }]);
+test('a range is cut by the day, the week, the month or the year, as its length asks', () => {
+  const k = (y: number, m: number, d: number): DayKey => dayKey(new Date(y, m - 1, d).getTime());
+  assert.equal(unitFor(k(2026, 9, 17), k(2026, 9, 23)), 'day');
+  assert.equal(unitFor(k(2026, 9, 16), k(2026, 9, 23)), 'week');
+  assert.equal(unitFor(k(2026, 8, 24), k(2026, 9, 23)), 'week');
+  assert.equal(unitFor(k(2026, 8, 22), k(2026, 9, 23)), 'month');
+  assert.equal(unitFor(k(2025, 9, 24), k(2026, 9, 23)), 'month');
+  assert.equal(unitFor(k(2025, 9, 20), k(2026, 9, 23)), 'year');
+  assert.equal(monthBefore(k(2026, 9, 23), 12), k(2025, 9, 23));
 });
 
-test('a category total is the whole of what was filed under it, largest first', () => {
-  const log = [entry('a', 0, 30 * MIN, ['c1']), entry('b', 0, 10 * MIN, ['c2']), entry('c', 0, 20 * MIN, ['c1', 'c2'])];
-  assert.deepEqual(categoryTotals(log, ['c1', 'c2']), [
-    { id: 'c1', ms: 50 * MIN, count: 2 },
-    { id: 'c2', ms: 30 * MIN, count: 2 },
-  ]);
-  assert.deepEqual(onlyUnder(log, ['c2']).map((p) => p.id), ['b', 'c']);
-  assert.equal(totalMs(onlyUnder(log, ['c2'])), 30 * MIN);
+test('a bar stacks each category at the full length of every sitting filed under it', () => {
+  const noon = new Date(2026, 8, 21, 12).getTime();
+  const dayAgo = new Date(2026, 8, 20, 12).getTime();
+  const old = new Date(2026, 7, 1, 12).getTime();
+  const log = [
+    entry('a', noon, 30 * MIN, ['c1']),
+    entry('b', noon, 30 * MIN, ['c1', 'c2']),
+    entry('c', dayAgo, 20 * MIN, []),
+    entry('d', old, 60 * MIN, ['c1']),
+  ];
+  const { unit, bars } = rangeBars(log, dayKey(dayAgo), dayKey(noon));
+  assert.equal(unit, 'day');
+  assert.equal(bars.length, 2);
+  assert.equal(bars[1].total, 60 * MIN, 'both sittings, each counted once');
+  assert.deepEqual(bars[1].parts, [{ id: 'c1', ms: 60 * MIN }, { id: 'c2', ms: 30 * MIN }]);
+  assert.equal(bars[1].stacked, 90 * MIN);
+  assert.deepEqual(bars[0].parts, [{ id: '', ms: 20 * MIN }], 'a sitting under nothing falls under the empty id');
+  const months = rangeBars(log, dayKey(old), dayKey(noon));
+  assert.equal(months.unit, 'month');
+  assert.deepEqual(months.bars.map((b) => b.total), [60 * MIN, 80 * MIN]);
+});
+
+test('an axis steps in round lengths', () => {
+  assert.equal(axisStep(20 * MIN), 5 * MIN);
+  assert.equal(axisStep(3 * 60 * MIN), 60 * MIN);
 });
 
 test('a stretch of time is said the short way, and a long clock grows an hour', () => {

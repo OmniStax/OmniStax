@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CATEGORY_COLORS, type Pomodoro, categoryTotals, colorOf, dayBars, instant, nameOf, onlyUnder, ranMs, spanText, totalMs } from '../../lib/pomodoro/model';
+  import { CATEGORY_COLORS, type DayKey, type Pomodoro, axisStep, colorOf, dayBefore, dayKey, monthBefore, nameOf, rangeBars, ranMs, spanText } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
 
@@ -45,18 +45,31 @@
 
   const day = (ms: number): string => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const at = (ms: number): string => new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  const dayLabel = (key: string): string => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 
-  /* Track what is dropped, not picked, so new categories show by default. */
-  let dropped = $state<readonly string[]>([]);
-  const picked = $derived([NONE, ...cats.map((c) => c.id)].filter((id) => !dropped.includes(id)));
-  const toggle = (id: string): void => { dropped = dropped.includes(id) ? dropped.filter((d) => d !== id) : [...dropped, id]; };
-  const shown = $derived(onlyUnder(log, picked));
-  const bars = $derived(dayBars(log, picked, instant(Date.now())));
-  const peak = $derived(Math.max(1, ...bars.map((b) => b.stacked)));
-  const totals = $derived(categoryTotals(log, picked));
-  const most = $derived(Math.max(1, ...totals.map((t) => t.ms)));
-  const hue = (id: string): string => (id === NONE ? 'var(--muted)' : colorOf(cats, id));
+  const today = dayKey(Date.now());
+  let to = $state<string>(today);
+  let from = $state<string>(dayBefore(monthBefore(today, 1), -1));
+  const last = (f: (d: DayKey) => DayKey): void => { to = today; from = dayBefore(f(today), -1); };
+  const valid = $derived(/^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from <= to);
+  const chart = $derived(valid ? rangeBars(log, from as DayKey, to as DayKey) : { unit: 'day' as const, bars: [] });
+  const peak = $derived(Math.max(1, ...chart.bars.map((b) => b.stacked)));
+  const step = $derived(axisStep(peak));
+  const top = $derived(Math.ceil(peak / step) * step);
+  const ticks = $derived(Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step));
+  const order = $derived([...cats.map((c) => c.id), NONE]);
+  const ordered = (parts: readonly { id: string; ms: number }[]): readonly { id: string; ms: number }[] =>
+    [...parts].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  const inRange = $derived(chart.bars.reduce((n, b) => n + b.total, 0));
+  const totals = $derived(order.map((id) => ({ id, ms: chart.bars.reduce((n, b) => n + (b.parts.find((q) => q.id === id)?.ms ?? 0), 0) })).filter((t) => t.ms > 0 || t.id !== NONE));
+  const barLabel = (start: number): string => {
+    const d = new Date(start);
+    if (chart.unit === 'year') return String(d.getFullYear());
+    if (chart.unit === 'month') return d.toLocaleDateString(undefined, { month: 'short' });
+    if (chart.unit === 'day') return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+  const axisText = (ms: number): string => (ms % 3_600_000 === 0 ? `${ms / 3_600_000}h` : spanText(ms).replace(' ', ''));
+  const hue = (id: string): string => (id === NONE ? 'color-mix(in srgb,var(--muted) 45%,transparent)' : colorOf(cats, id));
   const label = (id: string): string => (id === NONE ? 'Uncategorized' : nameOf(cats, id));
 
   let editCat = $state<string | null>(null);
@@ -76,7 +89,7 @@
     {:else}
       <ul class="rows">
         {#each log as p (p.id)}
-          <li class:lost={!p.completed} oncontextmenu={(e) => { e.preventDefault(); menu = menu === p.id ? null : p.id ?? null; }}>
+          <li class:open={menu === p.id} oncontextmenu={(e) => { e.preventDefault(); menu = menu === p.id ? null : p.id ?? null; }}>
             <span class="when">{day(p.start)}</span>
             <span class="span">{at(p.start)}–{at(p.end)}</span>
             <span class="ran">{spanText(ranMs(p))}</span>
@@ -84,7 +97,6 @@
             <span class="dots-row" aria-hidden={!p.categories.length}>
               {#each p.categories as id (id)}<span class="dot" style="--hue:{hue(id)}" title={label(id)}></span>{/each}
             </span>
-            {#if !p.completed}<span class="tag">lost</span>{/if}
             <button type="button" class="btn ghost icon sm more" aria-label="Actions for this session" onclick={() => (menu = menu === p.id ? null : p.id ?? null)}>⋯</button>
             {#if menu === p.id}
               <div class="menu">
@@ -103,35 +115,41 @@
       </ul>
     {/if}
   {:else}
-    <div class="picks">
-      {#each [{ id: NONE, name: 'Uncategorized' }, ...cats] as c (c.id)}
-        <button type="button" class="chip pick" class:on={picked.includes(c.id)} style="--hue:{hue(c.id)}" onclick={() => toggle(c.id)}>
-          <span class="dot" style="--hue:{hue(c.id)}"></span>{c.name}
-        </button>
-      {/each}
+    <div class="range">
+      <label>From<input class="input date" type="date" bind:value={from} max={to} /></label>
+      <label>To<input class="input date" type="date" bind:value={to} min={from} /></label>
+      <div class="helpers">
+        <button type="button" class="chip" onclick={() => last((d) => dayBefore(d, 7))}>Last week</button>
+        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 1))}>Last month</button>
+        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 12))}>Last year</button>
+      </div>
     </div>
 
-    <p class="total"><strong>{spanText(totalMs(shown))}</strong> in all, over {shown.length} {shown.length === 1 ? 'session' : 'sessions'}</p>
+    <p class="total"><strong>{spanText(inRange)}</strong> in all, by {chart.unit}</p>
 
-    <h3 class="eyebrow">Last 14 days</h3>
-    <div class="chart">
-      {#each bars as b (b.day)}
-        <div class="bar-row">
-          <span class="bar-day">{dayLabel(b.day)}</span>
-          <div class="bar" title="{b.stacked > b.total ? `${spanText(b.total)} in all, ${spanText(b.stacked)} across its categories` : spanText(b.total)}">
-            {#each b.parts as part (part.id)}
-              <div class="part" style="--hue:{hue(part.id)};width:{(part.ms / peak) * 100}%" title="{label(part.id)}: {spanText(part.ms)}"></div>
-            {/each}
-            {#if b.total}<div class="mark" style="left:{(b.total / peak) * 100}%" aria-hidden="true"></div>{/if}
+    <div class="vchart" style="--n:{chart.bars.length}">
+      <div class="axis" aria-hidden="true">
+        {#each ticks as t (t)}<span style="bottom:{(t / top) * 100}%">{axisText(t)}</span>{/each}
+      </div>
+      <div class="plot">
+        {#each ticks as t (t)}<div class="grid-line" style="bottom:{(t / top) * 100}%"></div>{/each}
+        {#each chart.bars as b (b.start)}
+          <div class="col" title="{barLabel(b.start)}: {spanText(b.total)}">
+            <div class="stack">
+              {#each ordered(b.parts) as part (part.id)}
+                <div class="seg-part" style="--hue:{hue(part.id)};height:{(part.ms / top) * 100}%" title="{label(part.id)}: {spanText(part.ms)}"></div>
+              {/each}
+            </div>
           </div>
-          <span class="bar-num">{b.total ? spanText(b.total) : ''}</span>
-        </div>
-      {/each}
+        {/each}
+      </div>
+      <div class="labels">
+        {#each chart.bars as b (b.start)}<span>{barLabel(b.start)}</span>{/each}
+      </div>
     </div>
 
-    <h3 class="eyebrow">By category</h3>
     {#if !totals.length}
-      <p class="empty">Nothing recorded under these yet.</p>
+      <p class="empty">No categories yet.</p>
     {:else}
       <ul class="cat-list">
         {#each totals as t (t.id)}
@@ -144,7 +162,6 @@
               <span class="cat-name">{label(t.id)}</span>
             {/if}
             <span class="cat-ms">{spanText(t.ms)}</span>
-            <div class="cat-bar"><div class="part" style="--hue:{hue(t.id)};width:{(t.ms / most) * 100}%"></div></div>
             {#if t.id !== NONE}
               <div class="cat-acts">
                 <button type="button" class="btn ghost sm" onclick={() => { editCat = editCat === t.id ? null : t.id; catName = label(t.id); askCat = null; }}>Edit</button>
@@ -196,36 +213,37 @@
   .rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
   .rows li{position:relative;display:flex;align-items:baseline;gap:10px;font-size:0.84rem;padding:5px 30px 5px 6px;border-bottom:1px solid var(--rule)}
   .rows li:hover{background:var(--soft)}
-  .rows li.lost{opacity:.72}
   .when{font-weight:600;min-width:5.2em}
   .span,.ran{color:var(--muted);font-size:0.78rem;font-variant-numeric:tabular-nums}
   .ran{min-width:3.6em}
   .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dots-row{display:flex;gap:3px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--hue);flex:none;display:inline-block}
-  .tag{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
   .more{position:absolute;right:4px;top:3px;opacity:0}
   .rows li:hover .more,.more:focus-visible{opacity:1}
+  .rows li.open{z-index:30}
+  .range{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+  .range label{display:flex;flex-direction:column;gap:3px;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+  .date{height:28px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400}
+  .helpers{display:flex;gap:4px;flex-wrap:wrap}
+  .vchart{display:grid;grid-template-columns:auto 1fr;grid-template-rows:180px auto;column-gap:6px;row-gap:4px;font-size:0.7rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  .axis{position:relative;min-width:2.6em}
+  .axis span{position:absolute;right:0;transform:translateY(50%);line-height:1}
+  .plot{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:max(2px,min(8px,calc(120px / var(--n))));border-bottom:1px solid var(--rule)}
+  .grid-line{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--rule) 70%,transparent);pointer-events:none}
+  .col{position:relative;display:flex;align-items:flex-end;min-width:0}
+  .stack{display:flex;flex-direction:column-reverse;width:100%;height:100%;border-radius:3px 3px 0 0;overflow:hidden}
+  .seg-part{background:var(--hue);flex:none}
+  .labels{grid-column:2;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:max(2px,min(8px,calc(120px / var(--n))))}
+  .labels span{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip}
   .menu{position:absolute;right:4px;top:28px;z-index:30;display:flex;gap:2px;align-items:center;padding:4px;border:1px solid var(--rule);border-radius:9px;background:var(--panel);box-shadow:0 6px 18px rgba(0,0,0,.16)}
   .ask{font-size:0.78rem;color:var(--muted);padding:0 4px}
-  .picks{display:flex;flex-wrap:wrap;gap:5px}
-  .pick:not(.on) .dot{opacity:0.4}
-  .pick.on{background:color-mix(in srgb,var(--hue) 14%,var(--panel));color:var(--ink)}
   .total{margin:0;font-size:0.9rem;color:var(--ink)}
   .eyebrow{margin:6px 0 0}
-  .chart{display:flex;flex-direction:column;gap:3px}
-  .bar-row{display:flex;align-items:center;gap:8px;font-size:0.76rem}
-  .bar-day{min-width:4.4em;color:var(--muted)}
-  .bar{position:relative;flex:1;display:flex;height:12px;border-radius:3px;background:var(--soft);overflow:hidden}
-  /* A session counts under each of its categories, so the stack can overrun; the notch is the day's real total. */
-  .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--ink);opacity:.65;transform:translateX(-1px)}
-  .part{background:var(--hue);height:100%}
-  .bar-num{min-width:3.4em;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
   .cat-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
   .cat-list li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.84rem}
   .cat-name{min-width:6em}
   .cat-ms{color:var(--muted);font-variant-numeric:tabular-nums;min-width:4em}
-  .cat-bar{flex:1;min-width:80px;height:10px;border-radius:3px;background:var(--soft);overflow:hidden}
   .cat-acts{display:flex;gap:4px;align-items:center}
   .rename{height:26px;font-size:0.82rem}
   .grid{display:grid;grid-template-columns:repeat(5,22px);gap:4px;width:100%}
