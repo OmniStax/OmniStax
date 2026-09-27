@@ -157,7 +157,7 @@ New components and an unhomogenised style are allowed where the idea needs them.
 
 ## 26. Controls and legibility of a simulation
 
-1. A discrete state is a choice, never a slider: a segmented control or, where a row would wrap, a dropdown, one option per state, the current one marked. A quantity with a few preset values is a slider with soft detents.
+1. A discrete state is a choice, never a slider: a segmented control or, where a row would wrap, a dropdown, one option per state, the current one marked. A quantity with a few preset values is a slider with soft detents. A special value the text names (a limit, a threshold, a resonance, an equal pair) is a dashed circle on every slider it involves, placed from the other values (`specials` with `F.solve` where the relation must be solved), with a slight snap; landing on it is what fires the figure's morph.
 2. A 3D figure carries buttons, not only gestures: auto-rotate on and off (omitted where an idle spin makes no sense), snap-to-view buttons where a viewpoint matters, zoom in and out with the wheel doing the same.
 3. The orbit is bounded to the views that carry meaning; a scene with a ground is never seen from beneath. The plan line says the bound and why.
 4. Showing the original figure swaps the caption too; the two captions are never shown together.

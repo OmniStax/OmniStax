@@ -12,6 +12,19 @@ Use it for a change the page can only print as a row of stills, where the order 
 
 Keep a canvas sim when the reader should choose the numbers. A fixed tour of something the reader could drag teaches less than the drag.
 
+Teach the book's lesson at the book's level. A zoom that shows a curve is locally straight is a calculus lesson; an algebra-based book that mentions the limit in passing gains nothing from it.
+
+## In a live figure
+
+1. **One timeline.** A figure has at most one transport. Physical motion has its clock; a story has its slider; never both.
+2. **A story is a slider.** The steps of a story are the stops of a slider with a meaning (straight · loop · solenoid; reduction step 1 to 5). Play animates that slider; dragging it scrubs the story. Everything the story changes, the camera, morphs and fades included, is a function of the slider's value, so every position is exact in either direction.
+3. **The reader's sliders are the reader's.** A story drives only what the reader has no control for: an arrangement, a bend, a step. It never moves a slider the reader owns. A value a beat wants the reader to see is a special value marked on that slider.
+4. **The camera follows the values.** It is a function of the reader's sliders (the view widens as v₀ grows so the path stays framed) or of the story slider (keyframes). It is never a script over the reader's values.
+5. **A camera move earns its place by changing which relation is visible.** Looking down a wire shows the circles a side view hides; tilting a wedge-and-dash drawing shows the depth it encodes. A walk around an object the reader can already orbit is removed.
+6. **Special values are marked.** Every special case the text names (a limit, a threshold, a resonance) is a dashed circle on each slider it involves, recomputed from the other values, with a slight snap; landing on it fires the morph.
+7. **Symbolic lines never travel.** A line that pairs two things (this transition, that spectral line) is drawn once when it changes and then holds; only kinematic arrows move (root rule 24.1).
+8. **Style alone is not the point.** What reads as Manim is the motion. A restyle with no new motion is not a figure of its own; style lives in the drawing library's defaults.
+
 ## The ten rules
 
 1. **Nothing appears; everything arrives.**
@@ -19,13 +32,15 @@ Keep a canvas sim when the reader should choose the numbers. A fixed tour of som
    - Formulas are written stroke by stroke (`Write`).
    - Vectors grow from their tail (`GrowArrow`).
    - Solids and regions fill from their outline (`DrawBorderThenFill`).
-   - Fades are for secondary labels only.
+   - When a choice swaps a whole set of parts (one arrangement's graph and labels for another's), the old set fades out and the new set fades in, each with a slight shift (`FadeOut(shift=…)`, `FadeIn(shift=…)`).
 2. **Nothing is replaced; it becomes.**
    - The next state is a morph of the last: p₃ bends into p₅, and 4 disks split into 8.
    - Never cut from one picture to another.
-3. **Equations morph by term.**
-   - Terms that survive slide to their new places.
-   - New terms write in, and dropped terms fade where they stand (`TransformMatchingTex`).
+3. **Equations morph by shape.**
+   - Glyph outlines bend into their counterparts point by point (`Transform`); terms that survive travel to their new places.
+   - Parts match by term key first, then by identical glyph shape (`TransformMatchingTex`, `TransformMatchingShapes`).
+   - Dropped parts fade out toward the parts that replace them, and new parts fade in from the parts they replace; nothing blinks in place.
+   - About 1–1.5 s, `smooth`, and the formula is large enough that the morph is the event.
    - The term that changes carries the hue of the thing moving in the picture.
 4. **One beat at a time.**
    - Only one idea moves at once. The eye goes to motion, so two motions split it.
@@ -39,7 +54,7 @@ Keep a canvas sim when the reader should choose the numbers. A fixed tour of som
    - A parameter running to a limit eases out, so it slows as it arrives.
    - "Try it and come back" moves use `there_and_back`.
    - Linear motion is only for time itself.
-7. **The camera narrates.**
+7. **The camera narrates, and only where a move changes what can be seen** (live figures: items 4 and 5 above).
    - It zooms to show local behaviour: keep zooming on (1, 1) until the curve is its tangent.
    - It orbits to show depth, and pans to follow the action.
    - It moves between beats, not during a detail.
