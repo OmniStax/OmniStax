@@ -1797,7 +1797,7 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   function prev(): void { const i = before(slider.v); playing = false; if (i >= 0) go(i); sync(); }
   playB.addEventListener('click', () => { if (playing) pause(); else play(); });
   prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
-  const takeOver = (ev: Event): void => { if (driving || bar.contains(ev.target as Node)) return; if (playing || move) pause(); };
+  const takeOver = (ev: Event): void => { if (driving || [prevB, playB, nextB].some((b) => b.contains(ev.target as Node))) return; if (playing || move) pause(); };
   ['input', 'pointerdown'].forEach((ev) => fig.addEventListener(ev, takeOver, { capture: true, passive: true }));
   const tick = (at: number): void => {
     if (!fig.isConnected || !onScreen.has(fig)) return;
