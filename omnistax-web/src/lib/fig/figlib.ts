@@ -4,6 +4,7 @@
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf } from './cat';
+import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, mkKeys, morphPlan, MK_MACRO, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -52,7 +53,7 @@ let cur: FigBookConfig | null = null;
 const configOf = (book: string): FigBookConfig => figBooks.get(book) ?? NO_BOOK;
 const active = (): FigBookConfig => cur ?? configOf(bootBook);
 const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /* the book's colour macros: a type class and a symbol key */
-const KOPT = () => ({ macros: { ...active().macros }, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
+const KOPT = () => ({ macros: { '\\mk': MK_MACRO, ...active().macros } as Macros, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
 
 /* KaTeX is the heaviest thing the shell can ask for, and a page of the book
    arrives with its maths already set at build time, so the library is fetched
@@ -189,7 +190,13 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.textBaseline = 'middle';
   return { ctx, W: LW, H };
 }
-function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void } {
+/* A control a tour can move: `drive` sets it and fires the events a reader's hand fires, so the
+   figure's own code reacts unchanged. `driving` is up while it does, which tells the tour's own
+   motion from the reader's. */
+let driving = false;
+const driven = (f: () => void): void => { driving = true; try { f(); } finally { driving = false; } };
+export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void };
+function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const lab = el('label'); const name = el('span', 'ctl-label'); tex(name, o.label);
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
   inp.setAttribute('aria-label', o.aria ?? o.label.replace(/\\k|[{}\\]/g, ''));
@@ -209,7 +216,8 @@ function ctl(parent: HTMLElement, o: CtlOpts): { readonly v: number; set: (x: nu
   const disable = (held: boolean): void => { inp.disabled = held; lab.classList.toggle('ctl-held', held); };
   if (o.disabled) disable(true);
   parent.appendChild(lab);
-  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable };
+  const drive = (x: number): void => { const was = inp.value; inp.value = String(x); if (inp.value !== was) driven(() => inp.dispatchEvent(new Event('input', { bubbles: true }))); };
+  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function sim(root: HTMLElement, id: string, H?: Logical) {
@@ -282,10 +290,15 @@ function release(root: HTMLElement): void {
     const d = sims[i]; if (!root.contains(d.fig)) continue;
     vio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
   }
+  tourTicks.forEach((fig, t) => { if (root.contains(fig)) { tickers.delete(t); tourTicks.delete(t); } });
 }
+/* story-time motion (tweens, tours, camera glides) steps here each frame, beside the sims' physical time */
+const tickers = new Set<(now: number, dt: number) => void>();
+const tourTicks = new Map<(now: number, dt: number) => void, HTMLElement>();
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  tickers.forEach((t) => { try { t(now, dt); } catch (e) { console.error(e); } });
   sims.forEach((d) => {
     if (!onScreen.has(d.fig)) return;
     if (!paused && d.playing) {
@@ -1167,7 +1180,7 @@ function topline(ctx: Ctx, s: string, color?: Color): 1 | 2 {
    pressed. The row is a radio group: arrow keys walk it and only the marked
    option is in the tab order. */
 export type Choice = { readonly value: string; readonly label: string };
-export type Picker = { readonly value: string; set: (v: string) => void };
+export type Picker = { readonly value: string; set: (v: string) => void; drive: (v: string) => void };
 type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void };
 
 const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
@@ -1196,7 +1209,7 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
     e.preventDefault(); pick(values[(values.indexOf(v) + step + values.length) % values.length], true);
   });
   mark(); lab.appendChild(row); host.appendChild(lab);
-  return { get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; mark(); } };
+  return { get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; mark(); }, drive: (x: string) => driven(() => pick(x, false)) };
 }
 
 function select(host: HTMLElement, o: ChoiceOpts): Picker {
@@ -1206,7 +1219,8 @@ function select(host: HTMLElement, o: ChoiceOpts): Picker {
   sel.value = o.value ?? o.options[0]?.value ?? '';
   sel.addEventListener('input', () => o.onInput?.(sel.value));
   lab.appendChild(sel); host.appendChild(lab);
-  return { get value() { return sel.value; }, set(x: string) { sel.value = x; } };
+  const drive = (x: string): void => { if (sel.value === x) return; sel.value = x; driven(() => sel.dispatchEvent(new Event('input', { bubbles: true }))); };
+  return { get value() { return sel.value; }, set(x: string) { sel.value = x; }, drive };
 }
 
 /* ---------- a slider with soft detents ----------
@@ -1307,7 +1321,15 @@ export type View3d = {
   setView: (yaw: Radians, pitch: Radians) => void;
   dispose: () => void;
   readonly turned: boolean;
+  /* the camera as code sets it: `look` jumps, `glide` eases there and resolves on arrival or when the reader takes over */
+  readonly at: CamView;
+  look: (to: CamAim) => void;
+  glide: (to: CamAim, ms?: number, e?: Ease) => Promise<void>;
+  /* called whenever the reader turns, zooms or spins the camera by hand; returns its own removal */
+  onReader: (f: () => void) => () => void;
 };
+export type CamView = { readonly yaw: Radians; readonly pitch: Radians; readonly zoom: number; readonly target: Vec3 };
+export type CamAim = Partial<CamView>;
 
 const three = (): Three | null => (window as unknown as { THREE?: Three }).THREE ?? null;
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
@@ -1393,7 +1415,8 @@ function vbtn(bar: HTMLElement, html: string, title: string, cls = ''): HTMLButt
 const stub = (stage: HTMLElement): View3d => {
   const wrap = el('div', 'three-wrap'); wrap.appendChild(el('p', 'lab3d', 'This figure needs WebGL, which this browser does not provide.')); stage.appendChild(wrap);
   const nil = (): void => {};
-  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; } };
+  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; },
+    at: { yaw: 0, pitch: 0, zoom: 1, target: [0, 0, 0] }, look: nil, glide: () => Promise.resolve(), onReader: () => nil };
 };
 
 function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
@@ -1411,7 +1434,10 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const lamp = new T.DirectionalLight(0xffffff, 0.8); lamp.position.set(-3, 5, 7); scene.add(lamp); scene.add(new T.AmbientLight(0xffffff, 0.62));
   let head: HTMLElement | null = null;
   const parts: Obj3[] = [], labels: { el: HTMLElement; p: Obj3; g: Obj3; dy: number }[] = [], picks: { m: Obj3; name: string }[] = [];
-  let yaw = 0, pitch = opts.tilt ?? 0.32, zoom = 1;
+  let yaw = 0, pitch = opts.tilt ?? 0.32, zoom = 1, target: Vec3 = [0, 0, 0];
+  let gliding: { from: CamView; to: CamView; t0: number; ms: number; e: Ease; done: () => void } | null = null;
+  const readers = new Set<() => void>();
+  const byHand = (): void => { if (gliding) { const g = gliding; gliding = null; g.done(); } readers.forEach((f) => f()); };
   let spinning = spinMode === 'idle' && !REDUCED, dragging = false, last: readonly [number, number] = [0, 0], need = true, alive = true, seen = true, turned = false;
   const qx = new T.Quaternion(), qy = new T.Quaternion(), AX = new T.Vector3(1, 0, 0), UP = new T.Vector3(0, 1, 0);
   const orient = (): void => { parts.forEach((g: Obj3) => g.quaternion.copy(qx.setFromAxisAngle(AX, pitch).multiply(qy.setFromAxisAngle(UP, yaw)))); need = true; };
@@ -1419,7 +1445,22 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     yaw = yawLim === 'free' ? y : clamp(y, yawLim[0], yawLim[1]);
     pitch = clamp(p, pitchLim[0], pitchLim[1]); orient();
   };
-  const setZoom = (z: number): void => { zoom = clamp(z, zoomMin, zoomMax); camera.position.set(0, 0, dist / zoom); camera.updateProjectionMatrix(); need = true; };
+  const setZoom = (z: number): void => { zoom = clamp(z, zoomMin, zoomMax); camera.position.set(target[0], target[1], target[2] + dist / zoom); camera.updateProjectionMatrix(); need = true; };
+  const viewNow = (): CamView => ({ yaw, pitch, zoom, target });
+  const fill = (to: CamAim): CamView => ({ ...viewNow(), ...to });
+  const put = (c: CamView): void => { target = c.target; aim(c.yaw, c.pitch); setZoom(c.zoom); };
+  const look = (to: CamAim): void => { gliding?.done(); gliding = null; spinning = false; markSpin(); put(fill(to)); };
+  const glide = (to: CamAim, ms = 2000, e: Ease = ease.smooth): Promise<void> => new Promise((done) => {
+    look({});
+    if (REDUCED || ms <= 0) { put(fill(to)); done(); return; }
+    gliding = { from: viewNow(), to: fill(to), t0: performance.now(), ms, e, done };
+  });
+  const glideStep = (now: number): void => {
+    if (!gliding) return;
+    const g = gliding, k = Math.min(1, (now - g.t0) / g.ms), q = g.e(k);
+    put({ yaw: lerp(g.from.yaw, g.to.yaw, q), pitch: lerp(g.from.pitch, g.to.pitch, q), zoom: lerp(g.from.zoom, g.to.zoom, q), target: g.from.target.map((x, i) => lerp(x, g.to.target[i], q)) as unknown as Vec3 });
+    if (k >= 1) { gliding = null; g.done(); }
+  };
   const v: View3d = {
     wrap, scene, camera,
     /* a group the drag turns about its own centre, placed at x; a figure with panels has several */
@@ -1452,6 +1493,9 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     setView: aim,
     dispose,
     get turned() { return turned; },
+    get at() { return viewNow(); },
+    look, glide,
+    onReader(f) { readers.add(f); return () => { readers.delete(f); }; },
   };
   renderer.setClearColor(0x000000, 0); wrap.appendChild(renderer.domElement);
   function size(): void {
@@ -1465,14 +1509,14 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   /* the button row: what dragging cannot say */
   const bar = el('div', 'view3d-bar'); stage.appendChild(bar);
   const spinBtn = spinMode === 'none' ? null : vbtn(bar, VICON.spin, 'Auto-rotate', 'spin');
-  const markSpin = (): void => { spinBtn?.setAttribute('aria-pressed', String(spinning)); spinBtn?.classList.toggle('on', spinning); };
-  spinBtn?.addEventListener('click', () => { spinning = !spinning; markSpin(); need = true; }); markSpin();
-  (opts.views ?? []).forEach((p) => vbtn(bar, p.label, 'View: ' + p.label, 'named').addEventListener('click', () => { spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
-  vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => setZoom(zoom / 1.25));
-  vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => setZoom(zoom * 1.25));
+  function markSpin(): void { spinBtn?.setAttribute('aria-pressed', String(spinning)); spinBtn?.classList.toggle('on', spinning); }
+  spinBtn?.addEventListener('click', () => { byHand(); spinning = !spinning; markSpin(); need = true; }); markSpin();
+  (opts.views ?? []).forEach((p) => vbtn(bar, p.label, 'View: ' + p.label, 'named').addEventListener('click', () => { byHand(); spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
+  vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => { byHand(); setZoom(zoom / 1.25); });
+  vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => { byHand(); setZoom(zoom * 1.25); });
 
   /* the orbit: a turntable within the bounds the figure set, and the wheel zooms over the canvas */
-  wrap.addEventListener('pointerdown', (e) => { dragging = true; spinning = false; markSpin(); last = [e.clientX, e.clientY]; wrap.setPointerCapture(e.pointerId); wrap.style.cursor = 'grabbing'; e.preventDefault(); });
+  wrap.addEventListener('pointerdown', (e) => { byHand(); dragging = true; spinning = false; markSpin(); last = [e.clientX, e.clientY]; wrap.setPointerCapture(e.pointerId); wrap.style.cursor = 'grabbing'; e.preventDefault(); });
   wrap.addEventListener('pointermove', (e) => {
     if (dragging) { turned = true; aim(yaw + (e.clientX - last[0]) * 0.009, pitch + (e.clientY - last[1]) * 0.009); last = [e.clientX, e.clientY]; return; }
     pick(e);
@@ -1480,7 +1524,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const up = (): void => { dragging = false; wrap.style.cursor = 'grab'; };
   wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up);
   wrap.addEventListener('pointerleave', () => tip.hide());
-  wrap.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
+  wrap.addEventListener('wheel', (e) => { e.preventDefault(); byHand(); setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
 
   /* the name of the body under the pointer, for the figures that register one */
   const tip = tipOf(stage), ray = new T.Raycaster(), ndc = new T.Vector2();
@@ -1504,12 +1548,208 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     if (!alive) return;
     if (!wrap.isConnected && ++gone > 300) { dispose(); return; }   /* torn down: five seconds out of the document */
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    glideStep(now);
     if (spinning && seen && !paused) aim(yaw + 0.22 * dt, pitch);
     if (need && seen) { renderer.render(scene, camera); place(); need = false; opts.onRender?.(); }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   return v;
+}
+
+/* ---------- story time: trackers, tours and formula morphs ----------
+   Physical time is a sim's cycles, linear, under its own transport. Story
+   time is authored: eased, in beats, and never mixed with the first. A
+   tracker holds a number the draw reads and eases it to a new value; a tour
+   is a script of beats that moves the same controls a reader could and the
+   camera, under a transport of its own; a morph re-typesets a formula and
+   carries its tagged terms from the old layout to the new. */
+type FigRef = { readonly fig: HTMLElement } | HTMLElement;
+const figOf = (d: FigRef): HTMLElement => ('fig' in d ? d.fig : d);
+const touch = (fig: HTMLElement): void => { const s = sims.find((x) => x.fig === fig); if (s) s.dirty = true; };
+const now = (): number => performance.now();
+
+/* `F.tween(d, v0)`: `.v` for the draw; `.to(v, ms, ease)` eases there and keeps the figure redrawing,
+   resolving on arrival or when a later `.to`/`.set` takes over. Reduced motion jumps. */
+export type Tween = { readonly v: number; to: (x: number, ms?: number, e?: Ease) => Promise<void>; set: (x: number) => void };
+function tween(d: FigRef, v0 = 0): Tween {
+  const fig = figOf(d); let v = v0;
+  let run: { tick: (t: number) => void; done: () => void } | null = null;
+  const stop = (): void => { if (!run) return; const r = run; run = null; tickers.delete(r.tick); r.done(); };
+  return {
+    get v() { return v; },
+    set(x) { stop(); v = x; touch(fig); },
+    to(x, ms = 1000, e = ease.smooth) {
+      stop();
+      if (REDUCED || ms <= 0) { v = x; touch(fig); return Promise.resolve(); }
+      return new Promise<void>((done) => {
+        const from = v, t0 = now();
+        const tick = (t: number): void => { const k = Math.min(1, (t - t0) / ms); v = lerp(from, x, e(k)); touch(fig); if (k >= 1) { tickers.delete(tick); run = null; done(); } };
+        run = { tick, done }; tickers.add(tick);
+      });
+    },
+  };
+}
+
+/* A tour: beats played on the story clock. A beat's knobs are [control, value] pairs naming the
+   objects `ctl`, `choice` and `select` returned; its view is a camera aim for `spec.camera`; `run(k)`
+   receives the beat's eased progress and `enter()` fires when the beat becomes the current one. */
+type Knob = Slider | Picker;
+export type Beat = BeatTime & {
+  readonly name: string;
+  readonly knobs?: readonly (readonly [Knob, Scripted])[];
+  readonly view?: CamAim;
+  readonly run?: (k: number) => void;
+  readonly enter?: () => void;
+};
+export type TourSpec = { readonly beats: readonly Beat[]; readonly camera?: View3d };
+export type Tour = {
+  play: () => void; pause: () => void; seek: (s: number) => void; next: () => void; prev: () => void;
+  readonly t: number; readonly total: number; readonly playing: boolean; readonly bar: HTMLElement;
+};
+const HAND_BACK_MS = 800;
+const knobNow = (k: Knob): Scripted => ('v' in k ? k.v : k.value);
+const driveKnob = (k: Knob, x: Scripted): void => { if ('v' in k) { if (typeof x === 'number') k.drive(x); } else k.drive(String(x)); };
+const CAM_KEYS = ['yaw', 'pitch', 'zoom', 't0', 't1', 't2'] as const;
+type CamKey = typeof CAM_KEYS[number];
+const camFlat = (c: CamView): Record<CamKey, number> => ({ yaw: c.yaw, pitch: c.pitch, zoom: c.zoom, t0: c.target[0], t1: c.target[1], t2: c.target[2] });
+const camOf = (f: Record<CamKey, number>): CamView => ({ yaw: f.yaw, pitch: f.pitch, zoom: f.zoom, target: [f.t0, f.t1, f.t2] });
+const camAim = (a: CamAim | undefined, key: CamKey): number | undefined => {
+  if (!a) return undefined;
+  if (key === 'yaw' || key === 'pitch' || key === 'zoom') return a[key];
+  return a.target?.[+key[1]];
+};
+const TOUR_ICON = {
+  prev: '<svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg>',
+};
+
+function tour(d: FigRef, spec: TourSpec): Tour {
+  const fig = figOf(d), beats = spec.beats, cam = spec.camera, tl = timeline(beats);
+  const knobs = [...new Set(beats.flatMap((b) => (b.knobs ?? []).map(([k]) => k)))];
+  const knobBase = new Map(knobs.map((k) => [k, knobNow(k)] as const));
+  const knobTargets = new Map(knobs.map((k) => [k, beats.map((b) => b.knobs?.find(([x]) => x === k)?.[1])] as const));
+  const camScripted = !!cam && beats.some((b) => b.view);
+  const camBase = cam ? camFlat(cam.at) : null;
+  const scriptAt = (s: number): { knobs: Map<Knob, Scripted>; cam: CamView | null } => ({
+    knobs: new Map(knobs.map((k) => [k, valueAt(knobBase.get(k)!, knobTargets.get(k)!, tl, beats, s)] as const)),
+    cam: camScripted && camBase ? camOf(Object.fromEntries(CAM_KEYS.map((key) => [key, valueAt(camBase[key], beats.map((b) => camAim(b.view, key)), tl, beats, s)])) as Record<CamKey, number>) : null,
+  });
+
+  let t = 0, playing = false, started = false, handed = false, current = -1;
+  let back: { t0: number; from: Map<Knob, Scripted>; cam: CamView | null } | null = null;
+  const runK = beats.map(() => NaN);
+  const apply = (s: number): void => {
+    const st = scriptAt(s);
+    st.knobs.forEach((x, k) => driveKnob(k, x));
+    if (st.cam && cam) cam.look(st.cam);
+    beats.forEach((b, i) => { if (!b.run) return; const k = progressAt(tl, beats, i, s); if (k !== runK[i]) { runK[i] = k; b.run(k); } });
+    const i = beatAt(tl, s); if (i !== current) { current = i; beats[i]?.enter?.(); }
+    touch(fig); sync();
+  };
+  const blend = (k: number): void => {
+    if (!back) return;
+    const st = scriptAt(t), q = ease.smooth(k);
+    st.knobs.forEach((x, kn) => { const f = back!.from.get(kn); driveKnob(kn, typeof x === 'number' && typeof f === 'number' ? lerp(f, x, q) : x); });
+    if (st.cam && back.cam && cam) { const a = camFlat(back.cam), b = camFlat(st.cam); cam.look(camOf(Object.fromEntries(CAM_KEYS.map((key) => [key, lerp(a[key], b[key], q)])) as Record<CamKey, number>)); }
+    touch(fig);
+  };
+
+  const bar = el('div', 'transport tour'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Tour');
+  const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
+  const prevB = btn(TOUR_ICON.prev, 'Previous step'), playB = btn(TICON.play, 'Play'), nextB = btn(TOUR_ICON.next, 'Next step');
+  const track = el('span', 'tour-track');
+  const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.max = String(tl.total); scrub.step = 'any'; scrub.setAttribute('aria-label', 'Story time');
+  track.appendChild(scrub);
+  tl.starts.forEach((s0, i) => {
+    const tick = el('span', 'tour-tick'); tick.style.setProperty('--at', String(tl.total > 0 ? s0 / tl.total : 0)); tick.title = beats[i].name;
+    tick.addEventListener('click', () => seek(s0)); track.appendChild(tick);
+  });
+  bar.append(prevB, playB, nextB, track);
+  function sync(): void {
+    const name = beats[beatAt(tl, t)]?.name ?? '';
+    playB.innerHTML = playing ? TICON.pause : TICON.play;
+    playB.title = (playing ? 'Pause: ' : 'Play: ') + name; playB.setAttribute('aria-label', playB.title);
+    bar.classList.toggle('playing', playing); scrub.value = String(t);
+  }
+  const endOf = (i: number): number => tl.starts[i] + tl.moves[i];
+  function seek(s: number): void { playing = false; back = null; handed = false; t = clamp(s, 0, tl.total); apply(t); }
+  function pause(): void { playing = false; back = null; sync(); }
+  function play(): void {
+    if (REDUCED) { next(); return; }
+    if (t >= tl.total) { t = 0; handed = true; }
+    playing = true;
+    if (handed) { handed = false; back = { t0: now(), from: new Map(knobs.map((k) => [k, knobNow(k)] as const)), cam: cam ? cam.at : null }; const i = beatAt(tl, t); if (i !== current) { current = i; beats[i]?.enter?.(); } }
+    sync();
+  }
+  function next(): void { const i = beatAt(tl, t); const j = Math.min(beats.length - 1, t < tl.starts[i] ? i : i + 1); seek(REDUCED ? endOf(j) : (j === i ? tl.total : tl.starts[j])); }
+  function prev(): void { const i = beatAt(tl, t); const j = t > (REDUCED ? endOf(i) : tl.starts[i] + 300) ? i : Math.max(0, i - 1); seek(REDUCED ? endOf(j) : tl.starts[j]); }
+  playB.addEventListener('click', () => { if (playing) pause(); else play(); });
+  prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
+  scrub.addEventListener('input', () => seek(+scrub.value));
+
+  /* the reader's hand: anything on the figure the tour did not cause pauses it and leaves the reader in charge */
+  const takeOver = (e: Event): void => { if (driving || bar.contains(e.target as Node)) return; if (playing || back) pause(); handed = true; };
+  ['input', 'change', 'pointerdown', 'wheel'].forEach((ev) => fig.addEventListener(ev, takeOver, { capture: true, passive: true }));
+  cam?.onReader(() => { if (playing || back) pause(); handed = true; });
+
+  const tick = (at: number, dt: number): void => {
+    if (!fig.isConnected || !onScreen.has(fig)) return;
+    if (!started) { started = true; if (!REDUCED) play(); }
+    if (paused) return;
+    if (back) { const k = Math.min(1, (at - back.t0) / HAND_BACK_MS); blend(k); if (k >= 1) { back = null; apply(t); } return; }
+    if (!playing) return;
+    t = Math.min(tl.total, t + dt * 1000); apply(t);
+    if (t >= tl.total) { playing = false; sync(); }
+  };
+  vio?.observe(fig); tickers.add(tick); tourTicks.set(tick, fig);
+  const stage = fig.querySelector('.stage'); (stage ?? fig).appendChild(bar);
+  apply(0);
+  return { play, pause, seek, next, prev, get t() { return t; }, get total() { return tl.total; }, get playing() { return playing; }, bar };
+}
+
+/* `F.morph(host, tex)`: typesets like `F.tex`, and where the set of \mk{key}{…} terms changed since
+   the host's last render, kept terms slide to their new places, dropped ones fade where they stood
+   and new ones wipe in. The same keys re-render plainly. */
+const MORPH_MS = 600, SMOOTH_CSS = 'cubic-bezier(0.45, 0, 0.55, 1)';
+const lastKeys = new WeakMap<HTMLElement, readonly string[]>();
+type Place = { readonly el: HTMLElement; readonly x: number; readonly y: number; readonly w: number; readonly h: number };
+function placesOf(host: HTMLElement): Map<string, Place> {
+  const o = host.getBoundingClientRect(), out = new Map<string, Place>();
+  $$<HTMLElement>('[data-mk]', host).forEach((e) => {
+    const k = e.dataset.mk ?? ''; if (out.has(k)) return;
+    const r = e.getBoundingClientRect(); out.set(k, { el: e, x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height });
+  });
+  return out;
+}
+function morph(host: HTMLElement, s: string, display = false): void {
+  const next = mkKeys(s), prev = lastKeys.get(host); lastKeys.set(host, next);
+  const plan = morphPlan(prev ?? next, next), opts = { ...KOPT(), displayMode: display };
+  if (plan.same || !host.firstChild) { withMath((m) => m.katex.render(s, host, opts)); return; }
+  withMath((m) => {
+    const old = placesOf(host);
+    const ghosts = plan.drop.flatMap((k) => { const p = old.get(k); return p ? [{ p, node: p.el.cloneNode(true) as HTMLElement }] : []; });
+    m.katex.render(s, host, opts); host.classList.add('mk-host');
+    const now2 = placesOf(host);
+    if (REDUCED) {
+      plan.add.forEach((k) => { const p = now2.get(k); if (!p) return; p.el.classList.add('mk-new'); setTimeout(() => p.el.classList.remove('mk-new'), 1200); });
+      return;
+    }
+    const timing = { duration: MORPH_MS, easing: SMOOTH_CSS };
+    ghosts.forEach(({ p, node }) => {
+      const g = el('span', 'katex mk-ghost'); g.style.left = p.x + 'px'; g.style.top = p.y + 'px'; g.appendChild(node); host.appendChild(g);
+      g.animate([{ opacity: 1 }, { opacity: 0 }], timing).finished.then(() => g.remove(), () => g.remove());
+    });
+    plan.keep.forEach((k) => {
+      const a = old.get(k), b = now2.get(k); if (!a || !b) return;
+      b.el.style.position = 'relative';
+      b.el.animate([{ left: a.x - b.x + 'px', top: a.y - b.y + 'px' }, { left: '0px', top: '0px' }], timing);
+    });
+    plan.add.forEach((k) => {
+      const p = now2.get(k); if (!p) return;
+      p.el.animate([{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)' }], timing);
+    });
+  });
 }
 
 export const FIG = {
@@ -1519,6 +1759,7 @@ export const FIG = {
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
+  ease, lerp, partial, tween, tour, morph,
 };
 export type Fig = typeof FIG;
 

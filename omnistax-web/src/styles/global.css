@@ -211,6 +211,16 @@ a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .transport.playing .tbtn:first-child{color:var(--ink)}
 .transport .scrub{flex:1;width:auto;min-width:80px;max-width:260px;margin:0 8px}
 html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
+/* a tour's transport: story time, set apart from the physical transport by the accent, a tick per beat on its scrubber */
+.transport.tour{border-top:1px dashed var(--rule)}
+.transport.tour .tbtn{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+.transport.tour.playing .tbtn:first-child{color:var(--accent)}
+.transport.tour .tour-track{position:relative;flex:1;display:flex;min-width:80px;max-width:320px;margin:0 8px}
+.transport.tour .scrub{flex:1;max-width:none;margin:0;accent-color:var(--accent)}
+.transport.tour .tour-tick{position:absolute;top:-3px;left:calc(7px + (100% - 14px) * var(--at));width:2px;height:7px;margin-left:-1px;background:var(--accent);border-radius:1px;cursor:pointer}
+.mk-host{position:relative}
+.mk-host .mk-ghost{position:absolute;pointer-events:none;white-space:nowrap}
+.mk-new{background:color-mix(in srgb,var(--accent) 22%,transparent);border-radius:3px;transition:background .6s}
 /* Up to three sliders share a row, centred; a fourth starts the next row at the left. */
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));justify-content:center;gap:10px 18px;margin:0;padding:14px 18px 8px;border-top:1px solid var(--rule);font-size:0.9rem;color:var(--muted)}
 .controls:empty{display:none}
