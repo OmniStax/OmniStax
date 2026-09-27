@@ -11,6 +11,7 @@ import type { Typeset, ViewBox } from './mathjax';
 export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean };
 type Macros = Readonly<Record<string, string>>;
 const MS = 1200, VALUE_MS = 250, INPUT_MS = 300, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/2000/svg';
+const BETWEEN = '\u0000between';
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- the reader's hand ----------
@@ -178,12 +179,14 @@ function tick(el: HTMLElement, h: Host, now: number): void {
 export function morph(el: HTMLElement, tex: string, display: boolean, opts: MorphOpts, macros: Macros): void {
   const h = hostOf(el);
   if (h.tex === tex && h.display === display && !opts.force) return;
+  const landing = h.tex === BETWEEN;
   h.tex = tex; h.display = display; h.scrub = null;
   const token = ++h.token;
   withMj((m) => {
     if (token !== h.token) return;
     const b = renderOf(m, macros, tex, display), from = h.target ?? h.shown;
     h.macros = macros;
+    if (landing) { stop(el, h); h.target = b; show(el, h, b, macros); return; }
     const plan = morphPlan(from ? mkKeys(from.tex) : [], mkKeys(tex)), full = !plan.same || !!opts.force;
     const value = !full && opts.values !== false && byHand();
     if (!from || !el.isConnected || (!full && !value)) {
@@ -208,7 +211,7 @@ export function morphAt(el: HTMLElement, a: string, b: string, k: number, displa
     h.display = display; h.macros = macros;
     const ra = renderOf(m, macros, a, display), rb = renderOf(m, macros, b, display);
     const end = REDUCED ? (k < 0.5 ? ra : rb) : k <= 0 ? ra : k >= 1 ? rb : null;
-    h.tex = (end ?? rb).tex; h.target = end ?? rb;
+    h.tex = end ? end.tex : BETWEEN; h.target = end;
     if (end) { if (h.shown !== end || !el.firstChild) show(el, h, end, macros); return; }
     const box = (el.parentElement ?? el).getBoundingClientRect();
     const sig = [a, b, display, box.left + scrollX, box.top + scrollY, box.width, getComputedStyle(el).color].join('\u0000');

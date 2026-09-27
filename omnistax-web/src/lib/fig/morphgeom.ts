@@ -249,7 +249,7 @@ export function pairGlyphs(A: readonly Glyph[], B: readonly Glyph[]): (readonly 
    it fades out, the one it leaves). The frame at t is a function of t alone, so a story
    slider can scrub it. */
 export type Rgba = readonly [number, number, number, number];
-export type Track = { readonly a: readonly Pt[][]; readonly b: readonly Pt[][]; readonly inkA: string; readonly inkB: string; readonly opA: number; readonly opB: number; readonly start: number; readonly span: number; readonly moves: boolean; readonly end: Glyph };
+export type Track = { readonly a: readonly Pt[][]; readonly b: readonly Pt[][]; readonly inkA: string; readonly inkB: string; readonly opA: number; readonly opB: number; readonly start: number; readonly span: number; readonly moves: boolean; readonly end: Glyph; readonly quick?: boolean };
 export type Drawn = { readonly rings: readonly Pt[][]; readonly ink: string; readonly opacity: number };
 export const LAG = 0.12;
 const shifted = (rs: readonly Ring[], v: Pt): Pt[][] => rs.map((r) => r.map((p) => [p[0] + v[0], p[1] + v[1]] as Pt));
@@ -260,13 +260,28 @@ function moveTrack(g: Glyph | null, h: Glyph | null, wA: number, wB: number, ste
   const pairs = pairRings(a.rings, b.rings, step);
   return { a: pairs.map((p) => p[0]), b: pairs.map((p) => p[1]), inkA: a.ink || b.ink, inkB: b.ink || a.ink, opA: g ? (g.alpha ?? 1) * wA : 0, opB: h ? wB : 0, moves: true, end: h ?? g! };
 }
+/* A key's glyphs bend when the two contents read as the same text changing: their longest
+   shared run covers half the longer one, or the counts differ by one at most. Otherwise the
+   key crossfades where it stands, the old glyphs out and the new in, carried as the key moves. */
+export const bends = (A: readonly Glyph[], B: readonly Glyph[]): boolean =>
+  Math.abs(A.length - B.length) <= 1 || 2 * lcs(reading(A), reading(B)).length >= Math.max(A.length, B.length);
+/* Parts on their way out are gone by FADE_BY of the window, before the survivors settle. */
+export const FADE_BY = 0.6;
+const fadeOut = (g: Glyph, v: Pt, moves: boolean, w = 1): Piece => ({ a: g.rings.map((r) => [...r]), b: shifted(g.rings, v), inkA: g.ink, inkB: g.ink, opA: (g.alpha ?? 1) * w, opB: 0, moves, end: g, quick: true });
+const fadeIn = (g: Glyph, v: Pt, moves: boolean, w = 1): Piece => ({ a: shifted(g.rings, [-v[0], -v[1]]), b: g.rings.map((r) => [...r]), inkA: g.ink, inkB: g.ink, opA: 0, opB: w, moves, end: g });
 export function tracksOf(m: Match, step = 1.5, lag = LAG): Track[] {
-  const moving = m.moves.flatMap(([A, B, wA, wB]) => pairGlyphs(A, B).map(([g, h]) => ({ x: xOf((h ?? g)!), t: moveTrack(g, h, wA, wB, step) })));
-  const neg: Pt = [-m.shift[0], -m.shift[1]];
-  const outs = m.out.map((g) => ({ x: xOf(g), t: { a: g.rings.map((r) => [...r]), b: shifted(g.rings, m.shift), inkA: g.ink, inkB: g.ink, opA: g.alpha ?? 1, opB: 0, moves: false, end: g } }));
-  const ins = m.in.map((g) => ({ x: xOf(g), t: { a: shifted(g.rings, neg), b: g.rings.map((r) => [...r]), inkA: g.ink, inkB: g.ink, opA: 0, opB: 1, moves: false, end: g } }));
+  const moving = m.moves.flatMap(([A, B, wA, wB]) => {
+    if (bends(A, B)) return pairGlyphs(A, B).map(([g, h]) => ({ x: xOf((h ?? g)!), t: moveTrack(g, h, wA, wB, step) }));
+    const p = centre(boxOf(A.flatMap((g) => g.rings))), q = centre(boxOf(B.flatMap((g) => g.rings))), v: Pt = [q[0] - p[0], q[1] - p[1]];
+    return [...A.map((g) => ({ x: xOf(g), t: fadeOut(g, v, true, wA) })), ...B.map((g) => ({ x: xOf(g), t: fadeIn(g, v, true, wB) }))];
+  });
+  const outs = m.out.map((g) => ({ x: xOf(g), t: fadeOut(g, m.shift, false) }));
+  const ins = m.in.map((g) => ({ x: xOf(g), t: fadeIn(g, m.shift, false) }));
   const all = [...moving, ...outs, ...ins].sort((p, q) => p.x - q.x);
-  return all.map(({ t }, i) => ({ ...t, start: all.length > 1 ? (lag * i) / (all.length - 1) : 0, span: 1 - lag }));
+  return all.map(({ t }, i) => {
+    const start = all.length > 1 ? (lag * i) / (all.length - 1) : 0;
+    return { ...t, start, span: t.quick ? Math.max(0.05, FADE_BY - start) : 1 - lag };
+  });
 }
 
 /* Manim's path_along_arc: the straight path bent into an arc of `angle` radians. */
@@ -308,7 +323,7 @@ export function retarget(tracks: readonly Track[], t: number, pathArc = 0): { re
   const drawn = frame(tracks, t, pathArc);
   const from = tracks.flatMap((tr, i) => (tr.opB > 0 && drawn[i].opacity > 0 ? [{ ...tr.end, rings: drawn[i].rings, ink: drawn[i].ink, alpha: drawn[i].opacity }] : []));
   const fading = tracks.flatMap((tr, i): Track[] => (tr.opB > 0 || drawn[i].opacity <= 0 ? []
-    : [{ ...tr, a: drawn[i].rings.map((r) => [...r]), inkA: drawn[i].ink, opA: drawn[i].opacity, start: 0, span: 1 }]));
+    : [{ ...tr, a: drawn[i].rings.map((r) => [...r]), inkA: drawn[i].ink, opA: drawn[i].opacity, start: 0, span: FADE_BY }]));
   return { from, fading };
 }
 

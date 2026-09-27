@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parsePath, parseTransform, apply, resample, bestOffset, rotate, pairRings, area, perimeter, glyphsOf, match, pairGlyphs,
-  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, type Glyph, type Ring, type Pt, type SvgNode,
+  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, bends, FADE_BY, type Glyph, type Ring, type Pt, type SvgNode,
 } from '../src/lib/fig/morphgeom';
 import { typeset } from '../src/lib/fig/mathjax';
 
@@ -191,4 +191,24 @@ test('MathJax outlines carry \\mk keys and the book’s colour classes', () => {
 test('an inline formula breaks after each top-level =, never inside a group', () => {
   assert.deepEqual(splitTex('P = \\frac{a = b}{c} = \\left( x = y \\right) = 3'), ['P =', '\\frac{a = b}{c} =', '\\left( x = y \\right) =', '3']);
   assert.deepEqual(splitTex('\\mk{eq}{=} x'), ['\\mk{eq}{=} x']);
+});
+
+test('a key whose content changes past recognition crossfades where it stands, carried as it moves', () => {
+  const seq = (s: string, key: string, x0: number): Glyph[] => [...s].map((c, i) => glyph(c, x0 + i * 10, key));
+  assert.ok(bends(seq('50', 'n', 0), seq('51', 'n', 0)));
+  assert.ok(bends(seq('2.00', 'n', 0), seq('2.25', 'n', 0)));
+  assert.ok(!bends(seq('9.42x10-4', 'n', 0), seq('2.01', 'n', 0)));
+  const tr = tracksOf(match(seq('9.42x10-4', 'B', 0), seq('2.01', 'B', 100)), 1);
+  assert.equal(tr.length, 13, 'nine out, four in, none paired');
+  const f = frame(tr, 1);
+  assert.equal(f.filter((d) => d.opacity > 0).length, 4);
+  const old = tr.find((t) => t.opA === 1)!, shiftX = old.b[0][0][0] - old.a[0][0][0];
+  near(shiftX, 120 - 45, 1e-9);
+});
+
+test('parts with no counterpart are gone by 60 % of the window', () => {
+  const tr = tracksOf(match([glyph('a', 0, 'a'), glyph('pi', 20, 'pi'), glyph('b', 40, 'b')], [glyph('a', 0, 'a'), glyph('b', 30, 'b')]), 1);
+  const pi = tr.findIndex((t) => t.end.key === 'pi');
+  assert.equal(frame(tr, FADE_BY)[pi].opacity, 0);
+  assert.ok(frame(tr, FADE_BY).some((d, i) => i !== pi && d.rings[0][0][0] !== tr[i].b[0][0][0]), 'the survivors are still moving');
 });
