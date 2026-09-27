@@ -211,16 +211,13 @@ a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .transport.playing .tbtn:first-child{color:var(--ink)}
 .transport .scrub{flex:1;width:auto;min-width:80px;max-width:260px;margin:0 8px}
 html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
-/* a tour's transport: story time, set apart from the physical transport by the accent, a tick per beat on its scrubber */
-.transport.tour{border-top:1px dashed var(--rule)}
-.transport.tour .tbtn{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
-.transport.tour.playing .tbtn:first-child{color:var(--accent)}
-.transport.tour .tour-track{position:relative;flex:1;display:flex;min-width:80px;max-width:320px;margin:0 8px}
-.transport.tour .scrub{flex:1;max-width:none;margin:0;accent-color:var(--accent)}
-.transport.tour .tour-tick{position:absolute;top:-3px;left:calc(7px + (100% - 14px) * var(--at));width:2px;height:7px;margin-left:-1px;background:var(--accent);border-radius:1px;cursor:pointer}
-/* a story's transport: the story slider is the scrubber, across the stage, each stop named beneath its circle */
-.transport.story{justify-content:flex-start;padding:8px 26px 24px 18px}
-.transport.story .story-track{flex:1;margin-left:14px}
+/* a tour's transport: the same bar, a tick per beat on its scrubber */
+.transport.tour .tour-track{position:relative;flex:1;display:flex;min-width:80px;max-width:260px;margin:0 8px}
+.transport.tour .scrub{flex:1;max-width:none;margin:0}
+.transport.tour .tour-tick{position:absolute;top:-3px;left:calc(7px + (100% - 14px) * var(--at));width:2px;height:7px;margin-left:-1px;background:var(--muted);border-radius:1px;cursor:pointer}
+/* a story's transport: the same bar, its slider the scrubber across the stage, each stop named beneath its circle */
+.transport.story{padding-bottom:24px}
+.transport.story .story-track{flex:1;margin:0 8px}
 .story-labs{position:absolute;left:8px;right:8px;top:24px;height:1em;pointer-events:none}
 .story-lab{position:absolute;top:0;font-size:0.7rem;line-height:1;color:var(--muted);white-space:nowrap}
 .story-lab.on{color:var(--ink);font-weight:600}

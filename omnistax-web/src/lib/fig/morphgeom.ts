@@ -1,5 +1,5 @@
 /* The pure half of a formula morph, after Manim's TransformMatchingTex: glyph outlines
-   flattened out of an SVG tree, parts matched by key and by shape, rings paired, resampled
+   flattened out of an SVG tree, parts matched by meaning, rings paired, resampled
    and aligned, and the frame at any progress as a function of that progress alone.
    Nothing here touches the page; texmorph measures the page and draws the frames. */
 import { ease } from './motion';
@@ -148,17 +148,20 @@ export function pairRings(A: readonly Ring[], B: readonly Ring[], step = 1.5): R
    font outline it was cut from, whatever its place and size) and the innermost \mk key
    around it. */
 export type SvgNode = { readonly tag: string; readonly attrs: Readonly<Record<string, string>>; readonly children: readonly SvgNode[] };
-export type Glyph = { readonly shape: string; readonly key: string | null; readonly rings: readonly Ring[]; readonly ink: string; readonly seg?: number };
+export type Glyph = { readonly shape: string; readonly key: string | null; readonly rings: readonly Ring[]; readonly ink: string; readonly seg?: number; readonly op?: boolean; readonly alpha?: number };
+/* Operator and relation glyphs by MathJax's data-c code (= + − × · / brackets bars √ < > ≤ ≥ ≈ ≠ ± → ⇌);
+   rules, the fraction bars and radical overbars, are operators too. */
+const OPS = new Set(['3D', '2B', '2212', 'D7', 'B7', '22C5', '2F', '28', '29', '5B', '5D', '7B', '7D', '7C', '221A', '3C', '3E', '2264', '2265', '2248', '2260', 'B1', '2192', '21CC']);
 export const MK_CLASS = 'hd-mk=';
 const hash = (s: string): string => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const keyOf = (n: SvgNode): string | null => (n.attrs.class ?? '').split(/\s+/).find((c) => c.startsWith(MK_CLASS))?.slice(MK_CLASS.length) ?? null;
 export function glyphsOf(root: SvgNode): Glyph[] {
   const walk = (n: SvgNode, m: Mat, key: string | null): Glyph[] => {
     const mm = n === root ? m : mul(m, parseTransform(n.attrs.transform)), k = keyOf(n) ?? key;
-    if (n.tag === 'path' && n.attrs.d) return [{ shape: 'p' + (n.attrs['data-c'] ?? '') + hash(n.attrs.d), key: k, rings: parsePath(n.attrs.d).map((r) => r.map((p) => apply(mm, p))), ink: '' }];
+    if (n.tag === 'path' && n.attrs.d) return [{ shape: 'p' + (n.attrs['data-c'] ?? '') + hash(n.attrs.d), key: k, op: OPS.has((n.attrs['data-c'] ?? '').toUpperCase()), rings: parsePath(n.attrs.d).map((r) => r.map((p) => apply(mm, p))), ink: '' }];
     if (n.tag === 'rect') {
       const x = +(n.attrs.x ?? 0), y = +(n.attrs.y ?? 0), w = +(n.attrs.width ?? 0), h = +(n.attrs.height ?? 0);
-      return [{ shape: 'rect', key: k, rings: [([[x, y], [x + w, y], [x + w, y + h], [x, y + h]] as Pt[]).map((p) => apply(mm, p))], ink: '' }];
+      return [{ shape: 'rect', key: k, op: true, rings: [([[x, y], [x + w, y], [x + w, y + h], [x, y + h]] as Pt[]).map((p) => apply(mm, p))], ink: '' }];
     }
     const inner = n.tag === 'svg' && n !== root ? mul(mm, [1, 0, 0, 1, +(n.attrs.x ?? 0), +(n.attrs.y ?? 0)]) : mm;
     return n.children.flatMap((c) => walk(c, inner, k));
@@ -167,44 +170,54 @@ export function glyphsOf(root: SvgNode): Glyph[] {
 }
 
 /* ---------- matching parts ----------
-   As TransformMatchingTex: keyed terms match by key (a keyMap pairs two keys first), the
-   untagged rest by shape in reading order within the same segment between top-level = signs.
-   A match that would travel more than REACH of the formula's width is dropped (a keyMap pair
-   never is). Whatever is left fades with a short drift, at most DRIFT of the width: the
-   source's leftovers toward the centre of the target's, the target's from the source's. */
+   By meaning, as TransformMatchingTex with every term tagged: a key moves to the same key,
+   and a keyMap sends a key elsewhere, one to one, several to one (they bend together into
+   it) or one to several (it bends out into them). Untagged glyphs match only when they are
+   the same operator or relation, in order, within the same segment between top-level =
+   signs, and no further than REACH of the formula's width; untagged letters and digits
+   never match (`loose` lets every untagged glyph match by shape, for a formula whose keys
+   stayed and whose values changed). Whatever is left fades with a short drift, at most
+   DRIFT of the width: the source's leftovers toward the centre of the target's, the
+   target's from the source's. */
 export const REACH = 0.35, DRIFT = 0.04;
-export type KeyMap = Readonly<Record<string, string>>;
-export type Match = { readonly moves: readonly (readonly [Glyph[], Glyph[]])[]; readonly out: readonly Glyph[]; readonly in: readonly Glyph[]; readonly shift: Pt };
+export type KeyMap = Readonly<Record<string, string | readonly string[]>>;
+/* One matched pair of parts, with each end's weight: the extra sources of a many-to-one
+   end at 0 and the extra targets of a one-to-many start at 0, so each end reads as one. */
+export type Move = readonly [readonly Glyph[], readonly Glyph[], number, number];
+export type Match = { readonly moves: readonly Move[]; readonly out: readonly Glyph[]; readonly in: readonly Glyph[]; readonly shift: Pt };
 const xOf = (g: Glyph): number => centre(boxOf(g.rings))[0];
 const reading = (gs: readonly Glyph[]): Glyph[] => [...gs].sort((a, b) => xOf(a) - xOf(b));
 const groupBy = (gs: readonly Glyph[], f: (g: Glyph) => string): Map<string, Glyph[]> =>
   gs.reduce((m, g) => m.set(f(g), [...(m.get(f(g)) ?? []), g]), new Map<string, Glyph[]>());
-/* The glyphs of one segment that survive, as index pairs: a longest common subsequence of the
-   two shape sequences (in TeX order), kept only where it runs through two or more glyphs in a
-   row on both sides, or holds the start or the end of both, so scattered lone numerals fade. */
-export function runs(a: readonly Glyph[], b: readonly Glyph[]): [number, number][] {
+/* Index pairs of a longest common subsequence of two shape sequences. */
+export function lcs(a: readonly Glyph[], b: readonly Glyph[]): [number, number][] {
   const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = a[i].shape === b[j].shape ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
-  const lcs: [number, number][] = [];
+  const out: [number, number][] = [];
   for (let i = 0, j = 0; i < n && j < m;) {
-    if (a[i].shape === b[j].shape) { lcs.push([i, j]); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
+    if (a[i].shape === b[j].shape) { out.push([i, j]); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
   }
-  const next = (k: number): boolean => k + 1 < lcs.length && lcs[k + 1][0] === lcs[k][0] + 1 && lcs[k + 1][1] === lcs[k][1] + 1;
-  return lcs.filter(([i, j], k) => next(k) || (k > 0 && next(k - 1)) || (i === 0 && j === 0) || (i === n - 1 && j === m - 1));
+  return out;
 }
-export function match(src: readonly Glyph[], tgt: readonly Glyph[], keyMap: KeyMap = {}): Match {
+/* The key edges: the keyMap's first, then each key to itself where no edge claims it. */
+export function keyEdges(from: readonly string[], to: readonly string[], keyMap: KeyMap = {}): [string, string][] {
+  const has = new Set(to);
+  const mapped: [string, string][] = Object.entries(keyMap).flatMap(([a, bs]) => (from.includes(a) ? (typeof bs === 'string' ? [bs] : bs).filter((b) => has.has(b)).map((b): [string, string] => [a, b]) : []));
+  const claimed = new Set(mapped.flatMap(([a, b]) => [a, b]));
+  return [...mapped, ...from.filter((k) => has.has(k) && !claimed.has(k)).map((k): [string, string] => [k, k])];
+}
+export function match(src: readonly Glyph[], tgt: readonly Glyph[], keyMap: KeyMap = {}, loose = false): Match {
   const ks = groupBy(src.filter((g) => g.key !== null), (g) => g.key!), kt = groupBy(tgt.filter((g) => g.key !== null), (g) => g.key!);
-  const pairs = [...Object.entries(keyMap), ...[...ks.keys()].map((k) => [k, k] as const)]
-    .filter(([a, b]) => ks.has(a) && kt.has(b))
-    .reduce<(readonly [string, string])[]>((acc, [a, b]) => (acc.some(([x, y]) => x === a || y === b) ? acc : [...acc, [a, b]]), []);
-  const keyed = pairs.map(([a, b]) => [reading(ks.get(a)!), reading(kt.get(b)!)] as const);
-  const us = groupBy(src.filter((g) => g.key === null), (g) => String(g.seg ?? 0)), ut = groupBy(tgt.filter((g) => g.key === null), (g) => String(g.seg ?? 0));
-  const shaped = [...us].flatMap(([s, gs]) => runs(gs, ut.get(s) ?? []).map(([i, j]): readonly [Glyph[], Glyph[]] => [[gs[i]], [ut.get(s)![j]]]));
+  const edges = keyEdges([...ks.keys()], [...kt.keys()], keyMap);
+  const keyed = edges.map(([a, b]): Move => [reading(ks.get(a)!), reading(kt.get(b)!),
+    edges.find((e) => e[0] === a)![1] === b ? 1 : 0, edges.find((e) => e[1] === b)![0] === a ? 1 : 0]);
+  const free = (g: Glyph): boolean => g.key === null && (loose || !!g.op);
+  const us = groupBy(src.filter(free), (g) => String(g.seg ?? 0)), ut = groupBy(tgt.filter(free), (g) => String(g.seg ?? 0));
   const wide = Math.max(1, ...[src, tgt].map((gs) => { const b = boxOf(gs.flatMap((g) => g.rings)); return b.x1 - b.x0; }));
   const mid = (gs: readonly Glyph[]): Pt => centre(boxOf(gs.flatMap((g) => g.rings)));
-  const near = ([a, b]: readonly [Glyph[], Glyph[]]): boolean => { const p = mid(a), q = mid(b); return Math.hypot(q[0] - p[0], q[1] - p[1]) <= REACH * wide; };
-  const mapped = new Set(Object.keys(keyMap));
-  const moves = [...keyed.filter((m) => mapped.has(m[0][0].key!) || near(m)), ...shaped.filter(near)];
+  const near = ([a, b]: Move): boolean => { const p = mid(a), q = mid(b); return Math.hypot(q[0] - p[0], q[1] - p[1]) <= REACH * wide; };
+  const shaped = [...us].flatMap(([s, gs]) => lcs(gs, ut.get(s) ?? []).map(([i, j]): Move => [[gs[i]], [ut.get(s)![j]], 1, 1])).filter(near);
+  const moves = [...keyed, ...shaped];
   const usedS = new Set(moves.flatMap(([a]) => a)), usedT = new Set(moves.flatMap(([, b]) => b));
   const out = src.filter((g) => !usedS.has(g)), inn = tgt.filter((g) => !usedT.has(g));
   const v: Pt = out.length && inn.length ? ((a, b) => [b[0] - a[0], b[1] - a[1]] as Pt)(mid(out), mid(inn)) : [0, 0];
@@ -213,39 +226,47 @@ export function match(src: readonly Glyph[], tgt: readonly Glyph[], keyMap: KeyM
   return { moves, out, in: inn, shift };
 }
 
-/* Within one matched term, glyphs pair by shape in reading order, then the rest in reading
-   order; a glyph left over pairs with nothing and grows from, or shrinks to, its own centre. */
+/* Within one matched term, glyphs pair along the longest run of shapes both share, in reading
+   order, and the glyphs between two anchors pair in order, so a changed digit bends in its own
+   place (50 into 51: the 5 stays, the 0 bends into the 1). A glyph left over pairs with
+   nothing and grows from, or shrinks to, its own centre. */
 export function pairGlyphs(A: readonly Glyph[], B: readonly Glyph[]): (readonly [Glyph | null, Glyph | null])[] {
-  const a = reading(A), b = reading(B), usedB = new Set<Glyph>();
-  const byShape = a.map((g) => { const h = b.find((x) => !usedB.has(x) && x.shape === g.shape); if (h) usedB.add(h); return h ?? null; });
-  const restB = b.filter((x) => !usedB.has(x));
-  let j = 0;
-  const paired = a.map((g, i): readonly [Glyph | null, Glyph | null] => [g, byShape[i] ?? restB[j++] ?? null]);
-  return [...paired, ...restB.slice(j).map((g) => [null, g] as const)];
+  const a = reading(A), b = reading(B), anchors = [...lcs(a, b), [a.length, b.length] as [number, number]];
+  const out: (readonly [Glyph | null, Glyph | null])[] = [];
+  let i = 0, j = 0;
+  anchors.forEach(([ai, bj]) => {
+    const n = Math.max(ai - i, bj - j);
+    for (let k = 0; k < n; k++) out.push([i + k < ai ? a[i + k] : null, j + k < bj ? b[j + k] : null]);
+    if (ai < a.length) out.push([a[ai], b[bj]]);
+    i = ai + 1; j = bj + 1;
+  });
+  return out;
 }
 
 /* ---------- tracks and frames ----------
    A track is one drawn piece: its rings at the start and the end, its ink and opacity at
-   both, and where its window opens on the shared progress. The frame at t is a function of
-   t alone, so a story slider can scrub it. */
+   both, the window it moves in on the shared progress, and the glyph it lands as (or, when
+   it fades out, the one it leaves). The frame at t is a function of t alone, so a story
+   slider can scrub it. */
 export type Rgba = readonly [number, number, number, number];
-export type Track = { readonly a: readonly Pt[][]; readonly b: readonly Pt[][]; readonly inkA: string; readonly inkB: string; readonly opA: number; readonly opB: number; readonly start: number; readonly moves: boolean };
+export type Track = { readonly a: readonly Pt[][]; readonly b: readonly Pt[][]; readonly inkA: string; readonly inkB: string; readonly opA: number; readonly opB: number; readonly start: number; readonly span: number; readonly moves: boolean; readonly end: Glyph };
 export type Drawn = { readonly rings: readonly Pt[][]; readonly ink: string; readonly opacity: number };
 export const LAG = 0.12;
 const shifted = (rs: readonly Ring[], v: Pt): Pt[][] => rs.map((r) => r.map((p) => [p[0] + v[0], p[1] + v[1]] as Pt));
 const collapsed = (g: Glyph): Glyph => { const c = centre(boxOf(g.rings)); return { ...g, rings: g.rings.map((r) => r.map(() => c)) }; };
-function moveTrack(g: Glyph | null, h: Glyph | null, step: number): Omit<Track, 'start'> {
+type Piece = Omit<Track, 'start' | 'span'>;
+function moveTrack(g: Glyph | null, h: Glyph | null, wA: number, wB: number, step: number): Piece {
   const a = g ?? collapsed(h!), b = h ?? collapsed(g!);
   const pairs = pairRings(a.rings, b.rings, step);
-  return { a: pairs.map((p) => p[0]), b: pairs.map((p) => p[1]), inkA: a.ink || b.ink, inkB: b.ink || a.ink, opA: g ? 1 : 0, opB: h ? 1 : 0, moves: true };
+  return { a: pairs.map((p) => p[0]), b: pairs.map((p) => p[1]), inkA: a.ink || b.ink, inkB: b.ink || a.ink, opA: g ? (g.alpha ?? 1) * wA : 0, opB: h ? wB : 0, moves: true, end: h ?? g! };
 }
-export function tracksOf(m: Match, step = 1.5): Track[] {
-  const moving = m.moves.flatMap(([A, B]) => pairGlyphs(A, B).map(([g, h]) => ({ x: xOf((h ?? g)!), t: moveTrack(g, h, step) })));
+export function tracksOf(m: Match, step = 1.5, lag = LAG): Track[] {
+  const moving = m.moves.flatMap(([A, B, wA, wB]) => pairGlyphs(A, B).map(([g, h]) => ({ x: xOf((h ?? g)!), t: moveTrack(g, h, wA, wB, step) })));
   const neg: Pt = [-m.shift[0], -m.shift[1]];
-  const outs = m.out.map((g) => ({ x: xOf(g), t: { a: g.rings.map((r) => [...r]), b: shifted(g.rings, m.shift), inkA: g.ink, inkB: g.ink, opA: 1, opB: 0, moves: false } }));
-  const ins = m.in.map((g) => ({ x: xOf(g), t: { a: shifted(g.rings, neg), b: g.rings.map((r) => [...r]), inkA: g.ink, inkB: g.ink, opA: 0, opB: 1, moves: false } }));
+  const outs = m.out.map((g) => ({ x: xOf(g), t: { a: g.rings.map((r) => [...r]), b: shifted(g.rings, m.shift), inkA: g.ink, inkB: g.ink, opA: g.alpha ?? 1, opB: 0, moves: false, end: g } }));
+  const ins = m.in.map((g) => ({ x: xOf(g), t: { a: shifted(g.rings, neg), b: g.rings.map((r) => [...r]), inkA: g.ink, inkB: g.ink, opA: 0, opB: 1, moves: false, end: g } }));
   const all = [...moving, ...outs, ...ins].sort((p, q) => p.x - q.x);
-  return all.map(({ t }, i) => ({ ...t, start: all.length > 1 ? (LAG * i) / (all.length - 1) : 0 }));
+  return all.map(({ t }, i) => ({ ...t, start: all.length > 1 ? (lag * i) / (all.length - 1) : 0, span: 1 - lag }));
 }
 
 /* Manim's path_along_arc: the straight path bent into an arc of `angle` radians. */
@@ -270,7 +291,7 @@ export function mixInk(a: string, b: string, t: number): string {
 }
 export function frame(tracks: readonly Track[], t: number, pathArc = 0): Drawn[] {
   return tracks.map((tr) => {
-    const e = ease.smooth((t - tr.start) / (1 - LAG)), ang = tr.moves ? -pathArc : 0;
+    const e = ease.smooth((t - tr.start) / tr.span), ang = tr.moves ? -pathArc : 0;
     return {
       rings: tr.a.map((r, i) => r.map((p, j) => arcLerp(p, tr.b[i][j], e, ang))),
       ink: mixInk(tr.inkA, tr.inkB, e),
@@ -278,6 +299,19 @@ export function frame(tracks: readonly Track[], t: number, pathArc = 0): Drawn[]
     };
   });
 }
+
+/* ---------- retargeting a running morph ----------
+   The frame at t becomes the source of the next morph: a piece on its way to the target
+   stands as a glyph of that target (its key, shape and segment) at its present outline, ink
+   and opacity; a piece on its way out keeps fading from where it is. */
+export function retarget(tracks: readonly Track[], t: number, pathArc = 0): { readonly from: Glyph[]; readonly fading: Track[] } {
+  const drawn = frame(tracks, t, pathArc);
+  const from = tracks.flatMap((tr, i) => (tr.opB > 0 && drawn[i].opacity > 0 ? [{ ...tr.end, rings: drawn[i].rings, ink: drawn[i].ink, alpha: drawn[i].opacity }] : []));
+  const fading = tracks.flatMap((tr, i): Track[] => (tr.opB > 0 || drawn[i].opacity <= 0 ? []
+    : [{ ...tr, a: drawn[i].rings.map((r) => [...r]), inkA: drawn[i].ink, opA: drawn[i].opacity, start: 0, span: 1 }]));
+  return { from, fading };
+}
+
 export const pathD = (rings: readonly Ring[]): string =>
   rings.map((r) => 'M' + r.map((p) => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z').join('');
 

@@ -233,8 +233,8 @@ function sim(root: HTMLElement, id: string, H?: Logical) {
 }
 
 /* ---------- one animation loop for every figure ----------
-   Figures animate on their own. Each gets a transport (play/pause, stop and
-   rewind, a time scrubber when the motion has a finite period, speed) under
+   Figures animate on their own. Each gets a transport (play/pause, a time scrubber
+   when the motion has a finite period, speed) under
    its canvas; a global switch pauses them all; reduced-motion starts every
    figure stopped at its end state. A figure that registers no cycle is a
    still picture that answers its sliders: it gets no transport and never
@@ -248,7 +248,13 @@ const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserve
   onScreen.add(e.target); const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true;
 }), { rootMargin: '120px' }) : null;
 const SPEEDS = [1, 2, 4, 0.5] as const; const SPEED_LABEL: Record<number, string> = { 1: '1×', 2: '2×', 4: '4×', 0.5: '½×' };
-const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>', stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>' };
+const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>' };
+/* the speed button every transport ends with: cycles 1×, 2×, 4×, ½× */
+function speedBtn(get: () => number, set: (x: number) => void, sync: () => void): HTMLButtonElement {
+  const b = el('button', 'tbtn speed'); b.type = 'button'; b.title = 'Speed'; b.setAttribute('aria-label', 'Playback speed');
+  b.addEventListener('click', () => { set(SPEEDS[(SPEEDS.indexOf(get() as 1) + 1) % SPEEDS.length]); sync(); });
+  return b;
+}
 const rewind = (d: Sim) => d.cycles.forEach((c) => { c.tau = 0; c.wait = 0; });
 const periodOf = (d: Sim): number => Math.max(0, ...d.cycles.map((c) => c.period()));
 /* The scrubber follows the motion while it plays; dragging it pauses and sets the time. */
@@ -257,19 +263,15 @@ function syncScrub(d: Sim): void {
   s.max = String(P); s.value = String(Math.min(d.cycles[0].tau, P));
 }
 function transport(d: Sim): void {
-  const bar = el('div', 'transport'); const play = el('button', 'tbtn'), stop = el('button', 'tbtn'), speed = el('button', 'tbtn speed');
-  [play, stop, speed].forEach((b) => { b.type = 'button'; });
+  const bar = el('div', 'transport'); const play = el('button', 'tbtn'); play.type = 'button';
+  const speed = speedBtn(() => d.speed, (x) => { d.speed = x; }, () => sync());
   const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? 'Pause' : 'Play'; play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); syncScrub(d); };
   play.addEventListener('click', () => { d.playing = !d.playing; if (d.playing && d.cycles.every((c) => c.tau === Infinity)) rewind(d); sync(); });
-  stop.innerHTML = TICON.stop; stop.title = 'Stop and rewind'; stop.setAttribute('aria-label', stop.title);
-  stop.addEventListener('click', () => { d.playing = false; rewind(d); d.draw(); sync(); });
-  speed.title = 'Speed'; speed.setAttribute('aria-label', 'Playback speed');
-  speed.addEventListener('click', () => { d.speed = SPEEDS[(SPEEDS.indexOf(d.speed as 1) + 1) % SPEEDS.length]; sync(); });
   if (d.cycles.length && isFinite(periodOf(d))) {   /* a steady oscillation runs endlessly and has nothing to scrub */
     const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.step = 'any'; scrub.setAttribute('aria-label', 'Time');
     scrub.addEventListener('input', () => { d.playing = false; const v = +scrub.value; d.cycles.forEach((c) => { c.tau = v; c.wait = 0; }); d.draw(); sync(); });
-    d.scrub = scrub; bar.append(play, stop, scrub, speed);
-  } else bar.append(play, stop, speed);
+    d.scrub = scrub; bar.append(play, scrub, speed);
+  } else bar.append(play, speed);
   sync();
   const stage = d.fig.querySelector('.stage'); if (stage) stage.appendChild(bar); else d.fig.appendChild(bar);
   d.sync = sync;
@@ -1675,10 +1677,6 @@ const camAim = (a: CamAim | undefined, key: CamKey): number | undefined => {
   if (key === 'yaw' || key === 'pitch' || key === 'zoom') return a[key];
   return a.target?.[+key[1]];
 };
-const TOUR_ICON = {
-  prev: '<svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg>',
-  next: '<svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg>',
-};
 
 function tour(d: FigRef, spec: TourSpec): Tour {
   const fig = figOf(d), beats = spec.beats, cam = spec.camera, tl = timeline(beats);
@@ -1692,7 +1690,7 @@ function tour(d: FigRef, spec: TourSpec): Tour {
     cam: camScripted && camBase ? camOf(Object.fromEntries(CAM_KEYS.map((key) => [key, valueAt(camBase[key], beats.map((b) => camAim(b.view, key)), tl, beats, s)])) as Record<CamKey, number>) : null,
   });
 
-  let t = 0, playing = false, started = false, handed = false, current = -1;
+  let t = 0, playing = false, started = false, handed = false, current = -1, speed = 1;
   let back: { t0: number; from: Map<Knob, Scripted>; cam: CamView | null } | null = null;
   const runK = beats.map(() => NaN);
   const apply = (s: number): void => {
@@ -1713,7 +1711,7 @@ function tour(d: FigRef, spec: TourSpec): Tour {
 
   const bar = el('div', 'transport tour'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Tour');
   const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
-  const prevB = btn(TOUR_ICON.prev, 'Previous step'), playB = btn(TICON.play, 'Play'), nextB = btn(TOUR_ICON.next, 'Next step');
+  const playB = btn(TICON.play, 'Play'), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
   const track = el('span', 'tour-track');
   const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.max = String(tl.total); scrub.step = 'any'; scrub.setAttribute('aria-label', 'Story time');
   track.appendChild(scrub);
@@ -1721,12 +1719,12 @@ function tour(d: FigRef, spec: TourSpec): Tour {
     const tick = el('span', 'tour-tick'); tick.style.setProperty('--at', String(tl.total > 0 ? s0 / tl.total : 0)); tick.title = beats[i].name;
     tick.addEventListener('click', () => seek(s0)); track.appendChild(tick);
   });
-  bar.append(prevB, playB, nextB, track);
+  bar.append(playB, track, speedB);
   function sync(): void {
     const name = beats[beatAt(tl, t)]?.name ?? '';
     playB.innerHTML = playing ? TICON.pause : TICON.play;
     playB.title = (playing ? 'Pause: ' : 'Play: ') + name; playB.setAttribute('aria-label', playB.title);
-    bar.classList.toggle('playing', playing); scrub.value = String(t);
+    bar.classList.toggle('playing', playing); scrub.value = String(t); speedB.textContent = SPEED_LABEL[speed];
   }
   const endOf = (i: number): number => tl.starts[i] + tl.moves[i];
   function seek(s: number): void { playing = false; back = null; handed = false; t = clamp(s, 0, tl.total); apply(t); }
@@ -1741,7 +1739,6 @@ function tour(d: FigRef, spec: TourSpec): Tour {
   function next(): void { const i = beatAt(tl, t); const j = Math.min(beats.length - 1, t < tl.starts[i] ? i : i + 1); seek(REDUCED ? endOf(j) : (j === i ? tl.total : tl.starts[j])); }
   function prev(): void { const i = beatAt(tl, t); const j = t > (REDUCED ? endOf(i) : tl.starts[i] + 300) ? i : Math.max(0, i - 1); seek(REDUCED ? endOf(j) : tl.starts[j]); }
   playB.addEventListener('click', () => { if (playing) pause(); else play(); });
-  prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
   scrub.addEventListener('input', () => seek(+scrub.value));
 
   /* the reader's hand: anything on the figure the tour did not cause pauses it and leaves the reader in charge */
@@ -1755,7 +1752,7 @@ function tour(d: FigRef, spec: TourSpec): Tour {
     if (paused) return;
     if (back) { const k = Math.min(1, (at - back.t0) / HAND_BACK_MS); blend(k); if (k >= 1) { back = null; apply(t); } return; }
     if (!playing) return;
-    t = Math.min(tl.total, t + dt * 1000); apply(t);
+    t = Math.min(tl.total, t + dt * 1000 * speed); apply(t);
     if (t >= tl.total) { playing = false; sync(); }
   };
   vio?.observe(fig); tickers.add(tick); tourTicks.set(tick, fig);
@@ -1778,15 +1775,15 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   storied.add(fig);
   const stops = o.stops.map((x) => (typeof x === 'number' ? x : x.v)), ms = o.ms ?? BEAT_MS, rest = o.rest ?? REST_MS, e = o.ease ?? ease.smooth;
   slider.mark(o.stops.map((x) => (typeof x === 'number' ? { at: x } : { at: x.v, label: x.label })));
-  let playing = false, started = false, move: { from: number; to: number; t0: number } | null = null, restUntil = 0;
+  let playing = false, started = false, move: { from: number; to: number; t0: number } | null = null, restUntil = 0, speed = 1;
   const after = (v: number): number => stops.findIndex((x) => x > v + 1e-9);
   const before = (v: number): number => stops.reduce((b, x, i) => (x < v - 1e-9 ? i : b), -1);
   const go = (i: number): void => { const to = stops[i]; if (REDUCED) { move = null; slider.drive(to); return; } move = { from: slider.v, to, t0: now() }; };
   const bar = el('div', 'transport tour story'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Story');
   const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
-  const prevB = btn(TOUR_ICON.prev, 'Previous step'), playB = btn(TICON.play, 'Play'), nextB = btn(TOUR_ICON.next, 'Next step');
-  bar.append(prevB, playB, nextB);
-  const sync = (): void => { playB.innerHTML = playing ? TICON.pause : TICON.play; playB.title = playing ? 'Pause' : 'Play'; playB.setAttribute('aria-label', playB.title); bar.classList.toggle('playing', playing); };
+  const playB = btn(TICON.play, 'Play'), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
+  bar.append(playB);
+  const sync = (): void => { playB.innerHTML = playing ? TICON.pause : TICON.play; playB.title = playing ? 'Pause' : 'Play'; playB.setAttribute('aria-label', playB.title); speedB.textContent = SPEED_LABEL[speed]; bar.classList.toggle('playing', playing); };
   function pause(): void { playing = false; move = null; sync(); }
   function play(): void {
     if (REDUCED) { next(); return; }
@@ -1796,16 +1793,15 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   function next(): void { const i = after(slider.v); playing = false; if (i >= 0) go(i); sync(); }
   function prev(): void { const i = before(slider.v); playing = false; if (i >= 0) go(i); sync(); }
   playB.addEventListener('click', () => { if (playing) pause(); else play(); });
-  prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
-  const takeOver = (ev: Event): void => { if (driving || [prevB, playB, nextB].some((b) => b.contains(ev.target as Node))) return; if (playing || move) pause(); };
+  const takeOver = (ev: Event): void => { if (driving || [playB, speedB].some((b) => b.contains(ev.target as Node))) return; if (playing || move) pause(); };
   ['input', 'pointerdown'].forEach((ev) => fig.addEventListener(ev, takeOver, { capture: true, passive: true }));
   const tick = (at: number): void => {
     if (!fig.isConnected || !onScreen.has(fig)) return;
     if (!started) { started = true; if (!REDUCED) play(); }
     if (paused) return;
     if (move) {
-      const k = Math.min(1, (at - move.t0) / ms); slider.drive(lerp(move.from, move.to, e(k)));
-      if (k >= 1) { move = null; restUntil = at + rest; }
+      const k = Math.min(1, (at - move.t0) * speed / ms); slider.drive(lerp(move.from, move.to, e(k)));
+      if (k >= 1) { move = null; restUntil = at + rest / speed; }
       return;
     }
     if (!playing || at < restUntil) return;
@@ -1815,6 +1811,7 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   vio?.observe(fig); tickers.add(tick); tourTicks.set(tick, fig);
   const stage = fig.querySelector('.stage'); (stage ?? fig).appendChild(bar); sync();
   storyScrubber(fig, bar, slider, o.stops.map((x, i) => ({ v: stops[i], label: typeof x === 'number' ? '' : x.label ?? '' })));
+  bar.appendChild(speedB);
   return { play, pause, next, prev, get playing() { return playing; }, bar };
 }
 /* The story slider's track leaves the controls row for the transport, as its scrubber: the stops'
@@ -1907,7 +1904,8 @@ function fadeEl(node: HTMLElement, on: boolean, o: FadeOpts = {}): void {
 }
 
 /* `F.morph(host, tex, display?, opts?)`: a formula whose glyphs bend into the next one when its
-   set of \mk{key}{…} terms changes; `F.morphAt(host, a, b, k)` is that morph's frame at k.
+   set of \mk{key}{…} terms changes, and whose values bend as the reader drags;
+   `F.morphAt(host, a, b, k)` is a key-set morph's frame at k.
    Both set MathJax outlines under the active book's macros (texmorph). */
 const morphOpts = (d: boolean | MorphOpts | undefined, o: MorphOpts | undefined): [boolean, MorphOpts] =>
   typeof d === 'object' ? [false, d] : [d ?? false, o ?? {}];

@@ -3,13 +3,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parsePath, parseTransform, apply, resample, bestOffset, rotate, pairRings, area, perimeter, glyphsOf, match, pairGlyphs,
-  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, runs, type Glyph, type Ring, type Pt, type SvgNode,
+  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, type Glyph, type Ring, type Pt, type SvgNode,
 } from '../src/lib/fig/morphgeom';
 import { typeset } from '../src/lib/fig/mathjax';
 
 const near = (a: number, b: number, eps = 1e-6): void => assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
 const square = (x: number, y: number, s: number, cw = true): Ring => (cw ? [[x, y], [x + s, y], [x + s, y + s], [x, y + s]] : [[x, y], [x, y + s], [x + s, y + s], [x + s, y]]);
-const glyph = (shape: string, x: number, key: string | null = null): Glyph => ({ shape, key, rings: [square(x, 0, 10)], ink: 'rgb(0, 0, 0)' });
+const glyph = (shape: string, x: number, key: string | null = null): Glyph => ({ shape, key, op: shape === 'eq' || shape === '+', rings: [square(x, 0, 10)], ink: 'rgb(0, 0, 0)' });
 
 test('paths flatten to closed rings in absolute coordinates, relative commands included', () => {
   const rs = parsePath('M0 0L10 0V10H0Z m20 0 l5 0 0 5z');
@@ -70,40 +70,74 @@ test('glyphs read keys from their innermost \\mk class and shapes from their out
   assert.deepEqual(gs[2].rings[0][2], [3, 3]);
 });
 
-test('matching: keys first (a keyMap pairs two keys), then shapes in reading order, the rest fades', () => {
+test('matching: keys by meaning (a keyMap sends one elsewhere), untagged operators in order, the rest fades', () => {
   const src = [glyph('P', 0, 'P'), glyph('eq', 20), glyph('k', 40, 'k'), glyph('2', 60), glyph('2', 80)];
   const tgt = [glyph('P', 0, 'P'), glyph('eq', 30), glyph('2', 50), glyph('Q', 70, 'Q'), glyph('9', 200)];
   const m = match(src, tgt);
-  assert.deepEqual(m.moves.map(([a, b]) => [a.map((g) => g.shape).join(), b.map((g) => g.shape).join()]), [['P', 'P'], ['eq', 'eq'], ['2', '2']]);
-  assert.equal(m.moves[2][0][0], src[3], 'the first 2 in reading order moves');
-  assert.deepEqual(m.out.map((g) => g.shape), ['k', '2']);
-  assert.deepEqual(m.in.map((g) => g.shape), ['Q', '9']);
-  near(m.shift[0], 0.04 * 210, 1e-9);
+  assert.deepEqual(m.moves.map(([a, b]) => [a.map((g) => g.shape).join(), b.map((g) => g.shape).join()]), [['P', 'P'], ['eq', 'eq']]);
+  assert.deepEqual(m.out.map((g) => g.shape), ['k', '2', '2'], 'an untagged digit never matches, even a 2 into a 2');
+  assert.deepEqual(m.in.map((g) => g.shape), ['2', 'Q', '9']);
   const mk = match(src, tgt, { k: 'Q' });
   assert.ok(mk.moves.some(([a, b]) => a[0].key === 'k' && b[0].key === 'Q'));
-  assert.deepEqual(mk.in.map((g) => g.shape), ['9']);
+  const loose = match(src, tgt, {}, true);
+  assert.equal(loose.moves.length, 3, 'loose, for a change of values only, lets untagged glyphs match by shape');
 });
 
-test('untagged glyphs match only within their segment and never across the formula', () => {
+test('several keys bend together into one, and one bends out into several, each end reading as one', () => {
+  const src = [glyph('a', 0, 'p2'), glyph('+', 20), glyph('b', 40, 'p3'), glyph('+', 60), glyph('c', 80, 'p4')];
+  const tgt = [glyph('R', 30, 'Rp')];
+  const m = match(src, tgt, { p2: 'Rp', p3: 'Rp', p4: 'Rp' });
+  assert.deepEqual(m.moves.map(([a, b, wA, wB]) => [a[0].key, b[0].key, wA, wB]), [['p2', 'Rp', 1, 1], ['p3', 'Rp', 1, 0], ['p4', 'Rp', 1, 0]]);
+  assert.deepEqual(m.out.map((g) => g.shape), ['+', '+']);
+  const end = frame(tracksOf(m, 1), 1).filter((d) => d.opacity > 0);
+  assert.equal(end.length, 1, 'the landed term is drawn once');
+  const split = match([glyph('R', 30, 'Rs')], [glyph('a', 0, 'a'), glyph('b', 60, 'b')], { Rs: ['a', 'b'] });
+  assert.deepEqual(split.moves.map(([a, b, wA, wB]) => [a[0].key, b[0].key, wA, wB]), [['Rs', 'a', 1, 1], ['Rs', 'b', 0, 1]]);
+  assert.equal(frame(tracksOf(split, 1), 0).filter((d) => d.opacity > 0).length, 1, 'the source is drawn once before it splits');
+  assert.deepEqual(keyEdges(['Rp', 'p2'], ['Rp'], { p2: 'Rp' }), [['p2', 'Rp']], 'a key the keyMap claims does not also match itself');
+});
+
+test('untagged operators match only within their segment and never across the formula', () => {
   const at = (shape: string, x: number, seg: number): Glyph => ({ ...glyph(shape, x), seg });
-  const m = match([at('2', 0, 0), at('3', 20, 1)], [at('3', 0, 0), at('2', 20, 1)]);
-  assert.equal(m.moves.length, 0, 'a 2 in one segment does not fly to a 2 in another');
-  const far = match([at('2', 0, 0), at('x', 300, 0)], [at('x', 0, 0), at('2', 300, 0)]);
+  const m = match([at('eq', 0, 0), at('+', 20, 1)], [at('+', 0, 0), at('eq', 20, 1)]);
+  assert.equal(m.moves.length, 0, 'an = in one segment does not fly to an = in another');
+  const far = match([at('eq', 0, 0), at('x', 300, 0)], [at('x', 0, 0), at('eq', 300, 0)]);
   assert.equal(far.moves.length, 0, 'a match that would cross most of the formula fades instead');
   const seq = (s: string): Glyph[] => [...s].map((c, i) => glyph(c, i * 10));
-  assert.deepEqual(runs(seq('(1.00)(0.08)/22.9L'), seq('22.4Lat')), [[13, 0], [14, 1], [15, 2]],
-    'a run of 2 2 . survives; a lone L after a changed numeral fades');
+  assert.deepEqual(lcs(seq('a+b=c'), seq('+=')), [[1, 0], [3, 1]]);
   const asked = match([glyph('k', 0, 'k'), glyph('x', 300)], [glyph('x', 0), glyph('Q', 300, 'Q')], { k: 'Q' });
-  assert.equal(asked.moves.length, 1, 'a keyMap pair still makes the long move');
+  assert.equal(asked.moves.length, 1, 'a keyed pair makes the long move');
 });
 
-test('within a term, glyphs pair by shape, then in order, extras alone', () => {
-  const ps = pairGlyphs([glyph('P', 0), glyph('1', 10)], [glyph('2', 0), glyph('P', 10), glyph('x', 30)]);
-  assert.deepEqual(ps.map(([a, b]) => [a?.shape ?? null, b?.shape ?? null]), [['P', 'P'], ['1', '2'], [null, 'x']]);
+test('within a term, glyphs bend in place: shared runs anchor, the rest pair in order between them', () => {
+  const seq = (s: string): Glyph[] => [...s].map((c, i) => glyph(c, i * 10));
+  const pairs = (a: string, b: string): string[] => pairGlyphs(seq(a), seq(b)).map(([g, h]) => (g?.shape ?? '_') + (h?.shape ?? '_'));
+  assert.deepEqual(pairs('50', '51'), ['55', '01']);
+  assert.deepEqual(pairs('2.00', '2.25'), ['22', '..', '02', '05']);
+  assert.deepEqual(pairs('19', '91'), ['1_', '99', '_1'], 'digits never cross');
+  assert.deepEqual(pairs('v', 'v1'), ['vv', '_1'], 'a term gaining a subscript grows it');
+});
+
+test('a running morph retargets from its present frame: no jump back, fades keep fading', () => {
+  const m = match([glyph('5', 0, 'v'), glyph('k', 40, 'k')], [glyph('6', 10, 'v')]);
+  const tr = tracksOf(m, 1, 0), t = 0.4, now = frame(tr, t);
+  const r = retarget(tr, t);
+  assert.equal(r.from.length, 1);
+  assert.equal(r.from[0].key, 'v');
+  assert.equal(r.fading.length, 1);
+  const next = tracksOf(match(r.from, [glyph('7', 20, 'v')]), 1, 0);
+  const at0 = frame([...r.fading, ...next], 0);
+  assert.deepEqual(at0[0].rings, now[1].rings, 'the fading part stands where it was');
+  near(at0[0].opacity, now[1].opacity);
+  const moving = at0[1].rings[0], was = now[0].rings[0];
+  near(Math.min(...moving.map((p) => p[0])), Math.min(...was.map((p) => p[0])), 1e-6);
+  near(at0[1].opacity, 1);
+  const end = frame(next, 1)[0].rings[0];
+  near(Math.min(...end.map((p) => p[0])), 20, 1e-6);
 });
 
 test('the plan of fades: out toward the new parts, in from the old, lagged in reading order', () => {
-  const m = match([glyph('a', 0), glyph('k', 40)], [glyph('a', 0), glyph('Q', 100)]);
+  const m = match([glyph('a', 0, 'a'), glyph('k', 40)], [glyph('a', 0, 'a'), glyph('Q', 100)]);
   const tr = tracksOf(m, 1);
   assert.equal(tr.length, 3);
   assert.deepEqual(tr.map((t) => [t.opA, t.opB]), [[1, 1], [1, 0], [0, 1]]);
@@ -146,6 +180,7 @@ test('MathJax outlines carry \\mk keys and the book’s colour classes', () => {
   assert.equal(gs[1].shape, gs[3].shape, 'the subscript 1 and the numerator 1 are one shape');
   assert.equal(gs[5].shape, 'rect');
   const boyle = glyphsOf(typeset(macros, '\\mk{P}{\\kP}\\mk{V}{V} = \\mk{k}{k}', false).tree);
+  assert.deepEqual(gs.map((g) => g.op), [false, false, true, false, false, true], 'the = and the fraction bar are operators; the digits are not');
   const late = glyphsOf(typeset(macros, '\\mk{P}{\\kP_1}\\mk{V}{V_1} = \\mk{P2}{\\kP_2}\\mk{V2}{V_2}', false).tree);
   const m = match(boyle, late);
   assert.equal(m.moves.length, 3);
