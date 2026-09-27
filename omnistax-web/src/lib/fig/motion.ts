@@ -83,3 +83,63 @@ export function morphPlan(prev: readonly string[], next: readonly string[]): Mor
   const keep = next.filter((k) => prev.includes(k)), drop = prev.filter((k) => !next.includes(k)), add = next.filter((k) => !prev.includes(k));
   return { same: !drop.length && !add.length, keep, drop, add };
 }
+
+/* ---------- special values: solving, snapping, stepping ----------
+   A slider's special value is often the value of its variable that makes a
+   relation hold with the others fixed: a root of g on the slider's range.
+   The thumb catches a special value within CATCH of the track and lets go
+   only beyond LET_GO, so a drag that has hit it does not jitter off. */
+export function solve(g: (x: number) => number, lo: number, hi: number, n = 64): number | null {
+  const at = (x: number): number => { const y = g(x); return Number.isFinite(y) ? y : NaN; };
+  const xs = Array.from({ length: n + 1 }, (_, i) => lo + ((hi - lo) * i) / n);
+  const ys = xs.map(at);
+  const exact = xs.findIndex((_, i) => ys[i] === 0); if (exact >= 0) return xs[exact];
+  const i = xs.slice(1).findIndex((_, j) => ys[j] * ys[j + 1] < 0); if (i < 0) return null;
+  let a = xs[i], b = xs[i + 1], fa = ys[i];
+  for (let k = 0; k < 200 && b - a > 1e-12 * Math.max(1, Math.abs(a)); k += 1) {
+    const m = (a + b) / 2, fm = at(m);
+    if (fm === 0) return m;
+    if (fa * fm < 0) b = m; else { a = m; fa = fm; }
+  }
+  return (a + b) / 2;
+}
+export const CATCH = 0.015, LET_GO = 0.03;
+export type Snap = { readonly v: number; readonly held: number | null };
+/* the value a drag at raw settles on, given the special values and the one held (an index), if any */
+export function snapTo(raw: number, specials: readonly (number | null)[], span: number, held: number | null): Snap {
+  const s = held === null ? null : specials[held];
+  if (s != null && Math.abs(raw - s) <= LET_GO * span) return { v: s, held };
+  const best = specials.reduce<number | null>((b, x, i) => (x != null && Math.abs(raw - x) <= CATCH * span && (b === null || Math.abs(raw - x) < Math.abs(raw - specials[b]!)) ? i : b), null);
+  return best === null ? { v: raw, held: null } : { v: specials[best]!, held: best };
+}
+/* the next special value strictly above (dir 1) or below (dir -1) x, or null */
+export function nextSpecial(specials: readonly (number | null)[], x: number, dir: 1 | -1, eps = 1e-9): number | null {
+  const on = specials.filter((s): s is number => s != null && dir * (s - x) > eps);
+  return on.length ? (dir > 0 ? Math.min(...on) : Math.max(...on)) : null;
+}
+/* where on the track (0 to 1) a special value sits, null when it is off the range or not defined */
+export const trackAt = (x: number | null, min: number, max: number): number | null =>
+  x == null || !Number.isFinite(x) || x < min || x > max || max === min ? null : (x - min) / (max - min);
+
+/* ---------- keyframes ----------
+   Values keyed to a story or reader value s: each frame names s by `at` and
+   any numbers or arrays of numbers; between neighbouring frames a value is
+   eased (smooth, or the later frame's own ease), and it holds beyond the
+   ends. A key a frame leaves out is carried from the frame before it. */
+export type KeyVal = number | readonly number[];
+export type Frame = { readonly at: number; readonly ease?: Ease } & { readonly [k: string]: KeyVal | Ease | undefined };
+type Vals = Record<string, KeyVal>;
+const valsOf = (f: Frame): Vals => Object.fromEntries(Object.entries(f).filter(([k, v]) => k !== 'at' && k !== 'ease' && v !== undefined)) as Vals;
+const mix = (a: KeyVal, b: KeyVal, k: number): KeyVal =>
+  typeof a === 'number' ? (typeof b === 'number' ? lerp(a, b, k) : b) : Array.isArray(b) ? a.map((x, i) => lerp(x, (b as readonly number[])[i] ?? x, k)) : b;
+export function keyframes<T extends Vals = Vals>(s: number, frames: readonly Frame[]): T {
+  const fs = [...frames].sort((a, b) => a.at - b.at);
+  const full = fs.reduce<Vals[]>((acc, f) => [...acc, { ...(acc[acc.length - 1] ?? {}), ...valsOf(f) }], []);
+  if (!fs.length) return {} as T;
+  if (s <= fs[0].at) return full[0] as T;
+  const j = fs.findIndex((f) => f.at >= s);
+  if (j < 0) return full[fs.length - 1] as T;
+  const a = fs[j - 1], b = fs[j], k = (b.ease ?? smooth)(b.at > a.at ? (s - a.at) / (b.at - a.at) : 1);
+  const A = full[j - 1], B = full[j];
+  return Object.fromEntries(Object.keys(B).map((key) => [key, key in A ? mix(A[key], B[key], k) : B[key]])) as T;
+}

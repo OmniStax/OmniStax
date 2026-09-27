@@ -4,7 +4,8 @@
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf } from './cat';
-import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, mkKeys, morphPlan, MK_MACRO, type Ease, type BeatTime, type Scripted } from './motion';
+import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
+import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, BEAT_MS, REST_MS, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -33,7 +34,7 @@ export type Pt = readonly [Logical, Logical];                 /* a projected poi
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
-type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; onInput?: () => void; disabled?: boolean };
+type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
@@ -195,29 +196,30 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
    motion from the reader's. */
 let driving = false;
 const driven = (f: () => void): void => { driving = true; try { f(); } finally { driving = false; } };
-export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void };
+export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void; refresh: () => void; mark: (sp: readonly Special[]) => void };
 function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const lab = el('label'); const name = el('span', 'ctl-label'); tex(name, o.label);
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
   inp.setAttribute('aria-label', o.aria ?? o.label.replace(/\\k|[{}\\]/g, ''));
   const val = el('span', 'ctl-val kv-' + o.cls); const dec = o.dec ?? 1;
-  const upd = () => { val.textContent = fmt(+inp.value, dec) + ' ' + o.unit; };
-  upd(); inp.addEventListener('input', () => { upd(); o.onInput?.(); });
+  const sp = specialsOf(inp, o);
+  const upd = () => { val.textContent = fmt(+inp.value, dec) + ' ' + o.unit; sp.lit(); };
+  inp.addEventListener('input', () => { sp.snap(); upd(); o.onInput?.(); });
   const ds = o.detents ?? [];
-  if (!ds.length) lab.append(name, inp, val);
-  else {
-    const track = el('span', 'ctl-track'); track.append(inp, ticksOf(ds, o)); lab.append(name, track, val);
-    if (o.snap ?? snapsByDefault(ds, o.step)) {
-      const reach = snapReach(ds, o);
-      inp.addEventListener('change', () => { const n = nearestDetent(ds, +inp.value, reach); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.(); });
-    }
+  const track = el('span', 'ctl-track'); track.append(inp, sp.box);
+  if (ds.length) track.appendChild(ticksOf(ds, o));
+  lab.append(name, track, val);
+  if (ds.length && (o.snap ?? snapsByDefault(ds, o.step))) {
+    const reach = snapReach(ds, o);
+    inp.addEventListener('change', () => { const n = nearestDetent(ds, +inp.value, reach); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.(); });
   }
   /* A slider a held law has taken over is disabled and greyed, never moved and snapped back. */
   const disable = (held: boolean): void => { inp.disabled = held; lab.classList.toggle('ctl-held', held); };
   if (o.disabled) disable(true);
   parent.appendChild(lab);
+  sp.watch(parent); upd();
   const drive = (x: number): void => { const was = inp.value; inp.value = String(x); if (inp.value !== was) driven(() => inp.dispatchEvent(new Event('input', { bubbles: true }))); };
-  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive };
+  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive, refresh: () => { sp.place(); upd(); }, mark: (l) => { sp.mark(l); upd(); } };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function sim(root: HTMLElement, id: string, H?: Logical) {
@@ -275,6 +277,7 @@ function transport(d: Sim): void {
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
   const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
+  if (!still && storied.has(fig)) console.error('F.register: this figure is a story; a figure has one timeline');
   sims.push(full); vio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */
   fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
@@ -1251,6 +1254,59 @@ function ticksOf(ds: readonly Detent[], o: CtlOpts): HTMLElement {
   return box;
 }
 
+/* ---------- special values on a slider ----------
+   A value the relation singles out (resonance, the stop of a story) is a
+   dashed circle on the track, smaller than the thumb, in the slider's hue;
+   `at` may be a function of the figure's state, recomputed whenever any
+   control of the figure moves, and null or out of range hides it. A drag
+   catches on a circle and lets go past it; Page Up and Page Down jump from
+   circle to circle; the circle the thumb sits on is filled. */
+export type Special = { readonly at: number | (() => number | null); readonly label?: string };
+function specialsOf(inp: HTMLInputElement, o: CtlOpts) {
+  const box = el('span', 'ctl-specials'); box.setAttribute('aria-hidden', 'true');
+  let list: readonly Special[] = [], vals: (number | null)[] = [], dots: HTMLElement[] = [], held: number | null = null, keyed = false;
+  const lo = o.min, hi = o.max, span = hi - lo;
+  const grid = (x: number): number => clampTo(lo + Math.round((x - lo) / o.step) * o.step, lo, hi);
+  const place = (): void => {
+    vals = list.map((s) => { try { const x = typeof s.at === 'function' ? s.at() : s.at; return trackAt(x, lo, hi) === null ? null : x; } catch { return null; } });
+    dots.forEach((d, i) => { const k = trackAt(vals[i], lo, hi); d.hidden = k === null; if (k !== null) d.style.setProperty('--at', String(k)); });
+  };
+  const lit = (): void => { const v = +inp.value; dots.forEach((d, i) => d.classList.toggle('on', vals[i] != null && Math.abs(v - vals[i]!) <= 1e-9 * Math.max(1, span))); };
+  const mark = (l: readonly Special[]): void => {
+    list = l; box.replaceChildren(); held = null;
+    dots = l.map((s) => { const d = el('span', 'ctl-sp kv-' + o.cls); if (s.label) d.title = s.label; box.appendChild(d); return d; });
+    inp.step = l.length ? 'any' : String(o.step); place();
+  };
+  /* with circles the input steps freely so a caught value is exact; the drag keeps the step grid by hand */
+  const snap = (): void => {
+    if (!list.length || driving) return;
+    if (keyed) { keyed = false; held = null; return; }
+    const r = snapTo(+inp.value, vals, span, held); held = r.held;
+    inp.value = String(r.held === null ? grid(r.v) : r.v);
+  };
+  inp.addEventListener('keydown', (e) => {
+    if (!list.length) return;
+    const v = +inp.value, big = Math.max(o.step, span / 10);
+    const to = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? grid(v + o.step) + (grid(v + o.step) <= v ? o.step : 0)
+      : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? grid(v - o.step) - (grid(v - o.step) >= v ? o.step : 0)
+      : e.key === 'PageUp' ? nextSpecial(vals, v, 1) ?? grid(v + big)
+      : e.key === 'PageDown' ? nextSpecial(vals, v, -1) ?? grid(v - big)
+      : e.key === 'Home' ? lo : e.key === 'End' ? hi : null;
+    if (to === null) return;
+    e.preventDefault(); const x = clampTo(to, lo, hi); if (x === v) return;
+    inp.value = String(x); keyed = true; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  inp.addEventListener('pointerdown', () => { held = null; });
+  const watch = (parent: HTMLElement): void => {
+    const fig = parent.closest('figure') ?? parent;
+    const re = (): void => { if (!list.length) return; place(); lit(); };
+    fig.addEventListener('input', re); fig.addEventListener('change', re);
+  };
+  if (o.specials?.length) mark(o.specials);
+  return { box, place, lit, snap, mark, watch };
+}
+const clampTo = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
+
 /* ---------- hover names ----------
    Rule 26.6: nothing a figure draws is an unnamed coloured ball. A figure
    that cannot fit a label beside every body hands over the circles it drew,
@@ -1708,48 +1764,133 @@ function tour(d: FigRef, spec: TourSpec): Tour {
   return { play, pause, seek, next, prev, get t() { return t; }, get total() { return tl.total; }, get playing() { return playing; }, bar };
 }
 
-/* `F.morph(host, tex)`: typesets like `F.tex`, and where the set of \mk{key}{…} terms changed since
-   the host's last render, kept terms slide to their new places, dropped ones fade where they stood
-   and new ones wipe in. The same keys re-render plainly. */
-const MORPH_MS = 600, SMOOTH_CSS = 'cubic-bezier(0.45, 0, 0.55, 1)';
-const lastKeys = new WeakMap<HTMLElement, readonly string[]>();
-type Place = { readonly el: HTMLElement; readonly x: number; readonly y: number; readonly w: number; readonly h: number };
-function placesOf(host: HTMLElement): Map<string, Place> {
-  const o = host.getBoundingClientRect(), out = new Map<string, Place>();
-  $$<HTMLElement>('[data-mk]', host).forEach((e) => {
-    const k = e.dataset.mk ?? ''; if (out.has(k)) return;
-    const r = e.getBoundingClientRect(); out.set(k, { el: e, x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height });
-  });
-  return out;
-}
-function morph(host: HTMLElement, s: string, display = false): void {
-  const next = mkKeys(s), prev = lastKeys.get(host); lastKeys.set(host, next);
-  const plan = morphPlan(prev ?? next, next), opts = { ...KOPT(), displayMode: display };
-  if (plan.same || !host.firstChild) { withMath((m) => m.katex.render(s, host, opts)); return; }
-  withMath((m) => {
-    const old = placesOf(host);
-    const ghosts = plan.drop.flatMap((k) => { const p = old.get(k); return p ? [{ p, node: p.el.cloneNode(true) as HTMLElement }] : []; });
-    m.katex.render(s, host, opts); host.classList.add('mk-host');
-    const now2 = placesOf(host);
-    if (REDUCED) {
-      plan.add.forEach((k) => { const p = now2.get(k); if (!p) return; p.el.classList.add('mk-new'); setTimeout(() => p.el.classList.remove('mk-new'), 1200); });
+/* A story slider: the slider is the figure's one timeline. Its transport plays it stop to stop, each
+   an eased move and a rest, by `drive`, so the figure reacts as to a hand; dragging it scrubs, and
+   the stops are its special values. A figure with physical cycles has that clock and no story. */
+export type StoryStop = number | { readonly v: number; readonly label?: string };
+export type StoryOpts = { readonly stops: readonly StoryStop[]; readonly ms?: number; readonly rest?: number; readonly ease?: Ease };
+export type Story = { play: () => void; pause: () => void; next: () => void; prev: () => void; readonly playing: boolean; readonly bar: HTMLElement };
+const storied = new WeakSet<HTMLElement>();
+const hasCycles = (fig: HTMLElement): boolean => sims.some((x) => x.fig === fig && x.cycles.length > 0);
+function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
+  const fig = figOf(d);
+  if (hasCycles(fig) || pendingCycles.length) { console.error('F.story: this figure already runs on physical cycles; a figure has one timeline'); return null; }
+  storied.add(fig);
+  const stops = o.stops.map((x) => (typeof x === 'number' ? x : x.v)), ms = o.ms ?? BEAT_MS, rest = o.rest ?? REST_MS, e = o.ease ?? ease.smooth;
+  slider.mark(o.stops.map((x) => (typeof x === 'number' ? { at: x } : { at: x.v, label: x.label })));
+  let playing = false, started = false, move: { from: number; to: number; t0: number } | null = null, restUntil = 0;
+  const after = (v: number): number => stops.findIndex((x) => x > v + 1e-9);
+  const before = (v: number): number => stops.reduce((b, x, i) => (x < v - 1e-9 ? i : b), -1);
+  const go = (i: number): void => { const to = stops[i]; if (REDUCED) { move = null; slider.drive(to); return; } move = { from: slider.v, to, t0: now() }; };
+  const bar = el('div', 'transport tour story'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Story');
+  const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
+  const prevB = btn(TOUR_ICON.prev, 'Previous step'), playB = btn(TICON.play, 'Play'), nextB = btn(TOUR_ICON.next, 'Next step');
+  bar.append(prevB, playB, nextB);
+  const sync = (): void => { playB.innerHTML = playing ? TICON.pause : TICON.play; playB.title = playing ? 'Pause' : 'Play'; playB.setAttribute('aria-label', playB.title); bar.classList.toggle('playing', playing); };
+  function pause(): void { playing = false; move = null; sync(); }
+  function play(): void {
+    if (REDUCED) { next(); return; }
+    playing = true; restUntil = 0;
+    const i = after(slider.v); go(i < 0 ? 0 : i); sync();
+  }
+  function next(): void { const i = after(slider.v); playing = false; if (i >= 0) go(i); sync(); }
+  function prev(): void { const i = before(slider.v); playing = false; if (i >= 0) go(i); sync(); }
+  playB.addEventListener('click', () => { if (playing) pause(); else play(); });
+  prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
+  const takeOver = (ev: Event): void => { if (driving || bar.contains(ev.target as Node)) return; if (playing || move) pause(); };
+  ['input', 'pointerdown'].forEach((ev) => fig.addEventListener(ev, takeOver, { capture: true, passive: true }));
+  const tick = (at: number): void => {
+    if (!fig.isConnected || !onScreen.has(fig)) return;
+    if (!started) { started = true; if (!REDUCED) play(); }
+    if (paused) return;
+    if (move) {
+      const k = Math.min(1, (at - move.t0) / ms); slider.drive(lerp(move.from, move.to, e(k)));
+      if (k >= 1) { move = null; restUntil = at + rest; }
       return;
     }
-    const timing = { duration: MORPH_MS, easing: SMOOTH_CSS };
-    ghosts.forEach(({ p, node }) => {
-      const g = el('span', 'katex mk-ghost'); g.style.left = p.x + 'px'; g.style.top = p.y + 'px'; g.appendChild(node); host.appendChild(g);
-      g.animate([{ opacity: 1 }, { opacity: 0 }], timing).finished.then(() => g.remove(), () => g.remove());
-    });
-    plan.keep.forEach((k) => {
-      const a = old.get(k), b = now2.get(k); if (!a || !b) return;
-      b.el.style.position = 'relative';
-      b.el.animate([{ left: a.x - b.x + 'px', top: a.y - b.y + 'px' }, { left: '0px', top: '0px' }], timing);
-    });
-    plan.add.forEach((k) => {
-      const p = now2.get(k); if (!p) return;
-      p.el.animate([{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)' }], timing);
+    if (!playing || at < restUntil) return;
+    const i = after(slider.v);
+    if (i >= 0) go(i); else { playing = false; sync(); }
+  };
+  vio?.observe(fig); tickers.add(tick); tourTicks.set(tick, fig);
+  const stage = fig.querySelector('.stage'); (stage ?? fig).appendChild(bar); sync();
+  return { play, pause, next, prev, get playing() { return playing; }, bar };
+}
+
+/* `F.presence(d)`: an alpha per named layer that fades in and out, with an optional shift (Manim's
+   fade with a shift), and keeps the figure redrawing. A layer never shown or hidden is present. */
+export type Shift = readonly [Logical, Logical];
+export type FadeOpts = { readonly ms?: number; readonly shift?: Shift };
+export type Presence = {
+  show: (key: string, on: boolean, o?: FadeOpts) => void;
+  swap: (from: string, to: string, o?: FadeOpts) => void;
+  a: (key: string) => number;
+  off: (key: string) => Shift;
+};
+const FADE_MS = 500, SMOOTH_EASE = 'cubic-bezier(0.45, 0, 0.55, 1)';
+type Layer = { a: number; from: number; to: number; t0: number; ms: number; shift: Shift; tick: ((t: number) => void) | null };
+function presence(d: FigRef): Presence {
+  const fig = figOf(d), layers = new Map<string, Layer>();
+  const show = (key: string, on: boolean, o: FadeOpts = {}): void => {
+    const L = layers.get(key) ?? { a: 1, from: 1, to: 1, t0: 0, ms: 0, shift: [0, 0], tick: null }; layers.set(key, L);
+    const to = on ? 1 : 0; if (L.tick && L.to === to) return;
+    if (L.tick) { tickers.delete(L.tick); L.tick = null; }
+    const ms = o.ms ?? FADE_MS; L.shift = o.shift ?? [0, 0];
+    if (REDUCED || ms <= 0 || L.a === to) { L.a = L.from = L.to = to; touch(fig); return; }
+    Object.assign(L, { from: L.a, to, t0: now(), ms });
+    const tick = (t: number): void => { const k = Math.min(1, (t - L.t0) / L.ms); L.a = lerp(L.from, L.to, ease.smooth(k)); touch(fig); if (k >= 1) { tickers.delete(tick); L.tick = null; } };
+    L.tick = tick; tickers.add(tick);
+  };
+  /* arriving, a layer slides in from -shift; leaving, it slides out toward +shift */
+  const off = (key: string): Shift => {
+    const L = layers.get(key); if (!L) return [0, 0];
+    const q = (1 - L.a) * (L.to > L.from ? -1 : 1);
+    return [q * L.shift[0], q * L.shift[1]];
+  };
+  return { show, swap: (from, to, o) => { show(from, false, o); show(to, true, o); }, a: (key) => layers.get(key)?.a ?? 1, off };
+}
+
+/* `F.fade3(group, a)`: a three.js group at opacity a; its materials go transparent below 1, get back
+   their own transparency and depth writing at 1, and the group is hidden at 0. */
+type Fade3Mat = { opacity: number; transparent: boolean; depthWrite: boolean; needsUpdate: boolean; userData: Record<string, unknown> };
+type Own3 = { opacity: number; transparent: boolean; depthWrite: boolean };
+function fade3(obj: Obj3, a: number): void {
+  obj.visible = a > 0.001;
+  obj.traverse((o: { material?: Fade3Mat | Fade3Mat[] }) => {
+    const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    ms.forEach((m) => {
+      const own = (m.userData.fade3 ??= { opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite }) as Own3;
+      const t = a < 1 || own.transparent; if (t !== m.transparent) m.needsUpdate = true;
+      m.opacity = own.opacity * a; m.transparent = t; m.depthWrite = a < 1 ? false : own.depthWrite;
     });
   });
+}
+/* `F.fadeEl(el, on, { ms, shift })`: the same for a DOM part (a label, a graph panel); shift in pixels. */
+function fadeEl(node: HTMLElement, on: boolean, o: FadeOpts = {}): void {
+  const ms = REDUCED ? 0 : o.ms ?? FADE_MS, [dx, dy] = o.shift ?? [0, 0];
+  const trans = ms ? `opacity ${ms}ms ${SMOOTH_EASE}, transform ${ms}ms ${SMOOTH_EASE}` : '';
+  if (on) {
+    if (node.style.visibility === 'hidden' && ms) { node.style.transition = ''; node.style.transform = `translate(${-dx}px, ${-dy}px)`; void node.offsetWidth; }
+    node.style.transition = trans; node.style.visibility = ''; node.removeAttribute('aria-hidden'); node.style.opacity = '1'; node.style.transform = '';
+    return;
+  }
+  node.style.transition = trans; node.setAttribute('aria-hidden', 'true'); node.style.opacity = '0'; node.style.transform = `translate(${dx}px, ${dy}px)`;
+  const hide = (): void => { if (node.style.opacity === '0') node.style.visibility = 'hidden'; };
+  if (ms) setTimeout(hide, ms); else hide();
+}
+
+/* `F.morph(host, tex, display?, opts?)`: a formula whose glyphs bend into the next one when its
+   set of \mk{key}{…} terms changes; `F.morphAt(host, a, b, k)` is that morph's frame at k.
+   Both set MathJax outlines under the active book's macros (texmorph). */
+const morphOpts = (d: boolean | MorphOpts | undefined, o: MorphOpts | undefined): [boolean, MorphOpts] =>
+  typeof d === 'object' ? [false, d] : [d ?? false, o ?? {}];
+function morph(host: HTMLElement, s: string, display?: boolean | MorphOpts, opts?: MorphOpts): void {
+  const [d, o] = morphOpts(display, opts);
+  texMorph(host, s, d, o, active().macros);
+}
+function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: boolean | MorphOpts, opts?: MorphOpts): void {
+  const [d, o] = morphOpts(display, opts);
+  texMorphAt(host, a, b, k, d, o, active().macros);
 }
 
 export const FIG = {
@@ -1759,7 +1900,8 @@ export const FIG = {
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
-  ease, lerp, partial, tween, tour, morph,
+  story, keyframes, solve, presence, fade3, fadeEl,
+  ease, lerp, partial, tween, tour, morph, morphAt,
 };
 export type Fig = typeof FIG;
 

@@ -99,7 +99,7 @@ const reveal = F.tween(d, 0); reveal.to(1, 1500);
 
 **Controls a script can move.** `ctl`, `choice` and `select` handles have `drive(x)`: set the value and fire the events a reader's hand fires, so the figure reacts as if dragged. `set(x)` stays silent, as before.
 
-**Tours.** `F.tour(d, { beats, camera? })` returns `{ play, pause, seek(s), next, prev, t, total, playing, bar }`. Create it after the controls and the view, at their opening values: those are the base of the script.
+**Tours** (a story slider is preferred; keep a tour only where no slider can carry the story). `F.tour(d, { beats, camera? })` returns `{ play, pause, seek(s), next, prev, t, total, playing, bar }`. Create it after the controls and the view, at their opening values: those are the base of the script.
 - A beat is `{ name, ms = 1200, rest = 1000, ease = smooth, knobs?, view?, run?, enter? }`. `name` is one sentence; it titles the beat's tick and the play button.
 - `knobs: [[handle, value], …]` names the objects the figure holds. A number glides over the beat; a choice switches at the beat start.
 - `view` is a camera aim for `camera` (a `view3d`), eased over the beat.
@@ -115,7 +115,60 @@ const tour = F.tour(d, { camera: V, beats: [
 ] });
 ```
 
-**Formula morphs.** Tag terms with `\mk{key}{…}`; the book's colour macros work inside a tag. `F.morph(host, tex, display?)` renders like `F.tex`. When the set of keys differs from the host's last render, kept terms slide to their new places, dropped terms fade where they stood and new terms wipe in, over 0.6 s. The same keys re-render plainly, so live numbers stay cheap: keep the numbers out of the keys. Reduced motion swaps and highlights the new terms.
+**Special values on a slider.**
+`F.ctl(host, { ..., specials: [{ at, label? }] })`; `at` is a number or `() => number | null` (null or out of range hides it).
+Drawn as a dashed circle on the track in the slider's hue, filled while the thumb sits on it. Positions recompute on every input/change of the figure and on `handle.refresh()`; `handle.mark(list)` replaces the list.
+Drag catches within 1.5 % of the track, lets go beyond 3 %, and sets the exact value; arrows step on the step grid; Page Up/Down jump to the next circle. `detents` are unchanged and may sit beside specials.
 ```js
-F.morph(d.readout, n === 1 ? '\\mk{B}{B} = \\mk{f}{\\frac{\\mu_0 I}{2R}}' : '\\mk{B}{B} = \\mk{N}{N}\\mk{f}{\\frac{\\mu_0 I}{2R}}');
+f = F.ctl(d.controls, { label: 'f', cls: 'f', min: 10, max: 1000, step: 10, value: 300, unit: 'Hz',
+  specials: [{ at: () => 1 / (2 * Math.PI * Math.sqrt(L.v * C.v)), label: 'resonance' }] });
 ```
+`F.solve(g, lo, hi)`: a root of g in [lo, hi], or null. A circle for "the value of this variable that makes the relation hold":
+`{ at: () => F.solve((l) => 1 / (2 * Math.PI * Math.sqrt(l * C.v)) - f.v, 1e-3, 0.1) }`.
+
+**Story slider.**
+`F.story(d, slider, { stops, ms = 1200, rest = 1000, ease = smooth })` → `{ play, pause, next, prev, playing, bar }`.
+- The slider is the story; one transport (previous, play/pause, next) drives it stop to stop. Stops (`number | { v, label }`) become its special values; dragging scrubs and pauses.
+- Derive everything from `slider.v`; never drive a reader's slider from a story.
+- One timeline per figure: `F.story` refuses (console error, returns null) on a figure with cycles, and `F.register` complains about cycles on a story figure.
+- Reduced motion: no autoplay; play and next jump.
+```js
+const k = F.ctl(d.controls, { label: 'step', cls: 'k', min: 0, max: 2, step: 0.01, value: 0, unit: '' });
+F.story(d, k, { stops: [{ v: 0, label: 'straight' }, { v: 1, label: 'loop' }, { v: 2, label: 'solenoid' }] });
+```
+
+**Keyframes.**
+`F.keyframes(s, frames)`, pure: frames `{ at, ease?, ...numbers or number arrays }`; values at s eased (smooth, or the later frame's `ease`) between neighbours, held beyond the ends; a key a frame omits carries over.
+`V.look(F.keyframes(k.v, [{ at: 0, yaw: 0, pitch: 0.3 }, { at: 1, yaw: 1.57, pitch: 0 }]))`
+
+**Fades.**
+`F.presence(d)` → `{ show(key, on, { ms = 500, shift? }), swap(from, to, opts), a(key), off(key) }`. A key never shown is present (a = 1); hide it first with `show(key, false, { ms: 0 })`.
+Draw a layer under `ctx.globalAlpha = P.a(key)`, offset by `P.off(key)` ([dx, dy]: arriving from -shift, leaving toward +shift).
+```js
+P.swap('series', 'parallel', { shift: [0, 30] });
+```
+`F.fade3(group, a)`: three.js group opacity; materials transparent below 1, own transparency and depthWrite restored at 1, hidden at 0.
+`F.fadeEl(el, on, { ms, shift })`: the same for DOM parts, shift in pixels; hidden parts get visibility hidden and aria-hidden.
+
+**Formula morphs.** A morph host shows MathJax glyph outlines (lazy chunk, fetched on the first morph), sized like KaTeX, inline pieces breaking after each top-level `=`. Tag terms with `\mk{key}{…}`; the book's colour macros work inside and outside a tag.
+
+`F.morph(host, tex, display?, opts?)` — `opts: { ms = 1200, pathArc = 0, keyMap, force }`; `display` may be skipped (`F.morph(host, tex, opts)`).
+- The same string again does nothing; the same key set re-renders at once (cached by string): keep live numbers out of the keys.
+- A new key set (or `force`) morphs as TransformMatchingTex: tagged terms move by key, untagged glyphs by shape in reading order (a digit that stays a digit moves), outlines bend point by point, `smooth` easing, a small lag left to right. Unmatched old parts fade out drifting toward the new unmatched parts, new ones fade in from the old.
+- Matching is local: untagged glyphs match only inside the same segment between `=` signs, along runs of two or more in order; a match travelling over about 35 % of the width fades instead. A long numeric line therefore mostly fades: set the symbolic equation on its own short line and the numbers on another.
+- `keyMap: { k: 'P2' }` makes one term become another. `pathArc` (radians) bends the travel; positive is counterclockwise.
+```js
+F.morph(fx, law === 3 ? '\\mk{P}{\\kP}\\mk{V}{\\kV} = \\mk{k}{k}' : '\\frac{\\mk{P}{\\kP}}{\\mk{T}{\\kT}} = \\mk{k}{k}');
+F.morph(fx, next, { keyMap: { k: 'P2' }, pathArc: Math.PI / 3 });
+```
+
+`F.morphAt(host, texA, texB, k, display?, opts?)` — the frame at progress `k` in [0, 1], a pure function of `k`; `k <= 0` and `k >= 1` are the still formulas. For a story slider between two integer stops; cheap on every input (the plan is measured once per pair).
+```js
+const s = story.v, i = Math.floor(s); F.morphAt(fx, STEPS[i], STEPS[Math.min(i + 1, STEPS.length - 1)], s - i);
+```
+
+**Morph rules.**
+- One host, one formula: the host's children are replaced; put the numbers line in a sibling if it changes on every slider move and the form does not.
+- Reduced motion swaps at once and briefly highlights the new terms (morphAt jumps at k = 0.5).
+- The host carries `role="img"` and an `aria-label` with the formula's plain text; nothing else to add.
+- `F.tex` stays KaTeX for formulas that never morph.
