@@ -29,8 +29,8 @@
 
   const used = $derived.by(() => {
     const e = health?.estimate;
-    if (!e || e.usage === null) return 'Your browser does not say how much is in use.';
-    return e.quota === null ? `Using ${sizeLabel(e.usage)}.` : `Using ${sizeLabel(e.usage)} of ${sizeLabel(e.quota)}.`;
+    if (!e || e.usage === null) return 'Your browser doesn’t report how much space is used.';
+    return e.quota === null ? `${sizeLabel(e.usage)} used.` : `${sizeLabel(e.usage)} of ${sizeLabel(e.quota)} used.`;
   });
   const mine = $derived(files.list.reduce((n, f) => n + f.size, 0));
 
@@ -40,14 +40,14 @@
   const weigh = async (): Promise<void> => {
     weighing = true; message = '';
     try { estimated = await backupSize(); }
-    catch { message = 'The size of the backup could not be worked out.'; }
+    catch { message = 'Couldn’t estimate the backup size.'; }
     finally { weighing = false; }
   };
 
   const save = async (): Promise<void> => {
     exporting = true; message = '';
     try { await downloadBackup(); void readHealth().then((h) => { health = h; }); }
-    catch (error) { message = error instanceof Error ? error.message : 'The backup could not be exported.'; }
+    catch (error) { message = error instanceof Error ? error.message : 'Couldn’t export the backup.'; }
     finally { exporting = false; }
   };
 </script>
@@ -55,8 +55,8 @@
 <section hidden={!show}>
 <h3>Storage</h3>
 <div class="row">
-  <span class="name">This browser's storage</span>
-  <span class="hint">{used}{#if mine} Imported files account for {sizeLabel(mine)} of it.{/if}</span>
+  <span class="name">Space used</span>
+  <span class="hint">{used}{#if mine} Imported files: {sizeLabel(mine)}.{/if}</span>
   <span></span>
 </div>
 {#if health?.fraction !== null && health?.fraction !== undefined}
@@ -65,20 +65,20 @@
   </div>
 {/if}
 <div class="row">
-  <span class="name">Keeping your data</span>
-  <span class="hint">{health ? health.words : 'Asking your browser…'}{#if health?.safari} {SAFARI_WORDS}{/if}</span>
+  <span class="name">Data retention</span>
+  <span class="hint">{health ? health.words : 'Checking…'}{#if health?.safari} {SAFARI_WORDS}{/if}</span>
   <span></span>
 </div>
 <div class="row">
-  <span class="name">Back it up</span>
+  <span class="name">Backup</span>
   <span class="hint">
-    A backup carries your notes, highlights, imported files, practice and settings as one file.
-    {#if estimated === null}Its size can be worked out before you write it.{:else}This one would be about {sizeLabel(estimated)}.{/if}
-    {#if estimated !== null && estimated > WARN_BACKUP_BYTES}<strong class="warn">A backup this large may be refused by some browsers when you come to load it; keep it somewhere safe and consider removing large imported files.</strong>{/if}
+    Save your notes, highlights, imported files, practice, and settings to one file.
+    {#if estimated !== null}Estimated size: {sizeLabel(estimated)}.{/if}
+    {#if estimated !== null && estimated > WARN_BACKUP_BYTES}<strong class="warn">Some browsers may fail to import a backup this large. Removing large imported files will shrink it.</strong>{/if}
   </span>
   <span class="acts">
-    <button class="btn-sm" type="button" disabled={weighing} onclick={() => void weigh()}>{weighing ? 'Working it out…' : 'Estimate size'}</button>
-    <button class="btn-sm" type="button" id="storage-export" disabled={exporting} onclick={() => void save()}>{exporting ? 'Exporting…' : 'Export a backup'}</button>
+    <button class="btn-sm" type="button" disabled={weighing} onclick={() => void weigh()}>{weighing ? 'Estimating…' : 'Estimate size'}</button>
+    <button class="btn-sm" type="button" id="storage-export" disabled={exporting} onclick={() => void save()}>{exporting ? 'Exporting…' : 'Export backup'}</button>
   </span>
 </div>
 {#if message}<p class="bad-line" role="alert">{message}</p>{/if}

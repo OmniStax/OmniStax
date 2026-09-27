@@ -14,7 +14,7 @@
 
   let { hit }: { hit: (text: string) => boolean } = $props();
 
-  const WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini key model API bring your own';
+  const WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini compatible self-hosted server base URL key model API bring your own browser backup';
 
   const id = $derived(ai.provider);
   let listed = $state.raw<Readonly<Record<string, readonly string[]>>>({});
@@ -37,11 +37,11 @@
 
 <section hidden={!hit(WORDS)}>
   <h3>AI</h3>
-  <p class="hint">Bring your own key. Nothing leaves this browser but the request to the provider you choose, and no key ever reaches OmniStax. A backup carries the provider and the model you picked and not the keys.</p>
+  <p class="hint">Use your own API key. Requests go straight from this browser to your provider; OmniStax never sees your key. Backups include your provider and model, but not your keys.</p>
 
   <div class="row">
     <span class="name">Provider</span>
-    <span class="hint">Which host answers your questions. “OpenAI-compatible” is for a server you run yourself or another host that speaks the same API.</span>
+    <span class="hint">Choose OpenAI-compatible for a self-hosted server or any other service with the same API.</span>
     <select aria-label="Provider" value={id} onchange={(e) => ai.setProvider(e.currentTarget.value as ProviderId)}>
       {#each PROVIDER_IDS as p (p)}<option value={p}>{PROVIDER_LABEL[p]}</option>{/each}
     </select>
@@ -50,33 +50,33 @@
   {#if id === 'compatible'}
     <label class="row">
       <span class="name">Base URL</span>
-      <span class="hint">Where that server stands, without a path: http://localhost:11434/v1 becomes http://localhost:11434.</span>
+      <span class="hint">The server address without a path, such as http://localhost:11434.</span>
       <input type="url" placeholder="http://localhost:1234" value={ai.value.baseUrl} onchange={(e) => ai.setBaseUrl(e.currentTarget.value.trim())}>
     </label>
   {/if}
 
   <label class="row">
     <span class="name">{PROVIDER_LABEL[id]} key</span>
-    <span class="hint">Kept in this browser only. A server of your own may need none.</span>
+    <span class="hint">Stored only in this browser. Self-hosted servers may not need one.</span>
     <input type="password" autocomplete="off" placeholder="paste your key" value={ai.value.keys[id] ?? ''} onchange={(e) => ai.setKey(id, e.currentTarget.value.trim())}>
   </label>
 
   <div class="row">
     <span class="name">Model</span>
-    <span class="hint">Choose one, or type the name of any other the key can reach.</span>
+    <span class="hint">Pick one from the list, or type any model name.</span>
     <div class="model">
       {#if models.length}
         <select aria-label="Model" value={models.includes(ai.model) ? ai.model : ''} onchange={(e) => { if (e.currentTarget.value) ai.setModel(id, e.currentTarget.value); }}>
-          <option value="">Another…</option>
+          <option value="">Other…</option>
           {#each models as m (m)}<option value={m}>{m}</option>{/each}
         </select>
       {/if}
       <input type="text" aria-label="Model name" placeholder="model name" value={ai.model} onchange={(e) => ai.setModel(id, e.currentTarget.value.trim())}>
-      <button class="btn-sm" type="button" disabled={asking} onclick={() => void askModels()}>{asking ? 'Asking…' : 'List models'}</button>
+      <button class="btn-sm" type="button" disabled={asking} onclick={() => void askModels()}>{asking ? 'Loading…' : 'List models'}</button>
     </div>
   </div>
 
-  {#if trouble}<p class="bad" role="alert">The models could not be listed: {trouble}.</p>{/if}
+  {#if trouble}<p class="bad" role="alert">Couldn’t list models: {trouble}.</p>{/if}
 </section>
 
 <style>

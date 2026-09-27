@@ -21,7 +21,7 @@ export type BuiltinDeps = {
   readonly layout: {
     reset(): void;
     splitRight(): void; splitDown(): void; moveRight(): void; moveDown(): void;
-    closeTab(): void; closeGroup(): void; closeOtherGroups(): void; evenGroups(): void;
+    closeTab(): void; closeGroup(): void; newGroup(): void; closeOtherGroups(): void; evenGroups(): void;
     reopenClosedTab(): void; readonly canReopenTab: boolean;
     focusNextGroup(): void; focusPreviousGroup(): void; focusGroup(dir: FocusDir): void;
     nextTab(): void; previousTab(): void;
@@ -67,7 +67,7 @@ export const BUILTIN = {
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
   closeTab: commandId('close-tab'), closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
-  reopenClosedTab: commandId('reopen-closed-tab'),
+  reopenClosedTab: commandId('reopen-closed-tab'), newGroup: commandId('new-group'),
   undo: commandId('undo'), redo: commandId('redo'),
   focusNextGroup: commandId('focus-next-group'), focusPreviousGroup: commandId('focus-previous-group'),
   focusGroupLeft: commandId('focus-group-left'), focusGroupRight: commandId('focus-group-right'),
@@ -147,7 +147,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.closeGroup, label: 'Close group', group: 'Layout', run: () => d.layout.closeGroup() },
   { id: BUILTIN.closeOtherGroups, label: 'Close other groups', group: 'Layout', run: () => d.layout.closeOtherGroups(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.evenGroups, label: 'Even out group sizes', group: 'Layout', run: () => d.layout.evenGroups(), when: () => d.layout.groupCount > 1 },
-  { id: BUILTIN.reopenClosedTab, label: 'Reopen closed tab', group: 'Layout', run: () => d.layout.reopenClosedTab(), when: () => d.layout.canReopenTab },
+  { id: BUILTIN.newGroup, label: 'New empty group', group: 'Layout', run: () => d.layout.newGroup() },
+  { id: BUILTIN.reopenClosedTab, label: 'Reopen closed tab or group', group: 'Layout', run: () => d.layout.reopenClosedTab(), when: () => d.layout.canReopenTab },
   { id: BUILTIN.focusNextGroup, label: 'Focus next group', group: 'Layout', run: () => d.layout.focusNextGroup(), when: () => d.layout.groupCount > 1 },
   { id: BUILTIN.focusPreviousGroup, label: 'Focus previous group', group: 'Layout', run: () => d.layout.focusPreviousGroup(), when: () => d.layout.groupCount > 1 },
   focusGroupCommand(d, BUILTIN.focusGroupLeft, 'left', 'to the left'), focusGroupCommand(d, BUILTIN.focusGroupRight, 'right', 'to the right'),
@@ -166,7 +167,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   /* The front of OmniStax is a standing page like any other, and a reader who
      closed its tab has nothing in the book's own tree that leads back to it.
      This is that way back, and it opens the page wherever a tab opens. */
-  { id: BUILTIN.reopenAbout, label: 'Reopen OmniStax Introduction', group: 'App', run: () => d.docs.openAbout() },
+  { id: BUILTIN.reopenAbout, label: 'About OmniStax', group: 'App', run: () => d.docs.openAbout() },
   { id: BUILTIN.noteNew, label: 'New note', group: 'App', run: () => d.notes.newNote() },
   { id: BUILTIN.noteToggleMode, label: 'Note: edit or read', group: 'App', run: () => d.notes.toggleMode(), when: () => d.notes.canToggle() },
   { id: BUILTIN.drawingNew, label: 'New drawing', group: 'App', run: () => d.drawings.newDrawing() },

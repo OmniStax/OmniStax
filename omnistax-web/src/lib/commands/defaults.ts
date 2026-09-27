@@ -6,7 +6,7 @@
    it. A browser tab is not: Ctrl+W closes the tab, Ctrl+T opens one, Ctrl+Tab
    steps between them, and the page never sees any of it. So in a tab the
    defaults hand those commands the same chord with Alt in place of Ctrl —
-   Alt+W closes a tab of the book — and the Ctrl chord goes on meaning what the
+   Ctrl+PageDown becomes Alt+PageDown — and the Ctrl chord goes on meaning what the
    browser means by it. Which chords a host keeps is host.ts's list, so the
    swap follows the browser the reader is in and the window they are in it. */
 import { type Bindings, type Chord, chord, parseChord, formatChord } from './chord';
@@ -23,25 +23,22 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+O', 'open'],
   ['Ctrl+Shift+A', 'animations'],
   ['Ctrl+Shift+C', 'colour-coding'],
-  ['Ctrl+Shift+D', 'theme-cycle'],
   /* The browser's own zoom chords, taken for the book's text while the "Zoom
      keys" setting is on; off, the shell never dispatches them and the browser
-     zooms the page as it always did. Ctrl++ arrives as Ctrl+Shift+= on most
-     keyboards, and the numeric keypad sends its own keys. */
-  ['Ctrl+=', 'zoom-in'], ['Ctrl+Shift+=', 'zoom-in'], ['Ctrl++', 'zoom-in'],
+     zooms the page as it always did. Any key that types + reads as Ctrl++
+     (chord.ts), and Ctrl+= spares the Shift. */
+  ['Ctrl++', 'zoom-in'], ['Ctrl+=', 'zoom-in'],
   ['Ctrl+-', 'zoom-out'], ['Ctrl+0', 'zoom-reset'],
   ['Ctrl+Shift+[', 'fold-all'], ['Ctrl+Shift+]', 'unfold-all'],
-  ['Ctrl+Shift+H', 'hide-figures'], ['Ctrl+Shift+J', 'show-figures'],
+  ['Ctrl+Shift+H', 'hide-figures'],
   ['Ctrl+\\', 'split-right'], ['Ctrl+Shift+\\', 'split-down'],
   ['Ctrl+Alt+ArrowLeft', 'focus-group-left'], ['Ctrl+Alt+ArrowRight', 'focus-group-right'],
   ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],
-  /* A browser tab keeps Ctrl+W for closing itself and a page cannot take it back;
-     installed as an app (the manifest makes the book installable) the shell is
-     handed the chord and closes the active tab instead, and the group with it
-     when that was its last. Ctrl+Shift+W closes the whole group. */
-  ['Ctrl+W', 'close-tab'], ['Ctrl+Shift+W', 'close-group'],
-  ['Ctrl+Shift+T', 'reopen-closed-tab'],
+  /* Alt on every host: a browser tab keeps Ctrl+W and Ctrl+T for itself, and
+     the same chords in a tab and in the app are easier to learn. */
+  ['Alt+W', 'close-tab'], ['Ctrl+Alt+W', 'close-group'],
+  ['Alt+T', 'new-group'], ['Ctrl+Alt+T', 'reopen-closed-tab'],
   /* The reader's own edits, in the chords every editor uses. Inside a field or
      the note editor these never reach the shell: the browser and CodeMirror
      keep their own undo there, which is what the reader means by them. */
@@ -55,8 +52,7 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
      so the chat ships with Alt in a tab and with Ctrl installed as an app. */
   ['Ctrl+Shift+L', 'chat-new'],
   /* A drawing of the reader's own. Ctrl+D is the browser's bookmark in a tab,
-     so the drawing ships with Alt as well, and Ctrl+Shift+D is already the
-     theme's; the tool keys inside a drawing tab are bare letters the tab keeps
+     so the drawing ships with Alt as well; the tool keys inside a drawing tab are bare letters the tab keeps
      to itself and are not bindings at all. */
   ['Ctrl+Alt+D', 'drawing-new'],
 ];

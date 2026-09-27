@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -91,6 +91,11 @@ test('openInFocus takes a view out of the sidebar and gives it a group', () => {
   const side = openSide(defaultLayout(), notes, 'left');
   const l = openInFocus(side, notes);
   assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, []);
+});
+test('a first visit stands About OmniStax before the page asked for', () => {
+  const book = ensureOwn(firstLayout(bookPageItem(B)), bookPageItem(B));
+  assert.deepEqual(book.groups[0].tabs, ['page:about', 'page:book/college-physics-2e']); assert.equal(book.groups[0].active, 'page:book/college-physics-2e');
+  assert.deepEqual(firstLayout(aboutItem()).groups[0].tabs, ['page:about'], 'the root address shows About alone');
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
   const bare = ensureOwn(defaultLayout(aboutItem()), bookPageItem(B));
@@ -392,4 +397,18 @@ test('the spatial picker takes the nearest group that way', () => {
   assert.equal(groupToward(from, others, 'up'), null);
   assert.equal(groupToward(from, [{ index: 4, rect: rect(200, 0, 300, 100) }], 'right'), 4, 'a distant group still counts when nothing is nearer');
   assert.equal(groupToward(from, [{ index: 5, rect: rect(100, 200, 200, 300) }], 'right'), null, 'no shared height, no move');
+});
+
+test('a new group is empty and focused, to the right of the one in hand', () => {
+  const l = newGroup(defaultLayout(), 0);
+  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[1].tabs, []); assert.equal(l.focus, 1);
+});
+test('a closed group comes back whole, in its old place, showing what it showed', () => {
+  const two = openTab(splitRight(defaultLayout(), 0), second, 1);
+  const closed = closeGroup(two, 1);
+  const back = reopenGroup(closed, two.groups[1].tabs, two.groups[1].active, 1);
+  assert.deepEqual(back.groups.map((g) => g.tabs), two.groups.map((g) => g.tabs)); assert.equal(back.focus, 1); assert.equal(back.groups[1].active, second);
+  const last = reopenGroup(closeGroup(defaultLayout(), 0), [text, second], text, 0);
+  assert.deepEqual(last.groups.map((g) => g.tabs), [[text, second]], 'the last group, emptied, is filled again');
+  assert.equal(last.groups[0].active, text);
 });

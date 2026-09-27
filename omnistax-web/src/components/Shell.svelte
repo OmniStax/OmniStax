@@ -130,7 +130,10 @@
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
-    library.init(home.id, home.title);
+    /* Only a page of a book adds that book: the front page borrows the first
+       book's manifest for its colours and adds nothing. */
+    const pageBook = bookOfItem(page);
+    library.init(pageBook ?? '', pageBook === home.id ? home.title : undefined);
     void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage could not be initialized.'; });
     practice.init();

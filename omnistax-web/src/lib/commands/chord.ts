@@ -51,9 +51,11 @@ export const keyOf = (e: KeyLike): string | null => {
   if (code in CODE_PUNCT) return CODE_PUNCT[code];
   return normKey(e.key);
 };
+/* Whatever key types "+" — Shift+= on most layouts, its own key on some, the
+   keypad's — is the one chord Ctrl++, with the Shift it took folded away. */
 export const chordOf = (e: KeyLike): Chord | null => {
-  const key = keyOf(e); if (!key) return null;
-  return formatChord({ ctrl: e.ctrlKey || e.metaKey, alt: e.altKey, shift: e.shiftKey, key });
+  const key = e.key === '+' ? '+' : keyOf(e); if (!key) return null;
+  return formatChord({ ctrl: e.ctrlKey || e.metaKey, alt: e.altKey, shift: e.shiftKey && key !== '+', key });
 };
 
 /* Typing into a field must keep working: plain keys there are never chords. */

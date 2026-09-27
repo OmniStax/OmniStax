@@ -8,7 +8,7 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, type ItemKey } from '../layout/model';
+import { split, newGroup, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, type ItemKey } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
 import { focusedArticle, openItem } from '../sections/nav.svelte';
@@ -82,7 +82,7 @@ const docs = {
   /* The front of OmniStax, as a tab of the group the palette was opened from,
      or of the focused group. The registry fetches the article when the pool
      never carried it, and the pane draws it as soon as it is adopted. */
-  openAbout: (): void => { void openItem(itemKey(aboutItem()), ui.palette.group ?? undefined); },
+  openAbout: (): void => { void openItem(itemKey(aboutItem()), ui.palette.group ?? layoutStore.layout.focus); },
 };
 
 /* The note the commands act on is the one in the tab the reader is in: the
@@ -134,6 +134,7 @@ export const installCommands = (): void => {
     /* The active tab of the focused group; a group left with nothing goes with it. */
     closeTab: () => { const l = layoutStore.layout; const g = focusedGroup(l); if (g.active) layoutStore.closeTab(l.focus, g.active); },
     closeGroup: () => layoutStore.closeGroup(layoutStore.layout.focus),
+    newGroup: () => layoutStore.apply((x) => newGroup(x, x.focus)),
     closeOtherGroups: () => layoutStore.apply((x) => closeOtherGroups(x, x.focus)),
     evenGroups: () => layoutStore.apply(evenSizes),
     focusNextGroup: () => layoutStore.apply((x) => focusNext(x, 1)),

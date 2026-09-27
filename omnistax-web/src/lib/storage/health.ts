@@ -73,14 +73,15 @@ export const usedFraction = (e: Estimate): number | null =>
 export const isWebkit = (ua: string, vendor = ''): boolean =>
   /iP(?:hone|ad|od)/.test(ua) || (/Safari/.test(ua) && !/Chrom|Chromium|Edg|OPR|Android/.test(ua)) || /Apple/.test(vendor) && !/Chrom/.test(ua);
 
+const AT_RISK = 'Your browser may clear this data when storage runs low. To prevent this, install OmniStax as an app or bookmark it, then reload. Keep a backup either way.';
 export const PERSIST_WORDS: Readonly<Record<Persistence, string>> = {
-  granted: 'Your browser has promised to keep this data.',
-  denied: 'Your browser may clear this data when space runs low. Install OmniStax as an app or bookmark it, then reopen this page, and keep a backup. Self-hosting removes the limit.',
-  unsupported: 'Your browser may clear this data when space runs low. Install OmniStax as an app or bookmark it, then reopen this page, and keep a backup. Self-hosting removes the limit.',
-  unasked: 'Import a file or write a note and your browser will be asked to keep this data.',
+  granted: 'Your browser won’t clear this data on its own.',
+  denied: AT_RISK,
+  unsupported: AT_RISK,
+  unasked: 'OmniStax asks your browser to keep this data once you import a file or write a note.',
 };
 
-export const SAFARI_WORDS = 'Safari deletes a site’s data after seven days without a visit, unless the app is on your home screen.';
+export const SAFARI_WORDS = 'Safari clears site data after 7 days without a visit, unless OmniStax is on your Home Screen.';
 
 /* The whole of what the block draws, worked out in one place so the component
    only lays it out. */

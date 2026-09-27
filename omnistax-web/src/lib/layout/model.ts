@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionRef, type BookId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type BookId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -82,6 +82,12 @@ export const defaultLayout = (own: ItemId): Layout => {
     sides: { left: { width: 270, items: ['view:explorer'] }, right: { width: 300, items: [] } },
     home: {}, collapsed: [], groups: [group], focus: 0, tree: leaf(group.key), offered: OFFERED,
   };
+};
+
+/* A first visit: the page asked for, with About OmniStax standing before it in the same group. */
+export const firstLayout = (own: ItemId): Layout => {
+  const l = defaultLayout(own); const about = keyOf(aboutItem()); const g = l.groups[0];
+  return g.tabs.includes(about) ? l : { ...l, groups: [{ ...g, tabs: [about, ...g.tabs] }] };
 };
 
 export const homeSide = (l: Layout, k: ItemKey): Side => l.home[k] ?? DEFAULT_HOME[k] ?? 'left';
@@ -231,6 +237,25 @@ export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | I
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };
   return focusOn(dropEmptied(l, seat(base, g.key, fresh, side)), fresh.key);
+};
+/* An empty group to the right of this one, focused. */
+export const newGroup = (l: Layout, index: number): Layout => {
+  const g = l.groups[index]; if (!g) return l;
+  const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, 'right')), fresh.key);
+};
+/* A closed group back as it stood: its tabs, in order, with the one that was
+   active showing. It fills the empty group closing it left behind, or else
+   takes its old place in the order. A view is taken from wherever it went. */
+export const reopenGroup = (l: Layout, tabs: readonly ItemKey[], active: ItemKey | null, index: number): Layout => {
+  if (!tabs.length) return l;
+  const base = tabs.filter(viewKey).reduce((x, k) => detach(x, k), l);
+  const shown = active && tabs.includes(active) ? active : tabs[tabs.length - 1];
+  const empty = base.groups.length === 1 && !base.groups[0].tabs.length ? base.groups[0] : null;
+  if (empty) return focusOn(settle(withGroups(base, [{ ...empty, tabs, active: shown }])), empty.key);
+  const fresh: Group = { key: newGroupKey(), tabs, active: shown };
+  const at = Math.min(index, base.groups.length);
+  const next = at === 0 ? seat(base, base.groups[0].key, fresh, 'left') : seat(base, base.groups[at - 1].key, fresh, 'right');
+  return focusOn(dropEmptied(l, next), fresh.key);
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);

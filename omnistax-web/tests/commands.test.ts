@@ -65,7 +65,13 @@ test('a binding may be two presses: the first waits, and only the second answers
   assert.deepEqual(chordKeys(chord('Ctrl+K Ctrl+S')! as Chord), ['Ctrl', 'K', 'Ctrl', 'S']);
   assert.equal(chord('Ctrl+K Bogus+S'), null, 'a sequence is only as good as its presses');
   assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+K Ctrl+S' && id === 'settings'), 'the settings answer to the sequence by default');
-  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Ctrl+W' && id === 'close-tab'));
+  assert.ok(DEFAULT_PAIRS.some(([c, id]) => c === 'Alt+W' && id === 'close-tab'));
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.zoomIn), ['Ctrl++', 'Ctrl+='], 'Ctrl + first, then Ctrl =');
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.themeCycle), []);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.showFigures), []);
+  assert.equal(chordOf(ev({ key: '+', code: 'Equal', ctrlKey: true, shiftKey: true })), 'Ctrl++', 'Shift+= types +, and is read as +');
+  assert.equal(chordOf(ev({ key: '+', code: 'NumpadAdd', ctrlKey: true })), 'Ctrl++');
+  assert.equal(chordOf(ev({ key: '=', code: 'Equal', ctrlKey: true })), 'Ctrl+=');
   assert.equal(DEFAULT_PAIRS.some(([c]) => c === 'Ctrl+K'), false, "and Ctrl+K alone is nobody's");
 });
 test('rebind gives a command one chord and takes it from the previous owner', () => {
@@ -111,7 +117,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
-      closeTab: () => log.push('close tab'), closeGroup: () => log.push('close group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
+      closeTab: () => log.push('close tab'), closeGroup: () => log.push('close group'), newGroup: () => log.push('new group'), closeOtherGroups: () => log.push('close others'), evenGroups: () => log.push('even groups'),
       focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
       nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'),
       reopenClosedTab: () => log.push('reopen tab'), canReopenTab: closedTabs,
@@ -233,7 +239,7 @@ test('the front of OmniStax can be opened again once its tab has been closed', (
   const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;
   by(BUILTIN.reopenAbout).run();
   assert.deepEqual(d.log, ['about']);
-  assert.equal(by(BUILTIN.reopenAbout).label, 'Reopen OmniStax Introduction');
+  assert.equal(by(BUILTIN.reopenAbout).label, 'About OmniStax');
   assert.equal(by(BUILTIN.reopenAbout).group, 'App');
   assert.equal(available(by(BUILTIN.reopenAbout)), true, 'the page stands whether or not a tab holds it');
 });
@@ -263,10 +269,10 @@ test('a closed tab comes back by a command of its own, and only while one is rem
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   by(BUILTIN.reopenClosedTab).run();
   assert.deepEqual(d.log, ['reopen tab']);
-  assert.equal(by(BUILTIN.reopenClosedTab).label, 'Reopen closed tab');
+  assert.equal(by(BUILTIN.reopenClosedTab).label, 'Reopen closed tab or group');
   assert.equal(by(BUILTIN.reopenClosedTab).group, 'Layout');
   assert.equal(available(builtinCommands(deps(false, 2, {}, true, true, {}, false)).find((c) => c.id === BUILTIN.reopenClosedTab)!), false);
-  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.reopenClosedTab), ['Ctrl+Shift+T']);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.reopenClosedTab), ['Ctrl+Alt+T']);
 });
 test('the note commands and the textbook finder act on their stores', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;

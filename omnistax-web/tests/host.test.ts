@@ -38,7 +38,7 @@ test('an unbound chord is free, a sequence is judged by its first press, and eve
 });
 test('the defaults a Chromium tab keeps are the ones the comments admit to', () => {
   const held = DEFAULT_PAIRS.filter(([ch]) => kept({ browser: 'chromium', surface: 'tab' }, c(ch))).map(([, id]) => id).sort();
-  assert.deepEqual(held, ['close-group', 'close-tab', 'next-tab', 'previous-tab', 'reopen-closed-tab']);
+  assert.deepEqual(held, ['next-tab', 'previous-tab']);
 });
 test('the host is named for the reader', () => {
   assert.equal(hostName({ browser: 'chromium', surface: 'tab' }), 'Chrome, in a browser tab');
@@ -48,10 +48,15 @@ test('the host is named for the reader', () => {
 test('in a browser tab the defaults hand the kept commands an Alt chord, and in the app the Ctrl one', () => {
   const tab = defaultBindings({ browser: 'chromium', surface: 'tab' });
   const app = defaultBindings({ browser: 'chromium', surface: 'app' });
-  assert.deepEqual(chordsFor(tab, commandId('close-tab')), ['Alt+W']);
-  assert.deepEqual(chordsFor(app, commandId('close-tab')), ['Ctrl+W']);
-  assert.deepEqual(chordsFor(tab, commandId('close-group')), ['Alt+Shift+W']);
   assert.deepEqual(chordsFor(tab, commandId('next-tab')), ['Alt+PageDown']);
+  assert.deepEqual(chordsFor(app, commandId('next-tab')), ['Ctrl+PageDown']);
+  /* the tab and group chords are Alt everywhere */
+  for (const b of [tab, app]) {
+    assert.deepEqual(chordsFor(b, commandId('close-tab')), ['Alt+W']);
+    assert.deepEqual(chordsFor(b, commandId('close-group')), ['Ctrl+Alt+W']);
+    assert.deepEqual(chordsFor(b, commandId('new-group')), ['Alt+T']);
+    assert.deepEqual(chordsFor(b, commandId('reopen-closed-tab')), ['Ctrl+Alt+T']);
+  }
   /* a chord the browser leaves alone reads the same on either surface */
   assert.deepEqual(chordsFor(tab, commandId('split-right')), chordsFor(app, commandId('split-right')));
   /* no two commands land on one chord, and the app's defaults are the pairs as written */

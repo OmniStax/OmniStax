@@ -39,7 +39,7 @@ const deps = (): BuiltinDeps => ({
   settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colorCoding: true, theme: 'system', animations: true, voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, setUnderlines: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
-    closeTab: () => {}, closeGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
+    closeTab: () => {}, closeGroup: () => {}, newGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
     nextTab: () => {}, previousTab: () => {}, reopenClosedTab: () => {}, canReopenTab: true, groupCount: 2,
   },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
@@ -65,7 +65,7 @@ test('folding and figure chords are bound as documented', () => {
   assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.foldAll), ['Ctrl+Shift+[']);
   assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.unfoldAll), ['Ctrl+Shift+]']);
   assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.hideFigures), ['Ctrl+Shift+H']);
-  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.showFigures), ['Ctrl+Shift+J']);
+  assert.deepEqual(chordsFor(DEFAULT_BINDINGS, BUILTIN.showFigures), []);
   const reading = builtinCommands(deps()).filter((c) => [BUILTIN.foldAll, BUILTIN.unfoldAll, BUILTIN.hideFigures, BUILTIN.showFigures].includes(c.id));
   assert.equal(reading.length, 4); reading.forEach((c) => assert.equal(c.group, 'Reading'));
 });

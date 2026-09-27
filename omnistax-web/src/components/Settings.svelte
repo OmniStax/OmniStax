@@ -1,12 +1,10 @@
 <script lang="ts">
-  /* The settings page: appearance, reading, exercises, layout, keyboard
-     shortcuts. A
-     centred dialog; everything is saved in this browser. A filter in the header
-     narrows the rows to those that mention what is typed. Each setting that is
-     not at its default wears a small return arrow that puts it back. Clicking a
-     shortcut cell records the next chord (Escape cancels, Backspace clears); a
-     chord another command owns is shown as a conflict and taken only on Enter.
-     Chords the browser keeps for itself on this surface are marked. */
+  /* The settings dialog. The header filter narrows every section to the rows
+     whose name, description or keywords mention what is typed. A setting off
+     its default wears a ↺ that puts it back. The shortcuts carry a toolbar of
+     their own: a filter by name or by pressed keys, and a reset. Clicking a
+     shortcut records the next chord (Escape cancels, Backspace clears); a chord
+     another command owns is shown as a conflict and taken only on Enter. */
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
@@ -32,61 +30,100 @@
   let importing = $state(false);
   let exporting = $state(false);
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
-  /* Every row's words, so a section can tell whether any of its rows survive the filter. */
+  /* What each row says, and extra words it should answer to. The filter reads both. */
+  const HINT = {
+    zoom: 'Change the size of the text without resizing the window.',
+    zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
+    cc: 'Give each physical type its own colour in text, formulas and figures.',
+    underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
+    tips: 'Show a tip each day in the bottom-right corner.',
+    cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere.',
+    anim: 'Turn off to pause every interactive figure.',
+    voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
+    decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',
+    order: 'Mixed interleaves concepts. Grouped keeps each concept’s exercises together.',
+    includeFresh: 'Let mastered concepts that aren’t due yet into new sessions.',
+    mapProgress: 'Show mastery bars on concept map nodes. Each map can also hide them.',
+    record: 'Every completed exercise and self-assessment, and the mastery built from them.',
+    lockGrace: 'Seconds before a focus lock starts.',
+    layout: 'Put tabs, groups and sidebars back to how they started.',
+    exportData: 'Includes notes and pasted images, colours, practice history, sessions, library, layout, shortcuts and preferences. Textbook files aren’t included.',
+    importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
+  } as const;
   const ROWS = {
-    theme: 'Theme system light dark', zoom: 'Text size zoom larger smaller root font', zoomKeys: 'Zoom keys ctrl plus minus zero browser page zoom', cc: 'Colour coding hue text formulas figures', underlines: 'Underlines dotted rule symbols glossary terms example references', tips: 'Tips tip of the day',
-    anim: 'Play animations sim figure transport', voice: 'Voice read aloud speech', cardOpen: 'Cards open hover click concept glossary symbol equation card',
-    lockGrace: 'Focus pomodoro lock grace seconds',
-    masteryTarget: 'Mastery target correct exercises concept mastered', decay: 'Freshness decay review half life',
+    theme: 'Theme system light dark', zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Colour coding color hue ${HINT.cc}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
+    anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
+    lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
+    masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
     startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
-    order: 'Exercise order Mixed Grouped', includeFresh: 'Include fresh mastered concepts',
-    record: 'Practice record forget my practice recorded answers mastery freshness',
-    mapProgress: 'Progress on the concept map mastery bars nodes practice',
-    layout: 'Panes and tabs reset layout views sidebars',
-    backup: 'Backup export import restore reader data notes progress colours settings sessions',
-    storage: 'Storage space quota persist persistent browser clear data safe imported files backup size',
+    order: `Exercise order ${HINT.order}`, includeFresh: `Include fresh concepts ${HINT.includeFresh}`,
+    record: `Practice history clear forget answers ${HINT.record}`,
+    mapProgress: `Progress on the concept map ${HINT.mapProgress}`,
+    layout: `Layout panes tabs reset views ${HINT.layout}`,
+    backup: `Backup export import restore data ${HINT.exportData} ${HINT.importData}`,
+    storage: 'Storage space used quota persist retention browser clear data imported files backup estimate size export Safari',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
   const chooseBackup = async (file: File | undefined): Promise<void> => {
     backup = null; backupMessage = '';
     if (!file) return;
-    try { backup = await readBackupFile(file); } catch (error) { backupMessage = error instanceof Error ? error.message : 'The backup could not be read.'; }
+    try { backup = await readBackupFile(file); } catch (error) { backupMessage = error instanceof Error ? error.message : 'Couldn’t read this backup.'; }
   };
   const restoreBackup = async (): Promise<void> => {
     if (!backup || importing) return;
     importing = true; backupMessage = '';
     try { await importBackup(backup); location.reload(); }
     catch (error) {
-      backupMessage = error instanceof Error ? error.message : 'The backup could not be restored; the previous profile was recovered.';
+      backupMessage = error instanceof Error ? error.message : 'Couldn’t import the backup. Your previous data was restored.';
       alert(backupMessage); location.reload();
     }
   };
   const exportBackup = async (): Promise<void> => {
     exporting = true; backupMessage = '';
     try { await downloadBackup(); }
-    catch (error) { backupMessage = error instanceof Error ? error.message : 'The backup could not be exported.'; }
+    catch (error) { backupMessage = error instanceof Error ? error.message : 'Couldn’t export your data.'; }
     finally { exporting = false; }
+  };
+  /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
+  let kq = $state('');
+  let byKeys = $state(false);
+  let keyChord = $state<Chord | null>(null);
+  const shortcutHit = (c: Command): boolean => {
+    const chords = keys.chordsFor(c.id);
+    if (byKeys) return !keyChord || chords.some((ch) => ch === keyChord || ch.startsWith(`${keyChord} `));
+    const needle = kq.trim().toLowerCase();
+    return !needle || `${c.group} ${c.label} ${chords.map(chordKeys).flat().join(' ')}`.toLowerCase().includes(needle);
   };
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
-    commands.all().filter((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
+    commands.all().filter((c) => shortcutHit(c) && (hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`) || hit('Keyboard shortcuts keys chords bindings'))).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
     return Array.from(m.entries());
   });
-  $effect(() => { if (!ui.settings) { rec = null; q = ''; } });
+  const shortcutsShown = $derived(hit('Keyboard shortcuts keys chords bindings') || commands.all().some((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)));
+  const toggleByKeys = () => { byKeys = !byKeys; keyChord = null; kq = ''; };
+  const onKeyFilter = (e: KeyboardEvent) => {
+    if (!byKeys) return;
+    e.stopPropagation(); if (e.key === 'Tab') return;
+    e.preventDefault();
+    if (e.key === 'Escape') { byKeys = false; keyChord = null; return; }
+    if (e.key === 'Backspace' && plain(e)) { keyChord = null; return; }
+    const c = chordOf(e); if (c) keyChord = c;
+  };
+  $effect(() => { if (!ui.settings) { rec = null; q = ''; kq = ''; byKeys = false; keyChord = null; } });
 
   /* The numbers under Exercises commit on change or on a stepper click, clamped. */
   type NumKey = 'masteryTarget' | 'startingHalfLife' | 'maxHalfLife';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
   const NUMS: readonly NumRow[] = [
-    { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct steps needed for mastery, capped by the distinct exercises available for each concept.', min: 1, max: 12, step: 1, scale: 1, restore: 'Back to three exercises for mastery' },
-    { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days before a newly mastered concept first becomes due.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Back to a three-day starting half-life' },
-    { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest interval between successful reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Back to a 240-day maximum half-life' },
+    { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept, up to the number of exercises it has.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' },
+    { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days until a newly mastered concept is first due for review.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Reset to 3 days' },
+    { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest gap between reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Reset to 240 days' },
   ];
   const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
   const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
   const commit = (n: NumRow, v: number): void => { if (Number.isFinite(v)) practice.setSetting(n.key, clamp(v, n.min, n.max) / n.scale); };
-  const forget = () => { if (confirm('Forget every completed exercise, self-assessment, and mastery record?')) practice.wipe(); };
+  const forget = () => { if (confirm('Clear your practice history? This deletes every completed exercise, self-assessment and mastery record, and can’t be undone.')) practice.wipe(); };
   const intervals = $derived.by(() => {
     const out: number[] = [], max = practice.settings.maxHalfLife;
     let value = practice.settings.startingHalfLife;
@@ -110,11 +147,10 @@
   const record = (id: CommandId) => { rec = rec?.id === id ? null : { id, pending: null }; };
   const focus = (el: HTMLElement) => { el.focus(); };
 
-  /* The chords this window never sees: the browser keeps them. The bindings
-     are the same in a tab and in the installed app; only what arrives differs. */
+  /* The chords this window never sees, because the browser keeps them. */
   const browserName = $derived(BROWSER_NAMES[host.browser]);
-  const tabHeld = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept({ browser: host.browser, surface: 'tab' }, ch))).length);
-  const keptTitle = $derived(`${browserName} keeps this chord for itself in a browser tab; the book never sees it`);
+  const held = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(host.info, ch))).length);
+  const keptTitle = $derived(`${browserName} reserves this shortcut in a browser tab`);
 </script>
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
@@ -139,14 +175,14 @@
     <div class="dialog" id="settings" onclick={(e) => e.stopPropagation()} onkeydown={onKey} role="dialog" tabindex="-1" aria-label="Settings">
       <header>
         <div class="eyebrow">Settings</div>
-        <input class="find" type="search" placeholder="Filter settings…" aria-label="Filter settings" bind:value={q} use:focus>
+        <input class="find" type="search" placeholder="Search settings" aria-label="Search settings" bind:value={q} use:focus>
         <button type="button" class="x" title="Close" aria-label="Close settings" onclick={() => (ui.settings = false)}>×</button>
       </header>
 
       <section hidden={!APPEARANCE.some(hit)}>
         <h3>Appearance</h3>
         <div class="row" hidden={!hit(ROWS.theme)}>
-          <span class="name">Theme{@render back(settings.theme !== DEFAULTS.theme, 'Back to the system theme', () => settings.setTheme(DEFAULTS.theme))}</span>
+          <span class="name">Theme{@render back(settings.theme !== DEFAULTS.theme, 'Reset to system', () => settings.setTheme(DEFAULTS.theme))}</span>
           <div class="seg" role="radiogroup" aria-label="Theme">
             {#each THEMES as t (t)}
               <button type="button" class:on={settings.theme === t} id={t === 'dark' ? 'theme-toggle' : undefined} role="radio" aria-checked={settings.theme === t} onclick={() => settings.setTheme(t)}>{t}</button>
@@ -154,59 +190,59 @@
           </div>
         </div>
         <div class="row" hidden={!hit(ROWS.zoom)}>
-          <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Back to the normal text size', () => settings.resetZoom())}</span>
-          <span class="hint">How large the book's own text is. The window keeps its width, so the reading column only gets the words larger.</span>
+          <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Reset to 100%', () => settings.resetZoom())}</span>
+          <span class="hint">{HINT.zoom}</span>
           <div class="num">
             <button type="button" aria-label="Smaller text" onclick={() => settings.zoomOut()}>−</button>
             <span class="unit zoom">{zoomLabel(settings.zoom)}</span>
             <button type="button" aria-label="Larger text" onclick={() => settings.zoomIn()}>+</button>
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Back to the book taking the zoom keys', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl+= , Ctrl+− and Ctrl+0 size the book's text. Off gives the three keys back to {browserName}, which zooms the whole page with them.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Colour coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Back to colour coding on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">Each physical type keeps its own hue in text, formulas and figures.</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Back to underlines on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">The dotted rule under symbols, glossary terms and example references. Off leaves the page clean; the card still opens on hover.</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Back to tips on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">One tip a day, at the bottom right.</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Colour coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Reset to on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">{HINT.cc}</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Reset to on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">{HINT.underlines}</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </section>
 
       <section hidden={!READING.some(hit)}>
         <h3>Reading</h3>
         <div class="row" hidden={!hit(ROWS.cardOpen)}>
-          <span class="name">Cards open on{@render back(settings.cardOpen !== DEFAULTS.cardOpen, 'Back to cards on hover', () => settings.setCardOpen(DEFAULTS.cardOpen))}</span>
-          <span class="hint">Click keeps a card open until you click elsewhere.</span>
+          <span class="name">Cards open on{@render back(settings.cardOpen !== DEFAULTS.cardOpen, 'Reset to hover', () => settings.setCardOpen(DEFAULTS.cardOpen))}</span>
+          <span class="hint">{HINT.cardOpen}</span>
           <div class="seg" role="radiogroup" aria-label="Cards open on">
             {#each ['hover', 'click'] as const as m (m)}
               <button type="button" class:on={settings.cardOpen === m} role="radio" aria-checked={settings.cardOpen === m} onclick={() => settings.setCardOpen(m)}>{m}</button>
             {/each}
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Back to animations on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">Off pauses every interactive figure; the transport controls stay put.</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Back to voice off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? 'Adds a read-aloud button to the rail and the "Read section aloud" command.' : 'This browser has no speech synthesis.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Reset to on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">{HINT.anim}</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Reset to off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? HINT.voice : 'This browser doesn’t support speech.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </section>
 
       <section hidden={!PRACTICE.some(hit)}>
         <h3>Exercises</h3>
         {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
-        <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">Freshness decay{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, 'Back to freshness decay on', () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">Mastered concepts become due for review as their freshness falls. Turning this off keeps every mastered concept fresh.</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">Freshness decay{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, 'Reset to on', () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">{HINT.decay}</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(`${ROWS.startingHalfLife} ${ROWS.maxHalfLife}`)}><span class="name">Review intervals</span><span class="hint">{intervals}</span><span></span></div>
         <div class="row" hidden={!hit(ROWS.order)}>
-          <span class="name">Exercise order{@render back(practice.settings.order !== DEFAULT_SETTINGS.order, 'Back to mixed order', () => practice.setSetting('order', DEFAULT_SETTINGS.order))}</span>
-          <span class="hint">Mixed spreads concepts through a round. Grouped keeps exercises for the same concept together.</span>
+          <span class="name">Exercise order{@render back(practice.settings.order !== DEFAULT_SETTINGS.order, 'Reset to mixed', () => practice.setSetting('order', DEFAULT_SETTINGS.order))}</span>
+          <span class="hint">{HINT.order}</span>
           <div class="seg" role="radiogroup" aria-label="Exercise order"><button type="button" class:on={practice.settings.order === 'mixed'} role="radio" aria-checked={practice.settings.order === 'mixed'} onclick={() => practice.setSetting('order', 'mixed')}>Mixed</button><button type="button" class:on={practice.settings.order === 'grouped'} role="radio" aria-checked={practice.settings.order === 'grouped'} onclick={() => practice.setSetting('order', 'grouped')}>Grouped</button></div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.includeFresh)}><span class="name">Include fresh concepts{@render back(practice.settings.includeFresh !== DEFAULT_SETTINGS.includeFresh, 'Back to omitting fresh mastered concepts', () => practice.setSetting('includeFresh', DEFAULT_SETTINGS.includeFresh))}</span><span class="hint">Allow mastered concepts that are not due yet into newly prepared rounds.</span><input type="checkbox" checked={practice.settings.includeFresh} onchange={(e) => practice.setSetting('includeFresh', e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Back to the bars drawn on the map', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">Every concept map opens with the mastery bars drawn on its nodes. The map's own switch hides them for that map.</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.includeFresh)}><span class="name">Include fresh concepts{@render back(practice.settings.includeFresh !== DEFAULT_SETTINGS.includeFresh, 'Reset to off', () => practice.setSetting('includeFresh', DEFAULT_SETTINGS.includeFresh))}</span><span class="hint">{HINT.includeFresh}</span><input type="checkbox" checked={practice.settings.includeFresh} onchange={(e) => practice.setSetting('includeFresh', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Reset to on', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">{HINT.mapProgress}</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(ROWS.record)}>
-          <span class="name">Practice record</span>
-          <span class="hint">Every completed exercise, self-assessment, and the attainment and freshness derived from them.{#if practice.attempts.length} {practice.attempts.length === 1 ? 'One completed exercise' : `${practice.attempts.length} completed exercises`} so far.{/if}</span>
-          <button class="btn-sm" type="button" onclick={forget}>Forget my practice</button>
+          <span class="name">Practice history</span>
+          <span class="hint">{HINT.record}{#if practice.attempts.length} {practice.attempts.length === 1 ? '1 exercise completed' : `${practice.attempts.length} exercises completed`}.{/if}</span>
+          <button class="btn-sm" type="button" onclick={forget}>Clear history</button>
         </div>
       </section>
 
       <section hidden={!hit(ROWS.lockGrace)}>
         <h3>Focus / Pomodoro</h3>
         <div class="row num">
-          <span class="name">Lock grace{@render back(settings.lockGrace !== DEFAULTS.lockGrace, 'Back to ten seconds of grace', () => settings.setLockGrace(DEFAULTS.lockGrace))}</span>
-          <span class="hint">Seconds before a focus lock takes hold.</span>
+          <span class="name">Lock grace{@render back(settings.lockGrace !== DEFAULTS.lockGrace, 'Reset to 10 seconds', () => settings.setLockGrace(DEFAULTS.lockGrace))}</span>
+          <span class="hint">{HINT.lockGrace}</span>
           <div class="num">
             <button type="button" aria-label="Less" onclick={() => settings.setLockGrace(settings.lockGrace - 1)}>−</button>
             <input type="number" min={LOCK_GRACE.min} max={LOCK_GRACE.max} step="1" inputmode="numeric" aria-label="Lock grace" value={settings.lockGrace} onchange={(e) => { settings.setLockGrace(e.currentTarget.valueAsNumber); e.currentTarget.value = String(settings.lockGrace); }}>
@@ -220,7 +256,7 @@
 
       <section hidden={!hit(ROWS.layout)}>
         <h3>Layout</h3>
-        <div class="row"><span class="name">Panes and tabs</span><span class="hint">Back to the section text and the explorer in its home sidebar.</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
+        <div class="row"><span class="name">Tabs and groups</span><span class="hint">{HINT.layout}</span><button class="btn-sm" id="reset-layout" type="button" onclick={() => layoutStore.reset()}>Reset layout</button></div>
       </section>
 
       <Storage show={hit(ROWS.storage)} />
@@ -228,39 +264,41 @@
       <section hidden={!hit(ROWS.backup)}>
         <h3>Backup and restore</h3>
         <div class="row">
-          <span class="name">Export my data</span>
-          <span class="hint">Saves notes and pasted images, colours, practice history and sessions, library organization, layout, shortcuts, and preferences. Textbook files are not included.</span>
+          <span class="name">Export data</span>
+          <span class="hint">{HINT.exportData}</span>
           <button class="btn-sm" type="button" disabled={exporting} onclick={() => void exportBackup()}>{exporting ? 'Exporting…' : 'Export'}</button>
         </div>
         <label class="row">
           <span class="name">Import backup</span>
-          <span class="hint">Choose a backup to inspect it. Import replaces this reader profile; it does not merge. Downloaded textbooks are unchanged and referenced books may need downloading.</span>
+          <span class="hint">{HINT.importData}</span>
           <input class="file" type="file" accept="application/json,.json" onchange={(e) => void chooseBackup(e.currentTarget.files?.[0])}>
         </label>
         {#if backup}
           {@const summary = summarizeBackup(backup)}
           <div class="backup-review" role="status">
-            <strong>Ready to replace this profile</strong>
-            <span>Exported {new Date(summary.exportedAt).toLocaleString()} · {summary.records} saved records · {summary.assets} note images</span>
+            <strong>Ready to import</strong>
+            <span>Exported {new Date(summary.exportedAt).toLocaleString()} · {summary.records} records · {summary.assets} note images</span>
             <span>{Object.entries(summary.categories).map(([category, count]) => `${category}: ${count}`).join(' · ') || 'No local records'}</span>
-            <span>Export the current profile first if you may want to return to it. A recovery snapshot is retained until the restore commits.</span>
-            <button class="btn-sm danger" type="button" disabled={importing} onclick={() => void restoreBackup()}>{importing ? 'Restoring…' : 'Replace profile and reload'}</button>
+            <span>Export your current data first if you might want it back. A recovery copy is kept until the import finishes.</span>
+            <button class="btn-sm danger" type="button" disabled={importing} onclick={() => void restoreBackup()}>{importing ? 'Importing…' : 'Replace data and reload'}</button>
           </div>
         {/if}
         {#if backupMessage}<p class="backup-error" role="alert">{backupMessage}</p>{/if}
       </section>
 
-      <section hidden={!groups.length}>
+      <section hidden={!shortcutsShown}>
         <h3>Keyboard shortcuts</h3>
-        <p class="hint">Click a shortcut to record a new one. Ctrl also answers to Cmd.</p>
-        <p class="hint">A browser tab keeps chords like Ctrl+W and Ctrl+T for itself, so in a tab those commands ship with Alt in their place — Alt+W closes a tab of the book. Installed as an app, the window is the book's and they ship as Ctrl. Either way a shortcut you record yourself is kept exactly as you pressed it.</p>
-        {#if tabHeld}
-          <p class="hint">
-            {#if host.surface === 'app'}You are in the installed app, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
-            {:else if host.surface === 'fullscreen'}You are in full screen, where every shortcut reaches the book. In a browser tab, {browserName} would keep {tabHeld} of them for itself.
-            {:else}You are in a browser tab, so {browserName} keeps {tabHeld} of these shortcuts for itself, marked <span class="kept" aria-hidden="true">⊘</span>.{/if}
-            {#if host.canInstall}<button class="link" type="button" onclick={() => host.install()}>Install as app</button>{/if}
-          </p>
+        <div class="toolbar">
+          {#if byKeys}
+            <input class="find keys-find" type="text" readonly placeholder="Press a shortcut" aria-label="Search by pressing a shortcut" value={keyChord ? chordKeys(keyChord).join(' ') : ''} onkeydown={onKeyFilter} use:focus>
+          {:else}
+            <input class="find" type="search" placeholder="Search shortcuts" aria-label="Search shortcuts" bind:value={kq}>
+          {/if}
+          <button type="button" class="btn-sm" class:on={byKeys} aria-pressed={byKeys} title="Search by pressing keys" onclick={toggleByKeys}>Record keys</button>
+          <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Reset all</button>
+        </div>
+        {#if held}
+          <p class="hint">{browserName} reserves {held === 1 ? '1 shortcut' : `${held} shortcuts`} in a browser tab, marked <span class="kept" aria-hidden="true">⊘</span>.{#if host.canInstall} <button class="link" type="button" onclick={() => host.install()}>Install as app</button> to use {held === 1 ? 'it' : 'them'}.{/if}</p>
         {/if}
         <table>
           <tbody>
@@ -269,13 +307,13 @@
               {#each cmds as c (c.id)}
                 {@const on = rec?.id === c.id}
                 <tr>
-                  <td class="cmd">{c.label}{@render back(!keys.isDefaultFor(c.id), 'Back to the default shortcut', () => keys.restoreDefault(c.id))}</td>
+                  <td class="cmd">{c.label}{@render back(!keys.isDefaultFor(c.id), 'Reset to default', () => keys.restoreDefault(c.id))}</td>
                   <td class="keys">
-                    <button type="button" class="chord-cell" class:on onclick={() => record(c.id)} aria-label="Shortcut for {c.label}">
+                    <button type="button" class="chord-cell" class:on onclick={() => record(c.id)} aria-label="Shortcut for {c.label}" title="Click to change">
                       {#if on && rec?.pending}
-                        <span class="conflict">{#each chordKeys(rec.pending.chord) as k}<kbd class="kbd">{k}</kbd>{/each} is bound to <em>{rec.pending.other.label}</em> — Enter to take it</span>
+                        <span class="conflict">{#each chordKeys(rec.pending.chord) as k}<kbd class="kbd">{k}</kbd>{/each} is used by <em>{rec.pending.other.label}</em>. Press Enter to reassign.</span>
                       {:else if on}
-                        <span class="recording">Press a chord…</span>
+                        <span class="recording">Press a shortcut…</span>
                       {:else}
                         {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord" class:held={kept(host.info, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(host.info, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
                       {/if}
@@ -286,15 +324,20 @@
             {/each}
           </tbody>
         </table>
-        <button class="btn-sm" type="button" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Restore all defaults</button>
+        {#if !groups.length}<p class="hint">No matching shortcuts.</p>{/if}
       </section>
 
-      <small>Layout, shortcuts and settings are saved in this browser.</small>
+      <small>Settings are saved in this browser.</small>
     </div>
   </div>
 {/if}
 
 <style>
+  .dialog :global([hidden]){display:none !important}
+  .toolbar{display:flex;gap:6px;align-items:center}
+  .toolbar .btn-sm{align-self:auto}
+  .btn-sm.on{border-color:var(--accent);background:var(--soft)}
+  .keys-find{caret-color:transparent}
   .scrim{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:rgba(0,0,0,.18);padding:16px}
   .dialog{width:min(760px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 24px 20px;font-family:var(--sans);font-size:0.88rem;box-shadow:0 12px 40px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:18px;box-sizing:border-box}
   header{display:flex;align-items:center;gap:12px}
