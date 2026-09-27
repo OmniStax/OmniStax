@@ -11,7 +11,7 @@
   import { onMount } from 'svelte';
   import { notes, HL_COLORS, type HlColor } from '../lib/notes/store.svelte';
   import { ICON } from '../lib/icons';
-  import { textIndex, rangeSpan } from '../lib/notes/paint';
+  import { textIndex, wordsIndex, rangeSpan } from '../lib/notes/paint';
   import { makeAnchor, type Anchor } from '../lib/notes/anchor';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { openSide, homeSide } from '../lib/layout/model';
@@ -48,11 +48,20 @@
   const make = (p: Pending, c: HlColor): string =>
     p.kind === 'doc' ? notes.add(p.ref, p.doc, p.anchor, c).id : fileMarks.addHighlight(p.file, p.page, p.anchor, c).id;
   let open = $state(false), x = $state(0), y = $state(0), mode = $state<'new' | 'edit'>('new'), noteId = $state<string | null>(null);
-  let pending: Pending | null = null;
+  /* What a colour would mark; none when the words are all in a live figure,
+     which can still be asked about but not held by a highlight. Raw, since the
+     anchor goes straight into a store. */
+  let pending = $state.raw<Pending | null>(null);
   /* The words under the bar, kept because asking the model clears the
      selection and a highlight reopened later has only its quote. */
   let selectedWords = $state('');
   const place = (r: DOMRect) => { x = Math.max(120, Math.min(window.innerWidth - 120, r.left + r.width / 2)); y = Math.max(44, Math.min(window.innerHeight - 8, r.top - 8)); };
+  const pendingAt = (art: HTMLElement, anchor: Anchor): Pending => {
+    const sheet = art.closest<HTMLElement>('.pdf-page[data-file]');
+    if (sheet) return { kind: 'file', file: fileId(sheet.dataset.file ?? ''), page: Number(sheet.dataset.page), anchor };
+    const [section, doc] = (art.dataset.doc ?? '').split('/') as [string, DocKind];
+    return { kind: 'doc', ref: sectionRef(bookId(art.dataset.book ?? ''), sectionId(section)), doc, anchor };
+  };
   const fromSelection = () => {
     const sel = document.getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) { if (mode === 'new') open = false; return; }
@@ -61,16 +70,12 @@
        layer over it is the text, and it is anchored in exactly the same way. */
     const art = el?.closest<HTMLElement>('article[data-doc], .pdf-page[data-file] .textLayer');
     if (!art || !art.contains(range.startContainer) || !art.contains(range.endContainer)) { open = false; return; }
+    const read = wordsIndex(art); const said = rangeSpan(read, range);
+    const words = said ? read.full.slice(said.start, said.end).trim() : '';
+    if (!words) { open = false; return; }
+    selectedWords = words;
     const ix = textIndex(art); const span = rangeSpan(ix, range);
-    if (!span || !ix.full.slice(span.start, span.end).trim()) { open = false; return; }
-    selectedWords = ix.full.slice(span.start, span.end).trim();
-    const anchor = makeAnchor(ix.full, span);
-    const sheet = art.closest<HTMLElement>('.pdf-page[data-file]');
-    if (sheet) pending = { kind: 'file', file: fileId(sheet.dataset.file ?? ''), page: Number(sheet.dataset.page), anchor };
-    else {
-      const [section, doc] = (art.dataset.doc ?? '').split('/') as [string, DocKind];
-      pending = { kind: 'doc', ref: sectionRef(bookId(art.dataset.book ?? ''), sectionId(section)), doc, anchor };
-    }
+    pending = span && ix.full.slice(span.start, span.end).trim() ? pendingAt(art, makeAnchor(ix.full, span)) : null;
     mode = 'new'; noteId = null; place(range.getBoundingClientRect()); open = true;
   };
   let timer = 0;
@@ -110,14 +115,17 @@
   };
   const noted = $derived(mode === 'edit' && !!textOf(noteId ?? ''));
   const current = $derived(noteId ? colorOf(noteId) : null);
+  const markable = $derived(mode === 'edit' || !!pending);
 </script>
 
 {#if open}
   <div class="hl-bar" role="toolbar" aria-label="Highlight" style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
-    {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
-    <span class="sep"></span>
+    {#if markable}
+      {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
+      <span class="sep"></span>
+    {/if}
     <button type="button" class="act ask" title="Ask AI about this" aria-label="Ask AI about this" onclick={askAI}>Ask AI</button>
-    <button type="button" class="act" title={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} aria-label={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} onclick={annotate}>{@html ICON.highlighter}</button>
+    {#if markable}<button type="button" class="act" title={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} aria-label={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} onclick={annotate}>{@html ICON.highlighter}</button>{/if}
     {#if mode === 'edit'}<button type="button" class="act" title="Remove this highlight" aria-label="Remove this highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
   </div>
 {/if}
