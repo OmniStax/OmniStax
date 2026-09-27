@@ -238,12 +238,16 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:2
 .ctl-ticks .tick{position:absolute;top:0;width:1px;height:5px;background:var(--soft2)}
 .ctl-ticks .tick-lab{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:0.66rem;color:var(--muted);white-space:nowrap}
 .controls label:has(.ctl-ticks .tick-lab){padding-bottom:14px}
-/* special values: dashed circles on the track, smaller than the thumb, filled where the thumb sits */
-.ctl-specials{position:absolute;inset:0 8px;pointer-events:none}
+/* special values: dashed circles centred on the track line under the thumb, a solid ring round the thumb where it sits on one */
+.ctl-track input[type=range]{position:relative;z-index:1}
+.ctl-specials{position:absolute;left:8px;right:8px;top:0;height:22px;pointer-events:none;z-index:0}
 .ctl-specials:empty{display:none}
-.ctl-sp{position:absolute;top:50%;left:calc(100% * var(--at));width:10px;height:10px;margin:-5px 0 0 -5px;border:1.5px dashed currentColor;border-radius:50%;opacity:.85}
+.ctl-specials::before{content:'';position:absolute;left:-8px;right:-8px;top:9px;height:4px;border-radius:2px;background:var(--soft2)}
+.ctl-track:has(.ctl-sp) input[type=range]::-webkit-slider-runnable-track{background:transparent}
+.ctl-track:has(.ctl-sp) input[type=range]::-moz-range-track{background:transparent}
+.ctl-sp{position:absolute;top:50%;left:calc(100% * var(--at));box-sizing:border-box;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border:2px dashed currentColor;border-radius:50%;background:var(--panel)}
 html:not(.cc) .ctl-sp{color:var(--muted)}
-.ctl-sp.on{border-style:solid;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 30%,transparent);z-index:1}
+.ctl-sp.on{border-style:solid;width:24px;height:24px;margin:-12px 0 0 -12px;background:transparent}
 .ctl-sp[hidden]{display:none}
 /* a discrete state: one button per state, the current one marked; a dropdown where the list is long */
 .ctl-seg,.ctl-pick{align-items:center}
