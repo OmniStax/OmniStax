@@ -16,14 +16,15 @@ Teach the book's lesson at the book's level. A zoom that shows a curve is locall
 
 ## In a live figure
 
-1. **One timeline.** A figure has at most one transport. Physical motion has its clock; a story has its slider; never both.
+1. **One timeline.** A figure has at most one transport. Physical motion has its clock; a story has its slider; never both. Every transport is the same three things: play/pause, the timeline, and the speed. A story's stops are marked on its timeline and the thumb catches on them, so there are no previous, next or stop buttons.
 2. **A story is a slider.** The steps of a story are the stops of a slider with a meaning (straight · loop · solenoid; reduction step 1 to 5). Play animates that slider; dragging it scrubs the story. Everything the story changes, the camera, morphs and fades included, is a function of the slider's value, so every position is exact in either direction.
-3. **The reader's sliders are the reader's.** A story drives only what the reader has no control for: an arrangement, a bend, a step. It never moves a slider the reader owns. A value a beat wants the reader to see is a special value marked on that slider.
+3. **The reader's sliders are the reader's.** A story drives only what the reader has no control for: an arrangement, a bend, a step. It never moves a slider the reader owns. A value a beat wants the reader to see is a special value marked on that slider. A slider whose part the story has folded into another (R₂ inside Rₚ) stays, and moving it visibly moves the part it now lives in.
 4. **The camera follows the values.** It is a function of the reader's sliders (the view widens as v₀ grows so the path stays framed) or of the story slider (keyframes). It is never a script over the reader's values.
 5. **A camera move earns its place by changing which relation is visible.** Looking down a wire shows the circles a side view hides; tilting a wedge-and-dash drawing shows the depth it encodes. A walk around an object the reader can already orbit is removed.
 6. **Special values are marked.** Every special case the text names (a limit, a threshold, a resonance) is a dashed circle on each slider it involves, recomputed from the other values, with a slight snap; landing on it fires the morph.
-7. **Symbolic lines never travel.** A line that pairs two things (this transition, that spectral line) is drawn once when it changes and then holds; only kinematic arrows move (root rule 24.1).
-8. **Style alone is not the point.** What reads as Manim is the motion. A restyle with no new motion is not a figure of its own; style lives in the drawing library's defaults.
+7. **What stays, stays.** When the story swaps one arrangement for another, a part with a counterpart morphs into it and only the rest fades: a graph of the same kind keeps its frame while its curve reshapes, its marker moves and its axis label bends (r into R); a graph of another quantity keeps its frame and replaces its curve and axis. A whole panel never fades out to fade back in as nearly itself.
+8. **Symbolic lines never travel.** A line that pairs two things (this transition, that spectral line) is drawn once when it changes and then holds; only kinematic arrows move (root rule 24.1).
+9. **Style alone is not the point.** What reads as Manim is the motion. A restyle with no new motion is not a figure of its own; style lives in the drawing library's defaults.
 
 ## The ten rules
 
@@ -36,11 +37,12 @@ Teach the book's lesson at the book's level. A zoom that shows a curve is locall
 2. **Nothing is replaced; it becomes.**
    - The next state is a morph of the last: p₃ bends into p₅, and 4 disks split into 8.
    - Never cut from one picture to another.
-3. **Equations morph by shape.**
-   - Glyph outlines bend into their counterparts point by point (`Transform`); terms that survive travel to their new places.
-   - Parts match by term key first, then by identical glyph shape (`TransformMatchingTex`, `TransformMatchingShapes`).
-   - Dropped parts fade out toward the parts that replace them, and new parts fade in from the parts they replace; nothing blinks in place.
-   - About 1–1.5 s, `smooth`, and the formula is large enough that the morph is the event.
+3. **Equations morph by meaning.**
+   - A symbol that stays the same variable moves to its new place. A symbol that becomes another name for essentially the same thing (the distance r from a wire becoming the loop's radius R) bends into it. Several terms that combine into one quantity (1/R₂ + 1/R₃ + 1/R₄ inverted into Rₚ) bend together into it, and one quantity that splits bends out into its parts.
+   - Nothing becomes something it does not stand for, however good it would look: a term with no counterpart fades out toward where the new terms appear, and a new term fades in from where the old ones stood.
+   - Every term is tagged by what it means (`\mk{key}{…}`), numbers included; the author writes the meaning down with keys and `keyMap`, and glyphs are never paired by shape across terms.
+   - Glyph outlines bend point by point (`Transform`), about 1–1.5 s, `smooth`, in the formula where it already sits: inline, at the book's size, one line that wraps at its `=` signs, never a second, larger copy.
+   - A number that changes as a slider moves bends into its new value in step with the drag.
    - The term that changes carries the hue of the thing moving in the picture.
 4. **One beat at a time.**
    - Only one idea moves at once. The eye goes to motion, so two motions split it.
