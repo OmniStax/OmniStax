@@ -196,7 +196,7 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
    motion from the reader's. */
 let driving = false;
 const driven = (f: () => void): void => { driving = true; try { f(); } finally { driving = false; } };
-export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void; refresh: () => void; mark: (sp: readonly Special[]) => void };
+export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void; refresh: () => void; mark: (sp: readonly Special[]) => void; readonly el: HTMLLabelElement };
 function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const lab = el('label'); const name = el('span', 'ctl-label'); tex(name, o.label);
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
@@ -219,7 +219,7 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   parent.appendChild(lab);
   sp.watch(parent); upd();
   const drive = (x: number): void => { const was = inp.value; inp.value = String(x); if (inp.value !== was) driven(() => inp.dispatchEvent(new Event('input', { bubbles: true }))); };
-  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive, refresh: () => { sp.place(); upd(); }, mark: (l) => { sp.mark(l); upd(); } };
+  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive, refresh: () => { sp.place(); upd(); }, mark: (l) => { sp.mark(l); upd(); }, el: lab };
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function sim(root: HTMLElement, id: string, H?: Logical) {
@@ -1814,7 +1814,34 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   };
   vio?.observe(fig); tickers.add(tick); tourTicks.set(tick, fig);
   const stage = fig.querySelector('.stage'); (stage ?? fig).appendChild(bar); sync();
+  storyScrubber(fig, bar, slider, o.stops.map((x, i) => ({ v: stops[i], label: typeof x === 'number' ? '' : x.label ?? '' })));
   return { play, pause, next, prev, get playing() { return playing; }, bar };
+}
+/* The story slider's track leaves the controls row for the transport, as its scrubber: the stops'
+   names beneath their circles, the current one emphasised; names that would collide hide, the
+   current one and then the ends kept first. */
+function storyScrubber(fig: HTMLElement, bar: HTMLElement, slider: Slider, stops: readonly { v: number; label: string }[]): void {
+  const track = slider.el.querySelector<HTMLElement>('.ctl-track'), inp = track?.querySelector<HTMLInputElement>('input');
+  if (!track || !inp) return;
+  const lo = +inp.min, hi = +inp.max;
+  track.classList.add('story-track'); slider.el.remove(); bar.appendChild(track);
+  const labs = el('span', 'story-labs'); labs.setAttribute('aria-hidden', 'true'); track.appendChild(labs);
+  const tags = stops.map((s) => { const t = el('span', 'story-lab', s.label); labs.appendChild(t); return t; });
+  const current = (): number => stops.reduce((b, s, i) => (s.v <= slider.v + 1e-9 ? i : b), 0);
+  const GAP = 8;
+  const lay = (): void => {
+    const W = labs.clientWidth; if (!W) return;
+    const cur = current();
+    tags.forEach((t, i) => t.classList.toggle('on', i === cur));
+    const box = tags.map((t, i) => { const w = t.offsetWidth, x = W * (stops[i].v - lo) / (hi - lo || 1); const l = clampTo(x - w / 2, -8, W + 8 - w); return { l, r: l + w }; });
+    const order = [cur, 0, tags.length - 1, ...tags.map((_, i) => i)].filter((i, k, a) => a.indexOf(i) === k && stops[i].label);
+    const kept: number[] = [];
+    order.forEach((i) => { if (kept.every((j) => box[i].r + GAP <= box[j].l || box[j].r + GAP <= box[i].l)) kept.push(i); });
+    tags.forEach((t, i) => { t.style.left = box[i].l + 'px'; t.classList.toggle('off', !kept.includes(i)); });
+  };
+  fig.addEventListener('input', lay); fig.addEventListener('change', lay);
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(lay).observe(labs);
+  requestAnimationFrame(lay);
 }
 
 /* `F.presence(d)`: an alpha per named layer that fades in and out, with an optional shift (Manim's

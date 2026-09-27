@@ -129,6 +129,7 @@ f = F.ctl(d.controls, { label: 'f', cls: 'f', min: 10, max: 1000, step: 10, valu
 **Story slider.**
 `F.story(d, slider, { stops, ms = 1200, rest = 1000, ease = smooth })` → `{ play, pause, next, prev, playing, bar }`.
 - The slider is the story; one transport (previous, play/pause, next) drives it stop to stop. Stops (`number | { v, label }`) become its special values; dragging scrubs and pauses.
+- `F.story` moves the slider out of the controls row into that transport as its scrubber, spanning the stage: no value readout, each stop's label (one or two short words) small beneath its circle, the current one emphasised; labels that would collide hide, current stop and ends kept. The slider's label is only its aria-label.
 - Derive everything from `slider.v`; never drive a reader's slider from a story.
 - One timeline per figure: `F.story` refuses (console error, returns null) on a figure with cycles, and `F.register` complains about cycles on a story figure.
 - Reduced motion: no autoplay; play and next jump.
