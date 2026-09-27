@@ -1,5 +1,6 @@
-/* The corpora the search reads: every book of the library, fetched the first
-   time the reader searches and kept for the session. Every book is read the
+/* The corpora the search reads: every book on the reader's shelf, each fetched
+   the first time it is searched and kept for the session. A book only in the
+   catalogue is not searched; a reader with an empty shelf finds no books. Every book is read the
    same way: its manifest through the registry, which registers its TeX, and
    the rest off the build beside its pages. Nothing here is persisted: it is a
    copy of build output, cheaper to fetch again than to keep in step. */
@@ -27,16 +28,12 @@ class Search {
   status = $state.raw<Readonly<Record<string, CorpusStatus>>>({});
   private loading: Partial<Record<string, Promise<void>>> = {};
 
-  /* Every book the library lists, in the library's order and the focused book, if any, first. */
-  get books(): readonly string[] {
-    const first = focus.book;
-    return first ? [first, ...library.books.map((b) => b.id).filter((id) => id !== first)] : library.books.map((b) => b.id);
-  }
+  get books(): readonly string[] { return library.shelf(focus.book); }
   /* The corpora that have arrived, in that order. */
   get loaded(): readonly Corpus[] { return this.books.flatMap((b) => (this.corpora[b] ? [this.corpora[b]] : [])); }
   get busy(): boolean { return library.status === 'loading' || this.books.some((b) => this.status[b] === 'loading'); }
 
-  /* The catalogue, then every book of it, each fetched once however many askers there are. */
+  /* The catalogue, for titles and addresses, then every book on the shelf, each fetched once however many askers there are. */
   async loadAll(): Promise<void> {
     await library.load();
     await Promise.all(this.books.map((b) => this.load(b)));

@@ -53,6 +53,10 @@ class Library {
     } catch { this.status = 'failed'; }
   }
 
+  /* The books the reader has taken, the one they are reading first. This is the
+     reader's library — what their search and their practice span — while
+     `books` is only the catalogue they choose from. */
+  shelf(first?: string | null): readonly string[] { return first ? [first, ...this.added.filter((id) => id !== first)] : this.added; }
   has(id: string): boolean { return this.added.includes(id); }
   add(id: string, title?: string): void {
     if (!this.has(id)) { this.added = [...this.added, id]; this.save(); }

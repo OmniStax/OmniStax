@@ -46,7 +46,9 @@
   const byBook = $derived(corpora.map((c) => ({ book: c.book, title: c.title, hits: hits.map((h, i) => ({ h, i })).filter((x) => x.h.book === c.book && x.i < shown) })).filter((b) => b.hits.length > 0));
   const failed = $derived(searchStore.books.filter((b) => searchStore.status[b] === 'failed'));
   $effect(() => { asked; filter; sel = 0; shown = PAGE; });
-  onMount(() => { void searchStore.loadAll(); void fileCorpus.load(); void chatCorpus.load(); input?.focus(); });
+  onMount(() => { void fileCorpus.load(); void chatCorpus.load(); input?.focus(); });
+  /* A book taken while the view is open is searched from then on. */
+  $effect(() => { searchStore.books; void searchStore.loadAll(); });
   const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h); };
   const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
@@ -75,7 +77,7 @@
 <div class="search">
   <div class="box">
     <span class="glyph" aria-hidden="true">{@html ICON.search}</span>
-    <input bind:this={input} bind:value={query} type="search" spellcheck="false" autocomplete="off" aria-label="Search every textbook" placeholder="Search every textbook…" onkeydown={onKey} />
+    <input bind:this={input} bind:value={query} type="search" spellcheck="false" autocomplete="off" aria-label="Search your library" placeholder="Search your library…" onkeydown={onKey} />
   </div>
   <div class="filters" role="radiogroup" aria-label="What to look for">
     {#each FILTERS as f (f)}
@@ -85,7 +87,7 @@
   {#if searchStore.busy}<div class="status">Reading the library…</div>
   {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
   {#if !asked}
-    <div class="hint">Every textbook of the library: its text, its concepts, its definitions and its formulas.</div>
+    <div class="hint">Every textbook you have added: its text, its concepts, its definitions and its formulas.</div>
   {:else if !countFound(results) && !searchStore.busy}
     <div class="hint">Nothing matches.</div>
   {:else}

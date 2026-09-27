@@ -11,6 +11,7 @@ import { registry } from '../sections/registry.svelte';
 import { label as sectionLabel } from '../sections/grouping';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
+import { library } from '../explorer/library.svelte';
 import { childrenOf, pathOf, type Entry, type EntryId } from '../explorer/model';
 import { books } from '../practice/books.svelte';
 import { figureInfo } from '../notes/md/figinfo';
@@ -48,11 +49,8 @@ export const sectionTextOf = (ref: SectionRef): string => {
   return (copy.textContent ?? '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 };
 
-/* Every book standing loaded, the focused one first; a row of another book says which book it is. */
-export const loadedBooks = (): readonly BookId[] => {
-  const here = focus.book;
-  return [...(here ? [here] : []), ...Object.keys(registry.books).map(bookId).filter((b) => b !== here)].filter((b) => registry.hasBook(b));
-};
+/* Every book of the shelf standing loaded, the focused one first; a row of another book says which book it is. */
+export const loadedBooks = (): readonly BookId[] => library.shelf(focus.book).map(bookId).filter((b) => registry.hasBook(b));
 export const inBook = (book: BookId, detail: string): string => (book === focus.book ? detail : `${registry.manifest(book).title} · ${detail}`);
 
 /* ── a section's things ────────────────────────────────────────────────── */
@@ -164,12 +162,9 @@ const bookNode = (book: BookId): PickerNode => {
   return { key: book, label: title, detail: m ? count(chapters.length, 'chapter', 'chapters') : '', row, children: () => chapters.map((c) => chapterNode(book, c)), load: () => loadBook(book) };
 };
 
-/* The reader's books: those in the explorer, and any other the registry holds, the focused one first. */
-const readerBooks = (): readonly BookId[] => {
-  const listed = explorer.tree.entries.flatMap((e) => (e.kind === 'book' && e.bookId ? [bookId(e.bookId)] : []));
-  const all = [focus.book, ...listed, ...Object.keys(registry.books).map(bookId)].filter((b): b is BookId => !!b);
-  return [...new Set(all)];
-};
+/* The reader's books: their shelf, the focused one first. A book the registry
+   holds only because a card or a link reached into it is not one of them. */
+const readerBooks = (): readonly BookId[] => library.shelf(focus.book).map(bookId);
 
 /* ── the reader's files ────────────────────────────────────────────────── */
 
