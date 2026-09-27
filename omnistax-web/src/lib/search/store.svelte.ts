@@ -27,10 +27,10 @@ class Search {
   status = $state.raw<Readonly<Record<string, CorpusStatus>>>({});
   private loading: Partial<Record<string, Promise<void>>> = {};
 
-  /* Every book the library lists, in the library's order and the focused book first. */
+  /* Every book the library lists, in the library's order and the focused book, if any, first. */
   get books(): readonly string[] {
     const first = focus.book;
-    return [first, ...library.books.map((b) => b.id).filter((id) => id !== first)];
+    return first ? [first, ...library.books.map((b) => b.id).filter((id) => id !== first)] : library.books.map((b) => b.id);
   }
   /* The corpora that have arrived, in that order. */
   get loaded(): readonly Corpus[] { return this.books.flatMap((b) => (this.corpora[b] ? [this.corpora[b]] : [])); }

@@ -64,7 +64,7 @@ export const followLink = (link: string): void => {
   const note = /^note:(.+)$/.exec(link);
   if (note) { void openItem(itemKey(noteItem(asNoteId(note[1])))); return; }
   const sec = /^section:(.+)$/.exec(link);
-  if (sec) { void openDoc(parseSecKey(sec[1]) ?? books.ref(sec[1]), 'text'); return; }
+  if (sec) { const r = parseSecKey(sec[1]) ?? books.ref(sec[1]); if (r) void openDoc(r, 'text'); return; }
   const file = /^file:([^:]+)(?::p(\d+))?$/.exec(link);
   if (file) { void openFile(asFileId(file[1]), file[2] ? Number(file[2]) : undefined); return; }
   const hl = /^hl:(.+)$/.exec(link);

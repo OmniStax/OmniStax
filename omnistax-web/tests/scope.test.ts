@@ -59,6 +59,16 @@ test('narrowing walks in to a section and stops there', () => {
   assert.deepEqual(narrow(follow('section'), at(here), BOOK), follow('section'));
   assert.deepEqual(narrow(pin(section), at(elsewhere), BOOK), pin(section));
 });
+test('with nothing read, a following view stands nowhere and a pin still stands', () => {
+  assert.equal(resolve(follow('section'), null, BOOK), null);
+  assert.equal(resolve(follow('chapter'), null, null), null);
+  assert.deepEqual(resolve(pin(chapter), null, BOOK), chapter);
+  assert.deepEqual(narrow(pin(book), null, BOOK), pin({ level: 'chapter', book: B, chapter: chapterId('2') }));
+  assert.deepEqual(narrow(pin(chapter), null, BOOK), pin(section));
+  assert.deepEqual(choose(section, null, BOOK), pin(section));
+  assert.deepEqual(stepSibling(follow('section'), 1, null, BOOK), follow('section'));
+  assert.deepEqual(atLevel(follow('section'), 'book', null, BOOK), follow('section'));
+});
 test('a pinned chapter narrows to the section being read when it is one of its own', () => {
   assert.deepEqual(narrow(pin(chapter), at(sibling), BOOK), pin({ level: 'section', book: B, section: sibling }));
 });

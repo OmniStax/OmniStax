@@ -24,7 +24,7 @@
   const target = $derived(scoped());
   const grouped = $derived(groupBySection(notes.list.filter((n) => n.book === target.book), (n) => n.section, target, registry.manifest(target.book)));
   const inside = $derived(countOf(grouped.inside));
-  const openChapter = $derived(focus.section.book === target.book ? registry.chapterOf(focus.section)?.id ?? '' : '');
+  const openChapter = $derived(focus.section && focus.section.book === target.book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
   /* what to say where a place has nothing marked in it yet */

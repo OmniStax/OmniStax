@@ -29,21 +29,22 @@ class Scope {
   /* Old pins are read before the shell knows its boot book, so they take it here. */
   of(key: ItemKey): ViewScope { return inBook(scopeAt(this.scopes, key), focus.boot); }
   /* The tree of the book a view stands in. */
-  treeOf(key: ItemKey): BookTree { return registry.manifest(bookOfScope(this.of(key), focus.section)); }
-  targetFor(key: ItemKey): Target { return resolve(this.of(key), focus.section, this.treeOf(key)); }
+  treeOf(key: ItemKey): BookTree | null { const b = bookOfScope(this.of(key), focus.section); return b ? registry.manifest(b) : null; }
+  targetFor(key: ItemKey): Target | null { return resolve(this.of(key), focus.section, this.treeOf(key)); }
   levelFor(key: ItemKey): Level { return levelOf(this.of(key)); }
   isPinned(key: ItemKey): boolean { return !this.of(key).follow; }
   set(key: ItemKey, scope: ViewScope): void { this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
-  widen(key: ItemKey): void { this.set(key, widen(this.of(key), this.treeOf(key))); }
-  narrow(key: ItemKey): void { this.set(key, narrow(this.of(key), focus.section, this.treeOf(key))); }
-  atLevel(key: ItemKey, level: Level): void { this.set(key, atLevel(this.of(key), level, focus.section, this.treeOf(key))); }
+  widen(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, widen(this.of(key), t)); }
+  narrow(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, narrow(this.of(key), focus.section, t)); }
+  atLevel(key: ItemKey, level: Level): void { const t = this.treeOf(key); if (t) this.set(key, atLevel(this.of(key), level, focus.section, t)); }
   /* Choosing a place from a crumb's menu: the view walks to that level, following again when
      the place chosen is the one the open page is in and pinning to it when it is anywhere else. */
   choose(key: ItemKey, target: Target): void { this.set(key, choose(target, focus.section, registry.manifest(target.book))); }
-  previous(key: ItemKey): void { this.set(key, stepSibling(this.of(key), -1, focus.section, this.treeOf(key))); }
-  next(key: ItemKey): void { this.set(key, stepSibling(this.of(key), 1, focus.section, this.treeOf(key))); }
+  previous(key: ItemKey): void { this.step(key, -1); }
+  next(key: ItemKey): void { this.step(key, 1); }
+  private step(key: ItemKey, dir: 1 | -1): void { const t = this.treeOf(key); if (t) this.set(key, stepSibling(this.of(key), dir, focus.section, t)); }
   /* Pinning holds where the view stands now, unless a place is named. */
-  pin(key: ItemKey, target: Target = this.targetFor(key)): void { this.set(key, { follow: false, target }); }
+  pin(key: ItemKey, target: Target | null = this.targetFor(key)): void { if (target) this.set(key, { follow: false, target }); }
   unpin(key: ItemKey): void { this.set(key, { follow: true, level: this.levelFor(key) }); }
   togglePin(key: ItemKey): void { if (this.isPinned(key)) this.unpin(key); else this.pin(key); }
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }

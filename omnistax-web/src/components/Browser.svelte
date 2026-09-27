@@ -55,7 +55,7 @@
   /* Opening places the tree beside what is being read; a later focus change must not move it. */
   $effect(() => {
     if (!ui.browser.open) return;
-    const s = untrack(() => start(manifest, focus.section.book === manifest.id ? focus.section.section : null));
+    const s = untrack(() => start(manifest, focus.section?.book === manifest.id ? focus.section.section : null));
     goto(s.level, s.select);
     tick().then(() => input?.focus());
   });

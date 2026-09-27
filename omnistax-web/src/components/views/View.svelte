@@ -38,9 +38,9 @@
      names where clicking it lands: a view following the book still says which chapter and
      which section it would come down to. */
   const tree = $derived(scope.treeOf(item));
-  const deepest = $derived(resolve(atLevel(scope.of(item), 'section', focus.section, tree), focus.section, tree));
-  const crumbs = $derived(crumbsOf(deepest, registry.manifest(deepest.book)));
-  const at = $derived(crumbs.findIndex((c) => c.level === target.level));
+  const deepest = $derived(tree ? resolve(atLevel(scope.of(item), 'section', focus.section, tree), focus.section, tree) : null);
+  const crumbs = $derived(deepest ? crumbsOf(deepest, registry.manifest(deepest.book)) : []);
+  const at = $derived(target ? crumbs.findIndex((c) => c.level === target.level) : -1);
   setContext('scope', () => target);
   /* Which crumb's menu is open, and where under the bar it hangs — the chevron that
      opened it, which the menu hands the focus back to when it closes. */
@@ -53,35 +53,42 @@
   /* The places the open menu offers: the crumb's own place is the one the view stands on,
      and the place the open page lies in is named, since choosing it is following again. */
   const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
-  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target.book, page: b.id === focus.section.book })));
+  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book, page: b.id === focus.section?.book })));
   const chooseBook = (id: string): void => {
     closeMenu(); const book = bookId(id);
     void registry.ensureBook(book).then((m) => { if (m) scope.choose(item, { level: 'book', book }); });
   };
   const entries = $derived.by(() => {
     const level = menu;
-    if (!level || level === 'book') return [];
+    if (!level || level === 'book' || !deepest) return [];
     const mark = crumbs.find((c) => c.level === level)?.target ?? null;
-    const page = resolve({ follow: true, level }, focus.section, registry.manifest(focus.section.book));
-    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark), page: sameTarget(s.target, page) }));
+    const page = focus.section ? resolve({ follow: true, level }, focus.section, registry.manifest(focus.section.book)) : null;
+    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark), page: page !== null && sameTarget(s.target, page) }));
   });
   /* The chapters a view reads from: the one it stands in, or every chapter its
      book has built something of. */
   const dirs = $derived(
-    !hasBar ? []
+    !hasBar || !target ? []
       : target.level === 'section' ? [registry.chapterOf(sectionRef(target.book, target.section))?.dir ?? ''].filter(Boolean)
       : target.level === 'chapter' ? registry.manifest(target.book).chapters.filter((c) => c.id === target.chapter).map((c) => c.dir)
       : registry.manifest(target.book).chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir),
   );
-  $effect(() => { if (dirs.length) registry.loadChapters(target.book, dirs).catch(() => {}); });
-  const loading = $derived(dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'loading'));
-  const failed = $derived(dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'failed'));
+  $effect(() => { if (target && dirs.length) registry.loadChapters(target.book, dirs).catch(() => {}); });
+  const loading = $derived(!!target && dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'loading'));
+  const failed = $derived(!!target && dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'failed'));
+  /* Following with nothing read yet: the bar offers only a book to stand in. */
+  const nowhere = $derived(hasBar && !target);
 </script>
 
 <div class="view" data-view={kind} data-item={item} onpointerdown={() => (focus.view = item)} onfocusincapture={() => (focus.view = item)}>
   {#if hasBar}
   <div class="scope" class:pinned>
     <nav class="crumbs" aria-label="Where this view stands">
+      {#if nowhere}
+        <span class="crumb">Book</span>
+        <button type="button" class="chev" bind:this={chevrons.book} aria-haspopup="listbox" aria-expanded={menu === 'book'}
+          aria-label="Choose a book" title="Choose a book" onclick={(e) => openMenu('book', e.currentTarget)}>▾</button>
+      {/if}
       {#each crumbs as c, i (c.level)}
         {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
         <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} class:pinned={pinned && i === at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(item, c.level)}>
@@ -94,7 +101,7 @@
         {/if}
       {/each}
     </nav>
-    {#if target.level !== 'book' || pinned}
+    {#if target && (target.level !== 'book' || pinned)}
       <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin: follow the open page again' : `Pin this view to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
     {/if}
     {#if menu}
@@ -106,7 +113,8 @@
   </div>
   {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
   {/if}
-  {#if kind === 'explorer'}<Explorer />
+  {#if nowhere}
+  {:else if kind === 'explorer'}<Explorer />
   {:else if kind === 'search'}<Search />
   {:else if kind === 'exercises'}<Exercises {item} />
   {:else if kind === 'concepts'}<ConceptMap />

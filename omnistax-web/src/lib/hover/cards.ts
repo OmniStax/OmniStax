@@ -28,7 +28,7 @@ export const targetOf = (node: EventTarget | null): HTMLElement | null => {
    document when that is of the same book. */
 const sectionOf = (book: BookId, el: Element): SectionId | null => {
   const sec = el.closest<HTMLElement>('[data-sec]')?.dataset.sec;
-  return sec ? sectionId(sec) : focus.section.book === book ? focus.section.section : null;
+  return sec ? sectionId(sec) : focus.section?.book === book ? focus.section.section : null;
 };
 const chapterData = (ref: SectionRef) => { const dir = registry.chapterOf(ref)?.dir; return dir ? registry.chapter(ref.book, dir) : undefined; };
 

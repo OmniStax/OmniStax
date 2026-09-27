@@ -30,7 +30,7 @@
     ...registry.chaptersOf(book).flatMap((c) => c.formulas.glossary).map((term): Def => ({ kind: 'term', term })),
   ]);
   const grouped = $derived(groupBySection(defs, (d) => sectionId(d.kind === 'symbol' ? d.symbol.section : d.term.section), target, registry.manifest(book)));
-  const openChapter = $derived(focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
+  const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const sym = (node: HTMLElement, s: string) => { figFor(book).tex(node, registry.manifest(book).symbols[s] ?? s); return {}; };
   const legend = $derived(orderOf(registry.manifest(book), colours.choicesOf(book)).map((k) => [k, registry.manifest(book).types[k]?.label ?? k] as const));
 </script>

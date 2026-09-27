@@ -41,15 +41,17 @@ const named = (id: string, title: string): string => `${id} ${title}`;
 export const chapterOf = (tree: BookTree, section: SectionId): ChapterId | null => { const c = tree.chapters.find((x) => pagesOf(x).some((s) => s.id === section)); return c ? chapterId(c.id) : null; };
 export const levelOf = (scope: ViewScope): Level => (scope.follow ? scope.level : scope.target.level);
 /* The book a scope stands in, whose tree the functions below are handed. */
-export const bookOfScope = (scope: ViewScope, focused: SectionRef): BookId => (scope.follow ? focused.book : scope.target.book);
+export const bookOfScope = (scope: ViewScope, focused: SectionRef | null): BookId | null => (scope.follow ? focused?.book ?? null : scope.target.book);
 
 /* A following view reads as the place around the focused section at its level; a
-   section the book does not know belongs to no chapter, so chapter level falls back to the book. */
-export const resolve = (scope: ViewScope, focused: SectionRef, tree: BookTree): Target => {
+   section the book does not know belongs to no chapter, so chapter level falls back to the book.
+   Following nothing stands nowhere. */
+export const resolve = (scope: ViewScope, focused: SectionRef | null, tree: BookTree | null): Target | null => {
   if (!scope.follow) return scope.target;
+  if (!focused) return null;
   if (scope.level === 'section') return { level: 'section', book: focused.book, section: focused.section };
   if (scope.level === 'book') return bookAt(focused.book);
-  const chapter = tree.id === focused.book ? chapterOf(tree, focused.section) : null;
+  const chapter = tree?.id === focused.book ? chapterOf(tree, focused.section) : null;
   return chapter ? { level: 'chapter', book: focused.book, chapter } : bookAt(focused.book);
 };
 
@@ -68,22 +70,23 @@ export const widen = (scope: ViewScope, tree: BookTree): ViewScope => {
 /* One level in, stopping at a section. Following narrows to following; a pinned
    book narrows to a pinned chapter and a pinned chapter to a pinned section — the
    one being read when it lies there, else the first that has something built. */
-export const narrow = (scope: ViewScope, focused: SectionRef, tree: BookTree): ViewScope => {
+export const narrow = (scope: ViewScope, focused: SectionRef | null, tree: BookTree): ViewScope => {
   if (scope.follow) return scope.level === 'section' ? scope : { follow: true, level: scope.level === 'book' ? 'chapter' : 'section' };
   if (scope.target.level === 'section') return scope;
   if (scope.target.level === 'book') {
     const book = scope.target.book;
-    const here = focused.book === book ? chapterOf(tree, focused.section) : null;
+    const here = focused && focused.book === book ? chapterOf(tree, focused.section) : null;
     const c = here ?? tree.chapters.find((x) => x.sections.some((s) => s.built))?.id;
     return c ? { follow: false, target: { level: 'chapter', book, chapter: chapterId(c) } } : scope;
   }
   const { book, chapter } = scope.target;
-  const section = focused.book === book && chapterOf(tree, focused.section) === chapter ? focused.section : firstBuilt(tree, chapter);
+  const section = focused && focused.book === book && chapterOf(tree, focused.section) === chapter ? focused.section : firstBuilt(tree, chapter);
   return section ? { follow: false, target: { level: 'section', book, section } } : scope;
 };
 
 /* Widen or narrow until the level asked for is reached, or until a step stops moving. */
-export const atLevel = (scope: ViewScope, level: Level, focused: SectionRef, tree: BookTree): ViewScope => {
+export const atLevel = (scope: ViewScope, level: Level, focused: SectionRef | null, tree: BookTree): ViewScope => {
+  if (scope.follow && !focused) return scope;
   const here = LEVELS.indexOf(levelOf(scope)), want = LEVELS.indexOf(level);
   if (here === want) return scope;
   const next = here > want ? widen(scope, tree) : narrow(scope, focused, tree);
@@ -121,8 +124,7 @@ export const sameTarget = (a: Target, b: Target): boolean =>
 /* Picking a place at a level: the place a following view would land on there means
    following again, since that is what the reader is asking for, and any other place is
    a pin. A choice carries its own level, so choosing also walks the view to it. */
-export const choose = (target: Target, focused: SectionRef, tree: BookTree): ViewScope =>
-  sameTarget(target, resolve({ follow: true, level: target.level }, focused, tree)) ? { follow: true, level: target.level } : { follow: false, target };
+export const choose = (target: Target, focused: SectionRef | null, tree: BookTree): ViewScope => { const at = resolve({ follow: true, level: target.level }, focused, tree); return at && sameTarget(target, at) ? { follow: true, level: target.level } : { follow: false, target }; };
 
 /* The chapter a target lies in, and for the book the first one, which is where the trail runs. */
 const anchorChapter = (anchor: Target, tree: BookTree): ChapterId | null =>
@@ -139,9 +141,9 @@ export const siblingsOf = (level: 'chapter' | 'section', anchor: Target, tree: B
    takes it. Chapters step through every chapter the book lists; sections step through the
    built sections of the whole book, so the step runs on past a chapter's end. The book has
    no siblings, and both ends hold. */
-export const stepSibling = (scope: ViewScope, dir: 1 | -1, focused: SectionRef, tree: BookTree): ViewScope => {
+export const stepSibling = (scope: ViewScope, dir: 1 | -1, focused: SectionRef | null, tree: BookTree): ViewScope => {
   const target = resolve(scope, focused, tree);
-  if (target.level === 'book') return scope;
+  if (!target || target.level === 'book') return scope;
   const places: readonly Target[] = target.level === 'chapter'
     ? tree.chapters.map((c): Target => ({ level: 'chapter', book: tree.id, chapter: chapterId(c.id) }))
     : sectionsOf(bookAt(tree.id), tree).map((s): Target => ({ level: 'section', book: tree.id, section: s }));

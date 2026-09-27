@@ -79,7 +79,7 @@
   const book = $derived(focus.book);
   let bookRow = $state<HTMLElement | null>(null);
   const quantities = $derived.by(() =>
-    Object.entries(registry.manifest(book).types ?? {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
+    Object.entries(book ? registry.manifest(book).types ?? {} : {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
 
   const SIZES: readonly number[] = [1, 2, 4, 8, 16];
 

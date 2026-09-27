@@ -153,7 +153,7 @@
        landing came while it still stood in the pool; a hash that changes under the shell
        lands the same way. */
     const landAt = (book: string, hash: string) => { const at = decodeURIComponent(hash.slice(1)); if (at) requestAnimationFrame(() => jump(findEl(bookId(book), at))); };
-    const onHash = () => landAt(focus.book, location.hash);
+    const onHash = () => { if (focus.book) landAt(focus.book, location.hash); };
     onHash(); window.addEventListener('hashchange', onHash);
     const mq = matchMedia('(max-width: 900px)'); narrow = mq.matches; const onMq = () => { narrow = mq.matches; layoutStore.overlay = null; }; mq.addEventListener('change', onMq);
     const onResize = () => FIG.redrawAll(); window.addEventListener('resize', onResize);
@@ -289,6 +289,7 @@
 
   /* layout → practice: what a practice tab stands on belongs to that tab, so a
      page whose tab the layout no longer holds is dropped as the layout settles. */
+  $effect(() => { focus.track(); });
   $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
 
 
@@ -336,7 +337,7 @@
   <Tooltip />
   <HighlightBar />
   <Palette />
-  <Browser manifest={registry.manifest(focus.book)} />
+  <Browser manifest={registry.manifest(focus.book ?? bookId(library.added[0] ?? ''))} />
   <FindTextbook />
   <SpotCurve />
   <DragToast />

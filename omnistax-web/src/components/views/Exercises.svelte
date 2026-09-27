@@ -56,7 +56,7 @@
      curriculum side by side. */
   const book = $derived(focus.book);
   const cat = $derived(practice.catalog());
-  const shelf = $derived([book, ...library.added.filter((id) => id !== book)]);
+  const shelf = $derived(book ? [book, ...library.added.filter((id) => id !== book)] : library.added);
   const chaptersOf = (id: string): readonly ChapterEntry[] => books.manifest(id)?.chapters ?? [];
   const statusOf = (id: string): string => books.status[id] ?? 'idle';
   /* The catalogue of what the library holds. Books themselves are loaded by

@@ -51,7 +51,7 @@ export const sectionTextOf = (ref: SectionRef): string => {
 /* Every book standing loaded, the focused one first; a row of another book says which book it is. */
 export const loadedBooks = (): readonly BookId[] => {
   const here = focus.book;
-  return [here, ...Object.keys(registry.books).map(bookId).filter((b) => b !== here)].filter((b) => registry.hasBook(b));
+  return [...(here ? [here] : []), ...Object.keys(registry.books).map(bookId).filter((b) => b !== here)].filter((b) => registry.hasBook(b));
 };
 export const inBook = (book: BookId, detail: string): string => (book === focus.book ? detail : `${registry.manifest(book).title} · ${detail}`);
 
@@ -167,7 +167,7 @@ const bookNode = (book: BookId): PickerNode => {
 /* The reader's books: those in the explorer, and any other the registry holds, the focused one first. */
 const readerBooks = (): readonly BookId[] => {
   const listed = explorer.tree.entries.flatMap((e) => (e.kind === 'book' && e.bookId ? [bookId(e.bookId)] : []));
-  const all = [focus.book, ...listed, ...Object.keys(registry.books).map(bookId)].filter((b) => !!b);
+  const all = [focus.book, ...listed, ...Object.keys(registry.books).map(bookId)].filter((b): b is BookId => !!b);
   return [...new Set(all)];
 };
 
@@ -196,7 +196,7 @@ const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
 /* The two places the picker opens on. Opening OmniBooks, or searching from the
    top, fetches the focused book's tables, so its things are found at once. */
 export const pickerRoot = (): readonly PickerNode[] => [
-  { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map(bookNode), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => loadBook(focus.book)) },
+  { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map(bookNode), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
   { key: 'files', label: 'Files', detail: '', children: () => entryNodes(null) },
 ];
 
@@ -206,10 +206,8 @@ export const pickerRoot = (): readonly PickerNode[] => [
 export const chipOf = (row: PickerRow): Chip => {
   const kind = CATEGORY_CHIP[row.category];
   const key = row.target ? linkInner(row.target) : `${kind}:${row.key}`;
-  if (row.target?.kind === 'section') {
-    const ref = sectionRef(row.target.book ?? focus.book, sectionId(row.target.section));
-    return chip(kind, key, row.label, sectionTextOf(ref));
-  }
+  const book = row.target?.kind === 'section' ? row.target.book ?? focus.book : null;
+  if (row.target?.kind === 'section' && book) return chip(kind, key, row.label, sectionTextOf(sectionRef(book, sectionId(row.target.section))));
   return chip(kind, key, row.label, row.text ?? row.label);
 };
 

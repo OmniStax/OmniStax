@@ -22,5 +22,6 @@ export const tabTitle = (k: ItemKey): string => {
   if (!id) return k;
   const kind = viewKindOf(k);
   if (!kind) return registry.title(id);
-  return PLACELESS.includes(kind) ? VIEW_TITLE[kind] : `${VIEW_TITLE[kind]} · ${placeOf(scope.targetFor(k))}`;
+  const t = PLACELESS.includes(kind) ? null : scope.targetFor(k);
+  return t ? `${VIEW_TITLE[kind]} · ${placeOf(t)}` : VIEW_TITLE[kind];
 };

@@ -22,7 +22,7 @@
   const book = $derived(target.book);
   const eqs = $derived(registry.chaptersOf(book).flatMap((c) => c.formulas.equations).filter((e) => e.important));
   const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.section), target, registry.manifest(book)));
-  const openChapter = $derived(focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
+  const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const spanTitle = (id: string): string => { const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
 </script>

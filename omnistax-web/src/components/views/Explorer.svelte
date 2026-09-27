@@ -96,7 +96,7 @@
       out.push({
         key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: ref.section,
         expandable: s.built, open,
-        dim: !s.built, active: s.built && sameSection(focus.section, ref), book: id,
+        dim: !s.built, active: s.built && !!focus.section && sameSection(focus.section, ref), book: id,
         updated: (offlineBooks.updatedSections[id] ?? []).includes(s.id),
       });
       if (!s.built || !open) return;
@@ -417,10 +417,11 @@
   onMount(() => {
     if (seeded || explorer.tree.expanded.length) { seeded = true; return; }
     seeded = true;
+    if (!focus.book) return;
     const m = registry.manifest(focus.book);
     if (!m.id) return;
     explorer.toggle(bookKey(m.id));
-    const ch = registry.chapterOf(focus.section);
+    const ch = focus.section && registry.chapterOf(focus.section);
     if (ch) explorer.toggle(chapterKey(m.id, ch.id));
   });
 </script>

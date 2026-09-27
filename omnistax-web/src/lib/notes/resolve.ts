@@ -18,7 +18,7 @@ import { bookId, conceptId, qualifiedId, sectionId, sectionRef, spanId, spanRef,
 import type { HighlightInfo, Resolver } from './md/render';
 
 export type BookLookups = Pick<Resolver, 'section' | 'highlight' | 'equation' | 'term' | 'symbol' | 'concept' | 'figure'>;
-export type Fallback = () => BookId;
+export type Fallback = () => BookId | null;
 export const focusedBook: Fallback = () => focus.book;
 
 export const bookHighlight = (id: string): HighlightInfo | null => {
@@ -29,16 +29,16 @@ export const bookHighlight = (id: string): HighlightInfo | null => {
 export class BookResolver {
   constructor(private readonly fallback: Fallback = focusedBook) {}
 
-  ref(section: string, book?: BookId): SectionRef { return sectionRef(book ?? this.fallback(), sectionId(section)); }
-  chapterDir(section: string, book?: BookId): string | undefined { return registry.chapterOf(this.ref(section, book))?.dir; }
+  ref(section: string, book?: BookId): SectionRef | null { const b = book ?? this.fallback(); return b ? sectionRef(b, sectionId(section)) : null; }
+  chapterDir(section: string, book?: BookId): string | undefined { const ref = this.ref(section, book); return ref ? registry.chapterOf(ref)?.dir : undefined; }
   private chapterData(section: string, book?: BookId) {
-    const ref = this.ref(section, book); const dir = registry.chapterOf(ref)?.dir;
-    return dir ? registry.chapter(ref.book, dir) : undefined;
+    const ref = this.ref(section, book); const dir = ref ? registry.chapterOf(ref)?.dir : undefined;
+    return ref && dir ? registry.chapter(ref.book, dir) : undefined;
   }
 
   lookups(): BookLookups {
     return {
-      section: (id, book) => { const e = registry.entry(this.ref(id, book)); return e?.built ? { title: e.title } : null; },
+      section: (id, book) => { const ref = this.ref(id, book); const e = ref ? registry.entry(ref) : undefined; return e?.built ? { title: e.title } : null; },
       highlight: bookHighlight,
       equation: (section, id, book) => {
         const d = this.chapterData(section, book); if (!d) return null;
@@ -53,13 +53,13 @@ export class BookResolver {
       /* A chapter may give one symbol two meanings in two sections, so the
          section the link names picks which; the TeX is the book's own macro. */
       symbol: (section, sym, book) => {
-        const d = this.chapterData(section, book); if (!d) return null;
+        const ref = this.ref(section, book); const d = this.chapterData(section, book); if (!ref || !d) return null;
         const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
-        const m = registry.manifest(this.ref(section, book).book);
+        const m = registry.manifest(ref.book);
         return { sym, tex: m.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? m.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
       },
       figure: (section, id, book) => {
-        const doc = registry.state(this.ref(section, book))?.docs.text;
+        const ref = this.ref(section, book); const doc = ref ? registry.state(ref)?.docs.text : undefined;
         return doc ? figureInfo(doc, sectionId(section), id) : null;
       },
       concept: (section, id, book) => {
@@ -76,9 +76,10 @@ export class BookResolver {
      and anything else to the section that holds it. */
   target(embed: string): SpanRef | SectionRef | null {
     const t = parseLink(embed);
-    if (t.kind === 'figure') return spanRef(this.ref(t.section, t.book).book, qualifiedId(sectionId(t.section), t.id));
-    if (!isBook(t)) return null;
-    const sec = this.ref(t.section, t.book); const at = this.lookups();
+    if (!isBook(t) && t.kind !== 'figure') return null;
+    const sec = this.ref(t.section, t.book); if (!sec) return null;
+    if (t.kind === 'figure') return spanRef(sec.book, qualifiedId(sectionId(t.section), t.id));
+    const at = this.lookups();
     const span = t.kind === 'equation' ? at.equation(t.section, t.id, t.book)?.anchor
       : t.kind === 'symbol' ? at.symbol(t.section, t.sym, t.book)?.anchor
         : t.kind === 'concept' ? spansOf(sec.book, conceptId(t.id)).intro[0] : undefined;
@@ -90,9 +91,9 @@ export class BookResolver {
   setMath(el: HTMLElement): void {
     for (const card of el.querySelectorAll<HTMLElement>('[data-embed]:not([data-book])')) {
       const t = parseLink(card.dataset.embed ?? '');
-      if ('section' in t) card.dataset.book = this.ref(t.section, t.book).book;
+      const ref = 'section' in t ? this.ref(t.section, t.book) : null; if (ref) card.dataset.book = ref.book;
     }
-    const bookAt = (e: HTMLElement): BookId => bookId(e.closest<HTMLElement>('[data-book]')?.dataset.book ?? this.fallback());
+    const bookAt = (e: HTMLElement): BookId => bookId(e.closest<HTMLElement>('[data-book]')?.dataset.book ?? this.fallback() ?? '');
     for (const t of el.querySelectorAll<HTMLElement>('.embed-tex[data-tex]')) {
       if (t.dataset.set === '1') continue;
       t.dataset.set = '1';
