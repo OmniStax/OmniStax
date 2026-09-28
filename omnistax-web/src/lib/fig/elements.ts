@@ -79,6 +79,7 @@ export const ELEMENTS: Readonly<Record<string, ElementHues>> = {
   Ge: { light: '#6E8C8C', dark: '#A2BDBD' },
   As: { light: '#8A5CB0', dark: '#BC91DC' },
   Se: { light: '#C47A1A', dark: '#F0A850' },
+  Te: { light: '#A0703A', dark: '#D4A06A' },
   U: { light: '#2F7A3A', dark: '#6CC07A' },
   Pu: { light: '#A3432F', dark: '#E07A62' },
   /* The particles physics draws on their own. */

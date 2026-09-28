@@ -235,7 +235,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, 
 function elOf(s: ElementSymbol): Color;
 function elOf<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K];
 function elOf(s: string, cls?: string | null, html?: string): Color | HTMLElement {
-  if (isElementSymbol(s)) return elColor(s);
+  if (isElementSymbol(s) || /^[A-Z]/.test(s)) return elColor(s);
   return el(s as keyof HTMLElementTagNameMap, cls, html);
 }
 
