@@ -37,6 +37,12 @@ test('nothing is marked in headings, links, math, captions or exercise hosts', (
 test('a multi-word term matches across a line break', () => {
   assert.match(wrapTerms('<p>the force\nconstant k</p>', TERMS), /<span class="term" data-term="force constant" tabindex="0">force\nconstant<\/span>/);
 });
+test('a shorter term never matches inside the span of a longer one', () => {
+  assert.equal(
+    wrapTerms('<p>an alkaline earth metal and a metal</p>', ['alkaline earth metal', 'metal']),
+    '<p>an <span class="term" data-term="alkaline earth metal" tabindex="0">alkaline earth metal</span> and a <span class="term" data-term="metal" tabindex="0">metal</span></p>',
+  );
+});
 test('the passes thread the done set across blocks', () => {
   const em = wrapEmTerms('a <em>period</em> here', TERMS, new Set(), IN_BLOCK);
   assert.deepEqual([...em.done], ['period']);

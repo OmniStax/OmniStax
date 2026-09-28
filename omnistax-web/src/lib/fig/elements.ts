@@ -61,10 +61,33 @@ export const ELEMENTS: Readonly<Record<string, ElementHues>> = {
   Zn: { light: '#6E7B8B', dark: '#A3B1C2' },
   Au: { light: '#B58B18', dark: '#E3BE4A' },
   Ag: { light: '#7E8A97', dark: '#B8C2CC' },
+  Zr: { light: '#6A9AA8', dark: '#9CC8D4' },
+  Cr: { light: '#7A8CB8', dark: '#A9B8DD' },
+  Mn: { light: '#8A5CB8', dark: '#B690E0' },
+  Co: { light: '#C2506A', dark: '#EE8FA3' },
+  Ni: { light: '#3E9A4F', dark: '#7FD08C' },
+  V: { light: '#8E8E9C', dark: '#BDBDC9' },
+  Pt: { light: '#8F95A8', dark: '#C4C9D8' },
+  Hg: { light: '#8C8CA8', dark: '#BCBCD4' },
+  Pb: { light: '#4E5663', dark: '#9098A6' },
+  Sn: { light: '#5F7A80', dark: '#9BB4BA' },
+  Al: { light: '#9A8A8A', dark: '#C9B8B8' },
+  Cd: { light: '#B89A3A', dark: '#E0C76E' },
+  Mo: { light: '#3F8C8C', dark: '#7CC4C4' },
+  W: { light: '#3E6FA0', dark: '#7FA8D2' },
+  Ga: { light: '#A06E6E', dark: '#D09C9C' },
+  Ge: { light: '#6E8C8C', dark: '#A2BDBD' },
+  As: { light: '#8A5CB0', dark: '#BC91DC' },
+  Se: { light: '#C47A1A', dark: '#F0A850' },
+  U: { light: '#2F7A3A', dark: '#6CC07A' },
+  Pu: { light: '#A3432F', dark: '#E07A62' },
   /* The particles physics draws on their own. */
   'e-': { light: '#2B5BD7', dark: '#6E93F5' },   /* electron: the blue convention */
   'p+': { light: '#D93025', dark: '#F0564B' },   /* proton: the red convention */
   'n0': { light: '#6B7280', dark: '#9CA3AF' },   /* neutron: gray */
+  'e+': { light: '#0E8C8C', dark: '#4FD1C5' },   /* positron: apart from the electron, told by its sign */
+  nu: { light: '#9A8FB0', dark: '#C4B8DC' },     /* neutrino: pale, since it barely interacts */
+  gamma: { light: '#C98A00', dark: '#F2C230' },  /* photon */
   other: { light: '#B05C8E', dark: '#E08CBC' },
 };
 

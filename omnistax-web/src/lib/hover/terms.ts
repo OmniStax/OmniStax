@@ -78,11 +78,16 @@ export const wrapPlainTerms = (html: string, terms: readonly Term[], done: Reado
   const ts = tokens(html); const cs = contexts(ts, start); const got = new Set(done);
   const out = ts.map((t, i) => {
     if (isTag(t) || !termable(cs[i])) return t;
-    return terms.reduce((s, term) => {
-      if (got.has(term)) return s;
-      const m = termRe(term).exec(s); if (!m) return s;
-      got.add(term); return s.slice(0, m.index) + mark(term, m[0]) + s.slice(m.index + m[0].length);
-    }, t);
+    /* A later term matches only unmarked text, never inside a span an earlier term made ("metal" within "alkaline earth metal"). */
+    type Piece = { readonly text: string; readonly marked: boolean };
+    const pieces = terms.reduce<readonly Piece[]>((ps, term) => {
+      if (got.has(term)) return ps;
+      const k = ps.findIndex((p) => !p.marked && termRe(term).test(p.text)); if (k < 0) return ps;
+      const p = ps[k]; const m = termRe(term).exec(p.text)!;
+      got.add(term);
+      return [...ps.slice(0, k), { text: p.text.slice(0, m.index), marked: false }, { text: mark(term, m[0]), marked: true }, { text: p.text.slice(m.index + m[0].length), marked: false }, ...ps.slice(k + 1)];
+    }, [{ text: t, marked: false }]);
+    return pieces.map((p) => p.text).join('');
   });
   return { html: out.join(''), done: got };
 };
