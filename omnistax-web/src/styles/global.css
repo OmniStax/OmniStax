@@ -201,6 +201,12 @@ a.figref{color:inherit;text-decoration:underline dotted;text-decoration-color:va
 a.figref:hover{color:var(--accent);text-decoration-color:var(--accent)}
 .sim .stage{position:relative;background:var(--panel)}
 .sim canvas{display:block;width:100%;height:auto;border:0;border-radius:0;background:var(--panel)}
+/* a figure's text, set as the page's text over its canvas (textlayer.ts) */
+.fig-text{position:absolute;pointer-events:none;overflow:visible;font-family:var(--figure);user-select:none}
+.fig-text[hidden]{display:none}
+.fig-text > span{position:absolute;left:0;top:0;transform-origin:0 0;white-space:pre;line-height:1;font-kerning:normal}
+.fig-text > span > span{border-radius:2px}
+.fig-text .sub{position:relative;font-size:max(10px,0.72em)}
 .sim .three-wrap{position:relative;width:100%;aspect-ratio:1400 / var(--three-h,480);overflow:hidden;background:transparent;margin:0;touch-action:none;cursor:grab}
 .sim .three-wrap canvas{width:100%!important;height:100%!important;display:block}
 .sim .lab3d{position:absolute;font-family:var(--figure);font-size:0.8rem;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--panel);color:var(--ink);pointer-events:none;transform:translate(-50%,-100%);white-space:nowrap;border:1px solid var(--rule)}

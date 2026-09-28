@@ -6,6 +6,7 @@ import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf } from './cat';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
+import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, BEAT_MS, REST_MS, type Ease, type BeatTime, type Scripted } from './motion';
 
@@ -35,7 +36,7 @@ export type Vec3 = readonly [number, number, number];   /* a point or direction 
 export type Pt = readonly [Logical, Logical];                 /* a projected point on the canvas */
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
-type TextOpts = { size?: number; weight?: number; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
+type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
 type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
@@ -220,6 +221,7 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
   const { bw, bh, k } = backing(c.clientWidth || 800, LW, H, devRatio(), pinch(), CANVAS_BUDGET);
   if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
   const ctx = c.getContext('2d')!; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, LW, H);
+  openText(c);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.textBaseline = 'middle';
   return { ctx, W: LW, H };
 }
@@ -467,7 +469,12 @@ const FIGURE_FALLBACK = "'New Computer Modern Book', Georgia, 'Times New Roman',
 /* The reader's figure font, read off `--figure` with the palette, so a redraw-all
    after the face loads draws and measures every label in it. */
 let FONT = FIGURE_FALLBACK;
-const readFont = (): void => { FONT = cssVar('--figure') || FIGURE_FALLBACK; };
+const readFont = (): void => { FONT = cssVar('--figure') || FIGURE_FALLBACK; forgetFaces(); };
+/* the weight a label is measured and shown at, and the font string for it */
+const weightOf = (w: number): number => shownWeight(w, FONT);
+const fontAt = (w: number, size: number): string => `${weightOf(w)} ${size}px ${FONT}`;
+/* a CSS font string with its weight taken to the one shown, for a figure measuring its own runs */
+const shownFont = (f: string): string => f.replace(/\b([1-9]00)\b/, (w) => String(weightOf(+w)));
 function line(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, color: Color, w = 3, dash?: number[]): void { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
 function arrow(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, color: Color, w = 4): void {
   const L = Math.hypot(x2 - x1, y2 - y1); if (L < 2) return;
@@ -490,58 +497,82 @@ function runsOf(s: string): Run[] {
   if (last < s.length) out.push({ s: s.slice(last), sub: false });
   return out;
 }
+/* ---------- the text over the canvas ----------
+   What `text` sets on a canvas that is in the page is recorded and shown as the page's own
+   text over it (textlayer.ts). A draw's record opens at `begin`, or at its first string on a
+   canvas drawn without it, and is shown once the task that drew it is over. */
+type TextRecord = { box: TextBox; r: number; glyphs: Glyph[] };
+const records = new Map<HTMLCanvasElement, TextRecord>();
+let flushing = false;
+function flushText(): void {
+  flushing = false;
+  records.forEach((rec, c) => commitText(c, rec.box, rec.glyphs));
+  records.clear();
+}
+function openText(c: HTMLCanvasElement): TextRecord {
+  const w = c.offsetWidth, rec: TextRecord = { box: { l: c.offsetLeft, t: c.offsetTop, w, h: c.offsetHeight }, r: c.width ? w / c.width : 0, glyphs: [] };
+  records.set(c, rec);
+  if (!flushing) { flushing = true; queueMicrotask(flushText); }
+  return rec;
+}
+const inPage = (c: unknown): c is HTMLCanvasElement => typeof HTMLCanvasElement === 'function' && c instanceof HTMLCanvasElement && !!c.parentElement;
+
 /* ---------- the glow under a changed number ----------
    A string drawn on a figure's canvas is known again next frame by its skeleton (numbers
    blanked) and its place among the strings of that skeleton drawn this frame. A number in it
-   that the reader's hand changed gets a faint bar beneath, in the text's colour (glow.ts); a
-   figure with a bar still fading keeps drawing. */
+   that the reader's hand changed is set as its own piece with a faint highlight behind it
+   (glow.ts); a figure with a highlight still fading keeps drawing. */
 let frameNo = 0;
 type GlowCanvas = { frame: number; seen: Map<string, number>; traces: Map<string, Trace> };
 const glowCanvases = new WeakMap<HTMLCanvasElement, GlowCanvas>();
 const glowing = new Set<HTMLCanvasElement>();
 const simOf = (c: HTMLCanvasElement): Sim | undefined => sims.find((d) => d.fig.contains(c));
-function glowUnder(ctx: Ctx, s: string, runs: readonly Run[], widths: readonly number[], x0: Logical, y: Logical, size: number, color: Color, font: (k: number) => string): void {
-  const canvas = (ctx as { canvas?: unknown }).canvas;
-  if (!(typeof HTMLCanvasElement === 'function' && canvas instanceof HTMLCanvasElement) || !/\d/.test(s)) return;
+/* the string's runs cut into pieces, every number its own piece with the glow it carries */
+function piecesOf(canvas: HTMLCanvasElement, s: string, runs: readonly Run[]): Piece[] {
+  if (!/\d/.test(s)) return runs.map((r) => ({ s: r.s, sub: r.sub, lit: 0 }));
   const g = glowCanvases.get(canvas) ?? (glowCanvases.set(canvas, { frame: -1, seen: new Map(), traces: new Map() }), glowCanvases.get(canvas)!);
   if (g.frame !== frameNo) { g.frame = frameNo; g.seen.clear(); }
   const sk = skeletonOf(s), nth = g.seen.get(sk) ?? 0, key = sk + '\u0000' + nth;
   g.seen.set(sk, nth + 1);
-  let cx = x0;
-  const toks = runs.flatMap((r, i) => {
-    const at = cx; cx += widths[i];
-    ctx.font = font(r.sub ? 0.72 : 1);
-    return tokensOf(r.s).map((t) => ({ s: t.s, l: at + ctx.measureText(r.s.slice(0, t.i)).width, r: at + ctx.measureText(r.s.slice(0, t.j)).width }));
-  });
+  const toks = runs.map((r) => tokensOf(r.s));
   const now = performance.now(), fig = simOf(canvas)?.fig;
-  const tr = glowStep(g.traces.get(key), toks.map((t) => t.s), inputSeq(), now, byHand(now, fig));
+  const tr = glowStep(g.traces.get(key), toks.flat().map((t) => t.s), inputSeq(), now, byHand(now, fig));
   g.traces.set(key, tr);
-  const base = ctx.textBaseline;
-  const top = y - size * (base === 'top' || base === 'hanging' ? 0 : base === 'middle' ? 0.55 : base === 'bottom' || base === 'ideographic' ? 1 : 0.8);
-  let any = false;
-  const fill = cssVar('--hl-yellow') || '#FDE68A';
-  toks.forEach((t, i) => {
-    const a = glowOf(tr.lit[i], now, REDUCED);
-    if (!a) return;
-    any = true;
-    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = fill;
-    ctx.beginPath(); ctx.roundRect(t.l - 2, top - 1, t.r - t.l + 4, size * 1.1, 2); ctx.fill(); ctx.restore();
+  let n = 0;
+  const out = runs.flatMap((r, i): Piece[] => {
+    let at = 0;
+    const cut = toks[i].flatMap((t): Piece[] => {
+      const lit = glowOf(tr.lit[n++], now, REDUCED), before = r.s.slice(at, t.i); at = t.j;
+      return [...(before ? [{ s: before, sub: r.sub, lit: 0 }] : []), { s: r.s.slice(t.i, t.j), sub: r.sub, lit }];
+    });
+    return at < r.s.length || !cut.length ? [...cut, { s: r.s.slice(at), sub: r.sub, lit: 0 }] : cut;
   });
-  if (any) glowing.add(canvas);
+  if (out.some((p) => p.lit > 0)) glowing.add(canvas);
+  return out;
 }
-tickers.add(() => { glowing.forEach((c) => { const d = simOf(c); if (d) d.dirty = true; }); glowing.clear(); });
+tickers.add(() => { glowing.forEach((c) => { const d = simOf(c); if (d) d.dirty = true; }); glowing.clear(); syncLayers(); });
 
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
-  const size = o.size ?? 22, weight = o.weight ?? 400, font = (k: number) => `${weight} ${size * k}px ${FONT}`;
+  const size = o.size ?? 22, weight = weightOf(o.weight ?? 400), italic = !!o.italic, font = (k: number) => `${italic ? 'italic ' : ''}${weight} ${size * k}px ${FONT}`;
   const runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
-  ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = o.base ?? 'middle';
+  const base = o.base ?? 'middle', align = o.align ?? 'left';
+  ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = base;
   const widths = runs.map((r) => { ctx.font = font(r.sub ? 0.72 : 1); return ctx.measureText(r.s).width; });
-  const total = widths.reduce((a, b) => a + b, 0), align = o.align ?? 'left';
+  const total = widths.reduce((a, b) => a + b, 0);
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
   if (o.bg) { const pw = total + 14, ph = size + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
-  glowUnder(ctx, s, runs, widths, cx, y, size, color, font);
-  ctx.fillStyle = color;
-  runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
+  const canvas = (ctx as { canvas?: unknown }).canvas;
+  if (inPage(canvas)) {
+    const rec = records.get(canvas) ?? openText(canvas), m = ctx.getTransform(), [px, py] = mapPoint(m, x, y, rec.r);
+    rec.glyphs.push({
+      pieces: piecesOf(canvas, s, runs), x: px, y: py, size: size * scaleOf(m) * rec.r, rot: angleOf(m),
+      color, alpha: ctx.globalAlpha, align: align === 'center' ? 'center' : align === 'right' || align === 'end' ? 'right' : 'left',
+      base: baselineOf(weight, italic, FONT, base), weight, italic, family: FONT,
+    });
+  } else {
+    ctx.fillStyle = color;
+    runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
+  }
   ctx.restore();
 }
 const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
@@ -557,7 +588,7 @@ type BracketOpts = { side?: BracketSide; H?: Logical; size?: number };
 const canvasH = (ctx: Ctx, o?: { H?: Logical }): Logical => o?.H ?? +((ctx as { canvas?: { dataset?: Record<string, string> } }).canvas?.dataset?.h ?? 0);
 /* the label's half width at the weight and size a bracket and a note set their text */
 function halfWidth(ctx: Ctx, s: string, size: number): Logical {
-  ctx.save(); ctx.font = '600 ' + size + 'px ' + FONT; const w = ctx.measureText(s).width; ctx.restore(); return w / 2 + 9;
+  ctx.save(); ctx.font = fontAt(600, size); const w = ctx.measureText(s).width; ctx.restore(); return w / 2 + 9;
 }
 function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, label?: string, o: BracketOpts = {}): void {
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.moveTo(x1, y - 10); ctx.lineTo(x1, y + 10); ctx.moveTo(x2, y - 10); ctx.lineTo(x2, y + 10); ctx.stroke(); ctx.restore();
@@ -952,9 +983,8 @@ function shopfront(ctx: Ctx, x: Logical, y: Logical, w: Logical, h: Logical, nam
   ctx.beginPath(); for (let i = 0; i < n; i++) ctx.arc(l - w * 0.06 + r + 2 * r * i, t + sign + h * 0.13, r, 0, Math.PI); ctx.fill();   /* the awning */
   ctx.fillRect(x - w * 0.13, y - h * 0.36, w * 0.26, h * 0.36);                                /* the door */
   ctx.strokeRect(x + w * 0.2, y - h * 0.33, w * 0.2, h * 0.17);                                /* the window */
-  ctx.fillStyle = PAL.panel; ctx.font = '700 ' + Math.max(9, sign * 0.7) + 'px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(name, x, t + sign / 2);
   ctx.restore();
+  text(ctx, name, x, t + sign / 2, PAL.panel, { size: Math.max(9, sign * 0.7), weight: 700, align: 'center' });
 }
 /* a horse standing on (x, y) at scale s, `phase` running its gallop and `face` of -1 turning it round;
    its footprint at s = 1 is about 156 by 120 */
@@ -1278,7 +1308,7 @@ export type LabellerOpts = { headline?: boolean | 1 | 2 };
 function labeller(ctx: Ctx, H: Logical, o: LabellerOpts = {}): Labeller {
   const placed: Box[] = [], queue: Label[] = [];
   const boxOf = (s: string, x: Logical, y: Logical, size: number, align: CanvasTextAlign): Box => {
-    ctx.save(); ctx.font = '600 ' + size + 'px ' + FONT; const tw = ctx.measureText(s).width; ctx.restore();
+    ctx.save(); ctx.font = fontAt(600, size); const tw = ctx.measureText(s).width; ctx.restore();
     const bw = tw + 14, bh = size + 8;
     const l = align === 'center' ? x - bw / 2 : align === 'right' ? x - bw + 7 : x - 7;
     return { l, r: l + bw, t: y - bh / 2, b: y + bh / 2 };
@@ -2101,7 +2131,7 @@ export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   backing, glRatio,
-  register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
+  register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, shownFont, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,

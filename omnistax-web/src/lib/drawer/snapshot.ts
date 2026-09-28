@@ -11,6 +11,7 @@
 import { putAsset } from '../notes/assets';
 import { assetId, type AssetId } from '../notes/assets';
 import { dprOf } from './render';
+import { paintText } from '../fig/textlayer';
 
 /* What a snapshot is worth holding: the picture, and how big it came out, so
    that the frame it lands in has the figure's own shape rather than a square. */
@@ -91,6 +92,7 @@ const composite = (picture: HTMLCanvasElement | HTMLImageElement, caption: strin
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, pw, ph + capHeight);
   try { ctx.drawImage(picture, 0, 0, pw, ph); } catch { return null; }   /* an image from elsewhere taints the canvas */
+  if (picture instanceof HTMLCanvasElement) paintText(picture, ctx, pw / w);
   if (lines.length) {
     ctx.fillStyle = '#4a4a4a';
     ctx.font = `${CAPTION_SIZE}px system-ui, sans-serif`;
