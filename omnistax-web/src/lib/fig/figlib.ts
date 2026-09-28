@@ -5,6 +5,8 @@
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf } from './cat';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
+import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
+import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, BEAT_MS, REST_MS, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -226,15 +228,75 @@ function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
    motion from the reader's. */
 let driving = false;
 const driven = (f: () => void): void => { driving = true; try { f(); } finally { driving = false; } };
-export type Slider = { readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void; refresh: () => void; mark: (sp: readonly Special[]) => void; readonly el: HTMLLabelElement };
+/* A story carries a slider over to the next quantity: `relabel` bends its label into the new one,
+   `range` eases its thumb into a new range, `show` fades it in or out while the row regroups;
+   the `…At` forms are frames at k, for a story's own value. */
+export type Slider = {
+  readonly v: number; set: (x: number) => void; disable: (held: boolean) => void; drive: (x: number) => void; refresh: () => void; mark: (sp: readonly Special[]) => void; readonly el: HTMLLabelElement;
+  relabel: (label: string, aria?: string) => void; relabelAt: (a: string, b: string, k: number) => void;
+  range: (r: SliderRange) => void; rangeAt: (a: SliderRange, b: SliderRange, k: number) => void;
+  show: (on: boolean, o?: FadeOpts) => void; readonly shown: boolean;
+};
+const ariaOfLabel = (label: string): string => label.replace(/\\k|[{}\\]/g, '');
 function ctl(parent: HTMLElement, o: CtlOpts): Slider {
-  const lab = el('label'); const name = el('span', 'ctl-label'); tex(name, o.label);
+  const lab = el('label'); const name = el('span', 'ctl-label ctl-faces');
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
-  inp.setAttribute('aria-label', o.aria ?? o.label.replace(/\\k|[{}\\]/g, ''));
-  const val = el('span', 'ctl-val kv-' + o.cls); const dec = o.dec ?? 1;
+  inp.setAttribute('aria-label', o.aria ?? ariaOfLabel(o.label));
+  const val = el('span', 'ctl-val kv-' + o.cls);
+  let unit = o.unit, dec = o.dec ?? 1, held: number | null = null;
   const sp = specialsOf(inp, o);
-  const upd = () => { val.textContent = fmt(+inp.value, dec) + ' ' + o.unit; sp.lit(); };
-  inp.addEventListener('input', () => { sp.snap(); upd(); o.onInput?.(); });
+  const upd = () => { val.textContent = fmt(held ?? +inp.value, dec) + ' ' + unit; sp.lit(); };
+  inp.addEventListener('input', () => { held = null; sp.snap(); upd(); o.onInput?.(); });
+  const face = (t: string): HTMLElement => { const f = el('span', 'ctl-face'); f.dataset.tex = t; tex(f, t); name.appendChild(f); return f; };
+  const faceOf = (t: string): HTMLElement => Array.from(name.children as HTMLCollectionOf<HTMLElement>).find((f) => f.dataset.tex === t) ?? face(t);
+  let current = face(o.label), lastLabelKey = '';
+  const relabelAt = (a: string, b: string, k: number): void => {
+    const key = `${a}|${b}|${k}`; if (key === lastLabelKey) return; lastLabelKey = key;
+    const e = ease.smooth(Math.min(1, Math.max(0, k))), fa = faceOf(a), fb = a === b ? fa : faceOf(b);
+    Array.from(name.children as HTMLCollectionOf<HTMLElement>).forEach((f) => { if (f !== fa && f !== fb) f.remove(); });
+    fa.style.transition = fb.style.transition = '';
+    fa.style.opacity = String(1 - e); fb.style.opacity = String(e);
+    current = e < 0.5 ? fa : fb;
+  };
+  const relabel = (t: string, aria?: string): void => {
+    inp.setAttribute('aria-label', aria ?? ariaOfLabel(t)); lastLabelKey = '';
+    if (current.dataset.tex === t) return;
+    const was = current, now = faceOf(t), ms = REDUCED ? 0 : RELABEL_MS;
+    Array.from(name.children as HTMLCollectionOf<HTMLElement>).forEach((f) => { if (f !== was && f !== now) f.remove(); });
+    now.style.transition = ''; now.style.opacity = '0'; void now.offsetWidth;
+    const trans = ms ? `opacity ${ms}ms ${SMOOTH_EASE}` : '';
+    was.style.transition = now.style.transition = trans; was.style.opacity = '0'; now.style.opacity = '1'; current = now;
+    const drop = (): void => { if (current !== was) was.remove(); };
+    if (ms) setTimeout(drop, ms); else drop();
+  };
+  const within = (r: SliderRange, x: number): number => Math.min(r.max, Math.max(r.min, x));
+  const settle = (r: SliderRange, x: number): void => {
+    inp.min = String(r.min); inp.max = String(r.max); inp.step = String(r.step); inp.value = String(within(r, x));
+    unit = r.unit ?? unit; dec = r.dec ?? dec; held = null; sp.place(); upd();
+  };
+  const frame = (f: RangeFrame, x: number): void => {
+    inp.step = 'any'; inp.min = String(f.min); inp.max = String(f.max); inp.value = String(f.min + f.frac * (f.max - f.min));
+    unit = f.near.unit ?? unit; dec = f.near.dec ?? dec; held = x; upd();
+  };
+  let lastRangeKey = '', easing = 0;
+  const rangeAt = (a: SliderRange, b: SliderRange, k: number): void => {
+    const va = within(a, a.value ?? held ?? +inp.value), vb = within(b, b.value ?? held ?? +inp.value);
+    const key = JSON.stringify([a, b, va, vb, k]); if (key === lastRangeKey) return; lastRangeKey = key;
+    const f = rangeFrame(a, b, va, vb, k);
+    if (f.done) settle(f.near, k < 0.5 ? va : vb); else frame(f, k < 0.5 ? va : vb);
+  };
+  const range = (r: SliderRange): void => {
+    const was: SliderRange = { min: +inp.min, max: +inp.max, step: +inp.step || 1, unit, dec }, x = held ?? +inp.value, to = within(r, r.value ?? x);
+    lastRangeKey = ''; cancelAnimationFrame(easing);
+    if (REDUCED) { settle(r, to); return; }
+    const t0 = performance.now(), go = { ...r, value: to };
+    const step = (t: number): void => {
+      const k = Math.min(1, (t - t0) / REGROUP_MS), f = rangeFrame(was, go, x, to, k);
+      if (k >= 1) { settle(r, to); return; }
+      frame(f, to); easing = requestAnimationFrame(step);
+    };
+    held = to; upd(); easing = requestAnimationFrame(step);
+  };
   const ds = o.detents ?? [];
   const track = el('span', 'ctl-track'); track.append(inp, sp.box);
   if (ds.length) track.appendChild(ticksOf(ds, o));
@@ -249,7 +311,46 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   parent.appendChild(lab);
   sp.watch(parent); upd();
   const drive = (x: number): void => { const was = inp.value; inp.value = String(x); if (inp.value !== was) driven(() => inp.dispatchEvent(new Event('input', { bubbles: true }))); };
-  return { get v() { return +inp.value; }, set(x: number) { inp.value = String(x); upd(); }, disable, drive, refresh: () => { sp.place(); upd(); }, mark: (l) => { sp.mark(l); upd(); }, el: lab };
+  const shown = (): boolean => lab.dataset.out === undefined && lab.style.display !== 'none';
+  const show = (to: boolean, f?: FadeOpts): void => { if (to !== shown()) regroup(parent, to ? [lab] : [], to ? [] : [lab], f); };
+  return {
+    get v() { return held ?? +inp.value; }, set(x: number) { held = null; inp.value = String(x); upd(); }, disable, drive, refresh: () => { sp.place(); upd(); }, mark: (l) => { sp.mark(l); upd(); }, el: lab,
+    relabel, relabelAt, range, rangeAt, show, get shown() { return shown(); },
+  };
+}
+/* `F.regroup(row, enter, leave)`: parts enter and leave a controls row while the others slide to
+   their new places and the row's height eases, so the two layouts never show at once. */
+const RELABEL_MS = 400, REGROUP_MS = 350;
+function regroup(row: HTMLElement, enter: readonly HTMLElement[], leave: readonly HTMLElement[], f: FadeOpts = {}): void {
+  const ms = REDUCED ? 0 : f.ms ?? REGROUP_MS, shift = f.shift ?? [0, 6];
+  const ins = enter.filter((e) => e.dataset.out !== undefined || e.style.display === 'none'), outs = leave.filter((e) => e.dataset.out === undefined);
+  if (!ins.length && !outs.length) return;
+  const kids = Array.from(row.children as HTMLCollectionOf<HTMLElement>).filter((k) => k.style.display !== 'none' && k.dataset.out === undefined && !outs.includes(k));
+  const box = row.getBoundingClientRect(), h0 = box.height;
+  const was = new Map(kids.map((k) => [k, k.getBoundingClientRect()]));
+  kids.forEach((k) => { k.style.transition = ''; k.style.transform = ''; });
+  outs.forEach((e) => {
+    const r = e.getBoundingClientRect(); e.dataset.out = '';
+    Object.assign(e.style, { position: 'absolute', left: `${r.left - box.left - row.clientLeft}px`, top: `${r.top - box.top - row.clientTop}px`, width: `${r.width}px` });
+    fadeEl(e, false, { ms, shift });
+    const gone = (): void => { if (e.dataset.out === undefined) return; Object.assign(e.style, { display: 'none', position: '', left: '', top: '', width: '' }); };
+    if (ms) setTimeout(gone, ms); else gone();
+  });
+  ins.forEach((e) => { delete e.dataset.out; Object.assign(e.style, { display: '', position: '', left: '', top: '', width: '' }); if (ms) e.style.visibility = 'hidden'; fadeEl(e, true, { ms, shift }); });
+  if (!ms) return;
+  const h1 = row.getBoundingClientRect().height;
+  kids.forEach((k) => {
+    const a = was.get(k)!, b = k.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+    k.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+  row.style.height = `${h0}px`; row.style.overflow = 'visible';
+  void row.offsetWidth;
+  const trans = `transform ${ms}ms ${SMOOTH_EASE}`;
+  kids.forEach((k) => { if (!k.style.transform) return; k.style.transition = trans; k.style.transform = ''; });
+  row.style.transition = `height ${ms}ms ${SMOOTH_EASE}`; row.style.height = `${h1}px`;
+  clearTimeout(+(row.dataset.regroup ?? 0));
+  row.dataset.regroup = String(window.setTimeout(() => { row.style.height = row.style.transition = ''; kids.forEach((k) => { k.style.transition = ''; }); }, ms));
 }
 const byId = (root: HTMLElement, id: string): HTMLElement | null => root.querySelector<HTMLElement>(`[id="${root.dataset.sec}-${id}"]`);
 function sim(root: HTMLElement, id: string, H?: Logical) {
@@ -333,6 +434,7 @@ const tourTicks = new Map<(now: number, dt: number) => void, HTMLElement>();
 let lastT = typeof performance !== 'undefined' ? performance.now() : 0;
 function loop(now: number): void {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  frameNo++;
   tickers.forEach((t) => { try { t(now, dt); } catch (e) { console.error(e); } });
   sims.forEach((d) => {
     if (!onScreen.has(d.fig)) return;
@@ -388,6 +490,47 @@ function runsOf(s: string): Run[] {
   if (last < s.length) out.push({ s: s.slice(last), sub: false });
   return out;
 }
+/* ---------- the glow under a changed number ----------
+   A string drawn on a figure's canvas is known again next frame by its skeleton (numbers
+   blanked) and its place among the strings of that skeleton drawn this frame. A number in it
+   that the reader's hand changed gets a faint bar beneath, in the text's colour (glow.ts); a
+   figure with a bar still fading keeps drawing. */
+let frameNo = 0;
+type GlowCanvas = { frame: number; seen: Map<string, number>; traces: Map<string, Trace> };
+const glowCanvases = new WeakMap<HTMLCanvasElement, GlowCanvas>();
+const glowing = new Set<HTMLCanvasElement>();
+const simOf = (c: HTMLCanvasElement): Sim | undefined => sims.find((d) => d.fig.contains(c));
+function glowUnder(ctx: Ctx, s: string, runs: readonly Run[], widths: readonly number[], x0: Logical, y: Logical, size: number, color: Color, font: (k: number) => string): void {
+  const canvas = (ctx as { canvas?: unknown }).canvas;
+  if (!(typeof HTMLCanvasElement === 'function' && canvas instanceof HTMLCanvasElement) || !/\d/.test(s)) return;
+  const g = glowCanvases.get(canvas) ?? (glowCanvases.set(canvas, { frame: -1, seen: new Map(), traces: new Map() }), glowCanvases.get(canvas)!);
+  if (g.frame !== frameNo) { g.frame = frameNo; g.seen.clear(); }
+  const sk = skeletonOf(s), nth = g.seen.get(sk) ?? 0, key = sk + '\u0000' + nth;
+  g.seen.set(sk, nth + 1);
+  let cx = x0;
+  const toks = runs.flatMap((r, i) => {
+    const at = cx; cx += widths[i];
+    ctx.font = font(r.sub ? 0.72 : 1);
+    return tokensOf(r.s).map((t) => ({ s: t.s, l: at + ctx.measureText(r.s.slice(0, t.i)).width, r: at + ctx.measureText(r.s.slice(0, t.j)).width }));
+  });
+  const now = performance.now(), fig = simOf(canvas)?.fig;
+  const tr = glowStep(g.traces.get(key), toks.map((t) => t.s), inputSeq(), now, byHand(now, fig));
+  g.traces.set(key, tr);
+  const base = ctx.textBaseline, h = Math.max(4, size * 0.3);
+  const under = y + size * (base === 'top' || base === 'hanging' ? 0.8 : base === 'middle' ? 0.34 : base === 'bottom' || base === 'ideographic' ? -0.1 : 0.1);
+  let any = false;
+  const hue = color === PAL.ink || color === PAL.muted ? cssVar('--accent') || color : color;   /* ink under ink reads as a smudge */
+  toks.forEach((t, i) => {
+    const a = glowOf(tr.lit[i], now, REDUCED);
+    if (!a) return;
+    any = true;
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = hue; ctx.filter = `blur(${(h * 0.6).toFixed(1)}px)`;
+    ctx.beginPath(); ctx.roundRect(t.l - 1, under - h / 2, t.r - t.l + 2, h, h / 2); ctx.fill(); ctx.restore();
+  });
+  if (any) glowing.add(canvas);
+}
+tickers.add(() => { glowing.forEach((c) => { const d = simOf(c); if (d) d.dirty = true; }); glowing.clear(); });
+
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
   const size = o.size ?? 22, weight = o.weight ?? 400, font = (k: number) => `${weight} ${size * k}px ${FONT}`;
   const runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
@@ -396,6 +539,7 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
   const total = widths.reduce((a, b) => a + b, 0), align = o.align ?? 'left';
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
   if (o.bg) { const pw = total + 14, ph = size + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
+  glowUnder(ctx, s, runs, widths, cx, y, size, color, font);
   ctx.fillStyle = color;
   runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
   ctx.restore();
@@ -1961,7 +2105,7 @@ export const FIG = {
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
-  story, keyframes, solve, presence, fade3, fadeEl,
+  story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,
   ease, lerp, partial, tween, tour, morph, morphAt,
 };
 export type Fig = typeof FIG;

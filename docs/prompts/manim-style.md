@@ -161,11 +161,11 @@ P.swap('series', 'parallel', { shift: [0, 30] });
 - A new key set (or `force`) morphs as TransformMatchingTex, by meaning: a key moves to the same key; untagged glyphs match only when they are the same operator or relation (= + − × · brackets, fraction bars, radicals) in the same order within the same segment between `=` signs; untagged letters and digits never match. Outlines bend point by point, `smooth` easing, a small lag left to right; unmatched old parts fade out drifting toward the new unmatched parts, new ones fade in from the old.
 - Inside a key whose content changed (50 into 51, v into v₁), glyphs bend in place along what the two share, and the terms around it slide; when the two share little (their longest shared run under half the longer, counts differing by more than one) the key crossfades in place as it moves. Parts with no counterpart are gone by 60 % of the morph. At `k <= 0` or `k >= 1`, and on any `F.morph` after a mid-way `morphAt`, the host shows the still formula.
 - `keyMap` sends keys elsewhere: one to one `{ k: 'P2' }`, several to one `{ p2: 'Rp', p3: 'Rp', p4: 'Rp' }` (they bend together into it), one to several `{ Rs: ['a', 'b'] }` (it bends out into them). A key the keyMap names does not also match itself. `pathArc` (radians) bends the travel; positive is counterclockwise.
-- The same key set with new contents, while the reader's hand is on a control (an input, a key or a drag within 300 ms), bends just what changed in 250 ms; asks within one frame coalesce, and a new one retargets from the present frame, so a drag reads as the numbers flowing. Otherwise (a clock, a story playing) it re-renders at once; `values: false` always re-renders.
+- The same key set with new contents shows the new formula at once. Each key whose content changed by the reader's hand (an input, a key or a drag within 300 ms, and no change without input in the last second) glows beneath: a soft bar in the key's own colour at about 0.3 opacity, held while changes keep coming and fading over 600 ms after the last. A readout a clock or a story drives never glows; `values: false` never glows.
 - A key-set morph asked for mid-morph also starts from the present frame.
 ```js
 F.morph(fx, law === 3 ? '\\mk{P}{\\kP}\\mk{V}{\\kV} = \\mk{k}{k}' : '\\frac{\\mk{P}{\\kP}}{\\mk{T}{\\kT}} = \\mk{k}{k}');
-F.morph(rx, `\\mk{Rp}{R_p} = \\mk{n}{${fmt(Rp, 2)}}\\ \\Omega`);     // the number bends as R₂ is dragged
+F.morph(rx, `\\mk{Rp}{R_p} = \\mk{n}{${fmt(Rp, 2)}}\\ \\Omega`);     // the number glows as R₂ is dragged
 F.morph(rx, next, { keyMap: { p2: 'Rp', p3: 'Rp', p4: 'Rp' } });
 ```
 
@@ -176,6 +176,7 @@ const s = story.v, i = Math.floor(s); F.morphAt(fx, STEPS[i], STEPS[Math.min(i +
 
 **Morph rules.**
 - One host, one formula; its children are replaced. Numbers may live in the same formula as their symbols, tagged.
-- Reduced motion swaps at once and briefly highlights the new terms (morphAt jumps at k = 0.5); values swap plainly.
+- Reduced motion swaps at once and briefly highlights the new terms (morphAt jumps at k = 0.5); the glow comes and goes without the fade.
 - The host carries `role="img"` and an `aria-label` with the formula's plain text; nothing else to add.
+- Canvas text glows the same way with no figure code: a string drawn through figlib's text (labels, headlines, notes) is known again by its skeleton (numbers blanked) and its order among strings of that skeleton; a number the reader's hand changed gets the bar under just that number, in the text's colour, and the figure keeps drawing while it fades.
 - `F.tex` stays KaTeX for formulas that never morph.

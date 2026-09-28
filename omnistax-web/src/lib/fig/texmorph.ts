@@ -1,28 +1,19 @@
 /* Formula morphs on the page, after Manim's TransformMatchingTex. A morph host always shows
    MathJax's SVG, still frames included; when the set of \mk keys changes, the glyph
    outlines bend from the old formula into the new one on an overlay and the new SVG takes
-   over at the end. When only the values inside the keys change under the reader's hand,
-   those glyphs bend in a short morph, retargeted from wherever the last one stands. The
-   geometry is morphgeom's; this file measures, draws and times. */
+   over at the end. When only the values inside the keys change, the new formula shows at
+   once, and a key the reader's hand changed glows beneath (glow.ts). The geometry is
+   morphgeom's; this file measures, draws and times. */
 import { mkKeys, morphPlan } from './motion';
 import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, type Glyph, type KeyMap, type Track, type Pt } from './morphgeom';
+import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
 
 export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean };
 type Macros = Readonly<Record<string, string>>;
-const MS = 1200, VALUE_MS = 250, INPUT_MS = 300, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/2000/svg';
+const MS = 1200, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/2000/svg';
 const BETWEEN = '\u0000between';
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/* ---------- the reader's hand ----------
-   A value morph runs only while the reader is changing something; a readout driven by a
-   clock re-renders plainly. */
-let lastInput = -Infinity;
-if (typeof addEventListener === 'function') {
-  const mark = (e: Event): void => { if (e.type !== 'pointermove' || (e as PointerEvent).buttons) lastInput = performance.now(); };
-  ['input', 'change', 'keydown', 'pointerdown', 'pointermove'].forEach((t) => addEventListener(t, mark, { capture: true, passive: true }));
-}
-const byHand = (): boolean => performance.now() - lastInput < INPUT_MS;
 
 /* ---------- MathJax, fetched on the first morph ---------- */
 type Mj = typeof import('./mathjax');
@@ -58,12 +49,12 @@ function nodeOf(r: Part): SVGSVGElement {
    `anim` is the morph on screen, `next` the latest one asked for and not yet begun (asks
    within one frame coalesce), `after` a plain render to show once the morph lands. */
 type Anim = { readonly tracks: readonly Track[]; readonly t0: number; readonly ms: number; readonly arc: number; t: number };
-type Next = { readonly b: Render; readonly ms: number; readonly arc: number; readonly lag: number; readonly loose: boolean; readonly keyMap?: KeyMap };
-type Host = { tex: string; display: boolean; shown: Render | null; target: Render | null; token: number; raf: number; fly: SVGSVGElement | null; scrub: Scrub | null; anim: Anim | null; next: Next | null; after: Render | null; macros: Macros };
+type Next = { readonly b: Render; readonly ms: number; readonly arc: number; readonly lag: number; readonly keyMap?: KeyMap };
+type Host = { tex: string; display: boolean; shown: Render | null; target: Render | null; token: number; raf: number; fly: SVGSVGElement | null; scrub: Scrub | null; anim: Anim | null; next: Next | null; after: Render | null; macros: Macros; trace?: Trace; glowRaf: number };
 type Scrub = { readonly sig: string; readonly tracks: readonly Track[]; readonly b: Render };
 const hosts = new WeakMap<HTMLElement, Host>();
 const hostOf = (el: HTMLElement): Host => hosts.get(el)
-  ?? (hosts.set(el, { tex: '', display: false, shown: null, target: null, token: 0, raf: 0, fly: null, scrub: null, anim: null, next: null, after: null, macros: {} }), hosts.get(el)!);
+  ?? (hosts.set(el, { tex: '', display: false, shown: null, target: null, token: 0, raf: 0, fly: null, scrub: null, anim: null, next: null, after: null, macros: {}, glowRaf: 0 }), hosts.get(el)!);
 
 function stop(el: HTMLElement, h: Host): void {
   if (h.raf) cancelAnimationFrame(h.raf);
@@ -148,6 +139,43 @@ function highlight(el: HTMLElement, h: Host, svg: readonly SVGSVGElement[], r: R
   fly.animate([{ opacity: 1 }, { opacity: 0 }], { duration: HIGHLIGHT_MS, easing: 'ease-in' }).finished.then(() => { if (h.fly === fly) h.fly = null; fly.remove(); }, () => fly.remove());
 }
 
+/* ---------- the glow under a changed value ----------
+   A key's content is read off its glyph shapes, so two renders compare without the DOM. */
+const keyVals = (r: Render, keys: readonly string[]): string[] => {
+  const gs = r.parts.flatMap((p) => (p.glyphs ??= glyphsOf(p.tree)));
+  return keys.map((k) => gs.filter((g) => g.key === k).map((g) => g.shape).join(' '));
+};
+function traceOf(h: Host, r: Render, fresh: boolean): Trace {
+  const now = performance.now();
+  return (h.trace = step(fresh ? undefined : h.trace, keyVals(r, mkKeys(r.tex)), inputSeq(), now, byHand(now)));
+}
+function glow(el: HTMLElement, h: Host, svgs: readonly SVGSVGElement[], r: Render, tr: Trace): void {
+  cancelAnimationFrame(h.glowRaf); h.glowRaf = 0;
+  if (!lit(tr, performance.now())) return;
+  const keys = mkKeys(r.tex), gs = measure(svgs, r);
+  const wrap = el.querySelector<HTMLElement>(':scope > .tm');
+  if (!gs || !wrap) return;
+  const wr = wrap.getBoundingClientRect(), ox = wr.left + scrollX + wrap.clientLeft, oy = wr.top + scrollY + wrap.clientTop;
+  const layer = document.createElementNS(SVGNS, 'svg'), plain = getComputedStyle(el).color;
+  layer.setAttribute('aria-hidden', 'true'); layer.classList.add('tm-glow');
+  const bars = keys.map((k, i) => {
+    const mine = gs.filter((g) => g.key === k), b = boxOf(mine.flatMap((g) => g.rings));
+    if (!mine.length || b.x1 <= b.x0 || tr.lit[i] === -Infinity) return null;
+    const rect = document.createElementNS(SVGNS, 'rect'), hgt = Math.max(4, (b.y1 - b.y0) * 0.3);
+    Object.entries({ x: b.x0 - ox - 1, y: b.y1 - oy - hgt * 0.3, width: b.x1 - b.x0 + 2, height: hgt, rx: hgt / 2 }).forEach(([a, v]) => rect.setAttribute(a, String(v)));
+    rect.style.fill = mine[0].ink && mine[0].ink !== plain ? mine[0].ink : 'var(--accent)';   /* ink under ink reads as a smudge */
+    layer.appendChild(rect);
+    return { rect, t: tr.lit[i] };
+  }).filter((x) => x !== null);
+  wrap.appendChild(layer);
+  const paint = (now: number): void => {
+    h.glowRaf = 0;
+    const alive = bars.map(({ rect, t }) => { const a = glowOf(t, now, REDUCED); rect.setAttribute('opacity', a.toFixed(3)); return a > 0; }).some(Boolean);
+    if (alive && layer.isConnected) h.glowRaf = requestAnimationFrame(paint); else layer.remove();
+  };
+  paint(performance.now());
+}
+
 /* ---------- the morph loop ----------
    Each frame begins the latest asked-for morph, from the running one's present frame if one
    runs (so a drag never jumps back), else from the formula as it stands; then draws. */
@@ -156,7 +184,7 @@ function begin(el: HTMLElement, h: Host, n: Next, now: number): void {
   const src = a ? retarget(a.tracks, a.t, a.arc) : ga ? { from: ga, fading: [] } : null;
   const svgB = show(el, h, n.b, h.macros, true), gb = src && measure(svgB, n.b);
   if (!src || !gb) { stop(el, h); return; }
-  h.anim = { tracks: [...src.fading, ...tracksOf(match(src.from, gb, n.keyMap, n.loose), 1.5, n.lag)], t0: now, ms: n.ms, arc: n.arc, t: 0 };
+  h.anim = { tracks: [...src.fading, ...tracksOf(match(src.from, gb, n.keyMap), 1.5, n.lag)], t0: now, ms: n.ms, arc: n.arc, t: 0 };
   overlay(el, h);
 }
 function tick(el: HTMLElement, h: Host, now: number): void {
@@ -174,8 +202,8 @@ function tick(el: HTMLElement, h: Host, now: number): void {
 
 /* ---------- the two calls ---------- */
 /* `morph(host, tex)`: a new set of \mk keys (or `force`) bends the shown formula into the new
-   one; the same keys with new values bend just what changed, briefly, while the reader's hand
-   is on a control, and re-render at once otherwise (or with `values: false`). */
+   one; the same keys with new values re-render at once, the keys the reader's hand changed
+   glowing beneath (never with `values: false`). */
 export function morph(el: HTMLElement, tex: string, display: boolean, opts: MorphOpts, macros: Macros): void {
   const h = hostOf(el);
   if (h.tex === tex && h.display === display && !opts.force) return;
@@ -186,17 +214,17 @@ export function morph(el: HTMLElement, tex: string, display: boolean, opts: Morp
     if (token !== h.token) return;
     const b = renderOf(m, macros, tex, display), from = h.target ?? h.shown;
     h.macros = macros;
-    if (landing) { stop(el, h); h.target = b; show(el, h, b, macros); return; }
+    if (landing) { stop(el, h); h.target = b; show(el, h, b, macros); traceOf(h, b, true); return; }
     const plan = morphPlan(from ? mkKeys(from.tex) : [], mkKeys(tex)), full = !plan.same || !!opts.force;
-    const value = !full && opts.values !== false && byHand();
-    if (!from || !el.isConnected || (!full && !value)) {
+    const tr = traceOf(h, b, full || opts.values === false);
+    if (!from || !el.isConnected || !full) {
       if (h.anim && from && !full) { h.after = b; return; }
-      stop(el, h); h.target = b; show(el, h, b, macros); return;
+      stop(el, h); h.target = b; glow(el, h, show(el, h, b, macros), b, tr); return;
     }
     h.target = b;
-    if (REDUCED) { stop(el, h); const svgs = show(el, h, b, macros); if (full) highlight(el, h, svgs, b, plan.add); return; }
+    if (REDUCED) { stop(el, h); highlight(el, h, show(el, h, b, macros), b, plan.add); return; }
     h.after = null;
-    h.next = full ? { b, ms: opts.ms ?? MS, arc: opts.pathArc ?? 0, lag: 0.12, loose: false, keyMap: opts.keyMap } : { b, ms: VALUE_MS, arc: 0, lag: 0, loose: true };
+    h.next = { b, ms: opts.ms ?? MS, arc: opts.pathArc ?? 0, lag: 0.12, keyMap: opts.keyMap };
     h.raf ||= requestAnimationFrame((t) => tick(el, h, t));
   });
 }
