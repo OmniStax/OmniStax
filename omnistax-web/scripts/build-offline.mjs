@@ -77,6 +77,7 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     ...(await walk(path.join(out, 'assets'))).map((file) => path.join('assets', file)),
     ...(await walk(path.join(out, 'icons'))).map((file) => path.join('icons', file)),
     ...(await walk(path.join(out, 'vendor'))).map((file) => path.join('vendor', file)),
+    ...(await walk(path.join(out, 'fonts'))).map((file) => path.join('fonts', file)),
     ...(await Promise.all(rootRels.map(async (file) => await fs.stat(path.join(out, file)).then(() => file).catch(() => null)))).filter(Boolean),
   ];
   const runtimeRows = await Promise.all(runtimeRels.map(async (rel) => [logicalOf(rel), sha(await fs.readFile(path.join(out, rel)))]));

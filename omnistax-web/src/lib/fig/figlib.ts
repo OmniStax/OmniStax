@@ -161,7 +161,7 @@ function alpha(hex: Color, a: number): Color {
    back out of the page, so drawing every figure of every loaded section in a
    row costs a forced layout apiece: a shell with five sections open spent a
    third of a second of that on every tab. */
-function redrawAll(): void { readPal(); sims.forEach((d) => { d.dirty = true; }); }
+function redrawAll(): void { readFont(); readPal(); sims.forEach((d) => { d.dirty = true; }); }
 
 /* ---------- DOM helpers ---------- */
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K] {
@@ -330,7 +330,11 @@ const setPaused = (v: boolean): void => { paused = v; };
 const setCC = (on: boolean): void => { CC = on; };
 
 /* ---------- drawing primitives (logical units) ---------- */
-const FONT = '"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif';
+const FIGURE_FALLBACK = "'New Computer Modern Book', Georgia, 'Times New Roman', serif";
+/* The reader's figure font, read off `--figure` with the palette, so a redraw-all
+   after the face loads draws and measures every label in it. */
+let FONT = FIGURE_FALLBACK;
+const readFont = (): void => { FONT = cssVar('--figure') || FIGURE_FALLBACK; };
 function line(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, color: Color, w = 3, dash?: number[]): void { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
 function arrow(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, color: Color, w = 4): void {
   const L = Math.hypot(x2 - x1, y2 - y1); if (L < 2) return;
@@ -1921,7 +1925,7 @@ function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: b
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
-  register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, FONT,
+  register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
@@ -1964,7 +1968,7 @@ export const figFor = (book: string): Fig => {
 export function initFig(book: FigBookConfig & { readonly id?: string }): Fig {
   bootBook = book.id ?? document.documentElement.dataset.book ?? '';
   registerFigBook({ ...book, id: bootBook });
-  readPal();
+  readFont(); readPal();
   (window as unknown as { FIG: Fig }).FIG = FIG;
   return FIG;
 }

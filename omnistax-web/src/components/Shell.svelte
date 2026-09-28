@@ -16,6 +16,7 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
+  import { applyFonts } from '../lib/settings/fonts';
   import { colours } from '../lib/colours/store.svelte';
   import { installCommands, ui, keys } from '../lib/commands/setup.svelte';
   import type { Spot } from '../lib/commands/ui.svelte';
@@ -273,7 +274,8 @@
 
   /* settings → document */
   $effect(() => { document.documentElement.classList.toggle('cc', settings.colorCoding); FIG.setCC(settings.colorCoding); FIG.redrawAll(); });
-  $effect(() => { if (settings.theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', settings.theme); FIG.redrawAll(); });
+  $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
+  $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
   $effect(() => { document.documentElement.classList.toggle('no-underlines', !settings.underlines); });
   /* The app's own text size: one root font size, which every rem in the book and

@@ -6,6 +6,7 @@
      shortcut records the next chord (Escape cancels, Backspace clears); a chord
      another command owns is shown as a conflict and taken only on Enter. */
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
+  import { FONTS, fontStack, isFontId, type FontId } from '../lib/settings/fonts';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -51,7 +52,7 @@
     importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Colour coding color hue ${HINT.cc}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Colour coding color hue ${HINT.cc}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
     anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
@@ -63,7 +64,7 @@
     backup: `Backup export import restore data ${HINT.exportData} ${HINT.importData}`,
     storage: 'Storage space used quota persist retention browser clear data imported files backup estimate size export Safari',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
+  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
   const chooseBackup = async (file: File | undefined): Promise<void> => {
     backup = null; backupMessage = '';
@@ -189,6 +190,16 @@
             {/each}
           </div>
         </div>
+        {#snippet fontRow(name: string, key: 'figureFont' | 'bodyFont', value: FontId, fallback: FontId, set: (id: FontId) => void)}
+          <div class="row" hidden={!hit(ROWS[key])}>
+            <span class="name">{name}{@render back(value !== fallback, `Reset to ${FONTS.find((f) => f.id === fallback)?.label}`, () => set(fallback))}</span>
+            <select class="font" aria-label={name} style:font-family={fontStack(value)} value={value} onchange={(e) => { const v = e.currentTarget.value; if (isFontId(v)) set(v); }}>
+              {#each FONTS as f (f.id)}<option value={f.id} style:font-family={fontStack(f.id)}>{f.label}</option>{/each}
+            </select>
+          </div>
+        {/snippet}
+        {@render fontRow('Figure font', 'figureFont', settings.figureFont, DEFAULTS.figureFont, (id) => settings.setFigureFont(id))}
+        {@render fontRow('Body font', 'bodyFont', settings.bodyFont, DEFAULTS.bodyFont, (id) => settings.setBodyFont(id))}
         <div class="row" hidden={!hit(ROWS.zoom)}>
           <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Reset to 100%', () => settings.resetZoom())}</span>
           <span class="hint">{HINT.zoom}</span>
@@ -378,6 +389,7 @@
   .danger{color:var(--bad)}
   .backup-error{margin:0 0 0 162px;color:var(--bad);font-size:.8rem}
   small{color:var(--muted);font-size:0.75rem}
+  .font{font-size:0.9rem;padding:3px 6px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink)}
   .switch{cursor:pointer;user-select:none}
   .switch input{appearance:none;width:38px;height:22px;border-radius:11px;background:var(--soft2);position:relative;cursor:pointer;margin:0;transition:background .15s}
   .switch input::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}

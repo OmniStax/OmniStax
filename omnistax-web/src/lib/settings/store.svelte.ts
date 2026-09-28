@@ -5,16 +5,19 @@
    attribute. */
 import { type ZoomStep, ZOOM_DEFAULT, nearestZoom, zoomBy } from './zoom';
 import { readerWritesAllowed } from '../backup/guard';
+import { type FontId, DEFAULT_FIGURE_FONT, DEFAULT_BODY_FONT, parseFont, effective } from './fonts';
+export type { FontId } from './fonts';
 export type { ZoomStep } from './zoom';
 export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
 export type Theme = 'system' | 'light' | 'dark';
 export type ExerciseMode = 'all' | 'one';
 export type CardOpen = 'hover' | 'click';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
+export type Preview = { figureFont?: FontId; bodyFont?: FontId; theme?: Theme };
 export const LOCK_GRACE = { min: 3, max: 120 } as const;
-export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10 } as const;
+export const DEFAULTS = { theme: 'system' as Theme, colorCoding: true, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
 
-const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace' } as const;
+const KEYS = { cc: 'omnistax-cc', theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -55,8 +58,20 @@ class Settings {
   cardOpen = $state<CardOpen>(read(KEYS.cardOpen) === 'click' ? 'click' : 'hover');
   /* Seconds of grace before a focus lock takes hold. */
   lockGrace = $state(readGrace());
+  figureFont = $state<FontId>(parseFont(read(KEYS.figureFont), DEFAULT_FIGURE_FONT));
+  bodyFont = $state<FontId>(parseFont(read(KEYS.bodyFont), DEFAULT_BODY_FONT));
+  /* A choice being tried in the palette: shown on the page, never saved. */
+  preview = $state<Preview>({});
 
-  get dark(): boolean { return this.theme === 'system' ? sysDark() : this.theme === 'dark'; }
+  get effectiveTheme(): Theme { return effective(this.preview.theme, this.theme); }
+  get effectiveFigureFont(): FontId { return effective(this.preview.figureFont, this.figureFont); }
+  get effectiveBodyFont(): FontId { return effective(this.preview.bodyFont, this.bodyFont); }
+
+  get dark(): boolean { const t = this.effectiveTheme; return t === 'system' ? sysDark() : t === 'dark'; }
+  setFigureFont(id: FontId): void { this.figureFont = id; write(KEYS.figureFont, id); }
+  setBodyFont(id: FontId): void { this.bodyFont = id; write(KEYS.bodyFont, id); }
+  setPreview(p: Partial<Preview>): void { this.preview = { ...this.preview, ...p }; }
+  clearPreview(): void { this.preview = {}; }
   setColorCoding(on: boolean): void { this.colorCoding = on; write(KEYS.cc, on ? '1' : '0'); }
   setTheme(t: Theme): void { this.theme = t; if (t === 'system') remove(KEYS.theme); else write(KEYS.theme, t); }
   /* Kept for the old dark-mode switch; setTheme is the way back to 'system'. */
