@@ -48,8 +48,8 @@ li{margin-bottom:0.35rem}
 .eyebrow{font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:600}
 .katex{font-size:1.02em}
 .katex-display{margin:0.9rem 0;overflow-x:auto;overflow-y:hidden;padding:2px 0}
-.tm-glow{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
-.tm-glow rect{filter:blur(3px)}
+.tm-glow{position:absolute;left:0;top:0;overflow:hidden;pointer-events:none;z-index:-1}
+.tm-glow rect{fill:var(--hl-yellow);stroke:none}
 
 /* progressive enhancement: without JS the pool reads as a plain page */
 html:not(.js) #pool article{max-width:820px;margin:0 auto;padding:28px 40px 120px}

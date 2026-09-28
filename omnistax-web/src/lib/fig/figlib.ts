@@ -516,16 +516,16 @@ function glowUnder(ctx: Ctx, s: string, runs: readonly Run[], widths: readonly n
   const now = performance.now(), fig = simOf(canvas)?.fig;
   const tr = glowStep(g.traces.get(key), toks.map((t) => t.s), inputSeq(), now, byHand(now, fig));
   g.traces.set(key, tr);
-  const base = ctx.textBaseline, h = Math.max(4, size * 0.3);
-  const under = y + size * (base === 'top' || base === 'hanging' ? 0.8 : base === 'middle' ? 0.34 : base === 'bottom' || base === 'ideographic' ? -0.1 : 0.1);
+  const base = ctx.textBaseline;
+  const top = y - size * (base === 'top' || base === 'hanging' ? 0 : base === 'middle' ? 0.55 : base === 'bottom' || base === 'ideographic' ? 1 : 0.8);
   let any = false;
-  const hue = color === PAL.ink || color === PAL.muted ? cssVar('--accent') || color : color;   /* ink under ink reads as a smudge */
+  const fill = cssVar('--hl-yellow') || '#FDE68A';
   toks.forEach((t, i) => {
     const a = glowOf(tr.lit[i], now, REDUCED);
     if (!a) return;
     any = true;
-    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = hue; ctx.filter = `blur(${(h * 0.6).toFixed(1)}px)`;
-    ctx.beginPath(); ctx.roundRect(t.l - 1, under - h / 2, t.r - t.l + 2, h, h / 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = fill;
+    ctx.beginPath(); ctx.roundRect(t.l - 2, top - 1, t.r - t.l + 4, size * 1.1, 2); ctx.fill(); ctx.restore();
   });
   if (any) glowing.add(canvas);
 }

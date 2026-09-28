@@ -42,7 +42,7 @@ Teach the book's lesson at the book's level. A zoom that shows a curve is locall
    - Nothing becomes something it does not stand for, however good it would look: a term with no counterpart fades out toward where the new terms appear, and a new term fades in from where the old ones stood.
    - Every term is tagged by what it means (`\mk{key}{…}`), numbers included; the author writes the meaning down with keys and `keyMap`, and glyphs are never paired by shape across terms.
    - Glyph outlines bend point by point (`Transform`), about 1–1.5 s, `smooth`, in the formula where it already sits: inline, at the book's size, one line that wraps at its `=` signs, never a second, larger copy.
-   - A number that changes as a slider moves is never morphed: it shows its new value at once, so it stays legible through a drag, and a faint glow beneath it, in the picture and in the formula alike, says which values are moving; the glow fades soon after the drag stops. Shape morphs are for changes of form, not of value.
+   - A number that changes as a slider moves is never morphed: it shows its new value at once, so it stays legible through a drag, and a faint yellow highlight over the number itself (the highlighter colour, units left bare), in the picture and in the formula alike, says which values are moving; it fades soon after the drag stops. Shape morphs are for changes of form, not of value.
    - The term that changes carries the hue of the thing moving in the picture.
 4. **One beat at a time.**
    - Only one idea moves at once. The eye goes to motion, so two motions split it.
@@ -161,11 +161,11 @@ P.swap('series', 'parallel', { shift: [0, 30] });
 - A new key set (or `force`) morphs as TransformMatchingTex, by meaning: a key moves to the same key; untagged glyphs match only when they are the same operator or relation (= + − × · brackets, fraction bars, radicals) in the same order within the same segment between `=` signs; untagged letters and digits never match. Outlines bend point by point, `smooth` easing, a small lag left to right; unmatched old parts fade out drifting toward the new unmatched parts, new ones fade in from the old.
 - Inside a key whose content changed (50 into 51, v into v₁), glyphs bend in place along what the two share, and the terms around it slide; when the two share little (their longest shared run under half the longer, counts differing by more than one) the key crossfades in place as it moves. Parts with no counterpart are gone by 60 % of the morph. At `k <= 0` or `k >= 1`, and on any `F.morph` after a mid-way `morphAt`, the host shows the still formula.
 - `keyMap` sends keys elsewhere: one to one `{ k: 'P2' }`, several to one `{ p2: 'Rp', p3: 'Rp', p4: 'Rp' }` (they bend together into it), one to several `{ Rs: ['a', 'b'] }` (it bends out into them). A key the keyMap names does not also match itself. `pathArc` (radians) bends the travel; positive is counterclockwise.
-- The same key set with new contents shows the new formula at once. Each key whose content changed by the reader's hand (an input, a key or a drag within 300 ms, and no change without input in the last second) glows beneath: a soft bar in the key's own colour at about 0.3 opacity, held while changes keep coming and fading over 600 ms after the last. A readout a clock or a story drives never glows; `values: false` never glows.
+- The same key set with new contents shows the new formula at once. Each key whose content changed by the reader's hand (an input, a key or a drag within 300 ms, and no change without input in the last second) is highlighted: a pale yellow box (`--hl-yellow`) behind the number itself, from its first digit to its last, units left bare, held while changes keep coming and fading over 600 ms after the last. The highlight layer is sized to the formula and clipped to it, so it never makes the readout scroll. A readout a clock or a story drives never glows; `values: false` never glows.
 - A key-set morph asked for mid-morph also starts from the present frame.
 ```js
 F.morph(fx, law === 3 ? '\\mk{P}{\\kP}\\mk{V}{\\kV} = \\mk{k}{k}' : '\\frac{\\mk{P}{\\kP}}{\\mk{T}{\\kT}} = \\mk{k}{k}');
-F.morph(rx, `\\mk{Rp}{R_p} = \\mk{n}{${fmt(Rp, 2)}}\\ \\Omega`);     // the number glows as R₂ is dragged
+F.morph(rx, `\\mk{Rp}{R_p} = \\mk{n}{${fmt(Rp, 2)}}\\ \\Omega`);     // the number is highlighted as R₂ is dragged
 F.morph(rx, next, { keyMap: { p2: 'Rp', p3: 'Rp', p4: 'Rp' } });
 ```
 

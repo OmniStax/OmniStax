@@ -5,7 +5,7 @@
    once, and a key the reader's hand changed glows beneath (glow.ts). The geometry is
    morphgeom's; this file measures, draws and times. */
 import { mkKeys, morphPlan } from './motion';
-import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, type Glyph, type KeyMap, type Track, type Pt } from './morphgeom';
+import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, type Glyph, type KeyMap, type Track, type Pt } from './morphgeom';
 import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
 
@@ -66,7 +66,7 @@ function show(el: HTMLElement, h: Host, r: Render, macros: Macros, hidden = fals
   const wrap = document.createElement('span'), inner = h.display ? document.createElement('span') : wrap;
   const svgs = r.parts.map(nodeOf);
   wrap.className = h.display ? 'tm katex-display' : 'tm katex';
-  wrap.style.cssText = h.display ? 'position:relative' : 'position:relative;display:inline-block;max-width:100%';
+  wrap.style.cssText = h.display ? 'position:relative;isolation:isolate' : 'position:relative;isolation:isolate;display:inline-block;max-width:100%';
   if (h.display) { inner.className = 'katex'; wrap.appendChild(inner); }
   svgs.forEach((svg, i) => { if (hidden) svg.style.visibility = 'hidden'; if (i) inner.append(' '); inner.appendChild(svg); });
   el.replaceChildren(wrap);
@@ -156,14 +156,14 @@ function glow(el: HTMLElement, h: Host, svgs: readonly SVGSVGElement[], r: Rende
   const wrap = el.querySelector<HTMLElement>(':scope > .tm');
   if (!gs || !wrap) return;
   const wr = wrap.getBoundingClientRect(), ox = wr.left + scrollX + wrap.clientLeft, oy = wr.top + scrollY + wrap.clientTop;
-  const layer = document.createElementNS(SVGNS, 'svg'), plain = getComputedStyle(el).color;
+  const layer = document.createElementNS(SVGNS, 'svg');
   layer.setAttribute('aria-hidden', 'true'); layer.classList.add('tm-glow');
+  layer.style.width = wr.width + 'px'; layer.style.height = wr.height + 'px';   /* an unsized svg is 150 px tall and would overflow the readout */
   const bars = keys.map((k, i) => {
-    const mine = gs.filter((g) => g.key === k), b = boxOf(mine.flatMap((g) => g.rings));
+    const mine = gs.filter((g) => g.key === k), b = boxOf(numberGlyphs(mine).flatMap((g) => g.rings));
     if (!mine.length || b.x1 <= b.x0 || tr.lit[i] === -Infinity) return null;
-    const rect = document.createElementNS(SVGNS, 'rect'), hgt = Math.max(4, (b.y1 - b.y0) * 0.3);
-    Object.entries({ x: b.x0 - ox - 1, y: b.y1 - oy - hgt * 0.3, width: b.x1 - b.x0 + 2, height: hgt, rx: hgt / 2 }).forEach(([a, v]) => rect.setAttribute(a, String(v)));
-    rect.style.fill = mine[0].ink && mine[0].ink !== plain ? mine[0].ink : 'var(--accent)';   /* ink under ink reads as a smudge */
+    const rect = document.createElementNS(SVGNS, 'rect');
+    Object.entries({ x: b.x0 - ox - 1.5, y: b.y0 - oy - 2, width: b.x1 - b.x0 + 3, height: b.y1 - b.y0 + 4, rx: 2 }).forEach(([a, v]) => rect.setAttribute(a, String(v)));
     layer.appendChild(rect);
     return { rect, t: tr.lit[i] };
   }).filter((x) => x !== null);

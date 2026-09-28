@@ -4,7 +4,7 @@
    clock's, and that value stays unlit while it keeps changing. The formula host and the canvas
    text both keep a Trace per value and ask `glowOf` how bright to draw it. */
 
-export const INPUT_MS = 300, HOLD_MS = 150, FADE_MS = 600, CLOCK_MS = 1000, PEAK = 0.3;
+export const INPUT_MS = 300, HOLD_MS = 150, FADE_MS = 600, CLOCK_MS = 1000, PEAK = 0.65;
 
 /* ---------- the reader's hand ----------
    `seq` counts the inputs; `last` is when the latest was and `target` where. */

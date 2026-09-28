@@ -148,17 +148,27 @@ export function pairRings(A: readonly Ring[], B: readonly Ring[], step = 1.5): R
    font outline it was cut from, whatever its place and size) and the innermost \mk key
    around it. */
 export type SvgNode = { readonly tag: string; readonly attrs: Readonly<Record<string, string>>; readonly children: readonly SvgNode[] };
-export type Glyph = { readonly shape: string; readonly key: string | null; readonly rings: readonly Ring[]; readonly ink: string; readonly seg?: number; readonly op?: boolean; readonly alpha?: number };
+export type Glyph = { readonly shape: string; readonly c?: string; readonly key: string | null; readonly rings: readonly Ring[]; readonly ink: string; readonly seg?: number; readonly op?: boolean; readonly alpha?: number };
 /* Operator and relation glyphs by MathJax's data-c code (= + − × · / brackets bars √ < > ≤ ≥ ≈ ≠ ± → ⇌);
    rules, the fraction bars and radical overbars, are operators too. */
 const OPS = new Set(['3D', '2B', '2212', 'D7', 'B7', '22C5', '2F', '28', '29', '5B', '5D', '7B', '7D', '7C', '221A', '3C', '3E', '2264', '2265', '2248', '2260', 'B1', '2192', '21CC']);
 export const MK_CLASS = 'hd-mk=';
+/* The glyphs of the number a key shows: from its first digit to the first glyph that is not part of a
+   number (a unit's letter), so a highlight covers 1.00 × 10⁻⁴ and not the T after it. */
+const NUMERIC = /^(3[0-9]|2E|2C|D7|2212|22C5)$/;
+export function numberGlyphs(gs: readonly Glyph[]): Glyph[] {
+  const xs = [...gs].sort((a, b) => Math.min(...a.rings.flat().map((p) => p[0])) - Math.min(...b.rings.flat().map((p) => p[0])));
+  const from = xs.findIndex((g) => /^3[0-9]$/.test(g.c ?? ''));
+  if (from < 0) return [...gs];
+  const rest = xs.slice(from), to = rest.findIndex((g) => !NUMERIC.test(g.c ?? ''));
+  return to < 0 ? rest : rest.slice(0, to);
+}
 const hash = (s: string): string => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const keyOf = (n: SvgNode): string | null => (n.attrs.class ?? '').split(/\s+/).find((c) => c.startsWith(MK_CLASS))?.slice(MK_CLASS.length) ?? null;
 export function glyphsOf(root: SvgNode): Glyph[] {
   const walk = (n: SvgNode, m: Mat, key: string | null): Glyph[] => {
     const mm = n === root ? m : mul(m, parseTransform(n.attrs.transform)), k = keyOf(n) ?? key;
-    if (n.tag === 'path' && n.attrs.d) return [{ shape: 'p' + (n.attrs['data-c'] ?? '') + hash(n.attrs.d), key: k, op: OPS.has((n.attrs['data-c'] ?? '').toUpperCase()), rings: parsePath(n.attrs.d).map((r) => r.map((p) => apply(mm, p))), ink: '' }];
+    if (n.tag === 'path' && n.attrs.d) return [{ shape: 'p' + (n.attrs['data-c'] ?? '') + hash(n.attrs.d), c: (n.attrs['data-c'] ?? '').toUpperCase(), key: k, op: OPS.has((n.attrs['data-c'] ?? '').toUpperCase()), rings: parsePath(n.attrs.d).map((r) => r.map((p) => apply(mm, p))), ink: '' }];
     if (n.tag === 'rect') {
       const x = +(n.attrs.x ?? 0), y = +(n.attrs.y ?? 0), w = +(n.attrs.width ?? 0), h = +(n.attrs.height ?? 0);
       return [{ shape: 'rect', key: k, op: true, rings: [([[x, y], [x + w, y], [x + w, y + h], [x, y + h]] as Pt[]).map((p) => apply(mm, p))], ink: '' }];
