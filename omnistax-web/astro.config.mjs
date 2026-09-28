@@ -11,6 +11,8 @@ const books = chooseBooks(await findBooks(config.content.root), config.content.b
 export default defineConfig({
   site: config.site.baseUrl,
   output: 'static',
+  /* Builds running side by side each name their own cache; the default sits in node_modules, which checkouts may share. */
+  ...(process.env.OMNISTAX_CACHE_DIR ? { cacheDir: process.env.OMNISTAX_CACHE_DIR } : {}),
   build: { format: 'directory', assets: 'assets' },
   integrations: [svelte(), content(config.content.root, books.map((b) => b.dir))],
   /* Naming an allowed directory replaces Vite's own list rather than adding to
