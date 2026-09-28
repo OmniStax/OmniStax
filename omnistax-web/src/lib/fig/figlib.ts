@@ -1644,6 +1644,8 @@ function specialsOf(inp: HTMLInputElement, o: CtlOpts) {
     const fig = parent.closest('figure') ?? parent;
     const re = (): void => { if (!list.length) return; place(); lit(); };
     fig.addEventListener('input', re); fig.addEventListener('change', re);
+    /* a circle placed from a slider declared after this one finds it once the figure is built */
+    queueMicrotask(re);
   };
   if (o.specials?.length) mark(o.specials);
   return { box, place, lit, snap, mark, watch };
