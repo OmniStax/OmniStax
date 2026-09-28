@@ -2291,7 +2291,7 @@ const figs = new Map<string, Fig>();
 const bookFig = (book: string): Fig => {
   const run = withBook(book);
   const own = Object.entries(Object.getOwnPropertyDescriptors(FIG)).map(([k, d]): [string, PropertyDescriptor] =>
-    [k, typeof d.value === 'function' ? { ...d, value: run(d.value as (...a: unknown[]) => unknown) } : d]);
+    [k, typeof d.value === 'function' ? { ...d, value: Object.assign(run(d.value as (...a: unknown[]) => unknown), d.value) } : d]);
   return Object.defineProperties({}, {
     ...Object.fromEntries(own),
     macros: { get: () => configOf(book).macros, enumerable: true },
