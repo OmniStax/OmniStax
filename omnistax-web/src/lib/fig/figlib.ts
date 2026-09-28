@@ -8,7 +8,7 @@ import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texm
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
 import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
-import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, BEAT_MS, REST_MS, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
+import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -755,6 +755,30 @@ function curve(ctx: Ctx, f: (t: number) => number, t0: number, t1: number, X: Sc
   pts.forEach(([x, y], i) => { if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
   ctx.stroke(); ctx.restore();
 }
+/* `F.blendCurve`: curve of fa bending into fb, both sampled at the same t */
+function blendCurve(ctx: Ctx, fa: (t: number) => number, fb: (t: number) => number, k: number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w = 4, n = 80): void {
+  curve(ctx, blendFn(fa, fb, k), t0, t1, X, Y, color, w, n);
+}
+/* `F.faded(ctx, alpha, [dx, dy], draw)`: draw under globalAlpha × alpha, translated; skipped at 0 */
+function faded(ctx: Ctx, a: number, off: readonly [number, number], draw: () => void): void {
+  if (!(a > 0)) return;
+  ctx.save(); ctx.globalAlpha *= a; ctx.translate(off[0], off[1]); draw(); ctx.restore();
+}
+/* `F.mixColor(a, b, k)`: two CSS colours blended in sRGB; one the canvas cannot read back as rgb switches at half way */
+let colorCtx: CanvasRenderingContext2D | null = null;
+const rgbaSeen = new Map<string, Rgba | null>();
+function rgbaOf(c: string): Rgba | null {
+  const got = rgbaSeen.get(c); if (got !== undefined || rgbaSeen.has(c)) return got ?? null;
+  colorCtx ??= document.createElement('canvas').getContext('2d');
+  let norm = c;
+  if (colorCtx) { colorCtx.fillStyle = '#000'; colorCtx.fillStyle = c; norm = String(colorCtx.fillStyle); }
+  const v = parseRgba(norm); rgbaSeen.set(c, v); return v;
+}
+function mixColor(a: Color, b: Color, k: number): Color {
+  if (k <= 0 || a === b) return a; if (k >= 1) return b;
+  const A = rgbaOf(a), B = rgbaOf(b);
+  return A && B ? mixRgba(A, B, k) : k < 0.5 ? a : b;
+}
 /* sprites: tiny ink drawings, 80 to 120 units long at scale 1 */
 function runner(ctx: Ctx, x: Logical, y: Logical, color: Color, phase: number): void {
   const sw = Math.sin(phase) * 12; ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 5;
@@ -1496,6 +1520,9 @@ export type Picker = {
   readonly value: string; set: (v: string) => void; drive: (v: string) => void;
   readonly k: number; readonly from: string;
   mix: <T extends Blendable>(f: (v: string) => T) => T; a: (v: string) => number; off: (v: string, shift: Shift) => [number, number];
+  only: (ctx: Ctx, v: string, draw: () => void, shift?: Shift) => void;
+  mixColor: (f: (v: string) => Color) => Color;
+  curve: (ctx: Ctx, fOf: (v: string) => (t: number) => number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w?: number, n?: number) => void;
 };
 type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void; ms?: number };
 
@@ -1518,6 +1545,10 @@ function turning(host: HTMLElement, first: string, ms: number, cur: () => string
     mix: <T extends Blendable>(f: (v: string) => T): T => { const q = k(); return q >= 1 || from === cur() ? f(cur()) : blend(f(from), f(cur()), q); },
     a: (v: string): number => partAlpha(v, from, cur(), k()),
     off: (v: string, shift: Shift): [number, number] => partOff(v, from, cur(), k(), shift),
+    only: (ctx: Ctx, v: string, draw: () => void, shift: Shift = [0, 12]): void => faded(ctx, partAlpha(v, from, cur(), k()), partOff(v, from, cur(), k(), shift), draw),
+    mixColor: (f: (v: string) => Color): Color => mixColor(f(from), f(cur()), from === cur() ? 1 : k()),
+    curve: (ctx: Ctx, fOf: (v: string) => (t: number) => number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w = 4, n = 80): void =>
+      blendCurve(ctx, fOf(from), fOf(cur()), from === cur() ? 1 : k(), t0, t1, X, Y, color, w, n),
   };
   return { turn, cut, handle };
 }
@@ -2193,6 +2224,7 @@ export type Presence = {
   swap: (from: string, to: string, o?: FadeOpts) => void;
   a: (key: string) => number;
   off: (key: string) => Shift;
+  draw: (ctx: Ctx, key: string, draw: () => void) => void;
 };
 const FADE_MS = 500, SMOOTH_EASE = 'cubic-bezier(0.45, 0, 0.55, 1)';
 type Layer = { a: number; from: number; to: number; t0: number; ms: number; shift: Shift; tick: ((t: number) => void) | null };
@@ -2214,7 +2246,8 @@ function presence(d: FigRef): Presence {
     const q = (1 - L.a) * (L.to > L.from ? -1 : 1);
     return [q * L.shift[0], q * L.shift[1]];
   };
-  return { show, swap: (from, to, o) => { show(from, false, o); show(to, true, o); }, a: (key) => layers.get(key)?.a ?? 1, off };
+  const a = (key: string): number => layers.get(key)?.a ?? 1;
+  return { show, swap: (from, to, o) => { show(from, false, o); show(to, true, o); }, a, off, draw: (ctx, key, f) => faded(ctx, a(key), off(key), f) };
 }
 
 /* `F.fade3(group, a)`: a three.js group at opacity a; its materials go transparent below 1, get back
@@ -2261,6 +2294,24 @@ function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: b
   texMorphAt(host, a, b, k, d, o, active().macros);
 }
 
+/* `F.readout(d)`: a readout of a morphing formula over a plain note line. `set(tex, note?, { form, ...morph opts })`
+   morphs the formula, forcing a morph by meaning when `form` differs from the last call's; the note is
+   left as it was when not given. */
+export type Readout = { readonly formula: HTMLElement; readonly note: HTMLElement; set: (tex: string, note?: string, o?: MorphOpts & { readonly form?: unknown }) => void };
+function readout(d: { readonly readout: HTMLElement }): Readout {
+  const formula = el('div'), note = el('small');
+  d.readout.append(formula, note);
+  let last: { form: unknown } | null = null;
+  const set = (s: string, n?: string, o: MorphOpts & { readonly form?: unknown } = {}): void => {
+    const { form, ...opts } = o;
+    const force = !!opts.force || (last !== null && form !== last.form);
+    last = { form };
+    morph(formula, s, force ? { ...opts, force } : opts);
+    if (n !== undefined && note.textContent !== n) note.textContent = n;
+  };
+  return { formula, note, set };
+}
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
@@ -2272,6 +2323,7 @@ export const FIG = {
   story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,
   ease, lerp, partial, tween, tour, morph, morphAt,
   arrival, stagger, resample, lerpPts, measure,
+  faded, mixColor, blendCurve, readout,
 };
 export type Fig = typeof FIG;
 

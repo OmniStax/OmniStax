@@ -1,7 +1,7 @@
 /* The pure half of a choice that morphs, LaggedStart, and shapes that bend into shapes. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blend, partAlpha, partOff, stagger, resample, lerpPts } from '../src/lib/fig/motion';
+import { blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba } from '../src/lib/fig/motion';
 
 const near = (a: number, b: number, eps = 1e-9): void => assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
 
@@ -50,4 +50,22 @@ test('lerpPts brings both to the larger count and blends', () => {
   assert.deepEqual(lerpPts(a, b, 0), [[0, 0], [5, 0], [10, 0]]);
   assert.deepEqual(lerpPts(a, b, 0.5), [[0, 5], [5, 5], [10, 5]]);
   assert.deepEqual(lerpPts(a, b, 1), b);
+});
+
+test('blendFn mixes two curves at the same t', () => {
+  const f = blendFn((t) => t, (t) => 3 * t, 0.5);
+  near(f(2), 4);
+  near(blendFn((t) => t, () => NaN, 0)(2), 2);
+  assert.ok(Number.isNaN(blendFn(() => 1, () => NaN, 1)(0)));
+});
+
+test('parseRgba reads what the canvas writes back, and mixRgba blends in sRGB', () => {
+  assert.deepEqual(parseRgba('#ff8000'), [255, 128, 0, 1]);
+  assert.deepEqual(parseRgba('#f80'), [255, 136, 0, 1]);
+  assert.deepEqual(parseRgba('rgba(10, 20, 30, 0.5)'), [10, 20, 30, 0.5]);
+  assert.deepEqual(parseRgba('rgb(10 20 30 / 50%)'), [10, 20, 30, 0.5]);
+  assert.equal(parseRgba('oklch(0.5 0.1 200)'), null);
+  assert.equal(mixRgba([0, 0, 0, 1], [255, 100, 10, 1], 0.5), 'rgb(128, 50, 5)');
+  assert.equal(mixRgba([0, 0, 0, 1], [0, 0, 0, 0], 0.5), 'rgba(0, 0, 0, 0.5)');
+  assert.equal(mixRgba([0, 0, 0, 1], [9, 9, 9, 1], 2), 'rgb(9, 9, 9)');
 });

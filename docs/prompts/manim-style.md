@@ -84,6 +84,13 @@ const reveal = F.tween(d, 0); reveal.to(1, 1500);
 ```js
 const n = mat.mix((m) => INDEX[m]); ctx.globalAlpha = mode.a('series');
 ```
+Three more on the same handles: `only(ctx, v, draw, shift = [0, 12])` draws the parts only v has, faded and shifted (`F.faded` at `a(v)`, `off(v, shift)`); `mixColor(f)` is `f(from)` crossfaded to `f(value)`; `curve(ctx, fOf, t0, t1, X, Y, color, w = 4, n = 80)` strokes the curve of `fOf(from)` bending into `fOf(value)`.
+```js
+mode.only(ctx, 'pump', () => text(ctx, 'heat pump', MX, MY, PAL.ink));
+ctx.fillStyle = fl.mixColor((v) => FLUIDS[v].color);
+nPick.curve(ctx, (v) => (s) => Math.sin(+v * Math.PI * s / L), 0, L, X, Y, C('position'));
+```
+`F.faded(ctx, alpha, [dx, dy], draw)`: draw under globalAlpha × alpha, translated; skipped at 0. `F.mixColor(a, b, k)`: any two CSS colours blended in sRGB. `F.blendCurve(ctx, fa, fb, k, t0, t1, X, Y, color, w = 4, n = 80)`: `curve` of fa and fb sampled at the same t, blended at k.
 
 **Tours** (a story slider is preferred; keep a tour only where no slider can carry the story). `F.tour(d, { beats, camera? })` returns `{ play, pause, seek(s), next, prev, t, total, playing, bar }`. Create it after the controls and the view, at their opening values: those are the base of the script.
 - A beat is `{ name, ms = 1200, rest = 1000, ease = smooth, knobs?, view?, run?, enter? }`. `name` is one sentence; it titles the beat's tick and the play button.
@@ -130,7 +137,7 @@ F.story(d, k, { stops: [{ v: 0, label: 'one spring' }, { v: 1, label: 'series' }
 `V.look(F.keyframes(k.v, [{ at: 0, yaw: 0, pitch: 0.3 }, { at: 1, yaw: 1.57, pitch: 0 }]))`
 
 **Fades.**
-`F.presence(d)` → `{ show(key, on, { ms = 500, shift? }), swap(from, to, opts), a(key), off(key) }`. A key never shown is present (a = 1); hide it first with `show(key, false, { ms: 0 })`.
+`F.presence(d)` → `{ show(key, on, { ms = 500, shift? }), swap(from, to, opts), a(key), off(key), draw(ctx, key, draw) }`; `draw` is `F.faded(ctx, a(key), off(key), draw)`. A key never shown is present (a = 1); hide it first with `show(key, false, { ms: 0 })`.
 Draw a layer under `ctx.globalAlpha = P.a(key)`, offset by `P.off(key)` ([dx, dy]: arriving from -shift, leaving toward +shift).
 ```js
 P.swap('series', 'parallel', { shift: [0, 30] });
@@ -151,6 +158,12 @@ P.swap('series', 'parallel', { shift: [0, 30] });
 F.morph(fx, series ? '\\frac{1}{\\mk{k}{k_{eff}}} = \\mk{a}{\\frac{1}{k_1}} + \\mk{b}{\\frac{1}{k_2}}' : '\\mk{k}{k_{eff}} = \\mk{a}{k_1} + \\mk{b}{k_2}');
 F.morph(rx, `\\mk{k}{k_{eff}} = \\mk{kv}{${fmt(keff, 1)}}\\ \\mathrm{N/m}`);     // the number is highlighted as k₁ is dragged
 F.morph(rx, next, { keyMap: { a: 'k', b: 'k' } });   // the two terms bend together into k_eff
+```
+
+`F.readout(d)` → `{ formula, note, set(tex, note?, { form, ...opts }) }`: a morph host over a plain note line in `d.readout`. `set` morphs the formula; a `form` unlike the last call's forces the morph by meaning; a note left out stays as it was.
+```js
+const ro = F.readout(d);
+ro.set(tex, right ? 'At a right angle …' : 'Head to tail …', { form: right });
 ```
 
 `F.morphAt(host, texA, texB, k, display?, opts?)` — the frame at progress `k` in [0, 1], a pure function of `k`; `k <= 0` and `k >= 1` are the still formulas. For a story slider between two integer stops; cheap on every input (the plan is measured once per pair).

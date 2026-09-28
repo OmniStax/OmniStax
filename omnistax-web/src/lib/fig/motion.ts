@@ -209,3 +209,31 @@ export function lerpPts<P extends PointN>(a: readonly P[], b: readonly P[], k: n
   const n = Math.max(a.length, b.length), A = resample(a, n, closed), B = resample(b, n, closed);
   return B.map((q, i) => q.map((x, j) => lerp(A[i][j] ?? x, x, k)) as unknown as P);
 }
+/* two curves y = f(t) blended at the same t */
+export const blendFn = (fa: (t: number) => number, fb: (t: number) => number, k: number) =>
+  (t: number): number => (k >= 1 ? fb(t) : k <= 0 ? fa(t) : lerp(fa(t), fb(t), k));
+
+/* ---------- colours that crossfade ----------
+   A colour as the canvas writes it back (#rrggbb or rgb/rgba(…)) read into [r, g, b, a], and two
+   such colours blended channel by channel in sRGB, which is what painting one over the other at
+   alpha k gives for opaque colours. */
+export type Rgba = readonly [number, number, number, number];
+export function parseRgba(s: string): Rgba | null {
+  const t = s.trim().toLowerCase();
+  const hex = /^#([0-9a-f]{3,8})$/.exec(t);
+  if (hex) {
+    const h = hex[1], full = h.length <= 4 ? [...h].map((c) => c + c).join('') : h;
+    if (full.length !== 6 && full.length !== 8) return null;
+    const ch = (i: number): number => parseInt(full.slice(2 * i, 2 * i + 2), 16);
+    return [ch(0), ch(1), ch(2), full.length === 8 ? ch(3) / 255 : 1];
+  }
+  const fn = /^rgba?\(([^)]*)\)$/.exec(t); if (!fn) return null;
+  const xs = fn[1].split(/[\s,/]+/).filter(Boolean).map((x) => (x.endsWith('%') ? parseFloat(x) / 100 : parseFloat(x)));
+  if ((xs.length !== 3 && xs.length !== 4) || xs.some((x) => !Number.isFinite(x))) return null;
+  return [xs[0], xs[1], xs[2], xs[3] ?? 1];
+}
+export function mixRgba(a: Rgba, b: Rgba, k: number): string {
+  const q = unit(k), c = (i: number): number => Math.round(lerp(a[i], b[i], q));
+  const al = lerp(a[3], b[3], q);
+  return al >= 1 ? `rgb(${c(0)}, ${c(1)}, ${c(2)})` : `rgba(${c(0)}, ${c(1)}, ${c(2)}, ${+al.toFixed(4)})`;
+}

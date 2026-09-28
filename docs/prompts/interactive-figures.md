@@ -47,6 +47,10 @@ curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) 
 arrival(d) -> 0..1                        axes and curves arrive on first view; register(fig,{...,arrive:false}) opts out
 stagger(k,i,n,lag=0.1)                    member i of n within progress k (LaggedStart)
 resample(pts,n,closed) / lerpPts(a,b,k,closed)   polylines evenly by arc length; two blended point by point
+faded(ctx,alpha,[dx,dy],draw)             draw under globalAlpha × alpha, translated; choice.only(ctx,v,draw,shift) and presence.draw(ctx,key,draw) use it
+mixColor(a,b,k)                           two CSS colours blended in sRGB; choice.mixColor(f) crossfades f(from) to f(value)
+blendCurve(ctx,fa,fb,k,t0,t1,X,Y,color,w,n)   curve of two functions blended at the same t; choice.curve(ctx,fOf,...) bends fOf(from) into fOf(value)
+readout(d) -> {formula,note,set(tex,note,{form})}   a morphing formula over a note line; a new form forces the morph
 tex(host,s,display,{values})              a changed number in a figure's readout is highlighted; values:false opts out
 labeller(ctx,H,{headline})                a label beside its thing, stepped out and leadered when the slot is taken; headline blocks the band
 labeller.beside(seg,side,text,color,size,{offset,gap})   beside the line, offset 0 at the tail and 1 at the head (0.5 default)
