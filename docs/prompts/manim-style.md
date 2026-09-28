@@ -61,6 +61,16 @@ Live figures reach these on `F`. Physical time (a sim's cycles, linear) and stor
 const pts = partial(orbit, reveal.v); F.mesh.polyline(g, pts, C('position'));
 ```
 
+**Graphs arrive.** The first time a figure is on screen, `axes` draw their frame (lines along their length, then ticks and titles fading in) over the first 40 % of 1.1 s and `curve` draws along its length over 30 % to 100 %, `smooth`; once per figure per page load, never under reduced motion. `register(fig, { update, draw, arrive: false })` opts out. `F.arrival(d)` is the figure's arrival progress (1 once arrived or opted out); `F.stagger(k, i, n, lag = 0.1)` is member i of n within k (LaggedStart).
+```js
+const k = F.arrival(d); forces.forEach((f, i) => grow(f, F.stagger(F.ease.smooth(k), i, forces.length)));
+```
+
+**Shapes that bend.** `F.resample(pts, n, closed = false)`: a polyline (2D or 3D) resampled to n points evenly by arc length. `F.lerpPts(a, b, k, closed = false)`: both at the larger count, blended point by point.
+```js
+const ring = F.lerpPts(outline, dot, k, true);
+```
+
 **Trackers.** `F.tween(d, v0)` returns `{ v, to(x, ms = 1000, ease = smooth): Promise, set(x) }`; `d` is the object `F.sim` returned. The draw reads `.v`; while `.to` runs the figure redraws every frame. A new `.to` or `.set` takes over from one running. Reduced motion jumps.
 ```js
 const reveal = F.tween(d, 0); reveal.to(1, 1500);
@@ -69,6 +79,11 @@ const reveal = F.tween(d, 0); reveal.to(1, 1500);
 **Camera.** A `view3d` also has `at` (`{ yaw, pitch, zoom, target }`), `look(aim)` (jump), `glide(aim, ms = 2000, ease)` (resolves on arrival or when the reader takes over) and `onReader(f)` (called on a drag, wheel, zoom, view or spin button; returns its removal). `aim` is any part of `at`; `target` is the point looked at, so a glide can pan and dolly. The orbit bound still clamps. `setView` is unchanged. `look` and `glide` stop the idle spin.
 
 **Controls a script can move.** `ctl`, `choice` and `select` handles have `drive(x)`: set the value and fire the events a reader's hand fires, so the figure reacts as if dragged. `set(x)` stays silent, as before.
+
+**Choices that morph.** `choice` and `select` take `ms` (900; 0 cuts) and their handles have `k` (smooth progress since the last change, 1 at rest), `from` (the value before it), `mix(f)` (`f(from)` blended to `f(value)` at k; f returns a number, a number array or a flat record of those), `a(v)` (opacity of the parts only option v has: the old gone by 60 %, the new arriving over the last 60 %) and `off(v, shift)` ([dx, dy], arriving from -shift, leaving toward +shift). The figure redraws while k < 1; `set` cuts, `drive` morphs; reduced motion cuts. Readouts print the new value's numbers, never a blend.
+```js
+const n = mat.mix((m) => INDEX[m]); ctx.globalAlpha = mode.a('series');
+```
 
 **Tours** (a story slider is preferred; keep a tour only where no slider can carry the story). `F.tour(d, { beats, camera? })` returns `{ play, pause, seek(s), next, prev, t, total, playing, bar }`. Create it after the controls and the view, at their opening values: those are the base of the script.
 - A beat is `{ name, ms = 1200, rest = 1000, ease = smooth, knobs?, view?, run?, enter? }`. `name` is one sentence; it titles the beat's tick and the play button.
@@ -148,4 +163,5 @@ const s = story.v, i = Math.floor(s); F.morphAt(fx, STEPS[i], STEPS[Math.min(i +
 - Reduced motion swaps at once and briefly highlights the new terms (morphAt jumps at k = 0.5); the highlight comes and goes without the fade.
 - The host carries `role="img"` and an `aria-label` with the formula's plain text; nothing else to add.
 - Figure text is highlighted the same way with no figure code: a string drawn through figlib's text (labels, headlines, notes) is known again by its skeleton (numbers blanked) and its order among strings of that skeleton; a number the reader's hand changed becomes its own span with the yellow highlight behind it, and the figure keeps drawing while it fades.
-- `F.tex` stays KaTeX for formulas that never morph.
+- `F.tex` stays KaTeX for formulas that never morph. Inside a `figure.sim` its numbers are highlighted the same way, matched by the skeleton of the rendered text; `F.tex(host, s, display, { values: false })` opts out.
+- `F.measure(ctx, s, { size = 22, weight })`: the width `text` gives s in logical units (figure font, subscripts included); never set `ctx.font` to measure.

@@ -34,6 +34,7 @@ The logical canvas is 1400 units wide; `begin()` scales it. Primitives, all in l
 ```
 line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
+measure(ctx,s,{size=22,weight}) -> width  the width text() gives s, subscripts included; never set ctx.font to measure
 headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count
 label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
 hbracket(ctx,x1,x2,y,color,label,{side})  vbracket(ctx,x,y1,y2,color,label,side,{side})  label clamped when the span is short
@@ -43,6 +44,10 @@ fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the 
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
+arrival(d) -> 0..1                        axes and curves arrive on first view; register(fig,{...,arrive:false}) opts out
+stagger(k,i,n,lag=0.1)                    member i of n within progress k (LaggedStart)
+resample(pts,n,closed) / lerpPts(a,b,k,closed)   polylines evenly by arc length; two blended point by point
+tex(host,s,display,{values})              a changed number in a figure's readout is highlighted; values:false opts out
 labeller(ctx,H,{headline})                a label beside its thing, stepped out and leadered when the slot is taken; headline blocks the band
 labeller.beside(seg,side,text,color,size,{offset,gap})   beside the line, offset 0 at the tail and 1 at the head (0.5 default)
 labeller.place(box,text) -> box           a box the figure drew itself joins the collision set, so queued labels step round it
@@ -81,8 +86,9 @@ backpack(ctx,x,y,s,color)                 a pack hanging by its straps, top at (
 Controls beyond the slider (root rule 26.1):
 
 ```
-choice(host,{label,options:[{value,label}],value,aria,onInput}) -> {value,set}   a discrete state as a button row, arrow keys walk it
-select(host,{label,options,value,aria,onInput}) -> {value,set}                    the same as a dropdown where a row would wrap
+choice(host,{label,options:[{value,label}],value,aria,onInput,ms}) -> {value,set,drive,k,from,mix,a,off}   a discrete state as a button row, arrow keys walk it
+select(host,{label,options,value,aria,onInput,ms}) -> the same handle            the same as a dropdown where a row would wrap
+  k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
 hover(d.stage, () => [{x,y,r,name}]) -> {hide}                                    names under the pointer where labels would crowd (rule 26.6)
 ```

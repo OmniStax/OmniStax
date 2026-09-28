@@ -8,7 +8,7 @@ import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texm
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
 import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
-import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, BEAT_MS, REST_MS, type Ease, type BeatTime, type Scripted } from './motion';
+import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, BEAT_MS, REST_MS, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
 export type Color = string;
@@ -19,7 +19,7 @@ type Box = { readonly l: Logical; readonly r: Logical; readonly t: Logical; read
 type Range = readonly [number, number];
 type Scale = (v: number) => Logical;
 type Cycle = { tau: number; wait: number; period: () => number; step: (dt: number, rate: () => number) => void; now: () => number; reset: () => void };
-type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean };
+type Sim = { fig: HTMLElement; update: (dt: number) => void; draw: () => void; cycles: Cycle[]; playing: boolean; speed: number; sync?: () => void; scrub?: HTMLInputElement; dirty: boolean; arrive: boolean; arriveT0?: number; arriving?: boolean };
 type Label = { s: string; x: Logical; y: Logical; hx: Logical; hy: Logical; color: Color; sz: number; align: CanvasTextAlign };
 export type Seg = { readonly x1: Logical; readonly y1: Logical; readonly x2: Logical; readonly y2: Logical };
 export type BesideOpts = { offset?: number; gap?: Logical };   /* where along the line the label sits, 0 at the tail and 1 at the head, and how far out it starts */
@@ -78,9 +78,67 @@ const loadMath = (): Promise<MathLib> =>
    the call is made on exactly one of the two paths. */
 const withMath = (use: (m: MathLib) => void): void => { if (mathLib) use(mathLib); else void loadMath().then(use).catch(() => {}); };
 
-function tex(el: HTMLElement, s: string, display = false): void {
+export type TexOpts = { readonly values?: boolean };
+function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
   const opts = KOPT();
-  withMath((m) => m.katex.render(s, el, { ...opts, displayMode: display }));
+  withMath((m) => { m.katex.render(s, el, { ...opts, displayMode: display }); if (o.values !== false) texGlow(el); });
+}
+
+/* ---------- the glow under a changed number in a formula ----------
+   A figure's KaTeX readout is known again by the skeleton of its rendered text; a number in it
+   the reader's hand changed gets the pale yellow box behind it (glow.ts), painted on a layer
+   behind the formula that animates its own fade. Text on another row of a stack (a superscript,
+   a numerator) never joins the number beside it. */
+type TexHost = { traces: Map<string, Trace>; raf: number };
+const texHosts = new WeakMap<HTMLElement, TexHost>();
+type Spot = { node: Text; at: number };
+function texText(root: Element): { s: string; spots: Spot[] } {
+  const rowOf = (n: Node): Element | null => { let e = n.parentElement; while (e && e !== root && !e.parentElement?.classList.contains('vlist')) e = e.parentElement; return e; };
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let s = '', row: Element | null | undefined; const spots: Spot[] = [];
+  for (let n = walk.nextNode() as Text | null; n; n = walk.nextNode() as Text | null) {
+    const r = rowOf(n);
+    if (row !== undefined && r !== row) { s += '\u0001'; spots.push({ node: n, at: -1 }); }
+    row = r;
+    for (let i = 0; i < n.data.length; i += 1) spots.push({ node: n, at: i });
+    s += n.data;
+  }
+  return { s, spots };
+}
+function texGlow(el: HTMLElement): void {
+  const fig = el.closest<HTMLElement>('figure.sim'), root = el.querySelector('.katex-html');
+  if (!fig || !root) return;
+  const h = texHosts.get(el) ?? (texHosts.set(el, { traces: new Map(), raf: 0 }), texHosts.get(el)!);
+  cancelAnimationFrame(h.raf); h.raf = 0;
+  const { s, spots } = texText(root), toks = tokensOf(s).map((t) => (/^[-−]/.test(t.s) ? { s: t.s, i: t.i + 1, j: t.j } : t));
+  const now = performance.now(), sk = skeletonOf(s);
+  const tr = glowStep(h.traces.get(sk), toks.map((t) => t.s), inputSeq(), now, byHand(now, fig));
+  h.traces.set(sk, tr);
+  if (!toks.some((_, i) => glowOf(tr.lit[i], now, REDUCED) > 0)) return;
+  if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+  el.style.isolation = 'isolate';
+  const er = el.getBoundingClientRect(), ox = er.left + el.clientLeft - el.scrollLeft, oy = er.top + el.clientTop - el.scrollTop;
+  const layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  layer.setAttribute('aria-hidden', 'true'); layer.classList.add('tm-glow');
+  layer.style.width = Math.max(el.scrollWidth, er.width) + 'px'; layer.style.height = Math.max(el.clientHeight, er.height) + 'px';
+  const bars = toks.flatMap((t, i) => {
+    if (tr.lit[i] === -Infinity) return [];
+    const a = spots[t.i], b = spots[t.j - 1];
+    const range = document.createRange(); range.setStart(a.node, a.at); range.setEnd(b.node, b.at + 1);
+    const r = range.getBoundingClientRect();
+    if (!(r.width > 0)) return [];
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    Object.entries({ x: r.left - ox - 1.5, y: r.top - oy + 1, width: r.width + 3, height: Math.max(0, r.height - 2), rx: 2 }).forEach(([k, v]) => rect.setAttribute(k, String(v)));
+    layer.appendChild(rect);
+    return [{ rect, t: tr.lit[i] }];
+  });
+  el.insertBefore(layer, el.firstChild);
+  const paint = (t: number): void => {
+    h.raf = 0;
+    const alive = bars.map(({ rect, t: lt }) => { const a = glowOf(lt, t, REDUCED); rect.setAttribute('opacity', a.toFixed(3)); return a > 0; }).some(Boolean);
+    if (alive && layer.isConnected) h.raf = requestAnimationFrame(paint); else layer.remove();
+  };
+  paint(performance.now());
 }
 function renderMath(root: HTMLElement): void {
   const opts = KOPT();
@@ -409,9 +467,9 @@ function transport(d: Sim): void {
   const stage = d.fig.querySelector('.stage'); if (stage) stage.appendChild(bar); else d.fig.appendChild(bar);
   d.sync = sync;
 }
-function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void }): void {
+function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void; arrive?: boolean }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
-  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true };
+  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED };
   if (!still && storied.has(fig)) console.error('F.register: this figure is a story; a figure has one timeline');
   sims.push(full); vio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */
@@ -446,7 +504,12 @@ function loop(now: number): void {
     }
     /* Every redraw the book asks for now comes through here, so one figure that
        throws must not take the loop — and with it every other figure — down. */
-    if (d.dirty) { d.dirty = false; usePal(d.fig); try { d.draw(); } catch (e) { console.error(e); } }
+    if (d.dirty) {
+      d.dirty = false; usePal(d.fig);
+      if (d.arrive) d.arriveT0 ??= now; d.arriving = false;
+      try { d.draw(); } catch (e) { console.error(e); }
+      if (d.arriving) d.dirty = true;
+    }
   });
   requestAnimationFrame(loop);
 }
@@ -461,6 +524,26 @@ function cycle(period: () => number, hold: number): Cycle {
   };
   pendingCycles.push(s); return s;
 }
+/* ---------- arrival ----------
+   The first time a figure is drawn on screen its graphs arrive: axes draw their frame, then
+   curves draw along their length. `arrivalOf` is that progress, 1 once arrived or opted out;
+   a figure that asked for it while it ran keeps drawing. */
+const ARRIVE_MS = 1100;
+const simByCanvas = new WeakMap<object, Sim>();
+function arrivalOf(d: Sim | undefined): number {
+  if (!d || !d.arrive) return 1;
+  const k = d.arriveT0 === undefined ? 0 : Math.min(1, (performance.now() - d.arriveT0) / ARRIVE_MS);
+  if (k >= 1) d.arrive = false; else d.arriving = true;
+  return k;
+}
+const arrivalAt = (ctx: Ctx): number => {
+  const c = (ctx as { canvas?: unknown }).canvas;
+  if (!(typeof HTMLCanvasElement === 'function' && c instanceof HTMLCanvasElement)) return 1;
+  const d = simByCanvas.get(c) ?? simOf(c); if (d) simByCanvas.set(c, d);
+  return arrivalOf(d);
+};
+const arrival = (d: FigRef): number => { const fig = figOf(d); return arrivalOf(sims.find((x) => x.fig === fig)); };
+const during = (k: number, a: number, b: number): number => ease.smooth((k - a) / (b - a));
 const setPaused = (v: boolean): void => { paused = v; };
 const setCC = (on: boolean): void => { CC = on; };
 
@@ -575,6 +658,13 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
   }
   ctx.restore();
 }
+/* `measure(ctx, s, { size, weight })`: the width `text` gives s, in logical units */
+function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight'> = {}): Logical {
+  const size = o.size ?? 22, weight = o.weight ?? 400, runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
+  ctx.save();
+  const w = runs.reduce((t, r) => { ctx.font = `${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`; return t + ctx.measureText(r.s).width; }, 0);
+  ctx.restore(); return w;
+}
 const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
 /* The headline of a figure. It wraps exactly as `topline` does — one line where it
    fits and two otherwise — so a headline built from live numbers can never run off
@@ -624,13 +714,18 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): { X: 
   const X: Scale = (v) => box.l + ((v - xr[0]) / (xr[1] - xr[0])) * (box.r - box.l);
   const Y: Scale = (v) => box.b - ((v - yr[0]) / (yr[1] - yr[0])) * (box.b - box.t);
   const nx = o.nx ?? 4, ny = o.ny ?? 3;
+  const k = arrivalAt(ctx), grow = during(k, 0, 0.25), fade = during(k, 0.15, 0.4);
+  ctx.save(); ctx.globalAlpha *= fade;
   for (let i = 0; i <= nx; i++) { const v = xr[0] + ((xr[1] - xr[0]) * i) / nx; if (i) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, 0), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); }
   for (let i = 0; i <= ny; i++) { const v = yr[0] + ((yr[1] - yr[0]) * i) / ny; if (i) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, 0), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); }
-  line(ctx, box.l, box.t, box.l, box.b, PAL.muted, 2); line(ctx, box.l, box.b, box.r, box.b, PAL.muted, 2);
-  if (xr[0] < 0 && xr[1] > 0) line(ctx, X(0), box.t, X(0), box.b, PAL.muted, 2);
-  if (yr[0] < 0 && yr[1] > 0) line(ctx, box.l, Y(0), box.r, Y(0), PAL.muted, 2);
   if (o.xl) text(ctx, o.xl, box.r, box.b + 58, o.xc ?? PAL.ink, { align: 'right', weight: 600, size: 20 });
   if (o.yl) text(ctx, o.yl, box.l, box.t - 24, o.yc ?? PAL.ink, { align: 'left', weight: 600, size: 20 });
+  ctx.restore();
+  if (!(grow > 0)) return { X, Y };
+  const up = box.b - (box.b - box.t) * grow, across = box.l + (box.r - box.l) * grow;
+  line(ctx, box.l, box.b, box.l, up, PAL.muted, 2); line(ctx, box.l, box.b, across, box.b, PAL.muted, 2);
+  if (xr[0] < 0 && xr[1] > 0) line(ctx, X(0), box.b, X(0), up, PAL.muted, 2);
+  if (yr[0] < 0 && yr[1] > 0) line(ctx, box.l, Y(0), across, Y(0), PAL.muted, 2);
   return { X, Y };
 }
 function nice(lo: number, hi: number, want = 4): { lo: number; hi: number; n: number } {
@@ -653,8 +748,11 @@ function pinned(ctx: Ctx, box: Box, X: Scale, Y: Scale, xv: number, yv: number, 
   return { x, y, out };
 }
 function curve(ctx: Ctx, f: (t: number) => number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w = 4, n = 80): void {
+  const q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return;
+  const all = Array.from({ length: n + 1 }, (_, i) => { const s = t0 + ((t1 - t0) * i) / n; return [X(s), Y(f(s))] as const; });
+  const pts = q < 1 ? partial(all.filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y)), q) : all;
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath();
-  for (let i = 0; i <= n; i++) { const s = t0 + ((t1 - t0) * i) / n; if (i) ctx.lineTo(X(s), Y(f(s))); else ctx.moveTo(X(s), Y(f(s))); }
+  pts.forEach(([x, y], i) => { if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
   ctx.stroke(); ctx.restore();
 }
 /* sprites: tiny ink drawings, 80 to 120 units long at scale 1 */
@@ -1394,8 +1492,35 @@ function topline(ctx: Ctx, s: string, color?: Color): 1 | 2 {
    pressed. The row is a radio group: arrow keys walk it and only the marked
    option is in the tab order. */
 export type Choice = { readonly value: string; readonly label: string };
-export type Picker = { readonly value: string; set: (v: string) => void; drive: (v: string) => void };
-type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void };
+export type Picker = {
+  readonly value: string; set: (v: string) => void; drive: (v: string) => void;
+  readonly k: number; readonly from: string;
+  mix: <T extends Blendable>(f: (v: string) => T) => T; a: (v: string) => number; off: (v: string, shift: Shift) => [number, number];
+};
+type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void; ms?: number };
+
+/* A change of state morphs over `ms`: `k` runs 0 to 1 (smooth) and the figure owning the control
+   redraws every frame till it lands; `set` cuts. */
+const TURN_MS = 900;
+function turning(host: HTMLElement, first: string, ms: number, cur: () => string) {
+  let from = first, t0 = -Infinity, tick: ((t: number) => void) | null = null;
+  const k = (): number => (REDUCED || ms <= 0 ? 1 : ease.smooth((now() - t0) / ms));
+  const turn = (prev: string): void => {
+    from = prev; t0 = now();
+    const fig = host.closest<HTMLElement>('figure');
+    if (tick || !fig || k() >= 1) return;
+    const t = (): void => { touch(fig); if (k() >= 1) { tickers.delete(t); tick = null; } };
+    tick = t; tickers.add(t);
+  };
+  const cut = (v: string): void => { from = v; t0 = -Infinity; };
+  const handle = {
+    get k() { return k(); }, get from() { return from; },
+    mix: <T extends Blendable>(f: (v: string) => T): T => { const q = k(); return q >= 1 || from === cur() ? f(cur()) : blend(f(from), f(cur()), q); },
+    a: (v: string): number => partAlpha(v, from, cur(), k()),
+    off: (v: string, shift: Shift): [number, number] => partOff(v, from, cur(), k(), shift),
+  };
+  return { turn, cut, handle };
+}
 
 const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
 const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : 'Choice');
@@ -1411,9 +1536,10 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
     row.appendChild(b); return b;
   });
   const mark = (): void => buttons.forEach((b) => { const on = b.dataset.value === v; b.setAttribute('aria-checked', String(on)); b.classList.toggle('on', on); b.tabIndex = on ? 0 : -1; });
+  const tw = turning(host, v, o.ms ?? TURN_MS, () => v);
   const pick = (next: string, focus: boolean): void => {
     if (next === v || !values.includes(next)) return;
-    v = next; mark(); if (focus) buttons[values.indexOf(v)].focus();
+    tw.turn(v); v = next; mark(); if (focus) buttons[values.indexOf(v)].focus();
     o.onInput?.(v); row.dispatchEvent(new Event('input', { bubbles: true }));
   };
   buttons.forEach((b) => b.addEventListener('click', () => pick(b.dataset.value ?? '', false)));
@@ -1423,7 +1549,9 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
     e.preventDefault(); pick(values[(values.indexOf(v) + step + values.length) % values.length], true);
   });
   mark(); lab.appendChild(row); host.appendChild(lab);
-  return { get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; mark(); }, drive: (x: string) => driven(() => pick(x, false)) };
+  return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
+    get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; tw.cut(x); mark(); }, drive: (x: string) => driven(() => pick(x, false)),
+  })) as Picker;
 }
 
 function select(host: HTMLElement, o: ChoiceOpts): Picker {
@@ -1431,10 +1559,14 @@ function select(host: HTMLElement, o: ChoiceOpts): Picker {
   const sel = el('select', 'ctl-select'); sel.setAttribute('aria-label', ariaOf(o));
   o.options.forEach((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; sel.appendChild(op); });
   sel.value = o.value ?? o.options[0]?.value ?? '';
-  sel.addEventListener('input', () => o.onInput?.(sel.value));
+  let v = sel.value;
+  const tw = turning(host, v, o.ms ?? TURN_MS, () => v);
+  sel.addEventListener('input', () => { if (sel.value !== v) { tw.turn(v); v = sel.value; } o.onInput?.(sel.value); });
   lab.appendChild(sel); host.appendChild(lab);
   const drive = (x: string): void => { if (sel.value === x) return; sel.value = x; driven(() => sel.dispatchEvent(new Event('input', { bubbles: true }))); };
-  return { get value() { return sel.value; }, set(x: string) { sel.value = x; }, drive };
+  return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
+    get value() { return sel.value; }, set(x: string) { sel.value = x; v = sel.value; tw.cut(v); }, drive,
+  })) as Picker;
 }
 
 /* ---------- a slider with soft detents ----------
@@ -2137,6 +2269,7 @@ export const FIG = {
   vectorTriangle, wrap,
   story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,
   ease, lerp, partial, tween, tour, morph, morphAt,
+  arrival, stagger, resample, lerpPts, measure,
 };
 export type Fig = typeof FIG;
 

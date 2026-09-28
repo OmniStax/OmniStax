@@ -143,3 +143,69 @@ export function keyframes<T extends Vals = Vals>(s: number, frames: readonly Fra
   const A = full[j - 1], B = full[j];
   return Object.fromEntries(Object.keys(B).map((key) => [key, key in A ? mix(A[key], B[key], k) : B[key]])) as T;
 }
+
+/* ---------- a choice that morphs ----------
+   A discrete state changed at eased progress k (1 at rest): a derived value
+   bends from the old option's to the new one's, and the parts only one option
+   has fade and slide. The old option's parts are gone by LEAVE of the way,
+   the new one's arrive over the last ARRIVE. */
+export type Blendable = number | readonly number[] | { readonly [k: string]: number | readonly number[] };
+const blendOne = (a: number | readonly number[], b: number | readonly number[], k: number): number | readonly number[] =>
+  typeof a === 'number' ? (typeof b === 'number' ? lerp(a, b, k) : b)
+    : typeof b === 'number' || a.length !== b.length ? b : b.map((x, i) => lerp(a[i], x, k));
+const flat = (x: Blendable): x is number | readonly number[] => typeof x === 'number' || Array.isArray(x);
+export function blend<T extends Blendable>(a: T, b: T, k: number): T {
+  if (k >= 1) return b;
+  if (flat(a) || flat(b)) return (flat(a) && flat(b) ? blendOne(a, b, k) : b) as T;
+  const A = a as Record<string, number | readonly number[]>, B = b as Record<string, number | readonly number[]>;
+  const ka = Object.keys(A), kb = Object.keys(B);
+  if (ka.length !== kb.length || kb.some((key) => !(key in A))) return b;
+  return Object.fromEntries(kb.map((key) => [key, blendOne(A[key], B[key], k)])) as T;
+}
+export const LEAVE = 0.6, ARRIVE = 0.6;
+/* the opacity of the parts only option v has, mid-change from `from` to `to` at k */
+export function partAlpha<V>(v: V, from: V, to: V, k: number): number {
+  if (v === to && v === from) return 1;
+  if (v === to) return unit((k - (1 - ARRIVE)) / ARRIVE);
+  if (v === from) return 1 - unit(k / LEAVE);
+  return 0;
+}
+/* their offset: arriving from -shift, leaving toward +shift */
+export function partOff<V>(v: V, from: V, to: V, k: number, shift: readonly [number, number]): [number, number] {
+  if (from === to || (v !== to && v !== from)) return [0, 0];
+  const q = (1 - partAlpha(v, from, to, k)) * (v === to ? -1 : 1);
+  return [q * shift[0] || 0, q * shift[1] || 0];
+}
+
+/* ---------- LaggedStart ----------
+   Member i of n within a group's progress k, each starting lag of a member's
+   span after the one before, the last ending at k = 1. */
+export function stagger(k: number, i: number, n: number, lag = 0.1): number {
+  const span = 1 / (1 + Math.max(0, n - 1) * lag);
+  return unit((k - i * lag * span) / span);
+}
+
+/* ---------- shapes that bend into shapes ----------
+   A polyline (2D or 3D) resampled to n points evenly by arc length; a closed
+   outline runs round to its first point. Two polylines blend point by point
+   once both have the larger count. */
+export function resample<P extends PointN>(pts: readonly P[], n: number, closed = false): P[] {
+  if (!pts.length || n < 1) return [];
+  if (n === 1 || pts.length === 1) return Array.from({ length: n }, () => pts[0]);
+  const ring = closed ? [...pts, pts[0]] : pts;
+  const cum = ring.reduce<number[]>((acc, p, i) => [...acc, i ? acc[i - 1] + Math.hypot(...p.map((x, j) => x - ring[i - 1][j])) : 0], []);
+  const L = cum[cum.length - 1];
+  if (!(L > 0)) return Array.from({ length: n }, () => pts[0]);
+  let seg = 0;
+  return Array.from({ length: n }, (_, i) => {
+    const s = (L * i) / (closed ? n : n - 1);
+    while (seg < ring.length - 2 && cum[seg + 1] < s) seg += 1;
+    const len = cum[seg + 1] - cum[seg], f = len > 0 ? Math.min(1, (s - cum[seg]) / len) : 0;
+    return ring[seg].map((x, j) => lerp(x, ring[seg + 1][j], f)) as unknown as P;
+  });
+}
+export function lerpPts<P extends PointN>(a: readonly P[], b: readonly P[], k: number, closed = false): P[] {
+  if (!a.length || !b.length) return b.slice();
+  const n = Math.max(a.length, b.length), A = resample(a, n, closed), B = resample(b, n, closed);
+  return B.map((q, i) => q.map((x, j) => lerp(A[i][j] ?? x, x, k)) as unknown as P);
+}
