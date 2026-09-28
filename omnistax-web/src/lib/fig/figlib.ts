@@ -1639,9 +1639,13 @@ export type Special = { readonly at: number | (() => number | null); readonly la
 function specialsOf(inp: HTMLInputElement, o: CtlOpts) {
   const box = el('span', 'ctl-specials'); box.setAttribute('aria-hidden', 'true');
   let list: readonly Special[] = [], vals: (number | null)[] = [], dots: HTMLElement[] = [], held: number | null = null, keyed = false;
-  const lo = o.min, hi = o.max, span = hi - lo;
-  const grid = (x: number): number => clampTo(lo + Math.round((x - lo) / o.step) * o.step, lo, hi);
+  /* bounds follow the input, since a slider's range() may move them after the circles are made */
+  let lo = o.min, hi = o.max, span = hi - lo, step = o.step;
+  const grid = (x: number): number => clampTo(lo + Math.round((x - lo) / step) * step, lo, hi);
   const place = (): void => {
+    lo = +inp.min; hi = +inp.max; span = hi - lo;
+    if (inp.step !== 'any' && +inp.step > 0) step = +inp.step;
+    if (list.length) inp.step = 'any';
     vals = list.map((s) => { try { const x = typeof s.at === 'function' ? s.at() : s.at; return trackAt(x, lo, hi) === null ? null : x; } catch { return null; } });
     dots.forEach((d, i) => { const k = trackAt(vals[i], lo, hi); d.hidden = k === null; if (k !== null) d.style.setProperty('--at', String(k)); });
   };
@@ -1649,7 +1653,7 @@ function specialsOf(inp: HTMLInputElement, o: CtlOpts) {
   const mark = (l: readonly Special[]): void => {
     list = l; box.replaceChildren(); held = null;
     dots = l.map((s) => { const d = el('span', 'ctl-sp kv-' + o.cls); if (s.label) d.title = s.label; box.appendChild(d); return d; });
-    inp.step = l.length ? 'any' : String(o.step); place();
+    inp.step = l.length ? 'any' : String(step); place();
   };
   /* with circles the input steps freely so a caught value is exact; the drag keeps the step grid by hand */
   const snap = (): void => {
@@ -1660,9 +1664,9 @@ function specialsOf(inp: HTMLInputElement, o: CtlOpts) {
   };
   inp.addEventListener('keydown', (e) => {
     if (!list.length) return;
-    const v = +inp.value, big = Math.max(o.step, span / 10);
-    const to = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? grid(v + o.step) + (grid(v + o.step) <= v ? o.step : 0)
-      : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? grid(v - o.step) - (grid(v - o.step) >= v ? o.step : 0)
+    const v = +inp.value, big = Math.max(step, span / 10);
+    const to = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? grid(v + step) + (grid(v + step) <= v ? step : 0)
+      : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? grid(v - step) - (grid(v - step) >= v ? step : 0)
       : e.key === 'PageUp' ? nextSpecial(vals, v, 1) ?? grid(v + big)
       : e.key === 'PageDown' ? nextSpecial(vals, v, -1) ?? grid(v - big)
       : e.key === 'Home' ? lo : e.key === 'End' ? hi : null;
