@@ -246,13 +246,15 @@ const PartSchema = z.object({
   part: z.string().describe('Which part of the question this answers, as the book letters it.'),
   value: z.number().describe('The number the part comes to.'),
   unit: z.string().default('').describe('The unit the number is in.'),
+  tol: z.number().positive().optional().describe('The relative tolerance the answer is checked to, as a fraction such as 0.00001; two percent where absent.'),
   hint: z.string().optional().describe('A nudge the reader can ask for before seeing the answer.'),
 }).strict();
 export const AnswerSchema = z.discriminatedUnion('type', [
   z.object({
-    type: z.literal('number').describe('One number, checked to within two percent.'),
+    type: z.literal('number').describe('One number, checked to within two percent unless it names a tolerance.'),
     value: z.number().describe('The number the answer comes to.'),
     unit: z.string().default('').describe('The unit the number is in.'),
+    tol: z.number().positive().optional().describe('The relative tolerance the answer is checked to, as a fraction such as 0.00001; two percent where absent.'),
     part: z.string().optional().describe('Which part of the question this answers, where the book asks several and keys only one.'),
     hint: z.string().optional().describe('A nudge the reader can ask for before seeing the answer.'),
     solution: z.string().optional().describe('The worked answer, as the book gives it or as the AI wrote it.'),

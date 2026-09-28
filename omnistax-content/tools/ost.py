@@ -161,12 +161,12 @@ def validate(table: Table, row: RowDTO) -> None:
 # AnswerSchema): each type carries its own fields and the schema is strict, so a
 # field the type does not take fails the build. Refuse it here instead.
 ANSWER_FIELDS = {
-    "number": {"type", "value", "unit", "part", "hint", "solution", "generated_by"},
+    "number": {"type", "value", "unit", "tol", "part", "hint", "solution", "generated_by"},
     "multi": {"type", "parts", "solution", "generated_by"},
     "choice": {"type", "options", "correct", "hint", "solution", "generated_by"},
     "open": {"type", "solution", "generated_by"},
 }
-PART_FIELDS = {"part", "value", "unit", "hint"}
+PART_FIELDS = {"part", "value", "unit", "tol", "hint"}
 
 
 def validate_answer(answer: dict) -> None:
@@ -176,6 +176,9 @@ def validate_answer(answer: dict) -> None:
     extra = set(answer) - ANSWER_FIELDS[kind]
     if extra:
         raise Refused(f"an answer of type {kind!r} does not take {', '.join(sorted(extra))}; its fields are {', '.join(sorted(ANSWER_FIELDS[kind]))}")
+    for tol in [answer.get("tol")] + [p.get("tol") for p in answer.get("parts") or [] if isinstance(p, dict)]:
+        if tol is not None and (isinstance(tol, bool) or not isinstance(tol, (int, float)) or tol <= 0):
+            raise Refused(f"an answer's tol is {tol!r}; it must be a positive number, a fraction such as 0.00001")
     if kind == "multi":
         for i, part in enumerate(answer.get("parts") or []):
             bad = set(part) - PART_FIELDS if isinstance(part, dict) else {"(not an object)"}

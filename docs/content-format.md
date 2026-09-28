@@ -229,9 +229,10 @@ The exercises the section sets.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card and its tab. |
+| `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card. |
 | `source_id` | `string` | yes | The publisher’s own id for the exercise, so that it can be found again in the source. |
 | `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. |
+| `source_number` | `string?` | no | The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it. |
 | `kind` | `string` | yes | The kind of exercise it is, naming a row of the book’s exercise kinds. |
 | `bloom` | `"Remember" \| "Understand" \| "Apply" \| "Analyze" \| "Evaluate" \| "Create"` | yes | The level of thinking the exercise asks for. |
 | `tag` | `string?` | no | A word the book prints beside the exercise, such as the topic of an AP item. |
@@ -239,7 +240,7 @@ The exercises the section sets.
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
 | `figure` | `{ src, alt?, caption? }?` | no | A book figure the problem refers to, kept in the card. |
 | `prompt` | `string` | yes | The question as the book asks it. |
-| `answer` | `{ type: "number", value, unit?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", solution?, generated_by? }` | yes | The answer and how it is checked. |
+| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", solution?, generated_by? }` | yes | The answer and how it is checked. |
 
 ### `exercise_concepts`
 
@@ -249,7 +250,7 @@ Which concepts each exercise tests, and what it is worth for them.
 | --- | --- | --- | --- |
 | `exercise` | `string` | yes | The local id of the exercise. |
 | `concept` | `string` | yes | A concept the exercise tests. |
-| `weight` | `number?` | no | What the exercise is worth for this concept, overriding the points its Bloom level would earn. Always written by the pipeline. |
+| `weight` | `number?` | no | Legacy relative concept weight retained for compatibility; practice attainment is discrete. |
 | `weights_by` | `"ai"?` | no | Legacy marker for a concept weight chosen by the agent; practice attainment is discrete. |
 
 ### `place`
@@ -273,13 +274,14 @@ Where an exercise is set: at the end with the problem set, or inline after a spa
 
 An exercise’s answer, one shape per way of checking it.
 
-**`type = "number"`** — One number, checked to within two percent.
+**`type = "number"`** — One number, checked to within two percent unless it names a tolerance.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `type` | `"number"` | yes | One number, checked to within two percent. |
+| `type` | `"number"` | yes | One number, checked to within two percent unless it names a tolerance. |
 | `value` | `number` | yes | The number the answer comes to. |
 | `unit` | `string` | no | The unit the number is in. |
+| `tol` | `number?` | no | The relative tolerance the answer is checked to, as a fraction such as 0.00001; two percent where absent. |
 | `part` | `string?` | no | Which part of the question this answers, where the book asks several and keys only one. |
 | `hint` | `string?` | no | A nudge the reader can ask for before seeing the answer. |
 | `solution` | `string?` | no | The worked answer, as the book gives it or as the AI wrote it. |
@@ -290,7 +292,7 @@ An exercise’s answer, one shape per way of checking it.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `type` | `"multi"` | yes | Several numbers, one per part of the question. |
-| `parts` | `{ part, value, unit?, hint? }[]` | yes | The parts, in the order the question asks them. |
+| `parts` | `{ part, value, unit?, tol?, hint? }[]` | yes | The parts, in the order the question asks them. |
 | `solution` | `string?` | no | The worked answer, as the book gives it or as the AI wrote it. |
 | `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
 

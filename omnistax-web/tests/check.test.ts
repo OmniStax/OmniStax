@@ -15,3 +15,9 @@ test('solutionText prefers the book, then composes from the answer', () => {
   assert.equal(solutionText({ type: 'multi', parts: [{ part: 'a', value: 1, unit: 'N' }, { part: 'b', value: 2, unit: '' }], generated_by: 'source' }), 'a: 1 N · b: 2');
   assert.equal(solutionText({ type: 'open', generated_by: 'source' }), undefined);
 });
+test('a named tolerance tightens the check', () => {
+  assert.ok(!nearly(1, 0.99995, 0.00001));
+  assert.ok(nearly(0.99995, 0.99995, 0.00001));
+  assert.equal(checkNumber('1', 0.99995, 'c', undefined, false, 0.00001).ok, false);
+  assert.equal(checkNumber('1.019', 1, 'c').ok, true);
+});
