@@ -183,9 +183,39 @@ const fmt = (n: number, d: number): string => (Math.abs(n) < 1e-9 ? 0 : n).toFix
 /* ---------- figure scaffolding ---------- */
 const LW: Logical = 1400;
 function makeCanvas(parent: HTMLElement, H: Logical): HTMLCanvasElement { const c = document.createElement('canvas'); c.dataset.h = String(H); c.style.aspectRatio = `${LW} / ${H}`; parent.appendChild(c); return c; }
+/* A canvas draws at the device's pixels times the pinch zoom, so text stays crisp at
+   any zoom; only its area is capped, and past the cap the density gives way. */
+const CANVAS_BUDGET = 16e6, WEBGL_BUDGET = 8e6;
+export type Backing = { bw: number; bh: number; k: number };
+function backing(cssW: number, lw: Logical, H: Logical, dpr: number, scale: number, budget: number): Backing {
+  const want = cssW * dpr * scale, area = want * want * (H / lw);
+  const px = area > budget ? Math.sqrt((budget * lw) / H) : want, k = px / lw;
+  return { bw: Math.round(lw * k), bh: Math.round(H * k), k };
+}
+/* the pixel ratio a WebGL canvas of w × h CSS pixels renders at, under the same rule */
+const glRatio = (w: number, h: number, dpr: number, scale: number): number => Math.min(dpr * scale, Math.sqrt(WEBGL_BUDGET / Math.max(1, w * h)));
+const pinch = (): number => (typeof window !== 'undefined' && window.visualViewport?.scale) || 1;
+const devRatio = (): number => (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+/* Density changes reach every canvas: a browser zoom at once, a pinch 150 ms after it
+   settles, the stretched bitmap covering the gap. */
+const densityWatchers = new Set<() => void>();
+function watchDensity(): void {
+  if (typeof window === 'undefined') return;
+  const fire = (): void => { sims.forEach((d) => { d.dirty = true; }); densityWatchers.forEach((f) => f()); };
+  let seenScale = pinch(), timer = 0;
+  window.visualViewport?.addEventListener('resize', () => {
+    if (pinch() === seenScale) return;
+    clearTimeout(timer); timer = window.setTimeout(() => { seenScale = pinch(); fire(); }, 150);
+  });
+  const arm = (): void => {
+    if (typeof matchMedia !== 'function') return;
+    matchMedia(`(resolution: ${devRatio()}dppx)`).addEventListener('change', () => { fire(); arm(); }, { once: true });
+  };
+  arm();
+}
 function begin(c: HTMLCanvasElement): { ctx: Ctx; W: Logical; H: Logical } {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), H = +(c.dataset.h ?? 0);
-  const w = c.clientWidth || 800, k = (w * dpr) / LW, bw = Math.round(LW * k), bh = Math.round(H * k);
+  const H = +(c.dataset.h ?? 0);
+  const { bw, bh, k } = backing(c.clientWidth || 800, LW, H, devRatio(), pinch(), CANVAS_BUDGET);
   if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
   const ctx = c.getContext('2d')!; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, LW, H);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.textBaseline = 'middle';
@@ -317,6 +347,7 @@ function loop(now: number): void {
   requestAnimationFrame(loop);
 }
 if (typeof requestAnimationFrame === 'function') requestAnimationFrame(loop);
+watchDensity();
 function cycle(period: () => number, hold: number): Cycle {
   const s: Cycle = {
     tau: REDUCED ? Infinity : 0, wait: 0, period,
@@ -1562,10 +1593,10 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   renderer.setClearColor(0x000000, 0); wrap.appendChild(renderer.domElement);
   function size(): void {
     const w = wrap.clientWidth || 800, h = wrap.clientHeight || Math.round((w * H) / LW);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(w, h, false);
+    renderer.setPixelRatio(glRatio(w, h, devRatio(), pinch())); renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.updateProjectionMatrix(); need = true;
   }
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(size) : null; ro?.observe(wrap); size();
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(size) : null; ro?.observe(wrap); size(); densityWatchers.add(size);
   const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => { seen = e.isIntersecting; if (seen) need = true; }), { rootMargin: '120px' }) : null; io?.observe(wrap);
 
   /* the button row: what dragging cannot say */
@@ -1604,7 +1635,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
     labels.forEach((l) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = ((1 - t.y) / 2) * h - l.dy + 'px'; });
   }
-  function dispose(): void { if (!alive) return; alive = false; ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
+  function dispose(): void { if (!alive) return; alive = false; densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
   let prev = performance.now(), gone = 0;
   function frame(now: number): void {
     if (!alive) return;
@@ -1925,6 +1956,7 @@ function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: b
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  backing, glRatio,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
