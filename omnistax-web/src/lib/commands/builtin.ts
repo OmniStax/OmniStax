@@ -4,6 +4,8 @@
    give it a default chord in defaults.ts if it deserves one. */
 import { type Command, type CommandId, commandId } from './command';
 import type { Theme, ZoomStep } from '../settings/store.svelte';
+import { FONTS, type FontId } from '../settings/fonts';
+import type { ChoiceList } from './choice';
 import { zoomLabel } from '../settings/zoom';
 import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../types/ids';
 import type { ItemKey } from '../layout/model';
@@ -15,6 +17,9 @@ export type FocusDir = 'left' | 'right' | 'up' | 'down';
 export type BuiltinDeps = {
   readonly settings: {
     readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
+    readonly figureFont: FontId; readonly bodyFont: FontId;
+    setFigureFont(id: FontId): void; setBodyFont(id: FontId): void;
+    setPreview(p: { figureFont?: FontId; bodyFont?: FontId; theme?: Theme }): void; clearPreview(): void;
     zoomIn(): void; zoomOut(): void; resetZoom(): void;
     setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
   };
@@ -62,7 +67,8 @@ export const BUILTIN = {
   palette: commandId('palette'), settings: commandId('settings'), open: commandId('open'),
   animations: commandId('animations'), colourCoding: commandId('colour-coding'), underlines: commandId('underlines'),
   zoomIn: commandId('zoom-in'), zoomOut: commandId('zoom-out'), zoomReset: commandId('zoom-reset'),
-  themeSystem: commandId('theme-system'), themeLight: commandId('theme-light'), themeDark: commandId('theme-dark'), themeCycle: commandId('theme-cycle'),
+  theme: commandId('theme'), themeCycle: commandId('theme-cycle'),
+  figureFont: commandId('figure-font'), bodyFont: commandId('body-font'),
   resetLayout: commandId('reset-layout'),
   splitRight: commandId('split-right'), splitDown: commandId('split-down'),
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
@@ -91,8 +97,16 @@ export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${
 export const showViewId = (kind: ViewKind): CommandId => commandId(`show-view-${kind}`);
 
 const onOff = (v: boolean): string => (v ? 'on' : 'off');
-const themeCommand = (d: BuiltinDeps, id: CommandId, t: Theme): Command =>
-  ({ id, label: `Theme: ${t}`, group: 'Appearance', run: () => d.settings.setTheme(t), detail: () => (d.settings.theme === t ? 'current' : '') });
+/* A setting chosen from a list: moving through it previews, Enter keeps, Escape puts back. */
+const settingChoices = <T extends string>(d: BuiltinDeps, options: readonly { value: T; label: string }[], current: T, preview: (v: T) => void, save: (v: T) => void): ChoiceList => ({
+  options, current,
+  preview: (v) => preview(v as T),
+  commit: (v) => { save(v as T); d.settings.clearPreview(); },
+  cancel: () => d.settings.clearPreview(),
+});
+const FONT_OPTIONS = FONTS.map((f) => ({ value: f.id, label: f.label }));
+const THEME_OPTIONS = (['system', 'light', 'dark'] as const satisfies readonly Theme[]).map((t) => ({ value: t, label: t }));
+const fontLabel = (id: FontId): string => FONTS.find((f) => f.id === id)?.label ?? id;
 /* Moving the focus between groups only means anything once there are several. */
 const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: string): Command =>
   ({ id, label: `Focus group ${label}`, group: 'Layout', run: () => d.layout.focusGroup(dir), when: () => d.layout.groupCount > 1 });
@@ -123,8 +137,13 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   /* The dotted rule under symbols, glossary terms and example references; what
      they open is unaffected either way. */
   { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },
-  themeCommand(d, BUILTIN.themeSystem, 'system'), themeCommand(d, BUILTIN.themeLight, 'light'), themeCommand(d, BUILTIN.themeDark, 'dark'),
+  { id: BUILTIN.theme, label: 'Theme: change theme', group: 'Appearance', run: () => {}, detail: () => d.settings.theme,
+    choices: () => settingChoices(d, THEME_OPTIONS, d.settings.theme, (theme) => d.settings.setPreview({ theme }), (t) => d.settings.setTheme(t)) },
   { id: BUILTIN.themeCycle, label: 'Theme: cycle', group: 'Appearance', run: () => d.settings.cycleTheme(), detail: () => d.settings.theme },
+  { id: BUILTIN.figureFont, label: 'Font: change figure font', group: 'Appearance', run: () => {}, detail: () => fontLabel(d.settings.figureFont),
+    choices: () => settingChoices(d, FONT_OPTIONS, d.settings.figureFont, (figureFont) => d.settings.setPreview({ figureFont }), (f) => d.settings.setFigureFont(f)) },
+  { id: BUILTIN.bodyFont, label: 'Font: change body font', group: 'Appearance', run: () => {}, detail: () => fontLabel(d.settings.bodyFont),
+    choices: () => settingChoices(d, FONT_OPTIONS, d.settings.bodyFont, (bodyFont) => d.settings.setPreview({ bodyFont }), (f) => d.settings.setBodyFont(f)) },
   /* The app's own text size, a step at a time. The chords are the browser's
      zoom chords, which the shell takes for itself while "Zoom keys" is on. */
   { id: BUILTIN.zoomIn, label: 'Larger text', group: 'Appearance', run: () => d.settings.zoomIn(), detail: () => zoomLabel(d.settings.zoom) },
