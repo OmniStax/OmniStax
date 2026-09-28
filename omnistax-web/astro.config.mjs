@@ -18,5 +18,9 @@ export default defineConfig({
   /* Naming an allowed directory replaces Vite's own list rather than adding to
      it, so the project is named beside the content: the books sit outside the
      project, and the project's src and node_modules must still be served. */
-  vite: { server: { fs: { allow: ['.', config.content.root] } } },
+  vite: {
+    server: { fs: { allow: ['.', config.content.root] } },
+    /* Vite's dependency cache also defaults into node_modules; a shared one is rewritten under a running dev server. */
+    ...(process.env.OMNISTAX_CACHE_DIR ? { cacheDir: `${process.env.OMNISTAX_CACHE_DIR}/vite` } : {}),
+  },
 });
