@@ -659,10 +659,10 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
   ctx.restore();
 }
 /* `measure(ctx, s, { size, weight })`: the width `text` gives s, in logical units */
-function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight'> = {}): Logical {
+function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight' | 'italic'> = {}): Logical {
   const size = o.size ?? 22, weight = o.weight ?? 400, runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
   ctx.save();
-  const w = runs.reduce((t, r) => { ctx.font = `${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`; return t + ctx.measureText(r.s).width; }, 0);
+  const w = runs.reduce((t, r) => { ctx.font = shownFont(`${o.italic ? 'italic ' : ''}${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`); return t + ctx.measureText(r.s).width; }, 0);
   ctx.restore(); return w;
 }
 const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
