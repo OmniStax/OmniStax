@@ -22,7 +22,7 @@ export type Glyph = {
 };
 export type Box = { readonly l: Px; readonly t: Px; readonly w: Px; readonly h: Px };
 
-export const FLOOR: Px = 12;
+export const FLOOR: Px = 11;
 const SUB = 0.72, SUB_DROP = 0.22, SUB_FLOOR: Px = 10;
 
 /* ---------- the pure parts ---------- */
@@ -55,7 +55,11 @@ export function styleOf(g: Glyph, top: Em): Style {
     lit: g.pieces.map((p) => litOf(p.lit)).join('|'),
   };
 }
-export type Write = { readonly i: number; readonly changed: readonly (keyof Style)[]; readonly next: Style };
+export type Edges = { readonly l: Px; readonly t: Px; readonly r: Px; readonly b: Px };
+/* how far a span must move to lie inside a w by h layer; one wider than the layer keeps its start inside */
+const into = (lo: Px, hi: Px, span: Px): Px => (lo < 0 ? -lo : hi > span ? span - hi : 0);
+export const inward = (e: Edges, w: Px, h: Px): readonly [Px, Px] => [into(e.l, e.r, w), into(e.t, e.b, h)];
+export type Write ={ readonly i: number; readonly changed: readonly (keyof Style)[]; readonly next: Style };
 export type Plan = { readonly writes: readonly Write[]; readonly drop: number };
 /* what the layer must do to go from the spans it shows to the ones just drawn: spans are
    reused by order, each writes only the properties that differ, and extras are dropped */
@@ -142,6 +146,18 @@ export function commit(c: HTMLCanvasElement, box: Box, glyphs: readonly Glyph[])
   });
   l.shown = next;
   sync(c, l);
+  keepInside(l, box, p.writes.map((w) => spans[w.i]));
+}
+/* a span the draw placed past the layer's edge is moved back in by the overflow, never clipped */
+function keepInside(l: Layer, box: Box, moved: readonly HTMLElement[]): void {
+  if (!moved.length || l.el.hidden) return;
+  moved.forEach((s) => { if (s.style.translate) s.style.translate = ''; });
+  const at = l.el.getBoundingClientRect(); if (!at.width) return;
+  const k = box.w / at.width;
+  moved.map((s) => {
+    const r = s.getBoundingClientRect();
+    return [s, inward({ l: (r.left - at.left) * k, t: (r.top - at.top) * k, r: (r.right - at.left) * k, b: (r.bottom - at.top) * k }, box.w, box.h)] as const;
+  }).forEach(([s, [dx, dy]]) => { if (dx || dy) s.style.translate = `${round(dx)}px ${round(dy)}px`; });
 }
 /* the layer hides, stacks and leaves with its canvas */
 function sync(c: HTMLCanvasElement, l: Layer): void {

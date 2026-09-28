@@ -2,7 +2,7 @@
    the weight and size it is shown at, and the writes that bring the spans up to date. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, isSerif, subDrop, topOf, styleOf, plan, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
+import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, isSerif, subDrop, topOf, styleOf, plan, inward, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
 
 const NCM = "'New Computer Modern Book',Georgia,'Times New Roman',serif";
 const SANS = "'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif";
@@ -37,6 +37,15 @@ test('no figure text is shown smaller than the floor, and larger text is left al
   assert.equal(shownSize(7.5), FLOOR);
   assert.equal(shownSize(20), 20);
   assert.match(styleOf(glyph({ size: 8 }), 0).font, new RegExp(`\\b${FLOOR}px/1`));
+});
+
+test('a span past an edge of its layer moves in by the overflow', () => {
+  assert.deepEqual(inward({ l: 10, t: 5, r: 90, b: 17 }, 100, 50), [0, 0]);
+  assert.deepEqual(inward({ l: 650, t: 20, r: 760, b: 32 }, 738, 400), [-22, 0]);
+  assert.deepEqual(inward({ l: -37, t: 393, r: 427, b: 405 }, 738, 451), [37, 0]);
+  assert.deepEqual(inward({ l: 5, t: -4, r: 50, b: 8 }, 100, 50), [0, 4]);
+  assert.deepEqual(inward({ l: 5, t: 45, r: 50, b: 57 }, 100, 50), [0, -7]);
+  assert.deepEqual(inward({ l: -10, t: 0, r: 130, b: 12 }, 100, 50), [10, 0]);
 });
 
 test('a line box sits so its baseline is where the canvas put it', () => {
