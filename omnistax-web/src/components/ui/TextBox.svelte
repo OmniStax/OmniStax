@@ -17,7 +17,7 @@
 
   let {
     x, y, w, h, body, resolver, selected = false, placeholder = 'Double-click to write…',
-    onchange, onmove, onresize, onselect, onremove, onlink,
+    onchange, onmove, onresize, onselect, onremove, onlink, autowrite = false,
   }: {
     x: number; y: number; w: number; h: number; body: string;
     /* What the markdown may point at. A parent with nothing to lend passes a
@@ -34,9 +34,10 @@
     onremove?: () => void;
     /* A link followed inside the box: the parent knows where links open. */
     onlink?: (link: string) => void;
+    autowrite?: boolean;
   } = $props();
 
-  let writing = $state(false);
+  let writing = $state(autowrite);
   let host = $state<HTMLElement | null>(null);
 
   /* The renderer carries marked and KaTeX with it, so it is fetched the first

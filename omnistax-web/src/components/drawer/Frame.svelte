@@ -19,8 +19,16 @@
 
      A frame that cannot show what it names still says what it is, so a
      snapshot that failed is a card with the figure's words on it and the glyph
-     that opens the real thing. */
-  import { getAsset } from '../../lib/notes/assets';
+     that opens the real thing.
+
+     A note is the one card that can be written in where it stands: a
+     double-click puts the note's own editor in the frame, writing to the note
+     itself, and Escape or a press outside the frame leaves it. */
+  import { tick } from 'svelte';
+  import type MarkdownEditorType from '../notes/MarkdownEditor.svelte';
+  import { getAsset, putAsset } from '../../lib/notes/assets';
+  import { noteDocs } from '../../lib/notes/docs.svelte';
+  import type { NoteId } from '../../lib/types/ids';
   import { assetOfEmbed } from '../../lib/drawer/snapshot';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import type { Resolver } from '../../lib/notes/md/render';
@@ -28,6 +36,7 @@
 
   let {
     x, y, w, h, embed, open, selected = false, scale = 1, resolver, onopen, onmove, onresize, ondecorate,
+    tint = null, note = null, editing = false, onedit,
   }: {
     x: number; y: number; w: number; h: number;
     embed: string; open?: string;
@@ -42,7 +51,33 @@
     /* The card's own HTML, once it is in the document: the drawing sets its
        maths with the book's renderer, as a note does. */
     ondecorate?: (el: HTMLElement) => void;
+    /* The colour the reader gave the frame, as CSS, tinting its border. */
+    tint?: string | null;
+    /* The note this frame holds, when it holds one that can be written in. */
+    note?: NoteId | null;
+    editing?: boolean;
+    onedit?: (on: boolean) => void;
   } = $props();
+
+  let Editor = $state<typeof MarkdownEditorType | null>(null);
+  let editor = $state<{ focus(): void } | null>(null);
+  let host = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (!editing || Editor !== null) return;
+    void import('../notes/MarkdownEditor.svelte').then((m) => { Editor = m.default; });
+  });
+  $effect(() => { const ed = editor; if (editing && ed) void tick().then(() => ed.focus()); });
+  $effect(() => {
+    if (!editing) return;
+    const away = (e: PointerEvent): void => { if (!host?.contains(e.target as Node)) onedit?.(false); };
+    window.addEventListener('pointerdown', away, true);
+    return () => window.removeEventListener('pointerdown', away, true);
+  });
+  const body = $derived(note ? noteDocs.get(note)?.body ?? '' : '');
+  const onkey = (e: KeyboardEvent): void => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); onedit?.(false); }
+  };
 
   const asset = $derived(assetOfEmbed(embed));
 
@@ -92,9 +127,18 @@
   const onCorner = (e: PointerEvent): void => drag(e, (dx, dy) => onresize(Math.max(MIN, w + dx), Math.max(MIN, h + dy)));
 </script>
 
-<div class="frame" class:selected data-embed={embed}
-  style:left="{x}px" style:top="{y}px" style:width="{w}px" style:height="{h}px">
-  {#if asset}
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="frame" class:selected class:tinted={tint !== null} class:editing data-embed={embed} bind:this={host}
+  style:left="{x}px" style:top="{y}px" style:width="{w}px" style:height="{h}px" style:--tint={tint}
+  ondblclick={(e) => { if (!note || editing) return; e.stopPropagation(); onedit?.(true); }}>
+  {#if editing && note}
+    <div class="editor" onkeydown={onkey} onpointerdown={(e) => e.stopPropagation()} onwheel={(e) => e.stopPropagation()}>
+      {#if Editor}
+        {@const Ed = Editor}
+        <Ed bind:this={editor} value={body} onchange={(v: string) => noteDocs.setBody(note, v)} onimage={(f: File) => putAsset(f)} />
+      {/if}
+    </div>
+  {:else if asset}
     {#if url}<img class="shot" src={url} alt="" draggable="false" />{:else}<div class="waiting"></div>{/if}
   {:else if html}
     <div class="card" bind:this={card}>{@html html}</div>
@@ -113,6 +157,9 @@
 
 <style>
   .frame{position:absolute;box-sizing:border-box;border:1px solid var(--rule);border-radius:8px;background:var(--panel);overflow:hidden;font-family:var(--sans);font-size:13px}
+  .frame.tinted{border-color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--panel))}
+  .frame.editing{overflow:visible;z-index:2}
+  .editor{width:100%;height:100%;overflow:auto;background:var(--panel);cursor:text;-webkit-user-select:text;user-select:text}
   .frame.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
   .shot{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
   .waiting{width:100%;height:100%;background:var(--soft)}

@@ -10,6 +10,7 @@
    `view`, the corner the reader was last looking from, so that reopening a
    drawing lands where they left it. */
 import { newDrawingId, type DrawingId } from '../types/ids';
+import { readColour, type Colour } from './colour';
 
 /* One item of a drawing: the id it is named by within its own drawing, eight
    characters of base 36 as everything the reader owns is named. */
@@ -23,9 +24,20 @@ export const newDrawItemId = (): DrawItemId => drawItemId(base36(8));
    from the pressure the device reports. */
 export const INK_TOOLS = ['pen', 'highlighter'] as const;
 export type InkTool = (typeof INK_TOOLS)[number];
-/* The four shapes the toolbar draws, each from one corner to another. */
-export const SHAPE_KINDS = ['line', 'arrow', 'rect', 'ellipse'] as const;
+/* The shapes a drawing keeps, each from one corner to another. The toolbar
+   offers an arrow too, which is a connector with two free ends. */
+export const SHAPE_KINDS = ['line', 'rect', 'ellipse'] as const;
 export type ShapeKind = (typeof SHAPE_KINDS)[number];
+export const SHAPE_TOOLS = ['line', 'arrow', 'rect', 'ellipse'] as const;
+export type ShapeTool = (typeof SHAPE_TOOLS)[number];
+
+/* A connector's end: fixed to one side of an element, or free on the plane. */
+export const SIDES = ['n', 'e', 's', 'w'] as const;
+export type Side = (typeof SIDES)[number];
+export type End = { readonly item: DrawItemId; readonly side: Side } | { readonly x: number; readonly y: number };
+export const CURVES = ['straight', 'bezier'] as const;
+export type Curve = (typeof CURVES)[number];
+export type Heads = { readonly start: boolean; readonly end: boolean };
 
 /* A point of a stroke: where it was and how hard the pen was pressed. A device
    that reports no pressure sends 0.5, which is what the browser itself does. */
@@ -39,10 +51,42 @@ export type Box = { readonly x: number; readonly y: number; readonly w: number; 
 export type FrameEmbed = string;
 
 export type DrawItem =
-  | { readonly kind: 'stroke'; readonly id: DrawItemId; readonly tool: InkTool; readonly color: string; readonly size: number; readonly points: readonly Point[] }
-  | { readonly kind: 'shape'; readonly id: DrawItemId; readonly shape: ShapeKind; readonly color: string; readonly size: number; readonly fill: boolean; readonly from: readonly [number, number]; readonly to: readonly [number, number] }
-  | { readonly kind: 'box'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly body: string }
-  | { readonly kind: 'frame'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly embed: FrameEmbed; readonly open?: string };
+  | { readonly kind: 'stroke'; readonly id: DrawItemId; readonly tool: InkTool; readonly color: Colour; readonly size: number; readonly points: readonly Point[] }
+  | { readonly kind: 'shape'; readonly id: DrawItemId; readonly shape: ShapeKind; readonly color: Colour; readonly size: number; readonly fill: boolean; readonly from: readonly [number, number]; readonly to: readonly [number, number] }
+  | { readonly kind: 'box'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly body: string; readonly color?: Colour }
+  | { readonly kind: 'frame'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly embed: FrameEmbed; readonly open?: string; readonly color?: Colour }
+  | { readonly kind: 'link'; readonly id: DrawItemId; readonly from: End; readonly to: End; readonly curve: Curve; readonly heads: Heads; readonly color: Colour; readonly size: number; readonly label: string }
+  | { readonly kind: 'group'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly label: string; readonly color?: Colour }
+  | { readonly kind: 'chat'; readonly id: DrawItemId; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly chat: string; readonly root?: string };
+
+export type LinkItem = Extract<DrawItem, { kind: 'link' }>;
+export type GroupItem = Extract<DrawItem, { kind: 'group' }>;
+/* What stands in a rectangle of its own and so can be moved by its corner. */
+export type Placed = Extract<DrawItem, { kind: 'box' | 'frame' | 'group' | 'chat' }>;
+export const isPlaced = (i: DrawItem): i is Placed => i.kind === 'box' || i.kind === 'frame' || i.kind === 'group' || i.kind === 'chat';
+
+/* The rectangle a connector can be fixed to. Ink and lines are not
+   connectable; a rectangle and an ellipse are, by the box they are drawn in. */
+export const rectOf = (i: DrawItem): Box | null => {
+  if (isPlaced(i)) return { x: i.x, y: i.y, w: i.w, h: i.h };
+  if (i.kind !== 'shape' || i.shape === 'line') return null;
+  const x = Math.min(i.from[0], i.to[0]), y = Math.min(i.from[1], i.to[1]);
+  return { x, y, w: Math.abs(i.to[0] - i.from[0]), h: Math.abs(i.to[1] - i.from[1]) };
+};
+
+export const sideAt = (b: Box, side: Side): readonly [number, number] =>
+  side === 'n' ? [b.x + b.w / 2, b.y] : side === 's' ? [b.x + b.w / 2, b.y + b.h]
+    : side === 'w' ? [b.x, b.y + b.h / 2] : [b.x + b.w, b.y + b.h / 2];
+
+export const isFree = (e: End): e is { readonly x: number; readonly y: number } => !('item' in e);
+
+/* Where an end stands now, and nothing when the element it names is gone. */
+export const endPoint = (items: readonly DrawItem[], e: End): readonly [number, number] | null => {
+  if (isFree(e)) return [e.x, e.y];
+  const target = items.find((i) => i.id === e.item);
+  const r = target ? rectOf(target) : null;
+  return r ? sideAt(r, e.side) : null;
+};
 
 /* Where the reader is looking: the canvas point that stands at the top left of
    the pane, and the scale it is drawn at. It is the tab's own while the tab is
@@ -77,10 +121,23 @@ export const itemById = (d: Drawing, id: DrawItemId): DrawItem | undefined => d.
 
 export const addItem = (d: Drawing, item: DrawItem, now?: number): Drawing => touched(d, [...d.items, item], now);
 
+/* A connector whose element is deleted keeps that end where it stood, free. */
+const loosened = (items: readonly DrawItem[], gone: ReadonlySet<string>) => (e: End): End => {
+  if (isFree(e) || !gone.has(e.item)) return e;
+  const p = endPoint(items, e);
+  return p ? { x: p[0], y: p[1] } : e;
+};
+
 export const removeItems = (d: Drawing, ids: readonly DrawItemId[], now?: number): Drawing => {
   const gone = new Set<string>(ids);
   if (!d.items.some((i) => gone.has(i.id))) return d;
-  return touched(d, d.items.filter((i) => !gone.has(i.id)), now);
+  const loose = loosened(d.items, gone);
+  const kept = d.items.filter((i) => !gone.has(i.id)).map((i) => {
+    if (i.kind !== 'link') return i;
+    const from = loose(i.from), to = loose(i.to);
+    return from === i.from && to === i.to ? i : { ...i, from, to };
+  });
+  return touched(d, kept, now);
 };
 
 /* One item replaced by another of the same id: what a text box being typed in
@@ -91,7 +148,15 @@ export const replaceItem = (d: Drawing, item: DrawItem, now?: number): Drawing =
 const shifted = (i: DrawItem, dx: number, dy: number): DrawItem => {
   if (i.kind === 'stroke') return { ...i, points: i.points.map(([x, y, p]) => [x + dx, y + dy, p] as Point) };
   if (i.kind === 'shape') return { ...i, from: [i.from[0] + dx, i.from[1] + dy], to: [i.to[0] + dx, i.to[1] + dy] };
+  if (i.kind === 'link') return { ...i, from: freeMapped(i.from, (x, y) => [x + dx, y + dy]), to: freeMapped(i.to, (x, y) => [x + dx, y + dy]) };
   return { ...i, x: i.x + dx, y: i.y + dy };
+};
+
+/* An attached end follows its element on its own; only a free end is moved. */
+const freeMapped = (e: End, f: (x: number, y: number) => readonly [number, number]): End => {
+  if (!isFree(e)) return e;
+  const [x, y] = f(e.x, e.y);
+  return { x, y };
 };
 
 export const moveItems = (d: Drawing, ids: readonly DrawItemId[], dx: number, dy: number, now?: number): Drawing => {
@@ -111,6 +176,7 @@ const mapped = (i: DrawItem, from: Box, to: Box): DrawItem => {
   const at = (x: number, y: number): [number, number] => [to.x + (x - from.x) * kx, to.y + (y - from.y) * ky];
   if (i.kind === 'stroke') return { ...i, size: i.size * k, points: i.points.map(([x, y, p]) => { const [nx, ny] = at(x, y); return [nx, ny, p] as Point; }) };
   if (i.kind === 'shape') return { ...i, size: i.size * k, from: at(...i.from), to: at(...i.to) };
+  if (i.kind === 'link') return { ...i, from: freeMapped(i.from, at), to: freeMapped(i.to, at) };
   const [x, y] = at(i.x, i.y);
   return { ...i, x, y, w: i.w * kx, h: i.h * ky };
 };
@@ -126,6 +192,27 @@ export const setBoxBody = (d: Drawing, id: DrawItemId, body: string, now?: numbe
   if (!box || box.kind !== 'box' || box.body === body) return d;
   return replaceItem(d, { ...box, body }, now);
 };
+
+const coloured = (i: DrawItem, color: Colour): DrawItem => {
+  if (i.kind === 'chat' || ('color' in i && i.color === color)) return i;
+  return { ...i, color } as DrawItem;
+};
+
+/* A swatch picked with something selected recolours it. */
+export const setColour = (d: Drawing, ids: readonly DrawItemId[], color: Colour, now?: number): Drawing => {
+  const picked = new Set<string>(ids);
+  const items = d.items.map((i) => (picked.has(i.id) ? coloured(i, color) : i));
+  return items.every((i, k) => i === d.items[k]) ? d : touched(d, items, now);
+};
+
+/* A group of what is selected: a rectangle round it, with a margin, laid
+   beneath everything else. */
+export const GROUP_PAD = 24;
+export const groupAround = (d: Drawing, box: Box, id: DrawItemId = newDrawItemId(), label = 'Group', now?: number): Drawing =>
+  touched(d, [{ kind: 'group', id, x: box.x - GROUP_PAD, y: box.y - GROUP_PAD - 20, w: box.w + 2 * GROUP_PAD, h: box.h + 2 * GROUP_PAD + 20, label }, ...d.items], now);
+
+/* A new group drawn with the tool also goes beneath everything. */
+export const addGroup = (d: Drawing, g: GroupItem, now?: number): Drawing => touched(d, [g, ...d.items], now);
 
 /* Where the reader was looking, remembered. It is not a change to the drawing
    — nothing that is on the plane has moved — so it does not touch `updated`,
@@ -196,23 +283,48 @@ const parseItem = (raw: unknown): DrawItem | null => {
   if (o.kind === 'stroke') {
     const tool = (INK_TOOLS as readonly string[]).includes(str(o.tool)) ? (o.tool as InkTool) : 'pen';
     const points = Array.isArray(o.points) ? o.points.map(parsePoint).filter((p): p is Point => p !== null) : [];
-    return points.length ? { kind: 'stroke', id, tool, color: str(o.color, '#000000'), size: num(o.size, 2), points } : null;
+    return points.length ? { kind: 'stroke', id, tool, color: readColour(o.color), size: num(o.size, 2), points } : null;
   }
   if (o.kind === 'shape') {
-    const shape = (SHAPE_KINDS as readonly string[]).includes(str(o.shape)) ? (o.shape as ShapeKind) : 'line';
     const from = parsePoint(o.from); const to = parsePoint(o.to);
     if (!from || !to) return null;
-    return { kind: 'shape', id, shape, color: str(o.color, '#000000'), size: num(o.size, 2), fill: o.fill === true, from: [from[0], from[1]], to: [to[0], to[1]] };
+    const color = readColour(o.color), size = num(o.size, 2);
+    /* An arrow was a shape before connectors; it is one with two free ends. */
+    if (o.shape === 'arrow') return { kind: 'link', id, from: { x: from[0], y: from[1] }, to: { x: to[0], y: to[1] }, curve: 'straight', heads: { start: false, end: true }, color, size, label: '' };
+    const shape = (SHAPE_KINDS as readonly string[]).includes(str(o.shape)) ? (o.shape as ShapeKind) : 'line';
+    return { kind: 'shape', id, shape, color, size, fill: o.fill === true, from: [from[0], from[1]], to: [to[0], to[1]] };
   }
-  if (o.kind === 'box') return { kind: 'box', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 240), h: num(o.h, 80), body: str(o.body) };
+  const rect = { x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 240), h: num(o.h, 80) };
+  const tint = o.color === undefined ? {} : { color: readColour(o.color) };
+  if (o.kind === 'box') return { kind: 'box', id, ...rect, body: str(o.body), ...tint };
   if (o.kind === 'frame') {
     const embed = str(o.embed);
     if (!embed) return null;
-    const open = typeof o.open === 'string' && o.open ? o.open : undefined;
-    return open ? { kind: 'frame', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 280), h: num(o.h, 200), embed, open }
-      : { kind: 'frame', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 280), h: num(o.h, 200), embed };
+    const open = typeof o.open === 'string' && o.open ? { open: o.open } : {};
+    return { kind: 'frame', id, ...rect, w: num(o.w, 280), h: num(o.h, 200), embed, ...open, ...tint };
+  }
+  if (o.kind === 'group') return { kind: 'group', id, ...rect, label: str(o.label), ...tint };
+  if (o.kind === 'chat') {
+    const chat = str(o.chat);
+    if (!chat) return null;
+    const root = typeof o.root === 'string' && o.root ? { root: o.root } : {};
+    return { kind: 'chat', id, ...rect, w: num(o.w, 420), h: num(o.h, 300), chat, ...root };
+  }
+  if (o.kind === 'link') {
+    const from = parseEnd(o.from), to = parseEnd(o.to);
+    if (!from || !to) return null;
+    const heads = (typeof o.heads === 'object' && o.heads !== null ? o.heads : {}) as Record<string, unknown>;
+    const curve = (CURVES as readonly string[]).includes(str(o.curve)) ? (o.curve as Curve) : 'bezier';
+    return { kind: 'link', id, from, to, curve, heads: { start: heads.start === true, end: heads.end !== false }, color: readColour(o.color), size: num(o.size, 2), label: str(o.label) };
   }
   return null;
+};
+
+const parseEnd = (raw: unknown): End | null => {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.item === 'string' && o.item && (SIDES as readonly string[]).includes(str(o.side))) return { item: drawItemId(o.item), side: o.side as Side };
+  return typeof o.x === 'number' && typeof o.y === 'number' && Number.isFinite(o.x) && Number.isFinite(o.y) ? { x: o.x, y: o.y } : null;
 };
 
 /* A record written before the plane was unbounded carries a `width` and a

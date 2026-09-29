@@ -4,11 +4,11 @@
 
    The keys are bare letters, which the shell's own chords never are, so they
    only ever mean this inside a drawing tab and nothing anywhere else. */
-export const TOOLS = ['pen', 'highlighter', 'eraser', 'lasso', 'text', 'shape', 'pan'] as const;
+export const TOOLS = ['pen', 'highlighter', 'eraser', 'lasso', 'text', 'shape', 'group', 'pan'] as const;
 export type Tool = (typeof TOOLS)[number];
 
 export const TOOL_KEY: Readonly<Record<Tool, string>> = {
-  pen: 'p', highlighter: 'h', eraser: 'e', lasso: 'l', text: 't', shape: 's', pan: 'v',
+  pen: 'p', highlighter: 'h', eraser: 'e', lasso: 'l', text: 't', shape: 's', group: 'g', pan: 'v',
 };
 
 /* The tool one keystroke asks for, and nothing when the key means something
@@ -24,5 +24,5 @@ export const isInk = (t: Tool): t is 'pen' | 'highlighter' => t === 'pen' || t =
    next press will do before it is made. */
 export const CURSOR: Readonly<Record<Tool, string>> = {
   pen: 'crosshair', highlighter: 'crosshair', eraser: 'cell', lasso: 'crosshair',
-  text: 'text', shape: 'crosshair', pan: 'grab',
+  text: 'text', shape: 'crosshair', group: 'crosshair', pan: 'grab',
 };

@@ -7,8 +7,9 @@
    Boxes and frames are not drawn here. They are HTML, laid over the canvas
    inside one transformed container, because a card renders KaTeX and follows
    links and a picture of one would do neither. */
-import { nib } from './geometry';
-import type { DrawItem, InkTool, Point } from './model';
+import { headAngles, linkPath, nib, type LinkPath } from './geometry';
+import type { Paint } from './colour';
+import type { DrawItem, Heads, InkTool, Point } from './model';
 
 /* A highlighter is wide and half transparent and multiplies into what is under
    it, so that two passes darken as a real one does; a pen is opaque. */
@@ -63,8 +64,7 @@ const strokeInk = (ctx: CanvasRenderingContext2D, tool: InkTool, color: string, 
    a length that grows with the line's own width so that a thick arrow does not
    end in a pinprick. */
 const ARROW_ANGLE = Math.PI / 7;
-const arrowHead = (ctx: CanvasRenderingContext2D, from: readonly [number, number], to: readonly [number, number], size: number): void => {
-  const a = Math.atan2(to[1] - from[1], to[0] - from[0]);
+const arrowHead = (ctx: CanvasRenderingContext2D, to: readonly [number, number], a: number, size: number): void => {
   const len = Math.max(9, size * 4);
   ctx.beginPath();
   ctx.moveTo(to[0] - Math.cos(a - ARROW_ANGLE) * len, to[1] - Math.sin(a - ARROW_ANGLE) * len);
@@ -73,21 +73,35 @@ const arrowHead = (ctx: CanvasRenderingContext2D, from: readonly [number, number
   ctx.stroke();
 };
 
-const drawShape = (ctx: CanvasRenderingContext2D, item: Extract<DrawItem, { kind: 'shape' }>): void => {
+/* A connector: its curve and a head at either end it asks for. */
+export const drawPath = (ctx: CanvasRenderingContext2D, p: LinkPath, color: string, size: number, heads: Heads): void => {
   styled(ctx, () => {
-    ctx.strokeStyle = item.color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(0.5, size);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(p.a[0], p.a[1]);
+    ctx.bezierCurveTo(p.c1[0], p.c1[1], p.c2[0], p.c2[1], p.b[0], p.b[1]);
+    ctx.stroke();
+    const at = headAngles(p);
+    if (heads.start) arrowHead(ctx, p.a, at.start, size);
+    if (heads.end) arrowHead(ctx, p.b, at.end, size);
+  });
+};
+
+const drawShape = (ctx: CanvasRenderingContext2D, item: Extract<DrawItem, { kind: 'shape' }>, paint: Paint): void => {
+  styled(ctx, () => {
+    const color = paint(item.color);
+    ctx.strokeStyle = color;
     ctx.lineWidth = Math.max(0.5, item.size);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     /* A filled shape wears its own colour behind its outline, thinned so that
        what is under it still reads through. */
-    ctx.fillStyle = item.color;
+    ctx.fillStyle = color;
     const [x0, y0] = item.from, [x1, y1] = item.to;
-    if (item.shape === 'line' || item.shape === 'arrow') {
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      if (item.shape === 'arrow') arrowHead(ctx, item.from, item.to, item.size);
-      return;
-    }
+    if (item.shape === 'line') { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); return; }
     const x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0), h = Math.abs(y1 - y0);
     ctx.beginPath();
     if (item.shape === 'rect') ctx.rect(x, y, w, h);
@@ -98,14 +112,18 @@ const drawShape = (ctx: CanvasRenderingContext2D, item: Extract<DrawItem, { kind
 };
 
 /* One item onto the context, in the coordinates the drawing keeps: the caller
-   has already set whatever scale and offset the view is at. */
-export const drawItem = (ctx: CanvasRenderingContext2D, item: DrawItem): void => {
-  if (item.kind === 'stroke') { strokeInk(ctx, item.tool, item.color, item.size, item.points); return; }
-  if (item.kind === 'shape') drawShape(ctx, item);
-  /* A box and a frame are HTML over the canvas and draw nothing here. */
+   has already set whatever scale and offset the view is at. A connector is
+   drawn between its elements, so it is handed the whole drawing to find them. */
+export const drawItem = (ctx: CanvasRenderingContext2D, item: DrawItem, paint: Paint, all: readonly DrawItem[] = [item]): void => {
+  if (item.kind === 'stroke') { strokeInk(ctx, item.tool, paint(item.color), item.size, item.points); return; }
+  if (item.kind === 'shape') { drawShape(ctx, item, paint); return; }
+  if (item.kind !== 'link') return;
+  const p = linkPath(all, item);
+  if (p) drawPath(ctx, p, paint(item.color), item.size, item.heads);
 };
 
-export const drawItems = (ctx: CanvasRenderingContext2D, items: readonly DrawItem[]): void => items.forEach((i) => drawItem(ctx, i));
+export const drawItems = (ctx: CanvasRenderingContext2D, items: readonly DrawItem[], paint: Paint, all: readonly DrawItem[] = items): void =>
+  items.forEach((i) => drawItem(ctx, i, paint, all));
 
 /* The stroke the pen is laying down this moment, before it has become an item:
    the same ink, so that what the reader sees while drawing is exactly what is

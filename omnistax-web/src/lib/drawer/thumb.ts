@@ -12,6 +12,7 @@ import type { DrawingId } from '../types/ids';
 import { getDrawing } from './db';
 import { drawItems, dprOf } from './render';
 import { boundsOf } from './geometry';
+import { paperPaint } from './colour';
 import type { Drawing } from './model';
 
 /* How wide a thumbnail is drawn, and the most it may be tall: a long drawing
@@ -41,7 +42,7 @@ const paint = (d: Drawing): string | null => {
   ctx.fillRect(0, 0, tw, th);
   ctx.scale(k, k);
   ctx.translate(-(box.x - PAD), -(box.y - PAD));
-  drawItems(ctx, d.items);
+  drawItems(ctx, d.items, paperPaint(document.documentElement));
   try { return canvas.toDataURL('image/png'); } catch { return null; }
 };
 

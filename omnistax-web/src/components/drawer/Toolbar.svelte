@@ -6,28 +6,29 @@
 
      The colours are the app's ink tokens and, while a book is open, the
      colours the focused book's quantities wear, so a force can be drawn in the
-     force colour and the drawing reads like the page beside it. They are read
-     off the page, or off the book's own row for its quantities, at the moment the bar is drawn, since the reader may have chosen
-     them in the colour menu, and the scheme is the page's own. */
+     force colour and the drawing reads like the page beside it. A swatch is a
+     token, never the colour it stands for this moment, so turning the theme
+     cannot leave the bar pointing at a colour no swatch has. */
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { ICON } from '../../lib/icons';
   import { TOOL_KEY, type Tool } from '../../lib/drawer/tools';
-  import { SHAPE_KINDS, type ShapeKind } from '../../lib/drawer/model';
+  import { SHAPE_TOOLS, type ShapeTool } from '../../lib/drawer/model';
+import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
   let {
     tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false,
     ontool, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onreset, onsave, onimage,
   }: {
-    tool: Tool; color: string; size: number; fill: boolean; shape: ShapeKind;
+    tool: Tool; color: Colour; size: number; fill: boolean; shape: ShapeTool;
     canUndo: boolean; canRedo: boolean;
     /* There is nothing to frame on a plane with nothing on it. */
     canFit?: boolean;
     /* A scratch page carries one button a drawing does not: the way to make it
        a drawing of the reader's own. */
     scratch?: boolean; busy?: boolean;
-    ontool: (t: Tool) => void; oncolor: (c: string) => void; onsize: (n: number) => void;
-    onfill: (on: boolean) => void; onshape: (s: ShapeKind) => void;
+    ontool: (t: Tool) => void; oncolor: (c: Colour) => void; onsize: (n: number) => void;
+    onfill: (on: boolean) => void; onshape: (s: ShapeTool) => void;
     onundo: () => void; onredo: () => void;
     /* The two ways back to the ink on an unbounded plane. */
     onfit: () => void; onreset: () => void;
@@ -44,6 +45,7 @@
     { id: 'lasso', label: 'Lasso', glyph: LASSO_GLYPH() },
     { id: 'text', label: 'Text box', glyph: ICON.note },
     { id: 'shape', label: 'Shapes', glyph: SHAPE_GLYPH() },
+    { id: 'group', label: 'Group', glyph: GROUP_GLYPH() },
     { id: 'pan', label: 'Pan', glyph: HAND_GLYPH() },
   ];
   /* Four glyphs the rail has no use for, so they live here rather than in the
@@ -51,35 +53,24 @@
   function ERASER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M15.5 4.5 20 9l-8.5 8.5H7L3.5 14z"/><path d="M9 9l6 6"/></svg>'; }
   function LASSO_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M12 4c4.4 0 8 2.5 8 5.5S16.4 15 12 15 4 12.5 4 9.5 7.6 4 12 4Z" stroke-dasharray="3 2.5"/><path d="M8.5 14.6c-.6 1.6-.3 3 .9 3.9"/><circle cx="10" cy="19.6" r="1.6"/></svg>'; }
   function SHAPE_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="10" height="10" rx="1.5"/><circle cx="15.5" cy="15.5" r="5"/></svg>'; }
+  function GROUP_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2" stroke-dasharray="3 2"/><path d="M3 9h7"/></svg>'; }
   function HAND_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 11V9a1.5 1.5 0 0 0-3 0v5.5c0 3.6 2.6 6 6 6h1.5c3 0 5.5-2.4 5.5-5.5V13"/></svg>'; }
 
-  /* The ink the app itself offers, as tokens rather than as literals, so a
-     drawing follows the theme the reader is in. */
-  const INK: readonly { readonly name: string; readonly token: string }[] = [
-    { name: 'Ink', token: '--ink' },
-    { name: 'Accent', token: '--accent' },
-    { name: 'Warm', token: '--warm' },
-    { name: 'Correct', token: '--ok' },
-    { name: 'Wrong', token: '--bad' },
-    { name: 'Muted', token: '--muted' },
+  const INK: readonly { readonly name: string; readonly token: Colour }[] = [
+    { name: 'Ink', token: 'ink' },
+    { name: 'Accent', token: 'accent' },
+    { name: 'Warm', token: 'warm' },
+    { name: 'Correct', token: 'ok' },
+    { name: 'Wrong', token: 'bad' },
+    { name: 'Muted', token: 'muted' },
   ];
-
-  /* A token read off the root as the colour it currently stands for: the
-     canvas is painted with literal colours, since a stroke keeps the colour it
-     was drawn in even after the reader changes the theme. */
-  const resolved = (token: string, at: Element | null = document.documentElement): string => {
-    if (typeof getComputedStyle === 'undefined' || !at) return '#111111';
-    const v = getComputedStyle(at).getPropertyValue(token).trim();
-    return v || '#111111';
-  };
 
   /* The book's own quantities, in the order the book declares them, each in
      the colour that quantity wears on this page. A book with no types — or no
      book at all — leaves the row out. */
   const book = $derived(focus.book);
-  let bookRow = $state<HTMLElement | null>(null);
   const quantities = $derived.by(() =>
-    Object.entries(book ? registry.manifest(book).types ?? {} : {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `--c-${id}` })));
+    Object.entries(book ? registry.manifest(book).types ?? {} : {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `c-${id}` })));
 
   const SIZES: readonly number[] = [1, 2, 4, 8, 16];
 
@@ -107,7 +98,7 @@
 
   {#if tool === 'shape'}
     <div class="group">
-      {#each SHAPE_KINDS as s (s)}
+      {#each SHAPE_TOOLS as s (s)}
         <button type="button" class="chip" class:on={shape === s} onclick={() => onshape(s)}>{s}</button>
       {/each}
       <label class="fill"><input type="checkbox" checked={fill} onchange={(e) => onfill((e.currentTarget as HTMLInputElement).checked)} /> Fill</label>
@@ -116,18 +107,22 @@
 
   <div class="group swatches">
     {#each INK as c (c.token)}
-      <button type="button" class="swatch" class:on={color === resolved(c.token)} title={c.name} aria-label={c.name}
-        style:background="var({c.token})" onclick={() => oncolor(resolved(c.token))}></button>
+      <button type="button" class="swatch" class:on={color === c.token} title={c.name} aria-label={c.name} data-token={c.token}
+        style:background={cssOf(c.token)} onclick={() => oncolor(c.token)}></button>
     {/each}
     {#if quantities.length}
       <span class="rule"></span>
-      <span class="book-row" data-book={book} bind:this={bookRow}>
+      <span class="book-row" data-book={book}>
         {#each quantities as q (q.id)}
-          <button type="button" class="swatch" class:on={color === resolved(q.token, bookRow)} title={q.label} aria-label={q.label}
-            style:background="var({q.token}, var(--muted))" onclick={() => oncolor(resolved(q.token, bookRow))}></button>
+          <button type="button" class="swatch" class:on={color === q.token} title={q.label} aria-label={q.label} data-token={q.token}
+            style:background="var(--{q.token}, var(--muted))" onclick={() => oncolor(q.token)}></button>
         {/each}
       </span>
     {/if}
+    <label class="swatch custom" class:on={!isToken(color)} title="Custom color" style:background={isToken(color) ? null : color}>
+      <input type="color" value={isToken(color) ? '#888888' : color} aria-label="Custom color"
+        onchange={(e) => oncolor((e.currentTarget as HTMLInputElement).value.toLowerCase())} />
+    </label>
   </div>
 
   <div class="group sizes">
@@ -147,7 +142,7 @@
     <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Undo (Ctrl+Z)">Undo</button>
     <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Redo (Ctrl+Shift+Z)">Redo</button>
     {#if scratch && onsave}
-      <button type="button" class="chip save" disabled={busy} onclick={onsave} title="Keep this work as a drawing under Your Files">Save as drawing</button>
+      <button type="button" class="chip save" disabled={busy} onclick={onsave} title="Save to Your Files as a drawing">Save as drawing</button>
     {/if}
   </div>
 </div>
@@ -166,6 +161,8 @@
   .hidden-file{display:none}
   .swatch{width:18px;height:18px;border:1px solid var(--rule);border-radius:50%;cursor:pointer;padding:0}
   .swatch.on{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--accent)}
+  .swatch.custom{position:relative;display:inline-block;box-sizing:border-box;background:conic-gradient(#e11d48,#f59e0b,#16a34a,#2563eb,#9333ea,#e11d48)}
+  .swatch.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:0;padding:0}
   .rule{width:1px;height:16px;background:var(--rule);margin:0 4px}
   .size{display:grid;place-items:center;width:22px;height:22px;border:1px solid transparent;border-radius:5px;background:transparent;cursor:pointer;padding:0}
   .size.on{border-color:var(--accent);background:var(--soft2)}

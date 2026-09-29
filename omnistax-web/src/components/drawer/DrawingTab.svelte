@@ -30,14 +30,23 @@
   import { onMount, tick } from 'svelte';
   import Toolbar from './Toolbar.svelte';
   import Frame from './Frame.svelte';
+  import Group from './Group.svelte';
+  import ChatFrame from './ChatFrame.svelte';
+  import { CHAT_ITEM } from '../../lib/drawer/chatcopy';
   import TextBox from '../ui/TextBox.svelte';
   import {
-    addItem, amend, canRedo, canUndo, clampZoom, moveItems, newDrawItemId, ORIGIN, redo, removeItems,
-    replaceItem, scaleItems, setBoxBody, setView, step, timeline, undo,
-    type Box, type Drawing, type DrawItem, type DrawItemId, type Point, type ShapeKind, type View,
+    addGroup, addItem, amend, canRedo, canUndo, clampZoom, endPoint, groupAround, moveItems, newDrawItemId, ORIGIN, rectOf,
+    redo, removeItems, replaceItem, scaleItems, setBoxBody, setColour, setView, sideAt, SIDES, step, timeline, undo,
+    type Box, type Drawing, type DrawItem, type DrawItemId, type End, type GroupItem, type LinkItem, type Placed, type Point,
+    type ShapeTool, type Side, type Timeline, type View,
   } from '../../lib/drawer/model';
-  import { bounds, boundsOf, erasedAt, fitView, handleUnder, inBox, lassoed, meets, resized, simplify, snapped, viewBox, type Handle, type Vec } from '../../lib/drawer/geometry';
-  import { drawItems, drawLasso, drawLive, fitCanvas } from '../../lib/drawer/render';
+  import {
+    boundsOf, connectableAt, erasedAt, fitView, handleUnder, inBox, lassoed, linkPath, linkUnder, meets, membersOf,
+    nearestSide, pathBetween, placedBounds, pointOn, resized, simplify, snapped, viewBox, type Handle, type Vec,
+  } from '../../lib/drawer/geometry';
+  import { drawItems, drawLasso, drawLive, drawPath, fitCanvas } from '../../lib/drawer/render';
+  import { cssOf, paintFrom, type Colour } from '../../lib/drawer/colour';
+  import { focus } from '../../lib/sections/focus.svelte';
   import { CURSOR, isInk, toolForKey, type Tool } from '../../lib/drawer/tools';
   import { assetEmbed, frameSize, snapshotFigure, snapshotImage } from '../../lib/drawer/snapshot';
   import { cardBooks, cardResolver } from '../../lib/drawer/cards';
@@ -50,7 +59,7 @@
   import { dragging } from '../../lib/layout/drag.svelte';
   import {
     chatId, chatItem, docItem, drawingId, drawingItem, exItem, fileId, fileItem, figItem,
-    itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type SectionRef,
+    itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type NoteId, type SectionRef,
   } from '../../lib/types/ids';
 
   let {
@@ -68,12 +77,33 @@
   /* ── what the toolbar holds ────────────────────────────────────────────── */
 
   let tool = $state<Tool>('pen');
-  let color = $state('#111111');
+  let color = $state<Colour>('ink');
   let size = $state(2);
   let fill = $state(false);
-  let shape = $state<ShapeKind>('line');
-  /* The ink starts at whatever the theme calls ink, read once the tab is up. */
-  onMount(() => { color = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#111111'; });
+  let shape = $state<ShapeTool>('line');
+
+  /* A swatch picked with something selected recolours it as well. */
+  const pickColour = (c: Colour): void => {
+    color = c;
+    if (selection.length) commit(setColour(drawing, selection, c));
+  };
+
+  /* ── colour follows the theme ──────────────────────────────────────────── */
+
+  /* Tokens are turned into colours only when something is painted, read off a
+     probe that carries the focused book so its quantity colours resolve. A
+     turn of the theme throws the answers away and repaints the cache. */
+  let probe = $state<HTMLElement | null>(null);
+  let theme = $state(0);
+  onMount(() => {
+    const bump = (): void => { theme += 1; };
+    const watch = new MutationObserver(bump);
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+    const dark = window.matchMedia?.('(prefers-color-scheme: dark)');
+    dark?.addEventListener('change', bump);
+    return () => { watch.disconnect(); dark?.removeEventListener('change', bump); };
+  });
+  const palette = $derived.by(() => { void theme; void focus.book; return paintFrom(probe ?? null); });
 
   /* ── the drawing's own timeline ────────────────────────────────────────── */
 
@@ -147,17 +177,19 @@
     | { readonly kind: 'ink'; readonly points: Point[] }
     | { readonly kind: 'shape'; readonly from: Vec; to: Vec }
     | { readonly kind: 'lasso'; readonly poly: Vec[] }
-    | { readonly kind: 'move'; readonly from: Vec; last: Vec; readonly base: Drawing }
+    | { readonly kind: 'move'; readonly from: Vec; last: Vec; readonly base: Drawing; readonly ids: readonly DrawItemId[] }
     | { readonly kind: 'resize'; readonly handle: Handle; readonly box: Box; readonly from: Vec; readonly base: Drawing }
     | { readonly kind: 'pan'; readonly x: number; readonly y: number; readonly from: View }
-    | { readonly kind: 'erase' };
+    | { readonly kind: 'erase' }
+    | { readonly kind: 'connect'; readonly from: End; to: Vec }
+    | { readonly kind: 'group'; readonly from: Vec; to: Vec };
   let gesture = $state.raw<Gesture | null>(null);
   let selection = $state.raw<readonly DrawItemId[]>([]);
   let shiftHeld = $state(false);
   let spaceHeld = $state(false);
 
   const selected = $derived(drawing.items.filter((i) => selection.includes(i.id)));
-  const selectionBox = $derived(boundsOf(selected));
+  const selectionBox = $derived(boundsOf(selected, drawing.items));
 
   /* The pointer that is drawing, and whether a pen has the page: a pen down
      makes every touch a palm, which is what the reader's hand resting on the
@@ -180,7 +212,7 @@
 
   /* What the cache was made for: the items it drew and the window it drew
      them in, as one string, since that is all that has to be compared. */
-  const viewKey = (): string => `${view.x},${view.y},${view.zoom},${paneW},${paneH}`;
+  const viewKey = (): string => `${view.x},${view.y},${view.zoom},${paneW},${paneH},${theme}`;
 
   const rebuild = (): void => {
     if (typeof document === 'undefined') return;
@@ -190,7 +222,8 @@
     const window = viewBox(view, paneW, paneH);
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-view.x, -view.y);
-    drawItems(ctx, drawing.items.filter((i) => meets(bounds(i), window)));
+    const all = drawing.items;
+    drawItems(ctx, all.filter((i) => meets(placedBounds(all, i), window)), palette, all);
     bitmapFor = drawing.items;
     bitmapAt = viewKey();
   };
@@ -214,15 +247,24 @@
     /* Whatever is being done this moment is drawn on top, in plane units
        under the same transform the cache was drawn with. */
     const g = gesture;
-    if (!g || (g.kind !== 'ink' && g.kind !== 'shape' && g.kind !== 'lasso')) return;
+    if (!g || (g.kind !== 'ink' && g.kind !== 'shape' && g.kind !== 'lasso' && g.kind !== 'connect' && g.kind !== 'group')) return;
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-view.x, -view.y);
-    if (g.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', color, size, g.points);
-    if (g.kind === 'shape') drawItems(ctx, [{ kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }]);
-    if (g.kind === 'lasso') drawLasso(ctx, g.poly, color, view.zoom);
+    const ink = palette(color);
+    if (g.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', ink, size, g.points);
+    if (g.kind === 'shape' && shape === 'arrow') drawPath(ctx, pathBetween(g.from, g.to, 'straight'), ink, size, { start: false, end: true });
+    else if (g.kind === 'shape') drawItems(ctx, [{ kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }], palette);
+    if (g.kind === 'lasso' || g.kind === 'group') drawLasso(ctx, g.kind === 'lasso' ? g.poly : corners(g.from, g.to), palette('accent'), view.zoom);
+    if (g.kind === 'connect') {
+      const a = endPoint(drawing.items, g.from);
+      const target = connectTarget(g);
+      const b = target ? endPoint(drawing.items, target) : g.to;
+      if (a && b) drawPath(ctx, pathBetween(a, b, 'bezier', 'side' in g.from ? g.from.side : null, target && 'side' in target ? target.side : null), ink, 2, { start: false, end: true });
+    }
   };
+  const corners = (a: Vec, b: Vec): Vec[] => [a, [b[0], a[1]], b, [a[0], b[1]]];
 
-  $effect(() => { void drawing.items; void view; void gesture; void paneW; void paneH; paint(); });
+  $effect(() => { void drawing.items; void view; void gesture; void paneW; void paneH; void palette; paint(); });
 
   /* The canvas is the pane, so it is measured rather than given a size: the
      whole of the tab is drawable from the first frame, and it stays so when
@@ -260,16 +302,59 @@
     if (!box) return false;
     const handle = handleUnder(box, p[0], p[1], 10 / scale);
     if (handle) { gesture = { kind: 'resize', handle, box, from: p, base: drawing }; return true; }
-    if (inBox(box, p[0], p[1])) { gesture = { kind: 'move', from: p, last: p, base: drawing }; return true; }
+    if (inBox(box, p[0], p[1])) { gesture = { kind: 'move', from: p, last: p, base: drawing, ids: carried(drawing.items, selection) }; return true; }
     return false;
   };
 
-  const newTextBox = (p: Vec): void => {
-    const id = newDrawItemId();
-    commit(addItem(drawing, { kind: 'box', id, x: p[0], y: p[1], w: 260, h: 90, body: '' }));
-    selection = [id];
+  /* A group moved carries everything inside it. */
+  const carried = (items: readonly DrawItem[], ids: readonly DrawItemId[]): readonly DrawItemId[] => {
+    const groups = items.filter((i): i is GroupItem => i.kind === 'group' && ids.includes(i.id));
+    return [...new Set([...ids, ...groups.flatMap((g) => membersOf(items, g).map((i) => i.id))])];
   };
 
+  /* The card a double-click made, which opens for writing. */
+  let fresh = $state<DrawItemId | null>(null);
+  const newTextBox = (p: Vec, on: Drawing = drawing, write = false): void => {
+    const id = newDrawItemId();
+    commit(addItem(on, { kind: 'box', id, x: p[0], y: p[1], w: 260, h: 90, body: '', ...(color === 'ink' ? {} : { color }) }));
+    selection = [id];
+    if (write) fresh = id;
+  };
+
+  /* ── connectors ────────────────────────────────────────────────────────── */
+
+  /* The element the pointer is over, which wears a handle on each side. */
+  let hovered = $state<DrawItemId | null>(null);
+  const hoveredRect = $derived.by(() => { const i = hovered ? drawing.items.find((x) => x.id === hovered) : undefined; return i ? rectOf(i) : null; });
+
+  const connectTarget = (g: { readonly from: End; readonly to: Vec }): End | null => {
+    const hit = connectableAt(drawing.items, g.to[0], g.to[1], 0, 'item' in g.from ? g.from.item : null);
+    const r = hit ? rectOf(hit) : null;
+    return hit && r ? { item: hit.id, side: nearestSide(r, g.to[0], g.to[1]) } : null;
+  };
+
+  const newLink = (from: End, to: End, curve: LinkItem['curve'] = 'bezier'): LinkItem =>
+    ({ kind: 'link', id: newDrawItemId(), from, to, curve, heads: { start: false, end: true }, color, size: Math.min(size, 8), label: '' });
+
+  const selectedLink = $derived(selected.length === 1 && selected[0].kind === 'link' ? selected[0] : null);
+  const setLink = (l: LinkItem, patch: Partial<LinkItem>): void => commit(replaceItem(drawing, { ...l, ...patch }));
+
+  let naming = $state<DrawItemId | null>(null);
+  const labels = $derived(drawing.items.flatMap((i) => {
+    if (i.kind !== 'link' || (!i.label && naming !== i.id)) return [];
+    const path = linkPath(drawing.items, i);
+    return path ? [{ link: i, at: pointOn(path, 0.5) }] : [];
+  }));
+  const nameLink = (l: LinkItem, label: string): void => { naming = null; if (label !== l.label) commit(replaceItem(drawing, { ...l, label })); };
+  const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
+
+  const OWN_POINTER = '.boxed, .frame, .chat-item, .link-label, .sel-bar';
+  const grabsSelection = (e: PointerEvent): boolean => {
+    const box = selectionBox;
+    if (tool !== 'lasso' || !box || selection.length < 2) return false;
+    const [x, y] = at(e.clientX, e.clientY);
+    return inBox(box, x, y);
+  };
   const onpointerdown = (e: PointerEvent): void => {
     host?.focus({ preventScroll: true });
     if (e.pointerType === 'touch') touches.set(e.pointerId, [e.clientX, e.clientY]);
@@ -280,15 +365,31 @@
       return;
     }
     if (e.pointerType === 'pen') penDown = true;
+    const side = (e.target as HTMLElement).closest<HTMLElement>('[data-side]');
+    if (side && hovered && e.button === 0) {
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      drawingPointer = e.pointerId;
+      gesture = { kind: 'connect', from: { item: hovered, side: side.dataset.side as Side }, to: at(e.clientX, e.clientY) };
+      return;
+    }
     /* The page itself is moved by the hand tool, by the middle button, and by
        a drag with space held, which is what every canvas does. */
     const panning = tool === 'pan' || e.button === 1 || spaceHeld || (e.pointerType === 'touch' && touches.size === 1);
+    /* A press on a card, a frame or a chat is theirs: taking the pointer here
+       would send their clicks and double-clicks to the surface instead. */
+    if (!panning && !grabsSelection(e) && (e.target as HTMLElement).closest(OWN_POINTER)) return;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     drawingPointer = e.pointerId;
     if (panning) { gesture = { kind: 'pan', x: e.clientX, y: e.clientY, from: view }; return; }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     const p = at(e.clientX, e.clientY);
-    if (tool === 'lasso') { if (beginSelectionDrag(p)) return; selection = []; gesture = { kind: 'lasso', poly: [p] }; return; }
+    if (tool === 'lasso') {
+      if (beginSelectionDrag(p)) return;
+      const l = linkUnder(drawing.items, p[0], p[1], 6 / scale);
+      if (l) { selection = [l.id]; return; }
+      selection = []; gesture = { kind: 'lasso', poly: [p] }; return;
+    }
+    if (tool === 'group') { selection = []; gesture = { kind: 'group', from: p, to: p }; return; }
     if (tool === 'text') { newTextBox(p); return; }
     if (tool === 'eraser') { gesture = { kind: 'erase' }; eraseAt(p); return; }
     if (tool === 'shape') { gesture = { kind: 'shape', from: p, to: p }; return; }
@@ -318,6 +419,10 @@
       }
     }
     const g = gesture;
+    if (!g && e.pointerType !== 'touch') {
+      const [x, y] = at(e.clientX, e.clientY);
+      hovered = connectableAt(drawing.items, x, y, 16 / scale)?.id ?? null;
+    }
     if (!g || (drawingPointer !== null && e.pointerId !== drawingPointer && e.pointerType !== 'touch')) return;
     if (g.kind === 'pan') {
       view = { ...g.from, x: g.from.x - (e.clientX - g.x) / g.from.zoom, y: g.from.y - (e.clientY - g.y) / g.from.zoom };
@@ -334,8 +439,9 @@
     }
     if (g.kind === 'shape') { gesture = { ...g, to: shiftHeld ? snapped(shape, g.from, p) : p }; return; }
     if (g.kind === 'lasso') { g.poly.push(p); gesture = { ...g, poly: g.poly }; return; }
+    if (g.kind === 'connect' || g.kind === 'group') { gesture = { ...g, to: p }; return; }
     if (g.kind === 'erase') { eraseAt(p); return; }
-    if (g.kind === 'move') { nudge(moveItems(g.base, selection, p[0] - g.from[0], p[1] - g.from[1])); gesture = { ...g, last: p }; return; }
+    if (g.kind === 'move') { nudge(moveItems(g.base, g.ids, p[0] - g.from[0], p[1] - g.from[1])); gesture = { ...g, last: p }; return; }
     if (g.kind === 'resize') {
       const next = resized(g.box, g.handle, p[0] - g.from[0], p[1] - g.from[1]);
       nudge(scaleItems(g.base, selection, g.box, next));
@@ -357,12 +463,38 @@
     if (g.kind === 'pan') { rememberView(); return; }
     if (g.kind === 'ink') {
       const points = simplify(g.points, 0.8 / view.zoom);
-      if (points.length) commit(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points }));
+      if (!points.length) return;
+      const before = history;
+      commit(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points }));
+      const b = boundsOf([{ kind: 'stroke', id: newDrawItemId(), tool: 'pen', color, size: 0, points }]);
+      const tiny = b !== null && b.w + b.h < 4 / view.zoom;
+      const now = performance.now();
+      dot = !tiny ? null : dot && now - dot.at < DOUBLE_MS ? dot : { before, at: now };
       return;
     }
     if (g.kind === 'shape') {
       const moved = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]) > 2 / view.zoom;
-      if (moved) commit(addItem(drawing, { kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }));
+      if (!moved) return;
+      if (shape === 'arrow') commit(addItem(drawing, newLink({ x: g.from[0], y: g.from[1] }, { x: g.to[0], y: g.to[1] }, 'straight')));
+      else commit(addItem(drawing, { kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }));
+      return;
+    }
+    if (g.kind === 'connect') {
+      const target = connectTarget(g);
+      const a = endPoint(drawing.items, g.from);
+      if (!target && (!a || Math.hypot(g.to[0] - a[0], g.to[1] - a[1]) < 12 / view.zoom)) return;
+      const link = newLink(g.from, target ?? { x: g.to[0], y: g.to[1] });
+      commit(addItem(drawing, link));
+      selection = [link.id];
+      return;
+    }
+    if (g.kind === 'group') {
+      const x = Math.min(g.from[0], g.to[0]), y = Math.min(g.from[1], g.to[1]);
+      const w = Math.abs(g.to[0] - g.from[0]), h = Math.abs(g.to[1] - g.from[1]);
+      if (w < 20 / view.zoom || h < 20 / view.zoom) return;
+      const id = newDrawItemId();
+      commit(addGroup(drawing, { kind: 'group', id, x, y, w, h, label: 'Group', ...(color === 'ink' ? {} : { color }) }));
+      selection = [id];
       return;
     }
     if (g.kind === 'lasso') { selection = lassoed(drawing.items, g.poly).map((i) => i.id); return; }
@@ -380,6 +512,48 @@
      is one step and not one step per stroke rubbed out. */
   let drawingBefore: Drawing | null = null;
   $effect(() => { if (gesture?.kind === 'erase' && drawingBefore === null) drawingBefore = history.now; if (gesture === null) drawingBefore = null; });
+
+  /* A double-click with the pen leaves two dots before it is known to be a
+     double-click; the timeline from before the first is kept to take them
+     back when it turns out to be one. */
+  const DOUBLE_MS = 600;
+  let dot: { readonly before: Timeline; readonly at: number } | null = null;
+
+  /* Double-clicking empty ground makes a text card there, and on a connector
+     names it. */
+  const ondblclick = (e: MouseEvent): void => {
+    /* A captured pointer's clicks land on the surface itself. */
+    if (e.target !== canvas && e.target !== host) return;
+    const p = at(e.clientX, e.clientY);
+    const l = linkUnder(drawing.items, p[0], p[1], 6 / scale);
+    if (l) { naming = l.id; return; }
+    const recent = dot && performance.now() - dot.at < DOUBLE_MS ? dot.before : null;
+    dot = null;
+    if (recent) { history = recent; onchange(recent.now); }
+    newTextBox(p, history.now, true);
+  };
+
+  const groupSelection = (): void => {
+    const box = selectionBox;
+    if (!box) return;
+    const id = newDrawItemId();
+    commit(groupAround(drawing, box, id));
+    selection = [id];
+  };
+
+  /* A group dragged by its label: its members come along, and the drag is one
+     step when it ends. */
+  let groupDrag: { readonly base: Drawing; readonly ids: readonly DrawItemId[] } | null = null;
+  const grabGroup = (g: GroupItem): void => { groupDrag = { base: drawing, ids: carried(drawing.items, [g.id]) }; };
+  const moveGroup = (dx: number, dy: number): void => { if (groupDrag) nudge(moveItems(groupDrag.base, groupDrag.ids, dx, dy)); };
+  const endGroup = (): void => {
+    const base = groupDrag?.base;
+    groupDrag = null;
+    if (!base || history.now === base) return;
+    const settled = history.now;
+    history = step({ ...history, now: base }, settled);
+    onchange(settled);
+  };
 
   const oncancel = (e: PointerEvent): void => { touches.delete(e.pointerId); pinch = null; gesture = null; drawingPointer = null; if (e.pointerType === 'pen') penDown = false; };
 
@@ -417,6 +591,7 @@
       if (e.shiftKey) putBack(); else takeBack();
       return;
     }
+    if (mod && e.key.toLowerCase() === 'g') { e.preventDefault(); e.stopPropagation(); groupSelection(); return; }
     if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); e.stopPropagation(); putBack(); return; }
     if (mod || e.altKey) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
@@ -425,7 +600,7 @@
       selection = [];
       return;
     }
-    if (e.key === 'Escape') { selection = []; return; }
+    if (e.key === 'Escape') { selection = []; naming = null; return; }
     /* Zero frames everything there is; with Shift it goes home instead. The
        plane has no edge, so these two are the way back to the ink. */
     if (e.key === '0' || e.key === ')') {
@@ -521,6 +696,12 @@
     const inner = m[1];
     const link = parseLink(inner);
     if (link.kind === 'figure') { void framedFigure(cardBooks.ref(link.section, link.book), link.id, p); return; }
+    if (link.kind === 'chat' && link.message === undefined) {
+      const id = newDrawItemId();
+      commit(addItem(drawing, { kind: 'chat', id, x: p[0], y: p[1], ...CHAT_ITEM, chat: link.chat }));
+      selection = [id];
+      return;
+    }
     placeFrame(inner, p, CARD_SIZE.w, CARD_SIZE.h);
   };
 
@@ -577,12 +758,34 @@
   /* ── the boxes and the frames ──────────────────────────────────────────── */
 
   const boxes = $derived(drawing.items.filter((i): i is Extract<DrawItem, { kind: 'box' }> => i.kind === 'box'));
+  const groups = $derived(drawing.items.filter((i): i is GroupItem => i.kind === 'group'));
+  const chatItems = $derived(drawing.items.filter((i): i is Extract<DrawItem, { kind: 'chat' }> => i.kind === 'chat'));
+
+  /* A drag of a whole item is a run of nudges, and one step when it ends. */
+  let dragBase: Drawing | null = null;
+  const settleDrag = (): void => {
+    const base = dragBase;
+    dragBase = null;
+    if (!base || history.now === base) return;
+    const settled = history.now;
+    history = step({ ...history, now: base }, settled);
+    onchange(settled);
+  };
+  const tintOf = (i: { readonly color?: Colour }): string | null => (i.color ? cssOf(i.color) : null);
+
+  /* A frame holding a note can be written in where it stands. */
+  let writingIn = $state<DrawItemId | null>(null);
+  const noteIn = (embed: string): NoteId | null => {
+    const link = parseLink(embed);
+    const id = link.kind === 'note' ? cardResolver().note(link.name) : null;
+    return id ? noteId(id) : null;
+  };
   const frames = $derived(drawing.items.filter((i): i is Extract<DrawItem, { kind: 'frame' }> => i.kind === 'frame'));
   const resolver = () => cardResolver();
 
-  const moveOne = (i: Extract<DrawItem, { kind: 'box' | 'frame' }>, x: number, y: number): void =>
+  const moveOne = (i: Placed, x: number, y: number): void =>
     nudge(replaceItem(drawing, { ...i, x, y }));
-  const sizeOne = (i: Extract<DrawItem, { kind: 'box' | 'frame' }>, w: number, h: number): void =>
+  const sizeOne = (i: Placed, w: number, h: number): void =>
     nudge(replaceItem(drawing, { ...i, w, h }));
   /* A drag of a box or a frame is a run of nudges and one step at its end, as
      a lasso drag is; the pointer leaving the grip is what ends it. */
@@ -595,7 +798,7 @@
   <Toolbar
     {tool} {color} {size} {fill} {shape} {scratch} {busy}
     canUndo={canUndo(history)} canRedo={canRedo(history)}
-    ontool={(t) => (tool = t)} oncolor={(c) => (color = c)} onsize={(n) => (size = n)}
+    ontool={(t) => (tool = t)} oncolor={pickColour} onsize={(n) => (size = n)}
     onfill={(on) => (fill = on)} onshape={(s) => (shape = s)}
     onundo={takeBack} onredo={putBack} {onsave}
     onfit={zoomToFit} onreset={resetView} canFit={drawing.items.length > 0}
@@ -606,26 +809,43 @@
     aria-label="Drawing canvas: press P for the pen, E for the eraser, L for the lasso"
     style:cursor={gesture?.kind === 'pan' ? 'grabbing' : CURSOR[tool]}
     {onpointerdown} {onpointermove} {onpointerup} onpointercancel={oncancel}
-    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop}>
+    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick}
+    onpointerleave={() => { if (!gesture) hovered = null; }}>
+    <span class="probe" data-book={focus.book} bind:this={probe} hidden></span>
     <!-- The canvas is the pane; the boxes and the frames stand on a container
          of no size at all, carrying the view's transform, so they are placed
          in plane units and follow the ink exactly. -->
     <canvas class="ink" bind:this={canvas} style:width="{paneW}px" style:height="{paneH}px"></canvas>
     <div class="plane" style:transform="translate({-view.x * view.zoom}px,{-view.y * view.zoom}px) scale({view.zoom})">
       <div class="layer">
+        {#each groups as g (g.id)}
+          <Group x={g.x} y={g.y} w={g.w} h={g.h} label={g.label} tint={tintOf(g)} selected={selection.includes(g.id)} {scale}
+            ongrab={() => grabGroup(g)} onmove={moveGroup} onend={endGroup}
+            onresize={(nw, nh) => sizeOne(g, nw, nh)}
+            onlabel={(label) => { if (label !== g.label) commit(replaceItem(drawing, { ...g, label })); }}
+            onselect={() => (selection = [g.id])} />
+        {/each}
         {#each frames as f (f.id)}
           <Frame x={f.x} y={f.y} w={f.w} h={f.h} embed={f.embed} open={f.open}
-            selected={selection.includes(f.id)} {scale} {resolver}
+            selected={selection.includes(f.id)} {scale} {resolver} tint={tintOf(f)}
+            note={noteIn(f.embed)} editing={writingIn === f.id} onedit={(on) => (writingIn = on ? f.id : null)}
             onopen={openFrame}
             onmove={(nx, ny) => moveOne(f, nx, ny)} onresize={(nw, nh) => sizeOne(f, nw, nh)}
             ondecorate={decorate} />
+        {/each}
+        {#each chatItems as c (c.id)}
+          <ChatFrame x={c.x} y={c.y} w={c.w} h={c.h} chat={c.chat} root={c.root} {scale}
+            selected={selection.includes(c.id)}
+            onselect={() => { selection = [c.id]; dragBase = drawing; }} onend={settleDrag}
+            onmove={(nx, ny) => moveOne(c, nx, ny)} onresize={(nw, nh) => sizeOne(c, nw, nh)} />
         {/each}
         {#each boxes as b (b.id)}
           <!-- The box is placed by whoever holds it, which here is the plane:
                TextBox fills the rectangle it is given and says where the
                reader dragged it to. -->
-          <div class="boxed" style:left="{b.x}px" style:top="{b.y}px" style:width="{b.w}px" style:height="{b.h}px">
-            <TextBox x={b.x} y={b.y} w={b.w} h={b.h} body={b.body}
+          <div class="boxed" class:tinted={b.color !== undefined} data-box={b.id} style:--tint={tintOf(b)}
+            style:left="{b.x}px" style:top="{b.y}px" style:width="{b.w}px" style:height="{b.h}px">
+            <TextBox x={b.x} y={b.y} w={b.w} h={b.h} body={b.body} autowrite={fresh === b.id}
               selected={selection.includes(b.id)} {resolver}
               onchange={(body) => nudge(setBoxBody(drawing, b.id, body))}
               onmove={(r) => moveOne(b, r.x, r.y)}
@@ -635,6 +855,26 @@
               onlink={followLink} />
           </div>
         {/each}
+        {#each labels as { link, at: m } (link.id)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="link-label" style:left="{m[0]}px" style:top="{m[1]}px" style:color={palette(link.color)}
+            onpointerdown={(e) => { e.stopPropagation(); selection = [link.id]; }}
+            ondblclick={(e) => { e.stopPropagation(); naming = link.id; }}>
+            {#if naming === link.id}
+              <input value={link.label} aria-label="Connector label" use:takeFocus
+                onblur={(e) => nameLink(link, (e.currentTarget as HTMLInputElement).value.trim())}
+                onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') (e.currentTarget as HTMLInputElement).blur(); }} />
+            {:else}{link.label}{/if}
+          </div>
+        {/each}
+        {#if hoveredRect && (!gesture || gesture.kind === 'connect')}
+          {@const r = hoveredRect}
+          {#each SIDES as side (side)}
+            {@const [hx, hy] = sideAt({ x: r.x - 10 / scale, y: r.y - 10 / scale, w: r.w + 20 / scale, h: r.h + 20 / scale }, side)}
+            <span class="side" data-side={side} title="Drag to connect"
+              style:left="{hx}px" style:top="{hy}px" style:width="{10 / scale}px" style:height="{10 / scale}px" style:border-width="{1.5 / scale}px"></span>
+          {/each}
+        {/if}
         {#if selectionBox}
           {@const s = selectionBox}
           <div class="sel" style:left="{s.x}px" style:top="{s.y}px" style:width="{s.w}px" style:height="{s.h}px"
@@ -646,6 +886,22 @@
         {/if}
       </div>
     </div>
+    {#if selectionBox && !gesture}
+      {@const s = selectionBox}
+      <!-- The bar for what is selected, in screen units so it does not scale. -->
+      <div class="sel-bar" style:left="{(s.x - view.x) * view.zoom}px" style:top="{(s.y + s.h - view.y) * view.zoom + 8}px"
+        onpointerdown={(e) => e.stopPropagation()}>
+        {#if selectedLink}
+          {@const l = selectedLink}
+          <button type="button" class="chip" onclick={() => setLink(l, { curve: l.curve === 'bezier' ? 'straight' : 'bezier' })}>{l.curve === 'bezier' ? 'Curved' : 'Straight'}</button>
+          <button type="button" class="chip" class:on={l.heads.start} title="Arrowhead at the start" onclick={() => setLink(l, { heads: { ...l.heads, start: !l.heads.start } })}>&larr;</button>
+          <button type="button" class="chip" class:on={l.heads.end} title="Arrowhead at the end" onclick={() => setLink(l, { heads: { ...l.heads, end: !l.heads.end } })}>&rarr;</button>
+          <button type="button" class="chip" onclick={() => (naming = l.id)}>Label</button>
+        {:else}
+          <button type="button" class="chip" title="Group (Ctrl+G)" onclick={groupSelection}>Group</button>
+        {/if}
+      </div>
+    {/if}
   </div>
 </article>
 
@@ -669,6 +925,15 @@
   /* A text box fills whatever rectangle it is put in, so the plane is what
      puts it somewhere. */
   .boxed{position:absolute}
+  .boxed.tinted :global(.text-box){border-color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--panel))}
+  .boxed.tinted :global(.text-box .bar){background:color-mix(in srgb,var(--tint) 18%,var(--panel))}
+  .side{position:absolute;box-sizing:border-box;border-radius:50%;border-style:solid;border-color:var(--accent);background:var(--panel);transform:translate(-50%,-50%);cursor:crosshair;z-index:3}
+  .side:hover{background:var(--accent)}
+  .link-label{position:absolute;transform:translate(-50%,-50%);padding:1px 6px;border-radius:4px;background:var(--panel);font-family:var(--sans);font-size:13px;white-space:nowrap;cursor:default;z-index:1}
+  .link-label input{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:4px;padding:0 4px;width:10em}
+  .sel-bar{position:absolute;display:flex;gap:4px;padding:3px;border:1px solid var(--rule);border-radius:7px;background:var(--bg);box-shadow:0 2px 8px rgb(0 0 0 / .12);z-index:5}
+  .sel-bar .chip{font:inherit;font-size:0.74rem;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:5px;padding:2px 8px;cursor:pointer}
+  .sel-bar .chip.on{border-color:var(--accent);color:var(--accent)}
   .sel{position:absolute;border-style:dashed;border-color:var(--accent);pointer-events:none}
   .handle{position:absolute;background:var(--accent);border-radius:1px}
   .h-nw{left:0;top:0;transform:translate(-50%,-50%)}

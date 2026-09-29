@@ -2,7 +2,7 @@
    stands, what a lasso has caught, what the eraser has crossed, and the corner
    a shape snaps to when Shift is held. Everything here is pure, so the tests
    read it directly and the tab only calls it. */
-import { clampZoom, type Box, type DrawItem, type Point, type ShapeKind, type View } from './model';
+import { clampZoom, endPoint, isFree, isPlaced, rectOf, sideAt, SIDES, type Box, type DrawItem, type End, type GroupItem, type LinkItem, type Point, type ShapeTool, type Side, type View } from './model';
 
 export type Vec = readonly [number, number];
 
@@ -40,14 +40,30 @@ const measure = (i: DrawItem): Box => {
     const pad = i.size / 2;
     return { x: b.x - pad, y: b.y - pad, w: b.w + i.size, h: b.h + i.size };
   }
+  if (i.kind === 'link') {
+    const free = [i.from, i.to].filter(isFree);
+    return free.length ? boxOf(free.map((e) => e.x), free.map((e) => e.y)) : { x: 0, y: 0, w: 0, h: 0 };
+  }
   return { x: i.x, y: i.y, w: i.w, h: i.h };
+};
+
+/* A connector stands wherever its elements do, so its box is asked of the
+   whole drawing and never kept. */
+export const placedBounds = (items: readonly DrawItem[], i: DrawItem): Box => {
+  if (i.kind !== 'link') return bounds(i);
+  const path = linkPath(items, i);
+  if (!path) return bounds(i);
+  const pts = sampled(path, 12);
+  const b = boxOf(pts.map((p) => p[0]), pts.map((p) => p[1]));
+  const pad = i.size / 2 + 6;
+  return { x: b.x - pad, y: b.y - pad, w: b.w + 2 * pad, h: b.h + 2 * pad };
 };
 
 /* The rectangle a set of items occupies together, and nothing at all when the
    set is empty: a selection of nothing has no handles to draw. */
-export const boundsOf = (items: readonly DrawItem[]): Box | null => {
+export const boundsOf = (items: readonly DrawItem[], all: readonly DrawItem[] = items): Box | null => {
   if (!items.length) return null;
-  const bs = items.map(bounds);
+  const bs = items.map((i) => placedBounds(all, i));
   return boxOf(bs.flatMap((b) => [b.x, b.x + b.w]), bs.flatMap((b) => [b.y, b.y + b.h]));
 };
 
@@ -93,7 +109,8 @@ export const inPolygon = (poly: readonly Vec[], x: number, y: number): boolean =
 /* The points that stand for an item when the lasso asks whether it caught it:
    a stroke is its own points, and everything with a rectangle is its four
    corners and its middle, so a card lassoed by its centre comes too. */
-const probes = (i: DrawItem): readonly Vec[] => {
+const probes = (i: DrawItem, all: readonly DrawItem[]): readonly Vec[] => {
+  if (i.kind === 'link') return [i.from, i.to].map((e) => endPoint(all, e)).filter((p): p is Vec => p !== null);
   if (i.kind === 'stroke') return i.points.map(([x, y]) => [x, y] as Vec);
   if (i.kind === 'shape') return [i.from, i.to, [(i.from[0] + i.to[0]) / 2, (i.from[1] + i.to[1]) / 2]];
   const b = bounds(i);
@@ -106,8 +123,8 @@ const probes = (i: DrawItem): readonly Vec[] => {
 export const lassoed = (items: readonly DrawItem[], poly: readonly Vec[]): readonly DrawItem[] => {
   if (poly.length < 3) return [];
   return items.filter((i) => {
-    const ps = probes(i);
-    if (i.kind === 'box' || i.kind === 'frame') { const b = bounds(i); return inPolygon(poly, b.x + b.w / 2, b.y + b.h / 2); }
+    const ps = probes(i, items);
+    if (isPlaced(i)) { const b = bounds(i); return inPolygon(poly, b.x + b.w / 2, b.y + b.h / 2); }
     const hits = ps.filter(([x, y]) => inPolygon(poly, x, y)).length;
     return hits * 2 > ps.length;
   });
@@ -124,7 +141,8 @@ export const distanceToSegment = (px: number, py: number, ax: number, ay: number
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 };
 
-const nearItem = (i: DrawItem, x: number, y: number, r: number): boolean => {
+const nearItem = (i: DrawItem, x: number, y: number, r: number, all: readonly DrawItem[]): boolean => {
+  if (i.kind === 'link') { const p = linkPath(all, i); return p !== null && nearPath(p, x, y, r + i.size / 2); }
   if (i.kind === 'stroke') {
     const reach = r + i.size / 2;
     if (i.points.length === 1) return Math.hypot(x - i.points[0][0], y - i.points[0][1]) <= reach;
@@ -137,18 +155,18 @@ const nearItem = (i: DrawItem, x: number, y: number, r: number): boolean => {
     const reach = r + i.size / 2;
     /* A rectangle and an ellipse are rubbed out by their outline, as they are
        drawn: the eraser takes a whole item, so touching its edge is enough. */
-    if (i.shape === 'line' || i.shape === 'arrow') return distanceToSegment(x, y, i.from[0], i.from[1], i.to[0], i.to[1]) <= reach;
+    if (i.shape === 'line') return distanceToSegment(x, y, i.from[0], i.from[1], i.to[0], i.to[1]) <= reach;
     const b = bounds(i);
     return inBox({ x: b.x - r, y: b.y - r, w: b.w + 2 * r, h: b.h + 2 * r }, x, y) && !inBox({ x: b.x + reach, y: b.y + reach, w: Math.max(0, b.w - 2 * reach), h: Math.max(0, b.h - 2 * reach) }, x, y);
   }
   return false;
 };
 
-/* Which items the eraser is standing on. It takes strokes and shapes only: a
+/* Which items the eraser is standing on: strokes, shapes and connectors. A
    text box and a frame are picked up with the lasso and removed with Delete,
    which is what stops a stray swipe from rubbing out a card. */
 export const erasedAt = (items: readonly DrawItem[], x: number, y: number, r: number): readonly DrawItem[] =>
-  items.filter((i) => nearItem(i, x, y, r));
+  items.filter((i) => nearItem(i, x, y, r, items));
 
 /* ── the ink ─────────────────────────────────────────────────────────────── */
 
@@ -179,7 +197,7 @@ const QUARTER = Math.PI / 4;
 /* Shift held: a line snaps to the nearest eighth of the circle, and a
    rectangle or an ellipse becomes a square or a circle on the corner the
    pointer is nearest to. */
-export const snapped = (shape: ShapeKind, from: Vec, to: Vec): Vec => {
+export const snapped = (shape: ShapeTool, from: Vec, to: Vec): Vec => {
   const dx = to[0] - from[0], dy = to[1] - from[1];
   if (shape === 'line' || shape === 'arrow') {
     const len = Math.hypot(dx, dy);
@@ -219,3 +237,88 @@ export const resized = (b: Box, k: Handle, dx: number, dy: number): Box => {
   const south = k.startsWith('s') ? Math.max(b.y + b.h + dy, north + MIN_SIDE) : b.y + b.h;
   return { x: west, y: north, w: east - west, h: south - north };
 };
+
+/* ── connectors ──────────────────────────────────────────────────────────── */
+
+/* A connector as it is drawn: two ends and the two control points of a cubic.
+   A straight one has its controls on its ends; a bezier leaves each attached
+   side at right angles to it, and a free end aims at the other. */
+export type LinkPath = { readonly a: Vec; readonly b: Vec; readonly c1: Vec; readonly c2: Vec };
+
+const NORMAL: Readonly<Record<Side, Vec>> = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+const sideOf = (e: End): Side | null => (isFree(e) ? null : e.side);
+
+const control = (from: Vec, to: Vec, side: Side | null, reach: number): Vec =>
+  side ? [from[0] + NORMAL[side][0] * reach, from[1] + NORMAL[side][1] * reach]
+    : [from[0] + (to[0] - from[0]) / 3, from[1] + (to[1] - from[1]) / 3];
+
+export const pathBetween = (a: Vec, b: Vec, curve: LinkItem['curve'], sa: Side | null = null, sb: Side | null = null): LinkPath => {
+  if (curve === 'straight') return { a, b, c1: a, c2: b };
+  const reach = Math.max(40, Math.hypot(b[0] - a[0], b[1] - a[1]) * 0.4);
+  return { a, b, c1: control(a, b, sa, reach), c2: control(b, a, sb, reach) };
+};
+
+export const linkPath = (items: readonly DrawItem[], l: LinkItem): LinkPath | null => {
+  const a = endPoint(items, l.from), b = endPoint(items, l.to);
+  return a && b ? pathBetween(a, b, l.curve, sideOf(l.from), sideOf(l.to)) : null;
+};
+
+export const pointOn = (p: LinkPath, t: number): Vec => {
+  const u = 1 - t;
+  const k0 = u * u * u, k1 = 3 * u * u * t, k2 = 3 * u * t * t, k3 = t * t * t;
+  return [k0 * p.a[0] + k1 * p.c1[0] + k2 * p.c2[0] + k3 * p.b[0], k0 * p.a[1] + k1 * p.c1[1] + k2 * p.c2[1] + k3 * p.b[1]];
+};
+
+export const sampled = (p: LinkPath, n = 24): readonly Vec[] => Array.from({ length: n + 1 }, (_, k) => pointOn(p, k / n));
+
+/* The way an arrowhead points at each end: along the curve as it arrives. */
+export const headAngles = (p: LinkPath): { readonly start: number; readonly end: number } => {
+  const s = pointOn(p, 0.04), e = pointOn(p, 0.96);
+  return { start: Math.atan2(p.a[1] - s[1], p.a[0] - s[0]), end: Math.atan2(p.b[1] - e[1], p.b[0] - e[0]) };
+};
+
+export const nearPath = (p: LinkPath, x: number, y: number, r: number): boolean => {
+  const pts = sampled(p);
+  return pts.slice(1).some((q, k) => distanceToSegment(x, y, pts[k][0], pts[k][1], q[0], q[1]) <= r);
+};
+
+/* The connector under a point, the one drawn last winning. */
+export const linkUnder = (items: readonly DrawItem[], x: number, y: number, r: number): LinkItem | null => {
+  for (let k = items.length - 1; k >= 0; k--) {
+    const i = items[k];
+    if (i.kind !== 'link') continue;
+    const p = linkPath(items, i);
+    if (p && nearPath(p, x, y, r + i.size / 2)) return i;
+  }
+  return null;
+};
+
+/* The side of a rectangle a point is nearest to, which is where a connector let
+   go over an element fixes itself. */
+export const nearestSide = (b: Box, x: number, y: number): Side =>
+  SIDES.reduce<Side>((best, s) => {
+    const [ax, ay] = sideAt(b, s), [bx, by] = sideAt(b, best);
+    return Math.hypot(x - ax, y - ay) < Math.hypot(x - bx, y - by) ? s : best;
+  }, SIDES[0]);
+
+/* The element a connector would fix to at a point: the topmost, with groups
+   last, since they lie beneath everything. */
+export const connectableAt = (items: readonly DrawItem[], x: number, y: number, pad = 0, except: string | null = null): DrawItem | null => {
+  const hit = (i: DrawItem): boolean => {
+    if (i.id === except) return false;
+    const r = rectOf(i);
+    return r !== null && inBox({ x: r.x - pad, y: r.y - pad, w: r.w + 2 * pad, h: r.h + 2 * pad }, x, y);
+  };
+  const top = [...items].reverse();
+  return top.find((i) => i.kind !== 'group' && hit(i)) ?? top.find((i) => i.kind === 'group' && hit(i)) ?? null;
+};
+
+/* ── groups ──────────────────────────────────────────────────────────────── */
+
+const within = (outer: Box, inner: Box): boolean =>
+  inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
+
+/* What a group carries when it moves: everything whose box lies inside it. A
+   connector fixed at both ends follows its elements already. */
+export const membersOf = (items: readonly DrawItem[], g: GroupItem): readonly DrawItem[] =>
+  items.filter((i) => i.id !== g.id && !(i.kind === 'link' && !isFree(i.from) && !isFree(i.to)) && within(g, placedBounds(items, i)));

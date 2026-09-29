@@ -37,7 +37,7 @@
   <header class="head">
     <span class="what">Scratch · {section} {ex}</span>
     {#if linked}
-      <span class="saved">Saved as a drawing under Your Files</span>
+      <span class="saved">Saved to Your Files</span>
     {/if}
   </header>
   {#if drawing}

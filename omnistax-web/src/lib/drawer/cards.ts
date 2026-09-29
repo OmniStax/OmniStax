@@ -9,9 +9,10 @@
    as the model is; what it hands back is the pure renderer's own Resolver. */
 import { noteDocs } from '../notes/docs.svelte';
 import { BookResolver } from '../notes/resolve';
-import { drawingId } from '../types/ids';
+import { chatId, drawingId } from '../types/ids';
 import type { Resolver } from '../notes/md/render';
 import { drawings } from './store.svelte';
+import { chats } from '../chat/store.svelte';
 
 export const cardBooks = new BookResolver();
 
@@ -32,6 +33,12 @@ export const drawingNamed = (name: string): { readonly id: string; readonly name
   return row ? { id: row.id, name: row.name } : null;
 };
 
+/* A whole chat by its id, named from the index whether or not it is open. */
+export const chatInfo = (id: string): { readonly name: string } | null => {
+  const c = chatId(id);
+  return chats.get(c) || chats.entry(c) ? { name: chats.nameOf(c) } : null;
+};
+
 export const cardResolver = (): Resolver => ({
   ...cardBooks.lookups(),
   note: (name) => noteDocs.byName(name)?.id ?? null,
@@ -40,4 +47,5 @@ export const cardResolver = (): Resolver => ({
   asset: () => null,
   drawing: (id) => drawingInfo(id),
   drawingByName: (name) => drawingNamed(name),
+  chat: (id) => chatInfo(id),
 });
