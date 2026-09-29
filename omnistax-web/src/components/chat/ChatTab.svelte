@@ -3,11 +3,11 @@
   import Bubble from './Bubble.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
-  import Leaves from './Leaves.svelte';
+  import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
-  import { ai } from '../../lib/chat/settings.svelte';
   import { pending } from '../../lib/chat/open.svelte';
-  import { transcript, type Chat } from '../../lib/chat/model';
+  import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
+  import { dayLabel, replyParent, startsDay, withLeaf } from '../../lib/chat/tree';
   import { chip, withChip, type Chip } from '../../lib/chat/context';
   import { sectionTextOf } from '../../lib/picker/sources';
   import { focus } from '../../lib/sections/focus.svelte';
@@ -72,7 +72,23 @@
   };
   const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
 
-  let branches = $state(false);
+  const TREE_KEY = 'omnistax-chat-tree-v1';
+  const treeChats = (): readonly string[] => { try { const v: unknown = JSON.parse(localStorage.getItem(TREE_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; } };
+  let tree = $state(treeChats().includes(chatId));
+  let selected = $state<MessageId | undefined>(undefined);
+  const setTree = (on: boolean): void => {
+    tree = on;
+    const rest = treeChats().filter((x) => x !== chatId);
+    try { localStorage.setItem(TREE_KEY, JSON.stringify(on ? [...rest, chatId] : rest)); } catch { /* private mode */ }
+  };
+  let list = $state<HTMLElement | null>(null);
+  const openInTranscript = (id: MessageId): void => {
+    chats.goTo(chatId, id);
+    setTree(false);
+    selected = undefined;
+    void tick().then(() => list?.querySelector(`[data-message="${id}"]`)?.scrollIntoView({ block: 'center' }));
+  };
+  const now = Date.now();
 
   const follow = (target: string): void => {
     const t = parseLink(target.replace(/^(note|section):/, ''));
@@ -84,7 +100,14 @@
     const r = 'section' in t ? chatBooks.ref(t.section, t.book) : null; if (r) void openDoc(r, 'text');
   };
 
-  const send = (text: string): void => { void chats.ask(chatId, text, chips); };
+  /* In the tree the reply goes under the selected node: the chat stands on it
+     for the asking, and the new branch becomes the leaf. */
+  const send = (text: string): void => {
+    const c = chat;
+    if (tree && selected && c) chats.open = { ...chats.open, [chatId]: withLeaf(c, replyParent(c, selected)) };
+    selected = undefined;
+    void chats.ask(chatId, text, chips);
+  };
 </script>
 
 <article class="chat-tab" data-chat={chatId}>
@@ -94,21 +117,23 @@
     {:else}
       <button type="button" class="name" title="Rename this chat" onclick={startRename}>{chat?.name || 'New chat'}</button>
     {/if}
-    <span class="model">{ai.model || 'no model chosen'}</span>
-    <button type="button" class="toggle" class:on={branches} aria-pressed={branches} onclick={() => (branches = !branches)}>Branches</button>
+    <button type="button" class="toggle" class:on={tree} aria-pressed={tree} onclick={() => setTree(!tree)}>Tree</button>
   </header>
 
   {#if chat}
-    {#if branches}<Leaves {chatId} {chat} />{/if}
-    <Crumbs {chatId} {chat} />
-    <div class="messages">
-      {#each path as m (m.id)}
-        <Bubble {chatId} {chat} message={m} onfollow={follow} />
-      {/each}
-    </div>
-    <Composer bind:this={composer} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
-      {streaming} widgets={chats.widgetsOn(chatId)} onwidgets={() => chats.toggleWidgets(chatId)}
-      {offer} onoffer={takeOffer} ready={ai.ready} />
+    {#if tree}
+      <div class="tree-host"><TreeView {chat} bind:selected onopen={openInTranscript} /></div>
+    {:else}
+      <Crumbs {chatId} {chat} />
+      <div class="messages" bind:this={list}>
+        {#each path as m, i (m.id)}
+          {#if startsDay(path, i)}<div class="day">{dayLabel(m.at, now)}</div>{/if}
+          <Bubble {chatId} {chat} message={m} onfollow={follow} />
+        {/each}
+      </div>
+    {/if}
+    <Composer bind:this={composer} {chatId} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
+      {streaming} {offer} onoffer={takeOffer} />
   {:else}
     <div class="messages"><p class="empty">Opening this chat…</p></div>
   {/if}
@@ -121,8 +146,9 @@
   .name:hover{background:var(--soft)}
   .name-input{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:5px;padding:2px 5px;margin-left:-6px}
   .name-input:focus{outline:none}
-  .model{flex:none;font-size:0.72rem;color:var(--muted)}
   .messages{flex:1;min-height:0;overflow:auto;padding:4px 40px 20px}
+  .tree-host{flex:1;min-height:0;border-bottom:1px solid var(--rule)}
+  .day{margin:14px 0 2px;font-size:0.7rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);text-align:center}
   .empty{color:var(--muted);font-size:0.86rem;margin:18px 0}
   @media (max-width:900px){ .chat-head{padding:10px 18px 8px} .messages{padding:4px 18px 20px} }
 </style>

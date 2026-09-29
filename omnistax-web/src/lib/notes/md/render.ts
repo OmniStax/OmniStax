@@ -259,6 +259,11 @@ const renderLink = (link: Link, r: Resolver, embed = false): string => {
     if (f && embed) return fileEmbed(link, f);
     if (f) return anchor(linkInner(link), link.alias ?? (link.page === undefined ? f.name : `${f.name} · page ${link.page}`));
   }
+  /* A whole chat held in a note is its tree, which the view mounts live. */
+  if (link.kind === 'chat' && link.message === undefined && embed) {
+    const info = r.chat?.(link.chat) ?? null;
+    if (info) return `<div class="chat-tree-embed" data-embed="${esc(linkInner(link))}" data-chat-tree="${esc(link.chat)}"><div class="embed-eyebrow">${esc(meta('Chat', link.alias ?? info.name))}</div></div>`;
+  }
   if (link.kind === 'chat' && link.message !== undefined) {
     const info = r.chatMessage?.(link.chat, link.message) ?? null;
     if (info) return embed ? chatMessageEmbed(link, info) : anchor(linkInner(link), link.alias ?? (info.line || info.name));
@@ -318,26 +323,28 @@ const tex = (src: string, display: boolean): string =>
 type Raw = { readonly text: string };
 const textOf = (token: Tokens.Generic): string => (token as Tokens.Generic & Raw).text;
 
-/* A `$$…$$` standing on lines of its own is a block, so KaTeX's display markup
+/* A `$$…$$` or `\[…\]` standing on lines of its own is a block, so KaTeX's display markup
    is not buried in a paragraph; `start` cuts the paragraph before it. */
 const blockMath: TokenizerAndRendererExtension = {
   name: 'blockMath', level: 'block',
-  start: (src: string) => { const m = /\n\$\$/.exec(src); return m ? m.index + 1 : undefined; },
+  start: (src: string) => { const m = /\n(?:\$\$|\\\[)/.exec(src); return m ? m.index + 1 : undefined; },
   tokenizer(src: string) {
-    const m = /^\$\$([\s\S]+?)\$\$[ \t]*(?:\n+|$)/.exec(src);
-    return m ? { type: 'blockMath', raw: m[0], text: m[1] } : undefined;
+    const m = /^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\])[ \t]*(?:\n+|$)/.exec(src);
+    return m ? { type: 'blockMath', raw: m[0], text: m[1] ?? m[2] } : undefined;
   },
   renderer: (token) => tex(textOf(token), true),
 };
 
-/* Inline, `$$…$$` still means display and `$…$` means inline. Requiring the
-   delimiters to hug their contents keeps prices and variables out of it. */
+/* Inline, `$$…$$` and `\[…\]` still mean display and `$…$` and `\(…\)` inline.
+   Requiring the dollars to hug their contents keeps prices and variables out of it. */
 const inlineMath: TokenizerAndRendererExtension = {
   name: 'inlineMath', level: 'inline',
-  start: (src: string) => { const i = src.indexOf('$'); return i < 0 ? undefined : i; },
+  start: (src: string) => { const i = src.search(/\$|\\[([]/); return i < 0 ? undefined : i; },
   tokenizer(src: string) {
-    const block = /^\$\$([\s\S]+?)\$\$/.exec(src);
-    if (block) return { type: 'inlineMath', raw: block[0], text: block[1], display: true };
+    const block = /^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\])/.exec(src);
+    if (block) return { type: 'inlineMath', raw: block[0], text: block[1] ?? block[2], display: true };
+    const paren = /^\\\(([\s\S]+?)\\\)/.exec(src);
+    if (paren) return { type: 'inlineMath', raw: paren[0], text: paren[1], display: false };
     const m = /^\$(?![\s$])((?:[^$\n\\]|\\.)+?)(?<![\s\\])\$/.exec(src);
     return m ? { type: 'inlineMath', raw: m[0], text: m[1], display: false } : undefined;
   },
@@ -353,7 +360,7 @@ const WIKI = /^(!?)\[\[([^\]\n]+)\]\]/;
    own, so the card is not wrapped in a paragraph. The shapes are links.ts's own
    grammar, narrowed to what a card is made of, so that a note named `eq:later`
    stays a note. */
-const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):\d+\.\d+:[^\]\n]+|fig:\d+\.\w+:[^\]\n]+`;
+const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):(?:[a-z0-9-]+\/)?\d+\.\d+:[^\]\n]+|fig:(?:[a-z0-9-]+\/)?\d+\.\w+:[^\]\n]+`;
 /* The four stubs become cards only when they are written as embeds: a plain
    link to one is words in a sentence and stays in its paragraph. */
 const STUB_EMBED = String.raw`(?:file|drawing|chat):[^\]\n]+|ex:\d+\.\w+:[^\]\n]+`;

@@ -76,7 +76,7 @@ export type DocKind = 'text';
    immediately before the concept map, since practice is the map's other face:
    the map says what the book teaches, and the exercises say how much of it the
    reader has made their own. */
-export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours'] as const;
+export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 export const SIDEBAR_KINDS = ['explorer', 'search', 'annotations', 'pomodoro'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];
@@ -85,7 +85,7 @@ export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_K
    somewhere else: the colour menu is one page the reader opens from the command
    palette when they want to change a colour, and the pomodoro stats are opened
    from the clock's own panel, which is the only place they mean anything. */
-export const PALETTE_ONLY_KINDS = ['pomodoro-stats', 'colours'] as const;
+export const PALETTE_ONLY_KINDS = ['pomodoro-stats', 'colours', 'chats'] as const;
 export type PaletteOnlyKind = (typeof PALETTE_ONLY_KINDS)[number];
 export const isPaletteOnlyKind = (kind: ViewKind): kind is PaletteOnlyKind => (PALETTE_ONLY_KINDS as readonly string[]).includes(kind);
 

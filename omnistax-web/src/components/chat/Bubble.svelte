@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import Widget from './Widget.svelte';
+  import Steps from './Steps.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { chatBooks, chatResolver } from '../../lib/chat/resolve';
   import { partsOf } from '../../lib/chat/widget';
@@ -9,13 +10,15 @@
   import type { Chat, Message } from '../../lib/chat/model';
   import { pagerOf } from '../../lib/chat/model';
   import { chats } from '../../lib/chat/store.svelte';
+  import { ai } from '../../lib/chat/settings.svelte';
+  import { timeOf } from '../../lib/chat/tree';
   import type { ChatId } from '../../lib/types/ids';
 
   let { chatId, chat, message, onfollow }: { chatId: ChatId; chat: Chat; message: Message; onfollow: (embed: string) => void } = $props();
 
   const pager = $derived(pagerOf(chat, message.id));
   const mine = $derived(message.role === 'user');
-  const parts = $derived(partsOf(message.text, chats.widgetsOn(chatId)));
+  const parts = $derived(partsOf(message.text, !mine && ai.inlineHtml));
 
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
@@ -65,6 +68,7 @@
   use:dragout={{ kind: 'chat', chat: chatId, message: message.id }}>
   <div class="who">
     <span class="role">{mine ? 'You' : message.model || 'Assistant'}</span>
+    <time class="at" datetime={new Date(message.at).toISOString()}>{timeOf(message.at)}</time>
     {#if pager}
       <span class="pager" data-nodrag>
         <button type="button" class="btn ghost icon sm" aria-label="Previous version" disabled={pager.index === 0} onclick={() => chats.choose(chatId, message.id, pager.index - 1)}>‹</button>
@@ -89,10 +93,9 @@
   {#if editing}
     <textarea class="edit" bind:value={draft} onkeydown={onEditKey} use:takeFocus aria-label="Edit and send again" data-nodrag></textarea>
     <div class="edit-acts" data-nodrag><button type="button" class="btn primary sm" onclick={commit}>Send</button><button type="button" class="btn ghost sm" onclick={() => (editing = false)}>Cancel</button></div>
-  {:else if mine}
-    <p class="said">{message.text}</p>
   {:else}
-    <div class="answer" bind:this={body} {onclick} role="presentation">
+    {#if message.steps?.length}<Steps steps={message.steps} />{/if}
+    <div class="answer" class:said={mine} bind:this={body} {onclick} role="presentation">
       {#each parts as part, i (i)}
         {#if part.kind === 'widget'}
           <Widget html={part.html} open={part.open} />
@@ -120,7 +123,11 @@
   .count{font-variant-numeric:tabular-nums}
   .acts{display:flex;gap:2px;text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
   .bubble:hover .acts,.acts:focus-within{opacity:1}
-  .said{margin:6px 0 0;white-space:pre-wrap;font-size:0.95rem;line-height:1.55}
+  .at{text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
+  .bubble:hover .at{opacity:1}
+  .said{line-height:1.55}
+  .said :global(p:first-child){margin-top:0}
+  .said :global(p:last-child){margin-bottom:0}
   .answer{margin-top:6px;font-size:0.95rem;line-height:1.6}
   .answer :global(pre){position:relative;overflow:auto;padding:10px 12px;background:var(--soft);border-radius:6px}
   .answer :global(pre .copy){position:absolute;top:6px;right:6px}
