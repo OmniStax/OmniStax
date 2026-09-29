@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addFile, baseName, byId, dirOf, FILE_KINDS, foldersOf, isHidden, parseFiles, refusedLine, removeFiles, renameFile, setPages, sizeLabel, takeOf,
+  addFile, baseName, byId, dirOf, FILE_KINDS, foldersOf, importLabel, isHidden, parseFiles, refusedLine, removeFiles, renameFile, setPages, sizeLabel, takeOf,
   type FileDoc,
 } from '../src/lib/files/model';
 import {
@@ -45,6 +45,12 @@ test('a folder import makes each folder after its parent, and only those that ho
   assert.equal(dirOf('Course/week 2/b.pdf'), 'Course/week 2');
   assert.equal(dirOf('top.pdf'), '');
   assert.deepEqual(foldersOf([]), []);
+});
+
+test('an import is one step, named by what it brought', () => {
+  assert.equal(importLabel(1, 0), 'import 1 file');
+  assert.equal(importLabel(3, 0), 'import 3 files');
+  assert.equal(importLabel(4, 2), 'import 2 folders, 4 files');
 });
 
 test('dotfiles are left out, and a long refusal is counted after a few names', () => {

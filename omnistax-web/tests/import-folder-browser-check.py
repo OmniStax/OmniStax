@@ -83,6 +83,15 @@ with sync_playwright() as playwright:
     assert "grades.xlsx" in body and "DS_Store" not in body, "refusal notice"
     shot(page, "small-folder.png")
 
+    page.keyboard.press("Control+z")
+    page.wait_for_timeout(300)
+    left = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer-v1')).entries.map(e => e.name)")
+    assert not any(n in left for n in ("Course", "week 1", "slides", "cover", "plan")), left
+    page.keyboard.press("Control+Shift+z")
+    page.wait_for_timeout(300)
+    back = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer-v1')).entries.map(e => e.name)")
+    assert all(n in back for n in ("Course", "week 1", "slides", "cover", "plan")), back
+
     # ── #31: the allowance line ─────────────────────────────────────────────
     page.locator("#gear").click()
     page.locator("#settings").wait_for(state="visible")

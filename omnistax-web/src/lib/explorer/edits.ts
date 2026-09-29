@@ -105,15 +105,21 @@ export const createNote = (parent: EntryId | null, name?: string): NoteDoc => {
    store by the time this runs — reading a file is asynchronous and a step of
    the timeline is not — so this is only the stores the reader can see.
 
-   Several files dropped at once are one step: the reader dropped them as one
-   gesture and takes them back as one. */
-export const createFiles = (parent: EntryId | null, docs: readonly FileDoc[]): void => {
-  if (!docs.length) return;
+   One import is one step, however many files and folders it brought: the
+   reader made one gesture and takes it back as one. The batch is opened
+   before the first folder or note is made, and closed once the last file lands. */
+export type ImportBatch = {
+  readonly addFiles: (parent: EntryId | null, docs: readonly FileDoc[]) => void;
+  readonly close: (label: string) => void;
+};
+export const openImport = (): ImportBatch => {
   fresh = null;
   const before = shot();
-  docs.forEach((doc) => { files.add(doc); explorer.addFile(parent, entryId(doc.id), doc.name); });
-  const label = docs.length === 1 ? 'import file' : `import ${docs.length} files`;
-  commit(label, before, { onUndo: fileKeys(docs.map((d) => d.id)) });
+  const ids: FileId[] = [];
+  return {
+    addFiles: (parent, docs) => docs.forEach((doc) => { files.add(doc); explorer.addFile(parent, entryId(doc.id), doc.name); ids.push(doc.id); }),
+    close: (label) => { commit(label, before, { onUndo: fileKeys(ids) }); },
+  };
 };
 
 /* ── naming, moving, deleting ────────────────────────────────────────────── */

@@ -83,6 +83,10 @@ const NAMED = 5;
 export const refusedLine = (names: readonly string[]): string =>
   names.length <= NAMED ? names.join(', ') : `${names.slice(0, NAMED).join(', ')} and ${names.length - NAMED} more`;
 
+/* The name of an import's step on the timeline, as Undo shows it. */
+export const importLabel = (files: number, folders: number): string =>
+  [folders ? `import ${folders} ${folders === 1 ? 'folder' : 'folders'}` : 'import', `${files} ${files === 1 ? 'file' : 'files'}`].join(folders ? ', ' : ' ');
+
 /* A dotfile or anything inside a dot-folder (.DS_Store, .git): left out of a
    folder import without a word, since the reader never put it there. */
 export const isHidden = (path: RelPath): boolean => path.split('/').some((p) => p.startsWith('.'));

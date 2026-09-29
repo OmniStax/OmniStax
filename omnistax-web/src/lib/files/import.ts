@@ -11,13 +11,13 @@
    The reading and the extraction are asynchronous and the step of the timeline
    is not, so the bytes are written first and the two stores the reader can see
    are changed together at the end: one drop is one undo. */
-import { createFiles } from '../explorer/edits';
+import { openImport, type ImportBatch } from '../explorer/edits';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { entryId, type EntryId } from '../explorer/model';
 import { newFileId, type FileId } from '../types/ids';
 import { putBlob } from './blobs';
-import { baseName, dirOf, foldersOf, isHidden, refusedLine, takeOf, type FileDoc, type RelPath } from './model';
+import { baseName, dirOf, foldersOf, importLabel, isHidden, refusedLine, takeOf, type FileDoc, type RelPath } from './model';
 import { files } from './store.svelte';
 import { indexPdf } from './text';
 import { askToPersist } from '../storage/health';
@@ -75,7 +75,10 @@ export const importSummary = (r: Imported): string => {
   return parts.join(' · ') || 'Nothing to import';
 };
 
-export const importFiles = async (list: FileList | readonly File[], parent: EntryId | null, say: Say = () => {}): Promise<Imported> => {
+/* Files into one folder. Without a batch of its own it is a whole import, one
+   step of the timeline; `importTree` lends one so that every folder shares it. */
+export const importFiles = async (list: FileList | readonly File[], parent: EntryId | null, say: Say = () => {}, batch?: ImportBatch): Promise<Imported> => {
+  const step = batch ?? openImport();
   const all = Array.from(list as ArrayLike<File>);
   const made: FileDoc[] = [];
   const notes: string[] = [];
@@ -92,7 +95,8 @@ export const importFiles = async (list: FileList | readonly File[], parent: Entr
       if (doc) made.push(doc); else refused.push(file.name);
     } catch { refused.push(file.name); }
   }
-  createFiles(parent, made);
+  step.addFiles(parent, made);
+  if (!batch) step.close(importLabel(made.length + notes.length, 0));
   return { files: made, notes, refused };
 };
 
@@ -129,23 +133,25 @@ export const pickedOfEntries = async (entries: readonly FileSystemEntry[]): Prom
 
 /* Files with their places: the folders that hold an accepted file are made
    under `parent`, each file goes into its own, and the refused are named by
-   their place. One step per folder of the timeline, as each is one import. */
+   their place. The folders and every file are one step of the timeline. */
 export const importTree = async (items: readonly Picked[], parent: EntryId | null, say: Say = () => {}): Promise<Imported> => {
   const shown = items.filter((i) => !isHidden(i.path));
   const taken = shown.filter((i) => takeOf(i.file.name, i.file.type).kind !== 'refused');
   const refused = shown.filter((i) => !taken.includes(i)).map((i) => i.path);
-  const folders = foldersOf(taken.map((i) => i.path)).reduce((made, dir) => {
+  const step = openImport();
+  const dirs = foldersOf(taken.map((i) => i.path));
+  const folders = dirs.reduce((made, dir) => {
     const up = made.get(dirOf(dir)) ?? parent;
     const name = dir.slice(dir.lastIndexOf('/') + 1);
     return new Map(made).set(dir, explorer.addFolder(up, explorer.uniqueName(up, name)));
   }, new Map<RelPath, EntryId | null>([['', parent]]));
   const groups = [...new Set(taken.map((i) => dirOf(i.path)))];
   const results: Imported[] = [];
-  for (const dir of groups) results.push(await importFiles(taken.filter((i) => dirOf(i.path) === dir).map((i) => i.file), folders.get(dir) ?? parent, say));
-  return {
-    files: results.flatMap((r) => r.files), notes: results.flatMap((r) => r.notes),
-    refused: [...refused, ...results.flatMap((r) => r.refused)],
-  };
+  for (const dir of groups) results.push(await importFiles(taken.filter((i) => dirOf(i.path) === dir).map((i) => i.file), folders.get(dir) ?? parent, say, step));
+  const files = results.flatMap((r) => r.files);
+  const notes = results.flatMap((r) => r.notes);
+  step.close(importLabel(files.length + notes.length, dirs.length));
+  return { files, notes, refused: [...refused, ...results.flatMap((r) => r.refused)] };
 };
 
 /* Blobs whose record has gone: a file deleted leaves its bytes behind so that
