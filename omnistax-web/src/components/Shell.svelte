@@ -12,7 +12,7 @@
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { findEl, jump, activePane, openDoc, bookOfEl } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane, openDoc, bookOfEl, wantsNewGroup } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
@@ -40,6 +40,7 @@
   import SpotCurve from './SpotCurve.svelte';
   import DragToast from './ui/DragToast.svelte';
   import TipToast from './ui/TipToast.svelte';
+  import LockOverlay from './pomodoro/LockOverlay.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { sheets } from '../lib/sheets/store.svelte';
@@ -216,17 +217,18 @@
     });
     /* A page of any book is written as a plain link, so that it can still be
        opened in a window of its own; a left click on one opens it as a tab of
-       the group it was clicked in instead of loading the page. The listen is on
+       the group it was clicked in instead of loading the page, and a Ctrl click
+       opens it in a new group beside that one. The listen is on
        the way down, since the row a link stands in may keep the click to
        itself. A page no book here has falls back to the link, which is what it
        always did. */
     const onLink = (e: MouseEvent) => {
-      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented) return;
+      if (e.button !== 0 || e.shiftKey || e.altKey || e.defaultPrevented) return;
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       if (!link || link.target || link.origin !== location.origin) return;
       const at = refOfPath(link.pathname);
       if (!at) return;
-      const { href, pathname, hash } = link; const group = groupOf(link);
+      const { href, pathname, hash } = link; const group = wantsNewGroup(e) ? 'new' as const : groupOf(link);
       e.preventDefault();
       void registry.ensureBook(at.book).then(async (m) => {
         const sec = m ? sectionOfUrl(m, pathname) : null;
@@ -253,7 +255,10 @@
       if (e.defaultPrevented) return;
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]'); if (!a) return;
       const id = a.getAttribute('href')!.slice(1), ab = bookOfEl(a);
-      const t = ab ? findEl(ab, id) : document.getElementById(id); if (!t) return; e.preventDefault(); jump(t);
+      const t = ab ? findEl(ab, id) : document.getElementById(id); if (!t) return; e.preventDefault();
+      const sec = t.closest<HTMLElement>('article[data-doc]')?.dataset.doc?.split('/')[0];
+      if (wantsNewGroup(e) && ab && sec) { void openDoc(sectionRef(ab, sectionId(sec)), 'text', 'new').then(() => jump(findEl(ab, id))); return; }
+      jump(t);
     };
     /* A feature the about page names lights where it lives: the new note and
        new drawing buttons when the explorer shows them, the explorer's own
@@ -347,6 +352,7 @@
   <SpotCurve />
   <DragToast />
   <TipToast />
+  <LockOverlay />
 {/if}
 
 <style>

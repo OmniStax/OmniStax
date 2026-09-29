@@ -58,8 +58,15 @@ export const wrap = (ix: Index, span: Span, id: string, color: string, noted: bo
   });
 };
 export const unwrapAll = (root: HTMLElement): void => {
-  root.querySelectorAll<HTMLElement>(`mark.${MARK}`).forEach((m) => { const p = m.parentNode; if (!p) return; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); });
-  root.normalize();
+  /* Only the text a mark split is joined again, and never under a mounted
+     component: normalizing drops the empty text nodes Svelte keeps as anchors,
+     and a block that loses its anchor never renders (a Try It's revealed answer). */
+  root.querySelectorAll<HTMLElement>(`mark.${MARK}`).forEach((m) => {
+    const p = m.parentElement; if (!p) return;
+    while (m.firstChild) p.insertBefore(m.firstChild, m);
+    p.removeChild(m);
+    if (!p.closest('[data-mounted]')) p.normalize();
+  });
 };
 export type Painted = { readonly id: string; readonly anchor: Anchor; readonly color: string; readonly noted: boolean };
 /* Repaint a document from scratch: unwrap, index once, wrap every note that still anchors. Returns the ids that did not. */

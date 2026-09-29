@@ -2,7 +2,7 @@
    prefer the copy in the focused group, then any visible copy, then anything.
    An id is unique only within its book, so every look is scoped to one. */
 import { layoutStore } from '../layout/store.svelte';
-import { openTab, openSide, activate, homeSide, where, toggleCollapsed } from '../layout/model';
+import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight } from '../layout/model';
 import { registry } from './registry.svelte';
 import { type BookId, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
 import { fileOpens } from '../files/open.svelte';
@@ -59,13 +59,29 @@ export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 
   if (card?.hidden) card.closest<HTMLElement & { exShow?: (id: string) => void }>('.list')?.exShow?.(card.id);
   revealFolds(target);
   reveal(target);
-  requestAnimationFrame(() => { target.scrollIntoView({ behavior: FIG.REDUCED ? 'auto' : 'smooth', block }); if (tint) land(target); });
+  requestAnimationFrame(() => { scrollWithin(target, block); if (tint) land(target); });
+};
+/* Only the box the target scrolls in moves. scrollIntoView would move every
+   scrollable ancestor, the page itself included, and push the tab strips off the top. */
+const scrollerOf = (el: HTMLElement): HTMLElement | null => {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement)
+    if (p.scrollHeight > p.clientHeight && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+  return null;
+};
+const scrollWithin = (target: HTMLElement, block: ScrollLogicalPosition): void => {
+  const box = scrollerOf(target); if (!box) return;
+  const t = target.getBoundingClientRect(), b = box.getBoundingClientRect();
+  const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+  const offset = block === 'center' ? (b.height - t.height) / 2 : block === 'end' ? b.height - t.height : margin;
+  box.scrollTo({ top: box.scrollTop + t.top - b.top - Math.max(0, offset), behavior: FIG.REDUCED ? 'auto' : 'smooth' });
 };
 export const go = (book: BookId, id: string, block: ScrollLogicalPosition = 'start'): void => jump(findEl(book, id), block);
-export const goSpan = (ref: SpanRef | undefined): void => {
+/* Ctrl (Cmd on a Mac) or the middle button asks for a group of its own beside the focused one. */
+export const wantsNewGroup = (e?: MouseEvent | KeyboardEvent | null): boolean => !!e && (e.ctrlKey || e.metaKey || ('button' in e && e.button === 1));
+export const goSpan = (ref: SpanRef | undefined, split = false): void => {
   if (!ref) return;
-  const t = findEl(ref.book, ref.span); if (t) { jump(t); return; }
-  void openDoc(sectionRef(ref.book, sectionOfSpan(ref.span)), 'text').then(() => go(ref.book, ref.span));
+  const t = split ? null : findEl(ref.book, ref.span); if (t) { jump(t); return; }
+  void openDoc(sectionRef(ref.book, sectionOfSpan(ref.span)), 'text', split ? 'new' : undefined).then(() => go(ref.book, ref.span));
 };
 /* The passage a problem was set on, landed in the middle of the pane so the
    reader can read around it. The card may be standing in a practice session
@@ -80,21 +96,24 @@ export const cite = (book: BookId, id: string, tries = 12): void => {
 };
 /* Open anything a tab can hold — a document, a figure, a standing page, or a
    note: activate it where it already is, or open it in the given group
-   (default: focused), and load the section it comes out of. A page and a note
-   come out of no section, so for them there is nothing to fetch. */
-export const openItem = (key: string, group?: number): Promise<void> => {
+   (default: focused), or in a new group split off the focused one, and load
+   the section it comes out of. A page and a note come out of no section, so
+   for them there is nothing to fetch. */
+export type Target = number | 'new';
+export const openItem = (key: string, group?: Target): Promise<void> => {
   const l = layoutStore.layout;
   const loc = group == null ? where(l, key) : null;
-  if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
+  if (group === 'new') layoutStore.apply((x) => splitRight(x, x.focus, key));
+  else if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
   else layoutStore.apply((x) => openTab(x, key, group ?? x.focus));
   const id = parseItemKey(key); const ref = id ? sectionOfItem(id) : null;
   return ref ? registry.load(ref) : Promise.resolve();
 };
-export const openDoc = (ref: SectionRef, doc: 'text', group?: number): Promise<void> => openItem(itemKey(docItem(ref, doc)), group);
+export const openDoc = (ref: SectionRef, doc: 'text', group?: Target): Promise<void> => openItem(itemKey(docItem(ref, doc)), group);
 /* A file the reader imported, at the page a link named. The page is asked for
    beside the tab rather than written into its key: a file open twice is one
    document, so the key names the file and nothing else. */
-export const openFile = (file: FileId, page?: number, group?: number): Promise<void> => {
+export const openFile = (file: FileId, page?: number, group?: Target): Promise<void> => {
   if (page !== undefined) fileOpens.askPage(file, page);
   return openItem(itemKey(fileItem(file)), group);
 };

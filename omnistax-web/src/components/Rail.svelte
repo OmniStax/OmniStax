@@ -9,15 +9,15 @@
      bottom: read-aloud when voice is on, the command palette and the settings.
      Every button drags, so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, openInFocus, splitRight, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
-  import { newViewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
+  import { wantsNewGroup } from '../lib/sections/nav.svelte';
+  import { newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, VIEW_TITLE } from '../lib/icons';
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
   import { pomodoro } from '../lib/pomodoro/store.svelte';
-  import { newChatTab } from '../lib/chat/open.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const kindOf = (k: string): ViewKind => viewKindOf(k) as ViewKind;   /* every key the rail draws is a view's */
@@ -36,12 +36,12 @@
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
-  /* A page of the view of its own, as a tab of the focused group; the ones already open stay. */
-  const openPage = (kind: ViewKind) => layoutStore.apply((x) => openTab(x, newViewItem(kind), x.focus));
+  /* A page of the view of its own, as a tab of the focused group, or with Ctrl in a group of its own beside it; the ones already open stay. */
+  const openPage = (kind: ViewKind, e: MouseEvent) => layoutStore.apply((x) => (wantsNewGroup(e) ? splitRight(x, x.focus, newViewItem(kind)) : openTab(x, newViewItem(kind), x.focus)));
   const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */
-  const chatsOpen = $derived(l.groups.some((g) => g.tabs.some((t) => t.startsWith('chat:'))));
+  const chatsOpen = $derived(l.groups.some((g) => g.tabs.some((t) => t.startsWith('chat:') || viewKindOf(t) === 'chats')));
 </script>
 
 <nav class="rail" class:drop aria-label="Views"
@@ -59,10 +59,10 @@
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
       <button type="button" class:on={open} title={titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
-        use:draggable={{ key: k, from: null }} onclick={() => openPage(kindOf(k))}>{@html iconOf(kindOf(k))}</button>
+        use:draggable={{ key: k, from: null }} onclick={(e) => openPage(kindOf(k), e)}>{@html iconOf(kindOf(k))}</button>
     {/each}
-    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} title="New chat" aria-label="New chat"
-      onclick={() => newChatTab()}>{@html ICON.chat}</button>
+    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} title="Conversations" aria-label="Conversations"
+      onclick={(e) => layoutStore.apply((x) => (wantsNewGroup(e) ? splitRight(x, x.focus, viewItem('chats')) : openInFocus(x, viewItem('chats'))))}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>
   <div class="section">

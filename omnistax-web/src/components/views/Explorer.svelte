@@ -21,7 +21,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { go, openDoc, openItem } from '../../lib/sections/nav.svelte';
+  import { go, openDoc, openItem, wantsNewGroup } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { focusedGroup } from '../../lib/layout/model';
   import { draggable } from '../../lib/layout/drag.svelte';
@@ -30,7 +30,8 @@
   import { bookId, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, sameSection, type SectionId, type SectionRef } from '../../lib/types/ids';
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
   import { drawingId, drawingItem } from '../../lib/types/ids';
-  import { importFiles, importSummary } from '../../lib/files/import';
+  import { entriesOf, importFiles, importSummary, importTree, pickedOfEntries, pickedOfInput, type Picked } from '../../lib/files/import';
+  import { ACCEPTED, ACCEPT_ATTR } from '../../lib/files/model';
   import ImportToast from '../files/ImportToast.svelte';
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { pageLabel, pagesOf } from '../../lib/content/roles';
@@ -297,18 +298,19 @@
 
   /* Clicking a row: the reader's rows open or select, a book's rows walk into
      the book, and a section is a file that opens its text. */
-  const activate = (r: Row, ev?: MouseEvent): void => {
+  const activate = (r: Row, ev?: MouseEvent | KeyboardEvent): void => {
     explorer.selected = r.key;
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
-    if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id)))); return; }
-    if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))); return; }
-    if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))); return; }
+    const at = wantsNewGroup(ev) ? 'new' as const : undefined;
+    if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id))), at); return; }
+    if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id))), at); return; }
+    if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id))), at); return; }
     if (!r.book) return;
-    if (r.kind === 'sheet') { void openItem(itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))))); return; }
-    if (r.kind === 'section' && r.section && !r.dim) { offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(bookId(r.book), r.section), 'text'); return; }
+    if (r.kind === 'sheet') { void openItem(itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1)))), at); return; }
+    if (r.kind === 'section' && r.section && !r.dim) { offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(bookId(r.book), r.section), 'text', at); return; }
     if (r.kind === 'heading' && r.domId) go(bookId(r.book), r.domId);
   };
 
@@ -325,6 +327,7 @@
       { label: 'New note here', run: () => newNote(inside) },
       { label: 'New drawing here', run: () => newDrawing(inside) },
       { label: 'Import files here', run: () => { pickInto = inside; picker?.click(); } },
+      { label: 'Import folder here', run: () => { pickInto = inside; folderPicker?.click(); } },
       ...(e.kind === 'folder' ? [{ label: 'New folder here', run: () => newFolder(inside) }] : []),
       { label: 'Rename', run: () => { explorer.selected = e.id; explorer.renaming = e.id; } },
       { label: 'Delete', run: () => remove(e) },
@@ -347,15 +350,23 @@
   let importLine = $state<string | null>(null);
   let importTimer = 0;
   let picker = $state<HTMLInputElement | null>(null);
+  let folderPicker = $state<HTMLInputElement | null>(null);
+  /* Where the import icon's menu hangs, while it is open. */
+  let importMenu = $state.raw<{ readonly x: number; readonly y: number } | null>(null);
+  const importItems = [
+    { label: `Import files: ${ACCEPTED}`, run: () => { pickInto = null; picker?.click(); } },
+    { label: 'Import folder', run: () => { pickInto = null; folderPicker?.click(); } },
+  ];
   /* Which folder the chooser was opened for; the root when it was the icon. */
   let pickInto: EntryId | null = null;
   const say = (line: string | null): void => {
     if (importTimer) { clearTimeout(importTimer); importTimer = 0; }
     importLine = line;
   };
-  const runImport = async (list: FileList | readonly File[], parent: EntryId | null): Promise<void> => {
+  const runImport = async (list: FileList | readonly File[] | readonly Picked[], parent: EntryId | null): Promise<void> => {
     openUpTo(parent);
-    const done = await importFiles(list, parent, say);
+    const all = Array.from(list as ArrayLike<File | Picked>);
+    const done = all.every((x) => x instanceof File) ? await importFiles(all as File[], parent, say) : await importTree(all as Picked[], parent, say);
     say(importSummary(done));
     importTimer = window.setTimeout(() => { importTimer = 0; importLine = null; }, TOAST_LINGER_MS);
   };
@@ -408,7 +419,7 @@
       for (let i = at - 1; i >= 0; i--) if (list[i].depth < r.depth) { explorer.selected = list[i].key; return; }
       return;
     }
-    if (ev.key === 'Enter' && r) { ev.preventDefault(); ev.stopPropagation(); activate(r); }
+    if (ev.key === 'Enter' && r) { ev.preventDefault(); ev.stopPropagation(); activate(r, ev); }
   };
 
   /* On the first showing, the book of the page opens down to the chapter being
@@ -437,6 +448,7 @@
           role="treeitem" tabindex="-1" aria-selected={explorer.selected === r.key} aria-expanded={r.expandable ? r.open : undefined}
           style:padding-left="{6 + r.depth * 13}px"
           onclick={(ev) => activate(r, ev)}
+          onauxclick={(ev) => { if (ev.button === 1) activate(r, ev); }}
           oncontextmenu={(e) => { if (r.entry) openMenu(e, r.entry); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
@@ -448,8 +460,11 @@
           ondrop={(e) => {
             if (hasFiles(e) && canImport(r)) {
               e.preventDefault(); e.stopPropagation(); over = null;
+              const entries = e.dataTransfer ? entriesOf(e.dataTransfer) : [];
               const dropped = e.dataTransfer?.files;
-              if (dropped?.length) void runImport(dropped, importInto(r));
+              const into = importInto(r);
+              if (entries.length) void pickedOfEntries(entries).then((picked) => runImport(picked, into));
+              else if (dropped?.length) void runImport(dropped, into);
               return;
             }
             if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); dropInto(r); }
@@ -478,8 +493,8 @@
           {/if}
           {#if r.updated}<span class="updated" title="Updated since your last visit">Updated</span>{/if}
           {#if r.root === 'notes'}
-            <button type="button" class="tool" id="import-files" tabindex="-1" title="Import files (PDF, images, markdown)" aria-label="Import files"
-              onclick={(e) => { e.stopPropagation(); pickInto = null; picker?.click(); }}>{@html ICON.importFile}</button>
+            <button type="button" class="tool" id="import-files" tabindex="-1" title="Import {ACCEPTED}" aria-label="Import"
+              onclick={(e) => { e.stopPropagation(); importMenu = { x: e.clientX, y: e.clientY }; }}>{@html ICON.importFile}</button>
             <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" title="New note" aria-label="New note"
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
             <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" title="New drawing" aria-label="New drawing"
@@ -498,14 +513,24 @@
   </div>
 </div>
 
-<input class="picker" type="file" multiple bind:this={picker} accept=".pdf,.md,.markdown,.txt,application/pdf,text/markdown,text/plain,image/*"
+<input class="picker" type="file" multiple bind:this={picker} accept={ACCEPT_ATTR}
   onchange={(e) => {
     const chosen = e.currentTarget.files;
     const parent = pickInto; pickInto = null;
     if (chosen?.length) void runImport(chosen, parent);
     e.currentTarget.value = '';
   }} />
+<input class="picker-dir" type="file" webkitdirectory bind:this={folderPicker}
+  onchange={(e) => {
+    const chosen = e.currentTarget.files;
+    const parent = pickInto; pickInto = null;
+    if (chosen?.length) void runImport(pickedOfInput(chosen), parent);
+    e.currentTarget.value = '';
+  }} />
 <ImportToast line={importLine} />
+{#if importMenu}
+  <RowMenu x={importMenu.x} y={importMenu.y} items={importItems} onclose={() => (importMenu = null)} />
+{/if}
 
 {#if menu}
   <RowMenu x={menu.x} y={menu.y} items={menuItems} onclose={() => (menu = null)} />
@@ -514,7 +539,7 @@
 <style>
   .explorer{display:flex;flex-direction:column;min-width:0}
   /* the file chooser the import icon opens: never drawn, only clicked */
-  .picker{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .picker,.picker-dir{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
   /* The two things a reader makes are icons on the Notes root itself. */
   .tool{flex:none;display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}

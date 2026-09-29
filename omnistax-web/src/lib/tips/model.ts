@@ -19,6 +19,7 @@ export const TIPS: readonly Tip[] = [
   { text: 'The colors each quantity wears can be changed, for the whole book or one chapter or section.', action: { kind: 'colours', label: 'Open the color menu' } },
   { text: 'A concept, formula or definition, and even a figure or sim, can be dragged straight into a note.' },
   { text: 'Your own PDFs can be imported and annotated, and their highlights linked into your notes.', action: { kind: 'import', label: 'Import files' } },
+  { text: 'A section, a view or a link opened with Ctrl-click stands in a group of its own, beside the one you are reading.' },
 ];
 
 export const dayOf = (at: Millis): DayKey => {

@@ -11,7 +11,7 @@
   import { targetOf, cardFor, openDelay, readyFor } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
   import { glyphOf } from '../lib/hover/data';
-  import { bookOfEl, findEl, goSpan } from '../lib/sections/nav.svelte';
+  import { bookOfEl, findEl, goSpan, wantsNewGroup } from '../lib/sections/nav.svelte';
   import { spanId, spanRef } from '../lib/types/ids';
   import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
@@ -55,7 +55,7 @@
 
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
   const math = (node: HTMLElement, _dep?: unknown) => { figFor(book).renderMath(node); return { update() { figFor(book).renderMath(node); } }; };
-  const run = (a: { run: () => void }) => { a.run(); close(); };
+  const run = (a: { run: (split?: boolean) => void }, e?: MouseEvent) => { a.run(wantsNewGroup(e)); close(); };
 
   /* A tap, or a click when cards open on click: the card waits for it and stays until the next one elsewhere. */
   const byClick = (): boolean => touch || settings.cardOpen === 'click';
@@ -111,9 +111,9 @@
     <div class="eyebrow">{card.eyebrow}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
-    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={elementColor(c.symbol, settings.dark)} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={() => run(c)}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
-    {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={() => run(l)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={() => run(m)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
-    {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={() => run(a)}>{a.label}</button>{/each}</div>{/if}
+    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={elementColor(c.symbol, settings.dark)} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
+    {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
+    {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)}>{a.label}</button>{/each}</div>{/if}
   </div>
 {/key}{/if}
 

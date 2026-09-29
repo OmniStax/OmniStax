@@ -6,14 +6,14 @@ import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
 import type { SpanId, SectionId } from '../types/ids';
 
 export type Kind = 'variable' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
-export type Action = { readonly label: string; readonly run: () => void };
+export type Action = { readonly label: string; readonly run: (split?: boolean) => void };
 /* Places the card points at, under a lead of their own: "Introduced in", "Used
    in". A long list is cut short and the rest stand behind one
    trailing action, which opens the page holding them all. */
 export type RefGroup = { readonly label: string; readonly links: readonly Action[]; readonly more?: Action };
 /* An element as a formula card shows it: a chip on the element's own colour,
    the symbol, how many atoms of it the formula has, and the element's page. */
-export type Chip = { readonly symbol: string; readonly name: string; readonly count: number; readonly run: () => void };
+export type Chip = { readonly symbol: string; readonly name: string; readonly count: number; readonly run: (split?: boolean) => void };
 export type Card = {
   readonly kind: Kind;
   readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Term", "Equation · important" */
@@ -27,11 +27,11 @@ export type Card = {
 
 /* What the cards can do. The shell's navigation is injected so this file stays pure. */
 export type Nav = {
-  readonly goSpan: (id: SpanId) => void;
-  readonly openSection: (sec: SectionId) => void;
-  readonly showView: (view: 'definitions' | 'formulas' | 'concepts') => void;
+  readonly goSpan: (id: SpanId, split?: boolean) => void;   /* split: in a new group beside the focused one */
+  readonly openSection: (sec: SectionId, split?: boolean) => void;
+  readonly showView: (view: 'definitions' | 'formulas' | 'concepts', split?: boolean) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
-  readonly showElement: (symbol: string) => void;   /* opens the book's elements sheet with that element pinned */
+  readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
 };
 
 const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept', formula: 'Formula' };
@@ -52,14 +52,14 @@ export type VariableFacts = {
 export const variableCard = (f: VariableFacts, nav: Nav): Card => {
   const v = f.variable;
   const eyebrow = [KIND_LABEL.variable, f.typeLabel, v?.unit].filter((s): s is string => !!s).join(' · ');
-  if (!f.formulasLoaded) return { kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: `Defined in ${f.section}.`, actions: [{ label: 'Go to section', run: () => nav.openSection(f.section) }] };
+  if (!f.formulasLoaded) return { kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: `Defined in ${f.section}.`, actions: [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(f.section, s) }] };
   if (!v) return { kind: 'variable', eyebrow, title: f.sym, tex: f.tex, actions: [] };
   const anchor = v.anchor ? spanIdOf(v.anchor) : undefined;
   return {
     kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: sentence(v.meaning),
     actions: [
-      anchor ? { label: 'Go to definition', run: () => nav.goSpan(anchor) } : { label: 'Go to section', run: () => nav.openSection(v.section as SectionId) },
-      { label: 'Show in Definitions', run: () => nav.showView('definitions') },
+      anchor ? { label: 'Go to definition', run: (s?: boolean) => nav.goSpan(anchor, s) } : { label: 'Go to section', run: (s?: boolean) => nav.openSection(v.section as SectionId, s) },
+      { label: 'Show in Definitions', run: (s?: boolean) => nav.showView('definitions', s) },
     ],
   };
 };
@@ -68,7 +68,7 @@ export const variableCard = (f: VariableFacts, nav: Nav): Card => {
 export type TermFacts = { readonly term: string; readonly definition?: string; readonly section: SectionId; readonly anchor?: SpanId };
 export const termCard = (f: TermFacts, nav: Nav): Card => ({
   kind: 'term', eyebrow: KIND_LABEL.term, title: f.term, body: f.definition !== undefined ? sentence(f.definition) : undefined,
-  actions: [{ label: 'Go to section', run: () => (f.anchor ? nav.goSpan(f.anchor) : nav.openSection(f.section)) }],
+  actions: [{ label: 'Go to section', run: (s?: boolean) => (f.anchor ? nav.goSpan(f.anchor, s) : nav.openSection(f.section, s)) }],
 });
 /* The span that introduces the concept named like a term, from a chapter's coverage; a concept's name may carry math ("Force constant $\kk$"). */
 const plainName = (s: string): string => s.replace(/\$[^$]*\$/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -79,7 +79,7 @@ export const introducingSpan = (term: string, concepts: readonly ConceptDTO[], c
 
 /* ---------- example or section reference ---------- */
 export type ReferenceFacts = { readonly id: SpanId; readonly title: string; readonly body?: string };
-export const referenceCard = (f: ReferenceFacts, nav: Nav): Card => ({ kind: 'reference', eyebrow: KIND_LABEL.reference, title: f.title, body: f.body, actions: [{ label: 'Go', run: () => nav.goSpan(f.id) }] });
+export const referenceCard = (f: ReferenceFacts, nav: Nav): Card => ({ kind: 'reference', eyebrow: KIND_LABEL.reference, title: f.title, body: f.body, actions: [{ label: 'Go', run: (s?: boolean) => nav.goSpan(f.id, s) }] });
 /* The first sentence of a paragraph, for a reference card's body. */
 export const firstSentence = (text: string): string => { const t = text.replace(/\s+/g, ' ').trim(); const m = /^.*?[.!?](?=\s|$)/.exec(t); return m ? m[0] : t; };
 
@@ -106,8 +106,8 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
   return {
     kind: 'equation', eyebrow, title, body,
     actions: [
-      ...(anchor ? [{ label: 'Go to where it is introduced', run: () => nav.goSpan(anchor) }] : [{ label: 'Go to section', run: () => nav.openSection(e.section as SectionId) }]),
-      ...(e.important ? [{ label: 'Show in Formulas', run: () => nav.showView('formulas') }] : []),
+      ...(anchor ? [{ label: 'Go to where it is introduced', run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(e.section as SectionId, s) }]),
+      ...(e.important ? [{ label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) }] : []),
     ],
   };
 };
@@ -131,8 +131,8 @@ export const formulaCard = (f: FormulaFacts, nav: Nav): Card => {
   return {
     kind: 'formula', eyebrow: KIND_LABEL.formula, title: f.formula,
     body: f.mass ? f.mass.working : names,
-    chips: f.parts.map((p) => ({ ...p, run: () => nav.showElement(p.symbol) })),
-    actions: first ? [{ label: 'Go to the elements', run: () => nav.showElement(first.symbol) }] : [],
+    chips: f.parts.map((p) => ({ ...p, run: (s?: boolean) => nav.showElement(p.symbol, s) })),
+    actions: first ? [{ label: 'Go to the elements', run: (s?: boolean) => nav.showElement(first.symbol, s) }] : [],
   };
 };
 
@@ -155,18 +155,18 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   const eyebrow = `${KIND_LABEL.concept} · ${c.kind} · section ${c.section}`;
   if (c.status === 'placeholder') return {
     kind: 'concept', eyebrow, title: c.name, body: `Section ${c.section} is not built yet.`,
-    actions: [f.built ? { label: 'Go to section', run: () => nav.openSection(sec) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
+    actions: [f.built ? { label: 'Go to section', run: (s?: boolean) => nav.openSection(sec, s) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
   };
   const uses = f.uses.slice(0, USES_SHOWN);
   const refs: RefGroup[] = [];
-  if (f.intro.length) refs.push({ label: 'Introduced in', links: f.intro.map((p) => ({ label: p.title, run: () => nav.goSpan(p.id) })) });
-  if (uses.length) refs.push({ label: 'Used in', links: uses.map((p) => ({ label: p.title, run: () => nav.goSpan(p.id) })), ...(f.uses.length > uses.length ? { more: { label: `and ${f.uses.length - uses.length} more`, run: () => nav.openSection(sec) } } : {}) });
+  if (f.intro.length) refs.push({ label: 'Introduced in', links: f.intro.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })) });
+  if (uses.length) refs.push({ label: 'Used in', links: uses.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })), ...(f.uses.length > uses.length ? { more: { label: `and ${f.uses.length - uses.length} more`, run: (s?: boolean) => nav.openSection(sec, s) } } : {}) });
   return {
     kind: 'concept', eyebrow, title: c.name, body: c.why ? sentence(c.why) : undefined, refs,
     actions: [
-      { label: 'Go to definition', run: () => (first ? nav.goSpan(first.id) : nav.openSection(sec)) },
-      ...(c.eq ? [{ label: 'Show in Formulas', run: () => nav.showView('formulas') }] : []),
-      ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: () => nav.showView('concepts') }]),
+      { label: 'Go to definition', run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
+      ...(c.eq ? [{ label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) }] : []),
+      ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: (s?: boolean) => nav.showView('concepts', s) }]),
     ],
   };
 };

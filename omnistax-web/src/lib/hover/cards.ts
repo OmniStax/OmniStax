@@ -12,7 +12,8 @@ import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, s
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
-import { symOf, typeOf, lookupVariable } from './data';
+import { symOf, typeOf, lookupVariable, otherMeanings } from './data';
+import type { VariableDTO } from '../content/schema';
 import { type Card, type Nav, variableCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
@@ -57,23 +58,24 @@ const places = (book: BookId, ids: readonly SpanId[]): { id: SpanId; title: stri
 /* A card sends the reader to a view of that kind: the page of it already open,
    wherever it stands, since a second one would only say the same thing; and where
    none is open, a page of its own as a tab of the focused group. */
-const showView = (view: 'definitions' | 'formulas' | 'concepts'): void => {
+const showView = (view: 'definitions' | 'formulas' | 'concepts', split = false): void => {
+  if (split) { void openItem(itemKey(newViewItem(view)), 'new'); return; }
   const host = document.querySelector<HTMLElement>(`.view[data-view="${view}"]`);
   if (host) { reveal(host); return; }
   layoutStore.apply((x) => openTab(x, newViewItem(view), x.focus));
 };
 /* What a card of one book can do, every place it names being in that book. */
 export const navFor = (book: BookId): Nav => {
-  const go = (id: SpanId): void => goSpan(spanRef(book, id));
+  const go = (id: SpanId, split?: boolean): void => goSpan(spanRef(book, id), split);
   const openExternal = (sec: SectionId): void => { window.open(registry.entry(sectionRef(book, sec))?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener'); };
   /* The elements sheet, standing on one element: the page of it, opened wherever
      a tab opens, with the element pinned before it draws. */
-  const showElement = (symbol: string): void => {
+  const showElement = (symbol: string, split?: boolean): void => {
     const entry = sheets.elementsEntry(book); if (!entry) return;
     sheets.pin(symbol);
-    void openItem(itemKey(sheetItem(book, sheetId(entry.id))));
+    void openItem(itemKey(sheetItem(book, sheetId(entry.id))), split ? 'new' : undefined);
   };
-  return { goSpan: go, openSection: (sec) => { openDoc(sectionRef(book, sec), 'text'); }, showView, openExternal, showElement };
+  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement };
 };
 
 /* ---------- resolvers, one per kind ---------- */
@@ -81,8 +83,11 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   const sym = symOf(t); const sec = sectionOf(book, t); if (!sym || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
   const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
-  return variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: data ? lookupVariable(data.formulas.variables, sym, sec) : undefined }, navFor(book));
+  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: data ? lookupVariable(data.formulas.variables, sym, sec) : undefined }, navFor(book));
+  const other = data ? otherMeanings(data.formulas.variables, sym, sec)[0] : undefined;
+  return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
+const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
 const term = (book: BookId, t: HTMLElement): Card | null => {
   const name = t.dataset.term; const sec = sectionOf(book, t); if (!name || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
