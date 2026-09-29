@@ -70,6 +70,7 @@ export const typeOf = (schema: z.ZodTypeAny): string => {
     case K.ZodRecord: return `record of ${typeOf(d.valueType as z.ZodTypeAny)}`;
     case K.ZodObject: return shapeOf(schema);
     case K.ZodDiscriminatedUnion: return (d.options ?? []).map(shapeOf).join(' | ');
+    case K.ZodUnion: return (d.options ?? []).map((o) => typeOf(o as z.ZodTypeAny)).join(' | ');
     default: return d.typeName.replace(/^Zod/, '').toLowerCase();
   }
 };

@@ -3,11 +3,11 @@
    cannot drift. Ids are qualified by section so two sections share a DOM. */
 import type { SectionSource } from './load';
 import type { BookDTO, ChapterDTO, FigureEntry } from './schema';
-import { attributionOf, footerHtml } from './attribution';
+import { aiByline, attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
 import { ICON } from '../icons';
-import { AI_MARK_HTML } from '../../components/ui/aimark';
+import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -154,7 +154,7 @@ export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, Spa
 const SIM_EYEBROW = /(<div\b[^>]*\bclass="[^"]*\bsim-head\b[^"]*"[^>]*>\s*<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?)<\/span>/g;
 /* The mark goes inside the eyebrow, not after it: the head lays its children out in a
    row of its own, and a mark of its own would drop to a line below the word. */
-export const markAiFigures = (html: string): string => html.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${AI_MARK_HTML}</span>`);
+export const markAiFigures = (html: string, byline?: string): string => html.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${aiMarkHtml(byline)}</span>`);
 
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
 const footer = (book: BookDTO, s: SectionSource): string => footerHtml(attributionOf(book, s.meta));
@@ -202,9 +202,9 @@ const pageNav = (nav: PageNav): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
-  const marked = s.meta.ai?.figures ? markAiFigures(s.textHtml) : s.textHtml;
+  const marked = s.meta.ai?.figures ? markAiFigures(s.textHtml, aiByline(s.meta.ai.figures)) : s.textHtml;
   const body = lazyImages(sizeImages(qualifyIds(marked, s.meta.id))), summary = summaryBlock(s);
-  const lead = s.meta.ai?.text ? `${s.meta.lead}${AI_MARK_HTML}` : s.meta.lead;
+  const lead = s.meta.ai?.text ? `${s.meta.lead}${aiMarkHtml(aiByline(s.meta.ai.text))}` : s.meta.lead;
   return [
   `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,

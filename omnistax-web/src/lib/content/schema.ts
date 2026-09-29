@@ -161,6 +161,7 @@ export const VariableSchema = z.object({
   unit: z.string().default('').describe('The unit the quantity is measured in.'),
   section: SECTION_REF.describe('The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections.'),
   anchor: SPAN_REF.optional().describe('The qualified span of the text where the symbol is introduced, such as 16.1-hookes-law.'),
+  redefines: z.boolean().optional().describe('Set where the book itself gives a symbol already used earlier in the chapter a new meaning; the meaning is then written to stand alone.'),
 }).strict();
 export type VariableDTO = z.infer<typeof VariableSchema>;
 
@@ -201,10 +202,37 @@ export type ChapterDTO = z.infer<typeof ChapterSchema>;
 
 /* ---------- <chapter>/<section>/section.json ---------- */
 
-/* The AI a section was built with, by role: the model that transformed the text, and the model that built the simulations. */
+/* The models that have written the books, by API id, and the name the reader meets them by. */
+export const AI_MODELS = ['claude-fable-5-1', 'claude-opus-5', 'claude-opus-5-5'] as const;
+export type AiModelId = (typeof AI_MODELS)[number];
+export const AI_MODEL_NAMES: Readonly<Record<AiModelId, string>> = {
+  'claude-fable-5-1': 'Claude Fable 5.1', 'claude-opus-5': 'Claude Opus 5', 'claude-opus-5-5': 'Claude Opus 5.5',
+};
+export const AI_EFFORTS = ['low', 'medium', 'high', 'max'] as const;
+export type AiEffort = (typeof AI_EFFORTS)[number];
+
+export const AiMakerSchema = z.object({
+  model: z.enum(AI_MODELS).describe('The model\u2019s API id.'),
+  effort: z.enum(AI_EFFORTS).optional().describe('The reasoning effort it ran at, where known.'),
+}).strict();
+export type AiMakerDTO = z.infer<typeof AiMakerSchema>;
+
+/* The old credit named its models in prose: "Claude Opus 5, with Claude Fable 5.1 and Claude Opus 5.5".
+   A name it does not know is dropped rather than guessed; an empty result is Claude Opus 5, the default. */
+const modelOfName = (name: string): AiModelId | undefined =>
+  AI_MODELS.find((m) => AI_MODEL_NAMES[m] === name.trim());
+export const parseAiMakers = (prose: string): readonly AiMakerDTO[] => {
+  const models = prose.split(/,\s*with\s+|\s+and\s+|,\s*/).map(modelOfName).filter((m): m is AiModelId => m !== undefined);
+  const unique = [...new Set(models)];
+  return (unique.length ? unique : (['claude-opus-5'] as const)).map((model) => ({ model }));
+};
+/* One part's makers, the first the principal: a list of models with their effort, or the old prose. */
+const AiPartSchema = z.union([z.array(AiMakerSchema).min(1), z.string().transform(parseAiMakers)]);
+
+/* The AI a section was built with, by role: the models that transformed the text, and the models that built the simulations. */
 export const AiCreditSchema = z.object({
-  text: z.string().describe('The model that transformed the section\u2019s text.'),
-  figures: z.string().describe('The model that built the section\u2019s simulations.'),
+  text: AiPartSchema.describe('The models that transformed the section\u2019s text, the principal first.'),
+  figures: AiPartSchema.describe('The models that built the section\u2019s simulations, the principal first.'),
 }).strict();
 export type AiCreditDTO = z.infer<typeof AiCreditSchema>;
 

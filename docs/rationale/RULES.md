@@ -235,8 +235,11 @@ Defaults, all overridable in the config list of item 10:
   The one exception the agent may raise: when a concept node has no
   exercise in the book that tests it, the agent asks the user whether to
   generate one for that node. It never generates unasked.
-- Everything generated is marked as generated on the item itself and set
-  in OmniStax's face, not the book's.
+- Everything generated wears the AI mark on the item itself and is set
+  in OmniStax's face, not the book's. The mark is a glyph, not words, so
+  it never breaks the rule of item 17; its hover says which model made
+  the item and at what effort, because a reader weighing a suggested
+  approach deserves to know what wrote it.
 
 ## 14. When a figure is made, and what kind
 
@@ -331,13 +334,18 @@ Every sentence OmniStax adds to a page is about the physics. A section lead
 says what the section is about. A figure caption says what to drag and what
 to watch. Nothing on the page explains that the prose is quoted, that a
 figure is a redrawn or live version of the book's, or that a card was
-generated. Attribution and omissions go in the footer, and the AI mark on
-a suggested approach is the only in-place flag. The footer is generated
+generated. Attribution and omissions go in the footer, and the AI mark (on
+the lead, a sim's head and a suggested approach) is the only in-place
+flag; its hover names the model and effort. The footer is generated
 by the app from the book's metadata (title, authors, publisher, copyright
 holder, licence, the section's page at the publisher); the pipeline writes
 only the section's `notes`, one plain sentence saying what was left out,
-and its `ai`, the name of the model that transformed the text and of the
-model that built the simulations. Every article carries the footer
+and its `ai`, the models that transformed the text and those that built
+the simulations, each with the effort it ran at. The credit is structured
+(API id and effort per maker, principal first) so the mark can print it
+and so a later rewrite can add itself without erasing who came before;
+the app still reads the old prose form. Effort is recorded because it
+changes the work: the same model at low effort writes a different page. Every article carries the footer
 because a section is what gets linked to, and the licence asks for credit
 wherever the work is shared. The footer is the whole of the attribution:
 it names the adaptation, the licence the adapted page is shared under
@@ -354,6 +362,16 @@ before writing for it, and the per-book `RULES.md` records what the voice
 is (for College Physics 2e: full sentences, plain second person, patient
 rather than clever). Clipped fragments, semicolon chains and editorial
 framing are out even where they would be shorter.
+
+Beyond the book's voice, AI prose drifts in known ways, so the rule names
+them. It narrates its own choices ("this section shows", "which is why the
+figure"), talks to a reviewer ("the reader"), stacks description the
+learner does not need, hedges, and slides into the passive where the book
+would name the actor. Each costs the learner attention and none teaches.
+Text is pedagogical, crisp and active, addressed to the learner. The
+checker `tools/voicelint.py` counts these per chapter so a sweep can be
+split fairly; it flags, and a person or agent judges, since the book
+itself uses the passive where the actor does not matter ("is given by").
 
 
 ## 18. Every book begins with a full-book pass that writes its rules and tools

@@ -142,6 +142,7 @@ The symbols the chapter’s sections give a meaning to.
 | `unit` | `string` | no | The unit the quantity is measured in. |
 | `section` | `string` | yes | The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections. |
 | `anchor` | `string?` | no | The qualified span of the text where the symbol is introduced, such as 16.1-hookes-law. |
+| `redefines` | `boolean?` | no | Set where the book itself gives a symbol already used earlier in the chapter a new meaning; the meaning is then written to stand alone. |
 
 ### `equations`
 
@@ -321,5 +322,5 @@ The AI the section was built with, by role.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `text` | `string` | yes | The model that transformed the section’s text. |
-| `figures` | `string` | yes | The model that built the section’s simulations. |
+| `text` | `{ model, effort? }[] \| string` | yes | The models that transformed the section’s text, the principal first. |
+| `figures` | `{ model, effort? }[] \| string` | yes | The models that built the section’s simulations, the principal first. |
