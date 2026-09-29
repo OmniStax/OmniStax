@@ -51,41 +51,35 @@ with sync_playwright() as playwright:
     opened = page.evaluate("() => performance.now() - window.__t0")
     print(f"the note's picker opened in {opened:.0f} ms")
     assert opened < 100, f"the picker took {opened:.0f} ms to open"
-    assert rows()[0].startswith("Notes"), rows()[0]
+    assert rows() == ["OmniBooks", "Files"], rows()
 
-    # Enter goes into the category — CodeMirror's own keymap must not have made
-    # a line of it — and what is typed next narrows that category's rows.
-    page.keyboard.type("sections")
-    page.wait_for_timeout(250)
-    assert rows() == ["Sections\ncategory"], rows()
+    # Enter walks into a node — CodeMirror's own keymap must not have made a
+    # line of it — and what is typed next searches below it.
     page.keyboard.press("Enter")
     page.wait_for_timeout(250)
-    assert picker.count() == 1, "Enter closed the list instead of going into the category"
-    assert "Sections" in picker.locator(".crumb").inner_text(), picker.locator(".crumb").inner_text()
+    assert picker.count() == 1, "Enter closed the list instead of walking into the node"
+    assert "OmniBooks" in picker.locator(".crumb").inner_text(), picker.locator(".crumb").inner_text()
     page.keyboard.type("1.2")
-    page.wait_for_timeout(250)
+    page.wait_for_timeout(400)
     assert rows()[0].startswith("1.2 ·"), rows()
 
     # Enter on a row writes the link over what was typed.
     page.keyboard.press("Enter")
     page.wait_for_timeout(400)
     assert picker.count() == 0, "the list stayed open"
-    assert body() == "See [[1.2]]", body()
+    assert body() == "See [[college-physics-2e/1.2]]", body()
 
-    # A click on a row does the same. The press is what chooses, so the editor
+    # A click on a row's pick does the same. The press is what chooses, so the editor
     # keeps the focus; and near the top of a note the list hangs below the
     # cursor, where it can be clicked at all.
     page.keyboard.type(" and [[")
     picker.wait_for(state="visible")
-    page.keyboard.type("sections")
-    page.wait_for_timeout(250)
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(250)
     page.keyboard.type("3.1")
-    page.wait_for_timeout(250)
-    picker.locator("li button").first.click()
     page.wait_for_timeout(400)
-    assert body() == "See [[1.2]] and [[3.1]]", body()
+    assert rows()[0].startswith("3.1 ·"), rows()
+    picker.locator("li button.pick").first.click()
+    page.wait_for_timeout(400)
+    assert body() == "See [[college-physics-2e/1.2]] and [[college-physics-2e/3.1]]", body()
 
     assert not errors, errors
     print("note picker browser check passed")

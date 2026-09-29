@@ -35,7 +35,7 @@
   const HINT = {
     zoom: 'Change the size of the text without resizing the window.',
     zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
-    cc: 'Give each physical type its own colour in text, formulas and figures.',
+    cc: 'Give each physical type its own color in text, formulas and figures.',
     underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
     tips: 'Show a tip each day in the bottom-right corner.',
     cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere.',
@@ -48,7 +48,7 @@
     record: 'Every completed exercise and self-assessment, and the mastery built from them.',
     lockGrace: 'Seconds before a focus lock starts.',
     layout: 'Put tabs, groups and sidebars back to how they started.',
-    exportData: 'Includes notes and pasted images, colours, practice history, sessions, library, layout, shortcuts and preferences. Textbook files aren’t included.',
+    exportData: 'Includes notes and pasted images, colors, practice history, sessions, library, layout, shortcuts and preferences. Textbook files aren’t included.',
     importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
   } as const;
   const ROWS = {
@@ -117,7 +117,7 @@
   type NumKey = 'masteryTarget' | 'startingHalfLife' | 'maxHalfLife';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
   const NUMS: readonly NumRow[] = [
-    { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept, up to the number of exercises it has.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' },
+    { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept, capped at its exercise count.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' },
     { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days until a newly mastered concept is first due for review.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Reset to 3 days' },
     { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest gap between reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Reset to 240 days' },
   ];
@@ -210,7 +210,7 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Colour coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Reset to on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">{HINT.cc}</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Color coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Reset to on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">{HINT.cc}</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Reset to on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">{HINT.underlines}</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </section>
@@ -290,7 +290,7 @@
             <strong>Ready to import</strong>
             <span>Exported {new Date(summary.exportedAt).toLocaleString()} · {summary.records} records · {summary.assets} note images</span>
             <span>{Object.entries(summary.categories).map(([category, count]) => `${category}: ${count}`).join(' · ') || 'No local records'}</span>
-            <span>Export your current data first if you might want it back. A recovery copy is kept until the import finishes.</span>
+            <span>Export your data first if you might want it back. A recovery copy is kept until the import finishes.</span>
             <button class="btn-sm danger" type="button" disabled={importing} onclick={() => void restoreBackup()}>{importing ? 'Importing…' : 'Replace data and reload'}</button>
           </div>
         {/if}

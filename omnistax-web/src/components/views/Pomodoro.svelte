@@ -95,7 +95,7 @@
     {/if}
   </div>
 
-  {#if pomodoro.lost}<p class="lost">Left the window too long.</p>{/if}
+  {#if pomodoro.lost}<p class="lost">You left the window too long.</p>{/if}
 
   {#if s.phase === 'done'}
     <form class="summary" onsubmit={(e) => { e.preventDefault(); keep(); }}>

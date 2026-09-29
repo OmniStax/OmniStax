@@ -342,7 +342,7 @@
         <span class="s-half"><i class="sw"></i>halfway</span>
         <span class="s-mastered"><i class="sw"></i>mastered</span>
       {/if}
-      <label class="prog" title="Draw how the practice stands on each node"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
+      <label class="prog" title="Show mastery on each node"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
     </div>
   </div>
   <div class="find">

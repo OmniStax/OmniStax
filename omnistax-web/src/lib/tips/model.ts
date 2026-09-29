@@ -15,11 +15,11 @@ export type TipState = z.infer<typeof TipStateSchema>;
 export const RETURNING_AFTER: Millis = 24 * 60 * 60 * 1000;
 
 export const TIPS: readonly Tip[] = [
-  { text: 'The drawing view takes a tablet and pen, for notes and exercises worked by hand.', action: { kind: 'new-drawing', label: 'New drawing' } },
-  { text: 'The colors each quantity wears can be changed, for the whole book or one chapter or section.', action: { kind: 'colours', label: 'Open the color menu' } },
-  { text: 'A concept, formula or definition, and even a figure or sim, can be dragged straight into a note.' },
-  { text: 'Your own PDFs can be imported and annotated, and their highlights linked into your notes.', action: { kind: 'import', label: 'Import files' } },
-  { text: 'A section, a view or a link opened with Ctrl-click stands in a group of its own, beside the one you are reading.' },
+  { text: 'Work notes and exercises by hand in the drawing view, with a tablet and pen.', action: { kind: 'new-drawing', label: 'New drawing' } },
+  { text: 'Change the color of any quantity, for the whole book or one chapter or section.', action: { kind: 'colours', label: 'Open the color menu' } },
+  { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
+  { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
+  { text: 'Ctrl-click a section, view or link to open it in a new group beside this one.' },
 ];
 
 export const dayOf = (at: Millis): DayKey => {

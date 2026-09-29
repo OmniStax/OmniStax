@@ -85,7 +85,7 @@ with sync_playwright() as playwright:
         open_settings(fresh)
         fresh.locator('#settings input[type="file"]').set_input_files(backup_path)
         with fresh.expect_navigation(wait_until="domcontentloaded"):
-            fresh.get_by_role("button", name="Replace profile and reload").click()
+            fresh.get_by_role("button", name="Replace data and reload").click()
         fresh.wait_for_selector(".shell")
         assert not fresh_dialogs, fresh_dialogs
         restored_notes = fresh.evaluate("localStorage.getItem('omnistax-notes-other-book')")
@@ -117,7 +117,7 @@ with sync_playwright() as playwright:
         failed_path = pathlib.Path(tmp) / "quota.json"
         failed_path.write_text(json.dumps(failed_profile))
         page.locator('#settings input[type="file"]').set_input_files(failed_path)
-        page.get_by_role("button", name="Replace profile and reload").wait_for()
+        page.get_by_role("button", name="Replace data and reload").wait_for()
         page.evaluate("""() => {
           const original = Storage.prototype.setItem;
           let injected = false;
@@ -131,7 +131,7 @@ with sync_playwright() as playwright:
         failure_dialog = []
         page.once("dialog", lambda dialog: (failure_dialog.append(dialog.message), dialog.accept()))
         with page.expect_navigation(wait_until="domcontentloaded"):
-            page.get_by_role("button", name="Replace profile and reload").click()
+            page.get_by_role("button", name="Replace data and reload").click()
         page.wait_for_selector(".shell")
         assert failure_dialog and "quota" in failure_dialog[0].lower()
         assert page.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
@@ -147,11 +147,11 @@ with sync_playwright() as playwright:
         peer.wait_for_selector(".shell")
         open_settings(page)
         page.locator('#settings input[type="file"]').set_input_files(backup_path)
-        page.get_by_role("button", name="Replace profile and reload").wait_for()
+        page.get_by_role("button", name="Replace data and reload").wait_for()
         dialog_text = []
         page.once("dialog", lambda dialog: (dialog_text.append(dialog.message), dialog.accept()))
         with page.expect_navigation(wait_until="domcontentloaded"):
-            page.get_by_role("button", name="Replace profile and reload").click()
+            page.get_by_role("button", name="Replace data and reload").click()
         page.wait_for_selector(".shell")
         assert dialog_text and "other tabs" in dialog_text[0]
         assert page.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
@@ -161,7 +161,7 @@ with sync_playwright() as playwright:
         open_settings(page)
         page.locator('#settings input[type="file"]').set_input_files(backup_path)
         with page.expect_navigation(wait_until="domcontentloaded"):
-            page.get_by_role("button", name="Replace profile and reload").click()
+            page.get_by_role("button", name="Replace data and reload").click()
         page.wait_for_selector(".shell")
         assert page.evaluate("localStorage.getItem('omnistax-notes-other-book')") is not None
         assert page.evaluate("""async () => { const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-assets');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});return await new Promise((ok,no)=>{const tx=db.transaction('assets');const r=tx.objectStore('assets').get('a1');r.onsuccess=()=>ok(r.result?.dataUrl);r.onerror=()=>no(r.error)}) }""") == "data:image/png;base64,AA=="

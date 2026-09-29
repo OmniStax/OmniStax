@@ -36,11 +36,11 @@
 
 <article class="file-tab" data-file={fileId} data-group={groupKey}>
   {#if !doc}
-    <div class="gone">This file is not here any more.</div>
+    <div class="gone">This file was deleted.</div>
   {:else}
     <div class="file-body">
       {#if failed}
-        <div class="gone">The bytes of this file are gone from this browser. Import it again, or restore a backup that carries it.</div>
+        <div class="gone">This browser no longer holds the file. Import it again or restore a backup.</div>
       {:else if doc.type === 'image'}
         {#if src}<img class="whole" {src} alt={doc.name} />{:else}<div class="loading">Fetching {doc.name}…</div>{/if}
       {:else if bytes && Reader}

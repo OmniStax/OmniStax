@@ -87,7 +87,7 @@
   {#if searchStore.busy}<div class="status">Reading the library…</div>
   {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
   {#if !asked}
-    <div class="hint">Every textbook you have added: its text, its concepts, its definitions and its formulas.</div>
+    <div class="hint">Search text, concepts, definitions and formulas in your textbooks.</div>
   {:else if !countFound(results) && !searchStore.busy}
     <div class="hint">Nothing matches.</div>
   {:else}

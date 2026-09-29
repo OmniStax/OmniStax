@@ -92,12 +92,12 @@
 <div class="elements" data-sheet="elements">
   <header>
     <h1>{sheet.title}</h1>
-    <p class="lead">Every element the table holds. Hover a cell to see it, click to keep it open.</p>
+    <p class="lead">Hover an element to see it. Click to keep it open.</p>
   </header>
 
   <div class="controls">
     <label class="control wide">
-      <span>Colour by</span>
+      <span>Color by</span>
       <select bind:value={choice}>{#each CHOICES as c (c.key)}<option value={c.key}>{c.label}</option>{/each}</select>
     </label>
     <label class="control"><span>Group</span>
@@ -189,7 +189,7 @@
               <div class="links">{#each e.sections as s (s)}<button type="button" class="ref" onclick={() => goSection(s)} title={titleOf(s)}>{s}</button>{/each}</div>
             </div>
           {:else}
-            <p class="none">No section of this book names it yet.</p>
+            <p class="none">No section of this book names it.</p>
           {/if}
         </div>
       {:else if peek}
@@ -201,7 +201,7 @@
           <p class="hint">Click to keep it open.</p>
         </div>
       {:else}
-        <div class="peekcard empty"><p>Hover an element to see it; click to keep the card open.</p></div>
+        <div class="peekcard empty"><p>Hover an element to see it. Click to keep the card open.</p></div>
       {/if}
     </aside>
   </div>

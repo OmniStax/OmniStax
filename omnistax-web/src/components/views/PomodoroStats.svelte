@@ -141,7 +141,7 @@
             {#if editCat === t.id}
               <div class="grid">
                 {#each CATEGORY_COLORS as c (c)}
-                  <button type="button" class="swatch" class:on={hue(t.id) === c} style="--hue:{c}" aria-label="Colour {c}" onclick={() => pomodoro.recolourCategory(t.id, c)}></button>
+                  <button type="button" class="swatch" class:on={hue(t.id) === c} style="--hue:{c}" aria-label="Color {c}" onclick={() => pomodoro.recolourCategory(t.id, c)}></button>
                 {/each}
               </div>
               <button type="button" class="btn primary sm" onclick={() => { pomodoro.renameCategory(t.id, catName); editCat = null; }}>Done</button>

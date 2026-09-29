@@ -137,7 +137,7 @@
     const pageBook = bookOfItem(page);
     library.init(pageBook ?? '', pageBook === home.id ? home.title : undefined);
     void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
-      .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage could not be initialized.'; });
+      .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
     registry.onBook((m) => { registerFigBook({ id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) }); colours.ensureBook(m); });

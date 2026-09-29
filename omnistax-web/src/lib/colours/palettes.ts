@@ -264,7 +264,7 @@ const tolRainbow = (n: number): readonly Hex[] | null => {
 export const OKLCH: Palette = generated(
   'oklch',
   'Even hues',
-  'Hues spaced evenly round the colour circle, as many as the level needs, all at one lightness so no one of them shouts.',
+  'Evenly spaced hues at one lightness, as many as the level needs.',
   (n) => oklchRing(n),
 );
 
@@ -292,49 +292,49 @@ export const PALETTES: readonly Palette[] = [
   fixed(
     'okabe-ito',
     'Okabe–Ito',
-    'Eight colours that stay apart for readers with the common forms of colour blindness.',
+    'Eight colors that stay distinct under common color blindness.',
     ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#000000'],
   ),
   fixed(
     'tol-bright',
     'Paul Tol bright',
-    'Seven strong colours that hold their difference on a white page and in print.',
+    'Seven strong colors that stay distinct on screen and in print.',
     ['#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377', '#BBBBBB'],
   ),
   fixed(
     'tol-vibrant',
     'Paul Tol vibrant',
-    'Seven brighter colours for lines and markers that must be seen from across a room.',
+    'Seven bright colors for lines and markers seen from afar.',
     ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988', '#BBBBBB'],
   ),
   fixed(
     'tol-muted',
     'Paul Tol muted',
-    'Nine quieter colours for a page that carries a great many quantities at once.',
+    'Nine quiet colors for pages with many quantities.',
     ['#CC6677', '#332288', '#DDCC77', '#117733', '#88CCEE', '#882255', '#44AA99', '#999933', '#AA4499'],
   ),
   fixed(
     'tableau-10',
     'Tableau 10',
-    'Ten muted colours meant for charts, so no one of them shouts over the others.',
+    'Ten muted colors made for charts.',
     ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC'],
   ),
   fixed(
     'category10',
     'D3 category10',
-    'Ten colours you will have seen in a great many plots, in their familiar order.',
+    'The ten familiar plotting colors, in their usual order.',
     ['#1F77B4', '#FF7F0E', '#2CA02C', '#D62728', '#9467BD', '#8C564B', '#E377C2', '#7F7F7F', '#BCBD22', '#17BECF'],
   ),
   fixed(
     'dark2',
     'ColorBrewer Dark2',
-    'Eight deep colours that read clearly as text as well as in a drawing.',
+    'Eight deep colors that read well as text and in drawings.',
     ['#1B9E77', '#D95F02', '#7570B3', '#E7298A', '#66A61E', '#E6AB02', '#A6761D', '#666666'],
   ),
   fixed(
     'set1',
     'ColorBrewer Set1',
-    'Nine primary colours, the boldest of these sets and the easiest to name aloud.',
+    'Nine bold primary colors, easy to name aloud.',
     ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#FFFF33', '#A65628', '#F781BF', '#999999'],
   ),
   fixed(
@@ -360,7 +360,7 @@ export const PALETTES: readonly Palette[] = [
   fixed(
     'glasbey',
     'Glasbey',
-    'Colours chosen one after another to be as far as possible from every one before, from the set colorcet ships.',
+    'Colors picked one by one to differ most from all before, from colorcet.',
     [
       '#D70000', '#8C3CFF', '#028800', '#00ACC7', '#98FF00', '#FF7FD1', '#6C004F', '#FFA530', '#583B00', '#005759',
       '#0000DD', '#00FDCF', '#A1756A', '#BCB7FF', '#95B578', '#C004B9', '#645474', '#790000', '#0774D8', '#FEF590',

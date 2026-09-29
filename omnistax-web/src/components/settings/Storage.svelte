@@ -82,7 +82,7 @@
   <span class="hint">
     Save your notes, highlights, imported files, practice, and settings to one file.
     {#if estimated !== null}Estimated size: {sizeLabel(estimated)}.{/if}
-    {#if estimated !== null && estimated > WARN_BACKUP_BYTES}<strong class="warn">Some browsers may fail to import a backup this large. Removing large imported files will shrink it.</strong>{/if}
+    {#if estimated !== null && estimated > WARN_BACKUP_BYTES}<strong class="warn">Some browsers fail to import a backup this large. Remove large imported files to shrink it.</strong>{/if}
   </span>
   <span class="acts">
     <button class="btn-sm" type="button" disabled={weighing} onclick={() => void weigh()}>{weighing ? 'Estimating…' : 'Estimate size'}</button>

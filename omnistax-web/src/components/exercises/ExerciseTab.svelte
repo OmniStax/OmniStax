@@ -27,7 +27,7 @@
 <div class="ex-tab" data-book={book} data-section={section} data-ex={ex} data-group={groupKey}>
   <header class="head">
     <span class="what">Exercise</span>
-    <button type="button" class="where" title="Open the section this exercise belongs to"
+    <button type="button" class="where" title="Open its section"
       onclick={() => void openDoc(ref, 'text')}>{title}</button>
   </header>
   <div class="body">

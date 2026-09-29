@@ -29,7 +29,7 @@
   const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
   /* what to say where a place has nothing marked in it yet */
   const blank = $derived(
-    target.level === 'section' ? 'Select some text in the section to highlight it or to annotate it.'
+    target.level === 'section' ? 'Select text in the section to highlight or annotate it.'
       : target.level === 'chapter' ? 'Nothing annotated in this chapter yet.'
       : 'Nothing annotated in this book yet.',
   );
@@ -54,12 +54,12 @@
 {#snippet card(n: Note)}
   <div class="note" data-id={n.id} use:dragout={{ kind: 'highlight', id: n.id }}>
     <div class="head">
-      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} title="Colour {c}" aria-label="Colour {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
+      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} title="Color {c}" aria-label="Color {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
       <span class="when">{when(n.updated)}</span>
       <button type="button" class="x" data-nodrag title="Remove this highlight" aria-label="Remove this highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
     <button type="button" class="quote hl-{n.color}" title="Show it in the text" onclick={() => goNote(n)}>{n.anchor.quote}</button>
-    {#if notes.unresolved.has(n.id)}<div class="lost" role="status">This highlight no longer matches the updated text. Its note is preserved.</div>{/if}
+    {#if notes.unresolved.has(n.id)}<div class="lost" role="status">The text changed and this highlight no longer matches. Your note is kept.</div>{/if}
     <!-- A burst of typing is one step of the shell's timeline; leaving the box
          ends the burst, so the next one begins a step of its own. -->
     <textarea data-note={n.id} rows="2" placeholder="Add a note…" value={n.text}
@@ -75,7 +75,7 @@
   <div class="note" data-id={m.id} use:dragout={{ kind: 'highlight', id: m.id }}>
     <div class="head">
       {#if m.kind === 'highlight'}
-        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} title="Colour {c}" aria-label="Colour {c}" onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
+        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} title="Color {c}" aria-label="Color {c}" onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
       {:else}
         <span class="kind">Text box</span>
       {/if}

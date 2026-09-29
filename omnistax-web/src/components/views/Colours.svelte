@@ -48,7 +48,7 @@
         : `A colour set here is the colour of that quantity in section ${place.section} only.`,
   );
   /* The reader edits the ground they are looking at; the other one is derived for them. */
-  const themeNote = $derived(settings.dark ? 'You are choosing the dark colours.' : 'You are choosing the light colours.');
+  const themeNote = $derived(settings.dark ? 'Dark theme colors' : 'Light theme colors');
   const shown = (h: Hue | null): string | null => (h ? (settings.dark ? h.dark : h.light) : null);
   const spare = (h: Hue | null): string | null => (h ? (settings.dark ? h.light : h.dark) : null);
   const hueOf = (k: TypeKey) => colours.hueAt(k, place);
@@ -166,7 +166,7 @@
     const raw = await file.text();
     const parsed = ((): unknown => { try { return JSON.parse(raw); } catch { return null; } })();
     const got = colours.load(parsed);
-    trouble = got.ok ? '' : got.reason === 'other-book' ? 'That file holds the colours of another book.' : 'That file does not hold colours.';
+    trouble = got.ok ? '' : got.reason === 'other-book' ? 'That file is for another book.' : 'That file holds no colors.';
   };
   const onFile = (e: Event): void => {
     const input = e.currentTarget as HTMLInputElement;
@@ -221,18 +221,18 @@
   {/if}
   <p class="lead">{lead}</p>
   {#if !settings.colorCoding}
-    <p class="off">Colour coding is off; the colours you choose show when it is on.</p>
+    <p class="off">Color coding is off. Turn it on to see these colors.</p>
   {/if}
 
   <div class="bar">
-    <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? `Undo ${colours.undoLabel}` : 'There is nothing to take back yet.'} onclick={() => colours.undo()}>Undo</button>
-    <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? `Redo ${colours.redoLabel}` : 'There is nothing to do again yet.'} onclick={() => colours.redo()}>Redo</button>
-    <button type="button" disabled={!setHere} title="Hand every colour set here back to the tier above." onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
+    <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? `Undo ${colours.undoLabel}` : 'Nothing to undo'} onclick={() => colours.undo()}>Undo</button>
+    <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? `Redo ${colours.redoLabel}` : 'Nothing to redo'} onclick={() => colours.redo()}>Redo</button>
+    <button type="button" disabled={!setHere} title="Clear every color set here" onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
     {#if place.level === 'book'}
-      <button type="button" disabled={nothingSet} title="Take the book back to the scheme, with the quantities in the order the book declares them." onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
+      <button type="button" disabled={nothingSet} title="Restore the default colors and order" onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
     {/if}
-    <button type="button" title="Save these colours to a file you can keep or pass on." onclick={exportFile}>Export…</button>
-    <button type="button" title="Take the colours in a file you have saved." onclick={() => picker?.click()}>Load…</button>
+    <button type="button" title="Save these colors to a file" onclick={exportFile}>Export…</button>
+    <button type="button" title="Load colors from a file" onclick={() => picker?.click()}>Load…</button>
     <input type="file" accept="application/json,.json" bind:this={picker} onchange={onFile} hidden />
     <span class="theme">{themeNote}</span>
   </div>
@@ -265,16 +265,16 @@
           ondragleave={() => { if (over?.type === k) over = null; }}
           ondrop={(e) => onDrop(e, k)}>
           <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
-            title="Drag to move this quantity, or press the arrow keys" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
+            title="Drag or use the arrow keys to reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
           <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
             title={hex ? `Choose another colour for ${name}` : `Choose a colour for ${name}`}
             onclick={() => openPicker(k)}></button>
-          {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'The light colour of this quantity' : 'The dark colour of this quantity'}></i>{/if}
+          {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'Light theme color' : 'Dark theme color'}></i>{/if}
           <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
           <SymbolList macros={symbolsOf(manifest, k)} label={name} />
           <span class="from" class:own={own !== null}>{source(eff.from)}</span>
           {#if own}
-            <button type="button" class="clear" title="Back to the colour above" aria-label={`Back to the colour above for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
+            <button type="button" class="clear" title="Use the inherited color" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
           {/if}
         </div>
         {#if open === k}
@@ -288,9 +288,9 @@
             <div class="fine">
               <input type="color" value={hex ?? '#000000'} aria-label={`The ${settings.dark ? 'dark' : 'light'} colour of ${name}`}
                 oninput={(e) => { draft = e.currentTarget.value; drag(k, e.currentTarget.value); }} onchange={settle} />
-              <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label="The colour as a hex code"
+              <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label="Hex code"
                 onkeydown={(e) => { if (e.key === 'Enter') { commitHex(k); e.preventDefault(); } }} onblur={() => commitHex(k)} />
-              <span class="hint">Type a hex code, or drag the colour to hunt for one.</span>
+              <span class="hint">Type a hex code or drag to pick.</span>
             </div>
           </div>
         {/if}
@@ -300,13 +300,13 @@
 
   <div class="eyebrow">Recommended palettes</div>
   {#if shownPalettes.length === 0}
-    <p class="note">There is nothing to colour at this level.</p>
+    <p class="note">Nothing to color here.</p>
   {/if}
   <ul class="pals">
     {#each shownPalettes as { palette: p, hues } (p.id)}
       <li>
         <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" title={`Give the quantities of this level the colours of ${p.name}.`} onclick={() => use(p)}>Use</button>
+          <button type="button" title={`Apply ${p.name}`} onclick={() => use(p)}>Use</button>
         </div>
         <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={h}></i>{/each}</div>
         <p class="note">{p.note}</p>

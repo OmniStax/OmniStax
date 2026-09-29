@@ -121,7 +121,7 @@ class Colours {
     this.record(`${nameOf(this.manifest, type)} ${whereIn(place)} cleared`, clearHue(this.choices, place, type));
   }
   clearPlace(place: Place): void {
-    this.record(`every colour of ${whereOf(place)} cleared`, clearPlace(this.choices, place));
+    this.record(`every color of ${whereOf(place)} cleared`, clearPlace(this.choices, place));
   }
   /* A palette dressed onto the types of a place in one step. The palette is asked
      for exactly as many hues as the place has quantities; one that cannot dress
@@ -142,7 +142,7 @@ class Colours {
     const where = before === null ? 'to the end' : `before ${nameOf(this.manifest, before)}`;
     this.record(`${nameOf(this.manifest, type)} moved ${where}`, moveType(this.manifest, this.choices, type, before));
   }
-  resetAll(): void { this.record('every colour reset', NO_CHOICES); }
+  resetAll(): void { this.record('every color reset', NO_CHOICES); }
 
   /* The document the reader saves, and the one they hand back. Loading is one
      step of the timeline, so a file opened by mistake is taken back like
@@ -151,7 +151,7 @@ class Colours {
   load(raw: unknown): { readonly ok: true } | { readonly ok: false; readonly reason: 'not-colours' | 'other-book' } {
     const got = fromFile(raw, this.book);
     if (!got.ok) return got;
-    this.record('colours loaded from a file', got.choices);
+    this.record('colors loaded from a file', got.choices);
     return { ok: true };
   }
 

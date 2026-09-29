@@ -63,7 +63,7 @@ export const recoverInterruptedRestore = async (): Promise<void> => {
 };
 
 export const restoreWithJournal = async (after: readonly ReaderRecord[], afterAssets: readonly Asset[]): Promise<void> => {
-  if (typeof indexedDB === 'undefined') throw new Error('This browser cannot provide safe transactional restore because IndexedDB is unavailable.');
+  if (typeof indexedDB === 'undefined') throw new Error('This browser lacks IndexedDB, so it cannot restore a backup safely.');
   /* A pasted image whose transaction started before the button press must be
      represented in the before snapshot rather than arriving during restore. */
   setReaderWritesAllowed(false);

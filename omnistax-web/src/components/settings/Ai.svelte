@@ -62,11 +62,11 @@
 
 <section hidden={!hit(WORDS)}>
   <h3>AI</h3>
-  <p class="hint">Use your own API keys. Requests go straight from this browser to the provider; OmniStax never sees a key, and backups leave keys out. Tick the models the chat's menu should offer.</p>
+  <p class="hint">Use your own API keys. Requests go straight from this browser to the provider. OmniStax never sees your keys, and backups leave them out. Tick the models to offer in chat.</p>
 
   <label class="row switch">
     <span class="name">Inline HTML rendering</span>
-    <span class="hint">Answers may include a small interactive page, shown in a sandbox.</span>
+    <span class="hint">Answers can include a small interactive page, run in a sandbox.</span>
     <input type="checkbox" checked={ai.inlineHtml} onchange={(e) => ai.setInlineHtml(e.currentTarget.checked)}>
   </label>
 

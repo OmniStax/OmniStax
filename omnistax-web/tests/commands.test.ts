@@ -108,7 +108,7 @@ type ViewState = { readonly view?: string | null; readonly level?: Level; readon
 /* The timeline the undo and redo commands read: what each way would take back,
    and nothing at all where the reader has done nothing. */
 type Timeline = { readonly undoLabel?: string; readonly redoLabel?: string };
-const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true, colourTimeline: Timeline = { undoLabel: 'velocity in section 16.3', redoLabel: 'every colour of chapter 16 cleared' }): BuiltinDeps & { log: string[] } => {
+const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesBuilt = true, noteOpen = true, timeline: Timeline = { undoLabel: 'highlight in yellow', redoLabel: 'remove highlight' }, closedTabs = true, colourTimeline: Timeline = { undoLabel: 'velocity in section 16.3', redoLabel: 'every color of chapter 16 cleared' }): BuiltinDeps & { log: string[] } => {
   const log: string[] = [];
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
@@ -289,7 +289,7 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
 });
 test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours']);
+  assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours', 'chats']);
   assert.equal(by(openViewId('colours')).label, 'Open the colour menu');
   assert.equal(by(openViewId('colours')).group, 'Appearance');
   assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');
@@ -300,11 +300,11 @@ test('the colours have a timeline of their own, apart from the reader\u2019s edi
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   by(BUILTIN.coloursUndo).run(); by(BUILTIN.coloursRedo).run();
   assert.deepEqual(d.log, ['colours undo', 'colours redo'], 'neither one touches the shell timeline');
-  assert.equal(by(BUILTIN.coloursUndo).label, 'Colours: undo');
-  assert.equal(by(BUILTIN.coloursRedo).label, 'Colours: redo');
+  assert.equal(by(BUILTIN.coloursUndo).label, 'Colors: undo');
+  assert.equal(by(BUILTIN.coloursRedo).label, 'Colors: redo');
   assert.equal(by(BUILTIN.coloursUndo).group, 'Appearance');
   assert.equal(by(BUILTIN.coloursUndo).detail?.(), 'velocity in section 16.3', 'the palette says which colour would come back');
-  assert.equal(by(BUILTIN.coloursRedo).detail?.(), 'every colour of chapter 16 cleared');
+  assert.equal(by(BUILTIN.coloursRedo).detail?.(), 'every color of chapter 16 cleared');
   const empty = builtinCommands(deps(false, 2, {}, true, true, undefined, true, {}));
   assert.equal(available(empty.find((c) => c.id === BUILTIN.coloursUndo)!), false, 'no colour chosen, none to take back');
   assert.equal(available(empty.find((c) => c.id === BUILTIN.coloursRedo)!), false);

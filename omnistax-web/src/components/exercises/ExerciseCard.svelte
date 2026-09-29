@@ -98,14 +98,14 @@
 
 {#snippet scratchpad()}
   <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}
-    title={scratched ? 'Your scratch work for this exercise' : 'Open a page to work this out on'}>
+    title={scratched ? 'Your scratch work' : 'Work it out on a scratch page'}>
     Scratchpad{@html ICON.drawing}{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
   </button>
   {#if linked && linkedName}
     <span class="chip-link">
-      <button type="button" class="tool link" onclick={openLinked} title="Open the drawing this work was saved as">{linkedName}</button>
+      <button type="button" class="tool link" onclick={openLinked} title="Open the saved drawing">{linkedName}</button>
       <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
-        title="Turn this drawing back into private scratch work">Detach</button>
+        title="Turn the drawing back into scratch work">Detach</button>
     </span>
   {/if}
 {/snippet}
@@ -150,7 +150,7 @@
       {/if}
     {/if}
   {:else}
-    <p class="no-solution">No answer was supplied for this exercise, so it cannot be self-checked.</p>
+    <p class="no-solution">This exercise has no answer to check against.</p>
   {/if}
 
   {#if (!inline && a.type !== 'choice') || revealable}

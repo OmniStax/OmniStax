@@ -315,9 +315,9 @@ functions that also restate the connectors touching what moved.
 
 ### Round-two milestones
 
-- [ ] 5. Colour tokens (#33), connectors with handles, straight and bezier,
+- [x] 5. Colour tokens (#33), connectors with handles, straight and bezier,
   arrowheads, labels; arrow migration.
-- [ ] 6. Double-click cards, colours, groups, notes editable in place.
-- [ ] 7. Chats: the `chat` item, plain copy, the note embed (needs
+- [x] 6. Double-click cards, colours, groups, notes editable in place.
+- [x] 7. Chats: the `chat` item, plain copy, the note embed (needs
   `lib/tree/layout.ts`, `Plane.svelte` and `TreeView.svelte` from byoai
   milestone 7).

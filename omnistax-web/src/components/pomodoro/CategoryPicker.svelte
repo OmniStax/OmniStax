@@ -51,7 +51,7 @@
           <input class="input name-field" bind:value={name} type="text" autocomplete="off" placeholder="Category name" autofocus />
           <div class="grid">
             {#each CATEGORY_COLORS as c (c)}
-              <button type="button" class="swatch" class:on={colour === c} style="--hue:{c}" aria-label="Colour {c}" onclick={() => (colour = c)}></button>
+              <button type="button" class="swatch" class:on={colour === c} style="--hue:{c}" aria-label="Color {c}" onclick={() => (colour = c)}></button>
             {/each}
           </div>
           <div class="acts">

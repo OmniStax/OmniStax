@@ -87,7 +87,7 @@ export const usedFraction = (e: Estimate): number | null =>
 export const isWebkit = (ua: string, vendor = ''): boolean =>
   /iP(?:hone|ad|od)/.test(ua) || (/Safari/.test(ua) && !/Chrom|Chromium|Edg|OPR|Android/.test(ua)) || /Apple/.test(vendor) && !/Chrom/.test(ua);
 
-const AT_RISK = 'Your browser may clear this data when storage runs low. To prevent this, install OmniStax as an app or bookmark it, then reload. Keep a backup either way.';
+const AT_RISK = 'Your browser may clear this data when storage runs low. Install OmniStax as an app or bookmark it, then reload. Keep a backup either way.';
 export const PERSIST_WORDS: Readonly<Record<Persistence, string>> = {
   granted: 'Your browser won’t clear this data on its own.',
   denied: AT_RISK,

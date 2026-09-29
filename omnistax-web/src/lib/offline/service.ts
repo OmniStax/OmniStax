@@ -37,7 +37,7 @@ export const fetchCatalog = async (signal?: AbortSignal): Promise<OfflineCatalog
 
 const enoughSpace = async (bytes: number): Promise<void> => {
   const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
-  if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < bytes) throw new Error('The browser reports too little storage for this download.');
+  if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < bytes) throw new Error('Not enough storage for this download.');
 };
 
 const savedReferences = () => {
@@ -62,14 +62,14 @@ export const reclaimPreviousRelease = async (bookId: string): Promise<Installati
 });
 
 export const installRelease = async (manifest: BookReleaseManifest, options: InstallOptions = {}): Promise<InstallationRecord> => lock(manifest.book.id, async () => {
-  if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error('This browser does not support offline textbook storage.');
+  if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error('This browser cannot store textbooks offline.');
   await enoughSpace(manifest.totalBytes);
   void navigator.storage?.persist?.().catch(() => false);
   let existing = await getInstallation(manifest.book.id);
   if (existing?.previousRelease) {
     existing = await clearPreviousIfUnused(existing);
     const changingActive = existing.installedRelease !== manifest.releaseId || (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) !== manifest.runtime.artifactId;
-    if (changingActive && existing.previousRelease) throw new Error('An older release is still used by an open tab or saved practice session. Close that tab or finish/discard the session before installing another update.');
+    if (changingActive && existing.previousRelease) throw new Error('An open tab or saved practice session still uses an older release. Close the tab or finish the session, then update.');
   }
   const completed = existing?.stagingRelease === manifest.releaseId && existing.stagingArtifact === manifest.runtime.artifactId ? new Set(existing.completed ?? []) : new Set<string>();
   const cache = await caches.open(cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId));

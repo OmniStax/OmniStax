@@ -133,7 +133,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.undo, label: 'Undo', group: 'App', run: () => d.history.undo(), when: () => d.history.canUndo, detail: () => d.history.undoLabel },
   { id: BUILTIN.redo, label: 'Redo', group: 'App', run: () => d.history.redo(), when: () => d.history.canRedo, detail: () => d.history.redoLabel },
   { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
-  { id: BUILTIN.colourCoding, label: 'Toggle colour coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
+  { id: BUILTIN.colourCoding, label: 'Toggle color coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
   /* The dotted rule under symbols, glossary terms and example references; what
      they open is unaffected either way. */
   { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },
@@ -194,6 +194,6 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.findTextbook, label: 'Find a textbook', group: 'App', run: () => d.ui.openFindTextbook() },
   /* The colour timeline is the colour menu's own, so these two say so by name and
      the detail says which colour would come back. */
-  { id: BUILTIN.coloursUndo, label: 'Colours: undo', group: 'Appearance', run: () => d.colours.undo(), when: () => d.colours.canUndo, detail: () => d.colours.undoLabel },
-  { id: BUILTIN.coloursRedo, label: 'Colours: redo', group: 'Appearance', run: () => d.colours.redo(), when: () => d.colours.canRedo, detail: () => d.colours.redoLabel },
+  { id: BUILTIN.coloursUndo, label: 'Colors: undo', group: 'Appearance', run: () => d.colours.undo(), when: () => d.colours.canUndo, detail: () => d.colours.undoLabel },
+  { id: BUILTIN.coloursRedo, label: 'Colors: redo', group: 'Appearance', run: () => d.colours.redo(), when: () => d.colours.canRedo, detail: () => d.colours.redoLabel },
 ];

@@ -111,7 +111,7 @@
     return { concepts: ids.size, exercises: poolOf(picks, cat).length };
   };
   const countTitle = (s: Sum): string =>
-    s.concepts === 0 ? 'Nothing here has a concept attached to it yet.'
+    s.concepts === 0 ? 'No concepts here yet.'
       : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`} and ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}.`;
 
   /* Books and chapters start folded. Expanding a row does not change its
@@ -150,16 +150,16 @@
   const choice = $derived(sumOf(page.curriculum));
   const plan = $derived(practice.plan(item));
   const choiceLine = $derived(
-    page.curriculum.length === 0 ? 'You have not chosen anything to practice yet.'
+    page.curriculum.length === 0 ? 'Nothing chosen yet.'
       : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`} in ${choice.exercises === 1 ? '1 exercise' : `${choice.exercises} exercises`}.`,
   );
   const why = $derived(
-    page.curriculum.length === 0 ? 'Tick a chapter, a section or a concept above, and a session will be drawn from what you tick.'
-      : choice.exercises === 0 ? 'Nothing you have chosen has a problem attached to it yet. Choose another part of the book, or one of its concepts.'
+    page.curriculum.length === 0 ? 'Tick a chapter, section or concept above to build a session.'
+      : choice.exercises === 0 ? 'Your choice has no exercises yet. Pick another part of the book or a concept.'
         : '',
   );
   let note = $state('');
-  const NOTHING = 'There is nothing left to draw on just now. Choose more of the book or try again later.';
+  const NOTHING = 'No exercises left for now. Choose more of the book or try again later.';
   const begin = (): void => { note = practice.start(item) ? '' : NOTHING; };
   const diagnostic = $derived.by(() => {
     if (!plan.concepts.length) return '';
@@ -212,7 +212,7 @@
     return fresh.due ? `Mastered · ${days === 0 ? 'due now' : `overdue by ${days} ${days === 1 ? 'day' : 'days'}`}` : `Mastered · fresh for ${days} more ${days === 1 ? 'day' : 'days'}`;
   };
   const boxTitle = (id: string, s: State): string =>
-    s === 'untouched' ? 'You have not completed an exercise on this concept yet.'
+    s === 'untouched' ? 'No exercises completed on this concept yet.'
       : s === 'mastered' ? freshnessTitle(id)
         : `${practice.mastery[id]?.level ?? 0}/${practice.mastery[id]?.target ?? practice.settings.masteryTarget} correct steps toward mastery.`;
 
@@ -427,7 +427,7 @@
                 <div class="pop">
                   <div class="eyebrow">What this session tests</div>
                   {#if list.length === 0}
-                    <p class="quiet">Everything this session drew on has since been taken out of its curriculum.</p>
+                    <p class="quiet">Everything this session covered has been removed from it.</p>
                   {/if}
                   {#each list.slice(0, PEEK) as row, i (i)}
                     <div class="peek lvl-{row.level}">
@@ -461,12 +461,12 @@
 
     <section class="panel book-progress" aria-label="Concept progress">
       <div class="progress-head">
-        <div><h3 class="head">Concept progress</h3><p class="quiet">Trace your mastery from each book down to the concepts in a section.</p></div>
+        <div><h3 class="head">Concept progress</h3><p class="quiet">Your mastery, from each book down to its concepts.</p></div>
         <button type="button" class="btn override" class:on={overrideMode} aria-pressed={overrideMode} onclick={() => (overrideMode = !overrideMode)}>{overrideMode ? 'Done overriding' : 'Override progress'}</button>
       </div>
       {#if overrideMode}
         <div class="override-tools">
-          <p class="quiet">Choose a concept’s progress independently of exercise history. “Use exercise history” removes the override.</p>
+          <p class="quiet">Set a concept’s progress by hand. “Use exercise history” undoes it.</p>
           <input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept to override" bind:value={selfQuery}>
         </div>
       {/if}
@@ -536,7 +536,7 @@
                                             {/if}
                                           </div>
                                         {:else}
-                                          <p class="empty-section">No concepts are introduced in this section yet.</p>
+                                          <p class="empty-section">No concepts introduced here yet.</p>
                                         {/each}
                                       </div>
                                     {/if}
@@ -574,7 +574,7 @@
         </div>
         {#if bookShown}
           {#if !books.manifest(b)}
-            <div class="row lvl-chapter off" title="Its chapters cannot be listed until the book itself arrives.">
+            <div class="row lvl-chapter off" title="Chapters appear once the book loads">
               <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
             </div>
           {/if}
@@ -596,7 +596,7 @@
                     <span class="lab">{s.id} · {s.title}</span>
                   </label>
                 {:else}
-                  <div class="row lvl-section off" title="This section has not been built yet, so it has no problems to draw on.">
+                  <div class="row lvl-section off" title="Not built yet">
                     <span class="twist" aria-hidden="true"></span>
                     <input type="checkbox" disabled>
                     <span class="lab">{s.id} · {s.title}</span>
@@ -612,14 +612,14 @@
     <div class="eyebrow">Add by concept</div>
     <input class="find" type="search" placeholder="Find a concept…" aria-label="Find a concept by name" bind:value={q}>
     {#if q.trim() && found.length === 0}
-      <p class="quiet">{loading ? 'The concepts are still loading.' : 'No concept in your library is named that.'}</p>
+      <p class="quiet">{loading ? 'Loading concepts…' : 'No matching concept.'}</p>
     {/if}
     {#each found as f (`${f.book}/${f.c.id}`)}
       {@const own = has(conceptPick(f.c.id))}
       {@const brought = !own && curriculumConcepts.has(f.c.id)}
       <label class="row concept">
         <input type="checkbox" checked={own} use:tri={brought} onchange={() => practice.toggle(item, conceptPick(f.c.id))}
-          title={brought ? 'A section you have already chosen brings this concept in.' : 'Practice this concept on its own.'}>
+          title={brought ? 'Included by a chosen section' : 'Practice this concept alone'}>
         <i class="dot k-{f.c.kind}" aria-hidden="true"></i>
         <span class="lab"><span use:mathHtml={f.c.name}></span></span>
         {@render masteryBox(f.c.id)}
@@ -693,7 +693,7 @@
       {:else if pending && statusOf(pending.book) === 'failed'}
         <p class="quiet">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another square to continue.</p>
       {:else}
-        <p class="quiet">Loading the book this exercise comes from…</p>
+        <p class="quiet">Loading the book…</p>
       {/if}
     {/if}
     {#if ending}
@@ -717,7 +717,7 @@
       <div class="acts session-actions">
         {#if !page.showAll}<button type="button" class="btn" onclick={() => practice.setShowAll(item, true)}>Show all exercises</button>{/if}
         <button type="button" class="btn" onclick={() => practice.pause(item)}>Return to Dashboard</button>
-        <button type="button" class="btn" class:go={allDone} title="Finish this session here, and see what it came to." onclick={() => (ending = true)}>End</button>
+        <button type="button" class="btn" class:go={allDone} title="End the session and see your results" onclick={() => (ending = true)}>End</button>
       </div>
     {/if}
   </div>
@@ -741,7 +741,7 @@
           </div>
         {/each}
       {:else}
-        <p class="quiet">No concept attainment changed in this session.</p>
+        <p class="quiet">No concept changed level this session.</p>
       {/if}
     </section>
     <div class="acts">

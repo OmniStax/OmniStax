@@ -53,7 +53,7 @@
   {:else if sec && status === 'missing'}
     <article class="placeholder"><div class="loading">{registry.missingLine(sec)}</div></article>
   {:else if status === 'failed'}
-    <article class="placeholder"><div class="loading bad">Could not load {sec?.section ?? ''} ({error}). Loading other sections needs the site served over http; <a href={entry?.url}>open it as its own page</a>.</div></article>
+    <article class="placeholder"><div class="loading bad">Could not load {sec?.section ?? ''} ({error}). Serve the site over http, or <a href={entry?.url}>open it as its own page</a>.</div></article>
   {:else}
     <article class="placeholder"><div class="loading">Loading {id ? registry.title(id) : itemKey}…</div></article>
   {/if}

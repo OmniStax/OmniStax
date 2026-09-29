@@ -48,7 +48,7 @@
       {#if library.status === 'loading'}
         <div class="none">Looking for books…</div>
       {:else if library.status === 'failed'}
-        <div class="none bad">The catalogue could not be read.</div>
+        <div class="none bad">Could not load the catalog.</div>
       {:else}
         {#each library.books as b (b.id)}
           {@const installed = offlineBooks.records[b.id]}
@@ -84,7 +84,7 @@
             {/if}
           </div>
         {:else}
-          <div class="none">This build carries no books yet.</div>
+          <div class="none">No books yet.</div>
         {/each}
       {/if}
     </div>

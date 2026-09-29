@@ -39,6 +39,6 @@
 </script>
 
 <div bind:this={host}></div>
-{#if failed}<p class="failed" role="alert">OmniStax could not safely recover reader data. Reload the page or import a backup.</p>{/if}
+{#if failed}<p class="failed" role="alert">Your data could not be recovered safely. Reload the page or import a backup.</p>{/if}
 
 <style>.failed{margin:24px;font-family:system-ui,sans-serif;color:#b42318}</style>

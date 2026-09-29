@@ -102,7 +102,7 @@
       });
       if (!s.built || !open) return;
       const heads = headingsOf(ref);
-      if (heads === null) hint(`${key}?`, depth + 1, 'Open the section to see its headings');
+      if (heads === null) hint(`${key}?`, depth + 1, 'Open the section to list its headings');
       else heads.forEach((h) => out.push({
         key: `${key}#${h.id}`, kind: 'heading', depth: depth + 1, label: h.label, icon: '', domId: h.id, book: id,
         expandable: false, open: false, dim: false, active: spy.current.section?.book === id && spy.current.section.span === h.id,

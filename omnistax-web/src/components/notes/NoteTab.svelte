@@ -151,7 +151,7 @@
       {/if}
     </div>
   {:else}
-    <div class="gone">This note is not here any more.</div>
+    <div class="gone">This note was deleted.</div>
   {/if}
 </article>
 

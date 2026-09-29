@@ -322,8 +322,8 @@ Images live in `omnistax-assets`; messages hold `asset:<id>`.
 
 ### Round-two milestones
 
-- [ ] 5. Providers, cards, Local AI endpoints, model menu, the inline HTML
+- [x] 5. Providers, cards, Local AI endpoints, model menu, the inline HTML
   setting, caching.
-- [ ] 6. Tools and the loop, the new prompt, figure and image context.
-- [ ] 7. Conversations page, times, rendering fixes, `Plane.svelte`,
+- [x] 6. Tools and the loop, the new prompt, figure and image context.
+- [x] 7. Conversations page, times, rendering fixes, `Plane.svelte`,
   `lib/tree/layout.ts` and the tree view.

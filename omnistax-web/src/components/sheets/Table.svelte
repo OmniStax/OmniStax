@@ -52,7 +52,7 @@
     <section class="block" data-table={block.id}>
       <h2>{block.title}</h2>
       {#if rows.length === 0}
-        <p class="count">No row of this table matches.</p>
+        <p class="count">No matching rows.</p>
       {:else}
         <div class="book-table">
           <table>
