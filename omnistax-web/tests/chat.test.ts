@@ -12,7 +12,7 @@ import { bodyOf as anthropicBody } from '../src/lib/chat/providers/anthropic';
 import { bodyOf as openaiBody, foldCalls } from '../src/lib/chat/providers/openai';
 import { bodyOf as geminiBody } from '../src/lib/chat/providers/gemini';
 import { heightOf, partsOf } from '../src/lib/chat/widget';
-import { accessOf, cardModels, isShown, menuOf, parseAi, toggleShown, withoutKeys } from '../src/lib/chat/settings';
+import { accessOf, cardModels, isShown, menuOf, parseAi, toggleShown, visibleModels, withoutKeys } from '../src/lib/chat/settings';
 import { TOOL_SPECS, figureSource, runTool, stepLabel, type Library } from '../src/lib/chat/tools';
 import type { Corpus } from '../src/lib/search/model';
 import { chatEntries, currentChats, findInChats } from '../src/lib/search/chats';
@@ -284,6 +284,17 @@ test('the AI settings read back leniently, migrate the first shape, and go into 
   assert.equal(withoutKeys(kept).keys.openai, '');
   assert.deepEqual(cardModels(toggleShown(kept, { provider: 'openai', model: 'gpt-5' }), 'openai').slice(0, 2), ['gpt-5', 'gpt-5-mini']);
   assert.ok(!isShown(toggleShown(fresh, fresh.shown[0]), fresh.shown[0]));
+});
+
+test('a long model list shows the ticked first, filters, and caps until asked for all', () => {
+  const models = Array.from({ length: 40 }, (_, i) => `m${i}`);
+  const ticked = (m: string): boolean => m === 'm30';
+  const capped = visibleModels(models, ticked, '', false);
+  assert.equal(capped.rows.length, 15);
+  assert.equal(capped.rows[0], 'm30');
+  assert.equal(capped.found, 40);
+  assert.equal(visibleModels(models, ticked, '', true).rows.length, 40);
+  assert.deepEqual(visibleModels(models, ticked, 'm3', false).rows.slice(0, 2), ['m30', 'm3']);
 });
 
 /* A library of one book, one section and one figure, for the tools. */

@@ -6,7 +6,7 @@
      the block says so, because a reader pasting a key deserves to know where
      it goes. */
   import { ai } from '../../lib/chat/settings.svelte';
-  import { cardModels, isShown } from '../../lib/chat/settings';
+  import { MODEL_CAP, cardModels, isShown, visibleModels } from '../../lib/chat/settings';
   import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
   import { providerOf } from '../../lib/chat/providers/all';
 
@@ -41,6 +41,9 @@
     if (!isShown(ai.value, { provider: 'local', model: localPick(endpoint, m) })) ai.toggle({ provider: 'local', model: localPick(endpoint, m) });
   };
 
+  let filters = $state.raw<Readonly<Record<string, string>>>({});
+  let expanded = $state.raw<ReadonlySet<string>>(new Set());
+
   let newName = $state('');
   let newUrl = $state('');
   const addEndpoint = (): void => {
@@ -68,6 +71,8 @@
   </label>
 
   {#each CLOUD_IDS as id (id)}
+    {@const models = cardModels(ai.value, id)}
+    {@const shown = visibleModels(models, (m) => isShown(ai.value, { provider: id, model: m }), filters[id] ?? '', expanded.has(id))}
     <div class="card" data-ai-card={id}>
       <div class="head">
         <span class="name">{PROVIDER_LABEL[id]}</span>
@@ -75,10 +80,17 @@
       </div>
       <input type="password" autocomplete="off" aria-label="{PROVIDER_LABEL[id]} key" placeholder="Paste your key"
         value={ai.value.keys[id]} onchange={(e) => setKey(id, e.currentTarget.value.trim())}>
+      {#if models.length > MODEL_CAP}
+        <input type="search" class="filter" aria-label="Filter {PROVIDER_LABEL[id]} models" placeholder="Filter models"
+          value={filters[id] ?? ''} oninput={(e) => (filters = { ...filters, [id]: e.currentTarget.value })}>
+      {/if}
       <ul class="models">
-        {#each cardModels(ai.value, id) as m (m)}
+        {#each shown.rows as m (m)}
           <li><label><input type="checkbox" checked={isShown(ai.value, { provider: id, model: m })} onchange={() => ai.toggle({ provider: id, model: m })}> {m}</label></li>
         {/each}
+        {#if shown.rows.length < shown.found}
+          <li><button type="button" class="all" onclick={() => (expanded = new Set([...expanded, id]))}>Show all {shown.found}</button></li>
+        {/if}
       </ul>
       <div class="tail">
         <input type="text" aria-label="Add a {PROVIDER_LABEL[id]} model" placeholder="Add a model" onkeydown={onEnter((v) => ai.addModel(id, v))}>
@@ -136,6 +148,8 @@
   .endpoint{display:flex;flex-direction:column;gap:6px;padding:6px 0 8px;border-bottom:1px dashed var(--rule)}
   input[type="text"],input[type="url"],input[type="password"]{font:inherit;font-size:0.85rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);min-width:10rem}
   input[type="password"]{max-width:24rem}
+  .filter{font:inherit;font-size:0.82rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);max-width:16rem}
+  .all{font:inherit;font-size:0.82rem;color:var(--accent);background:none;border:0;padding:0;cursor:pointer}
   code{font-size:0.95em}
   .bad{color:var(--bad, #b42318);font-size:0.8rem;margin:0}
 </style>

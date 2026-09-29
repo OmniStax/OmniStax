@@ -130,3 +130,14 @@ export const menuOf = (s: AiSettings): readonly MenuGroup[] =>
     });
     return entries.length ? [{ provider, label: PROVIDER_LABEL[provider], entries }] : [];
   });
+
+/* A long list as a card shows it: ticked models first, narrowed by the
+   filter, and cut to `cap` rows until the reader asks for all. `found` is
+   how many the filter matched. */
+export const MODEL_CAP = 15;
+export const visibleModels = (models: readonly string[], ticked: (m: string) => boolean, query: string, all: boolean, cap = MODEL_CAP): { readonly rows: readonly string[]; readonly found: number } => {
+  const q = query.trim().toLowerCase();
+  const found = models.filter((m) => q === '' || m.toLowerCase().includes(q));
+  const ordered = [...found.filter(ticked), ...found.filter((m) => !ticked(m))];
+  return { rows: all ? ordered : ordered.slice(0, Math.max(cap, found.filter(ticked).length)), found: found.length };
+};
