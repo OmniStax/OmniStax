@@ -237,3 +237,87 @@ an image dragged onto the plane still lands under the pointer, where it was let
 go of, rather than centred on the view: a drop that jumped away from the hand
 would read as a bug. Centring is what something with no drop point of its own
 gets, which is the toolbar's "place an image".
+
+## Round two: the canvas (#34, #33)
+
+Scoped with Chen on 2026-09-29. A drawing becomes a canvas in the manner of
+Obsidian's: free ink stays, and structured things (text cards, shapes, frames,
+groups, chats) connect with arrows the way draw.io connects them.
+
+### Connectors
+
+- Hovering a text card, shape (rect, ellipse), frame or group shows a handle
+  on each of its four sides. Dragging from a handle draws a connector; letting
+  go over another element attaches the far end to that element's nearest
+  side, and letting go on empty space leaves the end free.
+- An attached end follows its element when it moves or resizes, and a
+  connector whose element is deleted keeps that end where it was, free.
+- A connector is straight or bezier (the bezier leaves each side at right
+  angles to it), has an arrowhead toggle at each end, a colour, a width and an
+  optional label set at its middle (double-click to edit).
+- The `arrow` shape becomes a connector with two free ends; stored arrows
+  migrate on parse. `line` stays a shape.
+- Ink is not connectable.
+
+### Cards, colour, groups
+
+- Double-clicking empty space makes a text card there and focuses it.
+- Text cards, shapes, frames, groups and connectors take a colour from the
+  palette; a card's colour tints its border and a faint fill, as Obsidian's
+  do.
+- A **group** is a named rectangle drawn with the group tool or made from a
+  lasso selection ("Group", Ctrl+G). Moving a group moves everything whose box
+  lies inside it; its label is edited in place. Groups sit beneath everything
+  else.
+- A **note** frame is editable in place: double-click puts the note's editor
+  in the frame, writing to the note itself; Escape or a click outside leaves.
+
+### Colour follows the theme (#33)
+
+Colours are stored as palette tokens (`ink`, `muted`, the accent tokens, the
+book's quantity colours), not resolved hex, and resolved at render time, so
+ink drawn in white on dark reads black on light. A reader's custom hex stays
+hex. The toolbar's selected swatch is a token, so a theme change cannot
+desynchronise it. Stored hex that equals a token's value in either theme is
+read back as that token.
+
+### Chats on the canvas and in notes
+
+- The chat's tree view has "Send to drawing" (pick a drawing or make one) with
+  two choices:
+  - **Referenced**: a `chat` item holding the chat id and an optional root
+    message; it renders the live tree (`TreeView` in compact mode inside the
+    item), grows as the chat grows, and a node click opens the chat at that
+    message. Dragging a chat's header onto a drawing drops the same item.
+  - **Plain**: the tree is laid out once by `lib/tree/layout.ts` and written as
+    text cards (the message markdown) joined by connectors, then belongs to
+    the drawing.
+- In a note, `![[chat:<id>]]` renders the tree inline at a fixed height of
+  about 260 px on the pan/zoom `Plane.svelte`, with Fit and an "Open" link;
+  `![[chat:<id>:<msg>]]` stays the single-message card. "Copy to note" in the
+  chat puts the referenced embed on the clipboard; plain copy writes the
+  transcript as an outline of quoted messages.
+
+### Model
+
+`DrawItem` gains:
+
+- `link { id, from: End, to: End, curve: 'straight' | 'bezier', heads: {
+  start, end }, color, size, label }` with `End = { item: DrawItemId, side:
+  'n' | 'e' | 's' | 'w' } | { x, y }`
+- `group { id, x, y, w, h, label, color }`
+- `chat { id, x, y, w, h, chat: ChatId, root?: MessageId }`
+- an optional `color` on `box` and `frame`
+
+`geometry.ts` gains side anchors, the bezier and its arrowheads, the hit test
+of a connector, and group membership. Moving, resizing and deleting are pure
+functions that also restate the connectors touching what moved.
+
+### Round-two milestones
+
+- [ ] 5. Colour tokens (#33), connectors with handles, straight and bezier,
+  arrowheads, labels; arrow migration.
+- [ ] 6. Double-click cards, colours, groups, notes editable in place.
+- [ ] 7. Chats: the `chat` item, plain copy, the note embed (needs
+  `lib/tree/layout.ts`, `Plane.svelte` and `TreeView.svelte` from byoai
+  milestone 7).

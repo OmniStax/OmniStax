@@ -180,3 +180,150 @@ sections of three chapters, asserts the picker opens in well under 100 ms, and
 walks Enter-on-category, Enter-on-row and click-on-row to a chip;
 `tests/note-picker-browser-check.py` is the same walk in a note, ending in
 `[[1.2]] and [[3.1]]`.
+
+## Round two (#3, #26)
+
+Scoped with Chen on 2026-09-29. Round one's decisions stand except where this
+section replaces them.
+
+### Providers and Settings
+
+- Providers: Anthropic, OpenAI, Google Gemini, DeepSeek, OpenRouter, Mistral,
+  and **Local AI**. DeepSeek, OpenRouter and Mistral speak the OpenAI shape at
+  their own base URL (`https://api.deepseek.com`, `https://openrouter.ai/api`,
+  `https://api.mistral.ai`), so they reuse `openai.ts`. `compatible` becomes
+  `local`; stored settings under the old id migrate.
+- Settings "AI" shows one card per provider. A card holds the key, a "Get a
+  key" link (console.anthropic.com, platform.openai.com/api-keys,
+  aistudio.google.com/apikey, platform.deepseek.com/api_keys,
+  openrouter.ai/keys, console.mistral.ai/api-keys), the models the provider
+  lists (fetched from its models endpoint once a key is there) and a field to
+  add a model it does not list. The reader ticks which models appear in the
+  chat's menu.
+- Local AI holds named endpoints: a name, a base URL, and models (fetched from
+  `/v1/models` or typed). One help line says what compatible means: the
+  server answers `POST /v1/chat/completions` with SSE and allows browser
+  requests (Ollama: `OLLAMA_ORIGINS`; LM Studio: its CORS switch; llama.cpp
+  and vLLM: their CORS flags). `http://localhost` is reachable from the https
+  site in Chrome and Firefox, not in Safari.
+- Settings no longer chooses the provider or the model. Keys stay out of the
+  backup.
+- Settings gains **"Inline HTML rendering"** (on by default), which replaces
+  the composer's "Widgets" toggle. When off, the prompt omits the widget
+  paragraph and a widget fence renders as code.
+
+### The model menu
+
+A menu left of Send lists the ticked models grouped by provider. The choice
+is stored on the chat (`Chat.pick = { provider, model }`) and the last one
+chosen seeds a new chat. A model whose provider lacks a key shows "Needs key";
+choosing it opens Settings at that provider's card. Each assistant message
+keeps `model`, and its bubble names it.
+
+### Conversations page and time
+
+- The rail's chat button opens **Conversations** (a `chats` view): every chat,
+  newest first, with its name, its last message's age ("3 h ago"), rename in
+  place, delete with undo, a filter field, and "New chat". Ctrl+Shift+L still
+  opens a new chat directly.
+- Every bubble shows its time on hover, and a day divider stands where the day
+  changes.
+
+### Rendering
+
+- `\(…\)` and `\[…\]` are maths, like `$…$` and `$$…$$`.
+- The reader's own messages render as markdown with maths.
+- `CARD_LINK` accepts the book prefix, so `![[eq:college-physics-2e/16.1:…]]`
+  is a block card.
+- Book things in an answer behave as in a note: a term has its hover card, an
+  equation sets with the book's macros so symbols keep their colours, and
+  `![[fig:…]]` mounts the live figure.
+
+### The tree view
+
+A chat opens as the linear transcript. A header toggle, remembered per chat,
+switches to the **tree view**: every message is a node on a pan/zoom plane,
+laid out by `lib/tree/layout.ts`, a tidy tree (Reingold–Tilford with variable
+node sizes, as in van der Ploeg's flextree), root at the top, children left to
+right oldest first. A node shows the role, its first lines rendered, and its
+time; a click selects it, a double click opens it in the transcript. The
+composer replies under the selected node, which forks there. Nodes on the
+current path are emphasised. The linear view keeps the pager and the
+breadcrumb; the leaf list gives way to the tree.
+
+`layoutTree` is pure: `(root, childrenOf, sizeOf, gaps) → Map<id, { x, y, w,
+h }>`. The pan/zoom plane is `components/ui/Plane.svelte` (a transformed
+container with wheel, drag and pinch, Fit and Reset). The drawing canvas and
+the note embed of a chat (#34) use both.
+
+### Cost of branching
+
+The providers keep no conversation, so every turn sends its whole path; a
+branch costs what a linear chat of the same length costs. Anthropic requests
+carry `cache_control: { type: 'ephemeral' }` on the system prompt and on the
+last reader turn, so sibling branches read their shared prefix from the cache.
+OpenAI, DeepSeek and Gemini cache shared prefixes on their own.
+
+### The system prompt
+
+`prompt.ts` is rewritten from Chen's draft in #3, in active voice (#32): what
+OmniStax/万象 is (an Integrated Learning Environment; OmniBooks keep the
+original text and replace static figures with interactive ones; notes,
+drawings, pomodoro, imports), how answers render (markdown, KaTeX, the link
+grammar, widgets when on), and the tools. The link grammar is the note
+grammar: `[[book/16.4]]`, `[[def:book/sec:key]]` for a term with its card,
+`![[eq:book/sec:key]]` for an equation card, `![[fig:book/sec:id]]` for a live
+figure, `[[concept:…]]`, `[[sym:…]]`.
+
+### Tools
+
+The model reads the books through tools, run in the browser against the
+registry (`lib/chat/tools.ts`, pure over a `Library` port so tests pass a
+fake):
+
+- `list_books` → ids and titles
+- `table_of_contents(book, chapter?)` → chapters and sections
+- `read_section(book, section)` → the section text, figures as captions
+- `search(book, query)` → hits with section and snippet
+- `lookup(book, kind, query)` for definitions, equations, symbols and
+  concepts, with their links
+- `figure(book, section, id, include_source?)` → caption, alt text, parameters
+  and their current values, and the source only when asked
+
+A turn with tool calls loops: stream, run the calls, send the results, stream
+again, up to 8 rounds. An assistant `Message` gains `steps: Step[]`, where
+`Step = { kind: 'text', text } | { kind: 'tool', id, name, input, output?,
+error? }`; `text` stays the concatenated prose so search and embeds are
+unchanged. The bubble shows each tool step as one collapsed line ("Read 16.4
+Simple Harmonic Motion"). `requestOf` expands steps into each provider's
+native shape (Anthropic `tool_use`/`tool_result`, OpenAI `tool_calls` and the
+`tool` role, Gemini `functionCall`/`functionResponse`). A model that rejects
+tools is retried once without them and remembered as tool-less for the
+session; chips still work.
+
+### Figures and images as context (#26)
+
+A figure chip carries the caption, the alt text, the parameter values at that
+moment (from the figure's control registry, #21) and a snapshot PNG
+(`drawer/snapshot.ts`) sent as an image part. Source code goes only through
+the `figure` tool. The composer accepts pasted and dropped images, sent as
+image parts to every provider that takes them; a chip shows a thumbnail.
+Images live in `omnistax-assets`; messages hold `asset:<id>`.
+
+### Round-two files
+
+- `lib/chat/providers/*` (new ids, tools, images, caching), `settings.ts`,
+  `settings.svelte.ts`, `components/settings/Ai.svelte`
+- `lib/chat/tools.ts`, `prompt.ts`, `context.ts`, `model.ts` (steps, pick),
+  `store.svelte.ts` (the tool loop)
+- `components/chat/{Composer, ModelMenu, Bubble, ChatTab, TreeView,
+  Conversations}.svelte`, `components/ui/Plane.svelte`, `lib/tree/layout.ts`
+- `lib/notes/md/render.ts` (delimiters, `CARD_LINK`)
+
+### Round-two milestones
+
+- [ ] 5. Providers, cards, Local AI endpoints, model menu, the inline HTML
+  setting, caching.
+- [ ] 6. Tools and the loop, the new prompt, figure and image context.
+- [ ] 7. Conversations page, times, rendering fixes, `Plane.svelte`,
+  `lib/tree/layout.ts` and the tree view.
