@@ -1,30 +1,44 @@
-/* The AI block as a live value: the reader's choice, read back from this
-   browser at boot and written as they change it. What the record means and how
-   it is read leniently is in `settings.ts` beside this, which is pure. */
+/* The AI block as a live value, read back from this browser at boot and
+   written as the reader changes it. What the record means and how it is read
+   leniently is in `settings.ts` beside this, which is pure. */
 import { readerWritesAllowed } from '../backup/guard';
-import { AI_KEY, defaultAi, parseAi } from './settings';
-import type { AiSettings, ProviderId } from './providers/index';
+import { ui } from '../commands/ui.svelte';
+import { AI_KEY, accessOf, defaultAi, menuOf, parseAi, toggleShown, type AiSettings, type Endpoint, type EndpointId, type MenuGroup } from './settings';
+import type { Access, CloudId, ModelPick, ProviderId } from './providers/index';
+
+const newEndpointId = (): EndpointId => Math.random().toString(36).slice(2, 10);
 
 class Ai {
   value = $state.raw<AiSettings>(defaultAi());
-
   init(): void { try { this.value = parseAi(JSON.parse(localStorage.getItem(AI_KEY) ?? 'null')); } catch { this.value = defaultAi(); } }
 
-  get provider(): ProviderId { return this.value.provider; }
-  get model(): string { return this.value.models[this.value.provider] ?? ''; }
-  get key(): string { return this.value.keys[this.value.provider] ?? ''; }
-  /* Whether a question can be asked at all: a host of the reader's own may
-     serve no key, so only the others insist on one. */
-  get ready(): boolean {
-    const s = this.value;
-    if (s.provider === 'compatible') return s.baseUrl.trim() !== '' && this.model.trim() !== '';
-    return this.key.trim() !== '' && this.model.trim() !== '';
-  }
+  get inlineHtml(): boolean { return this.value.inlineHtml; }
+  get last(): ModelPick | null { return this.value.last; }
+  get menu(): readonly MenuGroup[] { return menuOf(this.value); }
+  access(pick: ModelPick): Access | null { return accessOf(this.value, pick); }
 
-  setProvider(provider: ProviderId): void { this.write({ ...this.value, provider }); }
-  setModel(id: ProviderId, model: string): void { this.write({ ...this.value, models: { ...this.value.models, [id]: model } }); }
-  setKey(id: ProviderId, key: string): void { this.write({ ...this.value, keys: { ...this.value.keys, [id]: key } }); }
-  setBaseUrl(baseUrl: string): void { this.write({ ...this.value, baseUrl }); }
+  setInlineHtml(on: boolean): void { this.write({ ...this.value, inlineHtml: on }); }
+  setKey(id: CloudId, key: string): void { this.write({ ...this.value, keys: { ...this.value.keys, [id]: key } }); }
+  setListed(id: CloudId, models: readonly string[]): void { this.write({ ...this.value, listed: { ...this.value.listed, [id]: models } }); }
+  addModel(id: CloudId, model: string): void {
+    const m = model.trim(); if (!m || this.value.added[id].includes(m)) return;
+    this.write(toggleShown({ ...this.value, added: { ...this.value.added, [id]: [...this.value.added[id], m] } }, { provider: id, model: m }));
+  }
+  toggle(pick: ModelPick): void { this.write(toggleShown(this.value, pick)); }
+  choose(pick: ModelPick): void { this.write({ ...this.value, last: pick }); }
+
+  addEndpoint(name: string, baseUrl: string): EndpointId {
+    const id = newEndpointId();
+    this.write({ ...this.value, endpoints: [...this.value.endpoints, { id, name: name.trim() || 'Local', baseUrl: baseUrl.trim(), models: [] }] });
+    return id;
+  }
+  editEndpoint(id: EndpointId, p: Partial<Omit<Endpoint, 'id'>>): void {
+    this.write({ ...this.value, endpoints: this.value.endpoints.map((e) => (e.id === id ? { ...e, ...p } : e)) });
+  }
+  removeEndpoint(id: EndpointId): void {
+    const s = this.value;
+    this.write({ ...s, endpoints: s.endpoints.filter((e) => e.id !== id), shown: s.shown.filter((p) => !(p.provider === 'local' && p.model.startsWith(`${id}/`))) });
+  }
 
   private write(next: AiSettings): void {
     this.value = next;
@@ -33,3 +47,17 @@ class Ai {
   }
 }
 export const ai = new Ai();
+
+/* Settings, opened at one provider's card: the card is scrolled to once the
+   panel has drawn it. */
+const FRAMES = 20;
+export const openSettingsAt = (provider: ProviderId): void => {
+  ui.openSettings();
+  const seek = (left: number): void => {
+    const card = document.querySelector<HTMLElement>(`[data-ai-card="${provider}"]`);
+    if (!card) { if (left > 0) requestAnimationFrame(() => seek(left - 1)); return; }
+    card.scrollIntoView({ block: 'center' });
+    card.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+  };
+  seek(FRAMES);
+};

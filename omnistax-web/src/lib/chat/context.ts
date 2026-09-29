@@ -5,7 +5,7 @@
    is built without reaching back into any store — which is what makes
    `requestOf` pure and testable. */
 
-export const CHIP_KINDS = ['book', 'chapter', 'section', 'note', 'drawing', 'file', 'folder', 'figure', 'concept', 'equation', 'definition', 'exercise', 'message', 'selection'] as const;
+export const CHIP_KINDS = ['book', 'chapter', 'section', 'note', 'drawing', 'file', 'folder', 'figure', 'concept', 'equation', 'definition', 'exercise', 'message', 'selection', 'image'] as const;
 export type ChipKind = (typeof CHIP_KINDS)[number];
 
 /* `key` is what the chip stands for, in the wiki-link grammar where there is
@@ -17,10 +17,11 @@ export type Chip = {
   readonly label: string;   /* what the chip reads: "16.4 · The Simple Pendulum" */
   readonly text: string;    /* what the model sees */
   readonly pinned?: boolean;   /* the section the chat was opened beside, which the reader may still remove */
+  readonly image?: string;     /* `asset:<id>`: a picture sent beside the text, a figure's snapshot or a pasted image */
 };
 
-export const chip = (kind: ChipKind, key: string, label: string, text: string, pinned = false): Chip =>
-  ({ kind, key, label, text, ...(pinned ? { pinned } : {}) });
+export const chip = (kind: ChipKind, key: string, label: string, text: string, pinned = false, image?: string): Chip =>
+  ({ kind, key, label, text, ...(pinned ? { pinned } : {}), ...(image ? { image } : {}) });
 
 export const sameChip = (a: Chip, b: Chip): boolean => a.kind === b.kind && a.key === b.key;
 export const withChip = (chips: readonly Chip[], c: Chip): readonly Chip[] =>
@@ -34,7 +35,7 @@ const HEADING: Readonly<Record<ChipKind, string>> = {
   section: 'Section of the textbook', note: 'A note the reader wrote', drawing: 'A drawing the reader made',
   file: 'A file the reader imported', figure: 'A figure of the textbook', concept: 'A concept of the textbook',
   equation: 'An equation of the textbook', definition: 'A definition of the textbook', exercise: 'An exercise of the textbook',
-  message: 'An earlier chat message', selection: 'What the reader selected on the page',
+  message: 'An earlier chat message', selection: 'What the reader selected on the page', image: 'An image the reader added',
 };
 
 /* The chips of one message, as the block that goes before its words. Chips

@@ -17,8 +17,11 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8094
 # book, so the browser check can see that the note renderer is doing its work.
 ANSWER = "The period is $T = 2\\pi\\sqrt{L/g}$, so the mass cancels. See [[16.4]]."
 # Asked for a widget, the mock writes one, so that the sandboxed frame can be
-# checked as well; the app only shows it when that chat has widgets on.
+# checked as well; the app only shows it with inline HTML rendering on.
 WIDGET = "Here it is.\n\n```widget\n<!doctype html><title>t</title><p id=w>a widget</p>\n```\n\nThat is all."
+# Asked to answer "with a tool", the mock calls list_books first and answers once the
+# result comes back.
+TOOL_ANSWER = "The shelf holds the books listed above."
 MODELS = ["mock-1", "mock-2"]
 
 
@@ -51,6 +54,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_event(self, chunk):
+        self.wfile.write(f"data: {json.dumps(chunk)}\n\n".encode())
+        self.wfile.flush()
+
+    # A tool call in two pieces, the way OpenAI streams one.
+    def send_call(self):
+        self.send_event({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", "function": {"name": "list_", "arguments": ""}}]}}]})
+        self.send_event({"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"name": "books", "arguments": "{}"}}]}}]})
+
     def do_POST(self):
         if not self.path.startswith("/v1/chat/completions"):
             self.send_error(404)
@@ -68,13 +80,16 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("cache-control", "no-cache")
         self.send_header("connection", "close")
         self.end_headers()
-        wanted = request["messages"][-1]["content"]
-        answer = WIDGET if "widget" in wanted.lower() else ANSWER
-        for word in answer.split(" "):
-            chunk = {"choices": [{"delta": {"content": word + " "}}]}
-            self.wfile.write(f"data: {json.dumps(chunk)}\n\n".encode())
-            self.wfile.flush()
-            time.sleep(0.02)
+        last = request["messages"][-1]
+        wanted = last["content"] if isinstance(last.get("content"), str) else json.dumps(last.get("content"))
+        if last["role"] == "user" and "with a tool" in wanted.lower():
+            assert request.get("tools"), "the app offers its tools"
+            self.send_call()
+        else:
+            answer = TOOL_ANSWER if last["role"] == "tool" else WIDGET if "widget" in wanted.lower() else ANSWER
+            for word in answer.split(" "):
+                self.send_event({"choices": [{"delta": {"content": word + " "}}]})
+                time.sleep(0.02)
         self.wfile.write(b"data: [DONE]\n\n")
         self.wfile.flush()
 

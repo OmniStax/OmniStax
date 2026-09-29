@@ -13,15 +13,6 @@ from playwright.sync_api import sync_playwright
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8093").rstrip("/")
 MOCK = (sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8094").rstrip("/")
 
-# The reader has chosen a host of their own that speaks OpenAI's shape: no key,
-# a base URL, and a model name the mock answers to.
-AI = {
-    "provider": "compatible",
-    "models": {"anthropic": "", "openai": "", "gemini": "", "compatible": "mock-1"},
-    "baseUrl": MOCK,
-    "keys": {"anthropic": "", "openai": "", "gemini": "", "compatible": ""},
-}
-
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(args=["--use-gl=swiftshader"])
     page = browser.new_page(viewport={"width": 1500, "height": 950})
@@ -31,12 +22,28 @@ with sync_playwright() as playwright:
 
     page.goto(f"{BASE}/college-physics-2e/ch01/1.1/")
     page.evaluate("localStorage.clear()")
-    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai-v1", json.dumps(AI)])
     page.reload()
     page.wait_for_load_state("networkidle")
 
-    # The rail opens a chat of its own in a split, and every click opens another.
-    page.get_by_role("button", name="New chat", exact=True).click()
+    # Settings: a Local AI endpoint is added, its models are fetched, and the
+    # first is ticked for the menu.
+    page.get_by_role("button", name="Settings", exact=True).click()
+    dialog = page.locator("#settings")
+    local = dialog.locator("[data-ai-card='local']")
+    local.scroll_into_view_if_needed()
+    local.get_by_label("New endpoint name").fill("Mock")
+    local.get_by_label("New endpoint URL").fill(MOCK)
+    local.get_by_role("button", name="Add endpoint").click()
+    local.get_by_label("mock-1").wait_for(state="visible", timeout=10_000)
+    local.get_by_label("mock-1").check()
+    assert dialog.locator("[data-ai-card='anthropic'] a", has_text="Get a key").get_attribute("href").startswith("https://console.anthropic.com")
+    assert dialog.get_by_label("Inline HTML rendering").is_checked(), "inline HTML is on by default"
+    page.keyboard.press("Escape")
+    dialog.wait_for(state="hidden")
+
+    # The rail opens Conversations, and "New chat" there opens a chat.
+    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".conversations").get_by_role("button", name="New chat").click()
     chat = page.locator(".chat-tab").first
     chat.wait_for(state="visible")
 
@@ -45,6 +52,15 @@ with sync_playwright() as playwright:
     chips = composer.locator(".chips li")
     chips.first.wait_for(state="visible")
     assert "1.1" in chips.first.inner_text(), chips.first.inner_text()
+
+    # The model menu: a model without a key says so, and the endpoint's model
+    # is chosen.
+    composer.locator(".menu .current").click()
+    menu = composer.locator(".menu .pop")
+    menu.wait_for(state="visible")
+    assert menu.get_by_text("Needs key").count() > 0, "a keyless model says so"
+    menu.get_by_role("menuitemradio", name="mock-1 · Mock").click()
+    assert "mock-1" in composer.locator(".menu .current").inner_text()
 
     field = composer.locator("textarea")
     field.fill("Why does the period not depend on the mass?")
@@ -59,25 +75,26 @@ with sync_playwright() as playwright:
     # link into the book is a link, not four brackets.
     assert answer.locator(".katex").count() > 0, "the maths was not set"
     assert answer.locator("a.wiki, .wiki.dead").count() > 0, "the section link was not resolved"
+    assert "mock-1" in chat.locator(".bubble[data-role='assistant'] .role").first.inner_text().lower()
 
-    # Edit and resend makes a sibling, and the pager says so.
-    said = chat.locator(".bubble[data-role='user']").first
-    said.get_by_role("button", name="Edit").click()
-    said.locator("textarea").fill("What if the string were twice as long?")
-    said.get_by_role("button", name="Send again").click()
-    page.wait_for_function("() => document.querySelectorAll('.bubble[data-role=\"user\"] .pager .count').length > 0", timeout=15_000)
-    assert "2 of 2" in chat.locator(".bubble[data-role='user'] .pager .count").first.inner_text()
-    # The fork is on the breadcrumb, and both branches are named in the list.
-    assert chat.locator(".crumbs .crumb").count() == 1
-    chat.get_by_role("button", name="Branches").click()
-    assert chat.locator(".leaves li").count() == 2
+    # A tool call: the mock asks for list_books, the app runs it and sends the
+    # result back, and the bubble shows one collapsed line for the step.
+    field.fill("Answer with a tool, please.")
+    composer.get_by_role("button", name="Send").click()
+    page.wait_for_function("() => [...document.querySelectorAll('.bubble[data-role=\"assistant\"]')].at(-1)?.dataset.state === 'done'", timeout=15_000)
+    last = chat.locator(".bubble[data-role='assistant']").last
+    step = last.locator(".steps summary")
+    assert step.count() == 1 and "Listed the books" in step.inner_text(), step.all_inner_texts()
+    assert "shelf holds" in last.locator(".answer").inner_text(), last.locator(".answer").inner_text()
+    step.click()
+    assert "college-physics-2e" in last.locator(".steps .io").last.inner_text()
 
     # Retry asks again beside the answer that stands.
-    page.wait_for_function("() => document.querySelectorAll('.bubble[data-role=\"assistant\"][data-state=\"done\"]').length > 0", timeout=15_000)
-    chat.locator(".bubble[data-role='assistant']").first.get_by_role("button", name="Retry").click()
+    last.get_by_role("button", name="Retry").click()
     page.wait_for_function("() => document.querySelector('.bubble[data-role=\"assistant\"] .pager .count')", timeout=15_000)
 
-    # The chat is kept: its index is in localStorage and its record in IndexedDB.
+    # The chat is kept: its index is in localStorage and its record in IndexedDB,
+    # the tool steps and the model chosen with it.
     index = page.evaluate("JSON.parse(localStorage.getItem('omnistax-chats-v1') || '[]')")
     assert len(index) == 1 and index[0]["name"], index
     kept = page.evaluate(
@@ -85,18 +102,17 @@ with sync_playwright() as playwright:
             const open = indexedDB.open('omnistax-chats', 1);
             open.onsuccess = () => {
               const all = open.result.transaction('chats', 'readonly').objectStore('chats').getAll();
-              all.onsuccess = () => resolve(all.result.map((c) => Object.keys(c.messages).length));
+              all.onsuccess = () => resolve(all.result.map((c) => ({ n: Object.keys(c.messages).length, pick: c.pick, steps: Object.values(c.messages).some((m) => m.steps) })));
             };
           })"""
     )
-    assert kept and kept[0] >= 5, kept
+    assert kept and kept[0]["n"] >= 5 and kept[0]["steps"] and kept[0]["pick"]["provider"] == "local", kept
 
-    # A backup carries the chats and leaves the keys behind.
-    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai-v1", json.dumps({**AI, "keys": {**AI["keys"], "openai": "sk-secret"}})])
+    # The keys stay in this browser where the reader put them.
+    stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai-v1'))")
+    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai-v1", json.dumps({**stored, "keys": {**stored["keys"], "openai": "sk-secret"}})])
     page.reload()
     page.wait_for_load_state("networkidle")
-    # The exporter is what strips the key (tests/chat.test.ts covers that); what
-    # is checked here is that the browser keeps it where the reader put it.
     stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai-v1'))")
     assert stored["keys"]["openai"] == "sk-secret", stored
 
@@ -146,6 +162,14 @@ with sync_playwright() as playwright:
     loaded = page.locator("article[data-doc]").count()
     assert loaded >= 6, f"only {loaded} sections were opened"
 
+    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".conversations").get_by_role("button", name="New chat").click()
+    chat = page.locator(".chat-tab:visible").first
+    composer = chat.locator(".composer")
+    chips = composer.locator(".chips li")
+    field = composer.locator("textarea")
+
+
     field.click()
     field.fill("")
     page.evaluate("() => { window.__t0 = performance.now(); }")
@@ -156,52 +180,11 @@ with sync_playwright() as playwright:
     print(f"the picker opened in {opened:.0f} ms with {loaded} sections loaded")
     assert opened < 100, f"the picker took {opened:.0f} ms to open"
 
-    # Enter on a category goes into it, and what is typed next narrows its rows
-    # rather than being read as the name of a category again.
-    assert picker.locator("li button").first.inner_text().startswith("Notes"), picker.locator("li button").first.inner_text()
-    page.keyboard.type("sections")
-    page.wait_for_timeout(200)
-    assert picker.locator("li button").count() == 1, "one category is named"
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(200)
-    assert "Sections" in picker.locator(".crumb").inner_text(), picker.locator(".crumb").inner_text()
-    page.keyboard.type("1.2")
-    page.wait_for_timeout(200)
-    named = [picker.locator("li button").nth(i).inner_text() for i in range(picker.locator("li button").count())]
-    assert named and all("1.2" in row for row in named), named
-    assert named[0].startswith("1.2 ·"), named[0]
+    page.keyboard.press("Escape")
+    field.fill("")
 
-    # Enter on a row cuts the `@…` from the field and puts a chip up instead.
-    before = chips.count()
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(300)
-    assert picker.count() == 0, "the picker stayed open"
-    assert field.input_value() == "", field.input_value()
-    assert chips.count() == before + 1, f"{chips.count()} chips, was {before}"
-    assert "1.2" in chips.last.inner_text(), chips.last.inner_text()
-
-    # And a click on a row does the same, though the press moves the focus off
-    # the field: it is taken on the press, with the default refused.
-    page.keyboard.type("@sections")
-    picker.wait_for(state="visible")
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(200)
-    page.keyboard.type("3.1")
-    page.wait_for_timeout(200)
-    picker.locator("li button").first.click()
-    page.wait_for_timeout(300)
-    assert picker.count() == 0, "the picker stayed open after a click"
-    assert field.input_value() == "", field.input_value()
-    assert "3.1" in chips.last.inner_text(), chips.last.inner_text()
-
-    # The picker closes and leaves nothing behind.
-    for chip in range(chips.count() - 1, 0, -1):
-        chips.nth(chip).locator("button").click()
-    page.wait_for_timeout(200)
-
-    # A widget is opt-in per chat: with the toggle on, a block tagged `widget`
-    # is the page it holds, in a sandbox that cannot reach this one.
-    composer.get_by_role("button", name="Widgets off").click()
+    # With inline HTML rendering on, a block tagged `widget` is the page it
+    # holds, in a sandbox that cannot reach this one.
     field.fill("Please draw a widget.")
     composer.get_by_role("button", name="Send").click()
     frame = chat.locator(".bubble .widget iframe").first

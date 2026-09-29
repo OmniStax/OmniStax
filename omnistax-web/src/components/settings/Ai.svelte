@@ -1,82 +1,121 @@
 <script lang="ts">
-  /* The AI block of the settings: which provider the reader brings a key for,
-     the key itself, and the model to ask. Everything here stays in this
-     browser, and the key is the one thing a backup leaves behind — it is said
-     plainly in the block, because a reader pasting a key deserves to be told
-     where it goes.
-
-     The model is a list and a field: the list is what the provider names, asked
-     for with the key where a provider will answer, and the field takes any name
-     at all, since a model released this morning is in no list. */
+  /* The AI block of the settings: a card per provider with its key, the
+     models it lists and a field for one it does not, each ticked or not for
+     the chat's model menu; the Local AI endpoints; and whether answers may
+     render inline HTML. The key stays in this browser and out of backups, and
+     the block says so, because a reader pasting a key deserves to know where
+     it goes. */
   import { ai } from '../../lib/chat/settings.svelte';
-  import { PROVIDER_IDS, PROVIDER_LABEL, baseOf, failureOf, type ProviderId } from '../../lib/chat/providers/index';
-  import { FIXED_MODELS, providerOf } from '../../lib/chat/providers/all';
+  import { cardModels, isShown } from '../../lib/chat/settings';
+  import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
+  import { providerOf } from '../../lib/chat/providers/all';
 
   let { hit }: { hit: (text: string) => boolean } = $props();
 
-  const WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini compatible self-hosted server base URL key model API bring your own browser backup';
+  const WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Local AI Ollama LM Studio endpoint base URL key model API inline HTML widget backup';
 
-  const id = $derived(ai.provider);
-  let listed = $state.raw<Readonly<Record<string, readonly string[]>>>({});
-  let asking = $state(false);
-  let trouble = $state('');
+  let busy = $state.raw<Readonly<Record<string, boolean>>>({});
+  let trouble = $state.raw<Readonly<Record<string, string>>>({});
+  const mark = (k: string, on: boolean, why = ''): void => { busy = { ...busy, [k]: on }; trouble = { ...trouble, [k]: why }; };
 
-  const models = $derived([...new Set([...FIXED_MODELS[id], ...(listed[id] ?? [])])]);
+  const listCloud = async (id: CloudId): Promise<void> => {
+    const key = ai.value.keys[id]; if (!key) return;
+    mark(id, true);
+    try { ai.setListed(id, await providerOf(id).models({ provider: id, model: '', key, baseUrl: DEFAULT_BASE[id] })); mark(id, false); }
+    catch (e) { mark(id, false, failureOf(e)); }
+  };
+  const setKey = (id: CloudId, key: string): void => { ai.setKey(id, key); void listCloud(id); };
 
-  /* The list a provider will give, which needs the key and the address it is
-     asked at; a provider with a list of its own in code is never asked. */
-  const askModels = async (): Promise<void> => {
-    asking = true; trouble = '';
+  const listLocal = async (endpoint: string): Promise<void> => {
+    const e = ai.value.endpoints.find((x) => x.id === endpoint); if (!e) return;
+    mark(endpoint, true);
     try {
-      const request = { provider: id, model: ai.model, key: ai.value.keys[id] ?? '', baseUrl: baseOf(ai.value, id), system: '', turns: [] };
-      listed = { ...listed, [id]: await providerOf(id).models(request) };
-    } catch (e) { trouble = failureOf(e); }
-    finally { asking = false; }
+      const found = await providerOf('local').models({ provider: 'local', model: '', key: '', baseUrl: trimBase(e.baseUrl) });
+      ai.editEndpoint(endpoint, { models: [...new Set([...e.models, ...found])] });
+      mark(endpoint, false);
+    } catch (err) { mark(endpoint, false, failureOf(err)); }
+  };
+  const addLocalModel = (endpoint: string, model: string): void => {
+    const e = ai.value.endpoints.find((x) => x.id === endpoint); const m = model.trim(); if (!e || !m) return;
+    if (!e.models.includes(m)) ai.editEndpoint(endpoint, { models: [...e.models, m] });
+    if (!isShown(ai.value, { provider: 'local', model: localPick(endpoint, m) })) ai.toggle({ provider: 'local', model: localPick(endpoint, m) });
+  };
+
+  let newName = $state('');
+  let newUrl = $state('');
+  const addEndpoint = (): void => {
+    if (!newUrl.trim()) return;
+    const id = ai.addEndpoint(newName, newUrl);
+    newName = ''; newUrl = '';
+    void listLocal(id);
+  };
+
+  const onEnter = (f: (v: string) => void) => (e: KeyboardEvent): void => {
+    if (e.key !== 'Enter') return;
+    const input = e.currentTarget as HTMLInputElement;
+    f(input.value); input.value = '';
   };
 </script>
 
 <section hidden={!hit(WORDS)}>
   <h3>AI</h3>
-  <p class="hint">Use your own API key. Requests go straight from this browser to your provider; OmniStax never sees your key. Backups include your provider and model, but not your keys.</p>
+  <p class="hint">Use your own API keys. Requests go straight from this browser to the provider; OmniStax never sees a key, and backups leave keys out. Tick the models the chat's menu should offer.</p>
 
-  <div class="row">
-    <span class="name">Provider</span>
-    <span class="hint">Choose OpenAI-compatible for a self-hosted server or any other service with the same API.</span>
-    <select aria-label="Provider" value={id} onchange={(e) => ai.setProvider(e.currentTarget.value as ProviderId)}>
-      {#each PROVIDER_IDS as p (p)}<option value={p}>{PROVIDER_LABEL[p]}</option>{/each}
-    </select>
-  </div>
-
-  {#if id === 'compatible'}
-    <label class="row">
-      <span class="name">Base URL</span>
-      <span class="hint">The server address without a path, such as http://localhost:11434.</span>
-      <input type="url" placeholder="http://localhost:1234" value={ai.value.baseUrl} onchange={(e) => ai.setBaseUrl(e.currentTarget.value.trim())}>
-    </label>
-  {/if}
-
-  <label class="row">
-    <span class="name">{PROVIDER_LABEL[id]} key</span>
-    <span class="hint">Stored only in this browser. Self-hosted servers may not need one.</span>
-    <input type="password" autocomplete="off" placeholder="paste your key" value={ai.value.keys[id] ?? ''} onchange={(e) => ai.setKey(id, e.currentTarget.value.trim())}>
+  <label class="row switch">
+    <span class="name">Inline HTML rendering</span>
+    <span class="hint">Answers may include a small interactive page, shown in a sandbox.</span>
+    <input type="checkbox" checked={ai.inlineHtml} onchange={(e) => ai.setInlineHtml(e.currentTarget.checked)}>
   </label>
 
-  <div class="row">
-    <span class="name">Model</span>
-    <span class="hint">Pick one from the list, or type any model name.</span>
-    <div class="model">
-      {#if models.length}
-        <select aria-label="Model" value={models.includes(ai.model) ? ai.model : ''} onchange={(e) => { if (e.currentTarget.value) ai.setModel(id, e.currentTarget.value); }}>
-          <option value="">Other…</option>
-          {#each models as m (m)}<option value={m}>{m}</option>{/each}
-        </select>
-      {/if}
-      <input type="text" aria-label="Model name" placeholder="model name" value={ai.model} onchange={(e) => ai.setModel(id, e.currentTarget.value.trim())}>
-      <button class="btn-sm" type="button" disabled={asking} onclick={() => void askModels()}>{asking ? 'Loading…' : 'List models'}</button>
+  {#each CLOUD_IDS as id (id)}
+    <div class="card" data-ai-card={id}>
+      <div class="head">
+        <span class="name">{PROVIDER_LABEL[id]}</span>
+        <a href={KEY_URL[id]} target="_blank" rel="noopener noreferrer">Get a key</a>
+      </div>
+      <input type="password" autocomplete="off" aria-label="{PROVIDER_LABEL[id]} key" placeholder="Paste your key"
+        value={ai.value.keys[id]} onchange={(e) => setKey(id, e.currentTarget.value.trim())}>
+      <ul class="models">
+        {#each cardModels(ai.value, id) as m (m)}
+          <li><label><input type="checkbox" checked={isShown(ai.value, { provider: id, model: m })} onchange={() => ai.toggle({ provider: id, model: m })}> {m}</label></li>
+        {/each}
+      </ul>
+      <div class="tail">
+        <input type="text" aria-label="Add a {PROVIDER_LABEL[id]} model" placeholder="Add a model" onkeydown={onEnter((v) => ai.addModel(id, v))}>
+        {#if ai.value.keys[id]}
+          <button type="button" class="btn-sm" disabled={busy[id]} onclick={() => void listCloud(id)}>{busy[id] ? 'Loading…' : 'Refresh list'}</button>
+        {/if}
+      </div>
+      {#if trouble[id]}<p class="bad" role="alert">Couldn’t list models: {trouble[id]}.</p>{/if}
+    </div>
+  {/each}
+
+  <div class="card" data-ai-card="local">
+    <div class="head"><span class="name">Local AI</span></div>
+    <p class="hint">Any server that answers <code>POST /v1/chat/completions</code> with streamed events and allows browser requests: Ollama with <code>OLLAMA_ORIGINS</code>, LM Studio with CORS on, llama.cpp or vLLM with their CORS flags. Chrome and Firefox reach <code>http://localhost</code> from this site; Safari does not.</p>
+    {#each ai.value.endpoints as e (e.id)}
+      <div class="endpoint">
+        <div class="tail">
+          <input type="text" aria-label="Endpoint name" value={e.name} onchange={(v) => ai.editEndpoint(e.id, { name: v.currentTarget.value.trim() || 'Local' })}>
+          <input type="url" aria-label="Endpoint URL" value={e.baseUrl} onchange={(v) => ai.editEndpoint(e.id, { baseUrl: v.currentTarget.value.trim() })}>
+          <button type="button" class="btn-sm" disabled={busy[e.id]} onclick={() => void listLocal(e.id)}>{busy[e.id] ? 'Loading…' : 'Fetch models'}</button>
+          <button type="button" class="btn-sm" onclick={() => ai.removeEndpoint(e.id)}>Remove</button>
+        </div>
+        <ul class="models">
+          {#each e.models as m (m)}
+            <li><label><input type="checkbox" checked={isShown(ai.value, { provider: 'local', model: localPick(e.id, m) })} onchange={() => ai.toggle({ provider: 'local', model: localPick(e.id, m) })}> {m}</label></li>
+          {/each}
+        </ul>
+        <input type="text" aria-label="Add a model to {e.name}" placeholder="Add a model" onkeydown={onEnter((v) => addLocalModel(e.id, v))}>
+        {#if trouble[e.id]}<p class="bad" role="alert">Couldn’t list models: {trouble[e.id]}.</p>{/if}
+      </div>
+    {/each}
+    <div class="tail">
+      <input type="text" aria-label="New endpoint name" placeholder="Name" bind:value={newName}>
+      <input type="url" aria-label="New endpoint URL" placeholder="http://localhost:11434" bind:value={newUrl}>
+      <button type="button" class="btn-sm" disabled={!newUrl.trim()} onclick={addEndpoint}>Add endpoint</button>
     </div>
   </div>
-
-  {#if trouble}<p class="bad" role="alert">Couldn’t list models: {trouble}.</p>{/if}
 </section>
 
 <style>
@@ -86,8 +125,17 @@
   .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;padding:8px 0;border-top:1px solid var(--rule)}
   .row .name{font-size:0.9rem}
   .row .hint{grid-column:1;margin:0;font-size:0.78rem}
-  .row select,.row input,.model{grid-column:2;grid-row:1 / span 2}
-  .model{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-  input,select{font:inherit;font-size:0.85rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);min-width:12rem}
-  .bad{color:var(--bad, #b42318);font-size:0.8rem;margin:6px 0 0}
+  .row input{grid-column:2;grid-row:1 / span 2}
+  .card{padding:10px 0;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+  .head{display:flex;align-items:baseline;gap:10px}
+  .head .name{font-size:0.9rem;font-weight:600}
+  .head a{font-size:0.78rem;color:var(--accent)}
+  .models{display:flex;flex-wrap:wrap;gap:2px 14px;margin:0;padding:0;list-style:none;font-size:0.82rem}
+  .models label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+  .tail{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .endpoint{display:flex;flex-direction:column;gap:6px;padding:6px 0 8px;border-bottom:1px dashed var(--rule)}
+  input[type="text"],input[type="url"],input[type="password"]{font:inherit;font-size:0.85rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);min-width:10rem}
+  input[type="password"]{max-width:24rem}
+  code{font-size:0.95em}
+  .bad{color:var(--bad, #b42318);font-size:0.8rem;margin:0}
 </style>

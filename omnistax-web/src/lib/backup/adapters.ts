@@ -10,7 +10,7 @@ import type { FileId } from '../types/ids';
 import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ReaderBackup, type ReaderRecord } from './schema';
 import { restoreWithJournal } from './journal';
 
-/* The AI block goes into a backup with the reader's provider and model and
+/* The AI block goes into a backup with the reader's models and endpoints and
    without the keys they pasted: a backup travels between machines and is sent
    to other people for help, and a key that could be spent travels with it. A
    record that cannot even be read is left out altogether. */

@@ -1,17 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ask, answer, chooseSibling, crumbsOf, fail, finish, firstWords, grow, latestLeafUnder, leavesOf,
-  newChat, pagerOf, resend, retry, siblingsOf, spokenIn, stop, transcript, type Chat,
+  ask, answer, answerCall, call, chooseSibling, crumbsOf, fail, finish, firstWords, grow, latestLeafUnder, leavesOf,
+  newChat, pagerOf, resend, retry, siblingsOf, spokenIn, stop, transcript, type Chat, type MessageId,
 } from '../src/lib/chat/model';
 import { askText, chip, contextBlock, withChip, withoutChip } from '../src/lib/chat/context';
 import { systemPrompt } from '../src/lib/chat/prompt';
-import { requestOf, failureOf, CORS_MESSAGE, type AiSettings } from '../src/lib/chat/providers/index';
+import { requestOf, failureOf, rejectsTools, trimBase, CORS_MESSAGE, DEFAULT_BASE, type Access, type ChatRequest, type ModelPick, type Provider, type StreamEvent } from '../src/lib/chat/providers/index';
+import { PROVIDERS } from '../src/lib/chat/providers/all';
 import { bodyOf as anthropicBody } from '../src/lib/chat/providers/anthropic';
-import { bodyOf as openaiBody } from '../src/lib/chat/providers/openai';
+import { bodyOf as openaiBody, foldCalls } from '../src/lib/chat/providers/openai';
 import { bodyOf as geminiBody } from '../src/lib/chat/providers/gemini';
 import { heightOf, partsOf } from '../src/lib/chat/widget';
-import { parseAi, withoutKeys } from '../src/lib/chat/settings';
+import { accessOf, cardModels, isShown, menuOf, parseAi, toggleShown, withoutKeys } from '../src/lib/chat/settings';
+import { TOOL_SPECS, figureSource, runTool, stepLabel, type Library } from '../src/lib/chat/tools';
+import type { Corpus } from '../src/lib/search/model';
 import { chatEntries, currentChats, findInChats } from '../src/lib/search/chats';
 import { chatId } from '../src/lib/types/ids';
 
@@ -21,7 +24,7 @@ const conversation = (): Chat => {
   let chat = newChat(chatId('abcd1234'), 1_000);
   const asked = ask(chat, 'Why does the period not depend on the mass?');
   chat = asked.chat;
-  const answered = answer(chat, asked.id, 'claude-sonnet-5');
+  const answered = answer(chat, asked.id, 'claude-sonnet-5-5');
   chat = grow(answered.chat, answered.id, 'Because the restoring force grows with the mass too.');
   return finish(chat, answered.id);
 };
@@ -95,35 +98,143 @@ test('chips are what the model is shown, and nothing else is', () => {
   assert.equal(askText('Why?', []), 'Why?', 'no chips, no preamble');
 });
 
+const OPENAI_PICK: ModelPick = { provider: 'openai', model: 'gpt-5-mini' };
+const OPENAI_ACCESS: Access = { key: 'sk-test', baseUrl: 'https://api.openai.com' };
+const PLAIN = { widgets: false, tools: [] };
+
+/* The conversation, then an answer that read a section before it spoke. */
+const withTools = (): { chat: Chat; answer: MessageId } => {
+  let chat = conversation();
+  const asked = ask(chat, 'What is simple harmonic motion?', [chip('image', 'asset:a1', 'Image', '', false, 'asset:a1')]);
+  const a = answer(asked.chat, asked.id, 'gpt-5-mini');
+  chat = grow(a.chat, a.id, 'Let me read it.');
+  chat = call(chat, a.id, { kind: 'tool', id: 'c1', name: 'read_section', input: { book: 'college-physics-2e', section: '16.3' } });
+  chat = answerCall(chat, a.id, 'c1', { output: '# 16.3 Simple Harmonic Motion\n\nA spring…' });
+  chat = grow(chat, a.id, 'It is motion under a restoring force.');
+  return { chat: finish(chat, a.id), answer: a.id };
+};
+
 test('the request is built from the chat alone, and each provider shapes it its own way', () => {
-  const settings: AiSettings = {
-    provider: 'openai', models: { anthropic: 'claude-sonnet-5', openai: 'gpt-4o-mini', gemini: 'gemini-2.5-flash', compatible: '' },
-    baseUrl: '', keys: { anthropic: '', openai: 'sk-test', gemini: '', compatible: '' },
-  };
-  const request = requestOf(conversation(), [chip('section', '16.4', '16.4', 'A pendulum swings…')], settings);
-  assert.equal(request.model, 'gpt-4o-mini');
+  const request = requestOf(conversation(), [chip('section', '16.4', '16.4', 'A pendulum swings…')], OPENAI_PICK, OPENAI_ACCESS, PLAIN);
+  assert.equal(request.model, 'gpt-5-mini');
   assert.equal(request.key, 'sk-test');
   assert.equal(request.baseUrl, 'https://api.openai.com');
   assert.equal(request.turns.length, 2);
-  assert.match(request.turns[0].text, /A pendulum swings/, 'the chips ride on the last reader turn');
-  assert.ok(!request.system.includes('widget'), 'the widget paragraph is off by default');
+  const first = request.turns[0];
+  assert.ok(first.role === 'user' && /A pendulum swings/.test(first.text), 'the chips ride on the last reader turn');
+  assert.ok(!request.system.includes('widget'), 'the widget paragraph is off');
+  assert.ok(!request.system.includes('read_section'), 'no tools, no tool paragraph');
 
   const openai = openaiBody(request);
   assert.equal(openai.messages[0].role, 'system');
   assert.equal(openai.stream, true);
+  assert.equal(openai.tools, undefined);
   const anthropic = anthropicBody(request);
-  assert.equal(anthropic.system, request.system);
+  assert.deepEqual(anthropic.system[0], { type: 'text', text: request.system, cache_control: { type: 'ephemeral' } });
   assert.equal(anthropic.messages.length, 2);
   const gemini = geminiBody(request);
   assert.deepEqual(gemini.contents.map((c) => c.role), ['user', 'model']);
 });
 
-test('a compatible host is asked at the address the reader typed', () => {
-  const settings: AiSettings = {
-    provider: 'compatible', models: { anthropic: '', openai: '', gemini: '', compatible: 'local-model' },
-    baseUrl: 'http://localhost:1234/', keys: { anthropic: '', openai: '', gemini: '', compatible: '' },
-  };
-  assert.equal(requestOf(newChat(chatId('abcd1234')), [], settings).baseUrl, 'http://localhost:1234');
+test('grow keeps plain answers stepless, and a tool call splits the prose into steps', () => {
+  const { chat, answer: id } = withTools();
+  const m = chat.messages[id];
+  assert.equal(m.text, 'Let me read it.\n\nIt is motion under a restoring force.', 'text stays the prose joined');
+  assert.deepEqual(m.steps?.map((s) => s.kind), ['text', 'tool', 'text']);
+  const plain = conversation();
+  assert.equal(plain.messages[transcript(plain)[1].id].steps, undefined);
+});
+
+test('each provider sends tool calls, their results, images and the tools in its own shape', () => {
+  const { chat } = withTools();
+  const images = { 'asset:a1': 'data:image/png;base64,AAAA' };
+  const at = { ...chat, leaf: transcript(chat)[3].id };
+  const request = requestOf(at, [], OPENAI_PICK, OPENAI_ACCESS, { widgets: true, tools: TOOL_SPECS, images });
+  assert.match(request.system, /read_section/);
+  assert.match(request.system, /widget/);
+
+  const o = openaiBody(request);
+  assert.equal(o.tools?.length, TOOL_SPECS.length);
+  const roles = o.messages.map((m) => m.role);
+  assert.deepEqual(roles, ['system', 'user', 'assistant', 'user', 'assistant', 'tool', 'assistant']);
+  const askedWithImage = o.messages[3];
+  assert.ok(askedWithImage.role === 'user' && Array.isArray(askedWithImage.content) && askedWithImage.content[0].type === 'image_url');
+  const called = o.messages[4];
+  assert.ok(called.role === 'assistant' && called.tool_calls?.[0].function.name === 'read_section');
+  assert.ok(o.messages[5].role === 'tool' && o.messages[5].tool_call_id === 'c1');
+
+  const a = anthropicBody({ ...request, provider: 'anthropic' });
+  assert.deepEqual(a.messages.map((m) => m.role), ['user', 'assistant', 'user', 'assistant', 'user', 'assistant']);
+  assert.equal(a.messages[2].content[0].type, 'image');
+  assert.equal(a.messages[3].content[1].type, 'tool_use');
+  assert.equal(a.messages[4].content[0].type, 'tool_result');
+  assert.deepEqual(a.messages[4].content[0].cache_control, { type: 'ephemeral' }, 'the last reader turn is cached');
+  assert.equal(a.tools?.[0].name, 'list_books');
+
+  const g = geminiBody({ ...request, provider: 'gemini' });
+  assert.deepEqual(g.contents.map((c) => c.role), ['user', 'model', 'user', 'model', 'user', 'model']);
+  assert.ok('inlineData' in g.contents[2].parts[0]);
+  assert.ok(g.contents[3].parts.some((p) => 'functionCall' in p));
+  assert.ok('functionResponse' in g.contents[4].parts[0]);
+  assert.equal(g.tools?.[0].functionDeclarations.length, TOOL_SPECS.length);
+});
+
+/* A fetch that answers with one SSE body, and remembers what it was asked. */
+const fakeFetch = (events: readonly unknown[]): { calls: { url: string; body: unknown }[] } => {
+  const calls: { url: string; body: unknown }[] = [];
+  globalThis.fetch = (async (url: string, init?: { body?: string }) => {
+    calls.push({ url: String(url), body: init?.body ? JSON.parse(init.body) : null });
+    const text = events.map((e) => `data: ${typeof e === 'string' ? e : JSON.stringify(e)}\n\n`).join('');
+    return new Response(text, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  }) as typeof fetch;
+  return { calls };
+};
+const drain = async (p: Provider, r: ChatRequest): Promise<StreamEvent[]> => {
+  const out: StreamEvent[] = [];
+  for await (const e of p.stream(r, new AbortController().signal)) out.push(e);
+  return out;
+};
+const bare = (provider: ChatRequest['provider'], baseUrl: string): ChatRequest =>
+  ({ provider, model: 'm', key: 'k', baseUrl, system: 's', turns: [{ role: 'user', text: 'hi', images: [] }], tools: TOOL_SPECS });
+
+test('each provider streams text and assembles its tool calls', async () => {
+  const real = globalThis.fetch;
+  try {
+    const o = fakeFetch([
+      { choices: [{ delta: { content: 'Hel' } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: 'x1', function: { name: 'sea', arguments: '{"book":' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'rch', arguments: '"b"}' } }] } }] },
+      '[DONE]',
+    ]);
+    assert.deepEqual(await drain(PROVIDERS.local, bare('local', 'http://localhost:1234')), [
+      { kind: 'text', text: 'Hel' }, { kind: 'call', id: 'x1', name: 'search', input: { book: 'b' } },
+    ]);
+    assert.equal(o.calls[0].url, 'http://localhost:1234/v1/chat/completions');
+
+    const a = fakeFetch([
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hi' } },
+      { type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 't1', name: 'lookup' } },
+      { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"kind":"concept"}' } },
+      { type: 'content_block_stop', index: 1 },
+    ]);
+    assert.deepEqual(await drain(PROVIDERS.anthropic, bare('anthropic', 'https://api.anthropic.com')), [
+      { kind: 'text', text: 'Hi' }, { kind: 'call', id: 't1', name: 'lookup', input: { kind: 'concept' } },
+    ]);
+    assert.equal((a.calls[0].body as { tools: unknown[] }).tools.length, TOOL_SPECS.length);
+
+    fakeFetch([{ candidates: [{ content: { parts: [{ text: 'Yo' }, { functionCall: { name: 'list_books', args: {} } }] } }] }]);
+    assert.deepEqual(await drain(PROVIDERS.gemini, bare('gemini', 'https://g')), [
+      { kind: 'text', text: 'Yo' }, { kind: 'call', id: 'call_0', name: 'list_books', input: {} },
+    ]);
+  } finally { globalThis.fetch = real; }
+});
+
+test('the OpenAI-shaped providers are asked at their own addresses', () => {
+  assert.equal(DEFAULT_BASE.deepseek, 'https://api.deepseek.com');
+  assert.equal(DEFAULT_BASE.openrouter, 'https://openrouter.ai/api');
+  assert.equal(DEFAULT_BASE.mistral, 'https://api.mistral.ai');
+  assert.equal(trimBase('http://localhost:11434/v1/'), 'http://localhost:11434');
+  assert.equal(foldCalls(new Map(), { tool_calls: [{ index: 2, id: 'q', function: { name: 'a', arguments: '{' } }] }).get(2)?.args, '{');
 });
 
 test('a host that refuses a browser is reported in the words the spec sets', () => {
@@ -131,7 +242,7 @@ test('a host that refuses a browser is reported in the words the spec sets', () 
   assert.equal(failureOf(new Error('401 Unauthorized')), '401 Unauthorized');
 });
 
-test('the widget paragraph is appended only when the chat asked for it', () => {
+test('the widget paragraph is appended only when inline HTML is on', () => {
   assert.ok(!systemPrompt(false).includes('widget'));
   assert.match(systemPrompt(true), /fenced block tagged `widget`/);
 });
@@ -151,14 +262,78 @@ test('a widget block is cut out of the answer only when widgets are on', () => {
   assert.equal(heightOf('tall'), null);
 });
 
-test('the AI settings read back leniently and go into a backup without their keys', () => {
-  const stored = parseAi({ provider: 'gemini', keys: { gemini: 'secret' }, models: { gemini: 'gemini-2.5-pro' } });
-  assert.equal(stored.provider, 'gemini');
-  assert.equal(stored.keys.gemini, 'secret');
-  assert.equal(stored.models.anthropic, 'claude-sonnet-5', 'what is missing takes its default');
-  assert.equal(withoutKeys(stored).keys.gemini, '');
-  assert.equal(withoutKeys(stored).models.gemini, 'gemini-2.5-pro');
-  assert.equal(parseAi('nonsense').provider, 'anthropic');
+test('the AI settings read back leniently, migrate the first shape, and go into a backup without their keys', () => {
+  const legacy = parseAi({ provider: 'compatible', keys: { gemini: 'secret' }, models: { gemini: 'gemini-2.5-pro', compatible: 'mock-1' }, baseUrl: 'http://localhost:1234' });
+  assert.equal(legacy.keys.gemini, 'secret');
+  assert.equal(legacy.endpoints[0].baseUrl, 'http://localhost:1234');
+  assert.deepEqual(legacy.last, { provider: 'local', model: 'local/mock-1' });
+  assert.ok(isShown(legacy, { provider: 'local', model: 'local/mock-1' }));
+  assert.deepEqual(legacy.added.gemini, [], 'a model in code is not added twice');
+  assert.deepEqual(accessOf(legacy, { provider: 'local', model: 'local/mock-1' }), { key: '', baseUrl: 'http://localhost:1234' });
+
+  const fresh = parseAi('nonsense');
+  assert.equal(fresh.inlineHtml, true);
+  assert.deepEqual(fresh.last, { provider: 'anthropic', model: 'claude-sonnet-5-5' });
+  assert.equal(accessOf(fresh, fresh.last!), null, 'no key, no access');
+  const menu = menuOf(fresh);
+  assert.equal(menu[0].label, 'Anthropic');
+  assert.equal(menu[0].entries[0].ready, false);
+
+  const kept = parseAi(JSON.parse(JSON.stringify({ ...fresh, keys: { ...fresh.keys, openai: 'sk' } })));
+  assert.equal(kept.keys.openai, 'sk');
+  assert.equal(withoutKeys(kept).keys.openai, '');
+  assert.deepEqual(cardModels(toggleShown(kept, { provider: 'openai', model: 'gpt-5' }), 'openai').slice(0, 2), ['gpt-5', 'gpt-5-mini']);
+  assert.ok(!isShown(toggleShown(fresh, fresh.shown[0]), fresh.shown[0]));
+});
+
+/* A library of one book, one section and one figure, for the tools. */
+const corpus: Corpus = {
+  book: 'bk', title: 'A Book', urls: {},
+  concepts: [{ id: 'hookes-law', name: "Hooke's law", section: '16.1', status: 'built', why: 'springs' } as unknown as Corpus['concepts'][number]],
+  variables: [{ sym: 'k', meaning: 'spring constant', unit: 'N/m', section: '16.1' } as unknown as Corpus['variables'][number]],
+  glossary: [{ term: 'deformation', definition: 'a change in shape', section: '16.1' } as unknown as Corpus['glossary'][number]],
+  equations: [{ id: 'eq-hooke', section: '16.1', tex: 'F=-kx', latex: 'F=-kx', important: true } as unknown as Corpus['equations'][number]],
+  pages: [{ id: '16.1', title: "Hooke's Law", url: '', chapter: '16', terms: [], blocks: [{ span: 's1', head: '', text: 'A spring stretches in proportion to the force.', toks: '' }] }],
+};
+const fakeLibrary: Library = {
+  books: async () => [{ id: 'bk', title: 'A Book' }],
+  chapters: async (b) => (b === 'bk' ? [{ id: '16', title: '16 Oscillatory Motion', sections: [{ id: '16.1', title: "Hooke's Law", built: true }] }] : null),
+  section: async (b, s) => (b === 'bk' && s === '16.1' ? { title: "Hooke's Law", text: 'A spring stretches.' } : null),
+  corpus: async (b) => (b === 'bk' ? corpus : null),
+  figure: async (_b, _s, id, source) => (id === 'sim-spring' ? { caption: 'A spring', alt: 'a mass on a spring', params: [{ label: 'Mass', value: 2, unit: 'kg' }], ...(source ? { source: 'draw()' } : {}) } : null),
+};
+
+test('the tools read the books through the library and answer with links', async () => {
+  assert.match((await runTool(fakeLibrary, 'list_books', {})).output ?? '', /bk — A Book/);
+  assert.match((await runTool(fakeLibrary, 'table_of_contents', { book: 'bk', chapter: '16' })).output ?? '', /\[\[bk\/16\.1\]\] Hooke's Law/);
+  const read = await runTool(fakeLibrary, 'read_section', { book: 'bk', section: '16.1' });
+  assert.match(read.output ?? '', /^# 16\.1 Hooke's Law/);
+  assert.equal(stepLabel({ kind: 'tool', id: 'c', name: 'read_section', input: { section: '16.1' }, output: read.output }), "Read 16.1 Hooke's Law");
+  assert.match((await runTool(fakeLibrary, 'search', { book: 'bk', query: 'spring' })).output ?? '', /\[\[bk\/16\.1\]\]/);
+  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'deformation' })).output ?? '', /\[\[def:bk\/16\.1:deformation\]\]/);
+  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'equation', query: 'hooke' })).output ?? '', /!\[\[eq:bk\/16\.1:eq-hooke\]\]/);
+  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'symbol', query: 'spring constant' })).output ?? '', /\[\[sym:bk\/16\.1:k\]\]/);
+  const fig = await runTool(fakeLibrary, 'figure', { book: 'bk', section: '16.1', id: 'sim-spring' });
+  assert.match(fig.output ?? '', /Mass: 2 kg/);
+  assert.ok(!/Source/.test(fig.output ?? ''), 'source only when asked');
+  assert.match((await runTool(fakeLibrary, 'figure', { book: 'bk', section: '16.1', id: 'sim-spring', include_source: true })).output ?? '', /draw\(\)/);
+  assert.match((await runTool(fakeLibrary, 'read_section', { book: 'bk', section: '9.9' })).error ?? '', /no built section/);
+  assert.match((await runTool(fakeLibrary, 'nope', {})).error ?? '', /no tool/);
+});
+
+test('a figure\'s source is its own block and the helpers every figure shares', () => {
+  const js = "const { el } = F;\nfunction helper() {}\n{\n  const d = sim('sim-a', 300);\n}\n{\n  const d = sim('sim-b', 300);\n}";
+  const src = figureSource(js, 'sim-b');
+  assert.match(src, /helper/);
+  assert.match(src, /sim-b/);
+  assert.ok(!src.includes('sim-a'));
+  assert.equal(figureSource(js, 'sim-z'), js);
+});
+
+test('a refusal that names tools is told apart from any other', () => {
+  assert.ok(rejectsTools('This model does not support tools'));
+  assert.ok(rejectsTools('function calling is not enabled for this model'));
+  assert.ok(!rejectsTools('401 Unauthorized'));
 });
 
 test('the search reads a chat as one entry per message', () => {

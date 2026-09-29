@@ -112,30 +112,43 @@ const fileMark = z.union([
     created: finite.nonnegative(), updated: finite.nonnegative(),
   }).strict(),
 ]);
-/* The AI block as the backup may carry it: the provider and the model of each,
-   and the address of a host the reader runs themselves. Every key must be the
+/* The AI block as the backup may carry it: the models each provider lists and
+   which are ticked, the Local AI endpoints and the last model chosen, or the
+   single provider and model of the first shape. Every key must be the
    empty string — a backup is a file readers send to themselves across machines
    and post to each other for help, and a key that could be spent has no
    business in one. */
-const PROVIDERS = ['anthropic', 'openai', 'gemini', 'compatible'] as const;
-const byProvider = z.record(z.enum(PROVIDERS), z.string());
+const PROVIDERS = ['anthropic', 'openai', 'gemini', 'deepseek', 'openrouter', 'mistral', 'local'] as const;
+const CLOUDS = ['anthropic', 'openai', 'gemini', 'deepseek', 'openrouter', 'mistral'] as const;
+const modelPick = z.object({ provider: z.enum(PROVIDERS), model: z.string().min(1) }).strict();
+const byCloud = <T extends z.ZodTypeAny>(v: T) => z.record(z.enum(CLOUDS), v);
 const aiSettings = z.object({
-  provider: z.enum(PROVIDERS),
-  models: byProvider,
-  baseUrl: z.string(),
-  keys: byProvider.refine((k) => Object.values(k).every((v) => v === ''), 'a backup carries no API key'),
-}).strict();
+  keys: byCloud(z.string()).refine((k) => Object.values(k).every((v) => v === ''), 'a backup carries no API key'),
+  listed: byCloud(z.array(z.string())),
+  added: byCloud(z.array(z.string())),
+  shown: z.array(modelPick),
+  endpoints: z.array(z.object({ id: z.string().min(1), name: z.string(), baseUrl: z.string(), models: z.array(z.string()) }).strict()),
+  last: modelPick.nullable(),
+  inlineHtml: z.boolean(),
+}).strict().or(z.object({
+  provider: z.string(), models: z.record(z.string()), baseUrl: z.string(),
+  keys: z.record(z.string()).refine((k) => Object.values(k).every((v) => v === ''), 'a backup carries no API key'),
+}).strict());
 /* The index of the chats: one row per chat, the records themselves being far
    too heavy for localStorage and carried by `chats` below. */
 const chatIndex = z.array(z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict());
 const chatMessage = z.object({
   id: z.string().min(1), parent: z.string().min(1).nullable(), role: z.enum(['user', 'assistant']), text: z.string(),
-  chips: z.array(z.object({ kind: z.string().min(1), key: z.string(), label: z.string(), text: z.string(), pinned: z.boolean().optional() }).strict()),
+  chips: z.array(z.object({ kind: z.string().min(1), key: z.string(), label: z.string(), text: z.string(), pinned: z.boolean().optional(), image: z.string().optional() }).strict()),
   model: z.string().optional(), at: finite.nonnegative(), state: z.enum(['done', 'streaming', 'stopped', 'failed']), error: z.string().optional(),
+  steps: z.array(z.union([
+    z.object({ kind: z.literal('text'), text: z.string() }).strict(),
+    z.object({ kind: z.literal('tool'), id: z.string(), name: z.string(), input: z.unknown(), output: z.string().optional(), error: z.string().optional() }).strict(),
+  ])).optional(),
 }).strict();
 export const ChatSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), root: z.string().min(1), messages: z.record(chatMessage),
-  leaf: z.string().min(1), created: finite.nonnegative(), updated: finite.nonnegative(),
+  leaf: z.string().min(1), created: finite.nonnegative(), updated: finite.nonnegative(), pick: modelPick.optional(),
 }).strict();
 
 /* The rows the explorer and the link resolver draw a drawing from: its name
@@ -148,11 +161,16 @@ const scratchIndex = z.record(z.object({ linked: z.string().regex(/^[a-z0-9]{8}$
 /* One drawing whole, as the database keeps it: a page of ink with boxes and
    frames standing on it. A point is a triple, x, y and pressure. */
 const drawPoint = z.tuple([finite, finite, finite]);
+/* A connector's end: a side of an element, or a point of the plane. */
+const drawEnd = z.union([z.object({ item: z.string().min(1), side: z.enum(['n', 'e', 's', 'w']) }).strict(), z.object({ x: finite, y: finite }).strict()]);
 const drawItem = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('stroke'), id: z.string().min(1), tool: z.enum(['pen', 'highlighter']), color: z.string(), size: finite, points: z.array(drawPoint).min(1) }).strict(),
   z.object({ kind: z.literal('shape'), id: z.string().min(1), shape: z.enum(['line', 'arrow', 'rect', 'ellipse']), color: z.string(), size: finite, fill: z.boolean(), from: z.tuple([finite, finite]), to: z.tuple([finite, finite]) }).strict(),
-  z.object({ kind: z.literal('box'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, body: z.string() }).strict(),
-  z.object({ kind: z.literal('frame'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, embed: z.string().min(1), open: z.string().min(1).optional() }).strict(),
+  z.object({ kind: z.literal('box'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, body: z.string(), color: z.string().optional() }).strict(),
+  z.object({ kind: z.literal('frame'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, embed: z.string().min(1), open: z.string().min(1).optional(), color: z.string().optional() }).strict(),
+  z.object({ kind: z.literal('link'), id: z.string().min(1), from: drawEnd, to: drawEnd, curve: z.enum(['straight', 'bezier']), heads: z.object({ start: z.boolean(), end: z.boolean() }).strict(), color: z.string(), size: finite, label: z.string() }).strict(),
+  z.object({ kind: z.literal('group'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, label: z.string(), color: z.string().optional() }).strict(),
+  z.object({ kind: z.literal('chat'), id: z.string().min(1), x: finite, y: finite, w: finite, h: finite, chat: z.string().min(1), root: z.string().min(1).optional() }).strict(),
 ]);
 /* The plane is unbounded, so a drawing carries no page: `width` and `height`
    are the page a record written before that carried, read past and dropped,

@@ -10,6 +10,7 @@
    other, and so two first questions are siblings of each other. */
 import type { ChatId } from '../types/ids';
 import type { Chip } from './context';
+import type { ProviderId } from './providers/index';
 
 export type MessageId = string & { readonly __brand: 'MessageId' };
 export const messageId = (s: string): MessageId => s as MessageId;
@@ -21,6 +22,13 @@ export type Role = 'user' | 'assistant';
    reader with the words that had come, or failed with the reason kept on it. */
 export type MessageState = 'done' | 'streaming' | 'stopped' | 'failed';
 
+/* What an answer did, in order: prose, and the tools it called between. Only
+   an answer that called a tool keeps steps; its `text` is still the prose
+   joined, which is what search and embeds read. */
+export type TextStep = { readonly kind: 'text'; readonly text: string };
+export type ToolStep = { readonly kind: 'tool'; readonly id: string; readonly name: string; readonly input: unknown; readonly output?: string; readonly error?: string };
+export type Step = TextStep | ToolStep;
+
 export type Message = {
   readonly id: MessageId;
   readonly parent: MessageId | null;
@@ -31,6 +39,7 @@ export type Message = {
   readonly at: number;
   readonly state: MessageState;
   readonly error?: string;
+  readonly steps?: readonly Step[];
 };
 
 export type Chat = {
@@ -41,6 +50,7 @@ export type Chat = {
   readonly leaf: MessageId;
   readonly created: number;
   readonly updated: number;
+  readonly pick?: { readonly provider: ProviderId; readonly model: string };
 };
 
 export const newChat = (id: ChatId, at = Date.now()): Chat => {
@@ -153,10 +163,32 @@ export const patch = (chat: Chat, id: MessageId, p: Partial<Message>): Chat => {
   return { ...chat, messages: { ...chat.messages, [id]: { ...m, ...p, id, parent: m.parent } }, updated: Date.now() };
 };
 
+/* Words of an answer arriving. After a tool step they open a new text step,
+   and the prose is kept apart from the round before it by a blank line. */
 export const grow = (chat: Chat, id: MessageId, delta: string): Chat => {
   const m = messageOf(chat, id); if (!m) return chat;
-  return patch(chat, id, { text: m.text + delta });
+  const steps = m.steps ?? [];
+  if (steps.length === 0) return patch(chat, id, { text: m.text + delta });
+  const last = steps[steps.length - 1];
+  if (last.kind === 'text') return patch(chat, id, { text: m.text + delta, steps: [...steps.slice(0, -1), { kind: 'text', text: last.text + delta }] });
+  const gap = m.text.trim() === '' ? '' : '\n\n';
+  return patch(chat, id, { text: m.text + gap + delta, steps: [...steps, { kind: 'text', text: delta }] });
 };
+
+/* A tool call the answer made, its output still to come. The prose before it
+   becomes the first step. */
+export const call = (chat: Chat, id: MessageId, step: ToolStep): Chat => {
+  const m = messageOf(chat, id); if (!m) return chat;
+  const steps = m.steps?.length ? m.steps : m.text === '' ? [] : [{ kind: 'text', text: m.text } as const];
+  return patch(chat, id, { steps: [...steps, step] });
+};
+
+export const answerCall = (chat: Chat, id: MessageId, callId: string, result: { readonly output?: string; readonly error?: string }): Chat => {
+  const m = messageOf(chat, id); if (!m?.steps) return chat;
+  return patch(chat, id, { steps: m.steps.map((s) => (s.kind === 'tool' && s.id === callId ? { ...s, ...result } : s)) });
+};
+
+export const setPick = (chat: Chat, pick: { readonly provider: ProviderId; readonly model: string }): Chat => ({ ...chat, pick });
 
 export const finish = (chat: Chat, id: MessageId): Chat => patch(chat, id, { state: 'done' });
 export const stop = (chat: Chat, id: MessageId): Chat => patch(chat, id, { state: 'stopped' });

@@ -9,21 +9,65 @@
    not in it. */
 import { askText, type Chip } from '../context';
 import { systemPrompt } from '../prompt';
-import { transcript, type Chat, type Role } from '../model';
+import { transcript, type Chat, type Step, type ToolStep } from '../model';
 
-export const PROVIDER_IDS = ['anthropic', 'openai', 'gemini', 'compatible'] as const;
+export const PROVIDER_IDS = ['anthropic', 'openai', 'gemini', 'deepseek', 'openrouter', 'mistral', 'local'] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
+/* The providers a key is pasted for; Local AI holds endpoints instead. */
+export type CloudId = Exclude<ProviderId, 'local'>;
+export const CLOUD_IDS: readonly CloudId[] = PROVIDER_IDS.filter((p): p is CloudId => p !== 'local');
+
 export const PROVIDER_LABEL: Readonly<Record<ProviderId, string>> = {
-  anthropic: 'Anthropic', openai: 'OpenAI', gemini: 'Google Gemini', compatible: 'OpenAI-compatible',
+  anthropic: 'Anthropic', openai: 'OpenAI', gemini: 'Google Gemini', deepseek: 'DeepSeek', openrouter: 'OpenRouter', mistral: 'Mistral', local: 'Local AI',
 };
 
-/* What the reader has settled in Settings. The keys are kept apart from the
-   choice so that the backup can carry the choice and leave the keys behind. */
-export type AiChoice = { readonly provider: ProviderId; readonly models: Readonly<Record<ProviderId, string>>; readonly baseUrl: string };
-export type AiSettings = AiChoice & { readonly keys: Readonly<Record<ProviderId, string>> };
+export const KEY_URL: Readonly<Record<CloudId, string>> = {
+  anthropic: 'https://console.anthropic.com/settings/keys', openai: 'https://platform.openai.com/api-keys',
+  gemini: 'https://aistudio.google.com/apikey', deepseek: 'https://platform.deepseek.com/api_keys',
+  openrouter: 'https://openrouter.ai/keys', mistral: 'https://console.mistral.ai/api-keys',
+};
 
-/* One turn as every provider means it, before each shapes it its own way. */
-export type Turn = { readonly role: Role; readonly text: string };
+export const DEFAULT_BASE: Readonly<Record<CloudId, string>> = {
+  anthropic: 'https://api.anthropic.com', openai: 'https://api.openai.com', gemini: 'https://generativelanguage.googleapis.com',
+  deepseek: 'https://api.deepseek.com', openrouter: 'https://openrouter.ai/api', mistral: 'https://api.mistral.ai',
+};
+
+export const trimBase = (url: string): string => url.trim().replace(/\/+$/, '').replace(/\/v1$/, '');
+
+/* A model as the menu and a chat name it. A Local AI model is written
+   `<endpoint id>/<model>`, since two endpoints may serve the same name. */
+export type ModelPick = { readonly provider: ProviderId; readonly model: string };
+export const samePick = (a: ModelPick | null | undefined, b: ModelPick | null | undefined): boolean =>
+  !!a && !!b && a.provider === b.provider && a.model === b.model;
+export const localPick = (endpoint: string, model: string): string => `${endpoint}/${model}`;
+export const splitLocal = (model: string): { readonly endpoint: string; readonly model: string } => {
+  const cut = model.indexOf('/');
+  return cut < 0 ? { endpoint: '', model } : { endpoint: model.slice(0, cut), model: model.slice(cut + 1) };
+};
+/* The name the provider is asked for, and the one a bubble shows. */
+export const modelName = (p: ModelPick): string => (p.provider === 'local' ? splitLocal(p.model).model : p.model);
+
+/* Where and with what a pick is asked: settled from the settings, so a
+   request carries nothing of them. */
+export type Access = { readonly key: string; readonly baseUrl: string };
+
+/* An image as a provider takes it: the bytes in base64 and their type. */
+export type ImagePart = { readonly mime: string; readonly data: string };
+export const imagePartOf = (dataUrl: string): ImagePart | null => {
+  const m = /^data:([^;,]+);base64,(.*)$/s.exec(dataUrl);
+  return m ? { mime: m[1], data: m[2] } : null;
+};
+export const dataUrlOf = (i: ImagePart): string => `data:${i.mime};base64,${i.data}`;
+
+/* One turn as every provider means it, before each shapes it its own way. An
+   answer keeps its steps, so a turn that called tools is sent back as the
+   calls and their results. */
+export type Turn =
+  | { readonly role: 'user'; readonly text: string; readonly images: readonly ImagePart[] }
+  | { readonly role: 'assistant'; readonly steps: readonly Step[] };
+
+/* A tool as the model is told of it: a JSON Schema for its input. */
+export type ToolSpec = { readonly name: string; readonly description: string; readonly parameters: Readonly<Record<string, unknown>> };
 
 /* Everything one request needs and nothing of the app: a provider is handed
    this and can be run from a test with a fetch of its own. */
@@ -34,41 +78,62 @@ export type ChatRequest = {
   readonly baseUrl: string;
   readonly system: string;
   readonly turns: readonly Turn[];
+  readonly tools: readonly ToolSpec[];
 };
 
-/* Where each provider lives when the reader has not said otherwise. The
-   OpenAI-compatible one has no default: it is the field the reader fills in. */
-export const DEFAULT_BASE: Readonly<Record<ProviderId, string>> = {
-  anthropic: 'https://api.anthropic.com', openai: 'https://api.openai.com', gemini: 'https://generativelanguage.googleapis.com', compatible: '',
-};
+/* An answer's steps as rounds: the prose of one round and the calls it made.
+   Each round but the last is followed by the results of its calls. */
+export type Round = { readonly text: string; readonly calls: readonly ToolStep[] };
+export const roundsOf = (steps: readonly Step[]): readonly Round[] =>
+  steps.reduce<Round[]>((out, s) => {
+    const last = out[out.length - 1];
+    if (s.kind === 'tool') return last ? [...out.slice(0, -1), { ...last, calls: [...last.calls, s] }] : [{ text: '', calls: [s] }];
+    return !last || last.calls.length ? [...out, { text: s.text, calls: [] }] : [...out.slice(0, -1), { ...last, text: last.text + s.text }];
+  }, []);
 
-export const baseOf = (s: AiChoice, id: ProviderId): string =>
-  (id === 'compatible' ? s.baseUrl : DEFAULT_BASE[id]).replace(/\/+$/, '');
+/* What a tool call answered, as the model is shown it. */
+export const resultOf = (s: ToolStep): string => s.error ? `Error: ${s.error}` : s.output ?? '';
+
+/* Images keyed by the `asset:<id>` a chip holds, read before the request. */
+export type Images = Readonly<Record<string, string>>;
+
+export type RequestOptions = { readonly widgets: boolean; readonly tools: readonly ToolSpec[]; readonly images?: Images };
+
+const chipImages = (chips: readonly Chip[], images: Images): readonly ImagePart[] =>
+  chips.flatMap((c) => { const url = c.image ? images[c.image] : undefined; const part = url ? imagePartOf(url) : null; return part ? [part] : []; });
 
 /* The body of a request, worked out from the chat alone: the turns are the
    transcript the reader is reading, each reader turn carrying the chips that
    were on it, and `chips` are the ones standing above the composer that the
    last reader turn has not been given yet. Pure, so what is sent can be
    checked without a network. */
-export const requestOf = (chat: Chat, chips: readonly Chip[], s: AiSettings, widgets = false): ChatRequest => {
+export const requestOf = (chat: Chat, chips: readonly Chip[], pick: ModelPick, access: Access, o: RequestOptions): ChatRequest => {
   const path = transcript(chat);
   const lastAsk = [...path].reverse().find((m) => m.role === 'user');
+  const images = o.images ?? {};
   const turns = path
-    .filter((m) => m.role === 'assistant' ? m.text.trim() !== '' : true)
-    .map((m): Turn => ({
-      role: m.role,
-      text: m.role === 'user' ? askText(m.text, m.id === lastAsk?.id ? [...m.chips, ...chips.filter((c) => !m.chips.some((x) => x.kind === c.kind && x.key === c.key))] : m.chips) : m.text,
-    }));
-  return { provider: s.provider, model: s.models[s.provider] ?? '', key: s.keys[s.provider] ?? '', baseUrl: baseOf(s, s.provider), system: systemPrompt(widgets), turns };
+    .filter((m) => (m.role === 'assistant' ? m.text.trim() !== '' || (m.steps?.length ?? 0) > 0 : true))
+    .map((m): Turn => {
+      if (m.role === 'assistant') return { role: 'assistant', steps: m.steps?.length ? m.steps : [{ kind: 'text', text: m.text }] };
+      const all = m.id === lastAsk?.id ? [...m.chips, ...chips.filter((c) => !m.chips.some((x) => x.kind === c.kind && x.key === c.key))] : m.chips;
+      return { role: 'user', text: askText(m.text, all), images: chipImages(all, images) };
+    });
+  return {
+    provider: pick.provider, model: modelName(pick), key: access.key, baseUrl: trimBase(access.baseUrl),
+    system: systemPrompt(o.widgets, o.tools.length > 0), turns, tools: o.tools,
+  };
 };
 
-/* A provider: how it streams an answer, and what models it can name. A
-   provider that cannot be asked for a list says so with an empty one and the
-   reader types the name themselves. */
+/* What a stream says: words of the answer, or a tool call whole. */
+export type StreamEvent =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'call'; readonly id: string; readonly name: string; readonly input: unknown };
+
+/* A provider: how it streams an answer, and what models it can name. */
 export type Provider = {
   readonly id: ProviderId;
-  stream(request: ChatRequest, signal: AbortSignal): AsyncIterable<string>;
-  models(request: ChatRequest): Promise<readonly string[]>;
+  stream(request: ChatRequest, signal: AbortSignal): AsyncIterable<StreamEvent>;
+  models(request: ModelPick & Access): Promise<readonly string[]>;
 };
 
 /* A host that answers no browser fails the fetch itself rather than answering
@@ -80,6 +145,10 @@ export const failureOf = (e: unknown): string => {
   if (e instanceof DOMException && e.name === 'AbortError') throw e;
   return e instanceof Error ? e.message : String(e);
 };
+
+/* A refusal that names tools: the model takes none, and is asked again
+   without them. */
+export const rejectsTools = (message: string): boolean => /\btool|function[ _]?call/i.test(message);
 
 /* The body of a bad answer, cut short: a provider says why in its own shape,
    and the reader is better served by its words than by a status number alone. */
@@ -126,4 +195,11 @@ export async function* sse(response: Response): AsyncIterable<string> {
 export const json = (data: string): Record<string, unknown> | null => {
   try { const v: unknown = JSON.parse(data); return typeof v === 'object' && v !== null ? v as Record<string, unknown> : null; }
   catch { return null; }
+};
+
+/* A tool call's arguments as the stream spelled them; a model that wrote
+   something unreadable is answered with an empty input and says so itself. */
+export const parseArgs = (raw: string): unknown => {
+  if (raw.trim() === '') return {};
+  try { return JSON.parse(raw); } catch { return {}; }
 };
