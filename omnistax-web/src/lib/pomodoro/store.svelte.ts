@@ -37,6 +37,8 @@ class PomodoroStore {
   ended = $state(0);
   /* Set when screen lock gave up on the last session, until the next one starts. */
   lost = $state(false);
+  /* When screen lock gives up, while the reader is away from the window. */
+  awayUntil = $state<number | null>(null);
   private timer: ReturnType<typeof setInterval> | null = null;
   private unwatch: Unwatch | null = null;
   private loaded = false;
@@ -120,7 +122,9 @@ class PomodoroStore {
 
   /* The stats view edits the history: a sitting is moved in time, resaid or
      refiled, or struck out altogether. */
+  newId(): string { return freshId(); }
   amend(p: Pomodoro): void { this.writeLog(amended(this.log, p)); }
+  add(p: Pomodoro): void { this.writeLog(logged(this.log, p)); }
   remove(id: string): void { this.writeLog(dropped(this.log, id)); }
 
   /* Categories. A new one is named by the reader and takes the first hue no
@@ -149,8 +153,9 @@ class PomodoroStore {
   }
   private watch(): void {
     const wanted = this.session.phase === 'running' && this.screenLock;
-    if (!wanted) { this.unwatch?.(); this.unwatch = null; return; }
-    this.unwatch ??= watchAway(() => this.end(lose(this.session, now())), settings.lockGrace * 1000);
+    if (!wanted) { this.unwatch?.(); this.unwatch = null; this.awayUntil = null; return; }
+    this.unwatch ??= watchAway(() => this.end(lose(this.session, now())), settings.lockGrace * 1000,
+      { away: (at) => { this.awayUntil = at; }, back: () => { this.awayUntil = null; } });
   }
   private beat(): void {
     const at = now();

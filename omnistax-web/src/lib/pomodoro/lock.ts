@@ -15,13 +15,19 @@ export const hasPointer = (): boolean => {
   return !coarse && (navigator.maxTouchPoints ?? 0) === 0;
 };
 
-/* Watch the window, calling back once the reader has been away for the grace.
-   Hands back the way to stop watching, which also drops a countdown in flight. */
-export const watchAway = (onLost: () => void, grace: number = LOCK_GRACE): Unwatch => {
+/* Watch the window, calling back once the reader has been away for the grace,
+   and as each countdown starts (with its deadline) and ends. Hands back the way
+   to stop watching, which also drops a countdown in flight. */
+export type AwayHooks = { readonly away?: (deadline: number) => void; readonly back?: () => void };
+export const watchAway = (onLost: () => void, grace: number = LOCK_GRACE, hooks: AwayHooks = {}): Unwatch => {
   if (typeof document === 'undefined') return () => {};
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const back = (): void => { if (timer !== null) { clearTimeout(timer); timer = null; } };
-  const away = (): void => { if (timer === null) timer = setTimeout(() => { timer = null; onLost(); }, grace); };
+  const back = (): void => { if (timer === null) return; clearTimeout(timer); timer = null; hooks.back?.(); };
+  const away = (): void => {
+    if (timer !== null) return;
+    timer = setTimeout(() => { timer = null; hooks.back?.(); onLost(); }, grace);
+    hooks.away?.(Date.now() + grace);
+  };
   const root = document.documentElement;
   /* A pointerleave that names another element inside the page is the pointer
      moving between children, not leaving the window. */

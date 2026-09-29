@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { CATEGORY_COLORS, type DayKey, type Pomodoro, axisStep, colorOf, dayBefore, dayKey, monthBefore, nameOf, rangeBars, ranMs, spanText } from '../../lib/pomodoro/model';
+  import { CATEGORY_COLORS, type DayKey, axisStep, colorOf, dayBefore, dayKey, monthBefore, nameOf, newestFirst, pageCount, pageOf, rangeBars, spanText } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
-  import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
+  import RowMenu from '../explorer/RowMenu.svelte';
+  import SessionEditor from '../pomodoro/SessionEditor.svelte';
+  import SessionRow from '../pomodoro/SessionRow.svelte';
 
   type Face = 'list' | 'category';
   /* The empty id is "uncategorized", so it filters like any category. */
@@ -12,39 +14,11 @@
 
   $effect(() => { pomodoro.init(); });
 
-  let menu = $state<string | null>(null);
-  let asking = $state<string | null>(null);
-  let editing = $state<Pomodoro | null>(null);
-  let editStart = $state('');
-  let editEnd = $state('');
-  let editSummary = $state('');
-  let editCats = $state<readonly string[]>([]);
-
-  /* datetime-local is local time, not UTC. */
-  const localValue = (ms: number): string => {
-    const d = new Date(ms);
-    const p = (n: number): string => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
-  const localMs = (v: string): number => { const n = new Date(v).getTime(); return Number.isFinite(n) ? n : 0; };
-
-  const openEdit = (p: Pomodoro): void => {
-    editing = p; menu = null; asking = null;
-    editStart = localValue(p.start); editEnd = localValue(p.end);
-    editSummary = p.summary; editCats = p.categories;
-  };
-  const saveEdit = (): void => {
-    const p = editing;
-    if (!p) return;
-    const start = localMs(editStart);
-    const end = Math.max(start, localMs(editEnd));
-    pomodoro.amend({ ...p, start, end, minutes: Math.max(1, Math.round((end - start) / 60_000)), summary: editSummary.trim(), categories: [...editCats] });
-    editing = null;
-  };
-  const editSpan = $derived(spanText(Math.max(0, localMs(editEnd) - localMs(editStart))));
-
-  const day = (ms: number): string => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const at = (ms: number): string => new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  let adding = $state(false);
+  let page = $state(0);
+  const rows = $derived(newestFirst(log));
+  const pages = $derived(pageCount(rows.length));
+  const shown = $derived(pageOf(rows, page));
 
   const today = dayKey(Date.now());
   let to = $state<string>(today);
@@ -75,6 +49,7 @@
   let editCat = $state<string | null>(null);
   let catName = $state('');
   let askCat = $state<string | null>(null);
+  let catMenu = $state<{ id: string; x: number; y: number } | null>(null);
 </script>
 
 <div class="stats">
@@ -84,35 +59,24 @@
   </div>
 
   {#if face === 'list'}
+    {#if adding}
+      <SessionEditor ondone={() => { adding = false; page = 0; }} />
+    {:else}
+      <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>+ Add session</button>
+    {/if}
     {#if !log.length}
       <p class="empty">No sessions yet.</p>
     {:else}
       <ul class="rows">
-        {#each log as p (p.id)}
-          <li class:open={menu === p.id} oncontextmenu={(e) => { e.preventDefault(); menu = menu === p.id ? null : p.id ?? null; }}>
-            <span class="when">{day(p.start)}</span>
-            <span class="span">{at(p.start)}–{at(p.end)}</span>
-            <span class="ran">{spanText(ranMs(p))}</span>
-            <span class="what">{p.summary || '—'}</span>
-            <span class="dots-row" aria-hidden={!p.categories.length}>
-              {#each p.categories as id (id)}<span class="dot" style="--hue:{hue(id)}" title={label(id)}></span>{/each}
-            </span>
-            <button type="button" class="btn ghost icon sm more" aria-label="Actions for this session" onclick={() => (menu = menu === p.id ? null : p.id ?? null)}>⋯</button>
-            {#if menu === p.id}
-              <div class="menu">
-                {#if asking === p.id}
-                  <span class="ask">Delete?</span>
-                  <button type="button" class="btn sm danger" onclick={() => { pomodoro.remove(p.id ?? ''); menu = null; asking = null; }}>Yes</button>
-                  <button type="button" class="btn ghost sm" onclick={() => { asking = null; menu = null; }}>No</button>
-                {:else}
-                  <button type="button" class="btn ghost sm" onclick={() => openEdit(p)}>Edit</button>
-                  <button type="button" class="btn ghost sm danger" onclick={() => (asking = p.id ?? null)}>Delete</button>
-                {/if}
-              </div>
-            {/if}
-          </li>
-        {/each}
+        {#each shown as p (p.id)}<SessionRow {p} />{/each}
       </ul>
+      {#if pages > 1}
+        <nav class="pager" aria-label="Pages">
+          <button type="button" class="btn ghost sm" disabled={page <= 0} onclick={() => (page = Math.max(0, page - 1))}>← Newer</button>
+          <span>Page {Math.min(page, pages - 1) + 1} of {pages}</span>
+          <button type="button" class="btn ghost sm" disabled={page >= pages - 1} onclick={() => (page = Math.min(pages - 1, page + 1))}>Older →</button>
+        </nav>
+      {/if}
     {/if}
   {:else}
     <div class="range">
@@ -164,13 +128,13 @@
             <span class="cat-ms">{spanText(t.ms)}</span>
             {#if t.id !== NONE}
               <div class="cat-acts">
-                <button type="button" class="btn ghost sm" onclick={() => { editCat = editCat === t.id ? null : t.id; catName = label(t.id); askCat = null; }}>Edit</button>
                 {#if askCat === t.id}
                   <span class="ask">Delete?</span>
                   <button type="button" class="btn sm danger" onclick={() => { pomodoro.removeCategory(t.id); askCat = null; editCat = null; }}>Yes</button>
                   <button type="button" class="btn ghost sm" onclick={() => (askCat = null)}>No</button>
                 {:else}
-                  <button type="button" class="btn ghost sm danger" onclick={() => (askCat = t.id)}>Delete</button>
+                  <button type="button" class="btn ghost icon sm" aria-label="Actions for {label(t.id)}"
+                    onclick={(e) => { e.stopPropagation(); catMenu = catMenu?.id === t.id ? null : { id: t.id, x: e.clientX, y: e.clientY }; }}>⋯</button>
                 {/if}
               </div>
             {/if}
@@ -189,39 +153,21 @@
   {/if}
 </div>
 
-{#if editing}
-  <div class="scrim" role="presentation" onclick={() => (editing = null)}></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Edit session">
-    <form onsubmit={(e) => { e.preventDefault(); saveEdit(); }}>
-      <label>Start<input class="input" type="datetime-local" bind:value={editStart} /></label>
-      <label>End<input class="input" type="datetime-local" bind:value={editEnd} /></label>
-      <p class="ran-line">Duration: {editSpan}</p>
-      <label>Summary<input class="input" type="text" bind:value={editSummary} autocomplete="off" /></label>
-      <CategoryPicker picked={editCats} onpick={(ids) => (editCats = ids)} />
-      <div class="acts">
-        <button type="submit" class="btn primary">Save</button>
-        <button type="button" class="btn ghost" onclick={() => (editing = null)}>Cancel</button>
-      </div>
-    </form>
-  </div>
+{#if catMenu}
+  <RowMenu x={catMenu.x} y={catMenu.y} onclose={() => (catMenu = null)} items={[
+    { label: 'Edit', run: () => { const id = catMenu?.id ?? ''; editCat = id; catName = label(id); askCat = null; } },
+    { label: 'Delete Category', run: () => { askCat = catMenu?.id ?? null; editCat = null; } },
+  ]} />
 {/if}
 
 <style>
   .stats{display:flex;flex-direction:column;gap:10px;font-family:var(--sans);padding:14px 16px;min-width:0;overflow:auto;height:100%}
   .tabs{align-self:flex-start;min-width:200px}
   .empty{margin:0;font-size:0.84rem;color:var(--muted)}
+  .add{align-self:flex-start}
+  .pager{display:flex;align-items:center;justify-content:center;gap:10px;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
   .rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-  .rows li{position:relative;display:flex;align-items:baseline;gap:10px;font-size:0.84rem;padding:5px 30px 5px 6px;border-bottom:1px solid var(--rule)}
-  .rows li:hover{background:var(--soft)}
-  .when{font-weight:600;min-width:5.2em}
-  .span,.ran{color:var(--muted);font-size:0.78rem;font-variant-numeric:tabular-nums}
-  .ran{min-width:3.6em}
-  .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .dots-row{display:flex;gap:3px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--hue);flex:none;display:inline-block}
-  .more{position:absolute;right:4px;top:3px;opacity:0}
-  .rows li:hover .more,.more:focus-visible{opacity:1}
-  .rows li.open{z-index:30}
   .range{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
   .range label{display:flex;flex-direction:column;gap:3px;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
   .date{height:28px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400}
@@ -236,7 +182,6 @@
   .seg-part{background:var(--hue);flex:none}
   .labels{grid-column:2;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:max(2px,min(8px,calc(120px / var(--n))))}
   .labels span{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip}
-  .menu{position:absolute;right:4px;top:28px;z-index:30;display:flex;gap:2px;align-items:center;padding:4px;border:1px solid var(--rule);border-radius:9px;background:var(--panel);box-shadow:0 6px 18px rgba(0,0,0,.16)}
   .ask{font-size:0.78rem;color:var(--muted);padding:0 4px}
   .total{margin:0;font-size:0.9rem;color:var(--ink)}
   .eyebrow{margin:6px 0 0}
@@ -249,12 +194,5 @@
   .grid{display:grid;grid-template-columns:repeat(5,22px);gap:4px;width:100%}
   .swatch{width:22px;height:22px;border-radius:5px;border:2px solid transparent;background:var(--hue);cursor:pointer;padding:0}
   .swatch.on{border-color:var(--ink)}
-  .scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.28)}
-  .modal{position:fixed;z-index:61;top:50%;left:50%;transform:translate(-50%,-50%);width:min(340px,92vw);padding:16px;border:1px solid var(--rule);border-radius:12px;background:var(--panel);box-shadow:0 10px 30px rgba(0,0,0,.28);font-family:var(--sans)}
-  .modal form{display:flex;flex-direction:column;gap:10px}
-  .modal label{display:flex;flex-direction:column;gap:4px;font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
-  .modal .input{text-transform:none;letter-spacing:0;font-weight:400}
-  .ran-line{margin:0;font-size:0.78rem;color:var(--muted)}
-  .acts{display:flex;gap:6px;margin-top:2px}
   .swatch:focus-visible{outline:2px solid var(--accent)}
 </style>

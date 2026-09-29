@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  type DayKey, type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, axisStep, clampLength, clampSeed, clockText, colorOf, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, monthBefore, nameOf, nextColor, parseClock, parseLog, pause, ranMs, rangeBars, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, unfiled, unitFor,
+  type DayKey, type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, blankDraft, draftOf, entryOf, newestFirst, pageCount, pageOf, axisStep, clampLength, clampSeed, clockText, colorOf, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, monthBefore, nameOf, nextColor, parseClock, parseLog, pause, ranMs, rangeBars, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, unfiled, unitFor,
 } from '../src/lib/pomodoro/model';
 
 /* A clock the test winds by hand: every function takes the instant it reckons
@@ -238,4 +238,42 @@ test('a stretch of time is said the short way, and a long clock grows an hour', 
   assert.equal(spanText(125 * MIN), '2h 05m');
   assert.equal(clockText(millis(45 * MIN)), '45:00');
   assert.equal(clockText(millis(65 * MIN)), '1:05:00');
+});
+
+test('an entry by hand is a day and an interval, and an end before the start runs past midnight', () => {
+  const day = '2026-03-10' as DayKey;
+  const p = entryOf({ day, from: '09:15', to: '10:05', summary: ' read ', categories: ['a'] }, 'x');
+  assert.ok(p);
+  assert.equal(dayKey(p.start), day);
+  assert.equal(ranMs(p), 50 * MIN);
+  assert.equal(p.summary, 'read');
+  assert.equal(p.id, 'x');
+  assert.equal(p.completed, true);
+  const late = entryOf({ day, from: '23:30', to: '00:20', summary: '', categories: [] }, 'y');
+  assert.equal(late && ranMs(late), 50 * MIN);
+  assert.equal(late && dayKey(late.end), '2026-03-11');
+  assert.equal(entryOf({ day, from: '25:00', to: '10:00', summary: '', categories: [] }, 'z'), null);
+  assert.equal(entryOf({ day: '' as DayKey, from: '09:00', to: '10:00', summary: '', categories: [] }, 'z'), null);
+});
+
+test('editing by hand keeps the id and mode, and a draft reads back the entry it came from', () => {
+  const base = entry('e', new Date(2026, 2, 10, 14, 0).getTime(), 30 * MIN, ['c']);
+  const d = draftOf(base);
+  assert.deepEqual([d.day, d.from, d.to, d.categories], ['2026-03-10', '14:00', '14:30', ['c']]);
+  const p = entryOf({ ...d, to: '15:00' }, 'e', base);
+  assert.equal(p?.mode, 'pomodoro');
+  assert.equal(p && ranMs(p), 60 * MIN);
+  const blank = blankDraft(new Date(2026, 2, 10, 14, 0).getTime());
+  assert.deepEqual([blank.day, blank.from, blank.to], ['2026-03-10', '13:35', '14:00']);
+});
+
+test('the list is newest first, cut into pages that clamp at both ends', () => {
+  const log = [entry('a', 1, MIN, []), entry('c', 3, MIN, []), entry('b', 2, MIN, [])];
+  assert.deepEqual(newestFirst(log).map((p) => p.id), ['c', 'b', 'a']);
+  const rows = Array.from({ length: 60 }, (_, i) => i);
+  assert.equal(pageCount(60), 3);
+  assert.equal(pageCount(0), 1);
+  assert.deepEqual(pageOf(rows, 2), rows.slice(50));
+  assert.deepEqual(pageOf(rows, 9), rows.slice(50));
+  assert.deepEqual(pageOf(rows, -1), rows.slice(0, 25));
 });

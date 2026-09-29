@@ -34,8 +34,12 @@
       if (!w || !h || document.visibilityState === 'hidden') return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       if (el.width !== Math.round(w * dpr) || el.height !== Math.round(h * dpr)) { el.width = Math.round(w * dpr); el.height = Math.round(h * dpr); }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      /* Cleared in device pixels: at a fractional ratio the backing store is a
+         pixel wider than w * dpr, and that last row and column would keep every
+         stroke that ever crossed them. */
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, el.width, el.height);
+      ctx.setTransform(el.width / w, 0, 0, el.height / h, 0, 0);
       const t = (ms - t0) / 1000;
       const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2;
       /* The stroke is the canvas's own colour, which the stylesheet swaps when a session runs. */

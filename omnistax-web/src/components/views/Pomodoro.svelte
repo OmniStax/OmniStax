@@ -1,11 +1,13 @@
 <script lang="ts">
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
-  import { parseClock, ranMs, spanText } from '../../lib/pomodoro/model';
+  import { newestFirst, parseClock, ranMs, spanText } from '../../lib/pomodoro/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { itemKey, viewItem } from '../../lib/types/ids';
   import { openItem } from '../../lib/sections/nav.svelte';
   import Vectors from '../pomodoro/Vectors.svelte';
   import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
+  import SessionEditor from '../pomodoro/SessionEditor.svelte';
+  import SessionRow from '../pomodoro/SessionRow.svelte';
   const s = $derived(pomodoro.session);
   const stopwatch = $derived(s.mode === 'stopwatch');
   let summary = $state('');
@@ -13,6 +15,7 @@
   let root = $state<HTMLDivElement | null>(null);
   let box = $state<HTMLInputElement | null>(null);
   let draft = $state<string | null>(null);
+  let adding = $state(false);
 
   $effect(() => { pomodoro.init(); });
   $effect(() => {
@@ -38,7 +41,7 @@
     : '');
 
   const midnight = (): number => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const today = $derived(pomodoro.log.filter((p) => p.completed && p.start >= midnight()));
+  const today = $derived(newestFirst(pomodoro.log).filter((p) => p.completed && p.start >= midnight()));
   const todayMs = $derived(today.reduce((n, p) => n + ranMs(p), 0));
 </script>
 
@@ -109,8 +112,16 @@
   <div class="today">
     <div><span class="eyebrow">Today</span><strong>{todayMs ? spanText(todayMs) : '0m'}</strong></div>
     <div><span class="eyebrow">Sessions</span><strong>{today.length}</strong></div>
-    <button type="button" class="btn ghost sm" onclick={openStats}>Stats →</button>
+    <button type="button" class="btn ghost sm" onclick={openStats}>More Stats →</button>
   </div>
+  <ul class="sessions">
+    {#each today as p (p.id)}<SessionRow {p} compact />{/each}
+  </ul>
+  {#if adding}
+    <SessionEditor ondone={() => (adding = false)} />
+  {:else}
+    <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>+ Add session</button>
+  {/if}
 </div>
 
 <style>
@@ -140,4 +151,6 @@
   .today div{display:flex;flex-direction:column;gap:2px}
   .today strong{font-size:1rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
   .today .btn{margin-left:auto}
+  .sessions{list-style:none;margin:-8px 0 0;padding:0;display:flex;flex-direction:column}
+  .add{align-self:flex-start;margin-top:-8px}
 </style>

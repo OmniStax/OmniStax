@@ -299,6 +299,52 @@ export const rangeBars = (log: readonly Pomodoro[], from: DayKey, to: DayKey): {
     }),
   };
 };
+/* A sitting written down by hand, as a day and the wall-clock interval it ran
+   through. An end at or before the start runs past midnight into the next day.
+   Editing keeps the entry's id and mode. */
+export type WallClock = string & { readonly __brand: 'WallClock' };
+const WALL = /^(\d{1,2}):(\d{2})$/;
+export const wallClock = (ms: number): WallClock => {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` as WallClock;
+};
+const onDay = (day: DayKey, t: string): number | null => {
+  const m = WALL.exec(t.trim());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  const d = dayDate(day);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), Number(m[1]), Number(m[2])).getTime();
+};
+export type EntryDraft = { readonly day: DayKey; readonly from: string; readonly to: string; readonly summary: string; readonly categories: readonly string[] };
+export const draftOf = (p: Pomodoro): EntryDraft =>
+  ({ day: dayKey(p.start), from: wallClock(p.start), to: wallClock(p.end), summary: p.summary, categories: p.categories });
+export const blankDraft = (now: number): EntryDraft =>
+  ({ day: dayKey(now), from: wallClock(now - 25 * 60_000), to: wallClock(now), summary: '', categories: [] });
+export const entryOf = (d: EntryDraft, id: string, base?: Pomodoro): Pomodoro | null => {
+  const start = onDay(d.day, d.from);
+  const until = onDay(d.day, d.to);
+  if (start === null || until === null) return null;
+  const end = until > start ? until : onDay(dayBefore(d.day, -1), d.to) ?? until;
+  return {
+    id,
+    start,
+    end,
+    minutes: Math.max(1, Math.round((end - start) / 60_000)),
+    summary: d.summary.trim(),
+    completed: true,
+    mode: base?.mode ?? 'stopwatch',
+    categories: [...d.categories],
+  };
+};
+
+/* The list reads newest first, a page at a time. */
+export const PAGE_SIZE = 25;
+export const newestFirst = (log: readonly Pomodoro[]): readonly Pomodoro[] => [...log].sort((a, b) => b.start - a.start);
+export const pageCount = (n: number, size = PAGE_SIZE): number => Math.max(1, Math.ceil(n / size));
+export const pageOf = <T>(rows: readonly T[], page: number, size = PAGE_SIZE): readonly T[] => {
+  const p = Math.min(Math.max(0, page), pageCount(rows.length, size) - 1);
+  return rows.slice(p * size, (p + 1) * size);
+};
+
 /* A round step for a time axis whose tallest bar is so long: about four lines. */
 export const axisStep = (peak: number): number => {
   const steps = [5, 10, 15, 30, 60, 120, 180, 300, 600, 1200, 1800, 3000, 6000, 12000, 30000].map((m) => m * 60_000);
