@@ -37,7 +37,13 @@ export type Take =
 
 const MARKDOWN = /\.(?:md|markdown|mdown|txt)$/i;
 const IMAGE = /\.(?:png|jpe?g|gif|webp|avif|bmp|svg)$/i;
+const IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif', 'image/bmp', 'image/svg+xml']);
 const PDF = /\.pdf$/i;
+
+/* What the import takes, as the tooltip and the chooser say it; kept beside
+   `takeOf` so that the words and the rule cannot drift apart. */
+export const ACCEPTED = 'PDF, images (PNG, JPG, GIF, WebP, AVIF, BMP, SVG), Markdown or text as notes';
+export const ACCEPT_ATTR = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.avif,.bmp,.svg,.md,.markdown,.mdown,.txt';
 
 /* The type the browser gives is trusted first and the name after it: a drop
    from a file manager often carries no type at all, and a PDF served as
@@ -45,7 +51,7 @@ const PDF = /\.pdf$/i;
 export const takeOf = (name: string, mime: string): Take => {
   const m = mime.toLowerCase();
   if (m === 'application/pdf' || PDF.test(name)) return { kind: 'file', type: 'pdf' };
-  if (m.startsWith('image/') || IMAGE.test(name)) return { kind: 'file', type: 'image' };
+  if (IMAGE_MIME.has(m) || IMAGE.test(name)) return { kind: 'file', type: 'image' };
   if (m === 'text/markdown' || m === 'text/plain' || MARKDOWN.test(name)) return { kind: 'note' };
   return { kind: 'refused' };
 };
@@ -57,6 +63,39 @@ export const baseName = (name: string): string => {
   const cut = name.replace(/^.*[\\/]/, '');
   const dot = cut.lastIndexOf('.');
   return dot > 0 ? cut.slice(0, dot) : cut;
+};
+
+/* ── a folder brought in whole ───────────────────────────────────────────── */
+
+/* A file's place inside a folder the reader picked or dropped, with `/` between
+   folders and the picked folder itself first: "Lectures/week 1/notes.md". */
+export type RelPath = string;
+
+/* The folder a path sits in; '' for one at the top. */
+export const dirOf = (path: RelPath): RelPath => {
+  const cut = path.lastIndexOf('/');
+  return cut < 0 ? '' : path.slice(0, cut);
+};
+
+/* The names of refused files, for the one line the toast ends on: a few by
+   name and the rest counted, so a folder of strays does not fill the window. */
+const NAMED = 5;
+export const refusedLine = (names: readonly string[]): string =>
+  names.length <= NAMED ? names.join(', ') : `${names.slice(0, NAMED).join(', ')} and ${names.length - NAMED} more`;
+
+/* A dotfile or anything inside a dot-folder (.DS_Store, .git): left out of a
+   folder import without a word, since the reader never put it there. */
+export const isHidden = (path: RelPath): boolean => path.split('/').some((p) => p.startsWith('.'));
+
+/* Every folder the paths need, each after its parent, so that they can be made
+   in order. Only folders that hold an accepted file are wanted, and the caller
+   filters the paths before asking. */
+export const foldersOf = (paths: readonly RelPath[]): readonly RelPath[] => {
+  const all = new Set(paths.flatMap((p) => {
+    const parts = dirOf(p).split('/').filter(Boolean);
+    return parts.map((_, i) => parts.slice(0, i + 1).join('/'));
+  }));
+  return [...all].sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
 };
 
 /* "2.4 MB", the size as the storage block and the row menu print it. */

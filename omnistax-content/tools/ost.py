@@ -11,7 +11,7 @@ rule about content; every rule it knows is the shape of a row.
 
     python3 omnistax-content/tools/ost.py <command> ...
 
-Commands: books, show, rows, find, add, set, del, merge, log, check, ids.
+Commands: books, show, rows, find, meanings, add, set, del, merge, log, check, ids.
 `-h` on any of them. The reference is tools/README.md.
 """
 from __future__ import annotations
@@ -101,7 +101,7 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "module": _f(), "title": _f(True), "slug": _f()}, ("id", "title", "module", "slug")),
     "variables": Table("chapter", ("section", "sym"), {
         "sym": _f(True), "type": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
-        "anchor": _f()}, ("section", "sym", "type", "unit", "meaning")),
+        "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "redefines")),
     "equations": Table("chapter", ("id",), {
         "id": _f(True), "concept": _f(), "section": _f(True), "latex": _f(True), "ktex": _f(),
         "condition": _f(), "anchor": _f(), "important": _f(kind="bool")},
@@ -572,6 +572,22 @@ def cmd_find(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_meanings(args: argparse.Namespace) -> int:
+    """Every row of one symbol across the book's chapters: what it has meant so far."""
+    book = book_of(args.book)
+    lines = []
+    for d in chapter_dirs(book):
+        path = os.path.join(book.dir, d, "chapter.json")
+        if not os.path.exists(path):
+            continue
+        for v in rows_of(load(path), "variables"):
+            if v.get("sym") == args.sym:
+                flag = " · redefines" if v.get("redefines") else ""
+                lines.append(f"{v.get('section')} · {v.get('type') or '-'} · {v.get('meaning')}{flag}")
+    print("\n".join(lines) if lines else f"no variables row of {book.id} has sym {args.sym!r}")
+    return 0
+
+
 def cmd_show(args: argparse.Namespace) -> int:
     book = book_of(args.book)
     named = args.section or args.chapter      # "show book 1.4" means the section, not its chapter
@@ -837,6 +853,10 @@ def parser() -> argparse.ArgumentParser:
     find.add_argument("book")
     find.add_argument("text")
 
+    meanings = subs.add_parser("meanings", help="every variables row of one symbol, across chapters")
+    meanings.add_argument("book")
+    meanings.add_argument("sym", help="the symbol's key, as in book.json symbols")
+
     for name, help_text in (("add", "write one new row"),
                             ("set", "merge fields into one row"),
                             ("del", "remove one row")):
@@ -868,7 +888,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
-    "books": cmd_books, "show": cmd_show, "rows": cmd_rows, "find": cmd_find,
+    "books": cmd_books, "show": cmd_show, "rows": cmd_rows, "find": cmd_find, "meanings": cmd_meanings,
     "add": cmd_write, "set": cmd_write, "del": cmd_write,
     "merge": cmd_merge, "log": cmd_log, "check": cmd_check, "ids": cmd_ids,
 }

@@ -12,7 +12,7 @@
   import { WARN_BACKUP_BYTES } from '../../lib/backup/schema';
   import { sizeLabel } from '../../lib/files/model';
   import { files } from '../../lib/files/store.svelte';
-  import { readHealth, SAFARI_WORDS, type Health } from '../../lib/storage/health';
+  import { quotaWords, readHealth, requestPersist, SAFARI_WORDS, type Health } from '../../lib/storage/health';
 
   /* Whether the dialog's filter has left this block standing. The block draws
      its own section so that mounting it in Settings is one line. */
@@ -30,8 +30,16 @@
   const used = $derived.by(() => {
     const e = health?.estimate;
     if (!e || e.usage === null) return 'Your browser doesn’t report how much space is used.';
-    return e.quota === null ? `${sizeLabel(e.usage)} used.` : `${sizeLabel(e.usage)} of ${sizeLabel(e.quota)} used.`;
+    return [`${sizeLabel(e.usage)} used.`, quotaWords(e, sizeLabel)].filter(Boolean).join(' ');
   });
+  const askable = $derived(health !== null && (health.persistence === 'denied' || health.persistence === 'unasked'));
+  let asking = $state(false);
+  const ask = async (): Promise<void> => {
+    asking = true;
+    await requestPersist();
+    health = await readHealth();
+    asking = false;
+  };
   const mine = $derived(files.list.reduce((n, f) => n + f.size, 0));
 
   /* What the export would weigh. It is worked out by building it, so it is
@@ -67,7 +75,7 @@
 <div class="row">
   <span class="name">Data retention</span>
   <span class="hint">{health ? health.words : 'Checking…'}{#if health?.safari} {SAFARI_WORDS}{/if}</span>
-  <span></span>
+  {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>Keep my data</button>{:else}<span></span>{/if}
 </div>
 <div class="row">
   <span class="name">Backup</span>

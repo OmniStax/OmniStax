@@ -45,6 +45,20 @@ export const askToPersist = async (): Promise<Persistence> => {
   } catch { return remember('unsupported'); }
 };
 
+/* The reader's own request, from the Storage block: asked even after a refusal,
+   since a browser that said no may say yes once the site is installed or bookmarked. */
+export const requestPersist = async (): Promise<Persistence> => {
+  const storage = typeof navigator === 'undefined' ? undefined : navigator.storage;
+  if (!storage || typeof storage.persist !== 'function') return remember('unsupported');
+  try { return remember((await storage.persist()) ? 'granted' : 'denied'); }
+  catch { return remember('unsupported'); }
+};
+
+/* The one line on the allowance. The quota is the browser's per-origin share of
+   the disk, not a limit this app sets or can raise (docs/storage.md). */
+export const quotaWords = (e: Estimate, size: (bytes: number) => string): string | null =>
+  e.quota === null ? null : `Your browser allows this site about ${size(e.quota)}.`;
+
 /* How much of the browser's allowance this origin is using. Both numbers may
    be missing, and a browser that rounds them is telling the truth as far as it
    will: the block says "Using X of Y" and nothing more precise. */

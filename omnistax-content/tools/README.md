@@ -24,6 +24,7 @@ takes `-h`. An error is one line on stderr and a non-zero exit.
 | `show <book> [chapter] [section]` | a summary of the book, a chapter or a section |
 | `rows <book> <table> [filters]` | the rows of one table |
 | `find <book> <text>` | where a word lives: ids, titles, symbols, concepts, glossary terms, captions, prompts |
+| `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, type, meaning; run it before adding a row |
 | `check <book> [--section N.M]` | the app's checker, filtered to the section if one is named |
 | `ids <book> <section>` | every id of the section's `text.html`, which an anchor, span, cite or place may name |
 
@@ -37,6 +38,7 @@ ost rows chemistry-2e coverage --section 1.4 --where verb=introduces
 ost rows chemistry-2e glossary --chapter 1 --where term~densit --fields term,definition
 ost rows college-physics-2e equations --chapter 16 --json
 ost find college-physics-2e hooke
+ost meanings college-physics-2e T_c
 ost check chemistry-2e --section 1.4
 ost ids chemistry-2e 1.4
 ```

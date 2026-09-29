@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  addFile, baseName, byId, FILE_KINDS, parseFiles, removeFiles, renameFile, setPages, sizeLabel, takeOf,
+  addFile, baseName, byId, dirOf, FILE_KINDS, foldersOf, isHidden, parseFiles, refusedLine, removeFiles, renameFile, setPages, sizeLabel, takeOf,
   type FileDoc,
 } from '../src/lib/files/model';
 import {
@@ -9,7 +9,7 @@ import {
   newMarkId, parseMarks, patchMark, removeMarks, removeMarksOfFiles, type FileMark,
 } from '../src/lib/files/marks';
 import { joinItems } from '../src/lib/files/text';
-import { healthOf, isWebkit, PERSIST_WORDS, usedFraction } from '../src/lib/storage/health';
+import { healthOf, isWebkit, PERSIST_WORDS, quotaWords, usedFraction } from '../src/lib/storage/health';
 import { fileId } from '../src/lib/types/ids';
 
 const f = fileId;
@@ -36,6 +36,28 @@ test('the name decides when the browser says nothing, and the type when it does'
 test('anything else is refused rather than thrown', () => {
   assert.deepEqual(takeOf('archive.zip', 'application/zip'), { kind: 'refused' });
   assert.deepEqual(takeOf('sheet.xlsx', 'application/vnd.ms-excel'), { kind: 'refused' });
+  assert.deepEqual(takeOf('photo.heic', 'image/heic'), { kind: 'refused' });
+});
+
+test('a folder import makes each folder after its parent, and only those that hold a file', () => {
+  const paths = ['Course/week 2/b.pdf', 'Course/a.md', 'Course/week 1/deep/c.png', 'top.pdf'];
+  assert.deepEqual(foldersOf(paths), ['Course', 'Course/week 1', 'Course/week 2', 'Course/week 1/deep']);
+  assert.equal(dirOf('Course/week 2/b.pdf'), 'Course/week 2');
+  assert.equal(dirOf('top.pdf'), '');
+  assert.deepEqual(foldersOf([]), []);
+});
+
+test('dotfiles are left out, and a long refusal is counted after a few names', () => {
+  assert.equal(isHidden('Course/.DS_Store'), true);
+  assert.equal(isHidden('Course/.cache/x.pdf'), true);
+  assert.equal(isHidden('Course/a.pdf'), false);
+  assert.equal(refusedLine(['a.zip', 'b.doc']), 'a.zip, b.doc');
+  assert.equal(refusedLine(['1', '2', '3', '4', '5', '6', '7']), '1, 2, 3, 4, 5 and 2 more');
+});
+
+test('the quota line names the browser allowance, and nothing when it is unknown', () => {
+  assert.equal(quotaWords({ usage: 1, quota: 10 }, (n) => `${n} B`), 'Your browser allows this site about 10 B.');
+  assert.equal(quotaWords({ usage: 1, quota: null }, String), null);
 });
 
 test('a row is named by the file without its extension or its folders', () => {

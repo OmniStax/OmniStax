@@ -39,3 +39,30 @@ export const typeOf = (el: Element): KvType | null => {
    the one from `section` wins when given, else the first. */
 export const lookupVariable = (vars: readonly VariableDTO[], sym: SymKey, section?: string): VariableDTO | undefined =>
   (section !== undefined ? vars.find((v) => v.sym === sym && v.section === section) : undefined) ?? vars.find((v) => v.sym === sym);
+
+/* Whether two rows of one symbol name different quantities. Every section words
+   its row afresh, so the test is not equality: rows of different types differ,
+   and rows of one type differ when their meanings share almost no content word
+   (R as resultant and as range; W' as the Otto cycle's output and as the heat
+   pump's input). A heuristic, tuned on both books to flag real redefinitions. */
+const STOP = new Set('the and for from with its that which this into than then over under when where what whose their there these those been being'.split(' '));
+const contentWords = (meaning: string): ReadonlySet<string> =>
+  new Set((meaning.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)).map((w) => w.replace(/s$/, '')));
+const OVERLAP = 0.15;
+export const differentMeaning = (a: VariableDTO, b: VariableDTO): boolean => {
+  if ((a.type ?? '') !== (b.type ?? '')) return true;
+  const [x, y] = [contentWords(a.meaning), contentWords(b.meaning)];
+  const shared = [...x].filter((w) => y.has(w)).length;
+  return shared / Math.max(1, Math.min(x.size, y.size)) < OVERLAP;
+};
+
+/* The rows elsewhere in the chapter that give `sym` another meaning than the row of `section`. */
+export const otherMeanings = (vars: readonly VariableDTO[], sym: SymKey, section: string): readonly VariableDTO[] => {
+  const own = vars.find((v) => v.sym === sym && v.section === section);
+  return own ? vars.filter((v) => v.sym === sym && v.section !== section && differentMeaning(own, v)) : [];
+};
+
+/* Pairs of rows in one chapter that give one symbol two meanings, unless the later
+   row says `redefines`: the book itself reuses the symbol and the row was written to stand alone. */
+export const unmarkedRedefinitions = (vars: readonly VariableDTO[]): readonly (readonly [VariableDTO, VariableDTO])[] =>
+  vars.flatMap((b, j) => vars.slice(0, j).filter((a) => a.sym === b.sym && !b.redefines && differentMeaning(a, b)).map((a) => [a, b] as const));

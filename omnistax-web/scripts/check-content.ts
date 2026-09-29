@@ -9,6 +9,7 @@ import { loadBooks } from '../src/lib/content/load';
 import { type ContentRoot, contentRoot } from '../src/lib/types/ids';
 import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
+import { unmarkedRedefinitions } from '../src/lib/hover/data';
 
 /* The command's own layer over the build's configuration: the content root and
    which books of it to read, either of which may be named on the line. */
@@ -42,6 +43,14 @@ const report = (findings: readonly Finding[], content: Content): string => {
   return [...groups, tally].join('\n\n');
 };
 
+/* A symbol given two meanings in one chapter, where the later row does not say
+   `redefines`: a warning only, since the heuristic behind it can be wrong. */
+export const redefinitions = (content: Content): readonly Finding[] =>
+  content.chapters.flatMap((ch) => unmarkedRedefinitions(ch.dto.variables).map(([a, b]): Finding => ({
+    level: 'warning', where: `${ch.dto.dir}/chapter.json variables[${b.section}/${b.sym}]`,
+    what: `means something else in ${a.section} ("${a.meaning}"); reuse that meaning, or reword this one to stand alone and set "redefines": true`,
+  })));
+
 /* ---------- the command ---------- */
 
 /* One book's heading and report, with a blank line between books so that a run over several reads as several. */
@@ -50,7 +59,7 @@ const bookReport = (content: Content, findings: readonly Finding[]): string => `
 const main = async (): Promise<number> => {
   const args = parseArgs(process.argv.slice(2), parseConfig(process.env));
   const books = await loadBooks(args.root, args.books);
-  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: checkContent(content) }; }));
+  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: [...checkContent(content), ...redefinitions(content)] }; }));
   console.log(checked.map((c) => bookReport(c.content, c.findings)).join('\n\n'));
   return checked.every((c) => errorsOf(c.findings).length === 0) ? 0 : 1;
 };

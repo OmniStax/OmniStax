@@ -138,7 +138,7 @@ with sync_playwright() as playwright:
     # ── the Storage block says how things stand ──────────────────────────────
     page.locator("#gear").click()
     page.locator("#settings").wait_for(state="visible")
-    page.get_by_text("This browser's storage").wait_for()
+    page.get_by_text("Your browser allows this site about").wait_for()
     page.locator("#storage-export").wait_for()
 
     assert not errors, errors

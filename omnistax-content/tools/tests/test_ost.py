@@ -97,6 +97,12 @@ class TestReading(Fixture):
         self.assertIn("book.json concepts[1.4] · measure-volume-by-displacement", text)
         self.assertIn("1.4/section.json figures · sim-displacement", text)
 
+    def test_meanings_lists_every_row_of_a_symbol(self):
+        text, code = run("meanings", "chemistry-2e", "V")
+        self.assertEqual(code, 0)
+        self.assertEqual(text.strip(), "1.4 · volume · the volume of a sample, the amount of space it occupies")
+        self.assertIn("no variables row", run("meanings", "chemistry-2e", "nothing")[0])
+
     def test_show_book_chapter_and_section(self):
         book, _ = run("show", "chemistry-2e")
         self.assertIn("Chemistry 2e (chemistry-2e)", book)

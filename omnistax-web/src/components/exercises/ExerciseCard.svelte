@@ -12,13 +12,14 @@
   import { mathHtml } from '../actions/math';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
   import AiMark from '../ui/AiMark.svelte';
+  import { aiByline } from '../../lib/content/attribution';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
   import { detachScratch } from '../../lib/drawer/edits';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { openItem } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { bookId, drawingItem, itemKey } from '../../lib/types/ids';
+  import { bookId, drawingItem, itemKey, sectionRef } from '../../lib/types/ids';
 
   let {
     book, section, ex, hidden = false,
@@ -33,6 +34,7 @@
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
+  const aiBy = $derived(aiByline(registry.state(sectionRef(bookId(book), section))?.meta?.ai?.text));
   const nameOf = (id: string): string => practice.conceptOf(id, book)?.name ?? id;
   const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -132,12 +134,12 @@
   {#if a.type === 'choice'}
     <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} tools={inline ? undefined : scratchpad} />
     {#if completed && sol}
-      <div class="solution-block"><div class="solution-head">Solution{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div><div use:mathHtml={sol}></div></div>
+      <div class="solution-block"><div class="solution-head">Solution{#if a.generated_by === 'ai'}<AiMark byline={aiBy} />{:else} (book){/if}</div><div use:mathHtml={sol}></div></div>
     {/if}
   {:else if sol}
     {#if solutionOpen || completed}
       <div class="solution-block">
-        <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'}{#if a.generated_by === 'ai'}<AiMark />{:else} (book){/if}</div>
+        <div class="solution-head">{a.type === 'open' ? 'Suggested approach' : 'Solution'}{#if a.generated_by === 'ai'}<AiMark byline={aiBy} />{:else} (book){/if}</div>
         <div use:mathHtml={sol}></div>
       </div>
       {#if !completed && !inline}
