@@ -15,7 +15,7 @@
   import type { Resolver } from '../../lib/notes/md/render';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { setImageWidth } from '../../lib/notes/md/width';
-  import { isBook, parseLink, type BookKind } from '../../lib/notes/md/links';
+  import { isBook, parseLink, withFigureParams, type BookKind } from '../../lib/notes/md/links';
   import { FigureMounts } from '../../lib/notes/md/figlive';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -27,8 +27,9 @@
   import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
   import { dragging } from '../../lib/layout/drag.svelte';
   import { drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, secKey, type NoteId } from '../../lib/types/ids';
-  import { drawingInfo, drawingNamed } from '../../lib/drawer/cards';
+  import { chatInfo, drawingInfo, drawingNamed } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
+  import { ChatMounts } from '../../lib/drawer/chatmounts';
 
   let { noteId, body }: { noteId: NoteId; body: string } = $props();
 
@@ -54,6 +55,7 @@
     highlight: (id) => anyHighlight(id),
     asset: () => null,
     file: (id) => fileStub(id),
+    chat: (id) => chatInfo(id),
   });
 
   /* The markdown renderer carries marked and KaTeX with it, which no page needs
@@ -74,8 +76,13 @@
   /* The figures this note holds live. They are the note's own: a rendering puts
      the same ones back, and they are let go when the note is closed or another
      note takes its place. */
-  const mounts = new FigureMounts(focusedBook);
-  $effect(() => { void noteId; return () => mounts.releaseAll(); });
+  /* A control moved by hand is written into the figure's link, one undo step per drag. */
+  const mounts = new FigureMounts(focusedBook, (fig, n, values, gesture) => {
+    const doc = noteDocs.get(noteId);
+    if (doc) noteDocs.setBodyRecorded(noteId, withFigureParams(doc.body, fig, n, values), 'set figure', gesture);
+  });
+  const chatMounts = new ChatMounts();
+  $effect(() => { void noteId; return () => { mounts.releaseAll(); chatMounts.releaseAll(); }; });
 
   const startDrag = (e: PointerEvent, bar: HTMLElement, img: HTMLImageElement): void => {
     e.preventDefault(); e.stopPropagation();
@@ -180,6 +187,7 @@
     /* Last, so that a figure's own markup is not walked by the passes above:
        the book's script draws it and the book's styles dress it. */
     mounts.fill(el);
+    chatMounts.fill(el);
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead')) d.title = deadTitle(d);
   };
 
@@ -350,7 +358,9 @@
      back to the section. */
   .note-view :global(.fig-embed.live){padding:0;border:0;border-radius:0;background:none;cursor:default}
   .note-view :global(.fig-embed.live .eyebrow){cursor:pointer}
-  .note-view :global(.fig-embed.live .fig-root){margin:0}
+  /* as wide as the book draws it: the full width of the note, its 40 px sides included */
+  .note-view :global(.fig-embed.live .fig-root){max-width:none;margin:0 -40px;padding:0}
+  @media (max-width:900px){ .note-view :global(.fig-embed.live .fig-root){margin:0} }
 
   /* while something is being dragged over the note, which will land at its end */
   .note-view.dropping{outline:2px dashed var(--accent);outline-offset:-6px;border-radius:8px}

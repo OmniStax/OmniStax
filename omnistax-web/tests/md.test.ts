@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bookKey, embedText, findLinks, isBook, linkInner, linkKey, parseLink } from '../src/lib/notes/md/links';
+import { bookKey, embedText, findLinks, isBook, linkInner, linkKey, parseLink, withFigureParams } from '../src/lib/notes/md/links';
 import { bookId } from '../src/lib/types/ids';
 import { render, setImageWidth, type Resolver } from '../src/lib/notes/md/render';
 
@@ -43,6 +43,25 @@ test('a figure of a section is a link and a card of its own', () => {
   assert.match(card, /Drag the block and let it go\./);
   assert.match(card, /<img class="fig-still" src="\/media\/ch16\/spring\.jpg"/);
   assert.match(render('![[fig:16.4:sim-none]]', r), /<span class="wiki dead" data-embed="fig:16\.4:sim-none">/);
+});
+
+test('a figure link stores the values of its controls', () => {
+  const t = parseLink('fig:16.1:sim-spring?k=2.5&shape=a%20disc&on=true|the spring');
+  assert.deepEqual(t, { kind: 'figure', section: '16.1', id: 'sim-spring', params: { k: 2.5, shape: 'a disc', on: true }, alias: 'the spring' });
+  assert.equal(linkInner(t), 'fig:16.1:sim-spring?k=2.5&shape=a%20disc&on=true');
+  assert.deepEqual(parseLink(`${linkInner(t)}|the spring`), t);
+  assert.equal(linkKey(t), 'fig:16.1:sim-spring');
+  assert.equal(linkInner({ kind: 'figure', section: '16.1', id: 's', params: { x: 0.1 + 0.2, n: '1|2]' } }), 'fig:16.1:s?x=0.3&n=1%7C2%5D');
+  assert.deepEqual(parseLink('fig:16.1:s?x=0.3&n=1%7C2%5D'), { kind: 'figure', section: '16.1', id: 's', params: { x: 0.3, n: '1|2]' } });
+  assert.match(render('![[fig:16.1:sim-spring?k=2]]', r), /data-embed="fig:16\.1:sim-spring\?k=2"/);
+});
+
+test('each embed of a figure keeps its own values', () => {
+  const body = 'a ![[fig:16.1:sim-spring?k=1]] b [[fig:16.1:sim-spring]] c ![[fig:16.1:sim-spring|two]] ![[fig:16.1:other]]';
+  assert.equal(withFigureParams(body, 'fig:16.1:sim-spring', 1, { k: 3, m: 'x' }),
+    'a ![[fig:16.1:sim-spring?k=1]] b [[fig:16.1:sim-spring]] c ![[fig:16.1:sim-spring?k=3&m=x|two]] ![[fig:16.1:other]]');
+  assert.equal(withFigureParams(body, 'fig:16.1:sim-spring', 0, { k: 2 }),
+    'a ![[fig:16.1:sim-spring?k=2]] b [[fig:16.1:sim-spring]] c ![[fig:16.1:sim-spring|two]] ![[fig:16.1:other]]');
 });
 
 test('a link names a note, a section or a highlight', () => {

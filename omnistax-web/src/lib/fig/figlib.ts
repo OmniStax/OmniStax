@@ -7,6 +7,7 @@ import { cat as catOf } from './cat';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
 import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
+import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
@@ -37,7 +38,7 @@ export type Pt = readonly [Logical, Logical];                 /* a projected poi
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
-type CtlOpts = { label: string; cls: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
+type CtlOpts = { label: string; cls: string; key?: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
@@ -297,6 +298,20 @@ export type Slider = {
   range: (r: SliderRange) => void; rangeAt: (a: SliderRange, b: SliderRange, k: number) => void;
   show: (on: boolean, o?: FadeOpts) => void; readonly shown: boolean;
 };
+/* A track under this many pixels is too short to set a value on (RULES §26): it takes a line of its own under its label and value. */
+export const MIN_TRACK_PX = 120;
+const CTL_GAP_PX = 10;
+const roomy = (lab: HTMLElement): void => {
+  if (typeof ResizeObserver === 'undefined') return;
+  const fit = (): void => {
+    const [name, , val] = Array.from(lab.children) as HTMLElement[];
+    if (!name || !val || !lab.clientWidth) return;
+    const room = lab.clientWidth - name.getBoundingClientRect().width - val.getBoundingClientRect().width - 2 * CTL_GAP_PX;
+    lab.classList.toggle('ctl-wrap', room < MIN_TRACK_PX);
+  };
+  const ro = new ResizeObserver(fit);
+  [lab, ...Array.from(lab.children)].forEach((e) => ro.observe(e));
+};
 const ariaOfLabel = (label: string): string => label.replace(/\\k|[{}\\]/g, '');
 function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const lab = el('label'); const name = el('span', 'ctl-label ctl-faces');
@@ -369,8 +384,12 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const disable = (held: boolean): void => { inp.disabled = held; lab.classList.toggle('ctl-held', held); };
   if (o.disabled) disable(true);
   parent.appendChild(lab);
-  sp.watch(parent); upd();
+  sp.watch(parent); upd(); roomy(lab);
   const drive = (x: number): void => { const was = inp.value; inp.value = String(x); if (inp.value !== was) driven(() => inp.dispatchEvent(new Event('input', { bubbles: true }))); };
+  enrol(parent.closest('figure'), o.key ?? o.cls, (id) => ({
+    id, input: inp, drive: (x) => drive(+x),
+    param: () => ({ id, label: ariaOfLabel(current.dataset.tex ?? o.label), kind: 'range', value: held ?? +inp.value, min: +inp.min, max: +inp.max, step: +inp.step || undefined, unit }),
+  }));
   const shown = (): boolean => lab.dataset.out === undefined && lab.style.display !== 'none';
   const show = (to: boolean, f?: FadeOpts): void => { if (to !== shown()) regroup(parent, to ? [lab] : [], to ? [] : [lab], f); };
   return {
@@ -1524,7 +1543,7 @@ export type Picker = {
   mixColor: (f: (v: string) => Color) => Color;
   curve: (ctx: Ctx, fOf: (v: string) => (t: number) => number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w?: number, n?: number) => void;
 };
-type ChoiceOpts = { label?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void; ms?: number };
+type ChoiceOpts = { label?: string; key?: string; options: readonly Choice[]; value?: string; aria?: string; onInput?: (v: string) => void; ms?: number };
 
 /* A change of state morphs over `ms`: `k` runs 0 to 1 (smooth) and the figure owning the control
    redraws every frame till it lands; `set` cuts. */
@@ -1557,6 +1576,12 @@ const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
 const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : 'Choice');
 function ctlLabel(lab: HTMLElement, o: ChoiceOpts): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label); lab.appendChild(name); }
 
+const enrolPicker = (host: HTMLElement, o: ChoiceOpts, input: EventTarget, value: () => string, drive: (v: string) => void): void =>
+  enrol(host.closest('figure'), o.key ?? 'choice', (id) => ({
+    id, input, drive: (x) => drive(String(x)),
+    param: () => ({ id, label: ariaOf(o), kind: 'choice', value: value(), options: o.options.map((c) => c.value) }),
+  }));
+
 function choice(host: HTMLElement, o: ChoiceOpts): Picker {
   const lab = el('label', 'ctl-seg'); ctlLabel(lab, o);
   const row = el('div', 'ctlseg'); row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', ariaOf(o));
@@ -1580,6 +1605,7 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
     e.preventDefault(); pick(values[(values.indexOf(v) + step + values.length) % values.length], true);
   });
   mark(); lab.appendChild(row); host.appendChild(lab);
+  enrolPicker(host, o, row, () => v, (x) => driven(() => pick(x, false)));
   return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
     get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; tw.cut(x); mark(); }, drive: (x: string) => driven(() => pick(x, false)),
   })) as Picker;
@@ -1595,6 +1621,7 @@ function select(host: HTMLElement, o: ChoiceOpts): Picker {
   sel.addEventListener('input', () => { if (sel.value !== v) { tw.turn(v); v = sel.value; } o.onInput?.(sel.value); });
   lab.appendChild(sel); host.appendChild(lab);
   const drive = (x: string): void => { if (sel.value === x) return; sel.value = x; driven(() => sel.dispatchEvent(new Event('input', { bubbles: true }))); };
+  enrolPicker(host, o, sel, () => sel.value, drive);
   return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
     get value() { return sel.value; }, set(x: string) { sel.value = x; v = sel.value; tw.cut(v); }, drive,
   })) as Picker;

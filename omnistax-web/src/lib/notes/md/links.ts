@@ -13,6 +13,7 @@
    to fetch, and stands in the words while it is on its way. */
 
 import { bookId, type BookId } from '../../types/ids';
+import type { ParamValue, ParamValues } from '../../fig/params';
 
 /* The things a link can name. They are strings, but never the same string
    twice, so each is given a name of its own. */
@@ -38,7 +39,7 @@ export type LinkTarget =
   | { readonly kind: 'term'; readonly book?: BookId; readonly section: SectionRef; readonly term: TermRef }
   | { readonly kind: 'symbol'; readonly book?: BookId; readonly section: SectionRef; readonly sym: SymbolRef }
   | { readonly kind: 'concept'; readonly book?: BookId; readonly section: SectionRef; readonly id: ConceptRef }
-  | { readonly kind: 'figure'; readonly book?: BookId; readonly section: SectionRef; readonly id: FigureRef }
+  | { readonly kind: 'figure'; readonly book?: BookId; readonly section: SectionRef; readonly id: FigureRef; readonly params?: ParamValues }
   /* The three things the reader owns beside their notes, and one exercise of
      the book on its own. A file may name a page within itself and a chat one
      message within itself, since that is the part the reader meant; a drawing
@@ -72,7 +73,18 @@ const BOOK = new RegExp(`^(eq|def|sym|concept):${IN_BOOK}(\\d+\\.\\d+):(.+)$`);
 /* A page of a chapter's own — an introduction or a summary — numbers itself by
    word, so a figure of one is `fig:7.intro:fig-wind-farm`. */
 export const FIGURE_PREFIX = 'fig';
-const FIGURE = new RegExp(`^fig:${IN_BOOK}(\\d+\\.\\w+):(.+)$`);
+/* A figure may carry the values its controls were left at, as a query:
+   `fig:7.2:sim-area?m=2&shape=disc`. */
+const FIGURE = new RegExp(`^fig:${IN_BOOK}(\\d+\\.\\w+):([^?]+)(?:\\?(.*))?$`);
+const paramValue = (s: string): ParamValue => (s === 'true' ? true : s === 'false' ? false : s.trim() !== '' && Number.isFinite(Number(s)) ? Number(s) : s);
+const decode = (s: string): string => { try { return decodeURIComponent(s); } catch { return s; } };
+export const parseParams = (q: string): ParamValues =>
+  Object.fromEntries(q.split('&').filter((kv) => kv.includes('=')).map((kv) => { const i = kv.indexOf('='); return [decode(kv.slice(0, i)), paramValue(decode(kv.slice(i + 1)))]; }));
+const enc = (s: string): string => encodeURIComponent(s).replace(/%2F/g, '/');
+export const paramsQuery = (ps: ParamValues | undefined): string => {
+  const kv = Object.entries(ps ?? {}).map(([k, v]) => `${enc(k)}=${enc(String(typeof v === 'number' ? +v.toPrecision(12) : v))}`);
+  return kv.length ? `?${kv.join('&')}` : '';
+};
 /* What the reader owns is named by its id after its own prefix, and the part
    of it they meant after that: a page of a file is written the way the reader
    says it, `p12`, and a message of a chat by its own id. An exercise is named
@@ -101,7 +113,10 @@ export const parseLink = (inner: string): Link => {
   const hl = HIGHLIGHT.exec(target);
   if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, alias);
   const fig = FIGURE.exec(target);
-  if (fig) return withAlias({ kind: 'figure', ...inBook(fig[1]), section: fig[2], id: fig[3].trim() }, alias);
+  if (fig) {
+    const params = fig[4] === undefined ? {} : parseParams(fig[4]);
+    return withAlias({ kind: 'figure', ...inBook(fig[1]), section: fig[2], id: fig[3].trim(), ...(Object.keys(params).length ? { params } : {}) }, alias);
+  }
   const file = FILE.exec(target);
   if (file) return withAlias(file[2] ? { kind: 'file', file: file[1].trim(), page: Number(file[2]) } : { kind: 'file', file: file[1].trim() }, alias);
   const drawing = DRAWING.exec(target);
@@ -123,7 +138,8 @@ const sectionPart = (t: { readonly book?: BookId; readonly section: SectionRef }
 /* The string form of a target, ignoring the alias: what a `data-link` carries,
    and what tells two links to the same place apart from two links elsewhere. */
 export const linkKey = (link: Link): string =>
-  link.kind === 'note' ? `note:${link.name}` : link.kind === 'section' ? `section:${sectionPart(link)}` : linkInner(link);
+  link.kind === 'note' ? `note:${link.name}` : link.kind === 'section' ? `section:${sectionPart(link)}`
+    : link.kind === 'figure' ? linkInner({ ...link, params: undefined }) : linkInner(link);
 
 /* The key of a book thing within its section: the part after the section. */
 export const bookKey = (t: BookTarget): string =>
@@ -136,7 +152,7 @@ export const linkInner = (target: LinkTarget): string => {
     case 'note': return target.name;
     case 'section': return sectionPart(target);
     case 'highlight': return `hl:${target.id}`;
-    case 'figure': return `${FIGURE_PREFIX}:${sectionPart(target)}:${target.id}`;
+    case 'figure': return `${FIGURE_PREFIX}:${sectionPart(target)}:${target.id}${paramsQuery(target.params)}`;
     case 'file': return target.page === undefined ? `file:${target.file}` : `file:${target.file}:p${target.page}`;
     case 'drawing': return `drawing:${target.id}`;
     case 'chat': return target.message === undefined ? `chat:${target.chat}` : `chat:${target.chat}:${target.message}`;
@@ -154,3 +170,13 @@ export const embedText = (target: LinkTarget): string => `![[${linkInner(target)
    are the notes whose findLinks holds it. */
 export const findLinks = (markdown: string): readonly Link[] =>
   [...markdown.matchAll(LINK_PATTERN)].map((m) => parseLink(m[1]));
+
+/* The body with the n-th embed of one figure (counted by its linkKey) set to hold these values. */
+export const withFigureParams = (markdown: string, key: string, n: number, params: ParamValues): string => {
+  let seen = -1;
+  return markdown.replace(LINK_PATTERN, (m: string, inner: string) => {
+    const t = parseLink(inner);
+    if (!m.startsWith('!') || t.kind !== 'figure' || linkKey(t) !== key || ++seen !== n) return m;
+    return `![[${linkInner({ ...t, params })}${t.alias ? `|${t.alias}` : ''}]]`;
+  });
+};

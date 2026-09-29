@@ -94,6 +94,8 @@ choice(host,{label,options:[{value,label}],value,aria,onInput,ms}) -> {value,set
 select(host,{label,options,value,aria,onInput,ms}) -> the same handle            the same as a dropdown where a row would wrap
   k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
+ctl / choice / select {..., key}                                                   the id a note stores the value under; default the cls ("choice" for a picker), then cls-2, cls-3
+  a track under 120 px drops to its own line below its name and value (rule 26.12); keep names short rather than lean on it
 hover(d.stage, () => [{x,y,r,name}]) -> {hide}                                    names under the pointer where labels would crowd (rule 26.6)
 ```
 
