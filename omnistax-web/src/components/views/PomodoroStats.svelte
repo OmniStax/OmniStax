@@ -156,7 +156,7 @@
 {#if catMenu}
   <RowMenu x={catMenu.x} y={catMenu.y} onclose={() => (catMenu = null)} items={[
     { label: 'Edit', run: () => { const id = catMenu?.id ?? ''; editCat = id; catName = label(id); askCat = null; } },
-    { label: 'Delete Category', run: () => { askCat = catMenu?.id ?? null; editCat = null; } },
+    { label: 'Delete category', run: () => { askCat = catMenu?.id ?? null; editCat = null; }, danger: true },
   ]} />
 {/if}
 
@@ -182,14 +182,14 @@
   .seg-part{background:var(--hue);flex:none}
   .labels{grid-column:2;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:max(2px,min(8px,calc(120px / var(--n))))}
   .labels span{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip}
-  .ask{font-size:0.78rem;color:var(--muted);padding:0 4px}
+  .ask{font-size:0.78rem;color:var(--bad);padding:0 4px}
   .total{margin:0;font-size:0.9rem;color:var(--ink)}
   .eyebrow{margin:6px 0 0}
   .cat-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
   .cat-list li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.84rem}
   .cat-name{min-width:6em}
   .cat-ms{color:var(--muted);font-variant-numeric:tabular-nums;min-width:4em}
-  .cat-acts{display:flex;gap:4px;align-items:center}
+  .cat-acts{display:flex;gap:4px;align-items:center;margin-left:auto}
   .rename{height:26px;font-size:0.82rem}
   .grid{display:grid;grid-template-columns:repeat(5,22px);gap:4px;width:100%}
   .swatch{width:22px;height:22px;border-radius:5px;border:2px solid transparent;background:var(--hue);cursor:pointer;padding:0}

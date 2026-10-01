@@ -21,13 +21,13 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { go, openDoc, openItem, wantsNewGroup } from '../../lib/sections/nav.svelte';
+  import { go, openItem, openingOf, type Opening } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { focusedGroup } from '../../lib/layout/model';
   import { draggable } from '../../lib/layout/drag.svelte';
   import { ui } from '../../lib/commands/ui.svelte';
   import { ICON } from '../../lib/icons';
-  import { bookId, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, sameSection, type SectionId, type SectionRef } from '../../lib/types/ids';
+  import { bookId, docItem, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, sameSection, type SectionId, type SectionRef } from '../../lib/types/ids';
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
   import { drawingId, drawingItem } from '../../lib/types/ids';
   import { entriesOf, importFiles, importSummary, importTree, pickedOfEntries, pickedOfInput, type Picked } from '../../lib/files/import';
@@ -296,47 +296,65 @@
     return { update: (next: string | null) => { if (next) d.update({ key: next, from: null }); }, destroy: () => d.destroy() };
   };
 
+  /* The tab a row opens, for the rows that are files: a note, a drawing, an
+     imported file, a sheet, or a section's text. */
+  const tabOf = (r: Row): string | null => {
+    if (r.kind === 'note' && r.entry) return itemKey(noteItem(noteId(r.entry.id)));
+    if (r.kind === 'file' && r.entry) return itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)));
+    if (r.kind === 'drawing' && r.entry) return itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)));
+    if (!r.book) return null;
+    if (r.kind === 'sheet') return itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))));
+    if (r.kind === 'section' && r.section && !r.dim) return itemKey(docItem(sectionRef(bookId(r.book), r.section), 'text'));
+    return null;
+  };
+  const openRow = (r: Row, how: Opening): boolean => {
+    const key = tabOf(r); if (!key) return false;
+    if (r.kind === 'section' && r.book && r.section) offlineBooks.markSeen(r.book, r.section);
+    void openItem(key, undefined, how);
+    return true;
+  };
   /* Clicking a row: the reader's rows open or select, a book's rows walk into
-     the book, and a section is a file that opens its text. */
+     the book, and a section is a file that opens its text. A double-click is
+     a second click asking for a tab of its own. */
   const activate = (r: Row, ev?: MouseEvent | KeyboardEvent): void => {
     explorer.selected = r.key;
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
-    const at = wantsNewGroup(ev) ? 'new' as const : undefined;
-    if (r.kind === 'note' && r.entry) { void openItem(itemKey(noteItem(noteId(r.entry.id))), at); return; }
-    if (r.kind === 'file' && r.entry) { void openItem(itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id))), at); return; }
-    if (r.kind === 'drawing' && r.entry) { void openItem(itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id))), at); return; }
-    if (!r.book) return;
-    if (r.kind === 'sheet') { void openItem(itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1)))), at); return; }
-    if (r.kind === 'section' && r.section && !r.dim) { offlineBooks.markSeen(r.book, r.section); void openDoc(sectionRef(bookId(r.book), r.section), 'text', at); return; }
-    if (r.kind === 'heading' && r.domId) go(bookId(r.book), r.domId);
+    if (openRow(r, ev instanceof MouseEvent && ev.detail === 2 ? 'tab' : openingOf(ev))) return;
+    if (r.kind === 'heading' && r.book && r.domId) go(bookId(r.book), r.domId);
   };
 
   /* The row menu, hanging where the pointer or the button left it. */
-  type Menu = { readonly entry: Entry; readonly x: number; readonly y: number };
+  type Menu = { readonly row: Row; readonly x: number; readonly y: number };
   let menu = $state.raw<Menu | null>(null);
   const menuItems = $derived.by(() => {
     const m = menu;
     if (!m) return [];
-    const e = m.entry;
+    const r = m.row, e = r.entry;
+    const opens = tabOf(r) ? [
+      { label: 'Open in new tab', run: () => { openRow(r, 'tab'); } },
+      { label: 'Open to the side', run: () => { openRow(r, 'new'); } },
+    ] : [];
+    if (!e) return opens;
     if (e.kind === 'book') return [{ label: 'Remove from OmniBooks', run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
+      ...opens,
       { label: 'New note here', run: () => newNote(inside) },
       { label: 'New drawing here', run: () => newDrawing(inside) },
       { label: 'Import files here', run: () => { pickInto = inside; picker?.click(); } },
       { label: 'Import folder here', run: () => { pickInto = inside; folderPicker?.click(); } },
       ...(e.kind === 'folder' ? [{ label: 'New folder here', run: () => newFolder(inside) }] : []),
       { label: 'Rename', run: () => { explorer.selected = e.id; explorer.renaming = e.id; } },
-      { label: 'Delete', run: () => remove(e) },
+      { label: 'Delete', run: () => remove(e), danger: true },
     ];
   });
-  const openMenu = (ev: MouseEvent, e: Entry): void => {
+  const openMenu = (ev: MouseEvent, r: Row): void => {
     ev.preventDefault(); ev.stopPropagation();
-    explorer.selected = e.id;
-    menu = { entry: e, x: ev.clientX, y: ev.clientY };
+    explorer.selected = r.entry?.id ?? r.key;
+    menu = { row: r, x: ev.clientX, y: ev.clientY };
   };
 
   /* ── importing the reader's own files ─────────────────────────── */
@@ -354,7 +372,7 @@
   /* Where the import icon's menu hangs, while it is open. */
   let importMenu = $state.raw<{ readonly x: number; readonly y: number } | null>(null);
   const importItems = [
-    { label: `Import files: ${ACCEPTED}`, run: () => { pickInto = null; picker?.click(); } },
+    { label: 'Import files', run: () => { pickInto = null; picker?.click(); } },
     { label: 'Import folder', run: () => { pickInto = null; folderPicker?.click(); } },
   ];
   /* Which folder the chooser was opened for; the root when it was the icon. */
@@ -449,7 +467,7 @@
           style:padding-left="{6 + r.depth * 13}px"
           onclick={(ev) => activate(r, ev)}
           onauxclick={(ev) => { if (ev.button === 1) activate(r, ev); }}
-          oncontextmenu={(e) => { if (r.entry) openMenu(e, r.entry); }}
+          oncontextmenu={(e) => { if (r.entry || tabOf(r)) openMenu(e, r); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
           ondragover={(e) => {
@@ -503,9 +521,8 @@
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
           {/if}
           {#if r.entry}
-            {@const own = r.entry}
             <button type="button" class="dots" tabindex="-1" title="More" aria-label="More for {r.label}"
-              onclick={(e) => openMenu(e, own)}>…</button>
+              onclick={(e) => openMenu(e, r)}>…</button>
           {/if}
         </div>
       {/if}

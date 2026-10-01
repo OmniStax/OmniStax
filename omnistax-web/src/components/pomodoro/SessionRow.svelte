@@ -11,7 +11,7 @@
   let asking = $state(false);
   const items = [
     { label: 'Edit', run: () => { editing = true; } },
-    { label: 'Delete', run: () => { asking = true; } },
+    { label: 'Delete', run: () => { asking = true; }, danger: true },
   ];
   const openAt = (e: MouseEvent): void => {
     e.preventDefault();
@@ -53,13 +53,14 @@
   .row.compact{gap:8px;font-size:0.8rem}
   .editing{padding:4px 0;border-bottom:1px solid var(--rule)}
   .when{font-weight:600;min-width:5.2em}
-  .span,.ran{color:var(--muted);font-size:0.78rem;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .ran{min-width:3.6em}
+  .span,.ran{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .span{color:var(--ink)}
+  .ran{color:var(--muted);font-size:0.78rem;min-width:3.6em}
   .compact .ran{min-width:0}
   .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dots{display:flex;gap:3px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--hue);flex:none;display:inline-block}
   .more{position:absolute;right:4px;top:3px;opacity:0}
   .row:hover .more,.row.open .more,.more:focus-visible{opacity:1}
-  .ask{position:absolute;right:4px;top:2px;display:flex;align-items:center;gap:3px;padding:1px 2px 1px 6px;border-radius:7px;background:var(--panel);font-size:0.78rem;color:var(--muted)}
+  .ask{position:absolute;right:4px;top:2px;display:flex;align-items:center;gap:3px;padding:1px 2px 1px 6px;border-radius:7px;background:var(--panel);font-size:0.78rem;color:var(--bad)}
 </style>

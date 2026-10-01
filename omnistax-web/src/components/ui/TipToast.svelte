@@ -3,7 +3,7 @@
      foot of the window. It stays until it is closed. */
   import { onMount, tick } from 'svelte';
   import { tips } from '../../lib/tips/store.svelte';
-  import type { TipAction } from '../../lib/tips/model';
+  import { TIPS, type TipAction } from '../../lib/tips/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { commands } from '../../lib/commands/registry.svelte';
   import { BUILTIN, openViewId, showViewId } from '../../lib/commands/builtin';
@@ -27,7 +27,12 @@
   <aside class="tip-toast" aria-label="Tip">
     <div class="head">
       <span class="eyebrow">Tip</span>
-      <button type="button" class="btn ghost icon sm" title="Close" aria-label="Close tip" onclick={() => tips.close()}>×</button>
+      <span class="walk">
+        <button type="button" class="btn ghost icon sm" title="Previous tip" aria-label="Previous tip" onclick={() => tips.step(-1)}>‹</button>
+        <span class="at">{(tips.at ?? 0) + 1} / {TIPS.length}</span>
+        <button type="button" class="btn ghost icon sm" title="Next tip" aria-label="Next tip" onclick={() => tips.step(1)}>›</button>
+        <button type="button" class="btn ghost icon sm" title="Close" aria-label="Close tip" onclick={() => tips.close()}>×</button>
+      </span>
     </div>
     <p>{tip.text}</p>
     <div class="foot">
@@ -40,6 +45,8 @@
 <style>
   .tip-toast{position:fixed;right:22px;bottom:72px;z-index:125;width:min(320px,calc(100vw - 32px));box-sizing:border-box;padding:10px 12px 10px 16px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.86rem;line-height:1.45;box-shadow:0 2px 10px rgb(0 0 0 / 0.16);animation:tip-toast-in 120ms ease-out}
   .head{display:flex;align-items:center;justify-content:space-between}
+  .walk{display:flex;align-items:center;gap:2px}
+  .at{min-width:3.2em;text-align:center;font-size:0.76rem;font-variant-numeric:tabular-nums;color:var(--muted)}
   .eyebrow{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
   p{margin:4px 0 10px}
   .foot{display:flex;align-items:center;justify-content:space-between;gap:8px}

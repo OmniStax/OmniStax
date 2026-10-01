@@ -2,16 +2,16 @@
   /* The activity rail, down the left of the shell, in three sections. At the top
      the two views that keep the sidebar — the explorer and the annotations —
      which a click shows there and a second click puts away. In the middle of the
-     rail, held there by the spacers either side of it, the three that are only
-     ever tabs: a click on one opens a page of it as a tab of the focused
-     group, and every click opens another, so several concept maps can
-     stand open at once, each following the section it was opened beside. At the
+     rail, held there by the spacers either side of it, the ones that are only
+     ever tabs: a click on one shows it in the focused group in place of the tab
+     showing there, and a Ctrl click adds another page of it, so several concept
+     maps can stand open at once, each following the section it was opened beside. At the
      bottom: read-aloud when voice is on, the command palette and the settings.
      Every button drags, so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, openInFocus, splitRight, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, openInFocus, replaceTab, showViewInFocus, splitRight, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
-  import { wantsNewGroup } from '../lib/sections/nav.svelte';
+  import { openingOf } from '../lib/sections/nav.svelte';
   import { newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, VIEW_TITLE } from '../lib/icons';
   import { ui } from '../lib/commands/ui.svelte';
@@ -36,8 +36,18 @@
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
-  /* A page of the view of its own, as a tab of the focused group, or with Ctrl in a group of its own beside it; the ones already open stay. */
-  const openPage = (kind: ViewKind, e: MouseEvent) => layoutStore.apply((x) => (wantsNewGroup(e) ? splitRight(x, x.focus, newViewItem(kind)) : openTab(x, newViewItem(kind), x.focus)));
+  /* A plain click shows the view in place of the focused group's tab, or brings
+     forward the page of it that group holds; Ctrl adds a page of its own as a
+     new tab, and Ctrl+Alt puts one in a group of its own beside. */
+  const openPage = (kind: ViewKind, e: MouseEvent) => {
+    const how = openingOf(e);
+    layoutStore.apply((x) => (how === 'new' ? splitRight(x, x.focus, newViewItem(kind)) : how === 'tab' ? openTab(x, newViewItem(kind), x.focus) : showViewInFocus(x, kind, newViewItem(kind))));
+  };
+  /* The conversations are one page: wherever it stands it comes forward, and otherwise it opens the way the click asked. */
+  const openChats = (e: MouseEvent) => {
+    const how = openingOf(e); const k = viewItem('chats');
+    layoutStore.apply((x) => (how === 'new' ? splitRight(x, x.focus, k) : where(x, k) || how === 'tab' ? openInFocus(x, k) : replaceTab(x, k, x.focus)));
+  };
   const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */
@@ -59,10 +69,10 @@
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
       <button type="button" class:on={open} title={titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
-        use:draggable={{ key: k, from: null }} onclick={(e) => openPage(kindOf(k), e)}>{@html iconOf(kindOf(k))}</button>
+        use:draggable={{ key: k, from: null }} onclick={(e) => openPage(kindOf(k), e)} onauxclick={(e) => { if (e.button === 1) openPage(kindOf(k), e); }}>{@html iconOf(kindOf(k))}</button>
     {/each}
     <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} title="Conversations" aria-label="Conversations"
-      onclick={(e) => layoutStore.apply((x) => (wantsNewGroup(e) ? splitRight(x, x.focus, viewItem('chats')) : openInFocus(x, viewItem('chats'))))}>{@html ICON.chat}</button>
+      onclick={openChats} onauxclick={(e) => { if (e.button === 1) openChats(e); }}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>
   <div class="section">

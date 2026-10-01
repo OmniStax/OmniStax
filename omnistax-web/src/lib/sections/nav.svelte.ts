@@ -2,9 +2,9 @@
    prefer the copy in the focused group, then any visible copy, then anything.
    An id is unique only within its book, so every look is scoped to one. */
 import { layoutStore } from '../layout/store.svelte';
-import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight } from '../layout/model';
+import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight, replaceTab, unreplace, type ItemKey } from '../layout/model';
 import { registry } from './registry.svelte';
-import { type BookId, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
+import { type BookId, type GroupKey, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
 import { fileOpens } from '../files/open.svelte';
 import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
@@ -76,8 +76,28 @@ const scrollWithin = (target: HTMLElement, block: ScrollLogicalPosition): void =
   box.scrollTo({ top: box.scrollTop + t.top - b.top - Math.max(0, offset), behavior: FIG.REDUCED ? 'auto' : 'smooth' });
 };
 export const go = (book: BookId, id: string, block: ScrollLogicalPosition = 'start'): void => jump(findEl(book, id), block);
-/* Ctrl (Cmd on a Mac) or the middle button asks for a group of its own beside the focused one. */
-export const wantsNewGroup = (e?: MouseEvent | KeyboardEvent | null): boolean => !!e && (e.ctrlKey || e.metaKey || ('button' in e && e.button === 1));
+/* How a click asks for a file: in place of the tab showing, as a tab of its
+   own (Ctrl, Cmd on a Mac, or the middle button), or in a group of its own
+   beside the focused one (Ctrl+Alt). */
+export type Opening = 'replace' | 'tab' | 'new';
+export const openingOf = (e?: MouseEvent | KeyboardEvent | null): Opening => {
+  if (!e) return 'replace';
+  const ctrl = e.ctrlKey || e.metaKey;
+  return ctrl && e.altKey ? 'new' : ctrl || ('button' in e && e.button === 1) ? 'tab' : 'replace';
+};
+/* A plain click replaces only from the explorer, a menu or the book's own text:
+   a link in a chat, a note or a drawing never closes the tab it stands in. */
+export const openingIn = (e: MouseEvent | KeyboardEvent | null | undefined, from: Element | null): Opening => {
+  const how = openingOf(e);
+  return how === 'replace' && from?.closest('.pane') && !from.closest('article[data-doc]') ? 'tab' : how;
+};
+export const wantsNewGroup = (e?: MouseEvent | KeyboardEvent | null): boolean => openingOf(e) === 'new';
+/* The opening a caller that only knows "beside or not" leaves to whoever called it. */
+let ambient: Opening = 'tab';
+export const openingAs = <T>(how: Opening, f: () => T): T => {
+  const was = ambient; ambient = how;
+  try { return f(); } finally { ambient = was; }
+};
 export const goSpan = (ref: SpanRef | undefined, split = false): void => {
   if (!ref) return;
   const t = split ? null : findEl(ref.book, ref.span); if (t) { jump(t); return; }
@@ -96,24 +116,37 @@ export const cite = (book: BookId, id: string, tries = 12): void => {
 };
 /* Open anything a tab can hold — a document, a figure, a standing page, or a
    note: activate it where it already is, or open it in the given group
-   (default: focused), or in a new group split off the focused one, and load
-   the section it comes out of. A page and a note come out of no section, so
-   for them there is nothing to fetch. */
+   (default: focused) the way it was asked for, and load the section it comes
+   out of. A page and a note come out of no section, so for them there is
+   nothing to fetch. The second click of a double-click asks for a tab of its
+   own after the first has already replaced one, so a tab asked for straight
+   after that replacement takes it back: the closed tab stands again before it. */
 export type Target = number | 'new';
-export const openItem = (key: string, group?: Target): Promise<void> => {
+type Replaced = { readonly group: GroupKey; readonly was: ItemKey; readonly now: ItemKey; readonly at: number };
+const DOUBLE_MS = 500;
+let replaced: Replaced | null = null;
+export const openItem = (key: string, group?: Target, how: Opening = ambient): Promise<void> => {
   const l = layoutStore.layout;
-  const loc = group == null ? where(l, key) : null;
-  if (group === 'new') layoutStore.apply((x) => splitRight(x, x.focus, key));
+  const at = typeof group === 'number' ? group : l.focus;
+  const loc = group == null || how === 'replace' ? where(l, key) : null;
+  const undo = how === 'tab' && replaced?.now === key && performance.now() - replaced.at < DOUBLE_MS ? replaced : null;
+  replaced = null;
+  if (group === 'new' || how === 'new') layoutStore.apply((x) => splitRight(x, at, key));
+  else if (undo) layoutStore.apply((x) => unreplace(x, undo.group, undo.was, undo.now));
   else if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
-  else layoutStore.apply((x) => openTab(x, key, group ?? x.focus));
+  else if (how === 'replace') {
+    const g = l.groups[at]; const was = g?.active;
+    layoutStore.apply((x) => replaceTab(x, key, at));
+    if (g && was) replaced = { group: g.key, was, now: key, at: performance.now() };
+  } else layoutStore.apply((x) => openTab(x, key, at));
   const id = parseItemKey(key); const ref = id ? sectionOfItem(id) : null;
   return ref ? registry.load(ref) : Promise.resolve();
 };
-export const openDoc = (ref: SectionRef, doc: 'text', group?: Target): Promise<void> => openItem(itemKey(docItem(ref, doc)), group);
+export const openDoc = (ref: SectionRef, doc: 'text', group?: Target, how?: Opening): Promise<void> => openItem(itemKey(docItem(ref, doc)), group, how);
 /* A file the reader imported, at the page a link named. The page is asked for
    beside the tab rather than written into its key: a file open twice is one
    document, so the key names the file and nothing else. */
-export const openFile = (file: FileId, page?: number, group?: Target): Promise<void> => {
+export const openFile = (file: FileId, page?: number, group?: Target, how?: Opening): Promise<void> => {
   if (page !== undefined) fileOpens.askPage(file, page);
-  return openItem(itemKey(fileItem(file)), group);
+  return openItem(itemKey(fileItem(file)), group, how);
 };

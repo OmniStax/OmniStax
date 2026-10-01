@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RETURNING_AFTER, TIPS, dayOf, visit } from '../src/lib/tips/model';
+import { RETURNING_AFTER, TIPS, dayOf, stepTip, visit } from '../src/lib/tips/model';
 
 const DAY = RETURNING_AFTER;
 const t0 = new Date(2026, 8, 1, 9, 0).getTime();
@@ -39,4 +39,10 @@ test('turned off, no tip and nothing moves', () => {
 
 test('a day is the local calendar day', () => {
   assert.equal(dayOf(new Date(2026, 0, 5, 23, 59).getTime()), '2026-01-05');
+});
+
+test('the card walks every tip in turn, wrapping at either end', () => {
+  assert.equal(stepTip(0, 1), 1);
+  assert.equal(stepTip(TIPS.length - 1, 1), 0);
+  assert.equal(stepTip(0, -1), TIPS.length - 1);
 });

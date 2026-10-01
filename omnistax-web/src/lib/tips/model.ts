@@ -19,8 +19,12 @@ export const TIPS: readonly Tip[] = [
   { text: 'Change the color of any quantity, for the whole book or one chapter or section.', action: { kind: 'colours', label: 'Open the color menu' } },
   { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
   { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
-  { text: 'Ctrl-click a section, view or link to open it in a new group beside this one.' },
+  { text: 'Ctrl-click or double-click a section, note or drawing to open it in a new tab.' },
+  { text: 'Ctrl+Alt-click a section, view or link to open it in a new group beside this one.' },
 ];
+
+/* The tip a step forward or back from this one, wrapping at either end. */
+export const stepTip = (at: number, delta: 1 | -1, count: number = TIPS.length): number => (at + delta + count) % count;
 
 export const dayOf = (at: Millis): DayKey => {
   const d = new Date(at);

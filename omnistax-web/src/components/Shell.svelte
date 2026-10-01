@@ -12,7 +12,7 @@
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { findEl, jump, activePane, openDoc, bookOfEl, wantsNewGroup } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane, openDoc, bookOfEl, openingOf, openingIn } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
@@ -216,24 +216,23 @@
       return true;
     });
     /* A page of any book is written as a plain link, so that it can still be
-       opened in a window of its own; a left click on one opens it as a tab of
-       the group it was clicked in instead of loading the page, and a Ctrl click
-       opens it in a new group beside that one. The listen is on
-       the way down, since the row a link stands in may keep the click to
-       itself. A page no book here has falls back to the link, which is what it
-       always did. */
+       opened in a window of its own; a click on one opens it in the group it
+       was clicked in instead of loading the page, the way the reader asked
+       (openingIn). The listen is on the way down, since the row a link stands
+       in may keep the click to itself. A page no book here has falls back to
+       the link, which is what it always did. */
     const onLink = (e: MouseEvent) => {
-      if (e.button !== 0 || e.shiftKey || e.altKey || e.defaultPrevented) return;
+      if (e.button > 1 || e.shiftKey || (e.altKey && !e.ctrlKey && !e.metaKey) || e.defaultPrevented) return;
       const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
       if (!link || link.target || link.origin !== location.origin) return;
       const at = refOfPath(link.pathname);
       if (!at) return;
-      const { href, pathname, hash } = link; const group = wantsNewGroup(e) ? 'new' as const : groupOf(link);
+      const { href, pathname, hash } = link; const group = groupOf(link); const how = openingIn(e, link);
       e.preventDefault();
       void registry.ensureBook(at.book).then(async (m) => {
         const sec = m ? sectionOfUrl(m, pathname) : null;
         if (!sec) { location.assign(href); return; }
-        await openDoc(sectionRef(at.book, sec), 'text', group);
+        await openDoc(sectionRef(at.book, sec), 'text', group, how);
         landAt(at.book, hash);
       });
     };
@@ -257,7 +256,7 @@
       const id = a.getAttribute('href')!.slice(1), ab = bookOfEl(a);
       const t = ab ? findEl(ab, id) : document.getElementById(id); if (!t) return; e.preventDefault();
       const sec = t.closest<HTMLElement>('article[data-doc]')?.dataset.doc?.split('/')[0];
-      if (wantsNewGroup(e) && ab && sec) { void openDoc(sectionRef(ab, sectionId(sec)), 'text', 'new').then(() => jump(findEl(ab, id))); return; }
+      if (openingOf(e) === 'new' && ab && sec) { void openDoc(sectionRef(ab, sectionId(sec)), 'text', 'new').then(() => jump(findEl(ab, id))); return; }
       jump(t);
     };
     /* A feature the about page names lights where it lives: the new note and
@@ -271,10 +270,10 @@
       ui.spotFrom = from;
     };
     document.addEventListener('mouseover', onOver);
-    document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
+    document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
+    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
   });
 
   /* settings → document */

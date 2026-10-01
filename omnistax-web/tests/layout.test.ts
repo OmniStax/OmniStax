@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, replaceTab, unreplace, showViewInFocus, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -411,4 +411,27 @@ test('a closed group comes back whole, in its old place, showing what it showed'
   const last = reopenGroup(closeGroup(defaultLayout(), 0), [text, second], text, 0);
   assert.deepEqual(last.groups.map((g) => g.tabs), [[text, second]], 'the last group, emptied, is filled again');
   assert.equal(last.groups[0].active, text);
+});
+
+const other = 'doc:college-physics-2e/2.2/text';
+test('a replacement takes the place of the active tab, and an empty group simply gains it', () => {
+  const l = openTab(openTab(defaultLayout(), second, 0), text, 0);
+  const r = replaceTab(l, other, 0);
+  assert.deepEqual(r.groups[0].tabs, [other, second]); assert.equal(r.groups[0].active, other);
+  const empty = closeItem(defaultLayout(), text, 0);
+  assert.deepEqual(replaceTab(empty, other, 0).groups[0].tabs, [other]);
+  assert.deepEqual(replaceTab(l, second, 0).groups[0].tabs, [text, second], 'an item the group holds already is only shown');
+});
+test('a replacement taken back stands the closed tab again before the new one', () => {
+  const l = replaceTab(defaultLayout(), other, 0);
+  const back = unreplace(l, l.groups[0].key, text, other);
+  assert.deepEqual(back.groups[0].tabs, [text, other]); assert.equal(back.groups[0].active, other);
+  assert.equal(unreplace(back, back.groups[0].key, text, other), back, 'nothing to take back twice');
+});
+test('a rail view shows in place of the focused tab, or comes forward where the group holds one', () => {
+  const l = showViewInFocus(defaultLayout(), 'concepts', newViewItem('concepts'));
+  assert.equal(l.groups[0].tabs.length, 1); assert.equal(viewKindOf(l.groups[0].active!), 'concepts');
+  const back = activate(openTab(l, text, 0), 0, text);
+  const again = showViewInFocus(back, 'concepts', newViewItem('concepts'));
+  assert.deepEqual(again.groups[0].tabs, back.groups[0].tabs); assert.equal(again.groups[0].active, l.groups[0].active);
 });

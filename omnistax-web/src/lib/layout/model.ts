@@ -204,6 +204,25 @@ export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: Op
   return focusOn(dropEmptied(l, withGroups(base, groups)), target.key);
 };
 
+/* The item takes the place of the group's active tab, which closes; a group
+   showing nothing, or holding the item already, simply opens it as a tab. */
+export const replaceTab = (l: Layout, id: ItemId | ItemKey, index: number): Layout => {
+  const k = keyOf(id); const g = l.groups[Math.max(0, Math.min(index, l.groups.length - 1))];
+  const was = g.active;
+  if (!was || g.tabs.includes(k)) return openTab(l, k, index);
+  const base = viewKey(k) ? detach(l, k) : l;
+  const groups = base.groups.map((x) => (x.key === g.key ? { ...x, tabs: x.tabs.map((t) => (t === was ? k : t)), active: k } : x));
+  return focusOn(dropEmptied(l, withGroups(base, groups)), g.key);
+};
+/* A replacement taken back into a new tab: the tab it closed stands again just before it. */
+export const unreplace = (l: Layout, group: GroupKey, was: ItemKey, now: ItemKey): Layout => {
+  const g = l.groups[groupIndex(l, group)];
+  if (!g || !g.tabs.includes(now) || g.tabs.includes(was)) return l;
+  const base = viewKey(was) ? detach(l, was) : l;
+  const groups = base.groups.map((x) => (x.key === group ? { ...x, tabs: x.tabs.flatMap((t) => (t === now ? [was, now] : [t])), active: now } : x));
+  return focusOn(dropEmptied(l, withGroups(base, groups)), group);
+};
+
 const SPLIT_DIR: Readonly<Record<SplitSide, SplitDir>> = { left: 'row', right: 'row', up: 'column', down: 'column' };
 const SPLIT_BEFORE: Readonly<Record<SplitSide, boolean>> = { left: true, up: true, right: false, down: false };
 /* Seat a new leaf beside the target one: among its siblings when they already
@@ -265,6 +284,12 @@ export const openInFocus = (l: Layout, id: ItemId | ItemKey): Layout => {
   const k = keyOf(id);
   const at = l.groups.findIndex((g) => g.tabs.includes(k));
   return at >= 0 ? activate(l, at, k) : openTab(l, k, l.focus);
+};
+/* A rail button, plainly clicked: a page of that view the focused group already
+   holds comes forward, and otherwise a new one takes the place of the tab showing. */
+export const showViewInFocus = (l: Layout, kind: ViewKind, fresh: ItemId | ItemKey): Layout => {
+  const here = focusedGroup(l).tabs.find((t) => viewKindOf(t) === kind);
+  return here ? activate(l, l.focus, here) : replaceTab(l, fresh, l.focus);
 };
 
 /* Close a whole group, empty or not: it goes, and so do its tabs. A view that

@@ -141,7 +141,7 @@
   button.digits{cursor:text}
   button.digits:hover{background:color-mix(in srgb,var(--soft) 70%,transparent)}
   .edit{width:5em;text-align:center;outline:none;background:var(--soft)}
-  .sub{font-size:0.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  .sub{font-size:0.92rem;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;text-shadow:0 0 3px var(--panel),0 0 6px var(--panel)}
   .controls{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
   .controls .primary{min-width:96px}
   .lost{margin:-6px 0 0;text-align:center;font-size:0.8rem;color:var(--bad)}

@@ -1,5 +1,5 @@
 import { readerWritesAllowed } from '../backup/guard';
-import { TIPS, TipStateSchema, visit, type Tip, type TipState } from './model';
+import { TIPS, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
 
 const KEY = 'omnistax-tips-v1';
 
@@ -13,13 +13,15 @@ const load = (): TipState | null => {
 const save = (s: TipState): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
 class Tips {
-  current = $state<Tip | null>(null);
+  at = $state<number | null>(null);
+  get current(): Tip | null { return this.at === null ? null : TIPS[this.at] ?? null; }
   /* Called once per page load. */
   arrive(enabled: boolean, now: number = Date.now()): void {
     const { state, tip } = visit(load(), now, enabled);
     save(state);
-    this.current = tip === null ? null : TIPS[tip];
+    this.at = tip;
   }
-  close(): void { this.current = null; }
+  step(delta: 1 | -1): void { if (this.at !== null) this.at = stepTip(this.at, delta); }
+  close(): void { this.at = null; }
 }
 export const tips = new Tips();

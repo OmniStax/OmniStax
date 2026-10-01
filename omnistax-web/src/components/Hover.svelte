@@ -11,7 +11,7 @@
   import { targetOf, cardFor, openDelay, readyFor } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
   import { glyphOf } from '../lib/hover/data';
-  import { bookOfEl, findEl, goSpan, wantsNewGroup } from '../lib/sections/nav.svelte';
+  import { bookOfEl, findEl, goSpan, openingIn, openingAs } from '../lib/sections/nav.svelte';
   import { spanId, spanRef } from '../lib/types/ids';
   import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
@@ -55,7 +55,7 @@
 
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
   const math = (node: HTMLElement, _dep?: unknown) => { figFor(book).renderMath(node); return { update() { figFor(book).renderMath(node); } }; };
-  const run = (a: { run: (split?: boolean) => void }, e?: MouseEvent) => { a.run(wantsNewGroup(e)); close(); };
+  const run = (a: { run: (split?: boolean) => void }, e?: MouseEvent) => { const how = openingIn(e, anchor); openingAs(how, () => a.run(how === 'new')); close(); };
 
   /* A tap, or a click when cards open on click: the card waits for it and stays until the next one elsewhere. */
   const byClick = (): boolean => touch || settings.cardOpen === 'click';
@@ -155,6 +155,12 @@
      writes the class the rules hang from — and either way the card still opens. */
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
+  /* A thing of the book an answer or a note names by a link: underlined in the link colour, since nothing around it says it is one. */
+  :global(html:not(.no-underlines) .book-word){text-decoration:underline dotted;text-decoration-color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
+  :global(.book-word .katex-html .enclosing[class*="kv-"]){text-decoration:none}
+  :global(.book-word){cursor:pointer;border-radius:2px}
+  :global(.book-word:hover){background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  :global(.book-word:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
   :global(.sim .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a sim's readouts and control labels stay clean; the card still opens */
   /* The card is where a symbol is explained, not another place to look it up. */
   :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card a.xref){text-decoration:none}
