@@ -259,7 +259,7 @@ test('a book\'s rules colour its quantities and ink what a page does not bind, i
   const b = '[data-book="college-physics-2e"]';
   assert.ok(css.includes(`${b} .kv-time{color:var(--c-time)} html:not(.cc) ${b} .kv-time{color:inherit}`));
   assert.ok(css.includes(`html.cc ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
-  assert.match(css, /\[data-book="college-physics-2e"\]\[data-sec="2\.1"\] :is\([^)]*\.kv-frequency[^)]*\)\{color:inherit\}/);
+  assert.match(css, /\[data-book="college-physics-2e"\]:is\([^)]*\[data-sec="2\.1"\][^)]*\) \.kv-frequency\{color:inherit\}/);
 });
 
 test('the file and the storage hold one document, which reads back as it was written', () => {

@@ -156,7 +156,7 @@ with sync_playwright() as playwright:
         page.wait_for_timeout(1200)
 
     for chapter, sec in (("Nature of Science", "1.2"), ("Nature of Science", "1.3"),
-                         ("2 Kinematics", "2.1"), ("2 Kinematics", "2.2"),
+                         ("Kinematics", "2.1"), ("Kinematics", "2.2"),
                          ("Two-Dimensional", "3.1"), ("Two-Dimensional", "3.2")):
         open_section(chapter, sec)
     loaded = page.locator("article[data-doc]").count()

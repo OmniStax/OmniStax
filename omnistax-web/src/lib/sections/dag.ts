@@ -12,20 +12,22 @@ export const scopedNodes = (all: readonly ConceptDTO[], target: Target, tree: Bo
   const scope = new Set<string>(sectionsOf(target, tree));
   const own = all.filter((c) => scope.has(c.section) && c.status === 'built');
   const ids = new Set(own.map((c) => c.id));
-  const ext = own.flatMap((c) => c.prereqs).filter((p, i, arr) => !ids.has(p) && arr.indexOf(p) === i).map((p) => all.find((c) => c.id === p)).filter((c): c is ConceptDTO => !!c);
+  const byId = new Map(all.map((c) => [c.id as string, c]));
+  const ext = [...new Set(own.flatMap((c) => c.prereqs))].filter((p) => !ids.has(p)).map((p) => byId.get(p)).filter((c): c is ConceptDTO => !!c);
   return [...ext.map((c) => ({ ...c, ext: true })), ...own.map((c) => ({ ...c, ext: false }))];
 };
 /* Other-section nodes first, then each node one row below its deepest prerequisite. */
 export const dagRows = (list: readonly DagNode[]): string[][] => {
   const ext = list.filter((c) => c.ext).map((c) => c.id), own = list.filter((c) => !c.ext);
+  const ownById = new Map(own.map((c) => [c.id as string, c]));
   const depth = new Map<string, number>();
   const d = (c: DagNode): number => {
     const known = depth.get(c.id); if (known !== undefined) return known;
-    const v = 1 + Math.max(0, ...c.prereqs.map((p) => { const q = own.find((r) => r.id === p); return q ? d(q) : 0; }));
+    const v = 1 + Math.max(0, ...c.prereqs.map((p) => { const q = ownById.get(p); return q ? d(q) : 0; }));
     depth.set(c.id, v); return v;
   };
   const byDepth = new Map<number, string[]>();
-  own.forEach((c) => { const k = d(c); byDepth.set(k, [...(byDepth.get(k) ?? []), c.id]); });
+  own.forEach((c) => { const k = d(c); const row = byDepth.get(k); if (row) row.push(c.id); else byDepth.set(k, [c.id]); });
   return [ext, ...[...byDepth.keys()].sort((a, b) => a - b).map((k) => byDepth.get(k)!)].filter((r) => r.length);
 };
 /* The same ranking as a lookup: how deep each node's prerequisites run, which

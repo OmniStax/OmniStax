@@ -19,7 +19,7 @@ import { bookId, sectionId, sectionRef, type BookId, type ChatId, type SectionId
 import type { MathScope, Resolver } from '../notes/md/render';
 import type { Chip } from './context';
 import { chats } from './store.svelte';
-import { firstWords, pathTo, spokenIn, type Chat, type MessageId } from './model';
+import { firstWords, messageOf, spokenIn, type Chat, type Message, type MessageId } from './model';
 
 export const chatBooks = new BookResolver();
 
@@ -38,8 +38,33 @@ const chipPlace = (c: Chip): AnswerPlace | null => {
   const t = parseLink(c.key);
   return 'section' in t && t.book ? { ...NOWHERE, book: t.book, section: sectionId(t.section) } : null;
 };
-export const placeOf = (chat: Chat, id: MessageId): AnswerPlace =>
-  pathTo(chat, id).flatMap((m) => m.chips).reduceRight<AnswerPlace | null>((got, c) => got ?? chipPlace(c), null) ?? NOWHERE;
+/* One value per place, so a bubble whose place is unchanged by a word of an
+   answer arriving is not drawn again. */
+const placeKey = (p: AnswerPlace): string => `${p.book}|${p.section}|${p.chapter}`;
+const places = new Map<string, AnswerPlace>([[placeKey(NOWHERE), NOWHERE]]);
+const interned = (p: AnswerPlace): AnswerPlace => {
+  const had = places.get(placeKey(p)); if (had) return had;
+  places.set(placeKey(p), p); return p;
+};
+/* The place of a message is its own last chip that names one, else its
+   parent's; worked out once per message of a chat and kept with the chat. */
+const ownPlace = (m: Message): AnswerPlace | null => m.chips.reduceRight<AnswerPlace | null>((got, c) => got ?? chipPlace(c), null);
+const placesIn = new WeakMap<Chat, Map<MessageId, AnswerPlace>>();
+export const placeOf = (chat: Chat, id: MessageId): AnswerPlace => {
+  const known = placesIn.get(chat) ?? new Map<MessageId, AnswerPlace>();
+  placesIn.set(chat, known);
+  const up: Message[] = [];
+  const seen = new Set<string>();
+  let at: MessageId | null = id, place = NOWHERE;
+  while (at !== null && !seen.has(at)) {
+    const had = known.get(at); if (had) { place = had; break; }
+    seen.add(at);
+    const m = messageOf(chat, at); if (!m) break;
+    up.push(m); at = m.parent;
+  }
+  for (const m of up.reverse()) { place = interned(ownPlace(m) ?? place); known.set(m.id, place); }
+  return place;
+};
 
 /* The chapter folder a place's colours are scoped by, once its book has come. */
 const chapterDir = (p: AnswerPlace): string | undefined => {
@@ -119,15 +144,30 @@ const examplesOf = (book: BookId): ReadonlyMap<ExampleNumber, string> => {
    is marked once; a block drawn again is a new block. */
 const proseOf = (el: HTMLElement): HTMLElement[] =>
   Array.from(el.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('pre, [data-embed], .hover-card') && !b.querySelector('p, li') && b.dataset.marked !== '1');
-const markProse = (el: HTMLElement, place: AnswerPlace): void => {
-  const book = place.book; if (!book || !registry.hasBook(book)) return;
+/* What marking reads of a book, gathered once for all the answers drawn in
+   one task (a transcript draws every one of its answers together) and afresh
+   in the next, when more of the book may have come. */
+type Marks = {
+  readonly glossary: ReadonlyMap<string, string>; readonly terms: readonly string[]; readonly lower: readonly string[];
+  readonly figures: ReadonlyMap<string, string>; readonly examples: ReadonlyMap<ExampleNumber, string>;
+};
+const marksNow = new Map<BookId, Marks>();
+const marksOf = (book: BookId): Marks => {
+  const had = marksNow.get(book); if (had) return had;
+  if (marksNow.size === 0) setTimeout(() => marksNow.clear(), 0);
   const glossary = glossaryOf(book);
   /* the longer term first, so "kinetic energy" is marked whole before "energy" can be */
   const terms = [...glossary.keys()].sort((a, b) => b.length - a.length);
-  const figures = figuresOf(book); const examples = examplesOf(book);
+  const marks: Marks = { glossary, terms, lower: terms.map((t) => t.toLowerCase()), figures: figuresOf(book), examples: examplesOf(book) };
+  marksNow.set(book, marks);
+  return marks;
+};
+const markProse = (el: HTMLElement, place: AnswerPlace): void => {
+  const book = place.book; if (!book || !registry.hasBook(book)) return;
+  const { glossary, terms, lower, figures, examples } = marksOf(book);
   for (const b of proseOf(el)) {
     const words = (b.textContent ?? '').toLowerCase();
-    const here = terms.filter((t) => words.includes(t.toLowerCase()));
+    const here = terms.filter((_, i) => words.includes(lower[i]));
     const em = wrapEmTerms(b.innerHTML, here, new Set(), IN_BLOCK);
     const html = wrapExampleRefs(wrapFigureRefs(wrapPlainTerms(em.html, here, em.done, IN_BLOCK).html, figures, IN_BLOCK), examples, IN_BLOCK);
     if (html !== b.innerHTML) b.innerHTML = html;

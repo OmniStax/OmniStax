@@ -56,6 +56,8 @@
 
 <style>
   .messages{flex:1;min-height:0;overflow:auto;padding:0 40px 20px;scroll-padding-top:44px}
+  /* a long chat lays out only the messages near the view; the rest keep the height they last had */
+  .messages:not(.compact) > :global(.bubble){content-visibility:auto;contain-intrinsic-block-size:auto 160px}
   .asked{position:sticky;top:0;z-index:2;display:flex;align-items:baseline;gap:8px;width:100%;margin:0 0 4px;padding:7px 2px 6px;font:inherit;font-size:0.82rem;text-align:left;color:var(--ink);background:var(--bg);border:0;border-bottom:1px solid var(--rule);cursor:pointer}
   .asked:hover .words{color:var(--accent)}
   .you{flex:none;font-size:0.68rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}

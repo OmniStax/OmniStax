@@ -74,6 +74,12 @@ export const freshnessOf = (r: ConceptRecord | undefined, s: PracticeSettings, n
 };
 
 const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n));
+/* Each key to the items that name it, an item once per key however often it names it, in the items' order. */
+const indexBy = <T>(items: readonly T[], keys: (t: T) => readonly string[]): ReadonlyMap<string, readonly T[]> => {
+  const out = new Map<string, T[]>();
+  items.forEach((t) => new Set(keys(t)).forEach((k) => { const list = out.get(k); if (list) list.push(t); else out.set(k, [t]); }));
+  return out;
+};
 export const rebuild = (
   attempts: readonly Attempt[], rounds: readonly RoundEnd[], self: SelfAssessments,
   s: PracticeSettings, available: Readonly<Record<string, number>>,
@@ -84,22 +90,29 @@ export const rebuild = (
   ]);
   const out: Record<string, ConceptRecord> = {};
   const ended = new Set(rounds.map((r) => r.id));
+  /* What names each concept, gathered once rather than searched for every
+     concept of the books in turn. Each list keeps the order it was recorded in. */
+  const attemptsOn = indexBy(attempts, (a) => a.concepts);
+  const attemptsMastering = indexBy(attempts, (a) => a.mastered ?? []);
+  const roundsMastering = indexBy(rounds, (r) => r.newlyMastered);
+  const roundsReviewing = indexBy(rounds, (r) => r.concepts.map((c) => c.id));
   ids.forEach((id) => {
     const target = Math.min(Math.max(1, Math.round(s.masteryTarget)), Math.max(1, available[id] ?? s.masteryTarget));
     const own = self[id];
-    const relevant = attempts.filter((a) => (!a.round || ended.has(a.round)) && a.concepts.includes(id) && (!own || a.at > own.at)).sort((a, b) => a.at - b.at);
+    const on = attemptsOn.get(id) ?? [];
+    const relevant = on.filter((a) => (!a.round || ended.has(a.round)) && (!own || a.at > own.at)).sort((a, b) => a.at - b.at);
     let level = own ? (own.mastered ? target : clamp(Math.round(own.level), 0, target)) : 0;
     relevant.forEach((a) => { level = clamp(level + (a.ok ? 1 : -1), 0, target); });
     const achievements = [
-      ...rounds.filter((r) => (!own || r.at > own.at) && r.newlyMastered.includes(id)).map((r) => r.at),
-      ...attempts.filter((attempt) => (!own || attempt.at > own.at) && attempt.mastered?.includes(id)).map((attempt) => attempt.at),
+      ...(roundsMastering.get(id) ?? []).filter((r) => !own || r.at > own.at).map((r) => r.at),
+      ...(attemptsMastering.get(id) ?? []).filter((attempt) => !own || attempt.at > own.at).map((attempt) => attempt.at),
     ].sort((a, b) => a - b);
     const mastered = own ? own.mastered || achievements.length > 0 || level >= target : achievements.length > 0 || level >= target;
     if (!mastered && level === 0 && !own && relevant.length === 0) return;
     const masteredAt = own?.mastered ? own.at : achievements[0] ?? (mastered ? relevant.at(-1)?.at ?? 0 : 0);
     let halfLife = Math.max(1, s.startingHalfLife), reviewedAt = masteredAt;
     let dueAt = masteredAt ? masteredAt + halfLife * DAY : 0;
-    rounds.filter((r) => r.at > masteredAt).sort((a, b) => a.at - b.at).forEach((round) => {
+    (roundsReviewing.get(id) ?? []).filter((r) => r.at > masteredAt).sort((a, b) => a.at - b.at).forEach((round) => {
       const review = round.concepts.find((c) => c.id === id);
       if (!review?.wasMastered || review.answered === 0) return;
       const ratio = review.correct / review.answered;
@@ -113,7 +126,7 @@ export const rebuild = (
     });
     out[id] = {
       level: mastered ? target : level, target, mastered, masteredAt,
-      lastAt: Math.max(0, ...attempts.filter((a) => a.concepts.includes(id)).map((a) => a.at)),
+      lastAt: on.reduce((last, a) => Math.max(last, a.at), 0),
       halfLife, reviewedAt, dueAt, selfAssessed: !!own,
       noDecay: !!own?.mastered && !!own.noDecay,
     };
@@ -172,7 +185,8 @@ export const sectionsOfCurriculum = (c: Curriculum, cat: Catalog): readonly { bo
 export const conceptsOf = (c: Curriculum, cat: Catalog): ReadonlySet<string> => {
   const places = new Set(sectionsOfCurriculum(c, cat).map((p) => `${p.book}/${p.section}`)), out = new Set<string>();
   cat.exercises.filter((e) => places.has(`${e.book}/${e.section}`)).forEach((e) => e.ex.concepts.forEach((id) => out.add(id)));
-  c.filter(isConcept).forEach((p) => { const found = cat.concepts.find((q) => q.id === p.concept); if (!found || found.status === 'built') out.add(String(p.concept)); });
+  const known = new Map(cat.concepts.map((q) => [q.id as string, q]));
+  c.filter(isConcept).forEach((p) => { const found = known.get(p.concept); if (!found || found.status === 'built') out.add(String(p.concept)); });
   return out;
 };
 export const keyOf = (e: { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO | string }): string => `${e.book}/${e.section}/${typeof e.ex === 'string' ? e.ex : e.ex.id}`;
@@ -208,22 +222,37 @@ export const prepare = (
     return { ...e, key, tier: seen === 0 ? 0 : answered === 0 ? 1 : 2, last: answered || seen, pos: positions.get(key) ?? 0 };
   });
   const compare = (id: string) => (a: Candidate, b: Candidate): number => a.tier - b.tier || a.last - b.last || (mastery[id]?.mastered ? 0 : bloomRank(a.ex.bloom) - bloomRank(b.ex.bloom)) || a.pos - b.pos || a.key.localeCompare(b.key);
+  /* Each concept's candidates, in the pool's order, so that a book's worth of
+     concepts does not each walk the whole pool. */
+  const byConcept = indexBy(pool, (e) => e.ex.concepts);
   const chosen = new Map<string, Candidate>();
-  eligible.forEach((id) => pool.filter((e) => e.ex.concepts.some((concept) => concept === id)).sort(compare(id)).slice(0, quotas.get(id)).forEach((e) => chosen.set(e.key, e)));
-  const count = (list: readonly Candidate[], id: string): number => list.filter((e) => e.ex.concepts.some((concept) => concept === id)).length;
-  let minimal = [...chosen.values()];
-  [...minimal].sort((a, b) => b.tier - a.tier || b.last - a.last || b.pos - a.pos).forEach((e) => {
+  eligible.forEach((id) => [...(byConcept.get(id) ?? [])].sort(compare(id)).slice(0, quotas.get(id)).forEach((e) => chosen.set(e.key, e)));
+  /* How many of the chosen each concept stands in, kept as they are let go. */
+  const counts = new Map<string, number>();
+  chosen.forEach((e) => new Set(e.ex.concepts).forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1)));
+  const dropped = new Set<string>();
+  [...chosen.values()].sort((a, b) => b.tier - a.tier || b.last - a.last || b.pos - a.pos).forEach((e) => {
     const touched = e.ex.concepts.filter((id) => quotas.has(id));
-    if (touched.length && touched.every((id) => count(minimal, id) - 1 >= (quotas.get(id) ?? 0))) minimal = minimal.filter((x) => x.key !== e.key);
+    if (!touched.length || !touched.every((id) => (counts.get(id) ?? 0) - 1 >= (quotas.get(id) ?? 0))) return;
+    dropped.add(e.key);
+    new Set(e.ex.concepts).forEach((id) => counts.set(id, (counts.get(id) ?? 0) - 1));
   });
-  const primary = (e: Candidate): number => Math.min(...e.ex.concepts.filter((id) => quotas.has(id)).map((id) => eligible.indexOf(id)));
+  let minimal = [...chosen.values()].filter((e) => !dropped.has(e.key));
+  const rank = new Map(eligible.map((id, i) => [id, i] as const));
+  const primary = (e: Candidate): number => Math.min(...e.ex.concepts.filter((id) => quotas.has(id)).map((id) => rank.get(id) ?? -1));
   if (settings.order === 'grouped') minimal.sort((a, b) => primary(a) - primary(b) || a.pos - b.pos);
   else {
-    const left = [...minimal], ordered: Candidate[] = [];
+    /* Next is always the candidate sharing least with the last two, and of
+       those the first by tier, recency and position: the first of the list
+       kept in that order that shares nothing, or failing one, the first that
+       shares least. */
+    const left = [...minimal].sort((a, b) => a.tier - b.tier || a.last - b.last || a.pos - b.pos), ordered: Candidate[] = [];
     while (left.length) {
       const recent = new Set(ordered.slice(-2).flatMap((e) => e.ex.concepts));
-      left.sort((a, b) => a.ex.concepts.filter((id) => recent.has(id)).length - b.ex.concepts.filter((id) => recent.has(id)).length || a.tier - b.tier || a.last - b.last || a.pos - b.pos);
-      ordered.push(left.shift()!);
+      const shares = (e: Candidate): number => e.ex.concepts.filter((id) => recent.has(id)).length;
+      const free = left.findIndex((e) => shares(e) === 0);
+      const next = free >= 0 ? free : left.reduce((best, e, i) => (shares(e) < shares(left[best]) ? i : best), 0);
+      ordered.push(left.splice(next, 1)[0]);
     }
     minimal = ordered;
   }

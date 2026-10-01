@@ -13,15 +13,17 @@ const typeRules = (m: BookManifest, book: string): string =>
 
 /* A page colours only what it draws (rule: a page binds what it needs), so the
    types it does not bind read in ink on it. A page that binds nothing at all
-   has said nothing, and keeps them all. */
+   has said nothing, and keeps them all. One rule per type, ending on the
+   type's class: a rule ending on `:is(…)` of several classes is tried against
+   every element of the page, which costs seconds under a long chat. */
 const unboundRules = (m: BookManifest, book: string): string => {
-  const keys = Object.keys(m.types);
-  return bookPagesOf(m)
-    .filter((s) => s.binds.length)
-    .map((s) => {
-      const off = keys.filter((k) => !s.binds.includes(k));
-      return off.length ? `${book}[data-sec="${s.id}"] :is(${off.map((k) => `.kv-${k}`).join(',')}){color:inherit}` : '';
+  const pages = bookPagesOf(m).filter((s) => s.binds.length);
+  return Object.keys(m.types)
+    .map((k) => {
+      const off = pages.filter((s) => !s.binds.includes(k)).map((s) => `[data-sec="${s.id}"]`);
+      return off.length ? `${book}:is(${off.join(',')}) .kv-${k}{color:inherit}` : '';
     })
+    .filter(Boolean)
     .join('\n');
 };
 

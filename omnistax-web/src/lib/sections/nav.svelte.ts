@@ -1,6 +1,8 @@
 /* Finding and revealing elements when the same document can be open twice:
    prefer the copy in the focused group, then any visible copy, then anything.
-   An id is unique only within its book, so every look is scoped to one. */
+   An id is unique only within its book, so every look is scoped to one. The
+   lone `#id` selector is answered from the document's id map; a selector
+   that also names the book walks the whole document. */
 import { layoutStore } from '../layout/store.svelte';
 import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight, replaceTab, unreplace, type ItemKey } from '../layout/model';
 import { registry } from './registry.svelte';
@@ -11,8 +13,8 @@ import { revealFolds } from './fold.svelte';
 
 const cssId = (id: string): string => (typeof CSS !== 'undefined' && 'escape' in CSS ? CSS.escape(id) : id);
 const allEls = (book: BookId, id: string): HTMLElement[] =>
-  Array.from(document.querySelectorAll<HTMLElement>(`[data-book="${cssId(book)}"] [id="${cssId(id)}"], [data-book="${cssId(book)}"][id="${cssId(id)}"]`))
-    .filter((e) => !e.closest('[data-fig-probe]'));
+  Array.from(document.querySelectorAll<HTMLElement>(`#${cssId(id)}`))
+    .filter((e) => e.closest<HTMLElement>(`[data-book="${cssId(book)}"]`) !== null && !e.closest('[data-fig-probe]'));
 const paneOf = (e: Element): HTMLElement | null => e.closest<HTMLElement>('.pane');
 export const activePane = (index: number): HTMLElement | null => document.querySelector<HTMLElement>(`.group[data-index="${index}"] .pane:not([hidden])`);
 /* The article the reading commands act on: the focused pane's, else any visible one. */

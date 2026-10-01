@@ -301,6 +301,17 @@
 
   const shown = $derived(new Set(idsIn(grid, pos, view).filter((id) => !visible || visible.has(id))));
   const drawn = $derived(list.filter((c) => shown.has(c.id)));
+  /* A whole book fitted to the pane is put on the map a few hundred nodes a
+     frame, so that opening it never holds the page still. The count only
+     grows: a view that holds no more nodes than were placed draws at once. */
+  const NODES_PER_FRAME = 120;
+  let placing = $state(NODES_PER_FRAME);
+  $effect(() => {
+    if (placing >= drawn.length) return;
+    const f = requestAnimationFrame(() => { placing += NODES_PER_FRAME; });
+    return () => cancelAnimationFrame(f);
+  });
+  const placed = $derived(drawn.length <= placing ? drawn : drawn.slice(0, placing));
   const wires = $derived(edges.filter(([a, b]) => (shown.has(a) || shown.has(b)) && (!visible || (visible.has(a) && visible.has(b)))).map(([from, to]) => {
     const p = pos.get(from), q = pos.get(to);
     if (!p || !q) return null;
@@ -321,7 +332,7 @@
       <g class="wires">
         {#each wires as p (p.from + '>' + p.to)}<path d={p.d} class:hot={lit?.has(p.from) && lit?.has(p.to)} />{/each}
       </g>
-      {#each drawn as c (c.id)}
+      {#each placed as c (c.id)}
         {@const b = boxes.get(c.id)!}
         {@const p = pos.get(c.id)!}
         <foreignObject x={p.x - b.w / 2} y={p.y - b.h / 2} width={b.w} height={b.h} class:lit={!lit || lit.has(c.id)}>

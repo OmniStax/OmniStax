@@ -126,8 +126,12 @@ function fill(span: HTMLElement, g: Glyph, rebuild: boolean): void {
     if (p.sub) { const top = `${round(drop)}em`; if (e.style.top !== top) e.style.top = top; }
   });
 }
-/* Shows what a canvas's last draw recorded. `box` is the canvas's place under its offset parent. */
-export function commit(c: HTMLCanvasElement, box: Box, glyphs: readonly Glyph[]): void {
+/* Shows what a canvas's last draw recorded. `box` is the canvas's place under its offset parent.
+   What it hands back measures the spans it placed, and what that hands back moves them inside:
+   every canvas of a frame is written, then measured, then moved, so the page is laid out once
+   for all of them rather than once a canvas. */
+export type Measure = () => () => void;
+export function commit(c: HTMLCanvasElement, box: Box, glyphs: readonly Glyph[]): Measure {
   drawn.set(c, glyphs);
   const l = layerOf(c);
   const key = `${box.l},${box.t},${box.w},${box.h}`;
@@ -146,18 +150,22 @@ export function commit(c: HTMLCanvasElement, box: Box, glyphs: readonly Glyph[])
   });
   l.shown = next;
   sync(c, l);
-  keepInside(l, box, p.writes.map((w) => spans[w.i]));
+  return keepInside(l, box, p.writes.map((w) => spans[w.i]));
 }
 /* a span the draw placed past the layer's edge is moved back in by the overflow, never clipped */
-function keepInside(l: Layer, box: Box, moved: readonly HTMLElement[]): void {
-  if (!moved.length || l.el.hidden) return;
+const NOTHING = (): void => {};
+function keepInside(l: Layer, box: Box, moved: readonly HTMLElement[]): Measure {
+  if (!moved.length || l.el.hidden) return () => NOTHING;
   moved.forEach((s) => { if (s.style.translate) s.style.translate = ''; });
-  const at = l.el.getBoundingClientRect(); if (!at.width) return;
-  const k = box.w / at.width;
-  moved.map((s) => {
-    const r = s.getBoundingClientRect();
-    return [s, inward({ l: (r.left - at.left) * k, t: (r.top - at.top) * k, r: (r.right - at.left) * k, b: (r.bottom - at.top) * k }, box.w, box.h)] as const;
-  }).forEach(([s, [dx, dy]]) => { if (dx || dy) s.style.translate = `${round(dx)}px ${round(dy)}px`; });
+  return () => {
+    const at = l.el.getBoundingClientRect(); if (!at.width) return NOTHING;
+    const k = box.w / at.width;
+    const shifts = moved.map((s) => {
+      const r = s.getBoundingClientRect();
+      return [s, inward({ l: (r.left - at.left) * k, t: (r.top - at.top) * k, r: (r.right - at.left) * k, b: (r.bottom - at.top) * k }, box.w, box.h)] as const;
+    });
+    return () => shifts.forEach(([s, [dx, dy]]) => { if (dx || dy) s.style.translate = `${round(dx)}px ${round(dy)}px`; });
+  };
 }
 /* the layer hides, stacks and leaves with its canvas */
 function sync(c: HTMLCanvasElement, l: Layer): void {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { onDestroy, tick, untrack } from 'svelte';
   import Widget from './Widget.svelte';
   import Steps from './Steps.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
@@ -22,7 +22,19 @@
   const pager = $derived(pagerOf(chat, message.id));
   const place = $derived(placeOf(chat, message.id));
   const mine = $derived(message.role === 'user');
-  const parts = $derived(partsOf(message.text, !mine && ai.inlineHtml));
+  /* An answer still arriving is drawn again at most every STREAM_DRAW_MS rather
+     than on every word, since each drawing sets the whole answer afresh. */
+  const STREAM_DRAW_MS = 80;
+  let drawnText = $state(untrack(() => message.text));
+  let drawLater: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => {
+    const text = message.text;
+    if (message.state === 'streaming' && untrack(() => drawnText) !== '') { drawLater ??= setTimeout(() => { drawLater = null; drawnText = message.text; }, STREAM_DRAW_MS); return; }
+    if (drawLater !== null) { clearTimeout(drawLater); drawLater = null; }
+    drawnText = text;
+  });
+  onDestroy(() => { if (drawLater !== null) clearTimeout(drawLater); });
+  const parts = $derived(partsOf(drawnText, !mine && ai.inlineHtml));
 
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
@@ -57,7 +69,7 @@
     }
   };
   let body = $state<HTMLElement | null>(null);
-  $effect(() => { const el = body; void message.text; void render; if (el) void tick().then(() => decorate(el)); });
+  $effect(() => { const el = body; void drawnText; void render; if (el) void tick().then(() => decorate(el)); });
 
   const onclick = (e: MouseEvent): void => {
     const t = e.target as HTMLElement;
@@ -102,8 +114,9 @@
   </div>
 
   {#if collapsed}
+    {@const brief = html(opening(message.text, 240))}
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    <button type="button" class="brief" class:said={mine} data-nodrag use:math={html(opening(message.text, 240))} onclick={ontoggle}>{@html html(opening(message.text, 240))}</button>
+    <button type="button" class="brief" class:said={mine} data-nodrag use:math={brief} onclick={ontoggle}>{@html brief}</button>
   {:else}
   {#if message.chips.length}
     <ul class="chips">{#each message.chips as c (c.kind + c.key)}<li title={c.text.slice(0, 400)}>{c.label}</li>{/each}</ul>

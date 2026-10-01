@@ -58,7 +58,10 @@ let cur: FigBookConfig | null = null;
 const configOf = (book: string): FigBookConfig => figBooks.get(book) ?? NO_BOOK;
 const active = (): FigBookConfig => cur ?? configOf(bootBook);
 const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /* the book's colour macros: a type class and a symbol key */
-const KOPT = () => ({ macros: { '\\mk': MK_MACRO, ...active().macros } as Macros, trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
+/* A book's table with the motion macro beside it, made once per table rather than for every formula set. */
+const withMk = new WeakMap<Macros, Macros>();
+const macrosOf = (m: Macros): Macros => { const had = withMk.get(m); if (had) return had; const all = { '\\mk': MK_MACRO, ...m } as Macros; withMk.set(m, all); return all; };
+const KOPT = () => ({ macros: macrosOf(active().macros), trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
 
 /* KaTeX is the heaviest thing the shell can ask for, and a page of the book
    arrives with its maths already set at build time, so the library is fetched
@@ -142,6 +145,7 @@ function texGlow(el: HTMLElement): void {
   paint(performance.now());
 }
 function renderMath(root: HTMLElement): void {
+  if (!root.textContent?.includes('$')) return;
   const opts = KOPT();
   withMath((m) => m.auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
@@ -608,8 +612,9 @@ const records = new Map<HTMLCanvasElement, TextRecord>();
 let flushing = false;
 function flushText(): void {
   flushing = false;
-  records.forEach((rec, c) => commitText(c, rec.box, rec.glyphs));
+  const measures = [...records].map(([c, rec]) => commitText(c, rec.box, rec.glyphs));
   records.clear();
+  measures.map((measure) => measure()).forEach((move) => move());
 }
 function openText(c: HTMLCanvasElement): TextRecord {
   const w = c.offsetWidth, rec: TextRecord = { box: { l: c.offsetLeft, t: c.offsetTop, w, h: c.offsetHeight }, r: c.width ? w / c.width : 0, glyphs: [] };

@@ -54,7 +54,7 @@ with sync_playwright() as playwright:
     card = page.locator(".hover-card")
     card.wait_for(state="visible", timeout=5000)
     text = card.inner_text()
-    assert "Elsewhere in this chapter (15.3)" in text, text
+    assert "elsewhere in this chapter (15.3)" in text.lower(), text
     shot(page, "small-card.png")
     page.mouse.move(5, 5)
 

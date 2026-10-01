@@ -94,6 +94,7 @@
         {#if m.id === chat.root}
           <span class="anchor" style:left="{box.x}px" style:top="{box.y}px"></span>
         {:else}
+          {@const h = html(m)}
           <button type="button" class="node" class:mine={m.role === 'user'} class:on={onPath.has(m.id)} class:selected={selection.has(m.id)}
             class:open={expanded.has(m.id)} data-node={m.id} data-role={m.role} title={timeOf(m.at)}
             style:left="{box.x}px" style:top="{box.y}px" style:width="{box.w}px" style:height="{box.h}px"
@@ -101,10 +102,10 @@
             <span class="head"><span class="role">{speakerOf(m)}</span>{#if !compact}<time>{timeOf(m.at)}</time>{/if}</span>
             {#if expanded.has(m.id)}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text full" use:measure={m.id} use:math={html(m)}>{@html html(m)}</span>
+              <span class="text full" use:measure={m.id} use:math={h}>{@html h}</span>
             {:else}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text" style:-webkit-line-clamp={scale.lines} use:math={html(m)}>{@html html(m)}</span>
+              <span class="text" style:-webkit-line-clamp={scale.lines} use:math={h}>{@html h}</span>
             {/if}
           </button>
         {/if}
@@ -121,7 +122,7 @@
   .edges path{fill:none;stroke:var(--rule);stroke-width:1.5}
   .edges path.on{stroke:var(--accent);stroke-width:2}
   .anchor{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--rule)}
-  .node{position:absolute;display:flex;flex-direction:column;gap:4px;box-sizing:border-box;padding:8px 10px;text-align:left;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:9px;cursor:pointer;overflow:hidden;opacity:0.72;transition:opacity 120ms,border-color 120ms,box-shadow 120ms}
+  .node{position:absolute;display:flex;flex-direction:column;gap:4px;box-sizing:border-box;padding:8px 10px;text-align:left;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:9px;cursor:pointer;overflow:hidden;content-visibility:auto;opacity:0.72;transition:opacity 120ms,border-color 120ms,box-shadow 120ms}
   .node :global(a){pointer-events:none}
   .node.mine{background:var(--soft)}
   .node.on{opacity:1;border-color:color-mix(in srgb, var(--accent) 45%, var(--rule))}

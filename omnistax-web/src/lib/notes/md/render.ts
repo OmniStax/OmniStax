@@ -357,11 +357,31 @@ const renderImage = (href: string, alt: string, r: Resolver): string => {
 /* A book's macros colour a symbol by its type and name it for the hover card,
    which is all the HTML they are trusted to write. */
 const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);
-const tex = (src: string, display: boolean, macros?: Readonly<Record<string, string>>): string =>
+const setTex = (src: string, display: boolean, macros?: Readonly<Record<string, string>>): string =>
   katex.renderToString(src, {
     displayMode: display, throwOnError: false, strict: false, output: 'htmlAndMathml',
     ...(macros ? { macros: { ...macros }, trust: (c: { readonly command: string }) => TRUSTED.has(c.command) } : {}),
   });
+/* What KaTeX wrote, kept by the formula and the table it was set under: an
+   answer arriving word by word is drawn again on every word, and a note on
+   every keystroke, with the same formulas each time. */
+type TexKey = string;
+const TEX_KEPT = 4000;
+const setAlready = new Map<TexKey, string>();
+const tableIds = new WeakMap<object, number>();
+let tables = 0;
+const tableOf = (macros?: Readonly<Record<string, string>>): number => {
+  if (!macros) return 0;
+  const had = tableIds.get(macros); if (had !== undefined) return had;
+  tables += 1; tableIds.set(macros, tables); return tables;
+};
+const tex = (src: string, display: boolean, macros?: Readonly<Record<string, string>>): string => {
+  const key: TexKey = `${tableOf(macros)}|${display ? 'd' : 'i'}|${src}`;
+  const had = setAlready.get(key); if (had !== undefined) return had;
+  if (setAlready.size >= TEX_KEPT) setAlready.clear();
+  const html = setTex(src, display, macros);
+  setAlready.set(key, html); return html;
+};
 
 /* Maths in a paragraph or a list item that links into a book is that book's;
    the innermost such block wins, and maths in none of them is the resolver's

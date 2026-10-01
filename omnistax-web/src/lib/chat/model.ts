@@ -64,8 +64,19 @@ export const isRoot = (chat: Chat, id: MessageId): boolean => id === chat.root;
 
 /* The children of a message, oldest first, which is the order the pager counts
    them in: "2 of 3" is the second thing the reader tried. */
-export const childrenOf = (chat: Chat, parent: MessageId): readonly Message[] =>
-  Object.values(chat.messages).filter((m) => m.parent === parent).sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+export const childrenOf = (chat: Chat, parent: MessageId): readonly Message[] => childIndex(chat).get(parent) ?? [];
+/* Every message's children at once, made the first time a chat is asked and
+   kept with it: a chat is never changed, only replaced, and a transcript of a
+   few hundred messages asks once per bubble on every word of an answer. */
+const indexes = new WeakMap<Chat, ReadonlyMap<MessageId | null, readonly Message[]>>();
+const childIndex = (chat: Chat): ReadonlyMap<MessageId | null, readonly Message[]> => {
+  const had = indexes.get(chat); if (had) return had;
+  const index = new Map<MessageId | null, Message[]>();
+  Object.values(chat.messages).forEach((m) => { const kin = index.get(m.parent); if (kin) kin.push(m); else index.set(m.parent, [m]); });
+  index.forEach((kin) => kin.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id)));
+  indexes.set(chat, index);
+  return index;
+};
 
 export const siblingsOf = (chat: Chat, id: MessageId): readonly Message[] => {
   const m = messageOf(chat, id);
@@ -81,9 +92,9 @@ export const pathTo = (chat: Chat, id: MessageId): readonly Message[] => {
   while (at !== null && !seen.has(at)) {
     seen.add(at);
     const m = messageOf(chat, at); if (!m) break;
-    out.unshift(m); at = m.parent;
+    out.push(m); at = m.parent;
   }
-  return out;
+  return out.reverse();
 };
 
 /* What the reader is shown: the path to the leaf without the silent root. */

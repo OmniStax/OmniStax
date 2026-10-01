@@ -71,7 +71,9 @@ export const dayLabel = (at: number, now: number): string => {
   return new Date(at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: new Date(at).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
 };
 
-export const timeOf = (at: number): string => new Date(at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+/* One formatter for every stamp: a transcript or a tree stamps each of its messages. */
+const STAMP = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+export const timeOf = (at: number): string => STAMP.format(new Date(at));
 
 /* Whether a divider stands above the message at `i`: the first one, and each
    one whose day differs from the one before. */
