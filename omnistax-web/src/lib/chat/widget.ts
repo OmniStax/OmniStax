@@ -45,10 +45,17 @@ export const partsOf = (markdown: string, widgets: boolean): readonly AnswerPart
 export const WIDGET_HEIGHT = 320;
 export const WIDGET_MAX_HEIGHT = 1200;
 
-/* A widget says how much room it wants by posting `{ height }` to its parent.
-   Anything else it posts is not a height and is ignored. */
+/* A widget says how much room it wants by posting `{ height }` to its parent,
+   and every widget is given a script that does so on load and whenever its
+   page changes size, so it need not ask itself. Anything else it posts is not
+   a height and is ignored. */
 export const heightOf = (data: unknown): number | null => {
   const h = (typeof data === 'object' && data !== null ? (data as { height?: unknown }).height : undefined);
   const n = typeof h === 'number' ? h : Number(h);
   return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), WIDGET_MAX_HEIGHT) : null;
 };
+
+/* Appended rather than prepended: anything before the doctype would put the
+   page in quirks mode, and a script after `</html>` still runs, in the body. */
+const SIZER = `<script>(()=>{const d=document.documentElement;let last=0;const post=()=>{const h=Math.ceil(Math.max(d.getBoundingClientRect().height,document.body?document.body.scrollHeight:0));if(h!==last){last=h;parent.postMessage({height:h},'*');}};const watch=new ResizeObserver(post);watch.observe(d);if(document.body)watch.observe(document.body);addEventListener('load',post);post();})()</script>`;
+export const sized = (html: string): string => `${html}\n${SIZER}`;

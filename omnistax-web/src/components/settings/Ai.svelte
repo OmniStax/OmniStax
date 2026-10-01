@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  /* A public list is fetched once a page, however often the settings open. */
+  const fetchedPublic = new Set<string>();
+</script>
+
 <script lang="ts">
   /* The AI block of the settings: a card per provider with its key, the
      models it lists and a field for one it does not, each ticked or not for
@@ -5,9 +10,10 @@
      render inline HTML. The key stays in this browser and out of backups, and
      the block says so, because a reader pasting a key deserves to know where
      it goes. */
+  import { untrack } from 'svelte';
   import { ai } from '../../lib/chat/settings.svelte';
   import { MODEL_CAP, cardModels, isShown, visibleModels } from '../../lib/chat/settings';
-  import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
+  import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, PUBLIC_LIST, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
   import { providerOf } from '../../lib/chat/providers/all';
 
   let { hit }: { hit: (text: string) => boolean } = $props();
@@ -19,12 +25,15 @@
   const mark = (k: string, on: boolean, why = ''): void => { busy = { ...busy, [k]: on }; trouble = { ...trouble, [k]: why }; };
 
   const listCloud = async (id: CloudId): Promise<void> => {
-    const key = ai.value.keys[id]; if (!key) return;
+    const key = ai.value.keys[id]; if (!key && !PUBLIC_LIST.has(id)) return;
     mark(id, true);
     try { ai.setListed(id, await providerOf(id).models({ provider: id, model: '', key, baseUrl: DEFAULT_BASE[id] })); mark(id, false); }
     catch (e) { mark(id, false, failureOf(e)); }
   };
   const setKey = (id: CloudId, key: string): void => { ai.setKey(id, key); void listCloud(id); };
+  $effect(() => untrack(() => {
+    for (const id of PUBLIC_LIST) if (!fetchedPublic.has(id)) { fetchedPublic.add(id); void listCloud(id); }
+  }));
 
   const listLocal = async (endpoint: string): Promise<void> => {
     const e = ai.value.endpoints.find((x) => x.id === endpoint); if (!e) return;
@@ -72,7 +81,10 @@
 
   {#each CLOUD_IDS as id (id)}
     {@const models = cardModels(ai.value, id)}
-    {@const shown = visibleModels(models, (m) => isShown(ai.value, { provider: id, model: m }), filters[id] ?? '', expanded.has(id))}
+    {@const ticked = (m: string) => isShown(ai.value, { provider: id, model: m })}
+    {@const capped = visibleModels(models, ticked, filters[id] ?? '', false)}
+    {@const all = expanded.has(id)}
+    {@const shown = all ? visibleModels(models, ticked, filters[id] ?? '', true) : capped}
     <div class="card" data-ai-card={id}>
       <div class="head">
         <span class="name">{PROVIDER_LABEL[id]}</span>
@@ -88,13 +100,16 @@
         {#each shown.rows as m (m)}
           <li><label><input type="checkbox" checked={isShown(ai.value, { provider: id, model: m })} onchange={() => ai.toggle({ provider: id, model: m })}> {m}</label></li>
         {/each}
-        {#if shown.rows.length < shown.found}
-          <li><button type="button" class="all" onclick={() => (expanded = new Set([...expanded, id]))}>Show all {shown.found}</button></li>
+        {#if capped.rows.length < capped.found}
+          <li>
+            {#if all}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded].filter((x) => x !== id)))}>Show fewer</button>
+            {:else}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded, id]))}>Show all {shown.found}</button>{/if}
+          </li>
         {/if}
       </ul>
       <div class="tail">
         <input type="text" aria-label="Add a {PROVIDER_LABEL[id]} model" placeholder="Add a model" onkeydown={onEnter((v) => ai.addModel(id, v))}>
-        {#if ai.value.keys[id]}
+        {#if ai.value.keys[id] || PUBLIC_LIST.has(id)}
           <button type="button" class="btn-sm" disabled={busy[id]} onclick={() => void listCloud(id)}>{busy[id] ? 'Loading…' : 'Refresh list'}</button>
         {/if}
       </div>

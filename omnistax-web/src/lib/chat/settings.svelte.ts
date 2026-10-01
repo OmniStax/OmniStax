@@ -48,16 +48,18 @@ class Ai {
 }
 export const ai = new Ai();
 
-/* Settings, opened at one provider's card: the card is scrolled to once the
-   panel has drawn it. */
+/* Settings, opened at one provider's card: its key field, or the card's first
+   field where it takes no key, is scrolled to and focused once the panel has
+   drawn it. */
 const FRAMES = 20;
 export const openSettingsAt = (provider: ProviderId): void => {
   ui.openSettings();
   const seek = (left: number): void => {
     const card = document.querySelector<HTMLElement>(`[data-ai-card="${provider}"]`);
     if (!card) { if (left > 0) requestAnimationFrame(() => seek(left - 1)); return; }
-    card.scrollIntoView({ block: 'center' });
-    card.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+    const input = card.querySelector<HTMLInputElement>('input[type="password"]') ?? card.querySelector<HTMLInputElement>('input');
+    (input ?? card).scrollIntoView({ block: 'center' });
+    input?.focus({ preventScroll: true });
   };
   seek(FRAMES);
 };

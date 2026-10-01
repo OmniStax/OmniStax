@@ -32,6 +32,10 @@ export const DEFAULT_BASE: Readonly<Record<CloudId, string>> = {
   deepseek: 'https://api.deepseek.com', openrouter: 'https://openrouter.ai/api', mistral: 'https://api.mistral.ai',
 };
 
+/* The providers whose models endpoint answers without a key, so a card lists
+   them as soon as it shows. */
+export const PUBLIC_LIST: ReadonlySet<CloudId> = new Set<CloudId>(['openrouter']);
+
 export const trimBase = (url: string): string => url.trim().replace(/\/+$/, '').replace(/\/v1$/, '');
 
 /* A model as the menu and a chat name it. A Local AI model is written

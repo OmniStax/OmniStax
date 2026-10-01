@@ -12,7 +12,10 @@
   const pick = $derived<ModelPick | null>(chats.get(chatId)?.pick ?? ai.last);
   const groups = $derived(ai.menu);
 
-  const choose = (e: MenuEntry): void => {
+  /* Settings opened from here must not be shut again by the shell's own
+     document click, which closes every overlay. */
+  const choose = (ev: MouseEvent, e: MenuEntry): void => {
+    ev.stopPropagation();
     open = false;
     if (!e.ready) { openSettingsAt(e.pick.provider); return; }
     chats.choosePick(chatId, e.pick);
@@ -37,13 +40,13 @@
       {#each groups as g (g.provider)}
         <div class="group">{g.label}</div>
         {#each g.entries as e (e.pick.model)}
-          <button type="button" role="menuitemradio" aria-checked={samePick(e.pick, pick)} class:on={samePick(e.pick, pick)} onclick={() => choose(e)}>
+          <button type="button" role="menuitemradio" aria-checked={samePick(e.pick, pick)} class:on={samePick(e.pick, pick)} onclick={(ev) => choose(ev, e)}>
             <span class="name">{e.name}</span>
-            {#if !e.ready}<span class="need">Needs key</span>{/if}
+            {#if !e.ready}<span class="need">Needs key →</span>{/if}
           </button>
         {/each}
       {/each}
-      <button type="button" role="menuitem" class="more" onclick={() => { open = false; openSettingsAt(pick?.provider ?? 'anthropic'); }}>Manage models…</button>
+      <button type="button" role="menuitem" class="more" onclick={(ev) => { ev.stopPropagation(); open = false; openSettingsAt(pick?.provider ?? 'anthropic'); }}>Manage models…</button>
     </div>
   {/if}
 </div>

@@ -11,13 +11,14 @@
   import type { PickerRow } from '../../lib/picker/model';
   import type { ChatId } from '../../lib/types/ids';
 
-  let { chatId, chips, onchips, onsend, onstop, streaming, offer, onoffer }: {
+  let { chatId, chips, onchips, onsend, onstop, streaming, offer, onoffer, blocked }: {
     chatId: ChatId;
     chips: readonly Chip[];
     onchips: (c: readonly Chip[]) => void;
     onsend: (text: string) => void;
     onstop: () => void;
     streaming: boolean;
+    blocked?: string;
     offer: Chip | null;
     onoffer: () => void;
   } = $props();
@@ -55,6 +56,16 @@
 
   const close = (): void => { at = null; query = ''; };
 
+  /* The picker follows the field: a press anywhere outside the composer closes it,
+     and the field taking the focus back reads the `@` the cursor stands after. */
+  let box = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (at === null) return;
+    const away = (e: PointerEvent): void => { if (box && !box.contains(e.target as Node)) close(); };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  });
+
   const choose = (row: PickerRow): void => {
     const start = at; if (start === null) return;
     const cut = field?.selectionStart ?? text.length;
@@ -77,7 +88,7 @@
     e.stopPropagation();
     if (at !== null && picker?.handleKey(e)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { close(); return; }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!streaming) send(); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!streaming && !blocked) send(); }
   };
 
   /* ── images ────────────────────────────────────────────────────────────── */
@@ -121,7 +132,7 @@
   });
 </script>
 
-<div class="composer">
+<div class="composer" bind:this={box}>
   {#if offer}
     <div class="offer">
       <span>Now reading {offer.label}</span>
@@ -143,9 +154,9 @@
 
   <div class="field" class:dragging role="presentation" {ondragover} ondragleave={() => (dragging = false)} {ondrop}>
     {#if at !== null}
-      <AtPicker bind:this={picker} {root} {query} onchoose={choose} onclose={close} />
+      <AtPicker bind:this={picker} {root} {query} {field} onchoose={choose} onclose={close} />
     {/if}
-    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read}
+    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read} onfocus={read}
       placeholder={ready ? 'Ask anything · @ to add context' : 'Choose a model with a key to ask'}
       aria-label="Message" rows="2"></textarea>
     <div class="acts">
@@ -154,7 +165,7 @@
       {#if streaming}
         <button type="button" class="btn sm" onclick={onstop}>Stop</button>
       {:else}
-        <button type="button" class="btn primary sm" disabled={text.trim() === ''} onclick={send}>Send <kbd>↵</kbd></button>
+        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked} title={blocked} onclick={send}>Send <kbd>↵</kbd></button>
       {/if}
     </div>
   </div>
