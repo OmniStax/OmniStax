@@ -1,23 +1,20 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import Bubble from './Bubble.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
+  import Transcript from './Transcript.svelte';
   import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { pending } from '../../lib/chat/open.svelte';
   import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
-  import { dayLabel, replyParent, startsDay, withLeaf } from '../../lib/chat/tree';
+  import { replyParent, withLeaf } from '../../lib/chat/tree';
+  import { copyChatPlain, copyChatReference } from '../../lib/drawer/chatdrop';
   import { chip, withChip, type Chip } from '../../lib/chat/context';
   import { sectionTextOf } from '../../lib/picker/sources';
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { label as sectionLabel } from '../../lib/sections/grouping';
-  import { goSpan, openDoc, openItem } from '../../lib/sections/nav.svelte';
-  import { parseLink } from '../../lib/notes/md/links';
-  import { itemKey, noteId as asNoteId, noteItem, parseSecKey, secKey, type ChatId, type SectionRef } from '../../lib/types/ids';
-  import { isSpan } from '../../lib/notes/resolve';
-  import { chatBooks } from '../../lib/chat/resolve';
+  import { secKey, type ChatId, type SectionRef } from '../../lib/types/ids';
 
   let { chatId }: { chatId: ChatId } = $props();
 
@@ -75,37 +72,46 @@
   const TREE_KEY = 'omnistax-chat-tree-v1';
   const treeChats = (): readonly string[] => { try { const v: unknown = JSON.parse(localStorage.getItem(TREE_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; } };
   let tree = $state(treeChats().includes(chatId));
-  let selected = $state<MessageId | undefined>(undefined);
+  let selection = $state.raw<ReadonlySet<MessageId>>(new Set());
   const setTree = (on: boolean): void => {
     tree = on;
     const rest = treeChats().filter((x) => x !== chatId);
     try { localStorage.setItem(TREE_KEY, JSON.stringify(on ? [...rest, chatId] : rest)); } catch { /* private mode */ }
   };
-  let list = $state<HTMLElement | null>(null);
+  let list = $state<{ scrollTo(id: MessageId): void } | null>(null);
   const openInTranscript = (id: MessageId): void => {
     chats.goTo(chatId, id);
     setTree(false);
-    selected = undefined;
-    void tick().then(() => list?.querySelector(`[data-message="${id}"]`)?.scrollIntoView({ block: 'center' }));
-  };
-  const now = Date.now();
-
-  const follow = (target: string): void => {
-    const t = parseLink(target.replace(/^(note|section):/, ''));
-    if (target.startsWith('note:')) { void openItem(itemKey(noteItem(asNoteId(target.slice(5))))); return; }
-    if (t.kind === 'section') { const r = chatBooks.ref(t.section, t.book); if (r) void openDoc(r, 'text'); return; }
-    if (t.kind === 'chat') { if (t.message) chats.goTo(t.chat as ChatId, t.message as never); return; }
-    const to = chatBooks.target(target);
-    if (to) { if (isSpan(to)) goSpan(to); else void openDoc(to, 'text'); return; }
-    const r = 'section' in t ? chatBooks.ref(t.section, t.book) : null; if (r) void openDoc(r, 'text');
+    selection = new Set();
+    void tick().then(() => list?.scrollTo(id));
   };
 
-  /* In the tree the reply goes under the selected node: the chat stands on it
-     for the asking, and the new branch becomes the leaf. */
+  let collapsed = $state.raw<ReadonlySet<MessageId>>(new Set());
+  const anyOpen = $derived(path.some((m) => !collapsed.has(m.id)));
+  const foldAll = (): void => { collapsed = anyOpen ? new Set(path.map((m) => m.id)) : new Set(); };
+
+  let copying = $state(false);
+  let copied = $state<string | null>(null);
+  const copy = (how: () => Promise<boolean>): void => {
+    copying = false;
+    void how().then((ok) => { copied = ok ? 'Copied' : 'Copy failed'; setTimeout(() => (copied = null), 1200); });
+  };
+  const onCopyBlur = (e: FocusEvent): void => {
+    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) copying = false;
+  };
+  const onCopyKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { e.stopPropagation(); copying = false; } };
+  const focusFirst = (node: HTMLElement) => { node.querySelector('button')?.focus(); };
+
+  /* In the tree the reply goes under the one selected node, or on from the
+     leaf when none is: the chat stands on it for the asking, and the new
+     branch becomes the leaf. */
+  const blocked = $derived(tree && selection.size > 1 ? 'Select one message to reply to' : undefined);
   const send = (text: string): void => {
     const c = chat;
-    if (tree && selected && c) chats.open = { ...chats.open, [chatId]: withLeaf(c, replyParent(c, selected)) };
-    selected = undefined;
+    const [one] = selection;
+    if (blocked) return;
+    if (tree && one && c) chats.open = { ...chats.open, [chatId]: withLeaf(c, replyParent(c, one)) };
+    selection = new Set();
     void chats.ask(chatId, text, chips);
   };
 </script>
@@ -117,30 +123,38 @@
     {:else}
       <button type="button" class="name" title="Rename this chat" onclick={startRename}>{chat?.name || 'New chat'}</button>
     {/if}
+    {#if chat && !tree}
+      <button type="button" class="btn ghost sm" disabled={path.length === 0} onclick={foldAll}>{anyOpen ? 'Collapse all' : 'Expand all'}</button>
+    {/if}
+    {#if copying}
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <span class="split" role="group" aria-label="Copy" onfocusout={onCopyBlur} onkeydown={onCopyKey} use:focusFirst>
+        <button type="button" class="btn ghost sm" onclick={() => copy(() => copyChatReference(chatId))}>Copy reference</button>
+        <button type="button" class="btn ghost sm" onclick={() => { const c = chat; if (c) copy(() => copyChatPlain(c)); }}>Copy plain</button>
+      </span>
+    {:else}
+      <button type="button" class="btn ghost sm" disabled={!chat} onclick={() => (copying = true)}>{copied ?? 'Copy'}</button>
+    {/if}
     <button type="button" class="toggle" class:on={tree} aria-pressed={tree} onclick={() => setTree(!tree)}>Tree</button>
   </header>
 
   {#if chat}
     {#if tree}
-      <div class="tree-host"><TreeView {chat} bind:selected onopen={openInTranscript} /></div>
+      <div class="tree-host"><TreeView {chat} bind:selection onopen={openInTranscript} /></div>
     {:else}
       <Crumbs {chatId} {chat} />
-      <div class="messages" bind:this={list}>
-        {#each path as m, i (m.id)}
-          {#if startsDay(path, i)}<div class="day">{dayLabel(m.at, now)}</div>{/if}
-          <Bubble {chatId} {chat} message={m} onfollow={follow} />
-        {/each}
-      </div>
+      <Transcript bind:this={list} {chat} bind:collapsed />
     {/if}
     <Composer bind:this={composer} {chatId} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
-      {streaming} {offer} onoffer={takeOffer} />
+      {streaming} {offer} onoffer={takeOffer} {blocked} />
   {:else}
     <div class="messages"><p class="empty">Opening this chat…</p></div>
   {/if}
 </article>
 
 <style>
-  .chat-tab{position:absolute;inset:0;display:flex;flex-direction:column;font-family:var(--sans)}
+  .chat-tab{position:absolute;inset:0;display:flex;flex-direction:column;max-width:920px;padding-bottom:64px;font-family:var(--sans)}
+  .split{display:inline-flex;gap:2px}
   .chat-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 40px 8px;border-bottom:1px solid var(--rule);background:var(--bg)}
   .name{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);text-align:left;background:none;border:0;padding:3px 6px;margin-left:-6px;border-radius:5px;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .name:hover{background:var(--soft)}
@@ -148,7 +162,6 @@
   .name-input:focus{outline:none}
   .messages{flex:1;min-height:0;overflow:auto;padding:4px 40px 20px}
   .tree-host{flex:1;min-height:0;border-bottom:1px solid var(--rule)}
-  .day{margin:14px 0 2px;font-size:0.7rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);text-align:center}
   .empty{color:var(--muted);font-size:0.86rem;margin:18px 0}
   @media (max-width:900px){ .chat-head{padding:10px 18px 8px} .messages{padding:4px 18px 20px} }
 </style>

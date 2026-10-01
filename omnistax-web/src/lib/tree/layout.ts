@@ -52,3 +52,6 @@ export const boundsOf = (boxes: Iterable<Box>): Box => {
   const x = Math.min(...all.map((b) => b.x)), y = Math.min(...all.map((b) => b.y));
   return { x, y, w: Math.max(...all.map((b) => b.x + b.w)) - x, h: Math.max(...all.map((b) => b.y + b.h)) - y };
 };
+
+/* Whether two boxes share any point, which is what a lasso touching a box means. */
+export const meets = (a: Box, b: Box): boolean => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;

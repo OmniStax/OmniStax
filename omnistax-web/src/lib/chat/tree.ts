@@ -1,6 +1,6 @@
 /* The chat as a picture and as a list: the tree view's node sizes and where a
    reply lands, and the times the transcript and the Conversations page print. */
-import { messageOf, type Chat, type Message, type MessageId } from './model';
+import { messageOf, transcript, type Chat, type Message, type MessageId } from './model';
 import type { Size } from '../tree/layout';
 
 /* The leaf set to one message exactly, where `goTo` would follow on to the
@@ -24,17 +24,33 @@ export const opening = (text: string, chars: number): string => {
   return `${space > chars * 0.6 ? cut.slice(0, space) : cut}…`;
 };
 
-export type NodeScale = { readonly w: number; readonly line: number; readonly chrome: number; readonly lines: number; readonly chars: number };
-export const NODE: NodeScale = { w: 240, line: 19, chrome: 44, lines: 4, chars: 260 };
-export const NODE_COMPACT: NodeScale = { w: 170, line: 16, chrome: 30, lines: 3, chars: 140 };
+export type NodeScale = { readonly w: number; readonly wide: number; readonly line: number; readonly chrome: number; readonly lines: number; readonly chars: number };
+export const NODE: NodeScale = { w: 240, wide: 440, line: 19, chrome: 44, lines: 4, chars: 260 };
+export const NODE_COMPACT: NodeScale = { w: 170, wide: 300, line: 16, chrome: 30, lines: 3, chars: 140 };
 export const ANCHOR: Size = { w: 12, h: 12 };
 
-/* A node is as tall as the lines its opening needs, up to the scale's cap. */
-export const nodeSize = (m: Message, s: NodeScale): Size => {
-  const perLine = Math.max(1, Math.floor(s.w / 7.2));
-  const lines = Math.min(s.lines, Math.max(1, Math.ceil(opening(m.text, s.chars).length / perLine)));
-  return { w: s.w, h: s.chrome + lines * s.line };
+const linesOf = (text: string, width: number): number => {
+  const perLine = Math.max(1, Math.floor(width / 7.2));
+  return text.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / perLine)), 0);
 };
+
+/* A node is as tall as the lines its opening needs, up to the scale's cap. */
+export const nodeSize = (m: Message, s: NodeScale): Size =>
+  ({ w: s.w, h: s.chrome + Math.min(s.lines, linesOf(opening(m.text, s.chars).replace(/\n/g, ' '), s.w)) * s.line });
+
+/* An expanded node is wider and holds its whole message: as tall as its text
+   was measured once drawn, and until then as its length suggests. */
+export const openSize = (m: Message, s: NodeScale, measured?: number): Size =>
+  ({ w: s.wide, h: s.chrome + (measured ?? linesOf(m.text.trim(), s.wide) * s.line) });
+
+export const speakerOf = (m: Message): string => (m.role === 'user' ? 'You' : m.model || 'Assistant');
+
+/* The path the reader stands on, as Markdown: each message under who said it. */
+export const markdownOf = (chat: Chat): string =>
+  transcript(chat).map((m) => `**${speakerOf(m)}**\n\n${m.text.trim()}`).join('\n\n');
+
+/* The last thing the reader asked on a path. */
+export const lastAsked = (path: readonly Message[]): Message | null => [...path].reverse().find((m) => m.role === 'user') ?? null;
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 

@@ -1,7 +1,8 @@
 <script lang="ts">
   /* A whole chat held in a note, `![[chat:<id>]]`: the tree, inline, at a
-     fixed height, panned and zoomed on its own plane. */
+     fixed height, panned and zoomed on its own plane, or as its transcript. */
   import TreeView from '../chat/TreeView.svelte';
+  import Transcript from '../chat/Transcript.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { showChat } from '../../lib/chat/open.svelte';
   import { chatId as toChatId } from '../../lib/types/ids';
@@ -13,6 +14,7 @@
   $effect(() => { void chats.load(cid); });
   const chat = $derived(chats.get(cid));
   let fitted = $state(0);
+  let tree = $state(true);
 
   const open = (m?: MessageId): void => {
     if (m) chats.goTo(cid, m);
@@ -23,12 +25,17 @@
 <div class="chat-tree" data-chat={id}>
   <div class="head">
     <span class="name">{chats.nameOf(cid)}</span>
-    <button type="button" class="act" onclick={() => (fitted += 1)}>Fit</button>
+    <button type="button" class="act" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
+    {#if tree}<button type="button" class="act" onclick={() => (fitted += 1)}>Fit</button>{/if}
     <button type="button" class="act" onclick={() => open()}>Open</button>
   </div>
   <div class="body">
     {#if chat}
-      {#key fitted}<TreeView {chat} compact onopen={open} />{/key}
+      {#if tree}
+        {#key fitted}<TreeView {chat} compact onopen={open} />{/key}
+      {:else}
+        <Transcript {chat} compact />
+      {/if}
     {/if}
   </div>
 </div>
@@ -39,5 +46,7 @@
   .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:600;color:var(--ink)}
   .act{font:inherit;font-size:0.74rem;color:var(--accent);background:transparent;border:0;padding:2px 4px;cursor:pointer}
   .act:hover{text-decoration:underline}
+  .act[aria-pressed]{color:var(--muted)}
+  .act.on{color:var(--accent);font-weight:600}
   .body{flex:1;min-height:0;position:relative}
 </style>

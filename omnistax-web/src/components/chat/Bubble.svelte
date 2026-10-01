@@ -3,7 +3,7 @@
   import Widget from './Widget.svelte';
   import Steps from './Steps.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
-  import { chatBooks, chatResolver } from '../../lib/chat/resolve';
+  import { chatBooks, chatResolver, decorateAnswer, placeAttrs, placeOf } from '../../lib/chat/resolve';
   import { partsOf } from '../../lib/chat/widget';
   import { CORS_MESSAGE } from '../../lib/chat/providers/index';
   import { dragout } from '../../lib/notes/md/dragout';
@@ -11,18 +11,22 @@
   import { pagerOf } from '../../lib/chat/model';
   import { chats } from '../../lib/chat/store.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
-  import { timeOf } from '../../lib/chat/tree';
+  import { opening, speakerOf, timeOf } from '../../lib/chat/tree';
   import type { ChatId } from '../../lib/types/ids';
 
-  let { chatId, chat, message, onfollow }: { chatId: ChatId; chat: Chat; message: Message; onfollow: (embed: string) => void } = $props();
+  let { chatId, chat, message, onfollow, collapsed = false, ontoggle, readonly = false }: {
+    chatId: ChatId; chat: Chat; message: Message; onfollow: (embed: string) => void;
+    collapsed?: boolean; ontoggle?: () => void; readonly?: boolean;
+  } = $props();
 
   const pager = $derived(pagerOf(chat, message.id));
+  const place = $derived(placeOf(chat, message.id));
   const mine = $derived(message.role === 'user');
   const parts = $derived(partsOf(message.text, !mine && ai.inlineHtml));
 
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
-  const html = (markdown: string): string => (render === null ? '' : render(markdown, chatResolver()));
+  const html = (markdown: string): string => (render === null ? '' : render(markdown, chatResolver(place)));
 
   let editing = $state(false);
   let draft = $state('');
@@ -37,7 +41,7 @@
 
   /* Maths goes through the book's renderer for its macros. */
   const decorate = (el: HTMLElement): void => {
-    chatBooks.setMath(el);
+    decorateAnswer(el, place, () => decorate(el));
     for (const pre of el.querySelectorAll<HTMLPreElement>('pre')) {
       if (pre.dataset.copy === '1') continue;
       pre.dataset.copy = '1';
@@ -62,12 +66,21 @@
     const a = t.closest<HTMLAnchorElement>('a.wiki[data-link]');
     if (a?.dataset.link) { e.preventDefault(); onfollow(a.dataset.link); }
   };
+
+  const math = (node: HTMLElement, _html: string) => {
+    chatBooks.setMath(node);
+    return { update: () => chatBooks.setMath(node) };
+  };
 </script>
 
-<div class="bubble" class:mine data-message={message.id} data-role={message.role} data-state={message.state}
+<div class="bubble" class:mine {...placeAttrs(place)} data-message={message.id} data-role={message.role} data-state={message.state}
   use:dragout={{ kind: 'chat', chat: chatId, message: message.id }}>
   <div class="who">
-    <span class="role">{mine ? 'You' : message.model || 'Assistant'}</span>
+    {#if ontoggle}
+      <button type="button" class="fold btn ghost icon sm" class:shut={collapsed} data-nodrag aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Expand message' : 'Collapse message'} onclick={ontoggle}>▾</button>
+    {/if}
+    <span class="role">{speakerOf(message)}</span>
     <time class="at" datetime={new Date(message.at).toISOString()}>{timeOf(message.at)}</time>
     {#if pager}
       <span class="pager" data-nodrag>
@@ -77,15 +90,21 @@
       </span>
     {/if}
     <span class="spacer"></span>
-    <span class="acts" data-nodrag>
-      {#if mine}
-        <button type="button" class="btn ghost sm" onclick={startEdit}>Edit</button>
-      {:else if message.state !== 'streaming'}
-        <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>Retry</button>
-      {/if}
-    </span>
+    {#if !readonly && !collapsed}
+      <span class="acts" data-nodrag>
+        {#if mine}
+          <button type="button" class="btn ghost sm" onclick={startEdit}>Edit</button>
+        {:else if message.state !== 'streaming'}
+          <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>Retry</button>
+        {/if}
+      </span>
+    {/if}
   </div>
 
+  {#if collapsed}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    <button type="button" class="brief" class:said={mine} data-nodrag use:math={html(opening(message.text, 240))} onclick={ontoggle}>{@html html(opening(message.text, 240))}</button>
+  {:else}
   {#if message.chips.length}
     <ul class="chips">{#each message.chips as c (c.kind + c.key)}<li title={c.text.slice(0, 400)}>{c.label}</li>{/each}</ul>
   {/if}
@@ -112,6 +131,7 @@
   {#if message.state === 'failed'}
     <p class="bad" role="alert">{message.error === CORS_MESSAGE ? `The answer did not come: ${CORS_MESSAGE}.` : message.error}</p>
   {/if}
+  {/if}
 </div>
 
 <style>
@@ -119,6 +139,11 @@
   .who{display:flex;align-items:center;gap:8px;font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
   .spacer{flex:1}
   .role{font-weight:600}
+  .fold{margin-left:-4px;color:var(--muted);transition:transform 120ms}
+  .fold.shut{transform:rotate(-90deg)}
+  .brief{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;width:100%;margin-top:4px;padding:0;font:inherit;font-size:0.9rem;line-height:1.5;text-align:left;color:var(--muted);background:none;border:0;cursor:pointer}
+  .brief:hover{color:var(--ink)}
+  .brief :global(:is(p,ul,ol,li,h1,h2,h3,h4,pre,blockquote)){display:inline;margin:0;padding:0;font-size:inherit;font-weight:inherit}
   .pager{display:inline-flex;align-items:center;gap:2px;text-transform:none;letter-spacing:0}
   .count{font-variant-numeric:tabular-nums}
   .acts{display:flex;gap:2px;text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}

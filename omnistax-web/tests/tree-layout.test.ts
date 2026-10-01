@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { boundsOf, layoutTree, type Box } from '../src/lib/tree/layout';
+import { boundsOf, layoutTree, meets, type Box } from '../src/lib/tree/layout';
 
 type Tree = Readonly<Record<string, readonly string[]>>;
 const kids = (t: Tree) => (id: string): readonly string[] => t[id] ?? [];
@@ -54,4 +54,11 @@ test('a small subtree tucks under a wide neighbour rather than beside its whole 
 test('a cycle in the children stops rather than looping', () => {
   const m = layoutTree('a', kids({ a: ['b'], b: ['a'] }), () => ({ w: 10, h: 10 }));
   assert.equal(m.size, 2);
+});
+
+test('a lasso meets the boxes it touches, edges included', () => {
+  const box: Box = { x: 10, y: 10, w: 20, h: 20 };
+  assert.ok(meets({ x: 0, y: 0, w: 10, h: 10 }, box));
+  assert.ok(meets({ x: 15, y: 15, w: 1, h: 1 }, box));
+  assert.ok(!meets({ x: 31, y: 0, w: 5, h: 50 }, box));
 });

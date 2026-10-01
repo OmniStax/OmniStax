@@ -2,8 +2,10 @@
   /* A chat held on a drawing by reference: the live tree, drawn compact, so it
      grows as the chat does. Its header moves it and its corner sizes it; the
      tree inside pans and zooms on its own, so no press or wheel in it reaches
-     the canvas. Double-clicking a message opens the chat there. */
+     the canvas. Double-clicking a message opens the chat there. The header
+     turns it to the transcript and back; neither asks anything. */
   import TreeView from '../chat/TreeView.svelte';
+  import Transcript from '../chat/Transcript.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { showChat } from '../../lib/chat/open.svelte';
   import { chatId as toChatId } from '../../lib/types/ids';
@@ -23,6 +25,7 @@
   const cid = $derived(toChatId(id));
   $effect(() => { void chats.load(cid); });
   const chat = $derived(chats.get(cid));
+  let tree = $state(true);
 
   const open = (m?: MessageId): void => {
     if (m) chats.goTo(cid, m);
@@ -56,12 +59,17 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="head" onpointerdown={onGrab}>
     <span class="name">{chats.nameOf(cid)}</span>
+    <button type="button" class="tree" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
     <button type="button" class="open" title="Open the chat" aria-label="Open the chat" onclick={() => open()}>↗</button>
   </div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="body" onpointerdown={(e) => { e.stopPropagation(); onselect(); }} onwheel={(e) => e.stopPropagation()} ondblclick={(e) => e.stopPropagation()}>
     {#if chat}
-      <TreeView {chat} compact root={root as MessageId | undefined} onopen={open} />
+      {#if tree}
+        <TreeView {chat} compact root={root as MessageId | undefined} onopen={open} />
+      {:else}
+        <Transcript {chat} compact />
+      {/if}
     {/if}
   </div>
   <span class="corner" role="presentation" title="Drag to resize" onpointerdown={onCorner}></span>
@@ -73,7 +81,9 @@
   .head{flex:none;display:flex;align-items:center;gap:6px;height:24px;padding:0 6px;background:var(--soft);border-bottom:1px solid var(--rule);cursor:move;touch-action:none;user-select:none}
   .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--ink)}
   .open{flex:none;width:20px;height:20px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0}
-  .open:hover{color:var(--accent);border-color:var(--accent)}
+  .open:hover,.tree:hover{color:var(--accent);border-color:var(--accent)}
+  .tree{flex:none;height:20px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:11px;line-height:1;padding:0 6px}
+  .tree.on{color:var(--accent);border-color:color-mix(in srgb, var(--accent) 50%, var(--rule))}
   .body{flex:1;min-height:0;position:relative}
   .corner{position:absolute;right:0;bottom:0;width:13px;height:13px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--rule) 50%)}
   .chat-item.selected .corner{background:linear-gradient(135deg,transparent 50%,var(--accent) 50%)}

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { addUnder, childrenOf, newChat, transcript } from '../src/lib/chat/model';
-import { ageOf, NODE, nodeSize, opening, replyParent, startsDay, withLeaf } from '../src/lib/chat/tree';
+import { ageOf, lastAsked, markdownOf, NODE, nodeSize, opening, openSize, replyParent, startsDay, withLeaf } from '../src/lib/chat/tree';
 import { chatId } from '../src/lib/types/ids';
 
 const T = Date.UTC(2026, 8, 29, 12);
@@ -47,4 +47,19 @@ test('a day divider stands above the first message and where the day changes', (
   const m = (at: number) => ({ ...twoTurns().chat.messages[twoTurns().q], at });
   const path = [m(T), m(T + 60_000), m(T + 2 * 86_400_000)];
   assert.deepEqual(path.map((_, i) => startsDay(path, i)), [true, false, true]);
+});
+
+test('an expanded node is wide and takes its measured height once it has one', () => {
+  const { chat, q } = twoTurns();
+  const long = { ...chat.messages[q], text: 'word '.repeat(400) };
+  assert.equal(openSize(long, NODE).w, NODE.wide);
+  assert.ok(openSize(long, NODE).h > nodeSize(long, NODE).h);
+  assert.equal(openSize(long, NODE, 120).h, NODE.chrome + 120);
+});
+
+test('the transcript copies as Markdown and the last question is found', () => {
+  const { chat } = twoTurns();
+  assert.equal(markdownOf(chat), '**You**\n\nq\n\n**Assistant**\n\na\n\n**You**\n\nq2');
+  assert.equal(lastAsked(transcript(chat))?.text, 'q2');
+  assert.equal(lastAsked([]), null);
 });
