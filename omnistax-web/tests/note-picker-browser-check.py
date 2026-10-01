@@ -69,15 +69,13 @@ with sync_playwright() as playwright:
     assert picker.count() == 0, "the list stayed open"
     assert body() == "See [[college-physics-2e/1.2]]", body()
 
-    # A click on a row's pick does the same. The press is what chooses, so the editor
-    # keeps the focus; and near the top of a note the list hangs below the
-    # cursor, where it can be clicked at all.
+    # Enter takes a section row whole, as it takes a leaf.
     page.keyboard.type(" and [[")
     picker.wait_for(state="visible")
     page.keyboard.type("3.1")
     page.wait_for_timeout(400)
     assert rows()[0].startswith("3.1 ·"), rows()
-    picker.locator("li button.pick").first.click()
+    page.keyboard.press("Enter")
     page.wait_for_timeout(400)
     assert body() == "See [[college-physics-2e/1.2]] and [[college-physics-2e/3.1]]", body()
 

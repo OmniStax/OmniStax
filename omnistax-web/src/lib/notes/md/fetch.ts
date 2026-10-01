@@ -12,12 +12,15 @@ export const fetchMissing = (el: HTMLElement, books: BookResolver): Promise<unkn
   for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
     const t = parseLink(d.dataset.embed ?? '');
     if (t.kind === 'figure') {
-      const ref = books.ref(t.section, t.book), key = secKey(ref);
+      const ref = books.ref(t.section, t.book);
+      if (!ref) continue;
+      const key = secKey(ref);
       if (!asked.has(key)) asked.set(key, Promise.resolve(registry.load(ref)).catch(() => {}));
       continue;
     }
     if (!isBook(t)) continue;
     const ref = books.ref(t.section, t.book), dir = books.chapterDir(t.section, t.book);
+    if (!ref) continue;
     const key = `${ref.book}/${dir}`;
     if (dir && !asked.has(key)) asked.set(key, registry.loadChapter(ref.book, dir).catch(() => {}));
   }
