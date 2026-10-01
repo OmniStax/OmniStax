@@ -53,8 +53,6 @@ Write `plan.md` before building: the sub-concepts, the concept nodes and where e
 
 Concepts are written to the tables as sections progress, never inferred from headers afterwards; later sections point back to earlier concept ids. A concept row holds only name, kind, prerequisite edges, why and evidence.
 
-Every definition and every formula belongs to a concept. A glossary row and a variables row name the concept they define; an equation names the concept it serves, an idea when the equation defines a quantity (Δx = x_f − x₀) and a result when it states a law or relation (F = ma). The app reads defining and stating from that kind, so the agent never marks it twice. Reference data a subject needs (the periodic table, constants, solubility tables) is a sheet of the book, not a new kind of row.
-
 ## 7. Colour is a function of type
 
 A colour belongs to a type, and a type is a kind of physical quantity. A symbol takes its type's colour; a derived quantity is another type and another colour; a variant of one type (initial, average, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its result type. Nothing is coerced into a neighbouring type to save a colour.
@@ -197,3 +195,7 @@ The root `RULES.md`; the book's `RULES.md` and `COLOR.md`; the chapter's `config
    The plan line names the class. A scene with both layers (a motor with its field) says which parts are which. Either class is built procedurally in the renderer, ships no external asset unless one is vendored with its licence, and falls back to a flat view where WebGL is missing.
 4. When the real motion is too small to see, the scene exaggerates it on a slider and the readout states the true numbers and the factor drawn, so the reader sees the mechanism and is told how far the picture departs from the truth.
 5. A 3D scene that adds no view the flat drawing lacks is removed, as the cars of 2.33 + 2.34 were. The plan line argues the tier, as item 24 asks.
+
+## 29. Definitions and formulas
+
+Beside the concepts, a book's reference matter is definitions and formulas, the same in every subject. A definition says what a name means. The word and the symbol that name one thing are one definition, and a formula that only defines that thing belongs to it: displacement, Δx and Δx = x_f − x₀ are one definition, with its meaning, its unit and the section that defines it. A word with no symbol, or a symbol with no word, is a definition too. A formula states a law or a relation and what it holds under (F = ma, v = v₀ + at, a theorem, a balanced reaction), and only these make the book's formulas list. The tables join the pieces: a variables row names the glossary term it spells (`term`), and an equation that only defines a quantity names the symbol it defines (`defines`). Concepts are not touched (item 6). Reference data a subject needs (the periodic table, constants, solubility tables) is a sheet of the book, not a new kind of row.

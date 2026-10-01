@@ -100,12 +100,11 @@ Tables:
   words ("constant acceleration"); an equation that holds generally has none.
 - `glossary`: `{ section, term, definition }`.
 
-A glossary row and a variables row will gain `concept`, the id of the
-concept they define (RULES item 6), so a word and its symbol meet on one
-definition card and reach their exercises and mastery through the concept.
-The schema does not have the field yet; it arrives with the pass that
-links the rows of the built books. An equation already carries `concept`:
-an idea's equation defines a quantity, a result's states a law.
+Two fields are coming for RULES item 29, not yet in the schema: a
+variables row's `term`, the glossary term it spells, and an equation's
+`defines`, the symbol an equation that only defines a quantity defines.
+Together they put a word, its symbol and its defining formula on one
+definition card.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.
