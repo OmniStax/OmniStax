@@ -82,13 +82,37 @@ in `docs/prompts/interactive-figures.md`.
 
 Andrew: I liked especially the part where adjusting the variables values of interested updated live. And, that those values are shown to be updated within the formula. Wonderful.
 
-## 6. Keep the concepts in an organized data format
+## 6. Concepts
 
-Concepts are written down in a structured file as the sections progress,
-not inferred from headers afterwards. Later sections point back to earlier
-concepts and sub-concepts, so the concept map grows across the book. The
-concept map holds strictly the concept description: name, kind, prerequisite
-edges, why, evidence. Narrative structure stays out of it.
+Until 2026-10-01 a concept was a testable unit: an `idea`, a `result` or a
+`skill`, six to nine to a heavy section, each with a `why` (why it matters)
+and an `evidence` (what in the section shows it is taught). That left most of
+what a book teaches off the map. A glossary term, the definition of a symbol
+and a law the exercises never test had no node, so the Definitions and
+Formulas views could not say which concept a row belonged to, and a hover
+could not take the reader to where the book introduced it.
+
+Now everything the book teaches is a concept, and a concept is one of five
+kinds. The two new ones split the old `idea` and `result`. A **definition**
+is stipulated, so nothing could prove it wrong: displacement, density, the
+joule. An **axiom** is what the book takes as given: Newton's laws, Ohm's
+law, conservation of energy as the book states it. The line between axiom
+and result is the book's, not the subject's: the ideal gas law is an axiom
+in a book that states it from experiment and a result in one that derives it
+from kinetic theory. An **idea** keeps the models, phenomena, experiments and
+interpretations, and a **skill** the know-how.
+
+`why` became `statement` because a definition has no "why", it has a meaning,
+and an axiom or result has a claim. `evidence` went: the coverage rows and
+`exercise_concepts` already say where a concept is taught and tested. A
+concept carries every name and formula that states it, so a rearrangement is
+another form on the same node and a component of a vector belongs to its
+quantity's definition. Glossary, variables and equations rows name their
+concept, and each concept has exactly one span that introduces it, which is
+what "Go to definition" opens.
+
+The existing books were migrated by one decision file per chapter, applied
+by `omnistax-content/tools/migrate_concepts.py`.
 
 ## 7. Colour is a function of type
 
@@ -354,7 +378,7 @@ did each job, so a reader always knows which model wrote the page's
 words and built its figures.
 
 Everything OmniStax writes (leads, figure captions, readouts, suggested
-approaches, concept "why" lines) is written in the book's own voice:
+approaches, concept statements) is written in the book's own voice:
 its register, sentence shape, person and vocabulary. The typeface already
 marks the words as OmniStax's, so the language must not; the reader should
 feel one writer across the page. The agent reads a few pages of the book
@@ -432,7 +456,7 @@ parses every file and checks that every concept, prerequisite, exercise,
 type, section and equation named anywhere exists, that every anchor, span,
 cite and place names an id in the section's `text.html`, that every figure
 row matches a figure in the text, and that every built concept has its
-`why`, its `evidence` and a span that introduces it. The agent runs it
+statement and exactly one span that introduces it. The agent runs it
 after every section and before every stop for feedback.
 
 ## 20. Exercise evidence is discrete

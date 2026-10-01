@@ -42,12 +42,24 @@ Tables:
   its `latex`. A row with no `macro` is a symbol the hover layer knows but
   the text writes in plain LaTeX (`θ`).
 - `exercise_kinds`: `{ id, label }`.
-- `concepts`: `{ id, kind, section, name, why?, evidence?, eq? }`. The
-  whole book's concept nodes in one table, because ids are canonical and a
-  chapter's prerequisites live in other chapters. A concept whose section
-  is not built yet is a placeholder; that is derived from the section
-  list, not written down. A concept whose section is built must carry
-  `why` and `evidence`; the validator enforces it.
+- `concepts`: `{ id, kind, section, name, statement?, eq? }`. The whole
+  book's concept nodes in one table, because ids are canonical and a
+  chapter's prerequisites live in other chapters. Everything the book
+  teaches is a concept (RULES item 6), and `kind` is one of five:
+  `definition` (stipulated, a name for something: displacement, the joule),
+  `axiom` (taken as given: a postulate, or a law found by experiment such as
+  F = ma or Ohm's law), `result` (follows from other concepts, whether or not
+  the book shows the steps), `idea` (earns a place in the map and is none of
+  those: the Bohr model, the Michelson–Morley experiment) and `skill`
+  (know-how for applying the others: drawing a free-body diagram). The kind
+  is what this book treats as given or derived. `statement` is the meaning of
+  a definition, the claim of an axiom or a result, what an idea is or what a
+  skill lets the reader do, in the book's voice. `name` carries the formula in
+  `$…$` where the concept has one. A concept whose section is not built yet
+  is a placeholder; that is derived from the section list, not written down.
+  A concept whose section is built must carry a `statement` and be introduced
+  by exactly one coverage row; the validator enforces both. Exercises reach a
+  concept through `exercise_concepts`, so it needs no field for them.
 - `concept_prereqs`: `{ concept, prereq }`.
 - `sheets`: `{ id, title, kind, file }`. The reference sheets the book keeps
   beside its chapters, each a page of its own at `/<book>/sheets/<id>/`,
@@ -93,19 +105,22 @@ Tables:
 
 - `sections`: `{ id, module, title, slug }`. Every section of the chapter,
   built or not.
-- `variables`: `{ sym, type?, meaning, unit, section, anchor? }`. `type`
-  was `color`; the book declares types, the app picks hues.
+- `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
+  redefines? }`. `type` was `color`; the book declares types, the app picks
+  hues. `concept` is the definition of the symbol's quantity; a variant or a
+  component (a_x, B₁) names the definition of its base quantity.
 - `equations`: `{ id, concept?, section, latex, ktex?, condition?, anchor?,
-  important }`. `condition` is what the equation holds under, in the book's
-  words ("constant acceleration"); an equation that holds generally has none.
-- `glossary`: `{ section, term, definition }`.
+  important }`. `concept` is the concept the equation states: a rearrangement
+  or a special case names the concept of its main form, and a line of a
+  worked example the result or skill it applies. `condition` is what the
+  equation holds under, in the book's words ("constant acceleration"); an
+  equation that holds generally has none.
+- `glossary`: `{ section, term, concept?, definition }`. Every glossary term
+  is a concept, and `concept` names it.
 
-Coming with RULES item 6, not yet in the schema: a concept's `kind` becomes
-`definition | axiom | result | idea | skill`, `why` becomes `statement`,
-`evidence` goes, every glossary term becomes a concept, and glossary and
-variables rows name the concept they belong to. Exercises reach a concept
-through `exercise_concepts` and its introduction through the coverage row
-that `introduces` it, so neither needs a field on the concept.
+The three `concept` fields are optional in the schema while the books are
+linked; a row without one is a warning, which `UNLINKED_ROWS_ARE_ERRORS` in
+`check.ts` turns into an error.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.
@@ -183,7 +198,7 @@ chapter, after the last.
 things. Every object is `.strict()`, so an unknown key fails the build.
 Every enumerated field is a `z.enum`, so its inferred type is a literal
 union: `bloom: "Remember" | "Understand" | "Apply" | "Analyze" | "Evaluate"
-| "Create"`, `kind: "idea" | "result" | "skill"`, `verb`, `generated_by`,
+| "Create"`, concept `kind: "definition" | "axiom" | "result" | "idea" | "skill"`, `verb`, `generated_by`,
 figure `kind`. Every field carries a `.describe()` that the docs generator
 reads.
 
@@ -195,7 +210,7 @@ strings of `types/ids.ts` (`ConceptId`, `SectionId`, `SpanId`) plus
 
 Where the disk holds a minimal row and the app wants a variant, the DTO is
 the ADT and the transform builds it. A `ConceptDTO` is
-`{ status: "placeholder", … } | { status: "built", why, evidence, … }`,
+`{ status: "placeholder", … } | { status: "built", statement, … }`,
 decided by whether the concept's section is built.
 
 ## What the build derives
@@ -253,8 +268,10 @@ references:
 - every `source_id` occurs in the `source.md` of `source_section` where the
   row names one and of the section itself where it does not, and a
   `source_section` names a section the app has built;
-- every built concept has `why` and `evidence` and at least one coverage
-  row that introduces it;
+- every built concept has a `statement` and exactly one coverage row that
+  introduces it;
+- every glossary, variables and equations row names a concept (a warning
+  until `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
 - every `draws` entry is a declared type;
 - every section names its chapter and has a lead, and its text keeps off
   the id `section-summary`, which the build gives the summary block it

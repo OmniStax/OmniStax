@@ -25,9 +25,12 @@ const EQUATION_REF = z.string().transform(equationId);
    to making something new. Practice keeps the level as descriptive metadata. */
 export const BLOOM_LEVELS = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'] as const;
 export type Bloom = (typeof BLOOM_LEVELS)[number];
-/* What a concept is: an idea in the usual sense, a result derived from ideas, or
-   a procedure the book teaches and tests on its own. */
-export const CONCEPT_KINDS = ['idea', 'result', 'skill'] as const;
+/* What a concept is, as the book treats it (RULES item 6): a definition is
+   stipulated, a name for something; an axiom is taken as given, a postulate or
+   a law found by experiment; a result follows from other concepts; an idea
+   earns a place in the map and is none of those; a skill is know-how for
+   applying the others. */
+export const CONCEPT_KINDS = ['definition', 'axiom', 'result', 'idea', 'skill'] as const;
 export type ConceptKind = (typeof CONCEPT_KINDS)[number];
 /* What a span of the text does with a concept: meets it for the first time,
    leans on it, or comes back to it. */
@@ -68,11 +71,10 @@ export type ExerciseKindDTO = z.infer<typeof ExerciseKindSchema>;
 
 export const ConceptSchema = z.object({
   id: CONCEPT_REF.describe('The concept\u2019s id, which is canonical across books, so another textbook\u2019s section on the same matter maps to the same concept.'),
-  kind: z.enum(CONCEPT_KINDS).describe('Whether the concept is an idea, a result derived from ideas, or a skill the exercises test on its own.'),
+  kind: z.enum(CONCEPT_KINDS).describe('What the book treats the concept as: a definition, stipulated, a name for something (displacement, the joule); an axiom, taken as given, a postulate or a law found by experiment (F = ma, Ohm\u2019s law); a result, which follows from other concepts whether or not the book shows the steps (v = v\u2080 + at); an idea, which earns a place in the map and is none of those (the Bohr model); or a skill, know-how for applying the others (drawing a free-body diagram).'),
   section: SECTION_REF.describe('The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder.'),
-  name: z.string().describe('The concept\u2019s name as the map prints it, with its equation in $\u2026$ where the name is a result.'),
-  why: z.string().optional().describe('Why the concept matters and where it comes from, in the book\u2019s voice. A concept whose section is built carries one.'),
-  evidence: z.string().optional().describe('What in the section shows the concept is taught there: the examples, the questions and the problems that turn on it.'),
+  name: z.string().describe('The concept\u2019s name as the map prints it, with its formula in $\u2026$ where it has one.'),
+  statement: z.string().optional().describe('The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book\u2019s voice. A concept whose section is built carries one.'),
   eq: EQUATION_REF.optional().describe('The equation of the formula sheet that states the concept, where one does.'),
 }).strict();
 export type ConceptRowDTO = z.infer<typeof ConceptSchema>;
@@ -156,6 +158,7 @@ export type SectionRefDTO = z.infer<typeof SectionRefSchema>;
 
 export const VariableSchema = z.object({
   sym: z.string().describe('The symbol\u2019s key in the book\u2019s symbol table.'),
+  concept: CONCEPT_REF.optional().describe('The concept that defines the symbol\u2019s quantity. A variant or a component (a_x, B\u2081) names the definition of its base quantity.'),
   type: TYPE_REF.optional().describe('The type of quantity the symbol stands for here. The book declares the types and the app picks the hues.'),
   meaning: z.string().describe('What the symbol stands for in this section, in the book\u2019s words.'),
   unit: z.string().default('').describe('The unit the quantity is measured in.'),
@@ -167,7 +170,7 @@ export type VariableDTO = z.infer<typeof VariableSchema>;
 
 export const EquationSchema = z.object({
   id: EQUATION_REF.describe('The equation\u2019s id, which the concepts refer to it by.'),
-  concept: CONCEPT_REF.optional().describe('The concept the equation states, where it states one.'),
+  concept: CONCEPT_REF.optional().describe('The concept the equation states. A rearrangement or a special case names the concept of its main form, and a line of a worked example the result or skill it applies.'),
   section: SECTION_REF.describe('The section that states the equation.'),
   latex: z.string().describe('The equation in plain LaTeX, as the book prints it.'),
   ktex: z.string().optional().describe('The same equation written with the book\u2019s macros, so that each symbol wears the colour of its type. The sheet prints this where it is given.'),
@@ -180,6 +183,7 @@ export type EquationRowDTO = z.infer<typeof EquationSchema>;
 export const GlossarySchema = z.object({
   section: SECTION_REF.describe('The section that defines the term.'),
   term: z.string().describe('The term as the book defines it, in the words the text marks.'),
+  concept: CONCEPT_REF.optional().describe('The concept that is the term: every glossary term is a concept.'),
   definition: z.string().describe('The book\u2019s own definition of the term.'),
 }).strict();
 export type GlossaryDTO = z.infer<typeof GlossarySchema>;
@@ -412,9 +416,8 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
 
 /* A concept as a view of it needs it: its prerequisites folded in from the edge
    table, and whether the section that introduces it has been built. A
-   placeholder stands for a section nobody has built, so it has nothing to say
-   about why it matters. */
-const CONCEPT_BASE = ConceptSchema.omit({ why: true, evidence: true }).shape;
+   placeholder stands for a section nobody has built, so it states nothing. */
+const CONCEPT_BASE = ConceptSchema.omit({ statement: true }).shape;
 export const ServedConceptSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('placeholder'), ...CONCEPT_BASE, prereqs: z.array(CONCEPT_REF).default([]) }),
   z.object({ status: z.literal('built'), ...ConceptSchema.shape, prereqs: z.array(CONCEPT_REF).default([]) }),

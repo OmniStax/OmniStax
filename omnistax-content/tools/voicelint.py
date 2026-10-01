@@ -3,7 +3,7 @@
 
 Reads a book folder and scores every piece of text the AI wrote for the reader:
 section leads (where `ai.text` is set), sim-head captions, `generated_by: ai`
-solutions, hints, and concept `why` lines. Each item is flagged for passive
+solutions, hints, and concept statements. Each item is flagged for passive
 constructions, meta or reflective phrasing, hedging, and length.
 
     voicelint.py "College Physics 2e"                   per-chapter counts, for splitting a sweep
@@ -23,10 +23,10 @@ import re
 import sys
 from dataclasses import asdict, dataclass
 
-Kind = str  # lead | caption | answer | hint | why
+Kind = str  # lead | caption | answer | hint | statement
 
 # The most words a piece of each kind should need, and the most any one sentence should.
-LIMITS: dict[Kind, int] = {"lead": 80, "caption": 80, "answer": 150, "hint": 30, "why": 70}
+LIMITS: dict[Kind, int] = {"lead": 80, "caption": 80, "answer": 150, "hint": 30, "statement": 70}
 SENTENCE_LIMIT = 40
 
 PASSIVE = re.compile(
@@ -125,7 +125,7 @@ def section_items(book: str) -> list[Item]:
     return [i for i in out if i]
 
 
-def why_items(book: str) -> list[Item]:
+def statement_items(book: str) -> list[Item]:
     meta = json.load(open(os.path.join(book, "book.json"), encoding="utf-8"))
     dirs = {c.split("ch")[-1].lstrip("0"): c for c in meta.get("chapter_dirs", meta.get("chapters", [])) if isinstance(c, str)}
 
@@ -133,7 +133,7 @@ def why_items(book: str) -> list[Item]:
         num = section.split(".")[0]
         return dirs.get(num, f"ch{int(num):02d}" if num.isdigit() else "book")
 
-    rows = [lint(ch(c.get("section", "")), f"concept {c['id']}", "why", c["why"]) for c in meta.get("concepts", []) if c.get("why")]
+    rows = [lint(ch(c.get("section", "")), f"concept {c['id']}", "statement", c["statement"]) for c in meta.get("concepts", []) if c.get("statement")]
     return [i for i in rows if i]
 
 
@@ -171,7 +171,7 @@ def main(argv: list[str]) -> int:
     p.add_argument("--json", action="store_true", help="print the items as JSON")
     p.add_argument("--min", type=int, default=1, help="the least score an item needs to count as flagged (default 1)")
     a = p.parse_intermixed_args(argv)
-    items = section_items(a.book) + why_items(a.book)
+    items = section_items(a.book) + statement_items(a.book)
     if a.chapters:
         items = [i for i in items if i.chapter in a.chapters]
     if a.json:

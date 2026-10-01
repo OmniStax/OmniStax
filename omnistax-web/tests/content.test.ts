@@ -12,10 +12,10 @@ const BOOK = BookSchema.parse({
   chapters: ['ch02', 'ch16'],
   types: [{ id: 'force', label: 'force', dimension: 'N' }, { id: 'position', label: 'position', dimension: 'm' }],
   concepts: [
-    { id: 'displacement', kind: 'idea', section: '2.1', name: 'Displacement', why: 'w', evidence: 'e' },
+    { id: 'displacement', kind: 'idea', section: '2.1', name: 'Displacement', statement: 'w' },
     { id: 'newtons-first-law', kind: 'idea', section: '4.2', name: 'Newton’s first law' },
-    { id: 'restoring-force', kind: 'idea', section: '16.1', name: 'Restoring force', why: 'w', evidence: 'e' },
-    { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', why: 'w', evidence: 'e', eq: 'eq-hooke' },
+    { id: 'restoring-force', kind: 'idea', section: '16.1', name: 'Restoring force', statement: 'w' },
+    { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', statement: 'w', eq: 'eq-hooke' },
     { id: 'shm', kind: 'idea', section: '16.3', name: 'Simple harmonic motion' },
   ],
   concept_prereqs: [
@@ -65,7 +65,7 @@ test('a concept stands as a placeholder until the section that introduces it is 
   assert.deepEqual(status, { displacement: 'built', 'newtons-first-law': 'placeholder', 'restoring-force': 'built', 'hookes-law': 'built', shm: 'placeholder' });
   const none = conceptsOfChapter(BOOK, CH16, [], new Set()).concepts;
   assert.deepEqual(none.map((c) => c.status), ['placeholder', 'placeholder', 'placeholder', 'placeholder', 'placeholder']);
-  assert.equal(none.find((c) => c.id === 'hookes-law' && c.status === 'placeholder' && !('why' in c)) !== undefined, true, 'a placeholder says nothing about why it matters');
+  assert.equal(none.find((c) => c.id === 'hookes-law' && c.status === 'placeholder' && !('statement' in c)) !== undefined, true, 'a placeholder states nothing');
 });
 
 test('a page binds the union of what its figures draw, in one order', () => {

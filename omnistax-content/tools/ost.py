@@ -76,7 +76,7 @@ def _f(required: bool = False, kind: str = "str", enum: Sequence[str] = ()) -> F
     return Field(required, kind, tuple(enum))
 
 
-KIND = ("idea", "result", "skill")
+KIND = ("definition", "axiom", "result", "idea", "skill")
 VERB = ("introduces", "uses", "reinforces")
 BLOOM = ("Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create")
 FIGURE = ("sim", "figure", "photo")
@@ -90,7 +90,7 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
-        "why": _f(), "evidence": _f(), "eq": _f()}, ("id", "kind", "section", "name", "why")),
+        "statement": _f(), "eq": _f()}, ("id", "kind", "section", "name", "statement")),
     "concept_prereqs": Table("book", ("concept", "prereq"), {
         "concept": _f(True), "prereq": _f(True)}, ("concept", "prereq")),
     "sheets": Table("book", ("id",), {
@@ -100,14 +100,14 @@ TABLES: dict[TableName, Table] = {
     "sections": Table("chapter", ("id",), {
         "id": _f(True), "module": _f(), "title": _f(True), "slug": _f()}, ("id", "title", "module", "slug")),
     "variables": Table("chapter", ("section", "sym"), {
-        "sym": _f(True), "type": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
-        "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "redefines")),
+        "sym": _f(True), "concept": _f(), "type": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
+        "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "concept", "redefines")),
     "equations": Table("chapter", ("id",), {
         "id": _f(True), "concept": _f(), "section": _f(True), "latex": _f(True), "ktex": _f(),
         "condition": _f(), "anchor": _f(), "important": _f(kind="bool")},
         ("id", "section", "latex", "concept", "important")),
     "glossary": Table("chapter", ("section", "term"), {
-        "section": _f(True), "term": _f(True), "definition": _f(True)}, ("section", "term", "definition")),
+        "section": _f(True), "term": _f(True), "concept": _f(), "definition": _f(True)}, ("section", "term", "concept", "definition")),
 
     "figures": Table("section", ("id",), {
         "id": _f(True), "kind": _f(True, enum=FIGURE), "number": _f(), "folds": _f(kind="list"),
@@ -307,7 +307,7 @@ def rows_of(record: RecordDTO, name: TableName) -> list[RowDTO]:
 
 _WS = re.compile(r"[ \t\n\r]*")
 _DEC = json.JSONDecoder()
-Style = dict[tuple, Any]      # a path in the record -> how it was printed
+Style = dict[tuple, Any]      # a path in the record -> False where set over lines, else "padded" ({ "a": 1 }) or "tight" ({"a": 1})
 
 
 def _scan(text: str, i: int, path: tuple, style: Style, raws: dict[tuple, str]) -> int:
@@ -334,7 +334,7 @@ def _scan(text: str, i: int, path: tuple, style: Style, raws: dict[tuple, str]) 
                     continue
                 i += 1
                 break
-        style[path] = "\n" not in text[start:i]
+        style[path] = False if "\n" in text[start:i] else "padded" if text[start + 1] == " " else "tight"
         return i
     value, end = _DEC.scan_once(text, i)
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -362,25 +362,35 @@ def _majority(style: Style) -> dict[tuple, bool]:
     return {k: v[1] > v[0] for k, v in tally.items()}
 
 
-def _render(v: Any, ind: int, style: Style, maj: dict[tuple, bool],
+def _padding(style: Style) -> dict[tuple, bool]:
+    tally: dict[tuple, list[int]] = {}
+    for path, form in style.items():
+        if form:
+            tally.setdefault(_collapsed(path), [0, 0])[1 if form == "padded" else 0] += 1
+    return {k: v[1] > v[0] for k, v in tally.items()}
+
+
+def _render(v: Any, ind: int, style: Style, maj: dict[tuple, bool], pads: dict[tuple, bool],
             raws: dict[tuple, str], path: tuple, level: int) -> str:
-    inline = style.get(path, maj.get(_collapsed(path), False))
+    form = style.get(path)
+    inline = bool(form) if path in style else maj.get(_collapsed(path), False)
+    sp = " " if (form == "padded" if isinstance(form, str) else pads.get(_collapsed(path), isinstance(v, dict))) else ""
     pad, pad2 = " " * (ind * level), " " * (ind * (level + 1))
     inner = 0 if inline else level + 1
     if isinstance(v, dict):
         if not v:
             return "{}"
         items = [(json.dumps(k, ensure_ascii=False),
-                  _render(x, ind, style, maj, raws, path + (k,), inner)) for k, x in v.items()]
+                  _render(x, ind, style, maj, pads, raws, path + (k,), inner)) for k, x in v.items()]
         if inline:
-            return "{ " + ", ".join(f"{k}: {s}" for k, s in items) + " }"
+            return "{" + sp + ", ".join(f"{k}: {s}" for k, s in items) + sp + "}"
         return "{\n" + ",\n".join(pad2 + k + ": " + s for k, s in items) + "\n" + pad + "}"
     if isinstance(v, list):
         if not v:
             return "[]"
-        items = [_render(x, ind, style, maj, raws, path + (i,), inner) for i, x in enumerate(v)]
+        items = [_render(x, ind, style, maj, pads, raws, path + (i,), inner) for i, x in enumerate(v)]
         if inline:
-            return "[" + ", ".join(items) + "]"
+            return "[" + sp + ", ".join(items) + sp + "]"
         return "[\n" + ",\n".join(pad2 + s for s in items) + "\n" + pad + "]"
     if isinstance(v, (int, float)) and not isinstance(v, bool) and path in raws:
         try:
@@ -392,9 +402,9 @@ def _render(v: Any, ind: int, style: Style, maj: dict[tuple, bool],
 
 
 def dumps_like(value: RecordDTO, text: str) -> str:
-    """Print `value` as `text` was printed: the same indent, the same rows set inline."""
+    """Print `value` as `text` was printed: the same indent, the same rows set inline, the same space inside them."""
     ind, style, raws = learn(text)
-    return _render(value, ind, style, _majority(style), raws, (), 0) + "\n"
+    return _render(value, ind, style, _majority(style), _padding(style), raws, (), 0) + text[len(text.rstrip()):]
 
 
 def write_record(path: str, record: RecordDTO) -> None:

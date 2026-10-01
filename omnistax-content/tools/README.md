@@ -76,7 +76,7 @@ ost add chemistry-2e coverage --section 1.4 \
 ost set chemistry-2e figures sim-density --section 1.4 '{"number": "1.26"}'
 ost del chemistry-2e coverage density/volume/uses --section 1.4
 ost add chemistry-2e concepts --chapter 1 \
-  '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units"}'
+  '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units", "statement": "…"}'
 ```
 
 A row is named by its key fields joined with `/`: `figures`, `exercises`,
@@ -90,15 +90,19 @@ What a write does, in order:
 1. **Validates the row** against the table's shape: no unknown field, every
    required field there, every value of the right JSON kind, and every
    enumerated field one of its words (a figure `kind` is `sim`, `figure` or
-   `photo`, a coverage `verb` one of `introduces`, `uses`, `reinforces`, a
+   `photo`, a concept `kind` one of `definition`, `axiom`, `result`, `idea`,
+   `skill`, a coverage `verb` one of `introduces`, `uses`, `reinforces`, a
    `bloom` one of the six levels). `add` refuses a row whose key is already in
    the table, `set` and `del` refuse a key that is in no row. Nothing is written
    when a row is refused.
 2. **Writes the file atomically and in its own form**: the new record goes to a
    temp file beside the real one, is parsed back, and is renamed over it, so no
    reader ever sees half a record. The writer learns the form of the file it is
-   rewriting — its indent, which rows it sets on one line, how it spelled each
-   number — so a write of one row leaves every other byte as it was.
+   rewriting — its indent, which rows it sets on one line, whether such a row
+   has a space inside its braces, how it spelled each number — so a write of
+   one row leaves every other byte as it was. A row the file breaks over lines
+   by hand is the one form it cannot learn: it comes back on one line, or one
+   field to a line, as most rows of its table are.
 3. **Runs the app's checker** (`npm run check:content` for that book) and prints
    only the findings that name the file that changed, or `ok`. The exit is
    non-zero if one of them is an error. The row stays on disk either way: a row
@@ -126,6 +130,29 @@ ost log chemistry-2e 1       # append ch01/log-pass.md to LOG.md as the next pas
 merge of a chapter that is already merged changes no row but does move some: run
 it when there is something to merge.
 
+## The concept migration
+
+`migrate_concepts.py` applies RULES item 6 to a book built before it, from one
+decision file per chapter, `<chapter>/concept-migration.json`: every existing
+concept's `kind`, the `statement`s rewritten, the concepts added, and the
+concept each glossary, variables and equations row names.
+
+```
+python3 omnistax-content/tools/migrate_concepts.py check college-physics-2e      # every file
+python3 omnistax-content/tools/migrate_concepts.py check college-physics-2e 7    # one file
+python3 omnistax-content/tools/migrate_concepts.py apply college-physics-2e --dry-run
+python3 omnistax-content/tools/migrate_concepts.py apply college-physics-2e
+```
+
+A ref is a concept id, existing or in any file's `new`, or `@<name>`, matched
+without case against the names of both (before the first comma, `$…$` left
+out). `check` prints, per file, `ok` with its counts or each problem on its own
+line, and exits non-zero on a problem. `apply` writes nothing while any file of
+the book has a problem; otherwise it takes the mergebook lock and writes
+`book.json`, the staged `book-rows.json` of each chapter that keeps one (so a
+later merge keeps the result), the `chapter.json` rows, and the coverage row
+that introduces each new concept. Both are idempotent.
+
 ## The checker
 
 `check` and every write shell out to `npm run check:content` in `omnistax-web/`
@@ -138,5 +165,5 @@ set `OMNISTAX_NODE_BIN` if node lives elsewhere.
     python3 -m unittest discover omnistax-content/tools/tests
 
 A fixture book is copied out of Chemistry 2e into a temp directory and the
-checker is mocked, so the tests read and write real rows and never touch the
+checker is mocked (`test_migrate_concepts.py` reads the same fixture), so the tests read and write real rows and never touch the
 books themselves.

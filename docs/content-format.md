@@ -69,11 +69,10 @@ Every concept of the book, since ids are canonical and a chapter’s prerequisit
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The concept’s id, which is canonical across books, so another textbook’s section on the same matter maps to the same concept. |
-| `kind` | `"idea" \| "result" \| "skill"` | yes | Whether the concept is an idea, a result derived from ideas, or a skill the exercises test on its own. |
+| `kind` | `"definition" \| "axiom" \| "result" \| "idea" \| "skill"` | yes | What the book treats the concept as: a definition, stipulated, a name for something (displacement, the joule); an axiom, taken as given, a postulate or a law found by experiment (F = ma, Ohm’s law); a result, which follows from other concepts whether or not the book shows the steps (v = v₀ + at); an idea, which earns a place in the map and is none of those (the Bohr model); or a skill, know-how for applying the others (drawing a free-body diagram). |
 | `section` | `string` | yes | The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder. |
-| `name` | `string` | yes | The concept’s name as the map prints it, with its equation in $…$ where the name is a result. |
-| `why` | `string?` | no | Why the concept matters and where it comes from, in the book’s voice. A concept whose section is built carries one. |
-| `evidence` | `string?` | no | What in the section shows the concept is taught there: the examples, the questions and the problems that turn on it. |
+| `name` | `string` | yes | The concept’s name as the map prints it, with its formula in $…$ where it has one. |
+| `statement` | `string?` | no | The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book’s voice. A concept whose section is built carries one. |
 | `eq` | `string?` | no | The equation of the formula sheet that states the concept, where one does. |
 
 ### `concept_prereqs`
@@ -137,6 +136,7 @@ The symbols the chapter’s sections give a meaning to.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The symbol’s key in the book’s symbol table. |
+| `concept` | `string?` | no | The concept that defines the symbol’s quantity. A variant or a component (a_x, B₁) names the definition of its base quantity. |
 | `type` | `string?` | no | The type of quantity the symbol stands for here. The book declares the types and the app picks the hues. |
 | `meaning` | `string` | yes | What the symbol stands for in this section, in the book’s words. |
 | `unit` | `string` | no | The unit the quantity is measured in. |
@@ -151,7 +151,7 @@ The equations the chapter’s sections state.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The equation’s id, which the concepts refer to it by. |
-| `concept` | `string?` | no | The concept the equation states, where it states one. |
+| `concept` | `string?` | no | The concept the equation states. A rearrangement or a special case names the concept of its main form, and a line of a worked example the result or skill it applies. |
 | `section` | `string` | yes | The section that states the equation. |
 | `latex` | `string` | yes | The equation in plain LaTeX, as the book prints it. |
 | `ktex` | `string?` | no | The same equation written with the book’s macros, so that each symbol wears the colour of its type. The sheet prints this where it is given. |
@@ -167,6 +167,7 @@ The terms the chapter’s sections define.
 | --- | --- | --- | --- |
 | `section` | `string` | yes | The section that defines the term. |
 | `term` | `string` | yes | The term as the book defines it, in the words the text marks. |
+| `concept` | `string?` | no | The concept that is the term: every glossary term is a concept. |
 | `definition` | `string` | yes | The book’s own definition of the term. |
 
 ### `chapter_pages`

@@ -9,5 +9,5 @@
  "intro": { "module": "m1", "slug": "preface" },
  "types": [{ "id": "velocity", "label": "velocity" }],
  "exercise_kinds": [{ "id": "problem", "label": "Problem" }],
- "concepts": [{ "id": "displacement", "kind": "idea", "section": "2.1", "name": "Displacement", "why": "w", "evidence": "e" }]
+ "concepts": [{ "id": "displacement", "kind": "idea", "section": "2.1", "name": "Displacement", "statement": "w" }]
 }

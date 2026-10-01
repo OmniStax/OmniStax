@@ -117,12 +117,18 @@ export const checkRefs: Check = (content) => {
   const fromChapters = content.chapters.flatMap((ch) => {
     const own = idsOf(ch.dto.sections, (s) => s.id);
     return [
-      ...ch.dto.variables.flatMap((v) => ref(inChapter(ch, 'variables', v.sym), 'section', own, v.section)),
+      ...ch.dto.variables.flatMap((v) => [
+        ...ref(inChapter(ch, 'variables', v.sym), 'section', own, v.section),
+        ...ref(inChapter(ch, 'variables', v.sym), 'concept', concepts, v.concept),
+      ]),
       ...ch.dto.equations.flatMap((e) => [
         ...ref(inChapter(ch, 'equations', e.id), 'section', own, e.section),
         ...ref(inChapter(ch, 'equations', e.id), 'concept', concepts, e.concept),
       ]),
-      ...ch.dto.glossary.flatMap((g) => ref(inChapter(ch, 'glossary', g.term), 'section', own, g.section)),
+      ...ch.dto.glossary.flatMap((g) => [
+        ...ref(inChapter(ch, 'glossary', g.term), 'section', own, g.section),
+        ...ref(inChapter(ch, 'glossary', g.term), 'concept', concepts, g.concept),
+      ]),
       ...ch.sections.flatMap((s) => [
         ...ref(`${s.dto.id}/section.json`, 'id', own, s.dto.id),
         ...ref(`${s.dto.id}/section.json`, 'chapter', chapters, s.dto.chapter),
@@ -323,21 +329,38 @@ export const checkSources: Check = (content) => {
   }));
 };
 
-/* A concept whose section is built is taught somewhere, so it must say why it
-   matters and what in the section shows it, and some span of the text must be
-   where the reader meets it. A concept whose section nobody has built yet is a
-   placeholder and says none of that. */
+/* A concept whose section is built is taught there, so it carries its
+   statement, and exactly one span of the text introduces it: where the book
+   first does, which the reader can always go to (RULES item 6). A concept whose
+   section nobody has built yet is a placeholder and says none of that. */
 export const checkConcepts: Check = (content) => {
   const built = idsOf(sectionsOf(content), (s) => String(s.dto.id));
-  const introduced = idsOf(sectionsOf(content).flatMap((s) => s.dto.coverage).filter((r) => r.verb === 'introduces'), (r) => String(r.concept));
+  const introductions = sectionsOf(content).flatMap((s) => s.dto.coverage.filter((r) => r.verb === 'introduces').map((r) => [String(r.concept), `${s.dto.id}#${r.span}`] as const));
+  const spansOf = (id: string): readonly string[] => introductions.filter(([c]) => c === id).map(([, at]) => at);
   return content.book.concepts.filter((c) => built.has(c.section)).flatMap((c) => {
     const where = `book.json concepts[${c.id}]`;
+    const spans = spansOf(c.id);
     return [
-      ...(c.why ? [] : [error(where, 'is taught in a built section and says no why')]),
-      ...(c.evidence ? [] : [error(where, 'is taught in a built section and shows no evidence')]),
-      ...(introduced.has(c.id) ? [] : [error(where, 'is taught in a built section and no coverage row introduces it')]),
+      ...(c.statement ? [] : [error(where, 'is taught in a built section and has no statement')]),
+      ...(spans.length === 0 ? [error(where, 'is taught in a built section and no coverage row introduces it')] : []),
+      ...(spans.length > 1 ? [error(where, `is introduced ${spans.length} times (${spans.join(', ')}); exactly one span introduces a concept`)] : []),
     ];
   });
+};
+
+/* Every glossary term is a concept, a symbol belongs to the definition of its
+   quantity, and an equation states a concept (RULES item 6), so each such row
+   names its concept. A row that names none is a warning while the books are
+   being linked, and an error once this is set. */
+export const UNLINKED_ROWS_ARE_ERRORS = true;
+export const checkConceptLinks: Check = (content) => {
+  const finding = UNLINKED_ROWS_ARE_ERRORS ? error : warning;
+  const unlinked = (where: string, row: { readonly concept?: string }): readonly Finding[] => (row.concept === undefined ? [finding(where, 'names no concept')] : []);
+  return content.chapters.flatMap((ch) => [
+    ...ch.dto.glossary.flatMap((g) => unlinked(inChapter(ch, 'glossary', `${g.section}/${g.term}`), g)),
+    ...ch.dto.variables.flatMap((v) => unlinked(inChapter(ch, 'variables', `${v.section}/${v.sym}`), v)),
+    ...ch.dto.equations.flatMap((e) => unlinked(inChapter(ch, 'equations', e.id), e)),
+  ]);
 };
 
 /* A page is what its role says (rule 21). A section belongs to a chapter and
@@ -430,7 +453,7 @@ export const checkSheets: Check = (content) => {
 
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

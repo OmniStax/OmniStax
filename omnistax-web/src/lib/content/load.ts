@@ -142,7 +142,7 @@ const reachable = (seeds: readonly ConceptId[], prereqs: ReadonlyMap<string, rea
 };
 
 /* A concept whose section the app has not built stands as a placeholder: it has
-   a name and a place in the map, and nothing to say about why it matters. */
+   a name and a place in the map, and states nothing. */
 const conceptOf = (c: ConceptRowDTO, prereqs: readonly ConceptId[], built: ReadonlySet<string>): ConceptDTO =>
   (built.has(c.section)
     ? { status: 'built', ...c, prereqs: [...prereqs] }
