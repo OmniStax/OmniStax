@@ -100,11 +100,12 @@ Tables:
   words ("constant acceleration"); an equation that holds generally has none.
 - `glossary`: `{ section, term, definition }`.
 
-Two fields are coming for RULES item 29, not yet in the schema: a
-variables row's `term`, the glossary term it spells, and an equation's
-`defines`, the symbol an equation that only defines a quantity defines.
-Together they put a word, its symbol and its defining formula on one
-definition card.
+Coming with RULES item 6, not yet in the schema: a concept's `kind` becomes
+`definition | axiom | result | idea | skill`, `why` becomes `statement`,
+`evidence` goes, every glossary term becomes a concept, and glossary and
+variables rows name the concept they belong to. Exercises reach a concept
+through `exercise_concepts` and its introduction through the coverage row
+that `introduces` it, so neither needs a field on the concept.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.

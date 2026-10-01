@@ -17,13 +17,7 @@ Why the labels vary: symbol and concept cards say "definition" because they jump
 
 ## Definitions, formulas and concepts
 
-Agreed 2026-10-01, not yet built. The reader meets three kinds, the same in every subject (RULES item 29):
-
-- **Definition**: what a name means. A word and its symbol are one definition, so "displacement" and Δx share a card. The card carries the word, the symbol, the meaning, the unit, the section that defines it and the defining formula (Δx = x_f − x₀). The Symbol and Term cards above become this card, and the Definitions list shows one row per definition.
-- **Formula**: a law or result and the conditions it holds under (F = ma, v = v₀ + at). Formulas that only define a quantity (`defines`) leave the Formulas list for their definition cards. A book may name the list in its subject's word (Theorems, Laws and equations).
-- **Concept**: the concept map and mastery, unchanged.
-
-The `symbols` table is notation for rendering and colour, never a kind the reader sees. The Definitions and Formulas lists carry no colour legend.
+Agreed 2026-10-01, not yet built. Definitions and formulas are concepts (RULES item 6): the Definitions list shows the concepts of kind definition, a word and its symbol on one row with their defining formula; the Formulas list shows the concepts that carry a formula. A book may name the Formulas list in its subject's word. The `symbols` table is notation for rendering and colour, never a kind the reader sees, and neither list carries a colour legend. The cards and the map's levels of detail are still to be designed.
 
 ## Other popups
 
