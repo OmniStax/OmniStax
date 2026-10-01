@@ -53,6 +53,8 @@ Write `plan.md` before building: the sub-concepts, the concept nodes and where e
 
 Concepts are written to the tables as sections progress, never inferred from headers afterwards; later sections point back to earlier concept ids. A concept row holds only name, kind, prerequisite edges, why and evidence.
 
+Every definition and every formula belongs to a concept. A glossary row and a variables row name the concept they define; an equation names the concept it serves, an idea when the equation defines a quantity (Δx = x_f − x₀) and a result when it states a law or relation (F = ma). The app reads defining and stating from that kind, so the agent never marks it twice. Reference data a subject needs (the periodic table, constants, solubility tables) is a sheet of the book, not a new kind of row.
+
 ## 7. Colour is a function of type
 
 A colour belongs to a type, and a type is a kind of physical quantity. A symbol takes its type's colour; a derived quantity is another type and another colour; a variant of one type (initial, average, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its result type. Nothing is coerced into a neighbouring type to save a colour.
@@ -122,7 +124,7 @@ AI-written reader-facing text is pedagogical, crisp and active. It addresses the
 
 ## 18. Every book begins with a full-book pass that writes its rules and tools
 
-Before the first section, one pass over the whole book leaves the book's `RULES.md` and its `tools/`. The rules state Source, Structure, Apparatus, Licence and attribution, Voice (with quoted sentences), Types (in scheme order, with what stays untyped), Exercise kinds and Figures, plus Files where the layout differs from the block above. The tools convert one unit of the source to `source.md` and do any other parsing the pass needed, once per book; a tool a second book uses moves to `omnistax-content/tools/`. The pass ends with the config list of item 10 for the first chapter.
+Before the first section, one pass over the whole book leaves the book's `RULES.md` and its `tools/`. The rules state Source, Structure, Apparatus, Licence and attribution, Voice (with quoted sentences), Types (in scheme order, with what stays untyped), the name of its formulas list where the subject has its own word (Theorems, Laws and equations), Exercise kinds and Figures, plus Files where the layout differs from the block above. The tools convert one unit of the source to `source.md` and do any other parsing the pass needed, once per book; a tool a second book uses moves to `omnistax-content/tools/`. The pass ends with the config list of item 10 for the first chapter.
 
 ## 19. The content is tables, and the schema is the reference
 

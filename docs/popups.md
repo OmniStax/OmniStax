@@ -15,6 +15,16 @@ One component draws every card: `src/components/Hover.svelte`. Targets are liste
 
 Why the labels vary: symbol and concept cards say "definition" because they jump to the defining span; term cards say "section" even when they jump to a span; reference cards say only "Go".
 
+## Definitions, formulas and concepts
+
+Agreed 2026-10-01, not yet built. The reader meets three kinds, the same in every subject (RULES item 6):
+
+- **Definition**: what a name means. A word and its symbol are one definition, so "displacement" and Δx share a card. The card carries the word, the symbol, the meaning, the unit, the section that defines it and the defining formula (Δx = x_f − x₀). The Symbol and Term cards above become this card, and the Definitions list shows one row per definition.
+- **Formula**: a law or result and the conditions it holds under (F = ma, v = v₀ + at). Formulas whose concept is an idea leave the Formulas list for their definition cards. A book may name the list in its subject's word (Theorems, Laws and equations).
+- **Concept**: the concept map and mastery. Definitions and formulas reach their exercises and mastery through their concept.
+
+The `symbols` table is notation for rendering and colour, never a kind the reader sees. The Definitions and Formulas lists carry no colour legend.
+
 ## Other popups
 
 | popup | trigger | shows and does | component |
