@@ -9,7 +9,7 @@ import { conceptId, equationId, sectionId } from '../src/lib/types/ids';
 const PHYSICS: Corpus = {
   ...emptyCorpus('physics', 'College Physics'),
   concepts: [
-    { status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator, $T = 2\\pi\\sqrt{m/k}$', why: 'The period depends on mass and stiffness alone.', prereqs: [] },
+    { status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator, $T = 2\\pi\\sqrt{m/k}$', statement: 'The period depends on mass and stiffness alone.', prereqs: [] },
     { status: 'placeholder', id: conceptId('waves'), kind: 'idea', section: sectionId('16.9'), name: 'Waves', prereqs: [] },
   ],
   variables: [{ sym: 'T', meaning: 'period of the oscillation', unit: 's', section: sectionId('16.3') }],

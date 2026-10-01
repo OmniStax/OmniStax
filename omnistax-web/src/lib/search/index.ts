@@ -14,9 +14,9 @@ import { conceptText, equationText, excerpt, symbolText, termText, wordsOf, type
 /* One thing the index holds, with the book it belongs to. An entry becomes a hit
    as it is found; a block of prose gets its marked window only then. */
 type Entry =
-  | { readonly kind: 'concept'; readonly book: string; readonly concept: ConceptDTO }
+  | { readonly kind: 'concept'; readonly book: string; readonly concept: ConceptDTO; readonly also: string }
   | { readonly kind: 'definition'; readonly book: string; readonly def: { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO } }
-  | { readonly kind: 'formula'; readonly book: string; readonly equation: EquationDTO }
+  | { readonly kind: 'formula'; readonly book: string; readonly equation: EquationDTO; readonly also: string }
   | { readonly kind: 'text'; readonly book: string; readonly page: TextPageDTO; readonly block: TextBlockDTO };
 
 /* How many of each kind the list will hold, and how many blocks of prose: with
@@ -43,21 +43,28 @@ const blockTokens = (page: TextPageDTO, b: TextBlockDTO): readonly string[] => {
   return unpackToks(b.toks).flatMap((i) => (terms[i] === undefined ? [] : [terms[i]]));
 };
 
+/* A concept is found by the words that name it in the book's tables as well
+   as its own, the symbols of its quantity and the glossary's term for it, and
+   a formula by the name of the concept it states. */
+const namesOf = (c: Corpus): ReadonlyMap<string, string> =>
+  [...c.variables.map((v) => [v.concept, v.sym] as const), ...c.glossary.map((g) => [g.concept, g.term] as const)]
+    .reduce((m, [id, w]) => (id ? m.set(id, `${m.get(id) ?? ''} ${w}`) : m), new Map<string, string>());
+const statedBy = (c: Corpus): ReadonlyMap<string, string> => new Map(c.concepts.flatMap((x) => (x.eq ? [[x.eq, x.name] as const] : [])));
 const namedOf = (corpora: readonly Corpus[]): Entry[] => [
-  ...corpora.flatMap((c) => c.concepts.map((concept): Entry => ({ kind: 'concept', book: c.book, concept }))),
+  ...corpora.flatMap((c) => { const names = namesOf(c); return c.concepts.map((concept): Entry => ({ kind: 'concept', book: c.book, concept, also: names.get(concept.id) ?? '' })); }),
   ...corpora.flatMap((c) => [
     ...c.variables.map((symbol): Entry => ({ kind: 'definition', book: c.book, def: { kind: 'symbol', symbol } })),
     ...c.glossary.map((term): Entry => ({ kind: 'definition', book: c.book, def: { kind: 'term', term } })),
   ]),
-  ...corpora.flatMap((c) => c.equations.filter((e) => e.important).map((equation): Entry => ({ kind: 'formula', book: c.book, equation }))),
+  ...corpora.flatMap((c) => { const states = statedBy(c); return c.equations.filter((e) => e.important).map((equation): Entry => ({ kind: 'formula', book: c.book, equation, also: states.get(equation.id) ?? '' })); }),
 ];
 const proseOf = (corpora: readonly Corpus[]): Entry[] =>
   corpora.flatMap((c) => c.pages.flatMap((page) => page.blocks.map((block): Entry => ({ kind: 'text', book: c.book, page, block }))));
 
 const wordsIn = (e: Entry): readonly string[] =>
   e.kind === 'text' ? blockTokens(e.page, e.block)
-    : tokensOf(e.kind === 'concept' ? conceptText(e.concept)
-      : e.kind === 'formula' ? equationText(e.equation)
+    : tokensOf(e.kind === 'concept' ? `${conceptText(e.concept)} ${e.also}`
+      : e.kind === 'formula' ? `${equationText(e.equation)} ${e.also}`
         : e.def.kind === 'symbol' ? symbolText(e.def.symbol) : termText(e.def.term));
 
 /* The index of a library: the entries in the order the list wants them, and beside
@@ -121,15 +128,68 @@ const keep = (ix: Index, ids: readonly number[], p: string, upto: number): numbe
 };
 
 const hitOf = (e: Entry, words: readonly string[]): Hit =>
-  e.kind === 'text' ? { kind: 'text', book: e.book, page: e.page, span: e.block.span, head: e.block.head, text: e.block.text, excerpt: excerpt(e.block.text, words) } : e;
+  e.kind === 'text' ? { kind: 'text', book: e.book, page: e.page, span: e.block.span, head: e.block.head, text: e.block.text, excerpt: excerpt(e.block.text, words) }
+    : e.kind === 'concept' ? { kind: 'concept', book: e.book, concept: e.concept }
+      : e.kind === 'formula' ? { kind: 'formula', book: e.book, equation: e.equation } : e;
 
-/* Everything the query finds: the things the books name first, kind by kind and each
-   kind cut at its cap, the prose after them, and how many blocks of prose were found
-   beyond the cap. A query of one letter does not go through the prose. */
+/* How a thing ranks among the others of its kind that a query found: the
+   thing named by exactly the query first, then the one whose name and the
+   query hold the same words one within the other, then the one holding every
+   word of the query whole rather than as the opening of a longer word. */
+const nameOf = (e: Entry): string =>
+  e.kind === 'concept' ? e.concept.name : e.kind === 'formula' ? e.equation.id : e.kind === 'definition' ? (e.def.kind === 'term' ? e.def.term.term : e.def.symbol.sym) : '';
+const closeness = (e: Entry, words: readonly string[]): number => {
+  if (e.kind === 'text') return 3;
+  const name = tokensOf(nameOf(e)); const has = (ws: readonly string[]) => (w: string) => ws.includes(w);
+  if (name.join(' ') === words.join(' ')) return 0;
+  if (name.length && (name.every(has(words)) || words.every(has(name)))) return 1;
+  return words.every(has(wordsIn(e))) ? 2 : 3;
+};
+const KIND_ORDER: Readonly<Record<SearchKind, number>> = { concept: 0, definition: 1, formula: 2, text: 3 };
+
+/* Words a question is phrased with rather than about, dropped from a loose
+   query so that "the definition of work" asks after definition and work. */
+const STOP = new Set(['a', 'an', 'the', 'of', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'by', 'with', 'is', 'are', 'was', 'be', 'what', 'which', 'how', 'why', 'does', 'do', 'about']);
+const looseWords = (words: readonly string[]): readonly string[] => { const kept = words.filter((w) => !STOP.has(w)); return kept.length ? kept : words; };
+
+/* Every entry holding any word of the query, with how many of the words it holds. */
+const matchingAny = (ix: Index, words: readonly string[], upto: number): ReadonlyMap<number, number> =>
+  words.reduce((got, w) => { for (const id of matching(ix, w, upto)) got.set(id, (got.get(id) ?? 0) + 1); return got; }, new Map<number, number>());
+
+/* Everything the query finds: the things the books name first, kind by kind,
+   the nearest of each kind first and each kind cut at its cap, the prose after
+   them, and how many blocks of prose were found beyond the cap. A query of one
+   letter does not go through the prose. `keep` sifts the hits before they are
+   counted against the cap. A loose query, the kind a question is asked in,
+   drops its function words and, where no one thing holds every word left,
+   takes what holds any of them, those holding more first. */
 export type Found = { readonly hits: readonly Hit[]; readonly cut: number };
+export type FindOptions = { readonly keep?: (h: Hit) => boolean; readonly loose?: boolean };
 export const NOTHING: Found = { hits: [], cut: 0 };
-export const find = (query: string, ix: Index, filter: Filter): Found => {
-  const words = wordsOf(query);
+/* The hits among the entries held, each with how many words of the query it holds. */
+const take = (ix: Index, held: ReadonlyMap<number, number>, words: readonly string[], filter: Filter, want: (k: SearchKind) => boolean, keepHit?: (h: Hit) => boolean): Found => {
+  const key = (id: number): readonly number[] => { const e = ix.entries[id]; return [KIND_ORDER[e.kind], -(held.get(id) ?? 0), closeness(e, words), id]; };
+  const before = (a: readonly number[], b: readonly number[]): number => { const i = a.findIndex((x, k) => x !== b[k]); return i < 0 ? 0 : a[i] - b[i]; };
+  const ids = [...held.keys()].map((id) => ({ id, k: key(id) })).sort((a, b) => before(a.k, b.k)).map((x) => x.id);
+  const cap = filter === 'text' ? TEXT_CAP.text : TEXT_CAP.all;
+  const count: Partial<Record<SearchKind, number>> = {};
+  const hits: Hit[] = [];
+  let cut = 0;
+  for (const id of ids) {
+    const e = ix.entries[id];
+    if (!want(e.kind)) continue;
+    const hit = keepHit ? hitOf(e, words) : null;
+    if (hit && keepHit && !keepHit(hit)) continue;
+    const n = (count[e.kind] ?? 0) + 1;
+    count[e.kind] = n;
+    if (n > (e.kind === 'text' ? cap : KIND_CAP)) { if (e.kind === 'text') cut += 1; continue; }
+    hits.push(hit ?? hitOf(e, words));
+  }
+  return { hits, cut };
+};
+
+export const find = (query: string, ix: Index, filter: Filter, opts: FindOptions = {}): Found => {
+  const words = opts.loose ? looseWords(wordsOf(query)) : wordsOf(query);
   if (!words.length || !ix.entries.length) return NOTHING;
   const deep = query.trim().length >= MIN_TEXT;
   const want = (k: SearchKind): boolean => (k === 'text' ? deep && (filter === 'all' || filter === 'text') : filter === 'all' || filter === k);
@@ -138,23 +198,11 @@ export const find = (query: string, ix: Index, filter: Filter): Found => {
   const upto = want('text') ? ix.entries.length : ix.prose;
   /* the narrowest word of the query goes first: what it finds is what the rest sift */
   const [seed, ...rest] = [...words].sort((a, b) => weight(ix, a) - weight(ix, b));
-  const ids = rest.reduce((acc, w) => (acc.length ? keep(ix, acc, w, upto) : acc), matching(ix, seed, upto));
-  if (!ids.length) return NOTHING;
-  const cap = filter === 'text' ? TEXT_CAP.text : TEXT_CAP.all;
-  const count: Partial<Record<SearchKind, number>> = {};
-  const hits: Hit[] = [];
-  let cut = 0;
-  for (const id of ids) {
-    const e = ix.entries[id];
-    if (!want(e.kind)) continue;
-    const n = (count[e.kind] ?? 0) + 1;
-    count[e.kind] = n;
-    if (n > (e.kind === 'text' ? cap : KIND_CAP)) { if (e.kind === 'text') cut += 1; continue; }
-    hits.push(hitOf(e, words));
-  }
-  return { hits, cut };
+  const every = rest.reduce((acc, w) => (acc.length ? keep(ix, acc, w, upto) : acc), matching(ix, seed, upto));
+  const found = take(ix, new Map(every.map((id) => [id, words.length])), words, filter, want, opts.keep);
+  return found.hits.length || !opts.loose || words.length < 2 ? found : take(ix, matchingAny(ix, words, upto), words, filter, want, opts.keep);
 };
 
 /* The library searched from scratch: the index built and asked in one breath. The
    views keep an index and ask it; this is for a one-off ask and for the tests. */
-export const search = (query: string, corpora: readonly Corpus[], filter: Filter): Found => find(query, buildIndex(corpora), filter);
+export const search = (query: string, corpora: readonly Corpus[], filter: Filter, opts: FindOptions = {}): Found => find(query, buildIndex(corpora), filter, opts);

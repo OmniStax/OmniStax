@@ -300,9 +300,13 @@ test('a long model list shows the ticked first, filters, and caps until asked fo
 /* A library of one book, one section and one figure, for the tools. */
 const corpus: Corpus = {
   book: 'bk', title: 'A Book', urls: {},
-  concepts: [{ id: 'hookes-law', name: "Hooke's law", section: '16.1', status: 'built', why: 'springs' } as unknown as Corpus['concepts'][number]],
-  variables: [{ sym: 'k', meaning: 'spring constant', unit: 'N/m', section: '16.1' } as unknown as Corpus['variables'][number]],
-  glossary: [{ term: 'deformation', definition: 'a change in shape', section: '16.1' } as unknown as Corpus['glossary'][number]],
+  concepts: [
+    { id: 'hookes-law', kind: 'axiom', name: "Hooke's law", section: '16.1', status: 'built', statement: 'springs', eq: 'eq-hooke' },
+    { id: 'deformation', kind: 'definition', name: 'Deformation', section: '16.1', status: 'built', statement: 'a change in shape' },
+    { id: 'force-constant', kind: 'definition', name: 'Force constant', section: '16.1', status: 'built', statement: 'how stiff a spring is' },
+  ] as unknown as Corpus['concepts'],
+  variables: [{ sym: 'k', concept: 'force-constant', meaning: 'spring constant', unit: 'N/m', section: '16.1' } as unknown as Corpus['variables'][number]],
+  glossary: [{ term: 'deformation', concept: 'deformation', definition: 'a change in shape', section: '16.1' } as unknown as Corpus['glossary'][number]],
   equations: [{ id: 'eq-hooke', section: '16.1', tex: 'F=-kx', latex: 'F=-kx', important: true } as unknown as Corpus['equations'][number]],
   pages: [{ id: '16.1', title: "Hooke's Law", url: '', chapter: '16', terms: [], blocks: [{ span: 's1', head: '', text: 'A spring stretches in proportion to the force.', toks: '' }] }],
 };
@@ -321,15 +325,35 @@ test('the tools read the books through the library and answer with links', async
   assert.match(read.output ?? '', /^# 16\.1 Hooke's Law/);
   assert.equal(stepLabel({ kind: 'tool', id: 'c', name: 'read_section', input: { section: '16.1' }, output: read.output }), "Read 16.1 Hooke's Law");
   assert.match((await runTool(fakeLibrary, 'search', { book: 'bk', query: 'spring' })).output ?? '', /\[\[bk\/16\.1\]\]/);
-  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'deformation' })).output ?? '', /\[\[def:bk\/16\.1:deformation\]\]/);
-  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'equation', query: 'hooke' })).output ?? '', /!\[\[eq:bk\/16\.1:eq-hooke\]\]/);
-  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'symbol', query: 'spring constant' })).output ?? '', /\[\[sym:bk\/16\.1:k\]\]/);
+  assert.equal((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'deformation' })).output,
+    '[[concept:bk/16.1:deformation]] Deformation (definition): a change in shape; word [[def:bk/16.1:deformation]]');
+  assert.equal((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'formula', query: 'hooke' })).output,
+    "![[eq:bk/16.1:eq-hooke]] $F=-kx$ states [[concept:bk/16.1:hookes-law]] Hooke's law (axiom)");
+  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'k' })).output ?? '', /^\[\[concept:bk\/16\.1:force-constant\]\][^\n]*symbol \[\[sym:bk\/16\.1:k\]\] \$k\$ \(N\/m\)/);
+  assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'concept', query: 'hooke' })).output ?? '', /^\[\[concept:bk\/16\.1:hookes-law\]\] Hooke's law \(axiom\): springs$/);
   const fig = await runTool(fakeLibrary, 'figure', { book: 'bk', section: '16.1', id: 'sim-spring' });
   assert.match(fig.output ?? '', /Mass: 2 kg/);
   assert.ok(!/Source/.test(fig.output ?? ''), 'source only when asked');
   assert.match((await runTool(fakeLibrary, 'figure', { book: 'bk', section: '16.1', id: 'sim-spring', include_source: true })).output ?? '', /draw\(\)/);
   assert.match((await runTool(fakeLibrary, 'read_section', { book: 'bk', section: '9.9' })).error ?? '', /no built section/);
   assert.match((await runTool(fakeLibrary, 'nope', {})).error ?? '', /no tool/);
+});
+
+/* "work" in a book with a concept for every symbol that mentions work: the
+   definitions are found before the cap, the one named exactly so comes first,
+   and a question phrased in words finds it too. */
+test('lookup sifts by kind before it caps, and ranks the exact name first', async () => {
+  const many = Array.from({ length: 64 }, (_, i) => ({ id: `work-by-${i}`, kind: 'result', name: `Work done by force ${i}`, section: '7.1', status: 'built', statement: 'work' }));
+  const concepts = [...many, { id: 'work-energy', kind: 'definition', name: 'Work-energy theorem', section: '7.2', status: 'built', statement: 'net work' }, { id: 'work', kind: 'definition', name: 'Work', section: '7.1', status: 'built', statement: 'the transfer of energy by a force', eq: 'eq-work' }] as unknown as Corpus['concepts'];
+  const equations = [{ id: 'eq-work', section: '7.1', tex: '\\kW = \\kF d', latex: 'W = Fd', important: true }] as unknown as Corpus['equations'];
+  const variables = [{ sym: 'W', concept: 'work', meaning: 'work', unit: 'J', section: '7.1' }] as unknown as Corpus['variables'];
+  const big: Corpus = { ...corpus, concepts, equations, variables, glossary: [] };
+  const lib: Library = { ...fakeLibrary, corpus: async (b) => (b === 'bk' ? big : null), symbolTex: (_b, sym) => (sym === 'W' ? '\\kW' : null) };
+  const work = (await runTool(lib, 'lookup', { book: 'bk', kind: 'definition', query: 'work' })).output ?? '';
+  assert.equal(work.split('\n')[0], '[[concept:bk/7.1:work]] Work (definition): the transfer of energy by a force; symbol [[sym:bk/7.1:W]] $\\kW$ (J); formula ![[eq:bk/7.1:eq-work]] $\\kW = \\kF d$');
+  assert.match((await runTool(lib, 'lookup', { book: 'bk', kind: 'definition', query: 'definition of work' })).output ?? '', /^\[\[concept:bk\/7\.1:work\]\]/);
+  assert.match((await runTool(lib, 'lookup', { book: 'bk', kind: 'definition', query: 'W' })).output ?? '', /^\[\[concept:bk\/7\.1:work\]\]/);
+  assert.match((await runTool(lib, 'lookup', { book: 'nope', kind: 'definition', query: 'work' })).error ?? '', /^No book nope\.$/);
 });
 
 test('a figure\'s source is its own block and the helpers every figure shares', () => {

@@ -26,8 +26,9 @@ const hasClass = (t: Token, c: string): boolean => new RegExp(`\\bclass="[^"]*\\
 
 const BLOCK = new Set(['p', 'li']);
 const HEADING = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption and an exercise host are forbidden as wholes. */
-const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || tagName(t) === 'figure' || hasClass(t, 'exercises');
+/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption, an exercise host, and a
+   thing of the book an answer already names by a link are forbidden as wholes. */
+const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || tagName(t) === 'figure' || hasClass(t, 'exercises') || hasClass(t, 'book-word') || hasClass(t, 'wiki');
 
 /* The context of every token, from a scan that opens and closes at each tag. Forbidding subtrees are tracked by depth. */
 export const contexts = (ts: readonly Token[], start: Context): Context[] => {
@@ -100,6 +101,13 @@ export const wrapTerms = (html: string, terms: readonly Term[]): string => {
 export const exampleIds = (html: string): ReadonlyMap<ExampleNumber, string> =>
   new Map([...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bexample\b[^"]*"[^>]*\bid="([^"]+)"[^>]*>\s*<h3[^>]*>\s*Example (\d+\.\d+)/g)].map(([, id, n]) => [exampleNumber(n), id]));
 const EXREF = /\bExample (\d+\.\d+)(?![\d.])/g;
+/* Every "Figure 16.4" in free text becomes a link when the figure is known, as the build links the book's own. */
+const FIGREF = /\bFigure (\d+\.\d+)(?![\d.])/g;
+export const wrapFigureRefs = (html: string, figures: ReadonlyMap<string, string>, start: Context = TOP): string => {
+  if (figures.size === 0) return html;
+  const ts = tokens(html); const cs = contexts(ts, start);
+  return ts.map((t, i) => (isTag(t) || !free(cs[i]) ? t : t.replace(FIGREF, (run, n: string) => { const id = figures.get(n); return id ? `<a class="figref" href="#${id}" data-figref="${n}">${run}</a>` : run; }))).join('');
+};
 /* Every "Example 16.2" in free text becomes a link when the example is known. */
 export const wrapExampleRefs = (html: string, examples: ReadonlyMap<ExampleNumber, string>, start: Context = TOP): string => {
   if (examples.size === 0) return html;

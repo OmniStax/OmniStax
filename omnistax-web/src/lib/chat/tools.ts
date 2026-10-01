@@ -4,6 +4,7 @@
    links the model may write back. */
 import { search } from '../search/index';
 import type { Corpus, Filter, Hit } from '../search/model';
+import type { ConceptDTO, EquationDTO } from '../content/schema';
 import type { ToolSpec } from './providers/index';
 import type { ToolStep } from './model';
 
@@ -19,6 +20,8 @@ export type Library = {
   section(book: string, section: string): Promise<{ readonly title: string; readonly text: string } | null>;
   corpus(book: string): Promise<Corpus | null>;
   figure(book: string, section: string, id: string, source: boolean): Promise<FigureFacts | null>;
+  /* The macro a book writes a symbol with, so the model can quote it in colour. */
+  symbolTex?(book: string, sym: string): string | null;
 };
 
 const str = { type: 'string' } as const;
@@ -29,7 +32,7 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
   { name: 'table_of_contents', description: 'Chapters and sections of a book, or of one chapter.', parameters: obj({ book: str, chapter: { ...str, description: 'chapter number, e.g. "16"' } }, ['book']) },
   { name: 'read_section', description: 'The text of one section; figures appear as their captions.', parameters: obj({ book: str, section: { ...str, description: 'section number, e.g. "16.4"' } }, ['book', 'section']) },
   { name: 'search', description: 'Full-text search of a book: hits with section and snippet.', parameters: obj({ book: str, query: str }, ['book', 'query']) },
-  { name: 'lookup', description: 'Find definitions, equations, symbols or concepts of a book, with their links.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'equation', 'symbol', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
+  { name: 'lookup', description: 'Find what a book teaches, with links: a definition gives its word, symbol, unit, statement and defining formula; a formula gives its TeX and the concept it states; a concept, of any kind, gives its name, kind and statement.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'formula', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
   { name: 'figure', description: 'A figure of a section: caption, alt text, parameters with their current values, and its source code when asked.', parameters: obj({ book: str, section: str, id: { ...str, description: 'figure id, e.g. "sim-pendulum"' }, include_source: { type: 'boolean' } }, ['book', 'section', 'id']) },
 ];
 
@@ -49,7 +52,7 @@ const listBooks = async (lib: Library): Promise<string> =>
 
 const toc = async (lib: Library, input: Input): Promise<string> => {
   const book = field(input, 'book');
-  const chapters = need(await lib.chapters(book), `No book called ${book}.`);
+  const chapters = need(await lib.chapters(book), `No book ${book}.`);
   const wanted = field(input, 'chapter');
   const shown = wanted ? chapters.filter((c) => c.id === wanted || c.title.startsWith(`${wanted} `)) : chapters;
   need(shown.length ? shown : null, `${book} has no chapter ${wanted}.`);
@@ -64,33 +67,64 @@ const readSection = async (lib: Library, input: Input): Promise<string> => {
 
 const flat = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
-/* A hit as the model reads it, with the link it may write. */
-export const hitLine = (h: Hit): string => {
+/* A hit as the model reads it, with the links it may write, and the maths in
+   the book's own macros where the book has them. A concept and a formula are
+   told with what the book's tables join to them: a definition its word, its
+   symbols and its defining formula, a formula the concept it states. */
+type Macro = (sym: string) => string | null;
+const SYMBOLS_SHOWN = 3;
+const eqLink = (book: string, e: EquationDTO): string => `![[eq:${book}/${e.section}:${e.id}]] $${e.tex}$${e.condition ? ` (${e.condition})` : ''}`;
+const conceptLink = (book: string, c: ConceptDTO): string => `[[concept:${book}/${c.section}:${c.id}]] ${c.name} (${c.kind})`;
+const statementOf = (c: ConceptDTO): string => (c.status === 'built' && c.statement ? `: ${flat(c.statement)}` : '');
+const symbolLine = (book: string, sym: string, section: string, macro: Macro): string => `[[sym:${book}/${section}:${sym}]] $${macro(sym) ?? sym}$`;
+
+const conceptLine = (book: string, c: ConceptDTO, corpus: Corpus, macro: Macro): string => {
+  if (c.kind !== 'definition') return `${conceptLink(book, c)}${statementOf(c)}`;
+  const term = corpus.glossary.find((g) => g.concept === c.id);
+  /* the symbols the defining section gives it; its variants elsewhere are the reader's to look up */
+  const all = corpus.variables.filter((v) => v.concept === c.id);
+  const own = all.filter((v) => v.section === c.section);
+  const symbols = (own.length ? own : all.slice(0, 1)).filter((v, i, xs) => xs.findIndex((w) => w.sym === v.sym) === i).slice(0, SYMBOLS_SHOWN);
+  const eq = c.eq ? corpus.equations.find((e) => e.id === c.eq) : undefined;
+  return [
+    `${conceptLink(book, c)}${statementOf(c)}`,
+    term ? `word [[def:${book}/${term.section}:${term.term}]]` : '',
+    ...symbols.map((v) => `symbol ${symbolLine(book, v.sym, v.section, macro)}${v.unit ? ` (${v.unit})` : ''}`),
+    eq ? `formula ${eqLink(book, eq)}` : '',
+  ].filter(Boolean).join('; ');
+};
+
+export const hitLine = (h: Hit, corpus: Corpus, macro: Macro = () => null): string => {
   switch (h.kind) {
-    case 'concept': return `[[concept:${h.book}/${h.concept.section}:${h.concept.id}]] ${h.concept.name}`;
-    case 'formula': return `![[eq:${h.book}/${h.equation.section}:${h.equation.id}]] $${h.equation.latex}$${h.equation.condition ? ` (${h.equation.condition})` : ''}`;
+    case 'concept': return conceptLine(h.book, h.concept, corpus, macro);
+    case 'formula': {
+      const c = corpus.concepts.find((x) => x.eq === h.equation.id);
+      return `${eqLink(h.book, h.equation)}${c ? ` states ${conceptLink(h.book, c)}` : ''}`;
+    }
     case 'definition': return h.def.kind === 'term'
       ? `[[def:${h.book}/${h.def.term.section}:${h.def.term.term}]] ${flat(h.def.term.definition)}`
-      : `[[sym:${h.book}/${h.def.symbol.section}:${h.def.symbol.sym}]] ${h.def.symbol.sym}: ${h.def.symbol.meaning}${h.def.symbol.unit ? ` (${h.def.symbol.unit})` : ''}`;
+      : `${symbolLine(h.book, h.def.symbol.sym, h.def.symbol.section, macro)}: ${h.def.symbol.meaning}${h.def.symbol.unit ? ` (${h.def.symbol.unit})` : ''}`;
     case 'text': return `[[${h.book}/${h.page.id}]] ${h.page.title}${h.head ? ` · ${h.head}` : ''}: ${flat(h.excerpt.map((p) => p.t).join(''))}`;
   }
 };
 
-const find = async (lib: Library, book: string, query: string, filter: Filter, keep: (h: Hit) => boolean = () => true): Promise<string> => {
-  const corpus = need(await lib.corpus(book), `No book called ${book}.`);
-  const hits = search(query, [corpus], filter).hits.filter(keep).slice(0, HIT_CAP);
-  return hits.map(hitLine).join('\n') || `Nothing in ${book} matches "${query}".`;
+const find = async (lib: Library, book: string, query: string, filter: Filter, keep?: (h: Hit) => boolean): Promise<string> => {
+  const corpus = need(await lib.corpus(book), `No book ${book}.`);
+  const hits = search(query, [corpus], filter, { keep, loose: true }).hits.slice(0, HIT_CAP);
+  return hits.map((h) => hitLine(h, corpus, (sym) => lib.symbolTex?.(book, sym) ?? null)).join('\n') || `Nothing in ${book} matches "${query}".`;
 };
 
+/* The kinds the model asks for, and the two older names they replaced. */
 const LOOKUP: Readonly<Record<string, { readonly filter: Filter; readonly keep?: (h: Hit) => boolean }>> = {
-  definition: { filter: 'definition', keep: (h) => h.kind === 'definition' && h.def.kind === 'term' },
-  symbol: { filter: 'definition', keep: (h) => h.kind === 'definition' && h.def.kind === 'symbol' },
-  equation: { filter: 'formula' },
+  definition: { filter: 'concept', keep: (h) => h.kind === 'concept' && h.concept.kind === 'definition' },
+  formula: { filter: 'formula' },
   concept: { filter: 'concept' },
+  equation: { filter: 'formula' },
+  symbol: { filter: 'concept', keep: (h) => h.kind === 'concept' && h.concept.kind === 'definition' },
 };
 
 const lookup = (lib: Library, input: Input): Promise<string> => {
-  const how = need(LOOKUP[field(input, 'kind')], 'kind is one of definition, equation, symbol, concept.');
+  const how = need(LOOKUP[field(input, 'kind')], 'kind is one of definition, formula, concept.');
   return find(lib, field(input, 'book'), field(input, 'query'), how.filter, how.keep);
 };
 

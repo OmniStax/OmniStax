@@ -6,7 +6,7 @@
    all. Pure. */
 import type { EquationDTO, FormulasDTO, GlossaryDTO, VariableDTO } from '../content/schema';
 import type { TextBlockDTO, TextIndexDTO, TextPageDTO } from '../content/textindex';
-import { equationId, sectionId, spanId, typeId } from '../types/ids';
+import { conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
 
 const obj = (raw: unknown): Record<string, unknown> | null => (typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null);
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -14,15 +14,15 @@ const arr = (v: unknown): readonly unknown[] => (Array.isArray(v) ? v : []);
 
 const parseVariable = (raw: unknown): VariableDTO[] => {
   const o = obj(raw); if (!o || !str(o.sym) || !str(o.section)) return [];
-  return [{ sym: str(o.sym), type: str(o.type) ? typeId(str(o.type)) : undefined, meaning: str(o.meaning), unit: str(o.unit), section: sectionId(str(o.section)), anchor: str(o.anchor) ? spanId(str(o.anchor)) : undefined }];
+  return [{ sym: str(o.sym), concept: str(o.concept) ? conceptId(str(o.concept)) : undefined, type: str(o.type) ? typeId(str(o.type)) : undefined, meaning: str(o.meaning), unit: str(o.unit), section: sectionId(str(o.section)), anchor: str(o.anchor) ? spanId(str(o.anchor)) : undefined }];
 };
 const parseTerm = (raw: unknown): GlossaryDTO[] => {
   const o = obj(raw); if (!o || !str(o.term) || !str(o.section)) return [];
-  return [{ term: str(o.term), definition: str(o.definition), section: sectionId(str(o.section)) }];
+  return [{ term: str(o.term), concept: str(o.concept) ? conceptId(str(o.concept)) : undefined, definition: str(o.definition), section: sectionId(str(o.section)) }];
 };
 const parseEquation = (raw: unknown): EquationDTO[] => {
   const o = obj(raw); if (!o || !str(o.id) || !str(o.section)) return [];
-  return [{ id: equationId(str(o.id)), section: sectionId(str(o.section)), tex: str(o.tex), latex: str(o.latex) || str(o.tex), condition: str(o.condition) || undefined, anchor: str(o.anchor) ? spanId(str(o.anchor)) : undefined, important: o.important === true }];
+  return [{ id: equationId(str(o.id)), concept: str(o.concept) ? conceptId(str(o.concept)) : undefined, section: sectionId(str(o.section)), tex: str(o.tex), latex: str(o.latex) || str(o.tex), condition: str(o.condition) || undefined, anchor: str(o.anchor) ? spanId(str(o.anchor)) : undefined, important: o.important === true }];
 };
 /* A chapter's formulas.json: its symbols, its equations and its terms. */
 export const parseFormulas = (raw: unknown): FormulasDTO => {

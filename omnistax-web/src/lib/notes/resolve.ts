@@ -66,7 +66,7 @@ export class BookResolver {
         const d = this.chapterData(section, book); if (!d) return null;
         const c = d.concepts.concepts.find((x) => x.id === id); if (!c) return null;
         const eq = c.eq ? d.formulas.equations.find((e) => e.id === c.eq) : undefined;
-        return { name: c.name, kind: c.kind, why: c.status === 'built' ? c.why : undefined, section: c.section, eqTex: eq?.tex, placeholder: c.status === 'placeholder' };
+        return { name: c.name, kind: c.kind, statement: c.status === 'built' ? c.statement : undefined, section: c.section, eqTex: eq?.tex, placeholder: c.status === 'placeholder' };
       },
     };
   }

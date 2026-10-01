@@ -66,7 +66,7 @@ export const excerpt = (text: string, words: readonly string[], width = WIDTH): 
 };
 
 /* What each thing is searched by: the name it is printed under and the line beside it. */
-export const conceptText = (c: ConceptDTO): string => `${c.id} ${c.name} ${c.status === 'built' ? c.why ?? '' : ''}`;
+export const conceptText = (c: ConceptDTO): string => `${c.id} ${c.name} ${c.status === 'built' ? c.statement ?? '' : ''}`;
 export const symbolText = (v: VariableDTO): string => `${v.sym} ${v.meaning} ${v.unit}`;
 export const termText = (t: GlossaryDTO): string => `${t.term} ${t.definition}`;
 export const equationText = (e: EquationDTO): string => `${e.id} ${e.latex} ${e.condition ?? ''}`;

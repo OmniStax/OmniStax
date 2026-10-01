@@ -11,7 +11,7 @@ const page = (id: string, texts: readonly string[]) =>
 
 const BOOK: Corpus = {
   ...emptyCorpus('b', 'Book'),
-  concepts: [{ status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator', why: 'It depends on mass alone.', prereqs: [] }],
+  concepts: [{ status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator', statement: 'It depends on mass alone.', prereqs: [] }],
   variables: [{ sym: 'T', meaning: 'period of the oscillation', unit: 's', section: sectionId('16.3') }],
   equations: [{ id: equationId('eq-period'), section: sectionId('16.3'), tex: '\\kT', latex: 'T = 2\\pi\\sqrt{m/k}', important: true }],
   pages: [page('16.3', ['The period of a pendulum is long.', 'Amplitude does not matter.', 'Nothing to see.'])],

@@ -46,8 +46,9 @@ export const liveLibrary: Library = {
   },
   async corpus(book) {
     await searchStore.load(book);
-    return searchStore.corpora[book] ?? null;
+    return registry.hasBook(bookId(book)) ? searchStore.corpora[book] ?? null : null;
   },
+  symbolTex: (book, sym) => (registry.hasBook(bookId(book)) ? registry.manifest(bookId(book)).symbols[sym] ?? null : null),
   async figure(book, section, id, source) {
     const doc = await loadedSection(book, section); if (!doc) return null;
     const fig = findFigure(doc, sectionId(section), id);
