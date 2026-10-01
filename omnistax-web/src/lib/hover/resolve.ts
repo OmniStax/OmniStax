@@ -4,8 +4,9 @@
    navigation as callbacks, so the cards can be tested without a DOM. */
 import type { VariableDTO, EquationDTO, ConceptDTO } from '../content/schema';
 import type { SpanId, SectionId } from '../types/ids';
+import { KIND_LABEL as CONCEPT_KIND, wordOf } from '../sections/conceptlists';
 
-export type Kind = 'variable' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
+export type Kind = 'definition' | 'variable' | 'term' | 'reference' | 'equation' | 'concept' | 'formula';
 export type Action = { readonly label: string; readonly run: (split?: boolean) => void };
 /* Places the card points at, under a lead of their own: "Introduced in", "Used
    in". A long list is cut short and the rest stand behind one
@@ -14,12 +15,16 @@ export type RefGroup = { readonly label: string; readonly links: readonly Action
 /* An element as a formula card shows it: a chip on the element's own colour,
    the symbol, how many atoms of it the formula has, and the element's page. */
 export type Chip = { readonly symbol: string; readonly name: string; readonly count: number; readonly run: (split?: boolean) => void };
+/* A line under the body with a lead of its own: "Holds under", "In this section". */
+export type Note = { readonly label: string; readonly text: string };
 export type Card = {
   readonly kind: Kind;
-  readonly eyebrow: string;          /* the kind line above the title: "Force · N", "Term", "Equation · important" */
+  readonly eyebrow: string;          /* the kind line above the title: "Definition", "Term", "Formula · Result" */
+  readonly unit?: string;            /* after the eyebrow, in its own case */
   readonly title: string;            /* plain text, or text with $…$ for the math action */
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
   readonly body?: string;            /* one or two sentences, $…$ allowed */
+  readonly notes?: readonly Note[];  /* $…$ allowed */
   readonly refs?: readonly RefGroup[];
   readonly chips?: readonly Chip[];   /* a formula's composition, one chip per element */
   readonly actions: readonly Action[];
@@ -34,7 +39,7 @@ export type Nav = {
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
 };
 
-const KIND_LABEL: Readonly<Record<Kind, string>> = { variable: 'Symbol', term: 'Term', reference: 'Reference', equation: 'Equation', concept: 'Concept', formula: 'Formula' };
+const KIND_LABEL: Readonly<Record<Kind, string>> = { definition: 'Definition', variable: 'Symbol', term: 'Term', reference: 'Reference', equation: 'Formula', concept: 'Concept', formula: 'Formula' };
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
@@ -59,6 +64,49 @@ export const variableCard = (f: VariableFacts, nav: Nav): Card => {
     kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: sentence(v.meaning),
     actions: [
       anchor ? { label: 'Go to definition', run: (s?: boolean) => nav.goSpan(anchor, s) } : { label: 'Go to section', run: (s?: boolean) => nav.openSection(v.section as SectionId, s) },
+      { label: 'Show in Definitions', run: (s?: boolean) => nav.showView('definitions', s) },
+    ],
+  };
+};
+
+/* ---------- definition ----------
+   One card for a concept named by a word or a symbol, whichever the reader
+   hovered: the word and the symbol, what the concept is, what the symbol means
+   here where the chapter gives it another meaning too, its unit and the
+   formulas that state it, and the way back to where the book brings it in.
+   The concept's kind heads the card, so a term that names a law says so. */
+export const FORMULAS_SHOWN = 3;
+export type DefinitionFacts = {
+  readonly concept: ConceptDTO;
+  readonly word?: string;                    /* the glossary term, where the book defines one */
+  readonly tex?: string;                     /* the symbol, where the concept has one */
+  readonly unit?: string;
+  readonly meaning?: string;                 /* the symbol's meaning in this section, given where the chapter redefines it */
+  readonly elsewhere?: VariableDTO;          /* the other meaning */
+  readonly fallback?: string;                /* the glossary's own definition, for a concept with no statement yet */
+  readonly formulas: readonly EquationDTO[];
+  readonly intro?: SpanId;                   /* the span that introduces the concept */
+};
+const formulaGroup = (eqs: readonly EquationDTO[], nav: Nav): RefGroup[] => {
+  const shown = eqs.slice(0, FORMULAS_SHOWN);
+  return shown.length ? [{ label: shown.length > 1 ? 'Formulas' : 'Formula', links: shown.map((e) => ({ label: `$${e.tex}$`, run: (s?: boolean) => (e.anchor ? nav.goSpan(spanIdOf(e.anchor), s) : nav.openSection(e.section, s)) })) }] : [];
+};
+export const definitionCard = (f: DefinitionFacts, nav: Nav): Card => {
+  const c = f.concept;
+  const statement = statementOf(c) ?? f.fallback;
+  const notes: Note[] = [
+    ...(f.meaning ? [{ label: 'In this section', text: sentence(f.meaning) }] : []),
+    ...(f.elsewhere ? [{ label: `Elsewhere in this chapter (${f.elsewhere.section})`, text: sentence(f.elsewhere.meaning) }] : []),
+  ];
+  return {
+    kind: 'definition',
+    eyebrow: CONCEPT_KIND[c.kind], ...(f.unit ? { unit: f.unit } : {}),
+    title: [f.word ?? (wordOf(c.name) || c.name), f.tex ? `$${f.tex}$` : ''].filter((s) => s !== '').join(' · '),
+    body: statement ? sentence(statement) : undefined,
+    ...(notes.length ? { notes } : {}),
+    refs: formulaGroup(f.formulas, nav),
+    actions: [
+      { label: 'Go to where it is first introduced', run: (s?: boolean) => (f.intro ? nav.goSpan(f.intro, s) : nav.openSection(secIdOf(c.section), s)) },
       { label: 'Show in Definitions', run: (s?: boolean) => nav.showView('definitions', s) },
     ],
   };
@@ -95,16 +143,21 @@ export const matchEquation = (annotation: string, equations: readonly EquationDT
   const key = normTex(annotation); if (key === '') return undefined;
   return equations.find((e) => normTex(e.tex) === key);
 };
-/* Why a concept matters, where it has one to give: a placeholder stands for a section nobody has built, and says nothing. */
-const whyOf = (c: ConceptDTO | undefined): string | undefined => (c && c.status === 'built' ? c.why : undefined);
+/* What a concept states, where it has a statement to give: a placeholder stands for a section nobody has built, and says nothing. */
+const statementOf = (c: ConceptDTO | undefined): string | undefined => (c && c.status === 'built' ? c.statement : undefined);
+/* An equation that states an axiom, a result, an idea or a skill: the concept's
+   name, kind and statement, and what the equation holds under. An equation that
+   defines a quantity opens the quantity's definition card instead. */
 export type EquationFacts = { readonly equation: EquationDTO; readonly concept?: ConceptDTO; readonly introducedIn?: string };   /* introducedIn: the heading text of the anchor span */
 export const equationCard = (f: EquationFacts, nav: Nav): Card => {
   const e = f.equation; const anchor = e.anchor ? spanIdOf(e.anchor) : undefined;
-  const eyebrow = e.important ? `${KIND_LABEL.equation} · important` : KIND_LABEL.equation;
+  const eyebrow = [KIND_LABEL.equation, f.concept ? CONCEPT_KIND[f.concept.kind] : ''].filter((s) => s !== '').join(' · ');
   const title = f.concept?.name ?? (f.introducedIn ? `In “${f.introducedIn}”` : `Section ${e.section}`);
-  const body = whyOf(f.concept) ?? (f.introducedIn && f.concept ? `Introduced in “${f.introducedIn}”.` : undefined);
+  const statement = statementOf(f.concept);
+  const body = statement ? sentence(statement) : f.introducedIn && f.concept ? `Introduced in “${f.introducedIn}”.` : undefined;
   return {
     kind: 'equation', eyebrow, title, body,
+    ...(e.condition ? { notes: [{ label: 'Holds under', text: sentence(e.condition) }] } : {}),
     actions: [
       ...(anchor ? [{ label: 'Go to where it is introduced', run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(e.section as SectionId, s) }]),
       ...(e.important ? [{ label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) }] : []),
@@ -137,7 +190,7 @@ export const formulaCard = (f: FormulaFacts, nav: Nav): Card => {
 };
 
 /* ---------- concept ---------- */
-/* A concept: why it matters, and then the book itself — the span that introduces
+/* A concept: what it states, and then the book itself — the span that introduces
    it and the spans that go on using it. Where the text uses a concept everywhere, the list would be
    the section's table of contents, so it is cut short and the section stands for
    the rest. A placeholder concept belongs to a section not built here. */
@@ -152,7 +205,7 @@ export type ConceptFacts = {
 };
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   const c = f.concept, sec = secIdOf(c.section), first = f.intro[0];
-  const eyebrow = `${KIND_LABEL.concept} · ${c.kind} · section ${c.section}`;
+  const eyebrow = `${CONCEPT_KIND[c.kind]} · section ${c.section}`;
   if (c.status === 'placeholder') return {
     kind: 'concept', eyebrow, title: c.name, body: `Section ${c.section} is not built yet.`,
     actions: [f.built ? { label: 'Go to section', run: (s?: boolean) => nav.openSection(sec, s) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
@@ -162,7 +215,7 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   if (f.intro.length) refs.push({ label: 'Introduced in', links: f.intro.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })) });
   if (uses.length) refs.push({ label: 'Used in', links: uses.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })), ...(f.uses.length > uses.length ? { more: { label: `and ${f.uses.length - uses.length} more`, run: (s?: boolean) => nav.openSection(sec, s) } } : {}) });
   return {
-    kind: 'concept', eyebrow, title: c.name, body: c.why ? sentence(c.why) : undefined, refs,
+    kind: 'concept', eyebrow, title: c.name, body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
       { label: 'Go to definition', run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
       ...(c.eq ? [{ label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) }] : []),

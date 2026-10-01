@@ -28,10 +28,14 @@
      foresee is settled in a worker, with the seed rings drawn meanwhile.
 
      A node's shape says what kind of thing it is, the way a textbook page does:
-     an idea is a plain box (a term to hold), a result is a box under a double
-     rule (the boxed law at the end of a derivation), a skill is a pill carrying
-     a wrench (something to do rather than something to know). Colour only
-     seconds the shape, and the dashed rule is kept for another section's work.
+     a definition is a plain box (a name to hold), an axiom stands on a heavy
+     rule down its left edge (what the book takes as given), a result is a box
+     under a double rule (the boxed law at the end of a derivation), an idea is
+     a soft box with no rule, and a skill is a pill carrying a wrench (something
+     to do rather than something to know). Colour only seconds the shape, and
+     the dashed rule is kept for another section's work. Each kind in the legend
+     is a switch that takes that kind's nodes off the map and puts them back;
+     the layout stays where it is, so nothing moves under the reader.
      How the reader stands on a concept is a second reading drawn inside the node
      rather than a change of its shape or its hue: a thin bar along the bottom
      edge, as long as the concept's discrete evidence stands towards mastery,
@@ -58,6 +62,8 @@
   import { loadLayouts, positionsOf, type LayoutFileDTO } from '../../lib/sections/layouts';
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
   import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
+  import type { ConceptKind } from '../../lib/content/schema';
+  import { KINDS } from '../../lib/sections/conceptlists';
   import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   import AiMark from '../ui/AiMark.svelte';
@@ -285,12 +291,17 @@
   /* The find box: the concepts of this map whose names carry what was typed. */
   let query = $state('');
   const plain = (s: string): string => s.replace(/\$[^$]*\$/g, ' ').replace(/[\\{}]/g, '').toLowerCase();
-  const hits = $derived(query.trim().length < 2 ? [] : list.filter((c) => plain(c.name).includes(query.trim().toLowerCase())).slice(0, 8));
+  const hits = $derived(query.trim().length < 2 ? [] : list.filter((c) => !hidden.has(c.kind) && plain(c.name).includes(query.trim().toLowerCase())).slice(0, 8));
   const choose = (id: string) => { query = ''; hover = id; goTo(id); };
 
-  const shown = $derived(new Set(idsIn(grid, pos, view)));
+  /* The kinds the legend has switched off: their nodes and their edges are not drawn. */
+  let hidden = $state<ReadonlySet<ConceptKind>>(new Set());
+  const toggleKind = (k: ConceptKind) => { const s = new Set(hidden); if (!s.delete(k)) s.add(k); hidden = s; };
+  const visible = $derived(hidden.size ? new Set(list.filter((c) => !hidden.has(c.kind)).map((c) => c.id)) : null);
+
+  const shown = $derived(new Set(idsIn(grid, pos, view).filter((id) => !visible || visible.has(id))));
   const drawn = $derived(list.filter((c) => shown.has(c.id)));
-  const wires = $derived(edges.filter(([a, b]) => shown.has(a) || shown.has(b)).map(([from, to]) => {
+  const wires = $derived(edges.filter(([a, b]) => (shown.has(a) || shown.has(b)) && (!visible || (visible.has(a) && visible.has(b)))).map(([from, to]) => {
     const p = pos.get(from), q = pos.get(to);
     if (!p || !q) return null;
     return { from, to, d: `M${p.x},${p.y} Q${(p.x + q.x) / 2 + (q.y - p.y) * 0.08},${(p.y + q.y) / 2 - (q.x - p.x) * 0.08} ${q.x},${q.y}` };
@@ -330,9 +341,9 @@
   <div class="hud">
     <div class="legend">
       <span class="head">Concept map<AiMark /></span>
-      <span class="k-idea"><i class="sw"></i>idea</span>
-      <span class="k-result"><i class="sw"></i>result</span>
-      <span class="k-skill"><i class="sw">{@render wrench()}</i>skill</span>
+      {#each KINDS as k (k)}
+        <button type="button" class="kind k-{k}" class:off={hidden.has(k)} aria-pressed={!hidden.has(k)} onclick={() => toggleKind(k)}><i class="sw">{#if k === 'skill'}{@render wrench()}{/if}</i>{k}</button>
+      {/each}
       <span class="ext"><i class="sw"></i>other section</span>
     </div>
     <!-- the same miniature again, for the bar the nodes carry: how the practice stands -->
@@ -361,7 +372,9 @@
 <style>
   /* one hue per kind, mixed into the panel so the tint stays a second cue behind the shape */
   .map{
-    --f-idea:color-mix(in srgb,var(--cm-idea) 12%,var(--panel)); --l-idea:color-mix(in srgb,var(--cm-idea) 45%,var(--rule));
+    --f-definition:color-mix(in srgb,var(--cm-definition) 10%,var(--panel)); --l-definition:color-mix(in srgb,var(--cm-definition) 45%,var(--rule));
+    --f-axiom:color-mix(in srgb,var(--cm-axiom) 12%,var(--panel)); --l-axiom:color-mix(in srgb,var(--cm-axiom) 60%,var(--rule));
+    --f-idea:color-mix(in srgb,var(--cm-idea) 14%,var(--panel)); --l-idea:color-mix(in srgb,var(--cm-idea) 45%,var(--rule));
     --f-result:color-mix(in srgb,var(--cm-result) 12%,var(--panel)); --l-result:color-mix(in srgb,var(--cm-result) 55%,var(--rule));
     --f-skill:color-mix(in srgb,var(--cm-skill) 12%,var(--panel)); --l-skill:color-mix(in srgb,var(--cm-skill) 50%,var(--rule));
   }
@@ -371,8 +384,12 @@
   .map > svg:active{cursor:grabbing}
   .node{position:relative;width:100%;height:100%;box-sizing:border-box;font:inherit;font-size:0.78rem;line-height:1.15;padding:5px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer;text-align:center;overflow:hidden}
   .node :global(.katex){font-size:0.95em}
-  /* an idea is a plain box: a single rule round a term */
-  .node.k-idea{background:var(--f-idea);border-color:var(--l-idea)}
+  /* a definition is a plain box: a single rule round a name */
+  .node.k-definition{background:var(--f-definition);border-color:var(--l-definition)}
+  /* an axiom stands on a heavy rule down its left edge: what the book takes as given */
+  .node.k-axiom{background:var(--f-axiom);border-color:var(--l-axiom);border-left:4px solid var(--l-axiom);border-radius:2px;font-weight:600}
+  /* an idea is a soft box with no rule */
+  .node.k-idea{background:var(--f-idea);border-color:transparent;border-radius:10px}
   /* a result wears the double rule a book prints round a law it has just derived; the rule grows inward, so the box keeps its size */
   .node.k-result{border:3px double var(--l-result);background:var(--f-result);font-weight:600}
   /* a skill is a pill with a wrench: something to do rather than something to know */
@@ -413,13 +430,19 @@
   /* the chrome floats in the corners of the map, on a wash of the panel so it reads over the nodes */
   .hud{position:absolute;top:8px;left:10px;z-index:2;display:flex;flex-direction:column;gap:2px;align-items:flex-start;max-width:calc(100% - 200px)}
   .hud > *{background:color-mix(in srgb,var(--panel) 82%,transparent);border-radius:5px;padding:2px 6px}
-  /* the legend draws the four shapes in miniature, so the convention is taught where it is used */
+  /* the legend draws the shapes in miniature, so the convention is taught where it is used */
   .legend{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin:0;font-size:0.7rem;color:var(--muted)}
   .legend .head{font-weight:600;color:var(--ink)}
   .legend span{display:inline-flex;align-items:center;gap:5px}
+  /* each kind is a switch: pressed it draws its nodes, released it leaves them off */
+  .legend .kind{display:inline-flex;align-items:center;gap:5px;font:inherit;color:inherit;padding:0;border:0;background:none;cursor:pointer}
+  .legend .kind.off{opacity:0.45;text-decoration:line-through}
+  .legend .kind:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:3px}
   .legend .sw{display:inline-grid;place-items:center;width:20px;height:13px;flex:none;border:1px solid var(--rule);border-radius:3px;background:var(--panel)}
   .legend .glyph{width:9px;height:9px;margin:0;color:var(--ink)}
-  .legend .k-idea .sw{background:var(--f-idea);border-color:var(--l-idea)}
+  .legend .k-definition .sw{background:var(--f-definition);border-color:var(--l-definition)}
+  .legend .k-axiom .sw{background:var(--f-axiom);border-color:var(--l-axiom);border-left:4px solid var(--l-axiom);border-radius:1px}
+  .legend .k-idea .sw{background:var(--f-idea);border-color:transparent;border-radius:5px}
   .legend .k-result .sw{border:3px double var(--l-result);background:var(--f-result)}
   .legend .k-skill .sw{width:22px;border-radius:999px;background:var(--f-skill);border-color:var(--l-skill)}
   .legend .ext .sw{border-style:dashed;background:transparent}

@@ -102,7 +102,7 @@
             {:else if h.kind === 'concept'}
               <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)} · {h.concept.kind}</span>
               <span class="line name" use:mathHtml={h.concept.name}></span>
-              {#if h.concept.status === 'built' && h.concept.why}<span class="line why">{h.concept.why}</span>{/if}
+              {#if h.concept.status === 'built' && h.concept.statement}<span class="line statement">{h.concept.statement}</span>{/if}
             {:else if h.kind === 'formula'}
               <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)}{#if h.equation.condition} · {h.equation.condition}{/if}</span>
               <span class="line eq" use:tex={{ book: h.book, tex: h.equation.tex }}></span>
@@ -170,7 +170,7 @@
   .line{font-size:0.8rem;line-height:1.4;overflow-wrap:anywhere}
   .line b{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--warm) 22%,transparent);border-radius:2px}
   .name{font-weight:600}
-  .why{color:var(--muted);font-size:0.74rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .statement{color:var(--muted);font-size:0.74rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .eq :global(.katex){font-size:1em}
   .sym :global(.katex){font-size:1.1em}
   .unit{font-family:var(--mono);font-size:0.72rem;color:var(--muted)}

@@ -108,9 +108,10 @@
 
 {#if card}{#key card}
   <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
-    <div class="eyebrow">{card.eyebrow}</div>
+    <div class="eyebrow">{card.eyebrow}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
+    {#each card.notes ?? [] as n (n.label)}<p class="aside" use:math={n.text}><span class="lead">{n.label}</span> {n.text}</p>{/each}
     {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={elementColor(c.symbol, settings.dark)} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
     {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
     {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)}>{a.label}</button>{/each}</div>{/if}
@@ -126,6 +127,12 @@
   .title{font-weight:600;font-size:0.92rem;margin-bottom:3px}
   .body{margin:0;color:var(--ink);max-width:36em}
   .body :global(.katex){font-size:1em}
+  .aside{margin:5px 0 0;max-width:36em}
+  .aside .lead{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-right:4px}
+  .aside :global(.katex){font-size:1em}
+  /* a unit keeps its case: m is not M */
+  .eyebrow .unit{text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:400}
+  .hover-card[data-kind="definition"]{max-width:min(380px,calc(100vw - 16px))}
   /* a concept's places: the lead in the eyebrow's voice, the places beside it as quiet links */
   /* a formula's composition: one chip per element, on the element's own colour, which is a convention and not a signal the app adds */
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 0}

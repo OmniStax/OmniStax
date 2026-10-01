@@ -1,5 +1,7 @@
 <script lang="ts">
-  /* The important equations of the place this view stands at, grouped by the
+  /* The important equations of the place this view stands at, each under the
+     concept it states and that concept's kind, a definition's as the symbol it
+     defines, all in ink. Grouped by the
      section that states them: flat for a section, under a line per section for a
      chapter, under a fold per chapter for the book. What lies outside the place
      is folded away below, so the rest of the book is one click and never in the way.
@@ -15,12 +17,21 @@
   import { goSpan, findEl } from '../../lib/sections/nav.svelte';
   import { dragout } from '../../lib/notes/md/dragout';
   import { spanId, spanRef, sectionId } from '../../lib/types/ids';
-  import type { EquationDTO } from '../../lib/content/schema';
+  import type { ConceptDTO, EquationDTO } from '../../lib/content/schema';
+  import { formulaLabel } from '../../lib/sections/conceptlists';
   import { figFor } from '../../lib/fig/figlib';
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
   const book = $derived(target.book);
   const eqs = $derived(registry.chaptersOf(book).flatMap((c) => c.formulas.equations).filter((e) => e.important));
+  const concepts = $derived(new Map(registry.concepts(book).map((c) => [c.id as string, c])));
+  /* The symbol a definition names its quantity by: the first the sheet gives it. */
+  const symbols = $derived.by(() => {
+    const m = new Map<string, string>();
+    registry.chaptersOf(book).flatMap((c) => c.formulas.variables).forEach((v) => { if (v.concept && !m.has(v.concept)) m.set(v.concept, v.sym); });
+    return m;
+  });
+  const symbolOf = (c: ConceptDTO): string | undefined => { const s = symbols.get(c.id); return s ? registry.manifest(book).symbols[s] ?? s : undefined; };
   const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.section), target, registry.manifest(book)));
   const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const spanTitle = (id: string): string => { const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
@@ -29,7 +40,10 @@
 
 {#snippet list(items: readonly EquationDTO[])}
   {#each items as e (e.id)}
+    {@const named = formulaLabel(e, concepts, symbolOf)}
     <button type="button" class="formula" data-sec={e.section} use:dragout={{ kind: 'equation', book, section: e.section, id: e.id }} onclick={() => goSpan(e.anchor ? spanRef(book, spanId(e.anchor)) : undefined)}>
+      {#if named.kind === 'defines'}<div class="named">defines {#if named.tex}<span use:tex={named.tex}></span>{:else}{named.word}{/if}</div>
+      {:else if named.kind === 'states'}<div class="named"><i class="tag">{named.tag}</i>{named.word}</div>{/if}
       <div use:tex={e.tex}></div>
       <small>{e.condition ? e.condition + ' · ' : ''}{e.anchor ? 'in “' + spanTitle(e.anchor) + '”' : ''}</small>
     </button>
@@ -66,6 +80,11 @@
 
 <style>
   .rows{display:contents}
+  /* the sheet sets formulas in ink; the hue is the text's to give */
+  .rows :global(.enclosing){color:inherit}
+  .named{display:flex;align-items:baseline;gap:6px;font-size:0.74rem;color:var(--muted);margin-bottom:2px}
+  .named :global(.katex){font-size:1em}
+  .tag{font-style:normal;text-transform:uppercase;letter-spacing:0.06em;font-size:0.6rem;padding:0 5px;border-radius:9px;background:var(--soft);color:var(--muted)}
   .formula{display:block;width:100%;text-align:left;font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer;margin-bottom:6px}
   .formula:hover{background:var(--soft)}
   .formula:focus-visible{outline:2px solid var(--accent)}

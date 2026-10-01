@@ -13,7 +13,7 @@ import { conceptId, sectionId } from '../src/lib/types/ids';
 const noon = (y: number, m: number, d: number): number => new Date(y, m - 1, d, 12).getTime();
 const D1 = noon(2026, 3, 2), D2 = noon(2026, 3, 3), D3 = noon(2026, 3, 4), D5 = noon(2026, 3, 6);
 const sec = sectionId;
-const concept = (id: string, section: string): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'idea', section: sec(section), name: id, prereqs: [], why: '', evidence: '' });
+const concept = (id: string, section: string): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'idea', section: sec(section), name: id, prereqs: [], statement: '' });
 const ex = (id: string, concepts: string[], bloom = 'apply', at: 'end' | 'inline' = 'end'): ExerciseDTO => ({
   id, sourceId: id, kind: 'problem', bloom: bloom as Bloom, concepts: concepts.map(conceptId),
   place: at === 'end' ? { at } : { at, after: 'x' as never }, prompt: id,

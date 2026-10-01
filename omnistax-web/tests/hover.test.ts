@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
-import { variableCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
+import { definitionCard, variableCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
 import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
@@ -111,13 +111,40 @@ test('tex normalisation ignores spacing, closing punctuation and the constant-a 
   assert.equal(matchEquation('   ', eqs), undefined);
 });
 test('an equation card names the concept and goes to where it is introduced', () => {
-  const concept = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], eq: equationId('eq-hooke'), why: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
+  const concept = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], eq: equationId('eq-hooke'), statement: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
   const c = equationCard({ equation: eqs[0], concept, introducedIn: 'Hooke’s Law' }, nav);
-  assert.equal(c.eyebrow, 'Equation · important'); assert.equal(c.title, concept.name); assert.equal(c.body, concept.why);
+  assert.equal(c.eyebrow, 'Formula · Result'); assert.equal(c.title, concept.name); assert.equal(c.body, concept.statement);
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Formulas']);
   assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Formulas', c), 'view:formulas');
   const plain = equationCard({ equation: { ...eqs[1], important: false }, introducedIn: 'Solving for Final Velocity' }, nav);
-  assert.equal(plain.eyebrow, 'Equation'); assert.equal(plain.title, 'In “Solving for Final Velocity”'); assert.deepEqual(plain.actions.map((a) => a.label), ['Go to where it is introduced']);
+  assert.equal(plain.eyebrow, 'Formula'); assert.equal(plain.title, 'In “Solving for Final Velocity”'); assert.deepEqual(plain.actions.map((a) => a.label), ['Go to where it is introduced']);
+});
+test('an equation with a condition says what it holds under', () => {
+  const concept = { status: 'built' as const, id: conceptId('v-from-at'), kind: 'result' as const, section: sectionId('2.5'), name: '$\\kv = \\kvo + \\ka\\kt$', prereqs: [], statement: 'the final velocity depends on the acceleration and the time' };
+  const c = equationCard({ equation: { ...eqs[1], condition: 'constant acceleration' }, concept }, nav);
+  assert.equal(c.body, 'The final velocity depends on the acceleration and the time.');
+  assert.deepEqual(c.notes, [{ label: 'Holds under', text: 'Constant acceleration.' }]);
+});
+
+/* ---------- definition ---------- */
+const displacement = { status: 'built' as const, id: conceptId('displacement'), kind: 'definition' as const, section: sectionId('2.1'), name: 'Displacement, $\\kdx = \\kxf - \\kxo$', prereqs: [], statement: 'displacement is the change in position' };
+const eqDx: EquationDTO = { id: equationId('eq-dx'), concept: conceptId('displacement'), section: sectionId('2.1'), tex: '\\kdx = \\kxf - \\kxo', latex: '\\Delta x = x_f - x_0', anchor: spanId('2.1-displacement'), important: true };
+test('a definition card names the word and the symbol, states the concept and lists its formulas', () => {
+  const c = definitionCard({ concept: displacement, word: 'displacement', tex: '\\kdx', unit: 'm', formulas: [eqDx], intro: span('2.1-displacement') }, nav);
+  assert.equal(c.kind, 'definition'); assert.equal(c.eyebrow, 'Definition'); assert.equal(c.unit, 'm'); assert.equal(c.title, 'displacement · $\\kdx$');
+  assert.equal(c.body, 'Displacement is the change in position.'); assert.equal(c.notes, undefined);
+  assert.deepEqual(c.refs?.map((g) => [g.label, g.links.map((l) => l.label)]), [['Formula', ['$\\kdx = \\kxf - \\kxo$']]]);
+  calls.length = 0; c.refs?.[0]?.links[0]?.run(); assert.equal(calls.join(','), 'span:2.1-displacement');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is first introduced', 'Show in Definitions']);
+  assert.equal(run('Go to where it is first introduced', c), 'span:2.1-displacement');
+});
+test('a definition card gives the meaning here and elsewhere where the chapter redefines the symbol, and falls back to the section', () => {
+  const other: VariableDTO = { sym: 'R', meaning: 'range of the projectile', unit: 'm', section: sectionId('3.4') };
+  const c = definitionCard({ concept: { ...displacement, statement: undefined }, tex: 'R', meaning: 'resultant of two vectors', elsewhere: other, fallback: 'the change in position of an object', formulas: [] }, nav);
+  assert.equal(c.title, 'Displacement · $R$'); assert.equal(c.body, 'The change in position of an object.');
+  assert.deepEqual(c.notes, [{ label: 'In this section', text: 'Resultant of two vectors.' }, { label: 'Elsewhere in this chapter (3.4)', text: 'Range of the projectile.' }]);
+  assert.deepEqual(c.refs, []); assert.equal(run('Go to where it is first introduced', c), 'sec:2.1');
+  assert.equal(definitionCard({ concept: { ...displacement, kind: 'axiom' }, formulas: [] }, nav).eyebrow, 'Axiom');
 });
 test('a reference card and the first sentence', () => {
   assert.equal(firstSentence('The spring of a toy gun is pushed in. Then it is released.'), 'The spring of a toy gun is pushed in.');
@@ -127,21 +154,21 @@ test('a reference card and the first sentence', () => {
 });
 
 /* ---------- concept ---------- */
-const hooke = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], why: 'the restoring force is proportional to the displacement' };
+const hooke = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], statement: 'the restoring force is proportional to the displacement' };
 const place = (id: string, title: string) => ({ id: span(id), title });
 const refOf = (card: { refs?: readonly { label: string; links: readonly { label: string }[]; more?: { label: string } }[] }, label: string) => card.refs?.find((g) => g.label === label);
 const runRef = (card: { refs?: readonly { label: string; links: readonly { label: string; run: () => void }[]; more?: { label: string; run: () => void } }[] }, group: string, link: string) => {
   calls.length = 0; const g = card.refs?.find((x) => x.label === group); (link === 'more' ? g?.more : g?.links.find((l) => l.label === link))?.run(); return calls.join(',');
 };
 
-test('a concept card says why it matters, then where the text introduces and uses it', () => {
+test('a concept card gives its statement, then where the text introduces and uses it', () => {
   const c = conceptCard({
     concept: { ...hooke, eq: equationId('eq-hooke') },
     intro: [place('16.1-hookes-law', 'Hooke’s Law')],
     uses: [place('16.1-energy', 'Energy in a Spring'), place('16.2-period', 'Period and Frequency')],
     built: true, onMap: false,
   }, nav);
-  assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Concept · result · section 16.1'); assert.equal(c.title, hooke.name);
+  assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Result · section 16.1'); assert.equal(c.title, hooke.name);
   assert.equal(c.body, 'The restoring force is proportional to the displacement.');
   assert.deepEqual(c.refs?.map((g) => g.label), ['Introduced in', 'Used in']);
   assert.deepEqual(refOf(c, 'Introduced in')?.links.map((l) => l.label), ['Hooke’s Law']);
@@ -166,8 +193,8 @@ test('long use lists are cut short and the rest stand behind one trailing action
   assert.deepEqual(u?.links.map((l) => l.label), ['Part 1', 'Part 2', 'Part 3', 'Part 4']);
   assert.equal(u?.more?.label, 'and 2 more'); assert.equal(runRef(wide, 'Used in', 'more'), 'sec:16.1');
 });
-test('a concept the text neither introduces nor uses has no places, and no why leaves no body', () => {
-  const c = conceptCard({ concept: { ...hooke, why: undefined }, intro: [], uses: [], built: true, onMap: false }, nav);
+test('a concept the text neither introduces nor uses has no places, and no statement leaves no body', () => {
+  const c = conceptCard({ concept: { ...hooke, statement: undefined }, intro: [], uses: [], built: true, onMap: false }, nav);
   assert.equal(c.body, undefined); assert.deepEqual(c.refs, []);
   assert.equal(run('Go to definition', c), 'sec:16.1');
 });

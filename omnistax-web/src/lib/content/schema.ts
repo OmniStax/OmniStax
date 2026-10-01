@@ -10,7 +10,7 @@
    docs/content-format.md is generated from these objects and the
    description is the only place the meaning of a field is written down. */
 import { z } from 'zod';
-import { type BookId, type EquationId, type SectionId, type SpanId, conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
+import { type BookId, type ConceptId, type EquationId, type SectionId, type SpanId, conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
 import { type PageRole, pageId, pageRoleOf } from './roles';
 
 /* A row refers to another row by id alone, and the ids are branded so that a
@@ -475,6 +475,7 @@ export type ExerciseDTO = z.infer<typeof ServedExerciseSchema>;
    one, and the plain one otherwise. */
 export type EquationDTO = {
   readonly id: EquationId;
+  readonly concept?: ConceptId;  /* the concept the equation states */
   readonly section: SectionId;
   readonly tex: string;
   readonly latex: string;        /* the plain form beside it, which the search reads: a macro names nothing to a reader typing "kx" */
@@ -482,7 +483,7 @@ export type EquationDTO = {
   readonly anchor?: SpanId;
   readonly important: boolean;
 };
-export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, section: e.section, tex: e.ktex ?? e.latex, latex: e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
+export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, concept: e.concept, section: e.section, tex: e.ktex ?? e.latex, latex: e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
 
 export type FormulasDTO = {
   readonly variables: readonly VariableDTO[];

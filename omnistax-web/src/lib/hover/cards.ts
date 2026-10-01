@@ -13,11 +13,12 @@ import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, lookupVariable, otherMeanings } from './data';
-import type { VariableDTO } from '../content/schema';
-import { type Card, type Nav, variableCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import type { ConceptDTO, GlossaryDTO, VariableDTO } from '../content/schema';
+import { formulasOf } from '../sections/conceptlists';
+import { type Card, type Nav, definitionCard, variableCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], .formula[data-formula]';
+export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], [data-eq], .formula[data-formula]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
@@ -78,13 +79,37 @@ export const navFor = (book: BookId): Nav => {
   return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement };
 };
 
+/* ---------- the definition card's facts ----------
+   Whichever of a concept's word, symbol or defining formula the reader hovered,
+   the card is the same: the word and the symbol from the loaded sheets (the
+   hovered one first), the formulas that state the concept, and the span that
+   introduces it. */
+type Named = { readonly sym?: string; readonly variable?: VariableDTO; readonly elsewhere?: VariableDTO; readonly term?: GlossaryDTO; readonly section: SectionId };
+const definition = (book: BookId, c: ConceptDTO, from: Named): Card => {
+  const tabs = registry.chaptersOf(book).map((ch) => ch.formulas);
+  const own = tabs.flatMap((s) => s.variables).filter((v) => v.concept === c.id);
+  const v = from.variable ?? own.find((x) => x.section === from.section) ?? own[0];
+  const sym = from.sym ?? v?.sym;
+  const word = from.term?.term ?? tabs.flatMap((s) => s.glossary).find((g) => g.concept === c.id)?.term;
+  const redefined = !!from.variable && (!!from.variable.redefines || !!from.elsewhere);
+  return definitionCard({
+    concept: c, word, tex: sym ? registry.manifest(book).symbols[sym] ?? sym : undefined, unit: v?.unit || undefined,
+    meaning: redefined ? from.variable?.meaning : undefined, elsewhere: from.elsewhere, fallback: from.term?.definition,
+    formulas: formulasOf(c, tabs.flatMap((s) => s.equations).filter((e) => e.concept === c.id)),
+    intro: spansOf(book, conceptId(c.id)).intro[0],
+  }, navFor(book));
+};
+
 /* ---------- resolvers, one per kind ---------- */
 const variable = (book: BookId, t: HTMLElement): Card | null => {
   const sym = symOf(t); const sec = sectionOf(book, t); if (!sym || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
   const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
-  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: data ? lookupVariable(data.formulas.variables, sym, sec) : undefined }, navFor(book));
+  const v = data ? lookupVariable(data.formulas.variables, sym, sec) : undefined;
   const other = data ? otherMeanings(data.formulas.variables, sym, sec)[0] : undefined;
+  const c = v?.concept ? registry.concept(book, v.concept) : undefined;
+  if (c) return definition(book, c, { sym, variable: v, elsewhere: other, section: sec });
+  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: v }, navFor(book));
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
 const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
@@ -92,6 +117,8 @@ const term = (book: BookId, t: HTMLElement): Card | null => {
   const name = t.dataset.term; const sec = sectionOf(book, t); if (!name || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
   const g = data?.formulas.glossary.find((x) => x.term.toLowerCase() === name.toLowerCase());
+  const c = g?.concept ? registry.concept(book, g.concept) : undefined;
+  if (c && g) return definition(book, c, { term: g, section: sec });
   const anchor = data ? introducingSpan(name, data.concepts.concepts, data.concepts.coverage) : undefined;
   const home = g ? sectionId(g.section) : sec;
   const top = registry.state(sectionRef(book, home))?.docs.text?.querySelector<HTMLElement>('section[id]')?.id;   /* the section's first span, when it is loaded */
@@ -104,11 +131,14 @@ const reference = (book: BookId, t: HTMLElement): Card | null => {
   const p = el.querySelector('p'); const body = p ? firstSentence(headingText(p) ?? '') : undefined;
   return referenceCard({ id: spanId(id), title: t.dataset.xref ? `Example ${t.dataset.xref} · ${title}` : title, body }, navFor(book));
 };
+/* An equation set on the page is known by its TeX; one named by a link, as an
+   answer names it, by its id. */
 const equation = (book: BookId, t: HTMLElement): Card | null => {
-  const tex = t.querySelector('.katex-mathml annotation')?.textContent; if (!tex) return null;
   const sec = sectionOf(book, t); const data = sec ? chapterData(sectionRef(book, sec)) : undefined; if (!data) return null;
-  const e = matchEquation(tex, data.formulas.equations); if (!e) return null;
-  const concept = data.concepts.concepts.find((c) => c.eq === e.id);
+  const tex = t.dataset.eq ? undefined : t.querySelector('.katex-mathml annotation')?.textContent;
+  const e = t.dataset.eq ? data.formulas.equations.find((x) => x.id === t.dataset.eq) : tex ? matchEquation(tex, data.formulas.equations) : undefined; if (!e) return null;
+  const concept = (e.concept ? registry.concept(book, e.concept) : undefined) ?? data.concepts.concepts.find((c) => c.eq === e.id);
+  if (concept?.kind === 'definition') return definition(book, concept, { section: e.section });
   return equationCard({ equation: e, concept, introducedIn: e.anchor ? spanTitle(book, spanId(e.anchor)) : undefined }, navFor(book));
 };
 
@@ -121,12 +151,19 @@ const concept = (book: BookId, t: HTMLElement): Card | null => {
   return conceptCard({ concept: c, intro: places(book, sp.intro), uses: places(book, sp.uses), built: !!registry.entry(sectionRef(book, sectionId(c.section)))?.built, onMap: t.matches('.node') }, navFor(book));
 };
 /* What must arrive before a target's card can be told: for a concept, every
-   built chapter of its book; for the rest, nothing. */
+   built chapter of its book; for a term, a symbol or an equation named away
+   from its page, as in an answer, the chapter holding it; for the rest, nothing. */
+const TABLED = '[data-concept], .term[data-term], [data-sym], [data-eq]';
+const unloaded = (book: BookId, dir: string): boolean => { const s = registry.chapterStatusOf(book, dir); return s !== 'loaded' && s !== 'failed'; };
 export const readyFor = (t: HTMLElement): Promise<void> | null => {
-  const book = bookOfEl(t); if (!book || !t.matches('[data-concept]')) return null;
+  const book = bookOfEl(t); if (!book || !t.matches(TABLED)) return null;
   if (!registry.hasBook(book)) return registry.ensureBook(book).then((m) => (m ? readyFor(t) ?? undefined : undefined));
+  if (!t.matches('[data-concept]')) {
+    const sec = sectionOf(book, t); const dir = sec ? registry.chapterOf(sectionRef(book, sec))?.dir : undefined;
+    return dir && unloaded(book, dir) ? registry.loadChapters(book, [dir]).catch(() => {}) : null;
+  }
   const dirs = registry.manifest(book).chapters.filter((c) => c.sections.some((s) => s.built)).map((c) => c.dir);
-  const wanted = dirs.filter((d) => { const s = registry.chapterStatusOf(book, d); return s !== 'loaded' && s !== 'failed'; });
+  const wanted = dirs.filter((d) => unloaded(book, d));
   return wanted.length ? registry.loadChapters(book, wanted) : null;
 };
 
@@ -146,7 +183,7 @@ export const cardFor = (t: HTMLElement): Card | null => {
   const book = bookOfEl(t); if (!book) return null;
   if (t.hasAttribute('data-sym')) return variable(book, t);
   if (t.matches('.term')) return term(book, t);
-  if (t.matches('.katex-display')) return equation(book, t);
+  if (t.matches('.katex-display, [data-eq]')) return equation(book, t);
   if (t.matches('[data-concept]')) return concept(book, t);
   if (t.matches('.formula[data-formula]')) return formula(book, t);
   if (t.matches('a[href^="#"]')) return reference(book, t);

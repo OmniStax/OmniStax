@@ -10,7 +10,7 @@ import { LayoutFileSchema, layoutUrlOf, positionsOf } from '../src/lib/sections/
 
 /* A small scope: two concepts taken for granted and three built on them. */
 const concept = (id: string, name: string, prereqs: string[], ext = false): DagNode =>
-  ({ status: 'built', id, name, kind: 'idea', section: '1.1', bloom: 'understand', why: '', prereqs, ext } as unknown as DagNode);
+  ({ status: 'built', id, name, kind: 'idea', section: '1.1', bloom: 'understand', statement: '', prereqs, ext } as unknown as DagNode);
 const LIST: readonly DagNode[] = [
   concept('newton-second', "Newton's second law", []),
   concept('mass', 'mass', []),

@@ -87,7 +87,7 @@ const dataOf = (book: BookId, ch: ChapterEntry) => registry.chapter(book, ch.dir
 const conceptsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly PickerRow[] =>
   (dataOf(book, ch)?.concepts.concepts ?? []).filter((c) => c.status === 'built' && c.section === sec).map((c): PickerRow => ({
     category: 'concepts', key: `${book}/${c.id}`, label: plain(c.name), detail: '', target: { kind: 'concept', book, section: c.section, id: c.id }, embed: true,
-    text: [plain(c.name), c.status === 'built' ? c.why ?? '' : ''].filter((s) => s !== '').join('\n'),
+    text: [plain(c.name), c.status === 'built' ? c.statement ?? '' : ''].filter((s) => s !== '').join('\n'),
   }));
 const equationsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly PickerRow[] =>
   (dataOf(book, ch)?.formulas.equations ?? []).filter((e) => e.section === sec).map((e): PickerRow => ({

@@ -886,8 +886,10 @@
   .lvl-section{padding-left:32px;color:var(--muted)}
   .lvl-section .lab{color:var(--ink)}
   .row.concept .lab :global(.katex),.row.prow .lab :global(.katex),.pick .lab :global(.katex){font-size:0.95em}
-  /* the kind's hue as a dot beside the name: the same three the concept map gives its shapes */
+  /* the kind's hue as a dot beside the name: the same five the concept map gives its shapes */
   .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .dot.k-definition{background:var(--cm-definition)}
+  .dot.k-axiom{background:var(--cm-axiom)}
   .dot.k-idea{background:var(--cm-idea)}
   .dot.k-result{background:var(--cm-result)}
   .dot.k-skill{background:var(--cm-skill)}

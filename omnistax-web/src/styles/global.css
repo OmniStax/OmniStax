@@ -349,14 +349,14 @@ article.page .chapter.front ol{margin-top:0}
 @media (max-height:800px){ article.page[data-page="about"]{padding-top:16px} article.page[data-page="about"] h1{font-size:2.2rem} article.page[data-page="about"] .intro{font-size:1.02rem;line-height:1.55} }
 @media (max-width:900px){ article.page{padding:20px 18px 80px} article.page h1{font-size:2.1rem} }
 
-/* the concept map's three kinds of node: one hue each, held apart from --accent
+/* the concept map's five kinds of node: one hue each, held apart from --accent
    (which the map keeps for pinned and active) and from the highlight colours.
    Shape carries the meaning; these only tint the fill and the rule behind it. */
-:root{ --cm-idea:#6D28D9; --cm-result:#0D9488; --cm-skill:#C2410C; }
+:root{ --cm-definition:#475569; --cm-axiom:#BE123C; --cm-idea:#6D28D9; --cm-result:#0D9488; --cm-skill:#C2410C; }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
+  :root:not([data-theme="light"]){ --cm-definition:#94A3B8; --cm-axiom:#FB7185; --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
 }
-:root[data-theme="dark"]{ --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
+:root[data-theme="dark"]{ --cm-definition:#94A3B8; --cm-axiom:#FB7185; --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
 
 /* chrome primitives: .btn (.primary .ghost .danger .sm .lg .icon), .seg, .chip, .toggle, .input */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 12px;border:0;border-radius:7px;font-family:var(--sans);font-size:0.8rem;font-weight:600;letter-spacing:0.01em;line-height:1;white-space:nowrap;color:var(--ink);background:var(--soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rule) 70%,transparent);cursor:pointer;transition:background-color 120ms,color 120ms,box-shadow 120ms,opacity 120ms}
