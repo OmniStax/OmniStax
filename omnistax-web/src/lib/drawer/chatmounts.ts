@@ -1,16 +1,16 @@
 /* The whole-chat cards of one rendered note, each filled with the live tree.
    The renderer leaves a card naming the chat; the note fills it here, keeps
    the mount across passes, and lets go of the ones it no longer holds. */
-import { mount, unmount } from 'svelte';
+import { mount, unmount, type Component } from 'svelte';
 
-type ChatEmbedComponent = typeof import('../../components/drawer/ChatEmbed.svelte').default;
+type ChatEmbedComponent = Component<{ chat: string }>;
 type Live = { readonly root: HTMLElement; readonly app: Record<string, unknown> };
 
 const CARD = '.chat-tree-embed[data-chat-tree]';
 
 let component: ChatEmbedComponent | null = null;
 const load = (): Promise<ChatEmbedComponent> =>
-  component ? Promise.resolve(component) : import('../../components/drawer/ChatEmbed.svelte').then((m) => (component = m.default));
+  component ? Promise.resolve(component) : import('../../components/drawer/ChatEmbed.svelte').then((m) => (component = m.default as unknown as ChatEmbedComponent));
 
 export class ChatMounts {
   private live = new Map<string, Live>();
