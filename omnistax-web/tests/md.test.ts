@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bookKey, embedText, findLinks, isBook, linkInner, linkKey, parseLink, withFigureParams } from '../src/lib/notes/md/links';
+import { bookKey, embedText, findLinks, isBook, linkInner, linkKey, parseLink, withEmbedWidth, withFigureParams, withoutFigureParams } from '../src/lib/notes/md/links';
 import { bookId } from '../src/lib/types/ids';
 import { render, setImageWidth, type Resolver } from '../src/lib/notes/md/render';
 
@@ -26,7 +26,7 @@ const r: Resolver = {
       : null),
   concept: (section, id) =>
     section !== '16.1' ? null
-      : id === 'hookes-law' ? { name: 'Hooke’s law, $\\kF = -\\kk\\kx$', kind: 'result', why: 'the restoring force grows with the deformation', section: '16.1', eqTex: '\\kF = -\\kk\\kx', placeholder: false }
+      : id === 'hookes-law' ? { name: 'Hooke’s law, $\\kF = -\\kk\\kx$', kind: 'result', statement: 'the restoring force grows with the deformation', section: '16.1', eqTex: '\\kF = -\\kk\\kx', placeholder: false }
         : id === 'later-idea' ? { name: 'Something later', kind: 'idea', section: '16.1', placeholder: true }
           : null,
 };
@@ -206,10 +206,26 @@ test('a thing the book does not hold keeps what names it, so the chapter can be 
   assert.match(render('![[eq:16.4:x|the period]]', r), /data-embed="eq:16\.4:x">the period<\/span>/);
 });
 
-test('a thing of the book is a card whether it is written as an embed or as a link', () => {
-  assert.match(render('[[def:16.1:deformation]]', r), /<div class="book-embed kind-term"/);
-  assert.match(render('as in [[sym:16.1:F]] above', r), /<div class="book-embed kind-symbol"/);
+test('a thing of the book written as a link is a word the hover card opens on', () => {
+  const term = render('[[def:16.1:deformation]]', r);
+  assert.match(term, /^<p><span class="book-word term" data-term="deformation" data-sec="16\.1" tabindex="0"><span>deformation<\/span><\/span><\/p>/);
+  assert.doesNotMatch(term, /book-embed/);
+  assert.match(render('as in [[sym:16.1:F]] above', r), /<span class="book-word" data-sym="F" data-sec="16\.1" tabindex="0"><span class="embed-tex" data-tex="\\kF"><\/span><\/span>/);
+  assert.match(render('as in [[sym:16.1:F|the force]] above', r), /data-sym="F"[^>]*><span>the force<\/span>/);
+  assert.match(render('[[def:college-physics-2e/16.1:deformation]]', r), /data-book="college-physics-2e" data-sec="16\.1"/);
   assert.match(render('as in [[sym:16.4:L]] above', r), /<span class="wiki dead" data-embed="sym:16\.4:L">/);
+});
+
+test('maths is set in the book a paragraph links into, and in the resolver\'s own elsewhere', () => {
+  const scoped: Resolver = { ...r, scope: (book, section) => ({ book: book ?? 'home' as never, ...(section ? { section } : {}), macros: book === 'other' ? { '\\kx': '\\htmlClass{kv-other}{x}' } : { '\\kx': '\\htmlClass{kv-home}{x}' } }) };
+  const plain = render('So $\\kx$ moves.', scoped);
+  assert.match(plain, /kv-home/);
+  assert.doesNotMatch(plain, /md-scope/);
+  const linked = render('In [[other/2.1]] the $\\kx$ moves.\n\n- see [[sym:other/2.1:x]] and $\\kx$\n- but $\\kx$ here', scoped);
+  assert.match(linked, /<span class="md-scope" data-book="other" data-sec="2\.1">[\s\S]*kv-other/);
+  assert.equal((linked.match(/kv-other/g) ?? []).length, 2, 'the paragraph and the first item');
+  assert.match(linked, /but <span class="katex">[\s\S]*kv-home/);
+  assert.doesNotMatch(render('So $\\kx$ moves.', r), /kv-/, 'no scope, no macros');
 });
 
 test('what the data says is escaped, and its TeX never becomes markup', () => {
@@ -314,4 +330,18 @@ test('a resolver that knows one of them lends the stub its name', () => {
 test('the links a note makes count the new kinds among them', () => {
   const found = findLinks('[[file:abcd1234]] and ![[drawing:abcd1234]] and [[16.4]]');
   assert.deepEqual(found.map((l) => l.kind), ['file', 'drawing', 'section']);
+});
+
+test('an embed carries the width its card was dragged to, beside its alias', () => {
+  assert.deepEqual(parseLink('eq:16.1:eq-hooke|w=420'), { kind: 'equation', section: '16.1', id: 'eq-hooke', width: 420 });
+  assert.deepEqual(parseLink('eq:16.1:eq-hooke|the law|w=420'), { kind: 'equation', section: '16.1', id: 'eq-hooke', alias: 'the law', width: 420 });
+  const body = 'a\n\n![[eq:16.1:eq-hooke]]\n\n![[eq:16.1:eq-hooke|the law]]\n';
+  assert.equal(withEmbedWidth(body, 'eq:16.1:eq-hooke', 1, 380), 'a\n\n![[eq:16.1:eq-hooke]]\n\n![[eq:16.1:eq-hooke|the law|w=380]]\n');
+  assert.match(render('![[eq:16.1:eq-hooke|w=420]]', r), /^<div style="width:420px" class="book-embed/);
+});
+
+test('the values of a figure are kept through a width and left out of the skeleton', () => {
+  const body = '![[fig:16.1:sim-spring?k=2|w=500]]';
+  assert.equal(withFigureParams(body, 'fig:16.1:sim-spring', 0, { k: 3 }), '![[fig:16.1:sim-spring?k=3|w=500]]');
+  assert.equal(withoutFigureParams(body), '![[fig:16.1:sim-spring|w=500]]');
 });

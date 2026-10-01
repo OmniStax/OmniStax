@@ -57,8 +57,10 @@ export type BookTarget = Extract<LinkTarget, { kind: BookKind }>;
 export const BOOK_PREFIX: Readonly<Record<BookKind, string>> = { equation: 'eq', term: 'def', symbol: 'sym', concept: 'concept' };
 export const isBook = (t: LinkTarget): t is BookTarget => t.kind in BOOK_PREFIX;
 
-/* Any target may carry an alias, the words the reader wants shown in its place. */
-export type Link = LinkTarget & { readonly alias?: string };
+/* Any target may carry an alias, the words the reader wants shown in its place,
+   and an embed the width the reader dragged its card to: `![[eq:16.1:eq-hooke|w=420]]`. */
+export type EmbedWidth = number;   /* CSS pixels */
+export type Link = LinkTarget & { readonly alias?: string; readonly width?: EmbedWidth };
 
 /* A section is written the way the book numbers it, after its book when the
    link says which, `college-physics-2e/16.4`; anything after hl: is a
@@ -103,33 +105,43 @@ const bookTarget = (prefix: string, book: string | undefined, section: SectionRe
 /* Both the link and the embed form, as they appear in a note's markdown. */
 export const LINK_PATTERN = /!?\[\[([^\]\n]+)\]\]/g;
 
-const withAlias = (target: LinkTarget, alias: string | undefined): Link => (alias ? { ...target, alias } : target);
+const WIDTH = /^w=(\d+)$/;
+type Tail = { readonly alias?: string; readonly width?: EmbedWidth };
+const tailOf = (parts: readonly string[]): Tail => {
+  const width = parts.map((p) => WIDTH.exec(p.trim())).find((m) => m !== null);
+  const alias = parts.filter((p) => !WIDTH.test(p.trim())).join('|').trim();
+  return { ...(alias ? { alias } : {}), ...(width ? { width: Number(width[1]) } : {}) };
+};
+const withAlias = (target: LinkTarget, tail: Tail): Link => ({ ...target, ...tail });
+
+/* What follows the target between the brackets: the alias, then the width. */
+export const linkTail = (link: Link): string => `${link.alias ? `|${link.alias}` : ''}${link.width ? `|w=${link.width}` : ''}`;
 
 /* `inner` is what stands between the brackets, alias and all. */
 export const parseLink = (inner: string): Link => {
-  const bar = inner.indexOf('|');
-  const target = (bar < 0 ? inner : inner.slice(0, bar)).trim();
-  const alias = bar < 0 ? undefined : inner.slice(bar + 1).trim() || undefined;
+  const [head, ...rest] = inner.split('|');
+  const target = head.trim();
+  const tail = tailOf(rest);
   const hl = HIGHLIGHT.exec(target);
-  if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, alias);
+  if (hl) return withAlias({ kind: 'highlight', id: hl[1].trim() }, tail);
   const fig = FIGURE.exec(target);
   if (fig) {
     const params = fig[4] === undefined ? {} : parseParams(fig[4]);
-    return withAlias({ kind: 'figure', ...inBook(fig[1]), section: fig[2], id: fig[3].trim(), ...(Object.keys(params).length ? { params } : {}) }, alias);
+    return withAlias({ kind: 'figure', ...inBook(fig[1]), section: fig[2], id: fig[3].trim(), ...(Object.keys(params).length ? { params } : {}) }, tail);
   }
   const file = FILE.exec(target);
-  if (file) return withAlias(file[2] ? { kind: 'file', file: file[1].trim(), page: Number(file[2]) } : { kind: 'file', file: file[1].trim() }, alias);
+  if (file) return withAlias(file[2] ? { kind: 'file', file: file[1].trim(), page: Number(file[2]) } : { kind: 'file', file: file[1].trim() }, tail);
   const drawing = DRAWING.exec(target);
-  if (drawing) return withAlias({ kind: 'drawing', id: drawing[1].trim() }, alias);
+  if (drawing) return withAlias({ kind: 'drawing', id: drawing[1].trim() }, tail);
   const chat = CHAT.exec(target);
-  if (chat) return withAlias(chat[2] ? { kind: 'chat', chat: chat[1].trim(), message: chat[2].trim() } : { kind: 'chat', chat: chat[1].trim() }, alias);
+  if (chat) return withAlias(chat[2] ? { kind: 'chat', chat: chat[1].trim(), message: chat[2].trim() } : { kind: 'chat', chat: chat[1].trim() }, tail);
   const exercise = EXERCISE.exec(target);
-  if (exercise) return withAlias({ kind: 'exercise', ...inBook(exercise[1]), section: exercise[2], id: exercise[3].trim() }, alias);
+  if (exercise) return withAlias({ kind: 'exercise', ...inBook(exercise[1]), section: exercise[2], id: exercise[3].trim() }, tail);
   const book = BOOK.exec(target);
-  if (book) return withAlias(bookTarget(book[1], book[2], book[3], book[4].trim()), alias);
+  if (book) return withAlias(bookTarget(book[1], book[2], book[3], book[4].trim()), tail);
   const section = SECTION.exec(target);
-  if (section) return withAlias({ kind: 'section', ...inBook(section[1]), section: section[2] }, alias);
-  return withAlias({ kind: 'note', name: target }, alias);
+  if (section) return withAlias({ kind: 'section', ...inBook(section[1]), section: section[2] }, tail);
+  return withAlias({ kind: 'note', name: target }, tail);
 };
 
 /* The section part of a link: the book before it when the link names one. */
@@ -177,6 +189,24 @@ export const withFigureParams = (markdown: string, key: string, n: number, param
   return markdown.replace(LINK_PATTERN, (m: string, inner: string) => {
     const t = parseLink(inner);
     if (!m.startsWith('!') || t.kind !== 'figure' || linkKey(t) !== key || ++seen !== n) return m;
-    return `![[${linkInner({ ...t, params })}${t.alias ? `|${t.alias}` : ''}]]`;
+    return `![[${linkInner({ ...t, params })}${linkTail(t)}]]`;
+  });
+};
+
+/* The body with every figure's stored values left out: two bodies that differ
+   only in where the reader left a figure's controls read the same. */
+export const withoutFigureParams = (markdown: string): string =>
+  markdown.replace(LINK_PATTERN, (m: string, inner: string) => {
+    const t = parseLink(inner);
+    return t.kind === 'figure' && t.params ? `${m.startsWith('!') ? '!' : ''}[[${linkInner({ ...t, params: undefined })}${linkTail(t)}]]` : m;
+  });
+
+/* The body with the n-th embed written `inner` drawn this wide. */
+export const withEmbedWidth = (markdown: string, inner: string, n: number, width: EmbedWidth): string => {
+  let seen = -1;
+  return markdown.replace(LINK_PATTERN, (m: string, raw: string) => {
+    const t = parseLink(raw);
+    if (!m.startsWith('!') || linkInner(t) !== inner || ++seen !== n) return m;
+    return `![[${linkInner(t)}${linkTail({ ...t, width })}]]`;
   });
 };

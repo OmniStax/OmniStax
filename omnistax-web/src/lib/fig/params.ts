@@ -42,9 +42,27 @@ export function setParams(root: Element, values: ParamValues): void {
   controlsUnder(root).forEach((c) => { if (c.id in values) c.drive(values[c.id]); });
 }
 
-export function onParams(root: Element, cb: (values: ParamValues) => void): () => void {
-  const fire = (): void => cb(valuesOf(paramsOf(root)));
+/* The values once the hand has let go: a drag reports when the pointer lifts,
+   and keys and clicks once they pause, so a slider is never written mid-drag. */
+const SETTLE_MS = 250;
+
+export function onParams(root: Element, cb: (values: ParamValues) => void, quiet: () => boolean = () => false): () => void {
+  let pending = false, held = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const flush = (): void => { if (!pending || held) return; pending = false; cb(valuesOf(paramsOf(root))); };
+  const fire = (): void => { if (quiet()) return; pending = true; clearTimeout(timer); timer = setTimeout(flush, SETTLE_MS); };
+  const grip = (): void => { held = true; };
+  const letGo = (): void => { if (!held) return; held = false; clearTimeout(timer); flush(); };
   const targets = controlsUnder(root).map((c) => c.input);
   targets.forEach((t) => t.addEventListener('input', fire));
-  return () => targets.forEach((t) => t.removeEventListener('input', fire));
+  root.addEventListener('pointerdown', grip, { capture: true });
+  globalThis.addEventListener?.('pointerup', letGo, { capture: true });
+  globalThis.addEventListener?.('pointercancel', letGo, { capture: true });
+  return () => {
+    clearTimeout(timer);
+    targets.forEach((t) => t.removeEventListener('input', fire));
+    root.removeEventListener('pointerdown', grip, { capture: true });
+    globalThis.removeEventListener?.('pointerup', letGo, { capture: true });
+    globalThis.removeEventListener?.('pointercancel', letGo, { capture: true });
+  };
 }

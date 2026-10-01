@@ -1,0 +1,55 @@
+/* The cards render.ts writes, wherever they stand: a note, a note being
+   written, a frame on a drawing, a text box. A thing of the book wears the
+   dress of the book's own hover card; a figure held live wears the book's
+   figure dress and nothing of its own. Where a card stands — its margins — is
+   the host's to say. */
+
+.book-embed,.fig-embed,.hl-embed,.drawing-embed,.stub-embed,.file-embed,.chat-embed{position:relative;box-sizing:border-box;max-width:100%}
+
+/* the hover card's dress */
+.book-embed,.fig-embed,.stub-embed,.file-embed,.chat-embed{padding:10px 12px 9px;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:6px;box-shadow:0 4px 16px rgb(0 0 0 / .08),0 1px 3px rgb(0 0 0 / .08);font-family:var(--sans);font-size:0.82rem;line-height:1.45;cursor:pointer}
+.book-embed:not([style*="width"]),.fig-embed:not(.live):not([style*="width"]){width:fit-content;min-width:min(18rem,100%)}
+.book-embed:hover,.fig-embed:not(.live):hover,.stub-embed:hover,.file-embed:hover,.chat-embed:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--rule))}
+.embed-eyebrow{margin-bottom:3px;font-family:var(--sans);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:600}
+.book-embed .embed-tex{font-size:1.25rem;line-height:1.2;margin:2px 0 4px;overflow-x:auto;overflow-y:hidden}
+.book-embed .embed-tex .katex{font-size:1em}
+.book-embed .embed-title{font-weight:600;font-size:0.92rem;margin-bottom:3px}
+.book-embed .embed-body{margin:0;max-width:36em}
+.book-embed .embed-body .katex,.book-embed .embed-title .katex{font-size:1em}
+
+/* a figure not yet live: its head, its still picture, its caption */
+.fig-embed .embed-body{font-family:var(--serif);font-size:0.9rem;line-height:1.5}
+.fig-embed .fig-still{display:block;margin:8px 0 0;max-width:100%;height:auto}
+.fig-embed .fig-caption{margin-top:6px;font-size:0.8rem;line-height:1.5;color:var(--muted)}
+
+/* a figure held live is the figure the book draws, in the book's own dress */
+.fig-embed.live{padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:default}
+.fig-embed.live .eyebrow{cursor:pointer}
+.fig-embed.live .fig-root{max-width:none;margin:0;padding:0}
+
+/* a highlight, quoted whole, in the colour it was marked with */
+.hl-embed{padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-radius:6px;background:var(--soft);cursor:pointer}
+.hl-embed:hover{border-color:var(--accent)}
+.hl-embed.hl-yellow{border-left-color:var(--hl-yellow)}
+.hl-embed.hl-green{border-left-color:var(--hl-green)}
+.hl-embed.hl-blue{border-left-color:var(--hl-blue)}
+.hl-embed.hl-pink{border-left-color:var(--hl-pink)}
+.hl-embed blockquote{margin:0;border:0;padding:0;font-style:normal;color:var(--ink)}
+.hl-embed.hl-yellow blockquote{box-shadow:inset 0 -0.55em 0 var(--hl-yellow)}
+.hl-embed.hl-green blockquote{box-shadow:inset 0 -0.55em 0 var(--hl-green)}
+.hl-embed.hl-blue blockquote{box-shadow:inset 0 -0.55em 0 var(--hl-blue)}
+.hl-embed.hl-pink blockquote{box-shadow:inset 0 -0.55em 0 var(--hl-pink)}
+.hl-embed .hl-meta{margin-top:8px;font-family:var(--sans);font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
+.hl-embed .hl-text{margin-top:4px;font-family:var(--sans);font-size:0.88rem;color:var(--ink)}
+.hl-embed .hl-text:empty{display:none}
+
+/* a drawing, shown as the picture of it with its name above */
+.drawing-embed{padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);cursor:pointer}
+.drawing-embed:not([style*="width"]){max-width:320px}
+.drawing-embed:hover{border-color:var(--accent)}
+.drawing-thumb{display:block;width:100%;height:auto;margin-top:8px;border:1px solid var(--rule);border-radius:4px;background:#fff}
+.drawing-waiting{height:80px;margin-top:8px;border-radius:4px;background:var(--soft2)}
+
+/* the corner a card is sized by */
+.embed-grip{position:absolute;right:-1px;bottom:-1px;width:14px;height:14px;cursor:nwse-resize;touch-action:none;opacity:0;border-radius:0 0 6px 0;background:linear-gradient(135deg,transparent 50%,var(--accent) 50%);z-index:1}
+:is(.book-embed,.fig-embed,.hl-embed,.drawing-embed,.stub-embed,.file-embed,.chat-embed):hover>.embed-grip{opacity:.7}

@@ -32,7 +32,10 @@
   import Frame from './Frame.svelte';
   import Group from './Group.svelte';
   import ChatFrame from './ChatFrame.svelte';
-  import { CHAT_ITEM } from '../../lib/drawer/chatcopy';
+  import { CHAT_ITEM, plainCopy, readChatClip, type ChatClipDTO } from '../../lib/drawer/chatcopy';
+  import { chats } from '../../lib/chat/store.svelte';
+  import { messageId } from '../../lib/chat/model';
+  import { fetchMissing } from '../../lib/notes/md/fetch';
   import TextBox from '../ui/TextBox.svelte';
   import {
     addGroup, addItem, amend, canRedo, canUndo, clampZoom, endPoint, groupAround, moveItems, newDrawItemId, ORIGIN, rectOf,
@@ -48,18 +51,17 @@
   import { cssOf, paintFrom, type Colour } from '../../lib/drawer/colour';
   import { focus } from '../../lib/sections/focus.svelte';
   import { CURSOR, isInk, toolForKey, type Tool } from '../../lib/drawer/tools';
-  import { assetEmbed, frameSize, snapshotFigure, snapshotImage } from '../../lib/drawer/snapshot';
+  import { assetEmbed, frameSize, snapshotImage } from '../../lib/drawer/snapshot';
   import { cardBooks, cardResolver } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
-  import { registry } from '../../lib/sections/registry.svelte';
   import { openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { split } from '../../lib/layout/model';
-  import { parseLink } from '../../lib/notes/md/links';
+  import { paramsQuery, parseLink } from '../../lib/notes/md/links';
   import { dragging } from '../../lib/layout/drag.svelte';
   import {
     chatId, chatItem, docItem, drawingId, drawingItem, exItem, fileId, fileItem, figItem,
-    itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type NoteId, type SectionRef,
+    itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type NoteId,
   } from '../../lib/types/ids';
 
   let {
@@ -306,6 +308,19 @@
     return false;
   };
 
+  /* With the lasso, a press on the empty inside of a group takes the group:
+     the innermost one, and only where no ink of its own lies under the press,
+     so a stroke inside a group can still be swept up from where it is. */
+  const groupUnder = (p: Vec): GroupItem | null => {
+    if (erasedAt(drawing.items, p[0], p[1], 4 / scale).some((i) => i.kind !== 'group')) return null;
+    const inside = drawing.items.filter((i): i is GroupItem => i.kind === 'group' && inBox(i, p[0], p[1]));
+    return inside.reduce<GroupItem | null>((best, g) => (best && best.w * best.h <= g.w * g.h ? best : g), null);
+  };
+  const grabGroupAt = (g: GroupItem, p: Vec): void => {
+    selection = [g.id];
+    gesture = { kind: 'move', from: p, last: p, base: drawing, ids: carried(drawing.items, [g.id]) };
+  };
+
   /* A group moved carries everything inside it. */
   const carried = (items: readonly DrawItem[], ids: readonly DrawItemId[]): readonly DrawItemId[] => {
     const groups = items.filter((i): i is GroupItem => i.kind === 'group' && ids.includes(i.id));
@@ -387,6 +402,8 @@
       if (beginSelectionDrag(p)) return;
       const l = linkUnder(drawing.items, p[0], p[1], 6 / scale);
       if (l) { selection = [l.id]; return; }
+      const g = groupUnder(p);
+      if (g) { grabGroupAt(g, p); return; }
       selection = []; gesture = { kind: 'lasso', poly: [p] }; return;
     }
     if (tool === 'group') { selection = []; gesture = { kind: 'group', from: p, to: p }; return; }
@@ -419,6 +436,7 @@
       }
     }
     const g = gesture;
+    if (e.pointerType !== 'touch') lastPointer = at(e.clientX, e.clientY);
     if (!g && e.pointerType !== 'touch') {
       const [x, y] = at(e.clientX, e.clientY);
       hovered = connectableAt(drawing.items, x, y, 16 / scale)?.id ?? null;
@@ -582,7 +600,10 @@
   /* Inside the tab a bare letter picks a tool and Ctrl+Z is the drawing's own,
      so neither reaches the shell. A key pressed while a text box is being
      typed in belongs to the box, which stops the event before it arrives. */
+  const ARROWS: Readonly<Record<string, Vec>> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   const onkeydown = (e: KeyboardEvent): void => {
+    /* A live figure's controls keep their own keys. */
+    if (e.target !== host && (e.target as HTMLElement).closest('.frame')) return;
     if (e.key === 'Shift') shiftHeld = true;
     if (e.key === ' ' && !e.repeat) { spaceHeld = true; e.preventDefault(); }
     const mod = e.ctrlKey || e.metaKey;
@@ -598,6 +619,16 @@
       e.preventDefault(); e.stopPropagation();
       commit(removeItems(drawing, selection));
       selection = [];
+      return;
+    }
+    /* The arrows nudge what is selected a screen pixel, ten with Shift; a key
+       held down is one step. */
+    const arrow = ARROWS[e.key];
+    if (arrow && selection.length) {
+      e.preventDefault(); e.stopPropagation();
+      const k = (e.shiftKey ? 10 : 1) / view.zoom;
+      const next = moveItems(drawing, carried(drawing.items, selection), arrow[0] * k, arrow[1] * k);
+      if (e.repeat) nudge(next); else commit(next);
       return;
     }
     if (e.key === 'Escape') { selection = []; naming = null; return; }
@@ -629,28 +660,8 @@
     !dragging() && ((e.dataTransfer?.types.includes('text/plain') ?? false) || (e.dataTransfer?.types.includes('Files') ?? false));
 
   const CARD_SIZE = { w: 300, h: 170 };
-
-  /* A figure is a picture of itself: the registry builds the very root a split
-     pane would show, it is left to draw one frame off the page, and what it
-     drew is stored. A figure that draws nothing photographable keeps its card,
-     which still says what it is and still opens. */
-  const framedFigure = async (ref: SectionRef, fig: string, p: Vec): Promise<void> => {
-    const embed = `fig:${secKey(ref)}:${fig}`;
-    const root = registry.figureRoot(ref, fig);
-    if (!root) { placeFrame(embed, p, CARD_SIZE.w, CARD_SIZE.h); return; }
-    /* The root must be in the document to be laid out and drawn, so it is put
-       somewhere the reader cannot see and taken away again. */
-    const stage = document.createElement('div');
-    stage.style.cssText = 'position:fixed;left:-10000px;top:0;width:640px;pointer-events:none;opacity:0';
-    stage.appendChild(root);
-    document.body.appendChild(stage);
-    try {
-      const shot = await snapshotFigure(root);
-      if (!shot) { placeFrame(embed, p, CARD_SIZE.w, CARD_SIZE.h); return; }
-      const { w, h } = frameSize(shot);
-      placeFrame(assetEmbed(shot.asset), p, w, h, embed);
-    } finally { stage.remove(); }
-  };
+  /* A figure is live in its frame and grows to the height it draws at. */
+  const FIGURE_SIZE = { w: 560, h: 360 };
 
   const placeFrame = (embed: string, p: Vec, w: number, h: number, open?: string): void => {
     const id = newDrawItemId();
@@ -690,26 +701,60 @@
     const p = at(e.clientX, e.clientY);
     const file = [...(e.dataTransfer?.files ?? [])].find((f) => f.type.startsWith('image/'));
     if (file) { void dropImage(file, p); return; }
-    const text = e.dataTransfer?.getData('text/plain').trim() ?? '';
-    const m = BRACKETS.exec(text);
-    if (!m) return;
+    placeEmbed(e.dataTransfer?.getData('text/plain') ?? '', p);
+  };
+
+  /* An embed's text, dropped or pasted, as what it names: a whole chat is the
+     live chat, a figure the live figure, anything else the card a note shows. */
+  const placeEmbed = (text: string, p: Vec): boolean => {
+    const m = BRACKETS.exec(text.trim());
+    if (!m) return false;
     const inner = m[1];
     const link = parseLink(inner);
-    if (link.kind === 'figure') { void framedFigure(cardBooks.ref(link.section, link.book), link.id, p); return; }
+    if (link.kind === 'figure') {
+      placeFrame(`fig:${secKey(cardBooks.ref(link.section, link.book))}:${link.id}${paramsQuery(link.params)}`, p, FIGURE_SIZE.w, FIGURE_SIZE.h);
+      return true;
+    }
     if (link.kind === 'chat' && link.message === undefined) {
       const id = newDrawItemId();
       commit(addItem(drawing, { kind: 'chat', id, x: p[0], y: p[1], ...CHAT_ITEM, chat: link.chat }));
       selection = [id];
-      return;
+      return true;
     }
     placeFrame(inner, p, CARD_SIZE.w, CARD_SIZE.h);
+    return true;
+  };
+
+  /* ── what is pasted on the page ────────────────────────────────────────── */
+
+  /* A chat copied plain is laid out as its cards and connectors, one step; an
+     embed copied is placed as a drop would place it. Plain words are left
+     alone. Whatever is pasted lands under the pointer when it is over the page. */
+  let lastPointer: Vec | null = null;
+  const pasteAt = (w: number, h: number): Vec => lastPointer ?? middle(w, h);
+
+  const pasteChat = async (clip: ChatClipDTO): Promise<void> => {
+    const chat = await chats.load(chatId(clip.chat)).catch(() => null);
+    if (!chat) return;
+    const items = plainCopy(chat, pasteAt(0, 0), clip.root ? messageId(clip.root) : undefined);
+    if (!items.length) return;
+    commit(items.reduce<Drawing>((d, i) => addItem(d, i), drawing));
+    selection = items.map((i) => i.id);
+  };
+
+  const onpaste = (e: ClipboardEvent): void => {
+    const t = e.target as HTMLElement | null;
+    if (t?.closest('input, textarea, [contenteditable], .cm-editor')) return;
+    const clip = readChatClip(e.clipboardData);
+    if (clip) { e.preventDefault(); void pasteChat(clip); return; }
+    const text = e.clipboardData?.getData('text/plain') ?? '';
+    if (placeEmbed(text, pasteAt(CARD_SIZE.w, CARD_SIZE.h))) e.preventDefault();
   };
 
   /* ── opening what a frame holds ────────────────────────────────────────── */
 
-  /* A figure opens live in a split to the right of the drawing, where it has a
-     pane to itself and draws as it does anywhere else — which is the whole
-     reason the frame holds a picture and not the figure. Everything else with
+  /* A figure opens in a split to the right of the drawing, where it has a
+     pane to itself at the size the book draws it. Everything else with
      a tab of its own opens wherever its tab opens; a card of the book's tables
      has no tab, so its glyph is not drawn at all. */
   const openFrame = (key: string): void => {
@@ -753,6 +798,7 @@
       void thumbnailOf(drawingId(id)).then((url) => { if (url) void fillThumbs(el, drawingId(id), url); });
     }
     cardBooks.setMath(el);
+    void fetchMissing(el, cardBooks);
   };
 
   /* ── the boxes and the frames ──────────────────────────────────────────── */
@@ -809,8 +855,8 @@
     aria-label="Drawing canvas: press P for the pen, E for the eraser, L for the lasso"
     style:cursor={gesture?.kind === 'pan' ? 'grabbing' : CURSOR[tool]}
     {onpointerdown} {onpointermove} {onpointerup} onpointercancel={oncancel}
-    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick}
-    onpointerleave={() => { if (!gesture) hovered = null; }}>
+    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick} {onpaste}
+    onpointerleave={() => { lastPointer = null; if (!gesture) hovered = null; }}>
     <span class="probe" data-book={focus.book} bind:this={probe} hidden></span>
     <!-- The canvas is the pane; the boxes and the frames stand on a container
          of no size at all, carrying the view's transform, so they are placed
@@ -831,6 +877,8 @@
             note={noteIn(f.embed)} editing={writingIn === f.id} onedit={(on) => (writingIn = on ? f.id : null)}
             onopen={openFrame}
             onmove={(nx, ny) => moveOne(f, nx, ny)} onresize={(nw, nh) => sizeOne(f, nw, nh)}
+            onembed={(embed) => { const { open: _, ...rest } = f; commit(replaceItem(drawing, { ...rest, embed })); }}
+            onfit={(nh) => nudge(replaceItem(drawing, { ...f, h: nh }))}
             ondecorate={decorate} />
         {/each}
         {#each chatItems as c (c.id)}
@@ -926,7 +974,6 @@
      puts it somewhere. */
   .boxed{position:absolute}
   .boxed.tinted :global(.text-box){border-color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--panel))}
-  .boxed.tinted :global(.text-box .bar){background:color-mix(in srgb,var(--tint) 18%,var(--panel))}
   .side{position:absolute;box-sizing:border-box;border-radius:50%;border-style:solid;border-color:var(--accent);background:var(--panel);transform:translate(-50%,-50%);cursor:crosshair;z-index:3}
   .side:hover{background:var(--accent)}
   .link-label{position:absolute;transform:translate(-50%,-50%);padding:1px 6px;border-radius:4px;background:var(--panel);font-family:var(--sans);font-size:13px;white-space:nowrap;cursor:default;z-index:1}

@@ -1,9 +1,10 @@
 <script lang="ts">
   /* A named rectangle beneath everything on the plane. Its inside lets every
-     press through to the canvas, so drawing within a group is drawing; only
-     the label and the corner are its own. The label moves the group, and the
-     parent carries along whatever lies inside it; a double-click on the label
-     renames it in place. */
+     press through to the canvas, so drawing within a group is drawing, and the
+     lasso there takes the group (the parent's to decide). Its border, its label
+     and its corner are its own: the border and the label move the group, and
+     the parent carries along whatever lies inside it; a double-click on the
+     label renames it in place. */
   let {
     x, y, w, h, label, tint = null, selected = false, scale = 1,
     ongrab, onmove, onresize, onend, onlabel, onselect,
@@ -59,6 +60,9 @@
       {label || 'Group'}
     {/if}
   </div>
+  {#each ['top', 'right', 'bottom', 'left'] as side (side)}
+    <span class="edge {side}" role="presentation" style:--reach="{8 / (scale || 1)}px" onpointerdown={(e) => drag(e, onmove)}></span>
+  {/each}
   <span class="corner" title="Drag to resize" role="presentation" onpointerdown={onCorner}></span>
 </div>
 
@@ -68,6 +72,11 @@
   .group.selected{border-color:var(--accent);border-style:dashed}
   .label{position:absolute;left:10px;top:6px;pointer-events:auto;cursor:move;font-family:var(--sans);font-size:14px;font-weight:600;color:color-mix(in srgb,var(--tint) 80%,var(--ink));touch-action:none;user-select:none;white-space:nowrap}
   .label input{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:4px;padding:0 4px;width:14em}
-  .corner{position:absolute;right:0;bottom:0;width:14px;height:14px;pointer-events:auto;cursor:nwse-resize;touch-action:none;opacity:.35;background:linear-gradient(135deg,transparent 50%,var(--tint) 50%);border-radius:0 0 9px 0}
+  .edge{position:absolute;pointer-events:auto;cursor:move;touch-action:none}
+  .edge.top,.edge.bottom{left:0;right:0;height:var(--reach)}
+  .edge.left,.edge.right{top:0;bottom:0;width:var(--reach)}
+  .edge.top{top:calc(var(--reach) / -2)} .edge.bottom{bottom:calc(var(--reach) / -2)}
+  .edge.left{left:calc(var(--reach) / -2)} .edge.right{right:calc(var(--reach) / -2)}
+  .corner{z-index:1;position:absolute;right:0;bottom:0;width:14px;height:14px;pointer-events:auto;cursor:nwse-resize;touch-action:none;opacity:.35;background:linear-gradient(135deg,transparent 50%,var(--tint) 50%);border-radius:0 0 9px 0}
   .group:hover .corner,.group.selected .corner{opacity:.8}
 </style>

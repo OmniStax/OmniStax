@@ -1,7 +1,8 @@
 <script lang="ts">
   /* The writing side of a note: CodeMirror over the markdown, dressed in the
-     app's own tokens so it follows the theme without a second palette. Three
-     things are added to what the editor does by itself. A second `[` closes
+     app's own tokens so it follows the theme without a second palette. Four
+     things are added to what the editor does by itself. A line holding only
+     an embed shows its card until the cursor comes onto it. A second `[` closes
      the pair and opens the list of everything the note can point at, so a link
      is chosen rather than typed. An image pasted or dropped is handed to the
      store and comes back as `![name](asset:<id>)` at the cursor. And keys are
@@ -18,6 +19,7 @@
   import { pickerRoot } from '../../lib/picker/sources';
   import { embedText, linkInner } from '../../lib/notes/md/links';
   import type { PickerRow } from '../../lib/picker/model';
+  import { drawCardsWhenReady, embedCards } from '../../lib/notes/md/cardwidget';
 
   /* `complete` is the list the note tab gathered before the picker existed. The
      picker reads the same stores and more, so the rows come from there now and
@@ -204,6 +206,7 @@
     syntaxHighlighting(highlight, { fallback: true }),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     brackets,
+    embedCards(),
     theme,
     EditorView.updateListener.of((u) => {
       if (at !== null && (u.docChanged || u.selectionSet)) { readQuery(u.view); if (at !== null) place(u.view, at); }
@@ -216,6 +219,7 @@
   const mount = (node: HTMLElement) => {
     emitted = value;
     view = new EditorView({ doc: value, parent: node, extensions: [...extensions()] });
+    drawCardsWhenReady(view);
     return { destroy() { view?.destroy(); view = null; } };
   };
 

@@ -15,7 +15,11 @@
   import type { Resolver } from '../../lib/notes/md/render';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { setImageWidth } from '../../lib/notes/md/width';
-  import { isBook, parseLink, withFigureParams, type BookKind } from '../../lib/notes/md/links';
+  import { untrack } from 'svelte';
+  import { findLinks, isBook, linkInner, linkKey, parseLink, withEmbedWidth, withFigureParams, withoutFigureParams, type BookKind } from '../../lib/notes/md/links';
+  import { addEmbedGrips } from '../../lib/notes/md/grips';
+  import { fetchMissing } from '../../lib/notes/md/fetch';
+  import '../../lib/notes/md/cards.css';
   import { FigureMounts } from '../../lib/notes/md/figlive';
   import { assetId, getAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -26,7 +30,7 @@
   import { BookResolver, focusedBook, isSpan } from '../../lib/notes/resolve';
   import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
   import { dragging } from '../../lib/layout/drag.svelte';
-  import { drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, secKey, type NoteId } from '../../lib/types/ids';
+  import { drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, type NoteId } from '../../lib/types/ids';
   import { chatInfo, drawingInfo, drawingNamed } from '../../lib/drawer/cards';
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
   import { ChatMounts } from '../../lib/drawer/chatmounts';
@@ -66,7 +70,12 @@
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
 
-  const html = $derived(render !== null && body.trim() ? render(body, resolver()) : '');
+  /* A figure's controls write their values into the body; a body that changed
+     only there is not rendered again, so the live figure is never pulled out
+     from under the reader's hand. The values reach the cards below instead. */
+  const skeleton = $derived(withoutFigureParams(body));
+  const shown = $derived.by(() => { void skeleton; return untrack(() => body); });
+  const html = $derived(render !== null && shown.trim() ? render(shown, resolver()) : '');
 
   /* ── what the rendered HTML still needs ────────────────────────────────── */
 
@@ -138,35 +147,6 @@
         : `No note named “${words}”.`;
   };
 
-  /* A figure card that resolved to nothing may only be waiting on its section:
-     the document is what holds it, so the section is loaded and the rendering,
-     which reads the registry, runs again when it lands. */
-  const fetchFigures = (el: HTMLElement): void => {
-    const asked = new Set<string>();
-    for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
-      const t = parseLink(d.dataset.embed ?? '');
-      if (t.kind !== 'figure') continue;
-      const ref = books.ref(t.section, t.book);
-      if (asked.has(secKey(ref))) continue;
-      asked.add(secKey(ref));
-      void registry.load(ref);
-    }
-  };
-
-  /* A card of the book that resolved to nothing may only be waiting on its
-     chapter: ask for it once per chapter per pass, and the rendering, which
-     reads the chapters through the resolver, runs again when it lands. */
-  const fetchChapters = (el: HTMLElement): void => {
-    const asked = new Set<string>();
-    for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]')) {
-      const t = parseLink(d.dataset.embed ?? ''); if (!isBook(t)) continue;
-      const ref = books.ref(t.section, t.book); const dir = books.chapterDir(t.section, t.book);
-      if (!dir || asked.has(`${ref.book}/${dir}`)) continue;
-      asked.add(`${ref.book}/${dir}`);
-      void registry.loadChapter(ref.book, dir).catch(() => {});
-    }
-  };
-
   const decorate = (el: HTMLElement): void => {
     const mine = ++pass;
     for (const img of el.querySelectorAll<HTMLImageElement>('img[data-asset]')) {
@@ -181,18 +161,41 @@
       void thumbnailOf(asDrawingId(id)).then((url) => { if (mine === pass && url) void fillThumbs(el, asDrawingId(id), url); });
     }
     for (const img of el.querySelectorAll<HTMLImageElement>('img')) grip(img);
-    fetchChapters(el);
-    fetchFigures(el);
+    /* the rendering reads the registry, so it runs again when these land */
+    void fetchMissing(el, books);
     books.setMath(el);
     /* Last, so that a figure's own markup is not walked by the passes above:
        the book's script draws it and the book's styles dress it. */
     mounts.fill(el);
     chatMounts.fill(el);
+    addEmbedGrips(el, sizeEmbed);
     for (const d of el.querySelectorAll<HTMLElement>('.wiki.dead')) d.title = deadTitle(d);
   };
 
   let host = $state<HTMLElement | null>(null);
   $effect(() => { const el = host; void html; if (el) decorate(el); });
+
+  /* The values the body holds for each figure, written onto its card, so that
+     an undo of a slider sets the live figure back without a rendering. */
+  const syncFigures = (el: HTMLElement, text: string): void => {
+    const figs = findLinks(text).filter((t) => t.kind === 'figure');
+    const seen: Record<string, number> = {};
+    for (const card of el.querySelectorAll<HTMLElement>('.fig-embed[data-embed]')) {
+      const t = parseLink(card.dataset.embed ?? ''); const key = linkKey(t);
+      const n = (seen[key] = (seen[key] ?? -1) + 1);
+      const now = figs.filter((f) => linkKey(f) === key)[n];
+      if (now) card.dataset.embed = linkInner(now);
+    }
+    mounts.fill(el);
+  };
+  $effect(() => { const el = host, text = body; if (el) syncFigures(el, text); });
+
+  /* A card dragged wider or narrower: the width goes into its embed, one step
+     of the shell's timeline. */
+  const sizeEmbed = (inner: string, n: number, width: number): void => {
+    const doc = noteDocs.get(noteId);
+    if (doc) noteDocs.setBodyRecorded(noteId, withEmbedWidth(doc.body, inner, n, width), 'resize card');
+  };
 
   /* ── following a link ──────────────────────────────────────────────────── */
 
@@ -308,58 +311,11 @@
   .note-view :global(a.wiki){color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;cursor:pointer}
   .note-view :global(.wiki.dead){color:var(--muted);text-decoration:underline dashed;text-underline-offset:3px;cursor:help}
 
-  /* a highlight, quoted whole, in the colour it was marked with */
-  .note-view :global(.hl-embed){margin:1.1em 0;padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-radius:6px;background:var(--soft);cursor:pointer}
-  .note-view :global(.hl-embed:hover){border-color:var(--accent)}
-  .note-view :global(.hl-embed.hl-yellow){border-left-color:var(--hl-yellow)}
-  .note-view :global(.hl-embed.hl-green){border-left-color:var(--hl-green)}
-  .note-view :global(.hl-embed.hl-blue){border-left-color:var(--hl-blue)}
-  .note-view :global(.hl-embed.hl-pink){border-left-color:var(--hl-pink)}
-  .note-view :global(.hl-embed blockquote){margin:0;border:0;padding:0;font-style:normal;color:var(--ink)}
-  .note-view :global(.hl-embed.hl-yellow blockquote){box-shadow:inset 0 -0.55em 0 var(--hl-yellow)}
-  .note-view :global(.hl-embed.hl-green blockquote){box-shadow:inset 0 -0.55em 0 var(--hl-green)}
-  .note-view :global(.hl-embed.hl-blue blockquote){box-shadow:inset 0 -0.55em 0 var(--hl-blue)}
-  .note-view :global(.hl-embed.hl-pink blockquote){box-shadow:inset 0 -0.55em 0 var(--hl-pink)}
-  .note-view :global(.hl-embed .hl-meta){margin-top:8px;font-family:var(--sans);font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
-  .note-view :global(.hl-embed .hl-text){margin-top:4px;font-family:var(--sans);font-size:0.88rem;color:var(--ink)}
-  .note-view :global(.hl-embed .hl-text:empty){display:none}
-
-  /* a thing of the book, held whole in the note: the same card as a highlight,
-     with a left rule in the colour of what it holds */
-  /* A drawing held in a note is the picture of it, with its name above: the
-     whole card opens the drawing. */
-  .note-view :global(.drawing-embed){margin:1.1em 0;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);cursor:pointer;max-width:320px}
-  .note-view :global(.drawing-embed:hover){border-color:var(--accent)}
-  .note-view :global(.drawing-thumb){display:block;width:100%;height:auto;margin-top:8px;border:1px solid var(--rule);border-radius:4px;background:#fff}
-  .note-view :global(.drawing-waiting){height:80px;margin-top:8px;border-radius:4px;background:var(--soft2)}
-  .note-view :global(.book-embed){margin:1.1em 0;padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-left-color:var(--accent);border-radius:6px;background:var(--soft);cursor:pointer}
-  .note-view :global(.book-embed:hover){border-color:var(--accent)}
-  .note-view :global(.book-embed.kind-term){border-left-color:var(--warm)}
-  .note-view :global(.book-embed .embed-eyebrow){font-family:var(--sans);font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
-  .note-view :global(.book-embed .embed-title){margin-top:4px;font-family:var(--sans);font-size:0.95rem;font-weight:600;color:var(--ink)}
-  .note-view :global(.book-embed .embed-tex){margin:8px 0 2px;color:var(--ink);overflow-x:auto}
-  .note-view :global(.book-embed .embed-tex .katex){font-size:1.05em}
-  .note-view :global(.book-embed .embed-body){margin-top:5px;font-family:var(--serif);font-size:0.92rem;line-height:1.5;color:var(--ink)}
-  .note-view :global(.book-embed .embed-body .katex),.note-view :global(.book-embed .embed-title .katex){font-size:1em}
-
-  /* a figure of the book, held in the note: the head it prints, the still
-     picture where it has one, and its caption. The simulation itself stays in
-     the book; what the note holds is what the figure says it is. */
-  .note-view :global(.fig-embed){margin:1.1em 0;padding:12px 14px;border:1px solid var(--rule);border-left-width:5px;border-left-color:var(--accent);border-radius:6px;background:var(--soft);cursor:pointer}
-  .note-view :global(.fig-embed:hover){border-color:var(--accent)}
-  .note-view :global(.fig-embed .embed-eyebrow){font-family:var(--sans);font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
-  .note-view :global(.fig-embed .embed-body){margin-top:5px;font-family:var(--serif);font-size:0.92rem;line-height:1.5;color:var(--ink)}
-  .note-view :global(.fig-embed .fig-still){margin:9px 0 0;max-width:100%;height:auto}
-  .note-view :global(.fig-embed .fig-caption){margin-top:6px;font-family:var(--sans);font-size:0.82rem;line-height:1.5;color:var(--muted)}
-
-  /* A figure the note holds live wears no card: it is the figure the book
-     draws, in the book's own dress, and only the room around it is the note's.
-     The line that names it says so by the pointer, since that line is the way
-     back to the section. */
-  .note-view :global(.fig-embed.live){padding:0;border:0;border-radius:0;background:none;cursor:default}
-  .note-view :global(.fig-embed.live .eyebrow){cursor:pointer}
-  /* as wide as the book draws it: the full width of the note, its 40 px sides included */
-  .note-view :global(.fig-embed.live .fig-root){max-width:none;margin:0 -40px;padding:0}
+  /* The cards are dressed by cards.css wherever they stand; here they are
+     only given room in the column. A figure held live is as wide as the book
+     draws it, the note's 40 px sides included, until the reader sizes it. */
+  .note-view :global(:is(.hl-embed,.drawing-embed,.book-embed,.fig-embed,.stub-embed,.file-embed,.chat-embed)){margin:1.1em 0}
+  .note-view :global(.fig-embed.live:not([style*="width"]) .fig-root){margin:0 -40px}
   @media (max-width:900px){ .note-view :global(.fig-embed.live .fig-root){margin:0} }
 
   /* while something is being dragged over the note, which will land at its end */

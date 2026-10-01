@@ -9,6 +9,25 @@ type Vec = readonly [number, number];
 
 export const CHAT_ITEM = { w: 460, h: 320 } as const;
 
+/* A chat copied plain carries, beside its transcript, what a drawing needs to
+   lay it out again: the chat, and the message its copy grew from. The async
+   clipboard can only write a custom type under the "web " prefix, so both
+   spellings are read. */
+export const CHAT_MIME = 'application/x-omnistax-chat';
+export const CHAT_MIMES: readonly string[] = [CHAT_MIME, `web ${CHAT_MIME}`];
+export type ChatClipDTO = { readonly chat: string; readonly root?: string };
+
+export const chatClip = (chat: string, root?: string): string => JSON.stringify(root ? { chat, root } : { chat });
+
+export const readChatClip = (data: DataTransfer | null): ChatClipDTO | null => {
+  const raw = CHAT_MIMES.map((t) => data?.getData(t) ?? '').find((s) => s !== '');
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw) as Partial<ChatClipDTO>;
+    return typeof o.chat === 'string' ? { chat: o.chat, ...(typeof o.root === 'string' ? { root: o.root } : {}) } : null;
+  } catch { return null; }
+};
+
 export const chatItemAt = (chat: Chat, at: Vec, root?: MessageId, id: DrawItemId = newDrawItemId()): DrawItem =>
   ({ kind: 'chat', id, x: at[0], y: at[1], ...CHAT_ITEM, chat: chat.id, ...(root && root !== chat.root ? { root } : {}) });
 

@@ -166,9 +166,9 @@ with sync_playwright() as playwright:
     assert links[0]["to"].get("item") == b["id"], f"the far end fixed to the second card ({links[0]['to']})"
     side = links[0]["to"]["side"]
 
-    bar = tab.locator(f'[data-box="{b["id"]}"] .bar')
+    bar = tab.locator(f'[data-box="{b["id"]}"] .grip')
     bb = bar.bounding_box()
-    drag(page, (bb["x"] + 20, bb["y"] + bb["height"] / 2), (bb["x"] + 20, bb["y"] + bb["height"] / 2 + 150))
+    drag(page, (bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2), (bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2 + 150))
     moved = next(x for x in items(page, "box") if x["id"] == b["id"])
     assert moved["y"] > b["y"] + 100, "the card moved"
     assert items(page, "link")[0]["to"] == {"item": b["id"], "side": side}, "and the connector is still fixed to it"
@@ -198,7 +198,7 @@ with sync_playwright() as playwright:
 
     # ── a swatch recolours the selection ──────────────────────────────────
     page.keyboard.press("Escape")
-    tab.locator(f'[data-box="{a["id"]}"] .bar').click()
+    tab.locator(f'[data-box="{a["id"]}"] .grip').click()
     tab.locator('.swatch[data-token="ok"]').click()
     assert next(x for x in items(page, "box") if x["id"] == a["id"]).get("color") == "ok", "the card took the colour"
 

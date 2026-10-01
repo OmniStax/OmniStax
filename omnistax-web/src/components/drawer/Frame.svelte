@@ -10,16 +10,14 @@
      transform the canvas wears, which is safe because a card reads no pointer
      positions of its own;
 
-     a figure or a simulation is a picture of it as it stood when it was
-     dropped, with a glyph that opens the live one in a split beside the
-     drawing. A simulation reads the pointer off its own canvas and would read
-     it wrongly under a transform, so it is deliberately not run here;
+     a figure or a simulation is the figure itself, live, as a note holds it:
+     the section's own markup and script, in the book's dress, as wide as the
+     frame and as tall as it draws. Its controls write their values into the
+     frame's embed. A simulation reads the pointer as a fraction of the box the
+     browser drew, so the page's zoom does not throw it off. A frame left from
+     before, holding a picture of a figure, shows the live figure instead;
 
      an image is the image.
-
-     A frame that cannot show what it names still says what it is, so a
-     snapshot that failed is a card with the figure's words on it and the glyph
-     that opens the real thing.
 
      A note is the one card that can be written in where it stands: a
      double-click puts the note's own editor in the frame, writing to the note
@@ -32,11 +30,14 @@
   import { assetOfEmbed } from '../../lib/drawer/snapshot';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import type { Resolver } from '../../lib/notes/md/render';
-  import { embedText, parseLink } from '../../lib/notes/md/links';
+  import { embedText, isBook, linkInner, parseLink } from '../../lib/notes/md/links';
+  import { FigureMounts } from '../../lib/notes/md/figlive';
+  import { focusedBook } from '../../lib/notes/resolve';
+  import '../../lib/notes/md/cards.css';
 
   let {
     x, y, w, h, embed, open, selected = false, scale = 1, resolver, onopen, onmove, onresize, ondecorate,
-    tint = null, note = null, editing = false, onedit,
+    tint = null, note = null, editing = false, onedit, onembed, onfit,
   }: {
     x: number; y: number; w: number; h: number;
     embed: string; open?: string;
@@ -57,6 +58,10 @@
     note?: NoteId | null;
     editing?: boolean;
     onedit?: (on: boolean) => void;
+    /* A live figure's controls moved: the embed that now holds their values. */
+    onembed?: (embed: string) => void;
+    /* A live figure is as tall as it draws, and says so. */
+    onfit?: (h: number) => void;
   } = $props();
 
   let Editor = $state<typeof MarkdownEditorType | null>(null);
@@ -79,7 +84,13 @@
     if (e.key === 'Escape') { e.preventDefault(); onedit?.(false); }
   };
 
-  const asset = $derived(assetOfEmbed(embed));
+  const figure = $derived.by(() => { const t = parseLink(open ?? embed); return t.kind === 'figure' ? t : null; });
+  /* The figure as the card names it, its values aside: a slider moved is not a
+     new card, only new values on the one the frame holds. */
+  const figureKey = $derived(figure ? linkInner({ ...figure, params: undefined }) : null);
+  const asset = $derived(figure ? null : assetOfEmbed(embed));
+  /* A figure and a card of the book are as tall as they draw at the frame's width. */
+  const fitted = $derived(figureKey !== null || isBook(parseLink(embed)));
 
   /* A picture is read out of the asset store, which takes a turn of the loop;
      until it lands the frame is empty rather than broken. */
@@ -96,14 +107,38 @@
      is fetched the first time a drawing holds one. */
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
-  const html = $derived(!asset && render !== null ? render(embedText(parseLink(embed)), resolver()) : '');
+  const html = $derived(asset || render === null ? '' : render(figureKey ? `![[${figureKey}]]` : embedText(parseLink(embed)), resolver()));
+
+  const mounts = new FigureMounts(focusedBook, (_fig, _n, values) => {
+    const t = figure;
+    if (t) onembed?.(linkInner({ ...t, params: values }));
+  });
+  $effect(() => () => mounts.releaseAll());
 
   let card = $state<HTMLElement | null>(null);
   $effect(() => { const el = card; void html; if (el) ondecorate?.(el); });
+  /* The values the frame holds go onto the card before the figure is filled,
+     so an undo sets the live figure back. */
+  $effect(() => {
+    const el = card, t = figure; void html;
+    if (!el || !t) return;
+    const fc = el.querySelector<HTMLElement>('.fig-embed[data-embed]');
+    if (fc) fc.dataset.embed = linkInner(t);
+    mounts.fill(el);
+  });
 
-  /* What the open glyph goes to: a snapshot says so in its own field, and a
-     card of a figure is its own embed. Nothing means nothing opens. */
-  const target = $derived(open ?? (asset ? null : embed));
+  $effect(() => {
+    const el = card;
+    if (!el || !fitted || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { const want = el.offsetHeight + 2; if (Math.abs(want - h) > 1) onfit?.(want); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
+  /* What the open glyph goes to: the figure the frame holds, else what a
+     snapshot names in its own field, else the card's own embed. Nothing means
+     nothing opens. */
+  const target = $derived(figureKey ?? open ?? (asset ? null : embed));
 
   /* ── moving and resizing ───────────────────────────────────────────────── */
 
@@ -128,7 +163,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="frame" class:selected class:tinted={tint !== null} class:editing data-embed={embed} bind:this={host}
+<div class="frame" class:selected class:tinted={tint !== null} class:editing class:live={figure !== null} class:fitted data-embed={embed} bind:this={host}
   style:left="{x}px" style:top="{y}px" style:width="{w}px" style:height="{h}px" style:--tint={tint}
   ondblclick={(e) => { if (!note || editing) return; e.stopPropagation(); onedit?.(true); }}>
   {#if editing && note}
@@ -161,12 +196,16 @@
   .frame.editing{overflow:visible;z-index:2}
   .editor{width:100%;height:100%;overflow:auto;background:var(--panel);cursor:text;-webkit-user-select:text;user-select:text}
   .frame.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-  .shot{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+  .shot{display:block;width:100%;height:100%;object-fit:contain}
+  .frame.live{background:var(--bg)}
+  .frame.fitted .card{height:auto;padding:0}
+  .frame.fitted .card :global(.book-embed){height:auto}
   .waiting{width:100%;height:100%;background:var(--soft)}
   .card{width:100%;height:100%;overflow:hidden;padding:2px}
-  /* The cards the note renderer writes are styled globally by the note view;
-     inside a frame they fill it and lose the margins a page would give them. */
-  .card :global(.book-embed),.card :global(.hl-embed),.card :global(.fig-embed),.card :global(.stub-embed){margin:0;height:100%;box-sizing:border-box;overflow:hidden}
+  /* The cards are dressed by cards.css; inside a frame they fill it. */
+  .card :global(:is(.book-embed,.hl-embed,.fig-embed,.stub-embed,.file-embed,.chat-embed,.drawing-embed)){margin:0;width:100%;max-width:none;height:100%;overflow:hidden;box-shadow:none}
+  .card :global(.fig-embed.live){height:auto}
+  .frame:has(:global(.book-embed,.stub-embed,.file-embed,.chat-embed)){border-color:transparent;background:none}
   .card :global(.wiki.dead){color:var(--muted);font-style:italic;padding:8px;display:block}
   .open{position:absolute;right:4px;top:4px;width:22px;height:22px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0}
   .frame:hover .open,.frame.selected .open{opacity:1}

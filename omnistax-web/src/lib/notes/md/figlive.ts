@@ -15,7 +15,7 @@
    Each embed of a figure is a figure of its own, at the values its link
    stores; a control the reader moves writes its value back into the link. */
 import { figFor } from '../../fig/figlib';
-import { onParams, paramsOf, setParams, type Param, type ParamValues } from '../../fig/params';
+import { onParams, paramsOf, setParams, valuesOf, type Param, type ParamValues } from '../../fig/params';
 import { registry } from '../../sections/registry.svelte';
 import { sectionId, sectionRef, type BookId, type SectionRef } from '../../types/ids';
 import { linkKey, parseLink } from './links';
@@ -51,7 +51,8 @@ const whenControls = (root: HTMLElement, go: () => void): (() => void) => {
 
 const differs = (want: ParamValues, now: readonly Param[]): boolean => now.some((p) => p.id in want && want[p.id] !== p.value);
 
-type Mount = { readonly root: HTMLElement; want: ParamValues; readonly stop: () => void };
+/* `defaults` are the values the figure drew with before any were set on it: a value the body no longer holds goes back to its default. */
+type Mount = { readonly root: HTMLElement; want: ParamValues; defaults: ParamValues; readonly stop: () => void };
 
 export class FigureMounts {
   private live: Record<MountKey, Mount> = {};
@@ -78,7 +79,8 @@ export class FigureMounts {
       if (!m) continue;
       this.live[key] = m;
       shown.add(key);
-      if (differs(want, paramsOf(m.root))) this.quietly(() => setParams(m.root, want));
+      const full = { ...m.defaults, ...want };
+      if (differs(full, paramsOf(m.root))) this.quietly(() => setParams(m.root, full));
       m.want = want;
       if (m.root.parentElement !== card) card.replaceChildren(m.root);
       card.classList.add(LIVE);
@@ -96,10 +98,11 @@ export class FigureMounts {
     const bump = (): void => { this.gesture += 1; };
     const hands = ['pointerdown', 'keydown'] as const;
     hands.forEach((ev) => root.addEventListener(ev, bump, { capture: true }));
-    const mount: Mount = { root, want, stop: () => { stopWait(); off(); hands.forEach((ev) => root.removeEventListener(ev, bump, { capture: true })); } };
+    const mount: Mount = { root, want, defaults: {}, stop: () => { stopWait(); off(); hands.forEach((ev) => root.removeEventListener(ev, bump, { capture: true })); } };
     const stopWait = whenControls(root, () => {
+      mount.defaults = valuesOf(paramsOf(root));
       this.quietly(() => setParams(root, mount.want));
-      off = onParams(root, (values) => { if (!this.quiet) this.write?.(fk, n, values, `${fk}#${n}@${this.gesture}`); });
+      off = onParams(root, (values) => this.write?.(fk, n, values, `${fk}#${n}@${this.gesture}`), () => this.quiet);
     });
     return mount;
   }

@@ -13,6 +13,7 @@
 import { Marked, type Token, type Tokens, type TokenizerAndRendererExtension } from 'marked';
 import katex from 'katex';
 import type { BookId } from '../../types/ids';
+import type { ConceptKind } from '../../content/schema';
 import { splitAlt } from './width';
 export { setImageWidth } from './width';
 import { isBook, linkInner, linkKey, parseLink, type BookTarget, type ChatRef, type MessageRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
@@ -57,7 +58,11 @@ export type DrawingInfo = { readonly name: string; readonly thumb?: DataUrl };
    chat it was said in, and its first words. The card is the whole link, and it
    opens the chat at that message's branch. */
 export type ChatMessageInfo = { readonly name: string; readonly role: 'user' | 'assistant'; readonly line: string };
-export type ConceptInfo = { readonly name: string; readonly kind: 'idea' | 'result' | 'skill'; readonly why?: string; readonly section: string; readonly eqTex?: string; readonly placeholder: boolean };
+export type ConceptInfo = { readonly name: string; readonly kind: ConceptKind; readonly statement?: string; readonly section: string; readonly eqTex?: string; readonly placeholder: boolean };
+/* Where maths stands, and what it is set with: the book, the section and the
+   chapter folder its colours are scoped by, and the macros the book writes its
+   symbols with. */
+export type MathScope = { readonly book: BookId; readonly section?: SectionRef; readonly chapter?: string; readonly macros: Readonly<Record<string, string>> };
 
 /* Everything the renderer cannot know by itself. Each lookup answers null when
    the thing is gone, and the link renders dead rather than breaking. A thing of
@@ -92,6 +97,10 @@ export type Resolver = {
      does: a resolver that knows only the chats by name leaves it out, and the
      card falls back to naming the chat. */
   chatMessage?(id: ChatRef, message: MessageRef): ChatMessageInfo | null;
+  /* The book maths is set in: the one a link names, or the resolver's own
+     where none is named. A resolver that leaves it out, or answers null, has
+     its maths set by KaTeX alone. */
+  scope?(book?: BookId, section?: SectionRef): MathScope | null;
 };
 
 const esc = (s: string): string =>
@@ -159,7 +168,7 @@ const cardHtml = (t: BookTarget, c: Card): string =>
 
 /* One card per kind, saying what the hover card for that thing says: an
    equation set whole under what holds it and what it states, a term under its
-   definition, a symbol under its meaning, a concept under why it matters and
+   definition, a symbol under its meaning, a concept under its statement and
    the equation that states it. A concept whose section nobody has built says so
    instead, because it has nothing else to give. */
 const bookCard = (t: BookTarget, r: Resolver): Card | null => {
@@ -176,7 +185,7 @@ const bookCard = (t: BookTarget, r: Resolver): Card | null => {
     return { eyebrow: meta('Symbol', v.typeLabel, v.unit), lines: [{ tex: v.tex }, { cls: 'embed-body', text: sentence(v.meaning) }] };
   }
   const c = r.concept(t.section, t.id, t.book); if (!c) return null;
-  const body = c.placeholder ? `Section ${c.section} is not built yet.` : sentence(c.why ?? '');
+  const body = c.placeholder ? `Section ${c.section} is not built yet.` : sentence(c.statement ?? '');
   return { eyebrow: meta('Concept', c.kind, `section ${c.section}`), lines: [{ cls: 'embed-title', text: c.name }, { cls: 'embed-body', text: body }, { tex: c.eqTex ?? '' }] };
 };
 
@@ -185,9 +194,37 @@ const bookEmbed = (t: BookTarget & { readonly alias?: string }, r: Resolver): st
   return c ? cardHtml(t, c) : dead(t.alias ?? linkInner(t), linkInner(t));
 };
 
+/* A thing of the book named in a sentence is a word of it, as a term is in
+   the book's own text: underlined, and the hover card says the rest. The word
+   carries its book and section, so the card and the colours find them wherever
+   the word is shown; a symbol or an equation without other words is its TeX,
+   which the view sets with the book's macros. */
+const placed = (book: BookId | undefined, section: string): string =>
+  `${book ? ` data-book="${esc(book)}"` : ''} data-sec="${esc(section)}" tabindex="0"`;
+const said = (label: string): string => `<span${label.includes('$') ? ' data-math="1"' : ''}>${esc(label)}</span>`;
+const texOr = (tex: string, alias?: string): string => (alias ? said(alias) : `<span class="embed-tex" data-tex="${esc(tex)}"></span>`);
+
+const bookWord = (t: BookTarget & { readonly alias?: string }, r: Resolver): string => {
+  const book = t.book ?? r.scope?.()?.book;
+  const gone = dead(t.alias ?? linkInner(t), linkInner(t));
+  if (t.kind === 'term') {
+    const g = r.term(t.section, t.term, t.book); if (!g) return gone;
+    return `<span class="book-word term" data-term="${esc(g.term)}"${placed(book, g.section)}>${said(t.alias ?? g.term)}</span>`;
+  }
+  if (t.kind === 'symbol') {
+    const v = r.symbol(t.section, t.sym, t.book); if (!v) return gone;
+    return `<span class="book-word" data-sym="${esc(v.sym)}"${placed(book, v.section)}>${texOr(v.tex, t.alias)}</span>`;
+  }
+  if (t.kind === 'equation') {
+    const e = r.equation(t.section, t.id, t.book); if (!e) return gone;
+    return `<span class="book-word" data-eq="${esc(t.id)}"${placed(book, e.section)}>${texOr(e.tex, t.alias)}</span>`;
+  }
+  const c = r.concept(t.section, t.id, t.book); if (!c) return gone;
+  return `<span class="book-word" data-concept="${esc(t.id)}"${placed(book, c.section)}>${said(t.alias ?? c.name)}</span>`;
+};
+
 /* A highlight is shown whole, as a quote card, whether it was written as a
-   link or as an embed; the reader means the same thing by both, and so it is
-   with the four things the book itself holds. */
+   link or as an embed; the reader means the same thing by both. */
 /* ── what the reader owns, before the features land ─────────────────────── */
 
 /* A file, a drawing, a chat and one exercise on its own are named in a note
@@ -277,11 +314,11 @@ const renderLink = (link: Link, r: Resolver, embed = false): string => {
   if (isStub(link)) return stubLink(link, r, embed);
   if (link.kind === 'highlight') return highlightEmbed(link.id, r, link.alias ?? `hl:${link.id}`);
   if (link.kind === 'figure') return figureEmbed(link, r);
-  if (isBook(link)) return bookEmbed(link, r);
+  if (isBook(link)) return embed ? bookEmbed(link, r) : bookWord(link, r);
   if (link.kind === 'section') {
     const s = r.section(link.section, link.book);
     const label = link.alias ?? (s ? `${link.section} · ${s.title}` : link.section);
-    return s ? anchor(linkKey(link), label) : dead(label);
+    return s ? anchor(linkKey(link), label) : dead(label, link.book ? linkInner(link) : undefined);
   }
   const id = r.note(link.name);
   const label = link.alias ?? link.name;
@@ -317,27 +354,69 @@ const renderImage = (href: string, alt: string, r: Resolver): string => {
 
 /* ── math ───────────────────────────────────────────────────────────────── */
 
-const tex = (src: string, display: boolean): string =>
-  katex.renderToString(src, { displayMode: display, throwOnError: false, strict: false, output: 'htmlAndMathml' });
+/* A book's macros colour a symbol by its type and name it for the hover card,
+   which is all the HTML they are trusted to write. */
+const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);
+const tex = (src: string, display: boolean, macros?: Readonly<Record<string, string>>): string =>
+  katex.renderToString(src, {
+    displayMode: display, throwOnError: false, strict: false, output: 'htmlAndMathml',
+    ...(macros ? { macros: { ...macros }, trust: (c: { readonly command: string }) => TRUSTED.has(c.command) } : {}),
+  });
+
+/* Maths in a paragraph or a list item that links into a book is that book's;
+   the innermost such block wins, and maths in none of them is the resolver's
+   own. Set in another book than the page's, it stands in that book's scope, so
+   its colours and its hover cards are that book's. */
+type Place = { readonly book: BookId; readonly section: SectionRef };
+type Placed = Tokens.Generic & { place?: Place };
+const placeOf = (token: Tokens.Generic): Place | undefined => (token as Placed).place;
+const mathHtml = (src: string, display: boolean, r: Resolver, place?: Place): string => {
+  const s = r.scope?.(place?.book, place?.section) ?? null;
+  const html = tex(src, display, s?.macros);
+  if (!place || !s) return html;
+  return `<span class="md-scope" data-book="${esc(s.book)}"${s.section ? ` data-sec="${esc(s.section)}"` : ''}${s.chapter ? ` data-chapter="${esc(s.chapter)}"` : ''}>${html}</span>`;
+};
+
+const SCOPES: ReadonlySet<string> = new Set(['paragraph', 'list_item', 'heading', 'blockquote', 'table']);
+type Cell = { readonly tokens: readonly Token[] };
+const kids = (t: Token): readonly Token[] => {
+  const g = t as Tokens.Generic & { header?: readonly Cell[]; rows?: readonly (readonly Cell[])[] };
+  return [...(g.tokens ?? []), ...(g.items ?? []), ...(g.header ?? []).flatMap((c) => c.tokens), ...(g.rows ?? []).flat().flatMap((c) => c.tokens)];
+};
+const within = (t: Token, enter: (t: Token) => boolean): readonly Token[] =>
+  kids(t).flatMap((k) => [k, ...(enter(k) ? within(k, enter) : [])]);
+const linkedPlace = (t: Token): Place | null => {
+  for (const k of within(t, (x) => x.type !== 'list')) {
+    if (k.type !== 'wikiLink' && k.type !== 'cardBlock') continue;
+    const l = parseLink(textOf(k as Tokens.Generic));
+    if ('section' in l && l.book) return { book: l.book, section: l.section };
+  }
+  return null;
+};
+const placeMaths = (token: Token): void => {
+  if (!SCOPES.has(token.type)) return;
+  const place = linkedPlace(token); if (!place) return;
+  for (const k of within(token, () => true)) if (k.type === 'inlineMath') (k as Placed).place = place;
+};
 
 type Raw = { readonly text: string };
 const textOf = (token: Tokens.Generic): string => (token as Tokens.Generic & Raw).text;
 
 /* A `$$…$$` or `\[…\]` standing on lines of its own is a block, so KaTeX's display markup
    is not buried in a paragraph; `start` cuts the paragraph before it. */
-const blockMath: TokenizerAndRendererExtension = {
+const blockMath = (r: Resolver): TokenizerAndRendererExtension => ({
   name: 'blockMath', level: 'block',
   start: (src: string) => { const m = /\n(?:\$\$|\\\[)/.exec(src); return m ? m.index + 1 : undefined; },
   tokenizer(src: string) {
     const m = /^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\])[ \t]*(?:\n+|$)/.exec(src);
     return m ? { type: 'blockMath', raw: m[0], text: m[1] ?? m[2] } : undefined;
   },
-  renderer: (token) => tex(textOf(token), true),
-};
+  renderer: (token) => mathHtml(textOf(token), true, r),
+});
 
 /* Inline, `$$…$$` and `\[…\]` still mean display and `$…$` and `\(…\)` inline.
    Requiring the dollars to hug their contents keeps prices and variables out of it. */
-const inlineMath: TokenizerAndRendererExtension = {
+const inlineMath = (r: Resolver): TokenizerAndRendererExtension => ({
   name: 'inlineMath', level: 'inline',
   start: (src: string) => { const i = src.search(/\$|\\[([]/); return i < 0 ? undefined : i; },
   tokenizer(src: string) {
@@ -348,23 +427,29 @@ const inlineMath: TokenizerAndRendererExtension = {
     const m = /^\$(?![\s$])((?:[^$\n\\]|\\.)+?)(?<![\s\\])\$/.exec(src);
     return m ? { type: 'inlineMath', raw: m[0], text: m[1], display: false } : undefined;
   },
-  renderer: (token) => tex(textOf(token), (token as Tokens.Generic & { display?: boolean }).display === true),
-};
+  renderer: (token) => mathHtml(textOf(token), (token as Tokens.Generic & { display?: boolean }).display === true, r, placeOf(token)),
+});
 
 /* ── the extensions that need the resolver ──────────────────────────────── */
 
 const WIKI = /^(!?)\[\[([^\]\n]+)\]\]/;
 
-/* Everything that renders as a card rather than as words: a highlight, a
-   figure, and the four things of the book. Written alone on a line, each becomes a block of its
-   own, so the card is not wrapped in a paragraph. The shapes are links.ts's own
-   grammar, narrowed to what a card is made of, so that a note named `eq:later`
-   stays a note. */
-const CARD_LINK = String.raw`hl:[^\]\n]+|(?:eq|def|sym|concept):(?:[a-z0-9-]+\/)?\d+\.\d+:[^\]\n]+|fig:(?:[a-z0-9-]+\/)?\d+\.\w+:[^\]\n]+`;
+/* Everything that renders as a card rather than as words: a highlight and a
+   figure however written, and the four things of the book when embedded.
+   Written alone on a line, each becomes a block of its own, so the card is not
+   wrapped in a paragraph. The shapes are links.ts's own grammar, narrowed to
+   what a card is made of, so that a note named `eq:later` stays a note. */
+const WHOLE_LINK = String.raw`hl:[^\]\n]+|fig:(?:[a-z0-9-]+\/)?\d+\.\w+:[^\]\n]+`;
+const BOOK_LINK = String.raw`(?:eq|def|sym|concept):(?:[a-z0-9-]+\/)?\d+\.\d+:[^\]\n]+`;
+const CARD_LINK = `${WHOLE_LINK}|${BOOK_LINK}`;
 /* The four stubs become cards only when they are written as embeds: a plain
    link to one is words in a sentence and stays in its paragraph. */
 const STUB_EMBED = String.raw`(?:file|drawing|chat):[^\]\n]+|ex:\d+\.\w+:[^\]\n]+`;
-const BLOCK_LINK = String.raw`(?:!?\[\[(?:${CARD_LINK})\]\]|!\[\[(?:${STUB_EMBED})\]\])`;
+const BLOCK_LINK = String.raw`(?:!?\[\[(?:${WHOLE_LINK})\]\]|!\[\[(?:${BOOK_LINK}|${STUB_EMBED})\]\])`;
+
+/* A card the reader dragged wider or narrower keeps that width. */
+const sized = (html: string, width: number | undefined): string =>
+  width && html.startsWith('<div ') ? `<div style="width:${Math.round(width)}px" ${html.slice(5)}` : html;
 
 /* Whether the bang was written: an embed shows the thing whole, a link names it. */
 const isEmbed = (token: Tokens.Generic): boolean => (token as Tokens.Generic & { embed?: boolean }).embed === true;
@@ -375,11 +460,11 @@ const cardBlock = (r: Resolver): TokenizerAndRendererExtension => ({
   tokenizer(src: string) {
     const m = new RegExp(String.raw`^(!?)\[\[(${CARD_LINK}|${STUB_EMBED})\]\][ \t]*(?:\n+|$)`).exec(src);
     if (!m) return undefined;
-    /* A stub written without the bang is not a block of its own. */
-    if (m[1] !== '!' && !new RegExp(String.raw`^(?:${CARD_LINK})$`).test(m[2])) return undefined;
+    /* A stub or a thing of the book written without the bang is words in a sentence. */
+    if (m[1] !== '!' && !new RegExp(String.raw`^(?:${WHOLE_LINK})$`).test(m[2])) return undefined;
     return { type: 'cardBlock', raw: m[0], text: m[2], embed: m[1] === '!' };
   },
-  renderer: (token) => renderLink(parseLink(textOf(token)), r, isEmbed(token)),
+  renderer: (token) => { const link = parseLink(textOf(token)); return sized(renderLink(link, r, isEmbed(token)), link.width); },
 });
 
 const wikiLink = (r: Resolver): TokenizerAndRendererExtension => ({
@@ -404,8 +489,8 @@ const disarm = (token: Token): void => {
 const engine = (r: Resolver): Marked =>
   new Marked({
     gfm: true, breaks: false,
-    extensions: [blockMath, inlineMath, cardBlock(r), wikiLink(r)],
-    walkTokens: disarm,
+    extensions: [blockMath(r), inlineMath(r), cardBlock(r), wikiLink(r)],
+    walkTokens: (token) => { disarm(token); placeMaths(token); },
     renderer: {
       /* HTML a reader wrote in a note is shown, not run. */
       html: ({ text }: Tokens.HTML | Tokens.Tag) => esc(text),
