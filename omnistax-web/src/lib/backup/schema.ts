@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { chord } from '../commands/chord';
+import { isFontId } from '../settings/fonts';
+import { TipStateSchema } from '../tips/model';
 
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
 export const BACKUP_VERSION = 1 as const;
@@ -11,6 +13,8 @@ export const MAX_BACKUP_BYTES = 500 * 1024 * 1024;
 export const WARN_BACKUP_BYTES = 50 * 1024 * 1024;
 export const MAX_BACKUP_LABEL = '500 MB';
 
+const bit = (v: string): boolean => v === '0' || v === '1';
+const positive = (v: string): boolean => v !== '' && Number.isFinite(Number(v)) && Number(v) > 0;
 const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-cc', (v) => v === '0' || v === '1'],
   ['omnistax-theme', (v) => v === 'light' || v === 'dark'],
@@ -22,6 +26,10 @@ const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-zoom-keys', (v) => v === '0' || v === '1'],
   ['omnistax-tips', (v) => v === '0' || v === '1'],
   ['omnistax-zoom', (v) => Number.isFinite(Number(v)) && Number(v) > 0],
+  ['omnistax-figure-font', isFontId], ['omnistax-body-font', isFontId],
+  ['omnistax-card-open', (v) => v === 'hover' || v === 'click'],
+  ['omnistax-swap-drag', bit],
+  ['omnistax-lock-grace', positive], ['omnistax-pomodoro-len', positive], ['omnistax-pomodoro-lock', bit],
 ]);
 
 const jsonKeys = new Set([
@@ -45,14 +53,21 @@ const jsonKeys = new Set([
      `scratch` below, since a page of strokes is far heavier than localStorage
      should ever hold. */
   'omnistax-drawings-v1', 'omnistax-scratch-v1',
+  'omnistax-pomodoros', 'omnistax-pomodoro-categories',
+  'omnistax-chat-tree-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1',
 ]);
 const JSON_KEY_LIST = [...jsonKeys];
 
-export type ReaderCategory = 'appearance' | 'shortcuts' | 'practice' | 'library' | 'notes' | 'layout' | 'reading' | 'chats';
+const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
+export type ReaderCategory = typeof CATEGORIES[number];
+const FOCUS_KEYS = ['omnistax-pomodoros', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-len', 'omnistax-pomodoro-lock', 'omnistax-lock-grace'];
 export type ReaderRecord = { readonly key: string; readonly value: string; readonly category: ReaderCategory };
 export type BackupAsset = { readonly id: string; readonly type: string; readonly dataUrl: string; readonly created: number };
 
+export const isScalarKey = (key: string): boolean => scalarKeys.has(key);
+
 export const categoryOf = (key: string): ReaderCategory | null => {
+  if (FOCUS_KEYS.includes(key)) return 'focus';
   if (scalarKeys.has(key)) return 'appearance';
   if (key === 'omnistax-keys') return 'shortcuts';
   if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1'].includes(key)) return 'practice';
@@ -61,8 +76,8 @@ export const categoryOf = (key: string): ReaderCategory | null => {
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
-  if (key === 'omnistax-folded' || key === 'omnistax-hidden-figs' || key === 'omnistax-seen-releases-v1') return 'reading';
-  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1') return 'chats';
+  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1'].includes(key)) return 'reading';
+  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
   return null;
 };
 
@@ -203,6 +218,9 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-layout-v6': layout, 'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
   'omnistax-folded': z.array(z.string()), 'omnistax-hidden-figs': z.array(z.string()),
   'omnistax-seen-releases-v1': z.record(z.record(z.string().min(1))),
+  'omnistax-tips-v1': TipStateSchema, 'omnistax-last-page-v1': z.record(z.string()),
+  'omnistax-chat-tree-v1': z.array(z.string()),
+  'omnistax-pomodoros': z.array(object), 'omnistax-pomodoro-categories': z.array(object),
 };
 const typedJson = (key: string, raw: string): boolean => {
   try {
@@ -226,7 +244,7 @@ export const validReaderRecord = (record: ReaderRecord): boolean => {
   return false;
 };
 
-const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats']) }).strict()
+const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(CATEGORIES) }).strict()
   .refine(validReaderRecord, 'invalid reader record');
 export type BackupChat = z.infer<typeof ChatSchema>;
 /* One imported file's bytes on their way through a backup. The text pulled out
@@ -270,6 +288,10 @@ export const parseBackupText = (text: string): ReaderBackup => {
   if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(`The backup is larger than ${MAX_BACKUP_LABEL}.`);
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { throw new Error('This file is not valid JSON.'); }
+  return parseBackup(raw);
+};
+
+export const parseBackup = (raw: unknown): ReaderBackup => {
   const parsed = BackupSchema.safeParse(raw);
   if (!parsed.success) throw new Error(`This is not a valid OmniStax backup: ${parsed.error.issues[0]?.message ?? 'invalid data'}.`);
   return parsed.data;

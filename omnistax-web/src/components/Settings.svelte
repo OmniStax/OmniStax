@@ -20,6 +20,7 @@
   import { downloadBackup, importBackup, readBackupFile } from '../lib/backup/adapters';
   import { summarizeBackup, type ReaderBackup } from '../lib/backup/schema';
   import Storage from './settings/Storage.svelte';
+  import Sync from './settings/Sync.svelte';
   import Ai from './settings/Ai.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
@@ -48,7 +49,7 @@
     record: 'Every completed exercise and self-assessment, and the mastery built from them.',
     lockGrace: 'Seconds before a focus lock starts.',
     layout: 'Put tabs, groups and sidebars back to how they started.',
-    exportData: 'Includes notes and pasted images, colors, practice history, sessions, library, layout, shortcuts and preferences. Textbook files aren’t included.',
+    exportData: 'Includes notes and pasted images, imported files, drawings, chats, colors, practice, focus sessions, library, layout, shortcuts and preferences. AI keys and textbooks aren’t included.',
     importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
   } as const;
   const ROWS = {
@@ -62,6 +63,7 @@
     mapProgress: `Progress on the concept map ${HINT.mapProgress}`,
     layout: `Layout panes tabs reset views ${HINT.layout}`,
     backup: `Backup export import restore data ${HINT.exportData} ${HINT.importData}`,
+    sync: 'Sync GitHub repo push pull token branch backup',
     storage: 'Storage space used quota persist retention browser clear data imported files backup estimate size export Safari',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
@@ -296,6 +298,8 @@
         {/if}
         {#if backupMessage}<p class="backup-error" role="alert">{backupMessage}</p>{/if}
       </section>
+
+      <Sync show={hit(ROWS.sync)} />
 
       <section hidden={!shortcutsShown}>
         <h3>Keyboard shortcuts</h3>
