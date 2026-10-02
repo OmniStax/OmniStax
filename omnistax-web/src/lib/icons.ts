@@ -2,7 +2,7 @@
 export const ICON = {
   text: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7M9 8h3"/></svg>',
   /* exercises: a dumbbell — practice is strength the reader builds */
-  exercises: '<svg viewBox="0 0 24 24"><path d="M6.5 12h11" stroke-width="2"/><rect x="4.5" y="7" width="2" height="10" rx=".6" fill="currentColor"/><rect x="17.5" y="7" width="2" height="10" rx=".6" fill="currentColor"/><rect x="2.5" y="9" width="1.5" height="6" rx=".5" fill="currentColor"/><rect x="20" y="9" width="1.5" height="6" rx=".5" fill="currentColor"/></svg>',
+  exercises: '<svg viewBox="0 0 24 24"><path d="M5.7 12h12.6" stroke-width="2.3"/><rect x="3.4" y="6.25" width="2.3" height="11.5" rx=".7" fill="currentColor"/><rect x="18.3" y="6.25" width="2.3" height="11.5" rx=".7" fill="currentColor"/><rect x="1.1" y="8.55" width="1.7" height="6.9" rx=".55" fill="currentColor"/><rect x="21.2" y="8.55" width="1.7" height="6.9" rx=".55" fill="currentColor"/></svg>',
   /* the pen: a pencil at work, its point on the line it has just drawn */
   pen: '<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0 0-3l-1-1a2.1 2.1 0 0 0-3 0L4 16z"/><path d="M13 7l4 4"/><path d="M12.5 20H20"/></svg>',
   folder: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
