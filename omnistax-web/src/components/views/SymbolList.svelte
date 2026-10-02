@@ -19,16 +19,20 @@
   const shown = $derived(widths.length === 0 ? macros.length : fitCount(widths, room, 12, GAP));
   const title = $derived(shown < macros.length ? `Every symbol of ${label}: ${macros.join(' ')}` : '');
 
-  /* The widths are the ones the symbols take when they all stand, which is how the
-     first pass draws them; the room is the row's own, which the overflow keeps to the
+  /* The widths are the ones the symbols take when they all stand and are all set,
+     which is how the first pass draws them; the room is the row's own, which the overflow keeps to the
      line whatever the symbols do, so measuring it again never chases itself. */
   $effect(() => {
     const el = box; if (!el) return;
     const items = [...el.querySelectorAll<HTMLElement>('.sym')];
-    if (widths.length === 0 && items.length) widths = items.map((i) => i.getBoundingClientRect().width);
-    room = el.clientWidth;
-    const ro = new ResizeObserver(() => { room = el.clientWidth; });
+    const settle = (): void => {
+      room = el.clientWidth;
+      if (widths.length === 0 && items.length && items.every((i) => i.firstElementChild)) widths = items.map((i) => i.getBoundingClientRect().width);
+    };
+    settle();
+    const ro = new ResizeObserver(settle);
     ro.observe(el);
+    if (widths.length === 0) items.forEach((i) => ro.observe(i));
     return () => ro.disconnect();
   });
 </script>
