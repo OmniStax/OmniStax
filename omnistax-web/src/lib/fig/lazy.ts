@@ -32,14 +32,17 @@ export function lazy<T>(load: () => Promise<T>, retryMs: RetryMs = RETRY_MS): La
 /* A browser keeps a failed module fetch against its address, and every later import() of that
    address fails without asking the network. So an import that failed, where the error names the
    chunk (Chromium and Firefox do), is asked for again under a fresh query, which is a new address
-   to the module map and the same file to the server. */
+   to the module map and the same file to the server. A chunk that lands is kept, so a retry of
+   work that needed it beside another never loads it twice. A failed chunk that others import
+   statically stays failed for them: only a reload can mend that. */
 type ChunkUrl = string;
 export const failedChunk = (e: unknown): ChunkUrl | null =>
   e instanceof Error ? (/\bhttps?:\/\/[^\s'"?#]+\.m?js\b/.exec(e.message)?.[0] ?? null) : null;
 export function importing<M>(first: () => Promise<M>, again: (url: ChunkUrl) => Promise<unknown> = (u) => import(/* @vite-ignore */ u)): () => Promise<M> {
-  let failed: ChunkUrl | null = null, tries = 0;
+  let failed: ChunkUrl | null = null, tries = 0, got: Promise<M> | null = null;
   return () => {
+    if (got) return got;
     const go = failed ? (again(`${failed}?retry=${++tries}`) as Promise<M>) : first();
-    return go.catch((e: unknown) => { failed = failedChunk(e) ?? failed; throw e; });
+    return go.then((m) => { got = go; return m; }, (e: unknown) => { failed = failedChunk(e) ?? failed; throw e; });
   };
 }

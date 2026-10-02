@@ -73,15 +73,16 @@ const KOPT = () => ({ macros: macrosOf(active().macros), trust: (c: { command: s
    landed yet the work is queued and done once, in order, when it does. */
 type Katex = typeof import('katex').default;
 type AutoRender = typeof import('katex/contrib/auto-render').default;
-type MathLib = { readonly katex: Katex; readonly auto: AutoRender };
+/* Apart, because auto-render imports KaTeX's chunk: where that failed, auto-render stays failed
+   until a reload, but KaTeX itself comes back under a fresh address and `tex` with it. */
 const katexChunk = importing(() => import('katex')), autoChunk = importing(() => import('katex/contrib/auto-render'));
-const withMath = lazy(() => Promise.all([katexChunk(), autoChunk()])
-  .then(([k, a]): MathLib => ({ katex: k.default, auto: a.default }))).use;
+const withKatex = lazy((): Promise<Katex> => katexChunk().then((m) => m.default)).use;
+const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.default)).use;
 
 export type TexOpts = { readonly values?: boolean };
 function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
   const opts = KOPT();
-  withMath((m) => { m.katex.render(s, el, { ...opts, displayMode: display }); if (o.values !== false) texGlow(el); });
+  withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); if (o.values !== false) texGlow(el); });
 }
 
 /* ---------- the glow under a changed number in a formula ----------
@@ -143,7 +144,7 @@ function texGlow(el: HTMLElement): void {
 function renderMath(root: HTMLElement): void {
   if (!root.textContent?.includes('$')) return;
   const opts = KOPT();
-  withMath((m) => m.auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
+  withAuto((auto) => auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
 
 /* ---------- palette & colour coding ---------- */

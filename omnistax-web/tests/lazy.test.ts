@@ -26,7 +26,7 @@ test('a failed fetch is tried again and the waiting work is done when it succeed
   const done: number[] = [];
   L.use((v) => done.push(v));
   await tick();
-  assert.deepEqual(done, []);
+  assert.equal(done.length, 0);
   L.use((v) => done.push(v + 1));
   await tick(40);
   assert.equal(loads, 3);
@@ -72,6 +72,7 @@ test('an import that failed is asked for again under a fresh address, or as befo
   const named = importing(failing('Failed to fetch dynamically imported module: http://h/assets/m.X1.js'), async (u) => { asked.push(u); if (asked.length < 2) throw new TypeError(`Failed to fetch dynamically imported module: ${u}`); return 'm'; });
   await assert.rejects(named());
   await assert.rejects(named());
+  assert.equal(await named(), 'm');
   assert.equal(await named(), 'm');
   assert.deepEqual(asked, ['http://h/assets/m.X1.js?retry=1', 'http://h/assets/m.X1.js?retry=2']);
   assert.equal(firsts, 1);
