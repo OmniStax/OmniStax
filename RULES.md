@@ -51,11 +51,19 @@ Write `plan.md` before building: the sub-concepts, the concept nodes and where e
 
 ## 6. Concepts
 
-Everything the book teaches is a concept, one node in the book's concept table, whether or not an exercise tests it. A concept is one of five kinds. A **definition** is stipulated, a name for something (displacement, density, the joule). An **axiom** is what the book takes as given rather than derives, a postulate or a law found by experiment (F = ma, conservation of energy, Ohm's law). A **result** follows from other concepts, whether or not the book shows the steps (v = v₀ + at, the work–energy theorem). An **idea** deserves a place in the map but is none of those three (the Bohr model, wave–particle duality, the Michelson–Morley experiment). A **skill** is know-how for applying the others, usually to solve problems (drawing a free-body diagram, balancing an equation). The kind is what the book treats as given or derived, not a verdict on the subject. A constant or measured value (g, c) is an axiom when the book states it as a finding, and a sheet of the book when it is reference data.
+Everything the book teaches is a concept, one node in the book's concept table, whether or not an exercise tests it. Each concept is one of five kinds:
 
-A concept row holds its name, kind, statement and prerequisite edges, and is the one record of what it is: the glossary words that name it, the one symbol the book denotes it by, and every formula that states it, the main form first. A rearrangement (a = F/m beside F = ma) is another form on the same node, and a symbol's variants and components (a_x, B₁) are rows of the chapter's variables that name the definition of their quantity. The statement is the meaning of a definition and the claim of an axiom or result, in the book's voice. Every glossary term is a word of a concept. Each concept has exactly one span that introduces it, where the book first does, and the reader can always go there.
+- A **definition** is stipulated, a name for something: displacement, the joule.
+- An **axiom** is what the book takes as given, a postulate or a law found by experiment: F = ma, Ohm's law.
+- A **result** follows from other concepts, whether or not the book shows the steps: v = v₀ + at, the work–energy theorem.
+- An **idea** earns a place in the map without being any of those: the Bohr model, the Michelson–Morley experiment.
+- A **skill** is know-how for applying the others, usually to solve problems: drawing a free-body diagram, balancing an equation.
 
-Concepts are written to the tables as sections progress, never inferred from headers afterwards; later sections point back to earlier ids. Reference data a subject needs (the periodic table, constants, solubility tables) is a sheet of the book, not a kind of concept.
+The kind follows the book, so the same law can be an axiom in a book that states it from experiment and a result in one that derives it. A constant or measured value (g, c) is an axiom when the book states it as a finding, and a sheet when it is reference data.
+
+A concept row holds the name, kind, statement and prerequisite edges, and it is the only record of the concept. It carries the glossary words that name the concept, the one symbol the book denotes it by, and every formula that states it, main form first. A rearrangement (a = F/m beside F = ma) is another form on the same node. A symbol's variants and components (a_x, B₁) are rows of the chapter's variables, and each names the definition of its quantity. The statement gives a definition's meaning or an axiom's or result's claim, in the book's voice. Every glossary term is a word of some concept. Each concept has exactly one span that introduces it, where the book first does, and the reader can always go there.
+
+Concepts are written to the tables section by section as the build goes, and later sections point back to earlier ids; nothing is inferred from headers afterwards. Reference data a subject needs, such as the periodic table or a table of constants, is a sheet of the book and not a concept.
 
 ## 7. Colour is a function of type
 
