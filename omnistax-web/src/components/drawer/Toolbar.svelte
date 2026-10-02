@@ -39,7 +39,7 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
      what takes it away, what picks it up, what stands on the page, and the
      hand that moves the page itself. */
   const TOOLS: readonly { readonly id: Tool; readonly label: string; readonly glyph: string }[] = [
-    { id: 'pen', label: 'Pen', glyph: ICON.exercises },
+    { id: 'pen', label: 'Pen', glyph: ICON.pen },
     { id: 'highlighter', label: 'Highlighter', glyph: ICON.highlighter },
     { id: 'eraser', label: 'Eraser', glyph: ERASER_GLYPH() },
     { id: 'lasso', label: 'Lasso', glyph: LASSO_GLYPH() },
