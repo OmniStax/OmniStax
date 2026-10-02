@@ -325,7 +325,7 @@ this book:
   appendix as the Structure section lists them, written by a tool of
   this book and served by the app as sheets; and `COLOR.md`, the book's
   colour plan, beside this file. The first of them is
-  `sheets/elements.json`, Appendix A as data — all 118 elements, which
+  `sheets/elements.json`, Appendix A as data for all 118 elements, which
   `book.json` declares as the sheet `elements` and which the app draws as
   the periodic table and reads every chemical formula of the prose
   against. It is written by `tools/elements.py` and marked

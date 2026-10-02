@@ -192,7 +192,7 @@ four:
    to a type.
 
 The test for one figure: everything in it with an identity is coloured,
-or the whole figure is ink. No half-coloured figure. Ink is for the
+or the whole figure is ink. Ink is for the
 frame (axes, rules, apparatus outlines, labels) and for untyped scalars
 (a mass in a book that leaves mass untyped, a count, an angle). A phase
 is told by packing, not by colour, as the books draw it; a temperature is
@@ -254,7 +254,7 @@ types. The source decides where an exercise shows up on the page:
   review, or test-prep collection, including Remember and Understand items.
 
 The agent records the source location and the type of every exercise so
-the placement is a rule, not a per-item choice.
+that placement follows a rule rather than a per-item choice.
 
 An exercise goes with the section that introduces what it tests, not
 where the book happens to put it. The reader should be ready for an
@@ -322,8 +322,8 @@ Three triggers, three treatments:
 - **A figure that exists to serve exercises is copied over as it is.**
   The paths figure of 2.1, a diagram a problem refers to: these are
   redrawn faithfully, with no sliders and no animation beyond what makes
-  the original readable. The point is that the reader sees exactly what
-  the problem is about.
+  the original readable, so that the reader sees exactly what the
+  problem is about.
 
 An interactive figure carries one of two labels, and the reader sees no
 other word for it. A figure the agent made on its own suggestion,
@@ -374,8 +374,8 @@ When the agent asks for feedback, it stops. It does not build, refactor, or
 move to the next section until the user has had the chance to respond to
 every point in the message: every plan line, every question, every
 suggestion. A partial reply is answered with the remaining points, not with
-work. This is what makes the plan review of item 5 and the per-section stop
-of item 2 real rather than ceremonial.
+work. Without this, the plan review of item 5 and the per-section stop of
+item 2 would be a formality.
 
 ## 17. The page talks about the subject, not about itself, in the book's voice
 
@@ -394,8 +394,8 @@ the simulations, each with the effort it ran at. The credit is structured
 (API id and effort per maker, principal first) so the mark can print it
 and so a later rewrite can add itself without erasing who came before;
 the app still reads the old prose form. Effort is recorded because it
-changes the work: the same model at low effort writes a different page. Every article carries the footer
-because a section is what gets linked to, and the licence asks for credit
+changes the work: the same model at low effort writes a different page.
+Every article carries the footer because a section is what gets linked to, and the licence asks for credit
 wherever the work is shared. The footer is the whole of the attribution:
 it names the adaptation, the licence the adapted page is shared under
 (the same as the source, when the source is ShareAlike), and the AI that
@@ -536,8 +536,8 @@ Importantly, while some topics are heavy in visuals, some aren't. But you must b
 1. When deciding whether to translate a figure: if the book draws arrows
    to show statically the direction some entity is moving, animate it and
    provide a real simulation, so that the student is not left to
-   translate the motion in their mind. Reducing that cognitive burden is
-   the point. Two kinds of arrow, though. A kinematic arrow shows
+   translate the motion in their mind and carry that cognitive burden.
+   Only kinematic arrows count, not symbolic ones. A kinematic arrow shows
    something moving or flowing (a molecule's path, electrons in a wire,
    heat leaving a body, a piston pushed) and triggers animation. A
    symbolic arrow is notation (a reaction arrow, a curly electron-pushing
@@ -603,9 +603,9 @@ Importantly, while some topics are heavy in visuals, some aren't. But you must b
 1. The goal of a figure or simulation is to inspire creativity and to be
    pedagogically intuitive. Inventing new components for the figure
    widget, and not homogenizing its style with the other figures, is
-   perfectly fine and encouraged where the idea needs it.
+   encouraged where the idea needs it.
 
-2. Changing the figure slightly is completely fine. For example, the
+2. The figure may be changed slightly. For example, the
    simulation may include a more general case that the sliders reach and
    that the original figure did not explicitly identify. The book's own
    numbers remain the defaults, so the book's picture is one state of
