@@ -8,6 +8,7 @@ import { mkKeys, morphPlan } from './motion';
 import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, type Glyph, type KeyMap, type Track, type Pt } from './morphgeom';
 import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
+import { lazy, importing } from './lazy';
 
 export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean };
 type Macros = Readonly<Record<string, string>>;
@@ -17,12 +18,7 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
 
 /* ---------- MathJax, fetched on the first morph ---------- */
 type Mj = typeof import('./mathjax');
-let mj: Mj | null = null;
-let mjPending: Promise<Mj> | null = null;
-const withMj = (use: (m: Mj) => void): void => {
-  if (mj) { use(mj); return; }
-  void (mjPending ??= import('./mathjax').then((m) => (mj = m))).then(use).catch(() => {});
-};
+const withMj = lazy(importing((): Promise<Mj> => import('./mathjax'))).use;
 
 /* ---------- renders, cached by book, mode and string ----------
    An inline formula is set as one SVG per line-breakable piece (splitTex). */
