@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { layout, extentOf, gridOf, idsIn, type Edge, type LayoutNode } from '../src/lib/sections/forcelayout';
+import { layout, extentOf, gridOf, idsIn, separated, GAP, type Edge, type LayoutNode } from '../src/lib/sections/forcelayout';
 
 /* A small map: one root, two concepts built on it, and a leaf on one of those. */
 const NODES: readonly LayoutNode[] = [
-  { id: 'root', depth: 0, r: 30 },
-  { id: 'a', depth: 1, r: 30 },
-  { id: 'b', depth: 1, r: 30 },
-  { id: 'leaf', depth: 2, r: 30 },
+  { id: 'root', depth: 0, r: 30, w: 50, h: 30 },
+  { id: 'a', depth: 1, r: 30, w: 50, h: 30 },
+  { id: 'b', depth: 1, r: 30, w: 50, h: 30 },
+  { id: 'leaf', depth: 2, r: 30, w: 50, h: 30 },
 ];
 const EDGES: readonly Edge[] = [['root', 'a'], ['root', 'b'], ['a', 'leaf']];
 const rad = (id: string, pos: ReadonlyMap<string, { x: number; y: number }>): number => { const p = pos.get(id)!; return Math.hypot(p.x, p.y); };
@@ -31,6 +31,22 @@ test('nodes keep clear of each other', () => {
     const p = pos.get(a.id)!, q = pos.get(b.id)!;
     assert.ok(Math.hypot(p.x - q.x, p.y - q.y) > 40, `${a.id} and ${b.id} overlap`);
   }
+});
+
+test('no two boxes come nearer than the gap, however the forces leave them', () => {
+  const crowd: LayoutNode[] = Array.from({ length: 60 }, (_, i) => ({ id: `n${i}`, depth: i % 3, r: 20, w: 40 + (i % 5) * 30, h: 30 + (i % 3) * 15 }));
+  const pos = layout(crowd, []);
+  for (const a of crowd) for (const b of crowd) {
+    if (a.id >= b.id) continue;
+    const p = pos.get(a.id)!, q = pos.get(b.id)!;
+    const apart = Math.abs(p.x - q.x) >= (a.w + b.w) / 2 + GAP - 0.1 || Math.abs(p.y - q.y) >= (a.h + b.h) / 2 + GAP - 0.1;
+    assert.ok(apart, `${a.id} and ${b.id} are nearer than the gap`);
+  }
+});
+
+test('separating leaves boxes already clear where they stand', () => {
+  const pos = new Map([['a', { x: 0, y: 0 }], ['b', { x: 200, y: 0 }]]);
+  assert.deepEqual([...separated([{ id: 'a', w: 50, h: 30 }, { id: 'b', w: 50, h: 30 }], pos)], [...pos]);
 });
 
 test('the grid answers with the nodes a window holds, and no others', () => {

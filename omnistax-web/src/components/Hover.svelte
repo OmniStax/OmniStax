@@ -18,7 +18,7 @@
   import { settings } from '../lib/settings/store.svelte';
 
   const CLOSE_GRACE = 200;
-  type Placed = { readonly top: number; readonly left: number; readonly ready: boolean };
+  type Placed = { readonly top: number; readonly left: number; readonly ready: boolean; readonly most?: number };
   let card = $state<Card | null>(null);
   let anchor = $state<HTMLElement | null>(null);
   let box = $state<HTMLElement | null>(null);
@@ -42,15 +42,29 @@
   const inCard = (n: EventTarget | null): boolean => n instanceof Node && !!box && box.contains(n);
 
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  /* The card never covers what it belongs to. It hangs below the target, or
+     above it where below has no room; beside it where neither has; and where
+     no side holds the whole card, on the roomier of above and below, cut to
+     that room and scrolled. Sliding it along the target's edge to keep it on
+     screen never brings it back over the target, and a card that grows once
+     its maths is set is placed again. */
+  const GAP = 6, EDGE = 8;
   const place = () => {
     if (!anchor || !box) return;
-    const r = anchor.getBoundingClientRect(), b = box.getBoundingClientRect(); const vw = innerWidth, vh = innerHeight;
+    const r = anchor.getBoundingClientRect(); const vw = innerWidth, vh = innerHeight;
     if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) { close(); return; }
-    const below = r.bottom + 6; const above = r.top - b.height - 6;
-    const top = below + b.height <= vh - 8 || above < 8 ? below : above;
-    pos = { top: clamp(top, 8, Math.max(8, vh - b.height - 8)), left: clamp(r.left, 8, Math.max(8, vw - b.width - 8)), ready: true };
+    const b = { width: box.getBoundingClientRect().width, height: box.scrollHeight + box.offsetHeight - box.clientHeight };
+    const room = { below: vh - EDGE - r.bottom - GAP, above: r.top - GAP - EDGE, right: vw - EDGE - r.right - GAP, left: r.left - GAP - EDGE };
+    const across = clamp(r.left, EDGE, Math.max(EDGE, vw - b.width - EDGE)), down = clamp(r.top, EDGE, Math.max(EDGE, vh - b.height - EDGE));
+    pos = b.height <= room.below ? { top: r.bottom + GAP, left: across, ready: true }
+      : b.height <= room.above ? { top: r.top - GAP - b.height, left: across, ready: true }
+      : b.width <= room.right ? { top: down, left: r.right + GAP, ready: true }
+      : b.width <= room.left ? { top: down, left: r.left - GAP - b.width, ready: true }
+      : room.below >= room.above ? { top: r.bottom + GAP, left: across, ready: true, most: room.below }
+      : { top: EDGE, left: across, ready: true, most: room.above };
   };
   $effect(() => { if (!card || !anchor) return; tick().then(place); });
+  $effect(() => { const el = box; if (!el) return; const ro = new ResizeObserver(() => place()); ro.observe(el); return () => ro.disconnect(); });
   $effect(() => { const click = settings.cardOpen === 'click'; document.documentElement.classList.toggle('cards-click', click); if (click) close(); });
 
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
@@ -81,8 +95,14 @@
     const onPointerUp = () => { mouseDown = false; };
     const onPointerMove = (e: PointerEvent) => { if (e.pointerType === 'mouse') touch = false; };   /* a mouse after a touch hovers again */
     /* Capture phase, so it runs before the shell's own link handler. */
+    /* A target that asks for a double-click — a node of the concept map, whose
+       single click selects it — opens its card on the second click where
+       cards open on click; a single click on it only puts away another's. */
+    const onDouble = (t: HTMLElement | null): boolean => !!t && t.dataset.cardOpen === 'dblclick' && !touch && settings.cardOpen === 'click';
+    const onDblClick = (e: MouseEvent) => { const t = targetOf(e.target); if (t && onDouble(t)) show(t); };
     const onClick = (e: MouseEvent) => {
       const t = targetOf(e.target);
+      if (t && onDouble(t)) { if (t !== anchor) close(); return; }
       const link = (t ?? (e.target instanceof Element ? e.target : null))?.closest<HTMLAnchorElement>('a[href]') ?? null;
       if (t && byClick()) {
         if (t !== anchor) { if (link) { e.preventDefault(); e.stopPropagation(); } show(t); return; }   /* a link opens its card first, and a second click follows it */
@@ -96,18 +116,18 @@
     document.addEventListener('mouseover', onOver); document.addEventListener('mouseout', onOut);
     document.addEventListener('focusin', onFocusIn); document.addEventListener('focusout', onFocusOut);
     document.addEventListener('keydown', onKey); document.addEventListener('pointerdown', onPointerDown, true); document.addEventListener('pointerup', onPointerUp, true); document.addEventListener('pointermove', onPointerMove, true);
-    document.addEventListener('click', onClick, true); document.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll);
+    document.addEventListener('click', onClick, true); document.addEventListener('dblclick', onDblClick, true); document.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll);
     return () => {
       document.removeEventListener('mouseover', onOver); document.removeEventListener('mouseout', onOut);
       document.removeEventListener('focusin', onFocusIn); document.removeEventListener('focusout', onFocusOut);
       document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onPointerDown, true); document.removeEventListener('pointerup', onPointerUp, true); document.removeEventListener('pointermove', onPointerMove, true);
-      document.removeEventListener('click', onClick, true); document.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll);
+      document.removeEventListener('click', onClick, true); document.removeEventListener('dblclick', onDblClick, true); document.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll);
     };
   });
 </script>
 
 {#if card}{#key card}
-  <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
+  <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" style:max-height={pos.most ? `${pos.most}px` : null} style:overflow-y={pos.most ? 'auto' : null} data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
     <div class="eyebrow">{card.eyebrow}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
