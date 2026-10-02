@@ -527,7 +527,7 @@
   }
   /* the map is a window on a plane larger than itself, not a block that grows */
   .map{position:relative;height:min(70vh,640px);border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--panel)}
-  .map > svg{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  .map > svg{width:100%;height:100%;display:block;cursor:grab;touch-action:none;user-select:none}
   .map > svg:active{cursor:grabbing}
   /* The room a node was kept is its slot; the node stands in the middle of it as
      large as its name, never larger than the room, and the type is set in the
