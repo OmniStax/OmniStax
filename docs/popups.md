@@ -22,7 +22,7 @@ Definitions and formulas are concepts (RULES item 6). The pure model is `src/lib
 
 - **Definitions** lists one row per concept named by a word or a symbol, and every definition the loaded coverage introduces: the symbols (with their meaning in the section read when there are several or the chapter redefines one), the word, a kind tag on a concept that is not a definition, the unit, the statement and the defining formulas (the important ones, else the concept's `eq`). A word or a symbol with no concept is a row of its own. Rows stand in the concept's section, or, when that is outside the view, the first section in it that gives the concept a symbol or a word; within a section they follow the span that introduces them.
 - **Formulas** lists the important equations as before, each under the concept it states: "defines Δx" for a definition, a kind tag and the concept's word otherwise. The list keeps the label "Formulas", since `book.json` has no field for a book's own word for it.
-- Both lists set symbols and formulas in ink, with no colour legend; the rows keep `data-book` and `data-sec`, so the symbols in them open their cards.
+- Both lists colour symbols and formulas as the text does, under the reader's colour-coding setting and the page's binds, and carry no colour legend; the rows keep `data-book` and `data-sec`, which the colour rules and the cards both read.
 - The concept map draws five shapes: a definition is a plain box, an axiom has a heavy left rule, a result a double rule, an idea a soft box with no rule, a skill a pill with a wrench. Each kind in the legend is a switch that hides that kind's nodes and edges without moving the layout.
 
 ## Other popups

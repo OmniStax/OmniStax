@@ -105,6 +105,17 @@ export const goSpan = (ref: SpanRef | undefined, split = false): void => {
   const t = split ? null : findEl(ref.book, ref.span); if (t) { jump(t); return; }
   void openDoc(sectionRef(ref.book, sectionOfSpan(ref.span)), 'text', split ? 'new' : undefined).then(() => go(ref.book, ref.span));
 };
+/* A thing a reference view lists — an exercise, a concept, a formula, a
+   definition — opens as a new tab of the focused group, or with Ctrl (Cmd, the
+   middle button) in a group of its own beside it. */
+export const openingInView = (e?: MouseEvent | KeyboardEvent | null): Opening =>
+  e && (e.ctrlKey || e.metaKey || ('button' in e && e.button === 1)) ? 'new' : 'tab';
+const viewTarget = (how: Opening): Target => (how === 'new' ? 'new' : layoutStore.layout.focus);
+export const openFromView = (key: string, how: Opening): Promise<void> => openItem(key, viewTarget(how), how);
+export const openSectionFromView = (ref: SectionRef, how: Opening): Promise<void> => openDoc(ref, 'text', viewTarget(how), how);
+export const goSpanFromView = (ref: SpanRef, how: Opening): void => {
+  void openSectionFromView(sectionRef(ref.book, sectionOfSpan(ref.span)), how).then(() => go(ref.book, ref.span));
+};
 /* The passage a problem was set on, landed in the middle of the pane so the
    reader can read around it. The card may be standing in a practice session
    with the section's text open nowhere, so a target that is not in the document

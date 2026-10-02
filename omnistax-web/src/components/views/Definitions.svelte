@@ -4,8 +4,7 @@
      statement, the unit and the formulas that define it. A word or a symbol the
      book gives no concept stands on a row of its own. Flat for a section, under
      a line per section for a chapter, under a fold per chapter for the book,
-     with whatever lies outside folded away below. Everything is in ink: the
-     list names quantities, it does not colour them.
+     with whatever lies outside folded away below.
 
      A row is dragged into a note the same way a formula is: it carries the
      embed that writes it out there as a card. */
@@ -17,7 +16,11 @@
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { definitionRows, wordOf, KIND_LABEL, type DefinitionRow } from '../../lib/sections/conceptlists';
   import { chapterOf } from '../../lib/sections/scope';
-  import { sectionId, type SectionId } from '../../lib/types/ids';
+  import { sectionId, sectionRef, spanRef, spanId, conceptId, type SectionId } from '../../lib/types/ids';
+  import { goSpanFromView, openSectionFromView, openingInView, type Opening } from '../../lib/sections/nav.svelte';
+  import { goConceptFromView } from '../../lib/sections/concepts.svelte';
+  import { targetOf } from '../../lib/hover/cards';
+  import { settings } from '../../lib/settings/store.svelte';
   import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   const scoped = getCtx<() => Target>('scope');
@@ -37,6 +40,20 @@
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return {}; };
   const math = (node: HTMLElement, s: string) => { node.textContent = s; figFor(book).renderMath(node); return {}; };
   const wordFor = (r: DefinitionRow): string => r.words[0]?.term ?? (r.concept ? wordOf(r.concept.name) : '');
+  /* A row goes to where its concept is introduced, else to where its symbol is,
+     else to its section. A click the reader's card setting gives to a symbol or a
+     word inside the row stays the card's. */
+  const goTo = (r: DefinitionRow, how: Opening): void => {
+    const anchor = r.symbols.find((v) => v.anchor)?.anchor;
+    if (r.concept) void goConceptFromView(book, conceptId(r.concept.id), how);
+    else if (anchor) goSpanFromView(spanRef(book, spanId(anchor)), how);
+    else void openSectionFromView(sectionRef(book, sectionId(r.words[0]?.section ?? r.section)), how);
+  };
+  const pick = (r: DefinitionRow, e: MouseEvent): void => {
+    const how = openingInView(e);
+    if (how === 'tab' && settings.cardOpen === 'click' && targetOf(e.target)) return;
+    goTo(r, how);
+  };
   const embed = (r: DefinitionRow) => r.words.length ? { kind: 'term' as const, book, section: r.words[0].section, term: r.words[0].term }
     : r.symbols.length ? { kind: 'symbol' as const, book, section: r.symbols[0].section, sym: r.symbols[0].sym }
       : { kind: 'concept' as const, book, section: sectionId(r.concept?.section ?? r.section), id: r.concept?.id ?? r.key };
@@ -47,7 +64,8 @@
   {@const head = word || (r.symbols.length === 1 ? r.symbols[0].meaning : '')}
   {@const meanings = r.symbols.length > 1 || (word !== '' && r.symbols.some((s) => s.redefines))}
   {@const statement = (r.concept?.status === 'built' ? r.concept.statement : undefined) ?? r.words[0]?.definition}
-  <li data-sec={r.section} use:dragout={embed(r)}>
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+  <li data-sec={r.section} use:dragout={embed(r)} onclick={(e) => pick(r, e)} onauxclick={(e) => { if (e.button === 1) pick(r, e); }}>
     <span class="syms">{#each r.symbols as v (v.sym)}<span class="sym" use:sym={v.sym}></span>{/each}</span>
     <div class="what">
       <div class="head">
@@ -96,8 +114,6 @@
 
 <style>
   .rows{display:contents}
-  /* the list names quantities in ink; the hue is the text's to give */
-  .rows :global(.enclosing){color:inherit}
   .defs{list-style:none;padding:0;margin:0}
   /* the open hand says the row is a thing to take: it goes into a note by being dragged there */
   .defs > li{display:grid;grid-template-columns:3.4em 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--rule);font-size:0.82rem;align-items:baseline;cursor:grab}

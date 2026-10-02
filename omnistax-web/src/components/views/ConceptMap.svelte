@@ -54,9 +54,9 @@
   import { settings } from '../../lib/settings/store.svelte';
   import { getContext as getCtx, onDestroy, tick } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
-  import { pin } from '../../lib/sections/concepts.svelte';
+  import { pin, goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { openDoc } from '../../lib/sections/nav.svelte';
+  import { openSectionFromView, openingInView } from '../../lib/sections/nav.svelte';
   import { scopedNodes, edgesOf } from '../../lib/sections/dag';
   import { boxOf, extentOf, gridOf, idsIn, keyOf, layoutNodes, placesFor, seedPositions, type Positions, type Rect } from '../../lib/sections/forcelayout';
   import { loadLayouts, positionsOf, type LayoutFileDTO } from '../../lib/sections/layouts';
@@ -253,7 +253,8 @@
      Every node carries `data-concept`, so its card follows the reader's setting
      like any other card. A click also selects the node and pins its concept;
      with cards on hover the card is asked for again, since the press put it
-     away. A press that travelled was a drag and opens nothing. */
+     away. Ctrl-click goes to where the concept is introduced, in a group
+     beside. A press that travelled was a drag and opens nothing. */
   const SLOP = 4;
   let press: { id: string; x: number; y: number } | null = null;
   const close = () => { open = null; };
@@ -264,13 +265,14 @@
   };
   const click = async (id: string, e: MouseEvent) => {
     if (!tapped(id, e)) return;
-    const c = node(id);
+    const c = node(id); const how = openingInView(e);
     if (c.status === 'placeholder') {
       const ref = sectionRef(book, sectionId(c.section)); const entry = registry.entry(ref);
-      if (entry?.built) { openDoc(ref, 'text'); return; }
+      if (entry?.built) { void openSectionFromView(ref, how); return; }
       window.open(entry?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener');
       return;
     }
+    if (how === 'new') { void goConceptFromView(book, conceptId(id), how); return; }
     if (open === id) { close(); if (pin.pinned === id) pin.toggle(conceptId(id)); return; }
     open = id;
     if (pin.pinned !== id) pin.toggle(conceptId(id));
@@ -339,7 +341,7 @@
           <button type="button" class="node k-{c.kind}" class:ext={c.ext} class:pinned={pin.pinned === c.id} class:open={open === c.id} class:active={coverage?.introduces.includes(c.id)} class:active-weak={coverage?.uses.includes(c.id)} data-id={c.id} data-concept={c.status === 'placeholder' ? undefined : c.id}
             use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}
             data-state={showProgress ? practice.stateOf(c.id) : undefined} data-half={showProgress && share(c.id) >= 0.5 ? '1' : undefined} style:--m={showProgress ? share(c.id) : undefined}
-            onpointerdown={(e) => down(c.id, e)} onclick={(e) => click(c.id, e)}
+            onpointerdown={(e) => down(c.id, e)} onclick={(e) => click(c.id, e)} onauxclick={(e) => { if (e.button === 1) void click(c.id, e); }}
             onmouseenter={() => (hover = c.id)} onfocus={() => (hover = c.id)} onmouseleave={() => (hover = null)} onblur={() => (hover = null)}>
             {#if c.kind === 'skill'}{@render wrench()}{/if}<span use:mathHtml={c.name}></span>{#if c.ext}<small class="sec">{c.section}</small>{/if}
           </button>

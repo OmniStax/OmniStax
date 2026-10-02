@@ -1,7 +1,7 @@
 <script lang="ts">
   /* The important equations of the place this view stands at, each under the
      concept it states and that concept's kind, a definition's as the symbol it
-     defines, all in ink. Grouped by the
+     defines. Grouped by the
      section that states them: flat for a section, under a line per section for a
      chapter, under a fold per chapter for the book. What lies outside the place
      is folded away below, so the rest of the book is one click and never in the way.
@@ -15,9 +15,9 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
-  import { goSpan, findEl } from '../../lib/sections/nav.svelte';
+  import { goSpanFromView, openSectionFromView, openingInView, findEl, type Opening } from '../../lib/sections/nav.svelte';
   import { dragout } from '../../lib/notes/md/dragout';
-  import { spanId, spanRef, sectionId } from '../../lib/types/ids';
+  import { spanId, spanRef, sectionId, sectionRef } from '../../lib/types/ids';
   import type { ConceptDTO, EquationDTO } from '../../lib/content/schema';
   import { formulaLabel } from '../../lib/sections/conceptlists';
   import { figFor } from '../../lib/fig/figlib';
@@ -37,12 +37,15 @@
   const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const spanTitle = (id: string): string => { const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
+  const goTo = (e: EquationDTO, how: Opening): void => {
+    if (e.anchor) goSpanFromView(spanRef(book, spanId(e.anchor)), how); else void openSectionFromView(sectionRef(book, sectionId(e.section)), how);
+  };
 </script>
 
 {#snippet list(items: readonly EquationDTO[])}
   {#each items as e (e.id)}
     {@const named = formulaLabel(e, concepts, symbolOf)}
-    <button type="button" class="formula" data-sec={e.section} use:dragout={{ kind: 'equation', book, section: e.section, id: e.id }} onclick={() => goSpan(e.anchor ? spanRef(book, spanId(e.anchor)) : undefined)}>
+    <button type="button" class="formula" data-sec={e.section} use:dragout={{ kind: 'equation', book, section: e.section, id: e.id }} onclick={(ev) => goTo(e, openingInView(ev))} onauxclick={(ev) => { if (ev.button === 1) goTo(e, 'new'); }}>
       {#if named.kind === 'defines'}<div class="named">defines {#if named.tex}<span use:tex={named.tex}></span>{:else}{named.word}{/if}</div>
       {:else if named.kind === 'states'}<div class="named"><i class="tag">{named.tag}</i>{named.word}</div>{/if}
       <div use:tex={e.tex}></div>
@@ -81,8 +84,6 @@
 
 <style>
   .rows{display:contents}
-  /* the sheet sets formulas in ink; the hue is the text's to give */
-  .rows :global(.enclosing){color:inherit}
   .named{display:flex;align-items:baseline;gap:6px;font-size:0.74rem;color:var(--muted);margin-bottom:2px}
   .named :global(.katex){font-size:1em}
   .tag{font-style:normal;text-transform:uppercase;letter-spacing:0.06em;font-size:0.6rem;padding:0 5px;border-radius:9px;background:var(--soft);color:var(--muted)}

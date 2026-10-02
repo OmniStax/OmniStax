@@ -21,6 +21,7 @@ export const TIPS: readonly Tip[] = [
   { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
   { text: 'Ctrl-click or double-click a section, note or drawing to open it in a new tab.' },
   { text: 'Ctrl+Alt-click a section, view or link to open it in a new group beside this one.' },
+  { text: 'Click a formula, definition or concept in its list to open it in a new tab; Ctrl-click to open it in a new group beside.' },
 ];
 
 /* The tip a step forward or back from this one, wrapping at either end. */

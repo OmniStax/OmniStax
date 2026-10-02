@@ -31,6 +31,9 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { library } from '../../lib/explorer/library.svelte';
   import { bookId, sectionId, conceptId, type SectionId } from '../../lib/types/ids';
+  import { goConceptFromView } from '../../lib/sections/concepts.svelte';
+  import { openingInView } from '../../lib/sections/nav.svelte';
+  import { settings } from '../../lib/settings/store.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
   import { mathHtml } from '../actions/math';
@@ -64,6 +67,15 @@
      waits until a progress accordion is opened. */
   $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
   const bookTitle = (id: string): string => practice.bookTitle(id);
+  /* A concept row goes to where its concept is introduced; a plain click the
+     reader's card setting gives to the card, and one on a control, stays theirs. */
+  const goRow = (e: MouseEvent): void => {
+    const row = e.currentTarget as HTMLElement; const how = openingInView(e);
+    if ((e.target as Element).closest('button, select, input, label')) return;
+    if (how === 'tab' && settings.cardOpen === 'click') return;
+    const b = row.dataset.book, id = row.dataset.concept; if (!b || !id) return;
+    void goConceptFromView(bookId(b), conceptId(id), how);
+  };
   const chapterDir = (id: string, sec: SectionId): string => chaptersOf(id).find((c) => c.sections.some((s) => s.id === sec))?.dir ?? '';
   const sectionTitle = (id: string, sec: string): string => chaptersOf(id).flatMap((c) => c.sections).find((s) => s.id === sec)?.title ?? '';
   const chapterOf = (id: string, ch: string): ChapterEntry | undefined => chaptersOf(id).find((c) => c.id === ch || c.dir === ch);
@@ -514,7 +526,7 @@
                                           {@const own = practice.self[c.id]}
                                           {@const record = practice.mastery[c.id]}
                                           {@const fresh = practice.freshness(c.id)}
-                                          <div class="concept-progress-row prow" tabindex="0" data-book={b} data-concept={c.id}>
+                                          <div class="concept-progress-row prow" tabindex="0" data-book={b} data-concept={c.id} onclick={goRow} onauxclick={(e) => { if (e.button === 1) goRow(e); }}>
                                             {@render masteryBox(c.id)}
                                             <i class="dot k-{c.kind}" aria-hidden="true"></i>
                                             <span class="lab"><span use:mathHtml={c.name}></span></span>
@@ -729,7 +741,7 @@
     <section class="panel concept-progress">
       {#if progressRows.length}
         {#each progressRows as r (r.id)}
-          <div class="row prow progress-row" tabindex="0" data-book={books.bookOf(r.id)} data-concept={r.id}>
+          <div class="row prow progress-row" tabindex="0" data-book={books.bookOf(r.id)} data-concept={r.id} onclick={goRow} onauxclick={(e) => { if (e.button === 1) goRow(e); }}>
             <span class="transition" aria-label="Progress from {STATE_WORD[r.from]} to {STATE_WORD[r.to]}">
               {@render box(r.from, r.fromShare, `Before this session: ${STATE_WORD[r.from]}`)}
               <span class="arrow" aria-hidden="true">→</span>
@@ -848,7 +860,7 @@
   .meter-untouched{background:var(--soft2)}
   .progress-message,.empty-section{font-size:.74rem;color:var(--muted);margin:4px 8px 8px}
   .concept-leaves{display:flex;flex-direction:column;padding:2px 0 7px}
-  .concept-progress-row{display:grid;grid-template-columns:auto auto minmax(100px,1fr) auto;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;min-width:0}
+  .concept-progress-row{display:grid;grid-template-columns:auto auto minmax(100px,1fr) auto;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;min-width:0;cursor:pointer}
   .concept-progress-row:hover{background:var(--soft)}
   .concept-progress-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .concept-progress-row .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -932,7 +944,7 @@
      a button — it is a place the concept's own card opens on, the way a term in
      the text is — so it wears the dotted rule the glossary terms wear, and the
      reader's Underlines setting takes it away with theirs. */
-  .row.prow{width:100%;box-sizing:border-box;cursor:default}
+  .row.prow{width:100%;box-sizing:border-box;cursor:pointer}
   .row.prow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .row.prow .meta{flex:none;color:var(--muted);font-size:0.7rem;font-variant-numeric:tabular-nums}
   :global(html:not(.no-underlines)) .prow .lab{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}

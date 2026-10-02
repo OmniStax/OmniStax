@@ -16,7 +16,7 @@
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
   import { detachScratch } from '../../lib/drawer/edits';
   import { drawings } from '../../lib/drawer/store.svelte';
-  import { openItem } from '../../lib/sections/nav.svelte';
+  import { openItem, openFromView, openingInView } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { bookId, drawingItem, itemKey, sectionRef } from '../../lib/types/ids';
@@ -93,7 +93,12 @@
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
   const scratch = (): void => openScratch(at, layoutStore.layout.focus);
   const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed);
-  const openLinked = (): void => { if (linked) void openItem(itemKey(drawingItem(linked))); };
+  /* In a reference view the drawing opens the way that view opens things. */
+  const openLinked = (e: MouseEvent): void => {
+    if (!linked) return;
+    const key = itemKey(drawingItem(linked));
+    void ((e.currentTarget as Element).closest('[data-view]') ? openFromView(key, openingInView(e)) : openItem(key));
+  };
 </script>
 
 {#snippet scratchpad()}
@@ -103,7 +108,7 @@
   </button>
   {#if linked && linkedName}
     <span class="chip-link">
-      <button type="button" class="tool link" onclick={openLinked} title="Open the saved drawing">{linkedName}</button>
+      <button type="button" class="tool link" onclick={openLinked} onauxclick={(e) => { if (e.button === 1) openLinked(e); }} title="Open the saved drawing">{linkedName}</button>
       <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
         title="Turn the drawing back into scratch work">Detach</button>
     </span>
