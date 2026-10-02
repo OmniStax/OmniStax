@@ -16,8 +16,9 @@ export type Depth = number;
 /* A settled place, in the map's own coordinates; the view's transform is another matter. */
 export type Pt = { readonly x: number; readonly y: number };
 export type Positions = ReadonlyMap<string, Pt>;
-/* A node as the layout sees it: an id, its depth, and the radius it takes up. */
-export type LayoutNode = { readonly id: string; readonly depth: Depth; readonly r: number };
+/* A node as the layout sees it: an id, its depth, the radius the forces keep
+   clear round it, and the box it is drawn in. */
+export type LayoutNode = { readonly id: string; readonly depth: Depth; readonly r: number; readonly w: number; readonly h: number };
 export type Edge = readonly [from: string, to: string];
 /* A rectangle of map coordinates: what a viewport asks the grid for. */
 export type Rect = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
@@ -112,7 +113,42 @@ export const layout = (nodes: readonly LayoutNode[], edges: readonly Edge[], tic
     .stop();
   for (let i = 0; i < ticks; i++) sim.tick();
   const round = (v: number): number => Math.round(v * 100) / 100;
-  return new Map(sims.map((n) => [n.id, { x: round(n.x ?? 0), y: round(n.y ?? 0) }]));
+  const forced: Positions = new Map(sims.map((n) => [n.id, { x: n.x ?? 0, y: n.y ?? 0 }]));
+  return new Map([...separated(nodes, forced)].map(([id, p]) => [id, { x: round(p.x), y: round(p.y) }]));
+};
+
+/* The least clear space between two boxes, edge to edge. */
+export const GAP = 14;
+/* The forces only keep circles apart, and only nearly: this settles what they
+   leave. Every pair of boxes that comes nearer than the gap is pushed apart
+   along the axis it overlaps least on, half each, sweep after sweep until none
+   does. The pairs are found through a grid, and the order is the order the
+   nodes came in, so the answer is as fixed as the forces' own. */
+export const separated = (boxes: readonly { readonly id: string; readonly w: number; readonly h: number }[], pos: Positions, gap = GAP, sweeps = 400): Positions => {
+  const at = boxes.filter((b) => pos.has(b.id)).map((b, i) => ({ ...b, i, x: pos.get(b.id)!.x, y: pos.get(b.id)!.y }));
+  if (at.length < 2) return new Map(at.map((n) => [n.id, { x: n.x, y: n.y }]));
+  const cell = Math.max(...at.map((n) => Math.max(n.w, n.h))) + gap;
+  for (let s = 0; s < sweeps; s++) {
+    const grid = new Map<string, typeof at>();
+    at.forEach((n) => { const k = key(Math.floor(n.x / cell), Math.floor(n.y / cell)); grid.set(k, [...(grid.get(k) ?? []), n]); });
+    let moved = false;
+    at.forEach((a) => {
+      const cx = Math.floor(a.x / cell), cy = Math.floor(a.y / cell);
+      for (let gx = cx - 1; gx <= cx + 1; gx++) for (let gy = cy - 1; gy <= cy + 1; gy++) for (const b of grid.get(key(gx, gy)) ?? []) {
+        if (b.i <= a.i) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const ox = (a.w + b.w) / 2 + gap - Math.abs(dx), oy = (a.h + b.h) / 2 + gap - Math.abs(dy);
+        if (ox <= 0.01 || oy <= 0.01) continue;
+        moved = true;
+        /* two nodes on one point part along the line the order puts between them */
+        const sx = dx > 0 || (dx === 0 && (a.i + b.i) % 2 === 0) ? 1 : -1, sy = dy > 0 || (dy === 0 && a.i % 2 === 0) ? 1 : -1;
+        if (ox / (a.w + b.w) <= oy / (a.h + b.h)) { a.x -= (sx * ox) / 2; b.x += (sx * ox) / 2; }
+        else { a.y -= (sy * oy) / 2; b.y += (sy * oy) / 2; }
+      }
+    });
+    if (!moved) break;
+  }
+  return new Map(at.map((n) => [n.id, { x: n.x, y: n.y }]));
 };
 
 /* The extent the settled map covers, with room round the outermost node. */
@@ -161,21 +197,76 @@ export const idsIn = (grid: Grid, pos: Positions, r: Rect): string[] => {
 
 /* The box a node takes up, read off its name rather than measured: the layout
    has to know how much room to keep clear before anything is drawn, and the
-   build has no document to measure in. */
+   build has no document to measure in. So the name is set the way the browser
+   will set it — word by word into lines no wider than the widest node, each
+   glyph as wide as the widest of the bundled faces makes it, and an inline
+   formula as one piece that breaks only at its equals signs — and the box is
+   that, with the node's padding round it. The node itself is drawn as wide as
+   its lines are, so this box is the room it is kept, never smaller than it. */
 export type Box = { readonly w: number; readonly h: number };
-const CHAR = 6.4, MAXW = 150;
-export const boxOf = (c: { readonly name: string; readonly ext: boolean }): Box => {
-  const n = c.name.replace(/\$[^$]*\$/g, 'xxxx').length;
-  const w = Math.min(MAXW, Math.max(62, n * CHAR + 18));
-  const lines = Math.max(1, Math.ceil((n * CHAR) / (w - 16)));
-  return { w, h: 16 + lines * 15 + (c.ext ? 12 : 0) };
+/* The node's type size and line, in the map's own pixels; the stylesheet sets the same. */
+export const NODE_FONT = 12, NODE_LINE = 15;
+const MAXW = 172, MINW = 48, PAD_X = 20, PAD_Y = 16, SEC_LINE = 12, SPACE = 0.3;
+/* How wide a glyph runs, in ems of the node's type. */
+const glyph = (ch: string): number =>
+  /[ijl.,:;'`!|]/.test(ch) ? 0.3
+  : /[ftrI()[\]/\-]/.test(ch) ? 0.4
+  : /[mwMW]/.test(ch) ? 0.9
+  : /[A-Z]/.test(ch) ? 0.72
+  : /[0-9a-z]/.test(ch) ? 0.58
+  : 0.65;
+const runOf = (s: string): number => [...s].reduce((sum, ch) => sum + (ch === ' ' ? SPACE : glyph(ch)), 0);
+/* An inline formula in ems of the node's type: KaTeX sets it larger and in
+   italic, a fraction as wide as its wider half, a book's symbol macro as the
+   two or three glyphs it prints, and room either side of a relation. */
+const MATH = 1.2;
+const mathRun = (tex: string): number => {
+  const flat = tex
+    .replace(/\\(?:t|d)?frac\{([^{}]*)\}\{([^{}]*)\}/g, (_, a: string, b: string) => (a.length > b.length ? a : b))
+    .replace(/\\(?:text|mathrm|mathit|operatorname)\{([^{}]*)\}/g, '$1')
+    .replace(/\\k[A-Za-z]+/g, 'XXq')
+    .replace(/\\(?:Delta|times|cdot|theta|alpha|beta|gamma|omega|lambda|mu|pi|rho|sigma|tau|phi|kappa|epsilon|varepsilon|nu|eta)\b/g, 'X')
+    .replace(/\\[;,:! ]|~/g, ' ')
+    .replace(/\\[A-Za-z]+/g, 'x')
+    .replace(/[{}]/g, '');
+  const scripts = (flat.match(/[\^_]/g) ?? []).length;
+  const ops = (flat.match(/[=+<>]|(?<=\S)\s*-\s*(?=\S)/g) ?? []).length;
+  return (runOf(flat.replace(/[\^_\s]/g, '')) - scripts * 0.15 + ops * 0.6) * MATH;
+};
+/* The pieces a name breaks into: its words, and its formulas cut at each equals sign. */
+type Piece = { readonly em: number; readonly tall: number };
+const piecesOf = (name: string): Piece[] =>
+  name.split(/(\$[^$]*\$)/).filter(Boolean).flatMap((part): Piece[] => {
+    if (!part.startsWith('$')) return part.split(/\s+/).filter(Boolean).map((w) => ({ em: runOf(w), tall: 0 }));
+    const tex = part.slice(1, -1);
+    /* a line with a formula in it stands taller than one of words, the more so for a fraction or a power */
+    const tall = /\\d?frac/.test(tex) ? 16 : /\\tfrac|\^/.test(tex) ? 9 : 6;
+    return tex.split(/(?<==)/).map((t) => ({ em: mathRun(t), tall }));
+  });
+/* The pieces set into lines no wider than the widest node: how wide the widest line runs, and how tall each line stands. */
+const linesOf = (pieces: readonly Piece[], max: number): { readonly w: number; readonly heights: readonly number[] } => {
+  const lines = pieces.reduce<{ w: number; tall: number }[]>((acc, p) => {
+    const last = acc[acc.length - 1], wide = p.em * NODE_FONT;
+    if (last && last.w + SPACE * NODE_FONT + wide <= max) return [...acc.slice(0, -1), { w: last.w + SPACE * NODE_FONT + wide, tall: Math.max(last.tall, p.tall) }];
+    return [...acc, { w: wide, tall: p.tall }];
+  }, []);
+  return { w: Math.max(0, ...lines.map((l) => Math.min(l.w, max))), heights: lines.map((l) => NODE_LINE + l.tall + Math.max(0, Math.ceil(l.w / max) - 1) * NODE_LINE) };
+};
+/* Axioms and results are set in a heavier weight, which runs wider. */
+const HEAVY = 1.06;
+export const boxOf = (c: { readonly name: string; readonly ext: boolean; readonly kind?: string }): Box => {
+  const heavy = c.kind === 'axiom' || c.kind === 'result' ? HEAVY : 1;
+  const skill = c.kind === 'skill' ? 1.2 : 0;
+  const pieces = [...(skill ? [{ em: skill, tall: 0 }] : []), ...piecesOf(c.name).map((p) => ({ ...p, em: p.em * heavy }))];
+  const { w, heights } = linesOf(pieces, MAXW - PAD_X);
+  return { w: Math.ceil(Math.max(MINW, w + PAD_X)), h: Math.ceil(PAD_Y + Math.max(NODE_LINE, heights.reduce((a, b) => a + b, 0)) + (c.ext ? SEC_LINE : 0)) };
 };
 
 /* The concepts of a scope as the layout wants them: each on the ring its
    prerequisite depth puts it on, taking up the radius of its own box. */
 export const layoutNodes = (list: readonly DagNode[]): LayoutNode[] => {
   const depth = depthsOf(list);
-  return list.map((c) => { const b = boxOf(c); return { id: c.id, depth: depth.get(c.id) ?? 0, r: Math.hypot(b.w, b.h) / 2 }; });
+  return list.map((c) => { const b = boxOf(c); return { id: c.id, depth: depth.get(c.id) ?? 0, r: Math.hypot(b.w, b.h) / 2, w: b.w, h: b.h }; });
 };
 
 /* A node set's name: its ids, sorted, hashed to a short string. Two scopes that

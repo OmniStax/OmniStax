@@ -39,7 +39,7 @@
     cc: 'Give each physical type its own color in text, formulas and figures.',
     underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
     tips: 'Show a tip each day in the bottom-right corner.',
-    cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere.',
+    cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
     anim: 'Turn off to pause every interactive figure.',
     voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
     decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',

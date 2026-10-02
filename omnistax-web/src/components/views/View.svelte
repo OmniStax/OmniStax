@@ -10,6 +10,7 @@
   import { bookId, sectionRef, viewKindOf } from '../../lib/types/ids';
   import { ICON } from '../../lib/icons';
   import { explorer } from '../../lib/explorer/store.svelte';
+  import { mapViews, viewKeyOf } from '../../lib/sections/mapview';
   import CrumbMenu from './CrumbMenu.svelte';
   import ConceptMap from './ConceptMap.svelte';
   import Exercises from './Exercises.svelte';
@@ -50,14 +51,16 @@
   let chevrons = $state<Partial<Record<Level, HTMLButtonElement | null>>>({});
   const openMenu = (level: Level, chevron: HTMLButtonElement): void => { if (menu === level) { menu = null; return; } menuLeft = chevron.offsetLeft; menu = level; };
   const closeMenu = (): void => { const chevron = menu ? chevrons[menu] : null; menu = null; chevron?.focus(); };
-  const choose = (place: Target): void => { scope.choose(item, place); closeMenu(); };
+  /* A place chosen from a menu is a move elsewhere, not a step along the trail: the map lets go of where it stood. */
+  const leave = (): void => { if (target) mapViews.forget(viewKeyOf(item, target)); };
+  const choose = (place: Target): void => { leave(); scope.choose(item, place); closeMenu(); };
   /* The places the open menu offers: the crumb's own place is the one the view stands on,
      and the place the open page lies in is named, since choosing it is following again. */
   const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
   const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book, page: b.id === focus.section?.book })));
   const chooseBook = (id: string): void => {
     closeMenu(); const book = bookId(id);
-    void registry.ensureBook(book).then((m) => { if (m) scope.choose(item, { level: 'book', book }); });
+    void registry.ensureBook(book).then((m) => { if (m) { leave(); scope.choose(item, { level: 'book', book }); } });
   };
   const entries = $derived.by(() => {
     const level = menu;
@@ -118,7 +121,7 @@
   {:else if kind === 'explorer'}<Explorer />
   {:else if kind === 'search'}<Search />
   {:else if kind === 'exercises'}<Exercises {item} />
-  {:else if kind === 'concepts'}<ConceptMap />
+  {:else if kind === 'concepts'}<ConceptMap {item} />
   {:else if kind === 'formulas'}<Formulas />
   {:else if kind === 'definitions'}<Definitions />
   {:else if kind === 'colours'}<Colours />

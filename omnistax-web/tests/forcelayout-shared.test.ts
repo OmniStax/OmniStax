@@ -43,16 +43,24 @@ test('the key is the node set, whatever order it comes in', () => {
 
 test('a node takes up the same box on both sides, and another section costs a line', () => {
   const plain = boxOf({ name: 'mass', ext: false });
-  assert.ok(plain.w >= 62 && plain.h > 0);
+  assert.ok(plain.w >= 48 && plain.h > 0);
   assert.equal(boxOf({ name: 'mass', ext: true }).h, plain.h + 12);
   assert.deepEqual(boxOf({ name: 'mass', ext: false }), boxOf({ name: 'mass', ext: false }));
+});
+
+test('a longer name is a wider box until it wraps, and then a taller one', () => {
+  const short = boxOf({ name: 'mass', ext: false }), mid = boxOf({ name: 'linear momentum', ext: false });
+  const long = boxOf({ name: 'The second law of thermodynamics stated in terms of entropy: the total entropy of a system either increases or remains constant', ext: false });
+  assert.ok(mid.w > short.w && mid.h === short.h);
+  assert.ok(long.h > mid.h && long.w >= mid.w);
+  assert.ok(boxOf({ name: 'Kinetic energy, $\\kKE = \\tfrac{1}{2}m\\kv^2$', ext: false }).w > boxOf({ name: 'Kinetic energy', ext: false }).w);
 });
 
 /* The pile Chen met: a rank with several nodes in it must be spread round its
    ring, never stacked on one point — the seed rings are what the reader sees
    while a large scope is still being settled, so they have to read as a map. */
 test('no two nodes begin on the same point, however shallow the rank', () => {
-  const flat: LayoutNode[] = Array.from({ length: 40 }, (_, i) => ({ id: `r${i}`, depth: 0, r: 40 }));
+  const flat: LayoutNode[] = Array.from({ length: 40 }, (_, i) => ({ id: `r${i}`, depth: 0, r: 40, w: 60, h: 30 }));
   const seeds = seedPositions(flat);
   const seen = new Set([...seeds.values()].map((p) => `${Math.round(p.x)},${Math.round(p.y)}`));
   assert.equal(seen.size, flat.length, 'every node has a place of its own');
@@ -65,7 +73,7 @@ test('no two nodes begin on the same point, however shallow the rank', () => {
    holds a great many concepts is given several rings rather than one enormous
    one, so the plane grows with the square root of the concepts on it. */
 test('a deep, crowded book stays a few thousand pixels across', () => {
-  const deep: LayoutNode[] = Array.from({ length: 600 }, (_, i) => ({ id: `n${i}`, depth: i % 50, r: 50 }));
+  const deep: LayoutNode[] = Array.from({ length: 600 }, (_, i) => ({ id: `n${i}`, depth: i % 50, r: 50, w: 80, h: 40 }));
   const rings = ringsOf(deep);
   const out = Math.max(...rings.radius);
   assert.ok(out < 2500, `the outermost ring stands at ${Math.round(out)}`);
@@ -73,7 +81,7 @@ test('a deep, crowded book stays a few thousand pixels across', () => {
   const wide = Math.max(...[...seeds.values()].map((p) => Math.abs(p.x))) * 2;
   assert.ok(wide < 5000, `the map is ${Math.round(wide)} across`);
   /* a hundred times as deep must not be a hundred times as wide */
-  const deeper: LayoutNode[] = Array.from({ length: 600 }, (_, i) => ({ id: `n${i}`, depth: i, r: 50 }));
+  const deeper: LayoutNode[] = Array.from({ length: 600 }, (_, i) => ({ id: `n${i}`, depth: i, r: 50, w: 80, h: 40 }));
   assert.ok(Math.max(...ringsOf(deeper).radius) < out * 2, 'depth alone does not widen the map');
 });
 
