@@ -150,7 +150,7 @@
         <li title={c.text.slice(0, 400)} class:pic={!!c.image}>
           {#if c.image && thumbs[c.image]}<img class="thumb" src={thumbs[c.image]} alt="" />{/if}
           <span class="chip-label">{c.label}</span>
-          <button type="button" aria-label="Remove {c.label}" title="Remove {c.label}" onclick={() => onchips(withoutChip(chips, c))}>×</button>
+          <button type="button" aria-label="Remove {c.label}" onclick={() => onchips(withoutChip(chips, c))}>×</button>
         </li>
       {/each}
     </ul>
@@ -169,7 +169,7 @@
       {#if streaming}
         <button type="button" class="btn sm" onclick={onstop}>Stop</button>
       {:else}
-        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked} title={blocked} onclick={send}>Send <kbd>↵</kbd></button>
+        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked} title={blocked ?? ''} onclick={send}>Send <kbd>↵</kbd></button>
       {/if}
     </div>
   </div>

@@ -121,12 +121,12 @@
 {#if open}
   <div class="hl-bar" role="toolbar" aria-label="Highlight" style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
     {#if markable}
-      {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} title="Highlight in {c}" aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
+      {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
       <span class="sep"></span>
     {/if}
-    <button type="button" class="act ask" title="Ask AI about this" aria-label="Ask AI about this" onclick={askAI}>Ask AI</button>
-    {#if markable}<button type="button" class="act" title={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} aria-label={noted ? 'Edit the note on this highlight' : 'Write a note on this highlight'} onclick={annotate}>{@html ICON.highlighter}</button>{/if}
-    {#if mode === 'edit'}<button type="button" class="act" title="Remove this highlight" aria-label="Remove this highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
+    <button type="button" class="act ask" onclick={askAI}>Ask AI</button>
+    {#if markable}<button type="button" class="act" aria-label={noted ? 'Edit note' : 'Add note'} onclick={annotate}>{@html ICON.highlighter}</button>{/if}
+    {#if mode === 'edit'}<button type="button" class="act" aria-label="Remove highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
   </div>
 {/if}
 

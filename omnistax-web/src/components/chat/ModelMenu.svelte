@@ -32,7 +32,7 @@
 </script>
 
 <div class="menu" bind:this={host} role="presentation" {onkeydown}>
-  <button type="button" class="current" aria-haspopup="menu" aria-expanded={open} title="Model" onclick={() => (open = !open)}>
+  <button type="button" class="current" aria-haspopup="menu" aria-expanded={open} onclick={() => (open = !open)}>
     {pick ? modelName(pick) : 'Choose a model'} <span class="caret" aria-hidden="true">▾</span>
   </button>
   {#if open}

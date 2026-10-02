@@ -39,7 +39,7 @@ export const addEmbedGrips = (host: HTMLElement, write: SizeWrite): void => {
   for (const card of host.querySelectorAll<HTMLElement>(CARDS)) {
     if (card.querySelector(':scope > .embed-grip')) continue;
     const grip = document.createElement('span');
-    grip.className = 'embed-grip'; grip.title = 'Drag to resize';
+    grip.className = 'embed-grip';
     grip.addEventListener('pointerdown', (e) => startSize(e, grip, card, (w) => { const p = placeOf(host, card); write(p.inner, p.n, w); }));
     grip.addEventListener('click', (e) => e.stopPropagation());
     card.appendChild(grip);

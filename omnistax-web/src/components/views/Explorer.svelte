@@ -493,7 +493,7 @@
               : r.kind === 'drawing' && r.entry ? itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id))) : null}>
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
-              title={r.open ? 'Collapse' : 'Expand'} aria-label={r.open ? 'Collapse' : 'Expand'}
+              aria-label={r.open ? 'Collapse' : 'Expand'}
               onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; explorer.toggle(r.key); }}>▾</button>
           {:else}
             <span class="twist gap"></span>
@@ -513,11 +513,11 @@
           {#if r.root === 'notes'}
             <button type="button" class="tool" id="import-files" tabindex="-1" title="Import {ACCEPTED}" aria-label="Import"
               onclick={(e) => { e.stopPropagation(); importMenu = { x: e.clientX, y: e.clientY }; }}>{@html ICON.importFile}</button>
-            <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" title="New note" aria-label="New note"
+            <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" aria-label="New note"
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
-            <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" title="New drawing" aria-label="New drawing"
+            <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" aria-label="New drawing"
               onclick={(e) => { e.stopPropagation(); newDrawing(parentForNew()); }}>{@html ICON.drawingPlus}</button>
-            <button type="button" class="tool" tabindex="-1" title="New folder" aria-label="New folder"
+            <button type="button" class="tool" tabindex="-1" aria-label="New folder"
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
           {/if}
           {#if r.entry}

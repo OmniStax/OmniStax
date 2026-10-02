@@ -45,7 +45,7 @@
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label="Drawing name" />
     {:else}
-      <button type="button" class="name" title="Rename this drawing" onclick={startRename}>{drawing?.name ?? row?.name ?? 'Drawing'}</button>
+      <button type="button" class="name" title="Rename" onclick={startRename}>{drawing?.name ?? row?.name ?? 'Drawing'}</button>
     {/if}
   </header>
   {#if drawing}

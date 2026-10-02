@@ -91,7 +91,7 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
         aria-pressed={tool === t.id} aria-label={t.label} onclick={() => ontool(t.id)}>{@html t.glyph}</button>
     {/each}
     {#if onimage}
-      <button type="button" class="tool" title="Place an image" aria-label="Place an image" onclick={pickImage}>{@html ICON.plus}</button>
+      <button type="button" class="tool" aria-label="Place an image" onclick={pickImage}>{@html ICON.plus}</button>
       <input class="hidden-file" type="file" accept="image/*" bind:this={fileInput} onchange={took} tabindex="-1" aria-hidden="true" />
     {/if}
   </div>
@@ -107,14 +107,14 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
   <div class="group swatches">
     {#each INK as c (c.token)}
-      <button type="button" class="swatch" class:on={color === c.token} title={c.name} aria-label={c.name} data-token={c.token}
+      <button type="button" class="swatch" class:on={color === c.token} aria-label={c.name} data-token={c.token}
         style:background={cssOf(c.token)} onclick={() => oncolor(c.token)}></button>
     {/each}
     {#if quantities.length}
       <span class="rule"></span>
       <span class="book-row" data-book={book}>
         {#each quantities as q (q.id)}
-          <button type="button" class="swatch" class:on={color === q.token} title={q.label} aria-label={q.label} data-token={q.token}
+          <button type="button" class="swatch" class:on={color === q.token} aria-label={q.label} data-token={q.token}
             style:background="var(--{q.token}, var(--muted))" onclick={() => oncolor(q.token)}></button>
         {/each}
       </span>
@@ -127,22 +127,22 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
   <div class="group sizes">
     {#each SIZES as s (s)}
-      <button type="button" class="size" class:on={size === s} title="{s} across" aria-label="Size {s}" onclick={() => onsize(s)}>
+      <button type="button" class="size" class:on={size === s} aria-label="Size {s}" onclick={() => onsize(s)}>
         <span class="dot" style:width="{Math.min(14, 3 + s)}px" style:height="{Math.min(14, 3 + s)}px"></span>
       </button>
     {/each}
   </div>
 
   <div class="group view">
-    <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="Frame everything on the canvas (0)">Fit</button>
-    <button type="button" class="chip" onclick={onreset} title="Back to the origin at full size (Shift+0)">Reset view</button>
+    <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="0">Fit</button>
+    <button type="button" class="chip" onclick={onreset} title="Shift+0">Reset view</button>
   </div>
 
   <div class="group right">
-    <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Undo (Ctrl+Z)">Undo</button>
-    <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Ctrl+Z">Undo</button>
+    <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Ctrl+Shift+Z">Redo</button>
     {#if scratch && onsave}
-      <button type="button" class="chip save" disabled={busy} onclick={onsave} title="Save to Your Files as a drawing">Save as drawing</button>
+      <button type="button" class="chip save" disabled={busy} onclick={onsave}>Save as drawing</button>
     {/if}
   </div>
 </div>

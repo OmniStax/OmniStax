@@ -123,8 +123,8 @@
     return { concepts: ids.size, exercises: poolOf(picks, cat).length };
   };
   const countTitle = (s: Sum): string =>
-    s.concepts === 0 ? 'No concepts here yet.'
-      : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`} and ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}.`;
+    s.concepts === 0 ? 'No concepts yet'
+      : `${s.concepts === 1 ? 'One concept' : `${s.concepts} concepts`} and ${s.exercises === 1 ? 'one problem' : `${s.exercises} problems`}`;
 
   /* Books and chapters start folded. Expanding a row does not change its
      selection, and folding it keeps the selected items visible in the footer. */
@@ -224,9 +224,9 @@
     return fresh.due ? `Mastered · ${days === 0 ? 'due now' : `overdue by ${days} ${days === 1 ? 'day' : 'days'}`}` : `Mastered · fresh for ${days} more ${days === 1 ? 'day' : 'days'}`;
   };
   const boxTitle = (id: string, s: State): string =>
-    s === 'untouched' ? 'No exercises completed on this concept yet.'
+    s === 'untouched' ? 'Not practiced yet'
       : s === 'mastered' ? freshnessTitle(id)
-        : `${practice.mastery[id]?.level ?? 0}/${practice.mastery[id]?.target ?? practice.settings.masteryTarget} correct steps toward mastery.`;
+        : `${practice.mastery[id]?.level ?? 0}/${practice.mastery[id]?.target ?? practice.settings.masteryTarget} toward mastery`;
 
   /* ---------- progress after the session ---------- */
 
@@ -271,7 +271,7 @@
   };
   const cardTitle = (id: SessionId): string => {
     const required = practice.releaseFor(id);
-    return required ? `Reopen textbook release ${required.release.slice(0, 10)} to continue` : 'Continue this session';
+    return required ? `Needs textbook release ${required.release.slice(0, 10)}` : '';
   };
   const whereWord = (key: ItemKey | null): string => (key === item ? 'this view' : key !== null ? 'another view' : 'not open in any tab');
 
@@ -398,7 +398,7 @@
 {/snippet}
 {#snippet standingMeter(standing: Standing)}
   {@const total = standing.untouched + standing.practised + standing.mastered}
-  <span class="standing-meter" role="img" aria-label={standingLine(standing)} title={standingLine(standing)}>
+  <span class="standing-meter" role="img" aria-label={standingLine(standing)}>
     {#if total > 0}
       <i class="meter-mastered" style:width={`${standing.mastered / total * 100}%`}></i>
       <i class="meter-practised" style:width={`${standing.practised / total * 100}%`}></i>
@@ -433,7 +433,7 @@
                 <span class="k">Exercise {Math.min(r.session.at + 1, r.session.drawn.length)} of {r.session.drawn.length} · {r.session.outcomes.filter((v) => v !== null).length} completed</span>
                 <span class="k where">{whereWord(r.key)}</span>
               </button>
-              <button type="button" class="discard" aria-label="Discard this session" title="Discard" onclick={() => practice.discard(r.session.id)}>×</button>
+              <button type="button" class="discard" aria-label="Discard" onclick={() => practice.discard(r.session.id)}>×</button>
               {#if peek === r.session.id}
                 {@const list = peekRows(r.session.curriculum)}
                 <div class="pop">
@@ -538,7 +538,7 @@
                                                   {#each Array.from({ length: Math.max(0, practice.settings.masteryTarget - 1) }, (_, i) => i + 1) as level (level)}<option value={level}>{level}/{practice.settings.masteryTarget}</option>{/each}
                                                   <option value="mastered">Mastered</option>
                                                 </select>
-                                                <label class="no-decay" title="Available only for overridden mastery"><input type="checkbox" disabled={!own?.mastered} checked={own?.mastered && own.noDecay} onchange={(e) => practice.setSelf(c.id, practice.settings.masteryTarget, true, e.currentTarget.checked)}> No decay</label>
+                                                <label class="no-decay" title="Only for overridden mastery"><input type="checkbox" disabled={!own?.mastered} checked={own?.mastered && own.noDecay} onchange={(e) => practice.setSelf(c.id, practice.settings.masteryTarget, true, e.currentTarget.checked)}> No decay</label>
                                                 {#if own?.mastered && practice.available(c.id) === 0 && fresh.due}
                                                   <span class="manual"><button type="button" class="btn" onclick={() => practice.manualReview(c.id, true)}>Still mastered</button><button type="button" class="btn" onclick={() => practice.manualReview(c.id, false)}>Needs review</button></span>
                                                 {:else if record?.mastered}<span class="self-fresh">{freshnessTitle(c.id)}</span>{/if}
@@ -586,7 +586,7 @@
         </div>
         {#if bookShown}
           {#if !books.manifest(b)}
-            <div class="row lvl-chapter off" title="Chapters appear once the book loads">
+            <div class="row lvl-chapter off">
               <span class="lab">{statusOf(b) === 'failed' ? 'This book could not be loaded.' : 'Loading the book…'}</span>
             </div>
           {/if}
@@ -602,7 +602,7 @@
               {#each c.sections as s (s.id)}
                 {#if s.built}
                   {@const sectionSum = sumOf([secPick(b, s)])}
-                  <label class="row lvl-section" class:off={sectionSum.exercises === 0} title={sectionSum.exercises === 0 ? 'This section has no exercises.' : countTitle(sectionSum)}>
+                  <label class="row lvl-section" class:off={sectionSum.exercises === 0} title={sectionSum.exercises === 0 ? 'No exercises' : countTitle(sectionSum)}>
                     <span class="twist" aria-hidden="true"></span>
                     <input type="checkbox" disabled={sectionSum.exercises === 0} checked={secOn(b, c, s)} onchange={() => practice.toggle(item, secPick(b, s))}>
                     <span class="lab">{s.id} · {s.title}</span>
@@ -631,7 +631,7 @@
       {@const brought = !own && curriculumConcepts.has(f.c.id)}
       <label class="row concept">
         <input type="checkbox" checked={own} use:tri={brought} onchange={() => practice.toggle(item, conceptPick(f.c.id))}
-          title={brought ? 'Included by a chosen section' : 'Practice this concept alone'}>
+          title={brought ? 'Included by a chosen section' : ''}>
         <i class="dot k-{f.c.kind}" aria-hidden="true"></i>
         <span class="lab"><span use:mathHtml={f.c.name}></span></span>
         {@render masteryBox(f.c.id)}
@@ -650,7 +650,7 @@
             {#each page.curriculum as p, i (i)}
               <li class="pick">
                 <span class="lab"><span use:mathHtml={pickLabel(p)}></span></span>
-                <button type="button" class="x" aria-label={`Remove ${plain(pickLabel(p))} from selected items`} title="Remove from selected items" onclick={() => practice.toggle(item, p)}>×</button>
+                <button type="button" class="x" aria-label="Remove" onclick={() => practice.toggle(item, p)}>×</button>
               </li>
             {/each}
           </ul>
@@ -729,7 +729,7 @@
       <div class="acts session-actions">
         {#if !page.showAll}<button type="button" class="btn" onclick={() => practice.setShowAll(item, true)}>Show all exercises</button>{/if}
         <button type="button" class="btn" onclick={() => practice.pause(item)}>Return to Dashboard</button>
-        <button type="button" class="btn" class:go={allDone} title="End the session and see your results" onclick={() => (ending = true)}>End</button>
+        <button type="button" class="btn" class:go={allDone} onclick={() => (ending = true)}>End</button>
       </div>
     {/if}
   </div>

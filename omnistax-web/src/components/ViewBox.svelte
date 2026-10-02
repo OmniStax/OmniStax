@@ -12,7 +12,7 @@
 <div class="vbox" data-item={itemKey}>
   <header use:draggable={{ key: itemKey, from: null }}>
     <span class="eyebrow">{VIEW_TITLE[kind]}</span>
-    <button type="button" class="x" title="Close" onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
+    <button type="button" class="x" aria-label="Close" onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
   </header>
   <div class="body"><View item={itemKey} /></div>
 </div>

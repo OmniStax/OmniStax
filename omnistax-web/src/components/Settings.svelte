@@ -153,11 +153,11 @@
   /* The chords this window never sees, because the browser keeps them. */
   const browserName = $derived(BROWSER_NAMES[host.browser]);
   const held = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(host.info, ch))).length);
-  const keptTitle = $derived(`${browserName} reserves this shortcut in a browser tab`);
+  const keptTitle = $derived(`Reserved by ${browserName}`);
 </script>
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
-  {#if on}<button type="button" class="back" {title} aria-label={title} onclick={(e) => { e.preventDefault(); fn(); }}>↺</button>{/if}
+  {#if on}<button type="button" class="back" aria-label={title} onclick={(e) => { e.preventDefault(); fn(); }}>↺</button>{/if}
 {/snippet}
 
 {#snippet numRow(n: NumRow)}
@@ -179,7 +179,7 @@
       <header>
         <div class="eyebrow">Settings</div>
         <input class="find" type="search" placeholder="Search settings" aria-label="Search settings" bind:value={q} use:focus>
-        <button type="button" class="x" title="Close" aria-label="Close settings" onclick={() => (ui.settings = false)}>×</button>
+        <button type="button" class="x" aria-label="Close" onclick={() => (ui.settings = false)}>×</button>
       </header>
 
       <section hidden={!APPEARANCE.some(hit)}>
@@ -309,7 +309,7 @@
           {:else}
             <input class="find" type="search" placeholder="Search shortcuts" aria-label="Search shortcuts" bind:value={kq}>
           {/if}
-          <button type="button" class="btn-sm" class:on={byKeys} aria-pressed={byKeys} title="Search by pressing keys" onclick={toggleByKeys}>Record keys</button>
+          <button type="button" class="btn-sm" class:on={byKeys} aria-pressed={byKeys} onclick={toggleByKeys}>Record keys</button>
           <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Reset all</button>
         </div>
         {#if held}

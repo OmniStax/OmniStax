@@ -53,11 +53,11 @@
 {#snippet card(n: Note)}
   <div class="note" data-id={n.id} use:dragout={{ kind: 'highlight', id: n.id }}>
     <div class="head">
-      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} title="Color {c}" aria-label="Color {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
+      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} aria-label="Color {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
       <span class="when">{when(n.updated)}</span>
-      <button type="button" class="x" data-nodrag title="Remove this highlight" aria-label="Remove this highlight" onclick={() => notes.remove(n.id)}>×</button>
+      <button type="button" class="x" data-nodrag aria-label="Remove highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
-    <button type="button" class="quote hl-{n.color}" title="Show it in the text" onclick={() => goNote(n)}>{n.anchor.quote}</button>
+    <button type="button" class="quote hl-{n.color}" onclick={() => goNote(n)}>{n.anchor.quote}</button>
     {#if notes.unresolved.has(n.id)}<div class="lost" role="status">The text changed and this highlight no longer matches. Your note is kept.</div>{/if}
     <!-- A burst of typing is one step of the shell's timeline; leaving the box
          ends the burst, so the next one begins a step of its own. -->
@@ -74,20 +74,20 @@
   <div class="note" data-id={m.id} use:dragout={{ kind: 'highlight', id: m.id }}>
     <div class="head">
       {#if m.kind === 'highlight'}
-        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} title="Color {c}" aria-label="Color {c}" onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
+        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} aria-label="Color {c}" onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
       {:else}
         <span class="kind">Text box</span>
       {/if}
       <span class="when">page {m.page} · {when(m.updated)}</span>
-      <button type="button" class="x" data-nodrag title="Remove this mark" aria-label="Remove this mark" onclick={() => fileMarks.remove(m.id)}>×</button>
+      <button type="button" class="x" data-nodrag aria-label="Remove mark" onclick={() => fileMarks.remove(m.id)}>×</button>
     </div>
     {#if m.kind === 'highlight'}
-      <button type="button" class="quote hl-{m.color}" title="Show it in the file" onclick={() => goMark(m.id)}>{m.anchor.quote}</button>
+      <button type="button" class="quote hl-{m.color}" onclick={() => goMark(m.id)}>{m.anchor.quote}</button>
       <textarea data-note={m.id} rows="2" placeholder="Add a note…" value={m.text}
         oninput={(e) => fileMarks.setText(m.id, (e.currentTarget as HTMLTextAreaElement).value)}
         onblur={() => history.breakCoalescing()}></textarea>
     {:else}
-      <button type="button" class="boxed" title="Show it in the file" onclick={() => goMark(m.id)}>{plainWords(m.body) || 'An empty box'}</button>
+      <button type="button" class="boxed" onclick={() => goMark(m.id)}>{plainWords(m.body) || 'An empty box'}</button>
     {/if}
   </div>
 {/snippet}

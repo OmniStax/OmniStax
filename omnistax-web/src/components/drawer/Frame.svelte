@@ -183,11 +183,11 @@
 
   {#if target && onopen}
     {@const key = target}
-    <button type="button" class="open" title="Open this where it lives" aria-label="Open"
+    <button type="button" class="open" aria-label="Open"
       onclick={(e) => { e.stopPropagation(); onopen(key); }}>↗</button>
   {/if}
-  <span class="grab" title="Drag to move" onpointerdown={onGrab}></span>
-  <span class="corner" title="Drag to resize" onpointerdown={onCorner}></span>
+  <span class="grab" onpointerdown={onGrab}></span>
+  <span class="corner" onpointerdown={onCorner}></span>
 </div>
 
 <style>

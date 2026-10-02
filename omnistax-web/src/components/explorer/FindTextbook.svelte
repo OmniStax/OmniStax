@@ -41,7 +41,7 @@
     <header>
       <span class="ico">{@html ICON.search}</span>
       <span class="title">Find a textbook</span>
-      <button type="button" class="x" title="Close" aria-label="Close" onclick={() => ui.closeFindTextbook()}>×</button>
+      <button type="button" class="x" aria-label="Close" onclick={() => ui.closeFindTextbook()}>×</button>
     </header>
     <div class="list">
       <div class="updates"><button type="button" class="add" disabled={offlineBooks.checking} onclick={() => void offlineBooks.check()}>{offlineBooks.checking ? 'Checking…' : 'Check for updates'}</button><span>Last successful check: {when(lastCheck || undefined)}</span>{#if offlineBooks.message}<span class="bad">{offlineBooks.message}</span>{/if}</div>
@@ -78,9 +78,9 @@
             </span>
             {#if offlineBooks.changes[b.id]}<span class="change-note">{offlineBooks.changes[b.id].notes ?? countChanges(b.id)}</span>{/if}
             {#if library.has(b.id)}
-              <button type="button" class="add" disabled title="Already under User">Added</button>
+              <button type="button" class="add" disabled>Added</button>
             {:else}
-              <button type="button" class="add" title="Add {b.title} to your tree" onclick={() => add(b)}>Add</button>
+              <button type="button" class="add" onclick={() => add(b)}>Add</button>
             {/if}
           </div>
         {:else}

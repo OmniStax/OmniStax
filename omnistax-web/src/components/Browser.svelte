@@ -100,7 +100,7 @@
 {#if ui.browser.open}
   <div class="browser" role="dialog" aria-label={mode === 'pick' ? 'Pin the view to a place in the book' : 'Open a file'} onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
     <div class="crumbs">
-      <button type="button" class="back" title="Back" disabled={!path.length} onclick={() => goUp()}>‹</button>
+      <button type="button" class="back" aria-label="Back" disabled={!path.length} onclick={() => goUp()}>‹</button>
       {#if trail.length}<button type="button" class="crumb" onclick={() => goUp(0)}>{mode === 'pick' ? manifest.title : 'Open'}</button>{:else}<span class="here">{mode === 'pick' ? manifest.title : 'Open'}</span>{/if}
       {#each trail as n, i (n.key)}
         <span class="sep">›</span>

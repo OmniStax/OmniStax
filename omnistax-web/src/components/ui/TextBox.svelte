@@ -127,15 +127,15 @@
   {#if !writing}
     {#each ['top', 'right', 'bottom', 'left'] as side (side)}<span class="edge {side}" use:grip={'move'} aria-hidden="true"></span>{/each}
   {/if}
-  <span class="grip" use:grip={'move'} title="Drag to move" aria-hidden="true">⠿</span>
+  <span class="grip" use:grip={'move'} aria-hidden="true">⠿</span>
   {#if selected && onremove && !writing}
-    <button type="button" class="remove" title="Remove this box" aria-label="Remove this box"
+    <button type="button" class="remove" aria-label="Remove box"
       onpointerdown={(e) => e.stopPropagation()} onclick={(e) => { e.stopPropagation(); onremove(); }}>×</button>
   {/if}
   {#if selected}
-    <span class="size e" use:grip={'e'} title="Drag to resize" aria-hidden="true"></span>
-    <span class="size s" use:grip={'s'} title="Drag to resize" aria-hidden="true"></span>
-    <span class="size se" use:grip={'se'} title="Drag to resize" aria-hidden="true"></span>
+    <span class="size e" use:grip={'e'} aria-hidden="true"></span>
+    <span class="size s" use:grip={'s'} aria-hidden="true"></span>
+    <span class="size se" use:grip={'se'} aria-hidden="true"></span>
   {/if}
 </div>
 

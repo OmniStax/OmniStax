@@ -216,10 +216,10 @@
   <div class="bar" role="toolbar" aria-label="Reading this PDF">
     <span class="where">{sheets.length ? `Page ${at} of ${sheets.length}` : 'Opening…'}</span>
     <span class="gap"></span>
-    <button type="button" class:on={placing} title="Place a text box on the page" onclick={() => (placing = !placing)}>Text box</button>
-    <button type="button" title="Smaller" aria-label="Smaller" onclick={() => zoom(1 / 1.2)}>−</button>
-    <button type="button" title="Fit the width of the pane" onclick={refit}>{Math.round(scale * 100)}%</button>
-    <button type="button" title="Larger" aria-label="Larger" onclick={() => zoom(1.2)}>+</button>
+    <button type="button" class:on={placing} onclick={() => (placing = !placing)}>Text box</button>
+    <button type="button" aria-label="Smaller" onclick={() => zoom(1 / 1.2)}>−</button>
+    <button type="button" title="Fit width" onclick={refit}>{Math.round(scale * 100)}%</button>
+    <button type="button" aria-label="Larger" onclick={() => zoom(1.2)}>+</button>
   </div>
   {#if failed}
     <div class="gone">{failed}</div>

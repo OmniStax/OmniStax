@@ -6,9 +6,10 @@
      below and to the right of the pointer, so that it never lies across the
      element's neighbours; it turns to the left or upward only where the window
      ends. A tooltip raised by keyboard focus, with no pointer to follow, sits
-     under the element's left edge. An
-     element with no title of its own is named by its aria-label, so a button
-     labelled for a screen reader is labelled for everyone. Nothing in a
+     under the element's left edge. A
+     control with no title and no words of its own (an icon, a glyph) is named
+     by its aria-label; one whose words are on screen is not named twice, and a
+     region's aria-label is for assistive technology alone. Nothing in a
      document or in the note editor is touched: their titles are the author's. */
   import { onMount } from 'svelte';
 
@@ -24,20 +25,25 @@
      has been waiting cannot undo a tooltip raised after it. */
   let turn = 0;
 
-  /* The words an element is named by, moved out of the way of the browser's own tooltip. */
+  const CONTROL = 'button, a[href], summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="radio"], [role="checkbox"], [role="switch"], [role="img"]';
+  const NAMED = '[title], [data-tip], [aria-label]';
+  const labelOf = (el: HTMLElement): string | null =>
+    el.matches(CONTROL) && !/\p{L}{2}/u.test(el.textContent ?? '') ? el.getAttribute('aria-label') : null;
+  const named = (el: HTMLElement): boolean => !!(el.getAttribute('title')?.trim() || el.dataset.tip || labelOf(el));
+  /* The words an element is named by, moved out of the way of the browser's own tooltip.
+     A title that goes away is set empty rather than removed, so the words go too. */
   const wordsOf = (el: HTMLElement): string | null => {
     const title = el.getAttribute('title');
-    if (title !== null) { if (title.trim()) el.dataset.tip = title.trim(); el.removeAttribute('title'); }
-    return el.dataset.tip ?? el.getAttribute('aria-label') ?? null;
+    if (title !== null) { if (title.trim()) el.dataset.tip = title.trim(); else delete el.dataset.tip; el.removeAttribute('title'); }
+    return el.dataset.tip ?? labelOf(el);
   };
-  /* What the pointer is on: the nearest named thing inside the shell, but never
-     the shell itself. Its aria-label names the application for assistive
-     technology; it is not a fallback tooltip for every otherwise unnamed spot.
-     Nothing inside a document, a figure or the note editor is touched, since
-     those titles belong to what is written there. */
+  /* What the pointer is on: the nearest thing inside the shell that has words
+     to show. Nothing inside a document, a figure or the note editor is
+     touched, since those titles belong to what is written there. */
   const namedAt = (target: EventTarget | null): HTMLElement | null => {
-    const el = target instanceof Element ? target.closest<HTMLElement>('[title], [data-tip], [aria-label]') : null;
-    return el && !el.classList.contains('shell') && !el.closest('.cm-content, article, .fig-root, .hover-card') ? el : null;
+    let el = target instanceof Element ? target.closest<HTMLElement>(NAMED) : null;
+    while (el && !named(el)) el = el.parentElement?.closest<HTMLElement>(NAMED) ?? null;
+    return el && !el.closest('.cm-content, article, .fig-root, .hover-card') ? el : null;
   };
   /* Some of what puts a tooltip away happens while the shell is taking a piece
      of the page apart — the focusout of a name box that has just closed reaches

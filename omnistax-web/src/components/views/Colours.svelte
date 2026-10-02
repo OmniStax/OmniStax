@@ -225,14 +225,14 @@
   {/if}
 
   <div class="bar">
-    <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? `Undo ${colours.undoLabel}` : 'Nothing to undo'} onclick={() => colours.undo()}>Undo</button>
-    <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? `Redo ${colours.redoLabel}` : 'Nothing to redo'} onclick={() => colours.redo()}>Redo</button>
-    <button type="button" disabled={!setHere} title="Clear every color set here" onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
+    <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>Undo</button>
+    <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>Redo</button>
+    <button type="button" disabled={!setHere} onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
     {#if place.level === 'book'}
-      <button type="button" disabled={nothingSet} title="Restore the default colors and order" onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
+      <button type="button" disabled={nothingSet} onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
     {/if}
-    <button type="button" title="Save these colors to a file" onclick={exportFile}>Export…</button>
-    <button type="button" title="Load colors from a file" onclick={() => picker?.click()}>Load…</button>
+    <button type="button" onclick={exportFile}>Export…</button>
+    <button type="button" onclick={() => picker?.click()}>Load…</button>
     <input type="file" accept="application/json,.json" bind:this={picker} onchange={onFile} hidden />
     <span class="theme">{themeNote}</span>
   </div>
@@ -265,23 +265,23 @@
           ondragleave={() => { if (over?.type === k) over = null; }}
           ondrop={(e) => onDrop(e, k)}>
           <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
-            title="Drag or use the arrow keys to reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
+            title="Reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
           <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
-            title={hex ? `Choose another colour for ${name}` : `Choose a colour for ${name}`}
+            aria-label={`Color of ${name}`}
             onclick={() => openPicker(k)}></button>
           {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'Light theme color' : 'Dark theme color'}></i>{/if}
           <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
           <SymbolList macros={symbolsOf(manifest, k)} label={name} />
           <span class="from" class:own={own !== null}>{source(eff.from)}</span>
           {#if own}
-            <button type="button" class="clear" title="Use the inherited color" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
+            <button type="button" class="clear" title="Use inherited" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
           {/if}
         </div>
         {#if open === k}
           <div class="picker">
             <div class="grid">
               {#each SWATCHES as s (s.hex)}
-                <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} title={s.name} aria-label={s.name}
+                <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={s.name}
                   onclick={() => { colours.breakCoalescing(); colours.pick(place, k, s.hex); draft = s.hex; }}></button>
               {/each}
             </div>
@@ -306,7 +306,7 @@
     {#each shownPalettes as { palette: p, hues } (p.id)}
       <li>
         <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" title={`Apply ${p.name}`} onclick={() => use(p)}>Use</button>
+          <button type="button" onclick={() => use(p)}>Use</button>
         </div>
         <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={h}></i>{/each}</div>
         <p class="note">{p.note}</p>

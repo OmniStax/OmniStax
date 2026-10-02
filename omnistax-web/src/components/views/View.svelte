@@ -90,7 +90,7 @@
       {#if nowhere}
         <span class="crumb">Book</span>
         <button type="button" class="chev" bind:this={chevrons.book} aria-haspopup="listbox" aria-expanded={menu === 'book'}
-          aria-label="Choose a book" title="Choose a book" onclick={(e) => openMenu('book', e.currentTarget)}>▾</button>
+          aria-label="Choose a book" onclick={(e) => openMenu('book', e.currentTarget)}>▾</button>
       {/if}
       {#each crumbs as c, i (c.level)}
         {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
@@ -99,13 +99,13 @@
         </button>
         {#if c.level !== 'book' || books.length > 1}
           <button type="button" class="chev" bind:this={chevrons[c.level]} aria-haspopup="listbox" aria-expanded={menu === c.level}
-            aria-label={`Choose another ${c.level}`} title={`Choose another ${c.level}`}
+            aria-label={`Choose another ${c.level}`}
             onclick={(e) => openMenu(c.level, e.currentTarget)}>▾</button>
         {/if}
       {/each}
     </nav>
     {#if target && (target.level !== 'book' || pinned)}
-      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin: follow the open page again' : `Pin this view to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
+      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin' : `Pin to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
     {/if}
     {#if menu}
       <div class="menuhold" style="margin-left:min({menuLeft}px, max(0px, 100% - 220px))">

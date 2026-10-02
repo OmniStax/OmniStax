@@ -126,7 +126,7 @@ with sync_playwright() as playwright:
             document.dispatchEvent(new Event('selectionchange'));
           }"""
     )
-    page.get_by_role("button", name="Ask AI about this").click()
+    page.get_by_role("button", name="Ask AI").click()
     quoted = page.locator(".chat-tab .composer textarea").first
     quoted.wait_for(state="visible")
     page.wait_for_function("() => document.querySelector('.chat-tab .composer textarea').value.startsWith('>')", timeout=10_000)

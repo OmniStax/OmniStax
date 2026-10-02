@@ -139,9 +139,9 @@
       {#if renaming}
         <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label="Note name" />
       {:else}
-        <button type="button" class="name" title="Rename this note" onclick={startRename}>{doc.name}</button>
+        <button type="button" class="name" title="Rename" onclick={startRename}>{doc.name}</button>
       {/if}
-      <button type="button" class="mode-toggle" title="Edit or read this note (Ctrl+E)" onclick={toggle}>{mode === 'view' ? 'Edit' : 'View'}</button>
+      <button type="button" class="mode-toggle" title="Ctrl+E" onclick={toggle}>{mode === 'view' ? 'Edit' : 'View'}</button>
     </header>
     <div class="note-body" class:writing={mode === 'edit'}>
       {#if mode === 'edit' && Editor}

@@ -60,7 +60,7 @@
   <div class="head" onpointerdown={onGrab}>
     <span class="name">{chats.nameOf(cid)}</span>
     <button type="button" class="tree" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
-    <button type="button" class="open" title="Open the chat" aria-label="Open the chat" onclick={() => open()}>↗</button>
+    <button type="button" class="open" aria-label="Open the chat" onclick={() => open()}>↗</button>
   </div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="body" onpointerdown={(e) => { e.stopPropagation(); onselect(); }} onwheel={(e) => e.stopPropagation()} ondblclick={(e) => e.stopPropagation()}>
@@ -72,7 +72,7 @@
       {/if}
     {/if}
   </div>
-  <span class="corner" role="presentation" title="Drag to resize" onpointerdown={onCorner}></span>
+  <span class="corner" role="presentation" onpointerdown={onCorner}></span>
 </div>
 
 <style>

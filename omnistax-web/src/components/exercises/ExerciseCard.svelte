@@ -102,15 +102,14 @@
 </script>
 
 {#snippet scratchpad()}
-  <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}
-    title={scratched ? 'Your scratch work' : 'Work it out on a scratch page'}>
+  <button type="button" class="tool" class:marked={scratched && !linked} onclick={scratch}>
     Scratchpad{@html ICON.drawing}{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
   </button>
   {#if linked && linkedName}
     <span class="chip-link">
-      <button type="button" class="tool link" onclick={openLinked} onauxclick={(e) => { if (e.button === 1) openLinked(e); }} title="Open the saved drawing">{linkedName}</button>
+      <button type="button" class="tool link" onclick={openLinked} onauxclick={(e) => { if (e.button === 1) openLinked(e); }}>{linkedName}</button>
       <button type="button" class="tool detach" onclick={() => detachScratch(book, section, ex.id)}
-        title="Turn the drawing back into scratch work">Detach</button>
+        title="Back to scratch work">Detach</button>
     </span>
   {/if}
 {/snippet}

@@ -21,8 +21,8 @@
   {/each}
   <button type="button" class="act plus" title="Open a section here" aria-label="Open a section in this group" onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>
   <span class="spacer"></span>
-  <button type="button" class="act" title="Split right" aria-label="Split right" onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
-  <button type="button" class="act" title="Split down" aria-label="Split down" onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
+  <button type="button" class="act" aria-label="Split right" onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
+  <button type="button" class="act" aria-label="Split down" onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
 </div>
 
 <style>

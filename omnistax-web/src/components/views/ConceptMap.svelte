@@ -499,7 +499,7 @@
       <span class="ext"><i class="sw"></i>other section</span>
     </div>
     <div class="legend tools">
-      <label class="prog" title="Show mastery on each node"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
+      <label class="prog"><input type="checkbox" checked={showProgress} onchange={(e) => (showProgress = e.currentTarget.checked)}>progress</label>
       <button type="button" class="focus" aria-pressed={focusing} disabled={!focusing && !selected.size} onclick={toggleFocus}>{focusing ? 'Unfocus' : 'Focus'}</button>
     </div>
   </div>

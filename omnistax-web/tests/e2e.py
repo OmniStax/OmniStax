@@ -14,7 +14,7 @@ with sync_playwright() as p:
     js = lambda sel, n=0: pg.evaluate(f'document.querySelectorAll({sel!r})[{n}].click()')
     pg.goto(BASE + '/college-physics-2e/ch02/2.1/'); pg.wait_for_timeout(1200); pg.evaluate('localStorage.clear()'); pg.reload(); pg.wait_for_timeout(1500)
     # 1 split right duplicates
-    js('.tabstrip .act[title="Split right"]'); pg.wait_for_timeout(600)
+    js('.tabstrip .act[aria-label="Split right"]'); pg.wait_for_timeout(600)
     print('1 split:', tabs(pg), canv(pg), 'focus:', pg.eval_on_selector_all('.group','gs=>gs.findIndex(g=>g.classList.contains("focus"))'))
     # 2 answer in copy survives closing the other
     pg.eval_on_selector('.group[data-index="1"] .exercise input', 'i=>{i.value="42"; i.dispatchEvent(new Event("input"))}')

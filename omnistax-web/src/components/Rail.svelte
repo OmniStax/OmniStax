@@ -60,7 +60,7 @@
     {#each SIDEBAR_VIEW_KEYS as k (k)}
       {@const loc = where(l, k)}
       {@const count = kindOf(k) === 'pomodoro' ? pomodoro.railText : ''}
-      <button type="button" class:on={!!loc} class:counting={!!count} class:spot={ui.spot === kindOf(k)} title={count ? `${titleOf(kindOf(k))} — ${count} left` : titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
+      <button type="button" class:on={!!loc} class:counting={!!count} class:spot={ui.spot === kindOf(k)} aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={() => toggleSide(k)}>{@html iconOf(kindOf(k))}{#if count}<span class="count">{count}</span>{/if}</button>
     {/each}
   </div>
@@ -68,16 +68,16 @@
   <div class="section">
     {#each GROUP_VIEW_KEYS as k (k)}
       {@const open = instancesOf(l, kindOf(k)).length > 0}
-      <button type="button" class:on={open} title={titleOf(kindOf(k))} aria-label={titleOf(kindOf(k))}
+      <button type="button" class:on={open} aria-label={titleOf(kindOf(k))}
         use:draggable={{ key: k, from: null }} onclick={(e) => openPage(kindOf(k), e)} onauxclick={(e) => { if (e.button === 1) openPage(kindOf(k), e); }}>{@html iconOf(kindOf(k))}</button>
     {/each}
-    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} title="Conversations" aria-label="Conversations"
+    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} aria-label="Conversations"
       onclick={openChats} onauxclick={(e) => { if (e.button === 1) openChats(e); }}>{@html ICON.chat}</button>
   </div>
   <div class="spacer"></div>
   <div class="section">
     {#if settings.voice && reader.supported}
-      <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} title={voiceTitle} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
+      <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
     {/if}
     <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+Shift+P)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
     <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>

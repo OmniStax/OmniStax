@@ -119,7 +119,7 @@
     wrap.className = 'img-wrap';
     parent.insertBefore(wrap, img); wrap.appendChild(img);
     const bar = document.createElement('span');
-    bar.className = 'img-grip'; bar.title = 'Drag to resize';
+    bar.className = 'img-grip';
     wrap.appendChild(bar);
     bar.addEventListener('pointerdown', (e) => startDrag(e, bar, img));
   };

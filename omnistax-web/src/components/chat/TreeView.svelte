@@ -115,7 +115,7 @@
           {@const attrs = placeAttrs(place)}
           {@const h = html(m, place, attrs)}
           <button type="button" class="node" class:mine={m.role === 'user'} class:on={onPath.has(m.id)} class:selected={selection.has(m.id)}
-            class:open={expanded.has(m.id)} {...attrs} data-node={m.id} data-role={m.role} title={timeOf(m.at)}
+            class:open={expanded.has(m.id)} {...attrs} data-node={m.id} data-role={m.role} title={compact ? timeOf(m.at) : ''}
             style:left="{box.x}px" style:top="{box.y}px" style:width="{box.w}px" style:height="{box.h}px"
             onclick={(e) => pick(e, m.id)} ondblclick={() => onopen?.(m.id)}>
             <span class="head"><span class="role">{speakerOf(m)}</span>{#if !compact}<time>{timeOf(m.at)}</time>{/if}</span>

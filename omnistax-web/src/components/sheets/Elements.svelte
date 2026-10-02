@@ -169,7 +169,7 @@
               <div class="eyebrow">{e.number} · {e.category}</div>
               <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
             </div>
-            <button type="button" class="x" title="Close" onclick={() => (pinned = null)}>×</button>
+            <button type="button" class="x" aria-label="Close" onclick={() => (pinned = null)}>×</button>
           </div>
           <dl class="fields">
             <dt>Atomic weight</dt><dd>{e.weight_label}</dd>

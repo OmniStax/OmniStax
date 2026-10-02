@@ -26,7 +26,7 @@ with sync_playwright() as p:
     print('6 finder:', pg.is_visible('.finder'), pg.eval_on_selector_all('.finder .book', 'bs=>bs.map(b=>b.querySelector(".name").textContent+" / "+b.querySelector("button.add").textContent)'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     # new note
-    pg.click('.tool[title="New note"]'); pg.wait_for_timeout(500)
+    pg.click('.tool[aria-label="New note"]'); pg.wait_for_timeout(500)
     pg.keyboard.type('Pendulum ideas'); pg.keyboard.press('Enter'); pg.wait_for_timeout(600)
     print('7 new note tabs:', tabs(pg), 'mode:', pg.evaluate('document.querySelector(".note-tab")?.dataset.mode'))
     pg.click('.cm-content'); pg.wait_for_timeout(200)
@@ -59,7 +59,7 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(1500)
     print('16 after reload tabs:', tabs(pg), 'note rows:', [r for r in rows(pg) if r.startswith('note')])
     # new folder + note inside
-    pg.click('.tool[title="New folder"]'); pg.wait_for_timeout(300); pg.keyboard.type('Physics'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    pg.click('.tool[aria-label="New folder"]'); pg.wait_for_timeout(300); pg.keyboard.type('Physics'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     print('17 folder:', [r for r in rows(pg) if r.startswith('folder')])
     print('errors:', errs[:6])
     b.close()

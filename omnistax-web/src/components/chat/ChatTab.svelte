@@ -121,7 +121,7 @@
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label="Chat name" />
     {:else}
-      <button type="button" class="name" title="Rename this chat" onclick={startRename}>{chat?.name || 'New chat'}</button>
+      <button type="button" class="name" title="Rename" onclick={startRename}>{chat?.name || 'New chat'}</button>
     {/if}
     {#if chat && !tree}
       <button type="button" class="btn ghost sm" disabled={path.length === 0} onclick={foldAll}>{anyOpen ? 'Collapse all' : 'Expand all'}</button>

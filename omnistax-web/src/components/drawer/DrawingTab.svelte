@@ -942,11 +942,11 @@
         {#if selectedLink}
           {@const l = selectedLink}
           <button type="button" class="chip" onclick={() => setLink(l, { curve: l.curve === 'bezier' ? 'straight' : 'bezier' })}>{l.curve === 'bezier' ? 'Curved' : 'Straight'}</button>
-          <button type="button" class="chip" class:on={l.heads.start} title="Arrowhead at the start" onclick={() => setLink(l, { heads: { ...l.heads, start: !l.heads.start } })}>&larr;</button>
-          <button type="button" class="chip" class:on={l.heads.end} title="Arrowhead at the end" onclick={() => setLink(l, { heads: { ...l.heads, end: !l.heads.end } })}>&rarr;</button>
+          <button type="button" class="chip" class:on={l.heads.start} title="Start arrowhead" onclick={() => setLink(l, { heads: { ...l.heads, start: !l.heads.start } })}>&larr;</button>
+          <button type="button" class="chip" class:on={l.heads.end} title="End arrowhead" onclick={() => setLink(l, { heads: { ...l.heads, end: !l.heads.end } })}>&rarr;</button>
           <button type="button" class="chip" onclick={() => (naming = l.id)}>Label</button>
         {:else}
-          <button type="button" class="chip" title="Group (Ctrl+G)" onclick={groupSelection}>Group</button>
+          <button type="button" class="chip" title="Ctrl+G" onclick={groupSelection}>Group</button>
         {/if}
       </div>
     {/if}

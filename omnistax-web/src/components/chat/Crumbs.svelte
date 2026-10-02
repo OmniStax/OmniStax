@@ -13,7 +13,7 @@
   <nav class="crumbs" aria-label="Where this branch forked">
     {#each crumbs as c (c.id)}
       <span class="crumb">
-        <button type="button" class="jump" title="Go back to this fork" onclick={() => chats.goTo(chatId, c.id)}>{c.words}</button>
+        <button type="button" class="jump" onclick={() => chats.goTo(chatId, c.id)}>{c.words}</button>
         <button type="button" class="chev" aria-label="The other {c.count - 1} at this fork"
           onclick={() => (open = open === c.id ? null : c.id)}>{c.index + 1}/{c.count} ▾</button>
         {#if open === c.id}

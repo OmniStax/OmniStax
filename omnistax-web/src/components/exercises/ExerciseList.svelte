@@ -22,7 +22,7 @@
   <div class="list">
     {#if isEnd}
       <div class="practice-row">
-        <button type="button" class="practise" data-practise-section={section} title="Open a practice session on this section">Practice this section{@html ICON.exercises}</button>
+        <button type="button" class="practise" data-practise-section={section}>Practice this section{@html ICON.exercises}</button>
       </div>
     {:else}
       <div class="eyebrow">Try it</div>

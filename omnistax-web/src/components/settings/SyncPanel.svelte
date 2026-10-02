@@ -77,7 +77,7 @@
     <header>
       <strong>{verb}</strong>
       <span class="where">{direction === 'push' ? 'to' : 'from'} {remote.repo} · {remote.branch}</span>
-      <button type="button" class="x" aria-label="Close" title="Close" disabled={busy} onclick={close}>×</button>
+      <button type="button" class="x" aria-label="Close" disabled={busy} onclick={close}>×</button>
     </header>
 
     {#if phase === 'reading'}

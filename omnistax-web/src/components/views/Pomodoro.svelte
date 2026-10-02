@@ -53,7 +53,7 @@
     </div>
     {#if pomodoro.lockable}
       <button type="button" class="lock" class:on={pomodoro.screenLock} aria-pressed={pomodoro.screenLock} aria-label="Screen lock"
-        title="Cursor must not leave OmniStax for more than {settings.lockGrace} seconds"
+        title="Screen lock ({settings.lockGrace}s grace)"
         onclick={() => pomodoro.setScreenLock(!pomodoro.screenLock)}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="shackle" d="M8 11V7.5a4 4 0 0 1 8 0V11" />

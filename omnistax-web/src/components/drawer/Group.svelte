@@ -50,7 +50,7 @@
 <div class="group" class:selected class:tinted={tint !== null} style:--tint={tint}
   style:left="{x}px" style:top="{y}px" style:width="{w}px" style:height="{h}px">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="label" title="Drag to move the group" onpointerdown={(e) => drag(e, onmove)}
+  <div class="label" onpointerdown={(e) => drag(e, onmove)}
     ondblclick={(e) => { e.stopPropagation(); naming = true; }}>
     {#if naming}
       <input value={label} aria-label="Group name" use:takeFocus onblur={done}
@@ -63,7 +63,7 @@
   {#each ['top', 'right', 'bottom', 'left'] as side (side)}
     <span class="edge {side}" role="presentation" style:--reach="{8 / (scale || 1)}px" onpointerdown={(e) => drag(e, onmove)}></span>
   {/each}
-  <span class="corner" title="Drag to resize" role="presentation" onpointerdown={onCorner}></span>
+  <span class="corner" role="presentation" onpointerdown={onCorner}></span>
 </div>
 
 <style>
