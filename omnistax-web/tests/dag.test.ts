@@ -16,7 +16,7 @@ const BOOK: BookTree = {
   ],
 };
 const concept = (id: string, section: string, prereqs: string[] = [], placeholder = false): ConceptDTO => {
-  const row = { id: conceptId(id), kind: 'idea' as const, section: sectionId(section), name: id, prereqs: prereqs.map(conceptId) };
+  const row = { id: conceptId(id), kind: 'idea' as const, section: sectionId(section), name: id, terms: [], forms: [], prereqs: prereqs.map(conceptId) };
   return placeholder ? { status: 'placeholder', ...row } : { status: 'built', ...row };
 };
 /* Displacement is taught in another chapter, Hookes law in a section that is not built yet. */

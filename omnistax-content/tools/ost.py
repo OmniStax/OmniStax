@@ -46,6 +46,8 @@ WEB = os.path.join(REPO, "omnistax-web")
 NODE_BIN = os.environ.get("OMNISTAX_NODE_BIN", "/home/flober/.nvm/versions/node/v20.20.2/bin")
 LOCK = "/tmp/omnistax-mergebook.lock"
 STAGED_TABLES = ("types", "symbols", "concepts", "concept_prereqs")
+# A form is a row of its concept in book.json, read and written as a table of its own.
+FORM_TABLE = "forms"
 
 
 class Refused(Exception):
@@ -90,7 +92,12 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
-        "statement": _f(), "eq": _f()}, ("id", "kind", "section", "name", "statement")),
+        "symbol": _f(), "terms": _f(kind="list"), "statement": _f(), "forms": _f(kind="list")},
+        ("id", "kind", "section", "name", "symbol", "statement")),
+    "forms": Table("book", ("id",), {
+        "concept": _f(True), "id": _f(True), "latex": _f(True), "ktex": _f(), "condition": _f(),
+        "section": _f(), "anchor": _f(), "main": _f(kind="bool")},
+        ("id", "concept", "section", "latex", "condition")),
     "concept_prereqs": Table("book", ("concept", "prereq"), {
         "concept": _f(True), "prereq": _f(True)}, ("concept", "prereq")),
     "sheets": Table("book", ("id",), {
@@ -102,12 +109,6 @@ TABLES: dict[TableName, Table] = {
     "variables": Table("chapter", ("section", "sym"), {
         "sym": _f(True), "concept": _f(), "type": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
         "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "concept", "redefines")),
-    "equations": Table("chapter", ("id",), {
-        "id": _f(True), "concept": _f(), "section": _f(True), "latex": _f(True), "ktex": _f(),
-        "condition": _f(), "anchor": _f(), "important": _f(kind="bool")},
-        ("id", "section", "latex", "concept", "important")),
-    "glossary": Table("chapter", ("section", "term"), {
-        "section": _f(True), "term": _f(True), "concept": _f(), "definition": _f(True)}, ("section", "term", "concept", "definition")),
 
     "figures": Table("section", ("id",), {
         "id": _f(True), "kind": _f(True, enum=FIGURE), "number": _f(), "folds": _f(kind="list"),
@@ -295,8 +296,16 @@ def place_of(book: Book, table: Table, chapter: Optional[str], section: Optional
 
 
 def rows_of(record: RecordDTO, name: TableName) -> list[RowDTO]:
+    if name == FORM_TABLE:
+        return forms_of(record)
     value = record.get(name, [])
     return list(value) if isinstance(value, list) else []
+
+
+def forms_of(record: RecordDTO) -> list[RowDTO]:
+    """Every form of the book as a row: the concept it states, and the section it is stated in, the concept's own where it names none."""
+    return [{"concept": c["id"], **f, "section": f.get("section", c.get("section"))}
+            for c in rows_of(record, "concepts") for f in c.get("forms", [])]
 
 
 # ---------------------------------------------------- writing, keeping the form
@@ -553,7 +562,9 @@ def cmd_find(args: argparse.Namespace) -> int:
     for s in record.get("symbols", []):
         look("book.json symbols", s.get("sym"), s.get("latex"), s.get("macro"))
     for c in record.get("concepts", []):
-        look(f"book.json concepts[{c.get('section')}]", c.get("id"), c.get("name"))
+        look(f"book.json concepts[{c.get('section')}]", c.get("id"), c.get("name"), c.get("symbol"), *c.get("terms", []))
+    for f in forms_of(record):
+        look(f"book.json forms[{f.get('concept')}]", f.get("id"), f.get("latex"))
     for s in record.get("sheets", []):
         look("book.json sheets", s.get("id"), s.get("title"))
     for d in chapter_dirs(book):
@@ -565,10 +576,6 @@ def cmd_find(args: argparse.Namespace) -> int:
             look(f"{d}/chapter.json sections", s.get("id"), s.get("title"))
         for v in rows_of(chapter, "variables"):
             look(f"{d}/chapter.json variables[{v.get('section')}]", v.get("sym"), v.get("meaning"))
-        for e in rows_of(chapter, "equations"):
-            look(f"{d}/chapter.json equations[{e.get('section')}]", e.get("id"), e.get("latex"))
-        for g in rows_of(chapter, "glossary"):
-            look(f"{d}/chapter.json glossary[{g.get('section')}]", g.get("term"), g.get("definition"))
         for s in rows_of(chapter, "sections"):
             spath = os.path.join(book.dir, d, str(s.get("id")), "section.json")
             if not os.path.exists(spath):
@@ -633,15 +640,15 @@ def show_book(book: Book) -> int:
 def show_chapter(book: Book, named: str) -> int:
     chapter = load(chapter_path(book, named))
     print(f"chapter {chapter.get('id')} · {chapter.get('title')} · {chapter.get('dir')}")
-    concepts = [c for c in rows_of(load(book.book_path), "concepts")]
+    record = load(book.book_path)
+    concepts, forms = rows_of(record, "concepts"), forms_of(record)
     for s in rows_of(chapter, "sections"):
         sid = str(s.get("id"))
         n = (len([v for v in rows_of(chapter, "variables") if v.get("section") == sid]),
-             len([e for e in rows_of(chapter, "equations") if e.get("section") == sid]),
-             len([g for g in rows_of(chapter, "glossary") if g.get("section") == sid]),
+             len([f for f in forms if f.get("section") == sid]),
              len([c for c in concepts if c.get("section") == sid]))
         print(f"{sid} · {'built' if is_built(book, sid) else 'unbuilt'} · {s.get('title')} · "
-              f"{n[0]} variables · {n[1]} equations · {n[2]} glossary · {n[3]} concepts")
+              f"{n[0]} variables · {n[1]} forms · {n[2]} concepts")
     for role in ("intro", "summary"):
         if chapter.get(role):
             print(f"{role} · {'built' if os.path.exists(os.path.join(book.dir, str(chapter.get('dir')), role, 'section.json')) else 'unbuilt'}"
@@ -741,6 +748,8 @@ def apply_write(table: Table, rows: list[RowDTO], args: argparse.Namespace) -> l
 def cmd_write(args: argparse.Namespace) -> int:
     book = book_of(args.book)
     table = table_of(args.table)
+    if args.table == FORM_TABLE:
+        return write_form(book, table, args)
     if table.level == "book":
         if args.table not in STAGED_TABLES:
             raise Refused(f"{args.table} is a row of book.json that no chapter stages; edit it by hand")
@@ -787,6 +796,56 @@ def write_staged(book: Book, table: Table, args: argparse.Namespace) -> int:
     staged[args.table] = apply_write(table, list(staged[args.table]), args)
     write_record(path, staged)
     print(f"{args.command}: {chapter}/book-rows.json {args.table} now has {len(staged[args.table])} rows")
+    merge_chapter(book, chapter)
+    return report_write(book.id, "book.json")
+
+
+def staged_of(book: Book, chapter: ChapterDir) -> RecordDTO:
+    path = staged_path(book, chapter)
+    staged = load(path) if os.path.exists(path) else seed_staged(book, chapter)
+    for name in STAGED_TABLES:
+        staged.setdefault(name, [])
+    return staged
+
+
+def form_row(form: RowDTO, home: Optional[str]) -> RowDTO:
+    """A form as its concept keeps it: no concept, no main flag, and no section where it is the concept's own."""
+    return {k: v for k, v in form.items() if k not in ("concept", "main") and not (k == "section" and v == home)}
+
+
+def write_form(book: Book, table: Table, args: argparse.Namespace) -> int:
+    """A form is staged on its concept, in the chapter that owns the concept, wherever the form is stated."""
+    forms = forms_of(load(book.book_path))
+    if args.command == "add":
+        row = parse_row(args.row)
+        validate(table, row)
+        if any(f["id"] == row["id"] for f in forms):
+            raise Refused(f"{row['id']} is already a form of the book")
+        cid = row["concept"]
+    else:
+        at = next((f for f in forms if f["id"] == args.id), None)
+        if at is None:
+            raise Refused(f"no form {args.id!r}")
+        cid = at["concept"]
+    concept = next((c for c in rows_of(load(book.book_path), "concepts") if c["id"] == cid), None)
+    if concept is None:
+        raise Refused(f"no concept {cid!r}")
+    chapter = chapter_dir_of(book, concept["section"])
+    staged = staged_of(book, chapter)
+    i = next((k for k, c in enumerate(staged["concepts"]) if c["id"] == cid), None)
+    if i is None:
+        raise Refused(f"{cid} is not staged in {chapter}/book-rows.json")
+    own = [{"concept": cid, **f} for f in staged["concepts"][i].get("forms", [])]
+    after = apply_write(table, own, args)
+    if any(f["concept"] != cid for f in after):
+        raise Refused("a form moves to another concept by a del and an add")
+    main = next((f for f in after if f.get("main")), None)
+    ordered = ([main] + [f for f in after if f is not main]) if main else after
+    kept = [form_row(f, concept["section"]) for f in ordered]
+    c = {k: v for k, v in staged["concepts"][i].items() if k != "forms"}
+    staged["concepts"][i] = {**c, "forms": kept} if kept else c
+    write_record(staged_path(book, chapter), staged)
+    print(f"{args.command}: {chapter}/book-rows.json {cid} now has {len(kept)} forms")
     merge_chapter(book, chapter)
     return report_write(book.id, "book.json")
 

@@ -117,13 +117,11 @@ export const openingOf = (id: ChatId): string => {
 
 /* ── what an answer marks of its own accord ────────────────────────────── */
 
-/* The terms of the book, each at the section that defines it: the whole
-   glossary where the search has read the book, and otherwise what the
+/* The terms of the book, each at the section of the concept it names: every
+   concept's where the search has read the book, and otherwise what the
    chapters already fetched hold. */
-const glossaryOf = (book: BookId): ReadonlyMap<string, string> => {
-  const loaded = registry.manifest(book).chapters.flatMap((c) => registry.chapter(book, c.dir)?.formulas.glossary ?? []);
-  return new Map([...(searchStore.corpora[book]?.glossary ?? []), ...loaded].map((g) => [g.term, g.section] as const));
-};
+const glossaryOf = (book: BookId): ReadonlyMap<string, string> =>
+  new Map([...(searchStore.corpora[book]?.concepts ?? []), ...registry.concepts(book)].flatMap((c) => c.terms.map((t) => [t, c.section] as const)));
 /* Every figure the book draws, by the numbers its eyebrow prints. */
 const figuresOf = (book: BookId): ReadonlyMap<string, string> =>
   new Map(registry.manifest(book).chapters.flatMap((c) => c.sections.flatMap((s) =>

@@ -7,7 +7,7 @@
 import { registry } from '../sections/registry.svelte';
 import { focus } from '../sections/focus.svelte';
 import { library } from '../explorer/library.svelte';
-import { parseBookConcepts, parseBookFormulas } from '../practice/books';
+import { parseBookConcepts } from '../practice/books';
 import { bookPagesOf } from '../content/roles';
 import type { BookManifest } from '../content/schema';
 import { bookId } from '../types/ids';
@@ -55,20 +55,20 @@ class Search {
   private titleOf(book: string): string { return library.book(book)?.title || book; }
   private base(book: string): string { return library.book(book)?.url || `/${book}/`; }
 
-  /* Everything off the build beside its pages — the manifest, its text, its
-     concepts and its formula sheets. A file that failed leaves the rest standing. */
+  /* Everything off the build beside its pages — the manifest, its text, and its
+     concepts with their symbols. A file that failed leaves the rest standing. */
   private async fetchBook(book: string): Promise<void> {
     const manifest = await registry.ensureBook(bookId(book));
     if (!manifest) { this.set(emptyCorpus(book, this.titleOf(book)), true); return; }
-    const [index, concepts, formulas] = await Promise.all([get(`${this.base(book)}search.json`), get(manifest.concepts), get(manifest.formulas)]);
-    const sheets = Object.values(parseBookFormulas(formulas));
+    const [index, concepts] = await Promise.all([get(`${this.base(book)}search.json`), get(manifest.concepts)]);
+    const parsed = parseBookConcepts(concepts);
     this.set({
       book, title: manifest.title || this.titleOf(book),
       /* The book file carries every concept once, so nothing has to be deduplicated here. */
-      concepts: parseBookConcepts(concepts).concepts,
-      variables: sheets.flatMap((s) => s.variables), glossary: sheets.flatMap((s) => s.glossary), equations: sheets.flatMap((s) => s.equations),
+      concepts: parsed.concepts,
+      variables: Object.values(parsed.chapters).flatMap((ch) => ch.variables),
       pages: parseIndex(index).pages, urls: urlsOf(manifest),
-    }, index === null || concepts === null || formulas === null);
+    }, index === null || concepts === null);
   }
 }
 export const searchStore = new Search();

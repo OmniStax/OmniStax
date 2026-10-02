@@ -6,12 +6,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
-import { BookSchema, ChapterSchema, SectionSchema, equationOf } from './schema';
+import { BookSchema, ChapterSchema, SectionSchema, formOf } from './schema';
 import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, FormulasDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
+  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
@@ -41,7 +41,7 @@ export type SectionSource = {
 };
 /* A chapter's pages: its sections, and its own introduction and summary where the book prints them and they are built. */
 export type ChapterTree = {
-  readonly dto: ChapterDTO; readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO;
+  readonly dto: ChapterDTO; readonly concepts: ConceptsDTO;
   readonly intro?: SectionSource; readonly sections: readonly SectionSource[]; readonly summary?: SectionSource;
 };
 /* One sheet as the build reads it: the row the book wrote, the file it names
@@ -142,15 +142,17 @@ const reachable = (seeds: readonly ConceptId[], prereqs: ReadonlyMap<string, rea
 };
 
 /* A concept whose section the app has not built stands as a placeholder: it has
-   a name and a place in the map, and states nothing. */
-const conceptOf = (c: ConceptRowDTO, prereqs: readonly ConceptId[], built: ReadonlySet<string>): ConceptDTO =>
-  (built.has(c.section)
-    ? { status: 'built', ...c, prereqs: [...prereqs] }
-    : { status: 'placeholder', id: c.id, kind: c.kind, section: c.section, name: c.name, eq: c.eq, prereqs: [...prereqs] });
+   a name and a place in the map, and states nothing. Every form is placed in the
+   section that states it, the concept's own where the form names none. */
+const conceptOf = (c: ConceptRowDTO, prereqs: readonly ConceptId[], built: ReadonlySet<string>): ConceptDTO => {
+  const { statement, forms, ...rest } = c;
+  const base = { ...rest, forms: forms.map((f) => formOf(f, c.section)), prereqs: [...prereqs] };
+  return built.has(c.section) ? { status: 'built', ...base, ...(statement === undefined ? {} : { statement }) } : { status: 'placeholder', ...base };
+};
 
-/* What one chapter's concept map is drawn from: the concepts its sections
-   introduce, everything those reach through the prerequisite edges, and the
-   coverage of the sections it has built. */
+/* What one chapter serves: the concepts its sections introduce, everything
+   those reach through the prerequisite edges, the coverage of the sections it
+   has built, and the meanings it gives the book's symbols. */
 export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: readonly SectionSource[], built: ReadonlySet<string>): ConceptsDTO => {
   const here = new Set(chapter.sections.map((s) => s.id));
   const prereqs = prereqIndex(book.conceptPrereqs);
@@ -158,10 +160,9 @@ export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: 
   return {
     concepts: book.concepts.filter((c) => seen.has(c.id)).map((c) => conceptOf(c, prereqs.get(c.id) ?? [], built)),
     coverage: sections.flatMap((s) => s.coverage),
+    variables: chapter.variables,
   };
 };
-
-export const formulasOf = (chapter: ChapterDTO): FormulasDTO => ({ variables: chapter.variables, equations: chapter.equations.map(equationOf), glossary: chapter.glossary });
 
 /* ---------- reading the files ---------- */
 
@@ -212,7 +213,7 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
   return pages.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs) }));
 };
 
-type ChapterLoaded = Omit<ChapterTree, 'concepts' | 'formulas'>;
+type ChapterLoaded = Omit<ChapterTree, 'concepts'>;
 const loadChapter = async (root: string, book: BookDTO, dir: string, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
   const dto = await readJson(path.join(base, 'chapter.json'), ChapterSchema);
@@ -256,11 +257,11 @@ const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | '
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),
-  exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`, formulas: `${bookUrl(book.id)}formulas.json`,
+  exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`,
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
   chapters: tree.chapters.map((ch): ChapterEntry => ({
     id: ch.dto.id, dir: ch.dto.dir, title: ch.dto.title,
-    concepts: `${chapterUrl(book.id, ch.dto.dir)}concepts.json`, formulas: `${chapterUrl(book.id, ch.dto.dir)}formulas.json`,
+    concepts: `${chapterUrl(book.id, ch.dto.dir)}concepts.json`,
     ...(ch.intro ? { intro: entryOf(ch.intro) } : {}),
     sections: ch.dto.sections.map((s): SectionEntry => {
       const src = ch.sections.find((b) => b.meta.id === s.id);   /* an unbuilt section is listed with nothing below it */
@@ -288,7 +289,7 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   ]);
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */
   const built = new Set<string>(loaded.flatMap((ch) => ch.sections.map((s) => String(s.meta.id))));
-  const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built), formulas: formulasOf(ch.dto) }));
+  const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built) }));
   const framed = { intro, chapters, summary, sheets };
   return { dto, ...framed, manifest: manifestOf(dto, framed) };
 };

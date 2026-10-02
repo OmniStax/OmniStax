@@ -13,8 +13,8 @@ const r: Resolver = {
   asset: (id) => (id === 'img1' ? 'data:image/png;base64,AAAA' : null),
   equation: (section, id) =>
     section !== '16.1' ? null
-      : id === 'eq-hooke' ? { tex: '\\kF = -\\kk\\kx', condition: 'small deformations', important: true, conceptName: 'Hooke’s law', anchor: '16.1-hookes-law', section: '16.1' }
-        : id === 'eq-k' ? { tex: '\\kk = -\\frac{\\kF}{\\kx}', important: false, section: '16.1' }
+      : id === 'eq-hooke' ? { tex: '\\kF = -\\kk\\kx', condition: 'small deformations', conceptName: 'Hooke’s law', anchor: '16.1-hookes-law', section: '16.1' }
+        : id === 'eq-k' ? { tex: '\\kk = -\\frac{\\kF}{\\kx}', section: '16.1' }
           : null,
   term: (section, term) =>
     (section === '16.1' && term === 'deformation' ? { term: 'deformation', definition: 'displacement from equilibrium', section: '16.1' } : null),
@@ -159,7 +159,7 @@ test('a link names a thing of the book by its section and its key', () => {
 test('an equation of the book is held whole, as a card', () => {
   const card = render('![[eq:16.1:eq-hooke]]', r);
   assert.match(card, /<div class="book-embed kind-equation" data-embed="eq:16\.1:eq-hooke">/);
-  assert.match(card, /<div class="embed-eyebrow">Equation · important · 16\.1 · small deformations<\/div>/);
+  assert.match(card, /<div class="embed-eyebrow">Equation · 16\.1 · small deformations<\/div>/);
   assert.match(card, /<div class="embed-tex" data-tex="\\kF = -\\kk\\kx"><\/div>/);
   assert.match(card, /<div class="embed-body">Hooke’s law<\/div>/);
   assert.doesNotMatch(card, /<p>/);

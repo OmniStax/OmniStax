@@ -1,5 +1,5 @@
 /* The index the search asks. Every thing a book holds — a concept, a symbol, a
-   term, a formula, a block of prose — is one entry, and every word of it points
+   form, a block of prose — is one entry, and every word of it points
    at that entry, so a query is answered by looking words up rather than by
    reading the library again at each keystroke. The words of a block come off
    the build (search.json carries a page's dictionary); everything else is cut
@@ -7,16 +7,16 @@
    period, "period" does not find hyperbola. The entries are laid out kind by
    kind and book by book in the order the list wants them, so the hits of a
    query, taken in the order they were built, are already ranked. Pure. */
-import type { ConceptDTO, EquationDTO, GlossaryDTO, VariableDTO } from '../content/schema';
+import type { ConceptDTO, FormDTO, VariableDTO } from '../content/schema';
 import { tokensOf, unpackToks, type TextBlockDTO, type TextPageDTO } from '../content/textindex';
-import { conceptText, equationText, excerpt, symbolText, termText, wordsOf, type Corpus, type Filter, type Hit, type SearchKind } from './model';
+import { conceptText, excerpt, formText, symbolText, wordsOf, type Corpus, type Filter, type Hit, type SearchKind } from './model';
 
 /* One thing the index holds, with the book it belongs to. An entry becomes a hit
    as it is found; a block of prose gets its marked window only then. */
 type Entry =
   | { readonly kind: 'concept'; readonly book: string; readonly concept: ConceptDTO; readonly also: string }
-  | { readonly kind: 'definition'; readonly book: string; readonly def: { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO } }
-  | { readonly kind: 'formula'; readonly book: string; readonly equation: EquationDTO; readonly also: string }
+  | { readonly kind: 'definition'; readonly book: string; readonly symbol: VariableDTO }
+  | { readonly kind: 'formula'; readonly book: string; readonly form: FormDTO; readonly concept: ConceptDTO }
   | { readonly kind: 'text'; readonly book: string; readonly page: TextPageDTO; readonly block: TextBlockDTO };
 
 /* How many of each kind the list will hold, and how many blocks of prose: with
@@ -44,19 +44,16 @@ const blockTokens = (page: TextPageDTO, b: TextBlockDTO): readonly string[] => {
 };
 
 /* A concept is found by the words that name it in the book's tables as well
-   as its own, the symbols of its quantity and the glossary's term for it, and
-   a formula by the name of the concept it states. */
-const namesOf = (c: Corpus): ReadonlyMap<string, string> =>
-  [...c.variables.map((v) => [v.concept, v.sym] as const), ...c.glossary.map((g) => [g.concept, g.term] as const)]
-    .reduce((m, [id, w]) => (id ? m.set(id, `${m.get(id) ?? ''} ${w}`) : m), new Map<string, string>());
-const statedBy = (c: Corpus): ReadonlyMap<string, string> => new Map(c.concepts.flatMap((x) => (x.eq ? [[x.eq, x.name] as const] : [])));
+   as its own, the symbols of its quantity and the glossary's terms for it, and
+   a form by the name of the concept it states. Every concept's main form comes
+   before any concept's other forms. */
+const symbolsOf = (c: Corpus): ReadonlyMap<string, string> =>
+  c.variables.reduce((m, v) => (v.concept ? m.set(v.concept, `${m.get(v.concept) ?? ''} ${v.sym}`) : m), new Map<string, string>());
 const namedOf = (corpora: readonly Corpus[]): Entry[] => [
-  ...corpora.flatMap((c) => { const names = namesOf(c); return c.concepts.map((concept): Entry => ({ kind: 'concept', book: c.book, concept, also: names.get(concept.id) ?? '' })); }),
-  ...corpora.flatMap((c) => [
-    ...c.variables.map((symbol): Entry => ({ kind: 'definition', book: c.book, def: { kind: 'symbol', symbol } })),
-    ...c.glossary.map((term): Entry => ({ kind: 'definition', book: c.book, def: { kind: 'term', term } })),
-  ]),
-  ...corpora.flatMap((c) => { const states = statedBy(c); return c.equations.filter((e) => e.important).map((equation): Entry => ({ kind: 'formula', book: c.book, equation, also: states.get(equation.id) ?? '' })); }),
+  ...corpora.flatMap((c) => { const syms = symbolsOf(c); return c.concepts.map((concept): Entry => ({ kind: 'concept', book: c.book, concept, also: `${syms.get(concept.id) ?? ''} ${concept.terms.join(' ')}` })); }),
+  ...corpora.flatMap((c) => c.variables.map((symbol): Entry => ({ kind: 'definition', book: c.book, symbol }))),
+  ...[0, 1].flatMap((extra) => corpora.flatMap((c) => c.concepts.flatMap((concept) =>
+    (extra ? concept.forms.slice(1) : concept.forms.slice(0, 1)).map((form): Entry => ({ kind: 'formula', book: c.book, form, concept }))))),
 ];
 const proseOf = (corpora: readonly Corpus[]): Entry[] =>
   corpora.flatMap((c) => c.pages.flatMap((page) => page.blocks.map((block): Entry => ({ kind: 'text', book: c.book, page, block }))));
@@ -64,8 +61,8 @@ const proseOf = (corpora: readonly Corpus[]): Entry[] =>
 const wordsIn = (e: Entry): readonly string[] =>
   e.kind === 'text' ? blockTokens(e.page, e.block)
     : tokensOf(e.kind === 'concept' ? `${conceptText(e.concept)} ${e.also}`
-      : e.kind === 'formula' ? `${equationText(e.equation)} ${e.also}`
-        : e.def.kind === 'symbol' ? symbolText(e.def.symbol) : termText(e.def.term));
+      : e.kind === 'formula' ? `${formText(e.form)} ${e.concept.name}`
+        : symbolText(e.symbol));
 
 /* The index of a library: the entries in the order the list wants them, and beside
    every word the entries that hold it, ascending, since the entries are walked in order. */
@@ -129,15 +126,14 @@ const keep = (ix: Index, ids: readonly number[], p: string, upto: number): numbe
 
 const hitOf = (e: Entry, words: readonly string[]): Hit =>
   e.kind === 'text' ? { kind: 'text', book: e.book, page: e.page, span: e.block.span, head: e.block.head, text: e.block.text, excerpt: excerpt(e.block.text, words) }
-    : e.kind === 'concept' ? { kind: 'concept', book: e.book, concept: e.concept }
-      : e.kind === 'formula' ? { kind: 'formula', book: e.book, equation: e.equation } : e;
+    : e.kind === 'concept' ? { kind: 'concept', book: e.book, concept: e.concept } : e;
 
 /* How a thing ranks among the others of its kind that a query found: the
    thing named by exactly the query first, then the one whose name and the
    query hold the same words one within the other, then the one holding every
    word of the query whole rather than as the opening of a longer word. */
 const nameOf = (e: Entry): string =>
-  e.kind === 'concept' ? e.concept.name : e.kind === 'formula' ? e.equation.id : e.kind === 'definition' ? (e.def.kind === 'term' ? e.def.term.term : e.def.symbol.sym) : '';
+  e.kind === 'concept' ? e.concept.name : e.kind === 'formula' ? e.form.id : e.kind === 'definition' ? e.symbol.sym : '';
 const closeness = (e: Entry, words: readonly string[]): number => {
   if (e.kind === 'text') return 3;
   const name = tokensOf(nameOf(e)); const has = (ws: readonly string[]) => (w: string) => ws.includes(w);

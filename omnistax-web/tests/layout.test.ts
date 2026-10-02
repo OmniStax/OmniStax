@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, replaceTab, unreplace, showViewInFocus, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS } from '../src/lib/types/ids';
+import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -71,9 +71,9 @@ test('a view that no sidebar holds is asked for there and opens as a tab', () =>
   assert.deepEqual(l.sides.left.items, ['view:explorer'], 'the concept map is not a sidebar view');
   assert.equal(where(l, map)?.type, 'group'); assert.equal(l.groups[0].active, map);
 });
-test('the rail draws the four sidebar views first and the four group views below, exercises above the map', () => {
+test('the rail draws the four sidebar views first and the three group views below, exercises above the map', () => {
   assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:annotations', 'view:pomodoro']);
-  assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:formulas', 'view:definitions']);
+  assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:reference']);
   /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
   assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:pomodoro-stats', 'view:colours', 'view:chats']);
   assert.equal(GROUP_VIEW_KEYS.includes('view:colours'), false);
@@ -122,10 +122,16 @@ test('the rail opens another page of a view and leaves the ones already open', (
   const open = instancesOf(two, 'concepts');
   assert.equal(two.groups.length, 1, 'each page is a tab of the focused group, not a split');
   assert.equal(open.length, 2); assert.deepEqual(open, two.groups[0].tabs.slice(1));
-  assert.deepEqual(instancesOf(two, 'formulas'), [], 'a view nobody opened stands nowhere');
+  assert.deepEqual(instancesOf(two, 'reference'), [], 'a view nobody opened stands nowhere');
   const gone = closeItem(two, open[1]);
   assert.deepEqual(instancesOf(gone, 'concepts'), [open[0]], 'closing one page leaves the other');
   assert.deepEqual(instancesOf(openSide(defaultLayout(), notes, 'left'), 'annotations'), [notes], 'a sidebar view counts as the page it is');
+});
+test('a tab, a pinned scope or a chord saved for Definitions or Formulas is read as Reference', () => {
+  assert.equal(retiredViewKeys('{"tabs":["view:formulas@ab12cd","view:definitions","doc:b/2.1/text"]}'), '{"tabs":["view:reference@ab12cd","view:reference","doc:b/2.1/text"]}');
+  assert.equal(retiredViewKeys('{"ctrl+f":"open-view-definitions","formulas":"2.1","x":"my formulas"}'), '{"ctrl+f":"open-view-reference","reference":"2.1","x":"my formulas"}');
+  const saved = JSON.parse(retiredViewKeys(JSON.stringify({ ...defaultLayout(), groups: [{ key: 'g', tabs: ['view:formulas', 'view:definitions'], active: 'view:definitions' }] })));
+  assert.deepEqual(parseLayout(saved, () => true)?.groups[0].tabs, ['view:reference'], 'the two retired tabs are one Reference tab');
 });
 test('page and note keys round-trip and belong to no section', () => {
   assert.equal(itemKey(aboutItem()), 'page:about'); assert.equal(itemKey(bookPageItem(B)), 'page:book/college-physics-2e');

@@ -102,18 +102,19 @@
     tex.replace(/\\[A-Za-z]+/g, (m) => byMacro[m] ?? m).replace(/\s+/g, ' ').trim();
 
   /* What the book itself holds, out of every chapter whose tables have been
-     fetched: the equations of the formula sheet, the terms of the glossary, the
+     fetched: the main forms of its concepts, the glossary's words, the
      symbols with a meaning, and the concepts of a section built here. Each is
      picked to be held whole in the note, so each writes a card. */
   const bookRows = (book: BookId): readonly Candidate[] => {
     const byMacro = symbolOfMacro(book);
-    return registry.chaptersOf(book).flatMap((ch) => [
-      ...ch.formulas.equations.filter((e) => e.important).map((e) =>
+    const concepts = registry.concepts(book);
+    return [
+      ...concepts.flatMap((c) => c.forms.slice(0, 1)).map((e) =>
         candidate({ kind: 'equation', book, section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), inBook(book, ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · ')), true)),
-      ...ch.formulas.glossary.map((g) => candidate({ kind: 'term', book, section: g.section, term: g.term }, g.term, inBook(book, `term · ${g.section}`), true)),
-      ...ch.formulas.variables.map((v) => candidate({ kind: 'symbol', book, section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), inBook(book, `symbol · ${v.section}`), true)),
-      ...ch.concepts.concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', book, section: c.section, id: c.id }, plain(c.name), inBook(book, `concept · ${c.section}`), true)),
-    ]);
+      ...concepts.flatMap((c) => c.terms.map((term) => candidate({ kind: 'term', book, section: c.section, term }, term, inBook(book, `term · ${c.section}`), true))),
+      ...registry.variables(book).map((v) => candidate({ kind: 'symbol', book, section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), inBook(book, `symbol · ${v.section}`), true)),
+      ...concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', book, section: c.section, id: c.id }, plain(c.name), inBook(book, `concept · ${c.section}`), true)),
+    ];
   };
   const sectionRows = (book: BookId): readonly Candidate[] =>
     registry.manifest(book).chapters.flatMap((c) => c.sections.filter((s) => s.built).map((s) => candidate({ kind: 'section', book, section: s.id }, label(s.id, s.title), inBook(book, c.title))));

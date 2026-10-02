@@ -4,7 +4,7 @@ What an agent building a section's figures needs: the plan-line format, the draw
 
 ## Inputs
 
-The section's `source.md` with its `{eq:id}` markers and `FIGURE` blocks; the `ost show` summaries of the chapter (variables with type, meaning, unit; equation ids) and the section (coverage rows); the book's `RULES.md` and `COLOR.md`; the chapter's `COLOR.md`; and `omnistax-web/src/lib/fig/figlib.ts`, the drawing layer every `figures.js` calls through `F`. The book's prose is verbatim and untouched; everything added is OmniStax's, set in the sans face and written in the book's voice.
+The section's `source.md` with its `{eq:id}` markers and `FIGURE` blocks; the `ost show` summaries of the chapter (variables with type, meaning, unit; `ost rows <book> forms --section N.M` for the form ids) and the section (coverage rows); the book's `RULES.md` and `COLOR.md`; the chapter's `COLOR.md`; and `omnistax-web/src/lib/fig/figlib.ts`, the drawing layer every `figures.js` calls through `F`. The book's prose is verbatim and untouched; everything added is OmniStax's, set in the sans face and written in the book's voice.
 
 ## 1. The plan line
 

@@ -120,7 +120,7 @@
          appendices of the chemistry book — keeps them in a folder, so the
          chapters are still the first thing under the book. */
       const sheetRow = (sh: SheetEntry, at: number): Row => ({
-        key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth: at, label: sh.title, icon: ICON.formulas,
+        key: `sheet:${bookId}/${sh.id}`, kind: 'sheet', depth: at, label: sh.title, icon: ICON.sheet,
         expandable: false, open: false, dim: false, book: m.id,
         active: activeKey === itemKey(sheetItem(m.id, sheetId(sh.id))),
       });

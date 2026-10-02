@@ -71,7 +71,7 @@
     const days = Math.floor((Date.now() - t) / DAY);
     return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days < 30 ? `${days} days ago` : new Date(t).toLocaleDateString();
   };
-  const where = (h: Hit): string => h.kind === 'text' ? pageLabel(h.page) : h.kind === 'concept' ? h.concept.section : h.kind === 'formula' ? h.equation.section : h.def.kind === 'symbol' ? h.def.symbol.section : h.def.term.section;
+  const where = (h: Hit): string => h.kind === 'text' ? pageLabel(h.page) : h.kind === 'concept' ? h.concept.section : h.kind === 'formula' ? h.form.section : h.symbol.section;
 </script>
 
 <div class="search">
@@ -104,14 +104,11 @@
               <span class="line name" use:mathHtml={h.concept.name}></span>
               {#if h.concept.status === 'built' && h.concept.statement}<span class="line statement">{h.concept.statement}</span>{/if}
             {:else if h.kind === 'formula'}
-              <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)}{#if h.equation.condition} · {h.equation.condition}{/if}</span>
-              <span class="line eq" use:tex={{ book: h.book, tex: h.equation.tex }}></span>
-            {:else if h.def.kind === 'symbol'}
-              <span class="where">{#if filter === 'all'}<i class="kind">symbol</i>{/if}{where(h)}</span>
-              <span class="line"><span class="sym" use:sym={{ book: h.book, sym: h.def.symbol.sym }}></span> {h.def.symbol.meaning}{#if h.def.symbol.unit} <span class="unit">{h.def.symbol.unit}</span>{/if}</span>
+              <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)}{#if h.form.condition} · {h.form.condition}{/if}</span>
+              <span class="line eq" use:tex={{ book: h.book, tex: h.form.tex }}></span>
             {:else}
-              <span class="where">{#if filter === 'all'}<i class="kind">term</i>{/if}{where(h)}</span>
-              <span class="line"><span class="term">{h.def.term.term}</span> {h.def.term.definition}</span>
+              <span class="where">{#if filter === 'all'}<i class="kind">symbol</i>{/if}{where(h)}</span>
+              <span class="line"><span class="sym" use:sym={{ book: h.book, sym: h.symbol.sym }}></span> {h.symbol.meaning}{#if h.symbol.unit} <span class="unit">{h.symbol.unit}</span>{/if}</span>
             {/if}
           </button>
         {/each}
@@ -174,7 +171,6 @@
   .eq :global(.katex){font-size:1em}
   .sym :global(.katex){font-size:1.1em}
   .unit{font-family:var(--mono);font-size:0.72rem;color:var(--muted)}
-  .term{font-weight:600}
   :global(.view-pane) input{font-size:0.92rem}
   :global(.view-pane) .line{font-size:0.9rem}
   :global(.view-pane) .where{font-size:0.76rem}

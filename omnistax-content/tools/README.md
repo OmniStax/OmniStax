@@ -23,7 +23,7 @@ takes `-h`. An error is one line on stderr and a non-zero exit.
 | `books` | every book, with its id, title and chapters built |
 | `show <book> [chapter] [section]` | a summary of the book, a chapter or a section |
 | `rows <book> <table> [filters]` | the rows of one table |
-| `find <book> <text>` | where a word lives: ids, titles, symbols, concepts, glossary terms, captions, prompts |
+| `find <book> <text>` | where a word lives: ids, titles, symbols, concepts and their glossary words, forms, captions, prompts |
 | `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, type, meaning; run it before adding a row |
 | `check <book> [--section N.M]` | the app's checker, filtered to the section if one is named |
 | `ids <book> <section>` | every id of the section's `text.html`, which an anchor, span, cite or place may name |
@@ -35,8 +35,8 @@ ost show chemistry-2e 1                     # the sections, built or not, with t
 ost show chemistry-2e 1.4                   # lead, figures, concepts by verb, exercises by kind, notes
 ost rows chemistry-2e concepts --where section=1.4
 ost rows chemistry-2e coverage --section 1.4 --where verb=introduces
-ost rows chemistry-2e glossary --chapter 1 --where term~densit --fields term,definition
-ost rows college-physics-2e equations --chapter 16 --json
+ost rows chemistry-2e concepts --chapter 1 --where terms~densit --fields id,symbol,statement
+ost rows college-physics-2e forms --chapter 16 --json
 ost find college-physics-2e hooke
 ost meanings college-physics-2e T_c
 ost check chemistry-2e --section 1.4
@@ -46,8 +46,10 @@ ost ids chemistry-2e 1.4
 `rows` takes any table of the three files:
 
 - `book.json`: `types`, `symbols`, `exercise_kinds`, `concepts`,
-  `concept_prereqs`, `sheets`
-- `chapter.json`: `sections`, `variables`, `equations`, `glossary`
+  `concept_prereqs`, `sheets`, and `forms`: every concept's forms as one
+  table, each row carrying its `concept` and the `section` it is stated in
+  (the concept's own where the form names none)
+- `chapter.json`: `sections`, `variables`
 - `section.json`: `figures`, `coverage`, `exercises`, `exercise_concepts`
 
 and these filters:
@@ -77,13 +79,15 @@ ost set chemistry-2e figures sim-density --section 1.4 '{"number": "1.26"}'
 ost del chemistry-2e coverage density/volume/uses --section 1.4
 ost add chemistry-2e concepts --chapter 1 \
   '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units", "statement": "…"}'
+ost add chemistry-2e forms \
+  '{"concept": "density", "id": "eq-mass-from-density", "latex": "m = dV", "anchor": "1.4-density"}'
 ```
 
 A row is named by its key fields joined with `/`: `figures`, `exercises`,
-`equations`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
+`forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
 by `sym`, `coverage` by `span/concept/verb`, `exercise_concepts` by
-`exercise/concept`, `glossary` by `section/term`, `variables` by `section/sym`,
-`concept_prereqs` by `concept/prereq`.
+`exercise/concept`, `variables` by `section/sym`, `concept_prereqs` by
+`concept/prereq`.
 
 What a write does, in order:
 
@@ -118,6 +122,12 @@ the chapter is merged under the lock. That is why those writes take `--chapter`.
 `exercise_kinds` and `sheets` are `book.json` rows no chapter stages, and a
 write to them is refused.
 
+A form is a row of its concept, so a write to `forms` is staged on the
+concept, in the chapter that owns the concept, wherever the form is stated,
+and takes no `--chapter`. A form is added after the concept's others; one
+written with `"main": true` becomes its first, the main form. A form moves to
+another concept by a `del` and an `add`.
+
 `mergebook`'s own two commands are here too, under the same lock, so that a
 chapter needs one tool:
 
@@ -130,28 +140,34 @@ ost log chemistry-2e 1       # append ch01/log-pass.md to LOG.md as the next pas
 merge of a chapter that is already merged changes no row but does move some: run
 it when there is something to merge.
 
-## The concept migration
+## The fold and the names
 
-`migrate_concepts.py` applies RULES item 6 to a book built before it, from one
-decision file per chapter, `<chapter>/concept-migration.json`: every existing
-concept's `kind`, the `statement`s rewritten, the concepts added, and the
-concept each glossary, variables and equations row names.
+`migrate_forms.py` folded each book's `equations` and `glossary` rows onto
+their concepts (issue #39): every equation became a form of its concept, the
+main form first, every glossary word one of its `terms`, and each concept took
+one `symbol` from the variables rows that name it: the one whose meaning is
+the concept itself, else the one written most often. An equation id the book
+used twice took its chapter's number where it came second. It writes
+`book.json`, the staged `book-rows.json` of every chapter and every
+`chapter.json` under the mergebook lock, and a folded book has nothing to
+change.
 
 ```
-python3 omnistax-content/tools/migrate_concepts.py check college-physics-2e      # every file
-python3 omnistax-content/tools/migrate_concepts.py check college-physics-2e 7    # one file
-python3 omnistax-content/tools/migrate_concepts.py apply college-physics-2e --dry-run
-python3 omnistax-content/tools/migrate_concepts.py apply college-physics-2e
+python3 omnistax-content/tools/migrate_forms.py college-physics-2e --dry-run
+python3 omnistax-content/tools/migrate_forms.py college-physics-2e
 ```
 
-A ref is a concept id, existing or in any file's `new`, or `@<name>`, matched
-without case against the names of both (before the first comma, `$…$` left
-out). `check` prints, per file, `ok` with its counts or each problem on its own
-line, and exits non-zero on a problem. `apply` writes nothing while any file of
-the book has a problem; otherwise it takes the mergebook lock and writes
-`book.json`, the staged `book-rows.json` of each chapter that keeps one (so a
-later merge keeps the result), the `chapter.json` rows, and the coverage row
-that introduces each new concept. Both are idempotent.
+`apply_names.py` applies concept name decisions, one file per chapter,
+`{"book", "chapter", "renames": [{"id", "from", "name", "statement"?, "formula"?}]}`:
+the new name, the new statement where one is given, and a formula the old name
+carried that no form states yet, as a new form (the main one of a concept that
+has none). It writes nothing unless every concept still has its old name or
+already the new one, and no two concepts of a book would share a name.
+
+```
+python3 omnistax-content/tools/apply_names.py names/ --dry-run
+python3 omnistax-content/tools/apply_names.py names/college-physics-2e-ch01.json
+```
 
 ## The checker
 
@@ -165,5 +181,5 @@ set `OMNISTAX_NODE_BIN` if node lives elsewhere.
     python3 -m unittest discover omnistax-content/tools/tests
 
 A fixture book is copied out of Chemistry 2e into a temp directory and the
-checker is mocked (`test_migrate_concepts.py` reads the same fixture), so the tests read and write real rows and never touch the
+checker is mocked, so the tests read and write real rows and never touch the
 books themselves.

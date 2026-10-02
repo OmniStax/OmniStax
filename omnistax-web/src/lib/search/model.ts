@@ -1,6 +1,6 @@
 /* The search in the rail: what a query finds across every textbook of the
    library, and how the finds are laid out. A book comes here as a corpus — its
-   concepts, its symbols and terms, its formula sheet and the blocks of its text
+   concepts with their terms and forms, its symbols and the blocks of its text
    — and a query finds a thing when every word of it is somewhere in the thing,
    case aside. The reader may ask for one kind of thing or for all of them; with
    all, the things the book names stand first — a concept, a definition, a
@@ -8,7 +8,7 @@
    at a count that keeps the list readable. What a query finds is worked out over
    an inverted index (index.ts); this file is what the index is built of and what
    a hit looks like. Pure: the store fetches, this only reads. */
-import type { ConceptDTO, EquationDTO, GlossaryDTO, VariableDTO } from '../content/schema';
+import type { ConceptDTO, FormDTO, VariableDTO } from '../content/schema';
 import { tokensOf, type TextPageDTO } from '../content/textindex';
 import { type Piece, pieces } from '../commands/pieces';
 /* The marked pieces of an excerpt travel with a hit, so whoever draws one
@@ -28,19 +28,17 @@ export type Corpus = {
   readonly title: string;
   readonly concepts: readonly ConceptDTO[];
   readonly variables: readonly VariableDTO[];
-  readonly glossary: readonly GlossaryDTO[];
-  readonly equations: readonly EquationDTO[];
   readonly pages: readonly TextPageDTO[];
   readonly urls: Readonly<Record<string, string>>;   /* the address of every built page, by its id: where a hit in another book is gone to */
 };
-export const emptyCorpus = (book: string, title: string): Corpus => ({ book, title, concepts: [], variables: [], glossary: [], equations: [], pages: [], urls: {} });
+export const emptyCorpus = (book: string, title: string): Corpus => ({ book, title, concepts: [], variables: [], pages: [], urls: {} });
 
 /* One thing found, and the book it was found in. A text hit carries the page and
    the span it lies in, and the words round the first word found, marked. */
 export type Hit =
   | { readonly kind: 'concept'; readonly book: string; readonly concept: ConceptDTO }
-  | { readonly kind: 'definition'; readonly book: string; readonly def: { readonly kind: 'symbol'; readonly symbol: VariableDTO } | { readonly kind: 'term'; readonly term: GlossaryDTO } }
-  | { readonly kind: 'formula'; readonly book: string; readonly equation: EquationDTO }
+  | { readonly kind: 'definition'; readonly book: string; readonly symbol: VariableDTO }
+  | { readonly kind: 'formula'; readonly book: string; readonly form: FormDTO; readonly concept: ConceptDTO }
   | { readonly kind: 'text'; readonly book: string; readonly page: TextPageDTO; readonly span: string; readonly head: string; readonly text: string; readonly excerpt: readonly Piece[] };
 
 /* The words of a query, lowercased and cut the way the index cuts a line; a blank
@@ -68,5 +66,4 @@ export const excerpt = (text: string, words: readonly string[], width = WIDTH): 
 /* What each thing is searched by: the name it is printed under and the line beside it. */
 export const conceptText = (c: ConceptDTO): string => `${c.id} ${c.name} ${c.status === 'built' ? c.statement ?? '' : ''}`;
 export const symbolText = (v: VariableDTO): string => `${v.sym} ${v.meaning} ${v.unit}`;
-export const termText = (t: GlossaryDTO): string => `${t.term} ${t.definition}`;
-export const equationText = (e: EquationDTO): string => `${e.id} ${e.latex} ${e.condition ?? ''}`;
+export const formText = (f: FormDTO): string => `${f.id} ${f.latex} ${f.condition ?? ''}`;

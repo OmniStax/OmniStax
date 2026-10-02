@@ -20,7 +20,7 @@ omnistax-content/<Book Title>/   one folder per book, named by the title in its 
   intro/                         the book's own introduction or preface, where it prints one (item 21)
   summary/                       the book's own closing summary, where it prints one (item 21)
   <chapter>/                     one folder per chapter
-    chapter.json                 sections, variables, equations, glossary
+    chapter.json                 sections, variables
     config.md                    the agreed defaults for the chapter (item 10)
     exploration.md               what the exploration phase found (item 1)
     intro/                       the chapter's own introduction, where the book prints one (item 21)
@@ -107,12 +107,37 @@ and an axiom or result has a claim. `evidence` went: the coverage rows and
 `exercise_concepts` already say where a concept is taught and tested. A
 concept carries every name and formula that states it, so a rearrangement is
 another form on the same node and a component of a vector belongs to its
-quantity's definition. Glossary, variables and equations rows name their
+quantity's definition. Glossary, variables and equations rows named their
 concept, and each concept has exactly one span that introduces it, which is
 what "Go to definition" opens.
 
 The existing books were migrated by one decision file per chapter, applied
-by `omnistax-content/tools/migrate_concepts.py`.
+by `omnistax-content/tools/migrate_concepts.py`, since retired.
+
+On 2026-10-02 the rows that named a concept folded onto it (issue #39). A
+concept whose word stood in the chapter's glossary, whose formulas stood in
+its equations and whose definition only pointed at both was four records that
+had to agree, and the app joined them back together in every view, card and
+search. Now the concept carries its glossary words as `terms`, the one
+`symbol` the book denotes it by, and its formulas as `forms`, the main form
+first, which is what the Reference view, the cards and the search lead with.
+The `important` flag that split the formula sheet from the derivation steps
+went with it: the main form is the one the sheet would have kept, and the
+rest stand behind it. The chapter's variables stay, since a symbol's meaning
+is per section and figures colour by them, but no view lists every variant on
+a definition any more. Forms live in `book.json` on their concept, because a
+concept is one record and the book file is read at build time only: a page
+fetches its chapter's `concepts.json`, which now carries the forms and the
+chapter's variables, so a chapter costs one request where it cost two.
+
+On 2026-10-02 names were cut to what a reader looks a concept up by. The
+first pass had written "Average speed, distance traveled divided by elapsed
+time" and "Centripetal force, $F_c = mv^2/r$": a name that carries its gloss
+or its formula repeats the statement and the forms, crowds every card and
+map node it sits on, and reads as a sentence where a reader scans for a
+word. So a definition is named by its term, a law or result by the book's
+name for it or by the fewest words that pick it out, and a skill by a short
+gerund phrase.
 
 ## 7. Colour is a function of type
 

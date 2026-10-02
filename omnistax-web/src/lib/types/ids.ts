@@ -76,8 +76,13 @@ export type DocKind = 'text';
    immediately before the concept map, since practice is the map's other face:
    the map says what the book teaches, and the exercises say how much of it the
    reader has made their own. */
-export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'formulas', 'definitions', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
+export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'reference', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
+/* The Definitions and the Formulas views became one Reference view (#39): what a
+   reader saved under either — a tab, a pinned scope, a chord for opening one —
+   is read as Reference. */
+export const retiredViewKeys = (saved: string): string =>
+  saved.replace(/"((?:view:|open-view-|show-view-)?)(?:formulas|definitions)((?:@[a-z0-9]{6})?)"/g, '"$1reference$2"');
 export const SIDEBAR_KINDS = ['explorer', 'search', 'annotations', 'pomodoro'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];
 export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_KINDS as readonly string[]).includes(kind);

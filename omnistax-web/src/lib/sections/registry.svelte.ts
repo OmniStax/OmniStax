@@ -4,9 +4,9 @@
    others are fetched as fragments on demand. A document may be shown in
    several groups: the first gets the adopted element, the rest get a copy
    built from the fragment source with its own exercises and figures. A
-   chapter's concepts and formulas are loaded on their own, since a view scoped
+   chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
-import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, FormulasDTO, ConceptDTO, CoverageDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
+import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
 import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, figItem, aboutItem, bookPageItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
@@ -19,12 +19,12 @@ import { decorateTerms } from '../hover';
 import { dragFigures } from '../notes/md/dragfig';
 import { foldControls } from './fold.svelte';
 import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
-import { EMPTY_FORMULAS, chapterConceptsOf } from '../content/bookdata';
-import { parseBookConcepts, parseBookFormulas } from '../practice/books';
+import { chapterConceptsOf } from '../content/bookdata';
+import { parseBookConcepts } from '../practice/books';
 
-/* When the book's own concepts.json and formulas.json are worth fetching over
-   the chapters' own files: a chapter file is about a tenth of the book file, so
-   the pair pays for itself only once most of the book is wanted at once, which
+/* When the book's own concepts.json is worth fetching over the chapters' own
+   files: a chapter file is about a tenth of the book file, so it pays for
+   itself only once most of the book is wanted at once, which
    is what the practice, the search and a book-scoped view ask for; the reading
    path asks for one chapter, and gets that chapter's files. */
 const bulkWorthwhile = (wanted: number, chapters: number): boolean => wanted > chapters / 2;
@@ -46,7 +46,7 @@ export type SectionState = {
   readonly status: SectionStatus;
   readonly error?: string;
 };
-export type ChapterData = { readonly concepts: ConceptsDTO; readonly formulas: FormulasDTO };
+export type ChapterData = ConceptsDTO;
 export type ChapterStatus = Exclude<SectionStatus, 'missing'>;
 /* "<book>/<dir>": a chapter's directory is book-local, like its sections. */
 export type ChapterKey = string & { readonly __brand: 'ChapterKey' };
@@ -61,7 +61,7 @@ export type RegistryInit = {
 type FigureScript = (root: HTMLElement, F: Fig) => void;
 
 const EMPTY_STATE: Omit<SectionState, 'status'> = { meta: null, exercises: [], docs: {}, src: {} };
-const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '', formulas: '' };
+const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '' };
 const BOOK_ID = /^[a-z0-9-]+$/;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
@@ -167,14 +167,16 @@ class Registry {
   /* Concept ids are canonical and a chapter reaches into the chapters before it, so two loaded chapters may name the same concept; the map draws it once. */
   concepts(book: BookId): readonly ConceptDTO[] {
     const seen = new Set<string>();
-    return this.chaptersOf(book).flatMap((c) => c.concepts.concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true)));
+    return this.chaptersOf(book).flatMap((c) => c.concepts).filter((k) => (seen.has(k.id) ? false : (seen.add(k.id), true)));
   }
-  coverage(book: BookId): readonly CoverageDTO[] { return this.chaptersOf(book).flatMap((c) => c.concepts.coverage); }
+  coverage(book: BookId): readonly CoverageDTO[] { return this.chaptersOf(book).flatMap((c) => c.coverage); }
+  /* Every meaning the loaded chapters give the book's symbols. */
+  variables(book: BookId): readonly VariableDTO[] { return this.chaptersOf(book).flatMap((c) => c.variables); }
   concept(book: BookId, id: string): ConceptDTO | undefined { return this.concepts(book).find((c) => c.id === id); }
   setChapter(book: BookId, dir: string, data: ChapterData): void { this.chapters = { ...this.chapters, [chapterKey(book, dir)]: data }; this.setChapterStatus(chapterKey(book, dir), 'loaded'); }
   private setChapterStatus(k: ChapterKey, status: ChapterStatus): void { this.chapterStatus = { ...this.chapterStatus, [k]: status }; }
 
-  /* A chapter's concepts and formulas, fetched once however many askers there are;
+  /* A chapter's concepts and symbols, fetched once however many askers there are;
      a chapter that will not load is remembered as failed rather than thrown at each of them. */
   loadChapter(book: BookId, dir: string): Promise<void> {
     const k = chapterKey(book, dir);
@@ -183,14 +185,14 @@ class Registry {
     const ch = this.books[book]?.chapters.find((c) => c.dir === dir);
     if (!ch) return Promise.reject(new Error(`unknown chapter ${k}`));
     this.setChapterStatus(k, 'loading');
-    const run = Promise.all([fetch(ch.concepts).then((r) => r.json()), fetch(ch.formulas).then((r) => r.json())])
-      .then(([concepts, formulas]) => this.setChapter(book, dir, { concepts, formulas }))
+    const run = fetch(ch.concepts).then((r) => r.json())
+      .then((data: ConceptsDTO) => this.setChapter(book, dir, data))
       .catch(() => this.setChapterStatus(k, 'failed'))
       .finally(() => { delete this.loadingChapters[k]; });
     return (this.loadingChapters[k] = run);
   }
-  /* Several chapters of one book at once. Past a handful of them the two
-     book-level files are the cheaper read, and what is already loaded or in
+  /* Several chapters of one book at once. Past a handful of them the
+     book-level file is the cheaper read, and what is already loaded or in
      flight is left to the fetch that owns it. */
   async loadChapters(book: BookId, dirs: readonly string[]): Promise<void> {
     const m = await this.ensureBook(book); if (!m) return;
@@ -199,18 +201,17 @@ class Registry {
     await Promise.all(dirs.map((d) => this.loadChapter(book, d)));
   }
 
-  /* The book's concepts and formulas in one pair of requests, spread over the
-     chapters asked for. Each of them is marked loading against this one
-     promise, so a chapter the shell asks for meanwhile waits on it rather than
-     fetching its own file; a pair that will not load leaves them all failed. */
+  /* The book's concepts in one request, spread over the chapters asked for.
+     Each of them is marked loading against this one promise, so a chapter the
+     shell asks for meanwhile waits on it rather than fetching its own file; a
+     file that will not load leaves them all failed. */
   private loadBulk(m: BookManifest, dirs: readonly string[]): Promise<void> {
     const keys = dirs.map((d) => chapterKey(m.id, d));
     keys.forEach((k) => this.setChapterStatus(k, 'loading'));
-    const run = Promise.all([fetch(m.concepts).then((r) => r.json()), fetch(m.formulas).then((r) => r.json())])
-      .then(([concepts, formulas]) => {
-        const book = parseBookConcepts(concepts);
-        const sheets = parseBookFormulas(formulas);
-        dirs.forEach((d) => this.setChapter(m.id, d, { concepts: chapterConceptsOf(book, d), formulas: sheets[d] ?? EMPTY_FORMULAS }));
+    const run = fetch(m.concepts).then((r) => r.json())
+      .then((raw) => {
+        const book = parseBookConcepts(raw);
+        dirs.forEach((d) => this.setChapter(m.id, d, chapterConceptsOf(book, d)));
       })
       .catch(() => keys.forEach((k) => this.setChapterStatus(k, 'failed')))
       .finally(() => keys.forEach((k) => { delete this.loadingChapters[k]; }));
@@ -300,7 +301,7 @@ class Registry {
       const e = m ? this.entry(ref) : undefined;
       if (!e || !e.built) { this.settle(ref, 'missing'); return; }
       const ch = this.chapterOf(ref);
-      /* A page of the book's own has no chapter, and so no concepts or formulas to fetch beside it. */
+      /* A page of the book's own has no chapter, and so no concepts to fetch beside it. */
       const chapterData = ch ? this.loadChapter(ref.book, ch.dir) : Promise.resolve();
       const script = new Promise<void>((res) => { const s = document.createElement('script'); s.src = e.figuresJs; s.onload = () => res(); s.onerror = () => res(); document.body.appendChild(s); });
       return Promise.all([chapterData, script, getText(e.fragment)])

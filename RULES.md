@@ -14,7 +14,7 @@ omnistax-content/<Book Title>/   one folder per book, named by the title in its 
   intro/                         the book's own introduction or preface, where it prints one (item 21)
   summary/                       the book's own closing summary, where it prints one (item 21)
   <chapter>/                     one folder per chapter
-    chapter.json                 sections, variables, equations, glossary
+    chapter.json                 sections, variables
     config.md                    the agreed defaults for the chapter (item 10)
     exploration.md               what the exploration phase found (item 1)
     intro/                       the chapter's own introduction, where the book prints one (item 21)
@@ -53,7 +53,7 @@ Write `plan.md` before building: the sub-concepts, the concept nodes and where e
 
 Everything the book teaches is a concept, one node in the book's concept table, whether or not an exercise tests it. A concept is one of five kinds. A **definition** is stipulated, a name for something (displacement, density, the joule). An **axiom** is what the book takes as given rather than derives, a postulate or a law found by experiment (F = ma, conservation of energy, Ohm's law). A **result** follows from other concepts, whether or not the book shows the steps (v = v₀ + at, the work–energy theorem). An **idea** deserves a place in the map but is none of those three (the Bohr model, wave–particle duality, the Michelson–Morley experiment). A **skill** is know-how for applying the others, usually to solve problems (drawing a free-body diagram, balancing an equation). The kind is what the book treats as given or derived, not a verdict on the subject. A constant or measured value (g, c) is an axiom when the book states it as a finding, and a sheet of the book when it is reference data.
 
-A concept row holds its name, kind, statement and prerequisite edges. The statement is the meaning of a definition and the claim of an axiom or result, in the book's voice. A concept carries the word and the symbol that name it and every formula that states it: a rearrangement (a = F/m beside F = ma) is another form on the same node, and a symbol's variants and components (a_x, B₁) belong to the definition of their quantity. Every glossary term is a concept. Each concept has exactly one span that introduces it, where the book first does, and the reader can always go there.
+A concept row holds its name, kind, statement and prerequisite edges, and is the one record of what it is: the glossary words that name it, the one symbol the book denotes it by, and every formula that states it, the main form first. A rearrangement (a = F/m beside F = ma) is another form on the same node, and a symbol's variants and components (a_x, B₁) are rows of the chapter's variables that name the definition of their quantity. The statement is the meaning of a definition and the claim of an axiom or result, in the book's voice. Every glossary term is a word of a concept. Each concept has exactly one span that introduces it, where the book first does, and the reader can always go there.
 
 Concepts are written to the tables as sections progress, never inferred from headers afterwards; later sections point back to earlier ids. Reference data a subject needs (the periodic table, constants, solubility tables) is a sheet of the book, not a kind of concept.
 

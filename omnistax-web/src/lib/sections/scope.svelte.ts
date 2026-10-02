@@ -12,11 +12,12 @@ import { UNKNOWN, inBook, atLevel, bookOfScope, choose, levelOf, narrow, parseSc
 import type { BookTree } from '../commands/browser';
 import type { ItemKey } from '../layout/model';
 import { readerWritesAllowed } from '../backup/guard';
+import { retiredViewKeys } from '../types/ids';
 
 const KEY = 'omnistax-scope-v2';
 const OLD = 'omnistax-scope';   /* { [kind]: sectionId }, the pins before views had levels */
 
-const read = (key: string): unknown => { try { return JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { return null; } };
+const read = (key: string): unknown => { try { return JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null')); } catch { return null; } };
 const load = (): Scopes => {
   try {
     if (localStorage.getItem(KEY) !== null) return parseScopes(read(KEY), UNKNOWN);

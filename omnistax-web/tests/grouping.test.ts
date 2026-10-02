@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countOf, groupBySection, label, outsideLabel, type ChapterGroup } from '../src/lib/sections/grouping';
+import { countOf, groupBySection, label, type ChapterGroup } from '../src/lib/sections/grouping';
 import { bookId, chapterId, sectionId, type SectionId } from '../src/lib/types/ids';
 import type { Target } from '../src/lib/sections/scope';
 import type { BookTree } from '../src/lib/commands/browser';
@@ -25,35 +25,23 @@ const book: Target = { level: 'book', book: BOOK.id };
 const chapter: Target = { level: 'chapter', book: BOOK.id, chapter: chapterId('16') };
 const section: Target = { level: 'section', book: BOOK.id, section: sectionId('16.3') };
 
-test('the book holds everything, in the order the book sets, and nothing is outside it', () => {
+test('the book holds everything, in the order the book sets', () => {
   const g = group(book);
-  assert.deepEqual(shape(g.inside), [['2', '2.1: speed'], ['16', '16.1: spring', '16.3: period, amplitude', '16.4: pendulum'], ['9.9', '9.9: lost']]);
-  assert.deepEqual(g.outside, []);
-  assert.equal(countOf(g.inside), ITEMS.length);
+  assert.deepEqual(shape(g), [['2', '2.1: speed'], ['16', '16.1: spring', '16.3: period, amplitude', '16.4: pendulum'], ['9.9', '9.9: lost']]);
+  assert.equal(countOf(g), ITEMS.length);
 });
-test('a chapter holds its own sections, built or not, and the rest of the book lies outside', () => {
-  const g = group(chapter);
-  assert.deepEqual(shape(g.inside), [['16', '16.1: spring', '16.3: period, amplitude', '16.4: pendulum']]);
-  assert.deepEqual(shape(g.outside), [['2', '2.1: speed'], ['9.9', '9.9: lost']]);
-  assert.equal(countOf(g.inside) + countOf(g.outside), ITEMS.length);
+test('a chapter holds its own sections, built or not, and nothing of the rest of the book', () => {
+  assert.deepEqual(shape(group(chapter)), [['16', '16.1: spring', '16.3: period, amplitude', '16.4: pendulum']]);
 });
-test('a section holds its own items, its siblings among the rest', () => {
-  const g = group(section);
-  assert.deepEqual(shape(g.inside), [['16', '16.3: period, amplitude']]);
-  assert.deepEqual(shape(g.outside), [['2', '2.1: speed'], ['16', '16.1: spring', '16.4: pendulum'], ['9.9', '9.9: lost']]);
+test('a section holds its own items and nothing of its siblings', () => {
+  assert.deepEqual(shape(group(section)), [['16', '16.3: period, amplitude']]);
 });
 test('a section with nothing to say is dropped, and so is a chapter of such sections', () => {
-  const g = groupBySection([item('speed', '2.1')], (i) => i.section, book, BOOK);
-  assert.deepEqual(shape(g.inside), [['2', '2.1: speed']]);
-  assert.deepEqual(groupBySection([], (i: Item) => i.section, book, BOOK), { inside: [], outside: [] });
+  assert.deepEqual(shape(groupBySection([item('speed', '2.1')], (i) => i.section, book, BOOK)), [['2', '2.1: speed']]);
+  assert.deepEqual(groupBySection([], (i: Item) => i.section, book, BOOK), []);
 });
 test('a chapter and a section are named by their titles, a place the book has lost by its id', () => {
   const g = group(book);
-  assert.deepEqual(g.inside.map((c) => label(c.chapter, c.title)), ['2 · Kinematics', '16 · Oscillatory Motion and Waves', '9.9']);
-  assert.deepEqual(g.inside[1].sections.map((s) => label(s.section, s.title)), ['16.1 · Hookes Law', '16.3 · Simple Harmonic Motion', '16.4 · The Simple Pendulum']);
-});
-test('the fold below the target names what is beyond it, and at the book names nothing', () => {
-  assert.equal(outsideLabel(section), 'Elsewhere in the chapter');
-  assert.equal(outsideLabel(chapter), 'Elsewhere in the book');
-  assert.equal(outsideLabel(book), '');
+  assert.deepEqual(g.map((c) => label(c.chapter, c.title)), ['2 · Kinematics', '16 · Oscillatory Motion and Waves', '9.9']);
+  assert.deepEqual(g[1].sections.map((s) => label(s.section, s.title)), ['16.1 · Hookes Law', '16.3 · Simple Harmonic Motion', '16.4 · The Simple Pendulum']);
 });

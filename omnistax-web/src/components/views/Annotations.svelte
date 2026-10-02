@@ -1,6 +1,5 @@
 <script lang="ts">
-  /* The reader's highlights for the place this view stands at, with whatever
-     lies outside it folded away below. Each one shows its colour, its quote as
+  /* The reader's highlights for the place this view stands at. Each one shows its colour, its quote as
      a link back into the text, and the annotation beneath it, which saves as it
      is typed.
 
@@ -14,7 +13,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { targetLabel, type Target } from '../../lib/sections/scope';
-  import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
+  import { countOf, groupBySection, label, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
   import { dragout } from '../../lib/notes/md/dragout';
   import { files } from '../../lib/files/store.svelte';
   import { fileMarks } from '../../lib/files/marks.svelte';
@@ -23,7 +22,7 @@
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
   const grouped = $derived(groupBySection(notes.list.filter((n) => n.book === target.book), (n) => n.section, target, registry.manifest(target.book)));
-  const inside = $derived(countOf(grouped.inside));
+  const inside = $derived(countOf(grouped));
   const openChapter = $derived(focus.section && focus.section.book === target.book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
@@ -113,11 +112,11 @@
 {#if inside === 0}
   <div class="blank">{blank}</div>
 {:else if target.level === 'section'}
-  {#each grouped.inside as c (c.chapter)}{#each c.sections as s (s.section)}{@render list(s.items)}{/each}{/each}
+  {#each grouped as c (c.chapter)}{#each c.sections as s (s.section)}{@render list(s.items)}{/each}{/each}
 {:else if target.level === 'chapter'}
-  {#each grouped.inside as c (c.chapter)}{#each c.sections as s (s.section)}{@render sectionGroup(s)}{/each}{/each}
+  {#each grouped as c (c.chapter)}{#each c.sections as s (s.section)}{@render sectionGroup(s)}{/each}{/each}
 {:else}
-  {#each grouped.inside as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
+  {#each grouped as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
 {/if}
 {#if fileCount}
   <details class="other" open>
@@ -126,12 +125,6 @@
       <div class="eyebrow">{g.file.name} · {plural(g.marks.length)}</div>
       {#each g.marks as m (m.id)}{@render fileCard(m)}{/each}
     {/each}
-  </details>
-{/if}
-{#if grouped.outside.length}
-  <details class="other">
-    <summary>{outsideLabel(target)} · {plural(countOf(grouped.outside))}</summary>
-    {#each grouped.outside as c (c.chapter)}{@render chapterGroup(c, false)}{/each}
   </details>
 {/if}
 

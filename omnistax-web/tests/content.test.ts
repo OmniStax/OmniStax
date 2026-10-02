@@ -15,7 +15,7 @@ const BOOK = BookSchema.parse({
     { id: 'displacement', kind: 'idea', section: '2.1', name: 'Displacement', statement: 'w' },
     { id: 'newtons-first-law', kind: 'idea', section: '4.2', name: 'Newton’s first law' },
     { id: 'restoring-force', kind: 'idea', section: '16.1', name: 'Restoring force', statement: 'w' },
-    { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', statement: 'w', eq: 'eq-hooke' },
+    { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', statement: 'w', forms: [{ id: 'eq-hooke', latex: 'F = -kx', ktex: '\\kF = -\\kk\\kx' }, { id: 'eq-dl', latex: 'F = k\\Delta L', section: '5.3' }] },
     { id: 'shm', kind: 'idea', section: '16.3', name: 'Simple harmonic motion' },
   ],
   concept_prereqs: [
@@ -66,6 +66,13 @@ test('a concept stands as a placeholder until the section that introduces it is 
   const none = conceptsOfChapter(BOOK, CH16, [], new Set()).concepts;
   assert.deepEqual(none.map((c) => c.status), ['placeholder', 'placeholder', 'placeholder', 'placeholder', 'placeholder']);
   assert.equal(none.find((c) => c.id === 'hookes-law' && c.status === 'placeholder' && !('statement' in c)) !== undefined, true, 'a placeholder states nothing');
+});
+
+test('a concept carries its forms placed, the main form first, each in the section that states it', () => {
+  const { concepts } = conceptsOfChapter(BOOK, CH16, [], new Set(['16.1']));
+  const hooke = concepts.find((c) => c.id === 'hookes-law');
+  assert.deepEqual(hooke?.forms.map((f) => [f.id, f.section, f.tex]), [['eq-hooke', '16.1', '\\kF = -\\kk\\kx'], ['eq-dl', '5.3', 'F = k\\Delta L']]);
+  assert.deepEqual(concepts.find((c) => c.id === 'shm')?.forms, []);
 });
 
 test('a page binds the union of what its figures draw, in one order', () => {

@@ -29,25 +29,25 @@ with sync_playwright() as p:
     print('3 tabs:', tabs(pg), canv(pg), 'url:', pg.url, 'title:', pg.title(), 'cards:', len(pg.query_selector_all('.exercise')))
     # 3b a view walks the levels: Left widens to the book, Right narrows back to the section, and a
     # view opened in a group is named by where it stands
-    js('.rail button', 3); pg.wait_for_timeout(700)   # the rail's third view: Formulas, in a page of its own
-    pg.dispatch_event('.view[data-view="formulas"]', 'pointerdown'); pg.wait_for_timeout(150)
+    js('.rail button', 3); pg.wait_for_timeout(700)   # the rail's third view: Reference, in a page of its own
+    pg.dispatch_event('.view[data-view="reference"]', 'pointerdown'); pg.wait_for_timeout(150)
     pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(200); pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(400)
-    print('3b widened to:', crumb(pg, 'formulas'))
+    print('3b widened to:', crumb(pg, 'reference'))
     pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(200); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(400)
-    print('3b narrowed to:', crumb(pg, 'formulas'), 'focused section:', pg.evaluate('document.querySelector(".group.focus .pane:not([hidden]) [data-sec]")?.dataset.sec'))
+    print('3b narrowed to:', crumb(pg, 'reference'), 'focused section:', pg.evaluate('document.querySelector(".group.focus .pane:not([hidden]) [data-sec]")?.dataset.sec'))
     # the section crumb's chevron names the other sections: choosing one away from the open page pins the view, choosing the open page's own follows again
-    rows = lambda: pg.eval_on_selector_all('.view[data-view="formulas"] .menu .row', 'rs=>rs.map(r=>r.innerText.replace(/\\s+/g," "))')
-    pick = lambda sec: pg.evaluate('s=>[...document.querySelectorAll(\'.view[data-view="formulas"] .menu .row\')].find(r=>r.textContent.startsWith(s)).click()', sec)
-    pinned = lambda: pg.eval_on_selector('.view[data-view="formulas"] .pin', 'b=>b.getAttribute("aria-pressed")')
-    js('.view[data-view="formulas"] .chev', 1); pg.wait_for_timeout(250)
-    print('3b section menu:', rows()[:3], 'standing on:', pg.eval_on_selector_all('.view[data-view="formulas"] .menu .row[aria-selected="true"]', 'rs=>rs.map(r=>r.innerText)'))
-    pick('2.1'); pg.wait_for_timeout(400); print('3b chose 2.1:', crumb(pg, 'formulas'), 'pinned:', pinned())
-    js('.view[data-view="formulas"] .chev', 1); pg.wait_for_timeout(250)
-    pick('2.5'); pg.wait_for_timeout(400); print('3b chose the open page:', crumb(pg, 'formulas'), 'pinned:', pinned())
-    pg.keyboard.press('Control+k'); pg.wait_for_timeout(300); pg.keyboard.type('Open Formulas'); pg.wait_for_timeout(300)
+    rows = lambda: pg.eval_on_selector_all('.view[data-view="reference"] .menu .row', 'rs=>rs.map(r=>r.innerText.replace(/\\s+/g," "))')
+    pick = lambda sec: pg.evaluate('s=>[...document.querySelectorAll(\'.view[data-view="reference"] .menu .row\')].find(r=>r.textContent.startsWith(s)).click()', sec)
+    pinned = lambda: pg.eval_on_selector('.view[data-view="reference"] .pin', 'b=>b.getAttribute("aria-pressed")')
+    js('.view[data-view="reference"] .chev', 1); pg.wait_for_timeout(250)
+    print('3b section menu:', rows()[:3], 'standing on:', pg.eval_on_selector_all('.view[data-view="reference"] .menu .row[aria-selected="true"]', 'rs=>rs.map(r=>r.innerText)'))
+    pick('2.1'); pg.wait_for_timeout(400); print('3b chose 2.1:', crumb(pg, 'reference'), 'pinned:', pinned())
+    js('.view[data-view="reference"] .chev', 1); pg.wait_for_timeout(250)
+    pick('2.5'); pg.wait_for_timeout(400); print('3b chose the open page:', crumb(pg, 'reference'), 'pinned:', pinned())
+    pg.keyboard.press('Control+k'); pg.wait_for_timeout(300); pg.keyboard.type('Open Reference'); pg.wait_for_timeout(300)
     pg.keyboard.press('Enter'); pg.wait_for_timeout(600)
-    print('3b formulas tab:', [t for g in tabs(pg) for t in g if t.startswith('Formulas')])
-    pg.evaluate('[...document.querySelectorAll(".tab")].find(t=>t.querySelector(".ttl").textContent.startsWith("Formulas")).querySelector(".x").click()'); pg.wait_for_timeout(400)
+    print('3b reference tab:', [t for g in tabs(pg) for t in g if t.startswith('Reference')])
+    pg.evaluate('[...document.querySelectorAll(".tab")].find(t=>t.querySelector(".ttl").textContent.startsWith("Reference")).querySelector(".x").click()'); pg.wait_for_timeout(400)
     # 4 map scoped to 2.5 shows displacement ext node; click it -> pins and jumps to 2.1 copy
     js('.rail button', 2); pg.wait_for_timeout(2000)   # the rail's second view: the concept map, in a page of its own
     ext = pg.eval_on_selector_all('.dag .node.ext','ns=>ns.map(n=>n.dataset.id)'); print('4 ext nodes:', ext)

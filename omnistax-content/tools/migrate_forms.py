@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""Fold a book's equations and glossary rows onto their concepts (issue #39).
+
+Before the fold a concept's facts stood in four tables: `book.json` `concepts`,
+and each chapter's `equations`, `glossary` and `variables`. After it the concept
+is the one record:
+
+- every equations row becomes one of its concept's `forms`, keeping its id; the
+  main form comes first: the concept's old `eq` where that is an important
+  equation of its own, else its first important equation, else its first;
+- every glossary row's word joins its concept's `terms`, and the glossary's own
+  definition is dropped, since a built concept states itself;
+- the concept takes one `symbol` from the variables rows that name it: one
+  whose meaning is the concept itself, else the one written most often, else
+  one of its own section; a concept of another kind than definition takes one
+  only where a row's meaning is plainly the concept;
+- `eq`, `equations`, `glossary` and `important` are gone.
+
+An equation id the book uses twice keeps it where it comes first and takes the
+chapter's number after it elsewhere (`eq-efficiency` in ch15 is
+`eq-efficiency-15`). A concept's `eq` that names another concept's equation is
+dropped with the rest of `eq`.
+
+    python3 omnistax-content/tools/migrate_forms.py <book> [--dry-run]
+
+Writes book.json, every chapter's staged book-rows.json and every chapter.json
+under the mergebook lock. A book already folded has nothing to change.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import sys
+from dataclasses import dataclass, field
+from typing import Optional, Sequence
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ost  # noqa: E402
+
+ConceptId = str
+EquationId = str
+ChapterDir = str
+RowDTO = dict
+RecordDTO = dict
+
+FORM_FIELDS = ("id", "latex", "ktex", "condition", "section", "anchor")
+CONCEPT_ORDER = ("id", "kind", "section", "name", "symbol", "terms", "statement", "forms")
+
+
+@dataclass(frozen=True)
+class Equation:
+    chapter: ChapterDir
+    row: RowDTO
+
+
+@dataclass
+class Fold:
+    forms: dict[ConceptId, list[RowDTO]] = field(default_factory=dict)
+    terms: dict[ConceptId, list[str]] = field(default_factory=dict)
+    symbols: dict[ConceptId, str] = field(default_factory=dict)
+    renamed: list[tuple[EquationId, EquationId]] = field(default_factory=list)
+
+
+def chapter_number(d: ChapterDir) -> str:
+    return str(int(d[2:]))
+
+
+def unique_ids(equations: Sequence[Equation]) -> tuple[list[Equation], list[tuple[str, str]]]:
+    """The equations with every id the book uses twice made unique, and what was renamed."""
+    seen: set[str] = set()
+    out, renamed = [], []
+    for e in equations:
+        eid = e.row["id"]
+        if eid in seen:
+            new = f"{eid}-{chapter_number(e.chapter)}"
+            n = 2
+            while new in seen:
+                new, n = f"{eid}-{chapter_number(e.chapter)}-{n}", n + 1
+            renamed.append((f"{e.chapter}:{eid}", new))
+            e = Equation(e.chapter, {**e.row, "id": new})
+        seen.add(e.row["id"])
+        out.append(e)
+    return out, renamed
+
+
+def form_of(row: RowDTO, home: str) -> RowDTO:
+    form = {k: row[k] for k in FORM_FIELDS if k in row and row[k] not in (None, "")}
+    return {k: v for k, v in form.items() if not (k == "section" and v == home)}
+
+
+def main_first(rows: list[RowDTO], hint: Optional[str]) -> list[RowDTO]:
+    """The main form first: the hinted one where it is important, else the first important one, else the first."""
+    important = [r for r in rows if r.get("important")]
+    main = next((r for r in important if r["id"] == hint), None) or (important[0] if important else rows[0])
+    return [main] + [r for r in rows if r is not main]
+
+
+def names_it(row: RowDTO, name: str) -> bool:
+    """Whether a variables row's meaning is the concept itself ("time, one of the four
+    fundamental quantities") rather than a variant of it ("the time at the beginning")."""
+    meaning = re.sub(r"^(the|an|a)\s+", "", str(row.get("meaning", "")).lower().strip())
+    return re.match(re.escape(name.lower().strip()) + r"\s*($|[,;(:—–-])", meaning) is not None
+
+
+def symbol_of(rows: Sequence[RowDTO], concept: RowDTO) -> Optional[str]:
+    """The symbol the book denotes the concept by: of its variables rows, one whose
+    meaning is the concept itself, then the symbol written most often, then one of
+    its own section, then the first. A concept of another kind than definition
+    takes one only where a row's meaning is plainly the concept: a law is not
+    denoted by one of its symbols."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["sym"]] = counts.get(r["sym"], 0) + 1
+    ranked = sorted(enumerate(rows), key=lambda ir: (not names_it(ir[1], concept["name"]), -counts[ir[1]["sym"]],
+                                                        ir[1].get("section") != concept["section"], ir[0]))
+    best = ranked[0][1] if ranked else None
+    if best is None or (concept["kind"] != "definition" and not names_it(best, concept["name"])):
+        return None
+    return best["sym"]
+
+
+def fold_of(concepts: Sequence[RowDTO], chapters: dict[ChapterDir, RecordDTO]) -> Fold:
+    home = {c["id"]: c["section"] for c in concepts}
+    by_id = {c["id"]: c for c in concepts}
+    hint = {c["id"]: c.get("eq") for c in concepts}
+    equations, renamed = unique_ids([Equation(d, e) for d, ch in chapters.items() for e in ost.rows_of(ch, "equations")])
+    fold = Fold(renamed=renamed)
+    by_concept: dict[ConceptId, list[RowDTO]] = {}
+    for e in equations:
+        cid = e.row.get("concept")
+        if cid in home:
+            by_concept.setdefault(cid, []).append(e.row)
+    fold.forms = {cid: [form_of(r, home[cid]) for r in main_first(rows, hint.get(cid))] for cid, rows in by_concept.items()}
+    for ch in chapters.values():
+        for g in ost.rows_of(ch, "glossary"):
+            cid, term = g.get("concept"), g.get("term", "").strip()
+            words = fold.terms.setdefault(cid, []) if cid in home else None
+            if words is not None and term and term.lower() not in {w.lower() for w in words}:
+                words.append(term)
+    variables: dict[ConceptId, list[RowDTO]] = {}
+    for ch in chapters.values():
+        for v in ost.rows_of(ch, "variables"):
+            if v.get("concept") in home:
+                variables.setdefault(v["concept"], []).append(v)
+    fold.symbols = {cid: s for cid, rows in variables.items() if (s := symbol_of(rows, by_id[cid])) is not None}
+    return fold
+
+
+def folded(c: RowDTO, fold: Fold) -> RowDTO:
+    """A concept row with its symbol, terms and forms, `eq` gone; what it already carries is kept."""
+    cid = c["id"]
+    terms = list(c.get("terms", [])) + [t for t in fold.terms.get(cid, []) if t.lower() not in {w.lower() for w in c.get("terms", [])}]
+    forms = list(c.get("forms", [])) + [f for f in fold.forms.get(cid, []) if f["id"] not in {g["id"] for g in c.get("forms", [])}]
+    cell = {**{k: v for k, v in c.items() if k != "eq"},
+            **({"symbol": c.get("symbol") or fold.symbols[cid]} if c.get("symbol") or cid in fold.symbols else {}),
+            **({"terms": terms} if terms else {}), **({"forms": forms} if forms else {})}
+    return {k: cell[k] for k in [*CONCEPT_ORDER, *[k for k in cell if k not in CONCEPT_ORDER]] if k in cell}
+
+
+def chapter_after(record: RecordDTO) -> RecordDTO:
+    return {k: v for k, v in record.items() if k not in ("equations", "glossary")}
+
+
+def plan(book: ost.Book) -> tuple[dict[str, RecordDTO], Fold]:
+    record = ost.load(book.book_path)
+    chapters = {d: ost.load(os.path.join(book.dir, d, "chapter.json"))
+                for d in ost.chapter_dirs(book) if os.path.exists(os.path.join(book.dir, d, "chapter.json"))}
+    fold = fold_of(ost.rows_of(record, "concepts"), chapters)
+    writes: dict[str, RecordDTO] = {}
+    after = {**record, "concepts": [folded(c, fold) for c in ost.rows_of(record, "concepts")]}
+    if after != record:
+        writes[book.book_path] = after
+    for d, ch in chapters.items():
+        path = os.path.join(book.dir, d, "chapter.json")
+        if chapter_after(ch) != ch:
+            writes[path] = chapter_after(ch)
+        staged_path = os.path.join(book.dir, d, "book-rows.json")
+        if os.path.exists(staged_path):
+            staged = ost.load(staged_path)
+            staged_after = {**staged, "concepts": [folded(c, fold) for c in ost.rows_of(staged, "concepts")]}
+            if staged_after != staged:
+                writes[staged_path] = staged_after
+    return writes, fold
+
+
+def run(book_id: str, dry_run: bool) -> int:
+    book = ost.book_of(book_id)
+    writes, fold = plan(book)
+    print(f"{book.id}: {sum(len(f) for f in fold.forms.values())} forms on {len(fold.forms)} concepts, "
+          f"{sum(len(t) for t in fold.terms.values())} terms on {len(fold.terms)}, {len(fold.symbols)} symbols")
+    for old, new in fold.renamed:
+        print(f"  renamed {old} -> {new}")
+    for path in writes:
+        print(f"{'would write' if dry_run else 'writes'} {os.path.relpath(path, book.dir)}")
+    if not dry_run:
+        for path, record in writes.items():
+            ost.write_record(path, record)
+    print("nothing to change" if not writes else f"{len(writes)} files {'to write' if dry_run else 'written'}")
+    return 0
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    p = argparse.ArgumentParser(prog="migrate_forms", description=__doc__.split("\n\n")[0])
+    p.add_argument("book")
+    p.add_argument("--dry-run", action="store_true", help="say what would change and write nothing")
+    args = p.parse_args(argv)
+    result: list[int] = []
+    try:
+        ost.under_lock(lambda: result.append(run(args.book, args.dry_run)))
+    except ost.Refused as e:
+        print(f"migrate_forms: {e}", file=sys.stderr)
+        return 1
+    return result[0]
+
+
+if __name__ == "__main__":
+    sys.exit(main())

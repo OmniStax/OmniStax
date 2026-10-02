@@ -14,7 +14,7 @@ const RAW_MANIFEST = {
   id: 'up', title: 'University Physics', publisher: 'OpenStax', license: 'CC BY 4.0',
   chapters: [
     {
-      id: '15', dir: 'ch15', title: 'Oscillations', concepts: '/up/ch15/concepts.json', formulas: '/up/ch15/formulas.json',
+      id: '15', dir: 'ch15', title: 'Oscillations', concepts: '/up/ch15/concepts.json',
       sections: [
         { id: '15.1', title: 'Simple Harmonic Motion', built: true, url: '/up/ch15/15.1/', fragment: '/up/ch15/15.1/doc.html', figuresJs: '/up/ch15/15.1/figures.js' },
         { id: '15.9', title: 'Damping', built: false, url: '/up/ch15/15.9/' },
@@ -27,7 +27,7 @@ const RAW_MANIFEST = {
   ],
 };
 
-const concept = (id: string, section: string, name: string, prereqs: string[] = []): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'idea', section: sectionId(section), name, prereqs: prereqs.map(conceptId) });
+const concept = (id: string, section: string, name: string, prereqs: string[] = []): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'idea', section: sectionId(section), name, terms: [], forms: [], prereqs: prereqs.map(conceptId) });
 const ex = (id: string, concepts: string[]): ExerciseDTO => ({ id, sourceId: id, kind: 'problem', bloom: 'Apply', concepts: concepts.map(conceptId), place: { at: 'end' }, prompt: id, answer: { type: 'open', generated_by: 'source' } });
 
 const HOME: Catalog = {

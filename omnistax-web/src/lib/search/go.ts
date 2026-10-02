@@ -1,8 +1,7 @@
 /* Going to a hit, of whatever book: it opens the page it lies in as a tab and
    lands on the thing itself: the paragraph a block of prose was cut from, found
    again by its opening words; the span that introduces a concept; the span a
-   symbol or a formula is anchored to; the first mention of a term, which the
-   prose marks. */
+   symbol or a form is anchored to. */
 import { spansOf } from '../sections/concepts.svelte';
 import { findEl, goSpan, jump, openDoc } from '../sections/nav.svelte';
 import { registry } from '../sections/registry.svelte';
@@ -27,12 +26,6 @@ const hostOf = (book: BookId, page: string, span: string): HTMLElement | null =>
 const goText = (book: BookId, page: string, span: string, text: string): void => {
   void openDoc(sectionRef(book, sectionId(page)), 'text').then(() => { const host = hostOf(book, page, span); if (host) jump(blockIn(host, text), 'center'); });
 };
-const goTerm = (book: BookId, section: string, term: string): void => {
-  void openDoc(sectionRef(book, sectionId(section)), 'text').then(() => {
-    const host = articleOf(book, section); if (!host) return;
-    jump(host.querySelector<HTMLElement>(`.term[data-term="${CSS.escape(term)}"]`) ?? host, 'center');
-  });
-};
 const goAnchored = (book: BookId, section: string, anchor: string | undefined): void => { if (anchor) goSpan(spanRef(book, spanId(anchor))); else void openDoc(sectionRef(book, sectionId(section)), 'text'); };
 
 /* The concept's coverage lives in its chapter, which is loaded before the spans are read. */
@@ -49,10 +42,7 @@ export const goHit = (hit: Hit): void => {
   switch (hit.kind) {
     case 'text': goText(book, hit.page.id, hit.span, hit.text); return;
     case 'concept': void goConcept(book, hit.concept.id, hit.concept.section); return;
-    case 'definition':
-      if (hit.def.kind === 'symbol') goAnchored(book, hit.def.symbol.section, hit.def.symbol.anchor);
-      else goTerm(book, hit.def.term.section, hit.def.term.term);
-      return;
-    case 'formula': goAnchored(book, hit.equation.section, hit.equation.anchor);
+    case 'definition': goAnchored(book, hit.symbol.section, hit.symbol.anchor); return;
+    case 'formula': goAnchored(book, hit.form.section, hit.form.anchor);
   }
 };

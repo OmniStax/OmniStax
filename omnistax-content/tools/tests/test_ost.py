@@ -71,7 +71,7 @@ class TestReading(Fixture):
     def test_rows_filters_a_book_table_by_section(self):
         text, code = run("rows", "chemistry-2e", "concepts", "--where", "section=1.4")
         self.assertEqual(code, 0)
-        self.assertEqual(len(text.strip().splitlines()), 8)
+        self.assertEqual(len(text.strip().splitlines()), 22)
         self.assertTrue(all(" · 1.4 · " in ln for ln in text.strip().splitlines()))
 
     def test_rows_reads_only_the_section_it_is_given(self):
@@ -80,9 +80,14 @@ class TestReading(Fixture):
         self.assertNotIn("uses", text)
 
     def test_rows_matches_a_substring_and_projects_fields(self):
-        text, _ = run("rows", "chemistry-2e", "glossary", "--chapter", "1",
-                      "--where", "term~densit", "--fields", "term")
-        self.assertEqual(text.strip(), "density")
+        text, _ = run("rows", "chemistry-2e", "concepts", "--chapter", "1",
+                      "--where", "terms~densit", "--fields", "id,symbol")
+        self.assertEqual(text.strip(), "density · d")
+
+    def test_forms_are_a_table_of_their_own(self):
+        text, code = run("rows", "chemistry-2e", "forms", "--section", "1.4", "--fields", "id,concept,section")
+        self.assertEqual(code, 0)
+        self.assertEqual(text.strip(), "eq-density · density · 1.4")
 
     def test_rows_json_is_the_rows_as_they_sit_on_disk(self):
         text, _ = run("rows", "chemistry-2e", "figures", "--section", "1.4", "--json")
@@ -147,7 +152,7 @@ class TestWriting(Fixture):
         text, code = run("add", "chemistry-2e", "coverage", "--section", "1.4",
                          '{"span": "density", "concept": "volume", "verb": "reinforces"}')
         self.assertEqual(code, 0)
-        self.assertIn("1.4/section.json coverage now has 26 rows", text)
+        self.assertIn("1.4/section.json coverage now has 40 rows", text)
         self.assertIn("ok", text)
         ost.run_checker.assert_called_once_with("chemistry-2e")
         self.assertIn({"span": "density", "concept": "volume", "verb": "reinforces"}, self.rows("coverage"))
@@ -184,7 +189,7 @@ class TestWriting(Fixture):
 
     def test_del_removes_one_row_named_by_its_key(self):
         run("del", "chemistry-2e", "coverage", "three-parts/scientific-notation/introduces", "--section", "1.4")
-        self.assertEqual(len(self.rows("coverage")), 24)
+        self.assertEqual(len(self.rows("coverage")), 38)
         self.assertEqual(run("del", "chemistry-2e", "coverage", "nowhere", "--section", "1.4")[1], 1)
 
     def test_a_book_table_is_never_written_by_hand(self):
@@ -198,7 +203,21 @@ class TestWriting(Fixture):
         self.assertEqual(self.read(os.path.join(self.book, "book.json")), before)
         staged = json.loads(self.read(os.path.join(self.book, "ch01", "book-rows.json")))
         self.assertIn("unit-conversion", [c["id"] for c in staged["concepts"]])
-        self.assertEqual(len([c for c in staged["concepts"] if c["section"] == "1.4"]), 9)
+        self.assertEqual(len([c for c in staged["concepts"] if c["section"] == "1.4"]), 23)
+
+    def test_a_form_is_staged_on_its_concept_and_can_be_made_main(self):
+        with mock.patch.object(ost, "merge_chapter") as merge:
+            text, code = run("add", "chemistry-2e", "forms",
+                             '{"concept": "density", "id": "eq-mass-from-density", "latex": "m = dV", "section": "1.4", "main": true}')
+        self.assertEqual(code, 0)
+        merge.assert_called_once()
+        self.assertIn("ch01/book-rows.json density now has 2 forms", text)
+        staged = json.loads(self.read(os.path.join(self.book, "ch01", "book-rows.json")))
+        density = next(c for c in staged["concepts"] if c["id"] == "density")
+        self.assertEqual([f["id"] for f in density["forms"]], ["eq-mass-from-density", "eq-density"])
+        self.assertEqual(density["forms"][0], {"id": "eq-mass-from-density", "latex": "m = dV"})
+        self.assertEqual(run("add", "chemistry-2e", "forms", '{"concept": "density", "id": "eq-density", "latex": "x"}')[1], 1)
+        self.assertEqual(run("set", "chemistry-2e", "forms", "eq-density", '{"concept": "volume"}')[1], 1)
 
     def test_a_book_table_no_chapter_stages_is_refused(self):
         self.assertEqual(run("add", "chemistry-2e", "sheets", "--chapter", "1",

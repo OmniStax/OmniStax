@@ -30,7 +30,7 @@ export type HighlightInfo = { readonly quote: string; readonly color: string; re
    sees the tables, only the answer. A symbol and an equation are set in TeX, so
    they carry the source the view hands to the book's own renderer, which knows
    the macros the book writes its symbols with. */
-export type EquationInfo = { readonly tex: string; readonly condition?: string; readonly important: boolean; readonly conceptName?: string; readonly anchor?: string; readonly section: string };
+export type EquationInfo = { readonly tex: string; readonly condition?: string; readonly conceptName?: string; readonly anchor?: string; readonly section: string };
 export type TermInfo = { readonly term: string; readonly definition: string; readonly section: string };
 export type SymbolInfo = { readonly sym: string; readonly tex: string; readonly meaning: string; readonly unit: string; readonly typeLabel?: string; readonly section: string; readonly anchor?: string };
 /* A figure of the book, held in a note: the eyebrow the section prints above it
@@ -174,7 +174,7 @@ const cardHtml = (t: BookTarget, c: Card): string =>
 const bookCard = (t: BookTarget, r: Resolver): Card | null => {
   if (t.kind === 'equation') {
     const e = r.equation(t.section, t.id, t.book); if (!e) return null;
-    return { eyebrow: meta('Equation', e.important ? 'important' : undefined, e.section, e.condition), lines: [{ tex: e.tex }, { cls: 'embed-body', text: e.conceptName ?? '' }] };
+    return { eyebrow: meta('Equation', e.section, e.condition), lines: [{ tex: e.tex }, { cls: 'embed-body', text: e.conceptName ?? '' }] };
   }
   if (t.kind === 'term') {
     const g = r.term(t.section, t.term, t.book); if (!g) return null;

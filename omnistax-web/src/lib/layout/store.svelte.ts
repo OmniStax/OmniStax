@@ -2,7 +2,7 @@
    functions, saved to this browser after every change. */
 import type { ItemKey, Layout } from './model';
 import { closeGroup, closeItem, reopenGroup, defaultLayout, ensureOwn, firstLayout, migratedV5, openTab, parseLayout, renamedSimKeys } from './model';
-import { type BookId, type ItemId, aboutItem } from '../types/ids';
+import { type BookId, type ItemId, aboutItem, retiredViewKeys } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-layout-v6';
@@ -17,9 +17,9 @@ type Closed =
   | { readonly kind: 'group'; readonly tabs: readonly ItemKey[]; readonly active: ItemKey | null; readonly group: number };
 const saved = (book: BookId): unknown => {
   const v6 = localStorage.getItem(KEY);
-  if (v6 !== null) return JSON.parse(v6);
+  if (v6 !== null) return JSON.parse(retiredViewKeys(v6));
   const v5 = localStorage.getItem(V5);
-  return v5 === null ? null : migratedV5(JSON.parse(renamedSimKeys(v5)), book);
+  return v5 === null ? null : migratedV5(JSON.parse(retiredViewKeys(renamedSimKeys(v5))), book);
 };
 const load = (own: ItemId, known: (k: string) => boolean, book: BookId): Layout => {
   try { const parsed = parseLayout(saved(book), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
