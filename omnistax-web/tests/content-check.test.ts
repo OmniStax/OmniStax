@@ -233,7 +233,7 @@ test('checkConceptLinks: a variables row that names no concept', () => {
   assert.deepEqual(found.map((f) => f.level), [level]);
   assert.deepEqual(said(found), ['ch16/chapter.json variables[16.1/k]: names no concept']);
 });
-test('checkConceptNames: two forms of one id are an error', () => {
+test('checkConceptNames: two forms of one id and two concepts of one name are errors', () => {
   assert.deepEqual(run(checkConceptNames), []);
   const form = (id: string) => ({ id, latex: 'F' });
   const concepts = [
@@ -241,5 +241,5 @@ test('checkConceptNames: two forms of one id are an error', () => {
     { id: 'spring', kind: 'idea', section: '16.1', name: 'hooke’s law', statement: 'w', terms: ['power'], forms: [form('eq-hooke')] },
   ];
   const found = checkConceptNames(fixture({ book: { concepts } }));
-  assert.deepEqual(found.map((f) => [f.level, f.what]), [['error', 'share the form id "eq-hooke"']], 'a glossary word on two concepts is the book glossing it twice');
+  assert.deepEqual(found.map((f) => [f.level, f.what]), [['error', 'share the form id "eq-hooke"'], ['error', 'share the name "hooke’s law"']], 'a glossary word on two concepts is the book glossing it twice');
 });

@@ -292,8 +292,8 @@ references:
   introduces it;
 - every variables row names a concept (a warning until
   `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
-- no two forms of the book share an id, and no two concepts a name (a
-  warning); two concepts may share a glossary word, since the book glosses
+- no two forms of the book share an id, and no two concepts a name; two
+  concepts may share a glossary word, since the book glosses
   some words twice ("power" of a force and of a lens) and the reader's place
   says which is meant;
 - every `draws` entry is a declared type;

@@ -356,8 +356,9 @@ export const checkConceptLinks: Check = (content) => {
 };
 
 /* A form is named by its id wherever the text, an answer or a note names it,
-   so no two forms of the book share one. A glossary word may stand on two
-   concepts, since the book glosses some words twice ("power" of a force and of
+   so no two forms of the book share one; and a reader looks a concept up by
+   its name, so no two concepts of the book share one. A glossary word may
+   stand on two concepts, since the book glosses some words twice ("power" of a force and of
    a lens), and the reader's place says which is meant. */
 export const checkConceptNames: Check = (content) => {
   const twice = <T,>(rows: readonly T[], key: (row: T) => string): ReadonlyMap<string, readonly T[]> => {
@@ -366,8 +367,10 @@ export const checkConceptNames: Check = (content) => {
     return new Map([...by].filter(([, rs]) => rs.length > 1));
   };
   const forms = content.book.concepts.flatMap((c) => c.forms.map((f) => ({ id: String(f.id), concept: String(c.id) })));
+  const named = content.book.concepts.map((c) => ({ name: c.name.trim().toLowerCase(), concept: String(c.id) }));
   return [
     ...[...twice(forms, (f) => f.id)].map(([id, rs]) => error(`book.json concepts[${rs.map((r) => r.concept).join(', ')}]`, `share the form id "${id}"`)),
+    ...[...twice(named, (n) => n.name)].map(([n, rs]) => error(`book.json concepts[${rs.map((r) => r.concept).join(', ')}]`, `share the name "${n}"`)),
   ];
 };
 
