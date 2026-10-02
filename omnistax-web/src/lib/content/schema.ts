@@ -206,17 +206,17 @@ export type ChapterDTO = z.infer<typeof ChapterSchema>;
 
 /* ---------- <chapter>/<section>/section.json ---------- */
 
-/* The models that have written the books, by API id, and the name the reader meets them by. */
-export const AI_MODELS = ['claude-fable-5-1', 'claude-opus-5', 'claude-opus-5-5'] as const;
-export type AiModelId = (typeof AI_MODELS)[number];
+/* A model by its API id, any model; the reader meets a known one by name and any other by its id. */
+export type AiModelId = string;
 export const AI_MODEL_NAMES: Readonly<Record<AiModelId, string>> = {
   'claude-fable-5-1': 'Claude Fable 5.1', 'claude-opus-5': 'Claude Opus 5', 'claude-opus-5-5': 'Claude Opus 5.5',
 };
+export const aiModelName = (model: AiModelId): string => AI_MODEL_NAMES[model] ?? model;
 export const AI_EFFORTS = ['low', 'medium', 'high', 'max'] as const;
 export type AiEffort = (typeof AI_EFFORTS)[number];
 
 export const AiMakerSchema = z.object({
-  model: z.enum(AI_MODELS).describe('The model\u2019s API id.'),
+  model: z.string().trim().min(1).describe('The model\u2019s API id, whichever model it is.'),
   effort: z.enum(AI_EFFORTS).optional().describe('The reasoning effort it ran at, where known.'),
 }).strict();
 export type AiMakerDTO = z.infer<typeof AiMakerSchema>;
@@ -224,11 +224,11 @@ export type AiMakerDTO = z.infer<typeof AiMakerSchema>;
 /* The old credit named its models in prose: "Claude Opus 5, with Claude Fable 5.1 and Claude Opus 5.5".
    A name it does not know is dropped rather than guessed; an empty result is Claude Opus 5, the default. */
 const modelOfName = (name: string): AiModelId | undefined =>
-  AI_MODELS.find((m) => AI_MODEL_NAMES[m] === name.trim());
+  Object.keys(AI_MODEL_NAMES).find((m) => AI_MODEL_NAMES[m] === name.trim());
 export const parseAiMakers = (prose: string): readonly AiMakerDTO[] => {
   const models = prose.split(/,\s*with\s+|\s+and\s+|,\s*/).map(modelOfName).filter((m): m is AiModelId => m !== undefined);
   const unique = [...new Set(models)];
-  return (unique.length ? unique : (['claude-opus-5'] as const)).map((model) => ({ model }));
+  return (unique.length ? unique : ['claude-opus-5']).map((model) => ({ model }));
 };
 /* One part's makers, the first the principal: a list of models with their effort, or the old prose. */
 const AiPartSchema = z.union([z.array(AiMakerSchema).min(1), z.string().transform(parseAiMakers)]);
