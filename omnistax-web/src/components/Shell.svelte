@@ -64,7 +64,7 @@
   /* own: the item the page was built for; the 404 page has none, and reads its address instead. */
   type Props = { own?: ItemId; threeUrl?: string; boot: BootDTO };
   let { own, threeUrl, boot: booted }: Props = $props();
-  /* The manifest the page was served for, and the concepts and formulas of the
+  /* The manifest the page was served for, and the concepts and symbols of the
      chapter this page stands in, fetched by the loader before the shell mounts. */
   const boot = untrack(() => booted);
   const { chapterDir, chapterData } = boot;

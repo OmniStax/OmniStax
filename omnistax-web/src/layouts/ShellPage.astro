@@ -31,11 +31,11 @@ const { tree, own, pool, title, description, chapterDir, colours = true } = Astr
    so the colours the reader has chosen win over it. */
 const colourBook = tree.manifest.id;
 /* The island gets only what is small: where the manifest and the chapter's
-   concepts and formulas live, which the loader fetches (src/lib/sections/boot.ts).
+   concepts live, which the loader fetches (src/lib/sections/boot.ts).
    Every page of a book names the same files, so a reader, and an offline copy,
    holds one of each rather than one inside every page. */
 const ch = chapterDir ? tree.manifest.chapters.find((c) => c.dir === chapterDir) : undefined;
-const boot: BootUrls = { manifest: `/${tree.manifest.id}/book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts, formulas: ch.formulas } } : {}) };
+const boot: BootUrls = { manifest: `/${tree.manifest.id}/book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts } } : {}) };
 const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>
@@ -55,7 +55,6 @@ const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 {colours && <link rel="stylesheet" data-book-rules={colourBook} href={bookColoursHref(colourBook)}>}
 <link rel="preload" href={boot.manifest} as="fetch" crossorigin="anonymous">
 {boot.chapter && <link rel="preload" href={boot.chapter.concepts} as="fetch" crossorigin="anonymous">}
-{boot.chapter && <link rel="preload" href={boot.chapter.formulas} as="fetch" crossorigin="anonymous">}
 <script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('omnistax-underlines')==="0")document.documentElement.classList.add('no-underlines')}catch(e){}</script>
 <slot name="head" />
 </head>

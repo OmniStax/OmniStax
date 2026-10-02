@@ -10,6 +10,8 @@ import { focus } from '../sections/focus.svelte';
 import { label } from '../sections/grouping';
 import { spansOf } from '../sections/concepts.svelte';
 import { lookupVariable, symKey } from '../hover/data';
+import { conceptOfTerm, formById } from '../sections/reference';
+import { mainForm } from '../content/schema';
 import { figFor } from '../fig/figlib';
 import { notes } from './store.svelte';
 import { figureInfo } from './md/figinfo';
@@ -41,20 +43,23 @@ export class BookResolver {
       section: (id, book) => { const ref = this.ref(id, book); const e = ref ? registry.entry(ref) : undefined; return e?.built ? { title: e.title } : null; },
       highlight: bookHighlight,
       equation: (section, id, book) => {
-        const d = this.chapterData(section, book); if (!d) return null;
-        const e = d.formulas.equations.find((x) => x.id === id); if (!e) return null;
-        return { tex: e.tex, condition: e.condition, important: e.important, conceptName: d.concepts.concepts.find((c) => c.eq === e.id)?.name, anchor: e.anchor, section: e.section };
+        const ref = this.ref(section, book); const d = this.chapterData(section, book); if (!ref || !d) return null;
+        const found = formById(d.concepts, id) ?? formById(registry.concepts(ref.book), id); if (!found) return null;
+        const { form, concept } = found;
+        return { tex: form.tex, condition: form.condition, conceptName: concept.name, anchor: form.anchor, section: form.section };
       },
+      /* A glossary word is a word of its concept; the card says the concept's statement. */
       term: (section, term, book) => {
         const d = this.chapterData(section, book); if (!d) return null;
-        const g = d.formulas.glossary.find((x) => x.term.toLowerCase() === term.toLowerCase());
-        return g ? { term: g.term, definition: g.definition, section: g.section } : null;
+        const ch = this.ref(section, book); const own = ch ? registry.chapterOf(ch) : undefined;
+        const c = conceptOfTerm(d.concepts, term, (x) => !!own?.sections.some((s) => s.id === x.section)); if (!c) return null;
+        return { term: c.terms.find((w) => w.toLowerCase() === term.trim().toLowerCase()) ?? term, definition: c.status === 'built' ? c.statement ?? '' : '', section: c.section };
       },
       /* A chapter may give one symbol two meanings in two sections, so the
          section the link names picks which; the TeX is the book's own macro. */
       symbol: (section, sym, book) => {
         const ref = this.ref(section, book); const d = this.chapterData(section, book); if (!ref || !d) return null;
-        const v = lookupVariable(d.formulas.variables, symKey(sym), section); if (!v) return null;
+        const v = lookupVariable(d.variables, symKey(sym), section); if (!v) return null;
         const m = registry.manifest(ref.book);
         return { sym, tex: m.symbols[sym] ?? sym, meaning: v.meaning, unit: v.unit, typeLabel: v.type ? m.types[v.type]?.label : undefined, section: v.section, anchor: v.anchor };
       },
@@ -64,9 +69,8 @@ export class BookResolver {
       },
       concept: (section, id, book) => {
         const d = this.chapterData(section, book); if (!d) return null;
-        const c = d.concepts.concepts.find((x) => x.id === id); if (!c) return null;
-        const eq = c.eq ? d.formulas.equations.find((e) => e.id === c.eq) : undefined;
-        return { name: c.name, kind: c.kind, statement: c.status === 'built' ? c.statement : undefined, section: c.section, eqTex: eq?.tex, placeholder: c.status === 'placeholder' };
+        const c = d.concepts.find((x) => x.id === id); if (!c) return null;
+        return { name: c.name, kind: c.kind, statement: c.status === 'built' ? c.statement : undefined, section: c.section, eqTex: mainForm(c)?.tex, placeholder: c.status === 'placeholder' };
       },
     };
   }

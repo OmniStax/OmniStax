@@ -41,7 +41,7 @@ const settledInto = (file: Record<string, Record<string, [number, number]>>, tre
 export const GET: APIRoute = ({ props }) => {
   const { tree } = props as BookProps;
   const manifest = tree.manifest as BookTree;
-  const tables = tree.chapters.map((ch) => ({ dir: ch.dto.dir, concepts: ch.concepts, formulas: ch.formulas }));
+  const tables = tree.chapters.map((ch) => ({ dir: ch.dto.dir, concepts: ch.concepts }));
   const book = bookConceptsOf(tables);
   /* What a view above the section actually asks for: the chapters with a built
      section in them, which is the set the registry fetches and so the set the

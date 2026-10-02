@@ -13,9 +13,9 @@ import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, lookupVariable, otherMeanings } from './data';
-import type { ConceptDTO, GlossaryDTO, VariableDTO } from '../content/schema';
-import { formulasOf } from '../sections/conceptlists';
-import { type Card, type Nav, definitionCard, variableCard, termCard, referenceCard, equationCard, conceptCard, formulaCard, introducingSpan, matchEquation, firstSentence } from './resolve';
+import type { ConceptDTO, VariableDTO } from '../content/schema';
+import { conceptOfTerm, formById, statedOf } from '../sections/reference';
+import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, matchEquation, firstSentence } from './resolve';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
 export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], [data-eq], .formula[data-formula]';
@@ -80,22 +80,18 @@ export const navFor = (book: BookId): Nav => {
 };
 
 /* ---------- the definition card's facts ----------
-   Whichever of a concept's word, symbol or defining formula the reader hovered,
-   the card is the same: the word and the symbol from the loaded sheets (the
-   hovered one first), the formulas that state the concept, and the span that
-   introduces it. */
-type Named = { readonly sym?: string; readonly variable?: VariableDTO; readonly elsewhere?: VariableDTO; readonly term?: GlossaryDTO; readonly section: SectionId };
+   Whichever of a concept's word, symbol or form the reader hovered, the card
+   is the same: the concept's name and the symbol (the hovered one, else the
+   concept's own), the forms that state it, and the span that introduces it. */
+type Named = { readonly sym?: string; readonly variable?: VariableDTO; readonly elsewhere?: VariableDTO; readonly section: SectionId };
 const definition = (book: BookId, c: ConceptDTO, from: Named): Card => {
-  const tabs = registry.chaptersOf(book).map((ch) => ch.formulas);
-  const own = tabs.flatMap((s) => s.variables).filter((v) => v.concept === c.id);
-  const v = from.variable ?? own.find((x) => x.section === from.section) ?? own[0];
-  const sym = from.sym ?? v?.sym;
-  const word = from.term?.term ?? tabs.flatMap((s) => s.glossary).find((g) => g.concept === c.id)?.term;
+  const sym = from.sym ?? c.symbol;
+  const rows = registry.variables(book).filter((v) => v.concept === c.id && v.sym === sym);
+  const v = from.variable ?? rows.find((x) => x.section === from.section) ?? rows[0];
   const redefined = !!from.variable && (!!from.variable.redefines || !!from.elsewhere);
   return definitionCard({
-    concept: c, word, tex: sym ? registry.manifest(book).symbols[sym] ?? sym : undefined, unit: v?.unit || undefined,
-    meaning: redefined ? from.variable?.meaning : undefined, elsewhere: from.elsewhere, fallback: from.term?.definition,
-    formulas: formulasOf(c, tabs.flatMap((s) => s.equations).filter((e) => e.concept === c.id)),
+    concept: c, tex: sym ? registry.manifest(book).symbols[sym] ?? sym : undefined, unit: v?.unit || undefined,
+    meaning: redefined ? from.variable?.meaning : undefined, elsewhere: from.elsewhere,
     intro: spansOf(book, conceptId(c.id)).intro[0],
   }, navFor(book));
 };
@@ -105,24 +101,22 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   const sym = symOf(t); const sec = sectionOf(book, t); if (!sym || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
   const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
-  const v = data ? lookupVariable(data.formulas.variables, sym, sec) : undefined;
-  const other = data ? otherMeanings(data.formulas.variables, sym, sec)[0] : undefined;
+  const v = data ? lookupVariable(data.variables, sym, sec) : undefined;
+  const other = data ? otherMeanings(data.variables, sym, sec)[0] : undefined;
   const c = v?.concept ? registry.concept(book, v.concept) : undefined;
   if (c) return definition(book, c, { sym, variable: v, elsewhere: other, section: sec });
   const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: v }, navFor(book));
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
 const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
+/* A glossary word is a word of its concept: the chapter's concepts are asked
+   first, and then every concept of the book loaded so far. */
 const term = (book: BookId, t: HTMLElement): Card | null => {
   const name = t.dataset.term; const sec = sectionOf(book, t); if (!name || !sec) return null;
-  const data = chapterData(sectionRef(book, sec));
-  const g = data?.formulas.glossary.find((x) => x.term.toLowerCase() === name.toLowerCase());
-  const c = g?.concept ? registry.concept(book, g.concept) : undefined;
-  if (c && g) return definition(book, c, { term: g, section: sec });
-  const anchor = data ? introducingSpan(name, data.concepts.concepts, data.concepts.coverage) : undefined;
-  const home = g ? sectionId(g.section) : sec;
-  const top = registry.state(sectionRef(book, home))?.docs.text?.querySelector<HTMLElement>('section[id]')?.id;   /* the section's first span, when it is loaded */
-  return termCard({ term: g?.term ?? name, definition: g?.definition, section: home, anchor: anchor ?? (top ? spanId(top) : undefined) }, navFor(book));
+  const ch = registry.chapterOf(sectionRef(book, sec));
+  const near = (x: ConceptDTO): boolean => !!ch?.sections.some((s) => s.id === x.section);
+  const c = conceptOfTerm(chapterData(sectionRef(book, sec))?.concepts ?? [], name, near) ?? conceptOfTerm(registry.concepts(book), name, near);
+  return c ? definition(book, c, { section: sec }) : null;
 };
 const reference = (book: BookId, t: HTMLElement): Card | null => {
   const id = t.getAttribute('href')?.slice(1); if (!id) return null;
@@ -132,14 +126,16 @@ const reference = (book: BookId, t: HTMLElement): Card | null => {
   return referenceCard({ id: spanId(id), title: t.dataset.xref ? `Example ${t.dataset.xref} · ${title}` : title, body }, navFor(book));
 };
 /* An equation set on the page is known by its TeX; one named by a link, as an
-   answer names it, by its id. */
+   answer names it, by its id. Either way it is a form of a concept, and the
+   form of a definition opens the definition's card. */
 const equation = (book: BookId, t: HTMLElement): Card | null => {
   const sec = sectionOf(book, t); const data = sec ? chapterData(sectionRef(book, sec)) : undefined; if (!data) return null;
   const tex = t.dataset.eq ? undefined : t.querySelector('.katex-mathml annotation')?.textContent;
-  const e = t.dataset.eq ? data.formulas.equations.find((x) => x.id === t.dataset.eq) : tex ? matchEquation(tex, data.formulas.equations) : undefined; if (!e) return null;
-  const concept = (e.concept ? registry.concept(book, e.concept) : undefined) ?? data.concepts.concepts.find((c) => c.eq === e.id);
-  if (concept?.kind === 'definition') return definition(book, concept, { section: e.section });
-  return equationCard({ equation: e, concept, introducedIn: e.anchor ? spanTitle(book, spanId(e.anchor)) : undefined }, navFor(book));
+  const found = t.dataset.eq ? formById(data.concepts, t.dataset.eq) ?? formById(registry.concepts(book), t.dataset.eq) : tex ? matchEquation(tex, statedOf(data.concepts)) : undefined;
+  if (!found) return null;
+  const { form, concept } = found;
+  if (concept.kind === 'definition') return definition(book, concept, { section: form.section });
+  return equationCard({ form, concept, introducedIn: form.anchor ? spanTitle(book, spanId(form.anchor)) : undefined }, navFor(book));
 };
 
 /* A concept's places are the spans of its own book that introduce and use it,

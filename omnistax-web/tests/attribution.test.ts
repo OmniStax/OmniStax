@@ -33,7 +33,7 @@ const book: BookDTO = {
   openstax: 'https://openstax.org/books/college-physics-2e/pages/', chapterDirs: ['ch02'], types: [], symbols: [], exerciseKinds: [], concepts: [], conceptPrereqs: [], sheets: [],
 };
 const AT = 'https://openstax.org/books/college-physics-2e/pages/2-1-displacement';
-const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }], variables: [], equations: [], glossary: [] };
+const chapter: ChapterDTO = { id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement', slug: '2-1-displacement' }, { id: '2.2', title: 'Vectors' }], variables: [] };
 
 test('nameList joins like prose', () => {
   assert.equal(nameList([]), ''); assert.equal(nameList(['A']), 'A'); assert.equal(nameList(['A', 'B']), 'A and B'); assert.equal(nameList(['A', 'B', 'C']), 'A, B and C');

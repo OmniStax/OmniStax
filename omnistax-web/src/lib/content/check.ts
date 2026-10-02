@@ -96,7 +96,7 @@ const inChapter = (ch: ChapterContent, table: string, row: string): string => `$
 export const checkRefs: Check = (content) => {
   const concepts = idsOf(content.book.concepts, (c) => c.id);
   const kinds = idsOf(content.book.exerciseKinds, (k) => k.id);
-  const equations = idsOf(content.chapters.flatMap((ch) => ch.dto.equations), (e) => e.id);
+  const symbols = idsOf(content.book.symbols, (s) => s.sym);
   const sections = idsOf(content.chapters.flatMap((ch) => ch.dto.sections), (s) => s.id);
   const chapters = idsOf(content.chapters, (ch) => ch.dto.id);
 
@@ -108,7 +108,11 @@ export const checkRefs: Check = (content) => {
 
   const fromBook = content.book.concepts.flatMap((c) => {
     const where = `book.json concepts[${c.id}]`;
-    return [...conceptSection(where, c.section), ...ref(where, 'eq', equations, c.eq)];
+    return [
+      ...conceptSection(where, c.section),
+      ...ref(where, 'symbol', symbols, c.symbol),
+      ...c.forms.flatMap((f) => ref(`${where} forms[${f.id}]`, 'section', sections, f.section)),
+    ];
   }).concat(content.book.conceptPrereqs.flatMap((e) => {
     const where = `book.json concept_prereqs[${e.concept} ← ${e.prereq}]`;
     return [...ref(where, 'concept', concepts, e.concept), ...ref(where, 'prereq', concepts, e.prereq)];
@@ -120,14 +124,6 @@ export const checkRefs: Check = (content) => {
       ...ch.dto.variables.flatMap((v) => [
         ...ref(inChapter(ch, 'variables', v.sym), 'section', own, v.section),
         ...ref(inChapter(ch, 'variables', v.sym), 'concept', concepts, v.concept),
-      ]),
-      ...ch.dto.equations.flatMap((e) => [
-        ...ref(inChapter(ch, 'equations', e.id), 'section', own, e.section),
-        ...ref(inChapter(ch, 'equations', e.id), 'concept', concepts, e.concept),
-      ]),
-      ...ch.dto.glossary.flatMap((g) => [
-        ...ref(inChapter(ch, 'glossary', g.term), 'section', own, g.section),
-        ...ref(inChapter(ch, 'glossary', g.term), 'concept', concepts, g.concept),
       ]),
       ...ch.sections.flatMap((s) => [
         ...ref(`${s.dto.id}/section.json`, 'id', own, s.dto.id),
@@ -171,7 +167,7 @@ export const checkTypes: Check = (content) => {
   ];
 };
 
-/* An anchor names the span where a variable or an equation is introduced,
+/* An anchor names the span where a variable or a form is introduced,
    qualified by its section ("16.1-hookes-law"), because a chapter file speaks
    about several sections. It must be an id the built section carries. */
 export const checkAnchors: Check = (content) => {
@@ -185,10 +181,10 @@ export const checkAnchors: Check = (content) => {
     if (!built) return [error(where, `anchors "${value}", but section ${section} is not built`)];
     return built.has(local) ? [] : [error(where, `anchors "${value}", but section ${section} has no id "${local}"`)];
   };
-  return content.chapters.flatMap((ch) => [
-    ...ch.dto.variables.flatMap((v) => anchor(inChapter(ch, 'variables', v.sym), v.anchor)),
-    ...ch.dto.equations.flatMap((e) => anchor(inChapter(ch, 'equations', e.id), e.anchor)),
-  ]);
+  return [
+    ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => anchor(inChapter(ch, 'variables', v.sym), v.anchor))),
+    ...content.book.concepts.flatMap((c) => c.forms.flatMap((f) => anchor(`book.json concepts[${c.id}] forms[${f.id}]`, f.anchor))),
+  ];
 };
 
 /* A span of the section's own tables is local, as the section writes it: the
@@ -348,19 +344,31 @@ export const checkConcepts: Check = (content) => {
   });
 };
 
-/* Every glossary term is a concept, a symbol belongs to the definition of its
-   quantity, and an equation states a concept (RULES item 6), so each such row
-   names its concept. A row that names none is a warning while the books are
-   being linked, and an error once this is set. */
+/* A symbol belongs to the definition of its quantity (RULES item 6), so every
+   variables row names its concept. A row that names none is a warning while
+   the books are being linked, and an error once this is set. A form and a
+   glossary word name their concept by standing on it. */
 export const UNLINKED_ROWS_ARE_ERRORS = true;
 export const checkConceptLinks: Check = (content) => {
   const finding = UNLINKED_ROWS_ARE_ERRORS ? error : warning;
-  const unlinked = (where: string, row: { readonly concept?: string }): readonly Finding[] => (row.concept === undefined ? [finding(where, 'names no concept')] : []);
-  return content.chapters.flatMap((ch) => [
-    ...ch.dto.glossary.flatMap((g) => unlinked(inChapter(ch, 'glossary', `${g.section}/${g.term}`), g)),
-    ...ch.dto.variables.flatMap((v) => unlinked(inChapter(ch, 'variables', `${v.section}/${v.sym}`), v)),
-    ...ch.dto.equations.flatMap((e) => unlinked(inChapter(ch, 'equations', e.id), e)),
-  ]);
+  return content.chapters.flatMap((ch) =>
+    ch.dto.variables.flatMap((v) => (v.concept === undefined ? [finding(inChapter(ch, 'variables', `${v.section}/${v.sym}`), 'names no concept')] : [])));
+};
+
+/* A form is named by its id wherever the text, an answer or a note names it,
+   so no two forms of the book share one. A glossary word may stand on two
+   concepts, since the book glosses some words twice ("power" of a force and of
+   a lens), and the reader's place says which is meant. */
+export const checkConceptNames: Check = (content) => {
+  const twice = <T,>(rows: readonly T[], key: (row: T) => string): ReadonlyMap<string, readonly T[]> => {
+    const by = new Map<string, T[]>();
+    rows.forEach((r) => { const k = key(r); by.set(k, [...(by.get(k) ?? []), r]); });
+    return new Map([...by].filter(([, rs]) => rs.length > 1));
+  };
+  const forms = content.book.concepts.flatMap((c) => c.forms.map((f) => ({ id: String(f.id), concept: String(c.id) })));
+  return [
+    ...[...twice(forms, (f) => f.id)].map(([id, rs]) => error(`book.json concepts[${rs.map((r) => r.concept).join(', ')}]`, `share the form id "${id}"`)),
+  ];
 };
 
 /* A page is what its role says (rule 21). A section belongs to a chapter and
@@ -453,7 +461,7 @@ export const checkSheets: Check = (content) => {
 
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

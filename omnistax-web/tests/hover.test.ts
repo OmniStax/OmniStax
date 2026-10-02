@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
-import { definitionCard, variableCard, termCard, equationCard, referenceCard, conceptCard, introducingSpan, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
-import type { EquationDTO, VariableDTO } from '../src/lib/content/schema';
+import { definitionCard, variableCard, equationCard, referenceCard, conceptCard, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
+import { conceptOfTerm, formById, statedOf } from '../src/lib/sections/reference';
+import type { ConceptDTO, FormDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
 import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
 import { PHYSICS, bookRoot } from './book-on-disk';
@@ -56,9 +57,9 @@ test('example references become links only when the example is in the article', 
   assert.equal(wrapExampleRefs(html, ids), '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in <a class="xref" href="#16.1-ex-car" data-xref="16.1">Example 16.1</a> and Example 16.2.</p>');
 });
 test('the real sections wrap each glossary term at most once and never inside a heading', () => {
+  const book = JSON.parse(fs.readFileSync(path.join(ROOT, 'book.json'), 'utf8')) as { concepts: { section: string; terms?: string[] }[] };
   for (const ch of ['ch02', 'ch16']) {
-    const f = JSON.parse(fs.readFileSync(path.join(ROOT, ch, 'chapter.json'), 'utf8')) as { glossary: { term: string }[] };
-    const terms = f.glossary.map((g) => g.term);
+    const terms = book.concepts.filter((c) => c.section.split('.')[0] === ch.slice(2).replace(/^0/, '')).flatMap((c) => c.terms ?? []);
     /* a section folder that holds only a source.md is one being built, and has no article to check yet */
     for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, ch, d, 'text.html')))) {
       const out = wrapTerms(fs.readFileSync(path.join(ROOT, ch, dir, 'text.html'), 'utf8'), terms);
@@ -86,52 +87,49 @@ test('an unknown symbol gets a card with no body and no actions', () => {
   assert.equal(c.body, undefined); assert.deepEqual(c.actions, []);
 });
 
-/* ---------- term ---------- */
-test('a term card prefers the span that introduces the concept of the same name', () => {
-  const concepts = [{ status: 'built' as const, id: conceptId('force-constant'), kind: 'idea' as const, section: sectionId('16.1'), name: 'Force constant $\\kk$', prereqs: [] }];
-  const coverage = [{ span: '16.1-hookes-law', introduces: ['force-constant'], uses: [], reinforces: [] }];
-  assert.equal(introducingSpan('force constant', concepts, coverage), '16.1-hookes-law');
-  assert.equal(introducingSpan('period', concepts, coverage), undefined);
-  const c = termCard({ term: 'force constant', definition: 'a constant related to the rigidity of a system', section: sec('16.1'), anchor: span('16.1-hookes-law') }, nav);
-  assert.equal(c.body, 'A constant related to the rigidity of a system.'); assert.equal(run('Go to section', c), 'span:16.1-hookes-law');
-  assert.equal(run('Go to section', termCard({ term: 'period', section: sec('16.2') }, nav)), 'sec:16.2');
-});
-
 /* ---------- equation ---------- */
-const eqs: readonly EquationDTO[] = [
-  { id: equationId('eq-hooke'), section: sectionId('16.1'), tex: '\\kF = -\\kk\\kx', latex: 'F = -kx', anchor: spanId('16.1-hookes-law'), important: true },
-  { id: equationId('eq-v'), section: sectionId('2.5'), tex: '\\kv = \\kvo + \\ka\\kt', latex: 'v = v_0 + at', anchor: spanId('2.5-final-velocity'), important: true },
-];
+const hookeForm: FormDTO = { id: equationId('eq-hooke'), section: sectionId('16.1'), tex: '\\kF = -\\kk\\kx', latex: 'F = -kx', anchor: spanId('16.1-hookes-law') };
+const vForm: FormDTO = { id: equationId('eq-v'), section: sectionId('2.5'), tex: '\\kv = \\kvo + \\ka\\kt', latex: 'v = v_0 + at', anchor: spanId('2.5-final-velocity') };
+const hookeLaw: ConceptDTO = { status: 'built', id: conceptId('hookes-law'), kind: 'result', section: sectionId('16.1'), name: 'Hooke’s law', terms: [], forms: [hookeForm], prereqs: [], statement: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
+const vFromAt: ConceptDTO = { status: 'built', id: conceptId('v-from-at'), kind: 'result', section: sectionId('2.5'), name: 'Final velocity', terms: [], forms: [vForm], prereqs: [], statement: 'the final velocity depends on the acceleration and the time' };
+const stated = statedOf([hookeLaw, vFromAt]);
 test('tex normalisation ignores spacing, closing punctuation and the constant-a qualifier', () => {
   assert.equal(normTex('\\kF = -\\kk\\kx.'), normTex('\\kF=-\\kk\\kx'));
   assert.equal(normTex('\\kv = \\kvo + \\ka\\kt\\;(\\text{constant }\\ka).'), normTex('\\kv = \\kvo + \\ka\\kt'));
-  assert.equal(matchEquation('\\kF = -\\kk\\kx.', eqs)?.id, 'eq-hooke');
-  assert.equal(matchEquation('\\kv = \\kvo + \\ka\\kt\\;(\\text{constant }\\ka).', eqs)?.id, 'eq-v');
-  assert.equal(matchEquation('\\kv = \\kvo + \\ka\\kt = 70.0', eqs), undefined);
-  assert.equal(matchEquation('   ', eqs), undefined);
+  assert.equal(matchEquation('\\kF = -\\kk\\kx.', stated)?.form.id, 'eq-hooke');
+  assert.equal(matchEquation('\\kv = \\kvo + \\ka\\kt\\;(\\text{constant }\\ka).', stated)?.concept.id, 'v-from-at');
+  assert.equal(matchEquation('\\kv = \\kvo + \\ka\\kt = 70.0', stated), undefined);
+  assert.equal(matchEquation('   ', stated), undefined);
 });
 test('an equation card names the concept and goes to where it is introduced', () => {
-  const concept = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], eq: equationId('eq-hooke'), statement: 'The simplest oscillations occur when the restoring force is proportional to the displacement.' };
-  const c = equationCard({ equation: eqs[0], concept, introducedIn: 'Hooke’s Law' }, nav);
-  assert.equal(c.eyebrow, 'Formula · Result'); assert.equal(c.title, concept.name); assert.equal(c.body, concept.statement);
+  const c = equationCard({ form: hookeForm, concept: hookeLaw, introducedIn: 'Hooke’s Law' }, nav);
+  assert.equal(c.eyebrow, 'Formula · Result'); assert.equal(c.title, hookeLaw.name); assert.equal(c.body, hookeLaw.statement);
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Formulas']);
   assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Formulas', c), 'view:formulas');
-  const plain = equationCard({ equation: { ...eqs[1], important: false }, introducedIn: 'Solving for Final Velocity' }, nav);
-  assert.equal(plain.eyebrow, 'Formula'); assert.equal(plain.title, 'In “Solving for Final Velocity”'); assert.deepEqual(plain.actions.map((a) => a.label), ['Go to where it is introduced']);
+  const bare = equationCard({ form: { ...vForm, anchor: undefined }, concept: { ...vFromAt, statement: undefined }, introducedIn: 'Solving for Final Velocity' }, nav);
+  assert.equal(bare.body, 'Introduced in “Solving for Final Velocity”.'); assert.equal(run('Go to section', bare), 'sec:2.5');
 });
 test('an equation with a condition says what it holds under', () => {
-  const concept = { status: 'built' as const, id: conceptId('v-from-at'), kind: 'result' as const, section: sectionId('2.5'), name: '$\\kv = \\kvo + \\ka\\kt$', prereqs: [], statement: 'the final velocity depends on the acceleration and the time' };
-  const c = equationCard({ equation: { ...eqs[1], condition: 'constant acceleration' }, concept }, nav);
+  const c = equationCard({ form: { ...vForm, condition: 'constant acceleration' }, concept: vFromAt }, nav);
   assert.equal(c.body, 'The final velocity depends on the acceleration and the time.');
   assert.deepEqual(c.notes, [{ label: 'Holds under', text: 'Constant acceleration.' }]);
 });
+test('a form is found by its id with the concept it states, and a glossary word by the concept it names, near ones first', () => {
+  assert.equal(formById([hookeLaw, vFromAt], 'eq-v')?.concept.id, 'v-from-at');
+  assert.equal(formById([hookeLaw], 'eq-v'), undefined);
+  const power = (id: string, section: string): ConceptDTO => ({ status: 'built', id: conceptId(id), kind: 'definition', section: sectionId(section), name: id, terms: ['power'], forms: [], prereqs: [] });
+  const both = [power('power', '7.7'), power('power-of-a-lens', '25.6')];
+  assert.equal(conceptOfTerm(both, 'Power')?.id, 'power');
+  assert.equal(conceptOfTerm(both, 'power', (c) => c.section.startsWith('25.'))?.id, 'power-of-a-lens');
+  assert.equal(conceptOfTerm(both, 'period'), undefined);
+});
 
 /* ---------- definition ---------- */
-const displacement = { status: 'built' as const, id: conceptId('displacement'), kind: 'definition' as const, section: sectionId('2.1'), name: 'Displacement, $\\kdx = \\kxf - \\kxo$', prereqs: [], statement: 'displacement is the change in position' };
-const eqDx: EquationDTO = { id: equationId('eq-dx'), concept: conceptId('displacement'), section: sectionId('2.1'), tex: '\\kdx = \\kxf - \\kxo', latex: '\\Delta x = x_f - x_0', anchor: spanId('2.1-displacement'), important: true };
-test('a definition card names the word and the symbol, states the concept and lists its formulas', () => {
-  const c = definitionCard({ concept: displacement, word: 'displacement', tex: '\\kdx', unit: 'm', formulas: [eqDx], intro: span('2.1-displacement') }, nav);
-  assert.equal(c.kind, 'definition'); assert.equal(c.eyebrow, 'Definition'); assert.equal(c.unit, 'm'); assert.equal(c.title, 'displacement · $\\kdx$');
+const dxForm: FormDTO = { id: equationId('eq-dx'), section: sectionId('2.1'), tex: '\\kdx = \\kxf - \\kxo', latex: '\\Delta x = x_f - x_0', anchor: spanId('2.1-displacement') };
+const displacement: ConceptDTO = { status: 'built', id: conceptId('displacement'), kind: 'definition', section: sectionId('2.1'), name: 'Displacement', symbol: 'Δx', terms: ['displacement'], forms: [dxForm], prereqs: [], statement: 'displacement is the change in position' };
+test('a definition card names the concept and its symbol, states it and lists its forms', () => {
+  const c = definitionCard({ concept: displacement, tex: '\\kdx', unit: 'm', intro: span('2.1-displacement') }, nav);
+  assert.equal(c.kind, 'definition'); assert.equal(c.eyebrow, 'Definition'); assert.equal(c.unit, 'm'); assert.equal(c.title, 'Displacement · $\\kdx$');
   assert.equal(c.body, 'Displacement is the change in position.'); assert.equal(c.notes, undefined);
   assert.deepEqual(c.refs?.map((g) => [g.label, g.links.map((l) => l.label)]), [['Formula', ['$\\kdx = \\kxf - \\kxo$']]]);
   calls.length = 0; c.refs?.[0]?.links[0]?.run(); assert.equal(calls.join(','), 'span:2.1-displacement');
@@ -140,11 +138,11 @@ test('a definition card names the word and the symbol, states the concept and li
 });
 test('a definition card gives the meaning here and elsewhere where the chapter redefines the symbol, and falls back to the section', () => {
   const other: VariableDTO = { sym: 'R', meaning: 'range of the projectile', unit: 'm', section: sectionId('3.4') };
-  const c = definitionCard({ concept: { ...displacement, statement: undefined }, tex: 'R', meaning: 'resultant of two vectors', elsewhere: other, fallback: 'the change in position of an object', formulas: [] }, nav);
-  assert.equal(c.title, 'Displacement · $R$'); assert.equal(c.body, 'The change in position of an object.');
+  const c = definitionCard({ concept: { ...displacement, forms: [], statement: undefined }, tex: 'R', meaning: 'resultant of two vectors', elsewhere: other }, nav);
+  assert.equal(c.title, 'Displacement · $R$'); assert.equal(c.body, undefined);
   assert.deepEqual(c.notes, [{ label: 'In this section', text: 'Resultant of two vectors.' }, { label: 'Elsewhere in this chapter (3.4)', text: 'Range of the projectile.' }]);
   assert.deepEqual(c.refs, []); assert.equal(run('Go to where it is first introduced', c), 'sec:2.1');
-  assert.equal(definitionCard({ concept: { ...displacement, kind: 'axiom' }, formulas: [] }, nav).eyebrow, 'Axiom');
+  assert.equal(definitionCard({ concept: { ...displacement, kind: 'axiom' } }, nav).eyebrow, 'Axiom');
 });
 test('a reference card and the first sentence', () => {
   assert.equal(firstSentence('The spring of a toy gun is pushed in. Then it is released.'), 'The spring of a toy gun is pushed in.');
@@ -154,7 +152,7 @@ test('a reference card and the first sentence', () => {
 });
 
 /* ---------- concept ---------- */
-const hooke = { status: 'built' as const, id: conceptId('hookes-law'), kind: 'result' as const, section: sectionId('16.1'), name: 'Hooke’s law, $\\kF = -\\kk\\kx$', prereqs: [], statement: 'the restoring force is proportional to the displacement' };
+const hooke: ConceptDTO = { status: 'built', id: conceptId('hookes-law'), kind: 'result', section: sectionId('16.1'), name: 'Hooke’s law', terms: [], forms: [], prereqs: [], statement: 'the restoring force is proportional to the displacement' };
 const place = (id: string, title: string) => ({ id: span(id), title });
 const refOf = (card: { refs?: readonly { label: string; links: readonly { label: string }[]; more?: { label: string } }[] }, label: string) => card.refs?.find((g) => g.label === label);
 const runRef = (card: { refs?: readonly { label: string; links: readonly { label: string; run: () => void }[]; more?: { label: string; run: () => void } }[] }, group: string, link: string) => {
@@ -163,7 +161,7 @@ const runRef = (card: { refs?: readonly { label: string; links: readonly { label
 
 test('a concept card gives its statement, then where the text introduces and uses it', () => {
   const c = conceptCard({
-    concept: { ...hooke, eq: equationId('eq-hooke') },
+    concept: { ...hooke, forms: [hookeForm] },
     intro: [place('16.1-hookes-law', 'Hooke’s Law')],
     uses: [place('16.1-energy', 'Energy in a Spring'), place('16.2-period', 'Period and Frequency')],
     built: true, onMap: false,
@@ -199,7 +197,7 @@ test('a concept the text neither introduces nor uses has no places, and no state
   assert.equal(run('Go to definition', c), 'sec:16.1');
 });
 test('a placeholder concept says its section is not built and offers the page it can reach', () => {
-  const ph = { status: 'placeholder' as const, id: conceptId('newtons-laws'), kind: 'idea' as const, section: sectionId('4.3'), name: 'Newton’s second law', prereqs: [] };
+  const ph: ConceptDTO = { status: 'placeholder', id: conceptId('newtons-laws'), kind: 'idea', section: sectionId('4.3'), name: 'Newton’s second law', terms: [], forms: [], prereqs: [] };
   const facts = { concept: ph, intro: [], uses: [], onMap: false };
   const out = conceptCard({ ...facts, built: false }, nav);
   assert.equal(out.body, 'Section 4.3 is not built yet.'); assert.equal(out.refs, undefined); assert.deepEqual(out.actions.map((a) => a.label), ['Open in OpenStax']);

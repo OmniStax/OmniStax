@@ -11,7 +11,7 @@ with it.
 - The section's converted text (`source.md`), with `{eq:id}` markers and
   the book's figures listed as `FIGURE` blocks.
 - The chapter's `chapter.json`: the variables with their type, meaning and
-  unit; the equations with their ids.
+  unit; and the forms its concepts carry, with their ids.
 - The book's `book.json` concepts, each with its `kind` (idea, result,
   skill), and the section's `coverage` rows in `section.json`, so the figure
   plan can be checked against what the section actually introduces.

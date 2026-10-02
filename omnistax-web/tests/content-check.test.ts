@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkBinds, checkConceptLinks, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkWidths,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkBinds, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkWidths,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -78,10 +78,10 @@ test('the smallest whole book has nothing wrong with it', () => {
 
 test('checkRefs: an id that names no row is an error, and a chapter nobody has added is a note', () => {
   assert.deepEqual(run(checkRefs), []);
-  assert.match(run(checkRefs, { book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', eq: 'eq-nowhere' }] } })[0], /eq "eq-nowhere" names no row/);
+  assert.match(run(checkRefs, { book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', symbol: 'k' }] } })[0], /symbol "k" names no row/);
+  assert.match(run(checkRefs, { book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', forms: [{ id: 'eq-hooke', latex: 'F', section: '16.9' }] }] } })[0], /forms\[eq-hooke\]: section "16.9" names no row/);
   assert.match(run(checkRefs, { section: { exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'riddle', bloom: 'Apply', place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } }] } })[0], /kind "riddle" names no row/);
   assert.match(run(checkRefs, { section: { exercise_concepts: [{ exercise: 'p9', concept: 'hookes-law' }] } })[0], /exercise "p9" names no row/);
-  assert.match(run(checkRefs, { chapter: { glossary: [{ section: '16.1', term: 'spring', concept: 'spring', definition: 'd' }] } })[0], /concept "spring" names no row/);
   assert.match(run(checkRefs, { chapter: { variables: [{ sym: 'k', concept: 'spring-constant', meaning: 'm', section: '16.1' }] } })[0], /concept "spring-constant" names no row/);
   const alongside = (c: object) => ({ book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w' }, c] } });
   const waiting = checkRefs(fixture(alongside({ id: 'newtons-first-law', kind: 'idea', section: '4.2', name: 'N' })));
@@ -106,10 +106,10 @@ test('checkBinds: a figure that draws a type the book never declared', () => {
 });
 
 test('checkAnchors: an anchor the section has no id for, and one whose section is not built', () => {
-  const equations = (anchor: string) => [{ id: 'eq-hooke', section: '16.1', latex: 'F = -kx', anchor, important: true }];
-  assert.deepEqual(run(checkAnchors, { chapter: { equations: equations('16.1-hookes-law') } }), []);
-  assert.match(run(checkAnchors, { chapter: { equations: equations('16.1-elastic-energy') } })[0], /section 16.1 has no id "elastic-energy"/);
-  assert.match(run(checkAnchors, { chapter: { equations: equations('16.3-shm') } })[0], /section 16.3 is not built/);
+  const formed = (anchor: string) => ({ book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', forms: [{ id: 'eq-hooke', latex: 'F = -kx', anchor }] }] } });
+  assert.deepEqual(run(checkAnchors, formed('16.1-hookes-law')), []);
+  assert.match(run(checkAnchors, formed('16.1-elastic-energy'))[0], /section 16.1 has no id "elastic-energy"/);
+  assert.match(run(checkAnchors, formed('16.3-shm'))[0], /section 16.3 is not built/);
   assert.match(run(checkAnchors, { chapter: { variables: [{ sym: 'x', meaning: 'm', unit: 'm', section: '16.1', anchor: '16.1-nowhere' }] } })[0], /has no id "nowhere"/);
 });
 
@@ -226,19 +226,20 @@ test('checkConcepts: a built concept with no statement, or not exactly one span 
   assert.deepEqual(checkConcepts({ book: bookOf({ concepts: [bare] }), sheets: [], chapters: [{ dto: chapterOf({}), sections: [] }] }), [], 'a concept nobody has built the section for is a placeholder and says none of it');
 });
 
-test('checkConceptLinks: a glossary, variables or equations row that names no concept', () => {
+test('checkConceptLinks: a variables row that names no concept', () => {
   assert.deepEqual(run(checkConceptLinks), []);
   const level = UNLINKED_ROWS_ARE_ERRORS ? 'error' : 'warning';
-  const chapter = {
-    glossary: [{ section: '16.1', term: 'spring', definition: 'd' }, { section: '16.1', term: 'stiffness', concept: 'hookes-law', definition: 'd' }],
-    variables: [{ sym: 'k', meaning: 'the spring constant', section: '16.1' }],
-    equations: [{ id: 'eq-hooke', section: '16.1', latex: 'F = -kx' }, { id: 'eq-hooke-k', concept: 'hookes-law', section: '16.1', latex: 'k = -F/x' }],
-  };
-  const found = checkConceptLinks(fixture({ chapter }));
-  assert.deepEqual(found.map((f) => f.level), [level, level, level]);
-  assert.deepEqual(said(found), [
-    'ch16/chapter.json glossary[16.1/spring]: names no concept',
-    'ch16/chapter.json variables[16.1/k]: names no concept',
-    'ch16/chapter.json equations[eq-hooke]: names no concept',
-  ]);
+  const found = checkConceptLinks(fixture({ chapter: { variables: [{ sym: 'k', meaning: 'the spring constant', section: '16.1' }, { sym: 'x', concept: 'hookes-law', meaning: 'stretch', section: '16.1' }] } }));
+  assert.deepEqual(found.map((f) => f.level), [level]);
+  assert.deepEqual(said(found), ['ch16/chapter.json variables[16.1/k]: names no concept']);
+});
+test('checkConceptNames: two forms of one id are an error', () => {
+  assert.deepEqual(run(checkConceptNames), []);
+  const form = (id: string) => ({ id, latex: 'F' });
+  const concepts = [
+    { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', statement: 'w', terms: ['power'], forms: [form('eq-hooke')] },
+    { id: 'spring', kind: 'idea', section: '16.1', name: 'hooke’s law', statement: 'w', terms: ['power'], forms: [form('eq-hooke')] },
+  ];
+  const found = checkConceptNames(fixture({ book: { concepts } }));
+  assert.deepEqual(found.map((f) => [f.level, f.what]), [['error', 'share the form id "eq-hooke"']], 'a glossary word on two concepts is the book glossing it twice');
 });

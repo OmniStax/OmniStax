@@ -6,7 +6,7 @@
      Shell.svelte     import Hover from './Hover.svelte';   …   <Hover />          (once, anywhere in the ready block)
      registry prepare import { decorateTerms } from '../hover';   …   if (doc === 'text') decorateTerms(root, sec);
 
-   decorateTerms(root, section): marks the section's glossary terms and example
+   decorateTerms(root, section): marks the glossary terms of the chapter's concepts and example
    references in the article's prose (see terms.ts), marks the chemical formulas
    of a book that declares an elements sheet (see sheets/mark.ts), and makes
    symbols focusable.
@@ -17,6 +17,7 @@ import { bookId, sectionRef, type BookId, type SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK, type Term, type Wrapped } from './terms';
 import { markFormulas } from '../sheets/mark';
+import { chapterTerms } from '../sections/reference';
 
 export type { Card, Action, Kind } from './resolve';
 
@@ -25,8 +26,10 @@ const blocks = (root: HTMLElement): HTMLElement[] =>
   Array.from(root.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('figure, .exercises, .hover-card') && !b.querySelector('p, li'));
 
 const glossaryOf = (book: BookId, section: SectionId): readonly Term[] => {
-  const dir = registry.chapterOf(sectionRef(book, section))?.dir; const data = dir ? registry.chapter(book, dir) : undefined;
-  return data ? data.formulas.glossary.map((g) => g.term) : [];
+  const ch = registry.chapterOf(sectionRef(book, section)); const data = ch ? registry.chapter(book, ch.dir) : undefined;
+  if (!ch || !data) return [];
+  const covered = new Set(data.coverage.flatMap((c) => [...c.introduces, ...c.uses, ...c.reinforces].map(String)));
+  return chapterTerms(data.concepts, new Set(ch.sections.map((s) => s.id)), covered);
 };
 
 export const decorateTerms = (root: HTMLElement, section: SectionId): void => {

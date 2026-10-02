@@ -4,7 +4,7 @@
    links the model may write back. */
 import { search } from '../search/index';
 import type { Corpus, Filter, Hit } from '../search/model';
-import type { ConceptDTO, EquationDTO } from '../content/schema';
+import { type ConceptDTO, type FormDTO, mainForm } from '../content/schema';
 import type { ToolSpec } from './providers/index';
 import type { ToolStep } from './model';
 
@@ -32,7 +32,7 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
   { name: 'table_of_contents', description: 'Chapters and sections of a book, or of one chapter.', parameters: obj({ book: str, chapter: { ...str, description: 'chapter number, e.g. "16"' } }, ['book']) },
   { name: 'read_section', description: 'The text of one section; figures appear as their captions.', parameters: obj({ book: str, section: { ...str, description: 'section number, e.g. "16.4"' } }, ['book', 'section']) },
   { name: 'search', description: 'Full-text search of a book: hits with section and snippet.', parameters: obj({ book: str, query: str }, ['book', 'query']) },
-  { name: 'lookup', description: 'Find what a book teaches, with links: a definition gives its word, symbol, unit, statement and defining formula; a formula gives its TeX and the concept it states; a concept, of any kind, gives its name, kind and statement.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'formula', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
+  { name: 'lookup', description: 'Find what a book teaches, with links: a concept of any kind gives its name, kind and statement, and where it has them its word, symbol, unit and main formula; a formula gives its TeX and the concept it states.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'formula', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
   { name: 'figure', description: 'A figure of a section: caption, alt text, parameters with their current values, and its source code when asked.', parameters: obj({ book: str, section: str, id: { ...str, description: 'figure id, e.g. "sim-pendulum"' }, include_source: { type: 'boolean' } }, ['book', 'section', 'id']) },
 ];
 
@@ -68,42 +68,33 @@ const readSection = async (lib: Library, input: Input): Promise<string> => {
 const flat = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
 /* A hit as the model reads it, with the links it may write, and the maths in
-   the book's own macros where the book has them. A concept and a formula are
-   told with what the book's tables join to them: a definition its word, its
-   symbols and its defining formula, a formula the concept it states. */
+   the book's own macros where the book has them. A concept is told with what
+   the concept carries: its word, its symbol and its main form; a formula with
+   the concept it states. */
 type Macro = (sym: string) => string | null;
-const SYMBOLS_SHOWN = 3;
-const eqLink = (book: string, e: EquationDTO): string => `![[eq:${book}/${e.section}:${e.id}]] $${e.tex}$${e.condition ? ` (${e.condition})` : ''}`;
+const eqLink = (book: string, f: FormDTO): string => `![[eq:${book}/${f.section}:${f.id}]] $${f.tex}$${f.condition ? ` (${f.condition})` : ''}`;
 const conceptLink = (book: string, c: ConceptDTO): string => `[[concept:${book}/${c.section}:${c.id}]] ${c.name} (${c.kind})`;
 const statementOf = (c: ConceptDTO): string => (c.status === 'built' && c.statement ? `: ${flat(c.statement)}` : '');
 const symbolLine = (book: string, sym: string, section: string, macro: Macro): string => `[[sym:${book}/${section}:${sym}]] $${macro(sym) ?? sym}$`;
 
 const conceptLine = (book: string, c: ConceptDTO, corpus: Corpus, macro: Macro): string => {
-  if (c.kind !== 'definition') return `${conceptLink(book, c)}${statementOf(c)}`;
-  const term = corpus.glossary.find((g) => g.concept === c.id);
-  /* the symbols the defining section gives it; its variants elsewhere are the reader's to look up */
-  const all = corpus.variables.filter((v) => v.concept === c.id);
-  const own = all.filter((v) => v.section === c.section);
-  const symbols = (own.length ? own : all.slice(0, 1)).filter((v, i, xs) => xs.findIndex((w) => w.sym === v.sym) === i).slice(0, SYMBOLS_SHOWN);
-  const eq = c.eq ? corpus.equations.find((e) => e.id === c.eq) : undefined;
+  const term = c.terms[0];
+  const rows = corpus.variables.filter((v) => v.sym === c.symbol && v.concept === c.id);
+  const v = rows.find((r) => r.section === c.section) ?? rows[0];
+  const form = mainForm(c);
   return [
     `${conceptLink(book, c)}${statementOf(c)}`,
-    term ? `word [[def:${book}/${term.section}:${term.term}]]` : '',
-    ...symbols.map((v) => `symbol ${symbolLine(book, v.sym, v.section, macro)}${v.unit ? ` (${v.unit})` : ''}`),
-    eq ? `formula ${eqLink(book, eq)}` : '',
+    term ? `word [[def:${book}/${c.section}:${term}]]` : '',
+    c.symbol ? `symbol ${symbolLine(book, c.symbol, v?.section ?? c.section, macro)}${v?.unit ? ` (${v.unit})` : ''}` : '',
+    form ? `formula ${eqLink(book, form)}` : '',
   ].filter(Boolean).join('; ');
 };
 
 export const hitLine = (h: Hit, corpus: Corpus, macro: Macro = () => null): string => {
   switch (h.kind) {
     case 'concept': return conceptLine(h.book, h.concept, corpus, macro);
-    case 'formula': {
-      const c = corpus.concepts.find((x) => x.eq === h.equation.id);
-      return `${eqLink(h.book, h.equation)}${c ? ` states ${conceptLink(h.book, c)}` : ''}`;
-    }
-    case 'definition': return h.def.kind === 'term'
-      ? `[[def:${h.book}/${h.def.term.section}:${h.def.term.term}]] ${flat(h.def.term.definition)}`
-      : `${symbolLine(h.book, h.def.symbol.sym, h.def.symbol.section, macro)}: ${h.def.symbol.meaning}${h.def.symbol.unit ? ` (${h.def.symbol.unit})` : ''}`;
+    case 'formula': return `${eqLink(h.book, h.form)} states ${conceptLink(h.book, h.concept)}`;
+    case 'definition': return `${symbolLine(h.book, h.symbol.sym, h.symbol.section, macro)}: ${h.symbol.meaning}${h.symbol.unit ? ` (${h.symbol.unit})` : ''}`;
     case 'text': return `[[${h.book}/${h.page.id}]] ${h.page.title}${h.head ? ` · ${h.head}` : ''}: ${flat(h.excerpt.map((p) => p.t).join(''))}`;
   }
 };

@@ -2,22 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyCorpus, excerpt, wordsOf, type Corpus } from '../src/lib/search/model';
 import { TEXT_CAP, search } from '../src/lib/search/index';
-import { parseFormulas, parseIndex } from '../src/lib/search/books';
+import { parseIndex } from '../src/lib/search/books';
 import { conceptId, equationId, sectionId } from '../src/lib/types/ids';
 
 /* Two books: the one being read, with a little of everything, and a second with one paragraph. */
 const PHYSICS: Corpus = {
   ...emptyCorpus('physics', 'College Physics'),
   concepts: [
-    { status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator, $T = 2\\pi\\sqrt{m/k}$', statement: 'The period depends on mass and stiffness alone.', prereqs: [] },
-    { status: 'placeholder', id: conceptId('waves'), kind: 'idea', section: sectionId('16.9'), name: 'Waves', prereqs: [] },
+    { status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator', statement: 'The period depends on mass and stiffness alone.', terms: [], prereqs: [], forms: [
+      { id: equationId('eq-period'), section: sectionId('16.3'), tex: '\\kT = 2\\pi\\sqrt{\\km/\\kk}', latex: 'T = 2\\pi\\sqrt{m/k}' },
+      { id: equationId('eq-step'), section: sectionId('16.3'), tex: 'T = 1/f', latex: 'T = 1/f', condition: 'a period' },
+    ] },
+    { status: 'placeholder', id: conceptId('waves'), kind: 'idea', section: sectionId('16.9'), name: 'Waves', terms: [], forms: [], prereqs: [] },
+    { status: 'built', id: conceptId('amplitude'), kind: 'definition', section: sectionId('16.3'), name: 'Amplitude', statement: 'the maximum displacement from equilibrium', terms: ['amplitude'], forms: [], prereqs: [] },
   ],
   variables: [{ sym: 'T', meaning: 'period of the oscillation', unit: 's', section: sectionId('16.3') }],
-  glossary: [{ term: 'amplitude', definition: 'the maximum displacement from equilibrium', section: sectionId('16.3') }],
-  equations: [
-    { id: equationId('eq-period'), section: sectionId('16.3'), tex: '\\kT = 2\\pi\\sqrt{\\km/\\kk}', latex: 'T = 2\\pi\\sqrt{m/k}', important: true },
-    { id: equationId('eq-step'), section: sectionId('16.3'), tex: 'T = 1/f', latex: 'T = 1/f', condition: 'a period', important: false },
-  ],
   pages: [{ id: '16.3', title: 'Simple Harmonic Motion', url: '/physics/ch16/16.3/', chapter: '16', blocks: [
     { span: '16.3-shm', head: 'Simple harmonic motion', text: 'The period of a simple harmonic oscillator does not depend on its amplitude.' },
     { span: '16.3-shm', head: 'Simple harmonic motion', text: 'Nothing about waves here.' },
@@ -35,13 +34,14 @@ test('a blank query finds nothing', () => {
   assert.deepEqual(search('', [PHYSICS], 'all').hits, []);
 });
 test('with everything asked for, the things a book names come first, kind by kind, and the prose after, book by book', () => {
-  assert.deepEqual(kinds('period'), ['physics:concept', 'physics:definition', 'physics:formula', 'physics:text', 'chem:text']);
+  assert.deepEqual(kinds('period'), ['physics:concept', 'physics:definition', 'physics:formula', 'physics:formula', 'physics:text', 'chem:text']);
 });
 test('one kind asked for is the only kind found', () => {
   assert.deepEqual(kinds('period', 'text'), ['physics:text', 'chem:text']);
   assert.deepEqual(kinds('period', 'concept'), ['physics:concept']);
-  assert.deepEqual(kinds('amplitude', 'definition'), ['physics:definition']);
-  assert.deepEqual(kinds('period', 'formula'), ['physics:formula'], 'only the formula sheet’s equations count');
+  assert.deepEqual(kinds('oscillation', 'definition'), ['physics:definition']);
+  assert.deepEqual(kinds('amplitude', 'concept'), ['physics:concept'], 'a glossary word finds its concept');
+  assert.deepEqual(search('period', [PHYSICS], 'formula').hits.map((h) => (h.kind === 'formula' ? h.form.id : '')), ['eq-period', 'eq-step'], 'the main form before the others');
 });
 test('a formula is found by its plain LaTeX, never by the macros of its coloured form', () => {
   assert.deepEqual(kinds('sqrt{m/k}', 'formula'), ['physics:formula']);
@@ -68,12 +68,8 @@ test('an excerpt is a window round the first word found, cut on spaces, with eve
   const short = excerpt('A period.', ['period']);
   assert.deepEqual(short, [{ t: 'A ', hit: false }, { t: 'period', hit: true }, { t: '.', hit: false }]);
 });
-test('a formula sheet and a text index off the wire are read leniently, a bad row dropped', () => {
-  const f = parseFormulas({ variables: [{ sym: 'k', meaning: 'stiffness', section: '16.1' }, { meaning: 'no sym' }], equations: [{ id: 'eq-hooke', section: '16.1', tex: 'F=-kx', important: true, anchor: '16.1-hookes-law' }, 7], glossary: [{ term: 'stiffness', definition: 'how hard to bend', section: '16.1' }, { term: 'lost' }] });
-  assert.deepEqual(f.variables.map((v) => v.sym), ['k']); assert.equal(f.variables[0].unit, '');
-  assert.deepEqual(f.equations.map((e) => [e.id, e.anchor, e.important]), [['eq-hooke', '16.1-hookes-law', true]]);
-  assert.deepEqual(f.glossary.map((g) => g.term), ['stiffness']);
+test('a text index off the wire is read leniently, a bad row dropped', () => {
   const i = parseIndex({ pages: [{ id: '2.1', title: 'D', url: '/b/ch02/2.1/', chapter: '2', blocks: [{ span: '2.1-a', head: 'A', text: 'one' }, { text: '' }] }, { title: 'no id' }] });
   assert.deepEqual(i.pages.map((p) => [p.id, p.blocks.length]), [['2.1', 1]]);
-  assert.deepEqual(parseIndex(null).pages, []); assert.deepEqual(parseFormulas('x'), { variables: [], equations: [], glossary: [] });
+  assert.deepEqual(parseIndex(null).pages, []);
 });

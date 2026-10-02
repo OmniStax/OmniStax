@@ -71,9 +71,24 @@ Every concept of the book, since ids are canonical and a chapter’s prerequisit
 | `id` | `string` | yes | The concept’s id, which is canonical across books, so another textbook’s section on the same matter maps to the same concept. |
 | `kind` | `"definition" \| "axiom" \| "result" \| "idea" \| "skill"` | yes | What the book treats the concept as: a definition, stipulated, a name for something (displacement, the joule); an axiom, taken as given, a postulate or a law found by experiment (F = ma, Ohm’s law); a result, which follows from other concepts whether or not the book shows the steps (v = v₀ + at); an idea, which earns a place in the map and is none of those (the Bohr model); or a skill, know-how for applying the others (drawing a free-body diagram). |
 | `section` | `string` | yes | The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder. |
-| `name` | `string` | yes | The concept’s name as the map prints it, with its formula in $…$ where it has one. |
+| `name` | `string` | yes | What a reader would look the concept up by: the term for a definition, the book’s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss. |
+| `symbol` | `string?` | no | The one symbol the book denotes the concept by, as a key of the book’s symbol table, where it has one. Its variants and components are rows of the chapters’ variables, not of the concept. |
+| `terms` | `string[]` | no | The words the book’s glossary defines the concept under, as the text writes them. The app marks the first mention of each in the prose of the chapters that deal with the concept. |
 | `statement` | `string?` | no | The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book’s voice. A concept whose section is built carries one. |
-| `eq` | `string?` | no | The equation of the formula sheet that states the concept, where one does. |
+| `forms` | `{ id, latex, ktex?, condition?, section?, anchor? }[]` | no | The equations that state the concept, the main form first. |
+
+### `forms`
+
+The equations that state one concept, the main form first.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The form’s id, unique in the book, which a span of the text, an answer or a note names it by. |
+| `latex` | `string` | yes | The equation in plain LaTeX, as the book prints it. |
+| `ktex` | `string?` | no | The same equation written with the book’s macros, so that each symbol wears the colour of its type. The app prints this where it is given. |
+| `condition` | `string?` | no | The condition under which the form holds, stated as the book would state it, such as “constant acceleration”. Absent where it holds generally. |
+| `section` | `string?` | no | The section that states the form, where it is not the concept’s own. |
+| `anchor` | `string?` | no | The qualified span of the text where the form is stated, such as 16.1-hookes-law. |
 
 ### `concept_prereqs`
 
@@ -143,32 +158,6 @@ The symbols the chapter’s sections give a meaning to.
 | `section` | `string` | yes | The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections. |
 | `anchor` | `string?` | no | The qualified span of the text where the symbol is introduced, such as 16.1-hookes-law. |
 | `redefines` | `boolean?` | no | Set where the book itself gives a symbol already used earlier in the chapter a new meaning; the meaning is then written to stand alone. |
-
-### `equations`
-
-The equations the chapter’s sections state.
-
-| field | type | required | description |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The equation’s id, which the concepts refer to it by. |
-| `concept` | `string?` | no | The concept the equation states. A rearrangement or a special case names the concept of its main form, and a line of a worked example the result or skill it applies. |
-| `section` | `string` | yes | The section that states the equation. |
-| `latex` | `string` | yes | The equation in plain LaTeX, as the book prints it. |
-| `ktex` | `string?` | no | The same equation written with the book’s macros, so that each symbol wears the colour of its type. The sheet prints this where it is given. |
-| `condition` | `string?` | no | The condition under which the equation holds, stated as the book would state it, such as “constant acceleration”. Absent where the equation holds generally. |
-| `anchor` | `string?` | no | The qualified span of the text where the equation is stated. |
-| `important` | `boolean` | no | Whether the equation belongs on the formula sheet, or is only a step of a derivation. |
-
-### `glossary`
-
-The terms the chapter’s sections define.
-
-| field | type | required | description |
-| --- | --- | --- | --- |
-| `section` | `string` | yes | The section that defines the term. |
-| `term` | `string` | yes | The term as the book defines it, in the words the text marks. |
-| `concept` | `string?` | no | The concept that is the term: every glossary term is a concept. |
-| `definition` | `string` | yes | The book’s own definition of the term. |
 
 ### `chapter_pages`
 

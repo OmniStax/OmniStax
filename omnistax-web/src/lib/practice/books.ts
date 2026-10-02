@@ -11,8 +11,7 @@
    half-loaded is still worth practising from. */
 import { z } from 'zod';
 import { BookConceptsSchema, ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
-import type { BookConceptsDTO, BookFileUrls, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, FormulasDTO, SectionEntry } from '../content/schema';
-import { parseFormulas } from '../search/books';
+import type { BookConceptsDTO, BookFileUrls, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, SectionEntry } from '../content/schema';
 import { bookId, sectionId } from '../types/ids';
 import type { Catalog } from './model';
 
@@ -47,7 +46,7 @@ const parseChapter = (raw: unknown): ChapterEntry[] => {
   const o = obj(raw); if (!o) return [];
   const id = str(o.id), dir = str(o.dir);
   if (!id && !dir) return [];
-  return [{ id: id || dir, dir: dir || id, title: str(o.title), concepts: str(o.concepts), formulas: str(o.formulas), sections: arr(o.sections).flatMap(parseSection) }];
+  return [{ id: id || dir, dir: dir || id, title: str(o.title), concepts: str(o.concepts), sections: arr(o.sections).flatMap(parseSection) }];
 };
 /* A manifest off the wire. Only what a session draws on is read — the book's
    name, its chapters and their built sections — and the rest is defaulted, so
@@ -60,7 +59,7 @@ export const parseManifest = (raw: unknown): BookManifest | null => {
   return {
     id: bookId(id), title: str(o.title), publisher: '', authors: [], license: '',
     types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [],
-    exercises: str(o.exercises) || fallback.exercises, concepts: str(o.concepts) || fallback.concepts, formulas: str(o.formulas) || fallback.formulas,
+    exercises: str(o.exercises) || fallback.exercises, concepts: str(o.concepts) || fallback.concepts,
     chapters: o.chapters.flatMap(parseChapter),
   };
 };
@@ -79,12 +78,12 @@ export const parseExercises = (raw: unknown): ExerciseDTO[] => {
 };
 
 /* Where a book's book-level files are served, off the address its pages are
-   under. The manifest carries the three of them, so this is the one fallback:
+   under. The manifest carries the two of them, so this is the one fallback:
    how book.json itself is addressed, and what a manifest written without them
    is read as. */
-export type BookFiles = { readonly book: string; readonly exercises: string; readonly concepts: string; readonly formulas: string };
+export type BookFiles = { readonly book: string; readonly exercises: string; readonly concepts: string };
 export const bookFiles = (base: string): BookFiles =>
-  ({ book: `${base}book.json`, exercises: `${base}exercises.json`, concepts: `${base}concepts.json`, formulas: `${base}formulas.json` });
+  ({ book: `${base}book.json`, exercises: `${base}exercises.json`, concepts: `${base}concepts.json` });
 /* The address a book's pages stand under, where the catalogue has not said. */
 export const bookBase = (book: string): string => `/${book}/`;
 
@@ -100,12 +99,6 @@ export const parseBookExercises = (raw: unknown): Record<string, ExerciseDTO[]> 
 export const parseBookConcepts = (raw: unknown): BookConceptsDTO => {
   const p = BookConceptsSchema.safeParse(raw);
   return p.success ? p.data : { concepts: [], chapters: {} };
-};
-/* The book's formula sheets in one file, by chapter directory, read as
-   leniently as one chapter's is. */
-export const parseBookFormulas = (raw: unknown): Record<string, FormulasDTO> => {
-  const o = obj(raw); if (!o) return {};
-  return Object.fromEntries(Object.entries(o).map(([dir, sheet]) => [dir, parseFormulas(sheet)]));
 };
 
 const builtOf = (c: ChapterEntry) => c.sections.filter((s) => s.built).map((s) => sectionId(s.id));

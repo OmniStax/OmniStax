@@ -14,7 +14,7 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { countOf, groupBySection, label, outsideLabel, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
-  import { definitionRows, wordOf, KIND_LABEL, type DefinitionRow } from '../../lib/sections/conceptlists';
+  import { definitionRows, KIND_LABEL, type DefinitionRow } from '../../lib/sections/conceptlists';
   import { chapterOf } from '../../lib/sections/scope';
   import { sectionId, sectionRef, spanRef, spanId, conceptId, type SectionId } from '../../lib/types/ids';
   import { goSpanFromView, openSectionFromView, openingInView, type Opening } from '../../lib/sections/nav.svelte';
@@ -28,49 +28,35 @@
   const book = $derived(target.book);
   const tree = $derived(registry.manifest(book));
   const inScope = (s: SectionId): boolean => target.level === 'book' || (target.level === 'section' ? s === target.section : chapterOf(tree, s) === target.chapter);
-  const rows = $derived(definitionRows({
-    concepts: registry.concepts(book), coverage: registry.coverage(book),
-    variables: registry.chaptersOf(book).flatMap((c) => c.formulas.variables),
-    equations: registry.chaptersOf(book).flatMap((c) => c.formulas.equations),
-    glossary: registry.chaptersOf(book).flatMap((c) => c.formulas.glossary),
-  }, inScope, target.level === 'section' ? target.section : undefined));
+  const rows = $derived(definitionRows({ concepts: registry.concepts(book), coverage: registry.coverage(book), variables: registry.variables(book) },
+    inScope, target.level === 'section' ? target.section : undefined));
   const grouped = $derived(groupBySection(rows, (r) => r.section, target, tree));
   const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const sym = (node: HTMLElement, s: string) => { figFor(book).tex(node, tree.symbols[s] ?? s); return {}; };
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return {}; };
   const math = (node: HTMLElement, s: string) => { node.textContent = s; figFor(book).renderMath(node); return {}; };
-  const wordFor = (r: DefinitionRow): string => r.words[0]?.term ?? (r.concept ? wordOf(r.concept.name) : '');
-  /* A row goes to where its concept is introduced, else to where its symbol is,
-     else to its section. A click the reader's card setting gives to a symbol or a
-     word inside the row stays the card's. */
-  const goTo = (r: DefinitionRow, how: Opening): void => {
-    const anchor = r.symbols.find((v) => v.anchor)?.anchor;
-    if (r.concept) void goConceptFromView(book, conceptId(r.concept.id), how);
-    else if (anchor) goSpanFromView(spanRef(book, spanId(anchor)), how);
-    else void openSectionFromView(sectionRef(book, sectionId(r.words[0]?.section ?? r.section)), how);
-  };
+  /* A row goes to where its concept is introduced. A click the reader's card
+     setting gives to a symbol inside the row stays the card's. */
+  const goTo = (r: DefinitionRow, how: Opening): void => { void goConceptFromView(book, conceptId(r.concept.id), how); };
   const pick = (r: DefinitionRow, e: MouseEvent): void => {
     const how = openingInView(e);
     if (how === 'tab' && settings.cardOpen === 'click' && targetOf(e.target)) return;
     goTo(r, how);
   };
-  const embed = (r: DefinitionRow) => r.words.length ? { kind: 'term' as const, book, section: r.words[0].section, term: r.words[0].term }
-    : r.symbols.length ? { kind: 'symbol' as const, book, section: r.symbols[0].section, sym: r.symbols[0].sym }
-      : { kind: 'concept' as const, book, section: sectionId(r.concept?.section ?? r.section), id: r.concept?.id ?? r.key };
+  const embed = (r: DefinitionRow) => ({ kind: 'concept' as const, book, section: r.concept.section, id: r.concept.id });
 </script>
 
 {#snippet row(r: DefinitionRow)}
-  {@const word = wordFor(r)}
-  {@const head = word || (r.symbols.length === 1 ? r.symbols[0].meaning : '')}
-  {@const meanings = r.symbols.length > 1 || (word !== '' && r.symbols.some((s) => s.redefines))}
-  {@const statement = (r.concept?.status === 'built' ? r.concept.statement : undefined) ?? r.words[0]?.definition}
+  {@const head = r.concept.name}
+  {@const meanings = r.symbols.some((s) => s.redefines)}
+  {@const statement = r.concept.status === 'built' ? r.concept.statement : undefined}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
   <li data-sec={r.section} use:dragout={embed(r)} onclick={(e) => pick(r, e)} onauxclick={(e) => { if (e.button === 1) pick(r, e); }}>
     <span class="syms">{#each r.symbols as v (v.sym)}<span class="sym" use:sym={v.sym}></span>{/each}</span>
     <div class="what">
       <div class="head">
         {#if head}<span class="word">{head}</span>{/if}
-        {#if r.concept && r.concept.kind !== 'definition'}<i class="tag">{KIND_LABEL[r.concept.kind]}</i>{/if}
+        {#if r.concept.kind !== 'definition'}<i class="tag">{KIND_LABEL[r.concept.kind]}</i>{/if}
         {#if r.unit}<span class="unit">{r.unit}</span>{/if}
       </div>
       {#if statement}<p class="statement" use:math={statement}></p>{/if}

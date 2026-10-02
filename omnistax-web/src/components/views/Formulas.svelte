@@ -18,34 +18,29 @@
   import { goSpanFromView, openSectionFromView, openingInView, findEl, type Opening } from '../../lib/sections/nav.svelte';
   import { dragout } from '../../lib/notes/md/dragout';
   import { spanId, spanRef, sectionId, sectionRef } from '../../lib/types/ids';
-  import type { ConceptDTO, EquationDTO } from '../../lib/content/schema';
+  import type { ConceptDTO } from '../../lib/content/schema';
   import { formulaLabel } from '../../lib/sections/conceptlists';
+  import type { Stated } from '../../lib/sections/reference';
   import { figFor } from '../../lib/fig/figlib';
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
   const book = $derived(target.book);
-  const eqs = $derived(registry.chaptersOf(book).flatMap((c) => c.formulas.equations).filter((e) => e.important));
-  const concepts = $derived(new Map(registry.concepts(book).map((c) => [c.id as string, c])));
-  /* The symbol a definition names its quantity by: the first the sheet gives it. */
-  const symbols = $derived.by(() => {
-    const m = new Map<string, string>();
-    registry.chaptersOf(book).flatMap((c) => c.formulas.variables).forEach((v) => { if (v.concept && !m.has(v.concept)) m.set(v.concept, v.sym); });
-    return m;
-  });
-  const symbolOf = (c: ConceptDTO): string | undefined => { const s = symbols.get(c.id); return s ? registry.manifest(book).symbols[s] ?? s : undefined; };
-  const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.section), target, registry.manifest(book)));
+  const eqs = $derived(registry.concepts(book).flatMap((concept): Stated[] => (concept.forms[0] ? [{ form: concept.forms[0], concept }] : [])));
+  const symbolOf = (c: ConceptDTO): string | undefined => (c.symbol ? registry.manifest(book).symbols[c.symbol] ?? c.symbol : undefined);
+  const grouped = $derived(groupBySection(eqs, (e) => sectionId(e.form.section), target, registry.manifest(book)));
   const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
   const spanTitle = (id: string): string => { const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return id; const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return c.textContent?.replace(/^Example [\d.]+ · /, '') ?? id; };
   const tex = (node: HTMLElement, s: string) => { figFor(book).tex(node, s); return { update(n: string) { figFor(book).tex(node, n); } }; };
-  const goTo = (e: EquationDTO, how: Opening): void => {
+  const goTo = ({ form: e }: Stated, how: Opening): void => {
     if (e.anchor) goSpanFromView(spanRef(book, spanId(e.anchor)), how); else void openSectionFromView(sectionRef(book, sectionId(e.section)), how);
   };
 </script>
 
-{#snippet list(items: readonly EquationDTO[])}
-  {#each items as e (e.id)}
-    {@const named = formulaLabel(e, concepts, symbolOf)}
-    <button type="button" class="formula" data-sec={e.section} use:dragout={{ kind: 'equation', book, section: e.section, id: e.id }} onclick={(ev) => goTo(e, openingInView(ev))} onauxclick={(ev) => { if (ev.button === 1) goTo(e, 'new'); }}>
+{#snippet list(items: readonly Stated[])}
+  {#each items as s (s.form.id)}
+    {@const e = s.form}
+    {@const named = formulaLabel(s.concept, symbolOf)}
+    <button type="button" class="formula" data-sec={e.section} use:dragout={{ kind: 'equation', book, section: e.section, id: e.id }} onclick={(ev) => goTo(s, openingInView(ev))} onauxclick={(ev) => { if (ev.button === 1) goTo(s, 'new'); }}>
       {#if named.kind === 'defines'}<div class="named">defines {#if named.tex}<span use:tex={named.tex}></span>{:else}{named.word}{/if}</div>
       {:else if named.kind === 'states'}<div class="named"><i class="tag">{named.tag}</i>{named.word}</div>{/if}
       <div use:tex={e.tex}></div>
@@ -54,12 +49,12 @@
   {/each}
 {/snippet}
 
-{#snippet sectionGroup(g: SectionGroup<EquationDTO>)}
+{#snippet sectionGroup(g: SectionGroup<Stated>)}
   <div class="eyebrow">{label(g.section, g.title)}</div>
   {@render list(g.items)}
 {/snippet}
 
-{#snippet chapterGroup(g: ChapterGroup<EquationDTO>, open: boolean)}
+{#snippet chapterGroup(g: ChapterGroup<Stated>, open: boolean)}
   <Fold class="chapter" {open}>
     {#snippet summary()}{label(g.chapter, g.title)}{/snippet}
     {#each g.sections as s (s.section)}{@render sectionGroup(s)}{/each}

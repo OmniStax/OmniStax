@@ -24,7 +24,7 @@ appended by `tools/mergebook.py log chNN` with the next pass number. This
 lets several chapters run every phase at the same time.
 
 1. **Prep** (one Opus agent per chapter): `exploration.md`, `config.md`,
-   `chapter.json` (sections, variables, equations, glossary; no anchors),
+   `chapter.json` (sections and variables; no anchors),
    `source.md` for every section, the chapter introduction page in
    `intro/`, and `book-rows.json` (types the chapter needs that the book
    does not declare, symbols with macros, concept nodes with prerequisite

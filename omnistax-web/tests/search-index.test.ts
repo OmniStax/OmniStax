@@ -11,9 +11,9 @@ const page = (id: string, texts: readonly string[]) =>
 
 const BOOK: Corpus = {
   ...emptyCorpus('b', 'Book'),
-  concepts: [{ status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator', statement: 'It depends on mass alone.', prereqs: [] }],
+  concepts: [{ status: 'built', id: conceptId('shm-period'), kind: 'result', section: sectionId('16.3'), name: 'Period of an oscillator', statement: 'It depends on mass alone.', terms: [], prereqs: [],
+    forms: [{ id: equationId('eq-period'), section: sectionId('16.3'), tex: '\\kT', latex: 'T = 2\\pi\\sqrt{m/k}' }] }],
   variables: [{ sym: 'T', meaning: 'period of the oscillation', unit: 's', section: sectionId('16.3') }],
-  equations: [{ id: equationId('eq-period'), section: sectionId('16.3'), tex: '\\kT', latex: 'T = 2\\pi\\sqrt{m/k}', important: true }],
   pages: [page('16.3', ['The period of a pendulum is long.', 'Amplitude does not matter.', 'Nothing to see.'])],
 };
 const IX = buildIndex([BOOK]);
@@ -54,7 +54,7 @@ test('one letter finds what the books name and leaves the prose alone', () => {
   assert.deepEqual(kinds('pe'), ['concept', 'definition', 'formula', 'text']);
 });
 test('each kind is cut at its cap', () => {
-  const many: Corpus = { ...emptyCorpus('m', 'M'), glossary: Array.from({ length: KIND_CAP + 3 }, (_, i) => ({ term: `period ${i}`, definition: 'x', section: sectionId('1.1') })) };
+  const many: Corpus = { ...emptyCorpus('m', 'M'), variables: Array.from({ length: KIND_CAP + 3 }, (_, i) => ({ sym: `T${i}`, meaning: 'period', unit: '', section: sectionId('1.1') })) };
   assert.equal(search('period', [many], 'definition').hits.length, KIND_CAP);
 });
 test('the same query over the same index gives the same hits in the same order', () => {

@@ -10,7 +10,7 @@
    docs/content-format.md is generated from these objects and the
    description is the only place the meaning of a field is written down. */
 import { z } from 'zod';
-import { type BookId, type ConceptId, type EquationId, type SectionId, type SpanId, conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
+import { type BookId, type SectionId, conceptId, equationId, sectionId, spanId, typeId } from '../types/ids';
 import { type PageRole, pageId, pageRoleOf } from './roles';
 
 /* A row refers to another row by id alone, and the ids are branded so that a
@@ -69,13 +69,29 @@ export const ExerciseKindSchema = z.object({
 }).strict();
 export type ExerciseKindDTO = z.infer<typeof ExerciseKindSchema>;
 
+/* One way the book writes a concept down as an equation. A concept's forms are
+   ordered and the first is its main form: the one a card, the Reference view and
+   the search lead with. The rest are its rearrangements, special cases and the
+   lines of worked examples that apply it. */
+export const FormSchema = z.object({
+  id: EQUATION_REF.describe('The form\u2019s id, unique in the book, which a span of the text, an answer or a note names it by.'),
+  latex: z.string().describe('The equation in plain LaTeX, as the book prints it.'),
+  ktex: z.string().optional().describe('The same equation written with the book\u2019s macros, so that each symbol wears the colour of its type. The app prints this where it is given.'),
+  condition: z.string().optional().describe('The condition under which the form holds, stated as the book would state it, such as \u201cconstant acceleration\u201d. Absent where it holds generally.'),
+  section: SECTION_REF.optional().describe('The section that states the form, where it is not the concept\u2019s own.'),
+  anchor: SPAN_REF.optional().describe('The qualified span of the text where the form is stated, such as 16.1-hookes-law.'),
+}).strict();
+export type FormRowDTO = z.infer<typeof FormSchema>;
+
 export const ConceptSchema = z.object({
   id: CONCEPT_REF.describe('The concept\u2019s id, which is canonical across books, so another textbook\u2019s section on the same matter maps to the same concept.'),
   kind: z.enum(CONCEPT_KINDS).describe('What the book treats the concept as: a definition, stipulated, a name for something (displacement, the joule); an axiom, taken as given, a postulate or a law found by experiment (F = ma, Ohm\u2019s law); a result, which follows from other concepts whether or not the book shows the steps (v = v\u2080 + at); an idea, which earns a place in the map and is none of those (the Bohr model); or a skill, know-how for applying the others (drawing a free-body diagram).'),
   section: SECTION_REF.describe('The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder.'),
-  name: z.string().describe('The concept\u2019s name as the map prints it, with its formula in $\u2026$ where it has one.'),
+  name: z.string().describe('What a reader would look the concept up by: the term for a definition, the book\u2019s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss.'),
+  symbol: z.string().optional().describe('The one symbol the book denotes the concept by, as a key of the book\u2019s symbol table, where it has one. Its variants and components are rows of the chapters\u2019 variables, not of the concept.'),
+  terms: z.array(z.string()).default([]).describe('The words the book\u2019s glossary defines the concept under, as the text writes them. The app marks the first mention of each in the prose of the chapters that deal with the concept.'),
   statement: z.string().optional().describe('The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book\u2019s voice. A concept whose section is built carries one.'),
-  eq: EQUATION_REF.optional().describe('The equation of the formula sheet that states the concept, where one does.'),
+  forms: z.array(FormSchema).default([]).describe('The equations that state the concept, the main form first.'),
 }).strict();
 export type ConceptRowDTO = z.infer<typeof ConceptSchema>;
 
@@ -168,26 +184,6 @@ export const VariableSchema = z.object({
 }).strict();
 export type VariableDTO = z.infer<typeof VariableSchema>;
 
-export const EquationSchema = z.object({
-  id: EQUATION_REF.describe('The equation\u2019s id, which the concepts refer to it by.'),
-  concept: CONCEPT_REF.optional().describe('The concept the equation states. A rearrangement or a special case names the concept of its main form, and a line of a worked example the result or skill it applies.'),
-  section: SECTION_REF.describe('The section that states the equation.'),
-  latex: z.string().describe('The equation in plain LaTeX, as the book prints it.'),
-  ktex: z.string().optional().describe('The same equation written with the book\u2019s macros, so that each symbol wears the colour of its type. The sheet prints this where it is given.'),
-  condition: z.string().optional().describe('The condition under which the equation holds, stated as the book would state it, such as \u201cconstant acceleration\u201d. Absent where the equation holds generally.'),
-  anchor: SPAN_REF.optional().describe('The qualified span of the text where the equation is stated.'),
-  important: z.boolean().default(false).describe('Whether the equation belongs on the formula sheet, or is only a step of a derivation.'),
-}).strict();
-export type EquationRowDTO = z.infer<typeof EquationSchema>;
-
-export const GlossarySchema = z.object({
-  section: SECTION_REF.describe('The section that defines the term.'),
-  term: z.string().describe('The term as the book defines it, in the words the text marks.'),
-  concept: CONCEPT_REF.optional().describe('The concept that is the term: every glossary term is a concept.'),
-  definition: z.string().describe('The book\u2019s own definition of the term.'),
-}).strict();
-export type GlossaryDTO = z.infer<typeof GlossarySchema>;
-
 export const ChapterSchema = z.object({
   id: z.string().describe('The chapter\u2019s number as the book prints it.'),
   dir: z.string().describe('The directory the chapter is kept in, which is also what its pages are addressed by.'),
@@ -196,11 +192,8 @@ export const ChapterSchema = z.object({
   summary: FrontPageRefSchema.optional().describe('The chapter\u2019s own summary or conclusion, where the book prints one; the page is built in summary/ and listed after the last section.'),
   sections: z.array(SectionRefSchema).default([]).describe('Every section of the chapter, built or not, in the order the book sets them.'),
   variables: z.array(VariableSchema).default([]).describe('The symbols the chapter\u2019s sections give a meaning to.'),
-  equations: z.array(EquationSchema).default([]).describe('The equations the chapter\u2019s sections state.'),
-  glossary: z.array(GlossarySchema).default([]).describe('The terms the chapter\u2019s sections define.'),
 }).strict().transform((c) => ({
-  id: c.id, dir: c.dir, title: c.title, ...framed(c), sections: c.sections,
-  variables: c.variables, equations: c.equations, glossary: c.glossary,
+  id: c.id, dir: c.dir, title: c.title, ...framed(c), sections: c.sections, variables: c.variables,
 }));
 export type ChapterDTO = z.infer<typeof ChapterSchema>;
 
@@ -388,14 +381,13 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   symbols: { level: 'book', file: 'book.json', field: 'symbols', schema: SymbolSchema, note: 'Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}.' },
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
+  forms: { level: 'book', file: 'book.json', field: 'concepts[].forms', schema: FormSchema, note: 'The equations that state one concept, the main form first.' },
   concept_prereqs: { level: 'book', file: 'book.json', field: 'concept_prereqs', schema: ConceptPrereqSchema, note: 'The edges of the concept map.' },
   sheets: { level: 'book', file: 'book.json', field: 'sheets', schema: SheetSchema, note: 'The reference sheets the book keeps beside its chapters, each a page of its own whose data is read from the file the row names.' },
   book_pages: { level: 'book', file: 'book.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The book\u2019s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.' },
   chapter: { level: 'chapter', file: '<chapter>/chapter.json', field: null, schema: ChapterSchema, note: 'One chapter: its number, its title and the sections it is read in.' },
   sections: { level: 'chapter', file: '<chapter>/chapter.json', field: 'sections', schema: SectionRefSchema, note: 'Every section of the chapter, built or not.' },
   variables: { level: 'chapter', file: '<chapter>/chapter.json', field: 'variables', schema: VariableSchema, note: 'The symbols the chapter\u2019s sections give a meaning to.' },
-  equations: { level: 'chapter', file: '<chapter>/chapter.json', field: 'equations', schema: EquationSchema, note: 'The equations the chapter\u2019s sections state.' },
-  glossary: { level: 'chapter', file: '<chapter>/chapter.json', field: 'glossary', schema: GlossarySchema, note: 'The terms the chapter\u2019s sections define.' },
   chapter_pages: { level: 'chapter', file: '<chapter>/chapter.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The chapter\u2019s own introduction and summary, where the book prints them. Each is a page built in intro/ or summary/ beside the sections, with a section.json whose id is the literal intro or summary, whose chapter is this chapter\u2019s, and whose objectives, summary, exercises and coverage are empty; its lead may be empty too.' },
   section: { level: 'section', file: '<chapter>/<section>/section.json', field: null, schema: SectionSchema, note: 'One section: what it is about, what it teaches, who built it and what it left out. The same record, under intro/ or summary/, is a chapter\u2019s or the book\u2019s own introduction or summary page.' },
   figures: { level: 'section', file: '<chapter>/<section>/section.json', field: 'figures', schema: FigureSchema, note: 'The figures the section draws, and the types each of them colours.' },
@@ -414,15 +406,36 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
    These are the shapes of that, and the shapes another book of the library is
    read back by when a practice session draws on it. */
 
-/* A concept as a view of it needs it: its prerequisites folded in from the edge
-   table, and whether the section that introduces it has been built. A
-   placeholder stands for a section nobody has built, so it states nothing. */
-const CONCEPT_BASE = ConceptSchema.omit({ statement: true }).shape;
+/* A form as the app reads it: where it is stated, always, and the coloured
+   equation where the book wrote one, beside the plain one the search reads (a
+   macro names nothing to a reader typing "kx"). */
+export const ServedFormSchema = z.object({
+  id: EQUATION_REF,
+  section: SECTION_REF,
+  tex: z.string(),
+  latex: z.string(),
+  condition: z.string().optional(),
+  anchor: SPAN_REF.optional(),
+});
+export type FormDTO = z.infer<typeof ServedFormSchema>;
+export const formOf = (f: FormRowDTO, home: SectionId): FormDTO => ({
+  id: f.id, section: f.section ?? home, tex: f.ktex ?? f.latex, latex: f.latex,
+  ...(f.condition === undefined ? {} : { condition: f.condition }), ...(f.anchor === undefined ? {} : { anchor: f.anchor }),
+});
+
+/* A concept as a view of it needs it: its forms placed, its prerequisites folded
+   in from the edge table, and whether the section that introduces it has been
+   built. A placeholder stands for a section nobody has built, so it states
+   nothing. */
+const CONCEPT_BASE = { ...ConceptSchema.omit({ statement: true, forms: true }).shape, forms: z.array(ServedFormSchema).default([]), prereqs: z.array(CONCEPT_REF).default([]) };
 export const ServedConceptSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('placeholder'), ...CONCEPT_BASE, prereqs: z.array(CONCEPT_REF).default([]) }),
-  z.object({ status: z.literal('built'), ...ConceptSchema.shape, prereqs: z.array(CONCEPT_REF).default([]) }),
+  z.object({ status: z.literal('placeholder'), ...CONCEPT_BASE }),
+  z.object({ status: z.literal('built'), ...CONCEPT_BASE, statement: ConceptSchema.shape.statement }),
 ]);
 export type ConceptDTO = z.infer<typeof ServedConceptSchema>;
+/* The form a concept leads with, and the rest. */
+export const mainForm = (c: Pick<ConceptDTO, 'forms'>): FormDTO | undefined => c.forms[0];
+export const extraForms = (c: Pick<ConceptDTO, 'forms'>): readonly FormDTO[] => c.forms.slice(1);
 
 /* Coverage as the text reads it: one row per span, with the concepts it
    introduces, uses and reinforces, and the span qualified by its section. */
@@ -434,9 +447,12 @@ export const ServedCoverageSchema = z.object({
 });
 export type CoverageDTO = z.infer<typeof ServedCoverageSchema>;
 
+/* What one chapter serves: the concepts it introduces and reaches, the coverage
+   of its sections, and the meanings its sections give the book's symbols. */
 export const ServedConceptsSchema = z.object({
   concepts: z.array(ServedConceptSchema).default([]),
   coverage: z.array(ServedCoverageSchema).default([]),
+  variables: z.array(VariableSchema.strip()).default([]),
 });
 export type ConceptsDTO = z.infer<typeof ServedConceptsSchema>;
 
@@ -471,32 +487,12 @@ export const ServedExerciseSchema = z.preprocess((raw) => {
 }, SourceNamedServedExerciseSchema);
 export type ExerciseDTO = z.infer<typeof ServedExerciseSchema>;
 
-/* An equation as the sheet prints it: the coloured form where the chapter wrote
-   one, and the plain one otherwise. */
-export type EquationDTO = {
-  readonly id: EquationId;
-  readonly concept?: ConceptId;  /* the concept the equation states */
-  readonly section: SectionId;
-  readonly tex: string;
-  readonly latex: string;        /* the plain form beside it, which the search reads: a macro names nothing to a reader typing "kx" */
-  readonly condition?: string;   /* what the equation holds under, where it does not hold generally: "constant acceleration" */
-  readonly anchor?: SpanId;
-  readonly important: boolean;
-};
-export const equationOf = (e: EquationRowDTO): EquationDTO => ({ id: e.id, concept: e.concept, section: e.section, tex: e.ktex ?? e.latex, latex: e.latex, condition: e.condition, anchor: e.anchor, important: e.important });
-
-export type FormulasDTO = {
-  readonly variables: readonly VariableDTO[];
-  readonly equations: readonly EquationDTO[];
-  readonly glossary: readonly GlossaryDTO[];
-};
-
-/* ---------- the same three things for a whole book ----------
+/* ---------- the same two things for a whole book ----------
 
    A view that stands over the whole library — the practice picker, the search —
    wants every section's problem set and every chapter's concepts at once, and
    fetching them a page at a time is hundreds of requests. The build writes
-   these three beside `book.json`, carrying exactly what the per-page files
+   these two beside `book.json`, carrying exactly what the per-page files
    carry and nothing more, so the per-page files stay the cheaper thing for one
    open page to read. */
 
@@ -505,25 +501,22 @@ export type FormulasDTO = {
 export const BookExercisesSchema = z.record(z.array(ServedExerciseSchema));
 export type BookExercisesDTO = z.infer<typeof BookExercisesSchema>;
 
-/* Every concept of the book once, and per chapter the ids it reaches and the
-   coverage of its own sections. A chapter reaches into the chapters before it,
-   so the same concept is named by many of them; repeating it per chapter is
-   most of what the per-chapter files weigh. `chapterConceptsOf` in
-   content/bookdata.ts rebuilds a chapter's `ConceptsDTO` from the two. */
+/* Every concept of the book once, and per chapter the ids it reaches, the
+   coverage of its own sections and the meanings it gives the symbols. A chapter
+   reaches into the chapters before it, so the same concept is named by many of
+   them; repeating it per chapter is most of what the per-chapter files weigh.
+   `chapterConceptsOf` in content/bookdata.ts rebuilds a chapter's `ConceptsDTO`
+   from the two. */
 export const BookConceptsSchema = z.object({
   concepts: z.array(ServedConceptSchema).default([]),
   chapters: z.record(z.object({
     concepts: z.array(CONCEPT_REF).default([]),
     coverage: z.array(ServedCoverageSchema).default([]),
+    variables: z.array(VariableSchema.strip()).default([]),
   })).default({}),
 });
 export type BookConceptsDTO = z.infer<typeof BookConceptsSchema>;
 export type ChapterConceptsDTO = BookConceptsDTO['chapters'][string];
-
-/* Every chapter's formula sheet, by chapter directory. Formulas are built
-   rather than read from disk, so there is no zod schema for them here and the
-   wire is read leniently by `parseFormulas` in search/books.ts. */
-export type BookFormulasDTO = Readonly<Record<string, FormulasDTO>>;
 
 /* What one section's page carries about itself: enough to draw its head, its
    footer and its colours, and nothing of the tables below it. */
@@ -570,7 +563,7 @@ export type SectionEntry = {
    same shape, and only once built: the chapter file names their modules, but
    a page's title is its own. */
 export type ChapterEntry = {
-  readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string; readonly formulas: string;
+  readonly id: string; readonly dir: string; readonly title: string; readonly concepts: string;
   readonly intro?: SectionEntry; readonly sections: readonly SectionEntry[]; readonly summary?: SectionEntry;
 };
 /* One sheet as the shell reads it: what the row says, the page it is served at
@@ -588,7 +581,7 @@ export type BookManifest = {
   readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
 } & BookFileUrls;
 /* The book's own files, one apiece, beside its pages: every section's problem
-   set, every concept once, and every chapter's formula sheet. The manifest
-   names them, so that it is the one contract for where a book's files are, as
-   it already is for a chapter's concepts and formulas. */
-export type BookFileUrls = { readonly exercises: string; readonly concepts: string; readonly formulas: string };
+   set, and every concept once with each chapter's symbols. The manifest names
+   them, so that it is the one contract for where a book's files are, as it
+   already is for a chapter's concepts. */
+export type BookFileUrls = { readonly exercises: string; readonly concepts: string };

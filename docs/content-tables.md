@@ -42,7 +42,8 @@ Tables:
   its `latex`. A row with no `macro` is a symbol the hover layer knows but
   the text writes in plain LaTeX (`θ`).
 - `exercise_kinds`: `{ id, label }`.
-- `concepts`: `{ id, kind, section, name, statement?, eq? }`. The whole
+- `concepts`: `{ id, kind, section, name, symbol?, terms, statement?,
+  forms }`. The whole
   book's concept nodes in one table, because ids are canonical and a
   chapter's prerequisites live in other chapters. Everything the book
   teaches is a concept (RULES item 6), and `kind` is one of five:
@@ -60,7 +61,22 @@ Tables:
   transformer equation), else the fewest words that pick it out (subshell
   capacity); a skill is a short gerund phrase (converting units). A name holds
   no formula, no symbol and no gloss after a comma or colon; the statement
-  says what it means and the concept's forms carry the formula. A concept whose section is not built yet
+  says what it means and the concept's forms carry the formula. The concept
+  is the one record of what it is (issue #39): `terms` are the words the
+  book's glossary defines it under, which the app marks in the prose of the
+  chapters that deal with it; `symbol` is the one key of `symbols` the book
+  denotes it by, where it has one, never the list of its variants; `forms`
+  are the equations that state it, each `{ id, latex, ktex?, condition?,
+  section?, anchor? }`, ordered, the first the main form a card, the
+  Reference view and the search lead with. A form's `id` is unique in the
+  book, since a text span, an answer or a note names it; its `section` is
+  written only where the form is stated outside the concept's own section (a
+  rearrangement in a later chapter); `condition` is what the form holds
+  under, in the book's words ("constant acceleration"). Forms live on their
+  concept in `book.json` rather than in the chapter that states them: the
+  concept is one record, `book.json` is read at build time only, and what a
+  page fetches is its chapter's `concepts.json`, which carries the forms of
+  the concepts it reaches. A concept whose section is not built yet
   is a placeholder; that is derived from the section list, not written down.
   A concept whose section is built must carry a `statement` and be introduced
   by exactly one coverage row; the validator enforces both. Exercises reach a
@@ -113,19 +129,14 @@ Tables:
 - `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
   redefines? }`. `type` was `color`; the book declares types, the app picks
   hues. `concept` is the definition of the symbol's quantity; a variant or a
-  component (a_x, B₁) names the definition of its base quantity.
-- `equations`: `{ id, concept?, section, latex, ktex?, condition?, anchor?,
-  important }`. `concept` is the concept the equation states: a rearrangement
-  or a special case names the concept of its main form, and a line of a
-  worked example the result or skill it applies. `condition` is what the
-  equation holds under, in the book's words ("constant acceleration"); an
-  equation that holds generally has none.
-- `glossary`: `{ section, term, concept?, definition }`. Every glossary term
-  is a concept, and `concept` names it.
+  component (a_x, B₁) names the definition of its base quantity. This is the
+  table a figure binds its colours by and a symbol's card reads its meaning
+  in this section from.
 
-The three `concept` fields are optional in the schema while the books are
-linked; a row without one is a warning, which `UNLINKED_ROWS_ARE_ERRORS` in
-`check.ts` turns into an error.
+The chapter's `equations` and `glossary` tables folded onto the concepts on
+2026-10-02, as their `forms` and `terms`. `concept` is optional on a
+variables row in the schema; a row without one is a warning, which
+`UNLINKED_ROWS_ARE_ERRORS` in `check.ts` turns into an error.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.
@@ -228,9 +239,13 @@ per-section endpoints as before:
   built from the `symbols` table, and `types` as before.
 - `<chapter>/concepts.json`: the concepts introduced in the chapter plus
   every concept they reach through `concept_prereqs`, each with its
-  `prereqs` folded in, and the chapter's coverage rows folded into the
-  old `{ span, introduces, uses, reinforces }` shape with spans qualified.
-- `<chapter>/formulas.json`: variables, equations, glossary as before.
+  `prereqs` folded in and every form placed in the section that states it,
+  the chapter's coverage rows folded into the old `{ span, introduces, uses,
+  reinforces }` shape with spans qualified, and the chapter's `variables`.
+  It is the one file a chapter serves; `formulas.json` is gone.
+- `<book>/concepts.json`: every concept of the book once, and per chapter
+  the ids it reaches, its coverage and its variables, which a view over the
+  whole book, the search and practice read in place of every chapter's file.
 - `<section>/exercises.json`: exercises with `concepts` and `weights`
   folded in from `exercise_concepts`, and `place` flattened to the local
   id or `"end"`.
@@ -251,10 +266,10 @@ per-section endpoints as before:
 `npm run check:content` parses every file strictly and then checks
 references:
 
-- every `concept`, `prereq`, `exercise`, `type`, `section`, `eq` and
-  `kind` reference resolves to a row;
-- every `anchor`, `span`, `cite` and `place.after` is an `id` in the
-  section's `text.html`;
+- every `concept`, `prereq`, `exercise`, `type`, `section`, `symbol` and
+  `kind` reference resolves to a row, a form's `section` among them;
+- every `anchor` (of a variables row or a form), `span`, `cite` and
+  `place.after` is an `id` in the section's `text.html`;
 - every `figures.id` is a `<figure id>` in `text.html` and every
   `<figure data-figure>` matches the row's `number` joined with its
   `folds` in the book's order ("3.3 + 3.4 + 3.5"), and no fold repeats a
@@ -275,8 +290,12 @@ references:
   `source_section` names a section the app has built;
 - every built concept has a `statement` and exactly one coverage row that
   introduces it;
-- every glossary, variables and equations row names a concept (a warning
-  until `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
+- every variables row names a concept (a warning until
+  `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
+- no two forms of the book share an id, and no two concepts a name (a
+  warning); two concepts may share a glossary word, since the book glosses
+  some words twice ("power" of a force and of a lens) and the reader's place
+  says which is meant;
 - every `draws` entry is a declared type;
 - every section names its chapter and has a lead, and its text keeps off
   the id `section-summary`, which the build gives the summary block it

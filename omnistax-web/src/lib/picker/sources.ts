@@ -7,6 +7,7 @@
    section is gathered only when the row is chosen, by `chipOf`, because a
    section's whole text is far too much to hold for every row of a list nobody
    has scrolled. */
+import { statedOf } from '../sections/reference';
 import { registry } from '../sections/registry.svelte';
 import { label as sectionLabel } from '../sections/grouping';
 import { noteDocs } from '../notes/docs.svelte';
@@ -85,22 +86,22 @@ const figuresOf = (book: BookId, id: string): readonly PickerRow[] => {
 const dataOf = (book: BookId, ch: ChapterEntry) => registry.chapter(book, ch.dir);
 
 const conceptsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly PickerRow[] =>
-  (dataOf(book, ch)?.concepts.concepts ?? []).filter((c) => c.status === 'built' && c.section === sec).map((c): PickerRow => ({
+  (dataOf(book, ch)?.concepts ?? []).filter((c) => c.status === 'built' && c.section === sec).map((c): PickerRow => ({
     category: 'concepts', key: `${book}/${c.id}`, label: plain(c.name), detail: '', target: { kind: 'concept', book, section: c.section, id: c.id }, embed: true,
     text: [plain(c.name), c.status === 'built' ? c.statement ?? '' : ''].filter((s) => s !== '').join('\n'),
   }));
 const equationsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly PickerRow[] =>
-  (dataOf(book, ch)?.formulas.equations ?? []).filter((e) => e.section === sec).map((e): PickerRow => ({
+  statedOf(dataOf(book, ch)?.concepts ?? []).map((s) => s.form).filter((e) => e.section === sec).map((e): PickerRow => ({
     category: 'equations', key: `${book}/${e.id}`, label: cut(e.latex || e.id, 60), detail: e.condition ?? '', target: { kind: 'equation', book, section: e.section, id: e.id }, embed: true,
     text: [`$$${e.latex || e.tex}$$`, e.condition ? `Holds under: ${e.condition}` : ''].filter((s) => s !== '').join('\n'),
   }));
 const definitionsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly PickerRow[] => {
-  const f = dataOf(book, ch)?.formulas; if (!f) return [];
+  const f = dataOf(book, ch); if (!f) return [];
   return [
-    ...f.glossary.filter((g) => g.section === sec).map((g): PickerRow => ({
-      category: 'definitions', key: `term:${book}/${g.section}:${g.term}`, label: g.term, detail: 'term', target: { kind: 'term', book, section: g.section, term: g.term }, embed: true,
-      text: `${g.term}: ${g.definition}`,
-    })),
+    ...f.concepts.filter((c) => c.section === sec).flatMap((c) => c.terms.map((term): PickerRow => ({
+      category: 'definitions', key: `term:${book}/${c.section}:${term}`, label: term, detail: 'term', target: { kind: 'term', book, section: c.section, term }, embed: true,
+      text: `${term}: ${c.status === 'built' ? c.statement ?? '' : ''}`,
+    }))),
     ...f.variables.filter((v) => v.section === sec).map((v): PickerRow => ({
       category: 'definitions', key: `sym:${book}/${v.section}:${v.sym}`, label: cut(`${v.sym} · ${v.meaning}`, 60), detail: 'symbol', target: { kind: 'symbol', book, section: v.section, sym: v.sym }, embed: true,
       text: `${v.sym}: ${v.meaning}${v.unit ? ` (${v.unit})` : ''}`,
