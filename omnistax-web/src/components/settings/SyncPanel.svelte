@@ -99,7 +99,7 @@
               <div class="group">
                 <div class="ghead">
                   <input type="checkbox" aria-label="All {GROUP_LABEL[g]}" disabled={phase !== 'ready'} checked={mark === 'all'} use:tri={mark === 'some'} onchange={(e) => (sel = setGroup(sel, rows, g, e.currentTarget.checked))}>
-                  <button type="button" class="fold" aria-expanded={open[g] ?? false} onclick={() => (open[g] = !(open[g] ?? false))}>
+                  <button type="button" class="gname" aria-expanded={open[g] ?? false} onclick={() => (open[g] = !(open[g] ?? false))}>
                     <span class="caret">{open[g] ? '▾' : '▸'}</span> {GROUP_LABEL[g]}
                   </button>
                   <span class="count">{inGroup.length} · {sizeLabel(inGroup.reduce((n, r) => n + r.size, 0))}</span>
@@ -149,7 +149,7 @@
   .list{overflow:auto;min-height:0;border:1px solid var(--rule);border-radius:6px}
   .group+.group{border-top:1px solid var(--rule)}
   .ghead{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--soft)}
-  .fold{flex:1;text-align:left;font:inherit;font-weight:600;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:0}
+  .gname{flex:1;text-align:left;font:inherit;font-weight:600;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:0}
   .caret{display:inline-block;width:1em;color:var(--muted)}
   .count{color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
   .file{display:grid;grid-template-columns:auto 1fr auto 7.5em;align-items:center;gap:8px;padding:2px 8px 2px 30px;cursor:pointer}
