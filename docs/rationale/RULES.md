@@ -114,6 +114,15 @@ what "Go to definition" opens.
 The existing books were migrated by one decision file per chapter, applied
 by `omnistax-content/tools/migrate_concepts.py`.
 
+On 2026-10-02 names were cut to what a reader looks a concept up by. The
+first pass had written "Average speed, distance traveled divided by elapsed
+time" and "Centripetal force, $F_c = mv^2/r$": a name that carries its gloss
+or its formula repeats the statement and the forms, crowds every card and
+map node it sits on, and reads as a sentence where a reader scans for a
+word. So a definition is named by its term, a law or result by the book's
+name for it or by the fewest words that pick it out, and a skill by a short
+gerund phrase.
+
 ## 7. Colour is a function of type
 
 A colour belongs to a type, and a type is a kind of physical quantity:

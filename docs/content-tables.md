@@ -54,8 +54,13 @@ Tables:
   (know-how for applying the others: drawing a free-body diagram). The kind
   is what this book treats as given or derived. `statement` is the meaning of
   a definition, the claim of an axiom or a result, what an idea is or what a
-  skill lets the reader do, in the book's voice. `name` carries the formula in
-  `$…$` where the concept has one. A concept whose section is not built yet
+  skill lets the reader do, in the book's voice. `name` is what a reader would
+  look the concept up by and nothing more: the term for a definition (average
+  speed, the joule), the book's own name for a law or result (Hooke's law, the
+  transformer equation), else the fewest words that pick it out (subshell
+  capacity); a skill is a short gerund phrase (converting units). A name holds
+  no formula, no symbol and no gloss after a comma or colon; the statement
+  says what it means and the concept's forms carry the formula. A concept whose section is not built yet
   is a placeholder; that is derived from the section list, not written down.
   A concept whose section is built must carry a `statement` and be introduced
   by exactly one coverage row; the validator enforces both. Exercises reach a
