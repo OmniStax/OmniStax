@@ -8,7 +8,7 @@
      ends. A tooltip raised by keyboard focus, with no pointer to follow, sits
      under the element's left edge. A
      control with no title and no words of its own (an icon, a glyph) is named
-     by its aria-label; one whose words are on screen is not named twice, and a
+     by its aria-label; words already on screen are not shown twice, and a
      region's aria-label is for assistive technology alone. Nothing in a
      document or in the note editor is touched: their titles are the author's. */
   import { onMount } from 'svelte';
@@ -43,7 +43,7 @@
   const namedAt = (target: EventTarget | null): HTMLElement | null => {
     let el = target instanceof Element ? target.closest<HTMLElement>(NAMED) : null;
     while (el && !named(el)) el = el.parentElement?.closest<HTMLElement>(NAMED) ?? null;
-    return el && !el.closest('.cm-content, article, .fig-root, .hover-card') ? el : null;
+    return el && !el.closest('.cm-content, .note-body, article[data-doc], article.page, .fig-root, .hover-card') ? el : null;
   };
   /* Some of what puts a tooltip away happens while the shell is taking a piece
      of the page apart — the focusout of a name box that has just closed reaches
@@ -53,7 +53,7 @@
   const put = (): void => { const t = ++turn; queueMicrotask(() => { if (turn === t) tip = null; }); };
   const hide = (): void => { if (timer) clearTimeout(timer); timer = null; held = null; put(); };
   const show = (el: HTMLElement): void => {
-    const text = wordsOf(el); if (!text || !el.isConnected) return;
+    const text = wordsOf(el); if (!text || !el.isConnected || text === el.innerText.trim()) return;
     const r = el.getBoundingClientRect();
     const at = pointer ?? { x: r.left, y: r.bottom - GAP };
     turn++;
