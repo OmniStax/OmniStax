@@ -229,7 +229,7 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
     if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, k === 'colours' ? 'Appearance' : 'View', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'search', 'annotations', 'pomodoro']);
-  assert.equal(by(openViewId('formulas')).label, 'Open Formulas in a split');
+  assert.equal(by(openViewId('reference')).label, 'Open Reference in a split');
   assert.equal(by(openViewId('explorer')).label, 'Open Explorer in a group');
   assert.equal(by(showViewId('annotations')).label, 'Show Annotations in the sidebar');
   by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run();

@@ -15,8 +15,7 @@
   import Exercises from './Exercises.svelte';
   import Explorer from './Explorer.svelte';
   import Search from './Search.svelte';
-  import Formulas from './Formulas.svelte';
-  import Definitions from './Definitions.svelte';
+  import Reference from './Reference.svelte';
   import Annotations from './Annotations.svelte';
   import Colours from './Colours.svelte';
   import Pomodoro from './Pomodoro.svelte';
@@ -119,8 +118,7 @@
   {:else if kind === 'search'}<Search />
   {:else if kind === 'exercises'}<Exercises {item} />
   {:else if kind === 'concepts'}<ConceptMap />
-  {:else if kind === 'formulas'}<Formulas />
-  {:else if kind === 'definitions'}<Definitions />
+  {:else if kind === 'reference'}<Reference />
   {:else if kind === 'colours'}<Colours />
   {:else if kind === 'pomodoro'}<Pomodoro />
   {:else if kind === 'pomodoro-stats'}<PomodoroStats />

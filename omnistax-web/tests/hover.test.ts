@@ -75,8 +75,8 @@ test('a variable card carries the symbol, its type and unit, its meaning and two
   const c = variableCard({ sym: 'k', tex: '\\kk', typeLabel: 'Stiffness', variable: vars[0], section: sec('16.1'), formulasLoaded: true }, nav);
   assert.equal(c.kind, 'variable'); assert.equal(c.tex, '\\kk'); assert.equal(c.eyebrow, 'Symbol · Stiffness · N/m');
   assert.equal(c.body, 'Force constant, the stiffness of the system.');
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Definitions']);
-  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Definitions', c), 'view:definitions');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference']);
+  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference');
 });
 test('a variable in a section whose sheet is not loaded says where it is defined', () => {
   const c = variableCard({ sym: 'k', tex: '\\kk', section: sec('16.1'), formulasLoaded: false }, nav);
@@ -104,8 +104,8 @@ test('tex normalisation ignores spacing, closing punctuation and the constant-a 
 test('an equation card names the concept and goes to where it is introduced', () => {
   const c = equationCard({ form: hookeForm, concept: hookeLaw, introducedIn: 'Hooke’s Law' }, nav);
   assert.equal(c.eyebrow, 'Formula · Result'); assert.equal(c.title, hookeLaw.name); assert.equal(c.body, hookeLaw.statement);
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Formulas']);
-  assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Formulas', c), 'view:formulas');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Reference']);
+  assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference');
   const bare = equationCard({ form: { ...vForm, anchor: undefined }, concept: { ...vFromAt, statement: undefined }, introducedIn: 'Solving for Final Velocity' }, nav);
   assert.equal(bare.body, 'Introduced in “Solving for Final Velocity”.'); assert.equal(run('Go to section', bare), 'sec:2.5');
 });
@@ -133,7 +133,7 @@ test('a definition card names the concept and its symbol, states it and lists it
   assert.equal(c.body, 'Displacement is the change in position.'); assert.equal(c.notes, undefined);
   assert.deepEqual(c.refs?.map((g) => [g.label, g.links.map((l) => l.label)]), [['Formula', ['$\\kdx = \\kxf - \\kxo$']]]);
   calls.length = 0; c.refs?.[0]?.links[0]?.run(); assert.equal(calls.join(','), 'span:2.1-displacement');
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is first introduced', 'Show in Definitions']);
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is first introduced', 'Show in Reference']);
   assert.equal(run('Go to where it is first introduced', c), 'span:2.1-displacement');
 });
 test('a definition card gives the meaning here and elsewhere where the chapter redefines the symbol, and falls back to the section', () => {
@@ -172,14 +172,14 @@ test('a concept card gives its statement, then where the text introduces and use
   assert.deepEqual(refOf(c, 'Introduced in')?.links.map((l) => l.label), ['Hooke’s Law']);
   assert.deepEqual(refOf(c, 'Used in')?.links.map((l) => l.label), ['Energy in a Spring', 'Period and Frequency']);
   assert.equal(refOf(c, 'Used in')?.more, undefined);
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Formulas', 'Show in Concept map']);
-  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Formulas', c), 'view:formulas'); assert.equal(run('Show in Concept map', c), 'view:concepts');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference', 'Show in Concept map']);
+  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference'); assert.equal(run('Show in Concept map', c), 'view:concepts');
 });
-test('a card opened on the map itself does not offer the map, and one with no equation does not offer the sheet', () => {
+test('a card opened on the map itself does not offer the map', () => {
   const c = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], built: true, onMap: true }, nav);
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition']);
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference']);
   const off = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], built: true, onMap: false }, nav);
-  assert.deepEqual(off.actions.map((a) => a.label), ['Go to definition', 'Show in Concept map']);
+  assert.deepEqual(off.actions.map((a) => a.label), ['Go to definition', 'Show in Reference', 'Show in Concept map']);
 });
 test('long use lists are cut short and the rest stand behind one trailing action', () => {
   const wide = conceptCard({

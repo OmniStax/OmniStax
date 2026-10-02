@@ -145,7 +145,8 @@ it when there is something to merge.
 `migrate_forms.py` folded each book's `equations` and `glossary` rows onto
 their concepts (issue #39): every equation became a form of its concept, the
 main form first, every glossary word one of its `terms`, and each concept took
-the one `symbol` its variables rows write most often. An equation id the book
+one `symbol` from the variables rows that name it: the one whose meaning is
+the concept itself, else the one written most often. An equation id the book
 used twice took its chapter's number where it came second. It writes
 `book.json`, the staged `book-rows.json` of every chapter and every
 `chapter.json` under the mergebook lock, and a folded book has nothing to

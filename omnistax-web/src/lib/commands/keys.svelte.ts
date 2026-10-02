@@ -10,6 +10,7 @@ import { defaultBindings } from './defaults';
 import { host } from './host.svelte';
 import type { CommandId } from './command';
 import { readerWritesAllowed } from '../backup/guard';
+import { retiredViewKeys } from '../types/ids';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
@@ -21,7 +22,7 @@ export { DEFAULT_BINDINGS } from './defaults';
    a chord — in which case the bindings are the host's own defaults, read live,
    so installing the book as an app hands the Ctrl chords back on the spot. */
 const load = (): Bindings | null => {
-  try { return parseBindings(JSON.parse(localStorage.getItem(KEY) ?? 'null')); } catch { return null; }
+  try { return parseBindings(JSON.parse(retiredViewKeys(localStorage.getItem(KEY) ?? 'null'))); } catch { return null; }
 };
 const save = (b: Bindings): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* private mode */ } };
 

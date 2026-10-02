@@ -10,9 +10,10 @@ is the one record:
   equation of its own, else its first important equation, else its first;
 - every glossary row's word joins its concept's `terms`, and the glossary's own
   definition is dropped, since a built concept states itself;
-- the concept takes one `symbol`, the one its variables rows write most often;
-  where two tie, a definition takes the first its own section gives, and any
-  other kind takes none;
+- the concept takes one `symbol` from the variables rows that name it: one
+  whose meaning is the concept itself, else the one written most often, else
+  one of its own section; a concept of another kind than definition takes one
+  only where a row's meaning is plainly the concept;
 - `eq`, `equations`, `glossary` and `important` are gone.
 
 An equation id the book uses twice keeps it where it comes first and takes the
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
@@ -94,23 +96,33 @@ def main_first(rows: list[RowDTO], hint: Optional[str]) -> list[RowDTO]:
     return [main] + [r for r in rows if r is not main]
 
 
-def symbol_of(rows: Sequence[RowDTO], home: str, kind: str) -> Optional[str]:
-    """The symbol the book writes the concept with most often. Where two tie, a
-    definition takes the one its own section gives first, else the book's first;
-    any other kind takes none, since a law is not denoted by one of its symbols."""
+def names_it(row: RowDTO, name: str) -> bool:
+    """Whether a variables row's meaning is the concept itself ("time, one of the four
+    fundamental quantities") rather than a variant of it ("the time at the beginning")."""
+    meaning = re.sub(r"^(the|an|a)\s+", "", str(row.get("meaning", "")).lower().strip())
+    return re.match(re.escape(name.lower().strip()) + r"\s*($|[,;(:—–-])", meaning) is not None
+
+
+def symbol_of(rows: Sequence[RowDTO], concept: RowDTO) -> Optional[str]:
+    """The symbol the book denotes the concept by: of its variables rows, one whose
+    meaning is the concept itself, then the symbol written most often, then one of
+    its own section, then the first. A concept of another kind than definition
+    takes one only where a row's meaning is plainly the concept: a law is not
+    denoted by one of its symbols."""
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["sym"]] = counts.get(r["sym"], 0) + 1
-    best = [sym for sym, n in counts.items() if n == max(counts.values(), default=0)]
-    if len(best) == 1:
-        return best[0]
-    ordered = [r["sym"] for r in rows if r.get("section") == home] + [r["sym"] for r in rows]
-    return next((sym for sym in ordered if sym in best), None) if kind == "definition" else None
+    ranked = sorted(enumerate(rows), key=lambda ir: (not names_it(ir[1], concept["name"]), -counts[ir[1]["sym"]],
+                                                        ir[1].get("section") != concept["section"], ir[0]))
+    best = ranked[0][1] if ranked else None
+    if best is None or (concept["kind"] != "definition" and not names_it(best, concept["name"])):
+        return None
+    return best["sym"]
 
 
 def fold_of(concepts: Sequence[RowDTO], chapters: dict[ChapterDir, RecordDTO]) -> Fold:
     home = {c["id"]: c["section"] for c in concepts}
-    kinds = {c["id"]: c["kind"] for c in concepts}
+    by_id = {c["id"]: c for c in concepts}
     hint = {c["id"]: c.get("eq") for c in concepts}
     equations, renamed = unique_ids([Equation(d, e) for d, ch in chapters.items() for e in ost.rows_of(ch, "equations")])
     fold = Fold(renamed=renamed)
@@ -131,7 +143,7 @@ def fold_of(concepts: Sequence[RowDTO], chapters: dict[ChapterDir, RecordDTO]) -
         for v in ost.rows_of(ch, "variables"):
             if v.get("concept") in home:
                 variables.setdefault(v["concept"], []).append(v)
-    fold.symbols = {cid: s for cid, rows in variables.items() if (s := symbol_of(rows, home[cid], kinds[cid])) is not None}
+    fold.symbols = {cid: s for cid, rows in variables.items() if (s := symbol_of(rows, by_id[cid])) is not None}
     return fold
 
 

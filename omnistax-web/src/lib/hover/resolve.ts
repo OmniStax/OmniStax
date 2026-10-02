@@ -35,7 +35,7 @@ export type Card = {
 export type Nav = {
   readonly goSpan: (id: SpanId, split?: boolean) => void;   /* split: in a new group beside the focused one */
   readonly openSection: (sec: SectionId, split?: boolean) => void;
-  readonly showView: (view: 'definitions' | 'formulas' | 'concepts', split?: boolean) => void;
+  readonly showView: (view: 'reference' | 'concepts', split?: boolean) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
 };
@@ -65,7 +65,7 @@ export const variableCard = (f: VariableFacts, nav: Nav): Card => {
     kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: sentence(v.meaning),
     actions: [
       anchor ? { label: 'Go to definition', run: (s?: boolean) => nav.goSpan(anchor, s) } : { label: 'Go to section', run: (s?: boolean) => nav.openSection(v.section as SectionId, s) },
-      { label: 'Show in Definitions', run: (s?: boolean) => nav.showView('definitions', s) },
+      { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
     ],
   };
 };
@@ -105,7 +105,7 @@ export const definitionCard = (f: DefinitionFacts, nav: Nav): Card => {
     refs: formulaGroup(c.forms, nav),
     actions: [
       { label: 'Go to where it is first introduced', run: (s?: boolean) => (f.intro ? nav.goSpan(f.intro, s) : nav.openSection(secIdOf(c.section), s)) },
-      { label: 'Show in Definitions', run: (s?: boolean) => nav.showView('definitions', s) },
+      { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
     ],
   };
 };
@@ -143,7 +143,7 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
     ...(e.condition ? { notes: [{ label: 'Holds under', text: sentence(e.condition) }] } : {}),
     actions: [
       ...(anchor ? [{ label: 'Go to where it is introduced', run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(e.section, s) }]),
-      { label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) },
+      { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
     ],
   };
 };
@@ -201,7 +201,7 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
     kind: 'concept', eyebrow, title: c.name, body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
       { label: 'Go to definition', run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
-      ...(c.forms.length ? [{ label: 'Show in Formulas', run: (s?: boolean) => nav.showView('formulas', s) }] : []),
+      { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
       ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: (s?: boolean) => nav.showView('concepts', s) }]),
     ],
   };

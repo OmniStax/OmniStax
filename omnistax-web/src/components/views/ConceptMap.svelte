@@ -63,7 +63,7 @@
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
   import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
   import type { ConceptKind } from '../../lib/content/schema';
-  import { KINDS } from '../../lib/sections/conceptlists';
+  import { KINDS } from '../../lib/sections/reference';
   import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   import AiMark from '../ui/AiMark.svelte';

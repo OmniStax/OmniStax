@@ -8,9 +8,10 @@ export const ICON = {
   folder: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   explorer: '<svg viewBox="0 0 24 24"><path d="M5 3v15a2 2 0 0 0 2 2h4"/><path d="M5 7.5h5M5 13h5"/><rect x="13" y="3" width="7" height="4.5" rx="1"/><rect x="13" y="10.5" width="7" height="4.5" rx="1"/><rect x="13" y="17.5" width="7" height="4.5" rx="1"/></svg>',
   concepts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M11 7.2 7 15.8M13 7.2l4 8.6"/></svg>',
-  formulas: '<svg viewBox="0 0 24 24"><path d="M17 5H7l6 7-6 7h10"/></svg>',
+  /* a reference sheet of the book: a sigma */
+  sheet: '<svg viewBox="0 0 24 24"><path d="M17 5H7l6 7-6 7h10"/></svg>',
   /* two dictionary entries: the term in a bold stroke, its definition in a longer thin one that runs on */
-  definitions: '<svg viewBox="0 0 24 24"><path d="M4 5.5h5.5" stroke-width="2.6"/><path d="M12.5 5.5h7.5" stroke-width="1.2"/><path d="M12.5 9.5h5" stroke-width="1.2"/><path d="M4 15.5h5.5" stroke-width="2.6"/><path d="M12.5 15.5h7.5" stroke-width="1.2"/><path d="M12.5 19.5h5" stroke-width="1.2"/></svg>',
+  reference: '<svg viewBox="0 0 24 24"><path d="M4 5.5h5.5" stroke-width="2.6"/><path d="M12.5 5.5h7.5" stroke-width="1.2"/><path d="M12.5 9.5h5" stroke-width="1.2"/><path d="M4 15.5h5.5" stroke-width="2.6"/><path d="M12.5 15.5h7.5" stroke-width="1.2"/><path d="M12.5 19.5h5" stroke-width="1.2"/></svg>',
   /* the colour menu: a painter's palette with four dabs of paint on it */
   colours: '<svg viewBox="0 0 24 24"><path d="M12 3.2a8.8 8.8 0 1 0 0 17.6c1.3 0 2-.8 2-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7h2A5.3 5.3 0 0 0 22 9.7c0-3.8-4.5-6.5-10-6.5Z"/><circle cx="7.4" cy="10" r="1" fill="currentColor"/><circle cx="11" cy="7.2" r="1" fill="currentColor"/><circle cx="15.4" cy="8.2" r="1" fill="currentColor"/><circle cx="6.8" cy="14.4" r="1" fill="currentColor"/></svg>',
   annotations: '<svg viewBox="0 0 24 24"><path d="M13.5 3.5l5 5-8 8-5-5z"/><path d="M5.5 11.5 4 16.5l5-1.5"/><path d="M4 21h16"/></svg>',
@@ -47,4 +48,4 @@ export const ICON = {
   pomodoro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.8"/><path d="M8.5 5.2c1.1 1.1 2.2 1.6 3.5 1.6s2.4-.5 3.5-1.6"/><path d="M12 6.8V4"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', formulas: 'Formulas', definitions: 'Definitions', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };

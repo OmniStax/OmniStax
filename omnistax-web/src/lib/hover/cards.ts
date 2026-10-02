@@ -59,7 +59,7 @@ const places = (book: BookId, ids: readonly SpanId[]): { id: SpanId; title: stri
 /* A card sends the reader to a view of that kind: the page of it already open,
    wherever it stands, since a second one would only say the same thing; and where
    none is open, a page of its own as a tab of the focused group. */
-const showView = (view: 'definitions' | 'formulas' | 'concepts', split = false): void => {
+const showView = (view: 'reference' | 'concepts', split = false): void => {
   if (split) { void openItem(itemKey(newViewItem(view)), 'new'); return; }
   const host = document.querySelector<HTMLElement>(`.view[data-view="${view}"]`);
   if (host) { reveal(host); return; }
