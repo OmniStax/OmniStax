@@ -142,7 +142,8 @@ A "Storage" block in Settings, backed by `src/lib/storage/health.ts`:
 
 - On the first write of a file blob, call `navigator.storage.persist()` once
   and remember the answer in `omnistax-storage-persist` (`granted`,
-  `denied`, `unsupported`).
+  `denied`, `unsupported`); the block checks `navigator.storage.persisted()`
+  when drawn and corrects the remembered answer.
 - Show `navigator.storage.estimate()` as "Using X of Y" with a bar, the
   persist status in words, and a note per platform:
   granted: "Your browser has promised to keep this data."
@@ -256,7 +257,8 @@ import, by pdf.js's worker into the `text` store; a profile restored from a
 backup carries the bytes and not the pages, so `search/filecorpus.svelte.ts`
 extracts what is missing the first time it looks. `storage/health.ts` answers
 whether the data is safe — `navigator.storage.persist()` asked once on the
-first blob written and remembered, the estimate, and the words per platform,
+first blob written and remembered, corrected by `persisted()` when the block
+is drawn, the estimate, and the words per platform,
 Safari's seven days included — and `components/settings/Storage.svelte` is the
 one place that says so, with the size of a backup worked out on request and
 written from the same block.

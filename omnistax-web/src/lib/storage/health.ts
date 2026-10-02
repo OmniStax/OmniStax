@@ -4,8 +4,9 @@
    says so is the Storage block in Settings; nothing else nags.
 
    Two questions are asked of the browser. `navigator.storage.persist()` asks
-   it to promise not to clear this origin, which it answers once and for all,
-   so the answer is remembered rather than asked again on every write.
+   it to promise not to clear this origin. The answer is remembered rather than
+   asked again on every write, and `persisted()` corrects it when the block is
+   drawn, since installing or bookmarking the site can change it.
    `navigator.storage.estimate()` says how much is used and how much there is. */
 
 /* The answer is deliberately not in the backup's whitelist: it is a fact about
@@ -110,9 +111,20 @@ export type Health = {
 export const healthOf = (persistence: Persistence, e: Estimate, webkit: boolean): Health =>
   ({ persistence, estimate: e, fraction: usedFraction(e), words: PERSIST_WORDS[persistence], safari: webkit });
 
+/* What the browser promises now, over what it last said: a promise can be
+   given without a prompt (a book download asks too) or withdrawn. */
+const livePersistence = async (known: Persistence): Promise<Persistence> => {
+  const storage = typeof navigator === 'undefined' ? undefined : navigator.storage;
+  if (!storage || typeof storage.persisted !== 'function') return known;
+  try {
+    if (await storage.persisted()) return known === 'granted' ? known : remember('granted');
+    return known === 'granted' ? remember('denied') : known;
+  } catch { return known; }
+};
+
 export const readHealth = async (): Promise<Health> => {
-  const [e] = await Promise.all([estimate()]);
+  const [e, persistence] = await Promise.all([estimate(), livePersistence(rememberedPersistence())]);
   const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
   const vendor = typeof navigator === 'undefined' ? '' : navigator.vendor ?? '';
-  return healthOf(rememberedPersistence(), e, isWebkit(ua, vendor));
+  return healthOf(persistence, e, isWebkit(ua, vendor));
 };
