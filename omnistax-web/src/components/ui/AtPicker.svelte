@@ -71,6 +71,14 @@
     return false;
   }
 
+  /* A tap elsewhere on a tablet finishes what was begun rather than dropping
+     it: the level walked into, whole, or else the row a search stands on. */
+  export function complete(): void {
+    const container = trail.findLast((n) => pickable(n, needsTarget));
+    const chosen = container ?? (searching && cursor && pickable(cursor.node, needsTarget) ? cursor.node : null);
+    if (chosen) pick(chosen); else onclose();
+  }
+
   const press = (e: MouseEvent, f: () => void): void => { e.preventDefault(); field?.focus({ preventScroll: true }); f(); };
 
   /* The pointer takes the cursor only when it moves: a row slid under a still

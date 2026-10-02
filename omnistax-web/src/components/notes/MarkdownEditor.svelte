@@ -49,9 +49,21 @@
   let query = $state('');
   let where = $state({ left: 0, top: 0, down: false });
   const root = pickerRoot();
-  let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
+  let picker = $state<{ handleKey(e: KeyboardEvent): boolean; complete(): void } | null>(null);
+  let pickerBox = $state<HTMLElement | null>(null);
 
   const closePicker = (): void => { at = null; query = ''; };
+
+  /* A touch or a pen pressed anywhere off the list finishes the choice before
+     the press moves the cursor out of the brackets. */
+  $effect(() => {
+    if (at === null) return;
+    const away = (e: PointerEvent): void => {
+      if (e.pointerType !== 'mouse' && pickerBox && !pickerBox.contains(e.target as Node)) picker?.complete();
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  });
 
   /* Where the picker hangs, in the editor's own coordinates. */
   const place = (v: EditorView, pos: number): void => {
@@ -235,7 +247,7 @@
 
 <div class="md-editor" use:mount>
   {#if at !== null}
-    <div class="picker-at" class:down={where.down} style:left="{where.left}px" style:top="{where.top}px">
+    <div class="picker-at" bind:this={pickerBox} class:down={where.down} style:left="{where.left}px" style:top="{where.top}px">
       <AtPicker bind:this={picker} {root} {query} needsTarget onchoose={choose} onclose={closePicker} />
     </div>
   {/if}

@@ -4,7 +4,7 @@
   import { childrenOf, pathTo, type Chat, type Message, type MessageId } from '../../lib/chat/model';
   import { ANCHOR, NODE, NODE_COMPACT, nodeSize, opening, openSize, speakerOf, timeOf } from '../../lib/chat/tree';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
-  import { chatBooks, chatResolver } from '../../lib/chat/resolve';
+  import { chatResolver, decorateAnswer, placeAttrs, placeOf, type AnswerPlace } from '../../lib/chat/resolve';
 
   type Ids = ReadonlySet<MessageId>;
 
@@ -39,7 +39,21 @@
 
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
-  const html = (m: Message): string => (render === null ? '' : render(expanded.has(m.id) ? m.text.trim() : opening(m.text, scale.chars), chatResolver()));
+  /* A node is set in its message's book, as its bubble is. Its text is drawn
+     once for the message as it stands, and again only when the node opens or
+     shuts or its book has come: a message changed is a new message. */
+  const drawn = new WeakMap<Message, Map<string, string>>();
+  const html = (m: Message, place: AnswerPlace, attrs: Readonly<Record<string, string>>): string => {
+    if (render === null) return '';
+    const open = expanded.has(m.id);
+    const key = `${open ? 'open' : scale.chars}|${Object.values(attrs).join('|')}`;
+    const kept = drawn.get(m) ?? new Map<string, string>();
+    drawn.set(m, kept);
+    const had = kept.get(key); if (had !== undefined) return had;
+    const out = render(open ? m.text.trim() : opening(m.text, scale.chars), chatResolver(place));
+    kept.set(key, out);
+    return out;
+  };
 
   /* ── selection ─────────────────────────────────────────────────────────── */
 
@@ -72,9 +86,12 @@
     ro.observe(node);
     return { destroy: () => ro.disconnect() };
   };
-  const math = (node: HTMLElement, _html: string) => {
-    chatBooks.setMath(node);
-    return { update: () => chatBooks.setMath(node) };
+  type Drawn = { readonly html: string; readonly place: AnswerPlace };
+  const decorated = (node: HTMLElement, first: Drawn) => {
+    let place = first.place;
+    const go = (): void => decorateAnswer(node, place, go);
+    go();
+    return { update: (next: Drawn) => { place = next.place; go(); } };
   };
 </script>
 
@@ -94,18 +111,20 @@
         {#if m.id === chat.root}
           <span class="anchor" style:left="{box.x}px" style:top="{box.y}px"></span>
         {:else}
-          {@const h = html(m)}
+          {@const place = placeOf(chat, m.id)}
+          {@const attrs = placeAttrs(place)}
+          {@const h = html(m, place, attrs)}
           <button type="button" class="node" class:mine={m.role === 'user'} class:on={onPath.has(m.id)} class:selected={selection.has(m.id)}
-            class:open={expanded.has(m.id)} data-node={m.id} data-role={m.role} title={timeOf(m.at)}
+            class:open={expanded.has(m.id)} {...attrs} data-node={m.id} data-role={m.role} title={timeOf(m.at)}
             style:left="{box.x}px" style:top="{box.y}px" style:width="{box.w}px" style:height="{box.h}px"
             onclick={(e) => pick(e, m.id)} ondblclick={() => onopen?.(m.id)}>
             <span class="head"><span class="role">{speakerOf(m)}</span>{#if !compact}<time>{timeOf(m.at)}</time>{/if}</span>
             {#if expanded.has(m.id)}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text full" use:measure={m.id} use:math={h}>{@html h}</span>
+              <span class="text full" use:measure={m.id} use:decorated={{ html: h, place }}>{@html h}</span>
             {:else}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text" style:-webkit-line-clamp={scale.lines} use:math={h}>{@html h}</span>
+              <span class="text" style:-webkit-line-clamp={scale.lines} use:decorated={{ html: h, place }}>{@html h}</span>
             {/if}
           </button>
         {/if}

@@ -25,7 +25,7 @@
 
   let text = $state('');
   let field = $state<HTMLTextAreaElement | null>(null);
-  let picker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
+  let picker = $state<{ handleKey(e: KeyboardEvent): boolean; complete(): void } | null>(null);
   let at = $state<number | null>(null);
   let query = $state('');
   let dragging = $state(false);
@@ -57,11 +57,15 @@
   const close = (): void => { at = null; query = ''; };
 
   /* The picker follows the field: a press anywhere outside the composer closes it,
-     and the field taking the focus back reads the `@` the cursor stands after. */
+     a touch or a pen finishing the choice first, and the field taking the focus
+     back reads the `@` the cursor stands after. */
   let box = $state<HTMLElement | null>(null);
   $effect(() => {
     if (at === null) return;
-    const away = (e: PointerEvent): void => { if (box && !box.contains(e.target as Node)) close(); };
+    const away = (e: PointerEvent): void => {
+      if (!box || box.contains(e.target as Node)) return;
+      if (e.pointerType !== 'mouse' && picker) picker.complete(); else close();
+    };
     document.addEventListener('pointerdown', away, true);
     return () => document.removeEventListener('pointerdown', away, true);
   });
