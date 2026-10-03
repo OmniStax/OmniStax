@@ -8,6 +8,7 @@ import { conceptOfTerm, formById, statedOf } from '../src/lib/sections/reference
 import type { ConceptDTO, FormDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
 import { conceptId, equationId, sectionId, spanId, typeId } from '../src/lib/types/ids';
+import { symKey, symbolTarget } from '../src/lib/hover/data';
 import { PHYSICS, bookRoot } from './book-on-disk';
 
 /* The fixtures below are pages of College Physics 2e, so they are read from that book by its id rather than from whichever book the environment puts first. */
@@ -71,12 +72,28 @@ test('the real sections wrap each glossary term at most once and never inside a 
 
 /* ---------- variable ---------- */
 const vars: readonly VariableDTO[] = [{ sym: 'k', type: typeId('stiffness'), meaning: 'force constant, the stiffness of the system', unit: 'N/m', section: sectionId('16.1'), anchor: spanId('16.1-hookes-law') }];
-test('a variable card carries the symbol, its type and unit, its meaning and two actions', () => {
+test('a symbol whose row names no concept carries its type and unit, its meaning here and the span that introduces it, and no definition', () => {
   const c = variableCard({ sym: 'k', tex: '\\kk', typeLabel: 'Stiffness', variable: vars[0], section: sec('16.1'), formulasLoaded: true }, nav);
   assert.equal(c.kind, 'variable'); assert.equal(c.tex, '\\kk'); assert.equal(c.eyebrow, 'Symbol · Stiffness · N/m');
   assert.equal(c.body, 'Force constant, the stiffness of the system.');
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference']);
-  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced']);
+  assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law');
+  const unanchored = variableCard({ sym: 'N', tex: 'N', variable: { sym: 'N', meaning: 'number of molecules', unit: '', section: sectionId('13.3') }, section: sec('13.3'), formulasLoaded: true }, nav);
+  assert.equal(unanchored.eyebrow, 'Symbol'); assert.equal(unanchored.body, 'Number of molecules.');
+  assert.deepEqual(unanchored.actions.map((a) => a.label), ['Go to section']); assert.equal(run('Go to section', unanchored), 'sec:13.3');
+});
+test('a hovered symbol opens the concept its row names, and a row that names none opens as itself', () => {
+  const rows: readonly VariableDTO[] = [
+    { sym: 'k', concept: conceptId('hookes-law'), meaning: 'force constant', unit: 'N/m', section: sectionId('16.1') },
+    { sym: 'N', meaning: 'number of coils', unit: '', section: sectionId('16.1') },
+    { sym: 'm', concept: conceptId('mass'), meaning: 'mass', unit: 'kg', section: sectionId('16.1') },
+  ];
+  const conceptOf = (id: string): ConceptDTO | undefined => (id === 'hookes-law' ? hookeLaw : undefined);
+  const linked = symbolTarget(rows, symKey('k'), '16.1', conceptOf);
+  assert.equal(linked.kind, 'concept'); assert.equal(linked.kind === 'concept' && linked.concept.id, 'hookes-law');
+  assert.deepEqual(symbolTarget(rows, symKey('N'), '16.1', conceptOf), { kind: 'row', variable: rows[1] });
+  assert.deepEqual(symbolTarget(rows, symKey('m'), '16.1', conceptOf), { kind: 'row', variable: rows[2] }, 'a concept the book has not loaded leaves the row');
+  assert.deepEqual(symbolTarget(rows, symKey('q'), '16.1', conceptOf), { kind: 'row', variable: undefined });
 });
 test('a variable in a section whose sheet is not loaded says where it is defined', () => {
   const c = variableCard({ sym: 'k', tex: '\\kk', section: sec('16.1'), formulasLoaded: false }, nav);

@@ -138,8 +138,8 @@ Tables:
 
 The chapter's `equations` and `glossary` tables folded onto the concepts on
 2026-10-02, as their `forms` and `terms`. `concept` is optional on a
-variables row in the schema; a row without one is a warning, which
-`UNLINKED_ROWS_ARE_ERRORS` in `check.ts` turns into an error.
+variables row; a concept whose `symbol` no row linked to it carries is an
+error. A concept whose linked rows are all variants (C₁, C₂) has no `symbol`.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.
@@ -293,8 +293,7 @@ references:
   `source_section` names a section the app has built;
 - every built concept has a `statement` and exactly one coverage row that
   introduces it;
-- every variables row names a concept (a warning until
-  `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
+- every concept's `symbol` is the `sym` of a variables row linked to it;
 - no two forms of the book share an id, and no two concepts a name; two
   concepts may share a glossary word, since the book glosses
   some words twice ("power" of a force and of a lens) and the reader's place

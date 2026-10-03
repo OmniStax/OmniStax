@@ -72,7 +72,7 @@ Every concept of the book, since ids are canonical and a chapter’s prerequisit
 | `kind` | `"definition" \| "axiom" \| "result" \| "idea" \| "skill"` | yes | What the book treats the concept as: a definition, stipulated, a name for something (displacement, the joule); an axiom, taken as given, a postulate or a law found by experiment (F = ma, Ohm’s law); a result, which follows from other concepts whether or not the book shows the steps (v = v₀ + at); an idea, which earns a place in the map and is none of those (the Bohr model); or a skill, know-how for applying the others (drawing a free-body diagram). |
 | `section` | `string` | yes | The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder. |
 | `name` | `string` | yes | What a reader would look the concept up by: the term for a definition, the book’s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss. |
-| `symbol` | `string?` | no | The one symbol the book denotes the concept by, as a key of the book’s symbol table, where it has one. Its variants and components are rows of the chapters’ variables, not of the concept. |
+| `symbol` | `string?` | no | The one symbol the book denotes the concept by, as a key of the book’s symbol table, where it has one; it is the sym of a variables row linked to the concept. Its variants and components are rows of the chapters’ variables, not of the concept. |
 | `terms` | `string[]` | no | The words the book’s glossary defines the concept under, as the text writes them. The app marks the first mention of each in the prose of the chapters that deal with the concept. |
 | `statement` | `string?` | no | The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book’s voice. A concept whose section is built carries one. |
 | `forms` | `{ id, latex, ktex?, condition?, section?, anchor? }[]` | no | The equations that state the concept, the main form first. |
@@ -151,7 +151,7 @@ The symbols the chapter’s sections give a meaning to.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The symbol’s key in the book’s symbol table. |
-| `concept` | `string?` | no | The concept that defines the symbol’s quantity. A variant or a component (a_x, B₁) names the definition of its base quantity. |
+| `concept` | `string?` | no | The concept the symbol names, and only that; a variant or a component (a_x, B₁) names its base quantity. A symbol that names no concept has none. |
 | `type` | `string?` | no | The type of quantity the symbol stands for here. The book declares the types and the app picks the hues. |
 | `meaning` | `string` | yes | What the symbol stands for in this section, in the book’s words. |
 | `unit` | `string` | no | The unit the quantity is measured in. |

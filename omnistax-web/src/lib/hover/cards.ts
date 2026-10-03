@@ -12,7 +12,7 @@ import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, s
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
-import { symOf, typeOf, lookupVariable, otherMeanings } from './data';
+import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
 import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, matchEquation, firstSentence } from './resolve';
@@ -101,11 +101,10 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   const sym = symOf(t); const sec = sectionOf(book, t); if (!sym || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
   const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
-  const v = data ? lookupVariable(data.variables, sym, sec) : undefined;
+  const target = data ? symbolTarget(data.variables, sym, sec, (id) => registry.concept(book, id)) : undefined;
   const other = data ? otherMeanings(data.variables, sym, sec)[0] : undefined;
-  const c = v?.concept ? registry.concept(book, v.concept) : undefined;
-  if (c) return definition(book, c, { sym, variable: v, elsewhere: other, section: sec });
-  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: v }, navFor(book));
+  if (target?.kind === 'concept') return definition(book, target.concept, { sym, variable: target.variable, elsewhere: other, section: sec });
+  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: target?.variable }, navFor(book));
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
 const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;

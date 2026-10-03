@@ -46,7 +46,10 @@ const sentence = (s: string): string => { const t = s.trim(); return t === '' ? 
 const spanIdOf = (s: string): SpanId => s as SpanId;
 const secIdOf = (s: string): SectionId => s as SectionId;
 
-/* ---------- variable ---------- */
+/* ---------- variable ----------
+   A symbol whose row names no concept (N for a count of molecules): what it
+   means in this section and its unit, and the span that introduces it. The
+   Reference lists concepts, so it has no place there. */
 export type VariableFacts = {
   readonly sym: string;
   readonly tex: string;                      /* the macro from the book's symbol table, or the key itself */
@@ -63,10 +66,7 @@ export const variableCard = (f: VariableFacts, nav: Nav): Card => {
   const anchor = v.anchor ? spanIdOf(v.anchor) : undefined;
   return {
     kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: sentence(v.meaning),
-    actions: [
-      anchor ? { label: 'Go to definition', run: (s?: boolean) => nav.goSpan(anchor, s) } : { label: 'Go to section', run: (s?: boolean) => nav.openSection(v.section as SectionId, s) },
-      { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
-    ],
+    actions: [anchor ? { label: 'Go to where it is introduced', run: (s?: boolean) => nav.goSpan(anchor, s) } : { label: 'Go to section', run: (s?: boolean) => nav.openSection(secIdOf(v.section), s) }],
   };
 };
 

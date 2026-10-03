@@ -305,7 +305,7 @@ const corpus: Corpus = {
     { id: 'deformation', kind: 'definition', name: 'Deformation', section: '16.1', status: 'built', statement: 'a change in shape', terms: ['deformation'], forms: [] },
     { id: 'force-constant', kind: 'definition', name: 'Force constant', section: '16.1', status: 'built', statement: 'how stiff a spring is', symbol: 'k', terms: [], forms: [] },
   ] as unknown as Corpus['concepts'],
-  variables: [{ sym: 'k', concept: 'force-constant', meaning: 'spring constant', unit: 'N/m', section: '16.1' } as unknown as Corpus['variables'][number]],
+  variables: [{ sym: 'k', concept: 'force-constant', meaning: 'spring constant', unit: 'N/m', section: '16.1' }, { sym: 'N', meaning: 'number of coils', unit: '', section: '16.1' }] as unknown as Corpus['variables'],
   pages: [{ id: '16.1', title: "Hooke's Law", url: '', chapter: '16', terms: [], blocks: [{ span: 's1', head: '', text: 'A spring stretches in proportion to the force.', toks: '' }] }],
 };
 const fakeLibrary: Library = {
@@ -328,6 +328,7 @@ test('the tools read the books through the library and answer with links', async
   assert.equal((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'formula', query: 'hooke' })).output,
     "![[eq:bk/16.1:eq-hooke]] $F=-kx$ states [[concept:bk/16.1:hookes-law]] Hooke's law (axiom)");
   assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'k' })).output ?? '', /^\[\[concept:bk\/16\.1:force-constant\]\][^\n]*symbol \[\[sym:bk\/16\.1:k\]\] \$k\$ \(N\/m\)/);
+  assert.equal((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'definition', query: 'coils' })).output, '[[sym:bk/16.1:N]] $N$: number of coils', 'a symbol that names no concept');
   assert.match((await runTool(fakeLibrary, 'lookup', { book: 'bk', kind: 'concept', query: 'hooke' })).output ?? '', /^\[\[concept:bk\/16\.1:hookes-law\]\] Hooke's law \(axiom\): springs; formula !\[\[eq:bk\/16\.1:eq-hooke\]\] \$F=-kx\$$/);
   const fig = await runTool(fakeLibrary, 'figure', { book: 'bk', section: '16.1', id: 'sim-spring' });
   assert.match(fig.output ?? '', /Mass: 2 kg/);
