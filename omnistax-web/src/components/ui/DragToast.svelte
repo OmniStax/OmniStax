@@ -12,8 +12,8 @@
   const LINGER_MS = 500;
   let shown = $state(false);
   const text = $derived(settings.swapDragButtons
-    ? 'Dragging. Left-click + drag to select text instead'
-    : 'Dragging. Right-click + drag to select text instead');
+    ? 'Drop in a note/drawing. Left-click + drag to select text instead'
+    : 'Drop in a note/drawing. Right-click + drag to select text instead');
 
   onMount(() => {
     let timer = 0;

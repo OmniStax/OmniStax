@@ -159,7 +159,7 @@ test('checkPages: an introduction page carries none of a section’s apparatus',
   assert.deepEqual(said(withIntro({ summary_html: '<p>s</p>' })), ['2.intro/section.json: is an introduction page and carries summary_html, which belongs to a section']);
   const ex = { id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } };
   assert.ok(said(withIntro({ exercises: [ex] })).some((s) => /carries exercises, which belongs to a section/.test(s)));
-  assert.deepEqual(said(withIntro({ lead: 'A line the book never wrote.' })), [], 'a lead is allowed, only never required');
+  assert.deepEqual(said(withIntro({ lead: 'A line the book never wrote.' })), ['2.intro/section.json: is an introduction page and carries lead, which belongs to a section']);
 });
 test('checkPages: an introduction page must be named by the chapter or the book that keeps it, and name that chapter', () => {
   const ch = CONTENT.chapters[0];
@@ -169,11 +169,13 @@ test('checkPages: an introduction page must be named by the chapter or the book 
   const strayed: Content = { ...CONTENT, intro: { ...CONTENT.intro!, dto: SectionSchema.parse({ id: 'intro', chapter: '2', title: 'Preface', built: 'd' }) } };
   assert.deepEqual(said(strayed), ['2.intro/section.json: belongs to the book and names chapter "2"']);
 });
-test('checkPages: a section has a lead and a chapter; only a front page may go without', () => {
+test('checkPages: a section has a lead of at most 80 words and a chapter; only a front page may go without', () => {
   const ch = CONTENT.chapters[0];
   const section = (o: object): Content => ({ ...CONTENT, chapters: [{ ...ch, sections: [{ ...ch.sections[0], dto: SectionSchema.parse({ ...JSON.parse(JSON.stringify({ id: '2.1', chapter: '2', title: 'D', lead: 'l', built: 'd', coverage: ch.sections[0].dto.coverage, exercises: ch.sections[0].dto.exercises, exercise_concepts: ch.sections[0].dto.exerciseConcepts })), ...o }) }] }] });
   assert.deepEqual(checkPages(section({ lead: '' })).map((f) => f.what), ['is a section and has no lead']);
   assert.deepEqual(checkPages(section({ chapter: undefined })).map((f) => f.what), ['is a section and names no chapter']);
+  assert.deepEqual(checkPages(section({ lead: Array(81).fill('word').join(' ') })).map((f) => f.what), ['has a lead of 81 words, over the 80 rule 21 allows']);
+  assert.deepEqual(checkPages(section({ lead: Array(80).fill('word').join(' ') })), []);
   const taken: Content = { ...CONTENT, chapters: [{ ...ch, sections: [{ ...ch.sections[0], textHtml: `${ch.sections[0].textHtml}<section id="section-summary"></section>` }] }] };
   assert.deepEqual(checkPages(taken).map((f) => f.what), ['carries the id "section-summary", which the build keeps for the section summary']);
 });

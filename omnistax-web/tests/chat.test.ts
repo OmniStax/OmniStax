@@ -5,7 +5,7 @@ import {
   newChat, pagerOf, resend, retry, siblingsOf, spokenIn, stop, transcript, type Chat, type MessageId,
 } from '../src/lib/chat/model';
 import { askText, chip, contextBlock, withChip, withoutChip } from '../src/lib/chat/context';
-import { systemPrompt } from '../src/lib/chat/prompt';
+import { systemPrompt, WIDGET } from '../src/lib/chat/prompt';
 import { requestOf, failureOf, rejectsTools, trimBase, CORS_MESSAGE, DEFAULT_BASE, type Access, type ChatRequest, type ModelPick, type Provider, type StreamEvent } from '../src/lib/chat/providers/index';
 import { PROVIDERS } from '../src/lib/chat/providers/all';
 import { bodyOf as anthropicBody } from '../src/lib/chat/providers/anthropic';
@@ -122,7 +122,7 @@ test('the request is built from the chat alone, and each provider shapes it its 
   assert.equal(request.turns.length, 2);
   const first = request.turns[0];
   assert.ok(first.role === 'user' && /A pendulum swings/.test(first.text), 'the chips ride on the last reader turn');
-  assert.ok(!request.system.includes('widget'), 'the widget paragraph is off');
+  assert.ok(!request.system.includes(WIDGET), 'the widget paragraph is off');
   assert.ok(!request.system.includes('read_section'), 'no tools, no tool paragraph');
 
   const openai = openaiBody(request);
@@ -243,7 +243,7 @@ test('a host that refuses a browser is reported in the words the spec sets', () 
 });
 
 test('the widget paragraph is appended only when inline HTML is on', () => {
-  assert.ok(!systemPrompt(false).includes('widget'));
+  assert.ok(!systemPrompt(false).includes(WIDGET));
   assert.match(systemPrompt(true), /fenced block tagged `widget`/);
 });
 
