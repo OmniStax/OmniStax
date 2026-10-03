@@ -18,7 +18,7 @@ export type ChapterId = string & { readonly __brand: 'ChapterId' };
 export type GroupKey = string & { readonly __brand: 'GroupKey' };
 export type SpanId = string & { readonly __brand: 'SpanId' };
 export type ConceptId = string & { readonly __brand: 'ConceptId' };
-/* One declared type of physical quantity, e.g. "position": the key the book's
+/* One declared type of thing the book colours, e.g. "position": the key the book's
    `types` table is read by, the class a coloured symbol wears, and the hue a
    page binds. */
 export type TypeId = string & { readonly __brand: 'TypeId' };

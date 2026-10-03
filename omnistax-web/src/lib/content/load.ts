@@ -11,14 +11,14 @@ import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap,
+  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
 import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs, sizedImages } from './fragment';
 import { type MediaRoot, imageSizes } from './mediasize';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
-import { type BookDir, type BookId, type ConceptId, type ContentRoot, bookDir, bookId, qualifiedId } from '../types/ids';
+import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeId, bookDir, bookId, qualifiedId } from '../types/ids';
 import type { BookSelection } from '../../../omnistax.config';
 import { type ContentVersion, bookVersion, rootVersion } from './version';
 
@@ -41,7 +41,7 @@ export type SectionSource = {
 };
 /* A chapter's pages: its sections, and its own introduction and summary where the book prints them and they are built. */
 export type ChapterTree = {
-  readonly dto: ChapterDTO; readonly concepts: ConceptsDTO;
+  readonly dto: ChapterDTO; readonly stored: ChapterDTO; readonly concepts: ConceptsDTO;
   readonly intro?: SectionSource; readonly sections: readonly SectionSource[]; readonly summary?: SectionSource;
 };
 /* One sheet as the build reads it: the row the book wrote, the file it names
@@ -49,7 +49,8 @@ export type ChapterTree = {
    an error rather than thrown, so that `check:content` can report every sheet
    of every book in one run; the page that serves it throws instead. */
 export type SheetSource = { readonly row: SheetDTO; readonly file: string; readonly data: SheetDataDTO | null; readonly error?: string };
-export type BookTree = { readonly dto: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
+/* `dto` is what the app reads, every type inherited; `stored` is the tables as written, which the validator reads. */
+export type BookTree = { readonly dto: BookDTO; readonly stored: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
 
 const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> => schema.parse(JSON.parse(await fs.readFile(file, 'utf8')));
 const readText = (file: string): Promise<string> => fs.readFile(file, 'utf8');
@@ -87,6 +88,44 @@ export const typesOf = (types: readonly TypeDTO[]): TypeMap =>
   Object.fromEntries(types.map((t) => [t.id, { label: t.label, dimension: t.dimension }] as const));
 export const kindsOf = (kinds: readonly { id: string; label: string }[]): KindMap =>
   Object.fromEntries(kinds.map((k) => [k.id, k.label] as const));
+
+/* ---------- the types a symbol and a variable inherit ---------- */
+
+/* A kind is declared once, on the concept. A variables row inherits its concept's
+   type; a symbol inherits the type shared by the concepts it denotes, which are
+   the concepts that name it as their symbol, else the concepts its variables rows
+   name, every row naming one. A stored type is an override and wins. */
+export type InheritedTypes = {
+  readonly symbol: (s: SymbolDTO) => TypeId | undefined;
+  readonly variable: (v: VariableDTO) => TypeId | undefined;
+};
+export const inheritedTypes = (concepts: readonly ConceptRowDTO[], variables: readonly VariableDTO[]): InheritedTypes => {
+  const typeOf = new Map(concepts.map((c) => [c.id, c.type] as const));
+  const group = <T,>(pairs: readonly (readonly [string, T])[]): ReadonlyMap<string, readonly T[]> =>
+    pairs.reduce((m, [k, v]) => m.set(k, [...(m.get(k) ?? []), v]), new Map<string, T[]>());
+  const naming = group(concepts.flatMap((c) => (c.symbol === undefined ? [] : [[c.symbol, c.id] as const])));
+  const rowsOf = group(variables.map((v) => [v.sym, v.concept] as const));
+  const shared = (ids: readonly (ConceptId | undefined)[]): TypeId | undefined => {
+    const ts = new Set(ids.map((id) => (id === undefined ? undefined : typeOf.get(id))));
+    return ts.size === 1 ? [...ts][0] : undefined;
+  };
+  return {
+    symbol: (s) => shared(naming.get(s.sym) ?? rowsOf.get(s.sym) ?? []),
+    variable: (v) => (v.concept === undefined ? undefined : typeOf.get(v.concept)),
+  };
+};
+/* The book and its chapters with every symbol and variables row carrying its effective type, which is what every reader of a type sees. */
+export const withInheritedTypes = (book: BookDTO, chapters: readonly ChapterDTO[]): { readonly book: BookDTO; readonly chapters: readonly ChapterDTO[] } => {
+  const inherit = inheritedTypes(book.concepts, chapters.flatMap((ch) => ch.variables));
+  const typed = <R extends { readonly type?: TypeId }>(row: R, inherited: (r: R) => TypeId | undefined): R => {
+    const type = row.type ?? inherited(row);
+    return type === row.type ? row : { ...row, type };
+  };
+  return {
+    book: { ...book, symbols: book.symbols.map((s) => typed(s, inherit.symbol)) },
+    chapters: chapters.map((ch) => ({ ...ch, variables: ch.variables.map((v) => typed(v, inherit.variable)) })),
+  };
+};
 
 /* ---------- one section's tables ---------- */
 
@@ -214,9 +253,8 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
 };
 
 type ChapterLoaded = Omit<ChapterTree, 'concepts'>;
-const loadChapter = async (root: string, book: BookDTO, dir: string, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
+const loadChapter = async (root: string, book: BookDTO, dir: string, dto: ChapterDTO, stored: ChapterDTO, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
-  const dto = await readJson(path.join(base, 'chapter.json'), ChapterSchema);
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
     loadFrontPage(base, 'intro', front('intro'), macros, media),
@@ -225,13 +263,14 @@ const loadChapter = async (root: string, book: BookDTO, dir: string, macros: Mac
   ]);
   const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }));
   const role = (r: PageRole): SectionSource | undefined => linked.find((s) => s.role === r);
-  return { dto, intro: role('intro'), sections: linked.filter((s) => s.role === 'section'), summary: role('summary') };
+  return { dto, stored, intro: role('intro'), sections: linked.filter((s) => s.role === 'section'), summary: role('summary') };
 };
 
 /* A built page as the manifest lists it. */
 const entryOf = (src: SectionSource): SectionEntry => ({
   id: src.meta.id, title: src.meta.title, built: true, url: src.url, fragment: `${src.url}doc.html`, figuresJs: `${src.url}figures.js`,
   figures: figureList(src.textHtml, src.meta.id), binds: src.meta.binds, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
+  ...(src.dto.referents.length ? { referents: src.dto.referents.map((r) => (r.type === undefined ? { id: r.id, figure: r.figure } : { id: r.id, figure: r.figure, type: r.type })) } : {}),
   openstax: src.meta.openstax,
 });
 /* A section the chapter lists but nobody has built: named, addressed, and empty below. */
@@ -274,8 +313,10 @@ const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | '
 
 /* One book, read from its own folder. The id the caller expects is checked against the file, so a folder renamed out from under the build says so. */
 export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => {
-  const dto = await readJson(path.join(root, 'book.json'), BookSchema);
-  if (dto.id !== id) throw new Error(`book.json is "${dto.id}", expected "${id}"`);
+  const stored = await readJson(path.join(root, 'book.json'), BookSchema);
+  if (stored.id !== id) throw new Error(`book.json is "${stored.id}", expected "${id}"`);
+  const storedChapters = await Promise.all(stored.chapterDirs.map((dir) => readJson(path.join(root, dir, 'chapter.json'), ChapterSchema)));
+  const { book: dto, chapters: chapterDtos } = withInheritedTypes(stored, storedChapters);
   const macros = macrosOf(dto.symbols);
   /* The books share one `/media/` address space, but a book's own pages only
      ever name its own media, so its own folder is the whole of the root here. */
@@ -283,7 +324,7 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
   const [intro, loaded, summary, sheets] = await Promise.all([
     loadFrontPage(root, 'intro', front('intro'), macros, media),
-    Promise.all(dto.chapterDirs.map((dir) => loadChapter(root, dto, dir, macros, media))),
+    Promise.all(chapterDtos.map((ch, i) => loadChapter(root, dto, stored.chapterDirs[i], ch, storedChapters[i], macros, media))),
     loadFrontPage(root, 'summary', front('summary'), macros, media),
     loadSheets(root, dto),
   ]);
@@ -291,7 +332,7 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   const built = new Set<string>(loaded.flatMap((ch) => ch.sections.map((s) => String(s.meta.id))));
   const chapters = loaded.map((ch): ChapterTree => ({ ...ch, concepts: conceptsOfChapter(dto, ch.dto, ch.sections, built) }));
   const framed = { intro, chapters, summary, sheets };
-  return { dto, ...framed, manifest: manifestOf(dto, framed) };
+  return { dto, stored, ...framed, manifest: manifestOf(dto, framed) };
 };
 
 /* The pages either side of one page of the book, across chapters: the last

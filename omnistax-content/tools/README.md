@@ -24,7 +24,7 @@ takes `-h`. An error is one line on stderr and a non-zero exit.
 | `show <book> [chapter] [section]` | a summary of the book, a chapter or a section |
 | `rows <book> <table> [filters]` | the rows of one table |
 | `find <book> <text>` | where a word lives: ids, titles, symbols, concepts and their glossary words, forms, captions, prompts |
-| `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, type, meaning; run it before adding a row |
+| `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, the type it wears (its own override or its concept's), meaning; run it before adding a row |
 | `check <book> [--section N.M]` | the app's checker, filtered to the section if one is named |
 | `ids <book> <section>` | every id of the section's `text.html`, which an anchor, span, cite or place may name |
 
@@ -50,7 +50,8 @@ ost ids chemistry-2e 1.4
   table, each row carrying its `concept` and the `section` it is stated in
   (the concept's own where the form names none)
 - `chapter.json`: `sections`, `variables`
-- `section.json`: `figures`, `coverage`, `exercises`, `exercise_concepts`
+- `section.json`: `figures`, `referents`, `coverage`, `exercises`,
+  `exercise_concepts`
 
 and these filters:
 
@@ -83,8 +84,8 @@ ost add chemistry-2e forms \
   '{"concept": "density", "id": "eq-mass-from-density", "latex": "m = dV", "anchor": "1.4-density"}'
 ```
 
-A row is named by its key fields joined with `/`: `figures`, `exercises`,
-`forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
+A row is named by its key fields joined with `/`: `figures`, `referents`,
+`exercises`, `forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
 by `sym`, `coverage` by `span/concept/verb`, `exercise_concepts` by
 `exercise/concept`, `variables` by `section/sym`, `concept_prereqs` by
 `concept/prereq`.
@@ -167,6 +168,22 @@ already the new one, and no two concepts of a book would share a name.
 ```
 python3 omnistax-content/tools/apply_names.py names/ --dry-run
 python3 omnistax-content/tools/apply_names.py names/college-physics-2e-ch01.json
+```
+
+`backfill_types.py` declares each kind on its concept and drops the overrides
+that say nothing (docs/content-tables.md). A definition takes its main
+symbol's type, else the one type its variables rows carry; a result takes its
+main symbol's type where that symbol is the left-hand side of its main form;
+an axiom, an idea or a skill is never typed. A concept whose sources carry two
+types, or whose type would colour a symbol or a variables row the book sets in
+ink, is left untyped and listed. Then every type on a symbol or a variables row
+equal to the one it inherits is removed, in `book.json`, the chapters and the
+staged `book-rows.json`, so no colour changes. With no book named it runs on
+every book; a second run changes nothing.
+
+```
+python3 omnistax-content/tools/backfill_types.py --dry-run
+python3 omnistax-content/tools/backfill_types.py college-physics-2e chemistry-2e
 ```
 
 ## The checker

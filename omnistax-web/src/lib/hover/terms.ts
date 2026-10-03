@@ -1,10 +1,10 @@
 /* Marking glossary terms and example references in a section's prose, as a
-   pure transform of its HTML. The first mention of each glossary term in a
-   paragraph or list item becomes <span class="term" data-term="…">; every
-   "Example 16.2" whose example is in the same section becomes a link. Text
-   inside links, headings and rendered math is never touched, nor is a figure's
-   caption or an exercise card. The tokeniser is the same tag-splitting scan
-   the build uses for figure references (content/fragment.ts). */
+   pure transform of its HTML. Every mention of a glossary term in a paragraph
+   or list item becomes <span class="term" data-term="…">; every "Example 16.2"
+   whose example is in the same section becomes a link. Text inside links,
+   headings, rendered math and terms already marked is never touched, nor is a
+   figure's caption or an exercise card. The tokeniser is the same tag-splitting
+   scan the build uses for figure references (content/fragment.ts). */
 
 export type Term = string;                                   /* a glossary term as the chapter's chapter.json spells it */
 export type ExampleNumber = string & { readonly __brand: 'ExampleNumber' };   /* "16.2" */
@@ -26,9 +26,10 @@ const hasClass = (t: Token, c: string): boolean => new RegExp(`\\bclass="[^"]*\\
 
 const BLOCK = new Set(['p', 'li']);
 const HEADING = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption, an exercise host, and a
-   thing of the book an answer already names by a link are forbidden as wholes. */
-const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || tagName(t) === 'figure' || hasClass(t, 'exercises') || hasClass(t, 'book-word') || hasClass(t, 'wiki');
+const isTermSpan = (t: Token): boolean => tagName(t) === 'span' && /\bclass="term"/.test(t);
+/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption, an exercise host, a term
+   already marked, and a thing of the book an answer already names by a link are forbidden as wholes. */
+const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || isTermSpan(t) || tagName(t) === 'figure' || hasClass(t, 'exercises') || hasClass(t, 'book-word') || hasClass(t, 'wiki');
 
 /* The context of every token, from a scan that opens and closes at each tag. Forbidding subtrees are tracked by depth. */
 export const contexts = (ts: readonly Token[], start: Context): Context[] => {
@@ -56,45 +57,21 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /* A term as a pattern: whole words, any whitespace between them, case-insensitive. */
 const termRe = (term: Term): RegExp => new RegExp(`(?<![\\w-])${term.trim().split(/\s+/).map(escapeRe).join('\\s+')}(?![\\w-])`, 'i');
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-const open = (term: Term): string => `<span class="term" data-term="${esc(term)}" tabindex="0">`;
-const mark = (term: Term, text: string): string => `${open(term)}${text}</span>`;
+const mark = (term: Term, text: string): string => `<span class="term" data-term="${esc(term)}" tabindex="0">${text}</span>`;
 
-export type Wrapped = { readonly html: string; readonly done: ReadonlySet<Term> };
-
-/* Pass one: a term set in <em>…</em> on its own. */
-export const wrapEmTerms = (html: string, terms: readonly Term[], done: ReadonlySet<Term> = new Set(), start: Context = TOP): Wrapped => {
-  const ts = tokens(html); const cs = contexts(ts, start); const got = new Set(done);
-  const out = [...ts];
-  for (let i = 0; i + 2 < ts.length; i++) {
-    if (tagName(ts[i]) !== 'em' || closes(ts[i]) || isTag(ts[i + 1]) || tagName(ts[i + 2]) !== 'em' || !closes(ts[i + 2]) || !termable(cs[i + 1])) continue;
-    const text = ts[i + 1].trim();
-    const term = terms.find((t) => !got.has(t) && termRe(t).test(text) && text.replace(termRe(t), '').trim() === '');
-    if (!term) continue;
-    got.add(term); out[i] = open(term) + ts[i]; out[i + 2] = ts[i + 2] + '</span>';
-  }
-  return { html: out.join(''), done: got };
-};
-/* Pass two: the first plain mention of each term still unmarked. */
-export const wrapPlainTerms = (html: string, terms: readonly Term[], done: ReadonlySet<Term> = new Set(), start: Context = TOP): Wrapped => {
-  const ts = tokens(html); const cs = contexts(ts, start); const got = new Set(done);
-  const out = ts.map((t, i) => {
-    if (isTag(t) || !termable(cs[i])) return t;
-    /* A later term matches only unmarked text, never inside a span an earlier term made ("metal" within "alkaline earth metal"). */
-    type Piece = { readonly text: string; readonly marked: boolean };
-    const pieces = terms.reduce<readonly Piece[]>((ps, term) => {
-      if (got.has(term)) return ps;
-      const k = ps.findIndex((p) => !p.marked && termRe(term).test(p.text)); if (k < 0) return ps;
-      const p = ps[k]; const m = termRe(term).exec(p.text)!;
-      got.add(term);
-      return [...ps.slice(0, k), { text: p.text.slice(0, m.index), marked: false }, { text: mark(term, m[0]), marked: true }, { text: p.text.slice(m.index + m[0].length), marked: false }, ...ps.slice(k + 1)];
-    }, [{ text: t, marked: false }]);
-    return pieces.map((p) => p.text).join('');
-  });
-  return { html: out.join(''), done: got };
-};
-/* Both passes over one article: an emphasised mention wins over an earlier plain one. */
-export const wrapTerms = (html: string, terms: readonly Term[]): string => {
-  const em = wrapEmTerms(html, terms); return wrapPlainTerms(em.html, terms, em.done).html;
+/* Every mention of every term, the longer term first: a shorter one matches only unmarked text, never inside
+   a span a longer one made ("metal" within "alkaline earth metal"). */
+export const wrapTerms = (html: string, terms: readonly Term[], start: Context = TOP): string => {
+  const ts = tokens(html); const cs = contexts(ts, start);
+  const longFirst = [...terms].sort((a, b) => b.trim().length - a.trim().length).map((term) => ({ term, re: new RegExp(termRe(term).source, 'gi') }));
+  type Piece = { readonly text: string; readonly marked: boolean };
+  const split = (p: Piece, { term, re }: (typeof longFirst)[number]): readonly Piece[] => {
+    if (p.marked) return [p];
+    const ms = [...p.text.matchAll(re)]; if (ms.length === 0) return [p];
+    const ends = ms.map((m) => m.index + m[0].length);
+    return [...ms.flatMap((m, i) => [{ text: p.text.slice(i ? ends[i - 1] : 0, m.index), marked: false }, { text: mark(term, m[0]), marked: true }]), { text: p.text.slice(ends[ends.length - 1]), marked: false }];
+  };
+  return ts.map((t, i) => (isTag(t) || !termable(cs[i]) ? t : longFirst.reduce<readonly Piece[]>((ps, at) => ps.flatMap((p) => split(p, at)), [{ text: t, marked: false }]).map((p) => p.text).join(''))).join('');
 };
 
 /* The examples an article holds, by book number: <div class="example" id="16.1-ex-car"><h3>Example 16.1 · …</h3>. */

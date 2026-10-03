@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { CAT, NEAR_DEG, cat, catHues, hueAngle } from '../src/lib/fig/cat';
+import { CAT, NEAR_DEG, cat, catHues, catOrder, hueAngle, untypedIndex } from '../src/lib/fig/cat';
 import { elementColor } from '../src/lib/fig/elements';
 import { isHex } from '../src/lib/colours/model';
 
@@ -41,7 +41,15 @@ test('a bound type hue and its nearest neighbour are skipped', () => {
   const left = catHues([blue.light]);
   assert.ok(!left.some((h) => h.angle === blue.angle));
   assert.ok(left.every((h) => gap(h.angle, blue.angle) >= NEAR_DEG));
-  for (let i = 0; i < 20; i++) assert.notEqual(cat(i, false, [blue.light]), blue.light);
+  for (let i = 0; i < left.length; i++) assert.notEqual(cat(i, false, [blue.light]), blue.light);
+});
+
+test('a page whose bound hues leave few clear still tells eight things apart, nearest-to-bound last', () => {
+  const bound = [CAT[0].light, CAT[2].light, CAT[4].light, CAT[6].light, CAT[1].light];
+  const order = catOrder(bound);
+  assert.equal(new Set(Array.from({ length: 8 }, (_, i) => cat(i, false, bound))).size, 8);
+  assert.deepEqual(order.slice(0, catHues(bound).length), catHues(bound), 'the clear hues come first, as before');
+  assert.equal(cat(1, false, bound) === cat(0, false, bound), false);
 });
 
 test('a grey binds nothing, and a page that binds everything gets the whole palette', () => {
@@ -54,7 +62,9 @@ test('a grey binds nothing, and a page that binds everything gets the whole pale
    Neither the element palette nor the categorical one is reached through the
    scheme: `elementColor` and `cat` take a theme and nothing else, and figlib
    passes them nothing else, so there is no path by which `setCC(false)` could
-   reach them. `C` is the one door that answers with ink. */
+   reach them. `C` is the one door that answers with ink; an untyped referent
+   reads colour coding only to drop the bound hues it keeps clear of, as `cat`
+   finds none bound with it off. */
 const figlib = fs.readFileSync(new URL('../src/lib/fig/figlib.ts', import.meta.url), 'utf8');
 
 test('the element and categorical colours do not switch off with colour coding', () => {
@@ -63,8 +73,18 @@ test('the element and categorical colours do not switch off with colour coding',
   const uses = figlib.split('\n').filter((l) => /\bCC\b/.test(l) && !l.trimStart().startsWith('/*') && !l.trimStart().startsWith('*'));
   assert.deepEqual(uses.map((l) => l.trim()).sort(), [
     'const setCC = (on: boolean): void => { CC = on; };',
-    'get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,',
+    'get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,',
     'if (!CC && !NEUTRAL.has(k)) return PAL.ink;',
+    'return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);',
     'let CC = true;',
   ].sort());
+});
+
+test('a referent of no type is indexed by its place among the untyped rows of its own figure', () => {
+  const rows = [{ id: 'firm-a', figure: 'duopoly' }, { id: 'crank', figure: 'engine', type: 'force' }, { id: 'piston', figure: 'engine' }, { id: 'firm-b', figure: 'duopoly' }];
+  assert.equal(untypedIndex(rows, 'firm-a'), 0);
+  assert.equal(untypedIndex(rows, 'firm-b'), 1);
+  assert.equal(untypedIndex(rows, 'piston'), 0, 'each figure counts from the start');
+  assert.equal(untypedIndex(rows, 'crank'), -1);
+  assert.equal(untypedIndex(rows, 'firm-c'), -1);
 });

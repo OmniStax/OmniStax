@@ -92,8 +92,8 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
-        "symbol": _f(), "terms": _f(kind="list"), "statement": _f(), "forms": _f(kind="list")},
-        ("id", "kind", "section", "name", "symbol", "statement")),
+        "symbol": _f(), "terms": _f(kind="list"), "type": _f(), "statement": _f(), "forms": _f(kind="list")},
+        ("id", "kind", "section", "name", "symbol", "type", "statement")),
     "forms": Table("book", ("id",), {
         "concept": _f(True), "id": _f(True), "latex": _f(True), "ktex": _f(), "condition": _f(),
         "section": _f(), "anchor": _f(), "main": _f(kind="bool")},
@@ -114,6 +114,8 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "kind": _f(True, enum=FIGURE), "number": _f(), "folds": _f(kind="list"),
         "originals": _f(kind="list"), "original_caption": _f(), "widths": _f(kind="list"),
         "draws": _f(kind="list")}, ("id", "kind", "number", "folds", "draws")),
+    "referents": Table("section", ("id",), {
+        "id": _f(True), "label": _f(True), "figure": _f(True), "type": _f()}, ("id", "label", "figure", "type")),
     "coverage": Table("section", ("span", "concept", "verb"), {
         "span": _f(True), "concept": _f(True), "verb": _f(True, enum=VERB)}, ("span", "concept", "verb")),
     "exercises": Table("section", ("id",), {
@@ -590,8 +592,9 @@ def cmd_find(args: argparse.Namespace) -> int:
 
 
 def cmd_meanings(args: argparse.Namespace) -> int:
-    """Every row of one symbol across the book's chapters: what it has meant so far."""
+    """Every row of one symbol across the book's chapters: what it has meant so far, with the type it wears, its own or its concept's."""
     book = book_of(args.book)
+    kinds = {c["id"]: c.get("type") for c in rows_of(load(book.book_path), "concepts")}
     lines = []
     for d in chapter_dirs(book):
         path = os.path.join(book.dir, d, "chapter.json")
@@ -600,7 +603,7 @@ def cmd_meanings(args: argparse.Namespace) -> int:
         for v in rows_of(load(path), "variables"):
             if v.get("sym") == args.sym:
                 flag = " · redefines" if v.get("redefines") else ""
-                lines.append(f"{v.get('section')} · {v.get('type') or '-'} · {v.get('meaning')}{flag}")
+                lines.append(f"{v.get('section')} · {v.get('type') or kinds.get(v.get('concept') or '') or '-'} · {v.get('meaning')}{flag}")
     print("\n".join(lines) if lines else f"no variables row of {book.id} has sym {args.sym!r}")
     return 0
 
@@ -666,6 +669,8 @@ def show_section(book: Book, section: SectionId) -> int:
         folds = " + " + " + ".join(f["folds"]) if f.get("folds") else ""
         draws = " · draws " + ", ".join(f["draws"]) if f.get("draws") else ""
         print(f"figure {f.get('id')} · {f.get('kind')}{number}{folds}{draws}")
+    for r in rows_of(record, "referents"):
+        print(f"referent {r.get('id')} · {r.get('label')} · in {r.get('figure')}" + (f" · {r['type']}" if r.get("type") else ""))
     spans: dict[str, list[str]] = {}
     for c in rows_of(record, "coverage"):
         spans.setdefault(str(c.get("concept")), []).append(str(c.get("verb")))

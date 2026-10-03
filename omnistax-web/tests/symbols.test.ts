@@ -2,11 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { z } from 'zod';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { kvTypeFromClass, lookupVariable, symKey } from '../src/lib/hover/data';
-import { macroExpansion, macrosOf, symbolsOf } from '../src/lib/content/load';
-import { SymbolSchema } from '../src/lib/content/schema';
+import { macroExpansion, macrosOf, symbolsOf, withInheritedTypes } from '../src/lib/content/load';
+import { BookSchema, ChapterSchema } from '../src/lib/content/schema';
 import type { SymbolDTO, VariableDTO } from '../src/lib/content/schema';
 import { sectionId, spanId, typeId } from '../src/lib/types/ids';
 import { PHYSICS, bookRoot } from './book-on-disk';
@@ -16,9 +15,11 @@ const ROOT = await bookRoot(PHYSICS);
 
 /* The book writes one row per symbol and the build derives the macros from it,
    so the tests below read the table and then the derivation, rather than a pair
-   of records that could drift apart. */
-const book = JSON.parse(fs.readFileSync(path.join(ROOT, 'book.json'), 'utf8')) as { symbols: unknown };
-const rows = z.array(SymbolSchema).parse(book.symbols);
+   of records that could drift apart. A symbol's type is mostly inherited from its
+   concept, so the rows are read with their types resolved, as the build reads them. */
+const readJson = (file: string): unknown => JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+const stored = BookSchema.parse(readJson('book.json'));
+const rows = withInheritedTypes(stored, stored.chapterDirs.map((dir) => ChapterSchema.parse(readJson(path.join(dir, 'chapter.json'))))).book.symbols;
 const macros = macrosOf(rows);
 const symbols = symbolsOf(rows);
 const kMacros = Object.keys(macros).filter((m) => m.startsWith('\\k'));

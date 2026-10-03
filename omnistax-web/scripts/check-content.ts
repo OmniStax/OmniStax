@@ -5,7 +5,7 @@
 import path from 'node:path';
 import { parseBooks, parseConfig } from '../omnistax.config';
 import type { BookSelection, OmniStaxConfig } from '../omnistax.config';
-import { loadBooks } from '../src/lib/content/load';
+import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { type ContentRoot, contentRoot } from '../src/lib/types/ids';
 import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
@@ -46,8 +46,8 @@ const report = (findings: readonly Finding[], content: Content): string => {
 /* A symbol given two meanings in one chapter, where the later row does not say
    `redefines`: a warning only, since the heuristic behind it can be wrong. */
 export const redefinitions = (content: Content): readonly Finding[] =>
-  content.chapters.flatMap((ch) => unmarkedRedefinitions(ch.dto.variables).map(([a, b]): Finding => ({
-    level: 'warning', where: `${ch.dto.dir}/chapter.json variables[${b.section}/${b.sym}]`,
+  withInheritedTypes(content.book, content.chapters.map((ch) => ch.dto)).chapters.flatMap((ch) => unmarkedRedefinitions(ch.variables).map(([a, b]): Finding => ({
+    level: 'warning', where: `${ch.dir}/chapter.json variables[${b.section}/${b.sym}]`,
     what: `means something else in ${a.section} ("${a.meaning}"); reuse that meaning, or reword this one to stand alone and set "redefines": true`,
   })));
 

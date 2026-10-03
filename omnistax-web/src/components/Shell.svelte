@@ -6,7 +6,7 @@
      Everything that touches document-wide state (theme, colour coding, pinned
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
-  import { initFig, FIG, figFor, registerFigBook } from '../lib/fig/figlib';
+  import { initFig, FIG, figFor, registerFigBook, figBookOf } from '../lib/fig/figlib';
   import { registry } from '../lib/sections/registry.svelte';
   import { focus } from '../lib/sections/focus.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
@@ -120,7 +120,7 @@
   };
 
   onMount(() => {
-    initFig({ id: home.id, macros: home.macros, symbols: home.symbols, colorKeys: Object.keys(home.types) });
+    initFig(figBookOf(home));
     notes.init();
     noteDocs.init();
     ai.init();
@@ -140,7 +140,7 @@
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
-    registry.onBook((m) => { registerFigBook({ id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types) }); colours.ensureBook(m); });
+    registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); });
     registry.home = home.id;
     focus.boot = home.id;
     registry.addBook(home);

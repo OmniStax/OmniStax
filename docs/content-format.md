@@ -34,13 +34,13 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 
 ### `types`
 
-The kinds of physical quantity the book declares, in the order the colour scheme lays its hues along.
+The kinds of thing the book colours (a quantity, a curve, a part…), in the order the colour scheme lays its hues along.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The id of the type, which is the class a coloured symbol wears in the text and the key the reader’s colour choices are kept under. |
-| `label` | `string` | yes | What the book calls quantities of this type, as the legend and the colour menu name them. |
-| `dimension` | `string?` | no | The unit quantities of this type are measured in, written as the book writes it. |
+| `label` | `string` | yes | What the book calls things of this type, as the legend and the colour menu name them. |
+| `dimension` | `string?` | no | The unit, where the type is a quantity, written as the book writes it. |
 
 ### `symbols`
 
@@ -50,7 +50,7 @@ Every symbol the book writes with a macro or names in a \htmlData{sym=…}.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The key the symbol is known by across the book, which is what the text carries in a \htmlData{sym=…} and what a chapter’s variables are listed under. |
 | `latex` | `string` | yes | The LaTeX the symbol is set in, without any colour or data of its own. |
-| `type` | `string?` | no | The type of quantity the symbol stands for, which is what gives it its colour. A symbol of no type is set in ink. |
+| `type` | `string?` | no | An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink. |
 | `macro` | `string?` | no | The KaTeX macro the text writes the symbol as, such as \kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX. |
 
 ### `exercise_kinds`
@@ -73,7 +73,8 @@ Every concept of the book, since ids are canonical and a chapter’s prerequisit
 | `section` | `string` | yes | The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder. |
 | `name` | `string` | yes | What a reader would look the concept up by: the term for a definition, the book’s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss. |
 | `symbol` | `string?` | no | The one symbol the book denotes the concept by, as a key of the book’s symbol table, where it has one. Its variants and components are rows of the chapters’ variables, not of the concept. |
-| `terms` | `string[]` | no | The words the book’s glossary defines the concept under, as the text writes them. The app marks the first mention of each in the prose of the chapters that deal with the concept. |
+| `terms` | `string[]` | no | The words the book’s glossary defines the concept under, as the text writes them. The app marks every mention of each in the prose of the chapters that deal with the concept. |
+| `type` | `string?` | no | The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, and its hover card’s title wears it. |
 | `statement` | `string?` | no | The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book’s voice. A concept whose section is built carries one. |
 | `forms` | `{ id, latex, ktex?, condition?, section?, anchor? }[]` | no | The equations that state the concept, the main form first. |
 
@@ -152,7 +153,7 @@ The symbols the chapter’s sections give a meaning to.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The symbol’s key in the book’s symbol table. |
 | `concept` | `string?` | no | The concept that defines the symbol’s quantity. A variant or a component (a_x, B₁) names the definition of its base quantity. |
-| `type` | `string?` | no | The type of quantity the symbol stands for here. The book declares the types and the app picks the hues. |
+| `type` | `string?` | no | An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept. The book declares the types and the app picks the hues. |
 | `meaning` | `string` | yes | What the symbol stands for in this section, in the book’s words. |
 | `unit` | `string` | no | The unit the quantity is measured in. |
 | `section` | `string` | yes | The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections. |
@@ -181,7 +182,7 @@ The file's own fields. Every other field of `<chapter>/<section>/section.json` i
 | `chapter` | `string?` | no | The chapter the section belongs to. Absent only on the book’s own introduction or summary page, which belongs to no chapter. |
 | `title` | `string` | yes | The section’s title as the book prints it. |
 | `short` | `string?` | no | A short name for the section, for the places a full title will not fit. |
-| `lead` | `string` | no | The line under the title that says what the section is about. Empty only on an introduction or summary page, where nothing is invented in the book’s place. |
+| `lead` | `string` | no | One or two sentences under the title that say what the section is about, at most 80 words and stating no result the section works out. Empty on an introduction or summary page, and only there, since nothing is invented in the book’s place. |
 | `objectives` | `string[]` | no | What the reader should be able to do by the end, as the book lists it. |
 | `summary_html` | `string` | no | The section’s summary, as the book prints it at the end of the chapter. |
 | `notes` | `string` | no | What this section left out of the book and why, one sentence, which the footer prints under the attribution. |
@@ -203,6 +204,17 @@ The figures the section draws, and the types each of them colours.
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
 | `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
 | `draws` | `string[]` | no | The types the figure colours. The page’s binds are the union of them, so the page need not say again what it colours. |
+
+### `referents`
+
+The particular things of one example or figure that the text marks with `<span data-ref>` and the figure colours with `F.ref`.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The referent’s id, unique in the section, which a `<span data-ref="…">` of the text and `F.ref` of the figure name it by. |
+| `label` | `string` | yes | What the text calls it, such as Firm B. |
+| `figure` | `string` | yes | The id of the figure of the section it is drawn in. |
+| `type` | `string?` | no | The type it is a thing of, where it is one: it then wears that type’s colour. A referent of no type wears a colour of its own, picked apart from the hues the page binds, and keeps it when colour coding is off. |
 
 ### `coverage`
 

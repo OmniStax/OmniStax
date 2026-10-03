@@ -76,12 +76,32 @@ export const catHues = (bound: readonly Color[]): readonly CatHue[] => {
   return left.length ? left : CAT;
 };
 
-/* The i-th categorical colour for the theme showing, skipping the hues the page
-   has bound to a type. `i` wraps, and a negative index wraps the same way, so a
-   figure may index by whatever counter it has. */
+/* Every hue in the order a page hands them out: the ones clear of its bound hues
+   first, then the ones it dropped, the farthest from any bound hue first. A
+   figure that needs more colours than survive gets a hue merely close to a bound
+   one before it gets the same hue twice. */
+export const catOrder = (bound: readonly Color[]): readonly CatHue[] => {
+  const angles = bound.map(hueAngle).filter((a): a is number => a !== null);
+  const clear = CAT.filter((h) => !clashes(h, angles));
+  const room = (h: CatHue): number => Math.min(...angles.map((a) => gap(h.angle, a)));
+  return [...clear, ...CAT.filter((h) => clashes(h, angles)).sort((x, y) => room(y) - room(x))];
+};
+
+/* The i-th categorical colour for the theme showing, in the page's order above.
+   `i` wraps, and a negative index wraps the same way, so a figure may index by
+   whatever counter it has. */
 export const cat = (i: number, dark: boolean, bound: readonly Color[] = []): Color => {
-  const hues = catHues(bound);
+  const hues = catOrder(bound);
   const n = hues.length;
   const h = hues[((Math.trunc(i) % n) + n) % n];
   return dark ? h.dark : h.light;
+};
+
+/* A referent's place among the untyped referents of its own figure, in table
+   order, which is the categorical index it is coloured by: a figure holds a few,
+   so its colours never wrap, and two figures of one page may share a colour.
+   -1 where the id names no untyped row. */
+export const untypedIndex = (rows: readonly { readonly id: string; readonly figure: string; readonly type?: string }[], id: string): number => {
+  const figure = rows.find((r) => r.id === id)?.figure;
+  return rows.filter((r) => r.type === undefined && r.figure === figure).findIndex((r) => r.id === id);
 };

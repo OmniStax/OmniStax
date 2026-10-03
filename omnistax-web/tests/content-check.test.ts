@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { config } from '../omnistax.config';
-import { loadBooks } from '../src/lib/content/load';
+import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkBinds, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkWidths,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkBinds, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -27,7 +27,7 @@ test('a concept whose chapter the book has not added yet is said out loud, and i
   const waiting = BOOKS.flatMap((b) => checkContent(b)).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
 });
-test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, and a row not yet linked to its concept', () => {
+test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, a row not yet linked to its concept, and a lead not yet cut to rule 21\'s length', () => {
   BOOKS.forEach((book) => {
     const built = new Set(book.chapters.map((ch) => ch.dto.id));
     const raised = warningsOf(checkContent(book));
@@ -35,7 +35,9 @@ test('the only warnings a book on disk raises are a figure it has not built yet,
     /* a reference table prints "0.9999720 (density maximum)" where a column holds numbers; the page leaves that row out of the order and says so here */
     const cell = (f: Finding): boolean => /which is not a number/.test(f.what);
     const unlinked = (f: Finding): boolean => !UNLINKED_ROWS_ARE_ERRORS && f.what === 'names no concept';
-    assert.ok(raised.every((f) => figure(f) || cell(f) || unlinked(f)), said(raised).join('\n'));
+    /* the leads written before rule 21 capped them run long until they are rewritten */
+    const lead = (f: Finding): boolean => /^has a lead of \d+ words/.test(f.what);
+    assert.ok(raised.every((f) => figure(f) || cell(f) || unlinked(f) || lead(f)), said(raised).join('\n'));
   });
 });
 
@@ -96,6 +98,51 @@ test('checkTypes: a variable of a type the book never declared', () => {
   assert.deepEqual(run(checkTypes, { chapter: { variables } }), []);
   assert.match(run(checkTypes, { chapter: { variables: [{ ...variables[0], type: 'colour' }] } })[0], /type "colour" names no row/);
   assert.match(run(checkTypes, { book: { symbols: [{ sym: 'x', latex: 'x', type: 'colour' }] } })[0], /type "colour" names no row/);
+});
+
+test('checkTypes: a concept of an undeclared type, an override equal to what it inherits, and a concept\u2019s own symbol overridden', () => {
+  const concept = { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke\u2019s law', statement: 'w' };
+  const variables = [{ sym: 'x', concept: 'hookes-law', meaning: 'stretch', unit: 'm', section: '16.1' }];
+  assert.deepEqual(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] }, chapter: { variables } }), []);
+  assert.match(run(checkTypes, { book: { concepts: [{ ...concept, type: 'colour' }] } })[0], /type "colour" names no row/);
+  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'force' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /symbols\[F\]: overrides its type with "force", which is the type it inherits/);
+  assert.match(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'force' }] } })[0], /variables\[x\]: overrides its type with "force"/);
+  assert.deepEqual(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'position' }] } }), [], 'an override that differs is what an override is for');
+  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'position' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /names type "force" and its own symbol "F" overrides it with "position"/);
+});
+
+test('withInheritedTypes: a symbol and a variables row take the type of the concept they denote, and an override wins', () => {
+  const book = bookOf({
+    symbols: [{ sym: 'F', latex: 'F' }, { sym: 'x', latex: 'x' }, { sym: 'k', latex: 'k', type: 'position' }, { sym: 'y', latex: 'y' }],
+    concepts: [{ id: 'force', kind: 'definition', section: '16.1', name: 'force', symbol: 'F', type: 'force' }, { id: 'position', kind: 'definition', section: '16.1', name: 'position', type: 'position' }],
+  });
+  const chapter = chapterOf({ variables: [
+    { sym: 'x', concept: 'position', meaning: 'm', section: '16.1' }, { sym: 'k', concept: 'force', meaning: 'm', section: '16.1' },
+    { sym: 'y', concept: 'position', meaning: 'm', section: '16.1' }, { sym: 'y', meaning: 'm', section: '16.1' },
+  ] });
+  const { book: b, chapters: [ch] } = withInheritedTypes(book, [chapter]);
+  assert.deepEqual(b.symbols.map((s) => s.type), ['force', 'position', 'position', undefined], 'y is named by a row of no concept, so it reaches no one concept');
+  assert.deepEqual(ch.variables.map((v) => v.type), ['position', 'force', 'position', undefined]);
+});
+
+test('checkTypeSpans: words marked with an undeclared type, and with one the page does not bind', () => {
+  assert.deepEqual(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="force">pull</span></p>` }), []);
+  assert.match(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="colour">red</span></p>` })[0], /type "colour", which the book does not declare/);
+  const said = checkTypeSpans(fixture({ textHtml: `${TEXT}<p>the <span data-type="position">place</span></p>` }));
+  assert.deepEqual(said.map((f) => f.level), ['warning']); assert.match(said[0].what, /does not bind/);
+});
+
+test('checkReferents: a referent twice, in no figure, of no type, unnamed, and a span that names none', () => {
+  const block = { id: 'block-1', label: 'block 1', figure: 'sim-ruler' };
+  const named = `${TEXT}<p><span data-ref="block-1">Block 1</span> slides.</p>`;
+  assert.deepEqual(run(checkReferents, { section: { referents: [block, { ...block, id: 'block-2', type: 'force' }] }, textHtml: `${named}<p><span data-ref="block-2">it</span></p>` }), []);
+  assert.match(run(checkReferents, { section: { referents: [block, block] }, textHtml: named }).join('\n'), /declared twice/);
+  assert.match(run(checkReferents, { section: { referents: [{ ...block, figure: 'sim-gone' }] }, textHtml: named })[0], /figure "sim-gone" names no row/);
+  assert.match(run(checkReferents, { section: { referents: [{ ...block, type: 'colour' }] }, textHtml: named })[0], /type "colour" names no row/);
+  assert.match(run(checkReferents, { section: { referents: [{ ...block, type: 'position' }] }, textHtml: named })[0], /does not bind/);
+  const unnamed = checkReferents(fixture({ section: { referents: [block] } }));
+  assert.deepEqual(unnamed.map((f) => f.level), ['warning']); assert.match(unnamed[0].what, /named by no <span data-ref>/);
+  assert.match(run(checkReferents, { textHtml: named })[0], /<span data-ref="block-1"> is no row of the referents table/);
 });
 
 test('checkBinds: a figure that draws a type the book never declared', () => {
@@ -242,4 +289,15 @@ test('checkConceptNames: two forms of one id and two concepts of one name are er
   ];
   const found = checkConceptNames(fixture({ book: { concepts } }));
   assert.deepEqual(found.map((f) => [f.level, f.what]), [['error', 'share the form id "eq-hooke"'], ['error', 'share the name "hooke’s law"']], 'a glossary word on two concepts is the book glossing it twice');
+});
+
+test('checkPrereqCycles: a loop in the concept map is an error that names it, and a DAG says nothing', () => {
+  const edge = (concept: string, prereq: string) => ({ concept, prereq });
+  assert.deepEqual(prereqLoops([edge('b', 'a'), edge('c', 'b'), edge('c', 'a')]), []);
+  assert.deepEqual(prereqLoops([edge('b', 'a'), edge('c', 'b'), edge('a', 'c'), edge('d', 'c')]), [['a', 'b', 'c', 'a']]);
+  assert.deepEqual(prereqLoops([edge('a', 'a')]), [['a', 'a']]);
+  assert.equal(prereqLoops([edge('b', 'a'), edge('a', 'b'), edge('y', 'x'), edge('x', 'y')]).length, 2, 'two separate loops are each named');
+  assert.deepEqual(run(checkPrereqCycles), []);
+  assert.deepEqual(run(checkPrereqCycles, { book: { concept_prereqs: [edge('hookes-law', 'hookes-law')] } }),
+    ['book.json concept_prereqs: closes a loop, each concept resting on the one before: hookes-law → hookes-law']);
 });

@@ -3,7 +3,9 @@
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
-import { cat as catOf } from './cat';
+import { cat as catOf, untypedIndex } from './cat';
+import type { BookManifest, ReferentEntry } from '../content/schema';
+import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
@@ -50,7 +52,9 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
 /* What a book hands the drawing layer: its macros, its symbol table and its types. Two books may
    spell the same macro or the same type differently, so every call that sets TeX runs under one
    book's table, the one `cur` holds while it runs, and the boot book's otherwise. */
-export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[] };
+export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[]; readonly pages?: Readonly<Record<string, FigPage>> };
+/* What a page declares about its colours: the types its figures draw, and its referents in table order. */
+export type FigPage = { readonly binds: readonly string[]; readonly referents: readonly ReferentEntry[] };
 export type FigBook = FigBookConfig & { readonly id: string };
 const NO_BOOK: FigBookConfig = { macros: {}, symbols: {}, colorKeys: [] };
 const figBooks = new Map<string, FigBookConfig>();
@@ -184,14 +188,23 @@ function readPal(): void {
 /* A figure draws with the palette of its own book and of the article it sits in, and a section may
    colour a type differently from its chapter, so the scope is the nearest element that names either —
    a section's root, which names both. */
-function usePal(fig: Element): void {
-  const book = fig.closest<HTMLElement>('[data-book]')?.dataset.book ?? bootBook;
-  const scope = fig.closest<HTMLElement>('[data-sec], [data-chapter]');
-  if (!scope || scope === document.documentElement) { Object.assign(PAL, neutral, baseOf(book)); return; }
+type Place = { readonly book: string; readonly scope: HTMLElement | null };
+const placeOf = (el: Element): Place => {
+  const scope = el.closest<HTMLElement>('[data-sec], [data-chapter]');
+  return { book: el.closest<HTMLElement>('[data-book]')?.dataset.book ?? bootBook, scope: scope === document.documentElement ? null : scope };
+};
+const palAt = ({ book, scope }: Place): Record<string, Color> => {
+  if (!scope) return { ...neutral, ...baseOf(book) };
   const key = `${book}|${scope.dataset.chapter ?? ''}|${scope.dataset.sec ?? ''}`;
   const over = scopePal.get(key) ?? varsAt(book, scope);
   scopePal.set(key, over);
-  Object.assign(PAL, neutral, baseOf(book), over);
+  return { ...neutral, ...baseOf(book), ...over };
+};
+/* Where the figure being drawn sits, which `F.ref` reads its section's referents from. */
+let drawing: Place = { book: '', scope: null };
+function usePal(fig: Element): void {
+  drawing = placeOf(fig);
+  Object.assign(PAL, palAt(drawing));
 }
 /* The type hues the page has drawn so far. The book's types reach the page as
    CSS variables for all of them at once, so what a page actually binds is what
@@ -211,6 +224,30 @@ function C(k: string): Color {
    exactly as `F.el` does; all it takes from the page is the theme and the type
    hues already drawn. */
 const cat = (i: number): Color => catOf(i, darkTheme, [...bound]);
+/* A referent is one thing of one example that the text and a figure both point at. A typed one wears its
+   type's hue. An untyped one takes the categorical colour of its place among the section's untyped rows,
+   clear of the hues the page declares it binds, so the text and the figure agree whatever either has drawn. */
+const pageOf = ({ book, scope }: Place): FigPage | undefined => configOf(book).pages?.[scope?.dataset.sec ?? ''];
+const referentOf = (at: Place, id: string): ReferentEntry | undefined => pageOf(at)?.referents.find((r) => r.id === id);
+const untypedRefColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
+  const page = pageOf(at); const k = page ? untypedIndex(page.referents, id) : -1;
+  if (!page || k < 0) return pal.ink;
+  const keys = page.binds.length ? page.binds : configOf(at.book).colorKeys;
+  return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);
+};
+function ref(id: string): Color {
+  const r = referentOf(drawing, id);
+  return r?.type !== undefined ? C(r.type) : untypedRefColor(drawing, id, PAL);
+}
+/* The text's <span data-ref> under a root: a typed referent is handed its type, and the colour rules that
+   give a type its hue take it from there; an untyped one is coloured here, again on every repaint. */
+function paintRefs(root: ParentNode = document): void {
+  root.querySelectorAll<HTMLElement>('[data-ref]').forEach((s) => {
+    const at = placeOf(s); const r = referentOf(at, s.dataset.ref ?? '');
+    if (r?.type !== undefined) { s.dataset.type = r.type; s.style.removeProperty('color'); return; }
+    if (r) s.style.color = untypedRefColor(at, r.id, palAt(at));
+  });
+}
 function alpha(hex: Color, a: number): Color {
   if (!hex || hex[0] !== '#') return hex;   /* a colour the palette has not set, or one already given as rgb */
   let h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join('');
@@ -224,7 +261,7 @@ function alpha(hex: Color, a: number): Color {
    back out of the page, so drawing every figure of every loaded section in a
    row costs a forced layout apiece: a shell with five sections open spent a
    third of a second of that on every tab. */
-function redrawAll(): void { readFont(); readPal(); sims.forEach((d) => { d.dirty = true; }); }
+function redrawAll(): void { readFont(); readPal(); paintRefs(); sims.forEach((d) => { d.dirty = true; }); }
 
 /* ---------- DOM helpers ---------- */
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K] {
@@ -2347,7 +2384,7 @@ function readout(d: { readonly readout: HTMLElement }): Readout {
 
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   backing, glRatio,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, shownFont, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
@@ -2362,7 +2399,7 @@ export type Fig = typeof FIG;
 
 /* A book's table, kept for every Fig handed out for it, those already handed out included. */
 export function registerFigBook(book: FigBook): void {
-  figBooks.set(book.id, { macros: book.macros, symbols: book.symbols, colorKeys: book.colorKeys });
+  figBooks.set(book.id, { macros: book.macros, symbols: book.symbols, colorKeys: book.colorKeys, pages: book.pages });
   bookPal.delete(book.id);
 }
 
@@ -2389,6 +2426,12 @@ export const figFor = (book: string): Fig => {
   figs.set(book, got);
   return got;
 };
+
+/* What the drawing layer takes from a book's manifest. */
+export const figBookOf = (m: BookManifest): FigBook => ({
+  id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types),
+  pages: Object.fromEntries(bookPagesOf(m).map((p) => [p.id, { binds: p.binds, referents: p.referents ?? [] }])),
+});
 
 /* The boot book: registered, made the default table, and exposed as window.FIG. */
 export function initFig(book: FigBookConfig & { readonly id?: string }): Fig {

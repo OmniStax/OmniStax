@@ -6,7 +6,8 @@
      Shell.svelte     import Hover from './Hover.svelte';   …   <Hover />          (once, anywhere in the ready block)
      registry prepare import { decorateTerms } from '../hover';   …   if (doc === 'text') decorateTerms(root, sec);
 
-   decorateTerms(root, section): marks the glossary terms of the chapter's concepts and example
+   decorateTerms(root, section): marks every mention of the glossary terms of the chapter's
+   concepts, each in its concept's type where the concept names one, and the example
    references in the article's prose (see terms.ts), marks the chemical formulas
    of a book that declares an elements sheet (see sheets/mark.ts), and makes
    symbols focusable.
@@ -15,7 +16,7 @@
    Hover.svelte: the card itself and its document-level listeners; mount once. */
 import { bookId, sectionRef, type BookId, type SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
-import { wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK, type Term, type Wrapped } from './terms';
+import { wrapTerms, wrapExampleRefs, exampleIds, IN_BLOCK, type Term } from './terms';
 import { markFormulas } from '../sheets/mark';
 import { chapterTerms } from '../sections/reference';
 
@@ -35,12 +36,7 @@ const glossaryOf = (book: BookId, section: SectionId): readonly Term[] => {
 export const decorateTerms = (root: HTMLElement, section: SectionId): void => {
   const bs = blocks(root); const terms = glossaryOf(bookId(root.closest<HTMLElement>('[data-book]')?.dataset.book ?? ''), section);
   const examples = exampleIds(root.innerHTML);
-  const done0 = new Set<Term>(Array.from(root.querySelectorAll<HTMLElement>('.term[data-term]')).map((t) => t.dataset.term ?? ''));
-  const apply = (pass: (html: string, terms: readonly Term[], done: ReadonlySet<Term>) => Wrapped, done: ReadonlySet<Term>): ReadonlySet<Term> =>
-    bs.reduce<ReadonlySet<Term>>((d, b) => { const w = pass(b.innerHTML, terms, d); if (w.html !== b.innerHTML) b.innerHTML = w.html; return w.done; }, done);
-  const afterEm = apply((h, t, d) => wrapEmTerms(h, t, d, IN_BLOCK), done0);
-  apply((h, t, d) => wrapPlainTerms(h, t, d, IN_BLOCK), afterEm);
-  bs.forEach((b) => { const h = wrapExampleRefs(b.innerHTML, examples, IN_BLOCK); if (h !== b.innerHTML) b.innerHTML = h; });
+  bs.forEach((b) => { const h = wrapExampleRefs(wrapTerms(b.innerHTML, terms, IN_BLOCK), examples, IN_BLOCK); if (h !== b.innerHTML) b.innerHTML = h; });
   root.querySelectorAll<HTMLElement>('.katex-html [data-sym]').forEach((s) => { if (!s.hasAttribute('tabindex')) s.tabIndex = 0; });
   markFormulas(root);
 };

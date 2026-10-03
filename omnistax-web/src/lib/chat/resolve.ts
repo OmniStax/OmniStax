@@ -14,7 +14,7 @@ import { BookResolver } from '../notes/resolve';
 import { isBook, parseLink } from '../notes/md/links';
 import { registry } from '../sections/registry.svelte';
 import { searchStore } from '../search/store.svelte';
-import { wrapEmTerms, wrapExampleRefs, wrapFigureRefs, wrapPlainTerms, IN_BLOCK, type ExampleNumber } from '../hover/terms';
+import { wrapExampleRefs, wrapFigureRefs, wrapTerms, IN_BLOCK, type ExampleNumber } from '../hover/terms';
 import { bookId, sectionId, sectionRef, type BookId, type ChatId, type SectionId } from '../types/ids';
 import type { MathScope, Resolver } from '../notes/md/render';
 import type { Chip } from './context';
@@ -166,8 +166,7 @@ const markProse = (el: HTMLElement, place: AnswerPlace): void => {
   for (const b of proseOf(el)) {
     const words = (b.textContent ?? '').toLowerCase();
     const here = terms.filter((_, i) => words.includes(lower[i]));
-    const em = wrapEmTerms(b.innerHTML, here, new Set(), IN_BLOCK);
-    const html = wrapExampleRefs(wrapFigureRefs(wrapPlainTerms(em.html, here, em.done, IN_BLOCK).html, figures, IN_BLOCK), examples, IN_BLOCK);
+    const html = wrapExampleRefs(wrapFigureRefs(wrapTerms(b.innerHTML, here, IN_BLOCK), figures, IN_BLOCK), examples, IN_BLOCK);
     if (html !== b.innerHTML) b.innerHTML = html;
     b.dataset.marked = '1';
   }

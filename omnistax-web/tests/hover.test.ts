@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { wrapTerms, wrapEmTerms, wrapPlainTerms, wrapExampleRefs, exampleIds, IN_BLOCK } from '../src/lib/hover/terms';
+import { wrapTerms, wrapExampleRefs, exampleIds } from '../src/lib/hover/terms';
 import { definitionCard, variableCard, equationCard, referenceCard, conceptCard, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import { conceptOfTerm, formById, statedOf } from '../src/lib/sections/reference';
 import type { ConceptDTO, FormDTO, VariableDTO } from '../src/lib/content/schema';
@@ -21,14 +21,14 @@ const run = (label: string, card: { actions: readonly { label: string; run: () =
 
 /* ---------- terms ---------- */
 const TERMS = ['restoring force', 'force constant', 'period'];
-test('the emphasised mention of a term wins over an earlier plain one', () => {
-  const html = '<p>A restoring force pulls back. We call this the <em>restoring force</em>.</p>';
-  const out = wrapTerms(html, TERMS);
-  assert.equal(out, '<p>A restoring force pulls back. We call this the <span class="term" data-term="restoring force" tabindex="0"><em>restoring force</em></span>.</p>');
+const T = (term: string, text = term) => `<span class="term" data-term="${term}" tabindex="0">${text}</span>`;
+test('every mention is marked, plain or emphasised, whole words, case-insensitive', () => {
+  const out = wrapTerms('<p>The Period is long. The period is short. Periodic is not it. A <em>period</em> again.</p>', TERMS);
+  assert.equal(out, `<p>The ${T('period', 'Period')} is long. The ${T('period')} is short. Periodic is not it. A <em>${T('period')}</em> again.</p>`);
 });
-test('only the first plain mention is marked, whole words, case-insensitive', () => {
-  const out = wrapTerms('<p>The Period is long. The period is short. Periodic is not it.</p>', TERMS);
-  assert.equal(out, '<p>The <span class="term" data-term="period" tabindex="0">Period</span> is long. The period is short. Periodic is not it.</p>');
+test('marking twice changes nothing', () => {
+  const once = wrapTerms('<p>a restoring force and a period, then the period</p>', TERMS);
+  assert.equal(wrapTerms(once, TERMS), once);
 });
 test('nothing is marked in headings, links, math, captions or exercise hosts', () => {
   const html = ['<h2>The period</h2>', '<p><a href="#x">period</a></p>', '<p><span class="katex"><span class="katex-html">period</span></span></p>',
@@ -38,17 +38,15 @@ test('nothing is marked in headings, links, math, captions or exercise hosts', (
 test('a multi-word term matches across a line break', () => {
   assert.match(wrapTerms('<p>the force\nconstant k</p>', TERMS), /<span class="term" data-term="force constant" tabindex="0">force\nconstant<\/span>/);
 });
-test('a shorter term never matches inside the span of a longer one', () => {
-  assert.equal(
-    wrapTerms('<p>an alkaline earth metal and a metal</p>', ['alkaline earth metal', 'metal']),
-    '<p>an <span class="term" data-term="alkaline earth metal" tabindex="0">alkaline earth metal</span> and a <span class="term" data-term="metal" tabindex="0">metal</span></p>',
-  );
+test('a shorter term never matches inside the span of a longer one, whichever the glossary lists first', () => {
+  const want = `<p>an ${T('alkaline earth metal')} and a ${T('metal')}, another ${T('alkaline earth metal')}</p>`;
+  assert.equal(wrapTerms('<p>an alkaline earth metal and a metal, another alkaline earth metal</p>', ['alkaline earth metal', 'metal']), want);
+  assert.equal(wrapTerms('<p>an alkaline earth metal and a metal, another alkaline earth metal</p>', ['metal', 'alkaline earth metal']), want);
 });
-test('the passes thread the done set across blocks', () => {
-  const em = wrapEmTerms('a <em>period</em> here', TERMS, new Set(), IN_BLOCK);
-  assert.deepEqual([...em.done], ['period']);
-  const plain = wrapPlainTerms('the period again', TERMS, em.done, IN_BLOCK);
-  assert.equal(plain.html, 'the period again');
+test('a term inside or beside an authored type or referent span is marked and the markup stays whole', () => {
+  assert.equal(wrapTerms('<p>the <span data-type="force">restoring force</span> on <span data-ref="block-1">the block</span></p>', TERMS),
+    `<p>the <span data-type="force">${T('restoring force')}</span> on <span data-ref="block-1">the block</span></p>`);
+  assert.equal(wrapTerms('<p>a restoring <span data-type="force">force</span></p>', TERMS), '<p>a restoring <span data-type="force">force</span></p>');
 });
 test('example references become links only when the example is in the article', () => {
   const html = '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in Example 16.1 and Example 16.2.</p>';
@@ -56,14 +54,14 @@ test('example references become links only when the example is in the article', 
   assert.deepEqual([...ids], [['16.1', '16.1-ex-car']]);
   assert.equal(wrapExampleRefs(html, ids), '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in <a class="xref" href="#16.1-ex-car" data-xref="16.1">Example 16.1</a> and Example 16.2.</p>');
 });
-test('the real sections wrap each glossary term at most once and never inside a heading', () => {
+test('the real sections never mark a term inside a heading or inside another term', () => {
   const book = JSON.parse(fs.readFileSync(path.join(ROOT, 'book.json'), 'utf8')) as { concepts: { section: string; terms?: string[] }[] };
   for (const ch of ['ch02', 'ch16']) {
     const terms = book.concepts.filter((c) => c.section.split('.')[0] === ch.slice(2).replace(/^0/, '')).flatMap((c) => c.terms ?? []);
     /* a section folder that holds only a source.md is one being built, and has no article to check yet */
     for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, ch, d, 'text.html')))) {
       const out = wrapTerms(fs.readFileSync(path.join(ROOT, ch, dir, 'text.html'), 'utf8'), terms);
-      for (const t of terms) assert.ok((out.match(new RegExp(`data-term="${t}"`, 'g')) ?? []).length <= 1, `${ch}/${dir}: ${t} marked twice`);
+      assert.ok(!/<span class="term"[^>]*>[^<]*<span class="term"/.test(out), `${ch}/${dir}: a term inside a term`);
       assert.ok(!/<h[23][^>]*>[^<]*<span class="term"/.test(out), `${ch}/${dir}: a term in a heading`);
     }
   }

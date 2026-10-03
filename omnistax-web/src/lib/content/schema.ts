@@ -50,15 +50,15 @@ export type FigureKind = (typeof FIGURE_KINDS)[number];
 
 export const TypeSchema = z.object({
   id: TYPE_REF.describe('The id of the type, which is the class a coloured symbol wears in the text and the key the reader\u2019s colour choices are kept under.'),
-  label: z.string().describe('What the book calls quantities of this type, as the legend and the colour menu name them.'),
-  dimension: z.string().optional().describe('The unit quantities of this type are measured in, written as the book writes it.'),
+  label: z.string().describe('What the book calls things of this type, as the legend and the colour menu name them.'),
+  dimension: z.string().optional().describe('The unit, where the type is a quantity, written as the book writes it.'),
 }).strict();
 export type TypeDTO = z.infer<typeof TypeSchema>;
 
 export const SymbolSchema = z.object({
   sym: z.string().describe('The key the symbol is known by across the book, which is what the text carries in a \\htmlData{sym=\u2026} and what a chapter\u2019s variables are listed under.'),
   latex: z.string().describe('The LaTeX the symbol is set in, without any colour or data of its own.'),
-  type: TYPE_REF.optional().describe('The type of quantity the symbol stands for, which is what gives it its colour. A symbol of no type is set in ink.'),
+  type: TYPE_REF.optional().describe('An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink.'),
   macro: z.string().optional().describe('The KaTeX macro the text writes the symbol as, such as \\kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX.'),
 }).strict();
 export type SymbolDTO = z.infer<typeof SymbolSchema>;
@@ -89,7 +89,8 @@ export const ConceptSchema = z.object({
   section: SECTION_REF.describe('The section that introduces the concept. A concept whose section the app has not built yet stands as a placeholder.'),
   name: z.string().describe('What a reader would look the concept up by: the term for a definition, the book\u2019s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss.'),
   symbol: z.string().optional().describe('The one symbol the book denotes the concept by, as a key of the book\u2019s symbol table, where it has one. Its variants and components are rows of the chapters\u2019 variables, not of the concept.'),
-  terms: z.array(z.string()).default([]).describe('The words the book\u2019s glossary defines the concept under, as the text writes them. The app marks the first mention of each in the prose of the chapters that deal with the concept.'),
+  terms: z.array(z.string()).default([]).describe('The words the book\u2019s glossary defines the concept under, as the text writes them. The app marks every mention of each in the prose of the chapters that deal with the concept.'),
+  type: TYPE_REF.optional().describe('The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, and its hover card\u2019s title wears it.'),
   statement: z.string().optional().describe('The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book\u2019s voice. A concept whose section is built carries one.'),
   forms: z.array(FormSchema).default([]).describe('The equations that state the concept, the main form first.'),
 }).strict();
@@ -149,7 +150,7 @@ export const BookSchema = z.object({
   chapters: z.array(z.string()).describe('The chapter directories, in the order the book sets them.'),
   intro: FrontPageRefSchema.optional().describe('The book\u2019s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter.'),
   summary: FrontPageRefSchema.optional().describe('The book\u2019s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter.'),
-  types: z.array(TypeSchema).default([]).describe('The kinds of physical quantity the book declares. The order is the order the colour scheme lays its hues along, so it is a table and not a record.'),
+  types: z.array(TypeSchema).default([]).describe('The kinds of thing the book colours (a quantity, a curve, a part\u2026). The order is the order the colour scheme lays its hues along, so it is a table and not a record.'),
   symbols: z.array(SymbolSchema).default([]).describe('Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}. The macro expansions are derived from these rows.'),
   exercise_kinds: z.array(ExerciseKindSchema).default([]).describe('The kinds of exercise the book sets, each with the name it prints above them.'),
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
@@ -175,7 +176,7 @@ export type SectionRefDTO = z.infer<typeof SectionRefSchema>;
 export const VariableSchema = z.object({
   sym: z.string().describe('The symbol\u2019s key in the book\u2019s symbol table.'),
   concept: CONCEPT_REF.optional().describe('The concept that defines the symbol\u2019s quantity. A variant or a component (a_x, B\u2081) names the definition of its base quantity.'),
-  type: TYPE_REF.optional().describe('The type of quantity the symbol stands for here. The book declares the types and the app picks the hues.'),
+  type: TYPE_REF.optional().describe('An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept. The book declares the types and the app picks the hues.'),
   meaning: z.string().describe('What the symbol stands for in this section, in the book\u2019s words.'),
   unit: z.string().default('').describe('The unit the quantity is measured in.'),
   section: SECTION_REF.describe('The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections.'),
@@ -244,6 +245,16 @@ export const FigureSchema = z.object({
   draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The page\u2019s binds are the union of them, so the page need not say again what it colours.'),
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;
+
+/* A particular thing that exists only in one example or figure of the section
+   (block 1 and block 2, Firm A and Firm B), which the text and the figure both point at. */
+export const ReferentSchema = z.object({
+  id: z.string().describe('The referent\u2019s id, unique in the section, which a `<span data-ref="\u2026">` of the text and `F.ref` of the figure name it by.'),
+  label: z.string().describe('What the text calls it, such as Firm B.'),
+  figure: z.string().describe('The id of the figure of the section it is drawn in.'),
+  type: TYPE_REF.optional().describe('The type it is a thing of, where it is one: it then wears that type\u2019s colour. A referent of no type wears a colour of its own, picked apart from the hues the page binds, and keeps it when colour coding is off.'),
+}).strict();
+export type ReferentDTO = z.infer<typeof ReferentSchema>;
 
 export const CoverageSchema = z.object({
   span: z.string().describe('The local id of the span of the text, such as hookes-law. The build qualifies it with the section.'),
@@ -343,7 +354,7 @@ export const SectionSchema = z.object({
   chapter: z.string().optional().describe('The chapter the section belongs to. Absent only on the book\u2019s own introduction or summary page, which belongs to no chapter.'),
   title: z.string().describe('The section\u2019s title as the book prints it.'),
   short: z.string().optional().describe('A short name for the section, for the places a full title will not fit.'),
-  lead: z.string().default('').describe('The line under the title that says what the section is about. Empty only on an introduction or summary page, where nothing is invented in the book\u2019s place.'),
+  lead: z.string().default('').describe('One or two sentences under the title that say what the section is about, at most 80 words and stating no result the section works out. Empty on an introduction or summary page, and only there, since nothing is invented in the book\u2019s place.'),
   objectives: z.array(z.string()).default([]).describe('What the reader should be able to do by the end, as the book lists it.'),
   summary_html: z.string().default('').describe('The section\u2019s summary, as the book prints it at the end of the chapter.'),
   notes: z.string().default('').describe('What this section left out of the book and why, one sentence, which the footer prints under the attribution.'),
@@ -352,6 +363,7 @@ export const SectionSchema = z.object({
   exercises_lead: z.string().default('').describe('The line the book prints above the problem set.'),
   exercise_notes: z.string().default('').describe('What the pipeline did with the section\u2019s exercises: where the answers came from, what was left out and why, and what was held for a later section.'),
   figures: z.array(FigureSchema).default([]).describe('The figures the section draws, in the order it draws them.'),
+  referents: z.array(ReferentSchema).default([]).describe('The particular things of the section\u2019s examples and figures that the text and a figure both point at.'),
   coverage: z.array(CoverageSchema).default([]).describe('Which spans of the text introduce, use and reinforce each concept.'),
   exercises: z.array(ExerciseSchema).default([]).describe('The exercises the section sets, in the order the book sets them.'),
   exercise_concepts: z.array(ExerciseConceptSchema).default([]).describe('Which concepts each exercise tests, and what it is worth for them.'),
@@ -359,7 +371,7 @@ export const SectionSchema = z.object({
   id: sectionId(pageId(s.id, s.chapter)), role: pageRoleOf(s.id), module: s.module, chapter: s.chapter, title: s.title, short: s.short ?? s.title,
   lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, ai: s.ai, built: s.built,
   exercisesLead: s.exercises_lead, exerciseNotes: s.exercise_notes,
-  figures: s.figures, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts,
+  figures: s.figures, referents: s.referents, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts,
 }));
 export type SectionDTO = z.infer<typeof SectionSchema>;
 
@@ -377,7 +389,7 @@ export type TableDoc = {
 };
 export const TABLES: Readonly<Record<string, TableDoc>> = {
   book: { level: 'book', file: 'book.json', field: null, schema: BookSchema, note: 'The book itself: who wrote it, who published it, under what licence, and the chapters it is read in.' },
-  types: { level: 'book', file: 'book.json', field: 'types', schema: TypeSchema, note: 'The kinds of physical quantity the book declares, in the order the colour scheme lays its hues along.' },
+  types: { level: 'book', file: 'book.json', field: 'types', schema: TypeSchema, note: 'The kinds of thing the book colours (a quantity, a curve, a part\u2026), in the order the colour scheme lays its hues along.' },
   symbols: { level: 'book', file: 'book.json', field: 'symbols', schema: SymbolSchema, note: 'Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}.' },
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
@@ -391,6 +403,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   chapter_pages: { level: 'chapter', file: '<chapter>/chapter.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The chapter\u2019s own introduction and summary, where the book prints them. Each is a page built in intro/ or summary/ beside the sections, with a section.json whose id is the literal intro or summary, whose chapter is this chapter\u2019s, and whose objectives, summary, exercises and coverage are empty; its lead may be empty too.' },
   section: { level: 'section', file: '<chapter>/<section>/section.json', field: null, schema: SectionSchema, note: 'One section: what it is about, what it teaches, who built it and what it left out. The same record, under intro/ or summary/, is a chapter\u2019s or the book\u2019s own introduction or summary page.' },
   figures: { level: 'section', file: '<chapter>/<section>/section.json', field: 'figures', schema: FigureSchema, note: 'The figures the section draws, and the types each of them colours.' },
+  referents: { level: 'section', file: '<chapter>/<section>/section.json', field: 'referents', schema: ReferentSchema, note: 'The particular things of one example or figure that the text marks with `<span data-ref>` and the figure colours with `F.ref`.' },
   coverage: { level: 'section', file: '<chapter>/<section>/section.json', field: 'coverage', schema: CoverageSchema, note: 'Which spans of the text introduce, use and reinforce each concept.' },
   exercises: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises', schema: ExerciseSchema, note: 'The exercises the section sets.' },
   exercise_concepts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercise_concepts', schema: ExerciseConceptSchema, note: 'Which concepts each exercise tests, and what it is worth for them.' },
@@ -548,6 +561,8 @@ export type SymbolMap = Readonly<Record<string, string>>;
 export type KindMap = Readonly<Record<string, string>>;
 /* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("sim-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
 export type FigureEntry = { readonly id: string; readonly label: string };
+/* One referent of a section as the text and its figures colour it: by its type where it has one, else by its place among the untyped rows. */
+export type ReferentEntry = { readonly id: string; readonly figure: string; readonly type?: string };
 /* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
 export type ExerciseEntry = { readonly id: string; readonly kind: string };
 export type SectionEntry = {
@@ -556,6 +571,7 @@ export type SectionEntry = {
   readonly figuresJs: string;                    /* the section's figure module, figures.js */
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
   readonly binds: readonly string[];             /* the types this page colours, from its meta; empty until the section is built, and empty means all */
+  readonly referents?: readonly ReferentEntry[]; /* the section's referents in table order; absent where it has none */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };

@@ -18,7 +18,7 @@ One figure per idea or result the section introduces; a worked example gets one 
 
 ## 2. The drawing layer
 
-Every figure is one IIFE inside `window.OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}`:
+Every figure is one IIFE inside `window.OMNISTAX_FIGURES['<sec>'] = function (root, F) {...}`, and finds its elements only through `F.sim(root, id, H)` or `F.byId(root, id)`. The types it draws are the ones its sliders carry (`cls`), its `C()` lookups name and its readouts write with a `\k` macro; the figure row's `draws` lists them.
 
 ```
 const d = sim('sim-<id>', H);            // F.sim(root, id, H); H = canvas height in logical units
@@ -112,7 +112,9 @@ F.mesh.polyline(g,pts,color)       F.mesh.box(g,p,[w,h,d],color,extra)   F.mesh.
 
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band, centred at the top edge and wrapped over as many lines as the sentence takes. `spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.
 
-Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.cat(i)` for instances with no type and no element, and a hex only where the colour is the physical fact and the plan names it. No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
+Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.cat(i)` for instances with no type and no element, and a hex only where the colour is the physical fact and the plan names it: a named constant, named as the fact, unchanged in both themes (the NFPA diamond of Chemistry 2e 1.3). No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
+
+`F.ref('block-1')` for a row of the section's `referents` table, the one thing of an example that the text marks `<span data-ref="block-1">`: it returns the referent's type hue, or the categorical colour the text wears beside it. Call it in `draw`, as `C`.
 
 Axis ranges are fixed per figure from the slider maxima (or from the default range where the maximum would leave the default state tiny), rounded to ticks, stated in a comment, never rescaled; a value outside the range goes through `pinned()`.
 

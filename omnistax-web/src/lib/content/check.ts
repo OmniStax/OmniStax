@@ -11,7 +11,7 @@
    content instead. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { bindsOf } from './load';
+import { bindsOf, inheritedTypes } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { REF, SUMMARY_ID, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
@@ -158,13 +158,73 @@ export const checkBinds: Check = (content) => {
   ]);
 };
 
-/* A symbol and a variable name the type that gives them their colour, and the book declares the types. */
+/* The book declares the types, and a kind is declared once, on the concept: a symbol and a variables row inherit
+   it, so a type stored on one is an override. An override equal to what the row inherits says nothing, and a
+   concept's own symbol set to another type than the concept's is almost surely a slip. */
 export const checkTypes: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
+  const inherit = inheritedTypes(content.book.concepts, content.chapters.flatMap((ch) => ch.dto.variables));
+  const symbols = new Map(content.book.symbols.map((sym) => [sym.sym, sym] as const));
+  const redundant = (where: string, type: string | undefined, inherited: string | undefined): readonly Finding[] =>
+    (type !== undefined && type === inherited ? [warning(where, `overrides its type with "${type}", which is the type it inherits`)] : []);
+  const ownSymbol = (where: string, type: string | undefined, symbol: string | undefined): readonly Finding[] => {
+    const other = symbol === undefined ? undefined : symbols.get(symbol)?.type;
+    return type === undefined || other === undefined || other === type ? [] : [warning(where, `names type "${type}" and its own symbol "${symbol}" overrides it with "${other}"`)];
+  };
   return [
-    ...content.book.symbols.flatMap((sym) => ref(`book.json symbols[${sym.sym}]`, 'type', types, sym.type)),
-    ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => ref(inChapter(ch, 'variables', v.sym), 'type', types, v.type))),
+    ...content.book.symbols.flatMap((sym) => {
+      const where = `book.json symbols[${sym.sym}]`;
+      return [...ref(where, 'type', types, sym.type), ...redundant(where, sym.type, inherit.symbol(sym))];
+    }),
+    ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => {
+      const where = inChapter(ch, 'variables', v.sym);
+      return [...ref(where, 'type', types, v.type), ...redundant(where, v.type, inherit.variable(v))];
+    })),
+    ...content.book.concepts.flatMap((c) => [...ref(`book.json concepts[${c.id}]`, 'type', types, c.type), ...ownSymbol(`book.json concepts[${c.id}]`, c.type, c.symbol)]),
   ];
+};
+
+/* Every value the text gives an attribute, each once. */
+const attrValues = (html: string, attr: string): readonly string[] =>
+  [...new Set(Array.from(html.matchAll(new RegExp(`<[^>]*\\s${attr}="([^"]*)"`, 'g')), (m) => m[1]))];
+/* A type the page does not bind reads in ink on it, unless the page binds nothing and so keeps every type. */
+const unbound = (binds: readonly string[], type: string): boolean => binds.length > 0 && !binds.includes(type);
+
+/* The text may mark a run of words <span data-type="…"> to wear a type as a symbol does: the type is one the
+   book declares, and one the page binds, or the words read in ink. */
+export const checkTypeSpans: Check = (content) => {
+  const types = idsOf(content.book.types, (t) => t.id);
+  return pagesOf(content).flatMap((s) => {
+    const binds = bindsOf(s.dto.figures); const where = `${s.dto.id}/text.html`;
+    return attrValues(s.textHtml, 'data-type').flatMap((t) =>
+      (!types.has(t) ? [error(where, `marks words with type "${t}", which the book does not declare`)]
+        : unbound(binds, t) ? [warning(where, `marks words with type "${t}", which the page does not bind, so they read in ink`)] : []));
+  });
+};
+
+/* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
+   and the figure colours with F.ref. Its id is unique in the section, it is drawn in a figure of the section,
+   its type is declared, and the text names it: a span that names no row is an error, and a row no span names
+   a warning. */
+export const checkReferents: Check = (content) => {
+  const types = idsOf(content.book.types, (t) => t.id);
+  return pagesOf(content).flatMap((s) => {
+    const figures = idsOf(s.dto.figures, (f) => f.id); const rows = idsOf(s.dto.referents, (r) => r.id);
+    const named = new Set(attrValues(s.textHtml, 'data-ref')); const binds = bindsOf(s.dto.figures);
+    return [
+      ...s.dto.referents.flatMap((r, i) => {
+        const where = inSection(s, 'referents', r.id);
+        return [
+          ...(s.dto.referents.findIndex((o) => o.id === r.id) < i ? [error(where, 'is declared twice')] : []),
+          ...ref(where, 'figure', figures, r.figure),
+          ...ref(where, 'type', types, r.type),
+          ...(r.type !== undefined && types.has(r.type) && unbound(binds, r.type) ? [warning(where, `is of type "${r.type}", which the page does not bind, so it reads in ink`)] : []),
+          ...(named.has(r.id) ? [] : [warning(where, 'is named by no <span data-ref> of the text')]),
+        ];
+      }),
+      ...[...named].flatMap((id) => (rows.has(id) ? [] : [error(`${s.dto.id}/text.html`, `<span data-ref="${id}"> is no row of the referents table`)])),
+    ];
+  });
 };
 
 /* An anchor names the span where a variable or a form is introduced,
@@ -376,14 +436,14 @@ export const checkConceptNames: Check = (content) => {
 
 /* A page is what its role says (rule 21). A section belongs to a chapter and
    opens on a lead. An introduction or summary page keeps the book's own words
-   and nothing else: it lists no objectives, prints no section summary, sets no
-   exercises and covers no concepts, since the apparatus belongs to sections;
-   its lead may be empty, because nothing is invented in the book's place; and
+   and nothing else: it has no lead, lists no objectives, prints no section
+   summary, sets no exercises and covers no concepts, since the lead and the
+   apparatus belong to sections and nothing is invented in the book's place; and
    the chapter or the book that keeps it must name it, so that the page's module
    and its slug are written down where the sections' are. A section's text also
    keeps off the one id the build adds to it, the summary block's. */
 const EMPTY_ON_FRONT: readonly (readonly [string, (s: SectionDTO) => number])[] = [
-  ['objectives', (s) => s.objectives.length], ['summary_html', (s) => s.summaryHtml.length], ['exercises_lead', (s) => s.exercisesLead.length],
+  ['lead', (s) => s.lead.length], ['objectives', (s) => s.objectives.length], ['summary_html', (s) => s.summaryHtml.length], ['exercises_lead', (s) => s.exercisesLead.length],
   ['exercise_notes', (s) => s.exerciseNotes.length], ['coverage', (s) => s.coverage.length], ['exercises', (s) => s.exercises.length], ['exercise_concepts', (s) => s.exerciseConcepts.length],
 ];
 const frontPage = (s: SectionContent, role: FrontRole, owner: string, named: FrontPageRefDTO | undefined, chapter: string | undefined): readonly Finding[] => {
@@ -394,9 +454,14 @@ const frontPage = (s: SectionContent, role: FrontRole, owner: string, named: Fro
     ...EMPTY_ON_FRONT.flatMap(([field, count]) => (count(s.dto) === 0 ? [] : [error(where, `is ${role === 'intro' ? 'an introduction' : 'a summary'} page and carries ${field}, which belongs to a section`)])),
   ];
 };
+/* A lead says what the section is about and stops (rule 21); one that runs on
+   has become a précis of the section in the book's place. */
+const LEAD_WORDS = 80;
+const wordsOf = (text: string): number => text.split(/\s+/).filter(Boolean).length;
 const section = (s: SectionContent): readonly Finding[] => [
   ...(s.dto.chapter === undefined ? [error(`${s.dto.id}/section.json`, 'is a section and names no chapter')] : []),
   ...(s.dto.lead === '' ? [error(`${s.dto.id}/section.json`, 'is a section and has no lead')] : []),
+  ...(wordsOf(s.dto.lead) > LEAD_WORDS ? [warning(`${s.dto.id}/section.json`, `has a lead of ${wordsOf(s.dto.lead)} words, over the ${LEAD_WORDS} rule 21 allows`)] : []),
   ...(localIds(s.textHtml).has(SUMMARY_ID) ? [error(`${s.dto.id}/text.html`, `carries the id "${SUMMARY_ID}", which the build keeps for the section summary`)] : []),
 ];
 export const checkPages: Check = (content) => {
@@ -464,7 +529,43 @@ export const checkSheets: Check = (content) => {
 
 /* ---------- every rule, run over the book ---------- */
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkSheets];
+/* The concept map is a DAG (rule 6). Peeling off every concept whose prerequisites are all peeled leaves
+   exactly the ones on a loop or resting on one, and each of those has a prerequisite left; walking back
+   along those from each in turn must come round on itself, which names the loop. */
+type ConceptKey = string;
+export const prereqLoops = (edges: readonly { readonly concept: ConceptKey; readonly prereq: ConceptKey }[]): readonly (readonly ConceptKey[])[] => {
+  const prereqs = new Map<ConceptKey, ConceptKey[]>();
+  const dependents = new Map<ConceptKey, ConceptKey[]>();
+  edges.forEach((e) => {
+    prereqs.set(e.concept, [...(prereqs.get(e.concept) ?? []), e.prereq]);
+    dependents.set(e.prereq, [...(dependents.get(e.prereq) ?? []), e.concept]);
+  });
+  const nodes = [...new Set(edges.flatMap((e) => [e.concept, e.prereq]))];
+  const waiting = new Map(nodes.map((n) => [n, (prereqs.get(n) ?? []).length]));
+  const peel = (ready: readonly ConceptKey[]): void => ready.forEach((n) => {
+    waiting.delete(n);
+    peel((dependents.get(n) ?? []).filter((d) => waiting.has(d) && waiting.set(d, waiting.get(d)! - 1).get(d) === 0));
+  });
+  peel(nodes.filter((n) => waiting.get(n) === 0));
+  const seen = new Set<ConceptKey>();
+  return [...waiting.keys()].flatMap((start) => {
+    if (seen.has(start)) return [];
+    const path: ConceptKey[] = [];
+    let at = start;
+    while (!seen.has(at)) { seen.add(at); path.push(at); at = (prereqs.get(at) ?? []).find((p) => waiting.has(p))!; }
+    const from = path.indexOf(at);
+    if (from < 0) return [];
+    const loop = path.slice(from).reverse();
+    const first = loop.indexOf([...loop].sort()[0]);
+    const turned = [...loop.slice(first), ...loop.slice(0, first)];
+    return [[...turned, turned[0]]];
+  });
+};
+export const checkPrereqCycles: Check = (content) =>
+  prereqLoops(content.book.conceptPrereqs).map((loop) =>
+    error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
+
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkReferents, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
@@ -473,18 +574,20 @@ export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => 
 
 /* The loader has already read the three files and every text.html; the one thing
    it has no reason to read is the source a section was made from, so this is
-   where that is read and the only place any check's input comes off disk. */
+   where that is read and the only place any check's input comes off disk. The
+   tables are taken as written, before any type is inherited, since a stored
+   override is itself something to check. */
 const readIf = (file: string): Promise<string | null> => fs.readFile(file, 'utf8').then((s) => s, () => null);
 const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')) });
 const frontContent = async (s: SectionSource | undefined): Promise<SectionContent | undefined> => (s ? pageContent(s) : undefined);
 /* The introduction and summary of a level, as fields only where the level keeps them, so a fixture without them reads the same as one written without them. */
 const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });
 export const contentOf = async (tree: BookTree): Promise<Content> => ({
-  book: tree.dto,
+  book: tree.stored,
   sheets: tree.sheets,
   ...framed(await frontContent(tree.intro), await frontContent(tree.summary)),
   chapters: await Promise.all(tree.chapters.map(async (ch): Promise<ChapterContent> => ({
-    dto: ch.dto,
+    dto: ch.stored,
     ...framed(await frontContent(ch.intro), await frontContent(ch.summary)),
     sections: await Promise.all(ch.sections.map(pageContent)),
   }))),

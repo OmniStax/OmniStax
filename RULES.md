@@ -1,7 +1,5 @@
 # Rules for transforming a textbook
 
-Each item is a decision, numbered so that a book's rules, a chapter's config, a plan and a brief can cite it. These hold for every book; what is true of one book goes in that book's `RULES.md` (item 18). The long form with history and examples is `docs/rationale/RULES.md`, kept for people.
-
 ## Where things live
 
 ```
@@ -30,55 +28,56 @@ docs/                            designs, prompts and the generated content refe
 ```
 
 ## 1. Start with a textbook exploration phase
-
-Before transforming anything, read the book and report in `exploration.md` its organizing units and their granularity, its module ids, the collection order, the licence, and where exercises and answer keys sit.
+Before transforming anything, read the book and report a `exploration.md`. This file will explain the apparatus, layout, organization of the book. It will also devise a way for us to map sections back to their provenance.
 
 ## 2. Build one section at a time, one page per section
 
-The working format is book → chapters → sections → concepts; one section is one page. After each section, stop with an interrupting message and wait for feedback before the next, unless the chapter's `config.md` records that the stop is replaced by a plan file left for review.
+The working format is book → chapters → sections → concepts; one section is one OmniStax HTML page. After processing a section, stop with an interrupting message and wait for feedback before the next (overridable behavior).
 
 ## 3. Decide the sub-concepts within a section
+A section is organized into sub-sections. Subsection headers are `<h2>`. For some textbooks, the original subsection header readily applies, in this case, do not change or divide them, reuse them. Others don't, and the agent becomes in charged of coming with sub-sections and organizing text underneath them. The criteria for a subsection is akin to when tech blogs create subsections: It's just the boundary between when a set of ideas naturally come to a stop and the next is about to come.
 
-Propose the section's sub-concept headers, one independent block per idea, neither over- nor under-divided. Not every section needs dividing.
+A subsection of course can have further, smaller header levels—whatever the original text uses.
+
+In `text.html` each block is a `<section id>` holding the book's prose verbatim, opened by its sub-concept header as an `<h2>`.
 
 ## 4. Pull meta-information out of the running text
 
-Learning objectives, key equations, key terms, summaries and similar apparatus go to the tables and are removed from the text; the app shows them elsewhere. A section's own introduction and summary are the exception (item 21).
+Learning objectives, key equations, summaries and similar apparatus are extracted out as structured data fields and are removed from the text. The app will render them elsewhere. A section's own introduction stays in the text and its summary goes to `summary_html`, as item 21 sets out. The agent decides where the structured data ends up at.
 
 ## 5. Report the plan per section before building
 
-Write `plan.md` before building: the sub-concepts, the concept nodes and where each is introduced, one line per figure in the format of `docs/prompts/interactive-figures.md`, every photograph with keep or drop and why, exercises by kind, tables, and the types the page binds. The plan is reviewed before the page is written, or left for review when `config.md` says so. A section build owns its `plan.md`, `text.html`, `figures.js`, `section.json` and the media it copies, nothing at chapter or book level; what it needs changed there goes in `plan.md` under `## Wanted at chapter level`, one line per item with the exact id, and the chapter pass applies it.
+The agent produces a `plan.md` for each section before building, including the concepts; keep original diagram or make a enhanced interactive figure and why (a one-liner per in the format of `docs/prompts/interactive-figures.md`), exercises, and the types the page binds. The plan should be surfaced to the user and reviewed before the page is written (whatever `config.md` says).
 
 ## 6. Concepts
-
-Everything the book teaches is a concept, one node in the book's concept table, whether or not an exercise tests it. Each concept is one of five kinds:
-
+The agent has the pedagogical responsbility of extracting concepts from a book and organizing a concept map (directed acyclic graph). When a text matches one of these five concept kinds, extract it:
 - A **definition** is stipulated, a name for something: displacement, the joule.
 - An **axiom** is what the book takes as given, a postulate or a law found by experiment: F = ma, Ohm's law.
 - A **result** follows from other concepts, whether or not the book shows the steps: v = v₀ + at, the work–energy theorem.
 - An **idea** earns a place in the map without being any of those: the Bohr model, the Michelson–Morley experiment.
 - A **skill** is know-how for applying the others, usually to solve problems: drawing a free-body diagram, balancing an equation.
 
-The kind follows the book, so the same law can be an axiom in a book that states it from experiment and a result in one that derives it. A constant or measured value (g, c) is an axiom when the book states it as a finding, and a sheet when it is reference data.
-
-A concept row holds the name, kind, statement and prerequisite edges, and it is the only record of the concept. It carries the glossary words that name the concept, the one symbol the book denotes it by, and every formula that states it, main form first. A rearrangement (a = F/m beside F = ma) is another form on the same node. A symbol's variants and components (a_x, B₁) are rows of the chapter's variables, and each names the definition of its quantity. The statement gives a definition's meaning or an axiom's or result's claim, in the book's voice. Every glossary term is a word of some concept. Each concept has exactly one span that introduces it, where the book first does, and the reader can always go there.
+A concept row holds the name, kind, statement and prerequisite edges, recorded in book.json. It carries the glossary words that name the concept, the main symbol the book denotes it by (if applicable), and every formula that states it, with the main form listed first. Multiple forms can take place for example in an rearrangement (a = F/m beside F = ma). A symbol's variants and components (a_x, B₁) are rows of the chapter's variables, and each names the definition of its quantity. The statement gives a definition's meaning or an axiom's or result's claim. Each concept has exactly one span that introduces it, where the book first does, and the reader can jump there.
 
 Concepts are written to the tables section by section as the build goes, and later sections point back to earlier ids; nothing is inferred from headers afterwards. Reference data a subject needs, such as the periodic table or a table of constants, is a sheet of the book and not a concept.
 
 ## 7. Colour is a function of type
 
-A colour belongs to a type, and a type is a kind of physical quantity. A symbol takes its type's colour; a derived quantity is another type and another colour; a variant of one type (initial, average, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its result type. Nothing is coerced into a neighbouring type to save a colour.
+A colour belongs to a type, and a type is a kind of thing the reader must recognise across prose, equation and figure. The book names its types. Two things are of different types when confusing them would be a category error in the subject: a quantity of another dimension in physics, a curve or a surplus in economics, a part or a load in mechanics, a function and its derivative in calculus. A variant of one type (initial, shifted, estimated, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its type. Nothing is coerced into a neighbouring type to save a colour.
 
 The book declares its types in order and says nothing about hues; the app dresses them from a scheme and the reader may override. A page colours only the types it binds, the ones its figures draw, its sliders carry or its readouts state; every other symbol on that page is ink, and the plan lists what the page binds.
 
-There are four families of colour:
+Words wear colour as symbols do. Where a word or phrase names a bound type's drawn thing, the build marks it `<span data-type="…">` and it takes the type's hue; the same word used loosely ("demand" as a verb) stays ink. A referent is a particular thing that lives in one example or figure, such as the crank of one engine, Firm B or block 2, which the text and the figure both point at. The section lists its referents in `referents`; the text marks each mention `<span data-ref="…">` and the figure draws it with `F.ref(id)`. A referent with a type wears the type's hue; one without takes a categorical colour that the text and the figure share.
+
+There are five families of colour:
 
 - type hues from the scheme, bound per page;
-- the element palette `F.el(symbol)` for every atom, ion, molecule or particle with an identity, always, so no gas box draws an anonymous grey dot;
-- a colour that is the physical fact (a photon's wavelength, a flame, a solution), drawn as the fact;
-- the categorical palette `F.cat(i)` for instances that must be told apart and carry no type or element, never in a hue the page has bound.
+- a convention of the field, always: the element palette `F.el(symbol)` for every atom, ion, molecule or particle with an identity, so no gas box draws an anonymous grey dot, and likewise base pairs, resistor bands and the like;
+- a colour that is the fact (a photon's wavelength, a flame, a stain, a solution), drawn as the fact;
+- a value scale for one scalar that varies over a region (a stress field, a heatmap), one per figure, with its legend, never in a bound hue;
+- the categorical palette, `F.ref(id)` for referents and `F.cat(i)` for other instances that must be told apart and carry no type or convention, never in a hue the page has bound.
 
-Test for one figure: everything in it with an identity is coloured, or the whole figure is ink. Ink is for the frame and for untyped scalars. A phase is told by packing, not colour; a temperature by its type hue on symbol and slider, never as a tint on a body. Colour-off drops the type hues and keeps element, physical and categorical colours.
+Test for one figure: everything in it with an identity is coloured, or the whole figure is ink. Ink is for the frame and for untyped scalars. A phase is told by packing, not colour; one body's temperature by its type hue on symbol and slider, never as a tint on the body. Colour-off drops the type hues and keeps convention, fact, scale and categorical colours.
 
 ## 8. The page is a shell of items, not a fixed three-column article
 
@@ -128,30 +127,24 @@ Beyond the required figures, think broadly about what could help, judge each can
 
 When feedback is asked for, stop. A partial reply is answered with the remaining points, not with work.
 
-## 17. The page talks about the subject, not about itself, in the book's voice
+## 17. The page talks about the subject, not about itself
 
 Every sentence OmniStax adds is about the subject; no words on the page say that prose is quoted, a figure redrawn or a card generated. The AI mark is the only in-place flag (on the lead, a sim's head and a suggested approach), and its hover names what made the item: "Generated by Claude Opus 5.5 · low effort". Attribution is the footer, generated by the app from `book.json`, which names the models in plain words; the section writes only `notes`, one plain sentence on what was left out, `ai`, and `built` as the ISO date.
 
 `ai` is `{"text": [<maker>…], "figures": [<maker>…]}`, a maker `{"model": <API id>, "effort": "low"|"medium"|"high"|"max"}`, principal first. Every agent that writes content records its own model id and effort there: a new section writes it whole, and an agent that rewrites a part appends itself to that part unless it is already listed.
 
-Everything OmniStax writes (leads, captions, headlines, readouts, suggested approaches, concept statements, logs) is in the book's own voice as the book's `RULES.md` records it: full sentences, its register, person and vocabulary. No clipped fragments, semicolon chains or editorial framing. A caption follows the textbook's voice and speaks of the subject and what the reader sees, never of the figure itself (never "this figure walks through…" or "grab a control to take over"). When a figure's behaviour changes, its caption and plan line are read again and corrected.
-
-AI-written reader-facing text is pedagogical, crisp and active. It addresses the learner, not a developer or a reviewer: no narration of why the author chose something, no over-description, no hedging. `tools/voicelint.py` flags passive, meta, hedged and long items per chapter.
-
-- "This section names the two kinds, vectors and scalars, and shows how a coordinate system … lets a plus or minus sign give the direction" → "In one-dimensional motion, a coordinate system with a chosen positive direction lets a plus or minus sign give a vector's direction."
-- "The reader meets the unit everywhere in ordinary life, because fuses … are rated in amperes" → "Fuses, circuit breakers and many appliances are rated in amperes, so you meet the unit every day."
-- "On the left, the velocity of a jet is drawn as an arrow whose length is proportional to its magnitude" → "On the left, an arrow shows the jet's velocity. Its length gives the speed, and it points the way the jet moves."
-- "Notice how far below the other three the gravitational force sits." → "The gravitational force sits far below the other three."
+A caption speaks of the subject and what the reader sees, never of the figure itself (never "this figure walks through…" or "grab a control to take over"). When a figure's behaviour changes, its caption and plan line are read again and corrected.
 
 ## 18. Every book begins with a full-book pass that writes its rules and tools
-
-Before the first section, one pass over the whole book leaves the book's `RULES.md` and its `tools/`. The rules state Source, Structure, Apparatus, Licence and attribution, Voice (with quoted sentences), Types (in scheme order, with what stays untyped), the name of its formulas list where the subject has its own word (Theorems, Laws and equations), Exercise kinds and Figures, plus Files where the layout differs from the block above. The tools convert one unit of the source to `source.md` and do any other parsing the pass needed, once per book; a tool a second book uses moves to `omnistax-content/tools/`. The pass ends with the config list of item 10 for the first chapter.
+Before the first section, the agent should iteratively, with the user, walk over the whole book to create book-specific `RULES.md` and its `tools/`. During this phase, you two will together converge to what will be a superlative experience for future learners. The rules will cover special vocabulary that is book-specific. It will always  Source, Structure, Apparatus, Licence and attribution, Types (in scheme order, with what stays untyped), the name of its formulas list where the subject has its own word (Theorems, Laws and equations), Exercise kinds and Figures, plus Files where the layout differs from the block above and the Template sections an agent copies (item 27). The tools convert one unit of the source to `source.md` and do any other parsing the pass needed, once per book; a tool a second book uses moves to `omnistax-content/tools/`. The pass ends with the config list of item 10 for the first chapter.
 
 ## 19. The content is tables, and the schema is the reference
 
 `book.json`, `chapter.json` and `section.json` are records of scalars and named tables, every row flat, every reference by id. The layout is `docs/content-tables.md`; the field reference is `docs/content-format.md`, generated from `omnistax-web/src/lib/content/schema.ts`. The schema is strict and an unknown key fails the build, so write only the fields the reference lists.
 
 Agents read and write the tables through `omnistax-content/tools/ost.py`, a cheap local MCP, and its commands `books`, `show`, `rows`, `find`, `meanings`, `add`, `set`, `del`, `merge`, `log`, `check` and `ids`; the reference is `omnistax-content/tools/README.md`. Never open `book.json` or a `chapter.json` to search it, and never edit `book.json` by hand. A `section.json` may be written whole once, then corrected row by row with `set`. A dollar sign is `&#36;` in the prose of `text.html` and the fullwidth `＄` inside an exercise string or a `\text{}`.
+
+`text.html` keeps the blocks of item 3, with `<sub>` and `<sup>` for formulas in prose, LaTeX in math, and `\k` macros only for typed symbols. Every `<figure>` carries `id`, `class` (`sim` or `photo`), `data-figure`, `data-original`, `data-original-caption` and, where its row has `widths`, `data-original-width` (a photograph puts its one width as `data-width` on its `<img>`), all agreeing with its row. No math goes in an attribute: the math pass would break it and the validator does not notice, so a caption attribute writes its symbols as plain text (f₀, ΔL).
 
 Every reference must resolve. `npm run check:content` in `omnistax-web`, with the book's environment variables, checks every id, anchor, span, cite, place and figure row against the text, and that every built concept has a statement and exactly one span that introduces it. Run it after every JSON write and before every stop.
 
@@ -161,9 +154,17 @@ A symbol keeps one key across the book and a meaning per section. Before adding 
 
 A completed Exercises-system question supplies one step of evidence to every concept in its `exercise_concepts` rows. Correct adds one and incorrect subtracts one until mastery; Bloom and legacy `weight` fields do not change attainment. Inline Try Its supply no persisted evidence.
 
-## 21. The book's introductions and summaries keep their place
+## 21. What opens and closes a page
 
-Where the book prints an introduction or a summary, it is kept in the book's words where the book stood it: a chapter's or the book's introduction is a page of its own in `intro/`, listed first; a chapter's or the book's summary is a page in `summary/`, listed last; a section's own go inside its page, at the top and the end. Nothing is invented where the book prints none, and the `lead` is neither. A long introduction is transformed like a section, its opener photograph kept.
+A page opens on the lead and the book's introduction, and closes on the book's summary. The introduction and the summary are the book's words, kept where the book stood them; the lead is the only one of the three OmniStax writes.
+
+1. **The book's or a chapter's introduction** is a page of its own in `intro/`, listed first, named by the `intro` record of `book.json` or `chapter.json`. It is transformed like a section, its opener photograph kept, and carries no lead, objectives, summary, exercises or coverage.
+2. **The book's or a chapter's summary** is a page in `summary/`, listed last, on the same terms.
+3. **A section's own introduction**, where the book prints one, stays at the top of its `text.html` as the first block.
+4. **A section's own summary** goes to `summary_html` in `section.json`; the app prints it at the end of the text under "Section summary".
+5. **The lead** is one or two sentences under the title saying what the section is about, at most 80 words. It states no result the section works out, and it never stands in for an introduction or a summary. Introduction and summary pages have none.
+
+Nothing is invented where the book prints no introduction or summary.
 
 ## 22. COLOR.md
 

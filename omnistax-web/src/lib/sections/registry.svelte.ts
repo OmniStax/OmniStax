@@ -248,7 +248,7 @@ class Registry {
   private prepare(root: HTMLElement, ref: SectionRef): void {
     if (root.dataset.math !== 'rendered') this.figFor?.(ref.book).renderMath(root);
     this.mountExercises(root, ref);
-    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); decorateTerms(root, ref.section); dragFigures(root, ref);
+    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); decorateTerms(root, ref.section); this.figFor?.(ref.book).paintRefs(root); dragFigures(root, ref);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the

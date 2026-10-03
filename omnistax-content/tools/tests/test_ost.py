@@ -219,6 +219,24 @@ class TestWriting(Fixture):
         self.assertEqual(run("add", "chemistry-2e", "forms", '{"concept": "density", "id": "eq-density", "latex": "x"}')[1], 1)
         self.assertEqual(run("set", "chemistry-2e", "forms", "eq-density", '{"concept": "volume"}')[1], 1)
 
+    def test_referents_are_a_section_table_like_figures(self):
+        text, code = run("add", "chemistry-2e", "referents", "--section", "1.4",
+                         '{"id": "block-1", "label": "the first block", "figure": "sim-density", "type": "mass"}')
+        self.assertEqual(code, 0)
+        self.assertEqual(self.rows("referents"), [{"id": "block-1", "label": "the first block", "figure": "sim-density", "type": "mass"}])
+        run("set", "chemistry-2e", "referents", "block-1", "--section", "1.4", '{"label": "block 1"}')
+        self.assertIn("block-1 · block 1 · sim-density · mass", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
+        self.assertIn("referent block-1 · block 1 · in sim-density · mass", run("show", "chemistry-2e", "1.4")[0])
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b"}')[1], 1)
+        run("del", "chemistry-2e", "referents", "block-1", "--section", "1.4")
+        self.assertEqual(self.rows("referents"), [])
+
+    def test_a_concept_takes_a_type(self):
+        with mock.patch.object(ost, "merge_chapter"):
+            self.assertEqual(run("set", "chemistry-2e", "concepts", "density", "--chapter", "1", '{"type": "density"}')[1], 0)
+        staged = json.loads(self.read(os.path.join(self.book, "ch01", "book-rows.json")))
+        self.assertEqual(next(c for c in staged["concepts"] if c["id"] == "density")["type"], "density")
+
     def test_a_book_table_no_chapter_stages_is_refused(self):
         self.assertEqual(run("add", "chemistry-2e", "sheets", "--chapter", "1",
                              '{"id": "s", "title": "S", "kind": "table", "file": "sheets/s.json"}')[1], 1)

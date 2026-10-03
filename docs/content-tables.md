@@ -33,17 +33,25 @@ beside the chapters (rule 21).
 
 Tables:
 
-- `types`: `{ id, label, dimension }`. Ordered; the order is the order the
-  colour scheme lays its hues along, so it is an array and not a record.
+- `types`: `{ id, label, dimension? }`. The kinds of thing the book
+  colours: a quantity, a curve, a part. `dimension` is the unit, where the
+  type is a quantity. Ordered; the order is the order the colour scheme
+  lays its hues along, so it is an array and not a record.
 - `symbols`: `{ sym, latex, type?, macro? }`. One row per symbol the book
-  writes with a KaTeX macro or names in a `\htmlData{sym=…}`. The macro
-  expansion is derived: a typed symbol expands to
+  writes with a KaTeX macro or names in a `\htmlData{sym=…}`. A symbol
+  inherits its type from the concepts it denotes: those whose `symbol` it
+  is, else those its variables rows name (every row naming one), when they
+  all have the same type. `type` here is an override, written only where the
+  symbol must differ or where those concepts share no type; the loader
+  resolves every symbol's type once, so the macros, figures and cards all
+  read the type it ends with. The macro expansion is derived: a typed
+  symbol expands to
   `\htmlClass{kv-<type>}{\htmlData{sym=<sym>}{<latex>}}`, an untyped one to
   its `latex`. A row with no `macro` is a symbol the hover layer knows but
   the text writes in plain LaTeX (`θ`).
 - `exercise_kinds`: `{ id, label }`.
-- `concepts`: `{ id, kind, section, name, symbol?, terms, statement?,
-  forms }`. The whole
+- `concepts`: `{ id, kind, section, name, symbol?, terms, type?,
+  statement?, forms }`. The whole
   book's concept nodes in one table, because ids are canonical and a
   chapter's prerequisites live in other chapters. Everything the book
   teaches is a concept (RULES item 6), and `kind` is one of five:
@@ -63,9 +71,16 @@ Tables:
   no formula, no symbol and no gloss after a comma or colon; the statement
   says what it means and the concept's forms carry the formula. The concept
   is the one record of what it is (issue #39): `terms` are the words the
-  book's glossary defines it under, which the app marks in the prose of the
-  chapters that deal with it; `symbol` is the one key of `symbols` the book
-  denotes it by, where it has one, never the list of its variants; `forms`
+  book's glossary defines it under, which the app marks at every mention
+  in the prose of the chapters that deal with it (in a paragraph or list
+  item, never in a link, heading, maths, caption or exercise, and a
+  shorter term never inside a longer one); `symbol` is the one key of
+  `symbols` the book denotes it by, where it has one, never the list of
+  its variants; `type` is the type the concept names, where it names one,
+  the one place a kind is declared: the symbols and variables rows that
+  denote the concept inherit it, and its hover card's title wears it (its
+  glossary words do not; words take a colour only from a `data-type` or
+  `data-ref` span of the text); `forms`
   are the equations that state it, each `{ id, latex, ktex?, condition?,
   section?, anchor? }`, ordered, the first the main form a card, the
   Reference view and the search lead with. A form's `id` is unique in the
@@ -127,9 +142,11 @@ Tables:
 - `sections`: `{ id, module, title, slug }`. Every section of the chapter,
   built or not.
 - `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
-  redefines? }`. `type` was `color`; the book declares types, the app picks
-  hues. `concept` is the definition of the symbol's quantity; a variant or a
-  component (a_x, B₁) names the definition of its base quantity. This is the
+  redefines? }`. A row inherits its `concept`'s type, and `type` is an
+  override, written only where the row must differ or where its concept has
+  no type; the book declares types, the app picks hues. `concept` is the
+  definition of the symbol's quantity; a variant or a component (a_x, B₁)
+  names the definition of its base quantity. This is the
   table a figure binds its colours by and a symbol's card reads its meaning
   in this section from.
 
@@ -171,6 +188,17 @@ Tables:
   `<img data-width>`, a figure's `data-original-width`, comma-separated
   in the order of `data-original`); the validator checks that the two
   agree until the build injects them.
+- `referents`: `{ id, label, figure, type? }`. A particular thing that
+  exists only in one example or figure (block 1 and block 2, Firm A and
+  Firm B, the crank of one engine) and that the text and the figure both
+  point at. The text marks it `<span data-ref="<id>">Firm B</span>` and the
+  figure colours it with `F.ref('<id>')`. A typed referent wears its type's
+  hue under the same rules as a symbol: in ink with colour coding off or
+  on a page that does not bind the type. An untyped one takes the k-th
+  categorical colour, k its place among the section's untyped rows, clear
+  of the hues of the types the page declares it binds; like `F.cat` it
+  stays coloured with colour coding off. Text and figure compute it apart
+  from the same table, so they agree whatever order they draw in.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -189,6 +217,11 @@ Tables:
 Ids at this level are local (`hookes-law`, not `16.1-hookes-law`); the
 build qualifies them.
 
+Beside the tables, `text.html` may mark a run of words with a type the
+section build chose, `<span data-type="<type>">the pull</span>`: the
+words wear the type exactly as a symbol of it does. Nothing matches them
+at runtime; they are written where the build means them.
+
 ### An introduction or summary page
 
 A chapter's or the book's introduction or summary (rule 21) is the same
@@ -199,10 +232,9 @@ the chapter's number and the role, `2.intro`, so that two chapters'
 introductions can stand open in one shell; the book's own stays `intro`.
 Its `title`, `notes`, `ai`, `built` and `figures` are as on a section, its
 `figures` rows are checked as a section's are and its local ids qualify as
-`2.intro-fig-kestrel`; `lead` may be empty, since nothing is written in
-the book's place, and `objectives`, `summary_html`, `exercises_lead`,
-`exercise_notes`, `coverage`, `exercises` and `exercise_concepts` are
-empty. The page has no problem set, no concept coverage and no anchors
+`2.intro-fig-kestrel`; `lead` is empty, since nothing is written in
+the book's place, and so are `objectives`, `summary_html`, `exercises_lead`,
+`exercise_notes`, `coverage`, `exercises` and `exercise_concepts`. The page has no problem set, no concept coverage and no anchors
 into it. Its address is `/<book>/<chapter dir>/intro/`, or
 `/<book>/intro/` for the book's own, and the explorer and the book's
 front page list it where the book prints it: before the first section or
@@ -290,21 +322,32 @@ references:
   `source_section` names a section the app has built;
 - every built concept has a `statement` and exactly one coverage row that
   introduces it;
+- `concept_prereqs` closes no loop: the concept map is a DAG (rule 6), and
+  a loop is an error that names it, `a → b → c → a`;
 - every variables row names a concept (a warning until
   `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
 - no two forms of the book share an id, and no two concepts a name; two
   concepts may share a glossary word, since the book glosses
   some words twice ("power" of a force and of a lens) and the reader's place
   says which is meant;
-- every `draws` entry is a declared type;
-- every section names its chapter and has a lead, and its text keeps off
+- every `draws` entry is a declared type, and so is every `type` of a
+  concept, a symbol or a variables row; an override equal to the type the
+  row inherits is a warning, and so is a concept's own `symbol` overridden
+  to another type than the concept's;
+- every `data-type` in `text.html` is a declared type, and one the page
+  does not bind is a warning;
+- every `referents` id is unique in its section, its `figure` is a figure
+  row of the section and its `type` is declared; every `data-ref` in
+  `text.html` names a row, and a row no span names is a warning;
+- every section names its chapter and has a lead (a lead over 80 words
+  is a warning), and its text keeps off
   the id `section-summary`, which the build gives the summary block it
   appends after the last span;
 - every introduction or summary page is named by an `intro` or `summary`
   record of the chapter or the book that keeps it, names that chapter (or
   none, for the book's own), and carries none of a section's apparatus:
-  its objectives, summary, exercises lead and notes, coverage, exercises
-  and exercise concepts are empty, and only there may the lead be empty;
+  its lead, objectives, summary, exercises lead and notes, coverage,
+  exercises and exercise concepts are empty;
 - no chapter table anchors into an introduction or summary page;
 - every `sheets` row names a file that is there and parses, holds the kind
   the row promised and calls itself by the row's id; a title that disagrees
