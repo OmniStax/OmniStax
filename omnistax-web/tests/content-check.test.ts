@@ -143,6 +143,9 @@ test('checkReferents: a referent twice, in no figure, of no type, unnamed, and a
   const unnamed = checkReferents(fixture({ section: { referents: [block] } }));
   assert.deepEqual(unnamed.map((f) => f.level), ['warning']); assert.match(unnamed[0].what, /named by no <span data-ref>/);
   assert.match(run(checkReferents, { textHtml: named })[0], /<span data-ref="block-1"> is no row of the referents table/);
+  const both = `${TEXT}<p><span data-ref="block-1 block-2">The two blocks</span> slide.</p>`;
+  assert.deepEqual(run(checkReferents, { section: { referents: [block, { ...block, id: 'block-2' }] }, textHtml: both }), [], 'a span may name several referents, and names each of them');
+  assert.match(run(checkReferents, { section: { referents: [block] }, textHtml: both })[0], /<span data-ref="block-2"> is no row/);
 });
 
 test('checkBinds: a figure that draws a type the book never declared', () => {

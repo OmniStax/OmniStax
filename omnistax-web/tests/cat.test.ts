@@ -64,7 +64,8 @@ test('a grey binds nothing, and a page that binds everything gets the whole pale
    passes them nothing else, so there is no path by which `setCC(false)` could
    reach them. `C` is the one door that answers with ink; an untyped referent
    reads colour coding only to drop the bound hues it keeps clear of, as `cat`
-   finds none bound with it off. */
+   finds none bound with it off; a typed member of a span naming several referents
+   reads it as its type's own hue does. */
 const figlib = fs.readFileSync(new URL('../src/lib/fig/figlib.ts', import.meta.url), 'utf8');
 
 test('the element and categorical colours do not switch off with colour coding', () => {
@@ -77,6 +78,7 @@ test('the element and categorical colours do not switch off with colour coding',
     'if (!CC && !NEUTRAL.has(k)) return PAL.ink;',
     'return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);',
     'let CC = true;',
+    'r.type === undefined ? untypedRefColor(at, r.id, pal) : CC ? pal[r.type] ?? pal.ink : pal.ink;',
   ].sort());
 });
 

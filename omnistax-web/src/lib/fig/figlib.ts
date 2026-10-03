@@ -240,11 +240,25 @@ function ref(id: string): Color {
   return r?.type !== undefined ? C(r.type) : untypedRefColor(drawing, id, PAL);
 }
 /* The text's <span data-ref> under a root: a typed referent is handed its type, and the colour rules that
-   give a type its hue take it from there; an untyped one is coloured here, again on every repaint. */
+   give a type its hue take it from there; an untyped one is coloured here, again on every repaint. A span
+   that names several referents ("the two skaters") wears each of their colours in turn across its words. */
+const refIds = (s: HTMLElement): readonly string[] => (s.dataset.ref ?? '').split(/\s+/).filter(Boolean);
+const textColorOf = (at: Place, r: ReferentEntry, pal: Readonly<Record<string, Color>>): Color =>
+  r.type === undefined ? untypedRefColor(at, r.id, pal) : CC ? pal[r.type] ?? pal.ink : pal.ink;
+const bands = (cs: readonly Color[]): string =>
+  `linear-gradient(90deg, ${cs.map((c, i) => `${c} ${(i * 100) / cs.length}% ${((i + 1) * 100) / cs.length}%`).join(', ')})`;
 function paintRefs(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-ref]').forEach((s) => {
-    const at = placeOf(s); const r = referentOf(at, s.dataset.ref ?? '');
-    if (r?.type !== undefined) { s.dataset.type = r.type; s.style.removeProperty('color'); return; }
+    const at = placeOf(s); const rs = refIds(s).flatMap((id) => referentOf(at, id) ?? []);
+    ['color', 'background-image', '-webkit-background-clip', 'background-clip', '-webkit-text-fill-color'].forEach((k) => s.style.removeProperty(k));
+    if (rs.length > 1) {
+      const pal = palAt(at);
+      s.style.backgroundImage = bands(rs.map((r) => textColorOf(at, r, pal)));
+      s.style.setProperty('-webkit-background-clip', 'text'); s.style.backgroundClip = 'text'; s.style.setProperty('-webkit-text-fill-color', 'transparent');
+      return;
+    }
+    const r = rs[0];
+    if (r?.type !== undefined) { s.dataset.type = r.type; return; }
     if (r) s.style.color = untypedRefColor(at, r.id, palAt(at));
   });
 }

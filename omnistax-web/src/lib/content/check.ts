@@ -210,7 +210,7 @@ export const checkReferents: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
   return pagesOf(content).flatMap((s) => {
     const figures = idsOf(s.dto.figures, (f) => f.id); const rows = idsOf(s.dto.referents, (r) => r.id);
-    const named = new Set(attrValues(s.textHtml, 'data-ref')); const binds = bindsOf(s.dto.figures);
+    const named = new Set(attrValues(s.textHtml, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean))); const binds = bindsOf(s.dto.figures);
     return [
       ...s.dto.referents.flatMap((r, i) => {
         const where = inSection(s, 'referents', r.id);

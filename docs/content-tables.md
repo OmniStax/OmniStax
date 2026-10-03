@@ -191,12 +191,16 @@ Tables:
 - `referents`: `{ id, label, figure, type? }`. A particular thing that
   exists only in one example or figure (block 1 and block 2, Firm A and
   Firm B, the crank of one engine) and that the text and the figure both
-  point at. The text marks it `<span data-ref="<id>">Firm B</span>` and the
-  figure colours it with `F.ref('<id>')`. A typed referent wears its type's
+  point at. The text marks every reference to it, pronouns included,
+  `<span data-ref="<id>">Firm B</span>`, and the figure colours it with
+  `F.ref('<id>')`. A phrase naming several lists them,
+  `data-ref="firm-a firm-b"`, and its words wear their colours in turn. A typed referent wears its type's
   hue under the same rules as a symbol: in ink with colour coding off or
   on a page that does not bind the type. An untyped one takes the k-th
-  categorical colour, k its place among the section's untyped rows, clear
-  of the hues of the types the page declares it binds; like `F.cat` it
+  categorical colour, k its place among the untyped rows of its own
+  figure, clear of the hues of the types the page declares it binds (when
+  too few hues are clear, the ones nearest a bound hue come last rather
+  than a hue coming twice); like `F.cat` it
   stays coloured with colour coding off. Text and figure compute it apart
   from the same table, so they agree whatever order they draw in.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
@@ -338,7 +342,8 @@ references:
   does not bind is a warning;
 - every `referents` id is unique in its section, its `figure` is a figure
   row of the section and its `type` is declared; every `data-ref` in
-  `text.html` names a row, and a row no span names is a warning;
+  `text.html` names a row (each id of a span that lists several), and a row
+  no span names is a warning;
 - every section names its chapter and has a lead (a lead over 80 words
   is a warning), and its text keeps off
   the id `section-summary`, which the build gives the summary block it
