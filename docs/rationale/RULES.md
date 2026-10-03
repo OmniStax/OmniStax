@@ -139,6 +139,14 @@ word. So a definition is named by its term, a law or result by the book's
 name for it or by the fewest words that pick it out, and a skill by a short
 gerund phrase.
 
+On 2026-10-02 a variables row's `concept` came to mean only the concept the
+symbol names. The 2026-10-01 migration had made every row link somewhere, so
+a symbol whose quantity had no concept was pointed at a concept that used it
+(N at the ideal gas law). That mixed two relations in one field: a hover
+could not tell "N is the ideal gas law" from "N appears in it", and the
+concept's one symbol could not be read off its rows. A row now links only
+where its symbol names the concept, and a concept's symbol is one of those.
+
 ## 7. Colour is a function of type
 
 A colour belongs to a type, and a type is a kind of physical quantity:

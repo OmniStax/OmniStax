@@ -128,8 +128,11 @@ Tables:
   built or not.
 - `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
   redefines? }`. `type` was `color`; the book declares types, the app picks
-  hues. `concept` is the definition of the symbol's quantity; a variant or a
-  component (a_x, B₁) names the definition of its base quantity. This is the
+  hues. `concept` is the concept the symbol names, and only that: PE_g names
+  gravitational potential energy, and a variant or a component (a_x, B₁)
+  names its base quantity. A symbol that names no concept (N for a count of
+  molecules) has no `concept`; it is never linked to a concept that merely
+  uses it. A concept's `symbol` is one of the symbols linked to it. This is the
   table a figure binds its colours by and a symbol's card reads its meaning
   in this section from.
 
