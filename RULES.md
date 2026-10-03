@@ -69,6 +69,10 @@ The book declares its types in order and says nothing about hues; the app dresse
 
 Words wear colour as symbols do. Where a word or phrase names a bound type's drawn thing, the build marks it `<span data-type="…">` and it takes the type's hue; the same word used loosely ("demand" as a verb) stays ink. A referent is a particular thing that lives in one example or figure, such as the crank of one engine, Firm B or block 2, which the text and the figure both point at. The section lists its referents in `referents`; the text marks every reference to it `<span data-ref="…">`, pronouns included, and the figure draws it with `F.ref(id)`. A phrase that names several at once ("the two skaters") lists them all, `data-ref="skater-1 skater-2"`, and wears their colours in turn. A referent with a type wears the type's hue; one without takes a categorical colour that the text and the figure share.
 
+A page has referents only where it has two or more particular things a reader must keep apart: a third-law pair, the bodies of a system, a thing and what pushes it. A single body stays ink. In the figure a referent's body, its outline, its name label and its dot in a free-body diagram wear its colour; a force or any other quantity drawn on it keeps its own type's hue. Each figure counts its untyped referents from the first categorical colour, so two figures on one page may share a colour, and when the page's bound hues leave too few clear, the hues nearest a bound one are used last, never the same hue twice in one figure.
+
+A type is declared once, on the concept it names. A concept's type is the type of the one thing its name refers to: kinetic energy is an energy, weight a force, while a law that ties several quantities together (Newton's second law, Ohm's law) names a relation and has none. Symbols and variables take the type of their concept; a row says otherwise only where it must, and a quantum number or a count that hangs off a typed concept is set in ink outright. A concept's card shows its name in its type's hue.
+
 There are five families of colour:
 
 - type hues from the scheme, bound per page;
