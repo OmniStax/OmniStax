@@ -42,7 +42,8 @@ Tables:
   inherits its type from the concepts it denotes: those whose `symbol` it
   is, else those its variables rows name (every row naming one), when they
   all have the same type. `type` here is an override, written only where the
-  symbol must differ or where those concepts share no type; the loader
+  symbol must differ or where those concepts share no type, and `null`
+  sets the symbol in ink whatever its concepts are; the loader
   resolves every symbol's type once, so the macros, figures and cards all
   read the type it ends with. The macro expansion is derived: a typed
   symbol expands to
@@ -144,7 +145,8 @@ Tables:
 - `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
   redefines? }`. A row inherits its `concept`'s type, and `type` is an
   override, written only where the row must differ or where its concept has
-  no type; the book declares types, the app picks hues. `concept` is the
+  no type, and `null` sets the row in ink whatever its concept's type; the
+  book declares types, the app picks hues. `concept` is the
   definition of the symbol's quantity; a variant or a component (a_x, B₁)
   names the definition of its base quantity. This is the
   table a figure binds its colours by and a symbol's card reads its meaning
@@ -336,7 +338,8 @@ references:
   says which is meant;
 - every `draws` entry is a declared type, and so is every `type` of a
   concept, a symbol or a variables row; an override equal to the type the
-  row inherits is a warning, and so is a concept's own `symbol` overridden
+  row inherits is a warning, so is a `null` on a row that inherits no type,
+  and so is a concept's own `symbol` overridden
   to another type than the concept's;
 - every `data-type` in `text.html` is a declared type, and one the page
   does not bind is a warning;

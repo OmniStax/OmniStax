@@ -94,7 +94,8 @@ export const kindsOf = (kinds: readonly { id: string; label: string }[]): KindMa
 /* A kind is declared once, on the concept. A variables row inherits its concept's
    type; a symbol inherits the type shared by the concepts it denotes, which are
    the concepts that name it as their symbol, else the concepts its variables rows
-   name, every row naming one. A stored type is an override and wins. */
+   name, every row naming one. A stored type is an override and wins, and a stored
+   null sets the row in ink. */
 export type InheritedTypes = {
   readonly symbol: (s: SymbolDTO) => TypeId | undefined;
   readonly variable: (v: VariableDTO) => TypeId | undefined;
@@ -117,7 +118,11 @@ export const inheritedTypes = (concepts: readonly ConceptRowDTO[], variables: re
 /* The book and its chapters with every symbol and variables row carrying its effective type, which is what every reader of a type sees. */
 export const withInheritedTypes = (book: BookDTO, chapters: readonly ChapterDTO[]): { readonly book: BookDTO; readonly chapters: readonly ChapterDTO[] } => {
   const inherit = inheritedTypes(book.concepts, chapters.flatMap((ch) => ch.variables));
-  const typed = <R extends { readonly type?: TypeId }>(row: R, inherited: (r: R) => TypeId | undefined): R => {
+  const typed = <R extends { readonly type?: TypeId | null }>(row: R, inherited: (r: R) => TypeId | undefined): R => {
+    if (row.type === null) {
+      const { type: _, ...ink } = row;
+      return ink as R;
+    }
     const type = row.type ?? inherited(row);
     return type === row.type ? row : { ...row, type };
   };

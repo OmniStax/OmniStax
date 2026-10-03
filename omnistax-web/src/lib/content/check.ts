@@ -159,26 +159,28 @@ export const checkBinds: Check = (content) => {
 };
 
 /* The book declares the types, and a kind is declared once, on the concept: a symbol and a variables row inherit
-   it, so a type stored on one is an override. An override equal to what the row inherits says nothing, and a
-   concept's own symbol set to another type than the concept's is almost surely a slip. */
+   it, so a type stored on one is an override, and a stored null sets the row in ink. An override equal to what the
+   row inherits says nothing, a null where it inherits no type says nothing either, and a concept's own symbol set
+   to another type than the concept's is almost surely a slip. */
 export const checkTypes: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
   const inherit = inheritedTypes(content.book.concepts, content.chapters.flatMap((ch) => ch.dto.variables));
   const symbols = new Map(content.book.symbols.map((sym) => [sym.sym, sym] as const));
-  const redundant = (where: string, type: string | undefined, inherited: string | undefined): readonly Finding[] =>
-    (type !== undefined && type === inherited ? [warning(where, `overrides its type with "${type}", which is the type it inherits`)] : []);
+  const redundant = (where: string, type: string | null | undefined, inherited: string | undefined): readonly Finding[] =>
+    (type === null && inherited === undefined ? [warning(where, 'sets itself in ink, which it is already, inheriting no type')]
+      : type !== undefined && type === inherited ? [warning(where, `overrides its type with "${type}", which is the type it inherits`)] : []);
   const ownSymbol = (where: string, type: string | undefined, symbol: string | undefined): readonly Finding[] => {
     const other = symbol === undefined ? undefined : symbols.get(symbol)?.type;
-    return type === undefined || other === undefined || other === type ? [] : [warning(where, `names type "${type}" and its own symbol "${symbol}" overrides it with "${other}"`)];
+    return type === undefined || other == null || other === type ? [] : [warning(where, `names type "${type}" and its own symbol "${symbol}" overrides it with "${other}"`)];
   };
   return [
     ...content.book.symbols.flatMap((sym) => {
       const where = `book.json symbols[${sym.sym}]`;
-      return [...ref(where, 'type', types, sym.type), ...redundant(where, sym.type, inherit.symbol(sym))];
+      return [...ref(where, 'type', types, sym.type ?? undefined), ...redundant(where, sym.type, inherit.symbol(sym))];
     }),
     ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => {
       const where = inChapter(ch, 'variables', v.sym);
-      return [...ref(where, 'type', types, v.type), ...redundant(where, v.type, inherit.variable(v))];
+      return [...ref(where, 'type', types, v.type ?? undefined), ...redundant(where, v.type, inherit.variable(v))];
     })),
     ...content.book.concepts.flatMap((c) => [...ref(`book.json concepts[${c.id}]`, 'type', types, c.type), ...ownSymbol(`book.json concepts[${c.id}]`, c.type, c.symbol)]),
   ];

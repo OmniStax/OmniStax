@@ -70,7 +70,7 @@ one `section.json` and neither the chapter's file nor the book's.
 | command | what it does |
 | --- | --- |
 | `add <book> <table> --section N.M\|--chapter N '<json>'` | write one new row |
-| `set <book> <table> <id> --section … '<json>'` | merge fields into the row with that id (`--replace` to replace the whole row) |
+| `set <book> <table> <id> --section … '<json>'` | merge fields into the row with that id (`--replace` to replace the whole row, `--unset field` to take one out) |
 | `del <book> <table> <id> --section …` | take one row away |
 
 ```
@@ -82,6 +82,16 @@ ost add chemistry-2e concepts --chapter 1 \
   '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units", "statement": "…"}'
 ost add chemistry-2e forms \
   '{"concept": "density", "id": "eq-mass-from-density", "latex": "m = dV", "anchor": "1.4-density"}'
+```
+
+A field set to `null` by `set` is taken out of the row, except a `type` on a
+`symbols` or `variables` row: there `null` is stored, and sets the row in ink
+whatever the type of its concept. `--unset type` takes the override away, so
+the row inherits again. An `add` refuses a `null` anywhere else.
+
+```
+ost set college-physics-2e variables 13.4/v2_bar --chapter 13 '{"type": null}'
+ost set college-physics-2e variables 13.4/v2_bar --chapter 13 --unset type '{}'
 ```
 
 A row is named by its key fields joined with `/`: `figures`, `referents`,
@@ -172,14 +182,17 @@ python3 omnistax-content/tools/apply_names.py names/college-physics-2e-ch01.json
 
 `backfill_types.py` declares each kind on its concept and drops the overrides
 that say nothing (docs/content-tables.md). A definition takes its main
-symbol's type, else the one type its variables rows carry; a result takes its
-main symbol's type where that symbol is the left-hand side of its main form;
-an axiom, an idea or a skill is never typed. A concept whose sources carry two
-types, or whose type would colour a symbol or a variables row the book sets in
-ink, is left untyped and listed. Then every type on a symbol or a variables row
-equal to the one it inherits is removed, in `book.json`, the chapters and the
-staged `book-rows.json`, so no colour changes. With no book named it runs on
-every book; a second run changes nothing.
+symbol's type, else the one type its variables rows carry. A result takes the
+type of the symbol its main form's left-hand side spells (`\text{}` and braces
+aside), where that is its main symbol or, for a result with none, where one of
+the concept's own variables rows is a row of that symbol; a law whose left-hand
+side is another concept's quantity is left alone. An axiom, an idea or a skill
+is never typed. A concept whose sources carry two types is left untyped and
+listed, and so is every row that goes from ink to a colour: a row that must
+stay in ink says `"type": null`. Then every type on a symbol or a variables row
+equal to the one it inherits is removed, and every null where nothing would be
+inherited, in `book.json`, the chapters and the staged `book-rows.json`. With
+no book named it runs on every book; a second run changes nothing.
 
 ```
 python3 omnistax-content/tools/backfill_types.py --dry-run

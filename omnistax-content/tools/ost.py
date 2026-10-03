@@ -64,6 +64,7 @@ class Field:
     required: bool = False
     kind: str = "str"                     # str | num | bool | list | obj
     enum: tuple[str, ...] = ()
+    nullable: bool = False                # null is a value the row keeps, not a field left out
 
 
 @dataclass(frozen=True)
@@ -74,8 +75,11 @@ class Table:
     show: tuple[FieldName, ...]           # the fields a plain line prints
 
 
-def _f(required: bool = False, kind: str = "str", enum: Sequence[str] = ()) -> Field:
-    return Field(required, kind, tuple(enum))
+def _f(required: bool = False, kind: str = "str", enum: Sequence[str] = (), nullable: bool = False) -> Field:
+    return Field(required, kind, tuple(enum), nullable)
+
+
+INK = _f(nullable=True)                   # a type override, where null sets the row in ink whatever its concept
 
 
 KIND = ("definition", "axiom", "result", "idea", "skill")
@@ -87,7 +91,7 @@ TABLES: dict[TableName, Table] = {
     "types": Table("book", ("id",), {
         "id": _f(True), "label": _f(True), "dimension": _f()}, ("id", "label", "dimension")),
     "symbols": Table("book", ("sym",), {
-        "sym": _f(True), "latex": _f(True), "type": _f(), "macro": _f()}, ("sym", "latex", "type", "macro")),
+        "sym": _f(True), "latex": _f(True), "type": INK, "macro": _f()}, ("sym", "latex", "type", "macro")),
     "exercise_kinds": Table("book", ("id",), {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "concepts": Table("book", ("id",), {
@@ -107,7 +111,7 @@ TABLES: dict[TableName, Table] = {
     "sections": Table("chapter", ("id",), {
         "id": _f(True), "module": _f(), "title": _f(True), "slug": _f()}, ("id", "title", "module", "slug")),
     "variables": Table("chapter", ("section", "sym"), {
-        "sym": _f(True), "concept": _f(), "type": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
+        "sym": _f(True), "concept": _f(), "type": INK, "meaning": _f(True), "unit": _f(), "section": _f(True),
         "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "concept", "redefines")),
 
     "figures": Table("section", ("id",), {
@@ -149,6 +153,8 @@ def validate(table: Table, row: RowDTO) -> None:
         field = table.fields.get(name)
         if field is None:
             raise Refused(f"unknown field {name!r}; the fields are {', '.join(table.fields)}")
+        if value is None and not field.nullable:
+            raise Refused(f"field {name!r} cannot be null; leave it out")
         if value is not None and not isinstance(value, KINDS_OK[field.kind]):
             raise Refused(f"field {name!r} should be a {field.kind}, got {type(value).__name__}")
         if field.enum and value not in field.enum:
@@ -603,7 +609,8 @@ def cmd_meanings(args: argparse.Namespace) -> int:
         for v in rows_of(load(path), "variables"):
             if v.get("sym") == args.sym:
                 flag = " · redefines" if v.get("redefines") else ""
-                lines.append(f"{v.get('section')} · {v.get('type') or kinds.get(v.get('concept') or '') or '-'} · {v.get('meaning')}{flag}")
+                worn = v["type"] if "type" in v else kinds.get(v.get("concept") or "")
+                lines.append(f"{v.get('section')} · {worn or '-'} · {v.get('meaning')}{flag}")
     print("\n".join(lines) if lines else f"no variables row of {book.id} has sym {args.sym!r}")
     return 0
 
@@ -742,7 +749,9 @@ def apply_write(table: Table, rows: list[RowDTO], args: argparse.Namespace) -> l
     i = find_row(table, rows, args.id)
     row = parse_row(args.row)
     merged = row if args.replace else {**rows[i], **row}
-    merged = {k: v for k, v in merged.items() if v is not None}
+    unset = set(getattr(args, "unset", None) or ())
+    merged = {k: v for k, v in merged.items()
+              if k not in unset and (v is not None or (k in table.fields and table.fields[k].nullable))}
     validate(table, merged)
     if key_of(table, merged) != key_of(table, rows[i]) and \
             any(key_of(table, r) == key_of(table, merged) for j, r in enumerate(rows) if j != i):
@@ -945,6 +954,8 @@ def parser() -> argparse.ArgumentParser:
         w.add_argument("--chapter")
         if name == "set":
             w.add_argument("--replace", action="store_true", help="replace the row rather than merge into it")
+            w.add_argument("--unset", action="append", default=[], metavar="FIELD",
+                           help="take a field out of the row; repeat for more")
 
     for name in ("merge", "log"):
         m = subs.add_parser(name, help=f"mergebook's {name}, under the same lock")

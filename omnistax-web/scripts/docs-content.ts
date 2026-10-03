@@ -58,7 +58,7 @@ export const typeOf = (schema: z.ZodTypeAny): string => {
   const d = defOf(schema);
   switch (d.typeName) {
     case K.ZodOptional: return `${typeOf(d.innerType as z.ZodTypeAny)}?`;
-    case K.ZodNullable: return `${typeOf(d.innerType as z.ZodTypeAny)}?`;
+    case K.ZodNullable: return `${typeOf(d.innerType as z.ZodTypeAny)} | null`;
     case K.ZodDefault: return typeOf(d.innerType as z.ZodTypeAny);
     case K.ZodEffects: return typeOf(d.schema as z.ZodTypeAny);
     case K.ZodArray: return `${typeOf(d.type as z.ZodTypeAny)}[]`;

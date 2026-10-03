@@ -58,7 +58,7 @@ export type TypeDTO = z.infer<typeof TypeSchema>;
 export const SymbolSchema = z.object({
   sym: z.string().describe('The key the symbol is known by across the book, which is what the text carries in a \\htmlData{sym=\u2026} and what a chapter\u2019s variables are listed under.'),
   latex: z.string().describe('The LaTeX the symbol is set in, without any colour or data of its own.'),
-  type: TYPE_REF.optional().describe('An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink.'),
+  type: TYPE_REF.nullable().optional().describe('An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink, and null sets it in ink whatever its concepts are.'),
   macro: z.string().optional().describe('The KaTeX macro the text writes the symbol as, such as \\kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX.'),
 }).strict();
 export type SymbolDTO = z.infer<typeof SymbolSchema>;
@@ -176,7 +176,7 @@ export type SectionRefDTO = z.infer<typeof SectionRefSchema>;
 export const VariableSchema = z.object({
   sym: z.string().describe('The symbol\u2019s key in the book\u2019s symbol table.'),
   concept: CONCEPT_REF.optional().describe('The concept that defines the symbol\u2019s quantity. A variant or a component (a_x, B\u2081) names the definition of its base quantity.'),
-  type: TYPE_REF.optional().describe('An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept. The book declares the types and the app picks the hues.'),
+  type: TYPE_REF.nullable().optional().describe('An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept\u2019s type. The book declares the types and the app picks the hues.'),
   meaning: z.string().describe('What the symbol stands for in this section, in the book\u2019s words.'),
   unit: z.string().default('').describe('The unit the quantity is measured in.'),
   section: SECTION_REF.describe('The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections.'),

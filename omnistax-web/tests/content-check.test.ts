@@ -109,6 +109,9 @@ test('checkTypes: a concept of an undeclared type, an override equal to what it 
   assert.match(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'force' }] } })[0], /variables\[x\]: overrides its type with "force"/);
   assert.deepEqual(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'position' }] } }), [], 'an override that differs is what an override is for');
   assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'position' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /names type "force" and its own symbol "F" overrides it with "position"/);
+  assert.deepEqual(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: null }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: null }] } }), [], 'null sets a row in ink against a typed concept');
+  assert.match(run(checkTypes, { chapter: { variables: [{ ...variables[0], type: null }] } })[0], /variables\[x\]: sets itself in ink, which it is already/);
+  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: null }], concepts: [{ ...concept, symbol: 'F' }] } })[0], /symbols\[F\]: sets itself in ink/);
 });
 
 test('withInheritedTypes: a symbol and a variables row take the type of the concept they denote, and an override wins', () => {
@@ -123,6 +126,18 @@ test('withInheritedTypes: a symbol and a variables row take the type of the conc
   const { book: b, chapters: [ch] } = withInheritedTypes(book, [chapter]);
   assert.deepEqual(b.symbols.map((s) => s.type), ['force', 'position', 'position', undefined], 'y is named by a row of no concept, so it reaches no one concept');
   assert.deepEqual(ch.variables.map((v) => v.type), ['position', 'force', 'position', undefined]);
+});
+
+test('withInheritedTypes: a stored null sets a symbol or a variables row in ink, and nothing inherits through it', () => {
+  const book = bookOf({
+    symbols: [{ sym: 'F', latex: 'F', type: null }, { sym: 'x', latex: 'x' }],
+    concepts: [{ id: 'force', kind: 'definition', section: '16.1', name: 'force', symbol: 'F', type: 'force' }],
+  });
+  const chapter = chapterOf({ variables: [{ sym: 'x', concept: 'force', meaning: 'm', section: '16.1', type: null }, { sym: 'F', concept: 'force', meaning: 'm', section: '16.1' }] });
+  const { book: b, chapters: [ch] } = withInheritedTypes(book, [chapter]);
+  assert.deepEqual(b.symbols.map((s) => s.type), [undefined, 'force'], 'x still inherits through its row\'s concept: the row\'s null is the row\'s own');
+  assert.deepEqual(ch.variables.map((v) => v.type), [undefined, 'force']);
+  assert.ok(!('type' in b.symbols[0]) && !('type' in ch.variables[0]), 'what a reader sees carries no null');
 });
 
 test('checkTypeSpans: words marked with an undeclared type, and with one the page does not bind', () => {

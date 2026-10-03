@@ -237,6 +237,22 @@ class TestWriting(Fixture):
         staged = json.loads(self.read(os.path.join(self.book, "ch01", "book-rows.json")))
         self.assertEqual(next(c for c in staged["concepts"] if c["id"] == "density")["type"], "density")
 
+    def test_a_null_type_sets_a_row_in_ink_and_unset_takes_the_override_away(self):
+        chapter = os.path.join(self.book, "ch01", "chapter.json")
+        row = next(v for v in self.rows("variables", chapter) if v["section"] == "1.4")
+        key = f"1.4/{row['sym']}"
+        self.assertEqual(run("set", "chemistry-2e", "variables", key, "--chapter", "1", '{"type": null}')[1], 0)
+        self.assertIsNone(next(v for v in self.rows("variables", chapter) if v["section"] == "1.4" and v["sym"] == row["sym"])["type"])
+        self.assertIn(f"1.4 · - · {row['meaning']}", run("meanings", "chemistry-2e", row["sym"])[0])
+        self.assertEqual(run("set", "chemistry-2e", "variables", key, "--chapter", "1", "--unset", "type", "{}")[1], 0)
+        self.assertNotIn("type", next(v for v in self.rows("variables", chapter) if v["section"] == "1.4" and v["sym"] == row["sym"]))
+
+    def test_null_on_a_field_that_cannot_be_null_drops_it_on_set_and_is_refused_on_add(self):
+        run("set", "chemistry-2e", "figures", "sim-density", "--section", "1.4", '{"number": "1.26"}')
+        run("set", "chemistry-2e", "figures", "sim-density", "--section", "1.4", '{"number": null}')
+        self.assertNotIn("number", next(f for f in self.rows("figures") if f["id"] == "sim-density"))
+        self.assertEqual(run("add", "chemistry-2e", "figures", "--section", "1.4", '{"id": "f", "kind": "sim", "number": null}')[1], 1)
+
     def test_a_book_table_no_chapter_stages_is_refused(self):
         self.assertEqual(run("add", "chemistry-2e", "sheets", "--chapter", "1",
                              '{"id": "s", "title": "S", "kind": "table", "file": "sheets/s.json"}')[1], 1)

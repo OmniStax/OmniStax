@@ -50,7 +50,7 @@ Every symbol the book writes with a macro or names in a \htmlData{sym=…}.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The key the symbol is known by across the book, which is what the text carries in a \htmlData{sym=…} and what a chapter’s variables are listed under. |
 | `latex` | `string` | yes | The LaTeX the symbol is set in, without any colour or data of its own. |
-| `type` | `string?` | no | An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink. |
+| `type` | `string \| null?` | no | An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink, and null sets it in ink whatever its concepts are. |
 | `macro` | `string?` | no | The KaTeX macro the text writes the symbol as, such as \kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX. |
 
 ### `exercise_kinds`
@@ -153,7 +153,7 @@ The symbols the chapter’s sections give a meaning to.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The symbol’s key in the book’s symbol table. |
 | `concept` | `string?` | no | The concept that defines the symbol’s quantity. A variant or a component (a_x, B₁) names the definition of its base quantity. |
-| `type` | `string?` | no | An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept. The book declares the types and the app picks the hues. |
+| `type` | `string \| null?` | no | An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept’s type. The book declares the types and the app picks the hues. |
 | `meaning` | `string` | yes | What the symbol stands for in this section, in the book’s words. |
 | `unit` | `string` | no | The unit the quantity is measured in. |
 | `section` | `string` | yes | The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections. |
