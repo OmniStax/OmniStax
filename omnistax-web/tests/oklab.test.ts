@@ -49,11 +49,17 @@ test('the counter counts typed words, variables rows and figure tags, and leaves
     prose: ['<p><span data-concept="f" data-type="force">force</span> and <span data-type="force">10 N</span> on a <span data-type="mass">mass</span></p>', '<span data-ref="cart-1">cart 1</span>'],
     figures: [{ draws: ['force', 'velocity'], conventions: ['O', 'e-'], facts: ['#f0a828', 'spectrum'] }],
     rowTypes: ['force', 'mass'],
+    macros: {},
   });
   assert.deepEqual(Object.fromEntries(counts), { force: 4, mass: 2, velocity: 1, 'el:O': 1, 'el:e-': 1, '#F0A828': 1 });
   assert.deepEqual(fixedHueOf('#F0A828'), { light: '#F0A828', dark: '#F0A828' });
   assert.equal(fixedHueOf('force'), null);
   assert.ok(fixedHueOf('el:O'));
+});
+
+test('the counter counts a macro as its type at every use, and a macro in ink not at all', () => {
+  const counts = pageCounts({ prose: ['<p>$\\kv = \\kc/n$ and $\\kvx$, $\\kn$</p>', '$$\\kv$$'], figures: [], rowTypes: [], macros: { '\\kv': 'velocity', '\\kc': 'velocity', '\\kvx': 'speed' } });
+  assert.deepEqual(Object.fromEntries(counts), { velocity: 3, speed: 1 });
 });
 
 /* Two colours almost one and two far apart; force and mass always on a page together, time and heat never. */

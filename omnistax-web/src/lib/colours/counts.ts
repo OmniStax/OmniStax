@@ -1,7 +1,8 @@
 /* How often a page shows each colour it is drawn in, which is what the smart
    assignment weighs two colours by: a category by its typed words, its
    variables rows and its figures, a convention by the figures that draw it, a
-   fact likewise. Referents are dealt their colours per section after the
+   fact likewise. A symbol counts as its type wherever the maths writes its
+   macro. Referents are dealt their colours per section after the
    categories have theirs, so they are not counted here. */
 import { type Hex, type Hue, normHex } from './model';
 import { elementColor } from '../fig/elements';
@@ -27,16 +28,22 @@ export const fixedHueOf = (k: CountKey): Hue | null => {
 export const SPECTRUM = 'spectrum';
 
 /* What of a page is counted: its prose with the concept spans already typed
-   (text, lead, summary, exercises' lead), its figure rows and the types of its
-   variables rows. */
+   (text, lead, summary, exercises' lead) with the macros its maths writes, its
+   figure rows and the types of its variables rows. */
 export type CountedFigure = { readonly draws: readonly string[]; readonly conventions: readonly string[]; readonly facts: readonly string[] };
-export type CountedPage = { readonly prose: readonly string[]; readonly figures: readonly CountedFigure[]; readonly rowTypes: readonly string[] };
+export type CountedPage = { readonly prose: readonly string[]; readonly figures: readonly CountedFigure[]; readonly rowTypes: readonly string[]; readonly macros: MacroTypes };
 
+/* The type each of a page's macros wears there, by macro name; a macro set in ink is absent. */
+export type MacroTypes = Readonly<Record<string, CountKey>>;
 const TYPED = /<[^>]*\sdata-type="([^"]+)"/g;
+const COMMAND = /\\[A-Za-z]+/g;
+/* The types of the macros some prose writes, one per use, read off its TeX: raw, or rendered, where the TeX stands in the maths' annotation. */
+export const macroKeys = (html: string, macros: MacroTypes): readonly CountKey[] =>
+  Array.from(html.matchAll(COMMAND), ([name]) => (Object.hasOwn(macros, name) ? [macros[name]] : [])).flat();
 
 export const pageCounts = (page: CountedPage): PageCounts => {
   const keys: readonly CountKey[] = [
-    ...page.prose.flatMap((html) => Array.from(html.matchAll(TYPED), (m) => m[1])),
+    ...page.prose.flatMap((html) => [...Array.from(html.matchAll(TYPED), (m) => m[1]), ...macroKeys(html, page.macros)]),
     ...page.rowTypes,
     ...page.figures.flatMap((f) => [
       ...f.draws,

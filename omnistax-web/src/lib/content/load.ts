@@ -22,7 +22,7 @@ import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeI
 import type { BookSelection } from '../../../omnistax.config';
 import { type ContentVersion, bookVersion, rootVersion } from './version';
 import { type ConceptTypes, conceptTypes, typeConceptSpans } from './conceptspans';
-import { type PageCounts, countsRecord, pageCounts } from '../colours/counts';
+import { type MacroTypes, type PageCounts, countsRecord, pageCounts } from '../colours/counts';
 import { asidesOf, referentGroups } from '../colours/scopes';
 
 /* One page of the book as the build reads it: a section, or the introduction
@@ -126,6 +126,15 @@ export const pageMacrosOf = (symbols: readonly SymbolDTO[], rows: readonly Varia
     const s = bySym.get(v.sym);
     if (!s?.macro || (v.type === s.type && v.ref === undefined)) return [];
     return [[s.macro, macroExpansion(s, { ...(v.type ? { type: v.type } : {}), ...(v.ref === undefined ? {} : { ref: v.ref }) })] as const];
+  }));
+};
+/* The type each macro wears on a page, as its expansion there sets it: the symbol's own, unless a
+   variables row of the page gives it another or sets it in ink. */
+export const macroTypesOf = (symbols: readonly SymbolDTO[], rows: readonly VariableDTO[]): MacroTypes => {
+  const rowOf = new Map(rows.map((v) => [v.sym, v] as const));
+  return Object.fromEntries(symbols.flatMap((s) => {
+    const type = rowOf.has(s.sym) ? rowOf.get(s.sym)?.type : s.type;
+    return s.macro && type ? [[s.macro, type] as const] : [];
   }));
 };
 /* Every symbol by its key, as anything that sets one glyph on its own reads it:
@@ -295,6 +304,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   ]);
   const rows = math.rows.filter((v) => v.section === dto.id);
   const own = pageMacrosOf(math.symbols, rows);
+  const macroTypes = macroTypesOf(math.symbols, rows);
   const macros: MacroMap = { ...math.book, ...own };
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
   const marked = (html: string): string => typeConceptSpans(math.concepts, html);
@@ -306,8 +316,8 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   return {
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
     figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead,
-    counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])) }),
-    refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead) }),
+    counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])), macros: macroTypes }),
+    refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead), macros: macroTypes }),
   };
 };
 /* The chapter's or the book's own introduction or summary: read from its fixed

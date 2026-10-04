@@ -4,10 +4,10 @@
    exercises' lead are blocks of their own. Referents whose scopes share a figure
    or a block are one group, which is dealt its colours together; groups that
    never meet may wear the same ones. Each group carries what its scope shows: the
-   categories of its blocks' typed words, and the draws, conventions and facts of
+   categories of its blocks' typed words and macros, and the draws, conventions and facts of
    its figures, keyed as counts.ts keys them. Pure throughout. */
 import type { RefGroupEntry } from '../content/schema';
-import { type CountKey, SPECTRUM, conventionKey, factKey } from './counts';
+import { type CountKey, type MacroTypes, SPECTRUM, conventionKey, factKey, macroKeys } from './counts';
 
 export type BlockId = string;
 export type FigureId = string;
@@ -15,12 +15,14 @@ type ScopeItem = string;   /* `f:<figure>` or `b:<block>` */
 
 export type ScopedReferent = { readonly id: string; readonly figures: readonly FigureId[] };
 export type ScopedFigure = { readonly id: FigureId; readonly draws: readonly string[]; readonly conventions: readonly string[]; readonly facts: readonly string[] };
-/* A page as the grouping reads it: the text, and the prose that stands apart from it by block name. */
+/* A page as the grouping reads it: the text, the prose that stands apart from it by block name, and the
+   types its macros wear, absent where only the groups are wanted and not what they show. */
 export type ScopedPage = {
   readonly referents: readonly ScopedReferent[];
   readonly figures: readonly ScopedFigure[];
   readonly text: string;
   readonly asides: Readonly<Record<BlockId, string>>;
+  readonly macros?: MacroTypes;
 };
 
 export const TOP: BlockId = '@top';
@@ -82,7 +84,7 @@ export const referentGroups = (p: ScopedPage): readonly RefGroupEntry[] => {
       ...[...figureBlock].filter(([, b]) => inBlocks.has(b)).map(([f]) => f),
     ])];
     const shows: readonly CountKey[] = [
-      ...blocks.filter((b) => inBlocks.has(b.id)).flatMap((b) => values(b.html, TYPED)),
+      ...blocks.filter((b) => inBlocks.has(b.id)).flatMap((b) => [...values(b.html, TYPED), ...macroKeys(b.html, p.macros ?? {})]),
       ...figures.flatMap((f) => rows.get(f) ?? []).flatMap((f) => [
         ...f.draws, ...f.conventions.map(conventionKey), ...f.facts.filter((x) => x !== SPECTRUM).map(factKey),
       ]),

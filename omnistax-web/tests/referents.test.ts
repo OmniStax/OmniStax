@@ -9,6 +9,7 @@ import {
   DEFAULT_REFERENTS, REFERENT_COUNT, TARGET_DEFAULT, dealGroup, farthestSlots, pickWrapped, referentHues, referentPalettes, targetOf, unnamedOrder,
 } from '../src/lib/colours/referents';
 import { referentGroups } from '../src/lib/colours/scopes';
+import { prerenderMath } from '../src/lib/math/prerender';
 import { NO_CHOICES, type Hue, fromFile, isEmpty, pageReferents, referentsOf, setReferents, toFile } from '../src/lib/colours/model';
 import { paletteId } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
@@ -67,6 +68,17 @@ test('a mention in the other figure’s block leaks the scope and merges the gro
 test('a nested section is a block of its own, and the text after it belongs to the section around it', () => {
   const nested = '<section id="outer"><figure id="sim-a"></figure><section id="inner"><span data-ref="cart">c</span></section><span data-ref="cart">c</span></section><figure id="sim-b"></figure>';
   assert.deepEqual(referentGroups(page(nested)).map((g) => g.referents), [['horse', 'cart']]);
+});
+
+test('a block shows the types of the macros its maths writes, raw or rendered, as the page sets them', () => {
+  const text = '<section id="a"><figure class="sim" id="sim-a"></figure></section><section id="b"><figure class="sim" id="sim-b"></figure><p>$\\kv = \\kc/n$</p></section>';
+  const macros = { '\\kv': 'velocity', '\\kc': 'velocity' };
+  const [, cart] = referentGroups({ ...page(text), figures: [fig('sim-a'), fig('sim-b')], macros });
+  assert.deepEqual(cart, { referents: ['cart'], figures: ['sim-b'], shows: ['velocity'] });
+  const rendered = text.replace('$\\kv = \\kc/n$', prerenderMath('$\\kv = \\kc/n$', { '\\kv': '\\htmlClass{kv-velocity}{v}', '\\kc': '\\htmlClass{kv-velocity}{c}' }));
+  assert.deepEqual(referentGroups({ ...page(rendered), figures: [fig('sim-a'), fig('sim-b')], macros })[1].shows, ['velocity']);
+  assert.deepEqual(referentGroups({ ...page(text), figures: [fig('sim-a'), fig('sim-b')], macros: { '\\kv': 'speed' } })[1].shows, ['speed'], 'a macro in ink there shows nothing');
+  assert.deepEqual(referentGroups({ ...page(text), figures: [fig('sim-a'), fig('sim-b')] })[1].shows, [], 'no macro types, no macro keys');
 });
 
 /* ---------- dealing ---------- */

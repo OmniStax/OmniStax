@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
-import { conceptsOfChapter, coverageOf, exercisesOf, macroExpansion, metaOf, pageMacrosOf, splitSub, typesWorn } from '../src/lib/content/load';
+import { conceptsOfChapter, coverageOf, exercisesOf, macroExpansion, macroTypesOf, metaOf, pageMacrosOf, splitSub, typesWorn } from '../src/lib/content/load';
 import { prerenderMath } from '../src/lib/math/prerender';
 
 /* The tables as the three files write them, small enough to read whole: a book
@@ -98,6 +98,15 @@ test('a page sets a symbol by its variables row there, and splits the subscript 
   assert.deepEqual(pageMacrosOf([F, L], [row('F_x', { type: 'force', ref: 'tug-1' })]), { '\\kFx': '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_{\\htmlData{ref=tug-1}{x}}}}' });
   assert.deepEqual(pageMacrosOf([F, L], [row('F_x', {})]), { '\\kFx': 'F_x' }, 'a row of no type sets the symbol in ink there');
   assert.equal(macroExpansion(F), '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_x}}');
+});
+
+test('a macro wears on a page the type its expansion there sets: the row\'s, else the symbol\'s, never ink', () => {
+  const F = { sym: 'F_x', latex: 'F_x', macro: '\\kFx', type: 'force' } as never;
+  const L = { sym: 'L', latex: 'L', macro: '\\kL' } as never;
+  const row = (sym: string, extra: object) => ({ sym, meaning: '', unit: '', section: '4.7', ...extra }) as never;
+  assert.deepEqual(macroTypesOf([F, L], []), { '\\kFx': 'force' });
+  assert.deepEqual(macroTypesOf([F, L], [row('L', { type: 'position' }), row('F_x', { type: 'force', ref: 'tug-1' })]), { '\\kFx': 'force', '\\kL': 'position' });
+  assert.deepEqual(macroTypesOf([F, L], [row('F_x', {})]), {}, 'a row of no type sets the symbol in ink there');
 });
 
 test('coverage folds to one row per span, qualified by its section', () => {
