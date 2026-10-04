@@ -151,9 +151,19 @@ ost merge chemistry-2e 1     # merge ch01/book-rows.json into book.json
 ost log chemistry-2e 1       # append ch01/log-pass.md to LOG.md as the next pass
 ```
 
-`merge` rewrites the chapter's rows at the end of each table it touches, so a
-merge of a chapter that is already merged changes no row but does move some: run
-it when there is something to merge.
+`merge` updates the chapter's rows where they stand in each table and appends
+only the rows that are new, so a merge of a chapter that is already merged
+leaves `book.json` byte for byte as it was.
+
+A symbol belongs to the chapter that merged it, and a change to it is staged
+there: `ost set <book> symbols <sym> --chapter N` on a symbol another chapter
+owns is refused and names that chapter. A symbol of the book's own, which no
+chapter merged, is adopted by the chapter a `set` names, to give it a `macro`
+and change nothing else:
+
+```
+ost set college-physics-2e symbols θ --chapter 3 '{"macro": "\\ktheta"}'
+```
 
 ## The fold and the names
 

@@ -784,14 +784,19 @@ def staged_path(book: Book, chapter: ChapterDir) -> str:
     return os.path.join(book.dir, chapter, "book-rows.json")
 
 
+def merge_state(book: Book) -> dict[ChapterDir, dict[str, list[str]]]:
+    """Which symbols and types each chapter has merged, as mergebook keeps it."""
+    path = os.path.join(book.dir, "tools", "merge-state.json")
+    return load(path) if os.path.exists(path) else {}
+
+
 def seed_staged(book: Book, chapter: ChapterDir) -> RecordDTO:
     """What the chapter owns in book.json today, so a first write stages the whole of it."""
     record = load(book.book_path)
     sections = {s["id"] for s in rows_of(load(os.path.join(book.dir, chapter, "chapter.json")), "sections")}
     concepts = [c for c in rows_of(record, "concepts") if c.get("section") in sections]
     ids = {c["id"] for c in concepts}
-    state_path = os.path.join(book.dir, "tools", "merge-state.json")
-    state = load(state_path).get(chapter, {}) if os.path.exists(state_path) else {}
+    state = merge_state(book).get(chapter, {})
     mine_syms, mine_types = set(state.get("symbols", [])), set(state.get("types", []))
     return {
         "types": [t for t in rows_of(record, "types") if t["id"] in mine_types],
@@ -811,11 +816,34 @@ def write_staged(book: Book, table: Table, args: argparse.Namespace) -> int:
     staged = load(path) if os.path.exists(path) else seed_staged(book, chapter)
     for name in STAGED_TABLES:
         staged.setdefault(name, [])
-    staged[args.table] = apply_write(table, list(staged[args.table]), args)
+    rows, adopting = list(staged[args.table]), None
+    if args.table == "symbols" and args.command == "set":
+        rows, adopting = with_book_symbol(book, chapter, rows, args.id)
+    staged[args.table] = apply_write(table, rows, args)
+    if adopting is not None and bare_symbol(staged[args.table][-1]) != bare_symbol(adopting):
+        raise Refused(f"symbol {args.id} is the book's own; a chapter adopts it only to give it a macro")
     write_record(path, staged)
     print(f"{args.command}: {chapter}/book-rows.json {args.table} now has {len(staged[args.table])} rows")
     merge_chapter(book, chapter)
     return report_write(book.id, "book.json")
+
+
+def bare_symbol(row: RowDTO) -> RowDTO:
+    return {k: v for k, v in row.items() if k != "macro"}
+
+
+def with_book_symbol(book: Book, chapter: ChapterDir, rows: list[RowDTO],
+                     sym: str) -> tuple[list[RowDTO], Optional[RowDTO]]:
+    """A `set` on a symbol the chapter does not stage: one another chapter merged is
+    refused, naming that chapter; one of the book's own, merged by no chapter, is
+    adopted, to be staged with its macro and nothing else changed."""
+    if any(r.get("sym") == sym for r in rows):
+        return rows, None
+    owner = next((c for c, owned in merge_state(book).items() if sym in owned.get("symbols", [])), None)
+    if owner:
+        raise Refused(f"symbol {sym} belongs to {owner}; set it with --chapter {int(owner[2:])}")
+    row = next((r for r in rows_of(load(book.book_path), "symbols") if r.get("sym") == sym), None)
+    return (rows + [row], row) if row else (rows, None)
 
 
 def staged_of(book: Book, chapter: ChapterDir) -> RecordDTO:

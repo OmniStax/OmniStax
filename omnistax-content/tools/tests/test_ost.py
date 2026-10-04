@@ -42,6 +42,9 @@ class Fixture(unittest.TestCase):
         shutil.copy(os.path.join(CHEMISTRY, "book.json"), book)
         shutil.copy(os.path.join(CHEMISTRY, "ch01", "chapter.json"), os.path.join(book, "ch01"))
         shutil.copytree(os.path.join(CHEMISTRY, "ch01", "1.4"), os.path.join(book, "ch01", "1.4"))
+        os.makedirs(os.path.join(book, "tools"))
+        for name in ("mergebook.py", "merge-state.json"):
+            shutil.copy(os.path.join(CHEMISTRY, "tools", name), os.path.join(book, "tools"))
         self.book = book
         self.section = os.path.join(book, "ch01", "1.4", "section.json")
         self.patches = [mock.patch.object(ost, "CONTENT", self.dir),
@@ -281,6 +284,75 @@ class TestWriting(Fixture):
         self.assertEqual(code, 1)
         self.assertIn("1.4/section.json coverage[density]", text)
         self.assertNotIn("1.6/section.json", text)
+
+
+class TestMerge(Fixture):
+    """The book's own mergebook, run for real on the fixture: rows keep their places."""
+
+    def book_json(self):
+        return json.loads(self.read(os.path.join(self.book, "book.json")))
+
+    def staged(self):
+        return json.loads(self.read(os.path.join(self.book, "ch01", "book-rows.json")))
+
+    def test_a_merge_updates_rows_where_they_stand(self):
+        path = os.path.join(self.book, "book.json")
+        before = self.read(path)
+        order = {t: [json.dumps(r, sort_keys=True) for r in self.book_json()[t]] for t in ("concepts", "concept_prereqs")}
+        self.assertEqual(run("set", "chemistry-2e", "concepts", "density", "--chapter", "1", '{"name": "Density of a sample"}')[1], 0)
+        after = self.book_json()
+        self.assertEqual([c["id"] for c in after["concepts"]], [json.loads(r)["id"] for r in order["concepts"]])
+        self.assertEqual(next(c for c in after["concepts"] if c["id"] == "density")["name"], "Density of a sample")
+        self.assertEqual([json.dumps(e, sort_keys=True) for e in after["concept_prereqs"]], order["concept_prereqs"])
+        name = next(c for c in json.loads(before)["concepts"] if c["id"] == "density")["name"]
+        run("set", "chemistry-2e", "concepts", "density", "--chapter", "1", json.dumps({"name": name}))
+        self.assertEqual(self.read(path), before)
+        self.assertEqual(run("merge", "chemistry-2e", "1")[1], 0)
+        self.assertEqual(self.read(path), before)
+
+    def test_a_staged_order_that_differs_moves_nothing(self):
+        path = os.path.join(self.book, "book.json")
+        before = self.read(path)
+        run("set", "chemistry-2e", "concepts", "density", "--chapter", "1", "{}")
+        staged = self.staged()
+        staged["concepts"].reverse()
+        staged["concept_prereqs"].reverse()
+        ost.write_record(os.path.join(self.book, "ch01", "book-rows.json"), staged)
+        self.assertEqual(run("merge", "chemistry-2e", "1")[1], 0)
+        self.assertEqual(self.read(path), before)
+
+    def test_a_new_row_is_appended(self):
+        run("add", "chemistry-2e", "concepts", "--chapter", "1",
+            '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units"}')
+        run("add", "chemistry-2e", "concept_prereqs", "--chapter", "1", '{"concept": "unit-conversion", "prereq": "density"}')
+        after = self.book_json()
+        self.assertEqual(after["concepts"][-1]["id"], "unit-conversion")
+        self.assertEqual(after["concept_prereqs"][-1], {"concept": "unit-conversion", "prereq": "density"})
+        run("del", "chemistry-2e", "concept_prereqs", "unit-conversion/density", "--chapter", "1")
+        self.assertNotIn({"concept": "unit-conversion", "prereq": "density"}, self.book_json()["concept_prereqs"])
+
+    def test_a_symbol_another_chapter_owns_is_refused_and_named(self):
+        state = json.loads(self.read(os.path.join(self.book, "tools", "merge-state.json")))
+        sym = state["ch05"]["symbols"][0]
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            code = run("set", "chemistry-2e", "symbols", sym, "--chapter", "1", r'{"macro": "\\kzz"}')[1]
+        self.assertEqual(code, 1)
+        self.assertIn("belongs to ch05; set it with --chapter 5", err.getvalue())
+
+    def test_a_symbol_of_the_book_own_is_adopted_for_its_macro(self):
+        state = json.loads(self.read(os.path.join(self.book, "tools", "merge-state.json")))
+        owned = {s for rows in state.values() for s in rows.get("symbols", [])}
+        sym = next(s for s in self.book_json()["symbols"] if s["sym"] not in owned and not s.get("macro"))
+        place = [s["sym"] for s in self.book_json()["symbols"]].index(sym["sym"])
+        self.assertEqual(run("set", "chemistry-2e", "symbols", sym["sym"], "--chapter", "1", r'{"macro": "\\kzz"}')[1], 0)
+        after = self.book_json()["symbols"]
+        self.assertEqual(after[place], {**sym, "macro": "\\kzz"})
+        self.assertIn(sym["sym"], json.loads(self.read(os.path.join(self.book, "tools", "merge-state.json")))["ch01"]["symbols"])
+        other = next(s for s in after if s["sym"] not in owned and not s.get("macro"))
+        before = self.read(os.path.join(self.book, "ch01", "book-rows.json"))
+        self.assertEqual(run("set", "chemistry-2e", "symbols", other["sym"], "--chapter", "1", '{"latex": "z"}')[1], 1)
+        self.assertEqual(self.read(os.path.join(self.book, "ch01", "book-rows.json")), before)
 
 
 if __name__ == "__main__":

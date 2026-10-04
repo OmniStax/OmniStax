@@ -47,11 +47,14 @@ test('every macro of the book belongs to a symbol, and no two symbols claim one 
   const claimed = new Set(named);
   assert.deepEqual(Object.values(symbols).filter((m) => claimed.has(m) && !(m in macros)), []);
 });
-test('every \\k macro carries its own key as data-sym inside its type class, unless no variables row gives its symbol a type', () => {
+test('every \\k macro carries its own key as data-sym inside its type class, unless its variables rows do not share one type', () => {
   const keyOf = Object.fromEntries(rows.flatMap((s) => (s.macro ? [[s.macro, s.sym] as const] : [])));
   const inked = new Set(rows.flatMap((s) => (s.macro && s.type === undefined ? [s.macro] : [])));
-  const rowed = new Set(stored.chapterDirs.flatMap((dir) => ChapterSchema.parse(readJson(path.join(dir, 'chapter.json'))).variables.map((v) => v.sym)));
-  assert.deepEqual([...inked].filter((m) => rowed.has(keyOf[m])), [], 'a symbol some section gives a meaning wears a type book-wide');
+  /* A symbol whose rows wear different types, ink among them, is set in ink outside a section and
+     takes its colour in each section from its row there; one whose rows all agree wears their type. */
+  const variables = withInheritedTypes(stored, stored.chapterDirs.map((dir) => ChapterSchema.parse(readJson(path.join(dir, 'chapter.json'))))).chapters.flatMap((ch) => ch.variables);
+  const worn = variables.reduce((m, v) => m.set(v.sym, new Set([...(m.get(v.sym) ?? []), v.type ?? null])), new Map<string, Set<string | null>>());
+  assert.deepEqual([...inked].filter((m) => worn.has(keyOf[m]) && worn.get(keyOf[m])!.size < 2), [], 'a symbol whose rows agree wears their type book-wide');
   for (const m of kMacros.filter((k) => !inked.has(k))) {
     const html = prerenderMath(`$${m}$`, macros);
     const found = /class="enclosing (kv-[\w-]+)"><span class="enclosing" data-sym="([^"]+)"/.exec(html);
