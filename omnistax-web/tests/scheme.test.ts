@@ -155,6 +155,49 @@ const TOGETHER: readonly (readonly [string, string])[] = [
   ['inductance', 'voltage'],
   ['inductance', 'current'],
   ['inductance', 'time'],
+  /* Mass, angle, area and volume, and the material properties, each with what
+     its figures draw beside it: a mass on the free-body and momentum figures, an
+     angle on the incline, the projectile and the turning wheel, an area under a
+     pressure, in a pipe and in a loop of flux, a volume in the gas box, and a
+     property beside the quantities its law ties together. */
+  ['mass', 'force'],
+  ['mass', 'acceleration'],
+  ['mass', 'momentum'],
+  ['mass', 'energy'],
+  ['mass', 'velocity'],
+  ['mass', 'density'],
+  ['angle', 'angular-rate'],
+  ['angle', 'position'],
+  ['angle', 'force'],
+  ['angle', 'velocity'],
+  ['area', 'pressure'],
+  ['area', 'force'],
+  ['area', 'flow-rate'],
+  ['area', 'magnetic-flux'],
+  ['volume', 'pressure'],
+  ['volume', 'temperature'],
+  ['volume', 'mass'],
+  ['volume', 'density'],
+  ['volume', 'area'],
+  ['specific-heat', 'temperature'],
+  ['specific-heat', 'energy'],
+  ['specific-heat', 'mass'],
+  ['latent-heat', 'energy'],
+  ['latent-heat', 'temperature'],
+  ['latent-heat', 'mass'],
+  ['latent-heat', 'specific-heat'],
+  ['thermal-conductivity', 'temperature'],
+  ['thermal-conductivity', 'power'],
+  ['thermal-conductivity', 'area'],
+  ['temperature-coefficient', 'temperature'],
+  ['temperature-coefficient', 'position'],
+  ['resistivity', 'resistance'],
+  ['resistivity', 'temperature'],
+  ['resistivity', 'area'],
+  ['diffusion-constant', 'position'],
+  ['diffusion-constant', 'time'],
+  ['acoustic-impedance', 'density'],
+  ['acoustic-impedance', 'intensity'],
 ];
 /* Five twelfths of the circle is the floor the hues were laid out to; a hex is
    eight bits a channel, so a hue read back off one can fall a degree short. */
@@ -164,16 +207,19 @@ const TOGETHER_DEG = 59;
    be held to. */
 const declared = ([a, b]: readonly [string, string]): boolean => TYPES.includes(a) && TYPES.includes(b);
 
-/* The three pairs the scheme cannot lift to that floor, with the standing each
+/* The four pairs the scheme cannot lift to that floor, with the standing each
    one does keep, so that a change which makes one of them worse is caught. Six
    quantities are drawn beside the inductance and no angle left in the grid
    stands 60° from all six, so it takes the best there is; force and current are
    drawn on one loop in Chapter 22, but current went to press with Chapter 20 and
-   is not moved for a pair written down after it. */
+   is not moved for a pair written down after it. Mass is drawn beside six
+   quantities already placed, and of the angles left the best stands 54° from
+   acceleration and 66° or more from the other five. */
 const SHORT: readonly (readonly [string, string, number])[] = [
   ['inductance', 'voltage', 53],
   ['inductance', 'current', 47],
   ['force', 'current', 29],
+  ['mass', 'acceleration', 53],
 ];
 const isShort = ([a, b]: readonly [string, string]): boolean =>
   SHORT.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
@@ -207,15 +253,15 @@ test('the first places of the order keep the hue family they were tuned to', () 
   });
 });
 
-/* The colours Chapters 1 to 22 went to press in, written out here rather than
+/* The colours Chapters 1 to 32 went to press in, written out here rather than
    worked out, so that dealing a later place again — as the magnetic flux and the
    inductance were dealt again once the electromagnetic pairs were written down —
-   cannot move one of them unnoticed. Every one of these thirty-two is fixed. */
+   cannot move one of them unnoticed. Every one of these thirty-seven is fixed. */
 const PUBLISHED: readonly string[] = [
   '#B23B19', '#8747AA', '#487901', '#0069BF', '#7C6800', '#B13550', '#067976', '#706D00', '#02768B', '#A73879',
   '#007D49', '#535BC3', '#137F1F', '#3862C4', '#A74900', '#794DB6', '#9A5500', '#027A6B', '#866302', '#9E3C8B',
   '#0070A6', '#AD3665', '#607200', '#6754BE', '#905C00', '#007397', '#B33738', '#007C5D', '#94419C', '#955900',
-  '#006DB0', '#993F94',
+  '#006DB0', '#993F94', '#00729E', '#697000', '#7050BA', '#766A00', '#5E57C1',
 ];
 test('the places the built chapters wear have not moved', () => {
   const all = huesOf(SCHEME, SCHEME_PLACES);
@@ -229,12 +275,10 @@ test('the flux and the inductance wear the colours they were dealt again', () =>
   assert.equal(normHex(scheme('inductance').light), '#697000');
 });
 
-/* The scheme has to go on dealing after this book: Chapters 23 to 34 will name
-   the magnetic flux, the inductance, the activity and a half-dozen more, and a
-   later book may name more again. It is dealt out to forty-eight places, and
-   what matters as much as the floors is that dealing further never moves a place
-   already dealt — a quantity declared today keeps the colour it was published
-   with when the next chapter declares another. */
+/* The scheme is dealt out to forty-eight places, which this book now fills, and
+   what matters as much as the floors is that dealing never moves a place already
+   dealt — a quantity declared today keeps the colour it was published with when
+   the next one is declared. */
 test('the scheme deals every place out to forty-eight, and the book keeps its own', () => {
   const all = huesOf(SCHEME, SCHEME_PLACES);
   assert.ok(all && all.length === SCHEME_PLACES && SCHEME_PLACES >= 48);

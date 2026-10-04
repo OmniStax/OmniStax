@@ -138,11 +138,12 @@ const TUNED_HUES: readonly Hex[] = [
   '#0070A6', '#AD3665', '#607200', '#6754BE', '#905C00', '#007397', '#B33738', '#007C5D', '#94419C',
 ];
 
-/* The angles the dealer gave places thirty, thirty-one and thirty-two — current,
-   resistance and the magnetic field — which Chapters 20, 21 and 22 went to press
-   in. They are written down here rather than dealt again, so that a pair added
-   later, force with current below, cannot move a colour a built chapter wears. */
-const DEALT_DEG: readonly number[] = [66, 246, 330];
+/* The angles the dealer gave places thirty to thirty-seven — current, resistance,
+   the magnetic field, the magnetic flux, the inductance, the activity, the decay
+   constant and the dose — which Chapters 20 to 32 went to press in. They are
+   written down here rather than dealt again, so that a pair added later cannot
+   move a colour a built chapter wears. */
+const DEALT_DEG: readonly number[] = [66, 246, 330, 234, 114, 294, 102, 282];
 
 /* Every place the book has published, dealt once and fixed from here on. */
 const PINNED_DEG: readonly number[] = [...TUNED_DEG, ...DEALT_DEG];
@@ -154,7 +155,11 @@ const PINNED_DEG: readonly number[] = [...TUNED_DEG, ...DEALT_DEG];
    and with current, current with resistance and with the magnetic field, the
    magnetic field with force, velocity, the electric field and the magnetic flux,
    the flux again with voltage, current and time, the inductance with capacitance,
-   resistance, frequency, voltage, current and time, and the forty-odd other pairs
+   resistance, frequency, voltage, current and time, mass with force, acceleration,
+   momentum, energy, velocity and density, the angle with the angular rate,
+   position, force and velocity, the area with pressure, force, flow rate and
+   flux, the volume with pressure, temperature, mass, density and area, each
+   material property with the quantities its law sets beside it, and the other pairs
    the test beside this file names by the type ids the book declares, which is
    where a pair is held to the book's own order. */
 const TOGETHER_PLACES: readonly (readonly [number, number])[] = [
@@ -164,6 +169,17 @@ const TOGETHER_PLACES: readonly (readonly [number, number])[] = [
   [12, 16], [17, 18], [17, 19], [17, 20], [17, 21], [18, 20], [22, 23], [24, 25], [24, 27], [25, 27],
   [25, 31], [27, 28], [27, 29], [27, 32], [27, 33], [28, 33], [29, 30], [29, 31], [29, 32], [29, 33],
   [30, 33], [31, 32],
+  [5, 37], [23, 37],
+  [18, 38], [26, 38],
+  [5, 39], [23, 39], [37, 39],
+  [4, 40], [17, 40], [20, 40], [32, 40],
+  [2, 41], [3, 41], [4, 41], [5, 41], [13, 41], [18, 41], [37, 41], [39, 41],
+  [17, 42], [18, 42], [23, 42], [40, 42], [41, 42],
+  [23, 43], [30, 43], [40, 43],
+  [1, 44], [2, 44], [4, 44], [8, 44],
+  [0, 45], [1, 45],
+  [1, 46], [23, 46],
+  [11, 47], [23, 47], [40, 47],
 ];
 
 /* The shorter way round the hue circle, in degrees. */
