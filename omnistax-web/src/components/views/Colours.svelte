@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  /* Whether the per-quantity list stands open, for as long as the app is. */
+  let customizing = $state(false);
+</script>
+
 <script lang="ts">
   /* The colour menu: one page where the reader chooses the colour of every
      quantity the book draws, and the order the quantities stand in. The book
@@ -13,7 +18,8 @@
      whole book, and it is what every palette lays its hues along, so dragging a
      quantity upwards recolours whatever still follows the scheme. The edits keep
      a timeline of their own, so taking a colour back never takes back a
-     highlight. */
+     highlight. The list of quantities waits behind Customize; the palettes stand
+     open. */
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
@@ -44,10 +50,10 @@
 
   const lead = $derived(
     place.level === 'book'
-      ? `A colour set here is the colour of that quantity everywhere in the book, except where a chapter or a section has chosen its own. Until you choose otherwise, the book takes its colours from ${colours.scheme.palette.name}.`
+      ? `A color set here is the color of that quantity everywhere in the book, except where a chapter or a section has chosen its own. Until you choose otherwise, the book takes its colours from ${colours.scheme.palette.name}.`
       : place.level === 'chapter'
-        ? `A colour set here is the colour of that quantity in every section of chapter ${chapter} that has not chosen its own.`
-        : `A colour set here is the colour of that quantity in section ${place.section} only.`,
+        ? `A color set here is the color of that quantity in every section of chapter ${chapter} that has not chosen its own.`
+        : `A color set here is the color of that quantity in section ${place.section} only.`,
   );
   /* The reader edits the ground they are looking at; the other one is derived for them. */
   const themeNote = $derived(settings.dark ? 'Dark theme colors' : 'Light theme colors');
@@ -216,6 +222,13 @@
   const refTarget = $derived(targetOf(refNow));
   /* Smart deals a group farthest apart where it finds no way, which the section's palette line says. */
   const refFarthest = $derived(place.level === 'section' && (colours.referentsAt(book, place.section)?.groups ?? []).some((g) => g.mode === 'farthest'));
+  const TIPS = {
+    categoryOrder: 'Give the first color to the first category in your order, the second to the second, and so on.',
+    categorySmart: 'Arrange these colors so that categories appearing on the same page are the easiest to tell apart.',
+    referentOrder: 'Give each referent the color at its own position in this set.',
+    referentSmart: 'Put first the colors that clash least in this book, then skip any color too close to the colors near a referent.',
+    target: 'How different a referent\u2019s color must look from the colors near it. Higher values look more distinct but move more referents off their usual color.',
+  } as const;
   const MODE_NAMES: Readonly<Record<DealtMode, string>> = { order: 'in order', smart: 'smart', farthest: 'farthest apart' };
 </script>
 
@@ -228,7 +241,6 @@
       </select>
     </label>
   {/if}
-  <p class="lead">{lead}</p>
   {#if !settings.shown.concepts}
     <p class="off">Concepts color coding is off. Turn it on to see these colors.</p>
   {/if}
@@ -236,9 +248,9 @@
   <div class="bar">
     <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>Undo</button>
     <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>Redo</button>
-    <button type="button" disabled={!setHere} onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button>
+    <button type="button" aria-expanded={customizing} onclick={() => { closePicker(); customizing = !customizing; }}>{customizing ? 'Done' : 'Customize'}</button>
     {#if place.level === 'book'}
-      <button type="button" disabled={nothingSet} onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every colour</button>
+      <button type="button" disabled={nothingSet} onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every color</button>
     {/if}
     <button type="button" onclick={exportFile}>Export…</button>
     <button type="button" onclick={() => picker?.click()}>Load…</button>
@@ -247,65 +259,69 @@
   </div>
   {#if trouble}<p class="trouble">{trouble}</p>{/if}
 
-  {#if types.length > 8}
-    <!-- the whole set at a glance, in the order the rows below take -->
-    <div class="strip" aria-hidden="true">
-      {#each types as k (k)}
-        {@const hex = shown(hueOf(k).hue)}
-        <i style:background-color={hex ?? 'var(--soft2)'} title={labelOf(k)}></i>
-      {/each}
-    </div>
-  {/if}
+  {#if customizing}
+    <p class="lead">{lead}</p>
+    <div class="bar"><button type="button" disabled={!setHere} onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button></div>
+    {#if types.length > 8}
+      <!-- the whole set at a glance, in the order the rows below take -->
+      <div class="strip" aria-hidden="true">
+        {#each types as k (k)}
+          {@const hex = shown(hueOf(k).hue)}
+          <i style:background-color={hex ?? 'var(--soft2)'} title={labelOf(k)}></i>
+        {/each}
+      </div>
+    {/if}
 
-  <ul class="rows">
-    {#each types as k (k)}
-      {@const eff = hueOf(k)}
-      {@const hex = shown(eff.hue)}
-      {@const alt = spare(eff.hue)}
-      {@const own = ownOf(k)}
-      {@const name = labelOf(k)}
-      {@const dim = manifest.types[k]?.dimension ?? ''}
-      <li class:open={open === k}>
-        <div class="row" class:carried={carried === k} class:over-up={over?.type === k && !over.below} class:over-down={over?.type === k && over.below}
-          draggable="true"
-          ondragstart={(e) => { carried = k; e.dataTransfer?.setData('text/plain', k); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; }}
-          ondragend={clearDrag}
-          ondragover={(e) => onDragOver(e, k)}
-          ondragleave={() => { if (over?.type === k) over = null; }}
-          ondrop={(e) => onDrop(e, k)}>
-          <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
-            title="Reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
-          <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
-            aria-label={`Color of ${name}`}
-            onclick={() => openPicker(k)}></button>
-          {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'Light theme color' : 'Dark theme color'}></i>{/if}
-          <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
-          <SymbolList macros={symbolsOf(manifest, k)} label={name} />
-          <span class="from" class:own={own !== null}>{source(eff.from)}</span>
-          {#if own}
-            <button type="button" class="clear" title="Use inherited" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
-          {/if}
-        </div>
-        {#if open === k}
-          <div class="picker">
-            <div class="grid">
-              {#each SWATCHES as s (s.hex)}
-                <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={s.name}
-                  onclick={() => { colours.breakCoalescing(); colours.pick(place, k, s.hex); draft = s.hex; }}></button>
-              {/each}
-            </div>
-            <div class="fine">
-              <input type="color" value={hex ?? '#000000'} aria-label={`The ${settings.dark ? 'dark' : 'light'} colour of ${name}`}
-                oninput={(e) => { draft = e.currentTarget.value; drag(k, e.currentTarget.value); }} onchange={settle} />
-              <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label="Hex code"
-                onkeydown={(e) => { if (e.key === 'Enter') { commitHex(k); e.preventDefault(); } }} onblur={() => commitHex(k)} />
-              <span class="hint">Type a hex code or drag to pick.</span>
-            </div>
+    <ul class="rows">
+      {#each types as k (k)}
+        {@const eff = hueOf(k)}
+        {@const hex = shown(eff.hue)}
+        {@const alt = spare(eff.hue)}
+        {@const own = ownOf(k)}
+        {@const name = labelOf(k)}
+        {@const dim = manifest.types[k]?.dimension ?? ''}
+        <li class:open={open === k}>
+          <div class="row" class:carried={carried === k} class:over-up={over?.type === k && !over.below} class:over-down={over?.type === k && over.below}
+            draggable="true"
+            ondragstart={(e) => { carried = k; e.dataTransfer?.setData('text/plain', k); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; }}
+            ondragend={clearDrag}
+            ondragover={(e) => onDragOver(e, k)}
+            ondragleave={() => { if (over?.type === k) over = null; }}
+            ondrop={(e) => onDrop(e, k)}>
+            <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
+              title="Reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
+            <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
+              aria-label={`Color of ${name}`}
+              onclick={() => openPicker(k)}></button>
+            {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'Light theme color' : 'Dark theme color'}></i>{/if}
+            <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
+            <SymbolList macros={symbolsOf(manifest, k)} label={name} />
+            <span class="from" class:own={own !== null}>{source(eff.from)}</span>
+            {#if own}
+              <button type="button" class="clear" title="Use inherited" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
+            {/if}
           </div>
-        {/if}
-      </li>
-    {/each}
-  </ul>
+          {#if open === k}
+            <div class="picker">
+              <div class="grid">
+                {#each SWATCHES as s (s.hex)}
+                  <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={s.name}
+                    onclick={() => { colours.breakCoalescing(); colours.pick(place, k, s.hex); draft = s.hex; }}></button>
+                {/each}
+              </div>
+              <div class="fine">
+                <input type="color" value={hex ?? '#000000'} aria-label={`The ${settings.dark ? 'dark' : 'light'} colour of ${name}`}
+                  oninput={(e) => { draft = e.currentTarget.value; drag(k, e.currentTarget.value); }} onchange={settle} />
+                <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label="Hex code"
+                  onkeydown={(e) => { if (e.key === 'Enter') { commitHex(k); e.preventDefault(); } }} onblur={() => commitHex(k)} />
+                <span class="hint">Type a hex code or drag to pick.</span>
+              </div>
+            </div>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  {/if}
 
   <label class="book">Color vision
     <select value={vision} onchange={(e) => { if (isVision(e.currentTarget.value)) colours.stateVision(e.currentTarget.value); }}>
@@ -314,6 +330,7 @@
   </label>
 
   <div class="eyebrow">Recommended palettes</div>
+  <p class="note explain">Each kind of quantity, like force or velocity, keeps one color everywhere in the book: in words, in symbols and in figures.</p>
   {#if shownPalettes.length === 0}
     <p class="note">Nothing to color here.</p>
   {/if}
@@ -321,8 +338,8 @@
     {#each shownPalettes as { palette: p, hues } (p.id)}
       <li>
         <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" onclick={() => apply(p, 'order')}>Apply in order</button>
-          <button type="button" onclick={() => apply(p, 'smart')}>Apply smart</button>
+          <button type="button" title={TIPS.categoryOrder} onclick={() => apply(p, 'order')}>Apply in order</button>
+          <button type="button" title={TIPS.categorySmart} onclick={() => apply(p, 'smart')}>Apply smart</button>
         </div>
         <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
         <p class="note">{p.note}</p>
@@ -331,8 +348,9 @@
   </ul>
 
   <div class="eyebrow refs">Referent palettes</div>
+  <p class="note explain">Referents are the particular things a figure and its text both point to, like the car or tug 1. They take colors from a set of 36, kept clear of the other colors near them.</p>
   <label class="book target">Target distance
-    <input type="range" min={TARGET_MIN} max={TARGET_MAX} step={TARGET_STEP} value={refTarget}
+    <input type="range" title={TIPS.target} min={TARGET_MIN} max={TARGET_MAX} step={TARGET_STEP} value={refTarget}
       oninput={(e) => colours.setReferentTarget(Number(e.currentTarget.value))} onchange={() => colours.breakCoalescing()} />
     <output>{refTarget.toFixed(2)}</output>
   </label>
@@ -342,8 +360,8 @@
       <li class:now>
         <div class="phead"><span class="pname">{p.name}</span>
           {#if now}<span class="in-use">In use, {MODE_NAMES[refNow.mode]}{#if refFarthest && refNow.mode === 'smart'}; {MODE_NAMES.farthest} in this section{/if}</span>{/if}
-          <button type="button" class:on={now && refNow.mode === 'order'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'order', vision); }}>Apply in order</button>
-          <button type="button" class:on={now && refNow.mode === 'smart'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'smart', vision); }}>Apply smart</button>
+          <button type="button" class:on={now && refNow.mode === 'order'} title={TIPS.referentOrder} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'order', vision); }}>Apply in order</button>
+          <button type="button" class:on={now && refNow.mode === 'smart'} title={TIPS.referentSmart} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'smart', vision); }}>Apply smart</button>
         </div>
         <div class="refgrid" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
         <p class="note">{p.note}</p>
@@ -421,5 +439,6 @@
   .refgrid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin-bottom:5px}
   .refgrid i{display:block;height:12px;border-radius:2px}
   .note{margin:0;color:var(--muted);font-size:0.76rem;line-height:1.4}
+  .explain{margin-bottom:8px}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>

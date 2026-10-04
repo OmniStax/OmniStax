@@ -19,7 +19,10 @@ import type { Target } from '../sections/scope';
 import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
 import { type Vision, isVision } from './oklab';
 import { oklabHues } from './sample';
-import { type DealtGroup, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, dealGroup, huesOfGroups, isRefMode, referentHues, targetOf } from './referents';
+import {
+  type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, clashOrder, dealGroup, huesOfGroups,
+  inPaletteOrder, isPaletteOrder, isRefMode, referentHues, sameOrder, targetOf,
+} from './referents';
 import { type CountKey, fixedHueOf, isCategoryKey } from './counts';
 
 export type Hex = string;                          /* '#RRGGBB', normalised by normHex */
@@ -250,21 +253,27 @@ export const setVision = (c: Choices, vision: Vision | undefined): Choices => {
   return vision === undefined ? rest : { ...rest, vision };
 };
 
-/* The referent palette, how a group deals it and the target distance, the default until the reader chooses;
-   a setting equal to the default is stored as nothing. */
+/* The referent palette, how a group deals it, the target distance and, smart, the order it is walked in, the
+   default until the reader chooses; a setting equal to the default is stored as nothing. In order keeps no order. */
 export const referentsOf = (c: Choices): RefSettings => c.referents ?? DEFAULT_REFERENTS;
-const sameReferents = (a: RefSettings, b: RefSettings): boolean => a.palette === b.palette && a.mode === b.mode && targetOf(a) === targetOf(b);
+const sameReferents = (a: RefSettings, b: RefSettings): boolean =>
+  a.palette === b.palette && a.mode === b.mode && targetOf(a) === targetOf(b) && sameOrder(a.order, b.order);
 export const setReferents = (c: Choices, next: RefSettings): Choices => {
-  if (sameReferents(referentsOf(c), next)) return c;
+  const kept: RefSettings = {
+    palette: next.palette, mode: next.mode,
+    ...(targetOf(next) === TARGET_DEFAULT ? {} : { target: targetOf(next) }),
+    ...(next.mode === 'smart' && next.order ? { order: [...next.order] } : {}),
+  };
+  if (sameReferents(referentsOf(c), kept)) return c;
   const { referents: _, ...rest } = c;
-  const target = targetOf(next) === TARGET_DEFAULT ? {} : { target: targetOf(next) };
-  return sameReferents(next, DEFAULT_REFERENTS) ? rest : { ...rest, referents: { palette: next.palette, mode: next.mode, ...target } };
+  return sameReferents(kept, DEFAULT_REFERENTS) ? rest : { ...rest, referents: kept };
 };
 const parseReferents = (raw: unknown): RefSettings | undefined => {
   if (typeof raw !== 'object' || raw === null) return undefined;
-  const r = raw as { palette?: unknown; mode?: unknown; target?: unknown };
+  const r = raw as { palette?: unknown; mode?: unknown; target?: unknown; order?: unknown };
   const target = typeof r.target === 'number' && Number.isFinite(r.target) ? { target: clampTarget(r.target) } : {};
-  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...target } : undefined;
+  const order = r.mode === 'smart' && isPaletteOrder(r.order) ? { order: r.order } : {};
+  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...target, ...order } : undefined;
 };
 
 /* ---------- the order, and the scheme that follows it ---------- */
@@ -401,14 +410,21 @@ export const groupsOf = (e: Pick<SectionEntry, 'referents' | 'refGroups' | 'coun
   ? [{ referents: e.referents.map((r) => r.id), figures: [...new Set(e.referents.flatMap((r) => r.figures))], shows: Object.keys(e.counts ?? {}) }]
   : []);
 
-/* A page's referents dealt their colours, group by group: the palette they come from and the vision it was measured for. */
+/* The order smart walks the palette in: the reader's own, kept when they applied it, else the book's stored one
+   for the default palette, else the palette's own. */
+const walkOrder = (m: Pick<BookManifest, 'colours'>, s: RefSettings): PaletteOrder | undefined => {
+  const book = m.colours?.referentOrder;
+  return s.order ?? (s.palette === DEFAULT_REFERENTS.palette && isPaletteOrder(book) ? book : undefined);
+};
+
+/* A page's referents dealt their colours, group by group: the palette as they walk it and the vision it was measured for. */
 export type GroupReferents = DealtGroup & { readonly figures: readonly string[] };
 export type PageReferents = { readonly hues: RefHues; readonly groups: readonly GroupReferents[]; readonly palette: readonly Hue[]; readonly vision: Vision };
-const referentsAtPage = (m: BookManifest, c: Choices, at: PageAt): PageReferents => {
+const referentsAtPage = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme = schemeOf(m, c)): PageReferents => {
   const vision = visionOf(m, c);
   const settings = referentsOf(c);
-  const scheme = schemeOf(m, c);
-  const palette = referentHues(settings, vision);
+  const own = referentHues(settings, vision);
+  const palette = settings.mode === 'smart' ? inPaletteOrder(own, walkOrder(m, settings)) : own;
   const deal = { palette, mode: settings.mode, vision, target: targetOf(settings) };
   const groups = groupsOf(at.entry).map((g): GroupReferents => ({
     ...dealGroup({ ids: g.referents, shown: shownAt(m, c, at, scheme, g.shows) }, deal), figures: g.figures,
@@ -420,9 +436,22 @@ export const pageReferents = (m: BookManifest, c: Choices, page: string): PageRe
   return at ? referentsAtPage(m, c, at) : null;
 };
 
+const withReferents = (m: BookManifest): readonly PageAt[] => pagesAt(m).filter((at) => at.entry.referents?.length);
+
 /* Every page of the book with referents, each with its groups dealt under these choices. */
-export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferents[] =>
-  pagesAt(m).flatMap((at) => (at.entry.referents?.length ? [referentsAtPage(m, c, at)] : []));
+export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferents[] => {
+  const scheme = schemeOf(m, c);
+  return withReferents(m).map((at) => referentsAtPage(m, c, at, scheme));
+};
+
+/* The order smart walks a referent palette in for this book: every referent group of the book, weighed by its
+   referents, with the colours its scope shows under these choices and their vision. */
+export const referentOrder = (m: BookManifest, c: Choices, palette: RefSettings['palette'], target: number): PaletteOrder => {
+  const vision = visionOf(m, c);
+  const scheme = schemeOf(m, c);
+  const groups = withReferents(m).flatMap((at) => groupsOf(at.entry).map((g): GroupWeight => ({ size: g.referents.length, shown: shownAt(m, c, at, scheme, g.shows) })));
+  return clashOrder(referentHues({ palette, mode: 'smart' }, vision), groups, vision, target);
+};
 
 /* ---------- the stylesheet ---------- */
 

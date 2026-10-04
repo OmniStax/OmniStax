@@ -1,9 +1,10 @@
 /* `npm run colours:default -- <book-id> [--dry-run]`: work out the book's default
    colours — the OKLab palette for normal vision, assigned by assignSmart over the
    colour counts of every built page — and store them in book.json `colours`,
-   where they stay as written until this is run again. A dry run prints the
-   assignment and how near each page comes to two colours read as one, in order
-   and smart, and writes nothing. */
+   where they stay as written until this is run again, with the order smart
+   dealing walks the referent palette in, sorted for these colours at the default
+   target. A dry run prints the assignment and how near each page comes to two
+   colours read as one, in order and smart, and writes nothing. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseConfig } from '../omnistax.config';
@@ -12,7 +13,9 @@ import type { BookColoursDTO } from '../src/lib/content/schema';
 import { bookId } from '../src/lib/types/ids';
 import { type Assignment, assignInOrder, assignSmart, pageNearest } from '../src/lib/colours/assign';
 import { fixedOf, pagesOfBook } from '../src/lib/colours/counts';
-import type { DeltaE, Vision } from '../src/lib/colours/oklab';
+import { NO_CHOICES, bookReferents, referentOrder } from '../src/lib/colours/model';
+import { DEFAULT_REFERENTS, TARGET_DEFAULT } from '../src/lib/colours/referents';
+import type { DeltaE } from '../src/lib/colours/oklab';
 import { DEFAULT_VISION } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
 
@@ -20,8 +23,7 @@ const quantile = (xs: readonly number[], q: number): number => { const s = [...x
 const summary = (xs: readonly DeltaE[]): string =>
   `median ${quantile(xs, 0.5).toFixed(3)}, p10 ${quantile(xs, 0.1).toFixed(3)}, worst ${[...xs].sort((a, b) => a - b).slice(0, 5).map((x) => x.toFixed(3)).join(' ')}`;
 
-const storedOf = (a: Assignment, vision: Vision): BookColoursDTO =>
-  ({ palette: 'oklab', vision, assign: Object.fromEntries([...a].map(([k, h]) => [k, { light: h.light, dark: h.dark }])) });
+const assignOf = (a: Assignment): BookColoursDTO['assign'] => Object.fromEntries([...a].map(([k, h]) => [k, { light: h.light, dark: h.dark }]));
 
 const main = async (): Promise<number> => {
   const argv = process.argv.slice(2);
@@ -42,7 +44,12 @@ const main = async (): Promise<number> => {
   console.log(`${tree.dto.title}: ${categories.length} types, ${pages.length} pages counted, ${fixed.size} fixed colours, assigned in ${took.toFixed(0)} ms`);
   console.log(`  ${vision}: in order  ${summary(pageNearest(inOrder, pages, fixed, vision))}`);
   console.log(`  ${vision}: smart     ${summary(pageNearest(smart, pages, fixed, vision))}`);
-  const stored = storedOf(smart, vision);
+  const assigned: BookColoursDTO = { palette: 'oklab', vision, assign: assignOf(smart) };
+  const stored: BookColoursDTO = { ...assigned, referentOrder: [...referentOrder({ ...tree.manifest, colours: assigned }, NO_CHOICES, DEFAULT_REFERENTS.palette, TARGET_DEFAULT)] };
+  const dealt = bookReferents({ ...tree.manifest, colours: stored }, NO_CHOICES).flatMap((p) => p.groups.map((g) => ({ g, palette: p.palette })));
+  const referents = dealt.reduce((n, { g }) => n + g.ids.length, 0);
+  const kept = dealt.reduce((n, { g, palette }) => n + g.hues.filter((h, i) => h === palette[i % palette.length]).length, 0);
+  console.log(`  referents: ${referents} in ${dealt.length} groups, ${(100 * kept / Math.max(referents, 1)).toFixed(0)}% at their own place in the sorted palette, ${dealt.filter(({ g }) => g.mode === 'farthest').length} groups farthest apart`);
   if (dry) { console.log(JSON.stringify(stored, null, 1)); return 0; }
   const folder = (await findBooks(config.content.root)).find((f) => f.id === bookId(id));
   if (!folder) { console.error(`no book "${id}"`); return 1; }

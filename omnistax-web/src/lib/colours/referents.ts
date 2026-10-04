@@ -12,7 +12,10 @@
    every colour the group's scope shows and from every referent of the group dealt
    before it. A group in which any referent finds none is dealt farthest apart
    instead: each referent in turn takes the colour left that stands farthest from
-   all of those. Pure throughout. */
+   all of those. Smart walks the palette in the order kept for the book: its
+   colours sorted by how many referents of the whole book they stand clear of
+   what their group shows, most first, so that the colours that clash least are
+   tried first. Pure throughout. */
 import type { Hex, Hue } from './model';
 import { type Offer, type PaletteId, PALETTES, pairsOf } from './palettes';
 import { type DeltaE, type Seen, type SeenHue, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
@@ -21,7 +24,9 @@ export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
 /* How a group was dealt: the mode asked for, or farthest apart where smart found no way. */
 export type DealtMode = RefMode | 'farthest';
-export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly target?: DeltaE };
+/* The palette's slots in the order smart walks them: a permutation of 0 … 35. */
+export type PaletteOrder = readonly number[];
+export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly target?: DeltaE; readonly order?: PaletteOrder };
 
 export const REFERENT_COUNT = 36;
 
@@ -38,6 +43,13 @@ const OKLAB_ID = 'oklab' as PaletteId;
 export const DEFAULT_REFERENTS: RefSettings = { palette: OKLAB_ID, mode: 'smart' };
 
 export const isRefMode = (s: unknown): s is RefMode => s === 'order' || s === 'smart';
+export const isPaletteOrder = (o: unknown): o is PaletteOrder =>
+  Array.isArray(o) && o.length === REFERENT_COUNT && new Set(o).size === REFERENT_COUNT && o.every((j) => Number.isInteger(j) && j >= 0 && j < REFERENT_COUNT);
+export const sameOrder = (a: PaletteOrder | undefined, b: PaletteOrder | undefined): boolean =>
+  a === b || (a !== undefined && b !== undefined && a.every((j, i) => j === b[i]));
+/* The palette laid in an order, or as it stands where the order does not fit it. */
+export const inPaletteOrder = (palette: readonly Hue[], order: PaletteOrder | undefined): readonly Hue[] =>
+  order && order.length === palette.length ? order.map((j) => palette[j]) : palette;
 export const targetOf = (s: RefSettings): DeltaE => s.target ?? TARGET_DEFAULT;
 
 /* The palettes that can give the referents their thirty-six. */
@@ -61,6 +73,17 @@ type Slot = number;
 
 const nearest = (p: SeenHue, others: readonly SeenHue[]): DeltaE =>
   others.reduce((m, q) => Math.min(m, seenHueDistance(p, q)), Infinity);
+
+/* A group as the reordering weighs it: how many referents it deals and the colours its scope shows. */
+export type GroupWeight = { readonly size: number; readonly shown: readonly Hue[] };
+/* The palette's slots sorted by how many referents of the book they suit: a colour counts a group's referents
+   wherever it stands at least the target from every colour the group shows. Most first; a tie keeps the palette's order. */
+export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight[], vision: Vision, target: DeltaE): PaletteOrder => {
+  const seen = palette.map((h) => seenHue(h, vision));
+  const scopes = groups.map((g) => ({ size: g.size, shown: g.shown.map((h) => seenHue(h, vision)) }));
+  const score = seen.map((p) => scopes.reduce((n, g) => (nearest(p, g.shown) >= target ? n + g.size : n), 0));
+  return seen.map((_, j) => j).sort((a, b) => score[b] - score[a] || a - b);
+};
 
 export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
 

@@ -5,10 +5,11 @@ import type { BookManifest } from '../content/schema';
 
 /* Types follow the reader's Concepts switch: with it off every quantity reads in
    ink, and the sliders that stand for a quantity wear its hue only while it is on.
-   A run of words the text marks <span data-type> wears its type exactly as a symbol does. */
+   A run of words the text marks <span data-type> wears its type exactly as a symbol does, and with the
+   Concept words switch off reads in ink while the symbols keep their colours. */
 const typeRules = (m: BookManifest, book: string): string =>
   Object.keys(m.types)
-    .map((k) => `${book} .kv-${k}{color:var(--c-${k})} ${book} [data-type="${k}"]{color:var(--c-${k})} html:not(.cc-concepts) ${book} .kv-${k}{color:inherit} html:not(.cc-concepts) ${book} [data-type="${k}"]{color:inherit} html.cc-concepts ${book} .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc-concepts ${book} .s-${k}::-moz-range-thumb{background:var(--c-${k})}`)
+    .map((k) => `${book} .kv-${k}{color:var(--c-${k})} ${book} [data-type="${k}"]{color:var(--c-${k})} html:not(.cc-concepts) ${book} .kv-${k}{color:inherit} html:not(.cc-words) ${book} [data-type="${k}"]{color:inherit} html.cc-concepts ${book} .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc-concepts ${book} .s-${k}::-moz-range-thumb{background:var(--c-${k})}`)
     .join('\n');
 
 const bookScope = (m: BookManifest): string => `[data-book="${m.id}"]`;

@@ -103,7 +103,7 @@ export const OKLCH: Palette = generated(
 export const OKLAB: Palette = generatedPairs(
   'oklab',
   'OKLab',
-  'As many colours as the level needs, each as far as the screen allows from those before it for your vision, and all readable as text in both themes.',
+  'As many colors as the level needs, each as far as the screen allows from those before it for your vision, and all readable as text in both themes.',
   (n, vision) => oklabHues(n, vision),
 );
 
@@ -176,8 +176,8 @@ export const PALETTES: readonly Palette[] = [
   ),
   fixed(
     'kelly',
-    "Kelly's colours of maximum contrast",
-    "Kenneth Kelly's twenty-two colours in the order that keeps each new one far from those before it; white, black and grey are left out, since they are the page and the ink.",
+    "Kelly's colors of maximum contrast",
+    "Kenneth Kelly's twenty-two colors in the order that keeps each new one far from those before it; white, black and grey are left out, since they are the page and the ink.",
     [
       '#F3C300', '#875692', '#F38400', '#A1CAF1', '#BE0032', '#C2B280', '#008856', '#E68FAC', '#0067A5', '#F99379',
       '#604E97', '#F6A600', '#B3446C', '#DCD300', '#882D17', '#8DB600', '#654522', '#E25822', '#2B3D26',
@@ -186,7 +186,7 @@ export const PALETTES: readonly Palette[] = [
   fixed(
     'polychrome',
     'Polychrome 36',
-    'Thirty-six colours built to stay apart on a white page; the grey and the near-white that open the set are left out.',
+    'Thirty-six colors built to stay apart on a white page; the grey and the near-white that open the set are left out.',
     [
       '#F6222E', '#FE00FA', '#16FF32', '#3283FE', '#FEAF16', '#B00068', '#1CFFCE', '#90AD1C', '#2ED9FF', '#DEA0FD',
       '#AA0DFE', '#F8A19F', '#325A9B', '#C4451C', '#1C8356', '#85660D', '#B10DA1', '#FBE426', '#1CBE4F', '#FA0087',

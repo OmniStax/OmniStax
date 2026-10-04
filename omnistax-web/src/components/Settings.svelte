@@ -7,7 +7,7 @@
      another command owns is shown as a conflict and taken only on Enter. */
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { FONTS, fontStack, isFontId, type FontId } from '../lib/settings/fonts';
-  import { COLOUR_SWITCHES, COLOUR_LABELS } from '../lib/colours/switches';
+  import { COLOUR_SWITCHES, COLOUR_LABELS, COLOUR_PARENT, COLOUR_TIPS } from '../lib/colours/switches';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -216,7 +216,8 @@
           <span class="name" id="cc-name">Color coding</span>
           <div class="switches">
             {#each COLOUR_SWITCHES as k (k)}
-              <label class="switch"><span class="name">{COLOUR_LABELS[k]}{@render back(settings.colours[k] !== DEFAULTS.colours[k], 'Reset to on', () => settings.setColour(k, DEFAULTS.colours[k]))}</span><input type="checkbox" id="cc-{k}-toggle" disabled={k !== 'all' && !settings.colours.all} checked={settings.colours[k]} onchange={(e) => settings.setColour(k, e.currentTarget.checked)}></label>
+              {@const parent = COLOUR_PARENT[k]}
+              <label class="switch" class:sub={parent !== undefined} title={COLOUR_TIPS[k] ?? null}><span class="name">{COLOUR_LABELS[k]}{@render back(settings.colours[k] !== DEFAULTS.colours[k], 'Reset to on', () => settings.setColour(k, DEFAULTS.colours[k]))}</span><input type="checkbox" id="cc-{k}-toggle" disabled={k !== 'all' && (!settings.colours.all || (parent !== undefined && !settings.colours[parent]))} checked={settings.colours[k]} onchange={(e) => settings.setColour(k, e.currentTarget.checked)}></label>
             {/each}
           </div>
         </div>
@@ -378,6 +379,7 @@
   .switches{grid-column:2 / -1;display:flex;flex-direction:column;gap:6px}
   .switches label{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .switches .name{font-weight:400}
+  .switches .sub{padding-left:16px}
   p.hint{margin:-4px 0 4px}
   .link{border:0;background:transparent;color:var(--accent);font:inherit;font-size:0.8rem;padding:0;cursor:pointer;text-decoration:underline}
   .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;grid-column:3}

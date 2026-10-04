@@ -31,7 +31,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
 | `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
-| `colours` | `{ palette, vision, assign }?` | no | The book’s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared. |
+| `colours` | `{ palette, vision, assign, referentOrder? }?` | no | The book’s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared. |
 
 ### `types`
 

@@ -260,11 +260,11 @@ test('a book\'s rules colour its quantities on every page, inside the book only'
   assert.ok(css.includes(`html.cc-concepts ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
   assert.doesNotMatch(css, /data-sec/, 'no page holds a type back');
 });
-test('words the text marks with a type wear it as its symbols do', () => {
+test('words the text marks with a type wear it as its symbols do, under the Concept words switch', () => {
   const css = bookRulesCss(MANIFEST);
   const b = '[data-book="college-physics-2e"]';
   assert.ok(css.includes(`${b} [data-type="time"]{color:var(--c-time)}`));
-  assert.ok(css.includes(`html:not(.cc-concepts) ${b} [data-type="time"]{color:inherit}`));
+  assert.ok(css.includes(`html:not(.cc-words) ${b} [data-type="time"]{color:inherit}`));
 });
 
 test('the file and the storage hold one document, which reads back as it was written', () => {

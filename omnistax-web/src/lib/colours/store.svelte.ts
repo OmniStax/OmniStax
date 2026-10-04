@@ -16,9 +16,9 @@ import { fixedOf, pagesOfBook } from './counts';
 import {
   type Choices, type ColourFileDTO, type Hex, type Hue, type Place, type Scheme, type Source, type TypeKey,
   NO_CHOICES, applyHues, clearHue, clearPlace, cssFor, effectiveHue, fromFile, hueFrom, isEmpty, moveType, orderOf,
-  type PageReferents, ownHue, pageReferents, referentsOf, schemeOf, setHue, setReferents, setVision, toFile, visionOf,
+  type PageReferents, ownHue, pageReferents, referentOrder, referentsOf, schemeOf, setHue, setReferents, setVision, toFile, visionOf,
 } from './model';
-import { type RefMode, type RefSettings, clampTarget, referentPalettes } from './referents';
+import { type RefMode, type RefSettings, clampTarget, referentPalettes, targetOf } from './referents';
 import type { DeltaE, Vision } from './oklab';
 import { readerWritesAllowed } from '../backup/guard';
 import { bookColoursHref } from './rules';
@@ -180,10 +180,16 @@ class Colours {
 
   /* The referent palette, how groups deal it out, and the target distance. */
   get referents(): RefSettings { return referentsOf(this.choices); }
+  /* Smart first sorts the palette for this book under the reader's colours and vision, and keeps that order
+     until they apply again. */
   applyReferents(palette: PaletteId, mode: RefMode, vision: Vision): void {
-    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(setVision(this.choices, vision), { ...this.referents, palette, mode }));
+    const m = this.manifest;
+    const seen = setVision(this.choices, vision);
+    const { order: _, ...now } = this.referents;
+    const order = m && mode === 'smart' ? { order: referentOrder(m, seen, palette, targetOf(now)) } : {};
+    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(seen, { ...now, palette, mode, ...order }));
   }
-  /* A drag of the slider arrives as a burst and undoes in a single step. */
+  /* The target re-deals along the order already kept. A drag of the slider arrives as a burst and undoes in a single step. */
   setReferentTarget(target: DeltaE): void {
     this.record(`referent distance ${target.toFixed(2)}`, setReferents(this.choices, { ...this.referents, target: clampTarget(target) }), 'referent-target');
   }
