@@ -202,10 +202,11 @@ Tables:
   `<span data-ref="<id>">Firm B</span>`, and the figure colours it with
   `F.ref('<id>')`. A phrase naming several lists them,
   `data-ref="firm-a firm-b"`, and its words wear their colours in turn.
-  A referent takes the k-th of twelve referent hues, k its place among
-  the rows of its own figure, skipping those within 20° of the hue of a
-  type that figure `draws` (when too few are clear, the ones nearest a
-  drawn hue come last rather than a hue coming twice); it and `F.cat`
+  A referent takes the k-th of twelve referent hues, a family deeper and
+  more saturated than the category colours, k its place among the rows
+  of its own figure, skipping any within OKLab ΔE 0.08 of a type that
+  figure `draws` (when too few are clear, the nearest come last rather
+  than a hue coming twice); it and `F.cat`
   follow the reader's Referents switch, not Concepts. Text and figure compute it apart
   from the same table, so they agree whatever order they draw in, and a
   figure with more referents than clear hues is a warning.
