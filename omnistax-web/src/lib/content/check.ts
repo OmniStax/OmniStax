@@ -20,6 +20,7 @@ import { cellNumber } from './sheets';
 import { NO_CHOICES, schemeOf } from '../colours/model';
 import { refHues } from '../fig/cat';
 import { figureRefs } from './figrefs';
+import { conceptSpanIds } from './conceptspans';
 import type { TableSheetDTO } from './sheets';
 
 /* What a check found. An error is content that will not work: a reference to a
@@ -192,6 +193,19 @@ export const checkTypeSpans: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
   return pagesOf(content).flatMap((s) => markedOf(s).flatMap((m) => attrValues(m.html, 'data-type').flatMap((t) =>
     (types.has(t) ? [] : [error(m.file, `marks words with type "${t}", which the book does not declare`)]))));
+};
+
+/* Every prose a page writes, each with the file it is written in: the text, the lead, the summary and the exercises' lead. */
+const proseOf = (s: SectionContent): readonly Marked[] => [
+  ...markedOf(s),
+  { file: `${s.dto.id}/section.json`, html: s.dto.summaryHtml },
+  { file: `${s.dto.id}/section.json`, html: s.dto.exercisesLead },
+];
+/* A phrase the builder judged to name a concept is marked <span data-concept="…">: the concept is one of the book. */
+export const checkConceptSpans: Check = (content) => {
+  const concepts = idsOf(content.book.concepts, (c) => c.id);
+  return pagesOf(content).flatMap((s) => proseOf(s).flatMap((m) => conceptSpanIds(m.html).flatMap((id) =>
+    (concepts.has(id) ? [] : [error(m.file, `<span data-concept="${id}"> names no concept of the book`)]))));
 };
 
 /* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
@@ -586,7 +600,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkReferents, checkRefHues, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkRefHues, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

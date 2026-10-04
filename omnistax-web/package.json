@@ -10,7 +10,6 @@
     "check": "astro check",
     "check:content": "tsx scripts/check-content.ts",
     "docs:content": "tsx scripts/docs-content.ts",
-    "marks": "tsx scripts/marks.ts",
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "dependencies": {

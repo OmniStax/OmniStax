@@ -447,20 +447,16 @@ def write_record(path: str, record: RecordDTO) -> None:
 
 # ------------------------------------------------------------------ the checker
 
-def run_npm(script: list[str], book_id: BookId, capture: bool) -> subprocess.CompletedProcess:
-    """One of the app's npm scripts, run for one book."""
+def run_checker(book_id: BookId) -> tuple[int, list[str]]:
+    """`npm run check:content` for one book: its exit code and the lines it printed."""
     env = dict(os.environ, OMNISTAX_BOOKS=book_id)
     if os.path.isdir(NODE_BIN):
         env["PATH"] = NODE_BIN + os.pathsep + env.get("PATH", "")
     try:
-        return subprocess.run(["npm", "run", "--silent", *script], cwd=WEB, env=env, capture_output=capture, text=True)
+        done = subprocess.run(["npm", "run", "--silent", "check:content"], cwd=WEB, env=env,
+                              capture_output=True, text=True)
     except FileNotFoundError:
         raise Refused("npm is not on PATH; set OMNISTAX_NODE_BIN to the node bin directory")
-
-
-def run_checker(book_id: BookId) -> tuple[int, list[str]]:
-    """`npm run check:content` for one book: its exit code and the lines it printed."""
-    done = run_npm(["check:content"], book_id, capture=True)
     return done.returncode, (done.stdout + done.stderr).splitlines()
 
 
@@ -724,13 +720,6 @@ def cmd_check(args: argparse.Namespace) -> int:
         return 1 if any(f.level == "error" for f in named) else 0
     print("\n".join(lines))
     return code
-
-
-def cmd_marks(args: argparse.Namespace) -> int:
-    book = book_of(args.book)
-    chapters = [chapter_dir_of(book, c) for c in args.chapters]
-    words = ["--word", args.word] if args.word else []
-    return run_npm(["marks", "--", book.id, *chapters, *words, *(["--tally"] if args.tally else [])], book.id, capture=False).returncode
 
 
 # ------------------------------------------------------------------- the writes
@@ -1012,12 +1001,6 @@ def parser() -> argparse.ArgumentParser:
     check.add_argument("book")
     check.add_argument("--section", help="only the findings that name this section")
 
-    marks = subs.add_parser("marks", help="every word the build marks with its concept's type, for the data-ink sweep")
-    marks.add_argument("book")
-    marks.add_argument("chapters", nargs="*", help="the chapters to list; none means every chapter")
-    marks.add_argument("--word", help="only these concept words, comma separated")
-    marks.add_argument("--tally", action="store_true", help="a count per word instead of the mentions")
-
     ids = subs.add_parser("ids", help="every id of a section's text.html, which anchors may name")
     ids.add_argument("book")
     ids.add_argument("section")
@@ -1027,7 +1010,7 @@ def parser() -> argparse.ArgumentParser:
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "books": cmd_books, "show": cmd_show, "rows": cmd_rows, "find": cmd_find, "meanings": cmd_meanings,
     "add": cmd_write, "set": cmd_write, "del": cmd_write,
-    "merge": cmd_merge, "log": cmd_log, "check": cmd_check, "marks": cmd_marks, "ids": cmd_ids,
+    "merge": cmd_merge, "log": cmd_log, "check": cmd_check, "ids": cmd_ids,
 }
 
 

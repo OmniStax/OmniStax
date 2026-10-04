@@ -27,7 +27,6 @@ takes `-h`. An error is one line on stderr and a non-zero exit.
 | `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, the type it wears there (its own override or its concept's), meaning, and the referent its subscript wears where it names one; run it before adding a row |
 | `check <book> [--section N.M]` | the app's checker, filtered to the section if one is named |
 | `ids <book> <section>` | every id of the section's `text.html`, which an anchor, span, cite or place may name |
-| `marks <book> [chapter ...] [--word w,...] [--tally]` | every word the build marks with its concept's type (rule 7.4), one a line as `section · type · word · …context…`, from the app's own marker (`npm run marks` in `omnistax-web`, which takes the same arguments); the sweep reads it and wraps each everyday use `<span data-ink>`. `--word` keeps those concept words, `--tally` counts per word |
 
 ```
 ost books

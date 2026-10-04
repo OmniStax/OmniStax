@@ -74,7 +74,7 @@ Every concept of the book, since ids are canonical and a chapter’s prerequisit
 | `name` | `string` | yes | What a reader would look the concept up by: the term for a definition, the book’s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss. |
 | `symbol` | `string?` | no | The one symbol the book denotes the concept by, as a key of the book’s symbol table, where it has one. Its variants and components are rows of the chapters’ variables, not of the concept. |
 | `terms` | `string[]` | no | The words the book’s glossary defines the concept under, as the text writes them. The app marks every mention of each in the prose of the chapters that deal with the concept. |
-| `type` | `string?` | no | The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, its hover card’s title wears it, and the build marks every mention of its name and glossary words in the prose with it, save where the text wraps the word `<span data-ink>`. |
+| `type` | `string?` | no | The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, its hover card’s title wears it, and every `<span data-concept>` naming it in the prose wears it. |
 | `statement` | `string?` | no | The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book’s voice. A concept whose section is built carries one. |
 | `forms` | `{ id, latex, ktex?, condition?, section?, anchor? }[]` | no | The equations that state the concept, the main form first. |
 

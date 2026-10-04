@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkRefHues, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkRefHues, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -143,6 +143,14 @@ test('checkTypeSpans: words marked with an undeclared type; a declared one is co
   assert.deepEqual(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="force">pull</span></p>` }), []);
   assert.deepEqual(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="position">place</span></p>` }), [], 'no figure of the page draws position, and the words wear it still');
   assert.match(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="colour">red</span></p>` })[0], /type "colour", which the book does not declare/);
+});
+
+test('checkConceptSpans: a concept span names a concept of the book, in the text, the lead, the summary and the exercises\' lead', () => {
+  assert.deepEqual(run(checkConceptSpans, { textHtml: `${TEXT}<p>the <span data-concept="hookes-law">law</span></p>` }), []);
+  assert.deepEqual(run(checkConceptSpans, { section: { lead: 'What <span data-concept="hookes-law">Hooke’s law</span> says.' } }), []);
+  assert.deepEqual(run(checkConceptSpans, { textHtml: `${TEXT}<p>the <span data-concept="spring">spring</span></p>` }), ['16.1/text.html: <span data-concept="spring"> names no concept of the book']);
+  assert.deepEqual(run(checkConceptSpans, { section: { summary_html: '<p>A <span data-concept="spring">spring</span>.</p>', exercises_lead: 'The <span data-concept="stretch">stretch</span>.' } }),
+    ['16.1/section.json: <span data-concept="spring"> names no concept of the book', '16.1/section.json: <span data-concept="stretch"> names no concept of the book']);
 });
 
 test('a lead marks its words as the text does: a referent named only there is named, and a span naming none is an error in section.json', () => {

@@ -80,9 +80,9 @@ Tables:
   `symbols` the book denotes it by, where it has one, never the list of
   its variants; `type` is the type the concept names, where it names one,
   the one place a kind is declared: the symbols and variables rows that
-  denote the concept inherit it, its hover card's title wears it, and the
-  build marks every mention of its name and glossary words in the prose
-  with it (rule 7.4, below); `forms`
+  denote the concept inherit it, its hover card's title wears it, and every
+  `data-concept` span naming it in the prose wears it (rule 7.4, below);
+  `forms`
   are the equations that state it, each `{ id, latex, ktex?, condition?,
   section?, anchor? }`, ordered, the first the main form a card, the
   Reference view and the search lead with. A form's `id` is unique in the
@@ -233,24 +233,16 @@ Ids at this level are local (`hookes-law`, not `16.1-hookes-law`); the
 build qualifies them.
 
 Beside the tables, the words of `text.html` wear their concepts' types
-(rule 7.4). The build marks every mention of a typed concept's name or
-glossary word `<span data-type="<type>">` in the text, the lead, the
-summary and the exercises lead: whole words, case-insensitive, the
-longest phrase first, plurals and the possessive included. A typed word
-inside a longer word of an untyped concept stays ink with it ("kinetic
-friction" in "coefficient of kinetic friction"). It never marks inside a
-heading, an eyebrow, a link, code, a subscript, rendered maths, or a span
-the text already marked. The author writes only what the build cannot
-know: `<span data-ink>at the same time</span>` around a concept's word
-used in its everyday sense, which stays ink, and `<span data-type="<type>">`
-around a phrase that names a particular one without the concept's words,
-such as a value with its unit (`20.0 m`) or "the pull"; both stay as
-written. `npm run marks -- "<book>" chNN` in `omnistax-web` lists every
-mention the build marks, for the sweep. A type is coloured on every page,
-whatever the page's figures draw.
+(rule 7.4). The builder reads each mention in its sentence and, where it
+names a concept, generally or in particular, writes
+`<span data-concept="<id>">`; the build colours it by the concept's type.
+A word in another sense ("at the same time") stays plain.
+`<span data-type="<type>">` marks a value no concept names, such as
+`20.0 m`. A type is coloured on every page, whatever the page's figures
+draw.
 
 The `lead` is prose of the same kind: it may write the page's symbol
-macros, `<span data-type="<type>">`, `<span data-ink>` and `<span data-ref="<id>">`, which
+macros, `<span data-concept="<id>">`, `<span data-type="<type>">` and `<span data-ref="<id>">`, which
 render and are coloured as in `text.html`. A referent named only in the
 lead counts as named.
 
