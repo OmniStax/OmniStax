@@ -19,6 +19,7 @@ import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } f
 import { cellNumber } from './sheets';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
+import { asidesOf, referentGroups } from '../colours/scopes';
 import { isElementSymbol } from '../fig/elements';
 import { figureLiterals, figureRefs } from './figrefs';
 import { conceptSpanIds } from './conceptspans';
@@ -233,12 +234,13 @@ export const checkReferents: Check = (content) =>
     ];
   });
 
-/* A section deals its referents the thirty-six colours of the referent palette, so a section with more
-   repeats one. */
+/* Referents seen together are dealt the thirty-six colours of the referent palette together, so a group of
+   more repeats one. */
+const groupsOf = (s: SectionContent) => referentGroups({ referents: s.dto.referents, figures: s.dto.figures, text: s.textHtml, asides: asidesOf(s.dto.lead, s.dto.summaryHtml, s.dto.exercisesLead) });
 export const checkReferentCount: Check = (content) =>
-  pagesOf(content).flatMap((s) => (s.dto.referents.length > REFERENT_COUNT
-    ? [warning(`${s.dto.id}/section.json referents`, `has ${s.dto.referents.length} referents; the referent palette has ${REFERENT_COUNT} colours, so ${s.dto.referents.slice(REFERENT_COUNT).map((r) => r.id).join(', ')} repeat${s.dto.referents.length - REFERENT_COUNT === 1 ? 's' : ''} a colour`)]
-    : []));
+  pagesOf(content).flatMap((s) => groupsOf(s).flatMap((g) => (g.referents.length > REFERENT_COUNT
+    ? [warning(`${s.dto.id}/section.json referents`, `has ${g.referents.length} referents seen together; the referent palette has ${REFERENT_COUNT} colours, so ${g.referents.slice(REFERENT_COUNT).join(', ')} repeat${g.referents.length - REFERENT_COUNT === 1 ? 's' : ''} a colour`)]
+    : [])));
 
 /* The default colours a book stores (book.json `colours`) are written by a script and kept as written, so a
    type declared since, or one dropped since, makes them stale until the script is run again. */

@@ -11,7 +11,7 @@ import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
+  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, RefGroupEntry, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
@@ -23,6 +23,7 @@ import type { BookSelection } from '../../../omnistax.config';
 import { type ContentVersion, bookVersion, rootVersion } from './version';
 import { type ConceptTypes, conceptTypes, typeConceptSpans } from './conceptspans';
 import { type PageCounts, countsRecord, pageCounts } from '../colours/counts';
+import { asidesOf, referentGroups } from '../colours/scopes';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -42,6 +43,7 @@ export type SectionSource = {
   readonly exercises: readonly ExerciseDTO[];
   readonly exercisesLead: string;   /* math prerendered */
   readonly counts: PageCounts;      /* how often the page shows each colour key */
+  readonly refGroups: readonly RefGroupEntry[];   /* the referents by what they are seen with */
 };
 /* A chapter's pages: its sections, and its own introduction and summary where the book prints them and they are built. */
 export type ChapterTree = {
@@ -305,6 +307,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
     figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead,
     counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])) }),
+    refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead) }),
   };
 };
 /* The chapter's or the book's own introduction or summary: read from its fixed
@@ -344,6 +347,7 @@ const entryOf = (src: SectionSource): SectionEntry => ({
   figures: figureList(src.textHtml, src.meta.id), types: src.meta.types, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
   ...(src.dto.referents.length ? {
     referents: src.dto.referents.map((r) => ({ id: r.id, figures: r.figures })),
+    refGroups: src.refGroups,
   } : {}),
   ...(Object.keys(src.macros).length ? { macros: src.macros } : {}),
   ...(src.counts.size ? { counts: countsRecord(src.counts) } : {}),

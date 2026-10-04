@@ -3,12 +3,11 @@
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
-import { DEFAULT_REFERENTS, type ReferentId, dealInOrder, pickWrapped, referentHues, unnamedOrder } from '../colours/referents';
+import { DEFAULT_REFERENTS, TARGET_DEFAULT, dealGroup, huesOfGroups, pickWrapped, referentHues, unnamedOrder } from '../colours/referents';
 import { DEFAULT_VISION } from '../colours/palettes';
-import { oklabHues } from '../colours/sample';
-import type { PageReferents } from '../colours/model';
+import { type GroupReferents, type PageReferents, groupsOf } from '../colours/model';
 import type { ColourShown } from '../colours/switches';
-import type { BookManifest, ReferentEntry } from '../content/schema';
+import type { BookManifest, RefGroupEntry, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
@@ -57,8 +56,8 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
    spell the same macro or the same type differently, so every call that sets TeX runs under one
    book's table, the one `cur` holds while it runs, and the boot book's otherwise. */
 export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[]; readonly pages?: Readonly<Record<string, FigPage>> };
-/* What a page declares about its colours: its referents in table order, and the macros it sets otherwise than the book. */
-export type FigPage = { readonly referents: readonly ReferentEntry[]; readonly macros?: Macros };
+/* What a page declares about its colours: its referents in table order and by what they are seen with, and the macros it sets otherwise than the book. */
+export type FigPage = { readonly referents: readonly ReferentEntry[]; readonly refGroups?: readonly RefGroupEntry[]; readonly macros?: Macros };
 export type FigBook = FigBookConfig & { readonly id: string };
 const NO_BOOK: FigBookConfig = { macros: {}, symbols: {}, colorKeys: [] };
 const figBooks = new Map<string, FigBookConfig>();
@@ -215,10 +214,18 @@ const palAt = ({ book, scope }: Place): Record<string, Color> => {
   scopePal.set(key, over);
   return { ...neutral, ...baseOf(book), ...over };
 };
-/* Where the figure being drawn sits, which `F.ref` reads its section's referents from. */
+/* Where the figure being drawn sits, which `F.ref` reads its section's referents from, and the figure's own id
+   in its section, which `F.cat` finds its referent group by. */
 let drawing: Place = { book: '', scope: null };
+let drawingFigure = '';
+const localFigureId = (fig: Element, at: Place): string => {
+  const id = fig.closest('figure[id]')?.id ?? '';
+  const sec = at.scope?.dataset.sec;
+  return sec && id.startsWith(`${sec}-`) ? id.slice(sec.length + 1) : id;
+};
 function usePal(fig: Element): void {
   drawing = placeOf(fig);
+  drawingFigure = localFigureId(fig, drawing);
   Object.assign(PAL, palAt(drawing));
 }
 /* The type hues drawn so far: every hue `C` has handed out since the palette was
@@ -232,7 +239,7 @@ function C(k: string): Color {
   if (!NEUTRAL.has(k) && c) bound.add(c);
   return c;
 }
-/* A referent is one thing of one example that the text and a figure both point at. A section's referents
+/* A referent is one thing of one example that the text and a figure both point at. Referents seen together
    take their colours together from the reader's referent palette, dealt by the colour store
    (colours/referents.ts), so the text and every figure agree. A book the store does not hold deals the
    default palette in order. Worked out once per section until the palette is read again. */
@@ -240,14 +247,16 @@ export type ReferentSource = (book: string, page: string) => PageReferents | nul
 let referentSource: ReferentSource = () => null;
 const hued = new Map<string, PageReferents>();
 export const setReferentSource = (f: ReferentSource): void => { referentSource = f; hued.clear(); };
-const dealtByDefault = (book: string, ids: readonly ReferentId[]): PageReferents => {
-  const palette = referentHues(DEFAULT_REFERENTS, oklabHues(configOf(book).colorKeys.length, DEFAULT_VISION), DEFAULT_VISION);
-  return { hues: dealInOrder(ids, palette), mode: 'order', palette, vision: DEFAULT_VISION, count: ids.length };
+const dealtByDefault = (page: FigPage | undefined): PageReferents => {
+  const palette = referentHues(DEFAULT_REFERENTS, DEFAULT_VISION);
+  const deal = { palette, mode: 'order' as const, vision: DEFAULT_VISION, target: TARGET_DEFAULT };
+  const groups = groupsOf(page ?? {}).map((g): GroupReferents => ({ ...dealGroup({ ids: g.referents, shown: [] }, deal), figures: g.figures }));
+  return { hues: huesOfGroups(groups), groups, palette, vision: DEFAULT_VISION };
 };
 const refsAt = (at: Place): PageReferents => {
   const sec = at.scope?.dataset.sec ?? '';
   const key = `${at.book}|${sec}`;
-  const got = hued.get(key) ?? referentSource(at.book, sec) ?? dealtByDefault(at.book, (pageOf(at)?.referents ?? []).map((r) => r.id));
+  const got = hued.get(key) ?? referentSource(at.book, sec) ?? dealtByDefault(pageOf(at));
   hued.set(key, got);
   return got;
 };
@@ -258,35 +267,37 @@ const refColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): 
   return darkTheme ? h.dark : h.light;
 };
 /* The referent palette by index, for things a figure tells apart that no referents row names. It follows
-   the Referents switch as `F.ref` does, skips the colours the section's referents wear, and puts the ones
-   clear of the type hues the figure has drawn first. */
+   the Referents switch as `F.ref` does, skips the colours the referents of the figure's group wear, and orders
+   the rest farthest first from the type hues the figure has drawn and those referents. */
 const unnamed = new Map<string, readonly Color[]>();
 const unnamedAt = (i: number): Color => {
   const refs = refsAt(drawing);
+  const group = refs.groups.find((g) => g.figures.includes(drawingFigure));
   const drawn = [...bound];
-  const key = `${drawing.book}|${drawing.scope?.dataset.sec ?? ''}|${darkTheme}|${drawn.join()}`;
-  const order = unnamed.get(key) ?? unnamedOrder(refs.palette, [...refs.hues.values()], refs.count, drawn, darkTheme, refs.vision);
+  const key = `${drawing.book}|${drawing.scope?.dataset.sec ?? ''}|${drawingFigure}|${darkTheme}|${drawn.join()}`;
+  const order = unnamed.get(key) ?? unnamedOrder(refs.palette, group?.hues ?? [], group?.ids.length ?? 0, drawn, darkTheme, refs.vision);
   unnamed.set(key, order);
   return pickWrapped(order, i);
 };
 const cat = (i: number): Color => (SHOWN.refs ? unnamedAt(i) : PAL.ink);
 const ref = (id: string): Color => refColor(drawing, id, PAL);
 /* The text's <span data-ref> under a root, a split symbol's subscript among them, coloured here again on
-   every repaint. A span that names several referents ("the two skaters") wears each of their colours in
-   turn across its words. With Referents off a span keeps no colour of its own, so a split subscript wears its
+   every repaint. A span that names several referents ("the two skaters") wears their colours in bands
+   stacked top to bottom, on every line it runs over. With Referents off a span keeps no colour of its own, so a split subscript wears its
    symbol's. */
 const refIds = (s: HTMLElement): readonly string[] => (s.dataset.ref ?? '').split(/\s+/).filter(Boolean);
-const bands = (cs: readonly Color[]): string =>
-  `linear-gradient(90deg, ${cs.map((c, i) => `${c} ${(i * 100) / cs.length}% ${((i + 1) * 100) / cs.length}%`).join(', ')})`;
+export const bands = (cs: readonly Color[]): string =>
+  `linear-gradient(180deg, ${cs.map((c, i) => `${c} ${(i * 100) / cs.length}% ${((i + 1) * 100) / cs.length}%`).join(', ')})`;
 function paintRefs(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-ref]').forEach((s) => {
     const at = placeOf(s); const rs = refIds(s).flatMap((id) => referentOf(at, id) ?? []);
-    ['color', 'background-image', '-webkit-background-clip', 'background-clip', '-webkit-text-fill-color'].forEach((k) => s.style.removeProperty(k));
+    ['color', 'background-image', '-webkit-background-clip', 'background-clip', '-webkit-text-fill-color', '-webkit-box-decoration-break', 'box-decoration-break'].forEach((k) => s.style.removeProperty(k));
     if (!SHOWN.refs) return;
     if (rs.length > 1) {
       const pal = palAt(at);
       s.style.backgroundImage = bands(rs.map((r) => refColor(at, r.id, pal)));
       s.style.setProperty('-webkit-background-clip', 'text'); s.style.backgroundClip = 'text'; s.style.setProperty('-webkit-text-fill-color', 'transparent');
+      s.style.setProperty('-webkit-box-decoration-break', 'clone'); s.style.setProperty('box-decoration-break', 'clone');
       return;
     }
     const r = rs[0];
@@ -2479,7 +2490,7 @@ export const figFor = (book: string): Fig => {
 /* What the drawing layer takes from a book's manifest. */
 export const figBookOf = (m: BookManifest): FigBook => ({
   id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types),
-  pages: Object.fromEntries(bookPagesOf(m).flatMap((p) => (p.referents || p.macros ? [[p.id, { referents: p.referents ?? [], ...(p.macros ? { macros: p.macros } : {}) }]] : []))),
+  pages: Object.fromEntries(bookPagesOf(m).flatMap((p) => (p.referents || p.macros ? [[p.id, { referents: p.referents ?? [], ...(p.refGroups ? { refGroups: p.refGroups } : {}), ...(p.macros ? { macros: p.macros } : {}) }]] : []))),
 });
 
 /* The boot book: registered, made the default table, and exposed as window.FIG. */

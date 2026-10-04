@@ -93,22 +93,3 @@ export const minDistance = (hues: readonly Hue[], vision: Vision): DeltaE => {
   const seen = hues.map((h) => seenHue(h, vision));
   return seen.reduce((m, p, i) => seen.slice(i + 1).reduce((mm, q) => Math.min(mm, seenHueDistance(p, q)), m), Infinity);
 };
-
-/* n colours that carry the sampling on from the colours given rather than from
-   the seed: each the candidate farthest from the inks, the given colours and
-   those taken before it. Given the first k of the palette for the same vision,
-   they are the palette's colours k + 1 to k + n. */
-const carried = new Map<string, readonly Hue[]>();
-export const oklabAfter = (given: readonly Hue[], n: number, vision: Vision): readonly Hue[] => {
-  if (n < 1) return [];
-  const key = `${vision}|${n}|${given.map((h) => `${h.light}${h.dark}`).sort().join(',')}`;
-  const got = carried.get(key);
-  if (got) return got;
-  const cs = allCandidates();
-  const { seen } = samplingFor(vision);
-  const s: Sampling = { seen, nearest: roomFrom(seen, [...INKS, ...given].map((h) => seenHue(h, vision))), picked: [] };
-  while (s.picked.length < Math.min(n, cs.length)) take(s, farthest(s.nearest));
-  const hues = s.picked.map((i) => cs[i].hue);
-  carried.set(key, hues);
-  return hues;
-};

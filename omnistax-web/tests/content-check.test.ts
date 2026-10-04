@@ -187,10 +187,14 @@ test('checkDraws: a figure that draws a type the book never declared', () => {
   assert.match(said[0], /draws "stiffness" names no row/);
 });
 
-test('checkReferentCount: a section with more referents than the thirty-six referent colours', () => {
-  const referents = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figures: ['sim-ruler'] }));
+test('checkReferentCount: a group of referents seen together with more than the thirty-six referent colours', () => {
+  const referents = (n: number, figure = 'sim-ruler') => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figures: [figure] }));
   assert.deepEqual(run(checkReferentCount, { section: { referents: referents(36) } }), []);
-  assert.deepEqual(run(checkReferentCount, { section: { referents: referents(37) } }), ['16.1/section.json referents: has 37 referents; the referent palette has 36 colours, so r-36 repeats a colour']);
+  assert.deepEqual(run(checkReferentCount, { section: { referents: referents(37) } }), ['16.1/section.json referents: has 37 referents seen together; the referent palette has 36 colours, so r-36 repeats a colour']);
+  const apart = [...referents(30), ...referents(30, 'sim-spring').map((r) => ({ ...r, id: `s-${r.id}` }))];
+  const text = `${TEXT}<section id="other">${figureOf('class="sim" id="sim-spring"', 'A spring')}</section>`;
+  const figures = [{ id: 'sim-ruler', kind: 'sim' }, { id: 'sim-spring', kind: 'sim' }];
+  assert.deepEqual(run(checkReferentCount, { section: { referents: apart, figures }, textHtml: text }), [], 'sixty referents in two groups that never meet');
 });
 
 test('checkReferents: a figure whose script draws a referent with F.ref is listed in its figures', () => {

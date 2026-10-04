@@ -146,12 +146,6 @@ export const BookColoursSchema = z.object({
   palette: z.string().describe('The palette the colours were taken from, by its id in the app (oklab).'),
   vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).describe('The colour vision the assignment keeps the colours of one page apart for: normal, protan, deutan or tritan.'),
   assign: z.record(z.string(), StoredHueSchema).describe('Each type\u2019s colour, keyed by type id. A type the book declares and this omits takes the next palette colour no listed type wears, and the checker says the default is stale.'),
-  dmin: z.object({
-    normal: z.number().nonnegative().describe('For normal vision, in ΔE_OK.'),
-    protan: z.number().nonnegative().describe('For protanopia.'),
-    deutan: z.number().nonnegative().describe('For deuteranopia.'),
-    tritan: z.number().nonnegative().describe('For tritanopia.'),
-  }).strict().optional().describe('For each colour vision, the nearest a smart referent may stand to a colour of its page in this book: the largest value, in steps of 0.01, at which no section falls back to in order and at most a quarter of the referents leave their in-order colour, with these colours and the default referent palette.'),
 }).strict();
 export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
 
@@ -174,7 +168,7 @@ export const BookSchema = z.object({
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
-  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and its referents\u2019 minimum distance for each vision, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
+  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
@@ -274,7 +268,7 @@ export type FigureRowDTO = z.infer<typeof FigureSchema>;
 export const ReferentSchema = z.object({
   id: z.string().describe('The referent\u2019s id, unique in the section, which a `<span data-ref="\u2026">` of the text and `F.ref` of the figure name it by.'),
   label: z.string().describe('What the text calls it, such as Firm B.'),
-  figures: z.array(z.string()).nonempty().describe('The ids of every figure of the section that draws it, in the order the section sets them. Its colour is dealt from the reader\u2019s thirty-six referent colours in the table\u2019s order, one per referent of the section.'),
+  figures: z.array(z.string()).nonempty().describe('The ids of every figure of the section that draws it, in the order the section sets them. Its colour is dealt from the reader\u2019s thirty-six referent colours in the table\u2019s order among the referents it is seen with: those whose figures or text blocks it shares.'),
 }).strict();
 export type ReferentDTO = z.infer<typeof ReferentSchema>;
 
@@ -585,6 +579,9 @@ export type KindMap = Readonly<Record<string, string>>;
 export type FigureEntry = { readonly id: string; readonly label: string };
 /* One referent of a section as the text and its figures colour it, by its place among its figure's rows. */
 export type ReferentEntry = { readonly id: string; readonly figures: readonly string[] };
+/* Referents seen together, which are dealt their colours together (colours/scopes.ts): their ids in table order,
+   the figures their scope covers, and the colour keys it shows (colours/counts.ts). */
+export type RefGroupEntry = { readonly referents: readonly string[]; readonly figures: readonly string[]; readonly shows: readonly string[] };
 /* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
 export type ExerciseEntry = { readonly id: string; readonly kind: string };
 export type SectionEntry = {
@@ -594,6 +591,7 @@ export type SectionEntry = {
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
   readonly types: readonly string[];             /* the types the page wears, from its meta; empty until the section is built */
   readonly referents?: readonly ReferentEntry[]; /* the section's referents in table order; absent where it has none */
+  readonly refGroups?: readonly RefGroupEntry[]; /* its referents by what they are seen with; absent where it has none */
   readonly macros?: MacroMap;                    /* the macros this page sets otherwise than the book, from its variables rows; absent where none differ */
   readonly counts?: Readonly<Record<string, number>>;   /* how often the page shows each colour key (colours/counts.ts); absent until built */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */

@@ -1,157 +1,172 @@
-/* The referent palette: thirty-six colours, dealt to a section's referents in
-   table order or smartly, kept per section, remembered with the reader's other
-   colour choices; and each colour family answering to its own switch. */
+/* The referent palette: thirty-six colours, dealt to each group of referents
+   seen together in table order or smartly, farthest apart where smart finds no
+   way, remembered with the reader's other colour choices; and each colour family
+   answering to its own switch. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  AFTER_CATEGORIES, D_MIN_FALLBACK, DEFAULT_REFERENTS, REFERENT_COUNT, afterCategories, dealInOrder, dealReferents, pickWrapped,
-  type RefPage, D_MIN_STEPS, bestDMin, dMinSweep, referentHues, referentPalettes, unnamedOrder,
+  DEFAULT_REFERENTS, REFERENT_COUNT, TARGET_DEFAULT, dealGroup, farthestSlots, pickWrapped, referentHues, referentPalettes, targetOf, unnamedOrder,
 } from '../src/lib/colours/referents';
-import { NO_CHOICES, type Hue, bookDMin, dMinOf, fromFile, isEmpty, pageReferents, referentsOf, setReferents, toFile, withBookDMin } from '../src/lib/colours/model';
-import { paletteId, pairsOf } from '../src/lib/colours/palettes';
+import { referentGroups } from '../src/lib/colours/scopes';
+import { NO_CHOICES, type Hue, fromFile, isEmpty, pageReferents, referentsOf, setReferents, toFile } from '../src/lib/colours/model';
+import { paletteId } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
-import { distance } from '../src/lib/colours/oklab';
+import { distance, seenHue } from '../src/lib/colours/oklab';
 import type { BookManifest } from '../src/lib/content/schema';
 import { bookId } from '../src/lib/types/ids';
 import { elementColor } from '../src/lib/fig/elements';
+import { bands } from '../src/lib/fig/figlib';
 import { COLOURS_ON, rootClasses, shownOf } from '../src/lib/colours/switches';
 
 const grey = (v: number): Hue => { const h = `#${v.toString(16).padStart(2, '0').repeat(3)}`.toUpperCase(); return { light: h, dark: h }; };
 const PALETTE: readonly Hue[] = Array.from({ length: REFERENT_COUNT }, (_, i) => grey(i * 7));
 const ids = (n: number): readonly string[] => Array.from({ length: n }, (_, i) => `r-${i}`);
+const deal = (n: number, shown: readonly Hue[], mode: 'order' | 'smart', target: number) =>
+  dealGroup({ ids: ids(n), shown }, { palette: PALETTE, mode, vision: 'normal', target });
 
-test('the default referent palette is the OKLab sampling carried on past the categories', () => {
-  const five = oklabHues(5, 'deutan');
-  const after = pairsOf(afterCategories(five), REFERENT_COUNT, 'deutan');
-  assert.deepEqual(after, oklabHues(5 + REFERENT_COUNT, 'deutan').slice(5), 'the palette\u2019s own next thirty-six');
-  assert.deepEqual(referentHues(DEFAULT_REFERENTS, [...five].reverse(), 'deutan'), after, 'whatever order the categories stand in');
-  const offered = referentPalettes(five, 'normal').map((o) => String(o.palette.id));
-  assert.equal(offered[0], String(AFTER_CATEGORIES));
+test('the default referent palette is the OKLab palette’s own thirty-six', () => {
+  assert.deepEqual(referentHues(DEFAULT_REFERENTS, 'deutan'), oklabHues(REFERENT_COUNT, 'deutan'));
+  const offered = referentPalettes('normal').map((o) => String(o.palette.id));
+  assert.equal(offered[0], 'oklab');
   assert.ok(offered.includes('oklch') && !offered.includes('okabe-ito'), 'only palettes that give thirty-six');
-  assert.ok(referentPalettes(five, 'normal').every((o) => o.hues.length === REFERENT_COUNT));
-  assert.deepEqual(referentHues({ palette: paletteId('okabe-ito'), mode: 'order' }, five, 'deutan'), after, 'a palette that cannot give thirty-six falls back to the default');
+  assert.ok(referentPalettes('normal').every((o) => o.hues.length === REFERENT_COUNT));
+  assert.deepEqual(referentHues({ palette: paletteId('okabe-ito'), mode: 'order' }, 'deutan'), oklabHues(REFERENT_COUNT, 'deutan'), 'a palette that cannot give thirty-six falls back to the default');
+  assert.deepEqual(referentHues({ palette: paletteId('oklab-after'), mode: 'smart' }, 'normal'), oklabHues(REFERENT_COUNT, 'normal'), 'a palette that is gone falls back too');
 });
 
-test('in order, the i-th referent wears the i-th colour, wrapping past thirty-six', () => {
-  const dealt = dealReferents({ ids: ids(38), palette: PALETTE, page: [], mode: 'order', vision: 'normal' });
+/* ---------- scope ---------- */
+
+const fig = (id: string, draws: readonly string[] = [], facts: readonly string[] = [], conventions: readonly string[] = []) => ({ id, draws, facts, conventions });
+const TWO_FIGURES = '<section id="a"><p><span data-type="force">pull</span></p><figure class="sim" id="sim-a"></figure></section>'
+  + '<section id="b"><figure class="sim" id="sim-b"></figure><p>the <span data-ref="cart">cart</span></p></section>';
+const page = (text: string, lead = '') => ({
+  referents: [{ id: 'horse', figures: ['sim-a'] }, { id: 'cart', figures: ['sim-b'] }],
+  figures: [fig('sim-a', ['force'], ['#FF0000', 'spectrum']), fig('sim-b', ['mass'], [], ['O'])],
+  text, asides: { '@lead': lead, '@summary': '', '@exercises': '' },
+});
+
+test('referents in two figures of two blocks are two groups, each showing its own scope', () => {
+  const groups = referentGroups(page(TWO_FIGURES));
+  assert.deepEqual(groups.map((g) => g.referents), [['horse'], ['cart']]);
+  assert.deepEqual(groups[0], { referents: ['horse'], figures: ['sim-a'], shows: ['#FF0000', 'force'] });
+  assert.deepEqual(groups[1], { referents: ['cart'], figures: ['sim-b'], shows: ['el:O', 'mass'] });
+});
+
+test('a mention in the other figure’s block leaks the scope and merges the groups, in table order', () => {
+  const leak = TWO_FIGURES.replace('<p><span data-type="force">pull</span></p>', '<p><span data-type="force">pull</span> on <span data-ref="cart">the cart</span></p>');
+  const [one, ...rest] = referentGroups(page(leak));
+  assert.equal(rest.length, 0);
+  assert.deepEqual(one.referents, ['horse', 'cart']);
+  assert.deepEqual(one.figures, ['sim-a', 'sim-b']);
+  assert.deepEqual(one.shows, ['#FF0000', 'el:O', 'force', 'mass']);
+  const both = referentGroups(page(TWO_FIGURES, 'How <span data-ref="horse cart">the two</span> move.'));
+  assert.deepEqual(both.map((g) => g.referents), [['horse', 'cart']], 'the lead is a block of its own, and a phrase naming both joins them');
+});
+
+test('a nested section is a block of its own, and the text after it belongs to the section around it', () => {
+  const nested = '<section id="outer"><figure id="sim-a"></figure><section id="inner"><span data-ref="cart">c</span></section><span data-ref="cart">c</span></section><figure id="sim-b"></figure>';
+  assert.deepEqual(referentGroups(page(nested)).map((g) => g.referents), [['horse', 'cart']]);
+});
+
+/* ---------- dealing ---------- */
+
+test('in order, a group’s i-th referent wears colour i, wrapping past thirty-six', () => {
+  const dealt = deal(38, [], 'order', TARGET_DEFAULT);
   assert.equal(dealt.mode, 'order');
-  assert.equal(dealt.hues.get('r-0'), PALETTE[0]);
-  assert.equal(dealt.hues.get('r-5'), PALETTE[5]);
-  assert.equal(dealt.hues.get('r-37'), PALETTE[1]);
+  assert.deepEqual([dealt.hues[0], dealt.hues[5], dealt.hues[37]], [PALETTE[0], PALETTE[5], PALETTE[1]]);
 });
 
-test('smart skips a colour too near the page and one an earlier referent wears, wrapping round the palette', () => {
-  const page = [PALETTE[0], PALETTE[35]];
-  const dealt = dealReferents({ ids: ids(2), palette: PALETTE, page, mode: 'smart', vision: 'normal', dMin: 0.001 });
-  assert.equal(dealt.mode, 'smart');
-  assert.equal(dealt.hues.get('r-0'), PALETTE[1], 'colour 0 is on the page');
-  assert.equal(dealt.hues.get('r-1'), PALETTE[2], 'colour 1 is taken by r-0');
-  const last = dealReferents({ ids: ids(36).slice(0, 36), palette: PALETTE, page: [PALETTE[35]], mode: 'smart', vision: 'normal', dMin: 0.001 });
-  assert.equal(last.mode, 'order', 'thirty-six referents and one colour on the page leave one referent without a colour');
-  const wrap = dealReferents({ ids: ids(35), palette: PALETTE, page: [PALETTE[34]], mode: 'smart', vision: 'normal', dMin: 0.001 });
-  assert.equal(wrap.mode, 'smart');
-  assert.equal(wrap.hues.get('r-34'), PALETTE[35]);
-  assert.equal(new Set(wrap.hues.values()).size, 35);
+test('the smart walk skips a colour too near what the scope shows and one too near a referent dealt before it', () => {
+  const near = deal(2, [PALETTE[0], PALETTE[35]], 'smart', 0.001);
+  assert.equal(near.mode, 'smart');
+  assert.deepEqual(near.hues, [PALETTE[1], PALETTE[2]], 'colour 0 is shown; colour 1 is taken');
+  const far = deal(2, [], 'smart', distance(PALETTE[0], PALETTE[2], 'normal'));
+  assert.deepEqual(far.hues, [PALETTE[0], PALETTE[2]], 'colour 1 stands too near referent 0, so referent 1 walks on');
+  const wrap = deal(35, [PALETTE[34]], 'smart', 0.001);
+  assert.equal(wrap.hues[34], PALETTE[35]);
+  assert.equal(new Set(wrap.hues).size, 35);
 });
 
-test('smart deals the whole section in order when any referent finds no colour', () => {
-  const dealt = dealReferents({ ids: ids(3), palette: PALETTE, page: [grey(120)], mode: 'smart', vision: 'normal', dMin: 10 });
-  assert.equal(dealt.mode, 'order');
-  assert.deepEqual([...dealt.hues], [...dealInOrder(ids(3), PALETTE)]);
+test('a group in which a referent finds no colour is dealt farthest apart, every one of it', () => {
+  const shown = [PALETTE[0]];
+  const dealt = deal(3, shown, 'smart', 10);
+  assert.equal(dealt.mode, 'farthest');
+  assert.equal(dealt.hues[0], PALETTE[35], 'the first takes the colour farthest from what is shown');
+  const all = [...shown, ...dealt.hues];
+  const worst = (hs: readonly Hue[]) => Math.min(...hs.flatMap((a, i) => hs.slice(i + 1).map((b) => distance(a, b, 'normal'))));
+  assert.ok(worst(all) >= worst([...shown, PALETTE[1], PALETTE[2], PALETTE[3]]), 'farther apart than in order would be');
+  assert.equal(farthestSlots(38, PALETTE.map((h) => seenHue(h, 'normal')), []).length, 38, 'past thirty-six the palette comes round again');
+  assert.equal(new Set(farthestSlots(36, PALETTE.map((h) => seenHue(h, 'normal')), [])).size, 36);
 });
 
-test('smart on the default palette keeps every referent dMin from the page in both themes', () => {
-  const page = oklabHues(8, 'deutan');
-  const palette = oklabHues(8 + REFERENT_COUNT, 'deutan').slice(8);
-  const dealt = dealReferents({ ids: ids(6), palette, page, mode: 'smart', vision: 'deutan', dMin: 0.03 });
-  assert.equal(dealt.mode, 'smart');
-  for (const h of dealt.hues.values()) for (const p of page) assert.ok(distance(h, p, 'deutan') >= 0.03);
-});
-
-/* A book of three types whose section 1.1 shows two of them and has two referents. */
+/* A book of three types whose section 1.1 has two groups that never meet, two referents each. */
 const MANIFEST = {
   id: bookId('b'), title: 'B', publisher: '', authors: [], license: '', macros: {}, symbols: {}, exerciseKinds: {}, exercises: '', concepts: '', formulas: '',
   types: { time: { label: 'time' }, mass: { label: 'mass' }, force: { label: 'force' } },
   chapters: [{ id: '1', dir: 'ch01', title: '', concepts: '', formulas: '', sections: [{
     id: '1.1', title: '', built: true, url: '', fragment: '', figuresJs: '', figures: [], types: ['time', 'mass'], exercises: [],
-    referents: [{ id: 'cart', figures: ['sim-a'] }, { id: 'horse', figures: ['sim-a'] }], counts: { time: 3, mass: 1, 'el:O': 1 },
+    referents: [{ id: 'cart', figures: ['sim-a'] }, { id: 'horse', figures: ['sim-a'] }, { id: 'tug-1', figures: ['sim-b'] }, { id: 'tug-2', figures: ['sim-b'] }],
+    refGroups: [{ referents: ['cart', 'horse'], figures: ['sim-a'], shows: ['time'] }, { referents: ['tug-1', 'tug-2'], figures: ['sim-b'], shows: ['mass', 'el:O'] }],
+    counts: { time: 3, mass: 1, 'el:O': 1 },
   }] }],
 } as unknown as BookManifest;
 
-test('a page deals its referents from the reader’s palette, measured against its own colours', () => {
-  const got = pageReferents(MANIFEST, NO_CHOICES, '1.1')!;
-  assert.equal(got.count, 2);
-  assert.equal(got.palette.length, REFERENT_COUNT);
-  assert.deepEqual(got.palette, oklabHues(3 + REFERENT_COUNT, 'normal').slice(3), 'the default vision is normal');
-  assert.notEqual(got.hues.get('cart'), got.hues.get('horse'));
-  const inOrder = pageReferents(MANIFEST, setReferents(NO_CHOICES, AFTER_CATEGORIES, 'order'), '1.1')!;
-  assert.deepEqual([inOrder.hues.get('cart'), inOrder.hues.get('horse')], inOrder.palette.slice(0, 2));
+test('groups that never meet recycle the same colours, each numbered from its own first referent', () => {
+  const inOrder = pageReferents(MANIFEST, setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, mode: 'order' }), '1.1')!;
+  assert.deepEqual(inOrder.groups.map((g) => g.hues), [inOrder.palette.slice(0, 2), inOrder.palette.slice(0, 2)]);
+  assert.equal(inOrder.hues.get('cart'), inOrder.hues.get('tug-1'));
+  const smart = pageReferents(MANIFEST, NO_CHOICES, '1.1')!;
+  assert.deepEqual(smart.palette, oklabHues(REFERENT_COUNT, 'normal'));
+  assert.notEqual(smart.hues.get('cart'), smart.hues.get('horse'));
+  for (const g of smart.groups) assert.ok(g.mode !== 'order');
   assert.equal(pageReferents(MANIFEST, NO_CHOICES, '9.9'), null);
 });
 
-/* A synthetic book of four sections over the grey palette. */
-const SECTIONS: readonly RefPage[] = [
-  { ids: ids(3), shown: [PALETTE[2]] },
-  { ids: ids(2), shown: [PALETTE[5], PALETTE[20]] },
-  { ids: ids(30), shown: [PALETTE[33]] },
-  { ids: ids(1), shown: [PALETTE[30]] },
-];
-
-test('bestDMin is the largest step at which no section falls back and at most a quarter of the referents move', () => {
-  const input = { pages: SECTIONS, palette: PALETTE, vision: 'normal' as const };
-  const rows = dMinSweep(input);
-  assert.deepEqual(rows.map((r) => r.dMin), D_MIN_STEPS);
-  assert.deepEqual(rows[0], { dMin: 0, moved: 0, fellBack: 0 });
-  const best = bestDMin(input);
-  const at = rows.find((r) => r.dMin === best)!;
-  assert.equal(best, 0.08, 'the 30-referent section falls back past 0.08');
-  assert.ok(best > 0 && at.fellBack === 0 && at.moved <= 0.25 * 36);
-  assert.ok(rows.filter((r) => r.dMin > best).every((r) => r.fellBack > 0 || r.moved > 0.25 * 36), 'nothing larger passes');
-  rows.forEach((r) => {
-    const dealt = SECTIONS.map((p) => dealReferents({ ids: p.ids, palette: PALETTE, page: p.shown, mode: 'smart', vision: 'normal', dMin: r.dMin }));
-    assert.equal(dealt.filter((d) => d.mode === 'order').length, r.fellBack, `fallbacks at ${r.dMin}`);
-  });
-  assert.equal(bestDMin({ ...input, pages: [] }), D_MIN_STEPS[D_MIN_STEPS.length - 1], 'a book with no referents passes at every step');
+test('the target distance is a reader setting: kept with the referents, default stored as nothing, and it recolours', () => {
+  const book = bookId('b');
+  assert.equal(targetOf(referentsOf(NO_CHOICES)), TARGET_DEFAULT);
+  assert.equal(setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: TARGET_DEFAULT }), NO_CHOICES);
+  const wide = setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: 0.2 });
+  const back = fromFile(JSON.parse(JSON.stringify(toFile(book, wide))), book);
+  assert.ok(back.ok);
+  assert.equal(back.ok && targetOf(referentsOf(back.choices)), 0.2);
+  assert.ok(isEmpty(setReferents(wide, DEFAULT_REFERENTS)));
+  const odd = fromFile({ ...toFile(book, NO_CHOICES), referents: { palette: 'oklab', mode: 'smart', target: 9 } }, book);
+  assert.equal(odd.ok && targetOf(referentsOf(odd.choices)), 0.25, 'a target out of range is brought into it');
+  const tight = pageReferents(MANIFEST, setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: 0.02 }), '1.1')!;
+  const loose = pageReferents(MANIFEST, wide, '1.1')!;
+  assert.notDeepEqual(tight.groups.map((g) => g.hues), loose.groups.map((g) => g.hues), 'a new target deals new colours');
 });
 
-test('the reader’s own dMin stands over the book’s for their vision, and that over the fallback', () => {
-  const dmin = { normal: 0.06, protan: 0.03, deutan: 0.02, tritan: 0.04 };
-  const book = { colours: { palette: 'oklab', vision: 'normal' as const, assign: {}, dmin } };
-  assert.equal(dMinOf(book, NO_CHOICES), 0.06);
-  assert.equal(dMinOf(book, { ...NO_CHOICES, vision: 'deutan' }), 0.02);
-  assert.equal(dMinOf(book, setReferents(NO_CHOICES, AFTER_CATEGORIES, 'smart', 0.11)), 0.11);
-  assert.equal(dMinOf({}, NO_CHOICES), D_MIN_FALLBACK);
-  const own = withBookDMin(MANIFEST, NO_CHOICES);
-  assert.equal(referentsOf(own).dMin, bookDMin(MANIFEST, NO_CHOICES));
-  const b = bookId('b');
-  const back = fromFile(JSON.parse(JSON.stringify(toFile(b, own))), b);
-  assert.equal(back.ok && referentsOf(back.choices).dMin, referentsOf(own).dMin, 'kept with the referent setting');
-});
-
-test('an unnamed instance skips the section’s referent colours and puts those clear of the drawn ones first', () => {
+test('an unnamed instance skips its group’s referent colours and orders the rest farthest first', () => {
   const palette = oklabHues(REFERENT_COUNT, 'normal');
-  const order = unnamedOrder(palette, [palette[2], palette[3]], 2, [], false, 'normal');
-  assert.equal(order.length, REFERENT_COUNT - 2);
-  assert.equal(order[0], palette[4].light, 'after the referents’ own slots');
-  assert.ok(!order.includes(palette[2].light) && !order.includes(palette[3].light));
-  const near = unnamedOrder(palette, [], 0, [palette[0].dark], true, 'normal');
-  assert.equal(near[near.length - 1], palette[0].dark, 'the colour a figure has drawn goes last');
+  const order = unnamedOrder(palette, [], 0, [], false, 'normal');
+  assert.equal(order[0], palette[0].light, 'nothing drawn: the palette’s first');
+  assert.equal(order.length, REFERENT_COUNT);
+  const worn = unnamedOrder(palette, [palette[2], palette[3]], 2, [], false, 'normal');
+  assert.equal(worn.length, REFERENT_COUNT - 2);
+  assert.ok(!worn.includes(palette[2].light) && !worn.includes(palette[3].light));
+  const drawn = unnamedOrder(palette, [], 0, [palette[0].dark], true, 'normal');
+  assert.equal(drawn[drawn.length - 1], palette[0].dark, 'the colour a figure has drawn goes last');
   assert.equal(unnamedOrder(palette.slice(0, 2), palette.slice(0, 2), 2, [], false, 'normal').length, 2, 'a palette all worn comes back whole');
   assert.equal(pickWrapped(order, -1), order[order.length - 1]);
   assert.equal(pickWrapped(order, order.length), order[0]);
 });
 
+test('a phrase naming several referents is split top to bottom, in equal bands with hard stops', () => {
+  assert.equal(bands(['#111111', '#222222']), 'linear-gradient(180deg, #111111 0% 50%, #222222 50% 100%)');
+});
+
 test('the referent setting is remembered with the reader’s colours, and the default is stored as nothing', () => {
   const book = bookId('b');
   assert.deepEqual(referentsOf(NO_CHOICES), DEFAULT_REFERENTS);
-  assert.equal(setReferents(NO_CHOICES, DEFAULT_REFERENTS.palette, DEFAULT_REFERENTS.mode), NO_CHOICES);
-  const chosen = setReferents(NO_CHOICES, paletteId('oklch'), 'order');
+  assert.equal(setReferents(NO_CHOICES, DEFAULT_REFERENTS), NO_CHOICES);
+  const chosen = setReferents(NO_CHOICES, { palette: paletteId('oklch'), mode: 'order' });
   assert.ok(!isEmpty(chosen));
   const back = fromFile(JSON.parse(JSON.stringify(toFile(book, chosen))), book);
   assert.ok(back.ok);
   assert.deepEqual(back.ok && referentsOf(back.choices), { palette: 'oklch', mode: 'order' });
-  assert.ok(isEmpty(setReferents(chosen, AFTER_CATEGORIES, 'smart')));
   const odd = fromFile({ ...toFile(book, NO_CHOICES), referents: { palette: 'oklch', mode: 'sideways' } }, book);
   assert.deepEqual(odd.ok && referentsOf(odd.choices), DEFAULT_REFERENTS, 'a setting that does not parse is the default');
 });

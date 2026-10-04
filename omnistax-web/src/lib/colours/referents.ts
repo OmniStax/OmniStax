@@ -1,171 +1,135 @@
-/* The referent palette: the colours a section gives the particular things its
+/* The referent palette: the colours a page gives the particular things its
    text and figures point at — two tugboats, three skaters, Firm A and Firm B.
    It is always thirty-six colours, taken from any palette that can give that
-   many; by default they are the thirty-six the OKLab sampler picks after the
-   book's category colours, so each sits as far from the categories as the
-   screen allows. A section deals them out in its referents table order, one
-   colour per referent in every figure and in the text.
+   many; by default the OKLab palette's own thirty-six. Colours are dealt per
+   group of referents seen together (scopes.ts), in table order, so groups that
+   never meet wear the same colours and each group's i-th referent is its
+   referent i.
 
-   In order, the i-th referent wears colour i. Smart, it tries colour i, then
-   i + 1, i + 2 … round the palette, and wears the first that no earlier referent
-   of the section wears and that stands at least dMin from every category,
-   convention and fact colour of the page; a section in which any referent finds
-   none is dealt in order instead. dMin belongs to the book, the vision and the
-   colours the reader wears: bestDMin works it out. Pure throughout. */
-import type { Hex, Hue, TypeKey } from './model';
-import { type Offer, type Palette, type PaletteId, PALETTES, generatedPairs, pairsOf } from './palettes';
-import { type DeltaE, type SeenHue, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
-import { oklabAfter } from './sample';
-import { type PageCounts, fixedHueOf, isCategoryKey } from './counts';
+   In order, a group's i-th referent wears colour i. Smart, it tries colour i,
+   then i + 1, i + 2 … round the palette, and wears the first that no earlier
+   referent of the group wears and that stands at least the reader's target from
+   every colour the group's scope shows and from every referent of the group dealt
+   before it. A group in which any referent finds none is dealt farthest apart
+   instead: each referent in turn takes the colour left that stands farthest from
+   all of those. Pure throughout. */
+import type { Hex, Hue } from './model';
+import { type Offer, type PaletteId, PALETTES, pairsOf } from './palettes';
+import { type DeltaE, type Seen, type SeenHue, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
 
 export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
-export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly dMin?: DeltaE };
+/* How a group was dealt: the mode asked for, or farthest apart where smart found no way. */
+export type DealtMode = RefMode | 'farthest';
+export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly target?: DeltaE };
 
 export const REFERENT_COUNT = 36;
 
-/* The nearest a smart referent may stand to a colour of its page where neither
-   the reader nor the book has worked out its own: the least a book reaches. */
-export const D_MIN_FALLBACK: DeltaE = 0.01;
+/* The nearest a smart referent may stand to the colours its group shows, which the reader sets. */
+export const TARGET_DEFAULT: DeltaE = 0.12;
+export const TARGET_MIN: DeltaE = 0.02;
+export const TARGET_MAX: DeltaE = 0.25;
+export const TARGET_STEP: DeltaE = 0.01;
+export const clampTarget = (t: DeltaE): DeltaE => Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(t * 100) / 100));
 
-/* Where an unnamed instance's colours count as clear of what its figure has
-   drawn; it only orders them, so it can stand stricter than any dMin. */
-export const UNNAMED_CLEAR: DeltaE = 0.08;
-
-/* Written out rather than made with paletteId, since palettes.ts reaches this module through model.ts and is
+/* Written out rather than taken from OKLAB, since palettes.ts reaches this module through model.ts and is
    not yet evaluated when this line runs. */
-export const AFTER_CATEGORIES = 'oklab-after' as PaletteId;
-export const DEFAULT_REFERENTS: RefSettings = { palette: AFTER_CATEGORIES, mode: 'smart' };
+const OKLAB_ID = 'oklab' as PaletteId;
+export const DEFAULT_REFERENTS: RefSettings = { palette: OKLAB_ID, mode: 'smart' };
 
 export const isRefMode = (s: unknown): s is RefMode => s === 'order' || s === 'smart';
+export const targetOf = (s: RefSettings): DeltaE => s.target ?? TARGET_DEFAULT;
 
-/* The OKLab sampling carried on past the book's category colours. */
-export const afterCategories = (categories: readonly Hue[]): Palette => generatedPairs(
-  AFTER_CATEGORIES,
-  'OKLab after the categories',
-  'The colours the OKLab palette picks next after the book’s categories, each as far from them and from one another as the screen allows for your vision.',
-  (n, vision) => oklabAfter(categories, n, vision),
-);
-
-/* The palettes that can give the referents their thirty-six, the book's own continuation first. */
-export const referentPalettes = (categories: readonly Hue[], vision: Vision): readonly Offer[] =>
-  [afterCategories(categories), ...PALETTES].flatMap((palette) => {
+/* The palettes that can give the referents their thirty-six. */
+export const referentPalettes = (vision: Vision): readonly Offer[] =>
+  PALETTES.flatMap((palette) => {
     const hues = pairsOf(palette, REFERENT_COUNT, vision);
     return hues ? [{ palette, hues }] : [];
   });
 
 /* The thirty-six colours a setting names, else the default's when its palette is gone or cannot give them. */
-export const referentHues = (s: RefSettings, categories: readonly Hue[], vision: Vision): readonly Hue[] => {
-  const own = afterCategories(categories);
-  const chosen = [own, ...PALETTES].find((p) => p.id === s.palette);
-  return (chosen && pairsOf(chosen, REFERENT_COUNT, vision)) ?? (pairsOf(own, REFERENT_COUNT, vision) as readonly Hue[]);
+export const referentHues = (s: RefSettings, vision: Vision): readonly Hue[] => {
+  const pick = (id: PaletteId): readonly Hue[] | null => {
+    const p = PALETTES.find((q) => q.id === id);
+    return p ? pairsOf(p, REFERENT_COUNT, vision) : null;
+  };
+  return pick(s.palette) ?? (pick(OKLAB_ID) as readonly Hue[]);
 };
 
-/* The colours a page shows besides its referents: its categories as the reader
-   has them, and its conventions and facts as they are. */
-export const pageColours = (counts: PageCounts, categoryHue: (type: TypeKey) => Hue | null): readonly Hue[] =>
-  [...counts.keys()].flatMap((k) => (isCategoryKey(k) ? categoryHue(k) : fixedHueOf(k)) ?? []);
-
 export type RefHues = ReadonlyMap<ReferentId, Hue>;
-export type Dealt = { readonly hues: RefHues; readonly mode: RefMode };
+type Slot = number;
 
-const hueKey = (h: Hue): string => `${h.light}|${h.dark}`;
+const nearest = (p: SeenHue, others: readonly SeenHue[]): DeltaE =>
+  others.reduce((m, q) => Math.min(m, seenHueDistance(p, q)), Infinity);
 
-export const dealInOrder = (ids: readonly ReferentId[], palette: readonly Hue[]): RefHues =>
-  new Map(ids.map((id, i) => [id, palette[i % palette.length]] as const));
+export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
 
-/* Index of the colour each referent wears, or null where one finds none. */
-export const smartSlots = (count: number, clear: readonly boolean[]): readonly number[] | null => {
-  const n = clear.length;
-  const taken = new Set<number>();
-  const slots: number[] = [];
+/* The smart walk: the slot each referent wears, or null where one finds none. */
+export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE): readonly Slot[] | null => {
+  const n = palette.length;
+  const clear = palette.map((p) => nearest(p, shown) >= target);
+  const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {
-    const slot = Array.from({ length: n }, (_, k) => (i + k) % n).find((j) => clear[j] && !taken.has(j));
+    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j) && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= target);
+    const slot = Array.from({ length: n }, (_, k) => (i + k) % n).find(fits);
     if (slot === undefined) return null;
-    taken.add(slot); slots.push(slot);
+    slots.push(slot);
   }
   return slots;
 };
 
-export type DealInput = {
-  readonly ids: readonly ReferentId[];
-  readonly palette: readonly Hue[];
-  readonly page: readonly Hue[];
-  readonly mode: RefMode;
-  readonly vision: Vision;
-  readonly dMin?: DeltaE;
+/* Farthest apart: each referent in turn takes the slot left that stands farthest from what the scope shows and
+   from the referents dealt before it, the earlier slot on a tie; past the palette's length the slots come round again. */
+export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[]): readonly Slot[] => {
+  const room = palette.map((p) => nearest(p, shown));
+  const slots: Slot[] = [];
+  for (let i = 0; i < count; i++) {
+    const left = palette.map((_, j) => j).filter((j) => !slots.slice(slots.length - (slots.length % palette.length)).includes(j));
+    const pick = left.reduce((best, j) => (room[j] > room[best] ? j : best), left[0]);
+    slots.push(pick);
+    palette.forEach((p, j) => { room[j] = Math.min(room[j], seenHueDistance(p, palette[pick])); });
+  }
+  return slots;
 };
 
-export const dealReferents = ({ ids, palette, page, mode, vision, dMin = D_MIN_FALLBACK }: DealInput): Dealt => {
-  const inOrder: Dealt = { hues: dealInOrder(ids, palette), mode: 'order' };
-  if (mode === 'order' || ids.length === 0) return inOrder;
-  const seenPage = page.map((h) => seenHue(h, vision));
-  const clear = palette.map((h) => { const p = seenHue(h, vision); return seenPage.every((q) => seenHueDistance(p, q) >= dMin); });
-  const slots = smartSlots(ids.length, clear);
-  return slots ? { hues: new Map(ids.map((id, i) => [id, palette[slots[i]]] as const)), mode: 'smart' } : inOrder;
-};
+/* One group as the dealer reads it: its referents in table order and the colours its scope shows. */
+export type GroupToDeal = { readonly ids: readonly ReferentId[]; readonly shown: readonly Hue[] };
+export type DealtGroup = { readonly ids: readonly ReferentId[]; readonly hues: readonly Hue[]; readonly mode: DealtMode };
+export type DealInput = { readonly palette: readonly Hue[]; readonly mode: RefMode; readonly vision: Vision; readonly target: DeltaE };
 
-/* A section as the sweep sees it: its referents and the colours its page shows besides them. */
-export type RefPage = { readonly ids: readonly ReferentId[]; readonly shown: readonly Hue[] };
-export type DMinInput = { readonly pages: readonly RefPage[]; readonly palette: readonly Hue[]; readonly vision: Vision };
-
-export const D_MIN_STEPS: readonly DeltaE[] = Array.from({ length: 21 }, (_, i) => i / 100);
-export const MOVED_AT_MOST = 0.25;
-
-/* At one dMin, how many referents leave their in-order colour and how many sections fall back to in order. */
-export type DMinRow = { readonly dMin: DeltaE; readonly moved: number; readonly fellBack: number };
-
-/* Each section's distance from every palette colour to its nearest page colour,
-   worked out once, so that every step of the sweep is only comparisons. A
-   section with more referents than the palette has colours is in order at any
-   dMin and is left out. */
-export const dMinSweep = ({ pages, palette, vision }: DMinInput): readonly DMinRow[] => {
-  const n = palette.length;
+export const dealGroup = (g: GroupToDeal, { palette, mode, vision, target }: DealInput): DealtGroup => {
+  const as = (slots: readonly Slot[], how: DealtMode): DealtGroup => ({ ids: g.ids, hues: slots.map((s) => palette[s]), mode: how });
+  if (mode === 'order' || g.ids.length === 0) return as(inOrderSlots(g.ids.length, palette.length), 'order');
   const seenPalette = palette.map((h) => seenHue(h, vision));
-  const seen = new Map<string, SeenHue>();
-  const seenOfHue = (h: Hue): SeenHue => {
-    const got = seen.get(hueKey(h));
-    if (got) return got;
-    const s = seenHue(h, vision);
-    seen.set(hueKey(h), s);
-    return s;
-  };
-  const rooms = pages.filter((p) => p.ids.length > 0 && p.ids.length <= n).map((p) => {
-    const shown = p.shown.map(seenOfHue);
-    return { count: p.ids.length, room: seenPalette.map((q) => Math.min(Infinity, ...shown.map((s) => seenHueDistance(q, s)))) };
-  });
-  return D_MIN_STEPS.map((dMin) => rooms.reduce((row, { count, room }) => {
-    const slots = smartSlots(count, room.map((r) => r >= dMin));
-    return slots
-      ? { ...row, moved: row.moved + slots.filter((s, i) => s !== i % n).length }
-      : { ...row, fellBack: row.fellBack + 1 };
-  }, { dMin, moved: 0, fellBack: 0 }));
+  const shown = g.shown.map((h) => seenHue(h, vision));
+  const smart = smartSlots(g.ids.length, seenPalette, shown, target);
+  return smart ? as(smart, 'smart') : as(farthestSlots(g.ids.length, seenPalette, shown), 'farthest');
 };
 
-/* The largest dMin, in steps of 0.01 up to 0.20, at which no section of the book
-   falls back to in order and at most a quarter of its referents leave their
-   in-order colour; 0 where none does. */
-export const bestDMin = (input: DMinInput): DeltaE => {
-  const referents = input.pages.filter((p) => p.ids.length <= input.palette.length).reduce((k, p) => k + p.ids.length, 0);
-  return Math.max(0, ...dMinSweep(input).filter((r) => r.fellBack === 0 && r.moved <= MOVED_AT_MOST * referents).map((r) => r.dMin));
-};
+export const huesOfGroups = (groups: readonly DealtGroup[]): RefHues =>
+  new Map(groups.flatMap((g) => g.ids.map((id, i) => [id, g.hues[i]] as const)));
 
-/* The colour of an unnamed instance (`F.cat(i)`): the palette after the
-   referents' own slots, wrapping, with every colour a referent of the section
-   wears left out, the ones clear of the figure's drawn colours first and the
-   rest farthest first. A section whose referents wear the whole palette gets it
-   back. `i` wraps either way. */
-export const unnamedOrder = (palette: readonly Hue[], worn: readonly Hue[], referents: number, drawn: readonly Hex[], dark: boolean, vision: Vision, clearAt = UNNAMED_CLEAR): readonly Hex[] => {
+/* The colour of an unnamed instance (`F.cat`): the palette after its group's own slots, wrapping, with every
+   colour a referent of the group wears left out, then ordered farthest first: each next the colour farthest
+   from what the figure has drawn, the group's referents and those before it. A group whose referents wear the
+   whole palette gets it back. */
+export const unnamedOrder = (palette: readonly Hue[], worn: readonly Hue[], referents: number, drawn: readonly Hex[], dark: boolean, vision: Vision): readonly Hex[] => {
   const n = palette.length;
   const rotated = Array.from({ length: n }, (_, k) => palette[(referents + k) % n]);
-  const wornKeys = new Set(worn.map(hueKey));
-  const free = rotated.filter((h) => !wornKeys.has(hueKey(h)));
+  const wornKeys = new Set(worn.map((h) => `${h.light}|${h.dark}`));
+  const free = rotated.filter((h) => !wornKeys.has(`${h.light}|${h.dark}`));
   const hexes = (free.length ? free : rotated).map((h) => (dark ? h.dark : h.light));
-  const seenDrawn = drawn.map((d) => seenOf(d, vision));
-  const room = (x: Hex): DeltaE => { const p = seenOf(x, vision); return Math.min(Infinity, ...seenDrawn.map((q) => seenDistance(p, q))); };
-  const rooms = new Map(hexes.map((x) => [x, room(x)] as const));
-  const near = (x: Hex): boolean => (rooms.get(x) as DeltaE) < clearAt;
-  return [...hexes.filter((x) => !near(x)), ...hexes.filter(near).sort((x, y) => (rooms.get(y) as DeltaE) - (rooms.get(x) as DeltaE))];
+  const seen: readonly Seen[] = hexes.map((x) => seenOf(x, vision));
+  const anchors = [...drawn, ...worn.map((h) => (dark ? h.dark : h.light))].map((x) => seenOf(x, vision));
+  const room = seen.map((p) => anchors.reduce((m, q) => Math.min(m, seenDistance(p, q)), Infinity));
+  const order: number[] = [];
+  while (order.length < hexes.length) {
+    const left = hexes.map((_, j) => j).filter((j) => !order.includes(j));
+    const pick = left.reduce((best, j) => (room[j] > room[best] ? j : best), left[0]);
+    order.push(pick);
+    seen.forEach((p, j) => { room[j] = Math.min(room[j], seenDistance(p, seen[pick])); });
+  }
+  return order.map((j) => hexes[j]);
 };
 
 export const pickWrapped = <T>(xs: readonly T[], i: number): T => xs[((Math.trunc(i) % xs.length) + xs.length) % xs.length];

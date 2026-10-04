@@ -12,15 +12,15 @@
    Everything here is pure: the store applies these functions, saves the result
    and writes the stylesheet they build. */
 import { z } from 'zod';
-import type { BookManifest, SectionEntry } from '../content/schema';
+import type { BookManifest, RefGroupEntry, SectionEntry } from '../content/schema';
 import { pagesOf } from '../content/roles';
 import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
 import type { Target } from '../sections/scope';
 import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
-import { type DeltaE, type Vision, isVision } from './oklab';
+import { type Vision, isVision } from './oklab';
 import { oklabHues } from './sample';
-import { type DMinInput, type RefHues, type RefMode, type RefPage, type RefSettings, DEFAULT_REFERENTS, D_MIN_FALLBACK, bestDMin, dealReferents, isRefMode, pageColours, referentHues } from './referents';
-import { countsOfRecord } from './counts';
+import { type DealtGroup, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, dealGroup, huesOfGroups, isRefMode, referentHues, targetOf } from './referents';
+import { type CountKey, fixedHueOf, isCategoryKey } from './counts';
 
 export type Hex = string;                          /* '#RRGGBB', normalised by normHex */
 export type Hue = { readonly light: Hex; readonly dark: Hex };
@@ -250,28 +250,22 @@ export const setVision = (c: Choices, vision: Vision | undefined): Choices => {
   return vision === undefined ? rest : { ...rest, vision };
 };
 
-/* The referent palette and how a section deals it, the default until the reader
-   chooses, with the dMin worked out for the colours they wore when they last
-   applied a palette. */
+/* The referent palette, how a group deals it and the target distance, the default until the reader chooses;
+   a setting equal to the default is stored as nothing. */
 export const referentsOf = (c: Choices): RefSettings => c.referents ?? DEFAULT_REFERENTS;
-export const setReferents = (c: Choices, palette: PaletteId, mode: RefMode, dMin?: DeltaE): Choices => {
-  const now = referentsOf(c);
-  if (now.palette === palette && now.mode === mode && now.dMin === dMin) return c;
+const sameReferents = (a: RefSettings, b: RefSettings): boolean => a.palette === b.palette && a.mode === b.mode && targetOf(a) === targetOf(b);
+export const setReferents = (c: Choices, next: RefSettings): Choices => {
+  if (sameReferents(referentsOf(c), next)) return c;
   const { referents: _, ...rest } = c;
-  const isDefault = palette === DEFAULT_REFERENTS.palette && mode === DEFAULT_REFERENTS.mode && dMin === undefined;
-  return isDefault ? rest : { ...rest, referents: { palette, mode, ...(dMin === undefined ? {} : { dMin }) } };
+  const target = targetOf(next) === TARGET_DEFAULT ? {} : { target: targetOf(next) };
+  return sameReferents(next, DEFAULT_REFERENTS) ? rest : { ...rest, referents: { palette: next.palette, mode: next.mode, ...target } };
 };
 const parseReferents = (raw: unknown): RefSettings | undefined => {
   if (typeof raw !== 'object' || raw === null) return undefined;
-  const r = raw as { palette?: unknown; mode?: unknown; dMin?: unknown };
-  const dMin = typeof r.dMin === 'number' && Number.isFinite(r.dMin) && r.dMin >= 0 ? { dMin: r.dMin } : {};
-  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...dMin } : undefined;
+  const r = raw as { palette?: unknown; mode?: unknown; target?: unknown };
+  const target = typeof r.target === 'number' && Number.isFinite(r.target) ? { target: clampTarget(r.target) } : {};
+  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...target } : undefined;
 };
-
-/* The nearest a smart referent may stand to its page's colours: the reader's own,
-   else the book's for the reader's vision, else the fallback. */
-export const dMinOf = (m: Pick<BookManifest, 'colours'>, c: Choices): DeltaE =>
-  c.referents?.dMin ?? m.colours?.dmin?.[visionOf(m, c)] ?? D_MIN_FALLBACK;
 
 /* ---------- the order, and the scheme that follows it ---------- */
 
@@ -399,39 +393,36 @@ const pagesAt = (m: BookManifest): readonly PageAt[] => [
   ...[m.intro, m.summary].flatMap((entry): PageAt[] => (entry ? [{ entry, place: { level: 'book' } }] : [])),
 ];
 const pageAt = (m: BookManifest, id: string): PageAt | null => pagesAt(m).find((p) => p.entry.id === id) ?? null;
-const shownAt = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme): readonly Hue[] =>
-  pageColours(countsOfRecord(at.entry.counts ?? {}), (k) => effectiveHue(m, c, k, at.place, scheme).hue);
+const shownAt = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme, keys: readonly CountKey[]): readonly Hue[] =>
+  keys.flatMap((k) => (isCategoryKey(k) ? effectiveHue(m, c, k, at.place, scheme).hue : fixedHueOf(k)) ?? []);
 
-/* A page's referents dealt their colours: the palette they come from, the vision
-   it was measured for, and the mode that dealt them, which is 'order' where smart
-   found no way. */
-export type PageReferents = { readonly hues: RefHues; readonly mode: RefMode; readonly palette: readonly Hue[]; readonly vision: Vision; readonly count: number };
-export const pageReferents = (m: BookManifest, c: Choices, page: string): PageReferents | null => {
-  const at = pageAt(m, page);
-  if (!at) return null;
+/* A page's referent groups as the manifest ships them, or one group of them all, showing every colour of the page, where it ships none. */
+export const groupsOf = (e: Pick<SectionEntry, 'referents' | 'refGroups' | 'counts'>): readonly RefGroupEntry[] => e.refGroups ?? (e.referents?.length
+  ? [{ referents: e.referents.map((r) => r.id), figures: [...new Set(e.referents.flatMap((r) => r.figures))], shows: Object.keys(e.counts ?? {}) }]
+  : []);
+
+/* A page's referents dealt their colours, group by group: the palette they come from and the vision it was measured for. */
+export type GroupReferents = DealtGroup & { readonly figures: readonly string[] };
+export type PageReferents = { readonly hues: RefHues; readonly groups: readonly GroupReferents[]; readonly palette: readonly Hue[]; readonly vision: Vision };
+const referentsAtPage = (m: BookManifest, c: Choices, at: PageAt): PageReferents => {
   const vision = visionOf(m, c);
   const settings = referentsOf(c);
   const scheme = schemeOf(m, c);
-  const palette = referentHues(settings, Object.values(scheme.hues), vision);
-  const ids = (at.entry.referents ?? []).map((r) => r.id);
-  return { ...dealReferents({ ids, palette, page: shownAt(m, c, at, scheme), mode: settings.mode, vision, dMin: dMinOf(m, c) }), palette, vision, count: ids.length };
+  const palette = referentHues(settings, vision);
+  const deal = { palette, mode: settings.mode, vision, target: targetOf(settings) };
+  const groups = groupsOf(at.entry).map((g): GroupReferents => ({
+    ...dealGroup({ ids: g.referents, shown: shownAt(m, c, at, scheme, g.shows) }, deal), figures: g.figures,
+  }));
+  return { hues: huesOfGroups(groups), groups, palette, vision };
+};
+export const pageReferents = (m: BookManifest, c: Choices, page: string): PageReferents | null => {
+  const at = pageAt(m, page);
+  return at ? referentsAtPage(m, c, at) : null;
 };
 
-/* Every page of the book with referents, the colours it shows under these choices, and their referent palette and vision. */
-export const dMinInputOf = (m: BookManifest, c: Choices): DMinInput => {
-  const scheme = schemeOf(m, c);
-  const vision = visionOf(m, c);
-  const pages = pagesAt(m).flatMap((at): RefPage[] =>
-    at.entry.referents?.length ? [{ ids: at.entry.referents.map((r) => r.id), shown: shownAt(m, c, at, scheme) }] : []);
-  return { pages, palette: referentHues(referentsOf(c), Object.values(scheme.hues), vision), vision };
-};
-/* The book's dMin for the colours these choices wear. */
-export const bookDMin = (m: BookManifest, c: Choices): DeltaE => bestDMin(dMinInputOf(m, c));
-/* The choices with their dMin worked out afresh, which is what applying a palette stores. */
-export const withBookDMin = (m: BookManifest, c: Choices): Choices => {
-  const r = referentsOf(c);
-  return setReferents(c, r.palette, r.mode, bookDMin(m, c));
-};
+/* Every page of the book with referents, each with its groups dealt under these choices. */
+export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferents[] =>
+  pagesAt(m).flatMap((at) => (at.entry.referents?.length ? [referentsAtPage(m, c, at)] : []));
 
 /* ---------- the stylesheet ---------- */
 

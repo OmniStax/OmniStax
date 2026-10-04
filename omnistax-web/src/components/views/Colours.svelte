@@ -23,7 +23,7 @@
   import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
   import { SWATCHES, palettesFor, type Palette } from '../../lib/colours/palettes';
   import { VISIONS, isVision, type Vision } from '../../lib/colours/oklab';
-  import type { RefMode } from '../../lib/colours/referents';
+  import { type DealtMode, type RefMode, TARGET_MAX, TARGET_MIN, TARGET_STEP, targetOf } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
   import SymbolList from './SymbolList.svelte';
 
@@ -213,9 +213,10 @@
   const apply = (p: Palette, mode: RefMode): void => { trouble = ''; colours.applyCategories(place, types, p, mode, vision); };
   const referentOffers = $derived(colours.referentPalettes(vision));
   const refNow = $derived(colours.referents);
-  /* The mode a section's referents were dealt in, which is in order where smart found no way. */
-  const refDealt = $derived(place.level === 'section' ? colours.referentsAt(book, place.section)?.mode ?? null : null);
-  const MODE_NAMES: Readonly<Record<RefMode, string>> = { order: 'in order', smart: 'smart' };
+  const refTarget = $derived(targetOf(refNow));
+  /* Smart deals a group farthest apart where it finds no way, which the section's palette line says. */
+  const refFarthest = $derived(place.level === 'section' && (colours.referentsAt(book, place.section)?.groups ?? []).some((g) => g.mode === 'farthest'));
+  const MODE_NAMES: Readonly<Record<DealtMode, string>> = { order: 'in order', smart: 'smart', farthest: 'farthest apart' };
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -330,12 +331,17 @@
   </ul>
 
   <div class="eyebrow refs">Referent palettes</div>
+  <label class="book target">Target distance
+    <input type="range" min={TARGET_MIN} max={TARGET_MAX} step={TARGET_STEP} value={refTarget}
+      oninput={(e) => colours.setReferentTarget(Number(e.currentTarget.value))} onchange={() => colours.breakCoalescing()} />
+    <output>{refTarget.toFixed(2)}</output>
+  </label>
   <ul class="pals">
     {#each referentOffers as { palette: p, hues } (p.id)}
       {@const now = refNow.palette === p.id}
       <li class:now>
         <div class="phead"><span class="pname">{p.name}</span>
-          {#if now}<span class="in-use">In use, {MODE_NAMES[refNow.mode]}{#if refDealt && refDealt !== refNow.mode}; {MODE_NAMES[refDealt]} in this section{/if}</span>{/if}
+          {#if now}<span class="in-use">In use, {MODE_NAMES[refNow.mode]}{#if refFarthest && refNow.mode === 'smart'}; {MODE_NAMES.farthest} in this section{/if}</span>{/if}
           <button type="button" class:on={now && refNow.mode === 'order'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'order', vision); }}>Apply in order</button>
           <button type="button" class:on={now && refNow.mode === 'smart'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'smart', vision); }}>Apply smart</button>
         </div>
@@ -408,6 +414,8 @@
   .phead button:focus-visible{outline:2px solid var(--accent)}
   .pstrip{margin-bottom:5px}
   .refs{margin-top:16px}
+  .target input{flex:1;min-width:0;accent-color:var(--accent)}
+  .target output{font-family:var(--mono);font-size:0.76rem;color:var(--ink);min-width:2.5em;text-align:right}
   .in-use{color:var(--muted);font-size:0.74rem}
   .phead button.on{border-color:var(--accent)}
   .refgrid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin-bottom:5px}
