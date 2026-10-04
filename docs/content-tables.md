@@ -194,7 +194,7 @@ Tables:
   `<img data-width>`, a figure's `data-original-width`, comma-separated
   in the order of `data-original`); the validator checks that the two
   agree until the build injects them.
-- `referents`: `{ id, label, figure }`. A particular thing that
+- `referents`: `{ id, label, figures }`. A particular thing that
   exists only in one example or figure (block 1 and block 2, Firm A and
   Firm B, the crank of one engine) and that the text and the figure both
   point at. A referent is a value of a type, not a type, so it carries
@@ -202,14 +202,18 @@ Tables:
   `<span data-ref="<id>">Firm B</span>`, and the figure colours it with
   `F.ref('<id>')`. A phrase naming several lists them,
   `data-ref="firm-a firm-b"`, and its words wear their colours in turn.
-  A referent takes the k-th of twelve referent hues, a family deeper and
-  more saturated than the category colours, k its place among the rows
-  of its own figure, skipping any within OKLab ΔE 0.08 of a type that
-  figure `draws` (when too few are clear, the nearest come last rather
-  than a hue coming twice); it and `F.cat`
-  follow the reader's Referents switch, not Concepts. Text and figure compute it apart
-  from the same table, so they agree whatever order they draw in, and a
-  figure with more referents than clear hues is a warning.
+  `figures` lists every figure of the section that draws it, at least
+  one. The section hands its referents twelve referent hues, a family
+  deeper and more saturated than the category colours, in table order:
+  each takes the first hue no earlier referent sharing one of its
+  figures wears, skipping any within OKLab ΔE 0.08 of a type one of its
+  figures `draws` (when too few are clear, the nearest come last rather
+  than a hue coming twice). So a referent wears one colour in every
+  figure, and two referents of one figure never match. `F.cat` skips the
+  hues of the figure's own referents; both follow the reader's Referents
+  switch, not Concepts. Text and figure compute it apart from the same
+  table, so they agree whatever order they draw in, and a section where a
+  referent finds every hue taken by its neighbours is a warning.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -353,12 +357,14 @@ references:
   and so is any `type` stored on a symbol, which belongs on its variables
   rows;
 - every `data-type` in `text.html` or the lead is a declared type;
-- every `referents` id is unique in its section and its `figure` is a
-  figure row of the section; every `data-ref` in `text.html` or the lead names a row
+- every `referents` id is unique in its section, every entry of its
+  `figures` is a figure row of the section, and every figure whose block
+  of `figures.js` calls `F.ref` on it, with a string or a string joined to
+  something (`'path-' + k`), is listed; every `data-ref` in `text.html` or the lead names a row
   (each id of a span that lists several), and a row no span names is a
-  warning; a figure with more referents than referent hues clear of the
-  types it draws, under the book's own scheme in either theme, is a
-  warning;
+  warning; a section where a referent finds all twelve hues worn by
+  referents it shares a figure with, under the book's own scheme in
+  either theme, is a warning;
 - a variables row's `ref` names a referent of its own section, and its
   symbol has a subscript to colour (a warning otherwise);
 - every section names its chapter and has a lead (a lead over 80 words

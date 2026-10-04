@@ -121,7 +121,8 @@ TABLES: dict[TableName, Table] = {
         "originals": _f(kind="list"), "original_caption": _f(), "widths": _f(kind="list"),
         "draws": _f(kind="list")}, ("id", "kind", "number", "folds", "draws")),
     "referents": Table("section", ("id",), {
-        "id": _f(True), "label": _f(True), "figure": _f(True)}, ("id", "label", "figure")),
+        "id": _f(True), "label": _f(True), "figures": _f(True, kind="list")}, ("id", "label", "figures"),
+        (("figure", "a referent lists every figure that draws it in `figures`, a list"),)),
     "coverage": Table("section", ("span", "concept", "verb"), {
         "span": _f(True), "concept": _f(True), "verb": _f(True, enum=VERB)}, ("span", "concept", "verb")),
     "exercises": Table("section", ("id",), {
@@ -164,7 +165,7 @@ def validate(table: Table, row: RowDTO) -> None:
         if field.enum and value not in field.enum:
             raise Refused(f"field {name!r} is {value!r}; it must be one of {', '.join(field.enum)}")
     for name, field in table.fields.items():
-        if field.required and row.get(name) in (None, ""):
+        if field.required and row.get(name) in (None, "", []):
             raise Refused(f"field {name!r} is required")
     if "answer" in table.fields and isinstance(row.get("answer"), dict):
         validate_answer(row["answer"])
@@ -511,7 +512,9 @@ def out(rows: Iterable[RowDTO], fields: Optional[Sequence[FieldName]], as_json: 
 
 
 def cell(value: Any) -> str:
-    if isinstance(value, (dict, list)):
+    if isinstance(value, list) and value and all(isinstance(v, str) for v in value):
+        text = ", ".join(value)
+    elif isinstance(value, (dict, list)):
         text = json.dumps(value, ensure_ascii=False)
     elif isinstance(value, bool):
         text = "yes" if value else "no"
@@ -681,7 +684,7 @@ def show_section(book: Book, section: SectionId) -> int:
         draws = " · draws " + ", ".join(f["draws"]) if f.get("draws") else ""
         print(f"figure {f.get('id')} · {f.get('kind')}{number}{folds}{draws}")
     for r in rows_of(record, "referents"):
-        print(f"referent {r.get('id')} · {r.get('label')} · in {r.get('figure')}")
+        print(f"referent {r.get('id')} · {r.get('label')} · in {', '.join(r.get('figures') or [])}")
     spans: dict[str, list[str]] = {}
     for c in rows_of(record, "coverage"):
         spans.setdefault(str(c.get("concept")), []).append(str(c.get("verb")))

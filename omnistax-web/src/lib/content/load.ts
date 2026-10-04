@@ -335,8 +335,8 @@ const entryOf = (src: SectionSource): SectionEntry => ({
   id: src.meta.id, title: src.meta.title, built: true, url: src.url, fragment: `${src.url}doc.html`, figuresJs: `${src.url}figures.js`,
   figures: figureList(src.textHtml, src.meta.id), types: src.meta.types, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
   ...(src.dto.referents.length ? {
-    referents: src.dto.referents.map((r) => ({ id: r.id, figure: r.figure })),
-    draws: Object.fromEntries(src.figures.filter((f) => src.dto.referents.some((r) => r.figure === f.id)).map((f) => [f.id, f.draws] as const)),
+    referents: src.dto.referents.map((r) => ({ id: r.id, figures: r.figures })),
+    draws: Object.fromEntries(src.figures.filter((f) => src.dto.referents.some((r) => r.figures.includes(f.id))).map((f) => [f.id, f.draws] as const)),
   } : {}),
   ...(Object.keys(src.macros).length ? { macros: src.macros } : {}),
   openstax: src.meta.openstax,

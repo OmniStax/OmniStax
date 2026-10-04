@@ -252,7 +252,7 @@ export type FigureRowDTO = z.infer<typeof FigureSchema>;
 export const ReferentSchema = z.object({
   id: z.string().describe('The referent\u2019s id, unique in the section, which a `<span data-ref="\u2026">` of the text and `F.ref` of the figure name it by.'),
   label: z.string().describe('What the text calls it, such as Firm B.'),
-  figure: z.string().describe('The id of the figure of the section it is drawn in.'),
+  figures: z.array(z.string()).nonempty().describe('The ids of every figure of the section that draws it, in the order the section sets them. Its colour is the first of the referent palette that no referent listed earlier and sharing one of these figures already wears, kept clear of the types these figures draw.'),
 }).strict();
 export type ReferentDTO = z.infer<typeof ReferentSchema>;
 
@@ -562,7 +562,7 @@ export type KindMap = Readonly<Record<string, string>>;
 /* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("sim-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
 export type FigureEntry = { readonly id: string; readonly label: string };
 /* One referent of a section as the text and its figures colour it, by its place among its figure's rows. */
-export type ReferentEntry = { readonly id: string; readonly figure: string };
+export type ReferentEntry = { readonly id: string; readonly figures: readonly string[] };
 /* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
 export type ExerciseEntry = { readonly id: string; readonly kind: string };
 export type SectionEntry = {
@@ -572,7 +572,7 @@ export type SectionEntry = {
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
   readonly types: readonly string[];             /* the types the page wears, from its meta; empty until the section is built */
   readonly referents?: readonly ReferentEntry[]; /* the section's referents in table order; absent where it has none */
-  readonly draws?: Readonly<Record<string, readonly string[]>>;   /* the types each figure that has referents draws, which their hues keep clear of */
+  readonly draws?: Readonly<Record<string, readonly string[]>>;   /* the types each figure that draws a referent draws, which the referents' hues keep clear of */
   readonly macros?: MacroMap;                    /* the macros this page sets otherwise than the book, from its variables rows; absent where none differ */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;

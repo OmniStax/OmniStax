@@ -225,14 +225,17 @@ class TestWriting(Fixture):
     def test_referents_are_a_section_table_like_figures(self):
         before = self.rows("referents")
         text, code = run("add", "chemistry-2e", "referents", "--section", "1.4",
-                         '{"id": "block-1", "label": "the first block", "figure": "sim-density"}')
+                         '{"id": "block-1", "label": "the first block", "figures": ["sim-density", "sim-displacement"]}')
         self.assertEqual(code, 0)
-        self.assertEqual(self.rows("referents"), before + [{"id": "block-1", "label": "the first block", "figure": "sim-density"}])
+        self.assertEqual(self.rows("referents"), before + [{"id": "block-1", "label": "the first block", "figures": ["sim-density", "sim-displacement"]}])
         run("set", "chemistry-2e", "referents", "block-1", "--section", "1.4", '{"label": "block 1"}')
-        self.assertIn("block-1 · block 1 · sim-density", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
-        self.assertIn("referent block-1 · block 1 · in sim-density", run("show", "chemistry-2e", "1.4")[0])
+        self.assertIn("block-1 · block 1 · sim-density, sim-displacement", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
+        self.assertIn("referent block-1 · block 1 · in sim-density, sim-displacement", run("show", "chemistry-2e", "1.4")[0])
         self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b"}')[1], 1)
-        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figure": "sim-density", "type": "mass"}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figures": []}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figures": "sim-density"}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figure": "sim-density"}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figures": ["sim-density"], "type": "mass"}')[1], 1)
         run("del", "chemistry-2e", "referents", "block-1", "--section", "1.4")
         self.assertEqual(self.rows("referents"), before)
 

@@ -214,7 +214,7 @@ The particular things of one example or figure that the text marks with `<span d
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The referent’s id, unique in the section, which a `<span data-ref="…">` of the text and `F.ref` of the figure name it by. |
 | `label` | `string` | yes | What the text calls it, such as Firm B. |
-| `figure` | `string` | yes | The id of the figure of the section it is drawn in. |
+| `figures` | `string[]` | yes | The ids of every figure of the section that draws it, in the order the section sets them. Its colour is the first of the referent palette that no referent listed earlier and sharing one of these figures already wears, kept clear of the types these figures draw. |
 
 ### `coverage`
 

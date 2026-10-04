@@ -18,7 +18,8 @@ import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
 import { NO_CHOICES, schemeOf } from '../colours/model';
-import { clearCount } from '../fig/cat';
+import { refHues } from '../fig/cat';
+import { figureRefs } from './figrefs';
 import type { TableSheetDTO } from './sheets';
 
 /* What a check found. An error is content that will not work: a reference to a
@@ -41,6 +42,7 @@ export type SectionContent = {
   readonly dto: SectionDTO;
   readonly textHtml: string;          /* the article body, ids still local */
   readonly sourceMd: string | null;   /* the section's source.md, or nothing where the section keeps none */
+  readonly figuresJs: string;         /* the section's figures.js, empty where it keeps none */
 };
 export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent };
 /* The whole book as the checks read it: the three files, and the text and source of every page that is built. */
@@ -193,19 +195,22 @@ export const checkTypeSpans: Check = (content) => {
 };
 
 /* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
-   and the figure colours with F.ref. Its id is unique in the section, it is drawn in a figure of the section,
-   and the text or the lead names it: a span that names no row is an error, and a row no span names a warning. */
+   and the figures colour with F.ref. Its id is unique in the section, its row lists the figures of the section
+   that draw it and every figure whose script calls F.ref on it (figrefs.ts), and the text or the lead names it:
+   a span that names no row is an error, and a row no span names a warning. */
 export const checkReferents: Check = (content) =>
   pagesOf(content).flatMap((s) => {
     const figures = idsOf(s.dto.figures, (f) => f.id); const rows = idsOf(s.dto.referents, (r) => r.id);
     const spans = markedOf(s).flatMap((m) => attrValues(m.html, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean).map((id) => ({ id, file: m.file }))));
     const named = new Set(spans.map((n) => n.id));
+    const drawn = s.dto.referents.length ? figureRefs(s.figuresJs, s.dto.figures.map((f) => f.id), s.dto.referents.map((r) => r.id), false) : new Map();
     return [
       ...s.dto.referents.flatMap((r, i) => {
         const where = inSection(s, 'referents', r.id);
         return [
           ...(s.dto.referents.findIndex((o) => o.id === r.id) < i ? [error(where, 'is declared twice')] : []),
-          ...ref(where, 'figure', figures, r.figure),
+          ...r.figures.flatMap((f) => ref(where, 'figures', figures, f)),
+          ...[...drawn].flatMap(([f, ids]) => (ids.has(r.id) && !r.figures.includes(f) ? [error(where, `is drawn with F.ref in figure "${f}", which its figures do not list`)] : [])),
           ...(named.has(r.id) ? [] : [warning(where, 'is named by no <span data-ref> of the text')]),
         ];
       }),
@@ -213,19 +218,18 @@ export const checkReferents: Check = (content) =>
     ];
   });
 
-/* A figure hands its referents the twelve referent hues in order, skipping those too close to the category
-   colours it draws under the book's own scheme, in either theme; a figure with more referents than that has
-   run out, and two of them share a colour. */
+/* A section hands its referents the twelve referent hues in table order, each skipping the hues of the referents
+   it shares a figure with and those too close to the category colours its figures draw under the book's own
+   scheme (cat.ts, `refHues`); where a referent finds every hue taken by a neighbour, in either theme, the
+   section has run out, and two referents of one figure match. */
 export const checkRefHues: Check = (content) => {
   const scheme = schemeOf({ types: typesOf(content.book.types) }, NO_CHOICES).hues;
-  const room = (draws: readonly string[]): number => {
-    const hues = draws.flatMap((t) => (scheme[t] ? [scheme[t]] : []));
-    return Math.min(clearCount(hues.map((h) => h.light)), clearCount(hues.map((h) => h.dark)));
-  };
-  return pagesOf(content).flatMap((s) => s.dto.figures.flatMap((f) => {
-    const held = s.dto.referents.filter((r) => r.figure === f.id).length; const left = room(f.draws);
-    return held > left ? [warning(inSection(s, 'figures', f.id), `has ${held} referents and only ${left} referent hues clear of the ${f.draws.length} types it draws, so ${held - left} repeat a hue near a type's`)] : [];
-  }));
+  return pagesOf(content).flatMap((s) => {
+    const draws = new Map(s.dto.figures.map((f) => [f.id, f.draws.flatMap((t) => (scheme[t] ? [scheme[t]] : []))] as const));
+    const shortIn = (dark: boolean): readonly string[] => refHues(s.dto.referents, (f) => (draws.get(f) ?? []).map((h) => (dark ? h.dark : h.light)), dark).short;
+    const short = [...new Set([...shortIn(false), ...shortIn(true)])];
+    return short.length ? [warning(`${s.dto.id}/section.json referents`, `has run out of referent colours: ${short.join(', ')} ${short.length === 1 ? 'wears' : 'wear'} the colour of a referent sharing a figure with ${short.length === 1 ? 'it' : 'them'}`)] : [];
+  });
 };
 
 /* A variables row that names a referent splits its symbol, the subscript in the referent's colour: the referent
@@ -595,7 +599,7 @@ export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => 
    tables are taken as written, before any type is inherited, since a stored
    override is itself something to check. */
 const readIf = (file: string): Promise<string | null> => fs.readFile(file, 'utf8').then((s) => s, () => null);
-const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')) });
+const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')), figuresJs: s.figuresJs });
 const frontContent = async (s: SectionSource | undefined): Promise<SectionContent | undefined> => (s ? pageContent(s) : undefined);
 /* The introduction and summary of a level, as fields only where the level keeps them, so a fixture without them reads the same as one written without them. */
 const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });

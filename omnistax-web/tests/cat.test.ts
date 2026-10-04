@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { CAT, NEAR_DE, cat, catHues, catOrder, clearCount, deltaE, hueAngle, refIndex } from '../src/lib/fig/cat';
+import { CAT, NEAR_DE, cat, catHues, catOrder, clearCount, deltaE, hueAngle, refHues } from '../src/lib/fig/cat';
 import { SCHEME, huesOf } from '../src/lib/colours/palettes';
 import { darkOf } from '../src/lib/colours/model';
 import { elementColor } from '../src/lib/fig/elements';
@@ -121,14 +121,15 @@ test('each colour door reads its own switch and nothing else does', () => {
     "if (isElementSymbol(s) || /^[A-Z]/.test(s)) return SHOWN.facts ? elColor(s) : PAL.ink;",
   ].sort());
   assert.deepEqual(reading('refs'), [
-    'const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound]) : PAL.ink);',
-    'if (!SHOWN.refs || !page || !r || k < 0) return pal.ink;',
+    'const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound], wornHere()) : PAL.ink);',
+    'if (!SHOWN.refs || !h) return pal.ink;',
     'if (!SHOWN.refs) return;',
   ].sort());
   assert.deepEqual(reading('concepts'), [
     'get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,',
     'if (!SHOWN.concepts && !NEUTRAL.has(k)) return PAL.ink;',
-    'return catOf(k, darkTheme, SHOWN.concepts ? keys.map((t) => pal[t]).filter(Boolean) : []);',
+    'const key = `${at.book}|${at.scope?.dataset.sec ?? \'\'}|${darkTheme}|${SHOWN.concepts}`;',
+    'const got = hued.get(key) ?? refHues(page.referents, (f) => (SHOWN.concepts ? (page.draws[f] ?? []).map((t) => pal[t]).filter(Boolean) : []), darkTheme);',
   ].sort());
 });
 
@@ -141,11 +142,34 @@ test('All off sets every family in ink and on gives each back its own switch', (
   assert.deepEqual(rootClasses({ ...COLOURS_ON, all: false }), { 'cc-all': false, 'cc-facts': false, 'cc-refs': false, 'cc-concepts': false });
 });
 
-test('a referent is indexed by its place among the rows of its own figure', () => {
-  const rows = [{ id: 'firm-a', figure: 'duopoly' }, { id: 'crank', figure: 'engine' }, { id: 'piston', figure: 'engine' }, { id: 'firm-b', figure: 'duopoly' }];
-  assert.equal(refIndex(rows, 'firm-a'), 0);
-  assert.equal(refIndex(rows, 'firm-b'), 1);
-  assert.equal(refIndex(rows, 'crank'), 0, 'each figure counts from the start');
-  assert.equal(refIndex(rows, 'piston'), 1);
-  assert.equal(refIndex(rows, 'firm-c'), -1);
+test('a section colours its referents in table order, apart wherever two share a figure', () => {
+  const rows = [
+    { id: 'car', figures: ['sim-road'] }, { id: 'horse', figures: ['sim-track'] },
+    { id: 'train', figures: ['sim-subway', 'sim-graphs'] }, { id: 'tunnel', figures: ['sim-subway'] }, { id: 'axis', figures: ['sim-graphs', 'sim-road'] },
+  ];
+  const { hue, short } = refHues(rows, () => [], false);
+  assert.deepEqual(short, []);
+  assert.equal(hue.get('car'), CAT[0]);
+  assert.equal(hue.get('horse'), CAT[0], 'two referents that share no figure may match');
+  assert.equal(hue.get('train'), CAT[0]);
+  assert.equal(hue.get('tunnel'), CAT[1], 'the tunnel shares the subway with the train');
+  assert.equal(hue.get('axis'), CAT[1], 'the axis shares the graphs with the train and the road with the car');
+});
+
+test('a referent keeps clear of the categories every one of its figures draws, and wraps when its neighbours hold all twelve', () => {
+  const drawn: Record<string, readonly string[]> = { 'sim-a': [CAT[0].light], 'sim-b': [CAT[1].light] };
+  const { hue } = refHues([{ id: 'x', figures: ['sim-a', 'sim-b'] }], (f) => drawn[f] ?? [], false);
+  const x = hue.get('x')!;
+  assert.ok([CAT[0].light, CAT[1].light].every((d) => deltaE(x.light, d) >= NEAR_DE), 'clear of both figures\u2019 drawn colours');
+  assert.equal(x, catOrder([CAT[0].light, CAT[1].light], false)[0]);
+  const many = Array.from({ length: 14 }, (_, i) => ({ id: `r-${i}`, figures: ['sim-a'] }));
+  const out = refHues(many, () => [], true);
+  assert.deepEqual(out.short, ['r-12', 'r-13']);
+  assert.equal(new Set(many.slice(0, 12).map((r) => out.hue.get(r.id))).size, 12);
+  assert.notEqual(out.hue.get('r-12'), out.hue.get('r-13'), 'the wrapped ones take the hues worn least');
+});
+
+test('an unnamed instance skips the hues its figure\u2019s referents wear', () => {
+  assert.equal(cat(0, false, [], [CAT[0], CAT[1]]), CAT[2].light);
+  assert.equal(cat(0, true, [], CAT), CAT[0].dark, 'a figure whose referents wear every hue gets the palette back');
 });

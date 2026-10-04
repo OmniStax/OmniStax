@@ -3,7 +3,7 @@
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
-import { cat as catOf, refIndex } from './cat';
+import { type CatHue, type RefHues, cat as catOf, refHues } from './cat';
 import type { ColourShown } from '../colours/switches';
 import type { BookManifest, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
@@ -195,7 +195,7 @@ const baseOf = (book: string): Record<string, Color> => {
 function readPal(): void {
   darkTheme = readTheme();
   neutral = { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
-  bookPal.clear(); scopePal.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
+  bookPal.clear(); scopePal.clear(); hued.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
 }
 /* A figure draws with the palette of its own book and of the article it sits in, and a section may
    colour a type differently from its chapter, so the scope is the nearest element that names either —
@@ -213,10 +213,13 @@ const palAt = ({ book, scope }: Place): Record<string, Color> => {
   scopePal.set(key, over);
   return { ...neutral, ...baseOf(book), ...over };
 };
-/* Where the figure being drawn sits, which `F.ref` reads its section's referents from. */
+/* Where the figure being drawn sits, which `F.ref` reads its section's referents from, and which figure it is. */
 let drawing: Place = { book: '', scope: null };
+let drawingFig = '';
 function usePal(fig: Element): void {
   drawing = placeOf(fig);
+  const sec = drawing.scope?.dataset.sec;
+  drawingFig = sec && fig.id.startsWith(`${sec}-`) ? fig.id.slice(sec.length + 1) : fig.id;
   Object.assign(PAL, palAt(drawing));
 }
 /* The type hues drawn so far: every hue `C` has handed out since the palette was
@@ -230,19 +233,32 @@ function C(k: string): Color {
   if (!NEUTRAL.has(k) && c) bound.add(c);
   return c;
 }
-/* The referent palette by index, for things a figure tells apart that no referents row names. It follows
-   the Referents switch as `F.ref` does; all it takes from the page is the theme and the type hues already drawn. */
-const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound]) : PAL.ink);
-/* A referent is one thing of one example that the text and a figure both point at. It takes the referent
-   colour of its place among its figure's rows, clear of the category hues that figure draws, so the text and
-   the figure agree whatever either has drawn. */
+/* A referent is one thing of one example that the text and a figure both point at. The section's referents
+   take their colours together, in table order, each clear of the category hues its figures draw and of the
+   referents it shares a figure with (cat.ts, `refHues`), so the text and every figure agree whatever each has
+   drawn. Worked out once per section, theme and palette. */
+const hued = new Map<string, RefHues>();
+const huesAt = (at: Place, page: FigPage, pal: Readonly<Record<string, Color>>): RefHues => {
+  const key = `${at.book}|${at.scope?.dataset.sec ?? ''}|${darkTheme}|${SHOWN.concepts}`;
+  const got = hued.get(key) ?? refHues(page.referents, (f) => (SHOWN.concepts ? (page.draws[f] ?? []).map((t) => pal[t]).filter(Boolean) : []), darkTheme);
+  hued.set(key, got);
+  return got;
+};
 const referentOf = (at: Place, id: string): ReferentEntry | undefined => pageOf(at)?.referents.find((r) => r.id === id);
 const refColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
-  const page = pageOf(at); const r = referentOf(at, id); const k = page ? refIndex(page.referents, id) : -1;
-  if (!SHOWN.refs || !page || !r || k < 0) return pal.ink;
-  const keys = page.draws[r.figure] ?? [];
-  return catOf(k, darkTheme, SHOWN.concepts ? keys.map((t) => pal[t]).filter(Boolean) : []);
+  const page = pageOf(at); const h = page ? huesAt(at, page, pal).hue.get(id) : undefined;
+  if (!SHOWN.refs || !h) return pal.ink;
+  return darkTheme ? h.dark : h.light;
 };
+/* The referent palette by index, for things a figure tells apart that no referents row names. It follows
+   the Referents switch as `F.ref` does, and skips the type hues already drawn and the hues the figure's own
+   referents wear. */
+const wornHere = (): readonly CatHue[] => {
+  const page = pageOf(drawing); if (!page) return [];
+  const { hue } = huesAt(drawing, page, PAL);
+  return page.referents.flatMap((r) => (r.figures.includes(drawingFig) ? hue.get(r.id) ?? [] : []));
+};
+const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound], wornHere()) : PAL.ink);
 const ref = (id: string): Color => refColor(drawing, id, PAL);
 /* The text's <span data-ref> under a root, a split symbol's subscript among them, coloured here again on
    every repaint. A span that names several referents ("the two skaters") wears each of their colours in

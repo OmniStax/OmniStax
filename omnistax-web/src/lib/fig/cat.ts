@@ -123,20 +123,37 @@ export const catOrder = (drawn: readonly Color[], dark?: boolean): readonly CatH
 /* How many hues a figure that draws these colours has before it runs out. */
 export const clearCount = (drawn: readonly Color[], dark?: boolean): number => CAT.filter((h) => !clashes(h, drawn, dark)).length;
 
-/* The i-th referent colour for the theme showing, in the order above. `i`
-   wraps, and a negative index wraps the same way, so a figure may index by
-   whatever counter it has. */
-export const cat = (i: number, dark: boolean, drawn: readonly Color[] = []): Color => {
-  const hues = catOrder(drawn, dark);
+/* The i-th colour for the theme showing, in the order above, for the things a figure tells apart that no
+   referents row names; the hues the figure's referents wear are not among them. `i` wraps, and a negative
+   index wraps the same way, so a figure may index by whatever counter it has. */
+export const cat = (i: number, dark: boolean, drawn: readonly Color[] = [], worn: readonly CatHue[] = []): Color => {
+  const all = catOrder(drawn, dark);
+  const free = all.filter((h) => !worn.includes(h));
+  const hues = free.length ? free : all;
   const n = hues.length;
   const h = hues[((Math.trunc(i) % n) + n) % n];
   return dark ? h.dark : h.light;
 };
 
-/* A referent's place among the referents of its own figure, in table order,
-   which is the index it is coloured by: two figures of one page may share a
-   colour. -1 where the id names no row. */
-export const refIndex = (rows: readonly { readonly id: string; readonly figure: string }[], id: string): number => {
-  const figure = rows.find((r) => r.id === id)?.figure;
-  return rows.filter((r) => r.figure === figure).findIndex((r) => r.id === id);
-};
+/* A referents row as its colour reads it: its id and every figure that draws it. */
+export type RefRow = { readonly id: string; readonly figures: readonly string[] };
+/* Each referent of a section with its hue, and the referents that found every hue taken by a referent they
+   share a figure with, so wear a neighbour's. */
+export type RefHues = { readonly hue: ReadonlyMap<string, CatHue>; readonly short: readonly string[] };
+
+const sharesFigure = (a: RefRow, b: RefRow): boolean => a.figures.some((f) => b.figures.includes(f));
+
+/* The referents of one section coloured in table order: each takes the first hue, in the order its figures'
+   drawn colours give, that no earlier referent sharing a figure with it wears, so it wears one colour in every
+   figure and two referents of one figure never match. Where every hue is taken it wears the one its
+   neighbours wear least. `drawnOf` gives a figure's drawn category colours in the theme asked for. */
+export const refHues = (rows: readonly RefRow[], drawnOf: (figure: string) => readonly Color[], dark?: boolean): RefHues =>
+  rows.reduce<RefHues>((acc, r, i) => {
+    if (acc.hue.has(r.id)) return acc;
+    const taken = rows.slice(0, i).filter((o) => sharesFigure(o, r)).flatMap((o) => acc.hue.get(o.id) ?? []);
+    const order = catOrder(r.figures.flatMap(drawnOf), dark);
+    const uses = (h: CatHue): number => taken.filter((t) => t === h).length;
+    const free = order.find((h) => uses(h) === 0);
+    const hue = free ?? order.reduce((best, h) => (uses(h) < uses(best) ? h : best));
+    return { hue: new Map([...acc.hue, [r.id, hue]]), short: free ? acc.short : [...acc.short, r.id] };
+  }, { hue: new Map(), short: [] });

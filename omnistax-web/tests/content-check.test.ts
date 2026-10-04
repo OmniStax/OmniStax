@@ -65,11 +65,11 @@ const sectionOf = (o: object) => SectionSchema.parse({
   exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'How far?', answer: { type: 'open' } }],
   ...o,
 });
-type Parts = { readonly book?: object; readonly chapter?: object; readonly section?: object; readonly textHtml?: string; readonly sourceMd?: string | null };
+type Parts = { readonly book?: object; readonly chapter?: object; readonly section?: object; readonly textHtml?: string; readonly sourceMd?: string | null; readonly figuresJs?: string };
 const fixture = (p: Parts = {}): Content => ({
   book: bookOf(p.book ?? {}),
   sheets: [],
-  chapters: [{ dto: chapterOf(p.chapter ?? {}), sections: [{ dto: sectionOf(p.section ?? {}), textHtml: p.textHtml ?? TEXT, sourceMd: p.sourceMd === undefined ? SOURCE : p.sourceMd }] }],
+  chapters: [{ dto: chapterOf(p.chapter ?? {}), sections: [{ dto: sectionOf(p.section ?? {}), textHtml: p.textHtml ?? TEXT, sourceMd: p.sourceMd === undefined ? SOURCE : p.sourceMd, figuresJs: p.figuresJs ?? '' }] }],
 });
 /* What one rule says about one fixture, as one string per finding. */
 const run = (check: Check, p: Parts = {}): readonly string[] => said(check(fixture(p)));
@@ -146,7 +146,7 @@ test('checkTypeSpans: words marked with an undeclared type; a declared one is co
 });
 
 test('a lead marks its words as the text does: a referent named only there is named, and a span naming none is an error in section.json', () => {
-  const block = { id: 'block-1', label: 'Block 1', figure: 'sim-ruler' };
+  const block = { id: 'block-1', label: 'Block 1', figures: ['sim-ruler'] };
   assert.deepEqual(run(checkReferents, { section: { referents: [block], lead: 'How <span data-ref="block-1">a block</span> slides.' } }), []);
   assert.deepEqual(run(checkReferents, { section: { referents: [block], lead: 'How <span data-ref="block-9">a block</span> slides.' } }),
     ['16.1/section.json referents[block-1]: is named by no <span data-ref> of the text', '16.1/section.json: <span data-ref="block-9"> is no row of the referents table']);
@@ -155,11 +155,12 @@ test('a lead marks its words as the text does: a referent named only there is na
 });
 
 test('checkReferents: a referent twice, in no figure, unnamed, and a span that names none', () => {
-  const block = { id: 'block-1', label: 'block 1', figure: 'sim-ruler' };
+  const block = { id: 'block-1', label: 'block 1', figures: ['sim-ruler'] };
   const named = `${TEXT}<p><span data-ref="block-1">Block 1</span> slides.</p>`;
   assert.deepEqual(run(checkReferents, { section: { referents: [block, { ...block, id: 'block-2' }] }, textHtml: `${named}<p><span data-ref="block-2">it</span></p>` }), []);
   assert.match(run(checkReferents, { section: { referents: [block, block] }, textHtml: named }).join('\n'), /declared twice/);
-  assert.match(run(checkReferents, { section: { referents: [{ ...block, figure: 'sim-gone' }] }, textHtml: named })[0], /figure "sim-gone" names no row/);
+  assert.match(run(checkReferents, { section: { referents: [{ ...block, figures: ['sim-gone'] }] }, textHtml: named })[0], /figures "sim-gone" names no row/);
+  assert.throws(() => sectionOf({ referents: [{ ...block, figures: [] }] }), 'a referent is drawn in at least one figure');
   assert.throws(() => sectionOf({ referents: [{ ...block, type: 'force' }] }), 'a referent carries no type');
   const unnamed = checkReferents(fixture({ section: { referents: [block] } }));
   assert.deepEqual(unnamed.map((f) => f.level), ['warning']); assert.match(unnamed[0].what, /named by no <span data-ref>/);
@@ -176,16 +177,27 @@ test('checkDraws: a figure that draws a type the book never declared', () => {
   assert.match(said[0], /draws "stiffness" names no row/);
 });
 
-test('checkRefHues: a figure with more referents than hues clear of the types it draws has run out', () => {
-  const referents = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figure: 'sim-ruler' }));
+test('checkRefHues: a section runs out where a referent finds every hue taken by referents it shares a figure with', () => {
+  const referents = (n: number, figures = ['sim-ruler']) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figures }));
   assert.deepEqual(run(checkRefHues, { section: { referents: referents(12) } }), [], 'no scheme type stands near a referent hue');
   const said = run(checkRefHues, { section: { referents: referents(13) } });
-  assert.equal(said.length, 1);
-  assert.match(said[0], /figures\[sim-ruler\]: has 13 referents and only 12 referent hues clear of the 1 types it draws/);
+  assert.deepEqual(said, ['16.1/section.json referents: has run out of referent colours: r-12 wears the colour of a referent sharing a figure with it']);
+  const two = { figures: [{ id: 'sim-ruler', kind: 'sim', draws: ['force'] }, { id: 'sim-spring', kind: 'sim' }] };
+  const apart = [...referents(12), ...referents(12, ['sim-spring']).map((r) => ({ ...r, id: `s-${r.id}` }))];
+  assert.deepEqual(run(checkRefHues, { section: { ...two, referents: apart } }), [], 'two figures that share no referent each have twelve');
+});
+
+test('checkReferents: a figure whose script draws a referent with F.ref is listed in its figures', () => {
+  const figures = [{ id: 'sim-ruler', kind: 'sim', draws: ['force'] }, { id: 'sim-spring', kind: 'sim' }];
+  const text = `${TEXT}<p><span data-ref="block-1">Block 1</span></p>`;
+  const js = "(function () { const d = sim('sim-ruler', 600); F.ref('block-1'); })();\n(function () { const d = sim('sim-spring', 600); F.ref('block-1'); })();";
+  const row = (fs: readonly string[]) => ({ section: { figures, referents: [{ id: 'block-1', label: 'block 1', figures: fs }] }, textHtml: text, figuresJs: js });
+  assert.deepEqual(run(checkReferents, row(['sim-ruler', 'sim-spring'])), []);
+  assert.deepEqual(run(checkReferents, row(['sim-ruler'])), ['16.1/section.json referents[block-1]: is drawn with F.ref in figure "sim-spring", which its figures do not list']);
 });
 
 test('checkVariableRefs: a row\u2019s ref names a referent of its own section, on a symbol with a subscript', () => {
-  const referents = [{ id: 'tug-1', label: 'the first tug', figure: 'sim-ruler' }];
+  const referents = [{ id: 'tug-1', label: 'the first tug', figures: ['sim-ruler'] }];
   const symbols = [{ sym: 'F_1', latex: 'F_1' }, { sym: 'F', latex: 'F' }];
   const row = (sym: string, ref: string, section = '16.1') => ({ chapter: { variables: [{ sym, meaning: 'm', section, ref }] }, book: { symbols }, section: { referents } });
   assert.deepEqual(run(checkVariableRefs, row('F_1', 'tug-1')), []);
@@ -298,7 +310,7 @@ test('checkSources: a source_id the source it was taken from does not hold', () 
      looked for in the source it says it came from, and nowhere else. */
   const two = (o: object): Content => {
     const one = fixture(only(o));
-    return { ...one, chapters: [{ ...one.chapters[0], sections: [{ dto: sectionOf({ id: '16.3', ...only(o).section }), textHtml: TEXT, sourceMd: 'no ids here' }, one.chapters[0].sections[0]] }] };
+    return { ...one, chapters: [{ ...one.chapters[0], sections: [{ dto: sectionOf({ id: '16.3', ...only(o).section }), textHtml: TEXT, sourceMd: 'no ids here', figuresJs: '' }, one.chapters[0].sections[0]] }] };
   };
   assert.deepEqual(said(checkSources(two({ source_section: '16.1' }))), [], 'the source it names is the one that is read');
   assert.match(said(checkSources(two({})))[0], /source_id "fs-1" is nowhere in the source.md of 16.3; it is in the source of 16.1/);

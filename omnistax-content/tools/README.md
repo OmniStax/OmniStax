@@ -98,6 +98,15 @@ ost set college-physics-2e variables 13.4/v2_bar --chapter 13 --unset type '{}'
 ost set college-physics-2e variables 4.7/F_x --chapter 4 '{"ref": "tug-1"}'
 ```
 
+A `referents` row lists every figure that draws it in `figures`, never empty;
+the old single `figure` is refused. `rows` and `show` print the list joined by
+commas.
+
+```
+ost add college-physics-2e referents --section 2.4 \
+  '{"id": "train", "label": "the subway train", "figures": ["sim-subway-displacement", "sim-subway-graphs"]}'
+```
+
 A row is named by its key fields joined with `/`: `figures`, `referents`,
 `exercises`, `forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
 by `sym`, `coverage` by `span/concept/verb`, `exercise_concepts` by
@@ -180,6 +189,21 @@ change.
 ```
 python3 omnistax-content/tools/migrate_forms.py college-physics-2e --dry-run
 python3 omnistax-content/tools/migrate_forms.py college-physics-2e
+```
+
+`migrate_referent_figures.py` turned each referent's `figure` into `figures`:
+its old figure, then every other figure of the section whose block of
+`figures.js` calls `F.ref` on it, read as the app's checker reads it
+(`omnistax-web/src/lib/content/figrefs.ts` through `scripts/figure-refs.ts`),
+and besides what the checker requires, the figures where an id read from a
+variable (`F.ref(id)`) is a referent the figure's code names as a string. Only the
+`referents` array of each `section.json` is printed again; it reports the
+figures each referent gained and the ones it lists that no readable `F.ref`
+draws it in. A migrated book has nothing to change.
+
+```
+python3 omnistax-content/tools/migrate_referent_figures.py college-physics-2e --dry-run
+python3 omnistax-content/tools/migrate_referent_figures.py college-physics-2e
 ```
 
 `apply_names.py` applies concept name decisions, one file per chapter,
