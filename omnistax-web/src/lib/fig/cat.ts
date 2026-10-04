@@ -5,39 +5,48 @@
    physical fact, and like the other two that are not the app's signal it does
    not switch off when colour coding does.
 
-   Twelve hues, evenly spaced 30 degrees apart round the OKLCH hue circle from
-   25, each published with a light value and a dark one: the light at L 0.52 and
-   the dark at L 0.78, chroma as high as sRGB holds up to 0.15 and 0.13, so every
-   light value clears 5:1 against white and every dark one 8:1 against the dark
-   ground, and the two values of one hue are recognisably the same colour. A
-   figure reaches them through `F.ref(id)` or `F.cat(i)` and never as a hex
-   literal. */
+   Hue alone cannot keep a referent apart from the categories: a figure that
+   draws six of them has spoken for most of the circle, and a jade wagon 23°
+   from a teal mass reads as the mass. So the referents are a family of their
+   own by lightness as well. The scheme's category hues sit at OKLCH L 0.52 with
+   chroma up to 0.16 on the light ground, and on the dark one wherever HSL
+   lightness 0.7 carries them, L 0.68 to 0.96. The referents sit below both, at
+   L 0.40 with chroma up to 0.17 on the light ground and L 0.65 with chroma up to
+   0.18 on the dark, deeper and more saturated than any category hue: every
+   light value clears 8:1 against white and every dark one 4.5:1 against the
+   dark ground, and no referent comes within ΔE 0.08 of any of the scheme's
+   forty-eight places in its theme. Twelve hues, 30 degrees apart round the OKLCH
+   circle from 25, and the two values of one hue are recognisably the same
+   colour. A figure reaches them through `F.ref(id)` or `F.cat(i)` and never as a
+   hex literal. */
 import type { Color } from './figlib';
 
 export type CatHue = { readonly angle: number; readonly light: Color; readonly dark: Color };
 
 export const CAT: readonly CatHue[] = [
-  { angle: 25, light: '#AF3C3A', dark: '#FF958E' },    /* red */
-  { angle: 55, light: '#9F5102', dark: '#F7A062' },    /* orange */
-  { angle: 85, light: '#856302', dark: '#DDB049' },    /* ochre */
-  { angle: 115, light: '#677005', dark: '#B5C159' },   /* olive */
-  { angle: 145, light: '#1B7E2A', dark: '#80CD82' },   /* green */
-  { angle: 175, light: '#007B66', dark: '#41D2B3' },   /* jade */
-  { angle: 205, light: '#047781', dark: '#1ACFDF' },   /* teal */
-  { angle: 235, light: '#01729F', dark: '#55C4FE' },   /* azure */
-  { angle: 265, light: '#3D63BE', dark: '#95B6FE' },   /* blue */
-  { angle: 295, light: '#7152B5', dark: '#BDA7FE' },   /* violet */
-  { angle: 325, light: '#924598', dark: '#E19AE5' },   /* purple */
-  { angle: 355, light: '#A73B6D', dark: '#F893BC' },   /* rose */
+  { angle: 25, light: '#8A0012', dark: '#E85854' },    /* red */
+  { angle: 55, light: '#6F3600', dark: '#D76F00' },    /* orange */
+  { angle: 85, light: '#5C4300', dark: '#B48700' },    /* ochre */
+  { angle: 115, light: '#474D00', dark: '#8D9900' },   /* olive */
+  { angle: 145, light: '#005813', dark: '#31AA40' },   /* green */
+  { angle: 175, light: '#005545', dark: '#00A78B' },   /* jade */
+  { angle: 205, light: '#005259', dark: '#00A2AF' },   /* teal */
+  { angle: 235, light: '#004E6F', dark: '#009BD6' },   /* azure */
+  { angle: 265, light: '#193BA1', dark: '#5888FC' },   /* blue */
+  { angle: 295, light: '#522797', dark: '#9973EF' },   /* violet */
+  { angle: 325, light: '#711378', dark: '#C462CA' },   /* purple */
+  { angle: 355, light: '#84004C', dark: '#DF5795' },   /* rose */
 ];
 
-/* Two hues within this many degrees of each other on the OKLCH circle read as
-   the same colour once they are small marks on a page, so a referent hue this
-   close to a category hue its figure draws would say "this is that quantity"
-   when it means nothing of the kind. Twenty degrees is two thirds of the
-   30-degree step: a drawn hue clears the referent hue it lands on, or the two it
-   falls between, and never more. */
-export const NEAR_DEG = 20;
+/* Two colours closer than this in OKLab read as one once they are small marks
+   on a page, so a referent this close to a colour its figure draws would say
+   "this is that quantity" when it means nothing of the kind. The old jade wagon
+   and the teal mass of physics 4.3 stood 0.038 apart and were one teal; force
+   and velocity, an ochre and a green 36° apart, stand 0.086 apart and are two
+   colours. No referent is this close to a scheme place, so under the book's own
+   scheme nothing is skipped; it is a colour a reader picks, or a palette of
+   their choosing, that lands on a referent and moves it on. */
+export const NEAR_DE = 0.08;
 
 const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
 
@@ -45,6 +54,7 @@ const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
 const decodeSrgb = (x: number): number => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4);
 
 type Rgb = readonly [number, number, number];                      /* linear light, 0 to 1 */
+type Lab = readonly [number, number, number];                      /* OKLab L, a, b */
 const chan = (d: string, i: number): number => decodeSrgb(clamp01(parseInt(d.slice(i, i + 2), 16) / 255));
 const rgbOf = (hex: Color): Rgb => {
   const h = hex.replace('#', '');
@@ -52,55 +62,72 @@ const rgbOf = (hex: Color): Rgb => {
   return [chan(d, 0), chan(d, 2), chan(d, 4)];
 };
 
-/* A colour's hue angle in degrees, 0 to 360, by Björn Ottosson's OKLab — the
-   same conversion the colour scheme's ring is built with, run backwards. A grey
-   has no hue, and comes back null so that nothing is ever called close to it. */
-export const hueAngle = (hex: Color): number | null => {
+/* A colour in Björn Ottosson's OKLab, the same conversion the colour scheme's
+   ring is built with, run backwards. */
+const labOf = (hex: Color): Lab => {
   const [r, g, b] = rgbOf(hex);
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  const a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
-  const bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
-  if (Math.hypot(a, bb) < 0.02) return null;                         /* a grey: no hue to be close to */
-  return ((Math.atan2(bb, a) * 180) / Math.PI + 360) % 360;
+  return [
+    0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+  ];
 };
 
-/* The shorter way round the circle between two angles. */
-const gap = (x: number, y: number): number => { const d = Math.abs(x - y) % 360; return d > 180 ? 360 - d : d; };
+/* How far apart two colours look: the straight distance between them in OKLab. */
+export const deltaE = (x: Color, y: Color): number => {
+  const [p, q] = [labOf(x), labOf(y)];
+  return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+};
 
-const clashes = (h: CatHue, angles: readonly number[]): boolean => angles.some((a) => gap(h.angle, a) < NEAR_DEG);
-const anglesOf = (hexes: readonly Color[]): readonly number[] => hexes.map(hueAngle).filter((a): a is number => a !== null);
+/* A colour's hue angle in degrees, 0 to 360. A grey has no hue, and comes back
+   null. */
+export const hueAngle = (hex: Color): number | null => {
+  const [, a, b] = labOf(hex);
+  if (Math.hypot(a, b) < 0.02) return null;
+  return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+};
 
-/* The hues left once the ones too close to the drawn category hues are
-   dropped. A figure that has drawn so much of the circle that nothing survives
-   gets the whole palette back, since a hue that is merely close reads better
-   than the same hue drawn twice. */
-export const catHues = (drawn: readonly Color[]): readonly CatHue[] => {
-  const angles = anglesOf(drawn);
-  const left = CAT.filter((h) => !clashes(h, angles));
+/* The values of a hue the drawn colours are measured against: the theme's own
+   when the theme is known, and both when it is not, which is how the build
+   asks, handing over the drawn colours of one theme at a time. */
+const valuesOf = (h: CatHue, dark?: boolean): readonly Color[] => (dark === undefined ? [h.light, h.dark] : [dark ? h.dark : h.light]);
+
+/* How near a hue comes to the nearest drawn colour; a figure that draws nothing
+   leaves every hue the whole room there is. */
+const room = (h: CatHue, drawn: readonly Color[], dark?: boolean): number =>
+  Math.min(Infinity, ...valuesOf(h, dark).flatMap((v) => drawn.map((d) => deltaE(v, d))));
+
+const clashes = (h: CatHue, drawn: readonly Color[], dark?: boolean): boolean => room(h, drawn, dark) < NEAR_DE;
+
+/* The hues left once the ones too close to the drawn colours are dropped. A
+   figure that has drawn so much that nothing survives gets the whole palette
+   back, since a hue that is merely close reads better than the same hue drawn
+   twice. */
+export const catHues = (drawn: readonly Color[], dark?: boolean): readonly CatHue[] => {
+  const left = CAT.filter((h) => !clashes(h, drawn, dark));
   return left.length ? left : CAT;
 };
 
 /* Every hue in the order a figure hands them out: the ones clear of its drawn
-   hues first, then the ones it dropped, the farthest from any drawn hue first. A
-   figure that needs more colours than survive gets a hue merely close to a drawn
-   one before it gets the same hue twice. */
-export const catOrder = (drawn: readonly Color[]): readonly CatHue[] => {
-  const angles = anglesOf(drawn);
-  const clear = CAT.filter((h) => !clashes(h, angles));
-  const room = (h: CatHue): number => Math.min(...angles.map((a) => gap(h.angle, a)));
-  return [...clear, ...CAT.filter((h) => clashes(h, angles)).sort((x, y) => room(y) - room(x))];
-};
+   colours first, then the ones it dropped, the farthest from any drawn colour
+   first. A figure that needs more colours than survive gets a hue merely close
+   to a drawn one before it gets the same hue twice. */
+export const catOrder = (drawn: readonly Color[], dark?: boolean): readonly CatHue[] => [
+  ...CAT.filter((h) => !clashes(h, drawn, dark)),
+  ...CAT.filter((h) => clashes(h, drawn, dark)).sort((x, y) => room(y, drawn, dark) - room(x, drawn, dark)),
+];
 
-/* How many hues a figure that draws these category hues has before it runs out. */
-export const clearCount = (drawn: readonly Color[]): number => CAT.filter((h) => !clashes(h, anglesOf(drawn))).length;
+/* How many hues a figure that draws these colours has before it runs out. */
+export const clearCount = (drawn: readonly Color[], dark?: boolean): number => CAT.filter((h) => !clashes(h, drawn, dark)).length;
 
 /* The i-th referent colour for the theme showing, in the order above. `i`
    wraps, and a negative index wraps the same way, so a figure may index by
    whatever counter it has. */
 export const cat = (i: number, dark: boolean, drawn: readonly Color[] = []): Color => {
-  const hues = catOrder(drawn);
+  const hues = catOrder(drawn, dark);
   const n = hues.length;
   const h = hues[((Math.trunc(i) % n) + n) % n];
   return dark ? h.dark : h.light;

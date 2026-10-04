@@ -178,10 +178,10 @@ test('checkDraws: a figure that draws a type the book never declared', () => {
 
 test('checkRefHues: a figure with more referents than hues clear of the types it draws has run out', () => {
   const referents = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figure: 'sim-ruler' }));
-  assert.deepEqual(run(checkRefHues, { section: { referents: referents(9) } }), [], 'one drawn type clears at most two of twelve');
-  const said = run(checkRefHues, { section: { referents: referents(12) } });
+  assert.deepEqual(run(checkRefHues, { section: { referents: referents(12) } }), [], 'no scheme type stands near a referent hue');
+  const said = run(checkRefHues, { section: { referents: referents(13) } });
   assert.equal(said.length, 1);
-  assert.match(said[0], /figures\[sim-ruler\]: has 12 referents and only 1[01] referent hues clear of the 1 types it draws/);
+  assert.match(said[0], /figures\[sim-ruler\]: has 13 referents and only 12 referent hues clear of the 1 types it draws/);
 });
 
 test('checkVariableRefs: a row\u2019s ref names a referent of its own section, on a symbol with a subscript', () => {

@@ -1,12 +1,14 @@
 /* The referent palette: the colours of the particular things a figure must tell
    apart. What is worth checking is that its hues are all different and readable
-   in both themes, that the index wraps, that a hue too close to a type the figure
-   draws is skipped, and that switching colour coding off leaves it and the
+   in both themes, that they stand apart from every category colour of the scheme,
+   that the index wraps, that a hue too close to a colour the figure draws is skipped, and that switching colour coding off leaves it and the
    element colours alone. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { CAT, NEAR_DEG, cat, catHues, catOrder, clearCount, hueAngle, refIndex } from '../src/lib/fig/cat';
+import { CAT, NEAR_DE, cat, catHues, catOrder, clearCount, deltaE, hueAngle, refIndex } from '../src/lib/fig/cat';
+import { SCHEME, huesOf } from '../src/lib/colours/palettes';
+import { darkOf } from '../src/lib/colours/model';
 import { elementColor } from '../src/lib/fig/elements';
 import { isHex } from '../src/lib/colours/model';
 import { COLOURS_ON, rootClasses, shownOf } from '../src/lib/colours/switches';
@@ -35,7 +37,22 @@ test('every hue reads as text on the ground of its theme', () => {
 });
 
 test('no two hues read as the same colour', () => {
-  for (const h of CAT) for (const g of CAT) if (h !== g) assert.ok(gap(h.angle, g.angle) >= NEAR_DEG, `${h.light} and ${g.light}`);
+  for (const h of CAT) for (const g of CAT) if (h !== g) assert.ok(gap(h.angle, g.angle) >= 30, `${h.light} and ${g.light}`);
+});
+
+test('a referent never reads as a category: every hue stands clear of all forty-eight scheme places in its theme', () => {
+  const places = huesOf(SCHEME, 48)!;
+  for (const h of CAT) for (const p of places) {
+    assert.ok(deltaE(h.light, p) >= NEAR_DE, `light ${h.light} and ${p}`);
+    assert.ok(deltaE(h.dark, darkOf(p)) >= NEAR_DE, `dark ${h.dark} and ${darkOf(p)}`);
+  }
+  assert.equal(clearCount(places), CAT.length);
+  assert.equal(clearCount(places.map(darkOf)), CAT.length);
+});
+
+test('the threshold calls the old jade wagon and teal mass one colour, and force and velocity two', () => {
+  assert.ok(deltaE('#007B66', '#00787B') < NEAR_DE);
+  assert.ok(deltaE('#7C6800', '#487901') >= NEAR_DE);
 });
 
 test('the published angle is the colour\'s own hue, in both themes', () => {
@@ -52,17 +69,27 @@ test('the index wraps, forwards and backwards', () => {
   assert.notEqual(cat(0, false), cat(0, true));
 });
 
-test('a drawn type hue clears the hue it lands on, or the two it falls between, and no more', () => {
-  const blue = CAT[8];                                   /* the figure draws velocity in something blue */
-  const left = catHues([blue.light]);
-  assert.ok(!left.some((h) => h.angle === blue.angle));
-  assert.ok(left.every((h) => gap(h.angle, blue.angle) >= NEAR_DEG));
-  for (let i = 0; i < left.length; i++) assert.notEqual(cat(i, false, [blue.light]), blue.light);
-  for (let a = 0; a < 360; a += 5) {
-    const near = CAT.filter((h) => { const d = Math.abs(h.angle - a) % 360; return Math.min(d, 360 - d) < NEAR_DEG; });
-    assert.ok(near.length >= 1 && near.length <= 2, `a hue at ${a} degrees clears ${near.length}`);
+test('a drawn colour near a referent hue clears it, in the theme it is drawn in', () => {
+  const blue = CAT[8];                                   /* a reader's palette draws velocity in the referent blue itself */
+  for (const dark of [false, true]) {
+    const drawn = [dark ? blue.dark : blue.light];
+    const left = catHues(drawn, dark);
+    assert.ok(!left.includes(blue));
+    assert.ok(left.every((h) => deltaE(dark ? h.dark : h.light, drawn[0]) >= NEAR_DE));
+    for (let i = 0; i < left.length; i++) assert.notEqual(cat(i, dark, drawn), drawn[0]);
+    assert.equal(clearCount(drawn, dark), left.length);
   }
-  assert.equal(clearCount([blue.light]), left.length);
+  assert.ok(!catHues([blue.dark]).includes(blue), 'the build, not saying the theme, measures both');
+});
+
+test('the six types of the wagon of physics 4.3 leave two referents far from all six and from each other', () => {
+  const wagon = ['#7C6800', '#0069BF', '#487901', '#B23B19', '#8747AA', '#00787B'];   /* force, acceleration, velocity, time, position, mass */
+  for (const dark of [false, true]) {
+    const drawn = dark ? wagon.map(darkOf) : wagon;
+    const [a, b] = [cat(0, dark, drawn), cat(1, dark, drawn)];
+    for (const d of drawn) for (const r of [a, b]) assert.ok(deltaE(r, d) >= 0.1, `${dark ? 'dark' : 'light'} ${r} and ${d}`);
+    assert.ok(deltaE(a, b) >= NEAR_DE, `${a} and ${b}`);
+  }
 });
 
 test('a figure whose drawn hues leave few clear still tells twelve things apart, nearest-to-drawn last', () => {
