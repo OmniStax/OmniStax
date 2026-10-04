@@ -7,6 +7,7 @@
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
   import { initFig, FIG, figFor, registerFigBook, figBookOf } from '../lib/fig/figlib';
+  import { rootClasses } from '../lib/colours/switches';
   import { registry } from '../lib/sections/registry.svelte';
   import { focus } from '../lib/sections/focus.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
@@ -277,7 +278,7 @@
   });
 
   /* settings → document */
-  $effect(() => { document.documentElement.classList.toggle('cc', settings.colorCoding); FIG.setCC(settings.colorCoding); FIG.redrawAll(); });
+  $effect(() => { Object.entries(rootClasses(settings.colours)).forEach(([c, on]) => document.documentElement.classList.toggle(c, on)); FIG.setShown(settings.shown); FIG.redrawAll(); });
   $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
   $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });

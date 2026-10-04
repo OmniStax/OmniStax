@@ -145,6 +145,15 @@ test('checkTypeSpans: words marked with an undeclared type; a declared one is co
   assert.match(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="colour">red</span></p>` })[0], /type "colour", which the book does not declare/);
 });
 
+test('a lead marks its words as the text does: a referent named only there is named, and a span naming none is an error in section.json', () => {
+  const block = { id: 'block-1', label: 'Block 1', figure: 'sim-ruler' };
+  assert.deepEqual(run(checkReferents, { section: { referents: [block], lead: 'How <span data-ref="block-1">a block</span> slides.' } }), []);
+  assert.deepEqual(run(checkReferents, { section: { referents: [block], lead: 'How <span data-ref="block-9">a block</span> slides.' } }),
+    ['16.1/section.json referents[block-1]: is named by no <span data-ref> of the text', '16.1/section.json: <span data-ref="block-9"> is no row of the referents table']);
+  assert.deepEqual(run(checkTypeSpans, { section: { lead: 'What a <span data-type="force">pull</span> does.' } }), []);
+  assert.match(run(checkTypeSpans, { section: { lead: 'What <span data-type="colour">red</span> does.' } })[0], /^16\.1\/section\.json: marks words with type "colour"/);
+});
+
 test('checkReferents: a referent twice, in no figure, unnamed, and a span that names none', () => {
   const block = { id: 'block-1', label: 'block 1', figure: 'sim-ruler' };
   const named = `${TEXT}<p><span data-ref="block-1">Block 1</span> slides.</p>`;

@@ -137,3 +137,19 @@ test('the lead and the notes are swept for math like the text', () => {
   const bare = SectionSchema.parse({ id: '16.3', chapter: '16', title: 'Simple Harmonic Motion', built: '2026-09-07' });
   assert.equal(metaOf(bare, { url: '/y/' }, (h) => (h ? prerenderMath(h, {}) : '')).lead, '');
 });
+
+/* A lead marks its words as the text does, and writes the page's macros: the spans reach the page for the
+   colour rules and paintRefs, a split symbol's subscript among them. */
+test('a lead keeps its type and referent spans and sets the page\'s macros', () => {
+  const dto = SectionSchema.parse({
+    id: '4.4', chapter: '4', title: 'Newton’s Third Law', built: '2026-09-07',
+    lead: 'How <span data-ref="tug-1">the tug</span> pulls with a <span data-type="force">force</span> $\\kF$.',
+  });
+  const macros = { '\\kF': '\\htmlClass{kv-force}{\\htmlData{sym=F}{F_{\\htmlData{ref=tug-1}{1}}}}' };
+  const lead = metaOf(dto, { url: '/x/' }, (h) => prerenderMath(h, macros)).lead;
+  assert.match(lead, /<span data-ref="tug-1">the tug<\/span>/);
+  assert.match(lead, /<span data-type="force">force<\/span>/);
+  assert.match(lead, /kv-force/);
+  assert.equal(lead.match(/data-ref="tug-1"/g)?.length, 2, 'the subscript carries the referent too');
+  assert.deepEqual(typesWorn([], [], dto.lead), ['force']);
+});

@@ -205,8 +205,8 @@ Tables:
   A referent takes the k-th of twelve referent hues, k its place among
   the rows of its own figure, skipping those within 20° of the hue of a
   type that figure `draws` (when too few are clear, the ones nearest a
-  drawn hue come last rather than a hue coming twice); like `F.cat` it
-  stays coloured with colour coding off. Text and figure compute it apart
+  drawn hue come last rather than a hue coming twice); it and `F.cat`
+  follow the reader's Referents switch, not Concepts. Text and figure compute it apart
   from the same table, so they agree whatever order they draw in, and a
   figure with more referents than clear hues is a warning.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
@@ -232,6 +232,11 @@ section build chose, `<span data-type="<type>">the pull</span>`: the
 words wear the type exactly as a symbol of it does. Nothing matches them
 at runtime; they are written where the build means them. A type is
 coloured on every page, whatever the page's figures draw.
+
+The `lead` is prose of the same kind: it may write the page's symbol
+macros, `<span data-type="<type>">` and `<span data-ref="<id>">`, which
+render and are coloured as in `text.html`. A referent named only in the
+lead counts as named.
 
 ### An introduction or summary page
 
@@ -346,9 +351,9 @@ references:
   inherits is a warning, so is a `null` on a row that inherits no type,
   and so is any `type` stored on a symbol, which belongs on its variables
   rows;
-- every `data-type` in `text.html` is a declared type;
+- every `data-type` in `text.html` or the lead is a declared type;
 - every `referents` id is unique in its section and its `figure` is a
-  figure row of the section; every `data-ref` in `text.html` names a row
+  figure row of the section; every `data-ref` in `text.html` or the lead names a row
   (each id of a span that lists several), and a row no span names is a
   warning; a figure with more referents than referent hues clear of the
   types it draws, under the book's own scheme in either theme, is a

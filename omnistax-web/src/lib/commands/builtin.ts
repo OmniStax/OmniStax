@@ -11,17 +11,18 @@ import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
+import type { ColourSwitch, ColourSwitches } from '../colours/switches';
 
 export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly colorCoding: boolean; readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
+    readonly colours: ColourSwitches; readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
     readonly figureFont: FontId; readonly bodyFont: FontId;
     setFigureFont(id: FontId): void; setBodyFont(id: FontId): void;
     setPreview(p: { figureFont?: FontId; bodyFont?: FontId; theme?: Theme }): void; clearPreview(): void;
     zoomIn(): void; zoomOut(): void; resetZoom(): void;
-    setColorCoding(on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
+    setColour(k: ColourSwitch, on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
   };
   readonly layout: {
     reset(): void;
@@ -133,7 +134,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.undo, label: 'Undo', group: 'App', run: () => d.history.undo(), when: () => d.history.canUndo, detail: () => d.history.undoLabel },
   { id: BUILTIN.redo, label: 'Redo', group: 'App', run: () => d.history.redo(), when: () => d.history.canRedo, detail: () => d.history.redoLabel },
   { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
-  { id: BUILTIN.colourCoding, label: 'Toggle color coding', group: 'Appearance', run: () => d.settings.setColorCoding(!d.settings.colorCoding), detail: () => onOff(d.settings.colorCoding) },
+  { id: BUILTIN.colourCoding, label: 'Toggle color coding', group: 'Appearance', run: () => d.settings.setColour('all', !d.settings.colours.all), detail: () => onOff(d.settings.colours.all) },
   /* The dotted rule under symbols, glossary terms and example references; what
      they open is unaffected either way. */
   { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },

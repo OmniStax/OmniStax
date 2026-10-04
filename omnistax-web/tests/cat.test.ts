@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import { CAT, NEAR_DEG, cat, catHues, catOrder, clearCount, hueAngle, refIndex } from '../src/lib/fig/cat';
 import { elementColor } from '../src/lib/fig/elements';
 import { isHex } from '../src/lib/colours/model';
+import { COLOURS_ON, rootClasses, shownOf } from '../src/lib/colours/switches';
 
 const gap = (x: number, y: number): number => { const d = Math.abs(x - y) % 360; return d > 180 ? 360 - d : d; };
 
@@ -78,26 +79,39 @@ test('a grey clears nothing, and a figure that draws every hue gets the whole pa
   assert.equal(catHues(CAT.map((h) => h.light)).length, CAT.length);
 });
 
-/* Colour coding off drops the type hues and keeps the book's own conventions.
-   Neither the element palette nor the categorical one is reached through the
-   scheme: `elementColor` and `cat` take a theme and nothing else, and figlib
-   passes them nothing else, so there is no path by which `setCC(false)` could
-   reach them. `C` is the one door that answers with ink; a referent reads colour
-   coding only to drop the drawn hues it keeps clear of, as `cat` finds none drawn
-   with it off. */
+/* Each colour family answers to its own switch and no other (RULES item 7). The element palette is reached
+   only through `F.el` and a fact only through `F.fact`, both gated on facts; the referent hues through `F.ref`,
+   `F.cat` and `paintRefs`, gated on referents; a type only through `C`, gated on concepts, which a referent
+   reads besides only to drop the drawn hues it keeps clear of, as none are drawn with Concepts off. */
 const figlib = fs.readFileSync(new URL('../src/lib/fig/figlib.ts', import.meta.url), 'utf8');
+const reading = (family: string): readonly string[] =>
+  figlib.split('\n').filter((l) => new RegExp(`\\bSHOWN\\.${family}\\b`).test(l) && !l.trimStart().startsWith('/*') && !l.trimStart().startsWith('*')).map((l) => l.trim()).sort();
 
-test('the element and categorical colours do not switch off with colour coding', () => {
+test('each colour door reads its own switch and nothing else does', () => {
   assert.equal(elementColor('O', false), elementColor('O', false));
-  assert.match(figlib, /const cat = \(i: number\): Color => catOf\(i, darkTheme, \[\.\.\.bound\]\);/);
-  const uses = figlib.split('\n').filter((l) => /\bCC\b/.test(l) && !l.trimStart().startsWith('/*') && !l.trimStart().startsWith('*'));
-  assert.deepEqual(uses.map((l) => l.trim()).sort(), [
-    'const setCC = (on: boolean): void => { CC = on; };',
-    'get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,',
-    'if (!CC && !NEUTRAL.has(k)) return PAL.ink;',
-    'return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);',
-    'let CC = true;',
+  assert.deepEqual(reading('facts'), [
+    "const fact = (c: Color): Color => (SHOWN.facts ? c : PAL.ink);",
+    "if (isElementSymbol(s) || /^[A-Z]/.test(s)) return SHOWN.facts ? elColor(s) : PAL.ink;",
   ].sort());
+  assert.deepEqual(reading('refs'), [
+    'const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound]) : PAL.ink);',
+    'if (!SHOWN.refs || !page || !r || k < 0) return pal.ink;',
+    'if (!SHOWN.refs) return;',
+  ].sort());
+  assert.deepEqual(reading('concepts'), [
+    'get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,',
+    'if (!SHOWN.concepts && !NEUTRAL.has(k)) return PAL.ink;',
+    'return catOf(k, darkTheme, SHOWN.concepts ? keys.map((t) => pal[t]).filter(Boolean) : []);',
+  ].sort());
+});
+
+test('All off sets every family in ink and on gives each back its own switch', () => {
+  const some = { all: true, facts: false, refs: true, concepts: false };
+  assert.deepEqual(shownOf(some), { facts: false, refs: true, concepts: false });
+  assert.deepEqual(shownOf({ ...some, all: false }), { facts: false, refs: false, concepts: false });
+  assert.deepEqual(shownOf(COLOURS_ON), { facts: true, refs: true, concepts: true });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-all': true, 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, all: false }), { 'cc-all': false, 'cc-facts': false, 'cc-refs': false, 'cc-concepts': false });
 });
 
 test('a referent is indexed by its place among the rows of its own figure', () => {

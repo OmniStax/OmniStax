@@ -1,4 +1,5 @@
 import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
+import { COLOURS_ON } from '../src/lib/colours/switches';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toggleId, addIds, removeIds, parseIds, renamedSimId, FOLDABLE, HIDEABLE } from '../src/lib/sections/fold';
@@ -36,7 +37,7 @@ test('the foldable and hideable selectors name only spans and figures that carry
 
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
-  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colorCoding: true, theme: 'system', animations: true, voice: false, underlines: true, setColorCoding: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, setUnderlines: () => {}, figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: () => {}, setBodyFont: () => {}, setPreview: () => {}, clearPreview: () => {} },
+  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, colours: COLOURS_ON, theme: 'system', animations: true, voice: false, underlines: true, setColour: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, setUnderlines: () => {}, figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: () => {}, setBodyFont: () => {}, setPreview: () => {}, clearPreview: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeTab: () => {}, closeGroup: () => {}, newGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},

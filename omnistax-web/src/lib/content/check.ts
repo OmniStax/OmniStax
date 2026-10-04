@@ -181,20 +181,25 @@ export const checkTypes: Check = (content) => {
 /* Every value the text gives an attribute, each once. */
 const attrValues = (html: string, attr: string): readonly string[] =>
   [...new Set(Array.from(html.matchAll(new RegExp(`<[^>]*\\s${attr}="([^"]*)"`, 'g')), (m) => m[1]))];
+/* The prose a page marks its words in: the text, and the lead under the title, each with the file it is written in. */
+type Marked = { readonly file: string; readonly html: string };
+const markedOf = (s: SectionContent): readonly Marked[] =>
+  [{ file: `${s.dto.id}/text.html`, html: s.textHtml }, { file: `${s.dto.id}/section.json`, html: s.dto.lead }];
 /* The text may mark a run of words <span data-type="…"> to wear a type as a symbol does: the type is one the book declares. */
 export const checkTypeSpans: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
-  return pagesOf(content).flatMap((s) => attrValues(s.textHtml, 'data-type').flatMap((t) =>
-    (types.has(t) ? [] : [error(`${s.dto.id}/text.html`, `marks words with type "${t}", which the book does not declare`)])));
+  return pagesOf(content).flatMap((s) => markedOf(s).flatMap((m) => attrValues(m.html, 'data-type').flatMap((t) =>
+    (types.has(t) ? [] : [error(m.file, `marks words with type "${t}", which the book does not declare`)]))));
 };
 
 /* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
    and the figure colours with F.ref. Its id is unique in the section, it is drawn in a figure of the section,
-   and the text names it: a span that names no row is an error, and a row no span names a warning. */
+   and the text or the lead names it: a span that names no row is an error, and a row no span names a warning. */
 export const checkReferents: Check = (content) =>
   pagesOf(content).flatMap((s) => {
     const figures = idsOf(s.dto.figures, (f) => f.id); const rows = idsOf(s.dto.referents, (r) => r.id);
-    const named = new Set(attrValues(s.textHtml, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean)));
+    const spans = markedOf(s).flatMap((m) => attrValues(m.html, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean).map((id) => ({ id, file: m.file }))));
+    const named = new Set(spans.map((n) => n.id));
     return [
       ...s.dto.referents.flatMap((r, i) => {
         const where = inSection(s, 'referents', r.id);
@@ -204,7 +209,7 @@ export const checkReferents: Check = (content) =>
           ...(named.has(r.id) ? [] : [warning(where, 'is named by no <span data-ref> of the text')]),
         ];
       }),
-      ...[...named].flatMap((id) => (rows.has(id) ? [] : [error(`${s.dto.id}/text.html`, `<span data-ref="${id}"> is no row of the referents table`)])),
+      ...[...new Map(spans.map((n) => [`${n.file}|${n.id}`, n])).values()].flatMap((n) => (rows.has(n.id) ? [] : [error(n.file, `<span data-ref="${n.id}"> is no row of the referents table`)])),
     ];
   });
 
@@ -469,7 +474,7 @@ const frontPage = (s: SectionContent, role: FrontRole, owner: string, named: Fro
 /* A lead says what the section is about and stops (rule 21); one that runs on
    has become a précis of the section in the book's place. */
 const LEAD_WORDS = 80;
-const wordsOf = (text: string): number => text.split(/\s+/).filter(Boolean).length;
+const wordsOf = (text: string): number => text.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
 const section = (s: SectionContent): readonly Finding[] => [
   ...(s.dto.chapter === undefined ? [error(`${s.dto.id}/section.json`, 'is a section and names no chapter')] : []),
   ...(s.dto.lead === '' ? [error(`${s.dto.id}/section.json`, 'is a section and has no lead')] : []),

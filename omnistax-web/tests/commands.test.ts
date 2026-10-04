@@ -1,4 +1,5 @@
 import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
+import { COLOURS_ON } from '../src/lib/colours/switches';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, startsSequence, type Bindings, type Chord, type KeyLike } from '../src/lib/commands/chord';
@@ -113,7 +114,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
-    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colorCoding: true, theme: 'system', animations: true, voice: false, underlines: true, setColorCoding: (v) => log.push(`cc ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
+    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colours: COLOURS_ON, theme: 'system', animations: true, voice: false, underlines: true, setColour: (k, v) => log.push(`colour ${k} ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),

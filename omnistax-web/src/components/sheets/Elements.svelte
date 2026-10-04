@@ -45,7 +45,7 @@
   const colouring = $derived(CHOICES.find((c) => c.key === choice)?.colouring ?? CHOICES[0].colouring);
   const cells = $derived(cellsOf(sheet.elements));
   const range = $derived(colouring.by === 'trend' ? rangeOf(sheet.elements, colouring.trend) : null);
-  const legend = $derived(legendOf(colouring, sheet.elements, range, settings.dark, settings.colorCoding));
+  const legend = $derived(legendOf(colouring, sheet.elements, range, settings.dark, settings.shown.concepts));
   const trend = $derived<Trend | null>(colouring.by === 'trend' ? colouring.trend : null);
   const shown = $derived(new Set(sheet.elements.filter((e) => passes(e, filters)).map((e) => e.symbol)));
   const element = (symbol: string | null) => (symbol === null ? null : sheet.elements.find((e) => e.symbol === symbol) ?? null);
@@ -147,7 +147,7 @@
         <button
           type="button" class="cell" class:out={!shown.has(c.element.symbol)} class:on={pinned === c.element.symbol} class:below={c.row > 7}
           data-el={c.element.symbol} style:grid-column={c.column} style:grid-row={c.row}
-          style:background={fillOf(colouring, c.element, range, settings.dark, settings.colorCoding)}
+          style:background={fillOf(colouring, c.element, range, settings.dark, settings.shown.concepts)}
           aria-label="{c.element.name}, number {c.element.number}" aria-pressed={pinned === c.element.symbol}
           onmouseenter={() => (hovered = c.element.symbol)} onmouseleave={() => (hovered = null)}
           onfocus={() => (hovered = c.element.symbol)} onblur={() => (hovered = null)}
@@ -164,7 +164,7 @@
         {@const e = card}
         <div class="full">
           <div class="head">
-            <span class="swatch big" style:background={elementColor(e.symbol, settings.dark)}></span>
+            <span class="swatch big" style:background={settings.shown.facts ? elementColor(e.symbol, settings.dark) : 'var(--ink)'}></span>
             <div>
               <div class="eyebrow">{e.number} · {e.category}</div>
               <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>

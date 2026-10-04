@@ -4,6 +4,7 @@
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
 import { cat as catOf, refIndex } from './cat';
+import type { ColourShown } from '../colours/switches';
 import type { BookManifest, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
@@ -161,8 +162,9 @@ function renderMath(root: HTMLElement): void {
   withAuto((auto) => auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
 
-/* ---------- palette & colour coding ---------- */
-let CC = true;
+/* ---------- palette & colour switches ---------- */
+/* What each of the reader's colour families shows (RULES item 7): facts and conventions, referents, concepts. */
+let SHOWN: ColourShown = { facts: true, refs: true, concepts: true };
 const PAL: Record<string, Color> = {};
 const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
@@ -219,34 +221,33 @@ function usePal(fig: Element): void {
 }
 /* The type hues drawn so far: every hue `C` has handed out since the palette was
    last read. `F.cat` skips the referent hues too close to these, so a figure
-   never draws a referent in a hue it has given a type. Colour coding off draws
+   never draws a referent in a hue it has given a type. Concepts off draws
    no type hue, since every type is then ink. */
 const bound = new Set<Color>();
 function C(k: string): Color {
-  if (!CC && !NEUTRAL.has(k)) return PAL.ink;
+  if (!SHOWN.concepts && !NEUTRAL.has(k)) return PAL.ink;
   const c = PAL[k];
   if (!NEUTRAL.has(k) && c) bound.add(c);
   return c;
 }
-/* The referent palette by index. It is the book's own convention rather than
-   the app's signal, so it keeps its colours when colour coding is switched off,
-   exactly as `F.el` does; all it takes from the page is the theme and the type
-   hues already drawn. */
-const cat = (i: number): Color => catOf(i, darkTheme, [...bound]);
+/* The referent palette by index, for things a figure tells apart that no referents row names. It follows
+   the Referents switch as `F.ref` does; all it takes from the page is the theme and the type hues already drawn. */
+const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound]) : PAL.ink);
 /* A referent is one thing of one example that the text and a figure both point at. It takes the referent
    colour of its place among its figure's rows, clear of the category hues that figure draws, so the text and
    the figure agree whatever either has drawn. */
 const referentOf = (at: Place, id: string): ReferentEntry | undefined => pageOf(at)?.referents.find((r) => r.id === id);
 const refColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
   const page = pageOf(at); const r = referentOf(at, id); const k = page ? refIndex(page.referents, id) : -1;
-  if (!page || !r || k < 0) return pal.ink;
+  if (!SHOWN.refs || !page || !r || k < 0) return pal.ink;
   const keys = page.draws[r.figure] ?? [];
-  return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);
+  return catOf(k, darkTheme, SHOWN.concepts ? keys.map((t) => pal[t]).filter(Boolean) : []);
 };
 const ref = (id: string): Color => refColor(drawing, id, PAL);
 /* The text's <span data-ref> under a root, a split symbol's subscript among them, coloured here again on
    every repaint. A span that names several referents ("the two skaters") wears each of their colours in
-   turn across its words. */
+   turn across its words. With Referents off a span keeps no colour of its own, so a split subscript wears its
+   symbol's. */
 const refIds = (s: HTMLElement): readonly string[] => (s.dataset.ref ?? '').split(/\s+/).filter(Boolean);
 const bands = (cs: readonly Color[]): string =>
   `linear-gradient(90deg, ${cs.map((c, i) => `${c} ${(i * 100) / cs.length}% ${((i + 1) * 100) / cs.length}%`).join(', ')})`;
@@ -254,6 +255,7 @@ function paintRefs(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-ref]').forEach((s) => {
     const at = placeOf(s); const rs = refIds(s).flatMap((id) => referentOf(at, id) ?? []);
     ['color', 'background-image', '-webkit-background-clip', 'background-clip', '-webkit-text-fill-color'].forEach((k) => s.style.removeProperty(k));
+    if (!SHOWN.refs) return;
     if (rs.length > 1) {
       const pal = palAt(at);
       s.style.backgroundImage = bands(rs.map((r) => refColor(at, r.id, pal)));
@@ -290,9 +292,13 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, 
 function elOf(s: ElementSymbol): Color;
 function elOf<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string | null, html?: string): HTMLElementTagNameMap[K];
 function elOf(s: string, cls?: string | null, html?: string): Color | HTMLElement {
-  if (isElementSymbol(s) || /^[A-Z]/.test(s)) return elColor(s);
+  if (isElementSymbol(s) || /^[A-Z]/.test(s)) return SHOWN.facts ? elColor(s) : PAL.ink;
   return el(s as keyof HTMLElementTagNameMap, cls, html);
 }
+
+/* A colour that is the physical fact (a wavelength, a flame, a material's own colour), drawn through here so
+   the Facts and conventions switch reaches it. */
+const fact = (c: Color): Color => (SHOWN.facts ? c : PAL.ink);
 
 const fmt = (n: number, d: number): string => (Math.abs(n) < 1e-9 ? 0 : n).toFixed(d);
 
@@ -618,7 +624,7 @@ const arrivalAt = (ctx: Ctx): number => {
 const arrival = (d: FigRef): number => { const fig = figOf(d); return arrivalOf(sims.find((x) => x.fig === fig)); };
 const during = (k: number, a: number, b: number): number => ease.smooth((k - a) / (b - a));
 const setPaused = (v: boolean): void => { paused = v; };
-const setCC = (on: boolean): void => { CC = on; };
+const setShown = (shown: ColourShown): void => { SHOWN = shown; };
 
 /* ---------- drawing primitives (logical units) ---------- */
 const FIGURE_FALLBACK = "'New Computer Modern Book', Georgia, 'Times New Roman', serif";
@@ -2400,7 +2406,7 @@ function readout(d: { readonly readout: HTMLElement }): Readout {
 
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
-  get PAL() { return PAL; }, get CC() { return CC; }, setCC, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fmt, LW, makeCanvas, begin, ctl, byId, sim,
+  get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   backing, glRatio,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, shownFont, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,

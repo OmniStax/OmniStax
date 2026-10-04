@@ -66,8 +66,8 @@ with sync_playwright() as p:
     pg.evaluate('document.getElementById("anim-toggle").click()'); pg.wait_for_timeout(100); print('7 paused:', pg.evaluate('window.FIG.paused'), 'anim-off:', pg.evaluate('document.documentElement.classList.contains("anim-off")'))
     # #theme-toggle is the "dark" segment of the Theme radio group; the first segment is "system"
     pg.evaluate('document.getElementById("theme-toggle").click()'); pg.wait_for_timeout(100); print('7 theme:', pg.evaluate('document.documentElement.getAttribute("data-theme")'))
-    pg.evaluate('document.getElementById("cc-toggle").click()'); pg.wait_for_timeout(100); print('7 cc off:', not pg.evaluate('document.documentElement.classList.contains("cc")'))
-    pg.evaluate('document.getElementById("cc-toggle").click(); document.querySelector("#settings .seg[aria-label=Theme] button").click()')
+    pg.evaluate('document.getElementById("cc-concepts-toggle").click()'); pg.wait_for_timeout(100); print('7 concepts off:', not pg.evaluate('document.documentElement.classList.contains("cc-concepts")'))
+    pg.evaluate('document.getElementById("cc-concepts-toggle").click(); document.querySelector("#settings .seg[aria-label=Theme] button").click()')
     print('7 theme back to system:', pg.evaluate('document.documentElement.getAttribute("data-theme")') is None)
     # 7b fold and hide: the chevron in a heading folds its section; the eye hides a figure; both follow the id into every copy
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)

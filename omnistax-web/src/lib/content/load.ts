@@ -295,7 +295,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   const prose = prerenderMath(text, macros);
   const textHtml = sizedImages(prose, await imageSizes(media, prose));
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, text)), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${dto.lead}\n${text}`)), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
     figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
   };
 };

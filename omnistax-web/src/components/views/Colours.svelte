@@ -220,8 +220,8 @@
     </label>
   {/if}
   <p class="lead">{lead}</p>
-  {#if !settings.colorCoding}
-    <p class="off">Color coding is off. Turn it on to see these colors.</p>
+  {#if !settings.shown.concepts}
+    <p class="off">Concepts color coding is off. Turn it on to see these colors.</p>
   {/if}
 
   <div class="bar">

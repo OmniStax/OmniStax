@@ -3,12 +3,12 @@
    the book's colours.css at build time, one link per book in use. */
 import type { BookManifest } from '../content/schema';
 
-/* Colour coding is a switch: with it off every quantity reads in ink, and the
-   sliders that stand for a quantity wear its hue only while it is on. A run of
-   words the text marks <span data-type> wears its type exactly as a symbol does. */
+/* Types follow the reader's Concepts switch: with it off every quantity reads in
+   ink, and the sliders that stand for a quantity wear its hue only while it is on.
+   A run of words the text marks <span data-type> wears its type exactly as a symbol does. */
 const typeRules = (m: BookManifest, book: string): string =>
   Object.keys(m.types)
-    .map((k) => `${book} .kv-${k}{color:var(--c-${k})} ${book} [data-type="${k}"]{color:var(--c-${k})} html:not(.cc) ${book} .kv-${k}{color:inherit} html:not(.cc) ${book} [data-type="${k}"]{color:inherit} html.cc ${book} .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc ${book} .s-${k}::-moz-range-thumb{background:var(--c-${k})}`)
+    .map((k) => `${book} .kv-${k}{color:var(--c-${k})} ${book} [data-type="${k}"]{color:var(--c-${k})} html:not(.cc-concepts) ${book} .kv-${k}{color:inherit} html:not(.cc-concepts) ${book} [data-type="${k}"]{color:inherit} html.cc-concepts ${book} .s-${k}::-webkit-slider-thumb{background:var(--c-${k})} html.cc-concepts ${book} .s-${k}::-moz-range-thumb{background:var(--c-${k})}`)
     .join('\n');
 
 const bookScope = (m: BookManifest): string => `[data-book="${m.id}"]`;

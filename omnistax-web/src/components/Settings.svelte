@@ -7,6 +7,7 @@
      another command owns is shown as a conflict and taken only on Enter. */
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { FONTS, fontStack, isFontId, type FontId } from '../lib/settings/fonts';
+  import { COLOUR_SWITCHES, COLOUR_LABELS } from '../lib/colours/switches';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
@@ -36,7 +37,6 @@
   const HINT = {
     zoom: 'Change the size of the text without resizing the window.',
     zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
-    cc: 'Give each physical type its own color in text, formulas and figures.',
     underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
     tips: 'Show a tip each day in the bottom-right corner.',
     cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
@@ -53,7 +53,7 @@
     importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Colour coding color hue ${HINT.cc}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
     anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
@@ -212,7 +212,14 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.cc)}><span class="name">Color coding{@render back(settings.colorCoding !== DEFAULTS.colorCoding, 'Reset to on', () => settings.setColorCoding(DEFAULTS.colorCoding))}</span><span class="hint">{HINT.cc}</span><input type="checkbox" id="cc-toggle" checked={settings.colorCoding} onchange={(e) => settings.setColorCoding(e.currentTarget.checked)}></label>
+        <div class="row colours" role="group" aria-labelledby="cc-name" hidden={!hit(ROWS.cc)}>
+          <span class="name" id="cc-name">Color coding</span>
+          <div class="switches">
+            {#each COLOUR_SWITCHES as k (k)}
+              <label class="switch"><span class="name">{COLOUR_LABELS[k]}{@render back(settings.colours[k] !== DEFAULTS.colours[k], 'Reset to on', () => settings.setColour(k, DEFAULTS.colours[k]))}</span><input type="checkbox" id="cc-{k}-toggle" disabled={k !== 'all' && !settings.colours.all} checked={settings.colours[k]} onchange={(e) => settings.setColour(k, e.currentTarget.checked)}></label>
+            {/each}
+          </div>
+        </div>
         <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Reset to on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">{HINT.underlines}</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </section>
@@ -367,6 +374,10 @@
   .back{border:0;background:transparent;color:var(--muted);font:inherit;font-size:0.9rem;line-height:1;cursor:pointer;padding:1px 3px;border-radius:3px}
   .back:hover{background:var(--soft);color:var(--ink)}
   .hint{color:var(--muted);font-size:0.8rem;margin:0}
+  .colours{align-items:start}
+  .switches{grid-column:2 / -1;display:flex;flex-direction:column;gap:6px}
+  .switches label{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .switches .name{font-weight:400}
   p.hint{margin:-4px 0 4px}
   .link{border:0;background:transparent;color:var(--accent);font:inherit;font-size:0.8rem;padding:0;cursor:pointer;text-decoration:underline}
   .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;grid-column:3}
@@ -415,5 +426,5 @@
   .recording{color:var(--muted);font-style:italic}
   .conflict{color:var(--bad);font-size:0.8rem}
   .conflict em{font-style:normal;font-weight:600}
-  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .seg{grid-column:auto} .backup-review,.backup-error{margin-left:0} }
+  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .switches{grid-column:1 / -1} .seg{grid-column:auto} .backup-review,.backup-error{margin-left:0} }
 </style>

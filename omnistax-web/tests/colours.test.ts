@@ -257,15 +257,15 @@ test('two books\' stylesheets never cross, and nothing is coloured on the root',
 test('a book\'s rules colour its quantities on every page, inside the book only', () => {
   const css = bookRulesCss(MANIFEST);
   const b = '[data-book="college-physics-2e"]';
-  assert.ok(css.includes(`${b} .kv-time{color:var(--c-time)}`)); assert.ok(css.includes(`html:not(.cc) ${b} .kv-time{color:inherit}`));
-  assert.ok(css.includes(`html.cc ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
+  assert.ok(css.includes(`${b} .kv-time{color:var(--c-time)}`)); assert.ok(css.includes(`html:not(.cc-concepts) ${b} .kv-time{color:inherit}`));
+  assert.ok(css.includes(`html.cc-concepts ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
   assert.doesNotMatch(css, /data-sec/, 'no page holds a type back');
 });
 test('words the text marks with a type wear it as its symbols do', () => {
   const css = bookRulesCss(MANIFEST);
   const b = '[data-book="college-physics-2e"]';
   assert.ok(css.includes(`${b} [data-type="time"]{color:var(--c-time)}`));
-  assert.ok(css.includes(`html:not(.cc) ${b} [data-type="time"]{color:inherit}`));
+  assert.ok(css.includes(`html:not(.cc-concepts) ${b} [data-type="time"]{color:inherit}`));
 });
 
 test('the file and the storage hold one document, which reads back as it was written', () => {
