@@ -25,7 +25,7 @@
   let pos = $state<Placed>({ top: 0, left: 0, ready: false });
   const chapter = $derived(anchor?.closest<HTMLElement>('[data-chapter]')?.dataset.chapter ?? '');
   const book = $derived(anchor ? bookOfEl(anchor) ?? '' : '');
-  const symColor = $derived.by(() => { const g = anchor ? glyphOf(anchor) : null; return g ? getComputedStyle(g).color : ''; });   /* the glyph's own hue: chapter, binds and colour coding all applied */
+  const symColor = $derived.by(() => { const g = anchor ? glyphOf(anchor) : null; return g ? getComputedStyle(g).color : ''; });   /* the glyph's own hue: chapter, section and colour coding all applied */
 
   let openT = 0, closeT = 0, pending: HTMLElement | null = null;
   let mouseDown = false, touch = false;

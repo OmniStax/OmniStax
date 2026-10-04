@@ -58,7 +58,7 @@ export type TypeDTO = z.infer<typeof TypeSchema>;
 export const SymbolSchema = z.object({
   sym: z.string().describe('The key the symbol is known by across the book, which is what the text carries in a \\htmlData{sym=\u2026} and what a chapter\u2019s variables are listed under.'),
   latex: z.string().describe('The LaTeX the symbol is set in, without any colour or data of its own.'),
-  type: TYPE_REF.nullable().optional().describe('An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink, and null sets it in ink whatever its concepts are.'),
+  type: TYPE_REF.nullable().optional().describe('Not written: a symbol takes its type in each section from its variables row there, and the checker warns on a type stored here, which belongs on the variables row. Where a section has no row of the symbol, it wears the type its variables rows share across the book, else the type shared by the concepts that name it as their symbol.'),
   macro: z.string().optional().describe('The KaTeX macro the text writes the symbol as, such as \\kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX.'),
 }).strict();
 export type SymbolDTO = z.infer<typeof SymbolSchema>;
@@ -176,7 +176,8 @@ export type SectionRefDTO = z.infer<typeof SectionRefSchema>;
 export const VariableSchema = z.object({
   sym: z.string().describe('The symbol\u2019s key in the book\u2019s symbol table.'),
   concept: CONCEPT_REF.optional().describe('The concept that defines the symbol\u2019s quantity. A variant or a component (a_x, B\u2081) names the definition of its base quantity.'),
-  type: TYPE_REF.nullable().optional().describe('An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept\u2019s type. The book declares the types and the app picks the hues.'),
+  type: TYPE_REF.nullable().optional().describe('An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept\u2019s type. The type colours the symbol wherever the section writes it. The book declares the types and the app picks the hues.'),
+  ref: z.string().optional().describe('A referent of the section the symbol\u2019s quantity belongs to, such as tug-1 for the force of the first tugboat: the symbol is then split, its main letter in its type\u2019s colour and its subscript in the referent\u2019s.'),
   meaning: z.string().describe('What the symbol stands for in this section, in the book\u2019s words.'),
   unit: z.string().default('').describe('The unit the quantity is measured in.'),
   section: SECTION_REF.describe('The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections.'),
@@ -242,7 +243,7 @@ export const FigureSchema = z.object({
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
   original_caption: z.string().optional().describe('The caption the book prints under the figure, kept word for word.'),
   widths: z.array(z.number().int().positive()).default([]).describe('The book\u2019s display width in pixels for each image the row shows, one per image in order (a photo\u2019s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size.'),
-  draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The page\u2019s binds are the union of them, so the page need not say again what it colours.'),
+  draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The figure\u2019s referents take hues kept clear of these types\u2019 colours.'),
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;
 
@@ -252,7 +253,6 @@ export const ReferentSchema = z.object({
   id: z.string().describe('The referent\u2019s id, unique in the section, which a `<span data-ref="\u2026">` of the text and `F.ref` of the figure name it by.'),
   label: z.string().describe('What the text calls it, such as Firm B.'),
   figure: z.string().describe('The id of the figure of the section it is drawn in.'),
-  type: TYPE_REF.optional().describe('The type it is a thing of, where it is one: it then wears that type\u2019s colour. A referent of no type wears a colour of its own, picked apart from the hues the page binds, and keeps it when colour coding is off.'),
 }).strict();
 export type ReferentDTO = z.infer<typeof ReferentSchema>;
 
@@ -543,7 +543,7 @@ export type SectionMetaDTO = {
   readonly objectives: readonly string[];
   readonly summaryHtml: string;
   readonly notes: string;
-  readonly binds: readonly string[];   /* the types this page colours, the union of what its figures draw; the rest render in ink on it */
+  readonly types: readonly string[];   /* the types the page wears: what its figures draw, its variables rows and its marked words */
   readonly ai?: AiCreditDTO;
   readonly openstax?: string;          /* the page at the publisher, which the footer credits */
 };
@@ -561,8 +561,8 @@ export type SymbolMap = Readonly<Record<string, string>>;
 export type KindMap = Readonly<Record<string, string>>;
 /* One figure of a section, as the browser walks below it: the local id the figure carries in the section's text ("sim-shm-oscillator") and the label its head reads out ("Figure 16.9 · An object on a spring slides on a frictionless surface."). */
 export type FigureEntry = { readonly id: string; readonly label: string };
-/* One referent of a section as the text and its figures colour it: by its type where it has one, else by its place among the untyped rows. */
-export type ReferentEntry = { readonly id: string; readonly figure: string; readonly type?: string };
+/* One referent of a section as the text and its figures colour it, by its place among its figure's rows. */
+export type ReferentEntry = { readonly id: string; readonly figure: string };
 /* One exercise of a section: its id and its kind, which names a label in the book's exercise kinds. */
 export type ExerciseEntry = { readonly id: string; readonly kind: string };
 export type SectionEntry = {
@@ -570,8 +570,10 @@ export type SectionEntry = {
   readonly fragment: string;                     /* the section's HTML fragment, doc.html */
   readonly figuresJs: string;                    /* the section's figure module, figures.js */
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
-  readonly binds: readonly string[];             /* the types this page colours, from its meta; empty until the section is built, and empty means all */
+  readonly types: readonly string[];             /* the types the page wears, from its meta; empty until the section is built */
   readonly referents?: readonly ReferentEntry[]; /* the section's referents in table order; absent where it has none */
+  readonly draws?: Readonly<Record<string, readonly string[]>>;   /* the types each figure that has referents draws, which their hues keep clear of */
+  readonly macros?: MacroMap;                    /* the macros this page sets otherwise than the book, from its variables rows; absent where none differ */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };

@@ -11,12 +11,12 @@ import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
 import { bookRulesCss } from '../src/lib/colours/rules';
 
 /* A book of two chapters and four quantities. Section 16.1 is listed but never
-   built, so what it would colour counts for nothing; 16.4 binds nothing, which
-   means it colours everything. The book pins no hues at all: what its
+   built, so what it would colour counts for nothing; 16.4 wears no type yet,
+   so its own panel lists them all. The book pins no hues at all: what its
    quantities wear is the scheme, the book's own list of forty-eight, which dresses
    four as readily as it dresses twenty-nine. */
-const section = (id: string, binds: readonly string[], built: boolean) =>
-  ({ id, title: id, built, url: '', fragment: '', figuresJs: '', figures: [], binds, exercises: [] });
+const section = (id: string, types: readonly string[], built: boolean) =>
+  ({ id, title: id, built, url: '', fragment: '', figuresJs: '', figures: [], types, exercises: [] });
 const manifestOf = (types: Readonly<Record<string, { label: string; dimension?: string }>>, chapters: readonly unknown[] = [], macros: Readonly<Record<string, string>> = {}) =>
   ({
     id: bookId('college-physics-2e'), title: 'College Physics', publisher: 'OpenStax', authors: [], license: 'CC BY',
@@ -133,7 +133,7 @@ test('a section wins over its chapter, a chapter over the book, and the book ove
 
 test('every quantity of the book has a colour, and only a stranger has none', () => {
   assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'stiffness', S163).from, { kind: 'scheme', palette: paletteId('omnistax') },
-    'a page that does not bind a quantity still knows what colour it would be');
+    'a page that wears no stiffness still knows what colour it would be');
   assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'energy', BOOK), { hue: null, from: { kind: 'none' } },
     'a key the book does not declare is not a quantity of it');
 });
@@ -153,12 +153,12 @@ test('what is set at a place is read back at that place and nowhere else', () =>
 
 test('every level shows the types it has to show, in the order the reader has put them in', () => {
   assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, BOOK), ['time', 'position', 'frequency', 'stiffness']);
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, CH16), ['time', 'position', 'frequency', 'stiffness'],
-    'section 16.4 binds nothing, which colours everything, so the chapter shows everything');
+  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, CH16), ['time', 'position', 'frequency'],
+    'what its built sections wear between them, the unbuilt 16.1 counting for nothing');
   assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, CH2), ['time', 'position'], 'what its one built section colours');
   assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, S163), ['time', 'position', 'frequency'], 'in the order the book declares them');
   assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, { level: 'section', chapter: chapterId('16'), section: sectionId('16.4') }),
-    ['time', 'position', 'frequency', 'stiffness'], 'a page that binds nothing colours everything');
+    ['time', 'position', 'frequency', 'stiffness'], 'a page that wears nothing yet lists every type');
   const moved = moveType(MANIFEST, NO_CHOICES, 'frequency', 'time');
   assert.deepEqual(typesAt(MANIFEST, moved, S163), ['frequency', 'time', 'position'], 'and every level follows the reader\'s order');
   assert.deepEqual(typesAt(MANIFEST, moved, CH2), ['time', 'position'], 'without showing a quantity the level does not colour');
@@ -254,19 +254,18 @@ test('two books\' stylesheets never cross, and nothing is coloured on the root',
   }
 });
 
-test('a book\'s rules colour its quantities and ink what a page does not bind, inside the book only', () => {
+test('a book\'s rules colour its quantities on every page, inside the book only', () => {
   const css = bookRulesCss(MANIFEST);
   const b = '[data-book="college-physics-2e"]';
   assert.ok(css.includes(`${b} .kv-time{color:var(--c-time)}`)); assert.ok(css.includes(`html:not(.cc) ${b} .kv-time{color:inherit}`));
   assert.ok(css.includes(`html.cc ${b} .s-time::-webkit-slider-thumb{background:var(--c-time)}`));
-  assert.match(css, /\[data-book="college-physics-2e"\]:is\([^)]*\[data-sec="2\.1"\][^)]*\) \.kv-frequency\{color:inherit\}/);
+  assert.doesNotMatch(css, /data-sec/, 'no page holds a type back');
 });
 test('words the text marks with a type wear it as its symbols do', () => {
   const css = bookRulesCss(MANIFEST);
   const b = '[data-book="college-physics-2e"]';
   assert.ok(css.includes(`${b} [data-type="time"]{color:var(--c-time)}`));
   assert.ok(css.includes(`html:not(.cc) ${b} [data-type="time"]{color:inherit}`));
-  assert.match(css, /\[data-book="college-physics-2e"\]:is\([^)]*\[data-sec="2\.1"\][^)]*\) \[data-type="frequency"\]\{color:inherit\}/);
 });
 
 test('the file and the storage hold one document, which reads back as it was written', () => {

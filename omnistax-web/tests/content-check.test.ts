@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkBinds, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkRefHues, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -100,21 +100,20 @@ test('checkTypes: a variable of a type the book never declared', () => {
   assert.match(run(checkTypes, { book: { symbols: [{ sym: 'x', latex: 'x', type: 'colour' }] } })[0], /type "colour" names no row/);
 });
 
-test('checkTypes: a concept of an undeclared type, an override equal to what it inherits, and a concept\u2019s own symbol overridden', () => {
+test('checkTypes: a concept of an undeclared type, an override equal to what it inherits, and a type stored on a symbol', () => {
   const concept = { id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke\u2019s law', statement: 'w' };
   const variables = [{ sym: 'x', concept: 'hookes-law', meaning: 'stretch', unit: 'm', section: '16.1' }];
   assert.deepEqual(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] }, chapter: { variables } }), []);
   assert.match(run(checkTypes, { book: { concepts: [{ ...concept, type: 'colour' }] } })[0], /type "colour" names no row/);
-  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'force' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /symbols\[F\]: overrides its type with "force", which is the type it inherits/);
+  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'force' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /symbols\[F\]: stores type "force", which belongs on the variables row/);
   assert.match(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'force' }] } })[0], /variables\[x\]: overrides its type with "force"/);
   assert.deepEqual(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: 'position' }] } }), [], 'an override that differs is what an override is for');
-  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: 'position' }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] } })[0], /names type "force" and its own symbol "F" overrides it with "position"/);
-  assert.deepEqual(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: null }], concepts: [{ ...concept, symbol: 'F', type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: null }] } }), [], 'null sets a row in ink against a typed concept');
+  assert.deepEqual(run(checkTypes, { book: { concepts: [{ ...concept, type: 'force' }] }, chapter: { variables: [{ ...variables[0], type: null }] } }), [], 'null sets a row in ink against a typed concept');
   assert.match(run(checkTypes, { chapter: { variables: [{ ...variables[0], type: null }] } })[0], /variables\[x\]: sets itself in ink, which it is already/);
-  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: null }], concepts: [{ ...concept, symbol: 'F' }] } })[0], /symbols\[F\]: sets itself in ink/);
+  assert.match(run(checkTypes, { book: { symbols: [{ sym: 'F', latex: 'F', type: null }], concepts: [{ ...concept, symbol: 'F' }] } })[0], /symbols\[F\]: stores type null, which belongs on the variables row/);
 });
 
-test('withInheritedTypes: a symbol and a variables row take the type of the concept they denote, and an override wins', () => {
+test('withInheritedTypes: a variables row takes its concept\u2019s type, a symbol the type its rows share, else its naming concepts\u2019, and an override wins', () => {
   const book = bookOf({
     symbols: [{ sym: 'F', latex: 'F' }, { sym: 'x', latex: 'x' }, { sym: 'k', latex: 'k', type: 'position' }, { sym: 'y', latex: 'y' }],
     concepts: [{ id: 'force', kind: 'definition', section: '16.1', name: 'force', symbol: 'F', type: 'force' }, { id: 'position', kind: 'definition', section: '16.1', name: 'position', type: 'position' }],
@@ -135,26 +134,24 @@ test('withInheritedTypes: a stored null sets a symbol or a variables row in ink,
   });
   const chapter = chapterOf({ variables: [{ sym: 'x', concept: 'force', meaning: 'm', section: '16.1', type: null }, { sym: 'F', concept: 'force', meaning: 'm', section: '16.1' }] });
   const { book: b, chapters: [ch] } = withInheritedTypes(book, [chapter]);
-  assert.deepEqual(b.symbols.map((s) => s.type), [undefined, 'force'], 'x still inherits through its row\'s concept: the row\'s null is the row\'s own');
+  assert.deepEqual(b.symbols.map((s) => s.type), [undefined, undefined], 'F is set in ink, and x wears what its one row wears, which is ink');
   assert.deepEqual(ch.variables.map((v) => v.type), [undefined, 'force']);
   assert.ok(!('type' in b.symbols[0]) && !('type' in ch.variables[0]), 'what a reader sees carries no null');
 });
 
-test('checkTypeSpans: words marked with an undeclared type, and with one the page does not bind', () => {
+test('checkTypeSpans: words marked with an undeclared type; a declared one is coloured on every page', () => {
   assert.deepEqual(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="force">pull</span></p>` }), []);
+  assert.deepEqual(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="position">place</span></p>` }), [], 'no figure of the page draws position, and the words wear it still');
   assert.match(run(checkTypeSpans, { textHtml: `${TEXT}<p>the <span data-type="colour">red</span></p>` })[0], /type "colour", which the book does not declare/);
-  const said = checkTypeSpans(fixture({ textHtml: `${TEXT}<p>the <span data-type="position">place</span></p>` }));
-  assert.deepEqual(said.map((f) => f.level), ['warning']); assert.match(said[0].what, /does not bind/);
 });
 
-test('checkReferents: a referent twice, in no figure, of no type, unnamed, and a span that names none', () => {
+test('checkReferents: a referent twice, in no figure, unnamed, and a span that names none', () => {
   const block = { id: 'block-1', label: 'block 1', figure: 'sim-ruler' };
   const named = `${TEXT}<p><span data-ref="block-1">Block 1</span> slides.</p>`;
-  assert.deepEqual(run(checkReferents, { section: { referents: [block, { ...block, id: 'block-2', type: 'force' }] }, textHtml: `${named}<p><span data-ref="block-2">it</span></p>` }), []);
+  assert.deepEqual(run(checkReferents, { section: { referents: [block, { ...block, id: 'block-2' }] }, textHtml: `${named}<p><span data-ref="block-2">it</span></p>` }), []);
   assert.match(run(checkReferents, { section: { referents: [block, block] }, textHtml: named }).join('\n'), /declared twice/);
   assert.match(run(checkReferents, { section: { referents: [{ ...block, figure: 'sim-gone' }] }, textHtml: named })[0], /figure "sim-gone" names no row/);
-  assert.match(run(checkReferents, { section: { referents: [{ ...block, type: 'colour' }] }, textHtml: named })[0], /type "colour" names no row/);
-  assert.match(run(checkReferents, { section: { referents: [{ ...block, type: 'position' }] }, textHtml: named })[0], /does not bind/);
+  assert.throws(() => sectionOf({ referents: [{ ...block, type: 'force' }] }), 'a referent carries no type');
   const unnamed = checkReferents(fixture({ section: { referents: [block] } }));
   assert.deepEqual(unnamed.map((f) => f.level), ['warning']); assert.match(unnamed[0].what, /named by no <span data-ref>/);
   assert.match(run(checkReferents, { textHtml: named })[0], /<span data-ref="block-1"> is no row of the referents table/);
@@ -163,11 +160,28 @@ test('checkReferents: a referent twice, in no figure, of no type, unnamed, and a
   assert.match(run(checkReferents, { section: { referents: [block] }, textHtml: both })[0], /<span data-ref="block-2"> is no row/);
 });
 
-test('checkBinds: a figure that draws a type the book never declared', () => {
-  assert.deepEqual(run(checkBinds), []);
-  const said = run(checkBinds, { section: { figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', draws: ['stiffness'] }] } });
+test('checkDraws: a figure that draws a type the book never declared', () => {
+  assert.deepEqual(run(checkDraws), []);
+  const said = run(checkDraws, { section: { figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', draws: ['stiffness'] }] } });
+  assert.deepEqual(said.length, 1);
   assert.match(said[0], /draws "stiffness" names no row/);
-  assert.match(said[1], /binds unknown type "stiffness"/);
+});
+
+test('checkRefHues: a figure with more referents than hues clear of the types it draws has run out', () => {
+  const referents = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figure: 'sim-ruler' }));
+  assert.deepEqual(run(checkRefHues, { section: { referents: referents(9) } }), [], 'one drawn type clears at most two of twelve');
+  const said = run(checkRefHues, { section: { referents: referents(12) } });
+  assert.equal(said.length, 1);
+  assert.match(said[0], /figures\[sim-ruler\]: has 12 referents and only 1[01] referent hues clear of the 1 types it draws/);
+});
+
+test('checkVariableRefs: a row\u2019s ref names a referent of its own section, on a symbol with a subscript', () => {
+  const referents = [{ id: 'tug-1', label: 'the first tug', figure: 'sim-ruler' }];
+  const symbols = [{ sym: 'F_1', latex: 'F_1' }, { sym: 'F', latex: 'F' }];
+  const row = (sym: string, ref: string, section = '16.1') => ({ chapter: { variables: [{ sym, meaning: 'm', section, ref }] }, book: { symbols }, section: { referents } });
+  assert.deepEqual(run(checkVariableRefs, row('F_1', 'tug-1')), []);
+  assert.match(run(checkVariableRefs, row('F_1', 'tug-9'))[0], /ref "tug-9" is no row of section 16.1\u2019s referents/);
+  assert.match(run(checkVariableRefs, row('F', 'tug-1'))[0], /F has no subscript to colour/);
 });
 
 test('checkAnchors: an anchor the section has no id for, and one whose section is not built', () => {

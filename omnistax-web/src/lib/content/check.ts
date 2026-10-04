@@ -11,12 +11,14 @@
    content instead. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { bindsOf, inheritedTypes } from './load';
+import { inheritedTypes, splitSub, typesOf } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { REF, SUMMARY_ID, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
+import { NO_CHOICES, schemeOf } from '../colours/model';
+import { clearCount } from '../fig/cat';
 import type { TableSheetDTO } from './sheets';
 
 /* What a check found. An error is content that will not work: a reference to a
@@ -147,86 +149,94 @@ export const checkRefs: Check = (content) => {
   return [...fromBook, ...fromChapters, ...fromSections];
 };
 
-/* Colour is a function of type, and a page colours the union of what its figures
-   draw, so a figure may draw only a type the book declares and a page binds only
-   what its figures drew. */
-export const checkBinds: Check = (content) => {
+/* A figure may draw only a type the book declares. */
+export const checkDraws: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
-  return pagesOf(content).flatMap((s) => [
-    ...s.dto.figures.flatMap((f) => f.draws.flatMap((t) => ref(inSection(s, 'figures', f.id), 'draws', types, t))),
-    ...bindsOf(s.dto.figures).flatMap((t) => (types.has(t) ? [] : [error(`${s.dto.id}/section.json`, `the page binds unknown type "${t}"`)])),
-  ]);
+  return pagesOf(content).flatMap((s) => s.dto.figures.flatMap((f) => f.draws.flatMap((t) => ref(inSection(s, 'figures', f.id), 'draws', types, t))));
 };
 
-/* The book declares the types, and a kind is declared once, on the concept: a symbol and a variables row inherit
-   it, so a type stored on one is an override, and a stored null sets the row in ink. An override equal to what the
-   row inherits says nothing, a null where it inherits no type says nothing either, and a concept's own symbol set
-   to another type than the concept's is almost surely a slip. */
+/* The book declares the types, and a kind is declared once, on the concept: a variables row inherits it, so a
+   type stored on the row is an override, and a stored null sets the row in ink. An override equal to what the
+   row inherits says nothing, and a null where it inherits no type says nothing either. A symbol takes its type
+   in each section from its row there, so a type stored on the symbol belongs on the variables row. */
 export const checkTypes: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
   const inherit = inheritedTypes(content.book.concepts, content.chapters.flatMap((ch) => ch.dto.variables));
-  const symbols = new Map(content.book.symbols.map((sym) => [sym.sym, sym] as const));
   const redundant = (where: string, type: string | null | undefined, inherited: string | undefined): readonly Finding[] =>
     (type === null && inherited === undefined ? [warning(where, 'sets itself in ink, which it is already, inheriting no type')]
       : type !== undefined && type === inherited ? [warning(where, `overrides its type with "${type}", which is the type it inherits`)] : []);
-  const ownSymbol = (where: string, type: string | undefined, symbol: string | undefined): readonly Finding[] => {
-    const other = symbol === undefined ? undefined : symbols.get(symbol)?.type;
-    return type === undefined || other == null || other === type ? [] : [warning(where, `names type "${type}" and its own symbol "${symbol}" overrides it with "${other}"`)];
-  };
   return [
     ...content.book.symbols.flatMap((sym) => {
       const where = `book.json symbols[${sym.sym}]`;
-      return [...ref(where, 'type', types, sym.type ?? undefined), ...redundant(where, sym.type, inherit.symbol(sym))];
+      return sym.type === undefined ? [] : [...ref(where, 'type', types, sym.type ?? undefined), warning(where, `stores type ${sym.type === null ? 'null' : `"${sym.type}"`}, which belongs on the variables row of each section that writes it`)];
     }),
     ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => {
       const where = inChapter(ch, 'variables', v.sym);
       return [...ref(where, 'type', types, v.type ?? undefined), ...redundant(where, v.type, inherit.variable(v))];
     })),
-    ...content.book.concepts.flatMap((c) => [...ref(`book.json concepts[${c.id}]`, 'type', types, c.type), ...ownSymbol(`book.json concepts[${c.id}]`, c.type, c.symbol)]),
+    ...content.book.concepts.flatMap((c) => ref(`book.json concepts[${c.id}]`, 'type', types, c.type)),
   ];
 };
 
 /* Every value the text gives an attribute, each once. */
 const attrValues = (html: string, attr: string): readonly string[] =>
   [...new Set(Array.from(html.matchAll(new RegExp(`<[^>]*\\s${attr}="([^"]*)"`, 'g')), (m) => m[1]))];
-/* A type the page does not bind reads in ink on it, unless the page binds nothing and so keeps every type. */
-const unbound = (binds: readonly string[], type: string): boolean => binds.length > 0 && !binds.includes(type);
-
-/* The text may mark a run of words <span data-type="…"> to wear a type as a symbol does: the type is one the
-   book declares, and one the page binds, or the words read in ink. */
+/* The text may mark a run of words <span data-type="…"> to wear a type as a symbol does: the type is one the book declares. */
 export const checkTypeSpans: Check = (content) => {
   const types = idsOf(content.book.types, (t) => t.id);
-  return pagesOf(content).flatMap((s) => {
-    const binds = bindsOf(s.dto.figures); const where = `${s.dto.id}/text.html`;
-    return attrValues(s.textHtml, 'data-type').flatMap((t) =>
-      (!types.has(t) ? [error(where, `marks words with type "${t}", which the book does not declare`)]
-        : unbound(binds, t) ? [warning(where, `marks words with type "${t}", which the page does not bind, so they read in ink`)] : []));
-  });
+  return pagesOf(content).flatMap((s) => attrValues(s.textHtml, 'data-type').flatMap((t) =>
+    (types.has(t) ? [] : [error(`${s.dto.id}/text.html`, `marks words with type "${t}", which the book does not declare`)])));
 };
 
 /* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
    and the figure colours with F.ref. Its id is unique in the section, it is drawn in a figure of the section,
-   its type is declared, and the text names it: a span that names no row is an error, and a row no span names
-   a warning. */
-export const checkReferents: Check = (content) => {
-  const types = idsOf(content.book.types, (t) => t.id);
-  return pagesOf(content).flatMap((s) => {
+   and the text names it: a span that names no row is an error, and a row no span names a warning. */
+export const checkReferents: Check = (content) =>
+  pagesOf(content).flatMap((s) => {
     const figures = idsOf(s.dto.figures, (f) => f.id); const rows = idsOf(s.dto.referents, (r) => r.id);
-    const named = new Set(attrValues(s.textHtml, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean))); const binds = bindsOf(s.dto.figures);
+    const named = new Set(attrValues(s.textHtml, 'data-ref').flatMap((v) => v.split(/\s+/).filter(Boolean)));
     return [
       ...s.dto.referents.flatMap((r, i) => {
         const where = inSection(s, 'referents', r.id);
         return [
           ...(s.dto.referents.findIndex((o) => o.id === r.id) < i ? [error(where, 'is declared twice')] : []),
           ...ref(where, 'figure', figures, r.figure),
-          ...ref(where, 'type', types, r.type),
-          ...(r.type !== undefined && types.has(r.type) && unbound(binds, r.type) ? [warning(where, `is of type "${r.type}", which the page does not bind, so it reads in ink`)] : []),
           ...(named.has(r.id) ? [] : [warning(where, 'is named by no <span data-ref> of the text')]),
         ];
       }),
       ...[...named].flatMap((id) => (rows.has(id) ? [] : [error(`${s.dto.id}/text.html`, `<span data-ref="${id}"> is no row of the referents table`)])),
     ];
   });
+
+/* A figure hands its referents the twelve referent hues in order, skipping those too close to the category
+   colours it draws under the book's own scheme, in either theme; a figure with more referents than that has
+   run out, and two of them share a colour. */
+export const checkRefHues: Check = (content) => {
+  const scheme = schemeOf({ types: typesOf(content.book.types) }, NO_CHOICES).hues;
+  const room = (draws: readonly string[]): number => {
+    const hues = draws.flatMap((t) => (scheme[t] ? [scheme[t]] : []));
+    return Math.min(clearCount(hues.map((h) => h.light)), clearCount(hues.map((h) => h.dark)));
+  };
+  return pagesOf(content).flatMap((s) => s.dto.figures.flatMap((f) => {
+    const held = s.dto.referents.filter((r) => r.figure === f.id).length; const left = room(f.draws);
+    return held > left ? [warning(inSection(s, 'figures', f.id), `has ${held} referents and only ${left} referent hues clear of the ${f.draws.length} types it draws, so ${held - left} repeat a hue near a type's`)] : [];
+  }));
+};
+
+/* A variables row that names a referent splits its symbol, the subscript in the referent's colour: the referent
+   is a row of the same section's referents, and the symbol has a subscript to colour. */
+export const checkVariableRefs: Check = (content) => {
+  const pages = new Map(pagesOf(content).map((s) => [String(s.dto.id), s] as const));
+  const symbols = new Map(content.book.symbols.map((sym) => [sym.sym, sym] as const));
+  return content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => {
+    if (v.ref === undefined) return [];
+    const where = inChapter(ch, 'variables', `${v.section}/${v.sym}`); const page = pages.get(v.section); const sym = symbols.get(v.sym);
+    return [
+      ...(page === undefined ? [error(where, `names referent "${v.ref}", but section ${v.section} is not built`)]
+        : page.dto.referents.some((r) => r.id === v.ref) ? [] : [error(where, `ref "${v.ref}" is no row of section ${v.section}\u2019s referents`)]),
+      ...(sym !== undefined && splitSub(sym.latex) === null ? [warning(where, `names referent "${v.ref}", but ${sym.latex} has no subscript to colour`)] : []),
+    ];
+  }));
 };
 
 /* An anchor names the span where a variable or a form is introduced,
@@ -567,7 +577,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkReferents, checkBinds, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkReferents, checkRefHues, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

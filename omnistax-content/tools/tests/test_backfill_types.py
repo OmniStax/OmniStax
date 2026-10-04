@@ -110,6 +110,23 @@ class TestBackfill(unittest.TestCase):
         self.assertEqual(book[os.path.join(self.dir, "ch01", "book-rows.json")]["symbols"], [{"sym": "θ", "latex": "\\theta"}],
                          "the staged row follows the book, whose θ inherits nothing")
 
+    def test_a_symbol_type_moves_onto_the_rows_that_wear_another(self):
+        self.write("ch01/chapter.json", {**CHAPTER, "variables": CHAPTER["variables"] + [
+            {"sym": "F", "concept": "angle", "meaning": "m", "section": "1.3"},
+            {"sym": "F", "concept": "force", "type": "force", "meaning": "m", "section": "1.4"}]})
+        self.write("ch01/book-rows.json", {"symbols": [{"sym": "F", "latex": "F", "type": "force", "macro": "\\kF"}]})
+        moved = bt.Moved()
+        writes = bt.move_symbol_types(self.book, moved)
+        rows = writes[os.path.join(self.dir, "ch01", "chapter.json")]["variables"]
+        self.assertEqual(rows[-2], {"sym": "F", "concept": "angle", "type": "force", "meaning": "m", "section": "1.3"})
+        self.assertEqual(moved.rows, ["1.3/F force"], "x and k wear their symbol's type already, and so does F in 1.4")
+        self.assertEqual(moved.rowless, [])
+        self.assertFalse(any("type" in s for s in writes[self.book.book_path]["symbols"]))
+        self.assertEqual(writes[os.path.join(self.dir, "ch01", "book-rows.json")]["symbols"], [{"sym": "F", "latex": "F", "macro": "\\kF"}])
+        for path, record in writes.items():
+            ost.write_record(path, record)
+        self.assertEqual(bt.move_symbol_types(self.book, bt.Moved()), {})
+
     def test_a_second_run_finds_nothing(self):
         for path, record in bt.backfill(self.book, bt.Report()).items():
             ost.write_record(path, record)

@@ -24,7 +24,7 @@ takes `-h`. An error is one line on stderr and a non-zero exit.
 | `show <book> [chapter] [section]` | a summary of the book, a chapter or a section |
 | `rows <book> <table> [filters]` | the rows of one table |
 | `find <book> <text>` | where a word lives: ids, titles, symbols, concepts and their glossary words, forms, captions, prompts |
-| `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, the type it wears (its own override or its concept's), meaning; run it before adding a row |
+| `meanings <book> <sym>` | every variables row of one symbol across the chapters: section, the type it wears there (its own override or its concept's), meaning, and the referent its subscript wears where it names one; run it before adding a row |
 | `check <book> [--section N.M]` | the app's checker, filtered to the section if one is named |
 | `ids <book> <section>` | every id of the section's `text.html`, which an anchor, span, cite or place may name |
 
@@ -85,13 +85,17 @@ ost add chemistry-2e forms \
 ```
 
 A field set to `null` by `set` is taken out of the row, except a `type` on a
-`symbols` or `variables` row: there `null` is stored, and sets the row in ink
-whatever the type of its concept. `--unset type` takes the override away, so
-the row inherits again. An `add` refuses a `null` anywhere else.
+`variables` row: there `null` is stored, and sets the row in ink whatever the
+type of its concept. `--unset type` takes the override away, so the row
+inherits again. An `add` refuses a `null` anywhere else. A symbol takes its
+type in each section from its variables row there, so a `type` on a
+`symbols` row is refused. A variables row's `ref` names a referent of its
+section; the symbol's subscript then wears that referent's colour.
 
 ```
 ost set college-physics-2e variables 13.4/v2_bar --chapter 13 '{"type": null}'
 ost set college-physics-2e variables 13.4/v2_bar --chapter 13 --unset type '{}'
+ost set college-physics-2e variables 4.7/F_x --chapter 4 '{"ref": "tug-1"}'
 ```
 
 A row is named by its key fields joined with `/`: `figures`, `referents`,
@@ -194,9 +198,16 @@ equal to the one it inherits is removed, and every null where nothing would be
 inherited, in `book.json`, the chapters and the staged `book-rows.json`. With
 no book named it runs on every book; a second run changes nothing.
 
+`--move-symbol-types` does one thing instead: each symbol's stored type, a
+null included, is set on every variables row of the symbol that wears another,
+and taken off the symbol in `book.json` and the staged `book-rows.json`. It
+lists the symbols with no variables row to carry the type; those wear, in every
+section, what their rows share across the book.
+
 ```
 python3 omnistax-content/tools/backfill_types.py --dry-run
 python3 omnistax-content/tools/backfill_types.py college-physics-2e chemistry-2e
+python3 omnistax-content/tools/backfill_types.py --move-symbol-types --dry-run
 ```
 
 ## The checker

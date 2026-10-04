@@ -50,7 +50,7 @@ Every symbol the book writes with a macro or names in a \htmlData{sym=…}.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The key the symbol is known by across the book, which is what the text carries in a \htmlData{sym=…} and what a chapter’s variables are listed under. |
 | `latex` | `string` | yes | The LaTeX the symbol is set in, without any colour or data of its own. |
-| `type` | `string \| null?` | no | An override of the type the symbol inherits from the concepts it denotes (those that name it as their symbol, else those its variables rows name), written only where it must differ or where those concepts share no type. The type gives the symbol its colour; a symbol of no type is set in ink, and null sets it in ink whatever its concepts are. |
+| `type` | `string \| null?` | no | Not written: a symbol takes its type in each section from its variables row there, and the checker warns on a type stored here, which belongs on the variables row. Where a section has no row of the symbol, it wears the type its variables rows share across the book, else the type shared by the concepts that name it as their symbol. |
 | `macro` | `string?` | no | The KaTeX macro the text writes the symbol as, such as \kx. A symbol with no macro is one the hover layer knows but the text writes in plain LaTeX. |
 
 ### `exercise_kinds`
@@ -153,7 +153,8 @@ The symbols the chapter’s sections give a meaning to.
 | --- | --- | --- | --- |
 | `sym` | `string` | yes | The symbol’s key in the book’s symbol table. |
 | `concept` | `string?` | no | The concept that defines the symbol’s quantity. A variant or a component (a_x, B₁) names the definition of its base quantity. |
-| `type` | `string \| null?` | no | An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept’s type. The book declares the types and the app picks the hues. |
+| `type` | `string \| null?` | no | An override of the type the row inherits from its concept, written only where it must differ or where the row names no typed concept; null sets the row in ink whatever its concept’s type. The type colours the symbol wherever the section writes it. The book declares the types and the app picks the hues. |
+| `ref` | `string?` | no | A referent of the section the symbol’s quantity belongs to, such as tug-1 for the force of the first tugboat: the symbol is then split, its main letter in its type’s colour and its subscript in the referent’s. |
 | `meaning` | `string` | yes | What the symbol stands for in this section, in the book’s words. |
 | `unit` | `string` | no | The unit the quantity is measured in. |
 | `section` | `string` | yes | The section that gives the symbol this meaning. A chapter may give one symbol two meanings in two sections. |
@@ -203,7 +204,7 @@ The figures the section draws, and the types each of them colours.
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
 | `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
-| `draws` | `string[]` | no | The types the figure colours. The page’s binds are the union of them, so the page need not say again what it colours. |
+| `draws` | `string[]` | no | The types the figure colours. The figure’s referents take hues kept clear of these types’ colours. |
 
 ### `referents`
 
@@ -214,7 +215,6 @@ The particular things of one example or figure that the text marks with `<span d
 | `id` | `string` | yes | The referent’s id, unique in the section, which a `<span data-ref="…">` of the text and `F.ref` of the figure name it by. |
 | `label` | `string` | yes | What the text calls it, such as Firm B. |
 | `figure` | `string` | yes | The id of the figure of the section it is drawn in. |
-| `type` | `string?` | no | The type it is a thing of, where it is one: it then wears that type’s colour. A referent of no type wears a colour of its own, picked apart from the hues the page binds, and keeps it when colour coding is off. |
 
 ### `coverage`
 

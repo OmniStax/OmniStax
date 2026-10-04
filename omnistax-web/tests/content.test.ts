@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
-import { bindsOf, conceptsOfChapter, coverageOf, exercisesOf, metaOf } from '../src/lib/content/load';
+import { conceptsOfChapter, coverageOf, exercisesOf, macroExpansion, metaOf, pageMacrosOf, splitSub, typesWorn } from '../src/lib/content/load';
 import { prerenderMath } from '../src/lib/math/prerender';
 
 /* The tables as the three files write them, small enough to read whole: a book
@@ -75,9 +75,29 @@ test('a concept carries its forms placed, the main form first, each in the secti
   assert.deepEqual(concepts.find((c) => c.id === 'shm')?.forms, []);
 });
 
-test('a page binds the union of what its figures draw, in one order', () => {
-  assert.deepEqual(bindsOf(SECTION.figures), ['force', 'position']);
-  assert.deepEqual(bindsOf([]), []);
+test('a page wears what its figures draw, its variables rows carry and its text marks, in one order', () => {
+  const rows = [{ sym: 'm', concept: 'mass', type: 'mass', meaning: 'm', unit: 'kg', section: '16.1' }] as never;
+  assert.deepEqual(typesWorn(SECTION.figures, rows, '<span data-type="energy">energy</span>'), ['energy', 'force', 'mass', 'position']);
+  assert.deepEqual(typesWorn([], [], ''), []);
+});
+
+test('a subscript is cut at its first underscore outside braces, a braced group or a command whole', () => {
+  assert.deepEqual(splitSub('F_x'), { main: 'F', sub: 'x', rest: '' });
+  assert.deepEqual(splitSub('v_{0}^2'), { main: 'v', sub: '0', rest: '^2' });
+  assert.deepEqual(splitSub('E_\\text{cell}'), { main: 'E', sub: '\\text{cell}', rest: '' });
+  assert.deepEqual(splitSub('\\vec{F}_{a_b}'), { main: '\\vec{F}', sub: 'a_b', rest: '' });
+  assert.equal(splitSub('\\Delta x'), null);
+});
+
+test('a page sets a symbol by its variables row there, and splits the subscript of one that names a referent', () => {
+  const F = { sym: 'F_x', latex: 'F_x', macro: '\\kFx', type: 'force' } as never;
+  const L = { sym: 'L', latex: 'L', macro: '\\kL' } as never;
+  const row = (sym: string, extra: object) => ({ sym, meaning: '', unit: '', section: '4.7', ...extra }) as never;
+  assert.deepEqual(pageMacrosOf([F, L], [row('F_x', { type: 'force' })]), {}, 'a row that agrees with the book sets nothing of its own');
+  assert.deepEqual(pageMacrosOf([F, L], [row('L', { type: 'position' })]), { '\\kL': '\\htmlClass{kv-position}{\\htmlData{sym=L}{L}}' });
+  assert.deepEqual(pageMacrosOf([F, L], [row('F_x', { type: 'force', ref: 'tug-1' })]), { '\\kFx': '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_{\\htmlData{ref=tug-1}{x}}}}' });
+  assert.deepEqual(pageMacrosOf([F, L], [row('F_x', {})]), { '\\kFx': 'F_x' }, 'a row of no type sets the symbol in ink there');
+  assert.equal(macroExpansion(F), '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_x}}');
 });
 
 test('coverage folds to one row per span, qualified by its section', () => {

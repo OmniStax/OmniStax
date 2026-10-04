@@ -221,15 +221,28 @@ class TestWriting(Fixture):
 
     def test_referents_are_a_section_table_like_figures(self):
         text, code = run("add", "chemistry-2e", "referents", "--section", "1.4",
-                         '{"id": "block-1", "label": "the first block", "figure": "sim-density", "type": "mass"}')
+                         '{"id": "block-1", "label": "the first block", "figure": "sim-density"}')
         self.assertEqual(code, 0)
-        self.assertEqual(self.rows("referents"), [{"id": "block-1", "label": "the first block", "figure": "sim-density", "type": "mass"}])
+        self.assertEqual(self.rows("referents"), [{"id": "block-1", "label": "the first block", "figure": "sim-density"}])
         run("set", "chemistry-2e", "referents", "block-1", "--section", "1.4", '{"label": "block 1"}')
-        self.assertIn("block-1 · block 1 · sim-density · mass", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
-        self.assertIn("referent block-1 · block 1 · in sim-density · mass", run("show", "chemistry-2e", "1.4")[0])
+        self.assertIn("block-1 · block 1 · sim-density", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
+        self.assertIn("referent block-1 · block 1 · in sim-density", run("show", "chemistry-2e", "1.4")[0])
         self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b"}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figure": "sim-density", "type": "mass"}')[1], 1)
         run("del", "chemistry-2e", "referents", "block-1", "--section", "1.4")
         self.assertEqual(self.rows("referents"), [])
+
+    def test_a_variables_row_names_the_referent_its_subscript_wears(self):
+        chapter = os.path.join(self.book, "ch01", "chapter.json")
+        row = next(v for v in self.rows("variables", chapter) if v["section"] == "1.4")
+        self.assertEqual(run("set", "chemistry-2e", "variables", f"1.4/{row['sym']}", "--chapter", "1", '{"ref": "block-1"}')[1], 0)
+        self.assertEqual(next(v for v in self.rows("variables", chapter) if v["section"] == "1.4" and v["sym"] == row["sym"])["ref"], "block-1")
+        self.assertIn("ref block-1", run("meanings", "chemistry-2e", row["sym"])[0])
+
+    def test_a_symbol_takes_no_type(self):
+        with self.assertRaisesRegex(ost.Refused, "variables row"):
+            ost.validate(ost.table_of("symbols"), {"sym": "q", "latex": "q", "type": "charge"})
+        self.assertEqual(run("add", "chemistry-2e", "symbols", "--chapter", "1", '{"sym": "q", "latex": "q", "type": "charge"}')[1], 1)
 
     def test_a_concept_takes_a_type(self):
         with mock.patch.object(ost, "merge_chapter"):

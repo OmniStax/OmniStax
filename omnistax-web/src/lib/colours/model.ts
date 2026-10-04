@@ -237,7 +237,7 @@ const chapterEntry = (m: BookManifest, chapter: ChapterId) => m.chapters.find((c
    they placed them, and then every type the book declares that they have not
    touched, in the order the book declares them. A key the book no longer has is
    dropped, so a colour file from an older printing still reads. */
-export const orderOf = (m: BookManifest, c: Choices): readonly TypeKey[] => {
+export const orderOf = (m: Pick<BookManifest, 'types'>, c: Choices): readonly TypeKey[] => {
   const declared = Object.keys(m.types);
   const placed = c.order.filter((k) => k in m.types);
   const seen = new Set(placed);
@@ -263,7 +263,7 @@ export const moveType = (m: BookManifest, c: Choices, type: TypeKey, before: Typ
    has, and its hues are laid along the reader's order, so the first quantity
    takes the first hue and a quantity dragged upwards takes the hue above it. */
 export type Scheme = { readonly palette: Palette; readonly hues: Readonly<Record<TypeKey, Hue>> };
-export const schemeOf = (m: BookManifest, c: Choices): Scheme => {
+export const schemeOf = (m: Pick<BookManifest, 'types'>, c: Choices): Scheme => {
   const order = orderOf(m, c);
   const palette = schemePalette(order.length);
   const hues = huesOf(palette, order.length) ?? [];
@@ -301,21 +301,16 @@ export const effectiveHue = (m: BookManifest, c: Choices, type: TypeKey, place: 
 };
 
 /* The types a place shows, in the reader's order. The book shows every type it
-   declares. A chapter shows what its built sections colour between them. A
-   section shows what its page binds, and a page that binds nothing colours
-   every type. */
+   declares. A section shows the types its page wears, and a chapter what its
+   built sections wear between them; a place that wears none yet shows them all. */
 export const typesAt = (m: BookManifest, c: Choices, place: Place): readonly TypeKey[] => {
   const all = orderOf(m, c);
   if (place.level === 'book') return all;
   const ch = chapterEntry(m, place.chapter);
-  if (place.level === 'section') {
-    const binds = ch?.sections.find((s) => s.id === String(place.section))?.binds ?? [];
-    return binds.length === 0 ? all : all.filter((k) => binds.includes(k));
-  }
-  const built = (ch?.sections ?? []).filter((s) => s.built);
-  if (built.some((s) => s.binds.length === 0)) return all;
-  const shown = new Set<TypeKey>(built.flatMap((s) => s.binds));
-  return all.filter((k) => shown.has(k));
+  const worn = new Set<TypeKey>(place.level === 'section'
+    ? ch?.sections.find((s) => s.id === String(place.section))?.types ?? []
+    : (ch?.sections ?? []).filter((s) => s.built).flatMap((s) => s.types));
+  return worn.size === 0 ? all : all.filter((k) => worn.has(k));
 };
 
 /* The symbols a type carries, as the book's macros write them: a macro that

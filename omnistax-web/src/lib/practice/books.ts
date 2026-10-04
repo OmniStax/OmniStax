@@ -39,7 +39,7 @@ const parseSection = (raw: unknown): SectionEntry[] => {
   return [{
     id: str(o.id), title: str(o.title), built: o.built === true, url,
     fragment: str(o.fragment) || `${url}doc.html`, figuresJs: str(o.figuresJs) || `${url}figures.js`,
-    figures: [], binds: [], exercises: [],   /* the shell reads these off the book it is reading; a foreign book is only practised from */
+    figures: [], types: [], exercises: [],   /* the shell reads these off the book it is reading; a foreign book is only practised from */
   }];
 };
 const parseChapter = (raw: unknown): ChapterEntry[] => {

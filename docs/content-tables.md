@@ -37,19 +37,20 @@ Tables:
   colours: a quantity, a curve, a part. `dimension` is the unit, where the
   type is a quantity. Ordered; the order is the order the colour scheme
   lays its hues along, so it is an array and not a record.
-- `symbols`: `{ sym, latex, type?, macro? }`. One row per symbol the book
+- `symbols`: `{ sym, latex, macro? }`. One row per symbol the book
   writes with a KaTeX macro or names in a `\htmlData{sym=…}`. A symbol
-  inherits its type from the concepts it denotes: those whose `symbol` it
-  is, else those its variables rows name (every row naming one), when they
-  all have the same type. `type` here is an override, written only where the
-  symbol must differ or where those concepts share no type, and `null`
-  sets the symbol in ink whatever its concepts are; the loader
-  resolves every symbol's type once, so the macros, figures and cards all
-  read the type it ends with. The macro expansion is derived: a typed
-  symbol expands to
+  carries no type: in each section it wears the type of its variables row
+  there (the row's override, else its concept's; `null` is ink), so one
+  symbol may read as two kinds in two sections. Where a section has no row
+  of it, and outside any section (the chat, the formula sheet), it wears
+  the type its variables rows share across the book, else the type shared
+  by the concepts whose `symbol` it is. A `type` stored here is a
+  warning: it belongs on the variables rows. The macro expansion is
+  derived, per page: a typed symbol expands to
   `\htmlClass{kv-<type>}{\htmlData{sym=<sym>}{<latex>}}`, an untyped one to
-  its `latex`. A row with no `macro` is a symbol the hover layer knows but
-  the text writes in plain LaTeX (`θ`).
+  its `latex`, and the manifest lists for each page only the macros it
+  sets otherwise than the book. A row with no `macro` is a symbol the hover
+  layer knows but the text writes in plain LaTeX (`θ`).
 - `exercise_kinds`: `{ id, label }`.
 - `concepts`: `{ id, kind, section, name, symbol?, terms, type?,
   statement?, forms }`. The whole
@@ -142,15 +143,19 @@ Tables:
 
 - `sections`: `{ id, module, title, slug }`. Every section of the chapter,
   built or not.
-- `variables`: `{ sym, concept?, type?, meaning, unit, section, anchor?,
-  redefines? }`. A row inherits its `concept`'s type, and `type` is an
-  override, written only where the row must differ or where its concept has
-  no type, and `null` sets the row in ink whatever its concept's type; the
-  book declares types, the app picks hues. `concept` is the
-  definition of the symbol's quantity; a variant or a component (a_x, B₁)
-  names the definition of its base quantity. This is the
-  table a figure binds its colours by and a symbol's card reads its meaning
-  in this section from.
+- `variables`: `{ sym, concept?, type?, ref?, meaning, unit, section,
+  anchor?, redefines? }`. A row inherits its `concept`'s type, and `type` is
+  an override, written only where the row must differ or where its concept
+  has no type, and `null` sets the row in ink whatever its concept's type;
+  the book declares types, the app picks hues. The row's type is the
+  colour the symbol wears wherever its section writes it. `ref` names a
+  referent of the same section whose quantity the symbol is (F_x for the
+  first tug's push): the symbol is then split, its main letter in its
+  type's colour and its subscript, the part after the first `_` outside
+  braces, in the referent's. `concept` is the definition of the symbol's
+  quantity; a variant or a component (a_x, B₁) names the definition of its
+  base quantity. This is the table a symbol's card reads its meaning in
+  this section from.
 
 The chapter's `equations` and `glossary` tables folded onto the concepts on
 2026-10-02, as their `forms` and `terms`. `concept` is optional on a
@@ -178,9 +183,8 @@ Tables:
   eyebrow reads "Sim"; a `sim` row with a number transforms a book
   figure and its eyebrow reads "Figure" with its number and folds; a
   `figure` row reads "Figure" or "Figure N" as its number says; a `photo`
-  row reads "Figure N". `draws` lists the types the figure colours, and
-  the page's `binds` is the union of them, so `binds` is no longer
-  written down. `widths` is the width the book prints each of the row's
+  row reads "Figure N". `draws` lists the types the figure colours, which
+  its referents' hues keep clear of. `widths` is the width the book prints each of the row's
   images at, in pixels of the book's own column, one per image in the
   order the row shows them (a photograph's one image, or the
   `originals`), read off the CNXML `<image width>`; it is empty where
@@ -190,21 +194,21 @@ Tables:
   `<img data-width>`, a figure's `data-original-width`, comma-separated
   in the order of `data-original`); the validator checks that the two
   agree until the build injects them.
-- `referents`: `{ id, label, figure, type? }`. A particular thing that
+- `referents`: `{ id, label, figure }`. A particular thing that
   exists only in one example or figure (block 1 and block 2, Firm A and
   Firm B, the crank of one engine) and that the text and the figure both
-  point at. The text marks every reference to it, pronouns included,
+  point at. A referent is a value of a type, not a type, so it carries
+  none. The text marks every reference to it, pronouns included,
   `<span data-ref="<id>">Firm B</span>`, and the figure colours it with
   `F.ref('<id>')`. A phrase naming several lists them,
-  `data-ref="firm-a firm-b"`, and its words wear their colours in turn. A typed referent wears its type's
-  hue under the same rules as a symbol: in ink with colour coding off or
-  on a page that does not bind the type. An untyped one takes the k-th
-  categorical colour, k its place among the untyped rows of its own
-  figure, clear of the hues of the types the page declares it binds (when
-  too few hues are clear, the ones nearest a bound hue come last rather
-  than a hue coming twice); like `F.cat` it
+  `data-ref="firm-a firm-b"`, and its words wear their colours in turn.
+  A referent takes the k-th of twelve referent hues, k its place among
+  the rows of its own figure, skipping those within 20° of the hue of a
+  type that figure `draws` (when too few are clear, the ones nearest a
+  drawn hue come last rather than a hue coming twice); like `F.cat` it
   stays coloured with colour coding off. Text and figure compute it apart
-  from the same table, so they agree whatever order they draw in.
+  from the same table, so they agree whatever order they draw in, and a
+  figure with more referents than clear hues is a warning.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -226,7 +230,8 @@ build qualifies them.
 Beside the tables, `text.html` may mark a run of words with a type the
 section build chose, `<span data-type="<type>">the pull</span>`: the
 words wear the type exactly as a symbol of it does. Nothing matches them
-at runtime; they are written where the build means them.
+at runtime; they are written where the build means them. A type is
+coloured on every page, whatever the page's figures draw.
 
 ### An introduction or summary page
 
@@ -337,16 +342,19 @@ references:
   some words twice ("power" of a force and of a lens) and the reader's place
   says which is meant;
 - every `draws` entry is a declared type, and so is every `type` of a
-  concept, a symbol or a variables row; an override equal to the type the
-  row inherits is a warning, so is a `null` on a row that inherits no type,
-  and so is a concept's own `symbol` overridden
-  to another type than the concept's;
-- every `data-type` in `text.html` is a declared type, and one the page
-  does not bind is a warning;
-- every `referents` id is unique in its section, its `figure` is a figure
-  row of the section and its `type` is declared; every `data-ref` in
-  `text.html` names a row (each id of a span that lists several), and a row
-  no span names is a warning;
+  concept or a variables row; an override equal to the type the row
+  inherits is a warning, so is a `null` on a row that inherits no type,
+  and so is any `type` stored on a symbol, which belongs on its variables
+  rows;
+- every `data-type` in `text.html` is a declared type;
+- every `referents` id is unique in its section and its `figure` is a
+  figure row of the section; every `data-ref` in `text.html` names a row
+  (each id of a span that lists several), and a row no span names is a
+  warning; a figure with more referents than referent hues clear of the
+  types it draws, under the book's own scheme in either theme, is a
+  warning;
+- a variables row's `ref` names a referent of its own section, and its
+  symbol has a subscript to colour (a warning otherwise);
 - every section names its chapter and has a lead (a lead over 80 words
   is a warning), and its text keeps off
   the id `section-summary`, which the build gives the summary block it

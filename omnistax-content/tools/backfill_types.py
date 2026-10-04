@@ -27,6 +27,15 @@ nothing would be inherited, in book.json, the chapters and the staged
 book-rows.json. A second run finds nothing to do.
 
     python3 omnistax-content/tools/backfill_types.py [book id ...] [--dry-run]
+
+A symbol takes its type in each section from its variables row there, so a type
+stored on a symbol belongs on those rows. `--move-symbol-types` does that alone:
+each symbol's stored type, a null included, is set on every variables row of the
+symbol that wears another, and taken off the symbol in book.json and the staged
+book-rows.json. A section with no row of the symbol is listed, since there the
+symbol now wears what its rows share across the book.
+
+    python3 omnistax-content/tools/backfill_types.py --move-symbol-types [book id ...] [--dry-run]
 """
 from __future__ import annotations
 
@@ -50,6 +59,7 @@ Path = str
 TYPED_KINDS = ("definition", "result")
 CONCEPT_ORDER = ("id", "kind", "section", "name", "symbol", "terms", "type", "statement", "forms")
 SYMBOL_ORDER = ("sym", "latex", "type", "macro")
+VARIABLE_ORDER = ("sym", "concept", "type", "ref", "meaning", "unit", "section", "anchor", "redefines")
 
 
 @dataclass
@@ -257,6 +267,44 @@ def staged_writes(book: ost.Book, concepts: dict[ConceptId, RowDTO], symbols: di
     return writes
 
 
+# ------------------------------------------------------------- symbol types to rows
+
+@dataclass
+class Moved:
+    rows: list[str] = field(default_factory=list)          # "section/sym type" set on a row
+    dropped: list[str] = field(default_factory=list)       # symbols whose stored type is gone
+    rowless: list[str] = field(default_factory=list)       # symbols with no variables row to carry the type
+
+
+def move_symbol_types(book: ost.Book, moved: Moved) -> dict[Path, RecordDTO]:
+    """Every symbol's stored type onto the variables rows of the symbol that wear another, and off the symbol."""
+    record = ost.load(book.book_path)
+    chapter_paths = [os.path.join(book.dir, d, "chapter.json") for d in record.get("chapters", [])]
+    chapters = {p: ost.load(p) for p in chapter_paths if os.path.exists(p)}
+    kinds = {c["id"]: c.get("type") for c in ost.rows_of(record, "concepts")}
+    stored = {s["sym"]: s["type"] for s in ost.rows_of(record, "symbols") if "type" in s}
+    has_row = {v["sym"] for ch in chapters.values() for v in ost.rows_of(ch, "variables")}
+
+    def carried(v: RowDTO) -> RowDTO:
+        if v["sym"] not in stored or effective(v, kinds.get(v.get("concept") or "")) == stored[v["sym"]]:
+            return v
+        moved.rows.append(f"{v['section']}/{v['sym']} {stored[v['sym']] or 'null'}")
+        return placed(v, "type", stored[v["sym"]], VARIABLE_ORDER)
+
+    writes: dict[Path, RecordDTO] = {}
+    for p, ch in chapters.items():
+        rows = [carried(v) for v in ost.rows_of(ch, "variables")]
+        if rows != ost.rows_of(ch, "variables"):
+            writes[p] = {**ch, "variables": rows}
+    moved.dropped.extend(stored)
+    moved.rowless.extend(sym for sym in stored if sym not in has_row)
+    symbols = [without_type(s) for s in ost.rows_of(record, "symbols")]
+    if stored:
+        writes[book.book_path] = {**record, "symbols": symbols}
+    writes.update(staged_writes(book, {c["id"]: c for c in ost.rows_of(record, "concepts")}, {s["sym"]: s for s in symbols}))
+    return writes
+
+
 # ---------------------------------------------------------------------- the report
 
 def said(book: ost.Book, report: Report, writes: dict[Path, RecordDTO], dry_run: bool) -> str:
@@ -287,13 +335,29 @@ def run(book_id: str, dry_run: bool) -> None:
     print(said(book, report, writes, dry_run))
 
 
+def run_move(book_id: str, dry_run: bool) -> None:
+    book = ost.book_of(book_id)
+    moved = Moved()
+    writes = move_symbol_types(book, moved)
+    if not dry_run:
+        for p, record in writes.items():
+            ost.write_record(p, record)
+    print("\n".join([f"{book.id}: {len(moved.dropped)} symbol types moved",
+                     f"  set on rows: {len(moved.rows)}" + "".join(f"\n    {r}" for r in moved.rows),
+                     f"  with no row to carry them: {len(moved.rowless)}" + (f" ({', '.join(moved.rowless)})" if moved.rowless else ""),
+                     "  nothing to change" if not writes else
+                     f"  {len(writes)} files {'to write' if dry_run else 'written'}: " + ", ".join(os.path.relpath(p, book.dir) for p in writes)]))
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="backfill_types", description=__doc__.split("\n\n")[0])
     p.add_argument("books", nargs="*", help="book ids; every book where none is named")
     p.add_argument("--dry-run", action="store_true", help="say what would change and write nothing")
+    p.add_argument("--move-symbol-types", action="store_true", help="only move each symbol's stored type onto its variables rows")
     args = p.parse_args(argv)
+    step = run_move if args.move_symbol_types else run
     try:
-        ost.under_lock(lambda: [run(b, args.dry_run) for b in (args.books or [b.id for b in ost.books()])])
+        ost.under_lock(lambda: [step(b, args.dry_run) for b in (args.books or [b.id for b in ost.books()])])
     except ost.Refused as e:
         print(f"backfill_types: {e}", file=sys.stderr)
         return 1

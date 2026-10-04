@@ -47,7 +47,7 @@ Learning objectives, key equations, summaries and similar apparatus are extracte
 
 ## 5. Report the plan per section before building
 
-The agent produces a `plan.md` for each section before building, including the concepts; keep original diagram or make a enhanced interactive figure and why (a one-liner per in the format of `docs/prompts/interactive-figures.md`), exercises, and the types the page binds. The plan should be surfaced to the user and reviewed before the page is written (whatever `config.md` says).
+The agent produces a `plan.md` for each section before building, including the concepts; keep original diagram or make a enhanced interactive figure and why (a one-liner per in the format of `docs/prompts/interactive-figures.md`), exercises, and the page's referents. The plan should be surfaced to the user and reviewed before the page is written (whatever `config.md` says).
 
 ## 6. Concepts
 The agent has the pedagogical responsbility of extracting concepts from a book and organizing a concept map (directed acyclic graph). When a text matches one of these five concept kinds, extract it:
@@ -61,27 +61,17 @@ A concept row holds the name, kind, statement and prerequisite edges, recorded i
 
 Concepts are written to the tables section by section as the build goes, and later sections point back to earlier ids; nothing is inferred from headers afterwards. Reference data a subject needs, such as the periodic table or a table of constants, is a sheet of the book and not a concept.
 
-## 7. Colour is a function of type
+## 7. Colour
 
-A colour belongs to a type, and a type is a kind of thing the reader must recognise across prose, equation and figure. The book names its types. Two things are of different types when confusing them would be a category error in the subject: a quantity of another dimension in physics, a curve or a surplus in economics, a part or a load in mechanics, a function and its derivative in calculus. A variant of one type (initial, shifted, estimated, maximum) keeps the hue and differs by decoration (hollow, dashed, subscript). A drawn thing takes the colour of its type. Nothing is coerced into a neighbouring type to save a colour.
+Colour coding exists to lower the load of reading: the reader should recognise a thing across prose, equation and figure without having to work out that they are the same. Colour reaches a page in four ways, and where two apply, the earlier wins: fact, then convention, then referent, then category.
 
-The book declares its types in order and says nothing about hues; the app dresses them from a scheme and the reader may override. A page colours only the types it binds, the ones its figures draw, its sliders carry or its readouts state; every other symbol on that page is ink, and the plan lists what the page binds.
+1. Colour is the fact. A wavelength, a spectrum, a flame, a material's own colour or a fluorescence is drawn in its real colour. A false-colour map of one scalar over a region (a stress field, a heatmap) is drawn on one scale with its legend.
 
-Words wear colour as symbols do. Where a word or phrase names a bound type's drawn thing, the build marks it `<span data-type="…">` and it takes the type's hue; the same word used loosely ("demand" as a verb) stays ink. A referent is a particular thing that lives in one example or figure, such as the crank of one engine, Firm B or block 2, which the text and the figure both point at. The section lists its referents in `referents`; the text marks every reference to it `<span data-ref="…">`, pronouns included, and the figure draws it with `F.ref(id)`. A phrase that names several at once ("the two skaters") lists them all, `data-ref="skater-1 skater-2"`, and wears their colours in turn. A referent with a type wears the type's hue; one without takes a categorical colour that the text and the figure share.
+2. Fixed conventions of the field: the CPK element palette `F.el(symbol)` for every atom, ion, molecule or particle with an identity, the DNA bases, resistor bands.
 
-A page has referents only where it has two or more particular things a reader must keep apart: a third-law pair, the bodies of a system, a thing and what pushes it. A single body stays ink. In the figure a referent's body, its outline, its name label and its dot in a free-body diagram wear its colour; a force or any other quantity drawn on it keeps its own type's hue. Each figure counts its untyped referents from the first categorical colour, so two figures on one page may share a colour, and when the page's bound hues leave too few clear, the hues nearest a bound one are used last, never the same hue twice in one figure.
+3. Referents. A referent is a particular thing in one example or figure that the text and the figure both point at: this swimmer, that tug. If a category is a type, a referent is a value of it. The section lists its referents in `referents`; the figure draws each with `F.ref(id)` and the text marks every reference to it `<span data-ref="…">`, pronouns included. A phrase naming several ("the two skaters") lists them all, `data-ref="skater-1 skater-2"`, and is split evenly across their colours. A referent takes a colour from a set of twelve kept apart from the category colours; each figure uses them in order and skips any too close to the category colours it draws, and the build says so when a figure runs out. A symbol for a referent's quantity is split in two: the main letter in its category's colour, the subscript in the referent's (F₁, with the 1 in tug 1's colour); its variables row names the referent in `ref`.
 
-A type is declared once, on the concept it names. A concept's type is the type of the one thing its name refers to: kinetic energy is an energy, weight a force, while a law that ties several quantities together (Newton's second law, Ohm's law) names a relation and has none. Symbols and variables take the type of their concept; a row says otherwise only where it must, and a quantum number or a count that hangs off a typed concept is set in ink outright. A concept's card shows its name in its type's hue.
-
-There are five families of colour:
-
-- type hues from the scheme, bound per page;
-- a convention of the field, always: the element palette `F.el(symbol)` for every atom, ion, molecule or particle with an identity, so no gas box draws an anonymous grey dot, and likewise base pairs, resistor bands and the like;
-- a colour that is the fact (a photon's wavelength, a flame, a stain, a solution), drawn as the fact;
-- a value scale for one scalar that varies over a region (a stress field, a heatmap), one per figure, with its legend, never in a bound hue;
-- the categorical palette, `F.ref(id)` for referents and `F.cat(i)` for other instances that must be told apart and carry no type or convention, never in a hue the page has bound.
-
-Test for one figure: everything in it with an identity is coloured, or the whole figure is ink. Ink is for the frame and for untyped scalars. A phase is told by packing, not colour; one body's temperature by its type hue on symbol and slider, never as a tint on the body. Colour-off drops the type hues and keeps convention, fact, scale and categorical colours.
+4. Categories. A colour category is a named kind a concept may belong to: what would deserve its own type constructor if the subject were formalised in Haskell. Force, mass and the demand curve do; a law, a unit and a constant do not. A variant of one kind (initial, average, maximum) is the same category and differs in a figure by decoration (hollow, dashed). The book declares its categories in order as `types` and gives each concept that belongs to one its `type`; the palette the reader picks maps each category to a real colour. A symbol takes the category of the concept its variables row names in that section. A word or phrase takes it when the builder marks it `<span data-type="…">` as naming a particular one the reader can point at; a mention of the kind in general ("a definition of force", "the unit of force") stays ink. A category is coloured on every page.
 
 ## 8. The page is a shell of items, not a fixed three-column article
 
@@ -97,7 +87,7 @@ After exploration, list the defaults one setting per line with its value (start 
 
 ## 11. Do not fold sections together
 
-A section is a page even when thin. Splitting into sub-concepts is the agent's call; joining sections is never.
+A section is a page even when thin. Splitting and making sub-sections is the agent's call; joining sections is never.
 
 ## 12. Exercises come from different places and go to different places
 
@@ -172,7 +162,7 @@ Nothing is invented where the book prints no introduction or summary.
 
 ## 22. COLOR.md
 
-The full-book pass writes the book's `COLOR.md`, what is coloured and by which family of item 7, and a chapter or section may have its own `COLOR.md` that refines it: it may bind fewer types, never invent a hue.
+The full-book pass writes the book's `COLOR.md`, what is coloured and by which of item 7's four ways, and a chapter or section may have its own `COLOR.md` that refines it, never inventing a hue.
 
 ## 23. BE INSPIRING
 

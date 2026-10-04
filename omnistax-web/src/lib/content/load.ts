@@ -2,7 +2,7 @@
    folds the tables into what the runtime reads. Runs at build time only. Every
    path convention lives here, and so does every derivation: the macros a
    symbol expands to, the concepts a chapter reaches, the coverage of a span,
-   the types a page binds. */
+   the types a page wears. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
@@ -35,6 +35,7 @@ export type SectionSource = {
   readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
   readonly figuresJs: string;
   readonly figures: readonly FigureRowDTO[];
+  readonly macros: MacroMap;        /* the macros the page sets otherwise than the book, from its variables rows */
   readonly coverage: readonly CoverageDTO[];   /* spans already qualified by the section */
   readonly exercises: readonly ExerciseDTO[];
   readonly exercisesLead: string;   /* math prerendered */
@@ -69,15 +70,59 @@ export const sheetUrl = (bookId: string, sheetId: string): string => `/${bookId}
 
 /* ---------- the book's symbols ---------- */
 
+/* What a symbol wears in one place: its type, and the referent its subscript names where its variables row there names one. */
+export type Worn = { readonly type?: TypeId; readonly ref?: string };
+const wornOf = (s: SymbolDTO): Worn => (s.type ? { type: s.type } : {});
+
+/* The LaTeX cut at its first subscript outside any braces: what stands before the `_`, the subscript's
+   own body, and whatever follows it. Nothing where the symbol has no such subscript. */
+export type SplitSub = { readonly main: string; readonly sub: string; readonly rest: string };
+const openBefore = (s: string): readonly number[] =>
+  s.split('').reduce<number[]>((ds, c, i) => [...ds, i === 0 ? 0 : ds[i - 1] + (s[i - 1] === '{' ? 1 : s[i - 1] === '}' ? -1 : 0)], []);
+export const splitSub = (latex: string): SplitSub | null => {
+  const depth = openBefore(latex);
+  const at = latex.split('').findIndex((c, i) => c === '_' && depth[i] === 0 && latex[i - 1] !== '\\');
+  if (at < 0) return null;
+  const tail = latex.slice(at + 1).trimStart();
+  const command = /^\\[A-Za-z]+/.exec(tail)?.[0] ?? '';
+  const from = tail.startsWith('{', command.length) ? command.length : -1;
+  const close = from < 0 ? -1 : groupEnd(tail.slice(from));
+  if (tail.startsWith('{') && close < 0) return null;
+  const len = close >= 0 ? from + close + 1 : command.length || Math.min(1, tail.length);
+  const sub = tail.startsWith('{') ? tail.slice(1, close) : tail.slice(0, len);
+  return sub ? { main: latex.slice(0, at), sub, rest: tail.slice(len) } : null;
+};
+/* Where the braced group a string opens on closes, or -1 where it does not. */
+const groupEnd = (s: string): number => {
+  const depth = openBefore(s);
+  return s.split('').findIndex((c, i) => i > 0 && c === '}' && depth[i] === 1);
+};
+
 /* What a macro stands for. A symbol of a declared type carries its type as a
    class and its own key as data, so that the rendered glyph knows both its
    colour and what the hover layer should look up; a symbol of no type is set
-   in ink, as the book writes it. */
-export const macroExpansion = (s: SymbolDTO): string =>
-  (s.type ? `\\htmlClass{kv-${s.type}}{\\htmlData{sym=${s.sym}}{${s.latex}}}` : s.latex);
-/* Every macro the text may write, by name. */
+   in ink, as the book writes it. A symbol whose row names a referent has its
+   subscript marked with the referent, which the figure library colours as it
+   colours the text's <span data-ref>. */
+export const macroExpansion = (s: SymbolDTO, worn: Worn = wornOf(s)): string => {
+  const cut = worn.ref === undefined ? null : splitSub(s.latex);
+  const body = cut ? `${cut.main}_{\\htmlData{ref=${worn.ref}}{${cut.sub}}}${cut.rest}` : s.latex;
+  return worn.type ? `\\htmlClass{kv-${worn.type}}{\\htmlData{sym=${s.sym}}{${body}}}` : body;
+};
+/* Every macro the text may write, by name, as the book sets it outside any section. */
 export const macrosOf = (symbols: readonly SymbolDTO[]): MacroMap =>
   Object.fromEntries(symbols.flatMap((s) => (s.macro ? [[s.macro, macroExpansion(s)] as const] : [])));
+/* The macros one page sets otherwise than the book: a symbol takes its type in a section from its
+   variables row there, and its subscript the referent the row names. Both tables carry their
+   inherited types already. Only the macros that differ are listed. */
+export const pageMacrosOf = (symbols: readonly SymbolDTO[], rows: readonly VariableDTO[]): MacroMap => {
+  const bySym = new Map(symbols.map((s) => [s.sym, s] as const));
+  return Object.fromEntries(rows.flatMap((v) => {
+    const s = bySym.get(v.sym);
+    if (!s?.macro || (v.type === s.type && v.ref === undefined)) return [];
+    return [[s.macro, macroExpansion(s, { ...(v.type ? { type: v.type } : {}), ...(v.ref === undefined ? {} : { ref: v.ref }) })] as const];
+  }));
+};
 /* Every symbol by its key, as anything that sets one glyph on its own reads it:
    its macro where the text has one, and its plain LaTeX where it has none. */
 export const symbolsOf = (symbols: readonly SymbolDTO[]): SymbolMap =>
@@ -92,10 +137,11 @@ export const kindsOf = (kinds: readonly { id: string; label: string }[]): KindMa
 /* ---------- the types a symbol and a variable inherit ---------- */
 
 /* A kind is declared once, on the concept. A variables row inherits its concept's
-   type; a symbol inherits the type shared by the concepts it denotes, which are
-   the concepts that name it as their symbol, else the concepts its variables rows
-   name, every row naming one. A stored type is an override and wins, and a stored
-   null sets the row in ink. */
+   type, and a stored type on the row is an override that wins, a stored null
+   setting it in ink. A symbol wears its row's type in each section; outside one,
+   or in a section with no row of it, it wears the type its rows share across the
+   book, else the type shared by the concepts that name it as their symbol. A type
+   stored on a symbol is a leftover the checker reports, and still wins there. */
 export type InheritedTypes = {
   readonly symbol: (s: SymbolDTO) => TypeId | undefined;
   readonly variable: (v: VariableDTO) => TypeId | undefined;
@@ -105,14 +151,16 @@ export const inheritedTypes = (concepts: readonly ConceptRowDTO[], variables: re
   const group = <T,>(pairs: readonly (readonly [string, T])[]): ReadonlyMap<string, readonly T[]> =>
     pairs.reduce((m, [k, v]) => m.set(k, [...(m.get(k) ?? []), v]), new Map<string, T[]>());
   const naming = group(concepts.flatMap((c) => (c.symbol === undefined ? [] : [[c.symbol, c.id] as const])));
-  const rowsOf = group(variables.map((v) => [v.sym, v.concept] as const));
-  const shared = (ids: readonly (ConceptId | undefined)[]): TypeId | undefined => {
-    const ts = new Set(ids.map((id) => (id === undefined ? undefined : typeOf.get(id))));
-    return ts.size === 1 ? [...ts][0] : undefined;
+  const variable = (v: VariableDTO): TypeId | undefined => (v.concept === undefined ? undefined : typeOf.get(v.concept));
+  const worn = (v: VariableDTO): TypeId | undefined => (v.type === null ? undefined : v.type ?? variable(v));
+  const rowsOf = group(variables.map((v) => [v.sym, worn(v)] as const));
+  const shared = (ts: readonly (TypeId | undefined)[]): TypeId | undefined => {
+    const one = new Set(ts);
+    return one.size === 1 ? [...one][0] : undefined;
   };
   return {
-    symbol: (s) => shared(naming.get(s.sym) ?? rowsOf.get(s.sym) ?? []),
-    variable: (v) => (v.concept === undefined ? undefined : typeOf.get(v.concept)),
+    symbol: (s) => shared(rowsOf.get(s.sym) ?? []) ?? shared((naming.get(s.sym) ?? []).map((id) => typeOf.get(id))),
+    variable,
   };
 };
 /* The book and its chapters with every symbol and variables row carrying its effective type, which is what every reader of a type sees. */
@@ -134,10 +182,15 @@ export const withInheritedTypes = (book: BookDTO, chapters: readonly ChapterDTO[
 
 /* ---------- one section's tables ---------- */
 
-/* The types a page colours: the union of what its figures draw, in one order so
-   that two pages drawing the same types say so the same way. */
-export const bindsOf = (figures: readonly FigureRowDTO[]): readonly string[] =>
-  [...new Set(figures.flatMap((f) => f.draws))].sort();
+/* The types a page wears: what its figures draw, what its variables rows carry and
+   the words its text marks, in one order so that two pages wearing the same types
+   say so the same way. */
+export const typesWorn = (figures: readonly FigureRowDTO[], rows: readonly VariableDTO[], textHtml: string): readonly string[] =>
+  [...new Set([
+    ...figures.flatMap((f) => f.draws),
+    ...rows.flatMap((v) => (v.type ? [v.type] : [])),
+    ...Array.from(textHtml.matchAll(/\sdata-type="([^"]+)"/g), (m) => m[1]),
+  ])].sort();
 
 /* The exercises of a section with the concepts they test folded in, in the order
    the join table lists them, including legacy weights written by older builds. */
@@ -212,41 +265,46 @@ export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: 
 
 /* Where a page stands: the address the site serves it at, and its page at the publisher, where the book keeps one. */
 type PagePlace = { readonly url: string; readonly openstax?: string };
+/* What a page sets its maths with: the book's symbols and the variables rows of the chapter it stands in, both typed. */
+type PageMath = { readonly symbols: readonly SymbolDTO[]; readonly book: MacroMap; readonly rows: readonly VariableDTO[] };
 
 /* Every reader-facing string of a page is swept for math, not only the prose and the
    summary: the book writes $v$ in a lead and in the notes under the footer exactly as it
    writes it in a sentence, and a page that left one unswept printed the dollars. The swept
    strings reach the page as HTML, which is what their two readers — the article's own lead
    and the attribution footer — already set them as. */
-export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => string): SectionMetaDTO => ({
+export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => string, types: readonly string[] = []): SectionMetaDTO => ({
   id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: render(s.lead), objectives: s.objectives,
-  summaryHtml: s.summaryHtml, notes: render(s.notes), binds: bindsOf(s.figures), ai: s.ai, openstax: place.openstax,
+  summaryHtml: s.summaryHtml, notes: render(s.notes), types, ai: s.ai, openstax: place.openstax,
 });
 
 /* One page's folder read into a source, or nothing where the folder holds no page. */
-const loadPage = async (dir: string, place: PagePlace, macros: MacroMap, media: readonly MediaRoot[]): Promise<SectionSource | null> => {
+const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: readonly MediaRoot[]): Promise<SectionSource | null> => {
   if (!(await exists(path.join(dir, 'section.json')))) return null;
   const [dto, text, figuresJs] = await Promise.all([
     readJson(path.join(dir, 'section.json'), SectionSchema),
     readText(path.join(dir, 'text.html')),
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
   ]);
+  const rows = math.rows.filter((v) => v.section === dto.id);
+  const own = pageMacrosOf(math.symbols, rows);
+  const macros: MacroMap = { ...math.book, ...own };
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
   /* The text is measured once, here, so that the full page and the doc.html
      fragment carry the same width and height on every image. */
   const prose = prerenderMath(text, macros);
   const textHtml = sizedImages(prose, await imageSizes(media, prose));
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
-    figures: dto.figures, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, text)), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
   };
 };
 /* The chapter's or the book's own introduction or summary: read from its fixed
    folder where the folder holds one. The folder names the role, so a record
    there that calls itself anything else is refused before it can shadow a
    section. */
-const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, macros: MacroMap, media: readonly MediaRoot[]): Promise<SectionSource | undefined> => {
-  const page = await loadPage(path.join(base, role), place, macros, media);
+const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, math: PageMath, media: readonly MediaRoot[]): Promise<SectionSource | undefined> => {
+  const page = await loadPage(path.join(base, role), place, math, media);
   if (page !== null && page.role !== role) throw new Error(`${path.join(base, role, 'section.json')}: id is "${page.dto.id}", but a page in ${role}/ must be the literal "${role}"`);
   return page ?? undefined;
 };
@@ -260,11 +318,12 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
 type ChapterLoaded = Omit<ChapterTree, 'concepts'>;
 const loadChapter = async (root: string, book: BookDTO, dir: string, dto: ChapterDTO, stored: ChapterDTO, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
+  const math: PageMath = { symbols: book.symbols, book: macros, rows: dto.variables };
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
-    loadFrontPage(base, 'intro', front('intro'), macros, media),
-    Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, macros, media))),
-    loadFrontPage(base, 'summary', front('summary'), macros, media),
+    loadFrontPage(base, 'intro', front('intro'), math, media),
+    Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, math, media))),
+    loadFrontPage(base, 'summary', front('summary'), math, media),
   ]);
   const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }));
   const role = (r: PageRole): SectionSource | undefined => linked.find((s) => s.role === r);
@@ -274,14 +333,18 @@ const loadChapter = async (root: string, book: BookDTO, dir: string, dto: Chapte
 /* A built page as the manifest lists it. */
 const entryOf = (src: SectionSource): SectionEntry => ({
   id: src.meta.id, title: src.meta.title, built: true, url: src.url, fragment: `${src.url}doc.html`, figuresJs: `${src.url}figures.js`,
-  figures: figureList(src.textHtml, src.meta.id), binds: src.meta.binds, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
-  ...(src.dto.referents.length ? { referents: src.dto.referents.map((r) => (r.type === undefined ? { id: r.id, figure: r.figure } : { id: r.id, figure: r.figure, type: r.type })) } : {}),
+  figures: figureList(src.textHtml, src.meta.id), types: src.meta.types, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
+  ...(src.dto.referents.length ? {
+    referents: src.dto.referents.map((r) => ({ id: r.id, figure: r.figure })),
+    draws: Object.fromEntries(src.figures.filter((f) => src.dto.referents.some((r) => r.figure === f.id)).map((f) => [f.id, f.draws] as const)),
+  } : {}),
+  ...(Object.keys(src.macros).length ? { macros: src.macros } : {}),
   openstax: src.meta.openstax,
 });
 /* A section the chapter lists but nobody has built: named, addressed, and empty below. */
 const unbuiltEntry = (book: BookDTO, ch: ChapterDTO, s: SectionRefDTO): SectionEntry => {
   const url = sectionUrl(book.id, ch.dir, s.id);
-  return { id: s.id, title: s.title, built: false, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`, figures: [], binds: [], exercises: [], openstax: sectionSourceUrl(book, ch, s.id) };
+  return { id: s.id, title: s.title, built: false, url, fragment: `${url}doc.html`, figuresJs: `${url}figures.js`, figures: [], types: [], exercises: [], openstax: sectionSourceUrl(book, ch, s.id) };
 };
 
 /* Every sheet the book declares, read from the files its rows name. The row's
@@ -327,10 +390,11 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
      ever name its own media, so its own folder is the whole of the root here. */
   const media: readonly MediaRoot[] = [path.join(root, 'media')];
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
+  const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [] };
   const [intro, loaded, summary, sheets] = await Promise.all([
-    loadFrontPage(root, 'intro', front('intro'), macros, media),
+    loadFrontPage(root, 'intro', front('intro'), bookMath, media),
     Promise.all(chapterDtos.map((ch, i) => loadChapter(root, dto, stored.chapterDirs[i], ch, storedChapters[i], macros, media))),
-    loadFrontPage(root, 'summary', front('summary'), macros, media),
+    loadFrontPage(root, 'summary', front('summary'), bookMath, media),
     loadSheets(root, dto),
   ]);
   /* A concept is a placeholder or not by whether its section is built anywhere in the book, so the whole tree is read before any chapter's concepts are folded. */

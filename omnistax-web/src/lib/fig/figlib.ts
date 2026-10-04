@@ -3,7 +3,7 @@
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
-import { cat as catOf, untypedIndex } from './cat';
+import { cat as catOf, refIndex } from './cat';
 import type { BookManifest, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
@@ -53,8 +53,9 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
    spell the same macro or the same type differently, so every call that sets TeX runs under one
    book's table, the one `cur` holds while it runs, and the boot book's otherwise. */
 export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[]; readonly pages?: Readonly<Record<string, FigPage>> };
-/* What a page declares about its colours: the types its figures draw, and its referents in table order. */
-export type FigPage = { readonly binds: readonly string[]; readonly referents: readonly ReferentEntry[] };
+/* What a page declares about its colours: its referents in table order, the types each of their
+   figures draws, and the macros it sets otherwise than the book. */
+export type FigPage = { readonly referents: readonly ReferentEntry[]; readonly draws: Readonly<Record<string, readonly string[]>>; readonly macros?: Macros };
 export type FigBook = FigBookConfig & { readonly id: string };
 const NO_BOOK: FigBookConfig = { macros: {}, symbols: {}, colorKeys: [] };
 const figBooks = new Map<string, FigBookConfig>();
@@ -66,7 +67,16 @@ const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /
 /* A book's table with the motion macro beside it, made once per table rather than for every formula set. */
 const withMk = new WeakMap<Macros, Macros>();
 const macrosOf = (m: Macros): Macros => { const had = withMk.get(m); if (had) return had; const all = { '\\mk': MK_MACRO, ...m } as Macros; withMk.set(m, all); return all; };
-const KOPT = () => ({ macros: macrosOf(active().macros), trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
+/* The macros TeX is set with at an element: the book's, under what the page it stands in sets otherwise. */
+const pageMacros = new WeakMap<FigPage, Macros>();
+const macrosAt = (el?: Element): Macros => {
+  const page = el ? pageOf(placeOf(el)) : undefined;
+  if (!page?.macros) return active().macros;
+  const had = pageMacros.get(page); if (had) return had;
+  const all = { ...active().macros, ...page.macros }; pageMacros.set(page, all);
+  return all;
+};
+const KOPT = (el?: Element) => ({ macros: macrosOf(macrosAt(el)), trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
 
 /* KaTeX is the heaviest thing the shell can ask for, and a page of the book
    arrives with its maths already set at build time, so the library is fetched
@@ -85,7 +95,7 @@ const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.defau
 
 export type TexOpts = { readonly values?: boolean };
 function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
-  const opts = KOPT();
+  const opts = KOPT(el);
   withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); if (o.values !== false) texGlow(el); });
 }
 
@@ -147,7 +157,7 @@ function texGlow(el: HTMLElement): void {
 }
 function renderMath(root: HTMLElement): void {
   if (!root.textContent?.includes('$')) return;
-  const opts = KOPT();
+  const opts = KOPT(root);
   withAuto((auto) => auto(root, { ...opts, delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
 }
 
@@ -193,6 +203,7 @@ const placeOf = (el: Element): Place => {
   const scope = el.closest<HTMLElement>('[data-sec], [data-chapter]');
   return { book: el.closest<HTMLElement>('[data-book]')?.dataset.book ?? bootBook, scope: scope === document.documentElement ? null : scope };
 };
+const pageOf = ({ book, scope }: Place): FigPage | undefined => configOf(book).pages?.[scope?.dataset.sec ?? ''];
 const palAt = ({ book, scope }: Place): Record<string, Color> => {
   if (!scope) return { ...neutral, ...baseOf(book) };
   const key = `${book}|${scope.dataset.chapter ?? ''}|${scope.dataset.sec ?? ''}`;
@@ -206,12 +217,10 @@ function usePal(fig: Element): void {
   drawing = placeOf(fig);
   Object.assign(PAL, palAt(drawing));
 }
-/* The type hues the page has drawn so far. The book's types reach the page as
-   CSS variables for all of them at once, so what a page actually binds is what
-   its figures ask for: every hue `C` has handed out since the palette was last
-   read. `F.cat` skips the categorical hues too close to these, which is the
-   rule that a page never draws a categorical hue in one it has bound to a type.
-   Colour coding off binds nothing, since every type is then ink. */
+/* The type hues drawn so far: every hue `C` has handed out since the palette was
+   last read. `F.cat` skips the referent hues too close to these, so a figure
+   never draws a referent in a hue it has given a type. Colour coding off draws
+   no type hue, since every type is then ink. */
 const bound = new Set<Color>();
 function C(k: string): Color {
   if (!CC && !NEUTRAL.has(k)) return PAL.ink;
@@ -219,32 +228,26 @@ function C(k: string): Color {
   if (!NEUTRAL.has(k) && c) bound.add(c);
   return c;
 }
-/* The categorical palette. It is the book's own convention rather than the
-   app's signal, so it keeps its colours when colour coding is switched off,
+/* The referent palette by index. It is the book's own convention rather than
+   the app's signal, so it keeps its colours when colour coding is switched off,
    exactly as `F.el` does; all it takes from the page is the theme and the type
    hues already drawn. */
 const cat = (i: number): Color => catOf(i, darkTheme, [...bound]);
-/* A referent is one thing of one example that the text and a figure both point at. A typed one wears its
-   type's hue. An untyped one takes the categorical colour of its place among the section's untyped rows,
-   clear of the hues the page declares it binds, so the text and the figure agree whatever either has drawn. */
-const pageOf = ({ book, scope }: Place): FigPage | undefined => configOf(book).pages?.[scope?.dataset.sec ?? ''];
+/* A referent is one thing of one example that the text and a figure both point at. It takes the referent
+   colour of its place among its figure's rows, clear of the category hues that figure draws, so the text and
+   the figure agree whatever either has drawn. */
 const referentOf = (at: Place, id: string): ReferentEntry | undefined => pageOf(at)?.referents.find((r) => r.id === id);
-const untypedRefColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
-  const page = pageOf(at); const k = page ? untypedIndex(page.referents, id) : -1;
-  if (!page || k < 0) return pal.ink;
-  const keys = page.binds.length ? page.binds : configOf(at.book).colorKeys;
+const refColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
+  const page = pageOf(at); const r = referentOf(at, id); const k = page ? refIndex(page.referents, id) : -1;
+  if (!page || !r || k < 0) return pal.ink;
+  const keys = page.draws[r.figure] ?? [];
   return catOf(k, darkTheme, CC ? keys.map((t) => pal[t]).filter(Boolean) : []);
 };
-function ref(id: string): Color {
-  const r = referentOf(drawing, id);
-  return r?.type !== undefined ? C(r.type) : untypedRefColor(drawing, id, PAL);
-}
-/* The text's <span data-ref> under a root: a typed referent is handed its type, and the colour rules that
-   give a type its hue take it from there; an untyped one is coloured here, again on every repaint. A span
-   that names several referents ("the two skaters") wears each of their colours in turn across its words. */
+const ref = (id: string): Color => refColor(drawing, id, PAL);
+/* The text's <span data-ref> under a root, a split symbol's subscript among them, coloured here again on
+   every repaint. A span that names several referents ("the two skaters") wears each of their colours in
+   turn across its words. */
 const refIds = (s: HTMLElement): readonly string[] => (s.dataset.ref ?? '').split(/\s+/).filter(Boolean);
-const textColorOf = (at: Place, r: ReferentEntry, pal: Readonly<Record<string, Color>>): Color =>
-  r.type === undefined ? untypedRefColor(at, r.id, pal) : CC ? pal[r.type] ?? pal.ink : pal.ink;
 const bands = (cs: readonly Color[]): string =>
   `linear-gradient(90deg, ${cs.map((c, i) => `${c} ${(i * 100) / cs.length}% ${((i + 1) * 100) / cs.length}%`).join(', ')})`;
 function paintRefs(root: ParentNode = document): void {
@@ -253,13 +256,12 @@ function paintRefs(root: ParentNode = document): void {
     ['color', 'background-image', '-webkit-background-clip', 'background-clip', '-webkit-text-fill-color'].forEach((k) => s.style.removeProperty(k));
     if (rs.length > 1) {
       const pal = palAt(at);
-      s.style.backgroundImage = bands(rs.map((r) => textColorOf(at, r, pal)));
+      s.style.backgroundImage = bands(rs.map((r) => refColor(at, r.id, pal)));
       s.style.setProperty('-webkit-background-clip', 'text'); s.style.backgroundClip = 'text'; s.style.setProperty('-webkit-text-fill-color', 'transparent');
       return;
     }
     const r = rs[0];
-    if (r?.type !== undefined) { s.dataset.type = r.type; return; }
-    if (r) s.style.color = untypedRefColor(at, r.id, palAt(at));
+    if (r) s.style.color = refColor(at, r.id, palAt(at));
   });
 }
 function alpha(hex: Color, a: number): Color {
@@ -2371,11 +2373,11 @@ const morphOpts = (d: boolean | MorphOpts | undefined, o: MorphOpts | undefined)
   typeof d === 'object' ? [false, d] : [d ?? false, o ?? {}];
 function morph(host: HTMLElement, s: string, display?: boolean | MorphOpts, opts?: MorphOpts): void {
   const [d, o] = morphOpts(display, opts);
-  texMorph(host, s, d, o, active().macros);
+  texMorph(host, s, d, o, macrosAt(host));
 }
 function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: boolean | MorphOpts, opts?: MorphOpts): void {
   const [d, o] = morphOpts(display, opts);
-  texMorphAt(host, a, b, k, d, o, active().macros);
+  texMorphAt(host, a, b, k, d, o, macrosAt(host));
 }
 
 /* `F.readout(d)`: a readout of a morphing formula over a plain note line. `set(tex, note?, { form, ...morph opts })`
@@ -2444,7 +2446,7 @@ export const figFor = (book: string): Fig => {
 /* What the drawing layer takes from a book's manifest. */
 export const figBookOf = (m: BookManifest): FigBook => ({
   id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types),
-  pages: Object.fromEntries(bookPagesOf(m).map((p) => [p.id, { binds: p.binds, referents: p.referents ?? [] }])),
+  pages: Object.fromEntries(bookPagesOf(m).flatMap((p) => (p.referents || p.macros ? [[p.id, { referents: p.referents ?? [], draws: p.draws ?? {}, ...(p.macros ? { macros: p.macros } : {}) }]] : []))),
 });
 
 /* The boot book: registered, made the default table, and exposed as window.FIG. */

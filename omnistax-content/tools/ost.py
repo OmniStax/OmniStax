@@ -73,6 +73,7 @@ class Table:
     key: Key                              # the fields that identify a row
     fields: dict[FieldName, Field]
     show: tuple[FieldName, ...]           # the fields a plain line prints
+    moved: tuple[tuple[FieldName, str], ...] = ()   # a field the table no longer takes, and where it went
 
 
 def _f(required: bool = False, kind: str = "str", enum: Sequence[str] = (), nullable: bool = False) -> Field:
@@ -91,7 +92,8 @@ TABLES: dict[TableName, Table] = {
     "types": Table("book", ("id",), {
         "id": _f(True), "label": _f(True), "dimension": _f()}, ("id", "label", "dimension")),
     "symbols": Table("book", ("sym",), {
-        "sym": _f(True), "latex": _f(True), "type": INK, "macro": _f()}, ("sym", "latex", "type", "macro")),
+        "sym": _f(True), "latex": _f(True), "macro": _f()}, ("sym", "latex", "macro"),
+        (("type", "a symbol takes its type in each section from its variables row there; set it on the row"),)),
     "exercise_kinds": Table("book", ("id",), {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "concepts": Table("book", ("id",), {
@@ -111,15 +113,15 @@ TABLES: dict[TableName, Table] = {
     "sections": Table("chapter", ("id",), {
         "id": _f(True), "module": _f(), "title": _f(True), "slug": _f()}, ("id", "title", "module", "slug")),
     "variables": Table("chapter", ("section", "sym"), {
-        "sym": _f(True), "concept": _f(), "type": INK, "meaning": _f(True), "unit": _f(), "section": _f(True),
-        "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "unit", "meaning", "concept", "redefines")),
+        "sym": _f(True), "concept": _f(), "type": INK, "ref": _f(), "meaning": _f(True), "unit": _f(), "section": _f(True),
+        "anchor": _f(), "redefines": _f(kind="bool")}, ("section", "sym", "type", "ref", "unit", "meaning", "concept", "redefines")),
 
     "figures": Table("section", ("id",), {
         "id": _f(True), "kind": _f(True, enum=FIGURE), "number": _f(), "folds": _f(kind="list"),
         "originals": _f(kind="list"), "original_caption": _f(), "widths": _f(kind="list"),
         "draws": _f(kind="list")}, ("id", "kind", "number", "folds", "draws")),
     "referents": Table("section", ("id",), {
-        "id": _f(True), "label": _f(True), "figure": _f(True), "type": _f()}, ("id", "label", "figure", "type")),
+        "id": _f(True), "label": _f(True), "figure": _f(True)}, ("id", "label", "figure")),
     "coverage": Table("section", ("span", "concept", "verb"), {
         "span": _f(True), "concept": _f(True), "verb": _f(True, enum=VERB)}, ("span", "concept", "verb")),
     "exercises": Table("section", ("id",), {
@@ -151,6 +153,8 @@ def validate(table: Table, row: RowDTO) -> None:
         raise Refused("a row must be a JSON object")
     for name, value in row.items():
         field = table.fields.get(name)
+        if field is None and name in dict(table.moved):
+            raise Refused(f"field {name!r}: {dict(table.moved)[name]}")
         if field is None:
             raise Refused(f"unknown field {name!r}; the fields are {', '.join(table.fields)}")
         if value is None and not field.nullable:
@@ -608,7 +612,7 @@ def cmd_meanings(args: argparse.Namespace) -> int:
             continue
         for v in rows_of(load(path), "variables"):
             if v.get("sym") == args.sym:
-                flag = " · redefines" if v.get("redefines") else ""
+                flag = (f" · ref {v['ref']}" if v.get("ref") else "") + (" · redefines" if v.get("redefines") else "")
                 worn = v["type"] if "type" in v else kinds.get(v.get("concept") or "")
                 lines.append(f"{v.get('section')} · {worn or '-'} · {v.get('meaning')}{flag}")
     print("\n".join(lines) if lines else f"no variables row of {book.id} has sym {args.sym!r}")
@@ -677,7 +681,7 @@ def show_section(book: Book, section: SectionId) -> int:
         draws = " · draws " + ", ".join(f["draws"]) if f.get("draws") else ""
         print(f"figure {f.get('id')} · {f.get('kind')}{number}{folds}{draws}")
     for r in rows_of(record, "referents"):
-        print(f"referent {r.get('id')} · {r.get('label')} · in {r.get('figure')}" + (f" · {r['type']}" if r.get("type") else ""))
+        print(f"referent {r.get('id')} · {r.get('label')} · in {r.get('figure')}")
     spans: dict[str, list[str]] = {}
     for c in rows_of(record, "coverage"):
         spans.setdefault(str(c.get("concept")), []).append(str(c.get("verb")))
