@@ -21,7 +21,9 @@
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
-  import { PALETTES, SWATCHES, huesOf, type Palette } from '../../lib/colours/palettes';
+  import { SWATCHES, palettesFor, type Palette } from '../../lib/colours/palettes';
+  import { VISIONS, isVision, type Vision } from '../../lib/colours/oklab';
+  import type { RefMode } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
   import SymbolList from './SymbolList.svelte';
 
@@ -200,14 +202,20 @@
     return () => el.removeEventListener('keydown', onkeydown);
   });
 
-  /* Only the palettes that can dress this level, each already cut to the number
-     of quantities here, so that the strip the reader sees is the very set the
-     button would apply and a palette that cannot answer is simply not offered. */
-  const shownPalettes = $derived(PALETTES.flatMap((p) => {
-    const hues = huesOf(p, types.length);
-    return hues ? [{ palette: p, hues }] : [];
-  }));
-  const use = (p: Palette): void => { trouble = ''; colours.usePalette(place, types, p); };
+  /* The palettes are worked out for the vision the reader states here, and the page
+     takes that vision on only when one of them is applied. */
+  const VISION_NAMES: Readonly<Record<Vision, string>> = { normal: 'Normal', protan: 'Protanopia', deutan: 'Deuteranopia', tritan: 'Tritanopia' };
+  const vision = $derived(colours.statedVision);
+  /* Only the palettes that can dress every quantity of the book, each already cut
+     to that many, so that the strip the reader sees is the very set the buttons
+     deal and a palette that cannot answer is simply not offered. */
+  const shownPalettes = $derived(palettesFor(colours.order.length, vision));
+  const apply = (p: Palette, mode: RefMode): void => { trouble = ''; colours.applyCategories(place, types, p, mode, vision); };
+  const referentOffers = $derived(colours.referentPalettes(vision));
+  const refNow = $derived(colours.referents);
+  /* The mode a section's referents were dealt in, which is in order where smart found no way. */
+  const refDealt = $derived(place.level === 'section' ? colours.referentsAt(book, place.section)?.mode ?? null : null);
+  const MODE_NAMES: Readonly<Record<RefMode, string>> = { order: 'in order', smart: 'smart' };
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -298,6 +306,12 @@
     {/each}
   </ul>
 
+  <label class="book">Color vision
+    <select value={vision} onchange={(e) => { if (isVision(e.currentTarget.value)) colours.stateVision(e.currentTarget.value); }}>
+      {#each VISIONS as v (v)}<option value={v}>{VISION_NAMES[v]}</option>{/each}
+    </select>
+  </label>
+
   <div class="eyebrow">Recommended palettes</div>
   {#if shownPalettes.length === 0}
     <p class="note">Nothing to color here.</p>
@@ -306,9 +320,26 @@
     {#each shownPalettes as { palette: p, hues } (p.id)}
       <li>
         <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" onclick={() => use(p)}>Use</button>
+          <button type="button" onclick={() => apply(p, 'order')}>Apply in order</button>
+          <button type="button" onclick={() => apply(p, 'smart')}>Apply smart</button>
         </div>
-        <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={h}></i>{/each}</div>
+        <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
+        <p class="note">{p.note}</p>
+      </li>
+    {/each}
+  </ul>
+
+  <div class="eyebrow refs">Referent palettes</div>
+  <ul class="pals">
+    {#each referentOffers as { palette: p, hues } (p.id)}
+      {@const now = refNow.palette === p.id}
+      <li class:now>
+        <div class="phead"><span class="pname">{p.name}</span>
+          {#if now}<span class="in-use">In use, {MODE_NAMES[refNow.mode]}{#if refDealt && refDealt !== refNow.mode}; {MODE_NAMES[refDealt]} in this section{/if}</span>{/if}
+          <button type="button" class:on={now && refNow.mode === 'order'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'order', vision); }}>Apply in order</button>
+          <button type="button" class:on={now && refNow.mode === 'smart'} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'smart', vision); }}>Apply smart</button>
+        </div>
+        <div class="refgrid" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
         <p class="note">{p.note}</p>
       </li>
     {/each}
@@ -376,6 +407,11 @@
   .phead button:hover{background:var(--soft)}
   .phead button:focus-visible{outline:2px solid var(--accent)}
   .pstrip{margin-bottom:5px}
+  .refs{margin-top:16px}
+  .in-use{color:var(--muted);font-size:0.74rem}
+  .phead button.on{border-color:var(--accent)}
+  .refgrid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin-bottom:5px}
+  .refgrid i{display:block;height:12px;border-radius:2px}
   .note{margin:0;color:var(--muted);font-size:0.76rem;line-height:1.4}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>

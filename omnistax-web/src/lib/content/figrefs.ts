@@ -164,12 +164,15 @@ const declares = (u: readonly Tok[]): { readonly names: readonly string[]; reado
   return { names, fn };
 };
 
+/* A name written as an object's key, `{ water: 0 }`, which reads nothing: a ternary's `a ? water : b` follows a `?`. */
+const isKey = (u: readonly Tok[], k: number): boolean => u[k + 1]?.v === ':' && (u[k - 1]?.v === '{' || u[k - 1]?.v === ',');
+
 const unitOf = (u: readonly Tok[]): Unit => {
   const calls = refCalls(u);
   const inCall = (k: number): boolean => calls.some(({ at }) => k >= at[0] && k < at[1]);
   return {
     ...declares(u),
-    used: new Set(u.filter((x, k) => x.t === 'id' && u[k - 1]?.v !== '.').map((x) => x.v)),
+    used: new Set(u.filter((x, k) => x.t === 'id' && u[k - 1]?.v !== '.' && !isKey(u, k)).map((x) => x.v)),
     strs: new Set(u.filter((x) => x.t === 'str').map((x) => x.v)),
     plain: new Set(u.flatMap((x, k) => (x.t === 'str' && !inCall(k) ? [x.v] : []))),
     calls,
@@ -212,4 +215,45 @@ export const figureRefs = (js: string, figures: readonly FigureId[], referents: 
     const drawn = new Set(units.filter((u) => u.strs.has(f)).flatMap((u) => [...drawnBy(units, u, refs, guess)]));
     return drawn.size ? [[f, drawn] as const] : [];
   }));
+};
+
+/* ---------- the literal colours a figure asks for ---------- */
+
+/* Whether the token at k lies in an array literal that is joined into a string, `[PAL.ink, F.el('O')].join('|')`:
+   what is joined is a string, a figure's palette signature or cache key, and never a colour it draws. */
+const inJoinedArray = (ts: readonly Tok[], k: number): boolean => {
+  const opener = (d: number): number => { for (let j = k - 1; j >= 0; j--) if (ts[j].depth === d && ts[j].t === 'p' && ['(', '[', '{'].includes(ts[j].v)) return j; return -1; };
+  return Array.from({ length: ts[k].depth }, (_, d) => opener(d)).some((open) => {
+    if (open < 0 || ts[open].v !== '[') return false;
+    const close = ts.findIndex((x, j) => j > open && x.t === 'p' && x.v === ']' && x.depth === ts[open].depth);
+    return close > 0 && ts[close + 1]?.v === '.' && ts[close + 2]?.v === 'join' && ts[close + 3]?.v === '(';
+  });
+};
+
+/* The literal arguments of one kind of call, `F.el('O')` or `F.fact('#f0a828')`: a lone string and nothing else,
+   so a name or an expression is not read, nor a call that only feeds a joined signature. */
+type Literal = string;
+const literalCalls = (ts: readonly Tok[], fn: string): readonly Literal[] => ts.flatMap((tok, k) => {
+  if (!(tok.t === 'id' && tok.v === 'F' && ts[k + 1]?.v === '.' && ts[k + 2]?.v === fn && ts[k + 3]?.v === '(')) return [];
+  if (inJoinedArray(ts, k)) return [];
+  const arg = ts[k + 4], close = ts[k + 5];
+  return arg?.t === 'str' && close?.t === 'p' && close.v === ')' ? [arg.v] : [];
+});
+
+/* Every figure of the section with the literals of `F.<fn>` its statement and what it reaches pass, and the
+   literals of statements no figure reaches, which only the section as a whole can answer for. */
+export type FigureLiterals = { readonly byFigure: ReadonlyMap<FigureId, ReadonlySet<Literal>>; readonly loose: ReadonlySet<Literal> };
+export const figureLiterals = (js: string, figures: readonly FigureId[], fn: string): FigureLiterals => {
+  const parts = splitUnits(body(tokens(js)));
+  const units = parts.map(unitOf);
+  const lits = new Map(units.map((u, i) => [u, literalCalls(parts[i], fn)] as const));
+  const reach = new Map(figures.map((f) => [f, units.filter((u) => u.strs.has(f)).flatMap((u) => closure(units, u))] as const));
+  const reached = new Set([...reach.values()].flat());
+  return {
+    byFigure: new Map([...reach].flatMap(([f, us]) => {
+      const got = new Set(us.flatMap((u) => lits.get(u) ?? []));
+      return got.size ? [[f, got] as const] : [];
+    })),
+    loose: new Set(units.filter((u) => !reached.has(u)).flatMap((u) => lits.get(u) ?? [])),
+  };
 };

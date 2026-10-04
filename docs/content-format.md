@@ -31,6 +31,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
 | `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
+| `colours` | `{ palette, vision, assign }?` | no | The book’s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared. |
 
 ### `types`
 
@@ -204,7 +205,9 @@ The figures the section draws, and the types each of them colours.
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
 | `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
-| `draws` | `string[]` | no | The types the figure colours. The figure’s referents take hues kept clear of these types’ colours. |
+| `draws` | `string[]` | no | The types the figure colours. The default colours keep these types apart from one another and from the page’s other colours. |
+| `conventions` | `string[]` | no | The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0…). The default colours keep the types apart from these on the page. |
+| `facts` | `string[]` | no | The colours the figure draws as the fact (`F.fact`), each as #rrggbb, or "spectrum" for a figure that draws a run of real colours, which is not weighed. The default colours keep the types apart from these on the page. |
 
 ### `referents`
 
@@ -214,7 +217,7 @@ The particular things of one example or figure that the text marks with `<span d
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The referent’s id, unique in the section, which a `<span data-ref="…">` of the text and `F.ref` of the figure name it by. |
 | `label` | `string` | yes | What the text calls it, such as Firm B. |
-| `figures` | `string[]` | yes | The ids of every figure of the section that draws it, in the order the section sets them. Its colour is the first of the referent palette that no referent listed earlier and sharing one of these figures already wears, kept clear of the types these figures draw. |
+| `figures` | `string[]` | yes | The ids of every figure of the section that draws it, in the order the section sets them. Its colour is dealt from the reader’s thirty-six referent colours in the table’s order, one per referent of the section. |
 
 ### `coverage`
 

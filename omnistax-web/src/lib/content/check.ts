@@ -11,15 +11,16 @@
    content instead. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { inheritedTypes, splitSub, typesOf } from './load';
+import { inheritedTypes, splitSub } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { REF, SUMMARY_ID, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
-import { NO_CHOICES, schemeOf } from '../colours/model';
-import { refHues } from '../fig/cat';
-import { figureRefs } from './figrefs';
+import { isHex, normHex } from '../colours/model';
+import { REFERENT_COUNT } from '../colours/referents';
+import { isElementSymbol } from '../fig/elements';
+import { figureLiterals, figureRefs } from './figrefs';
 import { conceptSpanIds } from './conceptspans';
 import type { TableSheetDTO } from './sheets';
 
@@ -232,19 +233,50 @@ export const checkReferents: Check = (content) =>
     ];
   });
 
-/* A section hands its referents the twelve referent hues in table order, each skipping the hues of the referents
-   it shares a figure with and those too close to the category colours its figures draw under the book's own
-   scheme (cat.ts, `refHues`); where a referent finds every hue taken by a neighbour, in either theme, the
-   section has run out, and two referents of one figure match. */
-export const checkRefHues: Check = (content) => {
-  const scheme = schemeOf({ types: typesOf(content.book.types) }, NO_CHOICES).hues;
-  return pagesOf(content).flatMap((s) => {
-    const draws = new Map(s.dto.figures.map((f) => [f.id, f.draws.flatMap((t) => (scheme[t] ? [scheme[t]] : []))] as const));
-    const shortIn = (dark: boolean): readonly string[] => refHues(s.dto.referents, (f) => (draws.get(f) ?? []).map((h) => (dark ? h.dark : h.light)), dark).short;
-    const short = [...new Set([...shortIn(false), ...shortIn(true)])];
-    return short.length ? [warning(`${s.dto.id}/section.json referents`, `has run out of referent colours: ${short.join(', ')} ${short.length === 1 ? 'wears' : 'wear'} the colour of a referent sharing a figure with ${short.length === 1 ? 'it' : 'them'}`)] : [];
-  });
+/* A section deals its referents the thirty-six colours of the referent palette, so a section with more
+   repeats one. */
+export const checkReferentCount: Check = (content) =>
+  pagesOf(content).flatMap((s) => (s.dto.referents.length > REFERENT_COUNT
+    ? [warning(`${s.dto.id}/section.json referents`, `has ${s.dto.referents.length} referents; the referent palette has ${REFERENT_COUNT} colours, so ${s.dto.referents.slice(REFERENT_COUNT).map((r) => r.id).join(', ')} repeat${s.dto.referents.length - REFERENT_COUNT === 1 ? 's' : ''} a colour`)]
+    : []));
+
+/* The default colours a book stores (book.json `colours`) are written by a script and kept as written, so a
+   type declared since, or one dropped since, makes them stale until the script is run again. */
+export const checkColourDefault: Check = (content) => {
+  const stored = content.book.colours;
+  if (!stored) return [];
+  const declared = content.book.types.map((t) => String(t.id));
+  const missing = declared.filter((t) => !(t in stored.assign));
+  const gone = Object.keys(stored.assign).filter((t) => !declared.includes(t));
+  return [
+    ...(missing.length ? [warning('book.json colours', `is stale: ${missing.join(', ')} ${missing.length === 1 ? 'has' : 'have'} no stored colour; run npm run colours:default`)] : []),
+    ...(gone.length ? [warning('book.json colours', `is stale: ${gone.join(', ')} ${gone.length === 1 ? 'is' : 'are'} no longer a declared type`)] : []),
+  ];
 };
+
+/* A figure that passes a literal to F.el or F.fact lists it in its row's conventions or facts, which the default
+   colours keep the types apart from. A call is credited to every figure whose statement reaches it (figrefs.ts);
+   a call no figure's statement reaches is held to the section's rows together. */
+type Tag = { readonly fn: string; readonly field: 'conventions' | 'facts'; readonly read: (lit: string) => string | null };
+const TAGS: readonly Tag[] = [
+  { fn: 'el', field: 'conventions', read: (lit) => (isElementSymbol(lit) || /^[A-Z]/.test(lit) ? lit : null) },
+  { fn: 'fact', field: 'facts', read: (lit) => (lit.startsWith('#') && isHex(lit) ? normHex(lit) : null) },
+];
+const listed = (f: FigureRowDTO, tag: Tag): ReadonlySet<string> =>
+  new Set(f[tag.field].flatMap((v) => (tag.field === 'facts' ? (isHex(v) ? [normHex(v)] : []) : [v])));
+export const checkFixedColours: Check = (content) =>
+  pagesOf(content).flatMap((s) => (s.figuresJs ? TAGS.flatMap((tag) => {
+    const found = figureLiterals(s.figuresJs, s.dto.figures.map((f) => f.id), tag.fn);
+    const call = (lit: string): string => `F.${tag.fn}('${lit}')`;
+    const unlisted = (lits: ReadonlySet<string>, has: ReadonlySet<string>): readonly string[] =>
+      [...lits].flatMap((lit) => { const k = tag.read(lit); return k !== null && !has.has(k) ? [lit] : []; });
+    const union = new Set(s.dto.figures.flatMap((f) => [...listed(f, tag)]));
+    return [
+      ...s.dto.figures.flatMap((f) => unlisted(found.byFigure.get(f.id) ?? new Set(), listed(f, tag))
+        .map((lit) => warning(inSection(s, 'figures', f.id), `draws ${call(lit)}, which its ${tag.field} do not list`))),
+      ...unlisted(found.loose, union).map((lit) => warning(`${s.dto.id}/figures.js`, `draws ${call(lit)}, which no figure row's ${tag.field} lists`)),
+    ];
+  }) : []));
 
 /* A variables row that names a referent splits its symbol, the subscript in the referent's colour: the referent
    is a row of the same section's referents, and the symbol has a subscript to colour. */
@@ -600,7 +632,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkRefHues, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

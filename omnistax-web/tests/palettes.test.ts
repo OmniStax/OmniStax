@@ -1,17 +1,17 @@
-/* The recommended palettes, and the scheme drawn from them. What is worth
+/* The recommended palettes. What is worth
    checking is not a list of colours but what each palette answers for every
    number of quantities a level might show: that many colours, all different, all
    readable as hex, and nothing at all once it is past what it can dress. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OKLCH, PALETTES, fixed, generated, huesOf, paletteId, schemePalette } from '../src/lib/colours/palettes';
+import { OKLAB, PALETTES, fixed, generated, huesOf, pairsOf, palettesFor } from '../src/lib/colours/palettes';
 import { isHex, normHex } from '../src/lib/colours/model';
 
 /* The largest count each palette can dress: the two generated ones and Tol's cut
    answer for as many as they are asked, up to their own ceiling, and every
    published list stops at its length. */
 const LIMIT: Readonly<Record<string, number>> = {
-  omnistax: 48,
+  oklab: Infinity,
   oklch: Infinity,
   rainbow: Infinity,
   'tol-rainbow': 23,
@@ -31,9 +31,9 @@ const LIMIT: Readonly<Record<string, number>> = {
    quantities to colour. */
 const CEILING = 40;
 
-test("the page offers the book's own list, then the generated palettes, then the published lists", () => {
+test("the page offers the book's own palette, then the generated palettes, then the published lists", () => {
   assert.deepEqual(PALETTES.map((p) => p.id), [
-    'omnistax', 'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
+    'oklab', 'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
     'category10', 'dark2', 'set1', 'kelly', 'polychrome', 'glasbey',
   ]);
   assert.equal(new Set(PALETTES.map((p) => p.id)).size, PALETTES.length, 'no id is used twice');
@@ -59,8 +59,8 @@ test('every palette answers with exactly the colours the level needs, or with no
   });
 });
 
-test('the two generated palettes never refuse a level', () => {
-  ['oklch', 'rainbow'].forEach((id) => {
+test('the three generated palettes never refuse a level', () => {
+  ['oklab', 'oklch', 'rainbow'].forEach((id) => {
     const p = PALETTES.find((q) => q.id === id);
     assert.ok(p, `${id} is on offer`);
     for (let n = 1; n <= CEILING; n++) assert.ok(huesOf(p, n), `${id} answers for ${n}`);
@@ -68,24 +68,13 @@ test('the two generated palettes never refuse a level', () => {
   });
 });
 
-test('the scheme is the first list long enough, and the ring when none is', () => {
-  /* Every published list is passed over until one of them can dress the whole
-     book. The book's own list heads them and dresses anything up to forty-eight,
-     so it is what every book the app carries wears; past that the published lists
-     answer in turn, and since the longest of them holds only thirty-four, past
-     the scheme it is the ring that answers. */
-  assert.equal(schemePalette(4).id, paletteId('omnistax'));
-  assert.equal(schemePalette(29).id, paletteId('omnistax'), 'a physics book of twenty-nine quantities');
-  assert.equal(schemePalette(30).id, paletteId('omnistax'));
-  assert.equal(schemePalette(31).id, paletteId('omnistax'), 'and so does a book that has gone on declaring');
-  assert.equal(schemePalette(48).id, paletteId('omnistax'), 'out to the last place the scheme deals');
-  assert.equal(schemePalette(49).id, OKLCH.id, 'past forty-eight even the longest published list is short, so the ring lays them out');
-  assert.equal(schemePalette(0).id, OKLCH.id, 'a book with no quantities is left to the ring as well');
-  for (let n = 1; n <= CEILING; n++) {
-    const hues = huesOf(schemePalette(n), n);
-    assert.ok(hues, `a book of ${n} quantities is dressed`);
-    assert.equal(hues.length, n, `and gets ${n} colours`);
-  }
+test('a level of n is offered every palette that can give n colours, the book\'s own first', () => {
+  const offered = (n: number) => palettesFor(n).map((o) => o.palette.id);
+  assert.equal(offered(8)[0], OKLAB.id);
+  assert.ok(offered(8).some((id) => id === 'okabe-ito') && !offered(9).some((id) => id === 'okabe-ito'), 'a list of eight dresses eight and not nine');
+  assert.deepEqual(offered(50), ['oklab', 'oklch', 'rainbow'], 'past every list only the generators answer');
+  palettesFor(12).forEach((o) => assert.equal(o.hues.length, 12, `${o.palette.id} gives twelve`));
+  assert.deepEqual(pairsOf(OKLAB, 5, 'deutan'), palettesFor(5, 'deutan')[0].hues);
 });
 
 test("Tol's rainbow is cut afresh for each count rather than trimmed from one list", () => {
@@ -97,7 +86,6 @@ test("Tol's rainbow is cut afresh for each count rather than trimmed from one li
   assert.deepEqual(huesOf(tol, 2), ['#1965B0', '#DC050C'], 'two take a blue and a red, as far apart as the set goes');
   assert.notDeepEqual(huesOf(tol, 9)?.slice(0, 2), huesOf(tol, 2), 'so the cut for nine is not the cut for two with more added');
   assert.equal(huesOf(tol, 24), null, 'past twenty-three Tol names no cut');
-  assert.notEqual(schemePalette(9).id, tol.id, 'and being cut rather than published, it is never the scheme');
 });
 
 test('the long published lists begin where their authors begin', () => {

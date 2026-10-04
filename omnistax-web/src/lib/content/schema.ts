@@ -137,6 +137,18 @@ export const SheetSchema = z.object({
 }).strict();
 export type SheetDTO = z.infer<typeof SheetSchema>;
 
+const HEX6 = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const StoredHueSchema = z.object({
+  light: HEX6.describe('The colour on the light theme, as #rrggbb.'),
+  dark: HEX6.describe('The colour on the dark theme, as #rrggbb.'),
+}).strict();
+export const BookColoursSchema = z.object({
+  palette: z.string().describe('The palette the colours were taken from, by its id in the app (oklab).'),
+  vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).describe('The colour vision the assignment keeps the colours of one page apart for: normal, protan, deutan or tritan.'),
+  assign: z.record(z.string(), StoredHueSchema).describe('Each type\u2019s colour, keyed by type id. A type the book declares and this omits takes the next palette colour no listed type wears, and the checker says the default is stale.'),
+}).strict();
+export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
@@ -156,10 +168,12 @@ export const BookSchema = z.object({
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
+  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
+  ...(b.colours ? { colours: b.colours } : {}),
 }));
 export type BookDTO = z.infer<typeof BookSchema>;
 
@@ -243,7 +257,9 @@ export const FigureSchema = z.object({
   originals: z.array(z.string()).default([]).describe('The book\u2019s own images of the figure, served at /media, which the reader can call up beside the simulation.'),
   original_caption: z.string().optional().describe('The caption the book prints under the figure, kept word for word.'),
   widths: z.array(z.number().int().positive()).default([]).describe('The book\u2019s display width in pixels for each image the row shows, one per image in order (a photo\u2019s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size.'),
-  draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The figure\u2019s referents take hues kept clear of these types\u2019 colours.'),
+  draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The default colours keep these types apart from one another and from the page\u2019s other colours.'),
+  conventions: z.array(z.string()).default([]).describe('The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0\u2026). The default colours keep the types apart from these on the page.'),
+  facts: z.array(z.string().regex(/^(#[0-9a-fA-F]{6}|spectrum)$/)).default([]).describe('The colours the figure draws as the fact (`F.fact`), each as #rrggbb, or "spectrum" for a figure that draws a run of real colours, which is not weighed. The default colours keep the types apart from these on the page.'),
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;
 
@@ -252,7 +268,7 @@ export type FigureRowDTO = z.infer<typeof FigureSchema>;
 export const ReferentSchema = z.object({
   id: z.string().describe('The referent\u2019s id, unique in the section, which a `<span data-ref="\u2026">` of the text and `F.ref` of the figure name it by.'),
   label: z.string().describe('What the text calls it, such as Firm B.'),
-  figures: z.array(z.string()).nonempty().describe('The ids of every figure of the section that draws it, in the order the section sets them. Its colour is the first of the referent palette that no referent listed earlier and sharing one of these figures already wears, kept clear of the types these figures draw.'),
+  figures: z.array(z.string()).nonempty().describe('The ids of every figure of the section that draws it, in the order the section sets them. Its colour is dealt from the reader\u2019s thirty-six referent colours in the table\u2019s order, one per referent of the section.'),
 }).strict();
 export type ReferentDTO = z.infer<typeof ReferentSchema>;
 
@@ -572,8 +588,8 @@ export type SectionEntry = {
   readonly figures: readonly FigureEntry[];      /* what the section draws; empty until the section is built */
   readonly types: readonly string[];             /* the types the page wears, from its meta; empty until the section is built */
   readonly referents?: readonly ReferentEntry[]; /* the section's referents in table order; absent where it has none */
-  readonly draws?: Readonly<Record<string, readonly string[]>>;   /* the types each figure that draws a referent draws, which the referents' hues keep clear of */
   readonly macros?: MacroMap;                    /* the macros this page sets otherwise than the book, from its variables rows; absent where none differ */
+  readonly counts?: Readonly<Record<string, number>>;   /* how often the page shows each colour key (colours/counts.ts); absent until built */
   readonly exercises: readonly ExerciseEntry[];  /* the single exercises of the section, in the order the book sets them */
   readonly openstax?: string;
 };
@@ -595,6 +611,7 @@ export type BookManifest = {
   readonly id: BookId; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
+  readonly colours?: BookColoursDTO;         /* the book's stored default colours */
   readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
   readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
 } & BookFileUrls;

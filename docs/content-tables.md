@@ -203,17 +203,17 @@ Tables:
   `F.ref('<id>')`. A phrase naming several lists them,
   `data-ref="firm-a firm-b"`, and its words wear their colours in turn.
   `figures` lists every figure of the section that draws it, at least
-  one. The section hands its referents twelve referent hues, a family
-  deeper and more saturated than the category colours, in table order:
-  each takes the first hue no earlier referent sharing one of its
-  figures wears, skipping any within OKLab ΔE 0.08 of a type one of its
-  figures `draws` (when too few are clear, the nearest come last rather
-  than a hue coming twice). So a referent wears one colour in every
-  figure, and two referents of one figure never match. `F.cat` skips the
-  hues of the figure's own referents; both follow the reader's Referents
-  switch, not Concepts. Text and figure compute it apart from the same
-  table, so they agree whatever order they draw in, and a section where a
-  referent finds every hue taken by its neighbours is a warning.
+  one. The section deals its referents the reader's thirty-six referent
+  colours (by default the OKLab colours picked next after the book's
+  categories) in table order: in order, the i-th referent wears colour
+  i; smart, the default, it wears the first colour from i on, wrapping,
+  that no earlier referent of the section wears and that stands clear of
+  every category, convention and fact colour the page shows, and a
+  section where any referent finds none is dealt in order. So a referent
+  wears one colour in every figure and in the text, and no two referents
+  of a section match. `F.cat` skips the colours the section's referents
+  wear; both follow the reader's Referents switch, not Concepts. A
+  section with more than thirty-six referents is a warning.
 - `coverage`: `{ span, concept, verb }`, `verb` one of `introduces`,
   `uses`, `reinforces`. One row per pair, so a span that introduces two
   concepts is two rows.
@@ -365,9 +365,7 @@ references:
   of `figures.js` calls `F.ref` on it, with a string or a string joined to
   something (`'path-' + k`), is listed; every `data-ref` in `text.html` or the lead names a row
   (each id of a span that lists several), and a row no span names is a
-  warning; a section where a referent finds all twelve hues worn by
-  referents it shares a figure with, under the book's own scheme in
-  either theme, is a warning;
+  warning; a section with more than thirty-six referents is a warning;
 - a variables row's `ref` names a referent of its own section, and its
   symbol has a subscript to colour (a warning otherwise);
 - every section names its chapter and has a lead (a lead over 80 words

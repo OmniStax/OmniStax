@@ -1,7 +1,7 @@
 /* The colours of the book's quantities, as a plain immutable value. Colour is a
-   function of type: the book declares its types and says nothing about their
-   hues, and the app dresses them from a scheme — the first published palette
-   that can dress every one of them, and the ring when none can. What the reader
+   function of type: the book declares its types, and the app dresses them from
+   a scheme — the default the book stores (book.json `colours`), and the OKLab
+   palette laid along the order for any type it does not cover. What the reader
    chooses stands over that scheme. They choose two things: the order the
    quantities stand in, which is what every palette lays its hues along, and a
    colour at a place — the whole book, one chapter, or one section — which
@@ -12,10 +12,15 @@
    Everything here is pure: the store applies these functions, saves the result
    and writes the stylesheet they build. */
 import { z } from 'zod';
-import type { BookManifest } from '../content/schema';
-import { type BookId, type ChapterId, type SectionId, chapterId } from '../types/ids';
+import type { BookManifest, SectionEntry } from '../content/schema';
+import { pagesOf } from '../content/roles';
+import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
 import type { Target } from '../sections/scope';
-import { type Palette, type PaletteId, huesOf, schemePalette } from './palettes';
+import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
+import { type Vision, isVision } from './oklab';
+import { oklabHues } from './sample';
+import { type RefHues, type RefMode, type RefSettings, DEFAULT_REFERENTS, dealReferents, isRefMode, pageColours, referentHues } from './referents';
+import { countsOfRecord } from './counts';
 
 export type Hex = string;                          /* '#RRGGBB', normalised by normHex */
 export type Hue = { readonly light: Hex; readonly dark: Hex };
@@ -47,7 +52,7 @@ const EMPTY: Overrides = { book: {}, chapters: {}, sections: {} };
 /* What the reader has chosen: the order the quantities stand in and the colours
    set at each place. The order is one list for the whole book, since a palette
    lays its hues along it and a quantity that moves should move everywhere. */
-export type Choices = { readonly order: readonly TypeKey[]; readonly overrides: Overrides };
+export type Choices = { readonly order: readonly TypeKey[]; readonly overrides: Overrides; readonly vision?: Vision; readonly referents?: RefSettings };
 export const NO_CHOICES: Choices = { order: [], overrides: EMPTY };
 
 /* ---------- colour arithmetic ---------- */
@@ -160,7 +165,7 @@ const noOverrides = (o: Overrides): boolean =>
   isEmptyRecord(o.book) && Object.values(o.chapters).every(isEmptyRecord) && Object.values(o.sections).every(isEmptyRecord);
 /* Whether the reader has chosen anything at all, which is what the store asks
    before it writes: a book they have left alone is stored as nothing. */
-export const isEmpty = (c: Choices): boolean => c.order.length === 0 && noOverrides(c.overrides);
+export const isEmpty = (c: Choices): boolean => c.order.length === 0 && noOverrides(c.overrides) && c.vision === undefined && c.referents === undefined;
 
 /* The boundary with the file, where anything may come back. A type whose colour
    does not read as a pair of hexes is left out, and so is everything above it
@@ -229,6 +234,37 @@ export const applyPalette = (c: Choices, place: Place, types: readonly TypeKey[]
   return overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), ...chosen }));
 };
 
+/* The same with both values of every colour given, as the OKLab palette gives them. */
+export const applyHues = (c: Choices, place: Place, types: readonly TypeKey[], hues: readonly Hue[]): Choices | null => {
+  if (types.length > hues.length) return null;
+  const chosen = Object.fromEntries(types.map((t, i) => [t, normHue(hues[i])] as const));
+  return overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), ...chosen }));
+};
+
+/* The vision the reader has said they read with, else the one the book's
+   default was worked out for. */
+export const visionOf = (m: Pick<BookManifest, 'colours'>, c: Choices): Vision => c.vision ?? m.colours?.vision ?? DEFAULT_VISION;
+export const setVision = (c: Choices, vision: Vision | undefined): Choices => {
+  if (c.vision === vision) return c;
+  const { vision: _, ...rest } = c;
+  return vision === undefined ? rest : { ...rest, vision };
+};
+
+/* The referent palette and how a section deals it, the default until the reader chooses. */
+export const referentsOf = (c: Choices): RefSettings => c.referents ?? DEFAULT_REFERENTS;
+export const setReferents = (c: Choices, palette: PaletteId, mode: RefMode): Choices => {
+  const now = referentsOf(c);
+  if (now.palette === palette && now.mode === mode) return c;
+  const { referents: _, ...rest } = c;
+  const isDefault = palette === DEFAULT_REFERENTS.palette && mode === DEFAULT_REFERENTS.mode;
+  return isDefault ? rest : { ...rest, referents: { palette, mode } };
+};
+const parseReferents = (raw: unknown): RefSettings | undefined => {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const r = raw as { palette?: unknown; mode?: unknown };
+  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode } : undefined;
+};
+
 /* ---------- the order, and the scheme that follows it ---------- */
 
 const chapterEntry = (m: BookManifest, chapter: ChapterId) => m.chapters.find((c) => c.id === String(chapter));
@@ -258,16 +294,26 @@ export const moveType = (m: BookManifest, c: Choices, type: TypeKey, before: Typ
   return next.every((k, i) => k === order[i]) ? c : { ...c, order: next };
 };
 
-/* The palette the book wears before the reader touches anything, and the hues it
-   gives each quantity. The palette is chosen for how many quantities the book
-   has, and its hues are laid along the reader's order, so the first quantity
-   takes the first hue and a quantity dragged upwards takes the hue above it. */
+/* The colours the book wears before the reader touches anything. A type the
+   book's stored default names wears the colour stored for it; every other type
+   takes, in the reader's order, the next OKLab colour no stored type wears, for
+   the vision the default was worked out for. A book that stores no default is
+   the OKLab palette laid along the order. */
 export type Scheme = { readonly palette: Palette; readonly hues: Readonly<Record<TypeKey, Hue>> };
-export const schemeOf = (m: Pick<BookManifest, 'types'>, c: Choices): Scheme => {
+export const schemeOf = (m: Pick<BookManifest, 'types' | 'colours'>, c: Choices): Scheme => {
   const order = orderOf(m, c);
-  const palette = schemePalette(order.length);
-  const hues = huesOf(palette, order.length) ?? [];
-  return { palette, hues: Object.fromEntries(order.map((k, i) => [k, { light: normHex(hues[i]), dark: darkOf(hues[i]) }] as const)) };
+  const stored = m.colours?.assign ?? {};
+  const kept = order.filter((k) => k in stored);
+  const rest = order.filter((k) => !(k in stored));
+  const worn = new Set(kept.map((k) => normHex(stored[k].light)));
+  const spare = oklabHues(order.length + kept.length, m.colours?.vision ?? DEFAULT_VISION).filter((h) => !worn.has(normHex(h.light)));
+  return {
+    palette: OKLAB,
+    hues: Object.fromEntries([
+      ...kept.map((k) => [k, normHue(stored[k])] as const),
+      ...rest.map((k, i) => [k, normHue(spare[i])] as const),
+    ]),
+  };
 };
 
 /* Where the colour a place shows came from: one of the three tiers the reader
@@ -336,6 +382,33 @@ export const fitCount = (widths: readonly number[], room: number, ellipsis: numb
   return Math.max(n, 1);
 };
 
+/* ---------- the referents of a page ---------- */
+
+/* A page of the book and the place its colours are read at: a chapter's pages at
+   their own section place, the book's own front and back pages at the book. */
+type PageAt = { readonly entry: SectionEntry; readonly place: Place };
+const pageAt = (m: BookManifest, id: string): PageAt | null => {
+  const inChapter = m.chapters.flatMap((ch) => pagesOf(ch).flatMap((entry): PageAt[] =>
+    entry.id === id ? [{ entry, place: { level: 'section', chapter: chapterId(ch.id), section: sectionId(entry.id) } }] : []));
+  const ownPage = [m.intro, m.summary].flatMap((entry): PageAt[] => (entry?.id === id ? [{ entry, place: { level: 'book' } }] : []));
+  return inChapter[0] ?? ownPage[0] ?? null;
+};
+
+/* A page's referents dealt their colours: the palette they come from, the vision
+   it was measured for, and the mode that dealt them, which is 'order' where smart
+   found no way. */
+export type PageReferents = { readonly hues: RefHues; readonly mode: RefMode; readonly palette: readonly Hue[]; readonly vision: Vision; readonly count: number };
+export const pageReferents = (m: BookManifest, c: Choices, page: string): PageReferents | null => {
+  const at = pageAt(m, page);
+  if (!at) return null;
+  const vision = visionOf(m, c);
+  const settings = referentsOf(c);
+  const palette = referentHues(settings, Object.values(schemeOf(m, c).hues), vision);
+  const ids = (at.entry.referents ?? []).map((r) => r.id);
+  const shown = pageColours(countsOfRecord(at.entry.counts ?? {}), (k) => effectiveHue(m, c, k, at.place).hue);
+  return { ...dealReferents({ ids, palette, page: shown, mode: settings.mode, vision }), palette, vision, count: ids.length };
+};
+
 /* ---------- the stylesheet ---------- */
 
 const varsOf = (order: readonly TypeKey[], hues: Readonly<Record<TypeKey, Hue>>, mode: 'light' | 'dark'): string => {
@@ -389,11 +462,13 @@ export const zColourFile = z.object({
   book: z.string(),
   order: z.array(z.string()).default([]),
   overrides: z.unknown().transform(parseOverrides),
+  vision: z.unknown().optional().transform((v) => (isVision(v) ? v : undefined)),
+  referents: z.unknown().optional().transform(parseReferents),
 });
 export type ColourFileDTO = z.infer<typeof zColourFile>;
 
 export const toFile = (book: BookId, c: Choices): ColourFileDTO =>
-  ({ format: 'omnistax-colours', version: 1, book, order: [...c.order], overrides: c.overrides });
+  ({ format: 'omnistax-colours', version: 1, book, order: [...c.order], overrides: c.overrides, ...(c.vision ? { vision: c.vision } : {}), ...(c.referents ? { referents: c.referents } : {}) });
 
 /* A file read back. It is refused when it is not a colour file at all — which is
    what storage written before the envelope existed reads as, so an older
@@ -403,5 +478,6 @@ export const fromFile = (raw: unknown, book: BookId): { readonly ok: true; reado
   const read = zColourFile.safeParse(raw);
   if (!read.success) return { ok: false, reason: 'not-colours' };
   if (read.data.book !== book) return { ok: false, reason: 'other-book' };
-  return { ok: true, choices: { order: read.data.order, overrides: read.data.overrides } };
+  const { order, overrides, vision, referents } = read.data;
+  return { ok: true, choices: { order, overrides, ...(vision ? { vision } : {}), ...(referents ? { referents } : {}) } };
 };

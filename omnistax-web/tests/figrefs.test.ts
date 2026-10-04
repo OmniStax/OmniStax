@@ -1,7 +1,7 @@
 /* Which referents each figure draws, read off figures.js: the shapes the books' scripts take, each in a few lines. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { figureRefs } from '../src/lib/content/figrefs';
+import { figureLiterals, figureRefs } from '../src/lib/content/figrefs';
 
 const wrap = (body: string): string =>
   `window.OMNISTAX_FIGURES = window.OMNISTAX_FIGURES || {};\nwindow.OMNISTAX_FIGURES['2.4'] = function (root, F) {\nconst sim = (id, H) => F.sim(root, id, H);\n${body}\n};\n`;
@@ -44,4 +44,27 @@ test('an id read from a table, a choice between two strings, and an id joined fr
 
 test('a figure that draws no referent is left out', () => {
   assert.deepEqual(read(wrap(`(function () { const d = sim('sim-a', 600); })();`), ['sim-a'], ['car']), {});
+});
+
+test('an F.el read only to build a joined signature is not drawing', () => {
+  const js = wrap([
+    "const palSig = () => [PAL.ink, F.el('S'), ...['Na'].map((e) => F.el(e)), F.el('C')].join('|');",
+    "(() => { const s = sim('sim-a', 400); s.draw = () => { if (palSig() !== sig) return; const key = [F.el('Cl')].join(); fill(F.el('O')); }; })();",
+  ].join('\n'));
+  const got = figureLiterals(js, ['sim-a'], 'el');
+  assert.deepEqual([...(got.byFigure.get('sim-a') ?? [])], ['O']);
+  assert.deepEqual([...got.loose], []);
+});
+
+test('an F.el inside a top-level helper belongs to the figures that call it, not to one that only names a key alike', () => {
+  const js = wrap([
+    "function water(ctx) { F.el('O'); F.el('H'); }",
+    "function particle(ctx, sub) { if (sub.form === 'water') water(ctx); }",
+    "(() => { const d = sim('sim-phases', 400); d.draw = () => particle(ctx, s); })();",
+    "(() => { const d = sim('sim-heating-curve', 400); const state = () => ({ ice: 1, water: 0 }); d.draw = () => fill(F.ref('sample')); })();",
+  ].join('\n'));
+  const got = figureLiterals(js, ['sim-phases', 'sim-heating-curve'], 'el');
+  assert.deepEqual([...(got.byFigure.get('sim-phases') ?? [])].sort(), ['H', 'O']);
+  assert.equal(got.byFigure.get('sim-heating-curve'), undefined);
+  assert.deepEqual([...got.loose], []);
 });

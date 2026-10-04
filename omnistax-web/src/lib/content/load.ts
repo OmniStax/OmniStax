@@ -22,6 +22,7 @@ import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeI
 import type { BookSelection } from '../../../omnistax.config';
 import { type ContentVersion, bookVersion, rootVersion } from './version';
 import { type ConceptTypes, conceptTypes, typeConceptSpans } from './conceptspans';
+import { type PageCounts, countsRecord, pageCounts } from '../colours/counts';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -40,6 +41,7 @@ export type SectionSource = {
   readonly coverage: readonly CoverageDTO[];   /* spans already qualified by the section */
   readonly exercises: readonly ExerciseDTO[];
   readonly exercisesLead: string;   /* math prerendered */
+  readonly counts: PageCounts;      /* how often the page shows each colour key */
 };
 /* A chapter's pages: its sections, and its own introduction and summary where the book prints them and they are built. */
 export type ChapterTree = {
@@ -298,9 +300,11 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
      fragment carry the same width and height on every image. */
   const prose = marked(prerenderMath(text, macros));
   const textHtml = sizedImages(prose, await imageSizes(media, prose));
+  const lead = marked(rendered(dto.lead)), summaryHtml = marked(rendered(dto.summaryHtml)), exercisesLead = marked(rendered(dto.exercisesLead));
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${marked(rendered(dto.lead))}\n${prose}`), marked), textHtml, summaryHtml: marked(rendered(dto.summaryHtml)), figuresJs,
-    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: marked(rendered(dto.exercisesLead)),
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead,
+    counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])) }),
   };
 };
 /* The chapter's or the book's own introduction or summary: read from its fixed
@@ -340,9 +344,9 @@ const entryOf = (src: SectionSource): SectionEntry => ({
   figures: figureList(src.textHtml, src.meta.id), types: src.meta.types, exercises: src.exercises.map((e) => ({ id: e.id, kind: e.kind })),
   ...(src.dto.referents.length ? {
     referents: src.dto.referents.map((r) => ({ id: r.id, figures: r.figures })),
-    draws: Object.fromEntries(src.figures.filter((f) => src.dto.referents.some((r) => r.figures.includes(f.id))).map((f) => [f.id, f.draws] as const)),
   } : {}),
   ...(Object.keys(src.macros).length ? { macros: src.macros } : {}),
+  ...(src.counts.size ? { counts: countsRecord(src.counts) } : {}),
   openstax: src.meta.openstax,
 });
 /* A section the chapter lists but nobody has built: named, addressed, and empty below. */
@@ -367,6 +371,7 @@ const sheetEntry = (book: BookDTO, s: SheetSource): SheetEntry =>
 const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary' | 'sheets'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
+  ...(book.colours ? { colours: book.colours } : {}),
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),
   exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`,
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),

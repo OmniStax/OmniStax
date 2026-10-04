@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkRefHues, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -37,7 +37,9 @@ test('the only warnings a book on disk raises are a figure it has not built yet,
     const unlinked = (f: Finding): boolean => !UNLINKED_ROWS_ARE_ERRORS && f.what === 'names no concept';
     /* the leads written before rule 21 capped them run long until they are rewritten */
     const lead = (f: Finding): boolean => /^has a lead of \d+ words/.test(f.what);
-    assert.ok(raised.every((f) => figure(f) || cell(f) || unlinked(f) || lead(f)), said(raised).join('\n'));
+    /* figure rows name the convention and fact colours they draw once the tags are backfilled */
+    const tag = (f: Finding): boolean => /^draws F\.(el|fact)\('[^']*'\), which (its|no figure row's) (conventions|facts)/.test(f.what);
+    assert.ok(raised.every((f) => figure(f) || cell(f) || unlinked(f) || lead(f) || tag(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
   });
 });
 
@@ -185,14 +187,10 @@ test('checkDraws: a figure that draws a type the book never declared', () => {
   assert.match(said[0], /draws "stiffness" names no row/);
 });
 
-test('checkRefHues: a section runs out where a referent finds every hue taken by referents it shares a figure with', () => {
-  const referents = (n: number, figures = ['sim-ruler']) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figures }));
-  assert.deepEqual(run(checkRefHues, { section: { referents: referents(12) } }), [], 'no scheme type stands near a referent hue');
-  const said = run(checkRefHues, { section: { referents: referents(13) } });
-  assert.deepEqual(said, ['16.1/section.json referents: has run out of referent colours: r-12 wears the colour of a referent sharing a figure with it']);
-  const two = { figures: [{ id: 'sim-ruler', kind: 'sim', draws: ['force'] }, { id: 'sim-spring', kind: 'sim' }] };
-  const apart = [...referents(12), ...referents(12, ['sim-spring']).map((r) => ({ ...r, id: `s-${r.id}` }))];
-  assert.deepEqual(run(checkRefHues, { section: { ...two, referents: apart } }), [], 'two figures that share no referent each have twelve');
+test('checkReferentCount: a section with more referents than the thirty-six referent colours', () => {
+  const referents = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r-${i}`, label: `r ${i}`, figures: ['sim-ruler'] }));
+  assert.deepEqual(run(checkReferentCount, { section: { referents: referents(36) } }), []);
+  assert.deepEqual(run(checkReferentCount, { section: { referents: referents(37) } }), ['16.1/section.json referents: has 37 referents; the referent palette has 36 colours, so r-36 repeats a colour']);
 });
 
 test('checkReferents: a figure whose script draws a referent with F.ref is listed in its figures', () => {
@@ -202,6 +200,29 @@ test('checkReferents: a figure whose script draws a referent with F.ref is liste
   const row = (fs: readonly string[]) => ({ section: { figures, referents: [{ id: 'block-1', label: 'block 1', figures: fs }] }, textHtml: text, figuresJs: js });
   assert.deepEqual(run(checkReferents, row(['sim-ruler', 'sim-spring'])), []);
   assert.deepEqual(run(checkReferents, row(['sim-ruler'])), ['16.1/section.json referents[block-1]: is drawn with F.ref in figure "sim-spring", which its figures do not list']);
+});
+
+test('checkFixedColours: a literal F.el or F.fact a figure draws is listed in its row, and a stray call in the section', () => {
+  const figures = (conventions: readonly string[], facts: readonly string[]) => [{ id: 'sim-ruler', kind: 'sim', draws: ['force'], conventions, facts }, { id: 'sim-spring', kind: 'sim' }];
+  const js = "(function () { sim('sim-ruler', 600); F.el('O'); F.el('e-'); F.fact('#f0a828'); F.el('div'); F.el(sym); })();\n(function () { sim('sim-spring', 600); })();\nconst glow = () => F.fact('#000');";
+  assert.deepEqual(run(checkFixedColours, { section: { figures: figures(['O', 'e-'], ['#F0A828', '#000000']) }, figuresJs: js }), []);
+  assert.deepEqual(run(checkFixedColours, { section: { figures: figures(['O'], ['spectrum']) }, figuresJs: js }), [
+    "16.1/section.json figures[sim-ruler]: draws F.el('e-'), which its conventions do not list",
+    "16.1/section.json figures[sim-ruler]: draws F.fact('#f0a828'), which its facts do not list",
+    "16.1/figures.js: draws F.fact('#000'), which no figure row's facts lists",
+  ]);
+  assert.throws(() => sectionOf({ figures: [{ id: 'f', kind: 'sim', facts: ['red'] }] }), 'a fact is a hex or "spectrum"');
+});
+
+test('checkColourDefault: a stored default that misses a declared type, or keeps one dropped, is stale', () => {
+  const hue = { light: '#112233', dark: '#445566' };
+  const colours = (assign: object) => ({ book: { colours: { palette: 'oklab', vision: 'deutan', assign } } });
+  assert.deepEqual(run(checkColourDefault), [], 'no default, nothing to be stale');
+  assert.deepEqual(run(checkColourDefault, colours({ force: hue, position: hue })), []);
+  assert.deepEqual(run(checkColourDefault, colours({ force: hue, mass: hue })), [
+    'book.json colours: is stale: position has no stored colour; run npm run colours:default',
+    'book.json colours: is stale: mass is no longer a declared type',
+  ]);
 });
 
 test('checkVariableRefs: a row\u2019s ref names a referent of its own section, on a symbol with a subscript', () => {

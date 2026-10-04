@@ -5,17 +5,21 @@
    by Ctrl+Z inside the page. Each book is remembered in this browser under its
    own id, as the very document the reader exports to a file, and the Colours
    page edits one book at a time, the selected one. */
-import { FIG } from '../fig/figlib';
+import { FIG, setReferentSource } from '../fig/figlib';
 import { settings } from '../settings/store.svelte';
 import { type Edit, type Stack, breakCoalescing, canRedo, canUndo, coalesce, emptyStack, push, redo, redoLabel, undo, undoLabel } from '../history/model';
 import type { BookManifest } from '../content/schema';
 import { type BookId, bookId } from '../types/ids';
-import { OKLCH, type Palette, huesOf } from './palettes';
+import { DEFAULT_VISION, OKLAB, type Offer, type Palette, type PaletteId, pairsOf } from './palettes';
+import { assignInOrder, assignSmart } from './assign';
+import { fixedOf, pagesOfBook } from './counts';
 import {
   type Choices, type ColourFileDTO, type Hex, type Hue, type Place, type Scheme, type Source, type TypeKey,
-  NO_CHOICES, applyPalette, clearHue, clearPlace, cssFor, effectiveHue, fromFile, hueFrom, isEmpty, moveType, orderOf,
-  ownHue, schemeOf, setHue, toFile,
+  NO_CHOICES, applyHues, clearHue, clearPlace, cssFor, effectiveHue, fromFile, hueFrom, isEmpty, moveType, orderOf,
+  type PageReferents, ownHue, pageReferents, referentsOf, schemeOf, setHue, setReferents, setVision, toFile, visionOf,
 } from './model';
+import { type RefMode, type RefSettings, referentPalettes } from './referents';
+import type { Vision } from './oklab';
 import { readerWritesAllowed } from '../backup/guard';
 import { bookColoursHref } from './rules';
 
@@ -34,7 +38,7 @@ const whereOf = (p: Place): string => (p.level === 'book' ? 'the book' : p.level
 /* Nothing is known about a book until its manifest arrives, and a page may read
    the scheme before then, so the ring standing over no quantities at all is
    what a store without a manifest answers with. */
-const NO_SCHEME: Scheme = { palette: OKLCH, hues: {} };
+const NO_SCHEME: Scheme = { palette: OKLAB, hues: {} };
 
 /* One book's colours: its manifest, what the reader chose, and its own timeline. */
 type BookColours = { readonly manifest: BookManifest; readonly choices: Choices; readonly stack: Stack };
@@ -69,6 +73,9 @@ const styleOf = (book: BookId): HTMLStyleElement => {
 class Colours {
   private books = $state.raw<Readonly<Record<BookId, BookColours>>>({});
   private book = $state.raw<BookId>(bookId(''));
+  /* The vision the reader has stated on the Colours page, which the palettes there
+     are worked out for, and which the page takes on only when a palette is applied. */
+  private stated = $state.raw<Readonly<Record<BookId, Vision>>>({});
   /* True while a step of this timeline is running, so that walking it never
      writes another step. */
   private applying = false;
@@ -128,8 +135,8 @@ class Colours {
      that many answers nothing, and the page does not offer it in the first
      place, so this refuses rather than colouring some of them. */
   usePalette(place: Place, types: readonly TypeKey[], palette: Palette): boolean {
-    const hues = huesOf(palette, types.length);
-    const next = hues ? applyPalette(this.choices, place, types, hues) : null;
+    const hues = pairsOf(palette, types.length, this.vision);
+    const next = hues ? applyHues(this.choices, place, types, hues) : null;
     if (!next) return false;
     this.record(`the palette ${palette.name} ${whereFor(place)}`, next);
     return true;
@@ -142,7 +149,50 @@ class Colours {
     const where = before === null ? 'to the end' : `before ${nameOf(this.manifest, before)}`;
     this.record(`${nameOf(this.manifest, type)} moved ${where}`, moveType(this.manifest, this.choices, type, before));
   }
+  /* The colours chosen for each type at once, as assignInOrder or assignSmart hand them back. */
+  useAssignment(place: Place, label: string, assignment: ReadonlyMap<TypeKey, Hue>): void {
+    const types = [...assignment.keys()];
+    const next = applyHues(this.choices, place, types, types.map((k) => assignment.get(k) as Hue));
+    if (next) this.record(`${label} ${whereFor(place)}`, next);
+  }
+  /* A palette laid over every quantity of the book under a stated vision, along the
+     reader's order or smartly by what each page shows, and written at a place for
+     the quantities that place lists, with the vision, in one step. */
+  applyCategories(place: Place, types: readonly TypeKey[], palette: Palette, mode: RefMode, vision: Vision): boolean {
+    const m = this.manifest;
+    const order = this.order;
+    const hues = m ? pairsOf(palette, order.length, vision) : null;
+    if (!m || !hues) return false;
+    const pages = pagesOfBook(m);
+    const got = mode === 'order' ? assignInOrder(order, hues) : assignSmart({ categories: order, colours: hues, pages, fixed: fixedOf(pages), vision, seed: 1 });
+    const here = types.filter((k) => got.has(k));
+    const next = applyHues(setVision(this.choices, vision), place, here, here.map((k) => got.get(k) as Hue));
+    if (!next) return false;
+    this.record(`the palette ${palette.name} ${mode === 'smart' ? 'smart' : 'in order'} ${whereFor(place)}`, next);
+    return true;
+  }
+  /* The colour vision the reader reads with, which the palettes are generated for. */
+  get vision(): Vision { return this.manifest ? visionOf(this.manifest, this.choices) : this.choices.vision ?? DEFAULT_VISION; }
+  get statedVision(): Vision { return this.stated[this.book] ?? this.vision; }
+  stateVision(vision: Vision): void { this.stated = { ...this.stated, [this.book]: vision }; }
+  setVision(vision: Vision | undefined): void { this.record(`color vision ${vision ?? 'reset'}`, setVision(this.choices, vision)); }
   resetAll(): void { this.record('every color reset', NO_CHOICES); }
+
+  /* The referent palette and how sections deal it out. */
+  get referents(): RefSettings { return referentsOf(this.choices); }
+  setReferents(palette: PaletteId, mode: RefMode): void {
+    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(this.choices, palette, mode));
+  }
+  applyReferents(palette: PaletteId, mode: RefMode, vision: Vision): void {
+    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(setVision(this.choices, vision), palette, mode));
+  }
+  /* The palettes that can give the referents their thirty-six under the reader's vision. */
+  referentPalettes(vision: Vision = this.vision): readonly Offer[] { return this.manifest ? referentPalettes(Object.values(this.scheme.hues), vision) : []; }
+  /* A page's referents with their colours, which figures and the text wear. */
+  referentsAt(book: BookId, page: string): PageReferents | null {
+    const b = this.books[book];
+    return b ? pageReferents(b.manifest, b.choices, page) : null;
+  }
 
   /* The document the reader saves, and the one they hand back. Loading is one
      step of the timeline, so a file opened by mistake is taken back like
@@ -210,3 +260,4 @@ class Colours {
   }
 }
 export const colours = new Colours();
+setReferentSource((book, page) => colours.referentsAt(bookId(book), page));

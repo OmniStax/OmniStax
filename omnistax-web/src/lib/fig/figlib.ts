@@ -3,7 +3,10 @@
    logical space. Section figure modules receive it as `F` and it is also
    exposed as window.FIG for classic scripts. */
 import { elementColor, isElementSymbol, type ElementSymbol } from './elements';
-import { type CatHue, type RefHues, cat as catOf, refHues } from './cat';
+import { DEFAULT_REFERENTS, type ReferentId, dealInOrder, pickWrapped, referentHues, unnamedOrder } from '../colours/referents';
+import { DEFAULT_VISION } from '../colours/palettes';
+import { oklabHues } from '../colours/sample';
+import type { PageReferents } from '../colours/model';
 import type { ColourShown } from '../colours/switches';
 import type { BookManifest, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
@@ -54,9 +57,8 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
    spell the same macro or the same type differently, so every call that sets TeX runs under one
    book's table, the one `cur` holds while it runs, and the boot book's otherwise. */
 export type FigBookConfig = { readonly macros: Macros; readonly symbols: SymbolMap; readonly colorKeys: readonly string[]; readonly pages?: Readonly<Record<string, FigPage>> };
-/* What a page declares about its colours: its referents in table order, the types each of their
-   figures draws, and the macros it sets otherwise than the book. */
-export type FigPage = { readonly referents: readonly ReferentEntry[]; readonly draws: Readonly<Record<string, readonly string[]>>; readonly macros?: Macros };
+/* What a page declares about its colours: its referents in table order, and the macros it sets otherwise than the book. */
+export type FigPage = { readonly referents: readonly ReferentEntry[]; readonly macros?: Macros };
 export type FigBook = FigBookConfig & { readonly id: string };
 const NO_BOOK: FigBookConfig = { macros: {}, symbols: {}, colorKeys: [] };
 const figBooks = new Map<string, FigBookConfig>();
@@ -195,7 +197,7 @@ const baseOf = (book: string): Record<string, Color> => {
 function readPal(): void {
   darkTheme = readTheme();
   neutral = { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
-  bookPal.clear(); scopePal.clear(); hued.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
+  bookPal.clear(); scopePal.clear(); hued.clear(); unnamed.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
 }
 /* A figure draws with the palette of its own book and of the article it sits in, and a section may
    colour a type differently from its chapter, so the scope is the nearest element that names either —
@@ -213,13 +215,10 @@ const palAt = ({ book, scope }: Place): Record<string, Color> => {
   scopePal.set(key, over);
   return { ...neutral, ...baseOf(book), ...over };
 };
-/* Where the figure being drawn sits, which `F.ref` reads its section's referents from, and which figure it is. */
+/* Where the figure being drawn sits, which `F.ref` reads its section's referents from. */
 let drawing: Place = { book: '', scope: null };
-let drawingFig = '';
 function usePal(fig: Element): void {
   drawing = placeOf(fig);
-  const sec = drawing.scope?.dataset.sec;
-  drawingFig = sec && fig.id.startsWith(`${sec}-`) ? fig.id.slice(sec.length + 1) : fig.id;
   Object.assign(PAL, palAt(drawing));
 }
 /* The type hues drawn so far: every hue `C` has handed out since the palette was
@@ -233,32 +232,44 @@ function C(k: string): Color {
   if (!NEUTRAL.has(k) && c) bound.add(c);
   return c;
 }
-/* A referent is one thing of one example that the text and a figure both point at. The section's referents
-   take their colours together, in table order, each clear of the category hues its figures draw and of the
-   referents it shares a figure with (cat.ts, `refHues`), so the text and every figure agree whatever each has
-   drawn. Worked out once per section, theme and palette. */
-const hued = new Map<string, RefHues>();
-const huesAt = (at: Place, page: FigPage, pal: Readonly<Record<string, Color>>): RefHues => {
-  const key = `${at.book}|${at.scope?.dataset.sec ?? ''}|${darkTheme}|${SHOWN.concepts}`;
-  const got = hued.get(key) ?? refHues(page.referents, (f) => (SHOWN.concepts ? (page.draws[f] ?? []).map((t) => pal[t]).filter(Boolean) : []), darkTheme);
+/* A referent is one thing of one example that the text and a figure both point at. A section's referents
+   take their colours together from the reader's referent palette, dealt by the colour store
+   (colours/referents.ts), so the text and every figure agree. A book the store does not hold deals the
+   default palette in order. Worked out once per section until the palette is read again. */
+export type ReferentSource = (book: string, page: string) => PageReferents | null;
+let referentSource: ReferentSource = () => null;
+const hued = new Map<string, PageReferents>();
+export const setReferentSource = (f: ReferentSource): void => { referentSource = f; hued.clear(); };
+const dealtByDefault = (book: string, ids: readonly ReferentId[]): PageReferents => {
+  const palette = referentHues(DEFAULT_REFERENTS, oklabHues(configOf(book).colorKeys.length, DEFAULT_VISION), DEFAULT_VISION);
+  return { hues: dealInOrder(ids, palette), mode: 'order', palette, vision: DEFAULT_VISION, count: ids.length };
+};
+const refsAt = (at: Place): PageReferents => {
+  const sec = at.scope?.dataset.sec ?? '';
+  const key = `${at.book}|${sec}`;
+  const got = hued.get(key) ?? referentSource(at.book, sec) ?? dealtByDefault(at.book, (pageOf(at)?.referents ?? []).map((r) => r.id));
   hued.set(key, got);
   return got;
 };
 const referentOf = (at: Place, id: string): ReferentEntry | undefined => pageOf(at)?.referents.find((r) => r.id === id);
 const refColor = (at: Place, id: string, pal: Readonly<Record<string, Color>>): Color => {
-  const page = pageOf(at); const h = page ? huesAt(at, page, pal).hue.get(id) : undefined;
+  const h = refsAt(at).hues.get(id);
   if (!SHOWN.refs || !h) return pal.ink;
   return darkTheme ? h.dark : h.light;
 };
 /* The referent palette by index, for things a figure tells apart that no referents row names. It follows
-   the Referents switch as `F.ref` does, and skips the type hues already drawn and the hues the figure's own
-   referents wear. */
-const wornHere = (): readonly CatHue[] => {
-  const page = pageOf(drawing); if (!page) return [];
-  const { hue } = huesAt(drawing, page, PAL);
-  return page.referents.flatMap((r) => (r.figures.includes(drawingFig) ? hue.get(r.id) ?? [] : []));
+   the Referents switch as `F.ref` does, skips the colours the section's referents wear, and puts the ones
+   clear of the type hues the figure has drawn first. */
+const unnamed = new Map<string, readonly Color[]>();
+const unnamedAt = (i: number): Color => {
+  const refs = refsAt(drawing);
+  const drawn = [...bound];
+  const key = `${drawing.book}|${drawing.scope?.dataset.sec ?? ''}|${darkTheme}|${drawn.join()}`;
+  const order = unnamed.get(key) ?? unnamedOrder(refs.palette, [...refs.hues.values()], refs.count, drawn, darkTheme, refs.vision);
+  unnamed.set(key, order);
+  return pickWrapped(order, i);
 };
-const cat = (i: number): Color => (SHOWN.refs ? catOf(i, darkTheme, [...bound], wornHere()) : PAL.ink);
+const cat = (i: number): Color => (SHOWN.refs ? unnamedAt(i) : PAL.ink);
 const ref = (id: string): Color => refColor(drawing, id, PAL);
 /* The text's <span data-ref> under a root, a split symbol's subscript among them, coloured here again on
    every repaint. A span that names several referents ("the two skaters") wears each of their colours in
@@ -2468,7 +2479,7 @@ export const figFor = (book: string): Fig => {
 /* What the drawing layer takes from a book's manifest. */
 export const figBookOf = (m: BookManifest): FigBook => ({
   id: m.id, macros: m.macros, symbols: m.symbols, colorKeys: Object.keys(m.types),
-  pages: Object.fromEntries(bookPagesOf(m).flatMap((p) => (p.referents || p.macros ? [[p.id, { referents: p.referents ?? [], draws: p.draws ?? {}, ...(p.macros ? { macros: p.macros } : {}) }]] : []))),
+  pages: Object.fromEntries(bookPagesOf(m).flatMap((p) => (p.referents || p.macros ? [[p.id, { referents: p.referents ?? [], ...(p.macros ? { macros: p.macros } : {}) }]] : []))),
 });
 
 /* The boot book: registered, made the default table, and exposed as window.FIG. */
