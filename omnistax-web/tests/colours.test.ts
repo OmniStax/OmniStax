@@ -56,9 +56,9 @@ const CH2: Place = { level: 'chapter', chapter: chapterId('2') };
 const S163: Place = { level: 'section', chapter: chapterId('16'), section: sectionId('16.3') };
 const hue = (light: string, dark: string): Hue => ({ light, dark });
 const chose = (order: readonly string[]): Choices => ({ ...NO_CHOICES, order });
-/* The first four OKLab colours for deutan vision, which is what a book of four
+/* The first four OKLab colours for normal vision, which is what a book of four
    quantities wears before the reader touches anything. */
-const SCHEME: readonly Hue[] = oklabHues(4, 'deutan');
+const SCHEME: readonly Hue[] = oklabHues(4, 'normal');
 
 test('a target names a place, and a section names its chapter as well', () => {
   assert.deepEqual(placeOf({ level: 'book', book: bookId('college-physics-2e') }), BOOK);

@@ -5,10 +5,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  AFTER_CATEGORIES, D_MIN, DEFAULT_REFERENTS, REFERENT_COUNT, afterCategories, dealInOrder, dealReferents, pickWrapped,
-  referentHues, referentPalettes, unnamedOrder,
+  AFTER_CATEGORIES, D_MIN_FALLBACK, DEFAULT_REFERENTS, REFERENT_COUNT, afterCategories, dealInOrder, dealReferents, pickWrapped,
+  type RefPage, D_MIN_STEPS, bestDMin, dMinSweep, referentHues, referentPalettes, unnamedOrder,
 } from '../src/lib/colours/referents';
-import { NO_CHOICES, type Hue, fromFile, isEmpty, pageReferents, referentsOf, setReferents, toFile } from '../src/lib/colours/model';
+import { NO_CHOICES, type Hue, bookDMin, dMinOf, fromFile, isEmpty, pageReferents, referentsOf, setReferents, toFile, withBookDMin } from '../src/lib/colours/model';
 import { paletteId, pairsOf } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
 import { distance } from '../src/lib/colours/oklab';
@@ -61,12 +61,12 @@ test('smart deals the whole section in order when any referent finds no colour',
   assert.deepEqual([...dealt.hues], [...dealInOrder(ids(3), PALETTE)]);
 });
 
-test('smart on the default palette keeps every referent D_MIN from the page in both themes', () => {
+test('smart on the default palette keeps every referent dMin from the page in both themes', () => {
   const page = oklabHues(8, 'deutan');
   const palette = oklabHues(8 + REFERENT_COUNT, 'deutan').slice(8);
-  const dealt = dealReferents({ ids: ids(6), palette, page, mode: 'smart', vision: 'deutan' });
+  const dealt = dealReferents({ ids: ids(6), palette, page, mode: 'smart', vision: 'deutan', dMin: 0.03 });
   assert.equal(dealt.mode, 'smart');
-  for (const h of dealt.hues.values()) for (const p of page) assert.ok(distance(h, p, 'deutan') >= D_MIN.deutan);
+  for (const h of dealt.hues.values()) for (const p of page) assert.ok(distance(h, p, 'deutan') >= 0.03);
 });
 
 /* A book of three types whose section 1.1 shows two of them and has two referents. */
@@ -83,11 +83,50 @@ test('a page deals its referents from the reader’s palette, measured against i
   const got = pageReferents(MANIFEST, NO_CHOICES, '1.1')!;
   assert.equal(got.count, 2);
   assert.equal(got.palette.length, REFERENT_COUNT);
-  assert.deepEqual(got.palette, oklabHues(3 + REFERENT_COUNT, 'deutan').slice(3));
+  assert.deepEqual(got.palette, oklabHues(3 + REFERENT_COUNT, 'normal').slice(3), 'the default vision is normal');
   assert.notEqual(got.hues.get('cart'), got.hues.get('horse'));
   const inOrder = pageReferents(MANIFEST, setReferents(NO_CHOICES, AFTER_CATEGORIES, 'order'), '1.1')!;
   assert.deepEqual([inOrder.hues.get('cart'), inOrder.hues.get('horse')], inOrder.palette.slice(0, 2));
   assert.equal(pageReferents(MANIFEST, NO_CHOICES, '9.9'), null);
+});
+
+/* A synthetic book of four sections over the grey palette. */
+const SECTIONS: readonly RefPage[] = [
+  { ids: ids(3), shown: [PALETTE[2]] },
+  { ids: ids(2), shown: [PALETTE[5], PALETTE[20]] },
+  { ids: ids(30), shown: [PALETTE[33]] },
+  { ids: ids(1), shown: [PALETTE[30]] },
+];
+
+test('bestDMin is the largest step at which no section falls back and at most a quarter of the referents move', () => {
+  const input = { pages: SECTIONS, palette: PALETTE, vision: 'normal' as const };
+  const rows = dMinSweep(input);
+  assert.deepEqual(rows.map((r) => r.dMin), D_MIN_STEPS);
+  assert.deepEqual(rows[0], { dMin: 0, moved: 0, fellBack: 0 });
+  const best = bestDMin(input);
+  const at = rows.find((r) => r.dMin === best)!;
+  assert.equal(best, 0.08, 'the 30-referent section falls back past 0.08');
+  assert.ok(best > 0 && at.fellBack === 0 && at.moved <= 0.25 * 36);
+  assert.ok(rows.filter((r) => r.dMin > best).every((r) => r.fellBack > 0 || r.moved > 0.25 * 36), 'nothing larger passes');
+  rows.forEach((r) => {
+    const dealt = SECTIONS.map((p) => dealReferents({ ids: p.ids, palette: PALETTE, page: p.shown, mode: 'smart', vision: 'normal', dMin: r.dMin }));
+    assert.equal(dealt.filter((d) => d.mode === 'order').length, r.fellBack, `fallbacks at ${r.dMin}`);
+  });
+  assert.equal(bestDMin({ ...input, pages: [] }), D_MIN_STEPS[D_MIN_STEPS.length - 1], 'a book with no referents passes at every step');
+});
+
+test('the reader’s own dMin stands over the book’s for their vision, and that over the fallback', () => {
+  const dmin = { normal: 0.06, protan: 0.03, deutan: 0.02, tritan: 0.04 };
+  const book = { colours: { palette: 'oklab', vision: 'normal' as const, assign: {}, dmin } };
+  assert.equal(dMinOf(book, NO_CHOICES), 0.06);
+  assert.equal(dMinOf(book, { ...NO_CHOICES, vision: 'deutan' }), 0.02);
+  assert.equal(dMinOf(book, setReferents(NO_CHOICES, AFTER_CATEGORIES, 'smart', 0.11)), 0.11);
+  assert.equal(dMinOf({}, NO_CHOICES), D_MIN_FALLBACK);
+  const own = withBookDMin(MANIFEST, NO_CHOICES);
+  assert.equal(referentsOf(own).dMin, bookDMin(MANIFEST, NO_CHOICES));
+  const b = bookId('b');
+  const back = fromFile(JSON.parse(JSON.stringify(toFile(b, own))), b);
+  assert.equal(back.ok && referentsOf(back.choices).dMin, referentsOf(own).dMin, 'kept with the referent setting');
 });
 
 test('an unnamed instance skips the section’s referent colours and puts those clear of the drawn ones first', () => {

@@ -4,7 +4,7 @@
    readable as hex, and nothing at all once it is past what it can dress. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OKLAB, PALETTES, fixed, generated, huesOf, pairsOf, palettesFor } from '../src/lib/colours/palettes';
+import { DEFAULT_VISION, OKLAB, PALETTES, fixed, generated, huesOf, pairsOf, palettesFor } from '../src/lib/colours/palettes';
 import { isHex, normHex } from '../src/lib/colours/model';
 
 /* The largest count each palette can dress: the two generated ones and Tol's cut
@@ -75,6 +75,11 @@ test('a level of n is offered every palette that can give n colours, the book\'s
   assert.deepEqual(offered(50), ['oklab', 'oklch', 'rainbow'], 'past every list only the generators answer');
   palettesFor(12).forEach((o) => assert.equal(o.hues.length, 12, `${o.palette.id} gives twelve`));
   assert.deepEqual(pairsOf(OKLAB, 5, 'deutan'), palettesFor(5, 'deutan')[0].hues);
+});
+
+test('the default is worked out for normal vision; any other is the reader\'s to state', () => {
+  assert.equal(DEFAULT_VISION, 'normal');
+  assert.deepEqual(pairsOf(OKLAB, 5), pairsOf(OKLAB, 5, 'normal'));
 });
 
 test("Tol's rainbow is cut afresh for each count rather than trimmed from one list", () => {

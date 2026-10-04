@@ -8,30 +8,28 @@
 
    In order, the i-th referent wears colour i. Smart, it tries colour i, then
    i + 1, i + 2 … round the palette, and wears the first that no earlier referent
-   of the section wears and that stands at least D_MIN from every category,
+   of the section wears and that stands at least dMin from every category,
    convention and fact colour of the page; a section in which any referent finds
-   none is dealt in order instead. Pure throughout. */
+   none is dealt in order instead. dMin belongs to the book, the vision and the
+   colours the reader wears: bestDMin works it out. Pure throughout. */
 import type { Hex, Hue, TypeKey } from './model';
 import { type Offer, type Palette, type PaletteId, PALETTES, generatedPairs, pairsOf } from './palettes';
-import { type DeltaE, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
+import { type DeltaE, type SeenHue, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
 import { oklabAfter } from './sample';
 import { type PageCounts, fixedHueOf, isCategoryKey } from './counts';
 
 export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
-export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode };
+export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly dMin?: DeltaE };
 
 export const REFERENT_COUNT = 36;
 
-/* The nearest a smart referent may stand to a colour of its page, both themes
-   measured through the reader's vision: for each vision the largest value, in
-   steps of 0.01, at which scripts/referent-dmin.ts finds both books dealing
-   every section smartly and moving at most a quarter of the referents off
-   their own colour. */
-export const D_MIN: Readonly<Record<Vision, DeltaE>> = { normal: 0.04, protan: 0.02, deutan: 0.02, tritan: 0.03 };
+/* The nearest a smart referent may stand to a colour of its page where neither
+   the reader nor the book has worked out its own: the least a book reaches. */
+export const D_MIN_FALLBACK: DeltaE = 0.01;
 
 /* Where an unnamed instance's colours count as clear of what its figure has
-   drawn; it only orders them, so it can stand stricter than D_MIN. */
+   drawn; it only orders them, so it can stand stricter than any dMin. */
 export const UNNAMED_CLEAR: DeltaE = 0.08;
 
 /* Written out rather than made with paletteId, since palettes.ts reaches this module through model.ts and is
@@ -77,7 +75,7 @@ export const dealInOrder = (ids: readonly ReferentId[], palette: readonly Hue[])
   new Map(ids.map((id, i) => [id, palette[i % palette.length]] as const));
 
 /* Index of the colour each referent wears, or null where one finds none. */
-const smartSlots = (count: number, clear: readonly boolean[]): readonly number[] | null => {
+export const smartSlots = (count: number, clear: readonly boolean[]): readonly number[] | null => {
   const n = clear.length;
   const taken = new Set<number>();
   const slots: number[] = [];
@@ -98,13 +96,58 @@ export type DealInput = {
   readonly dMin?: DeltaE;
 };
 
-export const dealReferents = ({ ids, palette, page, mode, vision, dMin = D_MIN[vision] }: DealInput): Dealt => {
+export const dealReferents = ({ ids, palette, page, mode, vision, dMin = D_MIN_FALLBACK }: DealInput): Dealt => {
   const inOrder: Dealt = { hues: dealInOrder(ids, palette), mode: 'order' };
   if (mode === 'order' || ids.length === 0) return inOrder;
   const seenPage = page.map((h) => seenHue(h, vision));
   const clear = palette.map((h) => { const p = seenHue(h, vision); return seenPage.every((q) => seenHueDistance(p, q) >= dMin); });
   const slots = smartSlots(ids.length, clear);
   return slots ? { hues: new Map(ids.map((id, i) => [id, palette[slots[i]]] as const)), mode: 'smart' } : inOrder;
+};
+
+/* A section as the sweep sees it: its referents and the colours its page shows besides them. */
+export type RefPage = { readonly ids: readonly ReferentId[]; readonly shown: readonly Hue[] };
+export type DMinInput = { readonly pages: readonly RefPage[]; readonly palette: readonly Hue[]; readonly vision: Vision };
+
+export const D_MIN_STEPS: readonly DeltaE[] = Array.from({ length: 21 }, (_, i) => i / 100);
+export const MOVED_AT_MOST = 0.25;
+
+/* At one dMin, how many referents leave their in-order colour and how many sections fall back to in order. */
+export type DMinRow = { readonly dMin: DeltaE; readonly moved: number; readonly fellBack: number };
+
+/* Each section's distance from every palette colour to its nearest page colour,
+   worked out once, so that every step of the sweep is only comparisons. A
+   section with more referents than the palette has colours is in order at any
+   dMin and is left out. */
+export const dMinSweep = ({ pages, palette, vision }: DMinInput): readonly DMinRow[] => {
+  const n = palette.length;
+  const seenPalette = palette.map((h) => seenHue(h, vision));
+  const seen = new Map<string, SeenHue>();
+  const seenOfHue = (h: Hue): SeenHue => {
+    const got = seen.get(hueKey(h));
+    if (got) return got;
+    const s = seenHue(h, vision);
+    seen.set(hueKey(h), s);
+    return s;
+  };
+  const rooms = pages.filter((p) => p.ids.length > 0 && p.ids.length <= n).map((p) => {
+    const shown = p.shown.map(seenOfHue);
+    return { count: p.ids.length, room: seenPalette.map((q) => Math.min(Infinity, ...shown.map((s) => seenHueDistance(q, s)))) };
+  });
+  return D_MIN_STEPS.map((dMin) => rooms.reduce((row, { count, room }) => {
+    const slots = smartSlots(count, room.map((r) => r >= dMin));
+    return slots
+      ? { ...row, moved: row.moved + slots.filter((s, i) => s !== i % n).length }
+      : { ...row, fellBack: row.fellBack + 1 };
+  }, { dMin, moved: 0, fellBack: 0 }));
+};
+
+/* The largest dMin, in steps of 0.01 up to 0.20, at which no section of the book
+   falls back to in order and at most a quarter of its referents leave their
+   in-order colour; 0 where none does. */
+export const bestDMin = (input: DMinInput): DeltaE => {
+  const referents = input.pages.filter((p) => p.ids.length <= input.palette.length).reduce((k, p) => k + p.ids.length, 0);
+  return Math.max(0, ...dMinSweep(input).filter((r) => r.fellBack === 0 && r.moved <= MOVED_AT_MOST * referents).map((r) => r.dMin));
 };
 
 /* The colour of an unnamed instance (`F.cat(i)`): the palette after the

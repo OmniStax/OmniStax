@@ -17,9 +17,9 @@ import { pagesOf } from '../content/roles';
 import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
 import type { Target } from '../sections/scope';
 import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
-import { type Vision, isVision } from './oklab';
+import { type DeltaE, type Vision, isVision } from './oklab';
 import { oklabHues } from './sample';
-import { type RefHues, type RefMode, type RefSettings, DEFAULT_REFERENTS, dealReferents, isRefMode, pageColours, referentHues } from './referents';
+import { type DMinInput, type RefHues, type RefMode, type RefPage, type RefSettings, DEFAULT_REFERENTS, D_MIN_FALLBACK, bestDMin, dealReferents, isRefMode, pageColours, referentHues } from './referents';
 import { countsOfRecord } from './counts';
 
 export type Hex = string;                          /* '#RRGGBB', normalised by normHex */
@@ -250,20 +250,28 @@ export const setVision = (c: Choices, vision: Vision | undefined): Choices => {
   return vision === undefined ? rest : { ...rest, vision };
 };
 
-/* The referent palette and how a section deals it, the default until the reader chooses. */
+/* The referent palette and how a section deals it, the default until the reader
+   chooses, with the dMin worked out for the colours they wore when they last
+   applied a palette. */
 export const referentsOf = (c: Choices): RefSettings => c.referents ?? DEFAULT_REFERENTS;
-export const setReferents = (c: Choices, palette: PaletteId, mode: RefMode): Choices => {
+export const setReferents = (c: Choices, palette: PaletteId, mode: RefMode, dMin?: DeltaE): Choices => {
   const now = referentsOf(c);
-  if (now.palette === palette && now.mode === mode) return c;
+  if (now.palette === palette && now.mode === mode && now.dMin === dMin) return c;
   const { referents: _, ...rest } = c;
-  const isDefault = palette === DEFAULT_REFERENTS.palette && mode === DEFAULT_REFERENTS.mode;
-  return isDefault ? rest : { ...rest, referents: { palette, mode } };
+  const isDefault = palette === DEFAULT_REFERENTS.palette && mode === DEFAULT_REFERENTS.mode && dMin === undefined;
+  return isDefault ? rest : { ...rest, referents: { palette, mode, ...(dMin === undefined ? {} : { dMin }) } };
 };
 const parseReferents = (raw: unknown): RefSettings | undefined => {
   if (typeof raw !== 'object' || raw === null) return undefined;
-  const r = raw as { palette?: unknown; mode?: unknown };
-  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode } : undefined;
+  const r = raw as { palette?: unknown; mode?: unknown; dMin?: unknown };
+  const dMin = typeof r.dMin === 'number' && Number.isFinite(r.dMin) && r.dMin >= 0 ? { dMin: r.dMin } : {};
+  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...dMin } : undefined;
 };
+
+/* The nearest a smart referent may stand to its page's colours: the reader's own,
+   else the book's for the reader's vision, else the fallback. */
+export const dMinOf = (m: Pick<BookManifest, 'colours'>, c: Choices): DeltaE =>
+  c.referents?.dMin ?? m.colours?.dmin?.[visionOf(m, c)] ?? D_MIN_FALLBACK;
 
 /* ---------- the order, and the scheme that follows it ---------- */
 
@@ -329,7 +337,7 @@ export type Source =
    setting, else the chapter's, else the book's, else the scheme. Every type the
    book declares has a scheme hue, so nothing at all is left only for a key the
    manifest does not know. */
-export const effectiveHue = (m: BookManifest, c: Choices, type: TypeKey, place: Place): { readonly hue: Hue | null; readonly from: Source } => {
+export const effectiveHue = (m: BookManifest, c: Choices, type: TypeKey, place: Place, scheme: Scheme = schemeOf(m, c)): { readonly hue: Hue | null; readonly from: Source } => {
   const o = c.overrides;
   if (place.level === 'section') {
     const own = ownHue(o, type, place);
@@ -341,7 +349,6 @@ export const effectiveHue = (m: BookManifest, c: Choices, type: TypeKey, place: 
   }
   const book = ownHue(o, type, { level: 'book' });
   if (book) return { hue: book, from: { kind: 'book' } };
-  const scheme = schemeOf(m, c);
   const dressed = scheme.hues[type];
   return dressed ? { hue: dressed, from: { kind: 'scheme', palette: scheme.palette.id } } : { hue: null, from: { kind: 'none' } };
 };
@@ -387,12 +394,13 @@ export const fitCount = (widths: readonly number[], room: number, ellipsis: numb
 /* A page of the book and the place its colours are read at: a chapter's pages at
    their own section place, the book's own front and back pages at the book. */
 type PageAt = { readonly entry: SectionEntry; readonly place: Place };
-const pageAt = (m: BookManifest, id: string): PageAt | null => {
-  const inChapter = m.chapters.flatMap((ch) => pagesOf(ch).flatMap((entry): PageAt[] =>
-    entry.id === id ? [{ entry, place: { level: 'section', chapter: chapterId(ch.id), section: sectionId(entry.id) } }] : []));
-  const ownPage = [m.intro, m.summary].flatMap((entry): PageAt[] => (entry?.id === id ? [{ entry, place: { level: 'book' } }] : []));
-  return inChapter[0] ?? ownPage[0] ?? null;
-};
+const pagesAt = (m: BookManifest): readonly PageAt[] => [
+  ...m.chapters.flatMap((ch) => pagesOf(ch).map((entry): PageAt => ({ entry, place: { level: 'section', chapter: chapterId(ch.id), section: sectionId(entry.id) } }))),
+  ...[m.intro, m.summary].flatMap((entry): PageAt[] => (entry ? [{ entry, place: { level: 'book' } }] : [])),
+];
+const pageAt = (m: BookManifest, id: string): PageAt | null => pagesAt(m).find((p) => p.entry.id === id) ?? null;
+const shownAt = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme): readonly Hue[] =>
+  pageColours(countsOfRecord(at.entry.counts ?? {}), (k) => effectiveHue(m, c, k, at.place, scheme).hue);
 
 /* A page's referents dealt their colours: the palette they come from, the vision
    it was measured for, and the mode that dealt them, which is 'order' where smart
@@ -403,10 +411,26 @@ export const pageReferents = (m: BookManifest, c: Choices, page: string): PageRe
   if (!at) return null;
   const vision = visionOf(m, c);
   const settings = referentsOf(c);
-  const palette = referentHues(settings, Object.values(schemeOf(m, c).hues), vision);
+  const scheme = schemeOf(m, c);
+  const palette = referentHues(settings, Object.values(scheme.hues), vision);
   const ids = (at.entry.referents ?? []).map((r) => r.id);
-  const shown = pageColours(countsOfRecord(at.entry.counts ?? {}), (k) => effectiveHue(m, c, k, at.place).hue);
-  return { ...dealReferents({ ids, palette, page: shown, mode: settings.mode, vision }), palette, vision, count: ids.length };
+  return { ...dealReferents({ ids, palette, page: shownAt(m, c, at, scheme), mode: settings.mode, vision, dMin: dMinOf(m, c) }), palette, vision, count: ids.length };
+};
+
+/* Every page of the book with referents, the colours it shows under these choices, and their referent palette and vision. */
+export const dMinInputOf = (m: BookManifest, c: Choices): DMinInput => {
+  const scheme = schemeOf(m, c);
+  const vision = visionOf(m, c);
+  const pages = pagesAt(m).flatMap((at): RefPage[] =>
+    at.entry.referents?.length ? [{ ids: at.entry.referents.map((r) => r.id), shown: shownAt(m, c, at, scheme) }] : []);
+  return { pages, palette: referentHues(referentsOf(c), Object.values(scheme.hues), vision), vision };
+};
+/* The book's dMin for the colours these choices wear. */
+export const bookDMin = (m: BookManifest, c: Choices): DeltaE => bestDMin(dMinInputOf(m, c));
+/* The choices with their dMin worked out afresh, which is what applying a palette stores. */
+export const withBookDMin = (m: BookManifest, c: Choices): Choices => {
+  const r = referentsOf(c);
+  return setReferents(c, r.palette, r.mode, bookDMin(m, c));
 };
 
 /* ---------- the stylesheet ---------- */

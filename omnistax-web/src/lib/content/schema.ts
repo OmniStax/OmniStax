@@ -146,6 +146,12 @@ export const BookColoursSchema = z.object({
   palette: z.string().describe('The palette the colours were taken from, by its id in the app (oklab).'),
   vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).describe('The colour vision the assignment keeps the colours of one page apart for: normal, protan, deutan or tritan.'),
   assign: z.record(z.string(), StoredHueSchema).describe('Each type\u2019s colour, keyed by type id. A type the book declares and this omits takes the next palette colour no listed type wears, and the checker says the default is stale.'),
+  dmin: z.object({
+    normal: z.number().nonnegative().describe('For normal vision, in ΔE_OK.'),
+    protan: z.number().nonnegative().describe('For protanopia.'),
+    deutan: z.number().nonnegative().describe('For deuteranopia.'),
+    tritan: z.number().nonnegative().describe('For tritanopia.'),
+  }).strict().optional().describe('For each colour vision, the nearest a smart referent may stand to a colour of its page in this book: the largest value, in steps of 0.01, at which no section falls back to in order and at most a quarter of the referents leave their in-order colour, with these colours and the default referent palette.'),
 }).strict();
 export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
 
@@ -168,7 +174,7 @@ export const BookSchema = z.object({
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
-  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
+  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and its referents\u2019 minimum distance for each vision, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),

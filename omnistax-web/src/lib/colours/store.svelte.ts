@@ -16,7 +16,7 @@ import { fixedOf, pagesOfBook } from './counts';
 import {
   type Choices, type ColourFileDTO, type Hex, type Hue, type Place, type Scheme, type Source, type TypeKey,
   NO_CHOICES, applyHues, clearHue, clearPlace, cssFor, effectiveHue, fromFile, hueFrom, isEmpty, moveType, orderOf,
-  type PageReferents, ownHue, pageReferents, referentsOf, schemeOf, setHue, setReferents, setVision, toFile, visionOf,
+  type PageReferents, ownHue, pageReferents, referentsOf, schemeOf, setHue, setReferents, setVision, toFile, visionOf, withBookDMin,
 } from './model';
 import { type RefMode, type RefSettings, referentPalettes } from './referents';
 import type { Vision } from './oklab';
@@ -157,7 +157,8 @@ class Colours {
   }
   /* A palette laid over every quantity of the book under a stated vision, along the
      reader's order or smartly by what each page shows, and written at a place for
-     the quantities that place lists, with the vision, in one step. */
+     the quantities that place lists, with the vision and the referents' dMin for
+     the colours that result, in one step. */
   applyCategories(place: Place, types: readonly TypeKey[], palette: Palette, mode: RefMode, vision: Vision): boolean {
     const m = this.manifest;
     const order = this.order;
@@ -168,7 +169,7 @@ class Colours {
     const here = types.filter((k) => got.has(k));
     const next = applyHues(setVision(this.choices, vision), place, here, here.map((k) => got.get(k) as Hue));
     if (!next) return false;
-    this.record(`the palette ${palette.name} ${mode === 'smart' ? 'smart' : 'in order'} ${whereFor(place)}`, next);
+    this.record(`the palette ${palette.name} ${mode === 'smart' ? 'smart' : 'in order'} ${whereFor(place)}`, withBookDMin(m, next));
     return true;
   }
   /* The colour vision the reader reads with, which the palettes are generated for. */
@@ -184,7 +185,9 @@ class Colours {
     this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(this.choices, palette, mode));
   }
   applyReferents(palette: PaletteId, mode: RefMode, vision: Vision): void {
-    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(setVision(this.choices, vision), palette, mode));
+    const m = this.manifest;
+    if (!m) return;
+    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, withBookDMin(m, setReferents(setVision(this.choices, vision), palette, mode)));
   }
   /* The palettes that can give the referents their thirty-six under the reader's vision. */
   referentPalettes(vision: Vision = this.vision): readonly Offer[] { return this.manifest ? referentPalettes(Object.values(this.scheme.hues), vision) : []; }

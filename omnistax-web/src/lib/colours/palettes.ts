@@ -23,8 +23,8 @@ export type Palette =
 export const fixed = (id: string, name: string, note: string, hues: readonly Hex[]): Palette =>
   ({ kind: 'fixed', id: paletteId(id), name, note, hues });
 
-/* The vision the book's default is worked out for: the commonest deficiency, so the default is safe for it. */
-export const DEFAULT_VISION: Vision = 'deutan';
+/* The vision the book's default is worked out for; any other is the reader's to state. */
+export const DEFAULT_VISION: Vision = 'normal';
 
 const pairOf = (hex: Hex): Hue => ({ light: normHex(hex), dark: darkOf(hex) });
 
