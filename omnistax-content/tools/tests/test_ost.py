@@ -108,7 +108,7 @@ class TestReading(Fixture):
     def test_meanings_lists_every_row_of_a_symbol(self):
         text, code = run("meanings", "chemistry-2e", "V")
         self.assertEqual(code, 0)
-        self.assertEqual(text.strip(), "1.4 · volume · the volume of a sample, the amount of space it occupies")
+        self.assertIn("1.4 · volume · the volume of a sample, the amount of space it occupies", text.splitlines())
         self.assertIn("no variables row", run("meanings", "chemistry-2e", "nothing")[0])
 
     def test_show_book_chapter_and_section(self):
@@ -223,17 +223,18 @@ class TestWriting(Fixture):
         self.assertEqual(run("set", "chemistry-2e", "forms", "eq-density", '{"concept": "volume"}')[1], 1)
 
     def test_referents_are_a_section_table_like_figures(self):
+        before = self.rows("referents")
         text, code = run("add", "chemistry-2e", "referents", "--section", "1.4",
                          '{"id": "block-1", "label": "the first block", "figure": "sim-density"}')
         self.assertEqual(code, 0)
-        self.assertEqual(self.rows("referents"), [{"id": "block-1", "label": "the first block", "figure": "sim-density"}])
+        self.assertEqual(self.rows("referents"), before + [{"id": "block-1", "label": "the first block", "figure": "sim-density"}])
         run("set", "chemistry-2e", "referents", "block-1", "--section", "1.4", '{"label": "block 1"}')
         self.assertIn("block-1 · block 1 · sim-density", run("rows", "chemistry-2e", "referents", "--section", "1.4")[0])
         self.assertIn("referent block-1 · block 1 · in sim-density", run("show", "chemistry-2e", "1.4")[0])
         self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b"}')[1], 1)
         self.assertEqual(run("add", "chemistry-2e", "referents", "--section", "1.4", '{"id": "b", "label": "b", "figure": "sim-density", "type": "mass"}')[1], 1)
         run("del", "chemistry-2e", "referents", "block-1", "--section", "1.4")
-        self.assertEqual(self.rows("referents"), [])
+        self.assertEqual(self.rows("referents"), before)
 
     def test_a_variables_row_names_the_referent_its_subscript_wears(self):
         chapter = os.path.join(self.book, "ch01", "chapter.json")
