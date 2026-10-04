@@ -90,7 +90,7 @@ export const ConceptSchema = z.object({
   name: z.string().describe('What a reader would look the concept up by: the term for a definition, the book\u2019s own name for a law or a result, else the fewest words that pick it out; a skill is a short gerund phrase. No formula, no symbol and no gloss.'),
   symbol: z.string().optional().describe('The one symbol the book denotes the concept by, as a key of the book\u2019s symbol table, where it has one. Its variants and components are rows of the chapters\u2019 variables, not of the concept.'),
   terms: z.array(z.string()).default([]).describe('The words the book\u2019s glossary defines the concept under, as the text writes them. The app marks every mention of each in the prose of the chapters that deal with the concept.'),
-  type: TYPE_REF.optional().describe('The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, and its hover card\u2019s title wears it.'),
+  type: TYPE_REF.optional().describe('The type the concept names, where it names one. It is declared here and nowhere else: the symbols and the variables rows that denote the concept inherit it, its hover card\u2019s title wears it, and the build marks every mention of its name and glossary words in the prose with it, save where the text wraps the word `<span data-ink>`.'),
   statement: z.string().optional().describe('The meaning of a definition, the claim of an axiom or a result, what an idea is or what a skill lets the reader do, in the book\u2019s voice. A concept whose section is built carries one.'),
   forms: z.array(FormSchema).default([]).describe('The equations that state the concept, the main form first.'),
 }).strict();

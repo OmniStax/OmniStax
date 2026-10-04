@@ -21,6 +21,7 @@ import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pa
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeId, bookDir, bookId, qualifiedId } from '../types/ids';
 import type { BookSelection } from '../../../omnistax.config';
 import { type ContentVersion, bookVersion, rootVersion } from './version';
+import { type WordIndex, markTypeWords, wordIndex } from './typewords';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -31,7 +32,7 @@ export type SectionSource = {
   readonly url: string;             /* the address the site serves the page at */
   readonly dto: SectionDTO;         /* the tables as the section writes them, which the validator reads */
   readonly meta: SectionMetaDTO;
-  readonly textHtml: string;        /* article body, local ids, math prerendered */
+  readonly textHtml: string;        /* article body, local ids, math prerendered, concept words marked with their types */
   readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
   readonly figuresJs: string;
   readonly figures: readonly FigureRowDTO[];
@@ -265,16 +266,18 @@ export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: 
 
 /* Where a page stands: the address the site serves it at, and its page at the publisher, where the book keeps one. */
 type PagePlace = { readonly url: string; readonly openstax?: string };
-/* What a page sets its maths with: the book's symbols and the variables rows of the chapter it stands in, both typed. */
-type PageMath = { readonly symbols: readonly SymbolDTO[]; readonly book: MacroMap; readonly rows: readonly VariableDTO[] };
+/* What a page sets its maths with: the book's symbols and the variables rows of the chapter it stands in, both typed;
+   and the words of the book's concepts, which its prose wears in their types. */
+type PageMath = { readonly symbols: readonly SymbolDTO[]; readonly book: MacroMap; readonly rows: readonly VariableDTO[]; readonly words: WordIndex };
 
 /* Every reader-facing string of a page is swept for math, not only the prose and the
    summary: the book writes $v$ in a lead and in the notes under the footer exactly as it
    writes it in a sentence, and a page that left one unswept printed the dollars. The swept
    strings reach the page as HTML, which is what their two readers — the article's own lead
-   and the attribution footer — already set them as. */
-export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => string, types: readonly string[] = []): SectionMetaDTO => ({
-  id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: render(s.lead), objectives: s.objectives,
+   and the attribution footer — already set them as. The lead's words wear their types
+   (`mark`), as the text's do; the notes are the attribution's and stay ink. */
+export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => string, types: readonly string[] = [], mark: (s: string) => string = (h) => h): SectionMetaDTO => ({
+  id: s.id, role: s.role, chapter: s.chapter, title: s.title, short: s.short, lead: mark(render(s.lead)), objectives: s.objectives,
   summaryHtml: s.summaryHtml, notes: render(s.notes), types, ai: s.ai, openstax: place.openstax,
 });
 
@@ -290,13 +293,14 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   const own = pageMacrosOf(math.symbols, rows);
   const macros: MacroMap = { ...math.book, ...own };
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
+  const marked = (html: string): string => markTypeWords(math.words, html);
   /* The text is measured once, here, so that the full page and the doc.html
      fragment carry the same width and height on every image. */
-  const prose = prerenderMath(text, macros);
+  const prose = marked(prerenderMath(text, macros));
   const textHtml = sizedImages(prose, await imageSizes(media, prose));
   return {
-    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${dto.lead}\n${text}`)), textHtml, summaryHtml: rendered(dto.summaryHtml), figuresJs,
-    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: rendered(dto.exercisesLead),
+    dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${marked(rendered(dto.lead))}\n${prose}`), marked), textHtml, summaryHtml: marked(rendered(dto.summaryHtml)), figuresJs,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead: marked(rendered(dto.exercisesLead)),
   };
 };
 /* The chapter's or the book's own introduction or summary: read from its fixed
@@ -316,9 +320,9 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
 };
 
 type ChapterLoaded = Omit<ChapterTree, 'concepts'>;
-const loadChapter = async (root: string, book: BookDTO, dir: string, dto: ChapterDTO, stored: ChapterDTO, macros: MacroMap, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
+const loadChapter = async (root: string, book: BookDTO, dir: string, dto: ChapterDTO, stored: ChapterDTO, macros: MacroMap, words: WordIndex, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
-  const math: PageMath = { symbols: book.symbols, book: macros, rows: dto.variables };
+  const math: PageMath = { symbols: book.symbols, book: macros, rows: dto.variables, words };
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
     loadFrontPage(base, 'intro', front('intro'), math, media),
@@ -386,14 +390,15 @@ export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => 
   const storedChapters = await Promise.all(stored.chapterDirs.map((dir) => readJson(path.join(root, dir, 'chapter.json'), ChapterSchema)));
   const { book: dto, chapters: chapterDtos } = withInheritedTypes(stored, storedChapters);
   const macros = macrosOf(dto.symbols);
+  const words = wordIndex(dto.concepts);
   /* The books share one `/media/` address space, but a book's own pages only
      ever name its own media, so its own folder is the whole of the root here. */
   const media: readonly MediaRoot[] = [path.join(root, 'media')];
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
-  const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [] };
+  const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [], words };
   const [intro, loaded, summary, sheets] = await Promise.all([
     loadFrontPage(root, 'intro', front('intro'), bookMath, media),
-    Promise.all(chapterDtos.map((ch, i) => loadChapter(root, dto, stored.chapterDirs[i], ch, storedChapters[i], macros, media))),
+    Promise.all(chapterDtos.map((ch, i) => loadChapter(root, dto, stored.chapterDirs[i], ch, storedChapters[i], macros, words, media))),
     loadFrontPage(root, 'summary', front('summary'), bookMath, media),
     loadSheets(root, dto),
   ]);
