@@ -21,7 +21,7 @@ export const DEFAULTS = { theme: 'system' as Theme, colours: COLOURS_ON, underli
 const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 /* Concepts keeps the key of the one colour-coding switch it grew out of, so a reader who had turned that off finds Concepts off. */
-export const COLOUR_KEYS: Readonly<Record<ColourSwitch, string>> = { all: 'omnistax-cc-all', facts: 'omnistax-cc-facts', refs: 'omnistax-cc-refs', concepts: 'omnistax-cc', words: 'omnistax-cc-words' };
+export const COLOUR_KEYS: Readonly<Record<ColourSwitch, string>> = { all: 'omnistax-cc-all', facts: 'omnistax-cc-facts', refs: 'omnistax-cc-refs', concepts: 'omnistax-cc', words: 'omnistax-cc-words', symbols: 'omnistax-cc-symbols' };
 const readColours = (): ColourSwitches => Object.fromEntries(COLOUR_SWITCHES.map((k) => [k, read(COLOUR_KEYS[k]) !== '0'])) as Record<ColourSwitch, boolean>;
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };

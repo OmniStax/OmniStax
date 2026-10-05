@@ -16,7 +16,7 @@ export const MAX_BACKUP_LABEL = '500 MB';
 const bit = (v: string): boolean => v === '0' || v === '1';
 const positive = (v: string): boolean => v !== '' && Number.isFinite(Number(v)) && Number(v) > 0;
 const scalarKeys = new Map<string, (value: string) => boolean>([
-  ['omnistax-cc', (v) => v === '0' || v === '1'], ['omnistax-cc-all', bit], ['omnistax-cc-facts', bit], ['omnistax-cc-refs', bit],
+  ['omnistax-cc', (v) => v === '0' || v === '1'], ['omnistax-cc-all', bit], ['omnistax-cc-facts', bit], ['omnistax-cc-refs', bit], ['omnistax-cc-words', bit], ['omnistax-cc-symbols', bit],
   ['omnistax-theme', (v) => v === 'light' || v === 'dark'],
   ['omnistax-anim', (v) => v === '0' || v === '1'],
   ['omnistax-exmode', (v) => v === 'all' || v === 'one'],

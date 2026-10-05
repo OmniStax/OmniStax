@@ -20,8 +20,8 @@ import { DEFAULT_VISION } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
 
 const quantile = (xs: readonly number[], q: number): number => { const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
-const summary = (xs: readonly DeltaE[]): string =>
-  `median ${quantile(xs, 0.5).toFixed(3)}, p10 ${quantile(xs, 0.1).toFixed(3)}, worst ${[...xs].sort((a, b) => a - b).slice(0, 5).map((x) => x.toFixed(3)).join(' ')}`;
+const summary = (xs: readonly DeltaE[]): string => (xs.length === 0 ? 'no page shows two colours' :
+  `median ${quantile(xs, 0.5).toFixed(3)}, p10 ${quantile(xs, 0.1).toFixed(3)}, worst ${[...xs].sort((a, b) => a - b).slice(0, 5).map((x) => x.toFixed(3)).join(' ')}`);
 
 const assignOf = (a: Assignment): BookColoursDTO['assign'] => Object.fromEntries([...a].map(([k, h]) => [k, { light: h.light, dark: h.dark }]));
 

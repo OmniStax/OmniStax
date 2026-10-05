@@ -264,15 +264,15 @@ test('each colour door reads its own switch and nothing else does', () => {
 });
 
 test('All off sets every family in ink and on gives each back its own switch', () => {
-  const some = { all: true, facts: false, refs: true, concepts: false, words: true };
+  const some = { all: true, facts: false, refs: true, concepts: false, words: true, symbols: true };
   assert.deepEqual(shownOf(some), { facts: false, refs: true, concepts: false });
   assert.deepEqual(shownOf({ ...some, all: false }), { facts: false, refs: false, concepts: false });
   assert.deepEqual(shownOf(COLOURS_ON), { facts: true, refs: true, concepts: true });
-  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-all': true, 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': true });
-  assert.deepEqual(rootClasses({ ...COLOURS_ON, all: false }), { 'cc-all': false, 'cc-facts': false, 'cc-refs': false, 'cc-concepts': false, 'cc-words': false });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-all': true, 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': true, 'cc-symbols': true });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, all: false }), { 'cc-all': false, 'cc-facts': false, 'cc-refs': false, 'cc-concepts': false, 'cc-words': false, 'cc-symbols': false });
 });
 
-test('Concept words sits under Concepts: off, words read in ink while symbols and figures keep their colours', () => {
+test('Words and phrases sits under Concepts: off, words read in ink while symbols and figures keep their colours', () => {
   assert.equal(rootClasses({ ...COLOURS_ON, words: false })['cc-words'], false);
   assert.deepEqual(shownOf({ ...COLOURS_ON, words: false }), { facts: true, refs: true, concepts: true }, 'figures read the families, which the words switch leaves alone');
   assert.equal(rootClasses({ ...COLOURS_ON, concepts: false })['cc-words'], false, 'nothing to show under Concepts off');
@@ -281,4 +281,16 @@ test('Concept words sits under Concepts: off, words read in ink while symbols an
   assert.ok(css.includes('html:not(.cc-concepts) [data-book="b"] .kv-force{color:inherit}'));
   assert.ok(!css.includes('html:not(.cc-words) [data-book="b"] .kv-'), 'symbols do not answer to it');
   assert.ok(!/cc-words[^}]*data-ref/.test(css), 'referent words follow the Referents switch');
+});
+
+test('Symbols sits under Concepts: off, symbols and slider values read in ink while words, thumbs and figures keep their colours', () => {
+  assert.equal(rootClasses({ ...COLOURS_ON, symbols: false })['cc-symbols'], false);
+  assert.equal(rootClasses({ ...COLOURS_ON, symbols: false })['cc-words'], true);
+  assert.deepEqual(shownOf({ ...COLOURS_ON, symbols: false }), { facts: true, refs: true, concepts: true });
+  assert.equal(rootClasses({ ...COLOURS_ON, concepts: false })['cc-symbols'], false, 'nothing to show under Concepts off');
+  const css = bookRulesCss(MANIFEST);
+  assert.ok(css.includes('html:not(.cc-symbols) [data-book="b"] .kv-force:not(.ctl-sp){color:inherit}'), 'a slider\'s special circles follow Concepts with its thumb');
+  assert.ok(!/cc-symbols[^}]*data-type/.test(css), 'words do not answer to it');
+  assert.ok(!/cc-symbols[^}]*data-ref/.test(css), 'a split subscript keeps its referent colour');
+  assert.ok(!/cc-symbols[^}]*slider-thumb/.test(css));
 });
