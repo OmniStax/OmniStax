@@ -167,3 +167,30 @@ test('each book sets TeX with its own macros and symbols, through a Fig of its o
   assert.equal(a.fitScale({ l: 0, r: 100, t: 0, b: 100 }, { w: 200, h: 100 }), 0.5, 'the rest of the surface is FIG\'s');
   assert.equal(a.LW, FIG.LW);
 });
+
+/* Anything at all: every property is another one, every call and `new` makes one, and a number of it is 0. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const anything = (own: Record<PropertyKey, unknown> = {}): any => new Proxy(function () {}, {
+  get: (_, p) => (p in own ? own[p] : p === Symbol.toPrimitive ? () => 0 : p === 'then' ? undefined : (own[p] = anything())),
+  set: (_, p, v) => { own[p] = v; return true; },
+  apply: () => anything(), construct: () => anything(),
+});
+test('a 3D view is disposed by F.release of a root holding it, never by being out of the document', () => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const was = { window: g.window, document: g.document, raf: g.requestAnimationFrame };
+  let disposed = 0, frames: ((t: number) => void)[] = [];
+  const renderer = anything({ dispose: () => { disposed += 1; } });
+  g.window = { THREE: anything({ WebGLRenderer: function () { return renderer; } }) };
+  g.document = anything({ createElement: () => anything() });
+  g.requestAnimationFrame = (f: (t: number) => void) => { frames.push(f); return 0; };
+  try {
+    const v = FIG.view3d(anything());
+    Object.assign(v.wrap, { isConnected: false });
+    for (let i = 0; i < 600; i += 1) { const due = frames; frames = []; due.forEach((f) => f(i * 16)); }
+    assert.equal(disposed, 0, 'six hundred frames away and still alive');
+    FIG.release(anything({ contains: (n: unknown) => n !== v.wrap }));
+    assert.equal(disposed, 0, 'a root without it leaves it be');
+    FIG.release(anything({ contains: (n: unknown) => n === v.wrap }));
+    assert.equal(disposed, 1);
+  } finally { Object.assign(g, { window: was.window, document: was.document, requestAnimationFrame: was.raf }); }
+});

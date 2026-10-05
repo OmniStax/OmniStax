@@ -16,9 +16,24 @@ const MS = 1200, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/20
 const BETWEEN = '\u0000between';
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- MathJax, fetched on the first morph ---------- */
+/* ---------- MathJax, fetched on the first morph ----------
+   While it cannot be had, a host waiting on it is set still by the fallback the drawing layer
+   hands in (KaTeX under the same macros), and the morph it waits with lands once MathJax does. */
 type Mj = typeof import('./mathjax');
-const withMj = lazy(importing((): Promise<Mj> => import('./mathjax'))).use;
+export type Fallback = (el: HTMLElement, tex: string, display: boolean) => void;
+let fallback: Fallback | null = null, down = false;
+export const setFallback = (f: Fallback): void => { fallback = f; };
+const waiting = new Map<HTMLElement, { readonly tex: string; readonly display: boolean }>();
+const loadMj = importing((): Promise<Mj> => import('./mathjax'));
+const mj = lazy((): Promise<Mj> => loadMj().then(
+  (m) => { down = false; return m; },
+  (e: unknown) => { down = true; waiting.forEach((w, el) => fallback?.(el, w.tex, w.display)); throw e; }));
+const withMj = mj.use;
+function wait(el: HTMLElement, tex: string, display: boolean): void {
+  if (mj.now()) return;
+  waiting.set(el, { tex, display });
+  if (down) fallback?.(el, tex, display);
+}
 
 /* ---------- renders, cached by book, mode and string ----------
    An inline formula is set as one SVG per line-breakable piece (splitTex). */
@@ -206,7 +221,9 @@ export function morph(el: HTMLElement, tex: string, display: boolean, opts: Morp
   const landing = h.tex === BETWEEN;
   h.tex = tex; h.display = display; h.scrub = null;
   const token = ++h.token;
+  wait(el, tex, display);
   withMj((m) => {
+    waiting.delete(el);
     if (token !== h.token) return;
     const b = renderOf(m, macros, tex, display), from = h.target ?? h.shown;
     h.macros = macros;
@@ -229,7 +246,9 @@ export function morph(el: HTMLElement, tex: string, display: boolean, opts: Morp
    of k, for a story slider to scrub. The plan is measured once per pair and kept. */
 export function morphAt(el: HTMLElement, a: string, b: string, k: number, display: boolean, opts: MorphOpts, macros: Macros): void {
   const h = hostOf(el), token = ++h.token;
+  wait(el, k < 0.5 ? a : b, display);
   withMj((m) => {
+    waiting.delete(el);
     if (token !== h.token) return;
     stop(el, h);
     h.display = display; h.macros = macros;

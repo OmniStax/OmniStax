@@ -9,7 +9,7 @@ import { type GroupReferents, type PageReferents, groupsOf } from '../colours/mo
 import type { ColourShown } from '../colours/switches';
 import type { BookManifest, RefGroupEntry, ReferentEntry } from '../content/schema';
 import { bookPagesOf } from '../content/roles';
-import { morph as texMorph, morphAt as texMorphAt, type MorphOpts } from './texmorph';
+import { morph as texMorph, morphAt as texMorphAt, setFallback as setMorphFallback, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
 import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
@@ -593,12 +593,14 @@ function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () 
   fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
 }
-/* A figure taken out of the page for good — one a note held and then let go —
-   leaves the loop. A three-dimensional view disposes of itself once its wrap
-   has been out of the document a while, and the drawings of a canvas stop as
-   soon as the observer says the figure is off screen, so this is about not
-   keeping what nobody will show again. */
+/* A figure taken out of the page for good — a copy a pane dropped, one a note held
+   and then let go — leaves the loop, and a three-dimensional view under it gives
+   back its WebGL context. Nothing else ends a view: an article the page keeps
+   may be out of the document a while and come back, and a view drawing nothing
+   while it is away costs nothing. */
+const views3d = new Set<{ readonly wrap: HTMLElement; readonly dispose: () => void }>();
 function release(root: HTMLElement): void {
+  views3d.forEach((v) => { if (root.contains(v.wrap)) v.dispose(); });
   for (let i = sims.length - 1; i >= 0; i -= 1) {
     const d = sims[i]; if (!root.contains(d.fig)) continue;
     vio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
@@ -2060,6 +2062,9 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     onReader(f) { readers.add(f); return () => { readers.delete(f); }; },
   };
   renderer.setClearColor(0x000000, 0); wrap.appendChild(renderer.domElement);
+  const live = { wrap, dispose }; views3d.add(live);
+  renderer.domElement.addEventListener('webglcontextlost', (e: Event) => e.preventDefault());
+  renderer.domElement.addEventListener('webglcontextrestored', () => { need = true; });
   function size(): void {
     const w = wrap.clientWidth || 800, h = wrap.clientHeight || Math.round((w * H) / LW);
     renderer.setPixelRatio(glRatio(w, h, devRatio(), pinch())); renderer.setSize(w, h, false);
@@ -2104,15 +2109,16 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
     labels.forEach((l) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = ((1 - t.y) / 2) * h - l.dy + 'px'; });
   }
-  function dispose(): void { if (!alive) return; alive = false; densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
-  let prev = performance.now(), gone = 0;
+  function dispose(): void { if (!alive) return; alive = false; views3d.delete(live); densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
+  let prev = performance.now(), away = false;
   function frame(now: number): void {
     if (!alive) return;
-    if (!wrap.isConnected && ++gone > 300) { dispose(); return; }   /* torn down: five seconds out of the document */
+    if (away !== !wrap.isConnected) { away = !away; need = true; }
+    const shown = seen && !away;
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     glideStep(now);
-    if (spinning && seen && !paused) aim(yaw + 0.22 * dt, pitch);
-    if (need && seen) { renderer.render(scene, camera); place(); need = false; opts.onRender?.(); }
+    if (spinning && shown && !paused) aim(yaw + 0.22 * dt, pitch);
+    if (need && shown) { renderer.render(scene, camera); place(); need = false; opts.onRender?.(); }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -2412,9 +2418,10 @@ function fadeEl(node: HTMLElement, on: boolean, o: FadeOpts = {}): void {
 /* `F.morph(host, tex, display?, opts?)`: a formula whose glyphs bend into the next one when its
    set of \mk{key}{…} terms changes, and whose values bend as the reader drags;
    `F.morphAt(host, a, b, k)` is a key-set morph's frame at k.
-   Both set MathJax outlines under the active book's macros (texmorph). */
+   Both set MathJax outlines under the active book's macros (texmorph), and KaTeX while MathJax cannot be had. */
 const morphOpts = (d: boolean | MorphOpts | undefined, o: MorphOpts | undefined): [boolean, MorphOpts] =>
   typeof d === 'object' ? [false, d] : [d ?? false, o ?? {}];
+setMorphFallback((host, s, display) => tex(host, s, display));
 function morph(host: HTMLElement, s: string, display?: boolean | MorphOpts, opts?: MorphOpts): void {
   const [d, o] = morphOpts(display, opts);
   texMorph(host, s, d, o, macrosAt(host));
@@ -2424,20 +2431,24 @@ function morphAt(host: HTMLElement, a: string, b: string, k: number, display?: b
   texMorphAt(host, a, b, k, d, o, macrosAt(host));
 }
 
-/* `F.readout(d)`: a readout of a morphing formula over a plain note line. `set(tex, note?, { form, ...morph opts })`
+/* `F.readout(d)`: a readout of a morphing formula over a note line. The note is for a fact the
+   figure makes visible and nothing else says: a figure whose caption or readout already says it has
+   no note, and the parts of a figure (headline, scene, controls, readout, note) are never a form to
+   fill in (root rule 26.13). `set(tex, note?, { form, ...morph opts })`
    morphs the formula, forcing a morph by meaning when `form` differs from the last call's; the note is
-   left as it was when not given. */
+   left as it was when not given, and its `$…$` is set under the page's macros. */
 export type Readout = { readonly formula: HTMLElement; readonly note: HTMLElement; set: (tex: string, note?: string, o?: MorphOpts & { readonly form?: unknown }) => void };
 function readout(d: { readonly readout: HTMLElement }): Readout {
   const formula = el('div'), note = el('small');
   d.readout.append(formula, note);
-  let last: { form: unknown } | null = null;
+  let last: { form: unknown } | null = null, said: string | undefined;
   const set = (s: string, n?: string, o: MorphOpts & { readonly form?: unknown } = {}): void => {
     const { form, ...opts } = o;
     const force = !!opts.force || (last !== null && form !== last.form);
     last = { form };
     morph(formula, s, force ? { ...opts, force } : opts);
-    if (n !== undefined && note.textContent !== n) note.textContent = n;
+    if (n === undefined || n === said) return;
+    said = n; note.textContent = n; renderMath(note);
   };
   return { formula, note, set };
 }

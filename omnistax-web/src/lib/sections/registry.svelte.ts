@@ -7,7 +7,7 @@
    chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, figItem, aboutItem, bookPageItem } from '../types/ids';
+import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem, bookPageItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { entryId } from '../explorer/model';
@@ -363,9 +363,14 @@ class Registry {
     const a = templateOf(src).firstElementChild as HTMLElement; this.prepare(a, sectionRef(id.book, id.section));
     return (this.clones[ck] = a);
   }
-  /* Drop copies no group shows any more. */
+  /* Drop copies no group shows any more, and the figures drawing in them. */
   release(used: ReadonlySet<HTMLElement>): void {
-    Object.entries(this.clones).forEach(([ck, a]) => { if (!used.has(a)) { a.remove(); delete this.clones[ck]; } });
+    Object.entries(this.clones).forEach(([ck, a]) => {
+      if (used.has(a)) return;
+      const id = parseItemKey(ck.slice(ck.lastIndexOf('|') + 1)), book = id && bookOfItem(id);
+      if (book) this.figFor?.(book).release(a);
+      a.remove(); delete this.clones[ck];
+    });
   }
   primaryDocs(): HTMLElement[] { return Object.values(this.sections).flatMap((s) => Object.values(s.docs)); }
 }
