@@ -173,14 +173,14 @@ In exploration, ask for this specific book what would make an intuitive and stun
 ## 24. When a figure becomes a simulation
 
 1. An arrow that shows something moving or flowing (a molecule's path, electrons in a wire, heat leaving a body) is kinematic and triggers animation. An arrow that is notation (a reaction arrow, a curly electron-pushing arrow, a dipole or force vector) is symbolic, drawn in the app's arrow style and never animated.
-2. The translation must be a value add: standardisation, intuition, variation by slider, flow by animation, shape in 3D.
+2. The translation must be a value add: standardisation, intuition, variation by slider, flow by animation, 3D visualization impossible in book.
 3. The gate is the mental-translation test: a figure becomes a simulation when the reader would otherwise have to imagine motion (animate), variation (sliders) or depth (let it turn). Otherwise it is a faithful copy or a kept photograph.
 4. Every plan line names its value add. Standardisation alone means a faithful copy; a simulation names at least one other and says what the reader sees that the still cannot.
-5. Four tiers by cost: faithful copy, still simulation, moving simulation, 3D scene. Default to the lowest tier that delivers the named value adds; argue past it in the plan line.
+5. Four tiers by cost: faithful copy, still simulation, moving simulation, 3D scene. Default to the lowest tier that delivers the named value adds; argue past it in the plan line. The plan line says what its arrows are, and a kinematic arrow sets the floor at the moving tier whatever else the line names.
 6. A slider changes the idea, not the scene, and the difference is readable in figure and readout. A slider with no visible consequence is removed.
 7. Every simulation carries a readout writing the section's equation or relation with the live numbers in type colours, so no animation is mute. The equation is true as written in every state: a term a case cancels leaves its sums too, and the numbers shown add up to the result shown.
 8. 3D when the lesson is an arrangement in space (an angle, a packing, a lobe), signalled by the book's perspective or wedge-and-dash drawing; otherwise 2D. The book's `RULES.md` settles its borderline groups.
-9. Never a simulation: decoration and splash photographs, a mechanism animation that replays the book's arrows, a molecule viewer for a molecule merely named, a simulation whose slider positions look alike, a transport on a figure with no clock.
+9. Never a simulation: decoration and splash photographs, a mechanism animation that replays the book's notation arrows, a molecule viewer for a molecule merely named, a simulation whose slider positions look alike, a transport on a figure with no clock.
 
 ## 25. Translating the figure, once the translation is decided
 
