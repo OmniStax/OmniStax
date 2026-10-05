@@ -12,7 +12,7 @@ import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, setFallback as setMorphFallback, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
-import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
+import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, shownIn, type Glyph, type Piece, type Box as TextBox } from './textlayer';
 import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './hand';
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
@@ -684,9 +684,8 @@ const FIGURE_FALLBACK = "'New Computer Modern Book', Georgia, 'Times New Roman',
    after the face loads draws and measures every label in it. */
 let FONT = FIGURE_FALLBACK;
 const readFont = (): void => { FONT = cssVar('--figure') || FIGURE_FALLBACK; forgetFaces(); };
-/* the weight a label is measured and shown at, and the font string for it */
+/* the weight a label is measured and shown at */
 const weightOf = (w: number): number => shownWeight(w, FONT);
-const fontAt = (w: number, size: number): string => `${weightOf(w)} ${size}px ${FONT}`;
 /* a CSS font string with its weight taken to the one shown, for a figure measuring its own runs */
 const shownFont = (f: string): string => f.replace(/\b([1-9]00)\b/, (w) => String(weightOf(+w)));
 function line(ctx: Ctx, x1: Logical, y1: Logical, x2: Logical, y2: Logical, color: Color, w = 3, dash?: number[]): void { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
@@ -781,15 +780,28 @@ function piecesOf(canvas: HTMLCanvasElement, s: string, runs: readonly Run[]): P
 tickers.add(() => { glowing.forEach((c) => { const d = simOf(c); if (d) d.dirty = true; }); glowing.clear(); syncLayers(); });
 if (typeof document !== 'undefined') document.fonts?.addEventListener?.('loadingdone', () => { forgetTex(); sims.forEach((d) => { d.dirty = true; }); });
 
+/* The sizes the text layer shows a string asked for at `size`, main runs and subscripts, in the
+   units the context draws in: the floor and the pane's scale read back from CSS pixels, the way
+   `text` records them. A canvas not laid out yet answers the size asked for, and its next draw
+   measures again. */
+function shownAt(ctx: Ctx, size: number): readonly [Logical, Logical] {
+  const c = (ctx as { canvas?: { offsetWidth?: number; width?: number } }).canvas;
+  return shownIn(size, c?.width && c.offsetWidth && ctx.getTransform ? (scaleOf(ctx.getTransform()) * c.offsetWidth) / c.width : 0);
+}
+const fontOf = (weight: number, italic: boolean, px: number): string => `${italic ? 'italic ' : ''}${weightOf(weight)} ${px}px ${FONT}`;
+/* each run's width on the canvas as the layer sets it */
+function widthsOf(ctx: Ctx, runs: readonly Run[], [main, sub]: readonly [Logical, Logical], weight: number, italic: boolean): Logical[] {
+  return runs.map((r) => { if (r.html !== undefined) return texEm(r.html) * main; ctx.font = fontOf(weight, italic, r.sub ? sub : main); return ctx.measureText(r.s).width; });
+}
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
-  const size = o.size ?? 22, weight = weightOf(o.weight ?? 400), italic = !!o.italic, font = (k: number) => `${italic ? 'italic ' : ''}${weight} ${size * k}px ${FONT}`;
+  const size = o.size ?? 22, weight = weightOf(o.weight ?? 400), italic = !!o.italic, shown = shownAt(ctx, size);
   const canvas = (ctx as { canvas?: unknown }).canvas, runs = runsFor(s, canvas, o.tex);
   const base = o.base ?? 'middle', align = o.align ?? 'left';
   ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = base;
-  const widths = runs.map((r) => { if (r.html !== undefined) return texEm(r.html) * size; ctx.font = font(r.sub ? 0.72 : 1); return ctx.measureText(r.s).width; });
+  const widths = widthsOf(ctx, runs, shown, weight, italic);
   const total = widths.reduce((a, b) => a + b, 0);
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
-  if (o.bg) { const pw = total + 14, ph = size + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
+  if (o.bg) { const pw = total + 14, ph = shown[0] + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
   if (inPage(canvas)) {
     const rec = records.get(canvas) ?? openText(canvas), m = ctx.getTransform(), [px, py] = mapPoint(m, x, y, rec.r);
     rec.glyphs.push({
@@ -799,17 +811,18 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
     });
   } else {
     ctx.fillStyle = color;
-    runs.forEach((r, i) => { ctx.font = font(r.sub ? 0.72 : 1); ctx.fillText(r.s, cx, r.sub ? y + size * 0.22 : y); cx += widths[i]; });
+    runs.forEach((r, i) => { ctx.font = fontOf(weight, italic, shown[r.sub ? 1 : 0]); ctx.fillText(r.s, cx, r.sub ? y + shown[0] * 0.22 : y); cx += widths[i]; });
   }
   ctx.restore();
 }
-/* `measure(ctx, s, { size, weight })`: the width `text` gives s, in logical units */
+/* `measure(ctx, s, { size, weight })`: the width `text` gives s as the layer shows it, in logical units */
 function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight' | 'italic' | 'tex'> = {}): Logical {
-  const size = o.size ?? 22, weight = o.weight ?? 400, runs = runsFor(s, (ctx as { canvas?: unknown }).canvas, o.tex);
-  ctx.save();
-  const w = runs.reduce((t, r) => { if (r.html !== undefined) return t + texEm(r.html) * size; ctx.font = shownFont(`${o.italic ? 'italic ' : ''}${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`); return t + ctx.measureText(r.s).width; }, 0);
-  ctx.restore(); return w;
+  const runs = runsFor(s, (ctx as { canvas?: unknown }).canvas, o.tex);
+  ctx.save(); const w = widthsOf(ctx, runs, shownAt(ctx, o.size ?? 22), o.weight ?? 400, !!o.italic).reduce((a, b) => a + b, 0); ctx.restore();
+  return w;
 }
+/* the height a size is shown at, in logical units */
+const shownH = (ctx: Ctx, size: number): Logical => shownAt(ctx, size)[0];
 const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center', tex: true });
 /* The headline of a figure. It wraps exactly as `topline` does — one line where it
    fits and two otherwise — so a headline built from live numbers can never run off
@@ -823,9 +836,7 @@ export type BracketSide = 'above' | 'below' | 'left' | 'right';
 type BracketOpts = { side?: BracketSide; H?: Logical; size?: number };
 const canvasH = (ctx: Ctx, o?: { H?: Logical }): Logical => o?.H ?? +((ctx as { canvas?: { dataset?: Record<string, string> } }).canvas?.dataset?.h ?? 0);
 /* the label's half width at the weight and size a bracket and a note set their text */
-function halfWidth(ctx: Ctx, s: string, size: number): Logical {
-  ctx.save(); ctx.font = fontAt(600, size); const w = ctx.measureText(s).width; ctx.restore(); return w / 2 + 9;
-}
+const halfWidth = (ctx: Ctx, s: string, size: number): Logical => measure(ctx, s, { size, weight: 600 }) / 2 + 9;
 function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, label?: string, o: BracketOpts = {}): void {
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.moveTo(x1, y - 10); ctx.lineTo(x1, y + 10); ctx.moveTo(x2, y - 10); ctx.lineTo(x2, y + 10); ctx.stroke(); ctx.restore();
   if (!label) return;
@@ -833,7 +844,7 @@ function hbracket(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, color: Color, 
   const half = halfWidth(ctx, label, sz);
   const x = Math.min(Math.max((x1 + x2) / 2, 16 + half), LW - 16 - half);
   let ly = below ? y + 24 : y - 22;
-  if (H > 0) ly = Math.min(Math.max(ly, 16 + sz / 2), H - 16 - sz / 2);
+  if (H > 0) ly = Math.min(Math.max(ly, 16 + shownH(ctx, sz) / 2), H - 16 - shownH(ctx, sz) / 2);
   text(ctx, label, x, ly, color, { align: 'center', weight: 600, size: sz });
 }
 function vbracket(ctx: Ctx, x: Logical, y1: Logical, y2: Logical, color: Color, label?: string, side = 1, o: BracketOpts = {}): void {
@@ -845,7 +856,7 @@ function vbracket(ctx: Ctx, x: Logical, y1: Logical, y2: Logical, color: Color, 
   /* a label that would leave the canvas on the side asked for is set on the other side */
   const turn = s > 0 && x + 16 + half > LW - 16 ? -1 : s < 0 && x - 16 - half < 16 ? 1 : s;
   let ly = (y1 + y2) / 2;
-  if (H > 0) ly = Math.min(Math.max(ly, 16 + sz / 2), H - 16 - sz / 2);
+  if (H > 0) ly = Math.min(Math.max(ly, 16 + shownH(ctx, sz) / 2), H - 16 - shownH(ctx, sz) / 2);
   text(ctx, label, x + turn * 16, ly, color, { align: turn > 0 ? 'left' : 'right', weight: 600, size: sz });
 }
 function strip(ctx: Ctx, x1: Logical, x2: Logical, y: Logical, h: Logical): void {
@@ -1067,7 +1078,7 @@ function label(ctx: Ctx, s: string, x: Logical, y: Logical, o: LabelOpts = {}): 
   const sz = o.size ?? 20, gap = o.gap ?? 20, H = canvasH(ctx, o), side = o.side ?? 'above';
   const ux = side === 'left' ? -1 : side === 'right' ? 1 : 0, uy = side === 'above' ? -1 : side === 'below' ? 1 : 0;
   const align: CanvasTextAlign = ux < 0 ? 'right' : ux > 0 ? 'left' : 'center';
-  const half = halfWidth(ctx, s, sz), bh = sz + 8;
+  const half = halfWidth(ctx, s, sz), bh = shownH(ctx, sz) + 8;
   let lx = x + ux * gap, ly = y + uy * gap;
   const l0 = align === 'center' ? lx - half : align === 'right' ? lx - 2 * half + 9 : lx - 9;
   const dx = l0 < 16 ? 16 - l0 : l0 + 2 * half > LW - 16 ? LW - 16 - l0 - 2 * half : 0;
@@ -1087,7 +1098,7 @@ function label(ctx: Ctx, s: string, x: Logical, y: Logical, o: LabelOpts = {}): 
    the boxes already spoken for (the curve's own bounding box, a legend, a pinned
    marker) and the corner with the least overlap wins. Returns the box the note took. */
 function note(ctx: Ctx, box: Box, s: string, avoid: readonly Box[] = [], size = 17): Box {
-  const half = halfWidth(ctx, s, size), bh = size + 8, pad = 12;
+  const half = halfWidth(ctx, s, size), bh = shownH(ctx, size) + 8, pad = 12;
   const corners: readonly Pt[] = [[box.l + pad + half, box.t + pad + bh / 2], [box.r - pad - half, box.t + pad + bh / 2], [box.r - pad - half, box.b - pad - bh / 2], [box.l + pad + half, box.b - pad - bh / 2]];
   const boxAt = (p: Pt): Box => ({ l: p[0] - half, r: p[0] + half, t: p[1] - bh / 2, b: p[1] + bh / 2 });
   const overlap = (a: Box): number => avoid.reduce((sum, b) => sum + Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t)), 0);
@@ -1640,8 +1651,7 @@ export type LabellerOpts = { headline?: boolean | 1 | 2 };
 function labeller(ctx: Ctx, H: Logical, o: LabellerOpts = {}): Labeller {
   const placed: Box[] = [], queue: Label[] = [];
   const boxOf = (s: string, x: Logical, y: Logical, size: number, align: CanvasTextAlign): Box => {
-    ctx.save(); ctx.font = fontAt(600, size); const tw = ctx.measureText(s).width; ctx.restore();
-    const bw = tw + 14, bh = size + 8;
+    const bw = measure(ctx, s, { size, weight: 600 }) + 14, bh = shownH(ctx, size) + 8;
     const l = align === 'center' ? x - bw / 2 : align === 'right' ? x - bw + 7 : x - 7;
     return { l, r: l + bw, t: y - bh / 2, b: y + bh / 2 };
   };

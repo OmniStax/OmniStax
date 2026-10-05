@@ -2,7 +2,7 @@
    the weight and size it is shown at, and the writes that bring the spans up to date. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, isSerif, subDrop, topOf, styleOf, plan, inward, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
+import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, shownIn, isSerif, subDrop, topOf, styleOf, plan, inward, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
 
 const NCM = "'New Computer Modern Book',Georgia,'Times New Roman',serif";
 const SANS = "'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif";
@@ -81,4 +81,11 @@ test('a TeX piece is its own shape, so a run that turns to TeX rebuilds its span
   const texRun = styleOf(glyph({ pieces: [{ s: '\\kF = \\km\\ka', sub: false, lit: 0, html: '<span class="katex"><span class="kv-force">F</span></span>' }] }), 0);
   assert.equal(texRun.shape, '$');
   assert.ok(plan([plainRun], [texRun]).writes[0].changed.includes('shape'));
+});
+
+test('a size is read back into canvas units with the floor the layer sets it at', () => {
+  assert.deepEqual(shownIn(17, 0.5), [22, 20]);                  /* 8.5 px floored to 11, its 7.92 px subscript held at 10 */
+  assert.deepEqual(shownIn(17, 0), [17, 17 * 0.72]);             /* a pane not laid out yet measures at the size asked for */
+  const [main, sub] = shownIn(24, 1);
+  assert.equal(main, 24); assert.ok(Math.abs(sub - 24 * 0.72) < 1e-9);
 });

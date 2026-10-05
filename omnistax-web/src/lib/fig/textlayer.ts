@@ -35,6 +35,14 @@ export const isSerif = (family: string): boolean => !/sans-serif\s*$/i.test(fami
 /* the serif faces are bundled at 400 and 700 only, and a synthesised 600 smears at label sizes */
 export const shownWeight = (weight: number, family: string): number => (isSerif(family) && weight > 400 ? 400 : weight);
 export const shownSize = (size: Px): Px => Math.max(FLOOR, size);
+/* the sizes a string asked for at `size` is shown at, its main runs and its subscripts, in a unit
+   k CSS pixels long: the canvas's own units when k is its pane's scale, and the size asked for
+   where k is not known yet */
+export function shownIn(size: number, k: number): readonly [number, number] {
+  if (!(k > 0)) return [size, size * SUB];
+  const px = shownSize(size * k);
+  return [px / k, Math.max(SUB_FLOOR, px * SUB) / k];
+}
 /* where a subscript's baseline sits below the main one, in the main font's em: the canvas lowers
    the subscript's own anchor by SUB_DROP, and the anchor lies `base` above each run's baseline */
 export const subDrop = (base: Em): Em => SUB_DROP - base * (1 - SUB);
@@ -212,7 +220,7 @@ const plainTex = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
    a snapshot of a figure carries its labels. */
 export function paintText(c: HTMLCanvasElement, ctx: CanvasRenderingContext2D, k: number): void {
   (drawn.get(c) ?? []).forEach((g) => {
-    const size = shownSize(g.size), font = (sub: boolean): string => `${g.italic ? 'italic ' : ''}${g.weight} ${sub ? Math.max(SUB_FLOOR, size * SUB) : size}px ${g.family}`;
+    const [size, subSize] = shownIn(g.size, 1), font = (sub: boolean): string => `${g.italic ? 'italic ' : ''}${g.weight} ${sub ? subSize : size}px ${g.family}`;
     const shown = g.pieces.map((p) => (p.html !== undefined ? plainTex(p.s) : p.s));
     const widths = g.pieces.map((p, i) => { ctx.font = font(p.sub); return ctx.measureText(shown[i]).width; });
     const total = widths.reduce((a, b) => a + b, 0);

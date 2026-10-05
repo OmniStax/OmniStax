@@ -234,3 +234,36 @@ test('off the page a TeX run is drawn plain, and wrapping still splits a plain h
   assert.equal(FIG.topline(plain, 'It costs $100 to fill the field with bills stacked flat, and that is a sentence long enough to need a second line on the canvas.'), 2);
   assert.ok(plain.drawn.some((d) => d.s.includes('$100')), 'a lone dollar stays a dollar');
 });
+
+/* a context on a 1400-unit canvas shown `css` pixels wide, measuring each character as half its font size */
+function pane(css: number): CanvasRenderingContext2D & { rects: number[][] } {
+  const rects: number[][] = [];
+  const c = Object.assign(stub(), {
+    rects, canvas: { dataset: { h: '600' }, width: 1400, offsetWidth: css },
+    getTransform: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
+    measureText(this: { font: string }, t: string) { return { width: t.length * 0.5 * +(/([\d.]+)px/.exec(this.font)?.[1] ?? 0) }; },
+    fillRect: (x: number, y: number, w: number, h: number) => { rects.push([x, y, w, h]); },
+  });
+  return c as unknown as CanvasRenderingContext2D & { rects: number[][] };
+}
+
+test('a label is measured at the size the layer shows it, floor and pane scale included', () => {
+  const half = pane(700), full = pane(1400);
+  const w = FIG.measure(half, 'r1 panel', { size: 17 }), nominal = FIG.measure(full, 'r1 panel', { size: 17 });
+  assert.equal(nominal, 8 * 0.5 * 17);
+  assert.equal(w, 8 * 0.5 * 22);                                  /* 11 px at half scale is 22 canvas units */
+  assert.ok(Math.abs(w / nominal - 22 / 17) < 1e-9);
+  const sub = FIG.measure(half, 'r_1', { size: 17 });
+  assert.equal(sub, 0.5 * 22 + 0.5 * 20);                         /* the subscript held at its 10 px floor */
+  assert.equal(FIG.measure(pane(0), 'r1 panel', { size: 17 }), nominal);   /* detached: the size asked for */
+});
+
+test('a bg panel encloses its text as the layer shows it', () => {
+  const ctx = pane(700), s = 'r_2 = 4.0 cm';
+  FIG.text(ctx, s, 700, 300, '#000', { size: 17, align: 'center', bg: '#fff' });
+  const [x, y, w, h] = ctx.rects[0], tw = FIG.measure(ctx, s, { size: 17 });
+  assert.ok(x <= 700 - tw / 2 && x + w >= 700 + tw / 2, 'the panel spans the text');
+  assert.ok(y <= 300 - 11 && y + h >= 300 + 11, 'and its 22-unit height');
+  const box = FIG.label(ctx, s, 700, 300, { size: 17 });
+  assert.ok(box.r - box.l >= tw, 'a label returns the box its text takes');
+});
