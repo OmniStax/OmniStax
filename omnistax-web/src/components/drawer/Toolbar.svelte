@@ -42,16 +42,15 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
     { id: 'pen', label: 'Pen', glyph: ICON.pen },
     { id: 'highlighter', label: 'Highlighter', glyph: ICON.highlighter },
     { id: 'eraser', label: 'Eraser', glyph: ERASER_GLYPH() },
-    { id: 'lasso', label: 'Lasso', glyph: LASSO_GLYPH() },
+    { id: 'lasso', label: 'Lasso', glyph: ICON.lasso },
     { id: 'text', label: 'Text box', glyph: ICON.note },
     { id: 'shape', label: 'Shapes', glyph: SHAPE_GLYPH() },
     { id: 'group', label: 'Group', glyph: GROUP_GLYPH() },
     { id: 'pan', label: 'Pan', glyph: HAND_GLYPH() },
   ];
-  /* Four glyphs the rail has no use for, so they live here rather than in the
-     shared set: a rubber, a loop, a square with a circle, and an open hand. */
+  /* Three glyphs the rail has no use for, so they live here rather than in the
+     shared set: a rubber, a square with a circle, and an open hand. */
   function ERASER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M15.5 4.5 20 9l-8.5 8.5H7L3.5 14z"/><path d="M9 9l6 6"/></svg>'; }
-  function LASSO_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M12 4c4.4 0 8 2.5 8 5.5S16.4 15 12 15 4 12.5 4 9.5 7.6 4 12 4Z" stroke-dasharray="3 2.5"/><path d="M8.5 14.6c-.6 1.6-.3 3 .9 3.9"/><circle cx="10" cy="19.6" r="1.6"/></svg>'; }
   function SHAPE_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="10" height="10" rx="1.5"/><circle cx="15.5" cy="15.5" r="5"/></svg>'; }
   function GROUP_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2" stroke-dasharray="3 2"/><path d="M3 9h7"/></svg>'; }
   function HAND_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 11V9a1.5 1.5 0 0 0-3 0v5.5c0 3.6 2.6 6 6 6h1.5c3 0 5.5-2.4 5.5-5.5V13"/></svg>'; }

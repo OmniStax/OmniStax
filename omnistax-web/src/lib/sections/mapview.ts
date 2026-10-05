@@ -1,8 +1,8 @@
 /* What the concept map does with its view and its selection, kept apart from
    the drawing so it can be reasoned about: the scale a level opens at, the
-   subgraph a selection brings with it, how that subgraph is packed closer when
-   the reader focuses on it, and where each level was left standing. */
-import { separated, type Box, type Edge, type Positions, type Pt, type Rect } from './forcelayout';
+   subgraph a selection brings with it, where its own layout is put when the
+   reader focuses on it, and where each level was left standing. */
+import type { Edge, Laid, Positions, Pt } from './sugiyama';
 import type { Target } from './scope';
 
 /* ---------- the opening view ---------- */
@@ -38,37 +38,18 @@ export const connectedOf = (edges: readonly Edge[], seeds: Iterable<string>): Re
   return new Set([...reach(start, up), ...reach(start, down)]);
 };
 
-/* Which nodes a rectangle of map coordinates touches. */
-export const touched = (r: Rect, ids: Iterable<string>, at: (id: string) => Pt | undefined, box: (id: string) => Box): string[] =>
-  [...ids].filter((id) => {
-    const p = at(id); if (!p) return false;
-    const b = box(id);
-    return p.x + b.w / 2 >= r.x && p.x - b.w / 2 <= r.x + r.w && p.y + b.h / 2 >= r.y && p.y - b.h / 2 <= r.y + r.h;
-  });
+/* ---------- placing a focus ---------- */
 
-/* ---------- packing a focus ---------- */
-
-/* How much of the plane a packed focus may take up for each unit of box it
-   carries: room enough for the edges to read between the nodes. */
-const PACKED_ROOM = 2;
-/* A focus drawn closer together: the nodes keep the places they stood in
-   relative to each other, drawn in towards the selection's middle until the
-   plane they cover is about what their boxes need, and then parted wherever
-   that brought two of them too near. A focus already that close is left
-   where it stands. */
-export const packed = (pos: Positions, ids: ReadonlySet<string>, anchors: ReadonlySet<string>, box: (id: string) => Box): Positions => {
-  const kept = [...ids].filter((id) => pos.has(id));
-  if (kept.length < 2) return new Map(kept.map((id) => [id, pos.get(id)!]));
-  const mid = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
-  const hub = [...anchors].filter((id) => pos.has(id));
-  const from = hub.length ? hub : kept;
-  const c: Pt = { x: mid(from.map((id) => pos.get(id)!.x)), y: mid(from.map((id) => pos.get(id)!.y)) };
-  const xs = kept.map((id) => pos.get(id)!.x), ys = kept.map((id) => pos.get(id)!.y);
-  const spread = Math.max(1, (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys)));
-  const need = kept.reduce((sum, id) => { const b = box(id); return sum + b.w * b.h; }, 0) * PACKED_ROOM;
-  const s = Math.min(1, Math.sqrt(need / spread));
-  const drawn: Positions = new Map(kept.map((id) => { const p = pos.get(id)!; return [id, { x: c.x + (p.x - c.x) * s, y: c.y + (p.y - c.y) * s }]; }));
-  return separated(kept.map((id) => ({ id, ...box(id) })), drawn);
+/* A focus laid out on its own, moved so the selection's middle stands where it
+   stood on the whole map: the focus gathers round what was chosen, and the
+   view need not move. */
+export const alignedTo = (home: Positions, to: Laid, anchors: ReadonlySet<string>): Laid => {
+  const hub = [...anchors].filter((id) => home.has(id) && to.pos.has(id));
+  if (!hub.length) return to;
+  const mid = (m: Positions, k: 'x' | 'y'): number => hub.reduce((s, id) => s + m.get(id)![k], 0) / hub.length;
+  const dx = mid(home, 'x') - mid(to.pos, 'x'), dy = mid(home, 'y') - mid(to.pos, 'y');
+  const move = (p: Pt): Pt => ({ x: p.x + dx, y: p.y + dy });
+  return { pos: new Map([...to.pos].map(([id, p]) => [id, move(p)])), bends: new Map([...to.bends].map(([k, ps]) => [k, ps.map(move)])) };
 };
 
 /* ---------- where each level was left ---------- */

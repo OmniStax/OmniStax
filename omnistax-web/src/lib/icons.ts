@@ -49,5 +49,14 @@ export const ICON = {
   /* GitHub sync: two arrows chasing each other round a circle, push one way and pull the other */
   sync: '<svg viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1"/><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1"/><path d="M17.8 3.6v3.6h-3.6"/><path d="M6.2 20.4v-3.6h3.6"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
+  /* the concept map's layouts: rows of nodes joined downward, the same turned to run right, and the Poincaré disk with two geodesics */
+  layoutDown: '<svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2"/><circle cx="6.5" cy="12" r="2"/><circle cx="17.5" cy="12" r="2"/><circle cx="6.5" cy="19.5" r="2"/><circle cx="17.5" cy="19.5" r="2"/><path d="M10.8 6.1 7.7 10.4M13.2 6.1l3.1 4.3M6.5 14v3.5M17.5 14v3.5M8.2 13.1l7.6 5.3"/></svg>',
+  layoutRight: '<svg viewBox="0 0 24 24"><circle cx="4.5" cy="12" r="2"/><circle cx="12" cy="6.5" r="2"/><circle cx="12" cy="17.5" r="2"/><circle cx="19.5" cy="6.5" r="2"/><circle cx="19.5" cy="17.5" r="2"/><path d="M6.1 10.8l4.3-3.1M6.1 13.2l4.3 3.1M14 6.5h3.5M14 17.5h3.5M13.1 8.2l5.3 7.6"/></svg>',
+  hyperbolic: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3.6 8.6Q10.5 11 8.6 20.4"/><path d="M15.4 3.6Q13.5 13 20.4 15.4"/></svg>',
+  /* a loop of rope trailing its knot: the lasso the drawing toolbar and the concept map share */
+  lasso: '<svg viewBox="0 0 24 24"><path d="M12 4c4.4 0 8 2.5 8 5.5S16.4 15 12 15 4 12.5 4 9.5 7.6 4 12 4Z" stroke-dasharray="3 2.5"/><path d="M8.5 14.6c-.6 1.6-.3 3 .9 3.9"/><circle cx="10" cy="19.6" r="1.6"/></svg>',
+  focus: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  /* progress: a bar part filled */
+  progress: '<svg viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="2"/><path d="M6.5 12h7" stroke-width="3"/></svg>',
 } as const;
 export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };

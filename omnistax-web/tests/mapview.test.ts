@@ -1,9 +1,9 @@
 /* The concept map's view and selection: the scale a level opens at, what a
-   focus keeps, how it packs, and where a level is remembered. */
+   focus keeps, where it is placed, and where a level is remembered. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { connectedOf, crowdScale, mapViews, packed, touched, viewKeyOf, OPENING_MOST } from '../src/lib/sections/mapview';
-import { GAP, type Edge, type Pt } from '../src/lib/sections/forcelayout';
+import { alignedTo, connectedOf, crowdScale, mapViews, viewKeyOf, OPENING_MOST } from '../src/lib/sections/mapview';
+import type { Edge, Pt } from '../src/lib/sections/sugiyama';
 import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
 
 /* a square grid of points, one map unit apart, centred on the origin */
@@ -37,21 +37,13 @@ test('a focus is not the whole component: a sibling through a shared dependent s
   assert.ok(!connectedOf(EDGES, ['a']).has('x'));
 });
 
-test('a packed focus is closer together, and no two of its boxes overlap', () => {
-  const box = () => ({ w: 60, h: 30 });
-  const pos = new Map(['a', 'b', 'c', 'd'].map((id, i) => [id, { x: i * 900, y: (i % 2) * 700 }]));
-  const ids = new Set(pos.keys());
-  const out = packed(pos, ids, new Set(['a']), box);
-  const span = (m: ReadonlyMap<string, Pt>) => Math.max(...[...m.values()].map((p) => p.x)) - Math.min(...[...m.values()].map((p) => p.x));
-  assert.ok(span(out) < span(pos) / 2);
-  const ps = [...out.values()];
-  ps.forEach((p, i) => ps.slice(i + 1).forEach((q) => assert.ok(Math.abs(p.x - q.x) >= 60 + GAP - 0.1 || Math.abs(p.y - q.y) >= 30 + GAP - 0.1)));
-});
-
-test('a lasso takes every box it touches', () => {
-  const pos = new Map([['a', { x: 0, y: 0 }], ['b', { x: 100, y: 0 }], ['c', { x: 300, y: 0 }]]);
-  const hit = touched({ x: 60, y: -5, w: 20, h: 10 }, pos.keys(), (id) => pos.get(id), () => ({ w: 50, h: 20 }));
-  assert.deepEqual(hit, ['b']);
+test('a focus laid out on its own keeps the selection where it stood', () => {
+  const home = new Map([['a', { x: 100, y: 50 }], ['b', { x: 300, y: 50 }]]);
+  const to = new Map([['a', { x: 0, y: 0 }], ['b', { x: 40, y: 80 }], ['c', { x: -40, y: 80 }]]);
+  const out = alignedTo(home, { pos: to, bends: new Map([['a>c', [{ x: 0, y: 40 }]]]) }, new Set(['a']));
+  assert.deepEqual(out.pos.get('a'), { x: 100, y: 50 });
+  assert.deepEqual(out.pos.get('c'), { x: 60, y: 130 });
+  assert.deepEqual(out.bends.get('a>c'), [{ x: 100, y: 90 }]);
 });
 
 test('each map tab remembers each level apart, until it is let go', () => {

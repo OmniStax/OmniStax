@@ -1,5 +1,5 @@
-/* Concept map layout: which nodes to show at the level a view stands at, and rows
-   by prerequisite depth. A section or a chapter shows what it teaches and, dashed
+/* Which nodes the concept map shows at the level a view stands at, and rows by
+   prerequisite depth. A section or a chapter shows what it teaches and, dashed
    behind it, the concepts it takes for granted; the book shows everything it
    teaches, with the sections it has not built yet dashed in the same way. */
 import type { ConceptDTO } from '../content/schema';
@@ -29,13 +29,6 @@ export const dagRows = (list: readonly DagNode[]): string[][] => {
   const byDepth = new Map<number, string[]>();
   own.forEach((c) => { const k = d(c); const row = byDepth.get(k); if (row) row.push(c.id); else byDepth.set(k, [c.id]); });
   return [ext, ...[...byDepth.keys()].sort((a, b) => a - b).map((k) => byDepth.get(k)!)].filter((r) => r.length);
-};
-/* The same ranking as a lookup: how deep each node's prerequisites run, which
-   the force layout turns into the ring the node sits on. */
-export const depthsOf = (list: readonly DagNode[]): Map<string, number> => {
-  const at = new Map<string, number>();
-  dagRows(list).forEach((row, i) => row.forEach((id) => at.set(id, i)));
-  return at;
 };
 export const edgesOf = (list: readonly DagNode[]): Array<[string, string]> => {
   const ids = new Set(list.map((c) => c.id));
