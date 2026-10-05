@@ -32,7 +32,7 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
   { name: 'table_of_contents', description: 'Chapters and sections of a book, or of one chapter.', parameters: obj({ book: str, chapter: { ...str, description: 'chapter number, e.g. "16"' } }, ['book']) },
   { name: 'read_section', description: 'The text of one section; figures appear as their captions.', parameters: obj({ book: str, section: { ...str, description: 'section number, e.g. "16.4"' } }, ['book', 'section']) },
   { name: 'search', description: 'Full-text search of a book: hits with section and snippet.', parameters: obj({ book: str, query: str }, ['book', 'query']) },
-  { name: 'lookup', description: 'Find what a book teaches, with links: a concept of any kind gives its name, kind and statement, and where it has them its word, symbol, unit and main formula; a formula gives its TeX and the concept it states.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'formula', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
+  { name: 'lookup', description: 'Find what a book teaches, with links: a concept of any kind gives its name, kind and statement, and where it has them its word, symbol, unit and main formula; a symbol that names no concept gives its meaning and unit; a formula gives its TeX and the concept it states.', parameters: obj({ book: str, kind: { type: 'string', enum: ['definition', 'formula', 'concept'] }, query: str }, ['book', 'kind', 'query']) },
   { name: 'figure', description: 'A figure of a section: caption, alt text, parameters with their current values, and its source code when asked.', parameters: obj({ book: str, section: str, id: { ...str, description: 'figure id, e.g. "sim-pendulum"' }, include_source: { type: 'boolean' } }, ['book', 'section', 'id']) },
 ];
 
@@ -106,12 +106,14 @@ const find = async (lib: Library, book: string, query: string, filter: Filter, k
 };
 
 /* The kinds the model asks for, and the two older names they replaced. */
+/* A definition is a concept of that kind, or a symbol that names no concept and so has only its meaning to give. */
+const defines = (h: Hit): boolean => (h.kind === 'concept' && h.concept.kind === 'definition') || (h.kind === 'definition' && h.symbol.concept === undefined);
 const LOOKUP: Readonly<Record<string, { readonly filter: Filter; readonly keep?: (h: Hit) => boolean }>> = {
-  definition: { filter: 'concept', keep: (h) => h.kind === 'concept' && h.concept.kind === 'definition' },
+  definition: { filter: 'all', keep: defines },
   formula: { filter: 'formula' },
   concept: { filter: 'concept' },
   equation: { filter: 'formula' },
-  symbol: { filter: 'concept', keep: (h) => h.kind === 'concept' && h.concept.kind === 'definition' },
+  symbol: { filter: 'all', keep: defines },
 };
 
 const lookup = (lib: Library, input: Input): Promise<string> => {

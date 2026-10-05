@@ -481,15 +481,18 @@ export const checkConcepts: Check = (content) => {
   });
 };
 
-/* A symbol belongs to the definition of its quantity (RULES item 6), so every
-   variables row names its concept. A row that names none is a warning while
-   the books are being linked, and an error once this is set. A form and a
-   glossary word name their concept by standing on it. */
-export const UNLINKED_ROWS_ARE_ERRORS = true;
+/* A variables row links to the concept its symbol names, and only that, so a
+   symbol that names no concept links to none (RULES item 6). The concept's one
+   symbol is read off those rows, and must be the sym of one of them. A concept
+   whose linked rows are all variants (C₁, C₂) rightly has none. */
 export const checkConceptLinks: Check = (content) => {
-  const finding = UNLINKED_ROWS_ARE_ERRORS ? error : warning;
-  return content.chapters.flatMap((ch) =>
-    ch.dto.variables.flatMap((v) => (v.concept === undefined ? [finding(inChapter(ch, 'variables', `${v.section}/${v.sym}`), 'names no concept')] : [])));
+  const linked = new Map<string, ReadonlySet<string>>();
+  content.chapters.forEach((ch) => ch.dto.variables.forEach((v) => {
+    if (v.concept === undefined) return;
+    linked.set(v.concept, new Set([...(linked.get(v.concept) ?? []), v.sym]));
+  }));
+  return content.book.concepts.flatMap((c) =>
+    (c.symbol === undefined || linked.get(c.id)?.has(c.symbol) ? [] : [error(`book.json concepts[${c.id}]`, `has the symbol "${c.symbol}", which no variables row linked to it carries`)]));
 };
 
 /* A form is named by its id wherever the text, an answer or a note names it,

@@ -184,6 +184,15 @@ class TestWriting(Fixture):
         self.assertEqual(row["draws"], ["mass", "volume", "time"])
         self.assertEqual(row["kind"], "sim")
 
+    def test_set_null_clears_a_field(self):
+        chapter = os.path.join(self.book, "ch01", "chapter.json")
+        text, code = run("set", "chemistry-2e", "variables", "1.4/t", "--chapter", "1", '{"concept": null}')
+        self.assertEqual(code, 0)
+        row = next(v for v in self.rows("variables", chapter) if v["section"] == "1.4" and v["sym"] == "t")
+        self.assertNotIn("concept", row)
+        self.assertEqual(row["meaning"], next(v for v in json.loads(self.read(os.path.join(CHEMISTRY, "ch01", "chapter.json")))["variables"]
+                                              if v["section"] == "1.4" and v["sym"] == "t")["meaning"])
+
     def test_set_replace_puts_a_whole_row_in_its_place(self):
         run("set", "chemistry-2e", "figures", "sim-density", "--section", "1.4", "--replace",
             '{"id": "sim-density", "kind": "figure"}')

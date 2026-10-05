@@ -40,6 +40,15 @@ export const typeOf = (el: Element): KvType | null => {
 export const lookupVariable = (vars: readonly VariableDTO[], sym: SymKey, section?: string): VariableDTO | undefined =>
   (section !== undefined ? vars.find((v) => v.sym === sym && v.section === section) : undefined) ?? vars.find((v) => v.sym === sym);
 
+/* What a hovered symbol opens: the concept its row names, where the row names
+   one the book has, else the row alone, which is a symbol that names no concept. */
+export type SymbolTarget<C> = { readonly kind: 'concept'; readonly concept: C; readonly variable: VariableDTO } | { readonly kind: 'row'; readonly variable?: VariableDTO };
+export const symbolTarget = <C,>(vars: readonly VariableDTO[], sym: SymKey, section: string, conceptOf: (id: string) => C | undefined): SymbolTarget<C> => {
+  const variable = lookupVariable(vars, sym, section);
+  const concept = variable?.concept === undefined ? undefined : conceptOf(variable.concept);
+  return variable && concept !== undefined ? { kind: 'concept', concept, variable } : { kind: 'row', variable };
+};
+
 /* Whether two rows of one symbol name different quantities. Every section words
    its row afresh, so the test is not equality: rows of different types differ,
    and rows of one type differ when their meanings share almost no content word

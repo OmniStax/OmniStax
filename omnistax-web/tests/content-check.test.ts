@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -27,19 +27,18 @@ test('a concept whose chapter the book has not added yet is said out loud, and i
   const waiting = BOOKS.flatMap((b) => checkContent(b)).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
 });
-test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, a row not yet linked to its concept, and a lead not yet cut to rule 21\'s length', () => {
+test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, and a lead not yet cut to rule 21\'s length', () => {
   BOOKS.forEach((book) => {
     const built = new Set(book.chapters.map((ch) => ch.dto.id));
     const raised = warningsOf(checkContent(book));
     const figure = (f: Finding): boolean => /cites Figure (\d+)\.\d+/.test(f.what) && !built.has(/cites Figure (\d+)\./.exec(f.what)![1]);
     /* a reference table prints "0.9999720 (density maximum)" where a column holds numbers; the page leaves that row out of the order and says so here */
     const cell = (f: Finding): boolean => /which is not a number/.test(f.what);
-    const unlinked = (f: Finding): boolean => !UNLINKED_ROWS_ARE_ERRORS && f.what === 'names no concept';
     /* the leads written before rule 21 capped them run long until they are rewritten */
     const lead = (f: Finding): boolean => /^has a lead of \d+ words/.test(f.what);
     /* figure rows name the convention and fact colours they draw once the tags are backfilled */
     const tag = (f: Finding): boolean => /^draws F\.(el|fact)\('[^']*'\), which (its|no figure row's) (conventions|facts)/.test(f.what);
-    assert.ok(raised.every((f) => figure(f) || cell(f) || unlinked(f) || lead(f) || tag(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
+    assert.ok(raised.every((f) => figure(f) || cell(f) || lead(f) || tag(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
   });
 });
 
@@ -365,12 +364,15 @@ test('checkConcepts: a built concept with no statement, or not exactly one span 
   assert.deepEqual(checkConcepts({ book: bookOf({ concepts: [bare] }), sheets: [], chapters: [{ dto: chapterOf({}), sections: [] }] }), [], 'a concept nobody has built the section for is a placeholder and says none of it');
 });
 
-test('checkConceptLinks: a variables row that names no concept', () => {
+test('checkConceptLinks: a row may name no concept, and a concept’s symbol is the sym of a row linked to it', () => {
   assert.deepEqual(run(checkConceptLinks), []);
-  const level = UNLINKED_ROWS_ARE_ERRORS ? 'error' : 'warning';
-  const found = checkConceptLinks(fixture({ chapter: { variables: [{ sym: 'k', meaning: 'the spring constant', section: '16.1' }, { sym: 'x', concept: 'hookes-law', meaning: 'stretch', section: '16.1' }] } }));
-  assert.deepEqual(found.map((f) => f.level), [level]);
-  assert.deepEqual(said(found), ['ch16/chapter.json variables[16.1/k]: names no concept']);
+  const concept = (o: object) => ({ book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', ...o }] } });
+  const rows = { variables: [{ sym: 'N', meaning: 'a count of coils', section: '16.1' }, { sym: 'k', concept: 'hookes-law', meaning: 'the spring constant', section: '16.1' }] };
+  assert.deepEqual(run(checkConceptLinks, { ...concept({ symbol: 'k' }), chapter: rows }), [], 'N names no concept and is no finding');
+  const stray = checkConceptLinks(fixture({ ...concept({ symbol: 'N' }), chapter: rows }));
+  assert.deepEqual(stray.map((f) => [f.level, f.what]), [['error', 'has the symbol "N", which no variables row linked to it carries']]);
+  assert.deepEqual(checkConceptLinks(fixture(concept({ symbol: 'k' }))).map((f) => f.level), ['error'], 'a symbol with no rows linked at all');
+  assert.deepEqual(run(checkConceptLinks, { chapter: rows }), [], 'a concept whose linked rows are all variants has no symbol');
 });
 test('checkConceptNames: two forms of one id and two concepts of one name are errors', () => {
   assert.deepEqual(run(checkConceptNames), []);

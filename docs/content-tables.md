@@ -152,15 +152,17 @@ Tables:
   referent of the same section whose quantity the symbol is (F_x for the
   first tug's push): the symbol is then split, its main letter in its
   type's colour and its subscript, the part after the first `_` outside
-  braces, in the referent's. `concept` is the definition of the symbol's
-  quantity; a variant or a component (a_x, B₁) names the definition of its
-  base quantity. This is the table a symbol's card reads its meaning in
-  this section from.
+  braces, in the referent's. `concept` is the concept the symbol names, and only that: PE_g names
+  gravitational potential energy, and a variant or a component (a_x, B₁)
+  names its base quantity. A symbol that names no concept (N for a count of
+  molecules) has no `concept`; it is never linked to a concept that merely
+  uses it. A concept's `symbol` is one of the symbols linked to it. This is
+  the table a symbol's card reads its meaning in this section from.
 
 The chapter's `equations` and `glossary` tables folded onto the concepts on
 2026-10-02, as their `forms` and `terms`. `concept` is optional on a
-variables row in the schema; a row without one is a warning, which
-`UNLINKED_ROWS_ARE_ERRORS` in `check.ts` turns into an error.
+variables row; a concept whose `symbol` no row linked to it carries is an
+error. A concept whose linked rows are all variants (C₁, C₂) has no `symbol`.
 
 Anchors at this level are qualified span ids, `16.1-hookes-law`, since a
 chapter file speaks about several sections.
@@ -355,8 +357,7 @@ references:
   introduces it;
 - `concept_prereqs` closes no loop: the concept map is a DAG (rule 6), and
   a loop is an error that names it, `a → b → c → a`;
-- every variables row names a concept (a warning until
-  `UNLINKED_ROWS_ARE_ERRORS` is set, then an error);
+- every concept's `symbol` is the `sym` of a variables row linked to it;
 - no two forms of the book share an id, and no two concepts a name; two
   concepts may share a glossary word, since the book glosses
   some words twice ("power" of a force and of a lens) and the reader's place

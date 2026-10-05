@@ -77,6 +77,7 @@ one `section.json` and neither the chapter's file nor the book's.
 ost add chemistry-2e coverage --section 1.4 \
   '{"span": "density", "concept": "volume", "verb": "uses"}'
 ost set chemistry-2e figures sim-density --section 1.4 '{"number": "1.26"}'
+ost set chemistry-2e variables 1.4/N --chapter 1 '{"concept": null}'
 ost del chemistry-2e coverage density/volume/uses --section 1.4
 ost add chemistry-2e concepts --chapter 1 \
   '{"id": "unit-conversion", "kind": "skill", "section": "1.4", "name": "Converting units", "statement": "…"}'
@@ -242,6 +243,20 @@ section, what their rows share across the book.
 python3 omnistax-content/tools/backfill_types.py --dry-run
 python3 omnistax-content/tools/backfill_types.py college-physics-2e chemistry-2e
 python3 omnistax-content/tools/backfill_types.py --move-symbol-types --dry-run
+```
+
+`apply_links.py` applies symbol link decisions. `links` takes one file per
+chapter, `{"book", "chapter", "rows": [{"i", "sym", "from", "to"}]}`, where `i`
+is the row's index in the chapter's variables and `to` the concept the symbol
+names, or null where it names none; it refuses a row whose sym or concept is
+not what the file says. `symbols` takes `symbols-<book-id>.json`,
+`{"<concept id>": "<sym>"}`, and sets each concept's symbol to its choice, else
+to its one linked sym, else keeps it where it is still linked, else clears it;
+it lists the concepts with several linked syms and no choice.
+
+```
+python3 omnistax-content/tools/apply_links.py links links/ --dry-run
+python3 omnistax-content/tools/apply_links.py symbols links/symbols-chemistry-2e.json
 ```
 
 ## The checker
