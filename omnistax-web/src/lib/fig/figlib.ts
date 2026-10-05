@@ -1832,8 +1832,8 @@ const detentLabel = (d: Detent): string => (typeof d === 'number' ? '' : d.label
 const gapsOf = (ds: readonly Detent[]): readonly number[] => ds.map(detentValue).slice(1).map((v, i) => v - detentValue(ds[i]));
 /* A step that already walks the detents snaps by itself; anything finer snaps only if asked. */
 const snapsByDefault = (ds: readonly Detent[], step: number): boolean => { const g = gapsOf(ds); return g.length > 0 && g.every((x) => Math.abs(x - step) < 1e-9); };
-/* a third of the closest gap between detents, but never more than a twenty-fifth of the track: detents far apart would otherwise swallow most of the slider */
-const snapReach = (ds: readonly Detent[], o: CtlOpts): number => { const g = gapsOf(ds).map(Math.abs).filter((x) => x > 0); return Math.min(0.34 * (g.length ? Math.min(...g) : (o.max - o.min) * 0.2), 0.04 * (o.max - o.min)); };
+/* a third of the closest gap between detents, but never more than a fortieth of the track: detents far apart would otherwise swallow most of the slider */
+const snapReach = (ds: readonly Detent[], o: CtlOpts): number => { const g = gapsOf(ds).map(Math.abs).filter((x) => x > 0); return Math.min(0.34 * (g.length ? Math.min(...g) : (o.max - o.min) * 0.2), 0.025 * (o.max - o.min)); };
 function nearestDetent(ds: readonly Detent[], x: number, reach: number): number | null {
   const best = ds.map(detentValue).reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a));
   return Math.abs(best - x) <= reach ? best : null;
