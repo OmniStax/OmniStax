@@ -119,7 +119,7 @@ TABLES: dict[TableName, Table] = {
     "figures": Table("section", ("id",), {
         "id": _f(True), "kind": _f(True, enum=FIGURE), "number": _f(), "folds": _f(kind="list"),
         "originals": _f(kind="list"), "original_caption": _f(), "widths": _f(kind="list"),
-        "draws": _f(kind="list"), "facts": _f(kind="list"), "conventions": _f(kind="list")},
+        "draws": _f(kind="list"), "facts": _f(kind="list"), "conventions": _f(kind="list"), "ai": _f(kind="list")},
         ("id", "kind", "number", "folds", "draws", "facts", "conventions")),
     "referents": Table("section", ("id",), {
         "id": _f(True), "label": _f(True), "figures": _f(True, kind="list")}, ("id", "label", "figures"),

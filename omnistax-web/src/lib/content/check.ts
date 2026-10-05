@@ -382,6 +382,14 @@ export const checkFigures: Check = (content) =>
     ];
   });
 
+/* A figure the AI made keeps its own `ai`, one entry per model and pass saying what it did, and its mark
+   names them; a row without the list falls back to the section's `ai.figures`, which cannot tell the reader
+   which model did which part. A section with no `ai.figures` drew nothing of its own and is not asked. */
+export const checkFigureAi: Check = (content) =>
+  pagesOf(content).flatMap((s) => (s.dto.ai?.figures.length ? s.dto.figures : [])
+    .filter((f) => f.kind !== 'photo' && f.ai === undefined)
+    .map((f) => warning(inSection(s, 'figures', f.id), 'keeps no ai of its own, so its mark names only the section’s ai.figures')));
+
 /* The book says how wide it prints an image, as the width attribute of the
    CNXML <image>, and a row keeps that in `widths`: one number per image the
    row shows, in the order it shows them, or nothing where the book gives none.
@@ -634,7 +642,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

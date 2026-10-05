@@ -241,14 +241,20 @@ export const parseAiMakers = (prose: string): readonly AiMakerDTO[] => {
   return (unique.length ? unique : ['claude-opus-5']).map((model) => ({ model }));
 };
 /* One part's makers, the first the principal: a list of models with their effort, or the old prose. */
-const AiPartSchema = z.union([z.array(AiMakerSchema).min(1), z.string().transform(parseAiMakers)]);
+const AiMakersSchema = z.union([z.array(AiMakerSchema).min(1), z.string().transform(parseAiMakers)]);
 
 /* The AI a section was built with, by role: the models that transformed the text, and the models that built the simulations. */
 export const AiCreditSchema = z.object({
-  text: AiPartSchema.describe('The models that transformed the section\u2019s text, the principal first.'),
-  figures: AiPartSchema.describe('The models that built the section\u2019s simulations, the principal first.'),
+  text: AiMakersSchema.describe('The models that transformed the section\u2019s text, the principal first.'),
+  figures: AiMakersSchema.describe('The models that built the section\u2019s simulations, the principal first.'),
 }).strict();
 export type AiCreditDTO = z.infer<typeof AiCreditSchema>;
+
+/* One model's share of one figure: the model, its effort, and what it did there. */
+export const AiPartSchema = AiMakerSchema.extend({
+  part: z.string().trim().min(1).max(80).describe('What the model did to the figure, in a few words: "scene, controls and readout", "hand and outline", "built".'),
+}).strict();
+export type AiPartDTO = z.infer<typeof AiPartSchema>;
 
 export const FigureSchema = z.object({
   id: z.string().describe('The figure\u2019s local id, which is the id the <figure> element carries in the section\u2019s text.'),
@@ -261,6 +267,7 @@ export const FigureSchema = z.object({
   draws: z.array(TYPE_REF).default([]).describe('The types the figure colours. The default colours keep these types apart from one another and from the page\u2019s other colours.'),
   conventions: z.array(z.string()).default([]).describe('The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0\u2026). The default colours keep the types apart from these on the page.'),
   facts: z.array(z.string().regex(/^(#[0-9a-fA-F]{6}|spectrum)$/)).default([]).describe('The colours the figure draws as the fact (`F.fact`), each as #rrggbb, or "spectrum" for a figure that draws a run of real colours, which is not weighed. The default colours keep the types apart from these on the page.'),
+  ai: z.array(AiPartSchema).min(1).optional().describe('The models that made the figure, one entry per model and pass in the order they worked, each saying what it did. The figure\u2019s AI mark names them on hover; a figure without the list takes the section\u2019s `ai.figures`.'),
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;
 

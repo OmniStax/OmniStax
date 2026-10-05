@@ -16,7 +16,7 @@ const GLYPH =
 
 const STYLE = 'display:inline-block;width:1.05em;height:1.05em;line-height:0;margin-left:0.3em;vertical-align:-0.16em;opacity:0.55';
 
-const attr = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const attr = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/\n/g, '&#10;');
 
 export const aiMarkHtml = (byline?: string): string => {
   const label = attr(byline ?? AI_MARK_LABEL);

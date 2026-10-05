@@ -176,7 +176,7 @@ was the `notes` of the old `exercises.json`).
 Tables:
 
 - `figures`: `{ id, kind, number?, folds?, originals?, original_caption?,
-  widths?, draws }`. `kind` is `sim` (an interactive figure), `figure` (a faithful
+  widths?, draws, ai? }`. `kind` is `sim` (an interactive figure), `figure` (a faithful
   copy that serves exercises) or `photo`. The kind names the mechanism and
   the label follows from the number: a `sim` row with no number is a Sim,
   an interactive figure that replaces nothing in the book, and its
@@ -193,7 +193,14 @@ Tables:
   same facts as `data-*` attributes for the browser (a photograph's
   `<img data-width>`, a figure's `data-original-width`, comma-separated
   in the order of `data-original`); the validator checks that the two
-  agree until the build injects them.
+  agree until the build injects them. `ai` is who made the figure,
+  `[{ model, effort?, part }]`, one entry per model and pass in the order
+  they worked, `part` saying in a few words (at most 80 characters) what
+  it did: "scene, controls and readout", "hand and outline", "built" for
+  a whole figure. The figure's AI mark names each on a line of its hover;
+  a row without it takes the section's `ai.figures`, and the validator
+  warns about every `sim` or `figure` row without it in a section whose
+  `ai.figures` is set.
 - `referents`: `{ id, label, figures }`. A particular thing that
   exists only in one example or figure (block 1 and block 2, Firm A and
   Firm B, the crank of one engine) and that the text and the figure both

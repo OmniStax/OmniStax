@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, UNLINKED_ROWS_ARE_ERRORS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -301,6 +301,12 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
    <img>) or data-original-width (a figure's originals, comma-separated); both are absent where the row is empty. */
 const photoText = (img: string) => `<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"${img}><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>`;
 const simText = (attr: string) => figureOf(`class="sim" id="sim-ruler" data-figure="16.2" data-original="/a.jpg,/b.jpg"${attr}`, 'Figure 16.2');
+test('checkFigureAi: a figure the AI made in a section with ai.figures keeps its own ai', () => {
+  const ai = { text: [{ model: 'claude-opus-5' }], figures: [{ model: 'claude-opus-5' }] };
+  assert.deepEqual(run(checkFigureAi), []);
+  assert.deepEqual(run(checkFigureAi, { section: { ai } }), ['16.1/section.json figures[sim-ruler]: keeps no ai of its own, so its mark names only the section’s ai.figures']);
+  assert.deepEqual(run(checkFigureAi, { section: { ai, figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', ai: [{ model: 'claude-opus-5', part: 'built' }] }] } }), []);
+});
 test('checkWidths: a row gives one width per image, and the text carries the same numbers', () => {
   const photo = (widths: readonly number[]) => ({ id: 'fig-guitar', kind: 'photo', number: '16.8', widths });
   assert.deepEqual(run(checkWidths, { section: { figures: [photo([])] }, textHtml: photoText('') }), []);

@@ -2,8 +2,8 @@
    The same markup goes into the full page and into doc.html, so the two
    cannot drift. Ids are qualified by section so two sections share a DOM. */
 import type { SectionSource } from './load';
-import type { BookDTO, ChapterDTO, FigureEntry } from './schema';
-import { aiByline, attributionOf, footerHtml } from './attribution';
+import type { BookDTO, ChapterDTO, FigureEntry, FigureRowDTO } from './schema';
+import { aiByline, aiPartsByline, attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
 import { ICON } from '../icons';
@@ -149,12 +149,20 @@ export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, Spa
 /* Every generated thing says so on itself. The head of a simulation carries the mark beside its
    eyebrow — "Sim" where the figure replaces nothing in the book, "Figure 1.6" where it transforms
    one — since both are built by the AI the section names in its footer, and the reader meets the
-   same glyph on the lead below and on a suggested approach in the exercises. A section whose
-   figures the book drew itself, which is a section with no ai.figures, is left unmarked. */
+   same glyph on the lead below and on a suggested approach in the exercises. A figure whose row
+   keeps its own `ai` names what each model did to it; any other takes the section's byline, and
+   a figure the book drew itself, in a section with no ai.figures, is left unmarked. The text's
+   ids are still local here, so a figure is found by its row's id. */
 const SIM_EYEBROW = /(<div\b[^>]*\bclass="[^"]*\bsim-head\b[^"]*"[^>]*>\s*<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?)<\/span>/g;
 /* The mark goes inside the eyebrow, not after it: the head lays its children out in a
    row of its own, and a mark of its own would drop to a line below the word. */
-export const markAiFigures = (html: string, byline?: string): string => html.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${aiMarkHtml(byline)}</span>`);
+export const markAiFigures = (html: string, byline: string | undefined, figures: readonly FigureRowDTO[]): string => {
+  const own = new Map(figures.flatMap((f) => (f.ai ? [[f.id, aiPartsByline(f.ai)] as const] : [])));
+  return html.replace(/<figure\b([^>]*)>[\s\S]*?<\/figure>/g, (figure, attrs: string) => {
+    const title = own.get(/\bid="([^"]+)"/.exec(attrs)?.[1] ?? '') ?? byline;
+    return title === undefined ? figure : figure.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${aiMarkHtml(title)}</span>`);
+  });
+};
 
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
 const footer = (book: BookDTO, s: SectionSource): string => footerHtml(attributionOf(book, s.meta));
@@ -202,7 +210,7 @@ const pageNav = (nav: PageNav): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
-  const marked = s.meta.ai?.figures ? markAiFigures(s.textHtml, aiByline(s.meta.ai.figures)) : s.textHtml;
+  const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures), s.figures);
   const body = lazyImages(sizeImages(qualifyIds(marked, s.meta.id))), summary = summaryBlock(s);
   const lead = s.meta.ai?.text ? `${s.meta.lead}${aiMarkHtml(aiByline(s.meta.ai.text))}` : s.meta.lead;
   return [
