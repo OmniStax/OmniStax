@@ -1418,7 +1418,7 @@ function personTop(ctx: Ctx, x: Logical, y: Logical, s = 1, heading = 0, color?:
   const L: Joint = { x: x + px * 24 * s, y: y + py * 24 * s }, R: Joint = { x: x - px * 24 * s, y: y - py * 24 * s };
   ctx.save(); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineCap = 'round'; ctx.lineWidth = 3;
   if (reach) for (const [sh, to] of [[L, reach[0]], [R, reach[1]]] as const) { ctx.lineWidth = 7 * Math.min(1, s); ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(to.x, to.y); ctx.stroke(); }
-  ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 26 * s, 11 * s, heading, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 26 * s, 11 * s, heading + Math.PI / 2, 0, Math.PI * 2); ctx.fill();   /* the lens lies across the heading, where the arms leave */
   ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.arc(x + ux * 3 * s, y + uy * 3 * s, 12 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.restore();
 }
