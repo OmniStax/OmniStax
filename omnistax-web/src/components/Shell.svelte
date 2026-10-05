@@ -33,6 +33,7 @@
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
   import Settings from './Settings.svelte';
+  import Sync from './Sync.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
   import Tooltip from './Tooltip.svelte';
@@ -59,6 +60,7 @@
   import { practice } from '../lib/practice/store.svelte';
   import { openPractice } from '../lib/practice/open.svelte';
   import { paint, setNoted } from '../lib/notes/paint';
+  import { sync } from '../lib/sync/store.svelte';
   import { offlineBooks } from '../lib/offline/store.svelte';
   import { registerOfflineWorker } from '../lib/offline/register';
 
@@ -130,6 +132,7 @@
     fileMarks.init();
     drawings.init();
     explorer.init();
+    sync.init();
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
@@ -343,6 +346,7 @@
     <div class="chord-hint" role="status">{#each chordKeys(keys.pending) as k, i}{i ? ' ' : ''}<kbd>{k}</kbd>{/each}{' …'}</div>
   {/if}
   <Settings />
+  {#if ui.sync}<Sync />{/if}
   <Hover />
   <Tooltip />
   <HighlightBar />

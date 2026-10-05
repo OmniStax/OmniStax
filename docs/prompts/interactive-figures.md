@@ -126,7 +126,7 @@ Type 22px for labels, 17px for ticks and notes, 24px for symbol labels, 26px for
 
 Motion: one loop takes 4 to 6 real seconds and holds about 1.2 s; slider changes call `reset()`; the library adds the transport and reduced-motion starts the figure stopped at t = T; a still figure calls no `cycle()` and registers `update: () => {}`, and its sliders need no `onInput`.
 
-Readout: `tex(d.readout, ...)` writes the equation with the current numbers through the `\k` macros; one line, with a second `small` line only for a fact the figure makes visible. Caption, headline and readout are full sentences in the book's voice saying what to drag and what to watch.
+Readout: `tex(d.readout, ...)` writes the equation with the current numbers through the `\k` macros; one line, with a second `small` line only for a fact the figure makes visible, and that line writes its symbols through the macros too (root rule 26.13). Caption, headline and readout are full sentences in the book's voice saying what to drag and what to watch. Headline, scene, controls, readout and note are not a form to fill: a part that would repeat another is left out, and a note that says what the caption or readout already says is dropped.
 
 ## 4. Archetypes
 

@@ -199,6 +199,7 @@ Every figure and simulation is drawn and moved in the house style, Manim's (`doc
 9. Font roles: the figure font (a reader setting) for everything read inside the frame, slider values and readout included; the body font for prose and captions; the sans for controls (buttons, slider names, choices, eyebrows).
 10. A serif figure font sets labels at regular weight; figure text never renders below the library's size floor.
 11. Degrees are written ° (U+00B0), never the ordinal º; the book's own text keeps what it prints.
+13. Headline, scene, controls, readout and note are the parts a simulation may have, not a form it fills in. A figure carries a part only where it says something the other parts do not: a note that repeats the headline, the caption or the readout is dropped, and a figure whose readout says it all has no note. What a note does say is set like the readout, its symbols through the macros, so it wears the type colours too.
 12. A slider track is never shorter than 120 px: where its name and value leave less, the track takes its own line under them (figlib does this as the pane resizes). A control a note may store takes a `key` when its class alone would not name it across edits.
 
 ## 27. What an agent reads before building

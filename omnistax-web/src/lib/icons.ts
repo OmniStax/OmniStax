@@ -46,6 +46,8 @@ export const ICON = {
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.3" fill="currentColor"/><circle cx="15" cy="6" r="1.3" fill="currentColor"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/><circle cx="9" cy="18" r="1.3" fill="currentColor"/><circle cx="15" cy="18" r="1.3" fill="currentColor"/></svg>',
   /* the pomodoro clock: the tomato the kitchen timer was shaped like, with its leaves and its stem, and the hand it counts down on */
   pomodoro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.8"/><path d="M8.5 5.2c1.1 1.1 2.2 1.6 3.5 1.6s2.4-.5 3.5-1.6"/><path d="M12 6.8V4"/></svg>',
+  /* GitHub sync: two arrows chasing each other round a circle, push one way and pull the other */
+  sync: '<svg viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1"/><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1"/><path d="M17.8 3.6v3.6h-3.6"/><path d="M6.2 20.4v-3.6h3.6"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
 } as const;
 export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };

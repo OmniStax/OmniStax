@@ -1,5 +1,5 @@
 /* Which shell dialog is open: the command palette, the Open browser, the
-   settings page or the floater that finds a textbook, never two at once.
+   settings page, the sync dialog or the floater that finds a textbook, never two at once.
    Commands open them, the Rail opens them, Escape and outside clicks close
    them. The browser walks the book for two reasons: to open what is picked, or
    to hand a place in the book back to whoever asked for one, which is what
@@ -19,24 +19,27 @@ class Ui {
   palette = $state.raw<PaletteState>(PALETTE_CLOSED);
   browser = $state.raw<BrowserState>(BROWSER_CLOSED);
   settings = $state(false);
+  sync = $state(false);
   findTextbook = $state(false);       /* the explorer's floater of books to add */
   spot = $state<Spot | null>(null);
   spotFrom = $state.raw<HTMLElement | null>(null);   /* the words that named it */
 
   /* `group` is the document group a section should open into (the "+" on a tab strip passes its own). */
-  openPalette(query = '', opts: { group?: number } = {}): void { this.settings = false; this.closeBrowser(); this.palette = { open: true, query, group: opts.group ?? null }; }
+  openPalette(query = '', opts: { group?: number } = {}): void { this.settings = false; this.sync = false; this.closeBrowser(); this.palette = { open: true, query, group: opts.group ?? null }; }
   closePalette(): void { if (this.palette.open) this.palette = PALETTE_CLOSED; }
   togglePalette(query = ''): void { if (this.palette.open) this.closePalette(); else this.openPalette(query); }
   /* `pick` turns the tree into a picker: nothing is opened, the place the reader lands on is handed back. */
-  openBrowser(opts: { group?: number; pick?: (t: Target) => void } = {}): void { this.settings = false; this.closePalette(); this.browser = { open: true, group: opts.group ?? null, mode: opts.pick ? 'pick' : 'open', onPick: opts.pick ?? null }; }
+  openBrowser(opts: { group?: number; pick?: (t: Target) => void } = {}): void { this.settings = false; this.sync = false; this.closePalette(); this.browser = { open: true, group: opts.group ?? null, mode: opts.pick ? 'pick' : 'open', onPick: opts.pick ?? null }; }
   closeBrowser(): void { if (this.browser.open) this.browser = BROWSER_CLOSED; }
   toggleBrowser(): void { if (this.browser.open) this.closeBrowser(); else this.openBrowser(); }
-  openSettings(): void { this.closePalette(); this.closeBrowser(); this.closeFindTextbook(); this.settings = true; }
+  openSettings(): void { this.closePalette(); this.closeBrowser(); this.closeFindTextbook(); this.sync = false; this.settings = true; }
   toggleSettings(): void { if (this.settings) this.settings = false; else this.openSettings(); }
-  openFindTextbook(): void { this.closePalette(); this.closeBrowser(); this.settings = false; this.findTextbook = true; }
+  openSync(): void { this.closePalette(); this.closeBrowser(); this.closeFindTextbook(); this.settings = false; this.sync = true; }
+  toggleSync(): void { if (this.sync) this.sync = false; else this.openSync(); }
+  openFindTextbook(): void { this.closePalette(); this.closeBrowser(); this.settings = false; this.sync = false; this.findTextbook = true; }
   closeFindTextbook(): void { this.findTextbook = false; }
   toggleFindTextbook(): void { if (this.findTextbook) this.closeFindTextbook(); else this.openFindTextbook(); }
-  closeAll(): void { this.closePalette(); this.closeBrowser(); this.settings = false; this.findTextbook = false; }
-  get anyOpen(): boolean { return this.palette.open || this.browser.open || this.settings || this.findTextbook; }
+  closeAll(): void { this.closePalette(); this.closeBrowser(); this.settings = false; this.sync = false; this.findTextbook = false; }
+  get anyOpen(): boolean { return this.palette.open || this.browser.open || this.settings || this.sync || this.findTextbook; }
 }
 export const ui = new Ui();
