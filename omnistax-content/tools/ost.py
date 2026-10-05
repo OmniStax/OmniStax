@@ -168,6 +168,10 @@ def validate(table: Table, row: RowDTO) -> None:
     for name, field in table.fields.items():
         if field.required and row.get(name) in (None, "", []):
             raise Refused(f"field {name!r} is required")
+    for maker in row.get("ai") or []:   # the app's schema caps a figure maker's part at 80 characters, and a longer one fails every page of the book
+        part = maker.get("part", "") if isinstance(maker, dict) else ""
+        if len(part) > 80:
+            raise Refused(f"ai part {part[:30]!r}… is {len(part)} characters; at most 80")
     if "answer" in table.fields and isinstance(row.get("answer"), dict):
         validate_answer(row["answer"])
 
