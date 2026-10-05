@@ -784,6 +784,24 @@ def cmd_write(args: argparse.Namespace) -> int:
     return report_write(book.id, place.label)
 
 
+SECTION_FIELDS = ("lead", "ai", "summary_html")
+
+
+def cmd_field(args: argparse.Namespace) -> int:
+    """A section's own scalar field: `ost field <book> --section N.M lead '<p>…</p>'`, or `ai '{"text":[…],"figures":[…]}'`.
+    A string value is taken as written; anything else is JSON."""
+    if args.name not in SECTION_FIELDS:
+        raise Refused(f"{args.name} is not a section field ost writes; one of {', '.join(SECTION_FIELDS)}")
+    book = book_of(args.book)
+    path = section_path(book, args.section)
+    record = load(path)
+    value = args.value if args.name in ("lead", "summary_html") else json.loads(args.value)
+    record[args.name] = value
+    write_record(path, record)
+    print(f"field: {args.section} {args.name} set")
+    return report_write(book.id, args.section)
+
+
 def staged_path(book: Book, chapter: ChapterDir) -> str:
     return os.path.join(book.dir, chapter, "book-rows.json")
 
@@ -993,6 +1011,12 @@ def parser() -> argparse.ArgumentParser:
             w.add_argument("--unset", action="append", default=[], metavar="FIELD",
                            help="take a field out of the row; repeat for more")
 
+    field = subs.add_parser("field", help="set one of a section's own fields: lead, ai, summary_html")
+    field.add_argument("book")
+    field.add_argument("name", help="lead, ai or summary_html")
+    field.add_argument("value", help="the text of a lead or summary_html; JSON for ai")
+    field.add_argument("--section", required=True)
+
     for name in ("merge", "log"):
         m = subs.add_parser(name, help=f"mergebook's {name}, under the same lock")
         m.add_argument("book")
@@ -1010,7 +1034,7 @@ def parser() -> argparse.ArgumentParser:
 
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "books": cmd_books, "show": cmd_show, "rows": cmd_rows, "find": cmd_find, "meanings": cmd_meanings,
-    "add": cmd_write, "set": cmd_write, "del": cmd_write,
+    "add": cmd_write, "set": cmd_write, "del": cmd_write, "field": cmd_field,
     "merge": cmd_merge, "log": cmd_log, "check": cmd_check, "ids": cmd_ids,
 }
 
