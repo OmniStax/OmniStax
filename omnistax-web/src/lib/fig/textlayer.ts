@@ -8,8 +8,9 @@ export type Px = number;                      /* CSS pixels in the canvas's own 
 export type Em = number;                      /* a length in the glyph's own font size */
 export type Matrix = { readonly a: number; readonly b: number; readonly c: number; readonly d: number; readonly e: number; readonly f: number };
 export type Align = 'left' | 'center' | 'right';
-/* a piece of one string: a subscript run or plain text, and the glow a changed number carries (0 for none) */
-export type Piece = { readonly s: string; readonly sub: boolean; readonly lit: number };
+/* a piece of one string: a subscript run, plain text or a TeX run (`html` holds KaTeX's setting of
+   the source in `s`), and the glow a changed number carries (0 for none) */
+export type Piece = { readonly s: string; readonly sub: boolean; readonly lit: number; readonly html?: string };
 export type Glyph = {
   readonly pieces: readonly Piece[];
   readonly x: Px; readonly y: Px;             /* the anchor: the point the canvas's align and baseline refer to */
@@ -48,7 +49,7 @@ export function styleOf(g: Glyph, top: Em): Style {
   const turn = g.rot ? ` rotate(${round(g.rot)}rad)` : '';
   return {
     text: g.pieces.map((p) => p.s).join('\u0001'),
-    shape: g.pieces.map((p) => (p.sub ? '_' : '.')).join(''),
+    shape: g.pieces.map((p) => (p.html !== undefined ? '$' : p.sub ? '_' : '.')).join(''),
     transform: `translate(${round(g.x)}px,${round(g.y)}px)${turn} translate(${SHIFT[g.align]}%,${round(top)}em)`,
     font: `${g.italic ? 'italic ' : ''}${g.weight} ${round(shownSize(g.size))}px/1 var(--figure)`,
     color: g.color, opacity: g.alpha >= 1 ? '' : String(round(g.alpha)),
@@ -115,13 +116,20 @@ function layerOf(c: HTMLCanvasElement): Layer {
   c.after(el);
   const l: Layer = { el, shown: [], box: '' }; layers.set(c, l); return l;
 }
+const texSet = new WeakMap<HTMLElement, string>();
 function fill(span: HTMLElement, g: Glyph, rebuild: boolean): void {
   const drop = subDrop(g.base) / SUB;
-  if (rebuild) span.replaceChildren(...g.pieces.map((p) => { const e = document.createElement('span'); if (p.sub) e.className = 'sub'; return e; }));
+  if (rebuild) span.replaceChildren(...g.pieces.map((p) => {
+    const e = document.createElement('span');
+    if (p.sub) e.className = 'sub';
+    if (p.html !== undefined) e.className = 'tex';
+    return e;
+  }));
   const kids = span.children as HTMLCollectionOf<HTMLElement>;
   g.pieces.forEach((p, i) => {
     const e = kids[i]; if (!e) return;
-    if (e.textContent !== p.s) e.textContent = p.s;
+    if (p.html !== undefined) { if (texSet.get(e) !== p.html) { e.innerHTML = p.html; texSet.set(e, p.html); } }
+    else if (e.textContent !== p.s) e.textContent = p.s;
     const bg = litOf(p.lit); if (e.style.backgroundColor !== bg) e.style.backgroundColor = bg;
     if (p.sub) { const top = `${round(drop)}em`; if (e.style.top !== top) e.style.top = top; }
   });
@@ -177,20 +185,43 @@ export function syncLayers(): void {
   layers.forEach((l, c) => { if (c.isConnected) { sync(c, l); return; } l.el.remove(); layers.delete(c); });
 }
 
+/* ---------- TeX runs ----------
+   A run's width, which a headline wraps by, is read once per setting from a hidden span and kept. */
+const texEms = new Map<string, Em>();
+let texProbe: HTMLElement | null = null;
+export function texEm(html: string): Em {
+  const got = texEms.get(html); if (got !== undefined) return got;
+  if (typeof document === 'undefined') return 0;
+  if (!texProbe?.isConnected) {
+    const host = document.createElement('div'); host.className = 'fig-text'; host.setAttribute('aria-hidden', 'true');
+    Object.assign(host.style, { visibility: 'hidden', left: '-9999px', top: '0' });
+    texProbe = host.appendChild(document.createElement('span')); texProbe.style.font = '400 100px/1 var(--figure)';
+    document.body.appendChild(host);
+  }
+  texProbe.innerHTML = `<span class="tex">${html}</span>`;
+  const w = (texProbe.firstElementChild?.getBoundingClientRect().width ?? 0) / 100;
+  if (texEms.size > 2000) texEms.clear();
+  texEms.set(html, w); return w;
+}
+/* a face that lands changes every width read before it */
+export const forgetTex = (): void => texEms.clear();
+const plainTex = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
+
 /* ---------- a picture of the canvas with its text ---------- */
 /* Paints what the canvas's layer shows into another context, the canvas's CSS box scaled by k:
    a snapshot of a figure carries its labels. */
 export function paintText(c: HTMLCanvasElement, ctx: CanvasRenderingContext2D, k: number): void {
   (drawn.get(c) ?? []).forEach((g) => {
     const size = shownSize(g.size), font = (sub: boolean): string => `${g.italic ? 'italic ' : ''}${g.weight} ${sub ? Math.max(SUB_FLOOR, size * SUB) : size}px ${g.family}`;
-    const widths = g.pieces.map((p) => { ctx.font = font(p.sub); return ctx.measureText(p.s).width; });
+    const shown = g.pieces.map((p) => (p.html !== undefined ? plainTex(p.s) : p.s));
+    const widths = g.pieces.map((p, i) => { ctx.font = font(p.sub); return ctx.measureText(shown[i]).width; });
     const total = widths.reduce((a, b) => a + b, 0);
     ctx.save();
     ctx.translate(g.x * k, g.y * k); ctx.rotate(g.rot); ctx.scale(k, k);
     ctx.globalAlpha = g.alpha; ctx.fillStyle = g.color; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     let x = (SHIFT[g.align] / 100) * total;
     const y = g.base * size;
-    g.pieces.forEach((p, i) => { ctx.font = font(p.sub); ctx.fillText(p.s, x, p.sub ? y + subDrop(g.base) * size : y); x += widths[i]; });
+    g.pieces.forEach((p, i) => { ctx.font = font(p.sub); ctx.fillText(shown[i], x, p.sub ? y + subDrop(g.base) * size : y); x += widths[i]; });
     ctx.restore();
   });
 }

@@ -5,11 +5,13 @@
   import type { MenuEntry } from '../../lib/chat/settings';
   import type { ChatId } from '../../lib/types/ids';
 
-  let { chatId }: { chatId: ChatId } = $props();
+  /* In a chat the menu reads and writes the chat's pick; elsewhere the holder
+     hands it `pick` and hears the choice through `onchoose`. */
+  let { chatId, pick: held, onchoose }: { chatId?: ChatId; pick?: ModelPick | null; onchoose?: (pick: ModelPick) => void } = $props();
 
   let open = $state(false);
   let host = $state<HTMLElement | null>(null);
-  const pick = $derived<ModelPick | null>(chats.get(chatId)?.pick ?? ai.last);
+  const pick = $derived<ModelPick | null>(held !== undefined ? held ?? ai.last : (chatId ? chats.get(chatId)?.pick : null) ?? ai.last);
   const groups = $derived(ai.menu);
 
   /* Settings opened from here must not be shut again by the shell's own
@@ -18,7 +20,7 @@
     ev.stopPropagation();
     open = false;
     if (!e.ready) { openSettingsAt(e.pick.provider); return; }
-    chats.choosePick(chatId, e.pick);
+    if (onchoose) onchoose(e.pick); else if (chatId) chats.choosePick(chatId, e.pick);
   };
 
   $effect(() => {

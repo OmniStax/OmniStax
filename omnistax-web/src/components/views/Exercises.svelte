@@ -38,6 +38,10 @@
   import type { ChapterEntry, SectionEntry } from '../../lib/content/schema';
   import { mathHtml } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
+  import RoundPlan from '../practice/RoundPlan.svelte';
+  import PastSessions from '../practice/PastSessions.svelte';
+  import ExercisesByConcept from '../practice/ExercisesByConcept.svelte';
+  import { fillGaps } from '../../lib/practice/ai.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import type { ItemKey } from '../../lib/layout/model';
@@ -151,7 +155,7 @@
     const needle = q.trim().toLowerCase();
     if (!needle) return [];
     return shelf.flatMap((id) => practice.conceptsIn(id)
-      .filter((c) => c.status === 'built' && practice.available(c.id) > 0 && (plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)))
+      .filter((c) => c.status === 'built' && (practice.settings.generated === 'include' || practice.available(c.id) > 0) && (plain(c.name).toLowerCase().includes(needle) || c.id.includes(needle)))
       .map((c) => ({ c, book: id })))
       .slice(0, FOUND);
   });
@@ -161,18 +165,32 @@
 
   const choice = $derived(sumOf(page.curriculum));
   const plan = $derived(practice.plan(item));
+  const gapTotal = $derived(Object.values(plan.quotas).reduce((n, q) => n + q.gap, 0));
+  const startCount = $derived(plan.drawn.length + gapTotal);
   const choiceLine = $derived(
     page.curriculum.length === 0 ? 'Nothing chosen yet.'
       : `${choice.concepts === 1 ? '1 concept' : `${choice.concepts} concepts`} in ${choice.exercises === 1 ? '1 exercise' : `${choice.exercises} exercises`}.`,
   );
   const why = $derived(
     page.curriculum.length === 0 ? 'Tick a chapter, section or concept above to build a session.'
-      : choice.exercises === 0 ? 'Your choice has no exercises yet. Pick another part of the book or a concept.'
+      : choice.exercises === 0 && startCount === 0 ? 'Your choice has no exercises yet. Pick another part of the book or a concept.'
         : '',
   );
   let note = $state('');
   const NOTHING = 'No exercises left for now. Choose more of the book or try again later.';
-  const begin = (): void => { note = practice.start(item) ? '' : NOTHING; };
+  /* A round with gaps waits for its generated exercises; one without starts at once. */
+  let line = $state('');
+  let preparing = $state(false);
+  const begin = async (): Promise<void> => {
+    if (preparing) return;
+    if (gapTotal === 0) { note = practice.start(item) ? '' : NOTHING; return; }
+    preparing = true; note = '';
+    try {
+      const filled = await fillGaps(item, (l) => (line = l), new AbortController().signal);
+      note = practice.start(item, Date.now(), filled.extra) ? filled.notice : filled.notice || NOTHING;
+    } catch (e) { note = e instanceof Error ? e.message : String(e); }
+    finally { preparing = false; line = ''; }
+  };
   const diagnostic = $derived.by(() => {
     if (!plan.concepts.length) return '';
     const verb = plan.shortages ? 'Attempted' : 'Enrolled';
@@ -570,6 +588,8 @@
         {/each}
       </div>
     </section>
+    <PastSessions />
+    <ExercisesByConcept {shelf} />
   </div>
 
 {:else if page.face === 'choose'}
@@ -656,6 +676,7 @@
           </ul>
         {/if}
       </section>
+      <RoundPlan {item} {plan} {line} />
       <div class="round-settings">
         <div class="seg" role="radiogroup" aria-label="Exercise order">
           <button type="button" class:on={practice.settings.order === 'mixed'} role="radio" aria-checked={practice.settings.order === 'mixed'} onclick={() => practice.setSetting('order', 'mixed')}>Mixed</button>
@@ -667,7 +688,7 @@
       {#if why}<p class="quiet">{why}</p>{/if}
       {#if note}<p class="quiet">{note}</p>{/if}
       <div class="acts">
-        <button type="button" class="btn go" disabled={plan.drawn.length === 0} onclick={begin}>Start {plan.drawn.length}</button>
+        <button type="button" class="btn go" disabled={startCount === 0 || preparing} onclick={begin}>{preparing ? 'Preparing…' : `Start ${startCount}`}</button>
         <span class="diagnostic">{diagnostic}</span>
         <button type="button" class="btn" onclick={() => practice.dashboard(item)}>Return to Dashboard</button>
       </div>
@@ -676,6 +697,7 @@
 
 {:else if page.face === 'practise' && session}
   <div class="practise">
+    {#if note}<p class="quiet">{note}</p>{/if}
     {#if page.showAll}
       <div class="all-head"><button type="button" class="btn" onclick={() => practice.setShowAll(item, false)}>Show one at a time</button></div>
       <div class="all-list" bind:this={allRoot}>

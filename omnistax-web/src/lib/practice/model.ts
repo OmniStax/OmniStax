@@ -2,10 +2,13 @@
    evidence into attainment, freshness, and a fixed round of exercises. */
 import type { ExerciseDTO, ConceptDTO } from '../content/schema';
 import type { SectionId, ConceptId } from '../types/ids';
+import type { ModelPick } from '../chat/providers/index';
 
 export const DAY = 86_400_000;
 
 export type PracticeOrder = 'mixed' | 'grouped';
+export type GeneratedMode = 'include' | 'book-only';
+export type Grading = 'reveal' | 'ai';
 export type PracticeSettings = {
   readonly masteryTarget: number;
   readonly freshnessDecay: boolean;
@@ -13,10 +16,17 @@ export type PracticeSettings = {
   readonly maxHalfLife: number;
   readonly order: PracticeOrder;
   readonly includeFresh: boolean;
+  readonly generated: GeneratedMode;
+  readonly grading: Grading;
+  readonly promptNote: string;
+  readonly fresh: boolean;
+  /* The one model that writes generated exercises and grades answers. */
+  readonly model: ModelPick | null;
 };
 export const DEFAULT_SETTINGS: PracticeSettings = {
   masteryTarget: 3, freshnessDecay: true, startingHalfLife: 3,
   maxHalfLife: 240, order: 'mixed', includeFresh: false,
+  generated: 'include', grading: 'reveal', promptNote: '', fresh: false, model: null,
 };
 
 export type Attempt = {
@@ -201,19 +211,41 @@ export const availabilityOf = (cat: Catalog): Readonly<Record<string, number>> =
   return Object.fromEntries(Object.entries(sets).map(([id, keys]) => [id, keys.size]));
 };
 
+/* What a round asks per concept, set on the Choose face and kept on the page:
+   the default for every concept and the rows the reader changed. */
+export type RoundChoice = { readonly perConcept?: number; readonly wanted?: Readonly<Record<string, number>> };
+export const MAX_WANTED = 9;
+/* How many a concept wants this round, how many of those the book can give,
+   and the gap generated exercises fill. Book only caps the wish at the book. */
+export type Quota = { readonly wanted: number; readonly book: number; readonly gap: number };
+export const quotaOf = (id: string, bookAvailable: number, s: PracticeSettings, round: RoundChoice = {}): Quota => {
+  const asked = clamp(Math.round(round.wanted?.[id] ?? round.perConcept ?? s.masteryTarget), 0, MAX_WANTED);
+  const book = Math.min(asked, bookAvailable);
+  return s.generated === 'include' ? { wanted: asked, book, gap: asked - book } : { wanted: book, book, gap: 0 };
+};
+
 export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'new' | 'unanswered' | 'review' };
-export type RoundPlan = { readonly drawn: readonly Drawn[]; readonly concepts: readonly string[]; readonly shortages: number; readonly sharedConcepts: number; readonly target: number };
+export type RoundPlan = {
+  readonly drawn: readonly Drawn[]; readonly concepts: readonly string[]; readonly shortages: number; readonly sharedConcepts: number; readonly target: number;
+  readonly quotas: Readonly<Record<string, Quota>>;
+};
 const bloomRank = (b: string): number => ({ remember: 0, understand: 1, apply: 2, analyze: 3, analyse: 3, evaluate: 4, create: 5 }[b.toLowerCase()] ?? 2);
 const positionsOf = (cat: Catalog): ReadonlyMap<string, number> => new Map(cat.exercises.map((e, i) => [keyOf(e), i]));
 type Candidate = CatalogExercise & { readonly key: string; readonly tier: number; readonly last: number; readonly pos: number };
 
 export const prepare = (
   curriculum: Curriculum, mastery: Mastery, cat: Catalog, attempts: readonly Attempt[], shown: readonly Presentation[],
-  settings: PracticeSettings, now: number,
+  settings: PracticeSettings, now: number, round: RoundChoice = {}, extra: readonly CatalogExercise[] = [],
 ): RoundPlan => {
-  const available = availabilityOf(cat), selected = [...conceptsOf(curriculum, cat)].filter((id) => (available[id] ?? 0) > 0);
-  const eligible = selected.filter((id) => { const r = mastery[id]; return !r?.mastered || settings.includeFresh || freshnessOf(r, settings, now).due; });
-  const target = Math.max(1, Math.round(settings.masteryTarget)), quotas = new Map(eligible.map((id) => [id, Math.min(target, available[id] ?? 0)] as const));
+  const available = availabilityOf(cat), generating = settings.generated === 'include';
+  const selected = [...conceptsOf(curriculum, cat)].filter((id) => generating || (available[id] ?? 0) > 0);
+  const target = clamp(Math.round(round.perConcept ?? settings.masteryTarget), 0, MAX_WANTED);
+  const quota = new Map(selected.map((id) => [id, quotaOf(id, available[id] ?? 0, settings, round)] as const));
+  const eligible = selected.filter((id) => { const r = mastery[id]; return (quota.get(id)?.wanted ?? 0) > 0 && (!r?.mastered || settings.includeFresh || freshnessOf(r, settings, now).due); });
+  const extraFor = indexBy(extra, (e) => e.ex.concepts);
+  /* What each concept is held to when redundant picks are let go: its book
+     share and whatever generated items stand in for the rest. */
+  const quotas = new Map(eligible.map((id) => { const q = quota.get(id)!; return [id, Math.min(q.wanted, q.book + (extraFor.get(id)?.length ?? 0))] as const; }));
   const positions = positionsOf(cat), lastShown = new Map<string, number>(), lastAttempt = new Map<string, number>();
   shown.forEach((p) => lastShown.set(keyOf(p), Math.max(lastShown.get(keyOf(p)) ?? 0, p.at)));
   attempts.forEach((a) => lastAttempt.set(keyOf(a), Math.max(lastAttempt.get(keyOf(a)) ?? 0, a.at)));
@@ -226,7 +258,8 @@ export const prepare = (
      concepts does not each walk the whole pool. */
   const byConcept = indexBy(pool, (e) => e.ex.concepts);
   const chosen = new Map<string, Candidate>();
-  eligible.forEach((id) => [...(byConcept.get(id) ?? [])].sort(compare(id)).slice(0, quotas.get(id)).forEach((e) => chosen.set(e.key, e)));
+  eligible.forEach((id) => [...(byConcept.get(id) ?? [])].sort(compare(id)).slice(0, quota.get(id)?.book).forEach((e) => chosen.set(e.key, e)));
+  extra.forEach((e, i) => { const key = keyOf(e); chosen.set(key, { ...e, key, tier: 0, last: 0, pos: positions.size + i }); });
   /* How many of the chosen each concept stands in, kept as they are let go. */
   const counts = new Map<string, number>();
   chosen.forEach((e) => new Set(e.ex.concepts).forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1)));
@@ -260,7 +293,8 @@ export const prepare = (
   minimal.forEach((e) => { const ids = e.ex.concepts.filter((id) => quotas.has(id)); if (ids.length > 1) ids.forEach((id) => shared.add(id)); });
   return {
     drawn: minimal.map((e) => ({ book: e.book, section: e.section, ex: e.ex, why: e.tier === 0 ? 'new' : e.tier === 1 ? 'unanswered' : 'review' })),
-    concepts: eligible, shortages: eligible.filter((id) => (available[id] ?? 0) < target).length, sharedConcepts: shared.size, target,
+    concepts: eligible, shortages: eligible.filter((id) => (available[id] ?? 0) < (quota.get(id)?.wanted ?? 0)).length, sharedConcepts: shared.size, target,
+    quotas: Object.fromEntries(eligible.map((id) => [id, quota.get(id)!])),
   };
 };
 

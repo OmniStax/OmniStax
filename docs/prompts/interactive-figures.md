@@ -35,7 +35,8 @@ The logical canvas is 1400 units wide; `begin()` scales it. Primitives, all in l
 line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
 measure(ctx,s,{size=22,weight}) -> width  the width text() gives s, subscripts included; never set ctx.font to measure
-headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count
+headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count; a $…$ run is set
+                                          as TeX under the figure's macros (\k symbols wear their colours), and v.headline does the same
 label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
 hbracket(ctx,x1,x2,y,color,label,{side})  vbracket(ctx,x,y1,y2,color,label,side,{side})  label clamped when the span is short
 note(ctx,box,text,avoid) -> box           a sentence in whichever corner of a graph box the forbidden boxes leave clear
@@ -75,6 +76,10 @@ rowboat(ctx,x,y,s,heading,color)          seen from above, about 64 by 66 at s =
 sailboat(ctx,x,y,s,color)                 waterline at (x, y), about 78 by 76 at s = 1
 skydiver(ctx,x,y,s,color)                 spread-eagled and seen from below, about 92 by 112 at s = 1
 fist(ctx,x,y,ux,uy,s,color)               a gripping hand on a forearm; (x, y) is the grip, (ux, uy) the way the forearm runs back
+hand(ctx,x,y,{aim,view,curl,thumb,right,s,color,ink})   the library's hand, wrist at (x, y), fingers along aim [dx,dy], about 110
+                                          wrist to fingertip at s = 1; view 'palm' | 'back' | 'side' (the palm faces aim turned a quarter
+                                          clockwise); curl 0 straight to 1 closed; thumb 'up' (across the fingers), 'along' or 'out' (of the
+                                          palm); right false mirrors it; outlined in ink, filled at half opacity; a figure never draws its own
 cart(ctx,x,y,w,h,color)                   a block w by h on two wheels, the wheels standing on y + h / 2 + 2 r
 personTop(ctx,x,y,s,heading,color,reach)  head and shoulders from above, about 56 by 26 at s = 1; reach is the two points the hands hold
 motorcycle(ctx,x,y,s,color)               side view facing right, (x, y) the rear hub, about 330 by 200 at s = 1
@@ -108,6 +113,10 @@ F.mesh.sphere(g,p,r,color,extra)   F.mesh.stick(g,a,b,r,color,extra) / setStick(
 F.mesh.bond(g,a,b,order,r,color)   F.mesh.lobe(g,from,dir,len,color) / setLobe(m,from,dir,len)
 F.mesh.arrow(g,a,b,r,color)        F.mesh.arc(g,a,b,R,centre,color) -> the label's point
 F.mesh.polyline(g,pts,color)       F.mesh.box(g,p,[w,h,d],color,extra)   F.mesh.vec(p)  F.mesh.mat(color,extra)  F.mesh.geo()
+F.mesh.hand({curl,thumb,right,scale,color,ink,opacity,aim,palm,at,grip}) -> THREE.Group, the caller adds it: the hand of F.hand in
+                                   3D, wrist at `at` or fingers closed round `grip` (a wire), fingers along aim, palm facing palm, thumb
+                                   along aim × palm on a right hand; ink rim and half fill, recoloured through userData.ink and .fill,
+                                   each mesh's part (palm, wrist, thumb, index, middle, ring, little) in userData.part for hover names
 ```
 
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band, centred at the top edge and wrapped over as many lines as the sentence takes. `spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.

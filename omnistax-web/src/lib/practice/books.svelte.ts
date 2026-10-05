@@ -11,6 +11,8 @@ import { bookId, sectionRef, type SectionId } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { library } from '../explorer/library.svelte';
 import { bookBase, bookFiles, parseBookConcepts, parseBookExercises, parseManifest, type ForeignBook } from './books';
+import { generated } from './generated.svelte';
+import { isGenerated } from './generated';
 
 export type BookStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 
@@ -49,6 +51,10 @@ class Books {
   /* A section's exercises: out of the cache, else out of the registry, since that section may be open in a tab. */
   exercises(book: string, section: SectionId): readonly ExerciseDTO[] | undefined {
     return this.loaded[book]?.exercises[section] ?? registry.state(sectionRef(bookId(book), section))?.exercises;
+  }
+  /* One exercise a session drew: a generated one by its id alone, a book's out of its section. */
+  exercise(book: string, section: SectionId, id: string): ExerciseDTO | undefined {
+    return isGenerated(id) ? generated.exercise(id) : this.exercises(book, section)?.find((e) => e.id === id);
   }
 
   private setStatus(book: string, status: BookStatus): void { this.status = { ...this.status, [book]: status }; }

@@ -9,6 +9,8 @@ import { FILES_KEY, parseFiles } from '../files/model';
 import type { FileId } from '../types/ids';
 import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ReaderBackup, type ReaderRecord } from './schema';
 import { restoreWithJournal } from './journal';
+import { exportGenerated, replaceGenerated } from '../practice/generated-db';
+import type { GeneratedExercise } from '../practice/generated';
 
 /* The AI block goes into a backup with the reader's models and endpoints and
    without the keys they pasted: a backup travels between machines and is sent
@@ -56,7 +58,7 @@ const filesOf = async (records: readonly ReaderRecord[]): Promise<BackupFile[]> 
 
 export const createBackup = async (): Promise<ReaderBackup> => {
   const records = readerRecords();
-  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), app: { readerFormat: 1 }, records, assets: await exportAssets(), chats: [...await exportChats()] as unknown as ReaderBackup['chats'], files: await filesOf(records), drawings: await exportDrawings() as unknown as ReaderBackup['drawings'], scratch: await exportScratch() as unknown as ReaderBackup['scratch'], books: booksOf(records) };
+  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), app: { readerFormat: 1 }, records, assets: await exportAssets(), chats: [...await exportChats()] as unknown as ReaderBackup['chats'], files: await filesOf(records), drawings: await exportDrawings() as unknown as ReaderBackup['drawings'], scratch: await exportScratch() as unknown as ReaderBackup['scratch'], generated: [...await exportGenerated()] as unknown as ReaderBackup['generated'], books: booksOf(records) };
 };
 
 /* What the export will weigh, for the line the Storage block shows before the
@@ -95,4 +97,5 @@ export const importBackup = async (backup: ReaderBackup): Promise<void> => {
      these two only have to put the pages under them. */
   await replaceDrawings(backup.drawings as unknown as readonly Drawing[]);
   await replaceScratch(backup.scratch.map((s) => ({ key: s.key, drawing: s.drawing as unknown as Drawing })));
+  await replaceGenerated(backup.generated as unknown as readonly GeneratedExercise[]);
 };

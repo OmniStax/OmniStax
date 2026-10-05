@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FIG, figFor, registerFigBook } from '../src/lib/fig/figlib';
+import { handParts, GRIP } from '../src/lib/fig/hand';
 
 /* a 2D context that measures every character as 10 units wide and records what it drew */
 type Drawn = { s: string; x: number; y: number };
@@ -96,6 +97,8 @@ test('every sprite draws without a canvas of its own', () => {
     FIG.guitar(ctx, 100, at.y, 0.9);
     FIG.book(ctx, at.x, at.y, 80, 110);
     FIG.backpack(ctx, at.x, at.y);
+    for (const view of ['palm', 'back', 'side'] as const) for (const thumb of ['up', 'along', 'out'] as const)
+      FIG.hand(ctx, at.x, at.y, { view, thumb, curl: 0.6, right: view !== 'back', aim: [1, -1] });
   });
   const g = FIG.guitar.string(100, 0.5);
   assert.equal(g.nut, 142); assert.equal(g.bridge, 517);
@@ -193,4 +196,41 @@ test('a 3D view is disposed by F.release of a root holding it, never by being ou
     FIG.release(anything({ contains: (n: unknown) => n === v.wrap }));
     assert.equal(disposed, 1);
   } finally { Object.assign(g, { window: was.window, document: was.document, requestAnimationFrame: was.raf }); }
+});
+
+/* ---------- the hand ---------- */
+test('the hand keeps its finger lengths as it curls, and at full curl the fingers close round the grip', () => {
+  const sticks = (curl: number) => handParts({ curl }).filter((p) => p.body === 'middle').map((p) => ('a' in p ? Math.hypot(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2]) : 0));
+  sticks(0).forEach((l, i) => assert.ok(Math.abs(l - sticks(1)[i]) < 1e-12));
+  const flat = handParts({ curl: 0 }).filter((p) => p.body === 'index');
+  flat.forEach((p) => 'a' in p && assert.ok(Math.abs(p.b[2] - p.a[2]) < 1e-12, 'straight fingers lie in the palm\'s plane'));
+  const shut = handParts({ curl: 1 }).filter((p) => p.body === 'index');
+  shut.forEach((p) => 'a' in p && assert.ok(Math.abs(Math.hypot(p.b[0] - GRIP[0], p.b[2] - GRIP[2]) - 0.056) < 1e-9, 'each joint on the grip circle'));
+  const up = handParts({ thumb: 'up' }).filter((p) => p.body === 'thumb'), along = handParts({ thumb: 'along' }).filter((p) => p.body === 'thumb');
+  const tip = (ps: typeof up) => { const p = ps[ps.length - 1]; return 'b' in p ? p.b : p.c; };
+  assert.ok(tip(up)[1] > tip(along)[1] && tip(along)[0] > tip(up)[0], 'up runs across the fingers, along runs with them');
+});
+
+/* ---------- a typeset headline ---------- */
+test('a $…$ run in a headline is set by KaTeX under the book\'s macros, so it wears the type class', async () => {
+  registerFigBook({ id: 'book-tex', macros: { '\\kF': '\\htmlClass{kv-force}{F}', '\\km': '\\htmlClass{kv-mass}{m}', '\\ka': '\\htmlClass{kv-acceleration}{a}' }, symbols: {}, colorKeys: ['force', 'mass', 'acceleration'] });
+  const F = figFor('book-tex');
+  let html: string | null = null;
+  for (let i = 0; i < 200 && html === null; i += 1) { html = F.typeset('\\kF = \\km\\ka'); if (html === null) await new Promise((r) => setTimeout(r, 10)); }
+  assert.ok(html, 'KaTeX lands');
+  assert.match(html!, /kv-force/);
+  assert.match(html!, /kv-acceleration/);
+});
+
+test('off the page a TeX run is drawn plain, and wrapping still splits a plain headline as before', () => {
+  const ctx = stub();
+  assert.equal(FIG.headline(ctx, 'The net force $\\kF = \\km\\ka$ pushes it.'), 1);
+  assert.equal(ctx.drawn.map((d) => d.s).join(''), 'The net force F = ma pushes it.');
+  const long = 'A cart of mass $\\km = 2$ kg pulled with a constant force is pushed further and further along the track until it leaves the end';
+  const two = stub();
+  assert.equal(FIG.topline(two, long), 2);
+  assert.ok(two.drawn.some((d) => d.s.includes('m = 2')), 'the run stays whole on one line');
+  const plain = stub();
+  assert.equal(FIG.topline(plain, 'It costs $100 to fill the field with bills stacked flat, and that is a sentence long enough to need a second line on the canvas.'), 2);
+  assert.ok(plain.drawn.some((d) => d.s.includes('$100')), 'a lone dollar stays a dollar');
 });

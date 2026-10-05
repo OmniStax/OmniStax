@@ -32,8 +32,9 @@ is
 q(c) = min(global mastery target, distinct end exercises that test c)
 ```
 
-Concepts with no end exercises cannot be selected in the practice picker. A
-correct answer adds one step to every unmastered concept the exercise tests; an
+Concepts with no end exercises can be selected only while generated exercises
+are included; then stored generated items count toward availability too (see
+`generated-exercises.md`). A correct answer adds one step to every unmastered concept the exercise tests; an
 incorrect answer subtracts one, clamped to `0..q(c)`. The UI therefore shows
 discrete fractions such as `1/3` and `2/3`.
 
@@ -55,8 +56,11 @@ For each eligible selected concept, the planner ranks exercises by:
 4. stable content order, with lower Bloom levels breaking ties for a new
    concept.
 
-It initially takes the best `q(c)` exercises for every concept and unions the
-sets. It then removes a redundant exercise only when every concept that
+Each concept wants the round's default (the mastery target unless the Choose
+face changes it) or its own override, from 0 to 9. The book gives what it has,
+and the gap is filled by generated exercises unless the reader keeps to the
+book. It initially takes the best of the book's share for every concept,
+adds the generated items, and unions the sets. It then removes a redundant exercise only when every concept that
 exercise tests remains at or above its quota. Shared exercises therefore count
 for every concept they test, while unavoidable overcoverage is retained.
 
@@ -129,7 +133,8 @@ is permanently fresh and displays the override and infinity state.
 ## Persistence and activity
 
 The store separately persists attempts, card presentations, completed round
-summaries, current self-assessments, pages, and running sessions. Old v1
+summaries, current self-assessments, pages, and sessions. A session that ends
+is kept as done and listed under Past sessions until the reader deletes it. Old v1
 attempts migrate by taking their concept ids from the former point record; old
 point totals and settings are discarded.
 

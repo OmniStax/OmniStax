@@ -14,6 +14,10 @@ import {
 } from './model';
 import { readerWritesAllowed } from '../backup/guard';
 import { offlineBooks } from '../offline/store.svelte';
+import { PROVIDER_IDS, type ModelPick } from '../chat/providers/index';
+import { generated } from './generated.svelte';
+import { generatedIdOf, isGenerated } from './generated';
+import { MAX_WANTED, type CatalogExercise, type RoundChoice } from './model';
 
 export type Face = 'dashboard' | 'choose' | 'practise' | 'progress';
 export type Session = {
@@ -25,8 +29,11 @@ export type Session = {
   readonly outcomes: readonly (boolean | null)[];
   readonly started: number;
   readonly before: Mastery;
+  /* Set when the round ends; a done session stays listed until the reader deletes it. */
+  readonly status?: 'done';
+  readonly ended?: number;
 };
-export type Page = { readonly curriculum: Curriculum; readonly session: SessionId | null; readonly face: Face; readonly showAll: boolean };
+export type Page = { readonly curriculum: Curriculum; readonly session: SessionId | null; readonly face: Face; readonly showAll: boolean; readonly round?: RoundChoice };
 export const BLANK: Page = { curriculum: [], session: null, face: 'dashboard', showAll: false };
 
 const KEY = 'omnistax-practice-v2';
@@ -62,7 +69,22 @@ const parseSettings = (raw: unknown): PracticeSettings => {
     maxHalfLife: Math.max(1, num(o.maxHalfLife, DEFAULT_SETTINGS.maxHalfLife)),
     order: o.order === 'grouped' ? 'grouped' : 'mixed',
     includeFresh: bool(o.includeFresh, DEFAULT_SETTINGS.includeFresh),
+    generated: o.generated === 'book-only' ? 'book-only' : 'include',
+    grading: o.grading === 'ai' ? 'ai' : 'reveal',
+    promptNote: str(o.promptNote),
+    fresh: bool(o.fresh, DEFAULT_SETTINGS.fresh),
+    model: parsePick(o.model),
   };
+};
+const parsePick = (raw: unknown): ModelPick | null => {
+  const o = obj(raw), provider = PROVIDER_IDS.find((p) => p === o?.provider);
+  return provider && str(o?.model) ? { provider, model: str(o?.model) } : null;
+};
+const parseRound = (raw: unknown): RoundChoice | undefined => {
+  const o = obj(raw); if (!o) return undefined;
+  const count = (v: unknown): number => Math.min(MAX_WANTED, Math.max(0, Math.round(num(v))));
+  const wanted = Object.fromEntries(Object.entries(obj(o.wanted) ?? {}).map(([id, v]) => [id, count(v)]));
+  return { ...(o.perConcept === undefined ? {} : { perConcept: count(o.perConcept) }), wanted };
 };
 const parseSelf = (raw: unknown): SelfAssessments => {
   const o = obj(raw); if (!o) return {};
@@ -112,6 +134,7 @@ const parseSession = (raw: unknown, id: SessionId): Session | null => {
     id, curriculum: parseCurriculum(o.curriculum), concepts: strings(o.concepts), drawn,
     at: Math.min(drawn.length, Math.max(0, Math.round(num(o.at)))), outcomes,
     started: num(o.started), before: parseMastery(o.before),
+    ...(o.status === 'done' ? { status: 'done' as const, ended: num(o.ended, num(o.started)) } : {}),
   };
 };
 const parseSessions = (raw: unknown): Record<SessionId, Session> => {
@@ -121,7 +144,8 @@ const parseSessions = (raw: unknown): Record<SessionId, Session> => {
 const parsePage = (raw: unknown): Page => {
   const o = obj(raw); if (!o) return BLANK;
   const named = str(o.session);
-  return { curriculum: parseCurriculum(o.curriculum), session: named ? sessionId(named) : null, face: o.face === 'summary' ? 'progress' : FACES.find((x) => x === o.face) ?? 'dashboard', showAll: o.showAll === true };
+  const round = parseRound(o.round);
+  return { curriculum: parseCurriculum(o.curriculum), session: named ? sessionId(named) : null, face: o.face === 'summary' ? 'progress' : FACES.find((x) => x === o.face) ?? 'dashboard', showAll: o.showAll === true, ...(round ? { round } : {}) };
 };
 const parsePages = (raw: unknown): Record<ItemKey, Page> => {
   const o = obj(raw); return o ? Object.fromEntries(Object.entries(o).map(([key, value]) => [key, parsePage(value)])) : {};
@@ -135,7 +159,15 @@ class Practice {
   settings = $state.raw<PracticeSettings>(DEFAULT_SETTINGS);
   pages = $state.raw<Readonly<Record<ItemKey, Page>>>({});
   sessions = $state.raw<Readonly<Record<SessionId, Session>>>({});
-  readonly mastery: Mastery = $derived.by(() => rebuild(this.attempts, this.rounds, this.self, this.settings, availabilityOf(this.catalog())));
+  /* Book exercises per concept, and the stored generated ones beside them unless the reader keeps to the book. */
+  readonly availability: Readonly<Record<string, number>> = $derived.by(() => {
+    const book = availabilityOf(this.catalog());
+    if (this.settings.generated !== 'include') return book;
+    const out = { ...book };
+    Object.entries(generated.counts()).forEach(([id, n]) => { out[id] = (out[id] ?? 0) + n; });
+    return out;
+  });
+  readonly mastery: Mastery = $derived.by(() => rebuild(this.attempts, this.rounds, this.self, this.settings, this.availability));
 
   init(): void {
     const fresh = obj(this.read(KEY)), old = obj(this.read(OLD_KEY)), saved = fresh ?? old;
@@ -146,6 +178,7 @@ class Practice {
     }
     this.pages = parsePages(this.read(PAGES) ?? this.read(OLD_PAGES));
     this.sessions = parseSessions(this.read(SESSIONS) ?? this.read(OLD_SESSIONS));
+    void generated.load();
   }
 
   catalog(): Catalog {
@@ -158,7 +191,9 @@ class Practice {
   share(id: string): number { return shareOf(this.mastery[id]); }
   freshness(id: string, now = Date.now()) { return freshnessOf(this.mastery[id], this.settings, now); }
   get lifetime(): number { return this.attempts.length; }
-  available(id: string): number { return availabilityOf(this.catalog())[id] ?? 0; }
+  available(id: string): number { return this.availability[id] ?? 0; }
+  /* The book's own end exercises for a concept, without the generated ones. */
+  bookAvailable(id: string): number { return availabilityOf(this.catalog())[id] ?? 0; }
 
   record(book: string, section: SectionId, ex: ExerciseDTO, ok: boolean, _self = true, now = Date.now(), inRound?: SessionId): Attempt {
     const round = inRound ?? Object.values(this.sessions).find((s) => s.drawn[s.at]?.book === book && s.drawn[s.at]?.section === section && s.drawn[s.at]?.ex === ex.id)?.id;
@@ -217,9 +252,15 @@ class Practice {
     this.set(key, { ...this.page(key), curriculum: [...s.curriculum], session: id, face: 'practise' });
   }
   setShowAll(key: ItemKey, on: boolean): void { this.set(key, { ...this.page(key), showAll: on }); }
-  plan(key: ItemKey, now = Date.now()): RoundPlan { return prepare(this.page(key).curriculum, this.mastery, this.catalog(), this.attempts, this.shown, this.settings, now); }
-  start(key: ItemKey, now = Date.now()): boolean {
-    const page = this.page(key), plan = this.plan(key, now); if (!plan.drawn.length) return false;
+  setRound(key: ItemKey, round: RoundChoice): void { this.set(key, { ...this.page(key), round }); }
+  plan(key: ItemKey, now = Date.now(), extra: readonly CatalogExercise[] = []): RoundPlan {
+    const page = this.page(key);
+    return prepare(page.curriculum, this.mastery, this.catalog(), this.attempts, this.shown, this.settings, now, page.round, extra);
+  }
+  /* A round of the book's exercises and the generated ones prepared for its gaps. */
+  start(key: ItemKey, now = Date.now(), extra: readonly CatalogExercise[] = []): boolean {
+    const page = this.page(key), plan = this.plan(key, now, extra); if (!plan.drawn.length) return false;
+    generated.use(plan.drawn.filter((d) => isGenerated(d.ex.id)).map((d) => generatedIdOf(d.ex.id)));
     const session: Session = {
       id: newSessionId(), curriculum: [...page.curriculum], concepts: [...plan.concepts],
       drawn: plan.drawn.map((d) => { const release = offlineBooks.releaseOf(d.book); return { book: d.book, section: d.section, ex: d.ex.id, why: d.why, ...(release ? { release } : {}) }; }),
@@ -227,7 +268,7 @@ class Practice {
     };
     this.put(session); this.set(key, { ...page, session: session.id, face: 'practise' }); return true;
   }
-  private exercise(d: Session['drawn'][number]): ExerciseDTO | undefined { return books.exercises(d.book, d.section)?.find((e) => e.id === d.ex); }
+  private exercise(d: Session['drawn'][number]): ExerciseDTO | undefined { return books.exercise(d.book, d.section, d.ex); }
   current(key: ItemKey): { book: string; section: SectionId; ex: ExerciseDTO; why: Drawn['why'] } | null {
     const s = this.sessionOf(key), d = s?.drawn[s.at]; if (!d) return null; const ex = this.exercise(d); return ex ? { ...d, ex } : null;
   }
@@ -257,9 +298,14 @@ class Practice {
       return Math.max(0, Math.min(target, before + c.correct - (c.answered - c.correct))) >= target;
     }).map((c) => c.id);
     if (!this.rounds.some((r) => r.id === s.id)) this.rounds = [...this.rounds, { id: s.id, started: s.started, at: now, concepts, newlyMastered }];
-    this.put({ ...s, at: s.drawn.length }); this.save(); this.set(key, { ...this.page(key), face: 'progress' });
+    this.put({ ...s, at: s.drawn.length, status: 'done', ended: now }); this.save(); this.set(key, { ...this.page(key), face: 'progress' });
   }
-  finish(key: ItemKey): void { const id = this.page(key).session; if (id) this.drop(id); this.set(key, { ...this.page(key), session: null, face: 'dashboard' }); }
+  /* Back to the dashboard. The session stays, listed under Past sessions. */
+  finish(key: ItemKey): void { this.set(key, { ...this.page(key), session: null, face: 'dashboard' }); }
+  past(): readonly Session[] { return Object.values(this.sessions).filter((s) => s.status === 'done').sort((a, b) => (b.ended ?? 0) - (a.ended ?? 0)); }
+  replay(id: SessionId, at: number): { book: string; section: SectionId; ex: ExerciseDTO } | null {
+    const d = this.sessions[id]?.drawn[at]; if (!d) return null; const ex = this.exercise(d); return ex ? { ...d, ex } : null;
+  }
   pause(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
   progress(key: ItemKey): ReturnType<typeof progressOf> { const s = this.sessionOf(key); return s ? progressOf(s.before, this.mastery) : []; }
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }

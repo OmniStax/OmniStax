@@ -12,7 +12,8 @@ import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, setFallback as setMorphFallback, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
-import { commit as commitText, syncLayers, forgetFaces, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
+import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, type Glyph, type Piece, type Box as TextBox } from './textlayer';
+import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './hand';
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
@@ -43,7 +44,7 @@ export type Vec3 = readonly [number, number, number];   /* a point or direction 
 export type Pt = readonly [Logical, Logical];                 /* a projected point on the canvas */
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
-type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color };
+type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color; tex?: boolean };
 type CtlOpts = { label: string; cls: string; key?: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
 
@@ -92,7 +93,7 @@ type AutoRender = typeof import('katex/contrib/auto-render').default;
 /* Apart, because auto-render imports KaTeX's chunk: where that failed, auto-render stays failed
    until a reload, but KaTeX itself comes back under a fresh address and `tex` with it. */
 const katexChunk = importing(() => import('katex')), autoChunk = importing(() => import('katex/contrib/auto-render'));
-const withKatex = lazy((): Promise<Katex> => katexChunk().then((m) => m.default)).use;
+const katexLib = lazy((): Promise<Katex> => katexChunk().then((m) => m.default)), withKatex = katexLib.use;
 const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.default)).use;
 
 export type TexOpts = { readonly values?: boolean };
@@ -156,6 +157,17 @@ function texGlow(el: HTMLElement): void {
     if (alive && layer.isConnected) h.raf = requestAnimationFrame(paint); else layer.remove();
   };
   paint(performance.now());
+}
+/* KaTeX's HTML for s under the macros at `at`, set once per string and kept. Text drawn on a canvas
+   cannot wait for the library, so this is null until it has landed, and every figure redraws when it does. */
+const typesetSeen = new WeakMap<Macros, Map<string, string>>();
+function typeset(s: string, at?: Element): string | null {
+  const k = katexLib.now();
+  if (!k) { withKatex(() => sims.forEach((d) => { d.dirty = true; })); return null; }
+  const opts = KOPT(at), seen = typesetSeen.get(opts.macros) ?? new Map<string, string>();
+  typesetSeen.set(opts.macros, seen);
+  const got = seen.get(s); if (got !== undefined) return got;
+  const html = k.renderToString(s, opts); seen.set(s, html); return html;
 }
 function renderMath(root: HTMLElement): void {
   if (!root.textContent?.includes('$')) return;
@@ -692,13 +704,25 @@ function dot(ctx: Ctx, x: Logical, y: Logical, color: Color, filled = true, r = 
 /* A label may carry subscripts the way the book's symbols do: `F_net`, `T_{L}`, `w_{box}`. An underscore
    followed by a braced group or one word character is drawn as a subscript, smaller and lowered; a
    plain underscore is never printed. Alignment and the panel behind the label measure the whole run. */
-type Run = { s: string; sub: boolean };
+type Run = { s: string; sub: boolean; html?: string };
 function runsOf(s: string): Run[] {
   const out: Run[] = []; const re = /_\{([^}]*)\}|_([A-Za-z0-9\u2080-\u209c\u03b1-\u03c9+\-]+)/g; let last = 0, m: RegExpExecArray | null;
   while ((m = re.exec(s))) { if (m.index > last) out.push({ s: s.slice(last, m.index), sub: false }); out.push({ s: m[1] ?? m[2] ?? '', sub: true }); last = re.lastIndex; }
   if (last < s.length) out.push({ s: s.slice(last), sub: false });
   return out;
 }
+/* A headline's `$…$` runs, each one piece set by KaTeX under the figure's macros so its symbols wear
+   their type colours; plain, macros stripped, where the canvas is not in the page or KaTeX has not landed. */
+const TEX_RUN = /\$([^$]+)\$/;   /* a lone $ ("$100 bills") stays a dollar sign */
+function runsTex(s: string, canvas: unknown): Run[] {
+  return s.split(TEX_RUN).flatMap((part, i): Run[] => {
+    if (i % 2 === 0) return !part ? [] : part.includes('_') ? runsOf(part) : [{ s: part, sub: false }];
+    const html = inPage(canvas) ? typeset(part, canvas) : null;
+    return html === null ? [{ s: plain(part), sub: false }] : [{ s: part, sub: false, html }];
+  });
+}
+const runsFor = (s: string, canvas: unknown, tex?: boolean): Run[] =>
+  tex && s.includes('$') ? runsTex(s, canvas) : s.includes('_') ? runsOf(s) : [{ s, sub: false }];
 /* ---------- the text over the canvas ----------
    What `text` sets on a canvas that is in the page is recorded and shown as the page's own
    text over it (textlayer.ts). A draw's record opens at `begin`, or at its first string on a
@@ -731,13 +755,14 @@ const glowCanvases = new WeakMap<HTMLCanvasElement, GlowCanvas>();
 const glowing = new Set<HTMLCanvasElement>();
 const simOf = (c: HTMLCanvasElement): Sim | undefined => sims.find((d) => d.fig.contains(c));
 /* the string's runs cut into pieces, every number its own piece with the glow it carries */
+const pieceOf = (r: Run, s: string, lit: number): Piece => (r.html === undefined ? { s, sub: r.sub, lit } : { s, sub: false, lit: 0, html: r.html });
 function piecesOf(canvas: HTMLCanvasElement, s: string, runs: readonly Run[]): Piece[] {
-  if (!/\d/.test(s)) return runs.map((r) => ({ s: r.s, sub: r.sub, lit: 0 }));
+  if (!/\d/.test(s)) return runs.map((r) => pieceOf(r, r.s, 0));
   const g = glowCanvases.get(canvas) ?? (glowCanvases.set(canvas, { frame: -1, seen: new Map(), traces: new Map() }), glowCanvases.get(canvas)!);
   if (g.frame !== frameNo) { g.frame = frameNo; g.seen.clear(); }
   const sk = skeletonOf(s), nth = g.seen.get(sk) ?? 0, key = sk + '\u0000' + nth;
   g.seen.set(sk, nth + 1);
-  const toks = runs.map((r) => tokensOf(r.s));
+  const toks = runs.map((r) => (r.html === undefined ? tokensOf(r.s) : []));
   const now = performance.now(), fig = simOf(canvas)?.fig;
   const tr = glowStep(g.traces.get(key), toks.flat().map((t) => t.s), inputSeq(), now, byHand(now, fig));
   g.traces.set(key, tr);
@@ -746,25 +771,25 @@ function piecesOf(canvas: HTMLCanvasElement, s: string, runs: readonly Run[]): P
     let at = 0;
     const cut = toks[i].flatMap((t): Piece[] => {
       const lit = glowOf(tr.lit[n++], now, REDUCED), before = r.s.slice(at, t.i); at = t.j;
-      return [...(before ? [{ s: before, sub: r.sub, lit: 0 }] : []), { s: r.s.slice(t.i, t.j), sub: r.sub, lit }];
+      return [...(before ? [pieceOf(r, before, 0)] : []), pieceOf(r, r.s.slice(t.i, t.j), lit)];
     });
-    return at < r.s.length || !cut.length ? [...cut, { s: r.s.slice(at), sub: r.sub, lit: 0 }] : cut;
+    return at < r.s.length || !cut.length ? [...cut, pieceOf(r, r.s.slice(at), 0)] : cut;
   });
   if (out.some((p) => p.lit > 0)) glowing.add(canvas);
   return out;
 }
 tickers.add(() => { glowing.forEach((c) => { const d = simOf(c); if (d) d.dirty = true; }); glowing.clear(); syncLayers(); });
+if (typeof document !== 'undefined') document.fonts?.addEventListener?.('loadingdone', () => { forgetTex(); sims.forEach((d) => { d.dirty = true; }); });
 
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
   const size = o.size ?? 22, weight = weightOf(o.weight ?? 400), italic = !!o.italic, font = (k: number) => `${italic ? 'italic ' : ''}${weight} ${size * k}px ${FONT}`;
-  const runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
+  const canvas = (ctx as { canvas?: unknown }).canvas, runs = runsFor(s, canvas, o.tex);
   const base = o.base ?? 'middle', align = o.align ?? 'left';
   ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = base;
-  const widths = runs.map((r) => { ctx.font = font(r.sub ? 0.72 : 1); return ctx.measureText(r.s).width; });
+  const widths = runs.map((r) => { if (r.html !== undefined) return texEm(r.html) * size; ctx.font = font(r.sub ? 0.72 : 1); return ctx.measureText(r.s).width; });
   const total = widths.reduce((a, b) => a + b, 0);
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
   if (o.bg) { const pw = total + 14, ph = size + 8; ctx.fillStyle = o.bg; ctx.fillRect(cx - 7, y - ph / 2, pw, ph); }
-  const canvas = (ctx as { canvas?: unknown }).canvas;
   if (inPage(canvas)) {
     const rec = records.get(canvas) ?? openText(canvas), m = ctx.getTransform(), [px, py] = mapPoint(m, x, y, rec.r);
     rec.glyphs.push({
@@ -779,16 +804,17 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
   ctx.restore();
 }
 /* `measure(ctx, s, { size, weight })`: the width `text` gives s, in logical units */
-function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight' | 'italic'> = {}): Logical {
-  const size = o.size ?? 22, weight = o.weight ?? 400, runs = s.includes('_') ? runsOf(s) : [{ s, sub: false }];
+function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight' | 'italic' | 'tex'> = {}): Logical {
+  const size = o.size ?? 22, weight = o.weight ?? 400, runs = runsFor(s, (ctx as { canvas?: unknown }).canvas, o.tex);
   ctx.save();
-  const w = runs.reduce((t, r) => { ctx.font = shownFont(`${o.italic ? 'italic ' : ''}${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`); return t + ctx.measureText(r.s).width; }, 0);
+  const w = runs.reduce((t, r) => { if (r.html !== undefined) return t + texEm(r.html) * size; ctx.font = shownFont(`${o.italic ? 'italic ' : ''}${weight} ${size * (r.sub ? 0.72 : 1)}px ${FONT}`); return t + ctx.measureText(r.s).width; }, 0);
   ctx.restore(); return w;
 }
-const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center' });
+const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center', tex: true });
 /* The headline of a figure. It wraps exactly as `topline` does — one line where it
    fits and two otherwise — so a headline built from live numbers can never run off
-   the canvas, and it returns the number of lines it took. */
+   the canvas, and it returns the number of lines it took. A `$…$` run in it is set
+   as TeX under the figure's macros, so a formula there wears its type colours. */
 const headline = (ctx: Ctx, s: string, color?: Color): 1 | 2 => topline(ctx, s, color);
 /* The side a bracket's label is set on, and the canvas height it is kept inside.
    A bracket over a short span carries a label wider than the span, so the label is
@@ -1310,6 +1336,70 @@ function fist(ctx: Ctx, x: Logical, y: Logical, ux: number, uy: number, s = 1, c
   ctx.beginPath(); ctx.moveTo(...P(14, -16)); ctx.quadraticCurveTo(...P(-6, -22), ...P(-10, -4)); ctx.stroke();
   ctx.restore();
 }
+/* The same hand flat (hand.ts), its wrist at (x, y) and its straight fingers along `aim`, about 110
+   units wrist to fingertip at s = 1. `view` is the side the reader sees: the palm, the back, or the
+   side, where the palm faces aim turned a quarter clockwise and the curl shows in profile. Each
+   finger, the thumb and the palm are outlined where nothing nearer covers them, the way the 3D
+   hand's back-face rim falls, and the whole is filled once at half opacity. */
+export type HandView = 'palm' | 'back' | 'side';
+export type Hand2Opts = { aim?: readonly [number, number]; view?: HandView; curl?: number; thumb?: Thumb; right?: boolean; s?: number; color?: Color; ink?: Color };
+const HAND_PX = 240, HAND_LW = 3;
+type HandShape = { depth: number; trace: (c: Ctx) => void };
+function handShapes(x: Logical, y: Logical, o: Hand2Opts): HandShape[] {
+  const [ax, ay] = o.aim ?? [0, -1], al = Math.hypot(ax, ay) || 1, A: Vec3 = [ax / al, ay / al, 0], k = HAND_PX * (o.s ?? 1);
+  const N: Vec3 = o.view === 'back' ? [0, 0, 1] : o.view === 'side' ? [-A[1], A[0], 0] : [0, 0, -1];
+  const Y = o.right === false ? cross3(N, A) : cross3(A, N), Z = V3.mul(N, -1);
+  const W = (p: Vec3): Vec3 => V3.add(V3.add(V3.mul(A, p[0]), V3.mul(Y, p[1])), V3.mul(Z, p[2]));
+  const at = (p: Vec3): Vec3 => { const w = W(p); return [x + w[0] * k, y + w[1] * k, w[2]]; };
+  const shapeOf = (p: HandPart): HandShape => {
+    if ('c' in p) {
+      const c = at(p.c), v = [W([p.r[0], 0, 0]), W([0, p.r[1], 0]), W([0, 0, p.r[2]])].map((u) => [u[0] * k, u[1] * k]);
+      const sxx = v.reduce((t, u) => t + u[0] * u[0], 0), syy = v.reduce((t, u) => t + u[1] * u[1], 0), sxy = v.reduce((t, u) => t + u[0] * u[1], 0);
+      const th = 0.5 * Math.atan2(2 * sxy, sxx - syy), m = (sxx + syy) / 2, d = Math.hypot((sxx - syy) / 2, sxy);
+      const R1 = Math.sqrt(m + d), R2 = Math.sqrt(Math.max(0, m - d));
+      return { depth: c[2], trace: (g) => { g.moveTo(c[0] + R1 * Math.cos(th), c[1] + R1 * Math.sin(th)); g.ellipse(c[0], c[1], R1, R2, th, 0, Math.PI * 2); } };
+    }
+    const a = at(p.a), b = at(p.b), r = p.r * k, t = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    return { depth: (a[2] + b[2]) / 2, trace: (g) => {
+      g.moveTo(a[0] + r * Math.cos(t + Math.PI / 2), a[1] + r * Math.sin(t + Math.PI / 2));
+      g.arc(a[0], a[1], r, t + Math.PI / 2, t + (3 * Math.PI) / 2); g.arc(b[0], b[1], r, t - Math.PI / 2, t + Math.PI / 2); g.closePath();
+    } };
+  };
+  const bodies = new Map<HandBody, HandShape[]>();
+  handParts(o).forEach((p) => { const b = p.body === 'wrist' ? 'palm' : p.body; bodies.set(b, [...(bodies.get(b) ?? []), shapeOf(p)]); });
+  return [...bodies.values()]
+    .map((ss) => ({ depth: ss.reduce((t, q) => t + q.depth, 0) / ss.length, trace: (g: Ctx) => ss.forEach((q) => q.trace(g)) }))
+    .sort((p, q) => q.depth - p.depth);
+}
+let handScratch: HTMLCanvasElement | null = null;
+/* a context over a scratch canvas the size of c, under the same transform, cleared */
+function scratchOver(ctx: Ctx): Ctx | null {
+  const c = (ctx as { canvas?: unknown }).canvas;
+  if (!inPage(c)) return null;
+  handScratch ??= document.createElement('canvas');
+  if (handScratch.width !== c.width || handScratch.height !== c.height) { handScratch.width = c.width; handScratch.height = c.height; }
+  const g = handScratch.getContext('2d'); if (!g) return null;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, c.width, c.height);
+  g.setTransform(ctx.getTransform()); return g;
+}
+function hand2(ctx: Ctx, x: Logical, y: Logical, o: Hand2Opts = {}): void {
+  const shapes = handShapes(x, y, o), ink = o.ink ?? PAL.ink, fill = o.color ?? PAL.muted;
+  const all = (g: Ctx): void => { g.beginPath(); shapes.forEach((q) => q.trace(g)); };
+  const g = scratchOver(ctx);
+  if (!g) {
+    ctx.save(); ctx.globalAlpha *= 0.5; ctx.fillStyle = fill; all(ctx); ctx.fill(); ctx.globalAlpha /= 0.5;
+    ctx.strokeStyle = ink; ctx.lineWidth = HAND_LW; ctx.lineJoin = 'round';
+    shapes.forEach((q) => { ctx.beginPath(); q.trace(ctx); ctx.stroke(); }); ctx.restore(); return;
+  }
+  g.lineJoin = 'round'; g.lineWidth = 2 * HAND_LW; g.strokeStyle = ink; g.fillStyle = '#000';
+  shapes.forEach((q) => {
+    g.beginPath(); q.trace(g);
+    g.globalCompositeOperation = 'source-over'; g.stroke();
+    g.globalCompositeOperation = 'destination-out'; g.fill();
+  });
+  g.globalCompositeOperation = 'destination-over'; g.globalAlpha = 0.5; g.fillStyle = fill; all(g); g.fill();
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(handScratch!, 0, 0); ctx.restore();
+}
 /* a cart in side view: a body w by h whose floor rests on two wheels, centred on (x, y) with
    the wheels standing on the line y + h / 2. Its footprint is w by h + 2 r, the wheels a
    twelfth of the width, so a caller puts the track at y + h / 2 + 2 r. */
@@ -1612,17 +1702,18 @@ function labeller(ctx: Ctx, H: Logical, o: LabellerOpts = {}): Labeller {
 }
 /* a headline that never runs to the border: one line where it fits, and
    otherwise two, broken at the space that leaves the two halves most even */
+const WORDS = /(?:\$[^$]+\$|\S)+/g;   /* a TeX run is one word, its spaces and all */
 function topline(ctx: Ctx, s: string, color?: Color): 1 | 2 {
-  const wide = (t: string): number => { ctx.save(); ctx.font = '400 26px ' + FONT; const q = ctx.measureText(t).width; ctx.restore(); return q; };
+  const wide = (t: string): number => measure(ctx, t, { size: 26, tex: true });
   if (wide(s) <= LW - 220) { oneline(ctx, s, color); return 1; }
-  const words = s.split(' ');
+  const words = s.match(WORDS) ?? [];
   let cut = 1, best = Infinity;
   for (let i = 1; i < words.length; i++) {
     const q = Math.abs(wide(words.slice(0, i).join(' ')) - wide(words.slice(i).join(' ')));
     if (q < best) { best = q; cut = i; }
   }
-  text(ctx, words.slice(0, cut).join(' '), LW / 2, 38, color ?? PAL.ink, { size: 26, align: 'center' });
-  text(ctx, words.slice(cut).join(' '), LW / 2, 74, color ?? PAL.ink, { size: 26, align: 'center' });
+  text(ctx, words.slice(0, cut).join(' '), LW / 2, 38, color ?? PAL.ink, { size: 26, align: 'center', tex: true });
+  text(ctx, words.slice(cut).join(' '), LW / 2, 74, color ?? PAL.ink, { size: 26, align: 'center', tex: true });
   return 2;
 }
 
@@ -1966,7 +2057,48 @@ function arc3(g: Obj3, a: Vec3, b: Vec3, R: number, c: Vec3 = [0, 0, 0], col?: C
 function box3(g: Obj3, p: Vec3, size: readonly [number, number, number], c: Color, extra?: Record<string, unknown>): Obj3 {
   const T = three()!; const m = new T.Mesh(new T.BoxGeometry(size[0], size[1], size[2]), mat3(c, extra)); m.position.copy(vec3(p)); g.add(m); return m;
 }
-const MESH = { vec: vec3, mat: mat3, geo, sphere: sphere3, stick: stick3, setStick: setStick3, lobe: lobe3, setLobe: setLobe3, bond: bond3, arrow: arrow3, polyline: polyline3, arc: arc3, box: box3 };
+/* A hand the figure poses rather than draws (hand.ts): `aim` is the way the straight fingers point,
+   `palm` the way the palm faces and the fingers curl, and the thumb lies along aim × palm on a right
+   hand. Three passes make it read as one body over whatever is behind it: a depth pass, an ink
+   outline from the back faces of a slightly larger hand, and the fill at half opacity. The wrist
+   sits at `at`, or the hand is placed so its fingers close round `grip`. The ink and fill
+   materials ride on userData for a figure that recolours without rebuilding, and every mesh
+   names its part (palm, wrist, thumb, index, middle, ring, little) in userData.part. */
+export type HandOpts = {
+  curl?: number; thumb?: Thumb; right?: boolean; scale?: number; color?: Color; ink?: Color; opacity?: number;
+  aim?: Vec3; palm?: Vec3; at?: Vec3; grip?: Vec3;
+};
+const HAND_RIM = 0.0065;
+const cross3 = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+/* the palm's direction made square to aim, or a default one where it is missing or along aim */
+function palmOf(A: Vec3, palm?: Vec3): Vec3 {
+  const fall: Vec3 = Math.abs(A[2]) > 0.9 ? [0, -1, 0] : [0, 0, 1];
+  const sq = (p: Vec3): Vec3 => V3.add(p, V3.mul(A, -V3.dot(A, p)));
+  const N = sq(palm ?? fall);
+  return Math.hypot(N[0], N[1], N[2]) > 1e-6 ? V3.unit(N) : V3.unit(sq(fall));
+}
+function hand3(o: HandOpts = {}): Obj3 {
+  const T = three()!, G = geo(), op = o.opacity ?? 1, k = o.scale ?? 1;
+  const h = new T.Group();
+  const pre = new T.MeshBasicMaterial({ colorWrite: false, transparent: true, depthWrite: true });
+  const ink = new T.MeshBasicMaterial({ color: new T.Color(o.ink ?? PAL.ink), side: T.BackSide, transparent: true, opacity: op, depthWrite: false });
+  const fill = new T.MeshBasicMaterial({ color: new T.Color(o.color ?? PAL.muted), transparent: true, opacity: 0.5 * op, depthWrite: false });
+  const parts = handParts(o);
+  ([[pre, 10, 0], [ink, 11, HAND_RIM], [fill, 12, 0]] as const).forEach(([mat, order, dd]) => parts.forEach((p) => {
+    const put = (g: Obj3, place: (m: Obj3) => void): void => { const m = new T.Mesh(g, mat); m.renderOrder = order; m.userData.part = p.body; place(m); h.add(m); };
+    if ('c' in p) { put(G.sphere, (m) => { m.position.set(...p.c); m.scale.set(p.r[0] + dd, p.r[1] + dd, p.r[2] + dd); }); return; }
+    put(G.cyl, (m) => { m.scale.set(p.r + dd, 1, p.r + dd); setStick3(m, p.a, p.b); });
+    [p.a, p.b].forEach((q) => put(G.sphere, (m) => { m.position.set(...q); m.scale.setScalar(p.r + dd); }));
+  }));
+  const A = V3.unit(o.aim ?? [1, 0, 0]), N = palmOf(A, o.palm);
+  h.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(vec3(A), vec3(cross3(A, N)), vec3(V3.mul(N, -1))));
+  h.scale.set(k, o.right === false ? -k : k, k);
+  if (o.grip) h.position.copy(vec3(o.grip)).sub(vec3(GRIP).multiply(h.scale).applyQuaternion(h.quaternion));
+  else if (o.at) h.position.copy(vec3(o.at));
+  h.userData.ink = ink; h.userData.fill = fill;
+  return h;
+}
+const MESH = { vec: vec3, mat: mat3, geo, sphere: sphere3, stick: stick3, setStick: setStick3, lobe: lobe3, setLobe: setLobe3, bond: bond3, arrow: arrow3, polyline: polyline3, arc: arc3, box: box3, hand: hand3 };
 
 const VICON = {
   spin: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4h-4"/></svg>',
@@ -1997,6 +2129,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const camera = new T.PerspectiveCamera(30, 2, 0.1, 100); camera.position.set(0, 0, dist); camera.lookAt(0, 0, 0);
   const lamp = new T.DirectionalLight(0xffffff, 0.8); lamp.position.set(-3, 5, 7); scene.add(lamp); scene.add(new T.AmbientLight(0xffffff, 0.62));
   let head: HTMLElement | null = null;
+  const book = cur;   /* the headline's TeX is set under the book the scene was made for */
   const parts: Obj3[] = [], labels: { el: HTMLElement; p: Obj3; g: Obj3; dy: number }[] = [], picks: { m: Obj3; name: string }[] = [];
   let yaw = 0, pitch = opts.tilt ?? 0.32, zoom = 1, target: Vec3 = [0, 0, 0];
   let gliding: { from: CamView; to: CamView; t0: number; ms: number; e: Ease; done: () => void } | null = null;
@@ -2037,7 +2170,11 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
        a canvas. Calling it again rewrites the same band. */
     headline(s) {
       if (!head) { head = el('div', 'lab3d head3d'); wrap.appendChild(head); }
-      head.innerHTML = s; return head;
+      if (head.dataset.s === s) return head;
+      head.dataset.s = s; head.innerHTML = s;
+      const prev = cur; cur = book;
+      try { renderMath(head); } finally { cur = prev; }
+      return head;
     },
     clear() {
       const shared = Object.values(geo());
@@ -2454,12 +2591,12 @@ function readout(d: { readonly readout: HTMLElement }): Readout {
 }
 
 export const FIG = {
-  $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, renderMath, get SYM() { return active().symbols; },
+  $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, typeset, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   backing, glRatio,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, shownFont, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
   label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
-  fist, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
+  fist, hand: hand2, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
   story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,
   ease, lerp, partial, tween, tour, morph, morphAt,

@@ -19,21 +19,24 @@ import type { Drawing } from './model';
    is shown from its top rather than squeezed into a stamp. */
 const THUMB_WIDTH = 280;
 const MAX_RATIO = 1.4;
+/* A picture asked for at a width of its own is for reading, not a stamp, so it keeps more of a long page. */
+const READ_RATIO = 4;
 const PAD = 12;
 
-const paint = (d: Drawing): string | null => {
+export type ThumbSize = { readonly width?: number };
+
+const paint = (d: Drawing, width = THUMB_WIDTH, ratio = MAX_RATIO, dpr = dprOf()): string | null => {
   if (typeof document === 'undefined') return null;
   /* There is no page to draw, so the card is the room the drawing takes up:
      everything on the plane, boxes and frames included, with a margin round
      it. A stroke alone in an empty plane fills its own card rather than
      sitting as a speck in the middle of one. */
   const ink = boundsOf(d.items);
-  const box = ink ?? { x: 0, y: 0, w: THUMB_WIDTH, h: THUMB_WIDTH * 0.6 };
+  const box = ink ?? { x: 0, y: 0, w: width, h: width * 0.6 };
   const w = Math.max(1, box.w + 2 * PAD), h = Math.max(1, box.h + 2 * PAD);
-  const k = THUMB_WIDTH / w;
-  const tw = THUMB_WIDTH, th = Math.min(THUMB_WIDTH * MAX_RATIO, Math.max(40, h * k));
+  const k = width / w;
+  const tw = width, th = Math.min(width * ratio, Math.max(40, h * k));
   const canvas = document.createElement('canvas');
-  const dpr = dprOf();
   canvas.width = Math.round(tw * dpr); canvas.height = Math.round(th * dpr);
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
@@ -55,13 +58,14 @@ const made = new Map<string, Cached>();
    last changed. A drawing that is not there answers nothing, and the card
    keeps its name and its waiting ground. The value handed in is the ink where
    the caller already has it, which saves a read of the database. */
-export const thumbnailOf = async (id: DrawingId, ink?: Drawing): Promise<string | null> => {
+export const thumbnailOf = async (id: DrawingId, ink?: Drawing, size: ThumbSize = {}): Promise<string | null> => {
   const d = ink ?? await getDrawing(id);
   if (!d) return null;
-  const have = made.get(id);
+  const tag = size.width ? `${id}@${size.width}` : id;
+  const have = made.get(tag);
   if (have && have.at === d.updated) return have.url;
-  const url = paint(d);
-  if (url) made.set(id, { at: d.updated, url });
+  const url = size.width ? paint(d, size.width, READ_RATIO, 1) : paint(d);
+  if (url) made.set(tag, { at: d.updated, url });
   return url ?? have?.url ?? null;
 };
 

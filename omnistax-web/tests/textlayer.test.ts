@@ -75,3 +75,10 @@ test('reconciling writes only what changed and drops the spans no longer drawn',
   const unlit = styleOf(glyph({ pieces: [{ s: 'v = ', sub: false, lit: 0 }, { s: '3.0', sub: false, lit: 0 }, { s: ' m/s', sub: false, lit: 0 }] }), 0);
   assert.deepEqual(plan([unlit], [lit]).writes[0].changed, ['lit']);
 });
+
+test('a TeX piece is its own shape, so a run that turns to TeX rebuilds its spans', () => {
+  const plainRun = styleOf(glyph({ pieces: [{ s: 'F = ma', sub: false, lit: 0 }] }), 0);
+  const texRun = styleOf(glyph({ pieces: [{ s: '\\kF = \\km\\ka', sub: false, lit: 0, html: '<span class="katex"><span class="kv-force">F</span></span>' }] }), 0);
+  assert.equal(texRun.shape, '$');
+  assert.ok(plan([plainRun], [texRun]).writes[0].changed.includes('shape'));
+});

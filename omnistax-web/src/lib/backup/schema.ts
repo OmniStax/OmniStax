@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
 import { TipStateSchema } from '../tips/model';
+import { AnswerSchema, BLOOM_LEVELS } from '../content/schema';
 
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
 export const BACKUP_VERSION = 1 as const;
@@ -90,10 +91,15 @@ const shown = z.object({ book: z.string().min(1), section: z.string().min(1), ex
 const pick = z.union([z.object({ concept: z.string().min(1) }).strict(), z.object({ book: z.string().min(1), chapter: z.string().optional(), section: z.string().optional() }).strict()]);
 const mastery = z.record(z.object({ level: finite, target: finite, mastered: z.boolean(), masteredAt: finite, lastAt: finite, halfLife: finite, reviewedAt: finite, dueAt: finite, selfAssessed: z.boolean(), noDecay: z.boolean() }).strict());
 const round = z.object({ id: z.string().min(1), started: finite, at: finite, concepts: z.array(z.object({ id: z.string().min(1), expected: finite, answered: finite, correct: finite, wasMastered: z.boolean(), wasDue: z.boolean() }).strict()), newlyMastered: z.array(z.string()) }).strict();
-const practiceSettings = z.object({ masteryTarget: finite, freshnessDecay: z.boolean(), startingHalfLife: finite, maxHalfLife: finite, order: z.enum(['mixed', 'grouped']), includeFresh: z.boolean() }).strict();
+const practiceSettings = z.object({
+  masteryTarget: finite, freshnessDecay: z.boolean(), startingHalfLife: finite, maxHalfLife: finite, order: z.enum(['mixed', 'grouped']), includeFresh: z.boolean(),
+  generated: z.enum(['include', 'book-only']).optional(), grading: z.enum(['reveal', 'ai']).optional(), promptNote: z.string().optional(), fresh: z.boolean().optional(),
+  model: z.object({ provider: z.string().min(1), model: z.string().min(1) }).strict().nullable().optional(),
+}).strict();
 const self = z.record(z.object({ level: finite, mastered: z.boolean(), at: finite, noDecay: z.boolean() }).strict());
-const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'progress']), showAll: z.boolean() }).strict();
-const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery }).strict();
+const roundChoice = z.object({ perConcept: finite.optional(), wanted: z.record(finite) }).strict();
+const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'progress']), showAll: z.boolean(), round: roundChoice.optional() }).strict();
+const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional() }).strict();
 const hue = z.object({ light: z.string().regex(/^#[0-9A-Fa-f]{6}$/), dark: z.string().regex(/^#[0-9A-Fa-f]{6}$/) }).strict();
 const hues = z.record(hue);
 const overrides = z.object({ book: hues, chapters: z.record(hues), sections: z.record(hues) }).strict();
@@ -164,6 +170,16 @@ const chatMessage = z.object({
 export const ChatSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), root: z.string().min(1), messages: z.record(chatMessage),
   leaf: z.string().min(1), created: finite.nonnegative(), updated: finite.nonnegative(), pick: modelPick.optional(),
+}).strict();
+
+/* An exercise a model wrote for a concept, kept in IndexedDB and carried
+   whole like a chat. Its answer is the book's own answer shape. */
+export const GeneratedSchema = z.object({
+  id: z.string().min(1).max(40), book: z.string().min(1), section: z.string().min(1), concepts: z.array(z.string().min(1)).min(1),
+  prompt: z.string(), answer: AnswerSchema, bloom: z.enum(BLOOM_LEVELS), facet: z.string(),
+  model: z.object({ provider: z.enum(PROVIDERS), model: z.string().min(1) }).strict(),
+  created: finite.nonnegative(), uses: finite.nonnegative(),
+  request: z.object({ standard: z.boolean(), note: z.string().optional() }).strict(),
 }).strict();
 
 /* The rows the explorer and the link resolver draw a drawing from: its name
@@ -273,6 +289,8 @@ const BackupSchema = z.object({
      drawings existed carries neither, and parses all the same. */
   drawings: z.array(DrawingSchema).default([]),
   scratch: z.array(ScratchSchema).default([]),
+  /* The practice exercises a model wrote. A backup written before them carries none. */
+  generated: z.array(GeneratedSchema).default([]),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
 }).strict().superRefine((value, ctx) => {
   const keys = new Set<string>();
