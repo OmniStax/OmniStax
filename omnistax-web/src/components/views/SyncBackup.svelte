@@ -1,6 +1,6 @@
 <script lang="ts">
-  /* The backup file: everything the reader owns saved to one file, or put back
-     from one. Putting one back replaces this device's data, so the file is
+  /* Manual sync: everything the reader owns saved to one file, or put back
+     from one, carried between devices by hand. Putting one back replaces this device's data, so the file is
      read and summed up first and replaced only on a second click. */
   import { downloadBackup, importBackup, readBackupFile } from '../../lib/backup/adapters';
   import { summarizeBackup, type ReaderBackup } from '../../lib/backup/schema';
@@ -34,8 +34,8 @@
 </script>
 
 <section class="backup">
-  <h4>Backup file</h4>
-  <p class="hint">Notes and pasted images, imported files, drawings, chats, colors, practice, focus sessions, library, layout, shortcuts and preferences. AI keys, the sync token and textbooks aren’t included.</p>
+  <h4 class="eyebrow">Manual sync</h4>
+  <p class="hint">Export everything to one file and import it on another device. Importing replaces what’s there.</p>
   <div class="acts">
     <button class="btn" type="button" disabled={exporting} onclick={() => void save()}>{exporting ? 'Exporting…' : 'Export'}</button>
     <label class="btn">Import…<input type="file" accept="application/json,.json" onchange={(e) => void choose(e.currentTarget)}></label>
@@ -56,18 +56,18 @@
 </section>
 
 <style>
-  .backup{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--rule)}
-  h4{margin:0;font-size:.74rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-  .hint{color:var(--muted);font-size:.78rem;margin:0;line-height:1.4}
+  .backup{display:flex;flex-direction:column;gap:8px}
+  h4{margin:0}
+  .hint{color:var(--muted);font-size:.76rem;margin:0;line-height:1.45}
   .bad{color:var(--bad)}
   .acts{display:flex;gap:6px;flex-wrap:wrap}
-  .btn{font:inherit;font-size:.82rem;padding:5px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:5px;cursor:pointer}
+  .btn{font:inherit;font-size:.84rem;padding:5px 12px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:5px;cursor:pointer}
   .btn:hover:not(:disabled){background:var(--soft)}
   .btn:disabled{opacity:.55;cursor:default}
   .btn:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outline-offset:1px}
   label.btn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
   label.btn{position:relative}
   .danger{color:var(--bad)}
-  .review{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);color:var(--muted);font-size:.78rem}
+  .review{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);color:var(--muted);font-size:.76rem}
   .review strong{color:var(--ink)}
 </style>

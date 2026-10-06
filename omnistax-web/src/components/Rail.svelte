@@ -27,6 +27,8 @@
      that a countdown can stand under the icon wherever the panel happens to be. */
   $effect(() => { pomodoro.init(); });
   let drop = $state(false);
+  /* Sync keeps the sidebar like the views at the top, but its button stands with the app's own at the foot. */
+  const SYNC = 'view:sync';
   const toggleSide = (k: string) => {
     const loc = where(l, k);
     if (!loc || (loc.type === 'side' && loc.side !== 'left')) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
@@ -57,7 +59,7 @@
 <nav class="rail" class:drop aria-label="Views"
   use:dropzone={{ over: () => (drop = true), leave: () => (drop = false), drop: (d) => { const k = d.key; layoutStore.apply((x) => (k.startsWith('view:') ? openSide(x, k, 'left') : openTab(x, k, x.focus, { from: d.from }))); } }}>
   <div class="section">
-    {#each SIDEBAR_VIEW_KEYS as k (k)}
+    {#each SIDEBAR_VIEW_KEYS.filter((k) => k !== SYNC) as k (k)}
       {@const loc = where(l, k)}
       {@const count = kindOf(k) === 'pomodoro' ? pomodoro.railText : ''}
       <button type="button" class:on={!!loc} class:counting={!!count} class:spot={ui.spot === kindOf(k)} aria-label={titleOf(kindOf(k))}
@@ -79,6 +81,7 @@
     {#if settings.voice && reader.supported}
       <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
     {/if}
+    <button type="button" id="sync-btn" class:on={!!where(l, SYNC)} aria-label="Sync" use:draggable={{ key: SYNC, from: null }} onclick={() => toggleSide(SYNC)}>{@html ICON.sync}</button>
     <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+Shift+P)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
     <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
   </div>

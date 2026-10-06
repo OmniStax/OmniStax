@@ -42,7 +42,7 @@
     record: 'Every completed exercise and self-assessment, and the mastery built from them.',
     lockGrace: 'Seconds before a focus lock starts.',
     layout: 'Put tabs, groups and sidebars back to how they started.',
-    backup: 'Export and import a backup file, and push and pull with a GitHub repo, from the Sync and Update sidebar.',
+    backup: 'Export and import a backup file, and push and pull with a GitHub repo, from the Sync sidebar.',
   } as const;
   const ROWS = {
     theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
@@ -256,7 +256,7 @@
 
       <section hidden={!hit(ROWS.backup)}>
         <h3>Backup and sync</h3>
-        <div class="row"><span class="name">Backup and GitHub sync</span><span class="hint">{HINT.backup}</span><button class="btn-sm" type="button" onclick={openSync}>Open Sync and Update</button></div>
+        <div class="row"><span class="name">Backup and GitHub sync</span><span class="hint">{HINT.backup}</span><button class="btn-sm" type="button" onclick={openSync}>Open Sync</button></div>
       </section>
 
 

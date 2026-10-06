@@ -290,7 +290,7 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
 });
 test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
-  assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours', 'chats']);
+  assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours', 'chats', 'sync-diff']);
   assert.equal(by(openViewId('colours')).label, 'Open the colour menu');
   assert.equal(by(openViewId('colours')).group, 'Appearance');
   assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');

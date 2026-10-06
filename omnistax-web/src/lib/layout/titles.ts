@@ -9,12 +9,13 @@ import { targetLabel, type Target } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
 import type { ItemKey } from './model';
 
-/* The three views that stand nowhere in particular and so wear no scope bar:
-   the explorer is the whole tree, the search reads every book of the library,
-   and the exercises view draws its curriculum across books. A place none of
+/* The views that stand nowhere in particular and so wear no scope bar: the
+   explorer is the whole tree, the search reads every book of the library, the
+   exercises view draws its curriculum across books, and sync and a file's
+   sync changes are about the reader's data, not a place in a book. A place none of
    them stands at is no part of their name either, so their tabs are named by
    what they are and nothing more. View.svelte draws the bar by the same rule. */
-const PLACELESS: readonly string[] = ['explorer', 'search', 'exercises'];
+const PLACELESS: readonly string[] = ['explorer', 'search', 'exercises', 'sync', 'sync-diff'];
 
 const placeOf = (t: Target): string => targetLabel(t, registry.manifest(t.book));
 export const tabTitle = (k: ItemKey): string => {

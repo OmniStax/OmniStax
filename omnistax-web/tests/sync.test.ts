@@ -5,6 +5,7 @@ import { MANIFEST, filePath, fromRepo, imagePath, parseManifest, toRepo, type Re
 import { blobSha, gitSha, readHead, repoName, type Fetch, type Remote, type RemoteEntry } from '../src/lib/sync/github';
 import { changesOf, manifestOf, overwrite, planOf, rebase, type Base, type Status } from '../src/lib/sync/plan';
 import { carry, hashed, survey, type HashedFile } from '../src/lib/sync/run';
+import { hunksOf, lineDiff } from '../src/lib/sync/diff';
 
 const drawing = (id: string, name: string) => ({ id, name, items: [], created: 1, updated: 2 });
 const sample = (): ReaderBackup => parseBackup({
@@ -237,4 +238,17 @@ test('a push to a branch the repo lacks makes a first commit and the branch', as
   await carry(remote, gh.f, seen, local, overwrite(changesOf(local, seen.remote, {}, null), 'repo'), {}, () => undefined);
   assert.equal((gh.calls.find((c) => c.path === '/git/trees')?.body as { base_tree?: string }).base_tree, undefined);
   assert.deepEqual(gh.calls.find((c) => c.method === 'POST' && c.path === '/git/refs')?.body, { ref: 'refs/heads/main', sha: 'commit1' });
+});
+
+test('a line diff keeps what is shared, and its hunks fold the unchanged stretches', () => {
+  const a = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], b = ['1', '2', '3', '4', 'five', '6', '7', '8', '9', '10', '11'];
+  const lines = lineDiff(a, b);
+  assert.deepEqual(lines.filter((l) => l.kind !== 'same').map((l) => `${l.kind} ${l.text} ${l.a ?? '-'} ${l.b ?? '-'}`), ['del 5 5 -', 'add five - 5', 'add 11 - 11']);
+  assert.deepEqual(lines.filter((l) => l.kind !== 'add').map((l) => l.text), a);
+  assert.deepEqual(lines.filter((l) => l.kind !== 'del').map((l) => l.text), b);
+  const { hunks, tail } = hunksOf(lines, 1);
+  assert.deepEqual(hunks.map((h) => [h.skipped, h.lines.map((l) => l.text).join(' ')]), [[3, '4 5 five 6'], [3, '10 11']]);
+  assert.equal(tail, 0);
+  assert.deepEqual(lineDiff([], ['x']).map((l) => l.kind), ['add']);
+  assert.deepEqual(hunksOf(lineDiff(['x'], ['x'])), { hunks: [], tail: 1 });
 });

@@ -77,7 +77,7 @@ export type DocKind = 'text';
    immediately before the concept map, since practice is the map's other face:
    the map says what the book teaches, and the exercises say how much of it the
    reader has made their own. */
-export const VIEW_KINDS = ['explorer', 'search', 'sync', 'exercises', 'concepts', 'reference', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
+export const VIEW_KINDS = ['explorer', 'search', 'sync', 'sync-diff', 'exercises', 'concepts', 'reference', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 /* The Definitions and the Formulas views became one Reference view (#39): what a
    reader saved under either — a tab, a pinned scope, a chord for opening one —
@@ -90,8 +90,9 @@ export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_K
 /* The views the rail draws no button for, because they are asked for from
    somewhere else: the colour menu is one page the reader opens from the command
    palette when they want to change a colour, and the pomodoro stats are opened
-   from the clock's own panel, which is the only place they mean anything. */
-export const PALETTE_ONLY_KINDS = ['pomodoro-stats', 'colours', 'chats'] as const;
+   from the clock's own panel, which is the only place they mean anything; a
+   file's sync changes open from the sync sidebar's list. */
+export const PALETTE_ONLY_KINDS = ['pomodoro-stats', 'colours', 'chats', 'sync-diff'] as const;
 export type PaletteOnlyKind = (typeof PALETTE_ONLY_KINDS)[number];
 export const isPaletteOnlyKind = (kind: ViewKind): kind is PaletteOnlyKind => (PALETTE_ONLY_KINDS as readonly string[]).includes(kind);
 

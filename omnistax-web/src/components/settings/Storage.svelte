@@ -4,7 +4,7 @@
      runs short; the rest of the app says nothing about that, so this block
      says all of it: how much is in use, whether the browser has promised to
      keep it, and what to do where it has not. The way out, a backup file or a
-     GitHub repo, is in the Sync and Update sidebar.
+     GitHub repo, is in the Sync sidebar.
 
      The numbers are read when the block is first shown, not on a timer:
      nothing here changes while the reader is looking at it. */

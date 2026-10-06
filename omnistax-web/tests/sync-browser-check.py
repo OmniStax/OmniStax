@@ -1,4 +1,4 @@
-"""Browser check for the Sync and Update sidebar, against a faked GitHub API.
+"""Browser check for the Sync sidebar, against a faked GitHub API.
 
 Run against a served site, e.g.:
     python3 tests/sync-browser-check.py http://127.0.0.1:4337 [screenshot.png]
@@ -32,6 +32,8 @@ def github(route):
         return route.fulfill(json={"truncated": False, "tree": TREE})
     if url.endswith("/git/blobs/" + "m" * 40):
         return route.fulfill(body=json.dumps(MANIFEST))
+    if url.endswith("/git/blobs/" + "a" * 40):
+        return route.fulfill(body='{\n  "omnistax-theme": "sepia"\n}\n')
     return route.fulfill(status=500, body="{}")
 
 
@@ -44,10 +46,11 @@ with sync_playwright() as playwright:
     page.goto(BASE + PATH)
     page.wait_for_selector(".shell")
 
-    # Unconnected, the view is the setup form.
-    page.get_by_role("button", name="Sync and Update", exact=True).click()
+    # Unconnected, the view is the setup form, opened from the foot of the rail.
+    page.locator("#sync-btn").click()
     view = page.locator(".sync")
-    view.get_by_text("Keep your notes, practice and settings").wait_for()
+    view.get_by_text("A repo of your own").wait_for()
+    assert page.evaluate("document.querySelector('#sync-btn').nextElementSibling.id") == "palette-btn"
 
     page.evaluate("""
       localStorage.setItem('omnistax-theme', 'dark');
@@ -66,18 +69,33 @@ with sync_playwright() as playwright:
     assert view.locator(".sec-name", has_text="Changed in both").is_visible()
 
     # A file changed on both sides holds the sync until a version is chosen.
-    go = view.locator(".go")
+    go = view.locator(".go").first
     assert go.is_disabled() and go.inner_text().startswith("Choose a version"), go.inner_text()
-    view.get_by_role("button", name="All this device’s").click()
-    assert go.is_enabled() and go.inner_text().startswith("Pull 1 and push"), go.inner_text()
-    view.get_by_text("Pulling reloads OmniStax").wait_for()
 
-    # Overwrite says what it would discard.
-    view.locator("summary", has_text="Overwrite").click()
-    view.get_by_text("Discards", exact=False).first.wait_for()
-    view.get_by_role("button", name="Export").wait_for()
+    # A row opens the file's changes as a tab, where the version can be chosen too.
+    view.locator(".file", has_text="appearance").click()
+    diff = page.locator(".diff")
+    diff.locator(".line.add", has_text="omnistax-theme").wait_for(timeout=20000)
+    assert diff.locator(".line.del", has_text="sepia").count() == 1
+    if SHOT:
+        page.screenshot(path=SHOT.replace(".png", "-diff.png"))
+    diff.get_by_role("button", name="Keep this device’s").click()
+    assert go.is_enabled() and go.inner_text().startswith("Pull 1 and push"), go.inner_text()
+
+    # Forcing sits in the menu beside the button and asks first, naming what is lost.
+    view.get_by_role("button", name="More sync actions").click()
+    menu = view.get_by_role("menu")
+    assert menu.get_by_role("menuitem").count() == 4
     if SHOT:
         page.locator(".sidebar").screenshot(path=SHOT)
+    menu.get_by_role("menuitem", name="Force pull").click()
+    dialog = page.locator("dialog[open]")
+    dialog.get_by_text("made on this device will be discarded").wait_for()
+    if SHOT:
+        page.screenshot(path=SHOT.replace(".png", "-force.png"))
+    dialog.get_by_role("button", name="Cancel").click()
+    assert page.locator("dialog[open]").count() == 0
+    view.get_by_role("button", name="Export", exact=True).wait_for()
 
     assert not errors, errors
     print("sync-browser-check: ok")
