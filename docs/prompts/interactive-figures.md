@@ -35,6 +35,7 @@ The logical canvas is 1400 units wide; `begin()` scales it. Primitives, all in l
 line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
 measure(ctx,s,{size=22,weight}) -> width  the width text() gives s, subscripts included; never set ctx.font to measure
+text(ctx,'m^2 and F_{net}',...)           _x or _{…} sets a subscript and ^x or ^{…} a superscript, smaller and lowered or raised
 headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count; a $…$ run is set
                                           as TeX under the figure's macros (\k symbols wear their colours), and v.headline does the same
 label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
@@ -44,6 +45,7 @@ angleArc(ctx,{x,y},r,a0,a1,text,labeller) an angle's arc, its two arms and its n
 fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the greatest extents the sliders reach
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
+axes(..., {nx: 0})                        nx or ny 0 draws that axis with no ticks or tick labels
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
 arrival(d) -> 0..1                        axes and curves arrive on first view; register(fig,{...,arrive:false}) opts out
 stagger(k,i,n,lag=0.1)                    member i of n within progress k (LaggedStart)
@@ -98,7 +100,9 @@ Controls beyond the slider (root rule 26.1):
 choice(host,{label,options:[{value,label}],value,aria,onInput,ms}) -> {value,set,drive,k,from,mix,a,off}   a discrete state as a button row, arrow keys walk it
 select(host,{label,options,value,aria,onInput,ms}) -> the same handle            the same as a dropdown where a row would wrap
   k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
+picker.options(list, value?)                                                       a new option list: the value stays where the list has it, else value, else the first; no input event
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
+slider.range({min,max,step,value,unit,dec})                                         eases to a new range; the detent ticks are redrawn for it, those outside it dropped
 ctl / choice / select {..., key}                                                   the id a note stores the value under; default the cls ("choice" for a picker), then cls-2, cls-3
   a track under 120 px drops to its own line below its name and value (rule 26.12); keep names short rather than lean on it
 hover(d.stage, () => [{x,y,r,name}], canvas?) -> {hide}                           names under the pointer where labels would crowd (rule 26.6); canvas picks which of the stage's canvases

@@ -350,7 +350,8 @@ function elOf(s: string, cls?: string | null, html?: string): Color | HTMLElemen
    the Facts and conventions switch reaches it. */
 const fact = (c: Color): Color => (SHOWN.facts ? c : PAL.ink);
 
-const fmt = (n: number, d: number): string => (Math.abs(n) < 1e-9 ? 0 : n).toFixed(d);
+/* a negative is written with a true minus (U+2212), and one that rounds to zero without a sign */
+const fmt = (n: number, d: number): string => { const s = n.toFixed(d); return /^-[0.]*$/.test(s) ? s.slice(1) : s.replace('-', '\u2212'); };
 
 /* ---------- figure scaffolding ---------- */
 const LW: Logical = 1400;
@@ -458,6 +459,7 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const settle = (r: SliderRange, x: number): void => {
     inp.min = String(r.min); inp.max = String(r.max); inp.step = String(r.step); inp.value = String(within(r, x));
     unit = r.unit ?? unit; dec = r.dec ?? dec; held = null; sp.place(); upd();
+    if (ticks) { const t = ticksOf(detentsIn(r), r); ticks.replaceWith(t); ticks = t; }
   };
   const frame = (f: RangeFrame, x: number): void => {
     inp.step = 'any'; inp.min = String(f.min); inp.max = String(f.max); inp.value = String(f.min + f.frac * (f.max - f.min));
@@ -483,12 +485,16 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
     held = to; upd(); easing = requestAnimationFrame(step);
   };
   const ds = o.detents ?? [];
+  const detentsIn = (r: Span): readonly Detent[] => ds.filter((d) => detentValue(d) >= r.min && detentValue(d) <= r.max);
   const track = el('span', 'ctl-track'); track.append(inp, sp.box);
-  if (ds.length) track.appendChild(ticksOf(ds, o));
+  let ticks = ds.length ? ticksOf(ds, o) : null;
+  if (ticks) track.appendChild(ticks);
   lab.append(name, track, val);
   if (ds.length && (o.snap ?? snapsByDefault(ds, o.step))) {
-    const reach = snapReach(ds, o);
-    inp.addEventListener('change', () => { const n = nearestDetent(ds, +inp.value, reach); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.(); });
+    inp.addEventListener('change', () => {
+      const r = { min: +inp.min, max: +inp.max }, live = detentsIn(r); if (!live.length) return;
+      const n = nearestDetent(live, +inp.value, snapReach(live, r)); if (n === null || n === +inp.value) return; inp.value = String(n); upd(); o.onInput?.();
+    });
   }
   /* A slider a held law has taken over is disabled and greyed, never moved and snapped back. */
   const disable = (held: boolean): void => { inp.disabled = held; lab.classList.toggle('ctl-held', held); };
@@ -700,13 +706,15 @@ function dot(ctx: Ctx, x: Logical, y: Logical, color: Color, filled = true, r = 
   ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.fillStyle = filled ? color : PAL.panel;
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
 }
-/* A label may carry subscripts the way the book's symbols do: `F_net`, `T_{L}`, `w_{box}`. An underscore
-   followed by a braced group or one word character is drawn as a subscript, smaller and lowered; a
-   plain underscore is never printed. Alignment and the panel behind the label measure the whole run. */
-type Run = { s: string; sub: boolean; html?: string };
+/* A label may carry subscripts the way the book's symbols do: `F_net`, `T_{L}`, `w_{box}`, and
+   superscripts the same way: `m^2`, `10^{-3}`, `Na^+`. An underscore or caret followed by a braced
+   group or a run of word characters is drawn smaller, lowered or raised; a plain underscore is never
+   printed. Alignment and the panel behind the label measure the whole run. */
+type Run = { s: string; sub: boolean; sup?: boolean; html?: string };
+const SCRIPTS = /[_^]/;
 function runsOf(s: string): Run[] {
-  const out: Run[] = []; const re = /_\{([^}]*)\}|_([A-Za-z0-9\u2080-\u209c\u03b1-\u03c9+\-]+)/g; let last = 0, m: RegExpExecArray | null;
-  while ((m = re.exec(s))) { if (m.index > last) out.push({ s: s.slice(last, m.index), sub: false }); out.push({ s: m[1] ?? m[2] ?? '', sub: true }); last = re.lastIndex; }
+  const out: Run[] = []; const re = /([_^])(?:\{([^}]*)\}|([A-Za-z0-9\u2080-\u209c\u03b1-\u03c9+\-\u2212]+))/g; let last = 0, m: RegExpExecArray | null;
+  while ((m = re.exec(s))) { if (m.index > last) out.push({ s: s.slice(last, m.index), sub: false }); out.push({ s: m[2] ?? m[3] ?? '', sub: m[1] === '_', sup: m[1] === '^' }); last = re.lastIndex; }
   if (last < s.length) out.push({ s: s.slice(last), sub: false });
   return out;
 }
@@ -715,13 +723,13 @@ function runsOf(s: string): Run[] {
 const TEX_RUN = /\$([^$]+)\$/;   /* a lone $ ("$100 bills") stays a dollar sign */
 function runsTex(s: string, canvas: unknown): Run[] {
   return s.split(TEX_RUN).flatMap((part, i): Run[] => {
-    if (i % 2 === 0) return !part ? [] : part.includes('_') ? runsOf(part) : [{ s: part, sub: false }];
+    if (i % 2 === 0) return !part ? [] : SCRIPTS.test(part) ? runsOf(part) : [{ s: part, sub: false }];
     const html = inPage(canvas) ? typeset(part, canvas) : null;
     return html === null ? [{ s: plain(part), sub: false }] : [{ s: part, sub: false, html }];
   });
 }
 const runsFor = (s: string, canvas: unknown, tex?: boolean): Run[] =>
-  tex && s.includes('$') ? runsTex(s, canvas) : s.includes('_') ? runsOf(s) : [{ s, sub: false }];
+  tex && s.includes('$') ? runsTex(s, canvas) : SCRIPTS.test(s) ? runsOf(s) : [{ s, sub: false }];
 /* ---------- the text over the canvas ----------
    What `text` sets on a canvas that is in the page is recorded and shown as the page's own
    text over it (textlayer.ts). A draw's record opens at `begin`, or at its first string on a
@@ -754,7 +762,7 @@ const glowCanvases = new WeakMap<HTMLCanvasElement, GlowCanvas>();
 const glowing = new Set<HTMLCanvasElement>();
 const simOf = (c: HTMLCanvasElement): Sim | undefined => sims.find((d) => d.fig.contains(c));
 /* the string's runs cut into pieces, every number its own piece with the glow it carries */
-const pieceOf = (r: Run, s: string, lit: number): Piece => (r.html === undefined ? { s, sub: r.sub, lit } : { s, sub: false, lit: 0, html: r.html });
+const pieceOf = (r: Run, s: string, lit: number): Piece => (r.html === undefined ? { s, sub: r.sub, sup: r.sup, lit } : { s, sub: false, lit: 0, html: r.html });
 function piecesOf(canvas: HTMLCanvasElement, s: string, runs: readonly Run[]): Piece[] {
   if (!/\d/.test(s)) return runs.map((r) => pieceOf(r, r.s, 0));
   const g = glowCanvases.get(canvas) ?? (glowCanvases.set(canvas, { frame: -1, seen: new Map(), traces: new Map() }), glowCanvases.get(canvas)!);
@@ -791,7 +799,7 @@ function shownAt(ctx: Ctx, size: number): readonly [Logical, Logical] {
 const fontOf = (weight: number, italic: boolean, px: number): string => `${italic ? 'italic ' : ''}${weightOf(weight)} ${px}px ${FONT}`;
 /* each run's width on the canvas as the layer sets it */
 function widthsOf(ctx: Ctx, runs: readonly Run[], [main, sub]: readonly [Logical, Logical], weight: number, italic: boolean): Logical[] {
-  return runs.map((r) => { if (r.html !== undefined) return texEm(r.html) * main; ctx.font = fontOf(weight, italic, r.sub ? sub : main); return ctx.measureText(r.s).width; });
+  return runs.map((r) => { if (r.html !== undefined) return texEm(r.html) * main; ctx.font = fontOf(weight, italic, r.sub || r.sup ? sub : main); return ctx.measureText(r.s).width; });
 }
 function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: TextOpts = {}): void {
   const size = o.size ?? 22, weight = weightOf(o.weight ?? 400), italic = !!o.italic, shown = shownAt(ctx, size);
@@ -811,7 +819,7 @@ function text(ctx: Ctx, s: string, x: Logical, y: Logical, color: Color, o: Text
     });
   } else {
     ctx.fillStyle = color;
-    runs.forEach((r, i) => { ctx.font = fontOf(weight, italic, shown[r.sub ? 1 : 0]); ctx.fillText(r.s, cx, r.sub ? y + shown[0] * 0.22 : y); cx += widths[i]; });
+    runs.forEach((r, i) => { ctx.font = fontOf(weight, italic, shown[r.sub || r.sup ? 1 : 0]); ctx.fillText(r.s, cx, r.sub ? y + shown[0] * 0.22 : r.sup ? y - shown[0] * 0.36 : y); cx += widths[i]; });
   }
   ctx.restore();
 }
@@ -873,8 +881,8 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): { X: 
   const nx = o.nx ?? 4, ny = o.ny ?? 3;
   const k = arrivalAt(ctx), grow = during(k, 0, 0.25), fade = during(k, 0.15, 0.4);
   ctx.save(); ctx.globalAlpha *= fade;
-  for (let i = 0; i <= nx; i++) { const v = xr[0] + ((xr[1] - xr[0]) * i) / nx; if (i) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, 0), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); }
-  for (let i = 0; i <= ny; i++) { const v = yr[0] + ((yr[1] - yr[0]) * i) / ny; if (i) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, 0), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); }
+  for (let i = 0; nx > 0 && i <= nx; i++) { const v = xr[0] + ((xr[1] - xr[0]) * i) / nx; if (i) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, 0), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); }
+  for (let i = 0; ny > 0 && i <= ny; i++) { const v = yr[0] + ((yr[1] - yr[0]) * i) / ny; if (i) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, 0), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); }
   if (o.xl) text(ctx, o.xl, box.r, box.b + 58, o.xc ?? PAL.ink, { align: 'right', weight: 600, size: 20 });
   if (o.yl) text(ctx, o.yl, box.l, box.t - 24, o.yc ?? PAL.ink, { align: 'left', weight: 600, size: 20 });
   ctx.restore();
@@ -1739,6 +1747,8 @@ function topline(ctx: Ctx, s: string, color?: Color): 1 | 2 {
 export type Choice = { readonly value: string; readonly label: string };
 export type Picker = {
   readonly value: string; set: (v: string) => void; drive: (v: string) => void;
+  /* a new option list: the value stays where the list still has it, else takes `value`, else the first */
+  options: (list: readonly Choice[], value?: string) => void;
   readonly k: number; readonly from: string;
   mix: <T extends Blendable>(f: (v: string) => T) => T; a: (v: string) => number; off: (v: string, shift: Shift) => [number, number];
   only: (ctx: Ctx, v: string, draw: () => void, shift?: Shift) => void;
@@ -1778,21 +1788,19 @@ const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
 const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : 'Choice');
 function ctlLabel(lab: HTMLElement, o: ChoiceOpts): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label); lab.appendChild(name); }
 
-const enrolPicker = (host: HTMLElement, o: ChoiceOpts, input: EventTarget, value: () => string, drive: (v: string) => void): void =>
+const enrolPicker = (host: HTMLElement, o: ChoiceOpts, input: EventTarget, value: () => string, drive: (v: string) => void, list: () => readonly Choice[]): void =>
   enrol(host.closest('figure'), o.key ?? 'choice', (id) => ({
     id, input, drive: (x) => drive(String(x)),
-    param: () => ({ id, label: ariaOf(o), kind: 'choice', value: value(), options: o.options.map((c) => c.value) }),
+    param: () => ({ id, label: ariaOf(o), kind: 'choice', value: value(), options: list().map((c) => c.value) }),
   }));
+const kept = (values: readonly string[], v: string, value?: string): string =>
+  values.includes(v) ? v : value !== undefined && values.includes(value) ? value : values[0] ?? '';
 
 function choice(host: HTMLElement, o: ChoiceOpts): Picker {
   const lab = el('label', 'ctl-seg'); ctlLabel(lab, o);
   const row = el('div', 'ctlseg'); row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', ariaOf(o));
-  const values = o.options.map((c) => c.value);
-  let v = values.includes(o.value ?? '') ? (o.value as string) : (values[0] ?? '');
-  const buttons = o.options.map((c) => {
-    const b = el('button', 'segbtn', c.label); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
-    row.appendChild(b); return b;
-  });
+  let list = o.options, values = list.map((c) => c.value), buttons: HTMLButtonElement[] = [];
+  let v = kept(values, o.value ?? '');
   const mark = (): void => buttons.forEach((b) => { const on = b.dataset.value === v; b.setAttribute('aria-checked', String(on)); b.classList.toggle('on', on); b.tabIndex = on ? 0 : -1; });
   const tw = turning(host, v, o.ms ?? TURN_MS, () => v);
   const pick = (next: string, focus: boolean): void => {
@@ -1800,32 +1808,49 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
     tw.turn(v); v = next; mark(); if (focus) buttons[values.indexOf(v)].focus();
     o.onInput?.(v); row.dispatchEvent(new Event('input', { bubbles: true }));
   };
-  buttons.forEach((b) => b.addEventListener('click', () => pick(b.dataset.value ?? '', false)));
+  const build = (): void => {
+    buttons = list.map((c) => {
+      const b = el('button', 'segbtn', c.label); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
+      b.addEventListener('click', () => pick(c.value, false)); return b;
+    });
+    row.replaceChildren(...buttons); mark();
+  };
+  build();
   row.addEventListener('keydown', (e) => {
     const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
     if (!step) return;
     e.preventDefault(); pick(values[(values.indexOf(v) + step + values.length) % values.length], true);
   });
-  mark(); lab.appendChild(row); host.appendChild(lab);
-  enrolPicker(host, o, row, () => v, (x) => driven(() => pick(x, false)));
+  lab.appendChild(row); host.appendChild(lab);
+  enrolPicker(host, o, row, () => v, (x) => driven(() => pick(x, false)), () => list);
+  const options = (next: readonly Choice[], value?: string): void => {
+    list = next; values = list.map((c) => c.value);
+    const to = kept(values, v, value); if (to !== v) { v = to; tw.cut(v); }
+    build();
+  };
   return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
-    get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; tw.cut(x); mark(); }, drive: (x: string) => driven(() => pick(x, false)),
+    get value() { return v; }, set(x: string) { if (!values.includes(x)) return; v = x; tw.cut(x); mark(); }, drive: (x: string) => driven(() => pick(x, false)), options,
   })) as Picker;
 }
 
 function select(host: HTMLElement, o: ChoiceOpts): Picker {
   const lab = el('label', 'ctl-pick'); ctlLabel(lab, o);
   const sel = el('select', 'ctl-select'); sel.setAttribute('aria-label', ariaOf(o));
-  o.options.forEach((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; sel.appendChild(op); });
-  sel.value = o.value ?? o.options[0]?.value ?? '';
+  let list = o.options;
+  const build = (): void => sel.replaceChildren(...list.map((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; return op; }));
+  build(); sel.value = o.value ?? list[0]?.value ?? '';
   let v = sel.value;
   const tw = turning(host, v, o.ms ?? TURN_MS, () => v);
   sel.addEventListener('input', () => { if (sel.value !== v) { tw.turn(v); v = sel.value; } o.onInput?.(sel.value); });
   lab.appendChild(sel); host.appendChild(lab);
   const drive = (x: string): void => { if (sel.value === x) return; sel.value = x; driven(() => sel.dispatchEvent(new Event('input', { bubbles: true }))); };
-  enrolPicker(host, o, sel, () => sel.value, drive);
+  enrolPicker(host, o, sel, () => sel.value, drive, () => list);
+  const options = (next: readonly Choice[], value?: string): void => {
+    list = next; build();
+    const to = kept(list.map((c) => c.value), v, value); sel.value = to; if (to !== v) { v = to; tw.cut(v); }
+  };
   return Object.defineProperties(tw.handle, Object.getOwnPropertyDescriptors({
-    get value() { return sel.value; }, set(x: string) { sel.value = x; v = sel.value; tw.cut(v); }, drive,
+    get value() { return sel.value; }, set(x: string) { sel.value = x; v = sel.value; tw.cut(v); }, drive, options,
   })) as Picker;
 }
 
@@ -1843,12 +1868,13 @@ const gapsOf = (ds: readonly Detent[]): readonly number[] => ds.map(detentValue)
 /* A step that already walks the detents snaps by itself; anything finer snaps only if asked. */
 const snapsByDefault = (ds: readonly Detent[], step: number): boolean => { const g = gapsOf(ds); return g.length > 0 && g.every((x) => Math.abs(x - step) < 1e-9); };
 /* a third of the closest gap between detents, but never more than a fortieth of the track: detents far apart would otherwise swallow most of the slider */
-const snapReach = (ds: readonly Detent[], o: CtlOpts): number => { const g = gapsOf(ds).map(Math.abs).filter((x) => x > 0); return Math.min(0.34 * (g.length ? Math.min(...g) : (o.max - o.min) * 0.2), 0.025 * (o.max - o.min)); };
+type Span = { readonly min: number; readonly max: number };
+const snapReach = (ds: readonly Detent[], o: Span): number => { const g = gapsOf(ds).map(Math.abs).filter((x) => x > 0); return Math.min(0.34 * (g.length ? Math.min(...g) : (o.max - o.min) * 0.2), 0.025 * (o.max - o.min)); };
 function nearestDetent(ds: readonly Detent[], x: number, reach: number): number | null {
   const best = ds.map(detentValue).reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a));
   return Math.abs(best - x) <= reach ? best : null;
 }
-function ticksOf(ds: readonly Detent[], o: CtlOpts): HTMLElement {
+function ticksOf(ds: readonly Detent[], o: Span): HTMLElement {
   const box = el('span', 'ctl-ticks'); box.setAttribute('aria-hidden', 'true');
   ds.forEach((d) => {
     const t = el('span', 'tick'); t.style.left = (100 * (detentValue(d) - o.min)) / (o.max - o.min) + '%';
@@ -1932,8 +1958,8 @@ function tipOf(host: HTMLElement): Tip {
     hide() { t.hidden = true; },
   };
 }
-function hover(stage: HTMLElement, hits: () => readonly Hit[]): Tip {
-  const tip = tipOf(stage); const c = stage.querySelector('canvas');
+function hover(stage: HTMLElement, hits: () => readonly Hit[], canvas?: HTMLCanvasElement): Tip {
+  const tip = tipOf(stage); const c = canvas ?? stage.querySelector('canvas');
   if (!c) return tip;
   c.addEventListener('pointermove', (e) => {
     const r = c.getBoundingClientRect(), s = stage.getBoundingClientRect(), H = +(c.dataset.h ?? 0);
@@ -1955,9 +1981,10 @@ function hover(stage: HTMLElement, hits: () => readonly Hit[]): Tip {
    figure's stage, so the page's own panel shows through in both themes, and
    every colour of the scene is read from the palette as it is built, so a
    theme change rebuilds it. The reader turns the scene by dragging; the
-   buttons under it say what dragging cannot — auto-rotate on and off, the
-   viewpoints that carry meaning, and zoom, which the wheel also does over the
-   canvas. The orbit is a turntable whose yaw and pitch the figure may bound,
+   buttons under it say what dragging cannot, and each is the figure's to ask
+   for: auto-rotate on and off (`spin: 'idle'`), zoom (`zoom: true`; the wheel
+   zooms over the canvas either way) and the viewpoints that carry meaning
+   (`views`). With none asked for there is no button row. The orbit is a turntable whose yaw and pitch the figure may bound,
    so a scene with a bench is never turned to show its underside. The renderer
    draws only when something changed and only while the figure is on screen,
    follows the container's size and the device pixel ratio, and disposes
@@ -1967,10 +1994,10 @@ type Three = Record<string, any>;                        /* the r128 global */
 type Obj3 = any;                                         /* a mesh, a line, a group */
 export type Radians = number;
 export type ViewPreset = { readonly label: string; readonly yaw: Radians; readonly pitch: Radians };
-type Spin = 'idle' | 'off' | 'none';
+type Spin = 'idle' | 'off';
 type View3dOpts = {
   h?: Logical; dist?: number; tilt?: Radians;
-  spin?: Spin; views?: readonly ViewPreset[];
+  spin?: Spin; zoom?: boolean; views?: readonly ViewPreset[];
   pitch?: readonly [Radians, Radians]; yaw?: readonly [Radians, Radians] | 'free';
   zoomMin?: number; zoomMax?: number; onRender?: () => void;
 };
@@ -1998,6 +2025,8 @@ export type CamView = { readonly yaw: Radians; readonly pitch: Radians; readonly
 export type CamAim = Partial<CamView>;
 
 const three = (): Three | null => (window as unknown as { THREE?: Three }).THREE ?? null;
+/* drawn: the object and every group above it visible */
+const shownAll = (o: Obj3): boolean => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
 /* The shared geometries every mesh helper instances, made once the global is there. */
 let GEO: Record<string, Obj3> | null = null;
@@ -2119,10 +2148,20 @@ const VICON = {
 function vbtn(bar: HTMLElement, html: string, title: string, cls = ''): HTMLButtonElement {
   const b = el('button', 'vbtn' + (cls ? ' ' + cls : ''), html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); bar.appendChild(b); return b;
 }
+/* Without three.js an object that takes any call, property or assignment, so a figure's scene code
+   runs on to its end; with it the stub hands out real groups that are never drawn. */
+function inert(): Obj3 {
+  const own: Record<PropertyKey, unknown> = { children: [], userData: {}, visible: true };
+  const p: Obj3 = new Proxy(() => p, {
+    get: (_, k) => (k in own ? own[k] : k === 'then' ? undefined : k === Symbol.toPrimitive ? () => 0 : (own[k] = inert())),
+    set: (_, k, v) => { own[k] = v; return true; },
+  });
+  return p;
+}
 const stub = (stage: HTMLElement): View3d => {
-  const wrap = el('div', 'three-wrap'); wrap.appendChild(el('p', 'lab3d', 'This figure needs WebGL, which this browser does not provide.')); stage.appendChild(wrap);
+  const T = three(), wrap = el('p', 'three-none', 'This figure needs WebGL, which this browser does not provide.'); stage.appendChild(wrap);
   const nil = (): void => {};
-  return { wrap, scene: null, camera: null, part: () => null, label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; },
+  return { wrap, scene: T ? new T.Scene() : inert(), camera: T ? new T.PerspectiveCamera() : inert(), part: () => (T ? new T.Group() : inert()), label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; },
     at: { yaw: 0, pitch: 0, zoom: 1, target: [0, 0, 0] }, look: nil, glide: () => Promise.resolve(), onReader: () => nil };
 };
 
@@ -2132,10 +2171,10 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const dist = opts.dist ?? 7, zoomMin = opts.zoomMin ?? 0.55, zoomMax = opts.zoomMax ?? 2.6;
   const pitchLim = opts.pitch ?? ([-Math.PI / 2, Math.PI / 2] as const);
   const yawLim = opts.yaw ?? 'free';
-  const spinMode: Spin = opts.spin ?? 'idle';
-  const wrap = el('div', 'three-wrap'); wrap.style.setProperty('--three-h', String(H)); stage.appendChild(wrap);
+  const spinMode: Spin = opts.spin ?? 'off';
   let renderer: Obj3 = null;
   try { renderer = new T.WebGLRenderer({ antialias: true, alpha: true }); } catch { return stub(stage); }
+  const wrap = el('div', 'three-wrap'); wrap.style.setProperty('--three-h', String(H)); stage.appendChild(wrap);
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(30, 2, 0.1, 100); camera.position.set(0, 0, dist); camera.lookAt(0, 0, 0);
   const lamp = new T.DirectionalLight(0xffffff, 0.8); lamp.position.set(-3, 5, 7); scene.add(lamp); scene.add(new T.AmbientLight(0xffffff, 0.62));
@@ -2147,8 +2186,8 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const readers = new Set<() => void>();
   const byHand = (): void => { if (gliding) { const g = gliding; gliding = null; g.done(); } readers.forEach((f) => f()); };
   let spinning = spinMode === 'idle' && !REDUCED, dragging = false, last: readonly [number, number] = [0, 0], need = true, alive = true, seen = true, turned = false;
-  const qx = new T.Quaternion(), qy = new T.Quaternion(), AX = new T.Vector3(1, 0, 0), UP = new T.Vector3(0, 1, 0);
-  const orient = (): void => { parts.forEach((g: Obj3) => g.quaternion.copy(qx.setFromAxisAngle(AX, pitch).multiply(qy.setFromAxisAngle(UP, yaw)))); need = true; };
+  const orbit = new T.Quaternion(), qy = new T.Quaternion(), turn = new T.Quaternion(), AX = new T.Vector3(1, 0, 0), UP = new T.Vector3(0, 1, 0);
+  const orient = (): void => { orbit.setFromAxisAngle(AX, pitch).multiply(qy.setFromAxisAngle(UP, yaw)); need = true; };
   const aim = (y: Radians, p: Radians): void => {
     yaw = yawLim === 'free' ? y : clamp(y, yawLim[0], yawLim[1]);
     pitch = clamp(p, pitchLim[0], pitchLim[1]); orient();
@@ -2171,8 +2210,13 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   };
   const v: View3d = {
     wrap, scene, camera,
-    /* a group the drag turns about its own centre, placed at x; a figure with panels has several */
-    part(x = 0) { const g = new T.Group(); g.position.set(x, 0, 0); scene.add(g); parts.push(g); orient(); return g; },
+    /* a group the drag turns about its own centre, placed at x; a figure with panels has several.
+       The orbit is composed outside the group's own rotation, so a turn the figure gives it holds. */
+    part(x = 0) {
+      const g = new T.Group(); g.position.set(x, 0, 0);
+      g.updateMatrix = (): void => { g.matrix.compose(g.position, turn.multiplyQuaternions(orbit, g.quaternion), g.scale); g.matrixWorldNeedsUpdate = true; };
+      scene.add(g); parts.push(g); orient(); return g;
+    },
     /* the label s at point p of group g, in the page's face, kept dy pixels above the point */
     label(s, p, g, dy = 0, cls = '') { const e = el('div', 'lab3d' + (cls ? ' ' + cls : ''), s); wrap.appendChild(e); labels.push({ el: e, p: vec3(p), g, dy }); return e; },
     /* The scene's headline. A `.lab3d` label is one line pinned to a point of the scene; a
@@ -2221,14 +2265,17 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(size) : null; ro?.observe(wrap); size(); densityWatchers.add(size);
   const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => { seen = e.isIntersecting; if (seen) need = true; }), { rootMargin: '120px' }) : null; io?.observe(wrap);
 
-  /* the button row: what dragging cannot say */
-  const bar = el('div', 'view3d-bar'); stage.appendChild(bar);
-  const spinBtn = spinMode === 'none' ? null : vbtn(bar, VICON.spin, 'Auto-rotate', 'spin');
+  /* the button row: what dragging cannot say, and only what the figure asked for */
+  const bar = el('div', 'view3d-bar');
+  const spinBtn = spinMode === 'idle' ? vbtn(bar, VICON.spin, 'Auto-rotate', 'spin') : null;
   function markSpin(): void { spinBtn?.setAttribute('aria-pressed', String(spinning)); spinBtn?.classList.toggle('on', spinning); }
   spinBtn?.addEventListener('click', () => { byHand(); spinning = !spinning; markSpin(); need = true; }); markSpin();
   (opts.views ?? []).forEach((p) => vbtn(bar, p.label, 'View: ' + p.label, 'named').addEventListener('click', () => { byHand(); spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
-  vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => { byHand(); setZoom(zoom / 1.25); });
-  vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => { byHand(); setZoom(zoom * 1.25); });
+  if (opts.zoom) {
+    vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => { byHand(); setZoom(zoom / 1.25); });
+    vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => { byHand(); setZoom(zoom * 1.25); });
+  }
+  if (bar.childElementCount) stage.appendChild(bar);
 
   /* the orbit: a turntable within the bounds the figure set, and the wheel zooms over the canvas */
   wrap.addEventListener('pointerdown', (e) => { byHand(); dragging = true; spinning = false; markSpin(); last = [e.clientX, e.clientY]; wrap.setPointerCapture(e.pointerId); wrap.style.cursor = 'grabbing'; e.preventDefault(); });
@@ -2248,14 +2295,16 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     const r = wrap.getBoundingClientRect(), s = stage.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
-    const hit = ray.intersectObjects(picks.map((p) => p.m), false)[0];
+    const hit = ray.intersectObjects(picks.filter((p) => shownAll(p.m)).map((p) => p.m), false)[0];
     const name = hit ? picks.find((p) => p.m === hit.object)?.name : undefined;
     if (name) tip.show(e.clientX - s.left, e.clientY - s.top - 12, name); else tip.hide();
   }
 
+  /* a label stands clear of the headline's band: its foot no higher than the band's foot plus its own height */
   function place(): void {
     const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
-    labels.forEach((l) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = ((1 - t.y) / 2) * h - l.dy + 'px'; });
+    const band = head ? head.offsetTop + head.offsetHeight : 0, tall = labels.map((l) => (band ? l.el.offsetHeight : 0));
+    labels.forEach((l, i) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = Math.max(band + tall[i], ((1 - t.y) / 2) * h - l.dy) + 'px'; });
   }
   function dispose(): void { if (!alive) return; alive = false; views3d.delete(live); densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
   let prev = performance.now(), away = false;

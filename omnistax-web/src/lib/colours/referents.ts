@@ -8,11 +8,13 @@
 
    In order, a group's i-th referent wears colour i. Smart, it tries colour i,
    then i + 1, i + 2 … round the palette, and wears the first that no earlier
-   referent of the group wears and that stands at least the reader's target from
-   every colour the group's scope shows and from every referent of the group dealt
-   before it. A group in which any referent finds none is dealt farthest apart
-   instead: each referent in turn takes the colour left that stands farthest from
-   all of those. Smart walks the palette in the order kept for the book: its
+   referent of the group wears, that stands at least the reader's target from
+   every colour the group's scope shows and at least twice the target from every
+   referent of the group dealt before it. Where some referent finds none, a group
+   of three or fewer is dealt farthest apart instead: each referent in turn takes
+   the colour left that stands farthest from all of those; a larger group walks
+   again at the target alone, and only where that fails too is it dealt farthest
+   apart. Smart walks the palette in the order kept for the book: its
    colours sorted by how many referents of the whole book they stand clear of
    what their group shows, most first, so that the colours that clash least are
    tried first. Pure throughout. */
@@ -87,13 +89,13 @@ export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight
 
 export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
 
-/* The smart walk: the slot each referent wears, or null where one finds none. */
-export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE): readonly Slot[] | null => {
+/* The smart walk: the slot each referent wears, or null where one finds none. `gap` is how far the group's referents stand from each other. */
+export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target): readonly Slot[] | null => {
   const n = palette.length;
   const clear = palette.map((p) => nearest(p, shown) >= target);
   const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {
-    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j) && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= target);
+    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j) && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= gap);
     const slot = Array.from({ length: n }, (_, k) => (i + k) % n).find(fits);
     if (slot === undefined) return null;
     slots.push(slot);
@@ -120,13 +122,16 @@ export type GroupToDeal = { readonly ids: readonly ReferentId[]; readonly shown:
 export type DealtGroup = { readonly ids: readonly ReferentId[]; readonly hues: readonly Hue[]; readonly mode: DealtMode };
 export type DealInput = { readonly palette: readonly Hue[]; readonly mode: RefMode; readonly vision: Vision; readonly target: DeltaE };
 
+/* The largest group dealt farthest apart as soon as the doubled gap fails. */
+const FARTHEST_MAX = 3;
 export const dealGroup = (g: GroupToDeal, { palette, mode, vision, target }: DealInput): DealtGroup => {
   const as = (slots: readonly Slot[], how: DealtMode): DealtGroup => ({ ids: g.ids, hues: slots.map((s) => palette[s]), mode: how });
   if (mode === 'order' || g.ids.length === 0) return as(inOrderSlots(g.ids.length, palette.length), 'order');
   const seenPalette = palette.map((h) => seenHue(h, vision));
   const shown = g.shown.map((h) => seenHue(h, vision));
-  const smart = smartSlots(g.ids.length, seenPalette, shown, target);
-  return smart ? as(smart, 'smart') : as(farthestSlots(g.ids.length, seenPalette, shown), 'farthest');
+  const n = g.ids.length;
+  const smart = smartSlots(n, seenPalette, shown, target, 2 * target) ?? (n > FARTHEST_MAX ? smartSlots(n, seenPalette, shown, target) : null);
+  return smart ? as(smart, 'smart') : as(farthestSlots(n, seenPalette, shown), 'farthest');
 };
 
 export const huesOfGroups = (groups: readonly DealtGroup[]): RefHues =>

@@ -198,6 +198,48 @@ test('a 3D view is disposed by F.release of a root holding it, never by being ou
   } finally { Object.assign(g, { window: was.window, document: was.document, requestAnimationFrame: was.raf }); }
 });
 
+/* A stage that keeps what is appended to it, under a window whose THREE is `three`. */
+const onStage = <T>(three: unknown, f: (stage: { kids: { className?: string }[] }) => T): T => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const was = { window: g.window, document: g.document, raf: g.requestAnimationFrame };
+  g.window = { THREE: three };
+  g.document = anything({ createElement: () => { const own: Record<string, unknown> = { childElementCount: 0 }; own.appendChild = () => { (own.childElementCount as number) += 1; }; return anything(own); } });
+  g.requestAnimationFrame = () => 0;
+  const kids: { className?: string }[] = [];
+  try { return f(anything({ kids, appendChild: (e: { className?: string }) => { kids.push(e); return e; }, dataset: {} })); }
+  finally { Object.assign(g, { window: was.window, document: was.document, requestAnimationFrame: was.raf }); }
+};
+test('a 3D view draws a button row only for the buttons it asks for: spin when idle, zoom when asked, views when given', () => {
+  const bars = (o: Record<string, unknown>) => onStage(anything({ WebGLRenderer: function () { return anything(); } }), (stage) => {
+    FIG.view3d(stage as unknown as HTMLElement, o);
+    return stage.kids.filter((k) => k.className === 'view3d-bar').length;
+  });
+  assert.equal(bars({}), 0, 'none by default');
+  assert.equal(bars({ spin: 'off' }), 0);
+  assert.equal(bars({ spin: 'idle' }), 1);
+  assert.equal(bars({ zoom: true }), 1);
+  assert.equal(bars({ views: [{ label: 'front', yaw: 0, pitch: 0 }] }), 1);
+});
+test('without WebGL a 3D view shows one line and every call on it, its parts included, is a safe no-op', () => {
+  const thrower = anything({ WebGLRenderer: function () { throw new Error('no WebGL'); } });
+  for (const three of [thrower, undefined]) onStage(three, (stage) => {
+    const v = FIG.view3d(stage as unknown as HTMLElement, { spin: 'idle', zoom: true });
+    assert.equal(stage.kids.map((k) => k.className).join(' '), 'three-none');
+    const g = v.part(0);
+    g.add({}); g.remove({}); g.clear(); g.position.set(1, 2, 3); g.rotation.y = 0.4; g.quaternion.copy({}); g.scale.set(2, 2, 2);
+    g.userData.k = 1; g.visible = false;
+    assert.ok(g.userData.k === 1 && (three !== undefined || Array.isArray(g.children)));
+    v.label('a', [0, 0, 0], g); v.headline('h'); v.pickable(g, 'g'); v.setView(0, 0); v.invalidate(); v.clear(); v.dispose();
+    assert.equal(v.project([0, 0, 0], g).join(), '0,0');
+  });
+});
+test('a library-formatted negative takes a true minus, and one that rounds to zero no sign', () => {
+  assert.equal(FIG.fmt(-1.5, 1), '\u22121.5');
+  assert.equal(FIG.fmt(-0.04, 1), '0.0');
+  assert.equal(FIG.fmt(-1e-12, 2), '0.00');
+  assert.equal(FIG.fmt(3, 2), '3.00');
+});
+
 /* ---------- the hand ---------- */
 test('the hand keeps its finger lengths as it curls, and at full curl the fingers close round the grip', () => {
   const sticks = (curl: number) => handParts({ curl }).filter((p) => p.body === 'middle').map((p) => ('a' in p ? Math.hypot(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2]) : 0));

@@ -95,8 +95,8 @@ test('the smart walk skips a colour too near what the scope shows and one too ne
   const near = deal(2, [PALETTE[0], PALETTE[35]], 'smart', 0.001);
   assert.equal(near.mode, 'smart');
   assert.deepEqual(near.hues, [PALETTE[1], PALETTE[2]], 'colour 0 is shown; colour 1 is taken');
-  const far = deal(2, [], 'smart', distance(PALETTE[0], PALETTE[2], 'normal'));
-  assert.deepEqual(far.hues, [PALETTE[0], PALETTE[2]], 'colour 1 stands too near referent 0, so referent 1 walks on');
+  const far = deal(2, [], 'smart', distance(PALETTE[0], PALETTE[2], 'normal') / 2);
+  assert.deepEqual(far.hues, [PALETTE[0], PALETTE[2]], 'colour 1 stands nearer referent 0 than twice the target, so referent 1 walks on');
   const wrap = deal(35, [PALETTE[34]], 'smart', 0.001);
   assert.equal(wrap.hues[34], PALETTE[35]);
   assert.equal(new Set(wrap.hues).size, 35);
@@ -112,6 +112,15 @@ test('a group in which a referent finds no colour is dealt farthest apart, every
   assert.ok(worst(all) >= worst([...shown, PALETTE[1], PALETTE[2], PALETTE[3]]), 'farther apart than in order would be');
   assert.equal(farthestSlots(38, PALETTE.map((h) => seenHue(h, 'normal')), []).length, 38, 'past thirty-six the palette comes round again');
   assert.equal(new Set(farthestSlots(36, PALETTE.map((h) => seenHue(h, 'normal')), [])).size, 36);
+});
+
+test('a group of three or fewer that cannot stand twice the target apart is dealt farthest apart; a larger one walks at the target alone', () => {
+  const t = 0.25;
+  assert.equal(deal(3, [], 'smart', t).mode, 'farthest', 'three greys cannot stand 0.5 apart in lightness');
+  const four = deal(4, [], 'smart', t);
+  assert.equal(four.mode, 'smart');
+  assert.ok(four.hues.every((a, i) => four.hues.slice(i + 1).every((b) => distance(a, b, 'normal') >= t)));
+  assert.equal(deal(2, [], 'smart', t).mode, 'smart', 'two greys can');
 });
 
 /* A book of three types whose section 1.1 has two groups that never meet, two referents each. */

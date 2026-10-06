@@ -8,9 +8,9 @@ export type Px = number;                      /* CSS pixels in the canvas's own 
 export type Em = number;                      /* a length in the glyph's own font size */
 export type Matrix = { readonly a: number; readonly b: number; readonly c: number; readonly d: number; readonly e: number; readonly f: number };
 export type Align = 'left' | 'center' | 'right';
-/* a piece of one string: a subscript run, plain text or a TeX run (`html` holds KaTeX's setting of
-   the source in `s`), and the glow a changed number carries (0 for none) */
-export type Piece = { readonly s: string; readonly sub: boolean; readonly lit: number; readonly html?: string };
+/* a piece of one string: a subscript or superscript run, plain text or a TeX run (`html` holds KaTeX's
+   setting of the source in `s`), and the glow a changed number carries (0 for none) */
+export type Piece = { readonly s: string; readonly sub: boolean; readonly sup?: boolean; readonly lit: number; readonly html?: string };
 export type Glyph = {
   readonly pieces: readonly Piece[];
   readonly x: Px; readonly y: Px;             /* the anchor: the point the canvas's align and baseline refer to */
@@ -24,7 +24,7 @@ export type Glyph = {
 export type Box = { readonly l: Px; readonly t: Px; readonly w: Px; readonly h: Px };
 
 export const FLOOR: Px = 11;
-const SUB = 0.72, SUB_DROP = 0.22, SUB_FLOOR: Px = 10;
+const SUB = 0.72, SUB_DROP = 0.22, SUP_DROP = -0.36, SUB_FLOOR: Px = 10;
 
 /* ---------- the pure parts ---------- */
 /* a point under the context's transform, in backing pixels, taken to CSS pixels by r */
@@ -44,8 +44,10 @@ export function shownIn(size: number, k: number): readonly [number, number] {
   return [px / k, Math.max(SUB_FLOOR, px * SUB) / k];
 }
 /* where a subscript's baseline sits below the main one, in the main font's em: the canvas lowers
-   the subscript's own anchor by SUB_DROP, and the anchor lies `base` above each run's baseline */
-export const subDrop = (base: Em): Em => SUB_DROP - base * (1 - SUB);
+   the subscript's own anchor by SUB_DROP (a superscript's by SUP_DROP, which raises it), and the
+   anchor lies `base` above each run's baseline */
+export const subDrop = (base: Em, sup = false): Em => (sup ? SUP_DROP : SUB_DROP) - base * (1 - SUB);
+const small = (p: Piece): boolean => p.sub || !!p.sup;
 
 type Style = { readonly text: string; readonly shape: string; readonly transform: string; readonly font: string; readonly color: string; readonly opacity: string; readonly lit: string };
 const round = (v: number): number => Math.round(v * 100) / 100;
@@ -57,7 +59,7 @@ export function styleOf(g: Glyph, top: Em): Style {
   const turn = g.rot ? ` rotate(${round(g.rot)}rad)` : '';
   return {
     text: g.pieces.map((p) => p.s).join('\u0001'),
-    shape: g.pieces.map((p) => (p.html !== undefined ? '$' : p.sub ? '_' : '.')).join(''),
+    shape: g.pieces.map((p) => (p.html !== undefined ? '$' : p.sup ? '^' : p.sub ? '_' : '.')).join(''),
     transform: `translate(${round(g.x)}px,${round(g.y)}px)${turn} translate(${SHIFT[g.align]}%,${round(top)}em)`,
     font: `${g.italic ? 'italic ' : ''}${g.weight} ${round(shownSize(g.size))}px/1 var(--figure)`,
     color: g.color, opacity: g.alpha >= 1 ? '' : String(round(g.alpha)),
@@ -126,10 +128,9 @@ function layerOf(c: HTMLCanvasElement): Layer {
 }
 const texSet = new WeakMap<HTMLElement, string>();
 function fill(span: HTMLElement, g: Glyph, rebuild: boolean): void {
-  const drop = subDrop(g.base) / SUB;
   if (rebuild) span.replaceChildren(...g.pieces.map((p) => {
     const e = document.createElement('span');
-    if (p.sub) e.className = 'sub';
+    if (small(p)) e.className = 'sub';
     if (p.html !== undefined) e.className = 'tex';
     return e;
   }));
@@ -139,7 +140,7 @@ function fill(span: HTMLElement, g: Glyph, rebuild: boolean): void {
     if (p.html !== undefined) { if (texSet.get(e) !== p.html) { e.innerHTML = p.html; texSet.set(e, p.html); } }
     else if (e.textContent !== p.s) e.textContent = p.s;
     const bg = litOf(p.lit); if (e.style.backgroundColor !== bg) e.style.backgroundColor = bg;
-    if (p.sub) { const top = `${round(drop)}em`; if (e.style.top !== top) e.style.top = top; }
+    if (small(p)) { const top = `${round(subDrop(g.base, p.sup) / SUB)}em`; if (e.style.top !== top) e.style.top = top; }
   });
 }
 /* Shows what a canvas's last draw recorded. `box` is the canvas's place under its offset parent.
@@ -222,14 +223,14 @@ export function paintText(c: HTMLCanvasElement, ctx: CanvasRenderingContext2D, k
   (drawn.get(c) ?? []).forEach((g) => {
     const [size, subSize] = shownIn(g.size, 1), font = (sub: boolean): string => `${g.italic ? 'italic ' : ''}${g.weight} ${sub ? subSize : size}px ${g.family}`;
     const shown = g.pieces.map((p) => (p.html !== undefined ? plainTex(p.s) : p.s));
-    const widths = g.pieces.map((p, i) => { ctx.font = font(p.sub); return ctx.measureText(shown[i]).width; });
+    const widths = g.pieces.map((p, i) => { ctx.font = font(small(p)); return ctx.measureText(shown[i]).width; });
     const total = widths.reduce((a, b) => a + b, 0);
     ctx.save();
     ctx.translate(g.x * k, g.y * k); ctx.rotate(g.rot); ctx.scale(k, k);
     ctx.globalAlpha = g.alpha; ctx.fillStyle = g.color; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     let x = (SHIFT[g.align] / 100) * total;
     const y = g.base * size;
-    g.pieces.forEach((p, i) => { ctx.font = font(p.sub); ctx.fillText(shown[i], x, p.sub ? y + subDrop(g.base) * size : y); x += widths[i]; });
+    g.pieces.forEach((p, i) => { ctx.font = font(small(p)); ctx.fillText(shown[i], x, small(p) ? y + subDrop(g.base, p.sup) * size : y); x += widths[i]; });
     ctx.restore();
   });
 }

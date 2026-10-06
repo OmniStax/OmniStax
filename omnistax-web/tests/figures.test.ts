@@ -175,3 +175,10 @@ test('every figure script on disk registers under a key the build can qualify', 
     assert.doesNotMatch(out, /OMNISTAX_FIGURES\[(['"])(?!b\/)[^'"]+\1\]\s*=/, f);
   }
 });
+
+/* In a JavaScript string '\;' is ';': a TeX space written with one backslash prints as punctuation. */
+test('no figure script writes a TeX space with a lone backslash', () => {
+  const scripts = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d)).flatMap((ch) =>
+    fs.readdirSync(path.join(root, ch)).map((s) => path.join(root, ch, s, 'figures.js')).filter((f) => fs.existsSync(f))));
+  for (const f of scripts) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /(?<!\\)(?:\\\\)*\\[;,:!]/, f);
+});

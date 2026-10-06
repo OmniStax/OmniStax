@@ -7,11 +7,7 @@ description lives on the field, and this file is written from it.
 Three files hold a book — `book.json`, a `chapter.json` per chapter and a
 `section.json` per section. Each is a record whose scalar fields describe the
 level itself and whose array fields are tables of flat rows; a row refers to
-another row by id alone. Why the content has that shape, what the build derives
-from it and what the validator checks is in
-[content-tables.md](content-tables.md).
-
-## `book.json`
+another row by id alone.
 
 The book itself: who wrote it, who published it, under what licence, and the chapters it is read in.
 
@@ -208,6 +204,7 @@ The figures the section draws, and the types each of them colours.
 | `draws` | `string[]` | no | The types the figure colours. The default colours keep these types apart from one another and from the page’s other colours. |
 | `conventions` | `string[]` | no | The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0…). The default colours keep the types apart from these on the page. |
 | `facts` | `string[]` | no | The colours the figure draws as the fact (`F.fact`), each as #rrggbb, or "spectrum" for a figure that draws a run of real colours, which is not weighed. The default colours keep the types apart from these on the page. |
+| `ai` | `{ model, effort?, part }[]?` | no | The models that made the figure, one entry per model and pass in the order they worked, each saying what it did in `part` (at most 80 characters). The figure’s AI mark names them on hover; a figure without the list takes the section’s `ai.figures`. |
 
 ### `referents`
 
