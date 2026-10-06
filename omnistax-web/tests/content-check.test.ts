@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -251,6 +251,13 @@ test('checkSpans: a span, a cite and a place the text has no id for', () => {
   const ex = { id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', prompt: 'p', answer: { type: 'open' } };
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'end' }, cite: 'nowhere' }] } })[0], /cite "nowhere" is no id/);
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'inline', after: 'nowhere' } }] } })[0], /place.after "nowhere" is no id/);
+});
+
+test('checkAttributeMarkup: markup or maths inside an attribute value', () => {
+  assert.deepEqual(run(checkAttributeMarkup), []);
+  const found = run(checkAttributeMarkup, { textHtml: `${TEXT}<figure id="f" data-original-caption="The $x$ axis <em>here</em>"></figure>` });
+  assert.equal(found.length, 1);
+  assert.match(found[0], /16\.1\/text\.html.*data-original-caption/);
 });
 
 test('checkFigures: a row with no figure, a figure with no row, and a number the two disagree on', () => {

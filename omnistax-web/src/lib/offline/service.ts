@@ -27,7 +27,10 @@ const fetchManifest = async (url: string, signal?: AbortSignal): Promise<BookRel
   if (!parsed.success) throw new Error('The release manifest is invalid.');
   return parsed.data;
 };
+/* The dev server has no offline build, so it has no releases to offer. */
+const DEV_CATALOG: OfflineCatalog = { schemaVersion: 1, generatedAt: new Date(0).toISOString(), books: [] };
 export const fetchCatalog = async (signal?: AbortSignal): Promise<OfflineCatalog> => {
+  if (import.meta.env.DEV) return DEV_CATALOG;
   const response = await fetch('/offline-catalog.json', { cache: 'no-store', signal });
   if (!response.ok) throw new Error(`Update catalogue returned ${response.status}.`);
   const parsed = OfflineCatalogSchema.safeParse(await response.json());

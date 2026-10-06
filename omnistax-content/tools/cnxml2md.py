@@ -42,9 +42,10 @@ Markers, in the order a module prints them:
                                  table cell shows. In a table cell it is inline:
                                  ![alt](src).
   > TABLE {tab:id} cols=N [class=…] [irregular]
-  > title: …                     the title row the book prints over the table
-                                 (a single entry spanning every column at the
-                                 top of thead), where there is one.
+  > title: …                     the title the book prints over the table: its
+                                 <title>, else a title row (a single entry
+                                 spanning every column at the top of thead),
+                                 else its <caption>, where there is one.
   > summary: …                   the book's alt text for the table.
   | a | b |                      then the rows. A regular table is a markdown
   | --- | --- |                  table: the header row is the last row of thead
@@ -439,6 +440,8 @@ def table(e):
         head[0] += f" class={e.get('class')}"
     if irregular:
         head[0] += " irregular"
+    cap = e.find(C + "caption")
+    title_text = title_text or (inline(cap).strip() if cap is not None else "")
     if title_text:
         head.append(f"> title: {title_text}")
     if e.get("summary"):

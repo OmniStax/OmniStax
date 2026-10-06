@@ -333,6 +333,15 @@ export const checkSpans: Check = (content) =>
     ];
   });
 
+/* An attribute's value is plain text: a "<" or a "$" in it is markup or maths the
+   page renders inside the attribute, which breaks it. The tag pattern reads
+   quoted values whole, so a ">" inside one does not end the tag early. */
+const TAG = /<[a-zA-Z][\w-]*((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g;
+const ATTR = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+export const checkAttributeMarkup: Check = (content) =>
+  pagesOf(content).flatMap((s) => Array.from(s.textHtml.matchAll(TAG), (t) => Array.from(t[1].matchAll(ATTR))).flat()
+    .flatMap(([, name, dq, sq]) => (/[<$]/.test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a "<" or "$"; an attribute's value is plain text`)] : [])));
+
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
    it does not, and the same number on both. A sim that folds several book
@@ -645,7 +654,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

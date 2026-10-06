@@ -127,7 +127,7 @@ TABLES: dict[TableName, Table] = {
     "coverage": Table("section", ("span", "concept", "verb"), {
         "span": _f(True), "concept": _f(True), "verb": _f(True, enum=VERB)}, ("span", "concept", "verb")),
     "exercises": Table("section", ("id",), {
-        "id": _f(True), "source_id": _f(True), "source_section": _f(), "kind": _f(True),
+        "id": _f(True), "source_id": _f(True), "source_section": _f(), "source_number": _f(), "kind": _f(True),
         "bloom": _f(True, enum=BLOOM), "tag": _f(), "place": _f(True, kind="obj"), "cite": _f(),
         "figure": _f(kind="obj"), "prompt": _f(True), "answer": _f(True, kind="obj")},
         ("id", "kind", "bloom", "place", "prompt")),
