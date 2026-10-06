@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DAY, DEFAULT_SETTINGS, availabilityOf, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
-  heatWeeks, newSessionId, poolOf, prepare, progressOf, rebuild, shareOf,
+  heatWeeks, newSessionId, poolOf, prepare, progressOf, readyConcepts, rebuild, shareOf,
   standingOf, stateOf, stepDay, streakOf, togglePick, uniqueById, workByDay,
   type Attempt, type Catalog, type ConceptRecord, type Mastery, type Presentation,
   type RoundEnd,
@@ -144,6 +144,13 @@ test('fresh mastered concepts are omitted unless the global toggle includes them
   assert.equal(prepare(pick, mastery, cat, [], [], DEFAULT_SETTINGS, D3).drawn.length, 0);
   assert.ok(prepare(pick, mastery, cat, [], [], { ...DEFAULT_SETTINGS, includeFresh: true }, D3).drawn.length > 0);
   assert.ok(prepare(pick, mastery, cat, [], [], DEFAULT_SETTINGS, D3 + 4 * DAY).drawn.length > 0, 'due concepts return automatically');
+});
+
+test('a concept is ready when it is unmastered and every one of its prerequisites is mastered', () => {
+  const needs = (id: string, prereqs: string[]): ConceptDTO => ({ ...concept(id, '1.2'), prereqs: prereqs.map(conceptId) });
+  const list = [concept('a', '1.1'), needs('one', ['a']), needs('both', ['a', 'b']), needs('done', ['a'])];
+  const mastery: Mastery = { a: record(), b: record({ mastered: false, level: 1 }), done: record() };
+  assert.deepEqual(readyConcepts(list, mastery).map((c) => c.id), ['one']);
 });
 
 test('standing, progress, toggles, fills, and ids use the shared model', () => {

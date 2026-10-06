@@ -126,11 +126,8 @@ with sync_playwright() as playwright:
     exercises.get_by_role("button", name="‹ Practice", exact=True).click()
     past = exercises.locator("li.row.past", has_text="correct")
     past.first.wait_for(state="visible", timeout=10000)
-    clear = exercises.get_by_role("button", name="Clear", exact=True)
-    if clear.is_visible():
-        clear.click()
-        exercises.get_by_role("button", name="Set up session", exact=True).wait_for(state="hidden", timeout=5000)
-    assert not exercises.get_by_role("button", name="Set up session", exact=True).is_visible()
+    assert exercises.locator(".tree input[type=checkbox]").count() == 0
+    exercises.get_by_text("Ready to learn", exact=True).wait_for(state="visible", timeout=5000)
     print("dashboard ok")
 
     # An exercise in a tab of its own.

@@ -20,7 +20,7 @@
   <div class="cols">
     <section class="choose">
       <h3 class="eyebrow">Choose</h3>
-      <UpNext {item} mode="add" />
+      <UpNext {item} mode="add" label="Quick picks" />
       <div class="tree"><CurriculumTree {item} {shelf} open={shelf[0] ?? null} /></div>
     </section>
     <aside class="side">

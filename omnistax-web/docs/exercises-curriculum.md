@@ -85,9 +85,14 @@ Both the dashboard and the builder show one curriculum tree
 (`CurriculumTree.svelte`): book, chapter, section, and under a section either
 the concepts it introduces (Concepts lens) or its end exercises in print order
 (Exercises lens). A concept unfolds to every exercise that tests it. Every row
-has a checkbox, down to a single exercise. Ticking on the dashboard raises a
-"Set up session" bar. Quick starts under Up next review the due concepts,
-continue the concepts in progress, or practice the section being read.
+in the builder has a checkbox, down to a single exercise; selecting happens
+only in New session. On the dashboard the tree is read-only progress, with
+"Set progress…" on each concept and "Mark all mastered", "Mark all
+unpracticed" and "Use exercise history" on each section, chapter or book.
+Quick picks in the builder add the due concepts, the concepts in progress, or
+the section being read. Ready to learn on the dashboard lists the built,
+unmastered concepts whose prerequisites are all mastered, grouped by section,
+each opening the concept.
 
 A pick (`model.ts`) is one of three kinds: a place (book, chapter or section),
 a concept, or an exercise, `{ exercise: { book, section, ex } }`. Place and

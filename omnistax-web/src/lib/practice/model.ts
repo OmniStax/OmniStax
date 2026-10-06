@@ -166,6 +166,10 @@ export type Standing = Readonly<Record<State, number>>;
 export const standingOf = (concepts: readonly ConceptDTO[], m: Mastery): Standing => concepts.filter((c) => c.status === 'built').reduce<Standing>((out, c) => {
   const state = stateOf(m[c.id]); return { ...out, [state]: out[state] + 1 };
 }, { untouched: 0, practised: 0, mastered: 0 });
+export const readyConcepts = (concepts: readonly ConceptDTO[], m: Mastery): readonly ConceptDTO[] => {
+  const mastered = (id: string): boolean => stateOf(m[id]) === 'mastered';
+  return concepts.filter((c) => c.status === 'built' && !mastered(c.id) && c.prereqs.length > 0 && c.prereqs.every(mastered));
+};
 export const heatWeeks = (now: number, weeks = 52): readonly (readonly string[])[] => {
   const today = dayOf(now), first = stepDay(today, -(new Date(now).getDay() + (weeks - 1) * 7));
   return Array.from({ length: weeks }, (_, w) => Array.from({ length: 7 }, (_, d) => { const day = stepDay(first, w * 7 + d); return day > today ? '' : day; }));

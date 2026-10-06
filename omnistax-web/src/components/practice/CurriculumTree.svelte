@@ -20,18 +20,20 @@
   import AiTag from './AiTag.svelte';
   import ProgressOverride from './ProgressOverride.svelte';
 
-  type Props = { item: string; shelf: readonly string[]; open?: string | null };
-  let { item, shelf, open = null }: Props = $props();
+  type Props = { item: string; shelf: readonly string[]; open?: string | null; selectable?: boolean };
+  let { item, shelf, open = null, selectable = true }: Props = $props();
 
   type Lens = 'concepts' | 'exercises';
   type MenuItem = { readonly label: string; readonly run: () => void; readonly danger?: boolean };
   type Menu = { readonly x: number; readonly y: number; readonly items: readonly MenuItem[] };
+  type Bulk = 'mastered' | 'unpracticed' | 'history';
 
   let lens = $state<Lens>('concepts');
   let query = $state('');
   let unfolded = $state<readonly string[]>([]);
   let menu = $state<Menu | null>(null);
   let editing = $state<string | null>(null);
+  let asking = $state<{ readonly key: string; readonly act: Bulk } | null>(null);
 
   $effect(() => {
     const b = open;
@@ -62,9 +64,9 @@
   const nameOf = (e: CatalogExercise): string => exerciseName(e.ex, books.manifest(e.book)?.exerciseKinds?.[e.ex.kind]);
 
   const standingIn = (concepts: readonly ConceptDTO[]): Standing => standingOf(concepts, practice.mastery);
-  const chapterStanding = (b: string, c: ChapterEntry): Standing => {
+  const chapterConcepts = (b: string, c: ChapterEntry): readonly ConceptDTO[] => {
     const ids = c.sections.map((s) => s.id);
-    return standingIn(builtIn(b).filter((x) => ids.includes(x.section)));
+    return builtIn(b).filter((x) => ids.includes(x.section));
   };
   const short = (s: Standing): string => standingLine(s).split(' · ')[0];
 
@@ -102,8 +104,30 @@
     void openFromView(itemKey(exItem(sectionRef(bookId(e.book), e.section), e.ex.id)), 'tab');
   };
   const showMenu = (ev: MouseEvent, items: readonly MenuItem[]): void => {
+    ev.preventDefault();
+    ev.stopPropagation();
     const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
-    menu = { x: r.left, y: r.bottom, items };
+    menu = ev.type === 'contextmenu' ? { x: ev.clientX, y: ev.clientY, items } : { x: r.left, y: r.bottom, items };
+  };
+  const placeMenu = (key: string, book?: string): readonly MenuItem[] => {
+    const ask = (act: Bulk) => () => {
+      asking = { key, act };
+      if (book && (books.status[book] ?? 'idle') === 'idle') books.load(book).catch(() => {});
+    };
+    return [
+      { label: 'Mark all mastered', run: ask('mastered') },
+      { label: 'Mark all unpracticed', run: ask('unpracticed') },
+      { label: 'Use exercise history', run: ask('history') },
+    ];
+  };
+  const question = (act: Bulk, n: number): string =>
+    act === 'history' ? `Use exercise history for ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
+  const apply = (act: Bulk, concepts: readonly ConceptDTO[]): void => {
+    const ids = concepts.map((c) => c.id);
+    if (act === 'mastered') practice.setSelfMany(ids, practice.settings.masteryTarget, true, false);
+    else if (act === 'unpracticed') practice.setSelfMany(ids, 0, false, false);
+    else practice.clearSelfMany(ids);
+    asking = null;
   };
   const conceptMenu = (b: string, id: string): readonly MenuItem[] => [
     { label: 'Open concept', run: () => void goConceptFromView(bookId(b), conceptId(id), openingInView()) },
@@ -124,20 +148,36 @@
   <input type="checkbox" checked={ck === 'on'} use:tri={ck === 'some'} aria-label={`Select ${name}`} onchange={() => practice.toggleNode(item, node)}>
 {/snippet}
 
-{#snippet place(key: string, name: string, node: Node, standing: Standing, book?: string)}
-  {@render twisty(key, name, book)}
-  {@render box(node, name)}
-  <button type="button" class="lab" tabindex="-1" onclick={() => flip(key, book)}>{name}</button>
-  <span class="end">
-    <span class="muted num">{short(standing)}</span>
-    <span class="meter"><StandingMeter {standing} /></span>
-  </span>
+{#snippet place(key: string, name: string, node: Node, concepts: readonly ConceptDTO[], book?: string)}
+  {@const standing = standingIn(concepts)}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="row" style:--d={node.level === 'book' ? 0 : node.level === 'chapter' ? 1 : 2} oncontextmenu={(ev) => showMenu(ev, placeMenu(key, book))}>
+    {@render twisty(key, name, book)}
+    {#if selectable}{@render box(node, name)}{/if}
+    <button type="button" class="lab" tabindex="-1" onclick={() => flip(key, book)}>{name}</button>
+    {#if asking?.key === key}
+      {@const act = asking.act}
+      <span class="end ask">
+        {question(act, concepts.length)}
+        <button type="button" class="btn sm primary" disabled={!concepts.length} onclick={() => apply(act, concepts)}>Yes</button>
+        <button type="button" class="btn ghost sm" onclick={() => (asking = null)}>No</button>
+      </span>
+    {:else}
+      <span class="end">
+        {#if concepts.length && concepts.every((k) => practice.self[k.id])}<span class="muted tag">overridden</span>{/if}
+        <span class="muted num">{short(standing)}</span>
+        <span class="meter"><StandingMeter {standing} /></span>
+        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, placeMenu(key, book))}>⋯</button>
+      </span>
+    {/if}
+  </div>
 {/snippet}
 
 {#snippet exRow(e: CatalogExercise, d: number, withSection: boolean)}
   {@const name = nameOf(e)}
   {@const last = practice.lastOutcome({ book: e.book, section: e.section, ex: e.ex.id })}
-  <div class="row" style:--d={d}>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="row" style:--d={d} oncontextmenu={(ev) => showMenu(ev, exerciseMenu(e))}>
     <span class="tw-gap"></span>
     {@render box({ level: 'exercise', book: e.book, section: e.section, ex: e.ex.id }, name)}
     <span class="lab ex"><span class="exname">{name}</span>{#if withSection}<span class="muted num src">§ {e.section}</span>{/if}<span class="excerpt">{excerpt(e.ex.prompt)}</span></span>
@@ -151,10 +191,12 @@
 
 <div class="tree">
   <div class="bar">
-    <div class="seg" role="radiogroup" aria-label="Sections open to">
-      <button type="button" role="radio" aria-checked={lens === 'concepts'} class:on={lens === 'concepts'} onclick={() => (lens = 'concepts')}>Concepts</button>
-      <button type="button" role="radio" aria-checked={lens === 'exercises'} class:on={lens === 'exercises'} onclick={() => (lens = 'exercises')}>Exercises</button>
-    </div>
+    {#if selectable}
+      <div class="seg" role="radiogroup" aria-label="Sections open to">
+        <button type="button" role="radio" aria-checked={lens === 'concepts'} class:on={lens === 'concepts'} onclick={() => (lens = 'concepts')}>Concepts</button>
+        <button type="button" role="radio" aria-checked={lens === 'exercises'} class:on={lens === 'exercises'} onclick={() => (lens = 'exercises')}>Exercises</button>
+      </div>
+    {/if}
     <input class="input find" type="search" placeholder="Find a concept, section or exercise" aria-label="Find in the curriculum" bind:value={query}>
   </div>
 
@@ -162,7 +204,7 @@
 
   {#each shelf.filter(bookHit) as b (b)}
     {@const title = practice.bookTitle(b)}
-    <div class="row" style:--d={0}>{@render place(`b:${b}`, title, { level: 'book', book: b }, standingIn(builtIn(b)), b)}</div>
+    {@render place(`b:${b}`, title, { level: 'book', book: b }, builtIn(b), b)}
     {#if isOpen(`b:${b}`)}
       {@const status = books.status[b] ?? 'idle'}
       {#if status === 'failed'}
@@ -172,12 +214,12 @@
       {:else}
         {#each chaptersOf(b).filter((c) => sectionsOf(c).length && (!needle || chapterHit(b, c))) as c (c.id)}
           {@const ck = `c:${b}/${c.id}`}
-          <div class="row" style:--d={1}>{@render place(ck, `${c.id} · ${c.title}`, { level: 'chapter', book: b, chapter: c.id }, chapterStanding(b, c))}</div>
+          {@render place(ck, `${c.id} · ${c.title}`, { level: 'chapter', book: b, chapter: c.id }, chapterConcepts(b, c))}
           {#if isOpen(ck)}
             {#each sectionsOf(c).filter((s) => sectionHit(b, s)) as s (s.id)}
               {@const sk = `s:${b}/${s.id}`}
               {@const sec = sectionId(s.id)}
-              <div class="row" style:--d={2}>{@render place(sk, `${s.id} · ${s.title}`, { level: 'section', book: b, chapter: c.id, section: sec }, standingIn(conceptsAt(b, sec)))}</div>
+              {@render place(sk, `${s.id} · ${s.title}`, { level: 'section', book: b, chapter: c.id, section: sec }, conceptsAt(b, sec))}
               {#if isOpen(sk)}
                 {#if lens === 'concepts'}
                   {@const concepts = shownConcepts(b, s)}
@@ -186,9 +228,14 @@
                     {@const name = plain(k.name)}
                     {@const tests = testing(k.id)}
                     {@const ai = generated.forConcept(k.id).length}
-                    <div class="row" style:--d={3}>
-                      {@render twisty(kk, name)}
-                      {@render box({ level: 'concept', concept: k.id }, name)}
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="row" style:--d={3} oncontextmenu={(ev) => showMenu(ev, conceptMenu(b, k.id))}>
+                      {#if selectable}
+                        {@render twisty(kk, name)}
+                        {@render box({ level: 'concept', concept: k.id }, name)}
+                      {:else}
+                        <span class="tw-gap"></span>
+                      {/if}
                       <MasteryBox id={k.id} />
                       <KindDot kind={k.kind} />
                       <span class="lab"><span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, b, k.id)} onauxclick={(e) => { if (e.button === 1) goConcept(e, b, k.id); }} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, b, k.id); }} use:mathHtml={k.name}></span></span>
@@ -202,7 +249,7 @@
                     {#if editing === k.id}
                       <div class="sub" style:--d={4}><ProgressOverride id={k.id} ondone={() => (editing = null)} /></div>
                     {/if}
-                    {#if isOpen(kk)}
+                    {#if selectable && isOpen(kk)}
                       {#each tests as e (keyOf(e))}{@render exRow(e, 4, true)}{:else}<p class="muted note" style:--d={4}>No exercises here.</p>{/each}
                     {/if}
                   {:else}
@@ -249,6 +296,7 @@
   .muted { color: var(--muted); }
   .num { font-variant-numeric: tabular-nums; }
   .ai { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); }
+  .ask { gap: 4px; }
   .tag { padding: 0 6px; border: 1px solid var(--rule); border-radius: 6px; }
   .ok { color: var(--ok); }
   .bad { color: var(--bad); }

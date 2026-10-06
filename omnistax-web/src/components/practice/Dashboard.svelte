@@ -2,12 +2,10 @@
   import { practice } from '../../lib/practice/store.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { heatWeeks, standingOf, streakOf, workByDay } from '../../lib/practice/model';
-  import { summaryOf } from '../../lib/practice/select';
-  import { count } from '../../lib/practice/labels';
   import PageHead from './PageHead.svelte';
-  import UpNext from './UpNext.svelte';
   import SessionRows from './SessionRows.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
+  import ReadyToLearn from './ReadyToLearn.svelte';
   let { item, shelf }: { item: string; shelf: readonly string[] } = $props();
 
   const opened = Date.now();
@@ -29,14 +27,6 @@
     { label: 'Mastered', title: 'Concepts mastered', value: standing.mastered },
     { label: 'Due', title: 'Concepts due for review', value: due.length },
   ]);
-
-  const upNext = $derived(due.length > 0 || practice.started().length > 0 || focus.section !== null);
-  const curriculum = $derived(practice.page(item).curriculum);
-  const selected = $derived.by(() => {
-    const s = summaryOf(curriculum);
-    const parts = [count(s.books, 'book'), count(s.chapters, 'chapter'), count(s.sections, 'section'), count(s.concepts, 'concept'), count(s.exercises, 'exercise')];
-    return `${parts.filter((p) => !p.startsWith('0 ')).join(', ')} selected`;
-  });
 </script>
 
 <div class="dashboard">
@@ -65,28 +55,19 @@
     <div class="key" aria-hidden="true">Less{#each [0, 1, 3, 4, 5] as d (d)}<i class="cell" data-d={d}></i>{/each}More</div>
   </section>
 
-  {#if upNext}
-    <section class="part">
-      <h3 class="eyebrow">Up next</h3>
-      <UpNext {item} />
-    </section>
-  {/if}
-
   <section class="part">
     <h3 class="eyebrow">Sessions</h3>
     <SessionRows {item} />
   </section>
 
   <section class="part">
+    <h3 class="eyebrow">Ready to learn</h3>
+    <ReadyToLearn />
+  </section>
+
+  <section class="part">
     <h3 class="eyebrow">Progress</h3>
-    <CurriculumTree {item} {shelf} open={focus.book} />
-    {#if curriculum.length > 0}
-      <div class="selection">
-        <span class="words">{selected}</span>
-        <button type="button" class="btn ghost sm" onclick={() => practice.clear(item)}>Clear</button>
-        <button type="button" class="btn primary" onclick={() => practice.seed(item, curriculum)}>Set up session</button>
-      </div>
-    {/if}
+    <CurriculumTree {item} {shelf} open={focus.book} selectable={false} />
   </section>
 </div>
 
@@ -112,8 +93,6 @@
   .key{display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:4px;font-size:0.68rem;color:var(--muted)}
   .key .cell:first-of-type{margin-left:4px}
   .key .cell:last-of-type{margin-right:4px}
-  .selection{position:sticky;bottom:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;padding:8px 0;background:var(--bg);border-top:1px solid var(--rule)}
-  .words{flex:1;min-width:0;font-variant-numeric:tabular-nums}
   @container (max-width: 520px){
     .figures{grid-template-columns:repeat(3,minmax(0,auto))}
   }

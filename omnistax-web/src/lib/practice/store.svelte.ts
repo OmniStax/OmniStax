@@ -6,7 +6,7 @@ import { registry } from '../sections/registry.svelte';
 import { books } from './books.svelte';
 import { emptyCatalog, mergeCatalog } from './books';
 import {
-  DEFAULT_SETTINGS, availabilityOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, rebuild,
+  DEFAULT_SETTINGS, availabilityOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, readyConcepts, rebuild,
   sessionId, shareOf, startedConcepts, stateOf, togglePick, uniqueById,
   type Attempt, type Catalog, type Curriculum, type Drawn, type ExerciseRef, type Mastery, type Pick,
   type PracticeSettings, type Presentation, type Progress, type RoundEnd, type RoundPlan,
@@ -199,6 +199,7 @@ class Practice {
   stateOf(id: string): State { return stateOf(this.mastery[id]); }
   due(): readonly string[] { return dueConcepts(this.mastery, this.settings, Date.now()); }
   started(): readonly string[] { return startedConcepts(this.mastery); }
+  ready(): readonly ConceptDTO[] { return uniqueById(readyConcepts(this.catalog().concepts, this.mastery)); }
   lastOutcome(ref: ExerciseRef): boolean | null { return this.lastOk.get(keyOf(ref)) ?? null; }
   share(id: string): number { return shareOf(this.mastery[id]); }
   freshness(id: string, now = Date.now()) { return freshnessOf(this.mastery[id], this.settings, now); }
@@ -239,6 +240,10 @@ class Practice {
     this.self = { ...this.self, [id]: { level, mastered, noDecay: mastered && noDecay, at: now } }; this.save();
   }
   clearSelf(id: string): void { this.self = Object.fromEntries(Object.entries(this.self).filter(([key]) => key !== id)); this.save(); }
+  setSelfMany(ids: readonly string[], level: number, mastered: boolean, noDecay: boolean, now = Date.now()): void {
+    this.self = { ...this.self, ...Object.fromEntries(ids.map((id) => [id, { level, mastered, noDecay: mastered && noDecay, at: now }])) }; this.save();
+  }
+  clearSelfMany(ids: readonly string[]): void { const drop = new Set(ids); this.self = Object.fromEntries(Object.entries(this.self).filter(([key]) => !drop.has(key))); this.save(); }
   manualReview(id: string, still: boolean, now = Date.now()): void {
     const record = this.mastery[id]; if (!record?.mastered) return;
     const rid = newSessionId();
