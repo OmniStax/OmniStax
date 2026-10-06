@@ -61,11 +61,6 @@ export const createBackup = async (): Promise<ReaderBackup> => {
   return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), app: { readerFormat: 1 }, records, assets: await exportAssets(), chats: [...await exportChats()] as unknown as ReaderBackup['chats'], files: await filesOf(records), drawings: await exportDrawings() as unknown as ReaderBackup['drawings'], scratch: await exportScratch() as unknown as ReaderBackup['scratch'], generated: [...await exportGenerated()] as unknown as ReaderBackup['generated'], books: booksOf(records) };
 };
 
-/* What the export will weigh, for the line the Storage block shows before the
-   reader asks for it. The JSON is built once and measured, which is the only
-   honest answer: base64 and the indentation are most of the size. */
-export const backupSize = async (): Promise<number> => new Blob([`${JSON.stringify(await createBackup(), null, 2)}\n`]).size;
-
 export const downloadBackup = async (): Promise<void> => {
   const backup = await createBackup();
   const text = `${JSON.stringify(backup, null, 2)}\n`;

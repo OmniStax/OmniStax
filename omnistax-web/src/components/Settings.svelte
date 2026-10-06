@@ -18,19 +18,13 @@
   import { host, kept, BROWSER_NAMES } from '../lib/commands/host.svelte';
   import { practice } from '../lib/practice/store.svelte';
   import { DEFAULT_SETTINGS } from '../lib/practice/model';
-  import { downloadBackup, importBackup, readBackupFile } from '../lib/backup/adapters';
-  import { summarizeBackup, type ReaderBackup } from '../lib/backup/schema';
+  import { openSide } from '../lib/layout/model';
   import Storage from './settings/Storage.svelte';
   import Ai from './settings/Ai.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
   let q = $state('');
-  // IndexedDB journals require cloneable plain records, not reactive proxies.
-  let backup = $state.raw<ReaderBackup | null>(null);
-  let backupMessage = $state('');
-  let importing = $state(false);
-  let exporting = $state(false);
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
   /* What each row says, and extra words it should answer to. The filter reads both. */
   const HINT = {
@@ -48,8 +42,7 @@
     record: 'Every completed exercise and self-assessment, and the mastery built from them.',
     lockGrace: 'Seconds before a focus lock starts.',
     layout: 'Put tabs, groups and sidebars back to how they started.',
-    exportData: 'Includes notes and pasted images, imported files, drawings, chats, colors, practice, focus sessions, library, layout, shortcuts and preferences. AI keys and textbooks aren’t included.',
-    importData: 'Replaces everything in this browser; nothing is merged. Downloaded textbooks stay, but books the backup refers to may need downloading.',
+    backup: 'Export and import a backup file, and push and pull with a GitHub repo, from the Sync and Update sidebar.',
   } as const;
   const ROWS = {
     theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
@@ -61,31 +54,12 @@
     record: `Practice history clear forget answers ${HINT.record}`,
     mapProgress: `Progress on the concept map ${HINT.mapProgress}`,
     layout: `Layout panes tabs reset views ${HINT.layout}`,
-    backup: `Backup export import restore data ${HINT.exportData} ${HINT.importData}`,
-    storage: 'Storage space used quota persist retention browser clear data imported files backup estimate size export Safari',
+    backup: `Backup export import restore data sync GitHub push pull update ${HINT.backup}`,
+    storage: 'Storage space used quota persist retention browser clear data imported files Safari',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
-  const chooseBackup = async (file: File | undefined): Promise<void> => {
-    backup = null; backupMessage = '';
-    if (!file) return;
-    try { backup = await readBackupFile(file); } catch (error) { backupMessage = error instanceof Error ? error.message : 'Couldn’t read this backup.'; }
-  };
-  const restoreBackup = async (): Promise<void> => {
-    if (!backup || importing) return;
-    importing = true; backupMessage = '';
-    try { await importBackup(backup); location.reload(); }
-    catch (error) {
-      backupMessage = error instanceof Error ? error.message : 'Couldn’t import the backup. Your previous data was restored.';
-      alert(backupMessage); location.reload();
-    }
-  };
-  const exportBackup = async (): Promise<void> => {
-    exporting = true; backupMessage = '';
-    try { await downloadBackup(); }
-    catch (error) { backupMessage = error instanceof Error ? error.message : 'Couldn’t export your data.'; }
-    finally { exporting = false; }
-  };
+  const openSync = (): void => { ui.settings = false; layoutStore.apply((x) => openSide(x, 'view:sync', 'left')); layoutStore.overlay = 'left'; };
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
   let kq = $state('');
   let byKeys = $state(false);
@@ -281,28 +255,8 @@
       <Storage show={hit(ROWS.storage)} />
 
       <section hidden={!hit(ROWS.backup)}>
-        <h3>Backup and restore</h3>
-        <div class="row">
-          <span class="name">Export data</span>
-          <span class="hint">{HINT.exportData}</span>
-          <button class="btn-sm" type="button" disabled={exporting} onclick={() => void exportBackup()}>{exporting ? 'Exporting…' : 'Export'}</button>
-        </div>
-        <label class="row">
-          <span class="name">Import backup</span>
-          <span class="hint">{HINT.importData}</span>
-          <input class="file" type="file" accept="application/json,.json" onchange={(e) => void chooseBackup(e.currentTarget.files?.[0])}>
-        </label>
-        {#if backup}
-          {@const summary = summarizeBackup(backup)}
-          <div class="backup-review" role="status">
-            <strong>Ready to import</strong>
-            <span>Exported {new Date(summary.exportedAt).toLocaleString()} · {summary.records} records · {summary.assets} note images</span>
-            <span>{Object.entries(summary.categories).map(([category, count]) => `${category}: ${count}`).join(' · ') || 'No local records'}</span>
-            <span>Export your data first if you might want it back. A recovery copy is kept until the import finishes.</span>
-            <button class="btn-sm danger" type="button" disabled={importing} onclick={() => void restoreBackup()}>{importing ? 'Importing…' : 'Replace data and reload'}</button>
-          </div>
-        {/if}
-        {#if backupMessage}<p class="backup-error" role="alert">{backupMessage}</p>{/if}
+        <h3>Backup and sync</h3>
+        <div class="row"><span class="name">Backup and GitHub sync</span><span class="hint">{HINT.backup}</span><button class="btn-sm" type="button" onclick={openSync}>Open Sync and Update</button></div>
       </section>
 
 
@@ -397,11 +351,6 @@
   .btn-sm{font:inherit;font-size:0.82rem;padding:5px 10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer;align-self:flex-start}
   .btn-sm:hover:not(:disabled){background:var(--soft)}
   .btn-sm:disabled{opacity:.5;cursor:default}
-  .file{max-width:190px;font:inherit;font-size:.78rem;color:var(--muted)}
-  .backup-review{margin-left:162px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);display:flex;flex-direction:column;align-items:flex-start;gap:5px;color:var(--muted);font-size:.8rem}
-  .backup-review strong{color:var(--ink)}
-  .danger{color:var(--bad)}
-  .backup-error{margin:0 0 0 162px;color:var(--bad);font-size:.8rem}
   small{color:var(--muted);font-size:0.75rem}
   .font{font-size:0.9rem;padding:3px 6px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink)}
   .switch{cursor:pointer;user-select:none}
@@ -425,5 +374,5 @@
   .recording{color:var(--muted);font-style:italic}
   .conflict{color:var(--bad);font-size:0.8rem}
   .conflict em{font-style:normal;font-weight:600}
-  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .switches{grid-column:1 / -1} .seg{grid-column:auto} .backup-review,.backup-error{margin-left:0} }
+  @media (max-width:600px){ .row{grid-template-columns:1fr auto} .hint{grid-column:1 / -1} .switches{grid-column:1 / -1} .seg{grid-column:auto} }
 </style>

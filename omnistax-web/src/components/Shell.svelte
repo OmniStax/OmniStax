@@ -33,7 +33,6 @@
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
   import Settings from './Settings.svelte';
-  import Sync from './Sync.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
   import Tooltip from './Tooltip.svelte';
@@ -346,7 +345,6 @@
     <div class="chord-hint" role="status">{#each chordKeys(keys.pending) as k, i}{i ? ' ' : ''}<kbd>{k}</kbd>{/each}{' …'}</div>
   {/if}
   <Settings />
-  {#if ui.sync}<Sync />{/if}
   <Hover />
   <Tooltip />
   <HighlightBar />

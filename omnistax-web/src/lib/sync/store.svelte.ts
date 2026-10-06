@@ -1,15 +1,17 @@
-/* Where this device syncs to, and the commit it last pulled or pushed. Both
-   keys stay out of backups and pushes: the repo is this device's choice, and
+/* Where this device syncs to, and the base: each file's blob as this device
+   and the repo last agreed on it, which tells a change made here from one made
+   there. Both keys stay out of backups and pushes: the repo is this device's choice, and
    the token could be spent. */
 import { z } from 'zod';
-import { gitSha, repoName, type GitSha, type Remote } from './github';
+import { repoName, type Remote } from './github';
+import type { Base } from './plan';
 
 const KEY = 'omnistax-sync-v1';
 const TOKEN_KEY = 'omnistax-github-token';
 
 const SavedSchema = z.object({
   repo: z.string(), branch: z.string(),
-  last: z.object({ repo: z.string(), branch: z.string(), sha: z.string(), at: z.number() }).nullable(),
+  last: z.object({ repo: z.string(), branch: z.string(), at: z.number().nullable(), base: z.record(z.string()).default({}) }).nullable(),
 });
 type Saved = z.infer<typeof SavedSchema>;
 const EMPTY: Saved = { repo: '', branch: 'main', last: null };
@@ -34,12 +36,14 @@ class SyncStore {
     return repo && this.token ? { repo, branch: this.saved.branch, token: this.token } : null;
   }
   /* The last sync counts only for the repo and branch it was made with. */
-  get last(): { readonly sha: GitSha; readonly at: number } | null {
+  get last(): { readonly at: number | null; readonly base: Base } | null {
     const l = this.saved.last;
-    return l && l.repo === this.saved.repo && l.branch === this.saved.branch ? { sha: gitSha(l.sha), at: l.at } : null;
+    return l && l.repo === this.saved.repo && l.branch === this.saved.branch ? { at: l.at, base: l.base as Base } : null;
   }
-  synced(sha: GitSha, at: number = Date.now()): void {
-    this.save({ ...this.saved, last: { repo: this.saved.repo, branch: this.saved.branch, sha, at } });
+  /* A sync that moved files stamps the time; a survey that only found files
+     already agreeing keeps the last one. */
+  agreed(base: Base, synced: boolean, at: number = Date.now()): void {
+    this.save({ ...this.saved, last: { repo: this.saved.repo, branch: this.saved.branch, base, at: synced ? at : this.last?.at ?? null } });
   }
 }
 export const sync = new SyncStore();

@@ -3,13 +3,11 @@
      they own lives in this browser, and a browser may throw it away when space
      runs short; the rest of the app says nothing about that, so this block
      says all of it: how much is in use, whether the browser has promised to
-     keep it, what to do where it has not, and the way out — a backup, written
-     from here.
+     keep it, and what to do where it has not. The way out, a backup file or a
+     GitHub repo, is in the Sync and Update sidebar.
 
-     The numbers are read when the block is first shown and after an export,
-     not on a timer: nothing here changes while the reader is looking at it. */
-  import { backupSize, downloadBackup } from '../../lib/backup/adapters';
-  import { WARN_BACKUP_BYTES } from '../../lib/backup/schema';
+     The numbers are read when the block is first shown, not on a timer:
+     nothing here changes while the reader is looking at it. */
   import { sizeLabel } from '../../lib/files/model';
   import { files } from '../../lib/files/store.svelte';
   import { quotaWords, readHealth, requestPersist, SAFARI_WORDS, type Health } from '../../lib/storage/health';
@@ -19,10 +17,6 @@
   let { show = true }: { show?: boolean } = $props();
 
   let health = $state.raw<Health | null>(null);
-  let estimated = $state<number | null>(null);
-  let weighing = $state(false);
-  let exporting = $state(false);
-  let message = $state('');
 
   /* Read once, as the dialog opens. */
   $effect(() => { if (health === null) void readHealth().then((h) => { health = h; }); });
@@ -42,22 +36,6 @@
   };
   const mine = $derived(files.list.reduce((n, f) => n + f.size, 0));
 
-  /* What the export would weigh. It is worked out by building it, so it is
-     asked for rather than shown unbidden: a profile with a few PDFs in it is
-     not free to measure. */
-  const weigh = async (): Promise<void> => {
-    weighing = true; message = '';
-    try { estimated = await backupSize(); }
-    catch { message = 'Couldn’t estimate the backup size.'; }
-    finally { weighing = false; }
-  };
-
-  const save = async (): Promise<void> => {
-    exporting = true; message = '';
-    try { await downloadBackup(); void readHealth().then((h) => { health = h; }); }
-    catch (error) { message = error instanceof Error ? error.message : 'Couldn’t export the backup.'; }
-    finally { exporting = false; }
-  };
 </script>
 
 <section hidden={!show}>
@@ -77,19 +55,6 @@
   <span class="hint">{health ? health.words : 'Checking…'}{#if health?.safari} {SAFARI_WORDS}{/if}</span>
   {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>Keep my data</button>{:else}<span></span>{/if}
 </div>
-<div class="row">
-  <span class="name">Backup</span>
-  <span class="hint">
-    Save your notes, highlights, imported files, practice, and settings to one file.
-    {#if estimated !== null}Estimated size: {sizeLabel(estimated)}.{/if}
-    {#if estimated !== null && estimated > WARN_BACKUP_BYTES}<strong class="warn">Some browsers fail to import a backup this large. Remove large imported files to shrink it.</strong>{/if}
-  </span>
-  <span class="acts">
-    <button class="btn-sm" type="button" disabled={weighing} onclick={() => void weigh()}>{weighing ? 'Estimating…' : 'Estimate size'}</button>
-    <button class="btn-sm" type="button" id="storage-export" disabled={exporting} onclick={() => void save()}>{exporting ? 'Exporting…' : 'Export backup'}</button>
-  </span>
-</div>
-{#if message}<p class="bad-line" role="alert">{message}</p>{/if}
 </section>
 
 <style>
@@ -109,8 +74,5 @@
   .bar-row{margin:0 0 8px 162px}
   .bar{height:6px;border-radius:999px;background:var(--soft2);overflow:hidden}
   .fill{height:100%;background:var(--accent)}
-  .acts{display:flex;gap:6px;align-items:center}
-  .warn{display:block;margin-top:4px;color:var(--bad);font-weight:500}
-  .bad-line{margin:0 0 0 162px;color:var(--bad);font-size:.8rem}
-  @media (max-width:600px){ .bar-row,.bad-line{margin-left:0} }
+  @media (max-width:600px){ .bar-row{margin-left:0} }
 </style>

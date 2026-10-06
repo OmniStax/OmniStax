@@ -59,4 +59,4 @@ export const ICON = {
   /* progress: a bar part filled */
   progress: '<svg viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="2"/><path d="M6.5 12h7" stroke-width="3"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };
+export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', sync: 'Sync and Update', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Colors', chats: 'Conversations' };

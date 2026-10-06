@@ -79,7 +79,6 @@
     {#if settings.voice && reader.supported}
       <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
     {/if}
-    <button type="button" id="sync-btn" class:on={ui.sync} title="GitHub sync" aria-label="GitHub sync" onclick={(e) => { e.stopPropagation(); ui.toggleSync(); }}>{@html ICON.sync}</button>
     <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+Shift+P)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
     <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
   </div>

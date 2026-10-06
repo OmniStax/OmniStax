@@ -68,22 +68,23 @@ export const viewInstance = (s: string): ViewInstance => s as ViewInstance;
 export const newViewInstance = (): ViewInstance => viewInstance(Math.random().toString(36).slice(2, 8).padEnd(6, '0'));
 
 export type DocKind = 'text';
-/* The companion views, in the order the rail draws their buttons. Three of them
+/* The companion views, in the order the rail draws their buttons. Five of them
    may stand in the left sidebar as well as in a group — the explorer, which is
-   the whole tree, the search, which reads every book of the library, the
+   the whole tree, the search, which reads every book of the library, sync and
+   update, which keeps this device and the reader's repo in step, the
    annotations, and the pomodoro clock, which keeps the reader's sittings — and
    the rest are only ever opened as tabs. Exercises comes
    immediately before the concept map, since practice is the map's other face:
    the map says what the book teaches, and the exercises say how much of it the
    reader has made their own. */
-export const VIEW_KINDS = ['explorer', 'search', 'exercises', 'concepts', 'reference', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
+export const VIEW_KINDS = ['explorer', 'search', 'sync', 'exercises', 'concepts', 'reference', 'annotations', 'pomodoro', 'pomodoro-stats', 'colours', 'chats'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 /* The Definitions and the Formulas views became one Reference view (#39): what a
    reader saved under either — a tab, a pinned scope, a chord for opening one —
    is read as Reference. */
 export const retiredViewKeys = (saved: string): string =>
   saved.replace(/"((?:view:|open-view-|show-view-)?)(?:formulas|definitions)((?:@[a-z0-9]{6})?)"/g, '"$1reference$2"');
-export const SIDEBAR_KINDS = ['explorer', 'search', 'annotations', 'pomodoro'] as const;
+export const SIDEBAR_KINDS = ['explorer', 'search', 'sync', 'annotations', 'pomodoro'] as const;
 export type SidebarKind = (typeof SIDEBAR_KINDS)[number];
 export const isSidebarKind = (kind: ViewKind): kind is SidebarKind => (SIDEBAR_KINDS as readonly string[]).includes(kind);
 /* The views the rail draws no button for, because they are asked for from

@@ -36,8 +36,9 @@ highlights find the copy in the focused group first.
 The chrome:
 
 - **Activity rails** on both edges, 44px. Left rail: the views that live
-  on the left, then the bottom group in order: voice (when it is on),
-  GitHub sync, the command palette, the gear. Right rail: the views that live on the
+  on the left (Sync and Update among them: GitHub sync and the backup
+  file), then the bottom group in order: voice (when it is on), the
+  command palette, the gear. Right rail: the views that live on the
   right. Documents have no rail icon; the page opens with its text, and
   the "+" on a tab strip brings any section text back.
   There is no top bar; the tab strip is the top of the page. A view's

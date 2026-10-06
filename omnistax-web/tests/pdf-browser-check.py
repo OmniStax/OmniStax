@@ -139,7 +139,7 @@ with sync_playwright() as playwright:
     page.locator("#gear").click()
     page.locator("#settings").wait_for(state="visible")
     page.get_by_text("Your browser allows this site about").wait_for()
-    page.locator("#storage-export").wait_for()
+    page.get_by_text("Data retention").wait_for()
 
     assert not errors, errors
     print("pdf-browser-check: ok")

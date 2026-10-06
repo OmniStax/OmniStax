@@ -7,11 +7,8 @@ import { AnswerSchema, BLOOM_LEVELS } from '../content/schema';
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
 export const BACKUP_VERSION = 1 as const;
 /* A profile now carries whole PDFs, so the cap is what a browser can be asked
-   to read in one go rather than what a profile of notes would ever reach. Past
-   the warning the export still happens: the reader is told that some devices
-   may refuse to load a backup that large, and it is their file to keep. */
+   to read in one go rather than what a profile of notes would ever reach. */
 export const MAX_BACKUP_BYTES = 500 * 1024 * 1024;
-export const WARN_BACKUP_BYTES = 50 * 1024 * 1024;
 export const MAX_BACKUP_LABEL = '500 MB';
 
 const bit = (v: string): boolean => v === '0' || v === '1';

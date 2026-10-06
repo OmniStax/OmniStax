@@ -1,19 +1,19 @@
 /* How a reader's profile is laid out in a GitHub repo: one JSON file per
-   category of settings and records, one per chat, drawing and scratch page,
-   and each imported file and pasted image as its own bytes. Small files keep
+   category of settings and records, one per chat, drawing, scratch page and
+   generated exercise, and each imported file and pasted image as its own bytes. Small files keep
    diffs small; large ones travel alone. Pure. */
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
 import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, isScalarKey, parseBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
 
 export type RepoPath = string;
-export type SyncGroup = 'records' | 'chats' | 'drawings' | 'scratch' | 'files' | 'images';
+export type SyncGroup = 'records' | 'chats' | 'drawings' | 'scratch' | 'generated' | 'files' | 'images';
 export type RepoFile = { readonly path: RepoPath; readonly group: SyncGroup; readonly label: string; readonly bytes: Uint8Array };
 
 export const MANIFEST: RepoPath = 'omnistax.json';
-export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'scratch', 'files', 'images'];
+export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'scratch', 'generated', 'files', 'images'];
 export const GROUP_LABEL: Readonly<Record<SyncGroup, string>> = {
-  records: 'Settings and records', chats: 'Chats', drawings: 'Drawings', scratch: 'Scratch pages', files: 'Imported files', images: 'Note images',
+  records: 'Settings and records', chats: 'Chats', drawings: 'Drawings', scratch: 'Scratch pages', generated: 'Generated exercises', files: 'Imported files', images: 'Note images',
 };
 
 export const groupOf = (path: RepoPath): SyncGroup | null =>
@@ -39,7 +39,7 @@ export type Manifest = z.infer<typeof ManifestSchema>;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-const jsonBytes = (value: unknown): Uint8Array => encoder.encode(`${JSON.stringify(value, null, 2)}\n`);
+export const jsonBytes = (value: unknown): Uint8Array => encoder.encode(`${JSON.stringify(value, null, 2)}\n`);
 const jsonOf = (bytes: Uint8Array): unknown => JSON.parse(decoder.decode(bytes));
 
 const CHUNK = 0x8000;
@@ -77,9 +77,10 @@ export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
   const chats = backup.chats.map((c): RepoFile => ({ path: `chats/${c.id}.json`, group: 'chats', label: c.name || c.id, bytes: jsonBytes(c) }));
   const drawings = backup.drawings.map((d): RepoFile => ({ path: `drawings/${d.id}.json`, group: 'drawings', label: d.name || d.id, bytes: jsonBytes(d) }));
   const scratch = backup.scratch.map((s): RepoFile => ({ path: scratchPath(s.key), group: 'scratch', label: s.key, bytes: jsonBytes(s) }));
+  const generated = backup.generated.map((g): RepoFile => ({ path: `generated/${g.id}.json`, group: 'generated', label: `${g.book} ${g.section}`, bytes: jsonBytes(g) }));
   const files = backup.files.map((f): RepoFile => ({ path: filePath(f.id, f.mime), group: 'files', label: names.get(f.id) ?? f.id, bytes: bytesOfBase64(f.base64) }));
   const images = backup.assets.map((a): RepoFile => ({ path: imagePath(a.id, a.type), group: 'images', label: a.id, bytes: bytesOfDataUrl(a.dataUrl) }));
-  const body = [...records, ...chats, ...drawings, ...scratch, ...files, ...images];
+  const body = [...records, ...chats, ...drawings, ...scratch, ...generated, ...files, ...images];
   const manifest: Manifest = {
     format: 'omnistax-sync', version: 1, exportedAt: backup.exportedAt, books: backup.books,
     files: backup.files.map(({ id, type, mime, created }) => ({ id, type, mime, created })),
@@ -112,7 +113,7 @@ export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ReaderBackup
       const bytes = files.get(imagePath(id, type));
       return bytes ? [{ id, type, created, dataUrl: `data:${type};base64,${base64OfBytes(bytes)}` }] : [];
     }),
-    chats: under('chats'), drawings: under('drawings'), scratch: under('scratch'),
+    chats: under('chats'), drawings: under('drawings'), scratch: under('scratch'), generated: under('generated'),
     files: manifest.files.flatMap(({ id, type, mime, created }) => {
       const bytes = files.get(filePath(id, mime));
       return bytes ? [{ id, type, mime, created, base64: base64OfBytes(bytes) }] : [];
