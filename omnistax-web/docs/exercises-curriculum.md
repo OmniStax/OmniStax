@@ -1,6 +1,7 @@
 # Exercises: attainment, freshness, and fixed rounds
 
 Status: built, 2026-09-16.
+Redesigned 2026-10-06.
 
 Practice is global across the reader's library because concept ids are
 canonical. Attempts still retain `(book, section, exercise)` provenance. There
@@ -56,19 +57,51 @@ For each eligible selected concept, the planner ranks exercises by:
 4. stable content order, with lower Bloom levels breaking ties for a new
    concept.
 
-Each concept wants the round's default (the mastery target unless the Choose
-face changes it) or its own override, from 0 to 9. The book gives what it has,
+Each concept wants the round's default (the mastery target unless the builder
+changes it) or its own override, from 0 to 9. The book gives what it has,
 and the gap is filled by generated exercises unless the reader keeps to the
 book. It initially takes the best of the book's share for every concept,
 adds the generated items, and unions the sets. It then removes a redundant exercise only when every concept that
 exercise tests remains at or above its quota. Shared exercises therefore count
 for every concept they test, while unavoidable overcoverage is retained.
 
-There is no global round-size cap. The Start button gives the number of unique
-exercises and a diagnostic says whether every concept reached the requested
-target, how many concepts have fewer exercises available, and how many share
-exercises. `Mixed` spreads related exercises through the round; `Grouped`
-clusters them. The choice is global and persisted.
+There is no global round-size cap. The builder (the New session face) lists
+"The N exercises", exactly what will be asked, and its per-concept table has
+the columns Concept, In book, This session, and AI-generated. Its options are
+named rows: Exercises from (Book and AI / Book only), Order (Mixed / Grouped),
+Checking (I check / AI grades), Mastered concepts (include ones not yet due),
+and Model, Prompt and Reuse only when AI is in play. `Mixed` spreads related
+exercises through the round; `Grouped` clusters them. The choice is global and
+persisted. Starting a session clears the tab's picks.
+
+## Choosing exactly
+
+The tab has four faces: Practice (the dashboard), New session (the builder),
+the session, and the session review. The store names them `dashboard`,
+`choose`, `practise` and `review`; a stored `progress` or `summary` reads as
+`review`.
+
+Both the dashboard and the builder show one curriculum tree
+(`CurriculumTree.svelte`): book, chapter, section, and under a section either
+the concepts it introduces (Concepts lens) or its end exercises in print order
+(Exercises lens). A concept unfolds to every exercise that tests it. Every row
+has a checkbox, down to a single exercise. Ticking on the dashboard raises a
+"Set up session" bar. Quick starts under Up next review the due concepts,
+continue the concepts in progress, or practice the section being read.
+
+A pick (`model.ts`) is one of three kinds: a place (book, chapter or section),
+a concept, or an exercise, `{ exercise: { book, section, ex } }`. Place and
+concept picks draw by quota. An exercise pick is pinned: it is always in the
+round, counts toward the quota of each enrolled concept it tests, and is never
+dropped as redundant. Removing a drawn exercise from the builder's list adds it
+to `round.excluded`, and the planner draws a replacement where it can; removing
+a picked one unpins it. `select.ts` holds the tri-state checkbox logic
+(`checkOf`, `setNode`). Unticking part of a ticked chapter or book splits the
+pick into the remaining parts.
+
+In the session a sticky bar holds the numbered grid (✓ or ✗ per answered
+exercise), "One at a time | All", and End session. A self-marked answer
+advances; a multiple-choice or AI-graded one stays until Next.
 
 An exercise is marked seen only when its card is actually presented. Slots in
 an abandoned round that the reader never visited remain unseen.
@@ -112,16 +145,15 @@ included. Turning global freshness decay off keeps all mastered concepts fresh.
 
 ## Override progress
 
-Dashboard Concept progress is a nested book → chapter → section accordion.
-Every level reports its current practiced/mastered standing, and a section
-opens to the concepts it introduces. The current book is loaded first; other
-books load their progress only when opened. Practice still loads the full
-shelf before it composes a round.
+On the dashboard the curriculum tree stands as Progress, with mastery meters at
+every level. The current book is loaded first; other books load their progress
+only when opened. Practice still loads the full shelf before it composes a
+round.
 
-`Override progress` exposes the controls on those concept rows and adds a
-search that unfolds matching paths. It includes every built concept, including
-concepts with no exercise. The reader can choose Unpracticed, an exact fraction,
-or Mastered. This is stored as a separate self-assessment rather than as fake
+Override is not a mode. A concept row's ⋯ menu has "Set progress…", which
+opens the controls inline. Every built concept has it, including concepts with
+no exercise. The reader can choose Unpracticed, an exact fraction, or
+Mastered. This is stored as a separate self-assessment rather than as fake
 attempts; removing it restores the state rebuilt from exercise history.
 
 An overridden mastered concept begins at the starting half-life. Concepts
@@ -134,15 +166,21 @@ is permanently fresh and displays the override and infinity state.
 
 The store separately persists attempts, card presentations, completed round
 summaries, current self-assessments, pages, and sessions. A session that ends
-is kept as done and listed under Past sessions until the reader deletes it. Old v1
+is kept as done, with `after` mastery for its concepts, and ending lands on the
+session review: the tally, what moved (before and after mastery), and each
+exercise as a static record with its solution folded. "Practice all again" and
+"Retry the N I missed" seed the builder with those exact exercises. Past
+sessions are paged rows on the dashboard (date, duration, what, score), and
+each opens to its review; Delete is in the row's ⋯ menu. Old v1
 attempts migrate by taking their concept ids from the former point record; old
 point totals and settings are discarded.
 
 The heatmap uses completed exercises per day and its tooltip reports
 `N exercises · M correct`. Any day with at least one submitted practice
 exercise counts toward the calendar-day streak, regardless of correctness.
-Book progress remains a flat count of unpracticed, practiced, and mastered
-concepts, without chapter or section categories.
+The dashboard figures are Day streak, Exercises done, Practiced, Mastered, and
+Due, then the year heatmap with month labels and a Less/More key. Progress per
+book, chapter and section is in the curriculum tree.
 
 The practice catalogue fetches each built section's `exercises.json` directly.
 It does not load document HTML or figure modules to populate the picker, and a

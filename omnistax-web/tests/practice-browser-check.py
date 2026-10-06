@@ -62,26 +62,76 @@ with sync_playwright() as playwright:
     page.locator('.pane:not([hidden]) article[data-doc="2.3/text"]').wait_for(state="visible")
     reveal(page, ".pane:not([hidden])", "section fetched later")
 
-    # A session in the practice view: step through until a card that reveals.
+    # Set up a session in the practice view: a section, then one exact exercise.
     page.locator('.rail button[aria-label="Exercises"]').click()
     exercises = page.locator('.pane:not([hidden]) .view[data-view="exercises"]')
     exercises.wait_for(state="visible")
-    exercises.get_by_role("button", name="New Practice Session").click()
-    exercises.get_by_role("button", name="Open this book").first.click()
-    exercises.get_by_role("button", name="Open this chapter").nth(1).click()
-    exercises.locator("label.lvl-section", has_text="2.3").first.locator('input[type="checkbox"]').check()
-    start = exercises.get_by_role("button", name=re.compile(r"^Start [1-9][0-9]*$"))
+    exercises.get_by_role("button", name="New practice session").click()
+    exercises.get_by_role("button", name="Open 2 · Kinematics", exact=True).click()
+    exercises.get_by_role("checkbox", name="Select 2.3 · Time, Velocity, and Speed", exact=True).check()
+    exercises.get_by_role("radio", name="Book only", exact=True).click()
+    start = exercises.get_by_role("button", name=re.compile(r"^Start [1-9][0-9]* exercises$"))
+    start.wait_for(state="visible", timeout=10000)
+    assert exercises.get_by_role("radio", name="Mixed", exact=True).count() == 1
+    count = lambda: int(re.search(r"\d+", start.inner_text()).group())
+    sized = count()
+
+    exercises.get_by_role("radiogroup", name="Sections open to").get_by_role("radio", name="Exercises", exact=True).click()
+    exercises.get_by_role("button", name="Open 2.3 · Time, Velocity, and Speed", exact=True).click()
+    exercises.locator(".row:has(.lab.ex)").first.locator('input[type="checkbox"]').check()
     start.wait_for(state="visible")
-    assert exercises.get_by_role("radiogroup", name="Exercise order").get_by_text("Mixed", exact=True).count() == 1
+    assert count() >= sized, (count(), sized)
+    exercises.locator("details summary", has_text=re.compile(r"^The \d+ exercises?$")).click()
+    picked = exercises.locator("details li.ex", has=page.locator(".tag", has_text="picked"))
+    picked.first.wait_for(state="visible", timeout=5000)
+    print("builder ok")
+
+    # A session: step through until a card that reveals, then mark it.
     start.click()
-    exercises.locator(".practise .exercise").first.wait_for(state="visible")
-    steps = exercises.locator(".question-grid button")
+    run = '.pane:not([hidden]) .view[data-view="exercises"] .run'
+    exercises.locator(".run .exercise").first.wait_for(state="visible", timeout=10000)
+    steps = exercises.get_by_role("button", name=re.compile(r"^Exercise \d+"))
     for i in range(steps.count()):
-        if exercises.locator(".practise .exercise:not([hidden]) .reveal-btn").count():
+        if exercises.locator(".run .exercise .reveal-btn").count():
             break
         steps.nth(i).click()
-    reveal(page, '.pane:not([hidden]) .view[data-view="exercises"] .practise', "practice session")
-    assert exercises.locator(".practise .selfcheck").first.is_visible()
+    reveal(page, run, "practice session")
+    selfcheck = exercises.locator(".run .selfcheck").first
+    assert selfcheck.is_visible()
+    current = exercises.get_by_role("button", name=re.compile(r"^Exercise \d+, current$"))
+    was = current.first.get_attribute("aria-label") if current.count() else None
+    exercises.get_by_role("button", name="I got it right", exact=True).click()
+    exercises.get_by_role("button", name=re.compile(r"^Exercise \d+, correct$")).first.wait_for(timeout=5000)
+    assert exercises.get_by_role("button", name=re.compile(r"^Exercise \d+, correct$")).count() == 1
+    now = current.first.get_attribute("aria-label") if current.count() else None
+    assert now != was, (was, now)
+    print("session ok")
+
+    # End it: the review shows each exercise without reveal or self-check.
+    exercises.get_by_role("button", name="End session", exact=True).click()
+    exercises.locator(".confirm").get_by_role("button", name="End session", exact=True).click()
+    again = exercises.get_by_role("button", name="Practice all again", exact=True)
+    again.wait_for(state="visible", timeout=10000)
+    assert exercises.get_by_role("heading", name=re.compile(r"^Session ·")).count() >= 1
+    row = exercises.locator("li.ex").first
+    row.locator("button[aria-expanded]").click()
+    row.locator(".exercise").first.wait_for(state="visible", timeout=10000)
+    assert row.locator(".reveal-btn").count() == 0
+    assert row.locator(".selfcheck").count() == 0
+    print("review ok")
+
+    # Practise again seeds the builder; the dashboard lists the past session.
+    again.click()
+    start.wait_for(state="visible", timeout=10000)
+    exercises.get_by_role("button", name="‹ Practice", exact=True).click()
+    past = exercises.locator("li.row.past", has_text="correct")
+    past.first.wait_for(state="visible", timeout=10000)
+    clear = exercises.get_by_role("button", name="Clear", exact=True)
+    if clear.is_visible():
+        clear.click()
+        exercises.get_by_role("button", name="Set up session", exact=True).wait_for(state="hidden", timeout=5000)
+    assert not exercises.get_by_role("button", name="Set up session", exact=True).is_visible()
+    print("dashboard ok")
 
     # An exercise in a tab of its own.
     ex = cid.split("-ex-", 1)[1]

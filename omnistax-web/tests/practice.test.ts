@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DAY, DEFAULT_SETTINGS, availabilityOf, conceptsOf, dayOf, fillOf, freshnessOf,
+  DAY, DEFAULT_SETTINGS, availabilityOf, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
   heatWeeks, newSessionId, poolOf, prepare, progressOf, rebuild, shareOf,
   standingOf, stateOf, stepDay, streakOf, togglePick, uniqueById, workByDay,
   type Attempt, type Catalog, type ConceptRecord, type Mastery, type Presentation,
@@ -155,4 +155,68 @@ test('standing, progress, toggles, fills, and ids use the shared model', () => {
   assert.deepEqual(togglePick(togglePick([], pick), pick), []);
   assert.equal(uniqueById([{ id: 'a', n: 1 }, { id: 'a', n: 2 }]).length, 1);
   assert.match(newSessionId(), /^[a-z0-9]{8}$/);
+});
+
+const row = (id: string) => rows.find((r) => r.ex.id === id)!;
+const ref = { book: 'cp', section: sec('1.1'), ex: 'a1' };
+const ids = (plan: ReturnType<typeof prepare>) => plan.drawn.map((d) => d.ex.id);
+
+test('exercise picks compare by book, section and exercise, and toggle like the rest', () => {
+  assert.ok(samePick({ exercise: ref }, { exercise: { ...ref } }));
+  assert.ok(!samePick({ exercise: ref }, { exercise: { ...ref, ex: 'a3' } }));
+  assert.ok(!samePick({ exercise: ref }, { book: 'cp', section: sec('1.1') }));
+  assert.ok(!samePick({ book: 'cp', section: sec('1.1') }, { exercise: ref }));
+  const c = togglePick([{ book: 'cp' }], { exercise: ref });
+  assert.deepEqual(exerciseRefsOf(c), [ref]);
+  assert.deepEqual(togglePick(c, { exercise: { ...ref } }), [{ book: 'cp' }]);
+});
+
+test('exercise picks leave the enrolled concepts and the pool alone', () => {
+  const place = [{ book: 'cp', section: sec('1.2') }];
+  const both = [...place, { exercise: ref }];
+  assert.deepEqual([...conceptsOf(both, cat)], [...conceptsOf(place, cat)]);
+  assert.deepEqual(poolOf(both, cat), poolOf(place, cat));
+  assert.deepEqual([...conceptsOf([{ exercise: ref }], cat)], []);
+});
+
+test('a curriculum of exercise picks draws exactly the pinned exercises', () => {
+  const generated = { book: 'cp', section: sec('1.1'), ex: ex('ai:x', ['a']) };
+  const pins = [generated, row('b2'), row('a1'), row('b2')];
+  const plan = prepare([{ exercise: ref }], {}, cat, [], [], DEFAULT_SETTINGS, D3, {}, [], pins);
+  assert.deepEqual(plan.concepts, []); assert.equal(plan.pinned, 3);
+  assert.deepEqual([...ids(plan)].sort(), ['a1', 'ai:x', 'b2']);
+  assert.ok(plan.drawn.every((d) => d.pinned));
+  assert.deepEqual(ids(prepare([{ exercise: ref }], {}, cat, [], [], { ...DEFAULT_SETTINGS, order: 'grouped' }, D3, {}, [], pins)), ['a1', 'b2', 'ai:x']);
+});
+
+test('pinned exercises count toward a concept quota and are never let go', () => {
+  const pick = [{ concept: conceptId('a') }];
+  const plan = prepare(pick, {}, cat, [], [], DEFAULT_SETTINGS, D3, { perConcept: 2 }, [], [row('a3')]);
+  assert.deepEqual([...ids(plan)].sort(), ['a1', 'a3']); assert.equal(plan.pinned, 1);
+  assert.deepEqual(plan.drawn.filter((d) => d.pinned).map((d) => d.ex.id), ['a3']);
+  const all = prepare(pick, {}, cat, [], [], DEFAULT_SETTINGS, D3, { perConcept: 1 }, [], [row('a1'), row('ab'), row('a3')]);
+  assert.deepEqual([...ids(all)].sort(), ['a1', 'a3', 'ab'], 'redundant pins stay');
+  const include = { ...DEFAULT_SETTINGS, generated: 'include' as const };
+  const gen = prepare([{ concept: conceptId('c') }], {}, cat, [], [], include, D3, {}, [], [{ book: 'cp', section: sec('1.2'), ex: ex('ai:c', ['c']) }]);
+  assert.deepEqual(gen.quotas.c, { wanted: 3, book: 1, gap: 1 });
+  assert.deepEqual([...ids(gen)].sort(), ['ai:c', 'c1']);
+});
+
+test('an excluded exercise is replaced and shrinks the book share, unless it is pinned', () => {
+  const pick = [{ concept: conceptId('a') }], one = { ...DEFAULT_SETTINGS, masteryTarget: 1 }, excluded = ['cp/1.1/a1'];
+  assert.deepEqual(ids(prepare(pick, {}, cat, [], [], one, D3)), ['a1']);
+  assert.deepEqual(ids(prepare(pick, {}, cat, [], [], one, D3, { excluded })), ['ab']);
+  assert.deepEqual(prepare(pick, {}, cat, [], [], { ...DEFAULT_SETTINGS, generated: 'book-only' }, D3, { excluded }).quotas.a, { wanted: 2, book: 2, gap: 0 });
+  assert.deepEqual(prepare(pick, {}, cat, [], [], { ...DEFAULT_SETTINGS, generated: 'include' }, D3, { excluded }).quotas.a, { wanted: 3, book: 2, gap: 1 });
+  const kept = prepare(pick, {}, cat, [], [], one, D3, { excluded }, [], [row('a1')]);
+  assert.deepEqual(ids(kept), ['a1']); assert.equal(kept.drawn[0].pinned, true);
+});
+
+test('due and started concepts, and end exercises by section and by concept', () => {
+  const mastery: Mastery = { a: record(), b: record({ mastered: false, level: 1 }), c: record({ reviewedAt: D3, dueAt: D3 + 3 * DAY }) };
+  assert.deepEqual(dueConcepts(mastery, DEFAULT_SETTINGS, D5), ['a']);
+  assert.deepEqual(startedConcepts(mastery), ['b']);
+  assert.deepEqual(exercisesIn(cat, 'cp', sec('1.2')).map((e) => e.ex.id), ['c1']);
+  assert.deepEqual(exercisesTesting(cat, 'c').map((e) => e.ex.id), ['c1']);
+  assert.deepEqual(exercisesTesting(cat, 'a').map((e) => e.ex.id), ['a1', 'ab', 'a3']);
 });

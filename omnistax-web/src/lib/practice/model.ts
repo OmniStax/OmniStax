@@ -171,7 +171,11 @@ export const heatWeeks = (now: number, weeks = 52): readonly (readonly string[])
   return Array.from({ length: weeks }, (_, w) => Array.from({ length: 7 }, (_, d) => { const day = stepDay(first, w * 7 + d); return day > today ? '' : day; }));
 };
 
-export type Pick = { readonly book: string; readonly chapter?: string; readonly section?: SectionId } | { readonly concept: ConceptId };
+export type ExerciseRef = { readonly book: string; readonly section: SectionId; readonly ex: string };
+export type PlacePick = { readonly book: string; readonly chapter?: string; readonly section?: SectionId };
+export type ConceptPick = { readonly concept: ConceptId };
+export type ExercisePick = { readonly exercise: ExerciseRef };
+export type Pick = PlacePick | ConceptPick | ExercisePick;
 export type Curriculum = readonly Pick[];
 export type CatalogExercise = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO };
 export type Catalog = {
@@ -180,13 +184,18 @@ export type Catalog = {
   readonly allSections: (book: string) => readonly SectionId[];
   readonly exercises: readonly CatalogExercise[];
 };
-const isConcept = (p: Pick): p is { readonly concept: ConceptId } => 'concept' in p;
-export const samePick = (a: Pick, b: Pick): boolean => isConcept(a) ? isConcept(b) && a.concept === b.concept : !isConcept(b) && a.book === b.book && (a.chapter ?? '') === (b.chapter ?? '') && (a.section ?? '') === (b.section ?? '');
+export const isConceptPick = (p: Pick): p is ConceptPick => 'concept' in p;
+export const isExercisePick = (p: Pick): p is ExercisePick => 'exercise' in p;
+export const isPlacePick = (p: Pick): p is PlacePick => !isConceptPick(p) && !isExercisePick(p);
+export const exerciseRefsOf = (c: Curriculum): readonly ExerciseRef[] => c.filter(isExercisePick).map((p) => p.exercise);
+export const samePick = (a: Pick, b: Pick): boolean =>
+  isConceptPick(a) ? isConceptPick(b) && a.concept === b.concept
+  : isExercisePick(a) ? isExercisePick(b) && a.exercise.book === b.exercise.book && a.exercise.section === b.exercise.section && a.exercise.ex === b.exercise.ex
+  : isPlacePick(b) && a.book === b.book && (a.chapter ?? '') === (b.chapter ?? '') && (a.section ?? '') === (b.section ?? '');
 export const togglePick = (c: Curriculum, p: Pick): Curriculum => c.some((q) => samePick(q, p)) ? c.filter((q) => !samePick(q, p)) : [...c, p];
 export const sectionsOfCurriculum = (c: Curriculum, cat: Catalog): readonly { book: string; section: SectionId }[] => {
   const out: { book: string; section: SectionId }[] = [], seen = new Set<string>();
-  c.filter((p) => !isConcept(p)).forEach((p) => {
-    const place = p as Extract<Pick, { book: string }>;
+  c.filter(isPlacePick).forEach((place) => {
     const sections = place.section ? [place.section] : place.chapter ? cat.sectionsOf(place.book, place.chapter) : cat.allSections(place.book);
     sections.forEach((section) => { const key = `${place.book}/${section}`; if (!seen.has(key)) { seen.add(key); out.push({ book: place.book, section }); } });
   });
@@ -196,13 +205,13 @@ export const conceptsOf = (c: Curriculum, cat: Catalog): ReadonlySet<string> => 
   const places = new Set(sectionsOfCurriculum(c, cat).map((p) => `${p.book}/${p.section}`)), out = new Set<string>();
   cat.exercises.filter((e) => places.has(`${e.book}/${e.section}`)).forEach((e) => e.ex.concepts.forEach((id) => out.add(id)));
   const known = new Map(cat.concepts.map((q) => [q.id as string, q]));
-  c.filter(isConcept).forEach((p) => { const found = known.get(p.concept); if (!found || found.status === 'built') out.add(String(p.concept)); });
+  c.filter(isConceptPick).forEach((p) => { const found = known.get(p.concept); if (!found || found.status === 'built') out.add(String(p.concept)); });
   return out;
 };
 export const keyOf = (e: { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO | string }): string => `${e.book}/${e.section}/${typeof e.ex === 'string' ? e.ex : e.ex.id}`;
 export const poolOf = (c: Curriculum, cat: Catalog): readonly CatalogExercise[] => {
   const selected = conceptsOf(c, cat), places = new Set(sectionsOfCurriculum(c, cat).map((p) => `${p.book}/${p.section}`));
-  const explicit = new Set(c.filter(isConcept).map((p) => String(p.concept)));
+  const explicit = new Set(c.filter(isConceptPick).map((p) => String(p.concept)));
   return cat.exercises.filter((e) => e.ex.place.at === 'end' && e.ex.concepts.some((id) => selected.has(id)) && (places.has(`${e.book}/${e.section}`) || e.ex.concepts.some((id) => explicit.has(id))));
 };
 export const availabilityOf = (cat: Catalog): Readonly<Record<string, number>> => {
@@ -213,7 +222,7 @@ export const availabilityOf = (cat: Catalog): Readonly<Record<string, number>> =
 
 /* What a round asks per concept, set on the Choose face and kept on the page:
    the default for every concept and the rows the reader changed. */
-export type RoundChoice = { readonly perConcept?: number; readonly wanted?: Readonly<Record<string, number>> };
+export type RoundChoice = { readonly perConcept?: number; readonly wanted?: Readonly<Record<string, number>>; readonly excluded?: readonly string[] };
 export const MAX_WANTED = 9;
 /* How many a concept wants this round, how many of those the book can give,
    and the gap generated exercises fill. Book only caps the wish at the book. */
@@ -224,49 +233,55 @@ export const quotaOf = (id: string, bookAvailable: number, s: PracticeSettings, 
   return s.generated === 'include' ? { wanted: asked, book, gap: asked - book } : { wanted: book, book, gap: 0 };
 };
 
-export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'new' | 'unanswered' | 'review' };
+export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'new' | 'unanswered' | 'review'; readonly pinned?: boolean };
 export type RoundPlan = {
   readonly drawn: readonly Drawn[]; readonly concepts: readonly string[]; readonly shortages: number; readonly sharedConcepts: number; readonly target: number;
-  readonly quotas: Readonly<Record<string, Quota>>;
+  readonly quotas: Readonly<Record<string, Quota>>; readonly pinned: number;
 };
 const bloomRank = (b: string): number => ({ remember: 0, understand: 1, apply: 2, analyze: 3, analyse: 3, evaluate: 4, create: 5 }[b.toLowerCase()] ?? 2);
 const positionsOf = (cat: Catalog): ReadonlyMap<string, number> => new Map(cat.exercises.map((e, i) => [keyOf(e), i]));
-type Candidate = CatalogExercise & { readonly key: string; readonly tier: number; readonly last: number; readonly pos: number };
+type Candidate = CatalogExercise & { readonly key: string; readonly tier: number; readonly last: number; readonly pos: number; readonly pinned?: boolean };
 
 export const prepare = (
   curriculum: Curriculum, mastery: Mastery, cat: Catalog, attempts: readonly Attempt[], shown: readonly Presentation[],
-  settings: PracticeSettings, now: number, round: RoundChoice = {}, extra: readonly CatalogExercise[] = [],
+  settings: PracticeSettings, now: number, round: RoundChoice = {}, extra: readonly CatalogExercise[] = [], pinned: readonly CatalogExercise[] = [],
 ): RoundPlan => {
-  const available = availabilityOf(cat), generating = settings.generated === 'include';
+  const pins = [...new Map(pinned.map((e) => [keyOf(e), e] as const)).values()], pinnedKeys = new Set(pins.map(keyOf));
+  const excluded = new Set((round.excluded ?? []).filter((k) => !pinnedKeys.has(k)));
+  const drawable = (e: CatalogExercise): boolean => !excluded.has(keyOf(e)) && !pinnedKeys.has(keyOf(e));
+  const available = availabilityOf(excluded.size ? { ...cat, exercises: cat.exercises.filter((e) => !excluded.has(keyOf(e))) } : cat), generating = settings.generated === 'include';
   const selected = [...conceptsOf(curriculum, cat)].filter((id) => generating || (available[id] ?? 0) > 0);
   const target = clamp(Math.round(round.perConcept ?? settings.masteryTarget), 0, MAX_WANTED);
   const quota = new Map(selected.map((id) => [id, quotaOf(id, available[id] ?? 0, settings, round)] as const));
   const eligible = selected.filter((id) => { const r = mastery[id]; return (quota.get(id)?.wanted ?? 0) > 0 && (!r?.mastered || settings.includeFresh || freshnessOf(r, settings, now).due); });
-  const extraFor = indexBy(extra, (e) => e.ex.concepts);
+  const extras = extra.filter(drawable), extraFor = indexBy(extras, (e) => e.ex.concepts), pinsFor = indexBy(pins, (e) => e.ex.concepts);
+  const pinsOf = (id: string): number => pinsFor.get(id)?.length ?? 0;
+  const generatedPinsOf = (id: string): number => (pinsFor.get(id) ?? []).filter((e) => e.ex.id.startsWith('ai:')).length;
   /* What each concept is held to when redundant picks are let go: its book
      share and whatever generated items stand in for the rest. */
-  const quotas = new Map(eligible.map((id) => { const q = quota.get(id)!; return [id, Math.min(q.wanted, q.book + (extraFor.get(id)?.length ?? 0))] as const; }));
+  const quotas = new Map(eligible.map((id) => { const q = quota.get(id)!; return [id, Math.min(q.wanted, q.book + (extraFor.get(id)?.length ?? 0) + generatedPinsOf(id))] as const; }));
   const positions = positionsOf(cat), lastShown = new Map<string, number>(), lastAttempt = new Map<string, number>();
   shown.forEach((p) => lastShown.set(keyOf(p), Math.max(lastShown.get(keyOf(p)) ?? 0, p.at)));
   attempts.forEach((a) => lastAttempt.set(keyOf(a), Math.max(lastAttempt.get(keyOf(a)) ?? 0, a.at)));
-  const pool = poolOf(curriculum, cat).map((e): Candidate => {
+  const candidateOf = (e: CatalogExercise, fallback: number): Candidate => {
     const key = keyOf(e), seen = lastShown.get(key) ?? 0, answered = lastAttempt.get(key) ?? 0;
-    return { ...e, key, tier: seen === 0 ? 0 : answered === 0 ? 1 : 2, last: answered || seen, pos: positions.get(key) ?? 0 };
-  });
+    return { ...e, key, tier: seen === 0 ? 0 : answered === 0 ? 1 : 2, last: answered || seen, pos: positions.get(key) ?? fallback };
+  };
+  const pool = poolOf(curriculum, cat).filter(drawable).map((e) => candidateOf(e, 0));
   const compare = (id: string) => (a: Candidate, b: Candidate): number => a.tier - b.tier || a.last - b.last || (mastery[id]?.mastered ? 0 : bloomRank(a.ex.bloom) - bloomRank(b.ex.bloom)) || a.pos - b.pos || a.key.localeCompare(b.key);
   /* Each concept's candidates, in the pool's order, so that a book's worth of
      concepts does not each walk the whole pool. */
   const byConcept = indexBy(pool, (e) => e.ex.concepts);
-  const chosen = new Map<string, Candidate>();
-  eligible.forEach((id) => [...(byConcept.get(id) ?? [])].sort(compare(id)).slice(0, quota.get(id)?.book).forEach((e) => chosen.set(e.key, e)));
-  extra.forEach((e, i) => { const key = keyOf(e); chosen.set(key, { ...e, key, tier: 0, last: 0, pos: positions.size + i }); });
+  const chosen = new Map<string, Candidate>(pins.map((e, i) => [keyOf(e), { ...candidateOf(e, positions.size + extras.length + i), pinned: true }] as const));
+  eligible.forEach((id) => [...(byConcept.get(id) ?? [])].sort(compare(id)).slice(0, Math.max(0, Math.min(quota.get(id)!.book, quota.get(id)!.wanted - pinsOf(id)))).forEach((e) => chosen.set(e.key, e)));
+  extras.forEach((e, i) => { const key = keyOf(e); chosen.set(key, { ...e, key, tier: 0, last: 0, pos: positions.size + i }); });
   /* How many of the chosen each concept stands in, kept as they are let go. */
   const counts = new Map<string, number>();
   chosen.forEach((e) => new Set(e.ex.concepts).forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1)));
   const dropped = new Set<string>();
   [...chosen.values()].sort((a, b) => b.tier - a.tier || b.last - a.last || b.pos - a.pos).forEach((e) => {
     const touched = e.ex.concepts.filter((id) => quotas.has(id));
-    if (!touched.length || !touched.every((id) => (counts.get(id) ?? 0) - 1 >= (quotas.get(id) ?? 0))) return;
+    if (e.pinned || !touched.length || !touched.every((id) => (counts.get(id) ?? 0) - 1 >= (quotas.get(id) ?? 0))) return;
     dropped.add(e.key);
     new Set(e.ex.concepts).forEach((id) => counts.set(id, (counts.get(id) ?? 0) - 1));
   });
@@ -292,11 +307,17 @@ export const prepare = (
   const shared = new Set<string>();
   minimal.forEach((e) => { const ids = e.ex.concepts.filter((id) => quotas.has(id)); if (ids.length > 1) ids.forEach((id) => shared.add(id)); });
   return {
-    drawn: minimal.map((e) => ({ book: e.book, section: e.section, ex: e.ex, why: e.tier === 0 ? 'new' : e.tier === 1 ? 'unanswered' : 'review' })),
+    drawn: minimal.map((e) => ({ book: e.book, section: e.section, ex: e.ex, why: e.tier === 0 ? 'new' : e.tier === 1 ? 'unanswered' : 'review', ...(e.pinned ? { pinned: true } : {}) })),
     concepts: eligible, shortages: eligible.filter((id) => (available[id] ?? 0) < (quota.get(id)?.wanted ?? 0)).length, sharedConcepts: shared.size, target,
-    quotas: Object.fromEntries(eligible.map((id) => [id, quota.get(id)!])),
+    quotas: Object.fromEntries(eligible.map((id) => { const q = quota.get(id)!; return [id, generatedPinsOf(id) ? { ...q, gap: Math.max(0, q.gap - generatedPinsOf(id)) } : q]; })),
+    pinned: minimal.filter((e) => e.pinned).length,
   };
 };
+
+export const dueConcepts = (m: Mastery, s: PracticeSettings, now: number): readonly string[] => Object.keys(m).filter((id) => m[id].mastered && freshnessOf(m[id], s, now).due);
+export const startedConcepts = (m: Mastery): readonly string[] => Object.keys(m).filter((id) => stateOf(m[id]) === 'practised');
+export const exercisesIn = (cat: Catalog, book: string, section: SectionId): readonly CatalogExercise[] => cat.exercises.filter((e) => e.ex.place.at === 'end' && e.book === book && e.section === section);
+export const exercisesTesting = (cat: Catalog, concept: string): readonly CatalogExercise[] => cat.exercises.filter((e) => e.ex.place.at === 'end' && e.ex.concepts.some((id) => id === concept));
 
 export type Progress = { readonly id: string; readonly from: State; readonly to: State; readonly fromShare: number; readonly toShare: number };
 export const progressOf = (before: Mastery, after: Mastery): readonly Progress[] => [...new Set([...Object.keys(before), ...Object.keys(after)])].flatMap((id) => {
