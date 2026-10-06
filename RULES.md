@@ -189,7 +189,7 @@ Every figure and simulation is drawn and moved in the house style, Manim's (`doc
 ## 26. Controls and legibility of a simulation
 
 1. A discrete state is a choice, never a slider: a segmented control or, where a row would wrap, a dropdown, one option per state, the current one marked. A quantity with a few preset values is a slider with soft detents. A special value the text names (a limit, a threshold, a resonance, an equal pair) is a dashed circle on every slider it involves, placed from the other values (`specials` with `F.solve` where the relation must be solved), with a slight snap; landing on it is what fires the figure's morph.
-2. A 3D figure carries buttons, not only gestures: auto-rotate on and off (omitted where an idle spin makes no sense), snap-to-view buttons where a viewpoint matters, zoom in and out with the wheel doing the same.
+2. A 3D view has at most three buttons: spin, zoom in and zoom out. None is on by default. Each is weighed for every 3D figure and added only where it adds value: spin where a predetermined path round the thing shows the reader more than any one view does, zoom where fine parts need it (the wheel zooms either way). No other button is a default; a snap-to-view button exists only where the plan line argues that one viewpoint is the lesson.
 3. The orbit is bounded to the views that carry meaning; a scene with a ground is never seen from beneath. The plan line says the bound and why.
 4. Showing the original figure swaps the caption too; the two captions are never shown together.
 5. A simulation is legible on its own page from its labels and caption, using only ideas the book has taught by that page.
@@ -199,7 +199,7 @@ Every figure and simulation is drawn and moved in the house style, Manim's (`doc
 9. Font roles: the figure font (a reader setting) for everything read inside the frame, slider values and readout included; the body font for prose and captions; the sans for controls (buttons, slider names, choices, eyebrows).
 10. A serif figure font sets labels at regular weight; figure text never renders below the library's size floor.
 11. Degrees are written ° (U+00B0), never the ordinal º; the book's own text keeps what it prints.
-13. Headline, scene, controls, readout and note are the parts a simulation may have, not a form it fills in. A figure carries a part only where it says something the other parts do not: a note that repeats the headline, the caption or the readout is dropped, and a figure whose readout says it all has no note. What a note does say is set like the readout, its symbols through the macros, so it wears the type colours too.
+13. Headline, scene, controls (sliders, choices, selects), labels, hover names, legend, readout and note are the parts a simulation may have, not a form it fills in. The library builds each in one style so that every figure that has one looks the same; whether a figure has one is the agent's call, made on value added. A figure carries a part only where it says something the other parts do not: a note that repeats the headline, the caption or the readout is dropped, and a figure whose readout says it all has no note. What a note does say is set like the readout, its symbols through the macros, so it wears the type colours too.
 12. A slider track is never shorter than 120 px: where its name and value leave less, the track takes its own line under them (figlib does this as the pane resizes). A control a note may store takes a `key` when its class alone would not name it across edits.
 
 ## 27. What an agent reads before building

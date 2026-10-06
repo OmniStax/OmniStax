@@ -101,13 +101,13 @@ select(host,{label,options,value,aria,onInput,ms}) -> the same handle           
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
 ctl / choice / select {..., key}                                                   the id a note stores the value under; default the cls ("choice" for a picker), then cls-2, cls-3
   a track under 120 px drops to its own line below its name and value (rule 26.12); keep names short rather than lean on it
-hover(d.stage, () => [{x,y,r,name}]) -> {hide}                                    names under the pointer where labels would crowd (rule 26.6)
+hover(d.stage, () => [{x,y,r,name}], canvas?) -> {hide}                           names under the pointer where labels would crowd (rule 26.6); canvas picks which of the stage's canvases
 ```
 
 Three dimensions (root rules 24.8, 26.2, 26.3):
 
 ```
-const v = F.view3d(d.stage, {h, dist, tilt, spin, views, pitch, yaw, zoomMin, zoomMax, onRender});
+const v = F.view3d(d.stage, {h, dist, tilt, spin, zoom, views, pitch, yaw, zoomMin, zoomMax, onRender});
 v.part(x)  v.label(s,p,g,dy)  v.headline(s)  v.clear()  v.project(p,g)  v.pickable(mesh,name)  v.setView(yaw,pitch)  v.invalidate()
 F.mesh.sphere(g,p,r,color,extra)   F.mesh.stick(g,a,b,r,color,extra) / setStick(m,a,b)
 F.mesh.bond(g,a,b,order,r,color)   F.mesh.lobe(g,from,dir,len,color) / setLobe(m,from,dir,len)
@@ -119,7 +119,7 @@ F.mesh.hand({curl,thumb,right,scale,color,ink,opacity,aim,palm,at,grip}) -> THRE
                                    each mesh's part (palm, wrist, thumb, index, middle, ring, little) in userData.part for hover names
 ```
 
-`v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band, centred at the top edge and wrapped over as many lines as the sentence takes. `spin` is `'idle'`, `'off'` or `'none'` (no button); `views: [{label,yaw,pitch}]` gives one snap button each; `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. The scene mounts on the page's THREE global and disposes itself.
+`v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
 Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.ref(id)` for the section's referents and `F.cat(i)` for other instances with no element that must be told apart, and a hex only where the colour is the physical fact and the plan names it: a named constant, named as the fact, unchanged in both themes, drawn through `F.fact(hex)` (the NFPA diamond of Chemistry 2e 1.3; a spectral colour computed from a wavelength goes through `F.fact` too). No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
 
@@ -147,7 +147,7 @@ Readout: `tex(d.readout, ...)` writes the equation with the current numbers thro
 6. Number line + sprite: two draggable positions, a bracket, a sprite between them, an odometer when path length matters.
 7. Faithful copy: a book figure the problems refer to, redrawn with the book's numbers and no sliders.
 8. Choice + scene: a segmented control or dropdown swaps the state or the material and the scene redraws.
-9. 3D scene: a molecule or lattice with snap views, bounded orbit and hover names.
+9. 3D scene: a molecule or lattice with a bounded orbit, hover names where labels would crowd, and spin or zoom buttons only where they add a view.
 10. Two views: a flat drawing and a 3D scene of the same thing behind an `F.choice` labelled view (2D, 3D), 2D the default, the `F.view3d` stage mounted on the first switch and disposed with the figure; sliders and readout shared by both.
 
 ## 5. Check, once
