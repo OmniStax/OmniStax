@@ -7,7 +7,7 @@ const openDb = () => new Promise((resolve, reject) => { const r = indexedDB.open
 const records = async () => { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(STORE); const r = tx.objectStore(STORE).getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); tx.oncomplete = () => db.close(); }); };
 const normalizePins = (record) => {
   if (!record) return null;
-  if (record.pins && typeof record.pins === 'object') return { clientId: record.clientId, primaryBook: record.primaryBook, pins: record.pins };
+  if (record.pins && typeof record.pins === 'object') return { clientId: record.clientId, primaryBook: record.primaryBook, pins: record.pins, snapshot: record.snapshot };
   if (record.bookId && record.release && record.artifact) return { clientId: record.clientId, primaryBook: record.bookId, pins: { [record.bookId]: { bookId: record.bookId, release: record.release, artifact: record.artifact } } };
   return null;
 };
@@ -66,7 +66,8 @@ const fromPins = async (held, request, installs) => {
   return miss;
 };
 /* A downloaded book carries one page, its own front, and the shell on it opens
-   whichever section the address names. */
+   whichever section the address names. Offline, the front of OmniStax is the
+   front of a downloaded book: its own page needs the first library book's data. */
 const shellOf = async (pin) => (await caches.open(cacheName(pin.bookId, pin.release, pin.artifact))).match(`/${pin.bookId}/index.html`);
 const offlinePage = () => new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OmniStax offline</title><style>body{font:16px system-ui;max-width:42rem;margin:12vh auto;padding:1rem}a{color:#1d4ed8}</style><h1>This page is not downloaded</h1><p>Open an available offline textbook from the <a href="/">OmniStax library</a>, or reconnect to download it.</p>', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
@@ -76,7 +77,7 @@ self.addEventListener('message', (event) => {
   const reply = event.ports?.[0]; if (!reply || !event.source?.id) return;
   event.waitUntil((async () => {
     if (event.data?.type === 'omnistax:current-pin') {
-      const value = await pinsFor(event.source.id); reply.postMessage(value.primaryBook ? value.pins[value.primaryBook] ?? null : null); return;
+      const value = await pinsFor(event.source.id); const pin = value.primaryBook ? value.pins[value.primaryBook] : null; reply.postMessage(pin ? { ...pin, snapshot: value.snapshot } : null); return;
     }
     if (event.data?.type === 'omnistax:live-pins') {
       const live = await clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -87,36 +88,57 @@ self.addEventListener('message', (event) => {
     }
   })());
 });
+/* The live site answers whenever it can. A snapshot stands in when the network
+   fails, or when a page is slow and the snapshot holds it. A file of a live page
+   is not cut off for being slow: the snapshot's copy may be another build's. */
+const SLOW_MS = 3000;
+const liveFirst = async (request, snapshot, slowMs) => {
+  const live = fetch(request).catch(() => null);
+  const first = slowMs ? await Promise.race([live, new Promise((resolve) => setTimeout(resolve, slowMs))]) : await live;
+  if (first) return first;
+  const standIn = await snapshot();
+  return standIn?.ok || first === null ? standIn : await live ?? standIn;
+};
+/* snapshot: 'chosen' when the reader asked for a release, 'fallback' when the
+   network failed; either way the page and its files come from one snapshot. */
+const remember = async (clientId, pin, snapshot) => {
+  const held = await pinsFor(clientId); const next = { ...held, primaryBook: pin.bookId, pins: { ...held.pins, [pin.bookId]: pin }, snapshot };
+  pins.set(clientId, next); await pinWrite(clientId, next).catch(() => undefined);
+};
+const navigation = async (event, url) => {
+  const installs = (await records().catch(() => [])).filter((record) => record.installedRelease);
+  const record = bookOf(url.pathname, installs);
+  const requested = url.searchParams.get('_omnistax_release');
+  const chosen = !!record && !!requested && (requested === record.installedRelease || requested === record.previousRelease);
+  const release = chosen ? requested : record?.installedRelease;
+  const artifact = record && artifactFor(record, release);
+  const own = artifact ? { bookId: record.bookId, release, artifact } : null;
+  const roots = url.pathname === '/' || url.pathname === '/index.html'
+    ? installs.map((item) => ({ bookId: item.bookId, release: item.installedRelease, artifact: artifactFor(item, item.installedRelease) })).filter((pin) => pin.artifact) : [];
+  let pin = own, snapshot;
+  const fromSnapshot = async () => {
+    let miss = null;
+    for (const candidate of own ? [own] : roots) {
+      const response = (own && await cached(candidate, event.request, installs)) ?? await shellOf(candidate);
+      if (response?.ok) { pin = candidate; snapshot = chosen ? 'chosen' : 'fallback'; return response; }
+      miss ??= response;
+    }
+    return miss;
+  };
+  const response = (chosen && await fromSnapshot()) || await liveFirst(event.request, fromSnapshot, SLOW_MS);
+  if (pin && event.resultingClientId) await remember(event.resultingClientId, pin, snapshot);
+  return response ?? offlinePage();
+};
+const resource = async (event, url) => {
+  /* A failed inspection still has an active installed snapshot. Keep routing
+     through it so an evicted file becomes an explicit repair error instead
+     of mixing a network response into the pinned release. */
+  const fromSnapshot = async () => { const installs = (await records().catch(() => [])).filter((record) => record.installedRelease); return fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs); };
+  const response = (await pinsFor(event.clientId)).snapshot ? await fromSnapshot() ?? await fetch(event.request).catch(() => null) : await liveFirst(event.request, fromSnapshot);
+  return response ?? new Response('Offline resource unavailable', { status: 503 });
+};
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url); if (url.origin !== location.origin) return;
   if (url.pathname === '/offline-catalog.json') { event.respondWith(fetch(event.request, { cache: 'no-store' })); return; }
-  const resolve = async () => {
-    /* A failed inspection still has an active installed snapshot. Keep routing
-       through it so an evicted file becomes an explicit repair error instead
-       of mixing a network response into the pinned release. */
-    const installs = (await records().catch(() => [])).filter((record) => record.installedRelease);
-    let pin;
-    if (event.request.mode === 'navigate') {
-      const record = bookOf(url.pathname, installs);
-      if (record) {
-        const requested = url.searchParams.get('_omnistax_release');
-        const release = requested && (requested === record.installedRelease || requested === record.previousRelease) ? requested : record.installedRelease;
-        const artifact = artifactFor(record, release);
-        if (artifact) pin = { bookId: record.bookId, release, artifact };
-      }
-      else if (url.pathname === '/' || url.pathname === '/index.html') { const first = installs[0]; const artifact = first && artifactFor(first, first.installedRelease); if (first && artifact) pin = { bookId: first.bookId, release: first.installedRelease, artifact }; }
-      if (pin && event.resultingClientId) {
-        const held = await pinsFor(event.resultingClientId); const next = { ...held, primaryBook: pin.bookId, pins: { ...held.pins, [pin.bookId]: pin } };
-        pins.set(event.resultingClientId, next); await pinWrite(event.resultingClientId, next).catch(() => undefined);
-      }
-      if (pin) { const response = await cached(pin, event.request, installs) ?? await shellOf(pin); if (response) return response; }
-    } else {
-      const response = await fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs);
-      if (response) return response;
-    }
-    try { return await fetch(event.request); }
-    catch { return event.request.mode === 'navigate' ? offlinePage() : new Response('Offline resource unavailable', { status: 503 }); }
-  };
-  const bookId = event.request.mode === 'navigate' ? url.pathname.split('/').filter(Boolean)[0] : null;
-  event.respondWith(bookId && navigator.locks ? navigator.locks.request(`omnistax-install:${bookId}`, { mode: 'shared' }, resolve) : resolve());
+  event.respondWith(event.request.mode === 'navigate' ? navigation(event, url) : resource(event, url));
 });

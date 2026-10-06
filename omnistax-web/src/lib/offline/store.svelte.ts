@@ -10,6 +10,12 @@ import { SvelteMap } from 'svelte/reactivity';
 const SEEN = 'omnistax-seen-releases-v1';
 type Seen = Readonly<Record<string, Readonly<Record<string, string>>>>;
 const readSeen = (): Seen => { try { const raw: unknown = JSON.parse(localStorage.getItem(SEEN) ?? '{}'); return typeof raw === 'object' && raw !== null ? raw as Seen : {}; } catch { return {}; } };
+const updatedIn = (record: InstallationRecord, seen: Seen): readonly string[] => {
+  if (!record.manifest || !record.previousManifest || !record.installedRelease) return [];
+  const changed = releaseChanges(record.previousManifest, record.manifest).sections;
+  return [...changed.added, ...changed.changed].filter((section) => seen[record.bookId]?.[section] !== record.installedRelease);
+};
+const CHECK_EVERY_MS = 10 * 60 * 1000;
 
 class OfflineBooks {
   records = $state.raw<Readonly<Record<string, InstallationRecord>>>({});
@@ -20,6 +26,9 @@ class OfflineBooks {
   changes = $state.raw<Readonly<Record<string, { changes: ReleaseChanges; notes?: string; publishedAt: string }>>>({});
   updatedSections = $state.raw<Readonly<Record<string, readonly string[]>>>({});
   clientReleases = $state.raw<Readonly<Record<string, string>>>({});
+  appUpdated = $state(false);
+  /* The app this page runs: its snapshot's when the worker answered from one, else the first catalog's. */
+  private knownArtifact: string | undefined;
   private abort = new SvelteMap<string, AbortController>();
   private inFlight: Promise<void> | null = null;
   async init(): Promise<void> {
@@ -27,17 +36,16 @@ class OfflineBooks {
     const inspected = await Promise.all(saved.map(async (record) => await inspectInstallation(record.bookId) ?? record));
     this.records = Object.fromEntries(inspected.map((record) => [record.bookId, record]));
     const seen = readSeen();
-    this.updatedSections = Object.fromEntries(inspected.map((record) => {
-      if (!record.manifest || !record.previousManifest || !record.installedRelease) return [record.bookId, []];
-      const changed = releaseChanges(record.previousManifest, record.manifest).sections;
-      return [record.bookId, [...changed.added, ...changed.changed].filter((section) => seen[record.bookId]?.[section] !== record.installedRelease)];
-    }));
-    const last = Math.max(0, ...Object.values(this.records).map((record) => record.lastCheck ?? 0));
-    if (navigator.onLine && Date.now() - last > 24 * 60 * 60 * 1000) void this.check();
+    this.updatedSections = Object.fromEntries(inspected.map((record) => [record.bookId, updatedIn(record, seen)]));
+    this.refresh();
+    addEventListener('focus', this.refresh); addEventListener('online', this.refresh);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') this.refresh(); });
   }
+  private refresh = (): void => { if (navigator.onLine && (this.lastCheck === null || Date.now() - this.lastCheck > CHECK_EVERY_MS)) void this.check(); };
   async refreshClientPin(): Promise<void> {
     const pin = await currentWorkerPin();
     this.clientReleases = pin ? { [pin.bookId]: pin.release } : {};
+    if (pin?.snapshot === 'fallback') this.knownArtifact ??= pin.artifact;
   }
   async reclaim(): Promise<void> {
     const records = await Promise.all(Object.keys(this.records).map((bookId) => reclaimPreviousRelease(bookId)));
@@ -46,23 +54,34 @@ class OfflineBooks {
   async check(): Promise<void> {
     if (this.inFlight) return this.inFlight;
     this.checking = true; this.message = '';
-    this.inFlight = checkForUpdates().then(({ records, catalog }) => { this.catalog = catalog; this.lastCheck = Date.now(); this.records = Object.fromEntries(records.map((record) => [record.bookId, record])); })
+    this.inFlight = checkForUpdates().then(({ records, catalog }) => {
+      this.catalog = catalog; this.lastCheck = Date.now(); this.records = Object.fromEntries(records.map((record) => [record.bookId, record]));
+      const artifact = catalog.books[0]?.artifactId;
+      if (artifact) { this.knownArtifact ??= artifact; this.appUpdated = artifact !== this.knownArtifact; }
+      for (const record of records) {
+        const entry = catalog.books.find((book) => book.id === record.bookId);
+        if (record.installedRelease && entry && (entry.releaseId !== record.installedRelease || entry.artifactId !== (record.installedArtifact ?? record.manifest?.runtime.artifactId))) void this.install(record.bookId, true);
+      }
+    })
       .catch((error) => { this.message = error instanceof Error ? error.message : 'Update check failed.'; })
       .finally(() => { this.checking = false; this.inFlight = null; });
     return this.inFlight;
   }
-  async install(bookId: string): Promise<void> {
+  /* A background install is an update the catalog asked for; one that fails or is refused waits for the next check. */
+  async install(bookId: string, background = false): Promise<void> {
     if (this.abort.has(bookId)) return;
-    const controller = new AbortController(); this.abort.set(bookId, controller); this.message = '';
+    const controller = new AbortController(); this.abort.set(bookId, controller); if (!background) this.message = '';
     try {
       const record = await installFromCatalog(bookId, { signal: controller.signal, progress: (value) => { this.progress = { ...this.progress, [bookId]: value }; } });
       this.records = { ...this.records, [bookId]: record };
+      this.updatedSections = { ...this.updatedSections, [bookId]: updatedIn(record, readSeen()) };
     } catch (error) {
       const records = await listInstallations(); this.records = Object.fromEntries(records.map((record) => [record.bookId, record]));
-      this.message = error instanceof Error ? error.message : 'Download failed.';
+      if (!background) this.message = error instanceof Error ? error.message : 'Download failed.';
     } finally { this.abort.delete(bookId); this.progress = Object.fromEntries(Object.entries(this.progress).filter(([id]) => id !== bookId)); }
   }
   cancel(bookId: string): void { this.abort.get(bookId)?.abort(); }
+  dismissUpdate(): void { this.knownArtifact = this.catalog?.books[0]?.artifactId ?? this.knownArtifact; this.appUpdated = false; }
   async remove(bookId: string): Promise<void> {
     try { await removeDownload(bookId); this.records = Object.fromEntries(Object.entries(this.records).filter(([id]) => id !== bookId)); }
     catch (error) { this.message = error instanceof Error ? error.message : 'The offline download could not be removed.'; }

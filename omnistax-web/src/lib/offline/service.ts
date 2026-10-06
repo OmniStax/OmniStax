@@ -52,9 +52,10 @@ const savedReferences = () => {
 const clearPreviousIfUnused = async (record: InstallationRecord): Promise<InstallationRecord> => {
   const release = record.previousRelease, artifact = record.previousArtifact ?? record.previousManifest?.runtime.artifactId;
   if (!release || !artifact || !navigator.locks) return record;
-  if (savedReferences().some((reference) => reference.bookId === record.bookId && reference.release === release)) return record;
+  /* A saved session names a release, not an app build, so the installed snapshot serves it when only the app changed. */
+  if (release !== record.installedRelease && savedReferences().some((reference) => reference.bookId === record.bookId && reference.release === release)) return record;
   const live = await liveWorkerPins();
-  if (live === null || live.some((pin) => pin.bookId === record.bookId && pin.release === release)) return record;
+  if (live === null || live.some((pin) => pin.bookId === record.bookId && pin.release === release && pin.artifact === artifact)) return record;
   await caches.delete(cacheName(record.bookId, release, artifact));
   const next = { ...record, previousRelease: undefined, previousArtifact: undefined, updatedAt: Date.now() };
   await putInstallation(next); return next;
@@ -66,9 +67,10 @@ export const reclaimPreviousRelease = async (bookId: string): Promise<Installati
 
 export const installRelease = async (manifest: BookReleaseManifest, options: InstallOptions = {}): Promise<InstallationRecord> => lock(manifest.book.id, async () => {
   if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error('This browser cannot store textbooks offline.');
+  let existing = await getInstallation(manifest.book.id);
+  if (existing?.status === 'ready' && existing.installedRelease === manifest.releaseId && (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) === manifest.runtime.artifactId) return existing;
   await enoughSpace(manifest.totalBytes);
   void navigator.storage?.persist?.().catch(() => false);
-  let existing = await getInstallation(manifest.book.id);
   if (existing?.previousRelease) {
     existing = await clearPreviousIfUnused(existing);
     const changingActive = existing.installedRelease !== manifest.releaseId || (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) !== manifest.runtime.artifactId;
@@ -85,13 +87,20 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
   const base: InstallationRecord = { ...existing, bookId: manifest.book.id, title: manifest.book.title, status: existing?.installedRelease ? 'ready' : 'downloading', stagingRelease: manifest.releaseId, stagingArtifact: manifest.runtime.artifactId, completed: [...completed], error: undefined, updatedAt: Date.now() };
   await putInstallation(base);
   const pending = manifest.resources.filter((resource) => !completed.has(resource.logicalUrl));
+  /* A file the active snapshot already holds is copied from it, so a release that changes only the app downloads only the app. */
+  const kept = existing?.installedRelease && existing.manifest ? await caches.open(cacheName(manifest.book.id, existing.installedRelease, existing.installedArtifact ?? existing.manifest.runtime.artifactId)) : undefined;
+  const keptUrls = new Map((existing?.manifest?.resources ?? []).map((resource) => [`${resource.sha256} ${resource.mime}`, resource.logicalUrl]));
+  const reuse = async (resource: OfflineResource): Promise<Response | undefined> => {
+    const url = keptUrls.get(`${resource.sha256} ${resource.mime}`); const saved = url && await kept?.match(new URL(url, location.origin));
+    return saved ? verified(resource, saved).catch(() => undefined) : undefined;
+  };
   let cursor = 0; let failure: unknown;
   const worker = async () => {
     while (cursor < pending.length && !failure) {
       const resource = pending[cursor++];
       try {
         options.signal?.throwIfAborted();
-        const response = await verified(resource, await fetch(resource.downloadUrl, { cache: 'no-store', signal: options.signal }));
+        const response = await reuse(resource) ?? await verified(resource, await fetch(resource.downloadUrl, { cache: 'no-store', signal: options.signal }));
         await cache.put(new Request(new URL(resource.logicalUrl, location.origin)), response);
         completed.add(resource.logicalUrl); bytes += resource.bytes;
         await putInstallation({ ...base, completed: [...completed], updatedAt: Date.now() });
@@ -105,11 +114,13 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
     const failed: InstallationRecord = { ...base, status: existing?.installedRelease ? 'ready' : 'failed', completed: [...completed], error: message, updatedAt: Date.now() };
     await putInstallation(failed); throw new Error(message);
   }
+  const replaced = !!existing?.installedRelease && (existing.installedRelease !== manifest.releaseId || existing.installedArtifact !== manifest.runtime.artifactId);
   const ready: InstallationRecord = {
     bookId: manifest.book.id, title: manifest.book.title, status: 'ready', installedRelease: manifest.releaseId, installedArtifact: manifest.runtime.artifactId,
-    previousRelease: existing?.installedRelease && (existing.installedRelease !== manifest.releaseId || existing.installedArtifact !== manifest.runtime.artifactId) ? existing.installedRelease : existing?.previousRelease,
-    previousArtifact: existing?.installedRelease && (existing.installedRelease !== manifest.releaseId || existing.installedArtifact !== manifest.runtime.artifactId) ? (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) : existing?.previousArtifact,
-    previousManifest: existing?.installedRelease && (existing.installedRelease !== manifest.releaseId || existing.installedArtifact !== manifest.runtime.artifactId) ? existing.manifest : existing?.previousManifest,
+    previousRelease: replaced ? existing?.installedRelease : existing?.previousRelease,
+    previousArtifact: replaced ? (existing?.installedArtifact ?? existing?.manifest?.runtime.artifactId) : existing?.previousArtifact,
+    /* Changed sections are counted from the last content release, which an app-only update leaves where it was. */
+    previousManifest: existing?.installedRelease && existing.installedRelease !== manifest.releaseId ? existing.manifest : existing?.previousManifest,
     availableRelease: manifest.releaseId, availableArtifact: manifest.runtime.artifactId, publishedAt: manifest.publishedAt, manifest, lastCheck: existing?.lastCheck, updatedAt: Date.now(),
   };
   await putInstallation(ready); return ready;

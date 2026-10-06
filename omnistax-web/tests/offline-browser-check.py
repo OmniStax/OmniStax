@@ -1,11 +1,28 @@
 """Verified download and cold offline navigation against a production build."""
-import sys
+import functools
+import http.server
+import pathlib
 import tempfile
+import threading
 from playwright.sync_api import sync_playwright
 
-BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:4337").rstrip("/")
+DIST = pathlib.Path(__file__).resolve().parents[1] / "dist"
 BOOK = "sandbox"
 PATH = f"/{BOOK}/ch01/1.1/"
+
+# Chromium exempts service-worker fetches from Playwright's offline emulation,
+# so the origin itself goes down: a request it drops fails in the worker too.
+class Handler(http.server.SimpleHTTPRequestHandler):
+  down = False
+  def do_GET(self):
+    if Handler.down: self.close_connection = True; return
+    return super().do_GET()
+  def log_message(self, *_args):
+    pass
+
+server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Handler, directory=DIST))
+threading.Thread(target=server.serve_forever, daemon=True).start()
+BASE = f"http://127.0.0.1:{server.server_port}"
 
 with sync_playwright() as playwright:
   with tempfile.TemporaryDirectory(prefix='omnistax-offline-profile-') as profile:
@@ -86,8 +103,12 @@ with sync_playwright() as playwright:
     newer = context.new_page()
     newer.goto(BASE + PATH)
     newer.wait_for_selector('.shell')
+    # Online the live site answers; each client's pin is what stands in for it.
+    assert page.evaluate("fetch('/pin-probe.txt').then(r => r.status)") == 404
+    Handler.down = True
     assert page.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'A'
     assert newer.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'B'
+    Handler.down = False
     newer.evaluate("""async ({ id, original, releaseB }) => {
       const db = await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
       await new Promise((ok,no)=>{const tx=db.transaction('installations','readwrite');tx.objectStore('installations').put(original);tx.oncomplete=ok;tx.onerror=()=>no(tx.error)});
@@ -104,11 +125,12 @@ with sync_playwright() as playwright:
       const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
       await new Promise((ok,no)=>{const tx=db.transaction('installations','readwrite');tx.objectStore('installations').put({bookId:'other',title:'Other',status:'ready',installedRelease:release,installedArtifact:artifact,manifest,updatedAt:Date.now()});tx.oncomplete=ok;tx.onerror=()=>no(tx.error)});
     }""")
+    Handler.down = True
     assert page.evaluate("fetch('/other/book.json').then(r => r.json())") == {'offline': True}
 
-    # Close the warm tab, disable network for the entire browser profile, and
-    # navigate directly to a deep URL. HTML boot data, chunks and book JSON all
-    # have to come from the selected verified release.
+    # Close the warm tab, take the network down, and navigate directly to a
+    # deep URL. HTML boot data, chunks and book JSON all have to come from the
+    # selected verified release.
     page.close()
     context.close()
     context = playwright.chromium.launch_persistent_context(profile)
@@ -123,19 +145,8 @@ with sync_playwright() as playwright:
     assert offline.evaluate("fetch('/other/book.json').then(r => r.json())") == {'offline': True}
     offline.locator('.row.r-find').click()
     offline_finder = offline.locator('.finder')
-    # The catalogue request is proxied by the service worker, and Chromium does
-    # not apply the context's offline emulation to worker-issued fetches, so the
-    # page-side failure a real disconnection produces is simulated here.
-    offline.evaluate("""() => {
-      globalThis.__omnistaxFetch = globalThis.fetch.bind(globalThis);
-      globalThis.fetch = (input, init) => {
-        const url = typeof input === 'string' ? input : input.url;
-        return url.includes('/offline-catalog.json') ? Promise.reject(new TypeError('Failed to fetch')) : globalThis.__omnistaxFetch(input, init);
-      };
-    }""")
     offline_finder.get_by_role('button', name='Check for updates').click()
     offline_finder.locator('.bad').wait_for(timeout=20_000)
-    offline.evaluate("() => { globalThis.fetch = globalThis.__omnistaxFetch; }")
     assert offline_finder.locator(f'.book[data-book="{BOOK}"]').get_by_text('Available offline', exact=True).count() == 1
     offline.keyboard.press('Escape')
     offline.locator('#gear').click()
@@ -148,6 +159,7 @@ with sync_playwright() as playwright:
     root.wait_for_selector('.shell', timeout=20_000)
 
     context.set_offline(False)
+    Handler.down = False
 
     # Eviction is detected on restart and repair resumes from the resources
     # still present instead of discarding personal data or the whole cache.
@@ -162,7 +174,9 @@ with sync_playwright() as playwright:
       const name = `omnistax-book:${id}:${record.installedRelease}:${record.installedArtifact}`;
       await (await caches.open(name)).delete('/sandbox/search.json');
     }""", BOOK)
+    Handler.down = True
     missing = repair.evaluate("fetch('/sandbox/search.json').then(async r => [r.status, await r.text()])")
+    Handler.down = False
     assert missing[0] == 503 and 'Repair this download' in missing[1], missing
     repair.reload()
     repair.wait_for_selector('.shell')
@@ -185,3 +199,4 @@ with sync_playwright() as playwright:
 
     print('offline textbook browser check passed')
     context.close()
+server.shutdown()

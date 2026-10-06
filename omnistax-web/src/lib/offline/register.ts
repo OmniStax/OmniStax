@@ -4,7 +4,7 @@ export const registerOfflineWorker = async (): Promise<ServiceWorkerRegistration
   try { const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' }); await navigator.serviceWorker.ready; return registration; } catch { return null; }
 };
 
-export type WorkerPin = { readonly bookId: string; readonly release: string; readonly artifact: string };
+export type WorkerPin = { readonly bookId: string; readonly release: string; readonly artifact: string; readonly snapshot?: 'chosen' | 'fallback' };
 const askWorker = <T>(type: string): Promise<T | null> => new Promise((resolve) => {
   const worker = navigator.serviceWorker?.controller; if (!worker) { resolve(null); return; }
   const channel = new MessageChannel(); const timeout = window.setTimeout(() => resolve(null), 1500);

@@ -41,6 +41,7 @@
   import SpotCurve from './SpotCurve.svelte';
   import DragToast from './ui/DragToast.svelte';
   import TipToast from './ui/TipToast.svelte';
+  import UpdateToast from './ui/UpdateToast.svelte';
   import LockOverlay from './pomodoro/LockOverlay.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
@@ -139,7 +140,7 @@
        book's manifest for its colours and adds nothing. */
     const pageBook = bookOfItem(page);
     library.init(pageBook ?? '', pageBook === home.id ? home.title : undefined);
-    void (async () => { await registerOfflineWorker(); await offlineBooks.init(); await offlineBooks.refreshClientPin(); await offlineBooks.reclaim(); })()
+    void (async () => { await registerOfflineWorker(); await offlineBooks.refreshClientPin(); await offlineBooks.init(); await offlineBooks.reclaim(); })()
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
@@ -354,6 +355,7 @@
   <SpotCurve />
   <DragToast />
   <TipToast />
+  <UpdateToast />
   <LockOverlay />
 {/if}
 
