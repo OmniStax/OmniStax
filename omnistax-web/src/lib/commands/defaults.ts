@@ -20,7 +20,7 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Shift+P', 'palette'],
   /* Ctrl+K begins a sequence, as it does in VS Code: nothing is bound to it alone. */
   ['Ctrl+,', 'settings'], ['Ctrl+K Ctrl+S', 'settings'],
-  ['Ctrl+O', 'open'],
+  ['Ctrl+P', 'open'],   /* the editors' quick open; Ctrl+P is the browser's print, which the shell already swallows */
   ['Ctrl+Shift+A', 'animations'],
   ['Ctrl+Shift+C', 'colour-coding'],
   /* The browser's own zoom chords, taken for the book's text while the "Zoom
