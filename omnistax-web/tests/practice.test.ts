@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DAY, DEFAULT_SETTINGS, PENDING, availabilityOf, dropSlots, fillSlots, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
+  DAY, DEFAULT_SETTINGS, PENDING, availabilityOf, dropSlots, removeSlot, fillSlots, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
   heatWeeks, newSessionId, poolOf, prepare, progressOf, readyConcepts, rebuild, shareOf,
   standingOf, stateOf, stepDay, streakOf, togglePick, uniqueById, workByDay,
   type Attempt, type Catalog, type ConceptRecord, type Mastery, type Presentation,
@@ -239,4 +239,14 @@ test('open slots fill in order per concept and drop with their outcomes', () => 
   assert.equal(dropped.at, 2);
   const all = dropSlots({ drawn, outcomes: [true, null, null, null], at: 3 });
   assert.deepEqual([all.drawn.length, all.outcomes, all.at], [1, [true], 0]);
+});
+
+test('a removed slot takes its outcome, and the place keeps to the exercise it was on or the one that follows', () => {
+  const drawn = [{ ex: 'a' }, { ex: 'b' }, { ex: 'c' }];
+  const s = { drawn, outcomes: [true, false, null], at: 1 };
+  assert.deepEqual(removeSlot(s, 0), { drawn: [{ ex: 'b' }, { ex: 'c' }], outcomes: [false, null], at: 0 });
+  assert.deepEqual(removeSlot(s, 1), { drawn: [{ ex: 'a' }, { ex: 'c' }], outcomes: [true, null], at: 1 });
+  assert.equal(removeSlot(s, 2).at, 1);
+  assert.equal(removeSlot({ ...s, at: 2 }, 2).at, 1);
+  assert.deepEqual(removeSlot({ drawn: [{ ex: 'a' }], outcomes: [null], at: 0 }, 0), { drawn: [], outcomes: [], at: 0 });
 });

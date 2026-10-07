@@ -34,55 +34,72 @@ const pool = async <T>(items: readonly T[], n: number, f: (t: T) => Promise<void
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (next < items.length) await f(items[next++]); }));
 };
 
-type Job = { readonly line: string; readonly running: boolean; readonly notice: string };
+/* Per session, what each concept's slots are doing: the line while they are
+   written, the reason when they were not. */
+type Job = { readonly writing: Readonly<Record<string, string>>; readonly failed: Readonly<Record<string, string>> };
 export const generation: Record<SessionId, Job> = $state({});
-export const isGenerating = (id: SessionId): boolean => generation[id]?.running === true;
-const NO_MODEL = 'Choose a model with a key under Settings → AI to generate exercises; this session uses the book’s.';
+export const isGenerating = (id: SessionId, concept?: string): boolean => {
+  const writing = generation[id]?.writing ?? {};
+  return concept === undefined ? Object.keys(writing).length > 0 : concept in writing;
+};
+const mark = (id: SessionId, part: keyof Job, concept: string, value: string | null): void => {
+  const job = generation[id] ?? { writing: {}, failed: {} }, { [concept]: _, ...rest } = job[part];
+  generation[id] = { ...job, [part]: value === null ? rest : { ...rest, [concept]: value } };
+};
+const controllers = new Map<string, AbortController>();
+const jobKey = (id: SessionId, concept: string): string => `${id}/${concept}`;
+const NO_MODEL = 'Configure a model under Settings → AI.';
 
-/* A live session's open slots filled: stored items first, least used, unless
-   the reader asked for fresh ones; the rest written now, three concepts at a
-   time, each batch placed as it lands. A concept that cannot be written for
-   loses its slots, and the notice says so in one line. */
-export const fillLive = async (sessionId: SessionId, onLine?: (line: string) => void): Promise<void> => {
-  const session = practice.sessions[sessionId]; if (!session || isGenerating(sessionId)) return;
-  const set = (job: Partial<Job>): void => { generation[sessionId] = { ...(generation[sessionId] ?? { line: '', running: false, notice: '' }), ...job }; };
+/* A live session's open slots filled, or only those of the concepts named:
+   stored items first, least used, unless the reader asked for fresh ones; the
+   rest written now, three concepts at a time, each batch placed as it lands.
+   A concept that cannot be written for keeps its slots and the reason. */
+export const fillLive = async (sessionId: SessionId, only?: readonly string[]): Promise<void> => {
+  const session = practice.sessions[sessionId]; if (!session) return;
   const s = practice.settings, toWrite: string[] = [];
-  new Set(session.drawn.flatMap((d) => isPending(d.ex) && d.concept ? [d.concept] : [])).forEach((id) => {
+  new Set(session.drawn.flatMap((d) => isPending(d.ex) && d.concept && (!only || only.includes(d.concept)) && !isGenerating(sessionId, d.concept) ? [d.concept] : [])).forEach((id) => {
+    mark(sessionId, 'failed', id, null);
     const need = practice.pendingOf(sessionId, id);
     if (!s.fresh) practice.fill(sessionId, id, pickStored(generated.forConcept(id), id, need, practice.attempts).map(catalogOf));
     if (practice.pendingOf(sessionId, id) > 0) toWrite.push(id);
   });
   if (!toWrite.length) return;
   const model = ready();
-  if (!model) { practice.dropPending(sessionId); set({ notice: NO_MODEL }); return; }
-  const running = new Map<string, string>(), failed: string[] = [];
-  const say = (): void => { const line = [...running.values()].join(' · '); set({ line }); onLine?.(line); };
-  const cat = practice.catalog(), signal = new AbortController().signal;
-  set({ running: true, line: '', notice: '' });
-  try {
-    await pool(toWrite, PARALLEL, async (id) => {
-      const c = practice.conceptOf(id), book = books.bookOf(id);
-      if (!c || c.status !== 'built' || !book) { failed.push(c ? plain(c.name) : id); practice.dropPending(sessionId, id); return; }
+  if (!model) { toWrite.forEach((id) => mark(sessionId, 'failed', id, NO_MODEL)); return; }
+  const nameOf = (id: string): string => { const c = practice.conceptOf(id); return c ? plain(c.name) : id; };
+  toWrite.forEach((id) => mark(sessionId, 'writing', id, `Waiting to write for ${nameOf(id)}…`));
+  const cat = practice.catalog();
+  await pool(toWrite, PARALLEL, async (id) => {
+    const c = practice.conceptOf(id), book = books.bookOf(id), control = new AbortController();
+    controllers.set(jobKey(sessionId, id), control);
+    try {
+      if (!c || c.status !== 'built' || !book) throw new Error('This concept’s book is not loaded.');
       const existing = cat.exercises.filter((e) => e.ex.place.at === 'end' && e.ex.concepts.includes(c.id)).map((e) => e.ex.prompt);
-      try {
-        for (let left = practice.pendingOf(sessionId, id); left > 0; left = practice.pendingOf(sessionId, id)) {
-          running.set(id, `Generating ${left} for ${plain(c.name)}…`); say();
-          const items = await generate({ provider: providerOf(model.pick.provider), library: liveLibrary }, {
-            book, bookTitle: books.title(book), section: c.section, count: Math.min(MAX_PER_REQUEST, left),
-            concept: { id: c.id, name: c.name, kind: c.kind, statement: c.statement ?? '' },
-            note: s.promptNote.trim() || undefined, existing, facets: generated.forConcept(id).map((g) => g.facet),
-          }, model.pick, model.access, signal);
-          if (!items.length) throw new Error('the model wrote none');
-          const records = items.map((item) => recordOf(item, { book, section: c.section, concept: c.id, model: model.pick, note: s.promptNote.trim() || undefined }));
-          generated.add(records); practice.fill(sessionId, id, records.map(catalogOf));
-        }
-      } catch (e) {
-        failed.push(`${plain(c.name)} (${e instanceof Error ? e.message : String(e)})`); practice.dropPending(sessionId, id);
-      } finally { running.delete(id); say(); }
-    });
-  } finally {
-    set({ running: false, line: '', notice: failed.length ? `Could not generate for ${failed.join(', ')}; the session goes on without those.` : '' });
-  }
+      for (let left = practice.pendingOf(sessionId, id); left > 0 && !control.signal.aborted; left = practice.pendingOf(sessionId, id)) {
+        mark(sessionId, 'writing', id, `Generating ${left} for ${plain(c.name)}…`);
+        const items = await generate({ provider: providerOf(model.pick.provider), library: liveLibrary }, {
+          book, bookTitle: books.title(book), section: c.section, count: Math.min(MAX_PER_REQUEST, left),
+          concept: { id: c.id, name: c.name, kind: c.kind, statement: c.statement ?? '' },
+          note: s.promptNote.trim() || undefined, existing, facets: generated.forConcept(id).map((g) => g.facet),
+        }, model.pick, model.access, control.signal);
+        if (!items.length) throw new Error('The model wrote none.');
+        const records = items.map((item) => recordOf(item, { book, section: c.section, concept: c.id, model: model.pick, note: s.promptNote.trim() || undefined }));
+        generated.add(records); practice.fill(sessionId, id, records.map(catalogOf));
+      }
+    } catch (e) {
+      if (!control.signal.aborted) mark(sessionId, 'failed', id, e instanceof Error ? e.message : String(e));
+    } finally { controllers.delete(jobKey(sessionId, id)); mark(sessionId, 'writing', id, null); }
+  });
+};
+
+/* An exercise out of a live session. The last open slot of a concept takes
+   the request still writing for it along. */
+export const removeExercise = (sessionId: SessionId, at: number): void => {
+  const d = practice.sessions[sessionId]?.drawn[at]; if (!d) return;
+  practice.remove(sessionId, at);
+  if (!d.concept || !isPending(d.ex) || practice.pendingOf(sessionId, d.concept) > 0) return;
+  controllers.get(jobKey(sessionId, d.concept))?.abort();
+  mark(sessionId, 'failed', d.concept, null);
 };
 
 const scratchImage = async (at: ScratchAt): Promise<ImagePart | null> => {

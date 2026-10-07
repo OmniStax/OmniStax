@@ -7,7 +7,7 @@ import { books } from './books.svelte';
 import { emptyCatalog, mergeCatalog } from './books';
 import {
   DEFAULT_SETTINGS, availabilityOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, readyConcepts, rebuild,
-  sessionId, shareOf, startedConcepts, dropSlots, fillSlots, isPending, PENDING, stateOf, togglePick, uniqueById,
+  sessionId, shareOf, startedConcepts, dropSlots, fillSlots, removeSlot, isPending, PENDING, stateOf, togglePick, uniqueById,
   type Attempt, type Catalog, type Curriculum, type Drawn, type ExerciseRef, type Mastery, type Pick,
   type PracticeSettings, type Presentation, type Progress, type RoundEnd, type RoundPlan,
   type SelfAssessments, type SessionId, type State,
@@ -316,6 +316,13 @@ class Practice {
   dropPending(id: SessionId, concept?: string): void {
     const s = this.sessions[id]; if (!s?.drawn.some((d) => isPending(d.ex))) return;
     const next = { ...s, ...dropSlots(s, concept) };
+    if (next.drawn.length) this.put(next); else this.drop(id);
+  }
+  /* One exercise out of a live session, and the answer it was given there with it. */
+  remove(id: SessionId, at: number): void {
+    const s = this.sessions[id], d = s?.drawn[at]; if (!s || !d) return;
+    if (s.outcomes[at] !== null) { this.attempts = this.attempts.filter((a) => a.round !== id || a.book !== d.book || a.section !== d.section || a.ex !== d.ex); this.save(); }
+    const next = { ...s, ...removeSlot(s, at) };
     if (next.drawn.length) this.put(next); else this.drop(id);
   }
   exerciseOf(ref: ExerciseRef): ExerciseDTO | undefined { return isPending(ref.ex) ? undefined : books.exercise(ref.book, ref.section, ref.ex); }

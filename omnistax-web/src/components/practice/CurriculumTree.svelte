@@ -120,14 +120,19 @@
     else practice.clearSelfMany(ids);
     asking = null;
   };
+  const deleteAll = (id: string): void => {
+    const own = generated.forConcept(id);
+    if (confirm(`Delete ${count(own.length, 'AI-generated exercise')} for “${plain(practice.conceptOf(id)?.name ?? id)}”?`)) own.forEach((g) => generated.remove(g.id));
+  };
   const conceptMenu = (id: string): readonly MenuItem[] => [
     { label: 'Mark mastered', run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
     { label: 'Mark unpracticed', run: () => practice.setSelf(id, 0, false, false) },
     { label: 'Calculate mastery from exercise history', run: () => practice.clearSelf(id) },
+    ...(generated.forConcept(id).length ? [{ label: 'Delete AI-generated exercises', danger: true, run: () => deleteAll(id) }] : []),
   ];
   const exerciseMenu = (e: CatalogExercise): readonly MenuItem[] => [
     { label: 'Open in a tab', run: () => openExercise(e) },
-    ...(isGenerated(e.ex.id) ? [{ label: 'Delete', danger: true, run: () => void generated.remove(generatedIdOf(e.ex.id)) }] : []),
+    ...(isGenerated(e.ex.id) ? [{ label: 'Delete', danger: true, run: () => { if (confirm(`Delete the AI-generated exercise “${excerpt(e.ex.prompt, 60)}”?`)) generated.remove(generatedIdOf(e.ex.id)); } }] : []),
   ];
 </script>
 

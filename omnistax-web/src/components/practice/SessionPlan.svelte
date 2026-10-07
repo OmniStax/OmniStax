@@ -3,7 +3,8 @@
   import { fillLive, practicePick } from '../../lib/practice/ai.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
   import { keyOf, MAX_WANTED, type Drawn } from '../../lib/practice/model';
-  import { isGenerated } from '../../lib/practice/generated';
+  import { generatedIdOf, isGenerated } from '../../lib/practice/generated';
+  import { generated } from '../../lib/practice/generated.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import { count, exerciseName, excerpt, plain } from '../../lib/practice/labels';
   import ModelMenu from '../chat/ModelMenu.svelte';
@@ -113,6 +114,7 @@
             <span class="excerpt">{excerpt(d.ex.prompt)}</span>
             {#if isGenerated(d.ex.id)}<AiTag text />{/if}
             {#if d.pinned}<span class="tag">picked</span>{/if}
+            {#if isGenerated(d.ex.id)}<button class="btn ghost sm danger" type="button" aria-label="Delete {name}" onclick={() => { if (confirm(`Delete the AI-generated exercise “${excerpt(d.ex.prompt, 60)}”?`)) generated.remove(generatedIdOf(d.ex.id)); }}>Delete</button>{/if}
             <button class="btn ghost icon sm" type="button" aria-label="Remove {name}" onclick={() => remove(d)}>×</button>
           </li>
         {/each}

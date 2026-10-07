@@ -249,11 +249,13 @@ export const fillSlots = <S extends Slot>(drawn: readonly S[], concept: string, 
   let placed = 0;
   return { drawn: drawn.map((d) => placed < items.length && openSlot(d, concept) ? items[placed++] : d), placed };
 };
-/* Open slots removed with their outcomes; the place moves to the slot that follows. */
-export const dropSlots = <S extends Slot>(s: Slots<S>, concept?: string): Slots<S> => {
-  const keep = [...s.drawn.keys()].filter((i) => !openSlot(s.drawn[i], concept));
+/* The slots that pass kept with their outcomes; a place that goes moves to the slot that follows. */
+const keepSlots = <S extends Slot>(s: Slots<S>, pass: (d: S, i: number) => boolean): Slots<S> => {
+  const keep = [...s.drawn.keys()].filter((i) => pass(s.drawn[i], i));
   return { drawn: keep.map((i) => s.drawn[i]), outcomes: keep.map((i) => s.outcomes[i]), at: Math.min(keep.filter((i) => i < s.at).length, Math.max(0, keep.length - 1)) };
 };
+export const dropSlots = <S extends Slot>(s: Slots<S>, concept?: string): Slots<S> => keepSlots(s, (d) => !openSlot(d, concept));
+export const removeSlot = <S extends Slot>(s: Slots<S>, at: number): Slots<S> => keepSlots(s, (_, i) => i !== at);
 export type RoundPlan = {
   readonly drawn: readonly Drawn[]; readonly concepts: readonly string[]; readonly shortages: number; readonly sharedConcepts: number; readonly target: number;
   readonly quotas: Readonly<Record<string, Quota>>; readonly pinned: number;

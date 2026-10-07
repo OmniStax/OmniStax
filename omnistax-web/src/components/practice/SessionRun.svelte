@@ -5,8 +5,10 @@
   import { bookId, type SectionId } from '../../lib/types/ids';
   import type { ItemKey } from '../../lib/layout/model';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
-  import { fillLive, generation, isGenerating } from '../../lib/practice/ai.svelte';
+  import { fillLive, generation, isGenerating, removeExercise } from '../../lib/practice/ai.svelte';
   import { isPending, type SessionId } from '../../lib/practice/model';
+  import { isGenerated } from '../../lib/practice/generated';
+  import { generated } from '../../lib/practice/generated.svelte';
   import { plain } from '../../lib/practice/labels';
 
   let { item }: { item: ItemKey } = $props();
@@ -48,24 +50,54 @@
     else practice.afterAnswer(item, at);
   };
   const conceptName = (id?: string): string => { const c = id ? practice.conceptOf(id) : undefined; return c ? plain(c.name) : 'this concept'; };
+  const writingFor = (id: SessionId, concept?: string): boolean => concept ? isGenerating(id, concept) : isGenerating(id);
 </script>
 
 {#snippet writing(id: SessionId, concept: string | undefined, i: number)}
   <div class="writing">
     <p class="eyebrow">Exercise {i + 1} of {n}</p>
     <div class="quiet" role="status">
-      {#if isGenerating(id)}
+      {#if writingFor(id, concept)}
         <p><span class="spin" aria-hidden="true"></span> Writing an exercise for {conceptName(concept)}…</p>
-        {#if generation[id]?.line}<p class="line">{generation[id].line}</p>{/if}
+        {#if concept && generation[id]?.writing[concept]}<p class="line">{generation[id].writing[concept]}</p>{/if}
       {:else}
-        <p>This exercise was never written.</p>
-        <div class="acts">
-          <button type="button" class="btn sm" onclick={() => void fillLive(id)}>Write it now</button>
-          <button type="button" class="btn ghost sm" onclick={() => practice.dropPending(id, concept)}>Skip it</button>
-        </div>
+        <p>This exercise for {conceptName(concept)} was not written.</p>
+        {#if concept && generation[id]?.failed[concept]}<p class="line bad">{generation[id].failed[concept]}</p>{/if}
       {/if}
+      <div class="acts">
+        {#if !writingFor(id, concept)}<button type="button" class="btn sm" onclick={() => void fillLive(id, concept ? [concept] : undefined)}>Regenerate</button>{/if}
+        <button type="button" class="btn ghost sm" onclick={() => removeExercise(id, i)}>Remove</button>
+      </div>
     </div>
   </div>
+{/snippet}
+
+{#snippet slot(id: SessionId, i: number)}
+  {@const d = drawn[i]}
+  {@const row = practice.exerciseAt(item, i)}
+  {#if row}
+    <div class="slot">
+      {#key `${row.book}/${row.section}/${row.ex.id}`}
+        <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
+          <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i] ?? null} session={id}
+            number={page.showAll ? `Exercise ${i + 1}` : `Exercise ${i + 1} of ${n}`}
+            onanswer={page.showAll ? undefined : (_ok, self) => { if (self) practice.afterAnswer(item, i); }} />
+        </div>
+      {/key}
+      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>
+    </div>
+  {:else if isPending(d.ex)}
+    {@render writing(id, d.concept, i)}
+  {:else}
+    <div class="slot">
+      <p class="quiet" role="status">
+        {#if isGenerated(d.ex) && generated.ready}This AI-generated exercise was deleted.
+        {:else if statusOf(d.book) === 'failed'}This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.
+        {:else}Loading this exercise…{/if}
+      </p>
+      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>
+    </div>
+  {/if}
 {/snippet}
 
 {#if session}
@@ -78,9 +110,10 @@
           {#each drawn as _, i (i)}
             {@const result = outcomes[i]}
             {@const wait = isPending(drawn[i].ex)}
+            {@const busy = wait && writingFor(session.id, drawn[i].concept)}
             <button type="button" class:wait class:now={i === at} class:right={result === true} class:wrong={result === false}
-              aria-label="Exercise {i + 1}{wait ? ', being written' : result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
-              aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{wait ? '…' : result === true ? '✓' : result === false ? '✗' : i + 1}</button>
+              aria-label="Exercise {i + 1}{busy ? ', being written' : wait ? ', not written' : result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
+              aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{busy ? '…' : wait ? '!' : result === true ? '✓' : result === false ? '✗' : i + 1}</button>
           {/each}
         </nav>
       {/if}
@@ -102,42 +135,15 @@
       {/if}
     </div>
 
-    {#if generation[session.id]?.notice}<p class="quiet notice" role="status">{generation[session.id].notice}</p>{/if}
     {#if page.showAll}
       <div class="all-list" bind:this={allRoot}>
         {#each drawn as d, i (`${d.book}/${d.section}/${d.ex}`)}
-          {@const row = practice.exerciseAt(item, i)}
-          <section class="all-exercise" aria-label="Exercise {i + 1} of {n}">
-            {#if row}
-              <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
-                <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i]} session={session.id} number="Exercise {i + 1}" />
-              </div>
-            {:else if isPending(d.ex)}
-              {@render writing(session.id, d.concept, i)}
-            {:else if statusOf(d.book) === 'failed'}
-              <p class="quiet" role="status">This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.</p>
-            {:else}
-              <p class="quiet" role="status">Loading this exercise…</p>
-            {/if}
-          </section>
+          <section class="all-exercise" aria-label="Exercise {i + 1} of {n}">{@render slot(session.id, i)}</section>
         {/each}
       </div>
     {:else}
-      <div class="one">
-        {#if cur}
-          {#key `${cur.book}/${cur.section}/${cur.ex.id}/${at}`}
-            <div class="card-root" data-book={cur.book} data-sec={cur.section} data-chapter={chapterDir(cur.book, cur.section)} data-one="1" bind:this={root}>
-              <ExerciseCard book={cur.book} section={cur.section} ex={cur.ex} outcome={outcomes[at] ?? null} session={session.id}
-                number="Exercise {at + 1} of {n}" onanswer={(ok, self) => { if (self) practice.afterAnswer(item, at); }} />
-            </div>
-          {/key}
-        {:else if pending && isPending(pending.ex)}
-          {@render writing(session.id, pending.concept, at)}
-        {:else if pending && statusOf(pending.book) === 'failed'}
-          <p class="quiet" role="status">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another number to continue.</p>
-        {:else}
-          <p class="quiet" role="status">Loading the book…</p>
-        {/if}
+      <div class="one" bind:this={root}>
+        {#if pending}{@render slot(session.id, at)}{/if}
       </div>
       <div class="foot">
         <button type="button" class="btn ghost" disabled={at === 0} onclick={() => practice.go(item, at - 1)}>‹ Previous</button>
@@ -175,10 +181,15 @@
   .all-exercise{scroll-margin-top:56px;padding:16px 0}
   .all-exercise + .all-exercise{border-top:1px solid var(--rule)}
   .quiet{color:var(--muted)}
-  .notice{margin:12px 0 0}
   .writing{display:flex;flex-direction:column;gap:8px}
   .writing p{margin:0}
   .writing .line{font-size:.78rem}
+  .writing .bad{color:var(--bad)}
+  .slot{position:relative}
+  .slot :global(.head),.slot > p{padding-right:32px}
+  .rm{position:absolute;right:0;top:-4px;opacity:0;transition:opacity 120ms}
+  .slot:hover .rm,.rm:focus-visible{opacity:1}
+  @media (hover: none){ .rm{opacity:.55} }
   .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
   .spin{display:inline-block;width:.8em;height:.8em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.1em;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}

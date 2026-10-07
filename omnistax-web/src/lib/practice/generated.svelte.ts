@@ -1,5 +1,5 @@
 /* The generated exercises, live: read once at boot, added to as a round is
-   prepared, and deleted one at a time from the Progress lists. */
+   prepared, and deleted from the curriculum tree and a session's plan. */
 import type { ExerciseDTO } from '../content/schema';
 import { deleteGenerated, exportGenerated, putGenerated } from './generated-db';
 import { exerciseOf, generatedIdOf, type GeneratedExercise } from './generated';
@@ -8,7 +8,9 @@ class Generated {
   list = $state.raw<readonly GeneratedExercise[]>([]);
   private byId = $derived(new Map(this.list.map((g) => [g.id as string, g] as const)));
 
-  async load(): Promise<void> { this.list = await exportGenerated(); }
+  ready = $state(false);
+
+  async load(): Promise<void> { this.list = await exportGenerated(); this.ready = true; }
 
   get(ex: string): GeneratedExercise | undefined { return this.byId.get(generatedIdOf(ex)); }
   exercise(ex: string): ExerciseDTO | undefined { const g = this.get(ex); return g ? exerciseOf(g) : undefined; }
