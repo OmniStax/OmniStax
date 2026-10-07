@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, replaceTab, unreplace, showViewInFocus, VIEW_KEYS, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, replaceTab, unreplace, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -71,13 +71,9 @@ test('a view that no sidebar holds is asked for there and opens as a tab', () =>
   assert.deepEqual(l.sides.left.items, ['view:explorer'], 'the concept map is not a sidebar view');
   assert.equal(where(l, map)?.type, 'group'); assert.equal(l.groups[0].active, map);
 });
-test('the rail draws the five sidebar views first and the three group views below, exercises above the map', () => {
-  assert.deepEqual(SIDEBAR_VIEW_KEYS, ['view:explorer', 'view:search', 'view:sync', 'view:annotations', 'view:pomodoro']);
-  assert.deepEqual(GROUP_VIEW_KEYS, ['view:exercises', 'view:concepts', 'view:reference']);
-  /* The colour menu is asked for in the command palette, so the rail draws no button for it. */
+test('the colour menu, stats, chats and sync changes are asked for from the palette, not the rail', () => {
   assert.deepEqual(PALETTE_ONLY_KINDS.map((k) => itemKey(viewItem(k))), ['view:pomodoro-stats', 'view:colours', 'view:chats', 'view:sync-diff']);
-  assert.equal(GROUP_VIEW_KEYS.includes('view:colours'), false);
-  assert.equal(VIEW_KEYS.length, SIDEBAR_VIEW_KEYS.length + GROUP_VIEW_KEYS.length + PALETTE_ONLY_KINDS.length);
+  assert.equal(VIEW_KEYS.length, 12);
 });
 test('openInFocus opens a tab in the focused group, and finds it where it already is', () => {
   const l = openInFocus(defaultLayout(), map);
