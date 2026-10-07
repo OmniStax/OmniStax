@@ -21,7 +21,7 @@
 
 <div class="override">
   <select class="input" aria-label={`Progress for ${name}`} {value} onchange={(e) => setValue(e.currentTarget.value)}>
-    <option value="none">Use exercise history</option>
+    <option value="none">Calculate mastery from exercise history</option>
     <option value="0">Unpracticed</option>
     {#each levels as level (level)}<option value={String(level)}>{level}/{target}</option>{/each}
     <option value="mastered">Mastered</option>

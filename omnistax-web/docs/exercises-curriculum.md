@@ -87,8 +87,11 @@ the concepts it introduces (Concepts lens) or its end exercises in print order
 (Exercises lens). A concept unfolds to every exercise that tests it. Every row
 in the builder has a checkbox, down to a single exercise; selecting happens
 only in New session. On the dashboard the tree is read-only progress, with
-"Set progress…" on each concept and "Mark all mastered", "Mark all
-unpracticed" and "Use exercise history" on each section, chapter or book.
+"Mark mastered", "Mark unpracticed", "Calculate mastery from exercise
+history" and "Set progress…" on each concept, and "Mark all mastered", "Mark
+all unpracticed" and "Calculate mastery from exercise history" on each
+section, chapter or book. A concept's name opens its card on hover and does
+not navigate.
 Quick picks in the builder add the due concepts, the concepts in progress, or
 the section being read. Ready to learn on the dashboard lists the built,
 unmastered concepts whose prerequisites are all mastered, grouped by section,

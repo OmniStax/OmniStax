@@ -4,7 +4,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { bookId, type SectionId } from '../../lib/types/ids';
   import type { ItemKey } from '../../lib/layout/model';
-  import { exerciseName, excerpt, durationText, STATE_WORD } from '../../lib/practice/labels';
+  import { exerciseName, excerpt, durationText } from '../../lib/practice/labels';
   import { mathHtml } from '../actions/math';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
   import RowMenu from '../explorer/RowMenu.svelte';
@@ -81,7 +81,6 @@
               <MasteryBox state={m.to} share={m.toShare} />
               <KindDot kind={m.concept.kind} />
               <span class="name" use:mathHtml={m.concept.name}></span>
-              <span class="quiet">{STATE_WORD[m.from]} → {STATE_WORD[m.to]}</span>
             </li>
           {/each}
         </ul>

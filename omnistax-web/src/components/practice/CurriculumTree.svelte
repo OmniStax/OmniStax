@@ -8,10 +8,8 @@
   import type { Node } from '../../lib/practice/select';
   import { plain, count, exerciseName, excerpt, standingLine } from '../../lib/practice/labels';
   import type { ChapterEntry, SectionEntry, ConceptDTO } from '../../lib/content/schema';
-  import { bookId, conceptId, sectionId, sectionRef, exItem, itemKey, type SectionId } from '../../lib/types/ids';
-  import { goConceptFromView } from '../../lib/sections/concepts.svelte';
-  import { openingInView, openFromView } from '../../lib/sections/nav.svelte';
-  import { settings } from '../../lib/settings/store.svelte';
+  import { bookId, sectionId, sectionRef, exItem, itemKey, type SectionId } from '../../lib/types/ids';
+  import { openFromView } from '../../lib/sections/nav.svelte';
   import { mathHtml } from '../actions/math';
   import RowMenu from '../explorer/RowMenu.svelte';
   import MasteryBox from './MasteryBox.svelte';
@@ -95,11 +93,6 @@
     return { update(v: boolean) { node.indeterminate = v; } };
   };
 
-  const goConcept = (e: MouseEvent | KeyboardEvent, b: string, id: string): void => {
-    const how = openingInView(e);
-    if (how === 'tab' && settings.cardOpen === 'click') return;
-    void goConceptFromView(bookId(b), conceptId(id), how);
-  };
   const openExercise = (e: CatalogExercise): void => {
     void openFromView(itemKey(exItem(sectionRef(bookId(e.book), e.section), e.ex.id)), 'tab');
   };
@@ -117,11 +110,11 @@
     return [
       { label: 'Mark all mastered', run: ask('mastered') },
       { label: 'Mark all unpracticed', run: ask('unpracticed') },
-      { label: 'Use exercise history', run: ask('history') },
+      { label: 'Calculate mastery from exercise history', run: ask('history') },
     ];
   };
   const question = (act: Bulk, n: number): string =>
-    act === 'history' ? `Use exercise history for ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
+    act === 'history' ? `Calculate mastery from exercise history for ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
   const apply = (act: Bulk, concepts: readonly ConceptDTO[]): void => {
     const ids = concepts.map((c) => c.id);
     if (act === 'mastered') practice.setSelfMany(ids, practice.settings.masteryTarget, true, false);
@@ -129,8 +122,10 @@
     else practice.clearSelfMany(ids);
     asking = null;
   };
-  const conceptMenu = (b: string, id: string): readonly MenuItem[] => [
-    { label: 'Open concept', run: () => void goConceptFromView(bookId(b), conceptId(id), openingInView()) },
+  const conceptMenu = (id: string): readonly MenuItem[] => [
+    { label: 'Mark mastered', run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
+    { label: 'Mark unpracticed', run: () => practice.setSelf(id, 0, false, false) },
+    { label: 'Calculate mastery from exercise history', run: () => practice.clearSelf(id) },
     { label: 'Set progress…', run: () => { editing = id; } },
   ];
   const exerciseMenu = (e: CatalogExercise): readonly MenuItem[] => [
@@ -229,7 +224,7 @@
                     {@const tests = testing(k.id)}
                     {@const ai = generated.forConcept(k.id).length}
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div class="row" style:--d={3} oncontextmenu={(ev) => showMenu(ev, conceptMenu(b, k.id))}>
+                    <div class="row" style:--d={3} oncontextmenu={(ev) => showMenu(ev, conceptMenu(k.id))}>
                       {#if selectable}
                         {@render twisty(kk, name)}
                         {@render box({ level: 'concept', concept: k.id }, name)}
@@ -238,12 +233,12 @@
                       {/if}
                       <MasteryBox id={k.id} />
                       <KindDot kind={k.kind} />
-                      <span class="lab"><span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, b, k.id)} onauxclick={(e) => { if (e.button === 1) goConcept(e, b, k.id); }} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, b, k.id); }} use:mathHtml={k.name}></span></span>
+                      <span class="lab"><span class="go" data-book={b} data-concept={k.id} use:mathHtml={k.name}></span></span>
                       <span class="end">
                         <span class="muted num">{count(tests.length, 'exercise')}</span>
                         {#if ai > 0}<span class="ai num"><AiTag />{ai}</span>{/if}
                         {#if practice.self[k.id]}<span class="muted tag">overridden</span>{/if}
-                        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, conceptMenu(b, k.id))}>⋯</button>
+                        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, conceptMenu(k.id))}>⋯</button>
                       </span>
                     </div>
                     {#if editing === k.id}
@@ -290,7 +285,7 @@
   .exname { font-weight: 600; white-space: nowrap; flex: none; }
   .src { flex: none; white-space: nowrap; }
   .excerpt { color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .go { cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+  .go { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
   :global(html.no-underlines) .go { text-decoration: none; }
   .end { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 0.78rem; }
   .muted { color: var(--muted); }
@@ -301,7 +296,7 @@
   .ok { color: var(--ok); }
   .bad { color: var(--bad); }
   .meter { display: inline-flex; width: 72px; }
-  .tw:focus-visible, .lab:focus-visible, .go:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tw:focus-visible, .lab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   @container (max-width: 419px) {
     .meter { display: none; }
   }
