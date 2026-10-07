@@ -2,7 +2,7 @@
   /* The Open browser, in the palette's frame: OmniBooks and the reader's own
      files, walked as the @ picker walks them, down to a section, a note, a
      drawing or a file, which opens. The box searches everything below the
-     level standing open; Right steps in, Left and an empty Backspace step out,
+     level standing open; Right steps in, Left or Backspace on an empty box steps out,
      and Enter or a click opens the row, the way a click on a file anywhere
      does (Ctrl for a new tab, Ctrl+Alt for a group beside). Opened by the
      "Open…" command or a tab strip's "+", whose group it adds a tab to, and by
@@ -42,6 +42,8 @@
   const goto = (next: readonly string[], key: string | null): void => {
     const i = key === null ? -1 : levelOf(root, next).findIndex((n) => n.key === key);
     path = next; query = ''; sel = Math.max(0, i);
+    /* A click on a crumb or a row took the focus with it, and the row may be gone now; the keys belong to the box. */
+    tick().then(() => input?.focus());
   };
   const goUp = (depth = path.length - 1): void => { if (path.length) goto(path.slice(0, Math.max(0, depth)), path[Math.max(0, depth)] ?? null); };
   const descend = (l: Listed): void => { if (l.node.children) goto([...path, ...l.path], null); };
@@ -90,7 +92,7 @@
     if (e.key === 'Home' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sel = 0; return; }
     if (e.key === 'End' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sel = Math.max(0, items.length - 1); return; }
     if (e.key === 'ArrowRight') { e.preventDefault(); const it = items[sel]; if (it) descend(it); return; }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); goUp(); return; }
+    if (e.key === 'ArrowLeft' && !query) { e.preventDefault(); goUp(); return; }
     if (e.key === 'Backspace' && !query) { e.preventDefault(); goUp(); return; }
     if (e.key === 'Enter') { e.preventDefault(); const it = items[sel]; if (it) act(it, e); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) keys.dispatch(e);
