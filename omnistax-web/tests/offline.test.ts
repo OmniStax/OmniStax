@@ -64,6 +64,15 @@ test('a release archive retains the prior immutable snapshot', async () => {
   assert.equal(BookReleaseManifestSchema.safeParse(JSON.parse(await readFile(oldManifest, 'utf8'))).success, true);
 });
 
+test('the shell list carries the runtime and each book front, not book content', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'omnistax-shell-'));
+  await fixture(root);
+  const shell = JSON.parse(await readFile(path.join(root, 'dist', 'offline-shell.json'), 'utf8'));
+  const urls = shell.resources.map((row: { url: string }) => row.url).sort();
+  assert.deepEqual(urls, ['/a/book.json', '/about.html', '/assets/app.css', '/b/book.json', '/book.html', '/index.html', '/library.json', '/manifest.webmanifest']);
+  assert.equal(shell.totalBytes, shell.resources.reduce((sum: number, row: { bytes: number }) => sum + row.bytes, 0));
+});
+
 test('failed updates retain an existing ready release', () => {
   const ready = commitInstall({ phase: 'absent', availableRelease: 'a' }, 'a');
   const updating = beginInstall({ ...ready, availableRelease: 'b' }, 'b');

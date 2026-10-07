@@ -44,10 +44,11 @@ const pinnedFor = async (event, installs, pathname) => {
   const next = { ...held, primaryBook: found.bookId, pins: { ...held.pins, [found.bookId]: pin } }; pins.set(event.clientId, next); await pinWrite(event.clientId, next).catch(() => undefined);
   return [pin, ...others(found.bookId)];
 };
+const logicalOf = (pathname) => pathname.endsWith('/') ? `${pathname}index.html` : !pathname.split('/').pop().includes('.') ? `${pathname}/index.html` : pathname;
 const cached = async (pin, request, installs) => {
   const cache = await caches.open(cacheName(pin.bookId, pin.release, pin.artifact));
   const pathname = new URL(request.url).pathname;
-  const logical = pathname.endsWith('/') ? `${pathname}index.html` : !pathname.split('/').pop().includes('.') ? `${pathname}/index.html` : pathname;
+  const logical = logicalOf(pathname);
   const response = await cache.match(pathname) ?? await cache.match(logical); if (response) return response;
   const record = installs.find((item) => item.bookId === pin.bookId);
   const manifest = record && pin.release === record.installedRelease ? record.manifest : record && pin.release === record.previousRelease ? record.previousManifest : null;
@@ -69,9 +70,46 @@ const fromPins = async (held, request, installs) => {
    whichever section the address names. Offline, the front of OmniStax is the
    front of a downloaded book: its own page needs the first library book's data. */
 const shellOf = async (pin) => (await caches.open(cacheName(pin.bookId, pin.release, pin.artifact))).match(`/${pin.bookId}/index.html`);
+/* The app opens offline with no book downloaded. The build lists its shell in
+   /offline-shell.json; the worker keeps one complete copy, and a copy is
+   complete once the list itself is in it, after every verified file. A newer
+   list is fetched on every navigation the network answers, and once its copy
+   is complete the older one goes. */
+const SHELL = 'omnistax-shell:', SHELL_LIST = '/offline-shell.json';
+const hex = async (body) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', body))].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+const shellCache = async () => {
+  for (const name of await caches.keys()) {
+    if (!name.startsWith(SHELL)) continue;
+    const cache = await caches.open(name); if (await cache.match(SHELL_LIST)) return cache;
+  }
+  return null;
+};
+const saveShell = async () => {
+  const listed = await fetch(SHELL_LIST, { cache: 'no-store' }); if (!listed.ok) return;
+  const { shellId, resources } = await listed.clone().json(); const name = SHELL + shellId;
+  const cache = await caches.open(name);
+  if (!await cache.match(SHELL_LIST)) {
+    await Promise.all(resources.map(async ({ url, sha256, bytes }) => {
+      if (await cache.match(url)) return;
+      const response = await fetch(url, { cache: 'no-cache' }); const body = await response.arrayBuffer();
+      if (!response.ok || body.byteLength !== bytes || await hex(body) !== sha256) throw new Error(`${url} does not match the shell list.`);
+      await cache.put(url, new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers }));
+    }));
+    await cache.put(SHELL_LIST, listed);
+  }
+  for (const key of await caches.keys()) if (key.startsWith(SHELL) && key !== name) await caches.delete(key);
+};
+let saving = null;
+const refreshShell = () => saving ??= saveShell().catch(() => undefined).finally(() => { saving = null; });
+/* A page of a book that is not downloaded opens on the book's front, whose shell reads the address. */
+const fromShell = async (pathname, navigate) => {
+  const shell = await shellCache(); if (!shell) return null;
+  const book = pathname.split('/').filter(Boolean)[0];
+  return await shell.match(pathname) ?? await shell.match(logicalOf(pathname)) ?? (navigate && book ? await shell.match(`/${book}/index.html`) : undefined) ?? null;
+};
 const offlinePage = () => new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OmniStax offline</title><style>body{font:16px system-ui;max-width:42rem;margin:12vh auto;padding:1rem}a{color:#1d4ed8}</style><h1>This page is not downloaded</h1><p>Open an available offline textbook from the <a href="/">OmniStax library</a>, or reconnect to download it.</p>', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
-self.addEventListener('install', () => { /* Activation waits naturally; no skipWaiting. */ });
+self.addEventListener('install', (event) => { /* Activation waits naturally; no skipWaiting. */ event.waitUntil(refreshShell()); });
 self.addEventListener('activate', () => { /* Existing clients choose a snapshot on their next full navigation. */ });
 self.addEventListener('message', (event) => {
   const reply = event.ports?.[0]; if (!reply || !event.source?.id) return;
@@ -127,7 +165,8 @@ const navigation = async (event, url) => {
   };
   const response = (chosen && await fromSnapshot()) || await liveFirst(event.request, fromSnapshot, SLOW_MS);
   if (pin && event.resultingClientId) await remember(event.resultingClientId, pin, snapshot);
-  return response ?? offlinePage();
+  if (!pin && response?.ok) event.waitUntil(refreshShell());
+  return response ?? await fromShell(url.pathname, true) ?? offlinePage();
 };
 const resource = async (event, url) => {
   /* A failed inspection still has an active installed snapshot. Keep routing
@@ -135,7 +174,9 @@ const resource = async (event, url) => {
      of mixing a network response into the pinned release. */
   const fromSnapshot = async () => { const installs = (await records().catch(() => [])).filter((record) => record.installedRelease); return fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs); };
   const response = (await pinsFor(event.clientId)).snapshot ? await fromSnapshot() ?? await fetch(event.request).catch(() => null) : await liveFirst(event.request, fromSnapshot);
-  return response ?? new Response('Offline resource unavailable', { status: 503 });
+  /* A file the network cannot give, or no longer has, comes from the shell: a page the shell answered asks for its own build's files. */
+  if (response && response.status !== 404) return response;
+  return await fromShell(url.pathname, false) ?? response ?? new Response('Offline resource unavailable', { status: 503 });
 };
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url); if (url.origin !== location.origin) return;
