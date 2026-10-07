@@ -63,7 +63,7 @@
     <div class="section">
       {#each kinds as kind (kind)}
         {@const count = kind === 'pomodoro' ? pomodoro.railText : ''}
-        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Conversations' : titleOf(kind)}
+        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Ask AI' : titleOf(kind)}
           use:draggable={{ key: keyOf(kind), from: null }} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
       {/each}
     </div>

@@ -52,7 +52,7 @@ with sync_playwright() as playwright:
     page.wait_for_load_state("networkidle")
 
     # The rail opens Conversations; "New chat" there opens a chat.
-    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".rail").get_by_role("button", name="Ask AI", exact=True).click()
     conv = page.locator(".conversations")
     conv.wait_for(state="visible")
     assert conv.locator(".empty").inner_text() == "No chats yet."
@@ -102,7 +102,7 @@ with sync_playwright() as playwright:
     assert chat.locator(".bubble").count() >= 2
 
     # Rename and delete from Conversations, with Undo.
-    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".rail").get_by_role("button", name="Ask AI", exact=True).click()
     conv.wait_for(state="visible")
     row = conv.locator(".row").first
     assert "ago" in row.locator(".age").inner_text() or row.locator(".age").inner_text() == "just now"

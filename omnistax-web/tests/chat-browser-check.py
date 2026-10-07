@@ -42,7 +42,7 @@ with sync_playwright() as playwright:
     dialog.wait_for(state="hidden")
 
     # The rail opens Conversations, and "New chat" there opens a chat.
-    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".rail").get_by_role("button", name="Ask AI", exact=True).click()
     page.locator(".conversations").get_by_role("button", name="New chat").click()
     chat = page.locator(".chat-tab").first
     chat.wait_for(state="visible")
@@ -162,7 +162,7 @@ with sync_playwright() as playwright:
     loaded = page.locator("article[data-doc]").count()
     assert loaded >= 6, f"only {loaded} sections were opened"
 
-    page.locator(".rail").get_by_role("button", name="Conversations", exact=True).click()
+    page.locator(".rail").get_by_role("button", name="Ask AI", exact=True).click()
     page.locator(".conversations").get_by_role("button", name="New chat").click()
     chat = page.locator(".chat-tab:visible").first
     composer = chat.locator(".composer")
