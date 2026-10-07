@@ -61,6 +61,8 @@ class Explorer {
     if (this.selected !== null && !this.selected.includes(':') && !entryById(tree, this.selected as EntryId)) this.selected = null;
   }
   toggle(key: string): void { this.apply((t) => toggleExpanded(t, key)); }
+  /* Shutting a row forgets what stood open under it, so it opens folded next time. */
+  collapse(keys: readonly string[]): void { const drop = new Set(keys); this.apply((t) => ({ ...t, expanded: t.expanded.filter((k) => !drop.has(k)) })); }
   expanded(key: string): boolean { return isExpanded(this.tree, key); }
 
   entry(id: EntryId): Entry | undefined { return entryById(this.tree, id); }

@@ -37,6 +37,11 @@
   import { pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
   import { offlineBooks } from '../../lib/offline/store.svelte';
+  import { scope } from '../../lib/sections/scope.svelte';
+  import { practice } from '../../lib/practice/store.svelte';
+  import { chapterId, newViewItem, type ViewKind } from '../../lib/types/ids';
+  import type { Target } from '../../lib/sections/scope';
+  import { sizeLabel } from '../../lib/files/model';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
@@ -53,6 +58,7 @@
     readonly dim: boolean;           /* not built, or nothing to say yet */
     readonly active: boolean;        /* what the focused group is showing */
     readonly book?: string;
+    readonly chapter?: string;
     readonly updated?: boolean;
     readonly root?: RootName;     /* which of the two fixed roots this row is */
   };
@@ -136,7 +142,7 @@
       m.chapters.forEach((c) => {
         const key = chapterKey(bookId, c.id);
         const open = explorer.expanded(key);
-        out.push({ key, kind: 'chapter', depth, label: `${c.id} ${c.title}`, icon: ICON.folder, expandable: true, open, dim: false, active: false });
+        out.push({ key, kind: 'chapter', depth, label: `${c.id} ${c.title}`, icon: ICON.folder, expandable: true, open, dim: false, active: false, book: bookId, chapter: c.id });
         if (open) pagesOf(c).forEach((s) => section(bookId, s, depth + 1));
       });
       if (m.summary) section(bookId, m.summary, depth);
@@ -228,7 +234,9 @@
   /* A book leaves Books whole: nothing of the reader's is inside it, so there
      is nothing to lose, but it is asked for all the same. */
   const removeBookRow = (e: Entry): void => {
-    if (!confirm(`Remove \u201c${e.name}\u201d from your books?`)) return;
+    const kept = !!(e.bookId && offlineBooks.records[e.bookId]?.installedRelease);
+    if (!confirm(`Remove \u201c${e.name}\u201d from your books?${kept ? ' Its offline copy goes with it.' : ''}`)) return;
+    if (kept && e.bookId) void offlineBooks.remove(e.bookId);
     removeBook(e);
   };
   const remove = (e: Entry): void => {
@@ -321,9 +329,48 @@
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
-    if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { explorer.toggle(r.key); return; }
+    if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { fold(r); return; }
     if (openRow(r, ev instanceof MouseEvent && ev.detail === 2 ? 'tab' : openingOf(ev))) return;
     if (r.kind === 'heading' && r.book && r.domId) go(bookId(r.book), r.domId);
+  };
+
+  /* Opening a row shows its children folded, whatever stood open under it before it was shut. */
+  const under = (r: Row): string[] => {
+    const m = r.book ? manifestOf(r.book) : null;
+    if (!m || !r.book) return [];
+    const b = r.book;
+    if (r.kind === 'book') return [`sheets:${b}`, ...m.chapters.flatMap((c) => [chapterKey(b, c.id), ...pagesOf(c).map((s) => sectionKey(b, s.id))])];
+    if (r.kind === 'chapter') { const c = m.chapters.find((x) => x.id === r.chapter); return c ? pagesOf(c).map((s) => sectionKey(b, s.id)) : []; }
+    return [];
+  };
+  const fold = (r: Row): void => { if (r.open) explorer.collapse([r.key, ...under(r)]); else explorer.toggle(r.key); };
+
+  /* A book, chapter or section as a place a view can be pinned to. */
+  const placeOf = (r: Row): Target | null => {
+    if (r.kind === 'book' && r.entry?.bookId) return { level: 'book', book: bookId(r.entry.bookId) };
+    if (r.kind === 'chapter' && r.book && r.chapter) return { level: 'chapter', book: bookId(r.book), chapter: chapterId(r.chapter) };
+    if (r.kind === 'section' && r.book && r.section) return { level: 'section', book: bookId(r.book), section: r.section };
+    return null;
+  };
+  const openPinned = (kind: ViewKind, t: Target): void => { const k = itemKey(newViewItem(kind)); scope.pin(k, t); void openItem(k, undefined, 'tab'); };
+  const practiseAt = (t: Target): void => {
+    const k = itemKey(newViewItem('exercises'));
+    practice.seed(k, [t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);
+    void openItem(k, undefined, 'tab');
+  };
+  const placeItems = (t: Target) => [
+    { label: 'Open concept map', run: () => openPinned('concepts', t) },
+    { label: 'Open reference', run: () => openPinned('reference', t) },
+    { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
+    { label: 'Change color palette', run: () => openPinned('colours', t) },
+  ];
+  /* The offline copy: one of the pair, by whether a copy is kept. */
+  const offlineItems = (id: string) => {
+    const rec = offlineBooks.records[id];
+    if (offlineBooks.downloading(id)) return [];
+    if (!rec?.installedRelease) return [{ label: 'Download for offline', run: () => void offlineBooks.install(id) }];
+    const bytes = rec.manifest?.resources.reduce((n, x) => n + x.bytes, 0) ?? 0;
+    return [{ label: bytes ? `Remove offline copy (${sizeLabel(bytes)})` : 'Remove offline copy', danger: true, run: () => { if (confirm(`Remove the offline copy of \u201c${rec.title}\u201d? Reading it will need a connection again.`)) void offlineBooks.remove(id); } }];
   };
 
   /* The row menu, hanging where the pointer or the button left it. */
@@ -337,8 +384,9 @@
       { label: 'Open in new tab', run: () => { openRow(r, 'tab'); } },
       { label: 'Open to the side', run: () => { openRow(r, 'new'); } },
     ] : [];
-    if (!e) return opens;
-    if (e.kind === 'book') return [{ label: 'Remove from OmniBooks', run: () => removeBookRow(e) }];
+    const t = placeOf(r);
+    if (!e) return t ? [...opens, ...placeItems(t)] : opens;
+    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: 'Remove from OmniBooks', danger: true, run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       ...opens,
@@ -432,7 +480,7 @@
     }
     if (ev.key === 'ArrowLeft') {
       ev.preventDefault(); ev.stopPropagation();
-      if (r && r.expandable && r.open) { explorer.toggle(r.key); return; }
+      if (r && r.expandable && r.open) { fold(r); return; }
       if (!r) { step(-1); return; }
       for (let i = at - 1; i >= 0; i--) if (list[i].depth < r.depth) { explorer.selected = list[i].key; return; }
       return;
@@ -467,7 +515,7 @@
           style:padding-left="{6 + r.depth * 13}px"
           onclick={(ev) => activate(r, ev)}
           onauxclick={(ev) => { if (ev.button === 1) activate(r, ev); }}
-          oncontextmenu={(e) => { if (r.entry || tabOf(r)) openMenu(e, r); }}
+          oncontextmenu={(e) => { if (r.entry || tabOf(r) || placeOf(r)) openMenu(e, r); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
           ondragover={(e) => {
@@ -494,7 +542,7 @@
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
               aria-label={r.open ? 'Collapse' : 'Expand'}
-              onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; explorer.toggle(r.key); }}>▾</button>
+              onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; fold(r); }}>▾</button>
           {:else}
             <span class="twist gap"></span>
           {/if}
@@ -520,7 +568,7 @@
             <button type="button" class="tool" tabindex="-1" aria-label="New folder"
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
           {/if}
-          {#if r.entry}
+          {#if r.entry || placeOf(r)}
             <button type="button" class="dots" tabindex="-1" title="More" aria-label="More for {r.label}"
               onclick={(e) => openMenu(e, r)}>…</button>
           {/if}
