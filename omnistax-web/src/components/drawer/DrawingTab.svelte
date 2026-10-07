@@ -19,9 +19,9 @@
 
      Pointers, not mice: `pointerType` says whether this is a pen, a finger or
      a mouse, and each is answered in its own way. While a pen is touching the
-     glass every touch is ignored, which is the palm resting on the page. A
-     finger pans and two zoom; a mouse draws, and pans with the middle button
-     or with space held. Pressure sets the width of the nib where the device
+     glass every touch is ignored, which is the palm resting on the page. One
+     finger draws or pans as the toolbar's finger button says, and two always
+     zoom; a mouse draws, and pans with the middle button or with space held. Pressure sets the width of the nib where the device
      reports it.
 
      Undo here is the drawing's own, as it is in the note editor and the colour
@@ -198,6 +198,16 @@
      glass is. */
   let drawingPointer = $state<number | null>(null);
   let penDown = $state(false);
+
+  /* Whether one finger draws or pans. A stylus always draws; this is the
+     reader's to set per device, since a phone and a tablet with a pen want
+     opposite answers, and it starts on so a tablet without a pen can write. */
+  const FINGER_KEY = 'omnistax-finger-draws';
+  let fingerDraws = $state((() => { try { return localStorage.getItem(FINGER_KEY) !== '0'; } catch { return true; } })());
+  const setFingerDraws = (on: boolean): void => {
+    fingerDraws = on;
+    try { localStorage.setItem(FINGER_KEY, on ? '1' : '0'); } catch { /* private mode */ }
+  };
   /* The fingers on the glass, for the pinch. */
   const touches = new Map<number, Vec>();
   let pinch: { readonly gap: number; readonly scale: number } | null = null;
@@ -389,7 +399,7 @@
     }
     /* The page itself is moved by the hand tool, by the middle button, and by
        a drag with space held, which is what every canvas does. */
-    const panning = tool === 'pan' || e.button === 1 || spaceHeld || (e.pointerType === 'touch' && touches.size === 1);
+    const panning = tool === 'pan' || e.button === 1 || spaceHeld || (e.pointerType === 'touch' && touches.size === 1 && !fingerDraws);
     /* A press on a card, a frame or a chat is theirs: taking the pointer here
        would send their clicks and double-clicks to the surface instead. */
     if (!panning && !grabsSelection(e) && (e.target as HTMLElement).closest(OWN_POINTER)) return;
@@ -846,6 +856,7 @@
     canUndo={canUndo(history)} canRedo={canRedo(history)}
     ontool={(t) => (tool = t)} oncolor={pickColour} onsize={(n) => (size = n)}
     onfill={(on) => (fill = on)} onshape={(s) => (shape = s)}
+    {fingerDraws} onfinger={setFingerDraws}
     onundo={takeBack} onredo={putBack} {onsave}
     onfit={zoomToFit} onreset={resetView} canFit={drawing.items.length > 0}
     onimage={(f) => void dropImage(f, null)} />

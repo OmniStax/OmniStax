@@ -17,11 +17,12 @@
 import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
   let {
-    tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false,
-    ontool, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onreset, onsave, onimage,
+    tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false, fingerDraws,
+    ontool, onfinger, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onreset, onsave, onimage,
   }: {
     tool: Tool; color: Colour; size: number; fill: boolean; shape: ShapeTool;
     canUndo: boolean; canRedo: boolean;
+    fingerDraws: boolean; onfinger: (on: boolean) => void;
     /* There is nothing to frame on a plane with nothing on it. */
     canFit?: boolean;
     /* A scratch page carries one button a drawing does not: the way to make it
@@ -53,6 +54,7 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   function ERASER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M15.5 4.5 20 9l-8.5 8.5H7L3.5 14z"/><path d="M9 9l6 6"/></svg>'; }
   function SHAPE_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="10" height="10" rx="1.5"/><circle cx="15.5" cy="15.5" r="5"/></svg>'; }
   function GROUP_GLYPH(): string { return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2" stroke-dasharray="3 2"/><path d="M3 9h7"/></svg>'; }
+  function FINGER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M9 13V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5a1.5 1.5 0 0 1 3 0V12"/><path d="M15 11.5a1.5 1.5 0 0 1 3 0v3c0 3.3-2.4 6-5.5 6h-1c-2 0-3.4-1-4.5-2.6L4.6 14a1.4 1.4 0 0 1 2.2-1.7L9 14.5"/><path d="M14 5c1.2-1.2 2.4 1.2 3.6 0s2.4 1.2 3.6 0"/></svg>'; }
   function HAND_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 11V9a1.5 1.5 0 0 0-3 0v5.5c0 3.6 2.6 6 6 6h1.5c3 0 5.5-2.4 5.5-5.5V13"/></svg>'; }
 
   const INK: readonly { readonly name: string; readonly token: Colour }[] = [
@@ -89,6 +91,8 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
       <button type="button" class="tool" class:on={tool === t.id} title="{t.label} ({TOOL_KEY[t.id].toUpperCase()})"
         aria-pressed={tool === t.id} aria-label={t.label} onclick={() => ontool(t.id)}>{@html t.glyph}</button>
     {/each}
+    <button type="button" class="tool finger" class:on={fingerDraws} title="Draw with finger"
+      aria-pressed={fingerDraws} aria-label="Draw with finger" onclick={() => onfinger(!fingerDraws)}>{@html FINGER_GLYPH()}</button>
     {#if onimage}
       <button type="button" class="tool" aria-label="Place an image" onclick={pickImage}>{@html ICON.plus}</button>
       <input class="hidden-file" type="file" accept="image/*" bind:this={fileInput} onchange={took} tabindex="-1" aria-hidden="true" />
@@ -158,6 +162,8 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   .tool:focus-visible,.chip:focus-visible,.swatch:focus-visible,.size:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .tool :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   .hidden-file{display:none}
+  .tool.finger{display:none}
+  @media (any-pointer: coarse){ .tool.finger{display:grid} }
   .swatch{width:18px;height:18px;border:1px solid var(--rule);border-radius:50%;cursor:pointer;padding:0}
   .swatch.on{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--accent)}
   .swatch.custom{position:relative;display:inline-block;box-sizing:border-box;background:conic-gradient(#e11d48,#f59e0b,#16a34a,#2563eb,#9333ea,#e11d48)}
