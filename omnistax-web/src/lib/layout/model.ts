@@ -432,5 +432,3 @@ export const instancesOf = (l: Layout, kind: ViewKind): readonly ItemKey[] => {
 /* The rail draws these two first, as the sidebar's own, and the rest below a
    separator. A view that is only ever opened from the command palette stands in
    neither row: the rail has no button for it. */
-export const SIDEBAR_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter(sideKey);
-export const GROUP_VIEW_KEYS: readonly ItemKey[] = VIEW_KEYS.filter((k) => !sideKey(k) && !paletteKey(k));

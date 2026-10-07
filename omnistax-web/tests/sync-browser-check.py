@@ -46,11 +46,11 @@ with sync_playwright() as playwright:
     page.goto(BASE + PATH)
     page.wait_for_selector(".shell")
 
-    # Unconnected, the view is the setup form, opened from the foot of the rail.
+    # Unconnected, the view is the setup form, opened from the top of the rail.
     page.locator("#sync-btn").click()
     view = page.locator(".sync")
     view.get_by_text("A repo of your own").wait_for()
-    assert page.evaluate("document.querySelector('#sync-btn').nextElementSibling.id") == "palette-btn"
+    assert page.evaluate("document.querySelector('#sync-btn').previousElementSibling.getAttribute('aria-label')") == "Search"
 
     page.evaluate("""
       localStorage.setItem('omnistax-theme', 'dark');

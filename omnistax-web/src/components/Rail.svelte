@@ -1,18 +1,17 @@
 <script lang="ts">
-  /* The activity rail, down the left of the shell, in three sections. At the top
-     the two views that keep the sidebar — the explorer and the annotations —
-     which a click shows there and a second click puts away. In the middle of the
-     rail, held there by the spacers either side of it, the ones that are only
-     ever tabs: a click on one shows it in the focused group in place of the tab
-     showing there, and a Ctrl click adds another page of it, so several concept
-     maps can stand open at once, each following the section it was opened beside. At the
-     bottom: read-aloud when voice is on, the command palette and the settings.
-     Every button drags, so any view can be dropped into a group. */
+  /* The activity rail, down the left of the shell, in four sections: the
+     workspace (explorer, search, sync), the views about the open text
+     (annotations, concept map, reference), the study tools (exercises,
+     pomodoro, conversations), and at the foot read-aloud when voice is on, the
+     command palette and the settings. A sidebar view's button shows it in the
+     sidebar and a second click puts it away; a page view's click shows it in
+     the focused group in place of the tab showing there, and a Ctrl click adds
+     another page of it. Every button drags, so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, openInFocus, replaceTab, showViewInFocus, splitRight, instancesOf, SIDEBAR_VIEW_KEYS, GROUP_VIEW_KEYS } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, openInFocus, replaceTab, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
-  import { newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
+  import { isSidebarKind, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, VIEW_TITLE } from '../lib/icons';
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
@@ -20,15 +19,16 @@
   import { pomodoro } from '../lib/pomodoro/store.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
-  const kindOf = (k: string): ViewKind => viewKindOf(k) as ViewKind;   /* every key the rail draws is a view's */
   const iconOf = (kind: ViewKind): string => ICON[kind as keyof typeof ICON] ?? '';
   const titleOf = (kind: ViewKind): string => VIEW_TITLE[kind] ?? kind;
   /* The clock reads itself back from this browser as soon as the shell is up, so
      that a countdown can stand under the icon wherever the panel happens to be. */
   $effect(() => { pomodoro.init(); });
   let drop = $state(false);
-  /* Sync keeps the sidebar like the views at the top, but its button stands with the app's own at the foot. */
-  const SYNC = 'view:sync';
+  const GROUPS: readonly (readonly ViewKind[])[] = [['explorer', 'search', 'sync'], ['annotations', 'concepts', 'reference'], ['exercises', 'pomodoro', 'chats']];
+  const keyOf = (kind: ViewKind): string => `view:${kind}`;
+  const lit = (kind: ViewKind): boolean => kind === 'chats' ? chatsOpen : isSidebarKind(kind) ? !!where(l, keyOf(kind)) : instancesOf(l, kind).length > 0;
+  const press = (kind: ViewKind, e: MouseEvent): void => { if (kind === 'chats') openChats(e); else if (isSidebarKind(kind)) toggleSide(keyOf(kind)); else openPage(kind, e); };
   const toggleSide = (k: string) => {
     const loc = where(l, k);
     if (!loc || (loc.type === 'side' && loc.side !== 'left')) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
@@ -58,30 +58,21 @@
 
 <nav class="rail" class:drop aria-label="Views"
   use:dropzone={{ over: () => (drop = true), leave: () => (drop = false), drop: (d) => { const k = d.key; layoutStore.apply((x) => (k.startsWith('view:') ? openSide(x, k, 'left') : openTab(x, k, x.focus, { from: d.from }))); } }}>
-  <div class="section">
-    {#each SIDEBAR_VIEW_KEYS.filter((k) => k !== SYNC) as k (k)}
-      {@const loc = where(l, k)}
-      {@const count = kindOf(k) === 'pomodoro' ? pomodoro.railText : ''}
-      <button type="button" class:on={!!loc} class:counting={!!count} class:spot={ui.spot === kindOf(k)} aria-label={titleOf(kindOf(k))}
-        use:draggable={{ key: k, from: null }} onclick={() => toggleSide(k)}>{@html iconOf(kindOf(k))}{#if count}<span class="count">{count}</span>{/if}</button>
-    {/each}
-  </div>
-  <div class="spacer"></div>
-  <div class="section">
-    {#each GROUP_VIEW_KEYS as k (k)}
-      {@const open = instancesOf(l, kindOf(k)).length > 0}
-      <button type="button" class:on={open} aria-label={titleOf(kindOf(k))}
-        use:draggable={{ key: k, from: null }} onclick={(e) => openPage(kindOf(k), e)} onauxclick={(e) => { if (e.button === 1) openPage(kindOf(k), e); }}>{@html iconOf(kindOf(k))}</button>
-    {/each}
-    <button type="button" class:on={chatsOpen} class:spot={ui.spot === 'ai'} aria-label="Conversations"
-      onclick={openChats} onauxclick={(e) => { if (e.button === 1) openChats(e); }}>{@html ICON.chat}</button>
-  </div>
+  {#each GROUPS as kinds, i (i)}
+    {#if i}<div class="gap"></div>{/if}
+    <div class="section">
+      {#each kinds as kind (kind)}
+        {@const count = kind === 'pomodoro' ? pomodoro.railText : ''}
+        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Conversations' : titleOf(kind)}
+          use:draggable={{ key: keyOf(kind), from: null }} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
+      {/each}
+    </div>
+  {/each}
   <div class="spacer"></div>
   <div class="section">
     {#if settings.voice && reader.supported}
       <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
     {/if}
-    <button type="button" id="sync-btn" class:on={!!where(l, SYNC)} aria-label="Sync" use:draggable={{ key: SYNC, from: null }} onclick={() => toggleSide(SYNC)}>{@html ICON.sync}</button>
     <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+Shift+P)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
     <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
   </div>
@@ -89,8 +80,9 @@
 
 <style>
   .rail{grid-area:rl;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:var(--panel);border-right:1px solid var(--rule);font-family:var(--sans)}
-  /* Three sections, the middle one held in the centre of the rail by the spacers either side. */
+  /* Three groups of views stand at the top, a rule between each; the app's own buttons sit at the foot. */
   .section{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+  .gap{width:20px;height:1px;background:var(--rule);margin:6px 0}
   .spacer{flex:1}
   button{width:36px;height:36px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;position:relative;padding:0}
   button:hover{background:var(--soft);color:var(--ink)}
