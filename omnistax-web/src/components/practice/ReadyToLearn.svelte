@@ -4,6 +4,7 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import { plain } from '../../lib/practice/labels';
   import type { ConceptDTO } from '../../lib/content/schema';
+  import type { Node } from '../../lib/practice/select';
   import { bookId, conceptId } from '../../lib/types/ids';
   import { goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { openingInView } from '../../lib/sections/nav.svelte';
@@ -11,6 +12,8 @@
   import { mathHtml } from '../actions/math';
   import MasteryBox from './MasteryBox.svelte';
   import KindDot from './KindDot.svelte';
+
+  let { item, selectable = false, folded = false }: { item?: string; selectable?: boolean; folded?: boolean } = $props();
 
   type Group = { readonly key: string; readonly book: string; readonly heading: string; readonly order: number; readonly concepts: readonly ConceptDTO[] };
   const SHOWN = 6;
@@ -38,6 +41,12 @@
   });
   let all = $state(false);
   const shown = $derived(all ? groups : groups.slice(0, SHOWN));
+  const count = $derived(groups.reduce((n, g) => n + g.concepts.length, 0));
+  const node = (id: string): Node => ({ level: 'concept', concept: id });
+  const mixed = (el: HTMLInputElement, on: boolean) => {
+    el.indeterminate = on;
+    return { update: (v: boolean) => { el.indeterminate = v; } };
+  };
 
   const buildsOn = (c: ConceptDTO): string => {
     const names = c.prereqs.map((p) => plain(practice.conceptOf(p)?.name ?? p));
@@ -51,38 +60,59 @@
   };
 </script>
 
+{#snippet list()}
 {#if loading}
-  <p class="muted" role="status">Loading…</p>
+  <p class="meta" role="status">Loading…</p>
 {:else if groups.length === 0}
-  <p class="muted">Master a concept, or set its progress in the tree below, and what builds on it appears here.</p>
+  <p class="meta">Master a concept, or set its progress in the tree below, and what builds on it appears here.</p>
 {:else}
   {#each shown as g (g.key)}
     <div class="group">
-      <p class="muted head">{g.heading}</p>
+      <div class="headrow">
+        <p class="meta head">{g.heading}</p>
+        {#if selectable && item}<button type="button" class="btn ghost sm" onclick={() => { for (const c of g.concepts) practice.setNode(item, node(c.id), true); }}>Add all</button>{/if}
+      </div>
       {#each g.concepts as c (c.id)}
         <div class="row">
+          {#if selectable && item}
+            {@const on = practice.check(item, node(c.id))}
+            <input type="checkbox" class="pick" aria-label="Select {plain(c.name)}" checked={on === 'on'} use:mixed={on === 'some'} onchange={() => practice.toggleNode(item, node(c.id))} />
+          {/if}
           <MasteryBox id={c.id} />
           <KindDot kind={c.kind} />
           <span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, g.book, c.id)} onauxclick={(e) => { if (e.button === 1) goConcept(e, g.book, c.id); }} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, g.book, c.id); }} use:mathHtml={c.name}></span>
-          <span class="muted on">{buildsOn(c)}</span>
+          <span class="meta on">{buildsOn(c)}</span>
         </div>
       {/each}
     </div>
   {/each}
-  {#if groups.length > SHOWN && !all}
-    <button type="button" class="btn ghost sm" onclick={() => (all = true)}>Show all {groups.length}</button>
+  {#if groups.length > SHOWN}
+    <button type="button" class="btn ghost sm more" onclick={() => (all = !all)}>{all ? 'Show fewer' : `Show all ${groups.length}`}</button>
   {/if}
+{/if}
+{/snippet}
+
+{#if folded}
+  <details class="ready">
+    <summary>Ready to learn · {count} {count === 1 ? 'concept' : 'concepts'}</summary>
+    {@render list()}
+  </details>
+{:else}
+  {@render list()}
 {/if}
 
 <style>
-  .muted{margin:0;color:var(--muted);font-size:0.78rem}
   .group + .group{margin-top:8px}
+  .headrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .head{padding:0 4px}
+  .pick{margin:0;accent-color:var(--ink)}
+  summary{cursor:pointer;font-size:0.85rem;padding:2px 0}
+  details[open] > summary{margin-bottom:6px}
   .row{display:flex;align-items:center;gap:6px;min-height:28px;padding:0 4px;border-radius:6px;transition:background-color 120ms}
   .row:hover{background:var(--soft)}
   .go{cursor:pointer;text-decoration:underline dotted var(--muted);text-underline-offset:3px}
   :global(html.no-underlines) .go{text-decoration:none}
   .go:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .on{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .btn{margin-top:8px}
+  .more{margin-top:8px}
 </style>

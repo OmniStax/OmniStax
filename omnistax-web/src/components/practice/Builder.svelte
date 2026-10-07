@@ -3,6 +3,7 @@
   import { books } from '../../lib/practice/books.svelte';
   import PageHead from './PageHead.svelte';
   import UpNext from './UpNext.svelte';
+  import ReadyToLearn from './ReadyToLearn.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
   import SessionPlan from './SessionPlan.svelte';
 
@@ -19,8 +20,9 @@
   {#if loading}<p class="loading" role="status">Loading exercises…</p>{/if}
   <div class="cols">
     <section class="choose">
-      <h3 class="eyebrow">Choose</h3>
+      <h3 class="section-title">Choose</h3>
       <UpNext {item} mode="add" label="Quick picks" />
+      <ReadyToLearn {item} selectable folded />
       <div class="tree"><CurriculumTree {item} {shelf} open={shelf[0] ?? null} /></div>
     </section>
     <aside class="side">

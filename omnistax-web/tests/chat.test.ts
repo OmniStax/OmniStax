@@ -12,7 +12,7 @@ import { bodyOf as anthropicBody } from '../src/lib/chat/providers/anthropic';
 import { bodyOf as openaiBody, foldCalls } from '../src/lib/chat/providers/openai';
 import { bodyOf as geminiBody } from '../src/lib/chat/providers/gemini';
 import { heightOf, partsOf } from '../src/lib/chat/widget';
-import { accessOf, cardModels, isShown, menuOf, parseAi, toggleShown, visibleModels, withoutKeys } from '../src/lib/chat/settings';
+import { accessOf, cardModels, isShown, menuOf, parseAi, providerReady, readyPick, toggleShown, visibleModels, withoutKeys } from '../src/lib/chat/settings';
 import { TOOL_SPECS, figureSource, runTool, stepLabel, type Library } from '../src/lib/chat/tools';
 import type { Corpus } from '../src/lib/search/model';
 import { chatEntries, currentChats, findInChats } from '../src/lib/search/chats';
@@ -278,9 +278,15 @@ test('the AI settings read back leniently, migrate the first shape, and go into 
   const menu = menuOf(fresh);
   assert.equal(menu[0].label, 'Anthropic');
   assert.equal(menu[0].entries[0].ready, false);
+  assert.equal(menu[0].ready, false);
+  assert.deepEqual(menu[0].entries.map((e) => e.name).slice(0, 2), ['claude-sonnet-5-5', 'claude-opus-5-5']);
+  assert.equal(readyPick(fresh, fresh.last), null, 'no key, no pick');
+  assert.ok(!providerReady(fresh, 'local'));
 
   const kept = parseAi(JSON.parse(JSON.stringify({ ...fresh, keys: { ...fresh.keys, openai: 'sk' } })));
   assert.equal(kept.keys.openai, 'sk');
+  assert.ok(providerReady(kept, 'openai'));
+  assert.deepEqual(readyPick(kept, { provider: 'openai', model: 'gpt-5' }), { provider: 'openai', model: 'gpt-5' });
   assert.equal(withoutKeys(kept).keys.openai, '');
   assert.deepEqual(cardModels(toggleShown(kept, { provider: 'openai', model: 'gpt-5' }), 'openai').slice(0, 2), ['gpt-5', 'gpt-5-mini']);
   assert.ok(!isShown(toggleShown(fresh, fresh.shown[0]), fresh.shown[0]));

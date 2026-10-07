@@ -71,7 +71,7 @@
 {/snippet}
 
 {#if !running.length && !past.length}
-  <p class="empty">Finished sessions appear here.</p>
+  <p class="meta">Finished sessions appear here.</p>
 {:else}
   <ul class="rows">
     {#each running as { session: s, key } (s.id)}
@@ -80,7 +80,7 @@
         <span class="when">{when.format(s.started)}</span>
         <span class="what">{covers(s)}</span>
         <span class="num">{answered(s)} of {s.outcomes.length} answered</span>
-        {#if key !== null && key !== item}<span class="held">open in another tab</span>{/if}
+        {#if key !== null && key !== item}<span class="held meta">open in another tab</span>{/if}
         {@render more(s.id, 'Discard')}
       </li>
     {/each}
@@ -88,7 +88,7 @@
       <li class="row past" class:open={menu?.id === s.id} oncontextmenu={openAt(s.id, 'Delete')}>
         <button type="button" class="line" onclick={() => practice.review(item, s.id)}>
           <span class="when">{when.format(s.started)}</span>
-          <span class="dur">{durationText((s.ended ?? s.started) - s.started)}</span>
+          <span class="dur meta">{durationText((s.ended ?? s.started) - s.started)}</span>
           <span class="what">{covers(s)}</span>
           <span class="num">{correct(s)}/{s.outcomes.length} correct</span>
         </button>
@@ -114,14 +114,12 @@
   .line{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;padding:6px;cursor:pointer;border-radius:6px}
   .line:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .when,.dur,.num{font-variant-numeric:tabular-nums;white-space:nowrap}
-  .dur,.held{color:var(--muted);font-size:0.78rem}
   .held{white-space:nowrap}
   .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .more{position:absolute;right:4px;top:3px;opacity:0}
   .row:hover .more,.row.open .more,.more:focus-visible{opacity:1}
   @media (hover: none){ .more{opacity:.55} }
   .ask{position:absolute;right:4px;top:2px;display:flex;align-items:center;gap:3px;padding:1px 2px 1px 6px;border-radius:7px;background:var(--panel);font-size:0.78rem;color:var(--bad)}
-  .empty{margin:0;color:var(--muted)}
   .pager{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:8px;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
   @container (max-width: 420px){
     .row,.line{flex-wrap:wrap;row-gap:2px}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
-  import { fillGaps, practicePick } from '../../lib/practice/ai.svelte';
+  import { fillLive, practicePick } from '../../lib/practice/ai.svelte';
+  import { ai } from '../../lib/chat/settings.svelte';
   import { keyOf, MAX_WANTED, type Drawn } from '../../lib/practice/model';
   import { isGenerated } from '../../lib/practice/generated';
   import { books } from '../../lib/practice/books.svelte';
@@ -26,10 +27,13 @@
   const total = $derived(plan.drawn.length + gapTotal);
   const excluded = $derived(page.round?.excluded?.length ?? 0);
   const perConcept = $derived(page.round?.perConcept ?? s.masteryTarget);
+  const aiNeeded = $derived(gapTotal > 0 || s.grading === 'ai');
+  const aiReady = $derived.by(() => { const pick = practicePick(); return pick !== null && ai.access(pick) !== null; });
   const why = $derived(
     page.curriculum.length === 0 ? 'Nothing chosen yet.'
       : total === 0 ? 'Your choice has no exercises. Pick another part of the book.'
-        : '',
+        : aiNeeded && !aiReady ? `Configure a model under Settings → AI, or set ${[gapTotal > 0 && 'Exercises from to Book only', s.grading === 'ai' && 'Checking to I check'].filter(Boolean).join(' and ')}.`
+          : '',
   );
 
   const clamp = (v: number): number => Math.min(MAX_WANTED, Math.max(0, Math.round(v) || 0));
@@ -43,17 +47,11 @@
   };
 
   let note = $state('');
-  let line = $state('');
-  let preparing = $state(false);
-  const begin = async (): Promise<void> => {
-    if (preparing) return;
-    if (gapTotal === 0) { note = practice.start(item) ? '' : NOTHING; return; }
-    preparing = true; note = '';
-    try {
-      const filled = await fillGaps(item, (l) => (line = l), new AbortController().signal);
-      note = practice.start(item, Date.now(), filled.extra) ? filled.notice : filled.notice || NOTHING;
-    } catch (e) { note = e instanceof Error ? e.message : String(e); }
-    finally { preparing = false; line = ''; }
+  const begin = (): void => {
+    const id = practice.startLive(item);
+    if (!id) { note = NOTHING; return; }
+    note = '';
+    if (gapTotal > 0) void fillLive(id);
   };
 </script>
 
@@ -72,7 +70,7 @@
 
 <section class="plan">
   <div class="group">
-    <h3 class="eyebrow">This session</h3>
+    <h3 class="section-title">This session</h3>
     {#if page.curriculum.length === 0}
       <p class="muted">Tick a chapter, section, concept or exercise.</p>
     {:else}
@@ -129,7 +127,7 @@
   {/if}
 
   <div class="group">
-    <h3 class="eyebrow">Options</h3>
+    <h3 class="section-title">Options</h3>
     <div class="opt">
       {@render option('Exercises from', 'AI writes more when the book runs short.')}
       <div class="seg one-line" role="radiogroup" aria-label="Exercises from">
@@ -143,7 +141,7 @@
       </div>
     </div>
     <div class="opt">
-      {@render option('Checking', 'Mark your own answers, or have your model grade them.')}
+      {@render option('Checking', 'Check your answers against the solution yourself, or hide it and have your model grade.')}
       <div class="seg one-line" role="radiogroup" aria-label="Checking">
         {#each CHECKING as [v, t] (v)}<button type="button" role="radio" class:on={s.grading === v} aria-checked={s.grading === v} onclick={() => practice.setSetting('grading', v)}>{t}</button>{/each}
       </div>
@@ -171,11 +169,11 @@
   </div>
 
   <div class="group start">
-    <button class="btn primary lg" type="button" disabled={total === 0 || preparing} onclick={() => void begin()}>
-      {preparing ? 'Preparing…' : `Start ${count(total, 'exercise')}`}
+    <button class="btn primary lg" type="button" disabled={total === 0 || (aiNeeded && !aiReady)} onclick={begin}>
+      Start {count(total, 'exercise')}
     </button>
     {#if why}<p class="muted">{why}</p>{/if}
-    <p class="muted" role="status">{line || note}</p>
+    <p class="muted" role="status">{note}</p>
     {#if plan.shortages > 0}
       <p class="short">{count(plan.shortages, 'concept')} {plan.shortages === 1 ? 'has' : 'have'} fewer exercises than asked.</p>
     {/if}

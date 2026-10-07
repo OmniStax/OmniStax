@@ -12,6 +12,7 @@
   let open = $state(false);
   let host = $state<HTMLElement | null>(null);
   const pick = $derived<ModelPick | null>(held !== undefined ? held ?? ai.last : (chatId ? chats.get(chatId)?.pick : null) ?? ai.last);
+  const live = $derived(pick && ai.access(pick) !== null ? pick : null);
   const groups = $derived(ai.menu);
 
   /* Settings opened from here must not be shut again by the shell's own
@@ -35,16 +36,15 @@
 
 <div class="menu" bind:this={host} role="presentation" {onkeydown}>
   <button type="button" class="current" aria-haspopup="menu" aria-expanded={open} onclick={() => (open = !open)}>
-    {pick ? modelName(pick) : 'Choose a model'} <span class="caret" aria-hidden="true">▾</span>
+    {#if live}{modelName(live)}{:else}<span class="unset">Configure a model…</span>{/if} <span class="caret" aria-hidden="true">▾</span>
   </button>
   {#if open}
     <div class="pop" role="menu" aria-label="Model">
       {#each groups as g (g.provider)}
-        <div class="group">{g.label}</div>
+        <div class="group">{g.label}{#if !g.ready}<span class="need">Needs key</span>{/if}</div>
         {#each g.entries as e (e.pick.model)}
-          <button type="button" role="menuitemradio" aria-checked={samePick(e.pick, pick)} class:on={samePick(e.pick, pick)} onclick={(ev) => choose(ev, e)}>
+          <button type="button" role="menuitemradio" aria-checked={!!live && samePick(e.pick, live)} class:on={!!live && samePick(e.pick, live)} class:off={!g.ready} onclick={(ev) => choose(ev, e)}>
             <span class="name">{e.name}</span>
-            {#if !e.ready}<span class="need">Needs key →</span>{/if}
           </button>
         {/each}
       {/each}
@@ -59,11 +59,13 @@
   .current:hover,.current[aria-expanded="true"]{color:var(--ink);background:var(--soft)}
   .caret{font-size:0.7em;opacity:0.7}
   .pop{position:absolute;right:0;bottom:calc(100% + 6px);z-index:30;min-width:16rem;max-height:60vh;overflow:auto;padding:6px;background:var(--panel);border-radius:10px;box-shadow:0 0 0 1px var(--rule),0 8px 24px rgba(0,0,0,0.14)}
-  .group{font-size:0.68rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);padding:8px 8px 3px}
+  .unset{opacity:0.75}
+  .group{display:flex;align-items:baseline;gap:8px;font-size:0.68rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);padding:8px 8px 3px}
   .pop button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-size:0.84rem;text-align:left;color:var(--ink);background:none;border:0;border-radius:6px;padding:5px 8px;cursor:pointer}
   .pop button:hover{background:var(--soft)}
   .pop button.on{color:var(--accent);font-weight:600}
   .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .need{flex:none;font-size:0.72rem;color:var(--muted)}
+  .need{margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none}
+  .pop button.off{color:var(--muted)}
   .more{margin-top:4px;border-top:1px solid var(--rule) !important;border-radius:0 0 6px 6px !important;color:var(--muted) !important}
 </style>

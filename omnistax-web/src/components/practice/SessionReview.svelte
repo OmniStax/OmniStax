@@ -71,7 +71,7 @@
     </p>
 
     <section>
-      <h3 class="eyebrow">What moved</h3>
+      <h3 class="section-title">What moved</h3>
       {#if moved.length}
         <ul class="list">
           {#each moved as m (m.id)}
@@ -100,7 +100,7 @@
     </section>
 
     <section>
-      <h3 class="eyebrow">Exercises</h3>
+      <h3 class="section-title">Exercises</h3>
       <ol class="list" bind:this={listRoot}>
         {#each rows as { d, i, hit } (i)}
           {@const v = session.outcomes[i]}

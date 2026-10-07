@@ -3,7 +3,7 @@
    leniently is in `settings.ts` beside this, which is pure. */
 import { readerWritesAllowed } from '../backup/guard';
 import { ui } from '../commands/ui.svelte';
-import { AI_KEY, accessOf, defaultAi, menuOf, parseAi, toggleShown, type AiSettings, type Endpoint, type EndpointId, type MenuGroup } from './settings';
+import { AI_KEY, accessOf, defaultAi, menuOf, parseAi, readyPick, toggleShown, type AiSettings, type Endpoint, type EndpointId, type MenuGroup } from './settings';
 import type { Access, CloudId, ModelPick, ProviderId } from './providers/index';
 
 const newEndpointId = (): EndpointId => Math.random().toString(36).slice(2, 10);
@@ -14,6 +14,7 @@ class Ai {
 
   get inlineHtml(): boolean { return this.value.inlineHtml; }
   get last(): ModelPick | null { return this.value.last; }
+  get ready(): ModelPick | null { return readyPick(this.value, this.value.last); }
   get menu(): readonly MenuGroup[] { return menuOf(this.value); }
   access(pick: ModelPick): Access | null { return accessOf(this.value, pick); }
 

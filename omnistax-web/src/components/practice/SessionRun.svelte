@@ -5,6 +5,9 @@
   import { bookId, type SectionId } from '../../lib/types/ids';
   import type { ItemKey } from '../../lib/layout/model';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
+  import { fillLive, generation, isGenerating } from '../../lib/practice/ai.svelte';
+  import { isPending, type SessionId } from '../../lib/practice/model';
+  import { plain } from '../../lib/practice/labels';
 
   let { item }: { item: ItemKey } = $props();
 
@@ -44,20 +47,40 @@
     if (at < n - 1) practice.go(item, at + 1);
     else practice.afterAnswer(item, at);
   };
+  const conceptName = (id?: string): string => { const c = id ? practice.conceptOf(id) : undefined; return c ? plain(c.name) : 'this concept'; };
 </script>
+
+{#snippet writing(id: SessionId, concept: string | undefined, i: number)}
+  <div class="writing">
+    <p class="eyebrow">Exercise {i + 1} of {n}</p>
+    <div class="quiet" role="status">
+      {#if isGenerating(id)}
+        <p><span class="spin" aria-hidden="true"></span> Writing an exercise for {conceptName(concept)}…</p>
+        {#if generation[id]?.line}<p class="line">{generation[id].line}</p>{/if}
+      {:else}
+        <p>This exercise was never written.</p>
+        <div class="acts">
+          <button type="button" class="btn sm" onclick={() => void fillLive(id)}>Write it now</button>
+          <button type="button" class="btn ghost sm" onclick={() => practice.dropPending(id, concept)}>Skip it</button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/snippet}
 
 {#if session}
   <div class="run">
     <div class="bar">
-      <button type="button" class="btn ghost sm" title="Pause and return; the session stays open" onclick={() => practice.pause(item)}>‹ Practice</button>
+      <button type="button" class="btn ghost sm back" title="Pause and return; the session stays open" onclick={() => practice.pause(item)}>‹ Practice</button>
       <span class="where">{page.showAll ? `${n} exercises` : `${at + 1} of ${n}`}</span>
       {#if !page.showAll}
         <nav class="grid" aria-label="Exercises in this session">
           {#each drawn as _, i (i)}
             {@const result = outcomes[i]}
-            <button type="button" class:now={i === at} class:right={result === true} class:wrong={result === false}
-              aria-label="Exercise {i + 1}{result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
-              aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{result === true ? '✓' : result === false ? '✗' : i + 1}</button>
+            {@const wait = isPending(drawn[i].ex)}
+            <button type="button" class:wait class:now={i === at} class:right={result === true} class:wrong={result === false}
+              aria-label="Exercise {i + 1}{wait ? ', being written' : result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
+              aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{wait ? '…' : result === true ? '✓' : result === false ? '✗' : i + 1}</button>
           {/each}
         </nav>
       {/if}
@@ -79,6 +102,7 @@
       {/if}
     </div>
 
+    {#if generation[session.id]?.notice}<p class="quiet notice" role="status">{generation[session.id].notice}</p>{/if}
     {#if page.showAll}
       <div class="all-list" bind:this={allRoot}>
         {#each drawn as d, i (`${d.book}/${d.section}/${d.ex}`)}
@@ -88,6 +112,8 @@
               <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
                 <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i]} session={session.id} number="Exercise {i + 1}" />
               </div>
+            {:else if isPending(d.ex)}
+              {@render writing(session.id, d.concept, i)}
             {:else if statusOf(d.book) === 'failed'}
               <p class="quiet" role="status">This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.</p>
             {:else}
@@ -105,6 +131,8 @@
                 number="Exercise {at + 1} of {n}" onanswer={(ok, self) => { if (self) practice.afterAnswer(item, at); }} />
             </div>
           {/key}
+        {:else if pending && isPending(pending.ex)}
+          {@render writing(session.id, pending.concept, at)}
         {:else if pending && statusOf(pending.book) === 'failed'}
           <p class="quiet" role="status">This exercise comes from {practice.bookTitle(pending.book)}, and that book could not be loaded. Choose another number to continue.</p>
         {:else}
@@ -128,6 +156,7 @@
   .seg.show{flex:none}
   .seg.show button{white-space:nowrap}
   .bar{position:sticky;top:0;z-index:1;background:var(--bg);border-bottom:1px solid var(--rule);padding:8px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .bar .back{align-self:center;font-size:inherit}
   .where{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
   .grid{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
   .grid button{width:28px;height:28px;padding:0;font:inherit;font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:background-color 120ms}
@@ -135,6 +164,7 @@
   .grid button.now{box-shadow:inset 0 0 0 2px var(--ink);color:var(--ink)}
   .grid button.right{color:var(--ok)}
   .grid button.wrong{color:var(--bad)}
+  .grid button.wait{opacity:.6}
   .grid button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .right-side{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
   .confirm{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -145,6 +175,14 @@
   .all-exercise{scroll-margin-top:56px;padding:16px 0}
   .all-exercise + .all-exercise{border-top:1px solid var(--rule)}
   .quiet{color:var(--muted)}
+  .notice{margin:12px 0 0}
+  .writing{display:flex;flex-direction:column;gap:8px}
+  .writing p{margin:0}
+  .writing .line{font-size:.78rem}
+  .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .spin{display:inline-block;width:.8em;height:.8em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.1em;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){ .spin{animation-duration:2.4s} }
   .foot{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--rule);margin-top:24px;padding-top:12px}
   @container (max-width: 420px){
     .right-side{margin-left:0;flex:1 1 100%;justify-content:space-between}

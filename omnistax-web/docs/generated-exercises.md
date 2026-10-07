@@ -38,13 +38,19 @@ Both are kept on the page as `round`, not in settings.
 the book, so it never shows a gap. `prepare` takes the round and the extra items
 and reports each concept's quota.
 
-Start fills the gaps (`fillGaps` in `ai.svelte.ts`). It reuses stored items for
-the concept first, least used first, and skips items already answered right
+Start begins the session at once (`practice.startLive`). The round holds the
+book's and the pinned exercises plus one placeholder slot per missing exercise,
+with ids `pending:N`, filed under the concept's section. `fillLive` in
+`ai.svelte.ts` then fills the slots in the background. It reuses stored items
+for the concept first, least used first, and skips items already answered right
 unless nothing else is left. "Generate new, don't reuse" turns reuse off. It
-generates the rest three concepts at a time, at most six items per request,
-with a progress line. Then `prepare` runs again with the extras and the round
-starts. A concept that cannot be written for keeps its book items, and a
-one-line notice says so. Drawing an item adds one to its `uses`.
+writes the rest three concepts at a time, at most six items per request, and
+each batch replaces that concept's next placeholders as it lands. A concept
+that cannot be written for loses its remaining slots, and a one-line notice
+says so. In the session a placeholder reads "Writing an exercise for
+<concept>…" with the progress line; after a reload it reads "This exercise was
+never written" with Write it now and Skip it. The numbered grid shows "…" for
+it, and ending the session drops the remaining placeholders. Drawing an item adds one to its `uses`.
 
 ## The prompts
 
@@ -71,7 +77,12 @@ is still checked by the app.
 ## What is stored and exported
 
 Settings gain `generated`, `grading`, `promptNote`, `fresh` and `model` (the one
-pick for generation and grading, from the same menu Ask AI uses). A finished
+pick for generation and grading, from the same menu Ask AI uses). `practicePick()` returns only a configured
+pick, one whose provider has a key or a local endpoint, falling back to the
+configured default, and otherwise null. Start is disabled, with a reason line,
+when AI is needed (gaps under Book and AI, or Checking set to AI grades) and no
+model is configured. Checking defaults to I check, with the hint "Check your
+answers against the solution yourself, or hide it and have your model grade." A finished
 session is kept with `status: 'done'` and `ended`. Past sessions are rows on
 the dashboard that open to the session review, a static record, with Delete in
 the ⋯ menu. A backup carries

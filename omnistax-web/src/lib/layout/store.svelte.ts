@@ -21,9 +21,14 @@ const saved = (book: BookId): unknown => {
   const v5 = localStorage.getItem(V5);
   return v5 === null ? null : migratedV5(JSON.parse(retiredViewKeys(renamedSimKeys(v5))), book);
 };
-const load = (own: ItemId, known: (k: string) => boolean, book: BookId): Layout => {
-  try { const parsed = parseLayout(saved(book), known); if (parsed) return ensureOwn(parsed, own); } catch { /* fall through */ }
-  return ensureOwn(firstLayout(own), own);
+/* A reload restores the saved layout as it stood, unless it holds no tab at all. */
+const load = (own: ItemId, known: (k: string) => boolean, book: BookId, reload: boolean): { layout: Layout; restored: boolean } => {
+  try {
+    const parsed = parseLayout(saved(book), known);
+    if (parsed && reload && parsed.groups.some((g) => g.tabs.length)) return { layout: parsed, restored: true };
+    if (parsed) return { layout: ensureOwn(parsed, own), restored: false };
+  } catch { /* fall through */ }
+  return { layout: ensureOwn(firstLayout(own), own), restored: false };
 };
 
 class LayoutStore {
@@ -36,7 +41,12 @@ class LayoutStore {
      where a tab stood is not one of the reader's edits and is never saved. */
   private closed = $state.raw<readonly Closed[]>([]);
 
-  init(own: ItemId, known: (k: string) => boolean, book: BookId): void { this.own = own; this.layout = load(own, known, book); this.save(); }
+  /* Whether the saved layout came back untouched, own page or not. */
+  init(own: ItemId, known: (k: string) => boolean, book: BookId, reload = false): boolean {
+    const { layout, restored } = load(own, known, book, reload);
+    this.own = own; this.layout = layout; this.save();
+    return restored;
+  }
   apply(f: (l: Layout) => Layout): void { this.layout = f(this.layout); this.save(); }
 
   /* Closing a tab from its own × remembers it; closing a group remembers the

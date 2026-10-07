@@ -30,7 +30,9 @@ export type AiSettings = {
 
 const perCloud = <T>(f: (id: CloudId) => T): Record<CloudId, T> => Object.fromEntries(CLOUD_IDS.map((id) => [id, f(id)])) as Record<CloudId, T>;
 const emptyKeys = (): Record<CloudId, string> => perCloud(() => '');
-const defaultShown = (): readonly ModelPick[] => CLOUD_IDS.flatMap((provider) => (DEFAULT_MODEL[provider] ? [{ provider, model: DEFAULT_MODEL[provider] }] : []));
+const SHOWN_ALSO: Partial<Record<CloudId, string>> = { anthropic: 'claude-opus-5-5' };
+const defaultShown = (): readonly ModelPick[] => CLOUD_IDS.flatMap((provider) =>
+  [DEFAULT_MODEL[provider], SHOWN_ALSO[provider]].filter((m): m is string => !!m).map((model) => ({ provider, model })));
 
 export const defaultAi = (): AiSettings => ({
   keys: emptyKeys(), listed: perCloud(() => []), added: perCloud(() => []), shown: defaultShown(), endpoints: [],
@@ -112,6 +114,11 @@ export const accessOf = (s: AiSettings, pick: ModelPick): Access | null => {
   return key ? { key, baseUrl: DEFAULT_BASE[pick.provider] } : null;
 };
 
+/* A pick only counts once it can be asked; otherwise there is none. */
+export const readyPick = (s: AiSettings, pick: ModelPick | null): ModelPick | null => (pick && accessOf(s, pick) ? pick : null);
+export const providerReady = (s: AiSettings, provider: ProviderId): boolean =>
+  provider === 'local' ? s.endpoints.length > 0 : s.keys[provider].trim() !== '';
+
 export const isShown = (s: AiSettings, pick: ModelPick): boolean => s.shown.some((p) => samePick(p, pick));
 export const toggleShown = (s: AiSettings, pick: ModelPick): AiSettings =>
   ({ ...s, shown: isShown(s, pick) ? s.shown.filter((p) => !samePick(p, pick)) : [...s.shown, pick] });
@@ -119,7 +126,7 @@ export const toggleShown = (s: AiSettings, pick: ModelPick): AiSettings =>
 /* The chat's model menu: the ticked models, grouped by provider in the
    order the cards stand. */
 export type MenuEntry = { readonly pick: ModelPick; readonly name: string; readonly ready: boolean };
-export type MenuGroup = { readonly provider: ProviderId; readonly label: string; readonly entries: readonly MenuEntry[] };
+export type MenuGroup = { readonly provider: ProviderId; readonly label: string; readonly ready: boolean; readonly entries: readonly MenuEntry[] };
 export const menuOf = (s: AiSettings): readonly MenuGroup[] =>
   PROVIDER_IDS.flatMap((provider) => {
     const entries = s.shown.filter((p) => p.provider === provider).flatMap((pick): MenuEntry[] => {
@@ -128,7 +135,7 @@ export const menuOf = (s: AiSettings): readonly MenuGroup[] =>
       const e = endpointById(s, endpoint);
       return e ? [{ pick, name: `${model} · ${e.name}`, ready: true }] : [];
     });
-    return entries.length ? [{ provider, label: PROVIDER_LABEL[provider], entries }] : [];
+    return entries.length ? [{ provider, label: PROVIDER_LABEL[provider], ready: providerReady(s, provider), entries }] : [];
   });
 
 /* A long list as a card shows it: ticked models first, narrowed by the

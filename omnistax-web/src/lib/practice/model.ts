@@ -238,6 +238,22 @@ export const quotaOf = (id: string, bookAvailable: number, s: PracticeSettings, 
 };
 
 export type Drawn = { readonly book: string; readonly section: SectionId; readonly ex: ExerciseDTO; readonly why: 'new' | 'unanswered' | 'review'; readonly pinned?: boolean };
+/* A session slot still being written: its concept is known, its exercise not yet. */
+export const PENDING = 'pending:';
+export const isPending = (ex: string): boolean => ex.startsWith(PENDING);
+type Slot = { readonly ex: string; readonly concept?: string };
+type Slots<S extends Slot> = { readonly drawn: readonly S[]; readonly outcomes: readonly (boolean | null)[]; readonly at: number };
+const openSlot = (d: Slot, concept?: string): boolean => isPending(d.ex) && (concept === undefined || d.concept === concept);
+/* The concept's first open slots take the items, one each, in order. */
+export const fillSlots = <S extends Slot>(drawn: readonly S[], concept: string, items: readonly S[]): { drawn: S[]; placed: number } => {
+  let placed = 0;
+  return { drawn: drawn.map((d) => placed < items.length && openSlot(d, concept) ? items[placed++] : d), placed };
+};
+/* Open slots removed with their outcomes; the place moves to the slot that follows. */
+export const dropSlots = <S extends Slot>(s: Slots<S>, concept?: string): Slots<S> => {
+  const keep = [...s.drawn.keys()].filter((i) => !openSlot(s.drawn[i], concept));
+  return { drawn: keep.map((i) => s.drawn[i]), outcomes: keep.map((i) => s.outcomes[i]), at: Math.min(keep.filter((i) => i < s.at).length, Math.max(0, keep.length - 1)) };
+};
 export type RoundPlan = {
   readonly drawn: readonly Drawn[]; readonly concepts: readonly string[]; readonly shortages: number; readonly sharedConcepts: number; readonly target: number;
   readonly quotas: Readonly<Record<string, Quota>>; readonly pinned: number;

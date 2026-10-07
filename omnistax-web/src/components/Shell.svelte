@@ -152,11 +152,12 @@
     colours.init(home);
     if (chapterDir && chapterData) registry.setChapter(home.id, chapterDir, chapterData);
     focus.own = page;
-    layoutStore.init(page, known, home.id);
+    const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
+    const restored = layoutStore.init(page, known, home.id, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
-    if (addressed && page !== carried) void openDoc(addressed, 'text');
+    if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
     /* A page opened at a span — a search hit in another book links here with the span in
        the hash — lands on it once the document stands in its pane, since the browser's own
        landing came while it still stood in the pool; a hash that changes under the shell

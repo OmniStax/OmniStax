@@ -46,7 +46,9 @@ a concept immediately when its existing evidence meets the new target.
 
 ## Preparing a round
 
-A round is prepared and frozen before Start. No exercise is added adaptively,
+A round is prepared and frozen at Start, and Start begins the session at once:
+missing generated exercises are placeholder slots that fill in the background
+(see generated-exercises.md). No exercise is added adaptively,
 and an exact exercise never repeats inside the round.
 
 For each eligible selected concept, the planner ranks exercises by:
@@ -97,9 +99,11 @@ all unpracticed" and "Calculate mastery from exercise history" on each
 section, chapter or book. A concept's name opens its card on hover and does
 not navigate.
 Quick picks in the builder add the due concepts, the concepts in progress, or
-the section being read. Ready to learn on the dashboard lists the built,
-unmastered concepts whose prerequisites are all mastered, grouped by section,
-each opening the concept.
+the section being read. Ready to learn lists the built, unmastered concepts
+whose prerequisites are all mastered, grouped by section. On the dashboard each
+opens the concept, and "Show all N" toggles to "Show fewer". New session holds
+it folded as "Ready to learn · N concepts", with a checkbox per concept and
+"Add all" per section.
 
 A pick (`model.ts`) is one of three kinds: a place (book, chapter or section),
 a concept, or an exercise, `{ exercise: { book, section, ex } }`. Place and
@@ -197,3 +201,7 @@ book, chapter and section is in the curriculum tree.
 The practice catalogue fetches each built section's `exercises.json` directly.
 It does not load document HTML or figure modules to populate the picker, and a
 loading catalogue is never reported as zero exercises.
+
+On a browser reload the saved layout is restored exactly, active tabs included,
+so a view tab such as Exercises stays in front (`load(..., reload)` in the
+layout store, called from `Shell.svelte`).

@@ -130,6 +130,12 @@ with sync_playwright() as playwright:
     exercises.get_by_text("Ready to learn", exact=True).wait_for(state="visible", timeout=5000)
     print("dashboard ok")
 
+    # A reload keeps the Exercises tab in front, though the address names a section.
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    exercises.get_by_text("Ready to learn", exact=True).wait_for(state="visible", timeout=10000)
+    print("reload ok")
+
     # An exercise in a tab of its own.
     ex = cid.split("-ex-", 1)[1]
     layout = json.loads(page.evaluate(f"localStorage.getItem('{LAYOUT}')"))
@@ -145,7 +151,7 @@ with sync_playwright() as playwright:
     page.locator("#gear").click()
     settings = page.locator("#settings")
     settings.wait_for(state="visible")
-    for label in ("Mastery target", "Freshness decay", "Starting half-life", "Maximum half-life", "Exercise order", "Include fresh concepts"):
+    for label in ("Mastery target", "Freshness decay", "Starting half-life", "Maximum half-life"):
         assert settings.get_by_text(label, exact=True).count() == 1, label
 
     assert not errors, errors

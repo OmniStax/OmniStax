@@ -92,7 +92,7 @@
     e.stopPropagation();
     if (at !== null && picker?.handleKey(e)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { close(); return; }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!streaming && !blocked) send(); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!streaming && !blocked && ready) send(); }
   };
 
   /* ── images ────────────────────────────────────────────────────────────── */
@@ -169,7 +169,7 @@
       {#if streaming}
         <button type="button" class="btn sm" onclick={onstop}>Stop</button>
       {:else}
-        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked} title={blocked ?? ''} onclick={send}>Send <kbd>↵</kbd></button>
+        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked || !ready} title={blocked ?? (ready ? '' : 'Configure a model under Settings → AI first.')} onclick={send}>Send <kbd>↵</kbd></button>
       {/if}
     </div>
   </div>

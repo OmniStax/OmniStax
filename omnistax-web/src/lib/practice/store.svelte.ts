@@ -7,7 +7,7 @@ import { books } from './books.svelte';
 import { emptyCatalog, mergeCatalog } from './books';
 import {
   DEFAULT_SETTINGS, availabilityOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, readyConcepts, rebuild,
-  sessionId, shareOf, startedConcepts, stateOf, togglePick, uniqueById,
+  sessionId, shareOf, startedConcepts, dropSlots, fillSlots, isPending, PENDING, stateOf, togglePick, uniqueById,
   type Attempt, type Catalog, type Curriculum, type Drawn, type ExerciseRef, type Mastery, type Pick,
   type PracticeSettings, type Presentation, type Progress, type RoundEnd, type RoundPlan,
   type SelfAssessments, type SessionId, type State,
@@ -25,7 +25,7 @@ export type Session = {
   readonly id: SessionId;
   readonly curriculum: Curriculum;
   readonly concepts: readonly string[];
-  readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why']; release?: string }[];
+  readonly drawn: readonly { book: string; section: SectionId; ex: string; why: Drawn['why']; release?: string; concept?: string }[];
   readonly at: number;
   readonly outcomes: readonly (boolean | null)[];
   readonly started: number;
@@ -131,7 +131,7 @@ const parseSession = (raw: unknown, id: SessionId): Session | null => {
   const drawn = o.drawn.flatMap((value) => {
     const d = obj(value); if (!d || !str(d.book) || !str(d.section) || !str(d.ex)) return [];
     const why: Drawn['why'] = d.why === 'new' || d.why === 'unanswered' || d.why === 'review' ? d.why : 'review';
-    return [{ book: str(d.book), section: sectionId(str(d.section)), ex: str(d.ex), why, ...(str(d.release) ? { release: str(d.release) } : {}) }];
+    return [{ book: str(d.book), section: sectionId(str(d.section)), ex: str(d.ex), why, ...(str(d.release) ? { release: str(d.release) } : {}), ...(str(d.concept) ? { concept: str(d.concept) } : {}) }];
   });
   if (!drawn.length) return null;
   const oldAnswered = Array.isArray(o.answered) ? o.answered : [];
@@ -225,7 +225,7 @@ class Practice {
     const session = this.sessionOf(key); if (session) this.markShownAt(key, session.at, now);
   }
   markShownAt(key: ItemKey, at: number, now = Date.now()): void {
-    const session = this.sessionOf(key), d = session?.drawn[at]; if (!session || !d) return;
+    const session = this.sessionOf(key), d = session?.drawn[at]; if (!session || !d || isPending(d.ex)) return;
     if (this.shown.some((p) => p.round === session.id && p.book === d.book && p.section === d.section && p.ex === d.ex)) return;
     this.shown = [...this.shown, { book: d.book, section: d.section, ex: d.ex, at: now, round: session.id, ...(d.release ? { release: d.release } : {}) }]; this.save();
   }
@@ -289,18 +289,36 @@ class Practice {
     const page = this.page(key);
     return prepare(page.curriculum, this.mastery, this.catalog(), this.attempts, this.shown, this.settings, now, page.round, extra, this.pinned(key));
   }
-  /* A round of the book's exercises and the generated ones prepared for its gaps. */
-  start(key: ItemKey, now = Date.now(), extra: readonly CatalogExercise[] = []): boolean {
-    const page = this.page(key), plan = this.plan(key, now, extra); if (!plan.drawn.length) return false;
+  /* A round begins at once: the book's exercises, then an open slot for each one the model is still to write. */
+  startLive(key: ItemKey, now = Date.now()): SessionId | null {
+    const page = this.page(key), plan = this.plan(key, now);
+    const slots = plan.concepts.flatMap((id) => {
+      const gap = plan.quotas[id]?.gap ?? 0, book = books.bookOf(id), section = book ? this.conceptOf(id, book)?.section : undefined;
+      return gap > 0 && book && section ? Array.from({ length: gap }, () => ({ book, section, why: 'new' as const, concept: id })) : [];
+    }).map((d, i) => ({ ...d, ex: `${PENDING}${i}` }));
+    if (!plan.drawn.length && !slots.length) return null;
     generated.use(plan.drawn.filter((d) => isGenerated(d.ex.id)).map((d) => generatedIdOf(d.ex.id)));
+    const drawn = [...plan.drawn.map((d) => { const release = offlineBooks.releaseOf(d.book); return { book: d.book, section: d.section, ex: d.ex.id, why: d.why, ...(release ? { release } : {}) }; }), ...slots];
     const session: Session = {
       id: newSessionId(), curriculum: [...page.curriculum], concepts: [...new Set([...plan.concepts, ...plan.drawn.filter((d) => d.pinned).flatMap((d) => d.ex.concepts)])],
-      drawn: plan.drawn.map((d) => { const release = offlineBooks.releaseOf(d.book); return { book: d.book, section: d.section, ex: d.ex.id, why: d.why, ...(release ? { release } : {}) }; }),
-      at: 0, outcomes: plan.drawn.map(() => null), started: now, before: this.mastery,
+      drawn, at: 0, outcomes: drawn.map(() => null), started: now, before: this.mastery,
     };
-    this.put(session); this.set(key, { curriculum: [], session: session.id, face: 'practise', showAll: page.showAll }); return true;
+    this.put(session); this.set(key, { curriculum: [], session: session.id, face: 'practise', showAll: page.showAll }); return session.id;
   }
-  exerciseOf(ref: ExerciseRef): ExerciseDTO | undefined { return books.exercise(ref.book, ref.section, ref.ex); }
+  pendingOf(id: SessionId, concept: string): number { return this.sessions[id]?.drawn.filter((d) => isPending(d.ex) && d.concept === concept).length ?? 0; }
+  fill(id: SessionId, concept: string, exercises: readonly CatalogExercise[]): void {
+    const s = this.sessions[id]; if (!s) return;
+    const { drawn, placed } = fillSlots(s.drawn, concept, exercises.map((e) => { const release = offlineBooks.releaseOf(e.book); return { book: e.book, section: e.section, ex: e.ex.id, why: 'new' as const, ...(release ? { release } : {}) }; }));
+    if (!placed) return;
+    generated.use(exercises.slice(0, placed).filter((e) => isGenerated(e.ex.id)).map((e) => generatedIdOf(e.ex.id)));
+    this.put({ ...s, drawn });
+  }
+  dropPending(id: SessionId, concept?: string): void {
+    const s = this.sessions[id]; if (!s?.drawn.some((d) => isPending(d.ex))) return;
+    const next = { ...s, ...dropSlots(s, concept) };
+    if (next.drawn.length) this.put(next); else this.drop(id);
+  }
+  exerciseOf(ref: ExerciseRef): ExerciseDTO | undefined { return isPending(ref.ex) ? undefined : books.exercise(ref.book, ref.section, ref.ex); }
   current(key: ItemKey): { book: string; section: SectionId; ex: ExerciseDTO; why: Drawn['why'] } | null {
     const s = this.sessionOf(key), d = s?.drawn[s.at]; if (!d) return null; const ex = this.exerciseOf(d); return ex ? { ...d, ex } : null;
   }
@@ -311,14 +329,16 @@ class Practice {
   afterAnswer(key: ItemKey, from: number): void {
     const s = this.sessionOf(key); if (!s) return;
     const order = [...s.outcomes.keys()].filter((i) => i > from).concat([...s.outcomes.keys()].filter((i) => i < from));
-    const next = order.find((i) => s.outcomes[i] === null); if (next !== undefined) this.put({ ...s, at: next });
+    const open = order.filter((i) => s.outcomes[i] === null), next = open.find((i) => !isPending(s.drawn[i].ex)) ?? open[0]; if (next !== undefined) this.put({ ...s, at: next });
   }
   incompleteReviews(key: ItemKey): number {
     const s = this.sessionOf(key); if (!s) return 0;
     return s.concepts.filter((id) => s.before[id]?.mastered && s.drawn.some((d, i) => this.exerciseOf(d)?.concepts.some((concept) => concept === id) && s.outcomes[i] === null)).length;
   }
   end(key: ItemKey, now = Date.now()): void {
-    const s = this.sessionOf(key); if (!s) return;
+    const live = this.sessionOf(key); if (!live) return;
+    if (live.drawn.some((d) => isPending(d.ex))) { this.dropPending(live.id); if (!this.sessions[live.id]) return; }
+    const s = this.sessions[live.id];
     const concepts = s.concepts.map((id) => {
       const indexes = s.drawn.flatMap((d, i) => this.exerciseOf(d)?.concepts.some((concept) => concept === id) ? [i] : []);
       const answered = indexes.filter((i) => s.outcomes[i] !== null), correct = indexes.filter((i) => s.outcomes[i] === true);

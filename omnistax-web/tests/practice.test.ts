@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DAY, DEFAULT_SETTINGS, availabilityOf, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
+  DAY, DEFAULT_SETTINGS, PENDING, availabilityOf, dropSlots, fillSlots, conceptsOf, dayOf, dueConcepts, exerciseRefsOf, exercisesIn, exercisesTesting, fillOf, freshnessOf, samePick, startedConcepts,
   heatWeeks, newSessionId, poolOf, prepare, progressOf, readyConcepts, rebuild, shareOf,
   standingOf, stateOf, stepDay, streakOf, togglePick, uniqueById, workByDay,
   type Attempt, type Catalog, type ConceptRecord, type Mastery, type Presentation,
@@ -226,4 +226,17 @@ test('due and started concepts, and end exercises by section and by concept', ()
   assert.deepEqual(exercisesIn(cat, 'cp', sec('1.2')).map((e) => e.ex.id), ['c1']);
   assert.deepEqual(exercisesTesting(cat, 'c').map((e) => e.ex.id), ['c1']);
   assert.deepEqual(exercisesTesting(cat, 'a').map((e) => e.ex.id), ['a1', 'ab', 'a3']);
+});
+
+test('open slots fill in order per concept and drop with their outcomes', () => {
+  const slot = (concept: string, n: number) => ({ ex: `${PENDING}${n}`, concept });
+  const drawn = [{ ex: 'b1' }, slot('a', 1), slot('c', 2), slot('a', 3)];
+  const filled = fillSlots(drawn, 'a', [{ ex: 'g1' }, { ex: 'g2' }, { ex: 'g3' }]);
+  assert.equal(filled.placed, 2);
+  assert.deepEqual(filled.drawn.map((d) => d.ex), ['b1', 'g1', `${PENDING}2`, 'g2']);
+  const dropped = dropSlots({ drawn, outcomes: [true, null, null, null], at: 2 }, 'c');
+  assert.deepEqual(dropped.drawn.map((d) => d.ex), ['b1', `${PENDING}1`, `${PENDING}3`]);
+  assert.equal(dropped.at, 2);
+  const all = dropSlots({ drawn, outcomes: [true, null, null, null], at: 3 });
+  assert.deepEqual([all.drawn.length, all.outcomes, all.at], [1, [true], 0]);
 });
