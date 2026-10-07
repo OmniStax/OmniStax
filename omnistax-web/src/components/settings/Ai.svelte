@@ -1,6 +1,7 @@
 <script lang="ts" module>
   /* A public list is fetched once a page, however often the settings open. */
   const fetchedPublic = new Set<string>();
+  export const AI_WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Local AI Ollama LM Studio endpoint base URL key model API inline HTML widget backup';
 </script>
 
 <script lang="ts">
@@ -15,10 +16,6 @@
   import { MODEL_CAP, cardModels, isShown, visibleModels } from '../../lib/chat/settings';
   import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, PUBLIC_LIST, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
   import { providerOf } from '../../lib/chat/providers/all';
-
-  let { hit }: { hit: (text: string) => boolean } = $props();
-
-  const WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Local AI Ollama LM Studio endpoint base URL key model API inline HTML widget backup';
 
   let busy = $state.raw<Readonly<Record<string, boolean>>>({});
   let trouble = $state.raw<Readonly<Record<string, string>>>({});
@@ -69,9 +66,7 @@
   };
 </script>
 
-<section hidden={!hit(WORDS)}>
-  <h3>AI</h3>
-  <p class="hint">Use your own API keys. Requests go straight from this browser to the provider. OmniStax never sees your keys, and backups leave them out. Tick the models to offer in chat.</p>
+<p class="hint">Use your own API keys. Requests go straight from this browser to the provider. OmniStax never sees your keys, and backups leave them out. Tick the models to offer in chat.</p>
 
   <label class="row switch">
     <span class="name">Inline HTML rendering</span>
@@ -143,27 +138,18 @@
       <button type="button" class="btn-sm" disabled={!newUrl.trim()} onclick={addEndpoint}>Add endpoint</button>
     </div>
   </div>
-</section>
 
 <style>
-  section{margin-top:18px}
-  h3{margin:0 0 6px;font-size:0.95rem}
-  .hint{color:var(--muted);font-size:0.8rem;margin:0 0 8px}
-  .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;padding:8px 0;border-top:1px solid var(--rule)}
-  .row .name{font-size:0.9rem}
-  .row .hint{grid-column:1;margin:0;font-size:0.78rem}
-  .row input{grid-column:2;grid-row:1 / span 2}
   .card{padding:10px 0;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
   .head{display:flex;align-items:baseline;gap:10px}
-  .head .name{font-size:0.9rem;font-weight:600}
   .head a{font-size:0.78rem;color:var(--accent)}
   .models{display:flex;flex-wrap:wrap;gap:2px 14px;margin:0;padding:0;list-style:none;font-size:0.82rem}
   .models label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
   .tail{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .endpoint{display:flex;flex-direction:column;gap:6px;padding:6px 0 8px;border-bottom:1px dashed var(--rule)}
-  input[type="text"],input[type="url"],input[type="password"]{font:inherit;font-size:0.85rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);min-width:10rem}
+  input[type="text"],input[type="url"],input[type="password"]{min-width:10rem}
   input[type="password"]{max-width:24rem}
-  .filter{font:inherit;font-size:0.82rem;padding:3px 7px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);max-width:16rem}
+  .filter{max-width:16rem}
   .all{font:inherit;font-size:0.82rem;color:var(--accent);background:none;border:0;padding:0;cursor:pointer}
   code{font-size:0.95em}
   .bad{color:var(--bad, #b42318);font-size:0.8rem;margin:0}
