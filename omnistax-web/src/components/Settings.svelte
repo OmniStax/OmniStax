@@ -36,10 +36,6 @@
     anim: 'Turn off to pause every interactive figure.',
     voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
     decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',
-    order: 'Mixed interleaves concepts. Grouped keeps each concept’s exercises together.',
-    includeFresh: 'Let mastered concepts that aren’t due yet into new sessions.',
-    mapProgress: 'Show mastery bars on concept map nodes. Each map can also hide them.',
-    record: 'Every completed exercise and self-assessment, and the mastery built from them.',
     lockGrace: 'Seconds before a focus lock starts.',
     layout: 'Put tabs, groups and sidebars back to how they started.',
     backup: 'Export and import a backup file, and push and pull with a GitHub repo, from the Sync sidebar.',
@@ -50,15 +46,12 @@
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
     startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
-    order: `Exercise order ${HINT.order}`, includeFresh: `Include fresh concepts ${HINT.includeFresh}`,
-    record: `Practice history clear forget answers ${HINT.record}`,
-    mapProgress: `Progress on the concept map ${HINT.mapProgress}`,
     layout: `Layout panes tabs reset views ${HINT.layout}`,
     backup: `Backup export import restore data sync GitHub push pull update ${HINT.backup}`,
     storage: 'Storage space used quota persist retention browser clear data imported files Safari',
   } as const;
   const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
-  const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife, ROWS.order, ROWS.includeFresh, ROWS.mapProgress, ROWS.record];
+  const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife];
   const openSync = (): void => { ui.settings = false; layoutStore.apply((x) => openSide(x, 'view:sync', 'left')); layoutStore.overlay = 'left'; };
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
   let kq = $state('');
@@ -98,7 +91,6 @@
   const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
   const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
   const commit = (n: NumRow, v: number): void => { if (Number.isFinite(v)) practice.setSetting(n.key, clamp(v, n.min, n.max) / n.scale); };
-  const forget = () => { if (confirm('Clear your practice history? This deletes every completed exercise, self-assessment and mastery record, and can’t be undone.')) practice.wipe(); };
   const intervals = $derived.by(() => {
     const out: number[] = [], max = practice.settings.maxHalfLife;
     let value = practice.settings.startingHalfLife;
@@ -217,18 +209,6 @@
         {#each NUMS as n (n.key)}{@render numRow(n)}{/each}
         <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">Freshness decay{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, 'Reset to on', () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">{HINT.decay}</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
         <div class="row" hidden={!hit(`${ROWS.startingHalfLife} ${ROWS.maxHalfLife}`)}><span class="name">Review intervals</span><span class="hint">{intervals}</span><span></span></div>
-        <div class="row" hidden={!hit(ROWS.order)}>
-          <span class="name">Exercise order{@render back(practice.settings.order !== DEFAULT_SETTINGS.order, 'Reset to mixed', () => practice.setSetting('order', DEFAULT_SETTINGS.order))}</span>
-          <span class="hint">{HINT.order}</span>
-          <div class="seg" role="radiogroup" aria-label="Exercise order"><button type="button" class:on={practice.settings.order === 'mixed'} role="radio" aria-checked={practice.settings.order === 'mixed'} onclick={() => practice.setSetting('order', 'mixed')}>Mixed</button><button type="button" class:on={practice.settings.order === 'grouped'} role="radio" aria-checked={practice.settings.order === 'grouped'} onclick={() => practice.setSetting('order', 'grouped')}>Grouped</button></div>
-        </div>
-        <label class="row switch" hidden={!hit(ROWS.includeFresh)}><span class="name">Include fresh concepts{@render back(practice.settings.includeFresh !== DEFAULT_SETTINGS.includeFresh, 'Reset to off', () => practice.setSetting('includeFresh', DEFAULT_SETTINGS.includeFresh))}</span><span class="hint">{HINT.includeFresh}</span><input type="checkbox" checked={practice.settings.includeFresh} onchange={(e) => practice.setSetting('includeFresh', e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.mapProgress)}><span class="name">Progress on the concept map{@render back(settings.mapProgress !== DEFAULTS.mapProgress, 'Reset to on', () => settings.setMapProgress(DEFAULTS.mapProgress))}</span><span class="hint">{HINT.mapProgress}</span><input type="checkbox" checked={settings.mapProgress} onchange={(e) => settings.setMapProgress(e.currentTarget.checked)}></label>
-        <div class="row" hidden={!hit(ROWS.record)}>
-          <span class="name">Practice history</span>
-          <span class="hint">{HINT.record}{#if practice.attempts.length} {practice.attempts.length === 1 ? '1 exercise completed' : `${practice.attempts.length} exercises completed`}.{/if}</span>
-          <button class="btn-sm" type="button" onclick={forget}>Clear history</button>
-        </div>
       </section>
 
       <section hidden={!hit(ROWS.lockGrace)}>

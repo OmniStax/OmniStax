@@ -6,6 +6,7 @@
   import Builder from '../practice/Builder.svelte';
   import SessionRun from '../practice/SessionRun.svelte';
   import SessionReview from '../practice/SessionReview.svelte';
+  import Sessions from '../practice/Sessions.svelte';
   let { item }: { item: string } = $props();
   const page = $derived(practice.page(item));
   const session = $derived(practice.sessionOf(item));
@@ -20,6 +21,8 @@
     <SessionRun {item} />
   {:else if page.face === 'review' && session}
     <SessionReview {item} />
+  {:else if page.face === 'sessions'}
+    <Sessions {item} />
   {:else}
     <Dashboard {item} {shelf} />
   {/if}

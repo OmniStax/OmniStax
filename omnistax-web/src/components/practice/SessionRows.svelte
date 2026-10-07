@@ -5,13 +5,13 @@
   import type { SessionId } from '../../lib/practice/model';
   import { pageCount, pageOf } from '../../lib/pomodoro/model';
   import RowMenu from '../explorer/RowMenu.svelte';
-  let { item }: { item: string } = $props();
+  let { item, limit }: { item: string; limit?: number } = $props();
 
   const running = $derived(practice.liveSessions());
   const past = $derived(practice.past());
   let page = $state(0);
-  const pages = $derived(pageCount(past.length));
-  const shown = $derived(pageOf(past, Math.min(page, pages - 1)));
+  const pages = $derived(limit ? 1 : pageCount(past.length));
+  const shown = $derived(limit ? past.slice(0, limit) : pageOf(past, Math.min(page, pages - 1)));
 
   const chapterOf = (book: string, id: string) => books.manifest(book)?.chapters.find((c) => c.id === id);
   const sectionTitle = (book: string, id: string): string =>

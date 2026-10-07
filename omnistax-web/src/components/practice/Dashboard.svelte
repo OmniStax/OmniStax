@@ -56,8 +56,8 @@
   </section>
 
   <section class="part">
-    <h3 class="eyebrow">Sessions</h3>
-    <SessionRows {item} />
+    <div class="head"><h3 class="eyebrow">Sessions</h3><button type="button" class="btn ghost sm" onclick={() => practice.sessionsPage(item)}>All sessions ›</button></div>
+    <SessionRows {item} limit={5} />
   </section>
 
   <section class="part">
@@ -72,6 +72,8 @@
 </div>
 
 <style>
+  .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .head .eyebrow{margin:0}
   .dashboard{display:flex;flex-direction:column;gap:16px;width:100%;max-width:760px;margin-inline:auto;min-width:0}
   .part{border-top:1px solid var(--rule);padding-top:16px}
   h3{margin:0 0 8px}

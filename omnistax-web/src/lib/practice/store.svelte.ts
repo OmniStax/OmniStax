@@ -20,7 +20,7 @@ import { generatedIdOf, isGenerated } from './generated';
 import { MAX_WANTED, type CatalogExercise, type RoundChoice } from './model';
 import { checkOf, setNode, type Check, type Node, type Shape } from './select';
 
-export type Face = 'dashboard' | 'choose' | 'practise' | 'review';
+export type Face = 'dashboard' | 'choose' | 'practise' | 'review' | 'sessions';
 export type Session = {
   readonly id: SessionId;
   readonly curriculum: Curriculum;
@@ -45,7 +45,7 @@ const PAGES = 'omnistax-practice-pages-v2';
 const OLD_PAGES = 'omnistax-practice-pages-v1';
 const SESSIONS = 'omnistax-practice-sessions-v2';
 const OLD_SESSIONS = 'omnistax-practice-sessions-v1';
-const FACES: readonly Face[] = ['dashboard', 'choose', 'practise', 'review'];
+const FACES: readonly Face[] = ['dashboard', 'choose', 'practise', 'review', 'sessions'];
 
 const obj = (raw: unknown): Record<string, unknown> | null => typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? raw as Record<string, unknown> : null;
 const str = (v: unknown): string => typeof v === 'string' ? v : '';
@@ -250,6 +250,7 @@ class Practice {
     this.rounds = [...this.rounds, { id: rid, started: now, at: now, concepts: [{ id, expected: 1, answered: 1, correct: still ? 1 : 0, wasMastered: true, wasDue: true }], newlyMastered: [] }]; this.save();
   }
   wipe(): void { this.attempts = []; this.shown = []; this.rounds = []; this.self = {}; this.save(); }
+  clearHistory(): void { this.wipe(); this.past().forEach((s) => this.drop(s.id)); }
 
   page(key: ItemKey): Page { return this.pages[key] ?? BLANK; }
   sessionOf(key: ItemKey): Session | null { const id = this.page(key).session; return id ? this.sessions[id] ?? null : null; }
@@ -354,6 +355,7 @@ class Practice {
   pause(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
   progress(key: ItemKey): ReturnType<typeof progressOf> { const s = this.sessionOf(key); return s ? progressOf(s.before, this.mastery) : []; }
   dashboard(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'dashboard' }); }
+  sessionsPage(key: ItemKey): void { this.set(key, { ...this.page(key), face: 'sessions' }); }
   releaseFor(id: SessionId): { readonly book: string; readonly release: string } | null {
     const session = this.sessions[id]; if (!session) return null;
     const mismatch = session.drawn.find((drawn) => drawn.release && drawn.release !== offlineBooks.releaseOf(drawn.book));

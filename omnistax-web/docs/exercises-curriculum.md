@@ -76,10 +76,14 @@ persisted. Starting a session clears the tab's picks.
 
 ## Choosing exactly
 
-The tab has four faces: Practice (the dashboard), New session (the builder),
-the session, and the session review. The store names them `dashboard`,
-`choose`, `practise` and `review`; a stored `progress` or `summary` reads as
-`review`.
+The tab has five faces: Practice (the dashboard), New session (the builder),
+the session, the session review, and Sessions. The store names them
+`dashboard`, `choose`, `practise`, `review` and `sessions`; a stored
+`progress` or `summary` reads as `review`. The dashboard shows the running
+sessions and the five most recent finished ones; All sessions opens the
+Sessions page, which pages through every session and holds Clear practice
+history, which deletes the finished sessions, every attempt and every
+self-assessment after an inline confirm that names the counts.
 
 Both the dashboard and the builder show one curriculum tree
 (`CurriculumTree.svelte`): book, chapter, section, and under a section either
@@ -147,9 +151,10 @@ Due and overdue mastered concepts remain eligible. The mastery-box fill shows
 attainment; its border moves from green toward amber with freshness and becomes
 dashed when due.
 
-Settings expose mastery target, freshness decay, starting half-life, maximum
-half-life, Mixed/Grouped order, and whether fresh mastered concepts are
-included. Turning global freshness decay off keeps all mastered concepts fresh.
+Settings expose mastery target, freshness decay, starting half-life and
+maximum half-life. Mixed/Grouped order and whether fresh mastered concepts are
+included are set only in the builder's This session panel. Turning global
+freshness decay off keeps all mastered concepts fresh.
 
 ## Override progress
 
