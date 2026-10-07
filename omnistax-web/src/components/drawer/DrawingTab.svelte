@@ -307,7 +307,7 @@
 
   /* A touch while a pen is on the glass is the reader's palm, and a touch with
      another already down is a pinch and not a stroke. */
-  const isPalm = (e: PointerEvent): boolean => e.pointerType === 'touch' && (penDown || touches.size > 0);
+  const isPalm = (e: PointerEvent): boolean => e.pointerType === 'touch' && (penDown || touches.size > 1);
 
   const beginSelectionDrag = (p: Vec): boolean => {
     const box = selectionBox;
