@@ -16,7 +16,6 @@
   import StandingMeter from './StandingMeter.svelte';
   import KindDot from './KindDot.svelte';
   import AiTag from './AiTag.svelte';
-  import ProgressOverride from './ProgressOverride.svelte';
 
   type Props = { item: string; shelf: readonly string[]; open?: string | null; selectable?: boolean };
   let { item, shelf, open = null, selectable = true }: Props = $props();
@@ -30,7 +29,6 @@
   let query = $state('');
   let unfolded = $state<readonly string[]>([]);
   let menu = $state<Menu | null>(null);
-  let editing = $state<string | null>(null);
   let asking = $state<{ readonly key: string; readonly act: Bulk } | null>(null);
 
   $effect(() => {
@@ -126,7 +124,6 @@
     { label: 'Mark mastered', run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
     { label: 'Mark unpracticed', run: () => practice.setSelf(id, 0, false, false) },
     { label: 'Calculate mastery from exercise history', run: () => practice.clearSelf(id) },
-    { label: 'Set progress…', run: () => { editing = id; } },
   ];
   const exerciseMenu = (e: CatalogExercise): readonly MenuItem[] => [
     { label: 'Open in a tab', run: () => openExercise(e) },
@@ -241,9 +238,6 @@
                         <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, conceptMenu(k.id))}>⋯</button>
                       </span>
                     </div>
-                    {#if editing === k.id}
-                      <div class="sub" style:--d={4}><ProgressOverride id={k.id} ondone={() => (editing = null)} /></div>
-                    {/if}
                     {#if selectable && isOpen(kk)}
                       {#each tests as e (keyOf(e))}{@render exRow(e, 4, true)}{:else}<p class="muted note" style:--d={4}>No exercises here.</p>{/each}
                     {/if}
@@ -273,7 +267,6 @@
   .row { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 4px 0 calc(var(--d) * 16px + 4px); border-radius: 6px; transition: background-color 120ms; }
   .row:hover { background: var(--soft); }
   .note { margin: 0; padding: 4px 4px 4px calc(var(--d, 0) * 16px + 34px); font-size: 0.78rem; }
-  .sub { padding: 2px 4px 4px calc(var(--d) * 16px + 4px); }
   .tw, .tw-gap { flex: none; width: 24px; height: 24px; }
   .tw { display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; font-size: 0.7rem; }
   .tw span { transition: transform 120ms; }

@@ -87,8 +87,8 @@ the concepts it introduces (Concepts lens) or its end exercises in print order
 (Exercises lens). A concept unfolds to every exercise that tests it. Every row
 in the builder has a checkbox, down to a single exercise; selecting happens
 only in New session. On the dashboard the tree is read-only progress, with
-"Mark mastered", "Mark unpracticed", "Calculate mastery from exercise
-history" and "Set progress…" on each concept, and "Mark all mastered", "Mark
+"Mark mastered", "Mark unpracticed" and "Calculate mastery from exercise
+history" on each concept, and "Mark all mastered", "Mark
 all unpracticed" and "Calculate mastery from exercise history" on each
 section, chapter or book. A concept's name opens its card on hover and does
 not navigate.
@@ -158,17 +158,16 @@ every level. The current book is loaded first; other books load their progress
 only when opened. Practice still loads the full shelf before it composes a
 round.
 
-Override is not a mode. A concept row's ⋯ menu has "Set progress…", which
-opens the controls inline. Every built concept has it, including concepts with
-no exercise. The reader can choose Unpracticed, an exact fraction, or
-Mastered. This is stored as a separate self-assessment rather than as fake
-attempts; removing it restores the state rebuilt from exercise history.
+Override is not a mode. A concept row's ⋯ menu marks it mastered or
+unpracticed, or calculates its mastery from exercise history again. Every
+built concept has it, including concepts with no exercise. No intermediate
+level can be set by hand. The mark is stored as a separate self-assessment
+rather than as fake attempts; calculating from history removes it.
 
 An overridden mastered concept begins at the starting half-life. Concepts
-with exercises use normal exercise reviews. A due concept with no exercises
-offers `Still mastered` and `Needs review` manual checks. Only overridden
-mastery can enable the per-concept `No freshness decay` option. Such a concept
-is permanently fresh and displays the override and infinity state.
+with exercises use normal exercise reviews. The store still keeps the
+per-concept `noDecay` flag and the `Still mastered` / `Needs review` manual
+checks, but no UI sets them.
 
 ## Persistence and activity
 
