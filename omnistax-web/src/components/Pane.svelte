@@ -52,6 +52,8 @@
     <div class="doc-host" class:page-host={id?.kind === 'page'} use:adopt={el}></div>
   {:else if sec && status === 'missing'}
     <article class="placeholder"><div class="loading">{registry.missingLine(sec)}</div></article>
+  {:else if status === 'failed' && !navigator.onLine}
+    <article class="placeholder"><div class="loading">{sec?.section ?? 'This section'} is not downloaded. Reconnect, or download its book for offline from the Explorer.</div></article>
   {:else if status === 'failed'}
     <article class="placeholder"><div class="loading bad">Could not load {sec?.section ?? ''} ({error}). Serve the site over http, or <a href={entry?.url}>open it as its own page</a>.</div></article>
   {:else}
