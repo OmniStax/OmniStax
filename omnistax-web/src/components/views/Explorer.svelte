@@ -588,6 +588,7 @@
   .rename{flex:1;min-width:0;border:1px solid var(--accent);border-radius:3px;background:var(--panel);color:var(--ink);font:inherit;font-size:0.82rem;padding:0 4px;outline:none}
   .dots{flex:none;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;padding:0;line-height:1;opacity:0}
   .row:hover .dots,.row.sel .dots,.dots:focus-visible{opacity:1}
+  @media (hover: none){ .dots{opacity:.55} }
   .dots:hover{background:var(--soft2);color:var(--ink)}
   .updated{font-size:.65rem;color:var(--accent);font-weight:600}
 

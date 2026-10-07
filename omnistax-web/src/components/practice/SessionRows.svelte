@@ -119,6 +119,7 @@
   .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .more{position:absolute;right:4px;top:3px;opacity:0}
   .row:hover .more,.row.open .more,.more:focus-visible{opacity:1}
+  @media (hover: none){ .more{opacity:.55} }
   .ask{position:absolute;right:4px;top:2px;display:flex;align-items:center;gap:3px;padding:1px 2px 1px 6px;border-radius:7px;background:var(--panel);font-size:0.78rem;color:var(--bad)}
   .empty{margin:0;color:var(--muted)}
   .pager{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:8px;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums}

@@ -62,5 +62,6 @@
   .dot{width:9px;height:9px;border-radius:50%;background:var(--hue);flex:none;display:inline-block}
   .more{position:absolute;right:4px;top:3px;opacity:0}
   .row:hover .more,.row.open .more,.more:focus-visible{opacity:1}
+  @media (hover: none){ .more{opacity:.55} }
   .ask{position:absolute;right:4px;top:2px;display:flex;align-items:center;gap:3px;padding:1px 2px 1px 6px;border-radius:7px;background:var(--panel);font-size:0.78rem;color:var(--bad)}
 </style>

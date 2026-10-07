@@ -163,6 +163,7 @@
   .bubble:hover .acts,.acts:focus-within{opacity:1}
   .at{text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
   .bubble:hover .at{opacity:1}
+  @media (hover: none){ .acts,.at{opacity:.7} }
   .said{line-height:1.55}
   .said :global(p:first-child){margin-top:0}
   .said :global(p:last-child){margin-bottom:0}

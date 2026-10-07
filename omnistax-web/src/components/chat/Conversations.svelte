@@ -101,5 +101,6 @@
   .name-input:focus{outline:none}
   .acts{display:flex;gap:2px;opacity:0;transition:opacity 120ms}
   .row:hover .acts,.acts:focus-within{opacity:1}
+  @media (hover: none){ .acts{opacity:.7} }
   .empty{color:var(--muted);font-size:0.86rem}
 </style>

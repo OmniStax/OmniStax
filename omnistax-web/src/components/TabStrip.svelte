@@ -33,6 +33,8 @@
   .x{width:18px;height:18px;border-radius:4px;border:0;background:transparent;color:inherit;opacity:0;cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;padding:0}
   .tab:hover .x,.tab.active .x{opacity:.65}
   .x:hover{opacity:1;background:var(--soft2)}
+  /* no pointer to hover with: the close stands on every tab, dimmed */
+  @media (hover: none){ .x{opacity:.55} }
   .spacer{flex:1}
   .act{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 10px;display:grid;place-items:center}
   .act:hover{color:var(--ink)}
