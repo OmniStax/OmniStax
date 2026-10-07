@@ -35,6 +35,7 @@
   .mbox{position:relative;flex:none;display:block;width:14px;height:14px;box-sizing:border-box;border:1.5px solid var(--rule);border-radius:4px;background:var(--soft);overflow:hidden}
   :global(.view-pane) .mbox{width:16px;height:16px}
   .mbox::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--fill,0%);background:transparent}
+  .mbox.st-untouched{border-color:transparent;background:color-mix(in srgb,var(--ink) 9%,transparent)}
   .mbox.st-practised{border-color:var(--m-low)}
   .mbox.st-practised::after{background:var(--m-low)}
   .mbox.st-practised.hi{border-color:var(--m-mid)}
