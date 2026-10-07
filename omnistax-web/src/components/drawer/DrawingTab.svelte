@@ -41,7 +41,7 @@
     addGroup, addItem, amend, canRedo, canUndo, clampZoom, endPoint, groupAround, moveItems, newDrawItemId, ORIGIN, rectOf,
     redo, removeItems, replaceItem, scaleItems, setBoxBody, setColour, setView, sideAt, SIDES, step, timeline, undo,
     type Box, type Drawing, type DrawItem, type DrawItemId, type End, type GroupItem, type LinkItem, type Placed, type Point,
-    type ShapeTool, type Side, type Timeline, type View,
+    type ShapeTool, type Side, type View,
   } from '../../lib/drawer/model';
   import {
     boundsOf, connectableAt, erasedAt, fitView, handleUnder, inBox, lassoed, linkPath, linkUnder, meets, membersOf,
@@ -337,13 +337,13 @@
     return [...new Set([...ids, ...groups.flatMap((g) => membersOf(items, g).map((i) => i.id))])];
   };
 
-  /* The card a double-click made, which opens for writing. */
+  /* The card the text tool just placed, which opens for writing. */
   let fresh = $state<DrawItemId | null>(null);
-  const newTextBox = (p: Vec, on: Drawing = drawing, write = false): void => {
+  const newTextBox = (p: Vec): void => {
     const id = newDrawItemId();
-    commit(addItem(on, { kind: 'box', id, x: p[0], y: p[1], w: 260, h: 90, body: '', ...(color === 'ink' ? {} : { color }) }));
+    commit(addItem(drawing, { kind: 'box', id, x: p[0], y: p[1], w: 260, h: 90, body: '', ...(color === 'ink' ? {} : { color }) }));
     selection = [id];
-    if (write) fresh = id;
+    fresh = id;
   };
 
   /* ── connectors ────────────────────────────────────────────────────────── */
@@ -492,12 +492,7 @@
     if (g.kind === 'ink') {
       const points = simplify(g.points, 0.8 / view.zoom);
       if (!points.length) return;
-      const before = history;
       commit(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points }));
-      const b = boundsOf([{ kind: 'stroke', id: newDrawItemId(), tool: 'pen', color, size: 0, points }]);
-      const tiny = b !== null && b.w + b.h < 4 / view.zoom;
-      const now = performance.now();
-      dot = !tiny ? null : dot && now - dot.at < DOUBLE_MS ? dot : { before, at: now };
       return;
     }
     if (g.kind === 'shape') {
@@ -541,25 +536,16 @@
   let drawingBefore: Drawing | null = null;
   $effect(() => { if (gesture?.kind === 'erase' && drawingBefore === null) drawingBefore = history.now; if (gesture === null) drawingBefore = null; });
 
-  /* A double-click with the pen leaves two dots before it is known to be a
-     double-click; the timeline from before the first is kept to take them
-     back when it turns out to be one. */
-  const DOUBLE_MS = 600;
-  let dot: { readonly before: Timeline; readonly at: number } | null = null;
-
-  /* Double-clicking empty ground makes a text card there, and on a connector
-     names it. */
+  /* Double-clicking a connector names it. */
   const ondblclick = (e: MouseEvent): void => {
     /* A captured pointer's clicks land on the surface itself. */
     if (e.target !== canvas && e.target !== host) return;
     const p = at(e.clientX, e.clientY);
     const l = linkUnder(drawing.items, p[0], p[1], 6 / scale);
-    if (l) { naming = l.id; return; }
-    const recent = dot && performance.now() - dot.at < DOUBLE_MS ? dot.before : null;
-    dot = null;
-    if (recent) { history = recent; onchange(recent.now); }
-    newTextBox(p, history.now, true);
+    if (l) naming = l.id;
   };
+
+  const deleteSelection = (): void => { commit(removeItems(drawing, selection)); selection = []; };
 
   const groupSelection = (): void => {
     const box = selectionBox;
@@ -627,8 +613,7 @@
     if (mod || e.altKey) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
       e.preventDefault(); e.stopPropagation();
-      commit(removeItems(drawing, selection));
-      selection = [];
+      deleteSelection();
       return;
     }
     /* The arrows nudge what is selected a screen pixel, ten with Shift; a key
@@ -959,6 +944,7 @@
         {:else}
           <button type="button" class="chip" title="Ctrl+G" onclick={groupSelection}>Group</button>
         {/if}
+        <button type="button" class="chip" title="Delete" onclick={deleteSelection}>Delete</button>
       </div>
     {/if}
   </div>
