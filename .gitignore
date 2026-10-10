@@ -8,3 +8,5 @@ node_modules
 __pycache__/
 # the figure sandbox is a local playground for visualisations, never published
 omnistax-content/Figure Sandbox/
+# Lukin and Childress, Modern Atomic and Optical Physics II: unlicensed, local until permission is granted
+omnistax-content/Modern Atomic and Optical Physics II/
