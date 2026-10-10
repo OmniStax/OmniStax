@@ -52,7 +52,7 @@ with sync_playwright() as playwright:
     page.locator("#settings").wait_for(state="visible")
     page.keyboard.press("Escape")
 
-    # A section of a book not downloaded opens the shell on the book's front,
+    # A section of a book not downloaded opens the shell on the book's first page,
     # and the section's own pane says it cannot load.
     page.goto(BASE + PATH)
     page.wait_for_selector(".shell", timeout=20_000)

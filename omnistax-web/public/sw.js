@@ -66,10 +66,17 @@ const fromPins = async (held, request, installs) => {
   }
   return miss;
 };
-/* A downloaded book carries one page, its own front, and the shell on it opens
-   whichever section the address names. Offline, the front of OmniStax is the
-   front of a downloaded book: its own page needs the first library book's data. */
-const shellOf = async (pin) => (await caches.open(cacheName(pin.bookId, pin.release, pin.artifact))).match(`/${pin.bookId}/index.html`);
+/* A downloaded book carries one page, its first built page, named by the
+   book.json beside it, and the shell on it opens whichever section the address
+   names. Offline, the front of OmniStax is that page of a downloaded book: its
+   own page needs the first library book's data. A download made before carries
+   the book's old front instead. */
+const bookPage = async (cache, book) => {
+  const listed = await cache.match(`/${book}/book.json`); const manifest = listed ? await listed.json().catch(() => null) : null;
+  const page = manifest ? [manifest.intro, ...(manifest.chapters ?? []).flatMap((c) => [c.intro, ...(c.sections ?? []), c.summary]), manifest.summary].find((p) => p?.built) : null;
+  return (page ? await cache.match(`${page.url}index.html`) : undefined) ?? await cache.match(`/${book}/index.html`);
+};
+const shellOf = async (pin) => bookPage(await caches.open(cacheName(pin.bookId, pin.release, pin.artifact)), pin.bookId);
 /* The app opens offline with no book downloaded. The build lists its shell in
    /offline-shell.json; the worker keeps one complete copy, and a copy is
    complete once the list itself is in it, after every verified file. A newer
@@ -101,11 +108,11 @@ const saveShell = async () => {
 };
 let saving = null;
 const refreshShell = () => saving ??= saveShell().catch(() => undefined).finally(() => { saving = null; });
-/* A page of a book that is not downloaded opens on the book's front, whose shell reads the address. */
+/* A page of a book that is not downloaded opens on the book's first page, whose shell reads the address. */
 const fromShell = async (pathname, navigate) => {
   const shell = await shellCache(); if (!shell) return null;
   const book = pathname.split('/').filter(Boolean)[0];
-  return await shell.match(pathname) ?? await shell.match(logicalOf(pathname)) ?? (navigate && book ? await shell.match(`/${book}/index.html`) : undefined) ?? null;
+  return await shell.match(pathname) ?? await shell.match(logicalOf(pathname)) ?? (navigate && book ? await bookPage(shell, book) : undefined) ?? null;
 };
 const offlinePage = () => new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OmniStax offline</title><style>body{font:16px system-ui;max-width:42rem;margin:12vh auto;padding:1rem}a{color:#1d4ed8}</style><h1>This page is not downloaded</h1><p>Open an available offline textbook from the <a href="/">OmniStax library</a>, or reconnect to download it.</p>', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 

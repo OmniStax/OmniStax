@@ -10,7 +10,7 @@ sections load on demand through the "+" on each tab strip; see
 summary page (root `RULES.md` item 21) is a text document keyed by the
 chapter and its role (`doc:2.intro/text`, or
 `doc:intro/text` for the book's own) and titled by its own title; the
-explorer and the book's front page list it where the book prints it,
+explorer lists it where the book prints it,
 before the first section or after the last.
 
 ## The model

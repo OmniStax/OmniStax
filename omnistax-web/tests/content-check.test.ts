@@ -340,7 +340,10 @@ test('checkFigureRefs: a figure the prose cites that no row carries is a warning
   assert.deepEqual(run(checkFigureRefs, { section: folded(['16.3']), textHtml: `${FOLDED}<p>See Figures 16.2 and 16.3.</p>` }), [], 'a folded number is carried');
   assert.deepEqual(run(checkFigureRefs, cite('<figure class="photo"><figcaption><span class="eyebrow">Figure 16.9</span></figcaption></figure>')), [], 'an eyebrow names its own figure and is no citation');
   assert.deepEqual(errorsOf(checkFigureRefs(fixture(cite('Figure 4.1')))), [], 'a warning is no error');
-  assert.deepEqual(citedNumbers('Figure 2.9, Figures 2.10 and 2.9, Example 2.3, <span class="eyebrow">Figure 2.1</span>'), ['2.9', '2.10']);
+  assert.deepEqual(citedNumbers('Figure 2.9, Figures 2.10 and 2.9, Example 2.3, <span class="eyebrow">Figure 2.1</span>'), ['2.9', '2.10']);  const ex = (prompt: string, o: object = {}) => ({ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt, answer: { type: 'open', solution: 'As Figure 16.2 shows.' }, ...o });
+  assert.deepEqual(run(checkFigureRefs, { section: { ...folded(['16.3']), exercises: [ex('In Figure 16.3, how far?')] }, textHtml: FOLDED }), [], 'an exercise citing a folded number is carried');
+  assert.deepEqual(run(checkFigureRefs, { section: { exercises: [ex('In Figure 16.7, how far?')] } }), ['16.1/section.json exercises[p1]: cites Figure 16.7, which no figure row or exercise card of the book carries']);
+  assert.deepEqual(run(checkFigureRefs, { section: { exercises: [ex('In Figure 16.7, how far?', { figure: { src: '/media/x.jpg', caption: 'Figure 16.7 A ruler.' } })] } }), [], 'the figure an exercise card keeps carries its number');
 });
 
 test('checkSources: a source_id the source it was taken from does not hold', () => {

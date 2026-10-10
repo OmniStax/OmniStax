@@ -116,8 +116,8 @@ a picked one unpins it. `select.ts` holds the tri-state checkbox logic
 pick into the remaining parts.
 
 In the session a sticky bar holds the numbered grid (✓ or ✗ per answered
-exercise), "One at a time | All", and End session. A self-marked answer
-advances; a multiple-choice or AI-graded one stays until Next.
+exercise), "One at a time | All", and End session. Every answered exercise
+stays until Next, with its verdict, Discuss with AI and Add a note beneath it.
 
 An exercise is marked seen only when its card is actually presented. Slots in
 an abandoned round that the reader never visited remain unseen.

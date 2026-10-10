@@ -17,7 +17,7 @@
   import { KIND_LABEL, referenceRows, type ReferenceRow } from '../../lib/sections/reference';
   import { conceptId, sectionId, sectionRef, spanId, spanRef } from '../../lib/types/ids';
   import type { FormDTO } from '../../lib/content/schema';
-  import { goSpanFromView, openSectionFromView, openingInView, type Opening } from '../../lib/sections/nav.svelte';
+  import { goSpanFromView, openSectionFromView, openingInView, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
   import { goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { targetOf } from '../../lib/hover/cards';
   import { settings } from '../../lib/settings/store.svelte';
@@ -57,7 +57,7 @@
 
 {#snippet form(f: FormDTO)}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="form" data-eq={f.id} onclick={(e) => pickForm(f, e)}>
+  <div class="form" data-eq={f.id} onclick={(e) => pickForm(f, e)} onauxclick={onMiddle((e) => pickForm(f, e))}>
     <div class="eq" use:tex={f.tex}></div>
     {#if f.condition}<small>{f.condition}</small>{/if}
   </div>
@@ -67,7 +67,7 @@
   {@const c = r.concept}
   {@const extra = c.forms.slice(1)}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-  <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }} onclick={(e) => pick(r, e)} onauxclick={(e) => { if (e.button === 1) pick(r, e); }}>
+  <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }} onclick={(e) => pick(r, e)} onauxclick={onMiddle((e) => pick(r, e))}>
     <div class="head">
       <i class="tag k-{c.kind}">{KIND_LABEL[c.kind]}</i>
       <span class="name" use:math={c.name}></span>

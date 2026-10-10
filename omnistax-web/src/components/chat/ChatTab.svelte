@@ -5,7 +5,7 @@
   import Transcript from './Transcript.svelte';
   import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
-  import { pending } from '../../lib/chat/open.svelte';
+  import { pending, takeChips } from '../../lib/chat/open.svelte';
   import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
   import { replyParent, withLeaf } from '../../lib/chat/tree';
   import { copyChatPlain, copyChatReference } from '../../lib/drawer/chatdrop';
@@ -36,6 +36,8 @@
   $effect(() => {
     if (started) return;
     started = true;
+    const given = takeChips(chatId);
+    if (given) { chips = given; pinnedSection = given.find((c) => c.kind === 'section')?.key ?? null; return; }
     const ref = focus.section;
     if (ref) void registry.load(ref).then(() => {
       const c = chipFor(ref);

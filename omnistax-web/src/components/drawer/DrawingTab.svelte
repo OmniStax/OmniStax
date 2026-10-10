@@ -56,7 +56,6 @@
   import { fillThumbs, thumbnailOf, waitingThumbs } from '../../lib/drawer/thumb';
   import { openItem } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { split } from '../../lib/layout/model';
   import { paramsQuery, parseLink } from '../../lib/notes/md/links';
   import { dragging } from '../../lib/layout/drag.svelte';
   import {
@@ -392,6 +391,7 @@
     if (e.pointerType === 'pen') penDown = true;
     const side = (e.target as HTMLElement).closest<HTMLElement>('[data-side]');
     if (side && hovered && e.button === 0) {
+      e.preventDefault();
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       drawingPointer = e.pointerId;
       gesture = { kind: 'connect', from: { item: hovered, side: side.dataset.side as Side }, to: at(e.clientX, e.clientY) };
@@ -403,6 +403,7 @@
     /* A press on a card, a frame or a chat is theirs: taking the pointer here
        would send their clicks and double-clicks to the surface instead. */
     if (!panning && !grabsSelection(e) && (e.target as HTMLElement).closest(OWN_POINTER)) return;
+    e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     drawingPointer = e.pointerId;
     if (panning) { gesture = { kind: 'pan', x: e.clientX, y: e.clientY, from: view }; return; }
@@ -567,6 +568,11 @@
     const settled = history.now;
     history = step({ ...history, now: base }, settled);
     onchange(settled);
+  };
+
+  const oncontextmenu = (e: MouseEvent): void => {
+    const t = e.target as HTMLElement;
+    if (!t.isContentEditable && !t.closest('input, textarea')) e.preventDefault();
   };
 
   const oncancel = (e: PointerEvent): void => { touches.delete(e.pointerId); pinch = null; gesture = null; drawingPointer = null; if (e.pointerType === 'pen') penDown = false; };
@@ -748,15 +754,15 @@
 
   /* ── opening what a frame holds ────────────────────────────────────────── */
 
-  /* A figure opens in a split to the right of the drawing, where it has a
-     pane to itself at the size the book draws it. Everything else with
-     a tab of its own opens wherever its tab opens; a card of the book's tables
-     has no tab, so its glyph is not drawn at all. */
+  /* A figure opens as a tab of the drawing's group, or beside it when the click
+     asked for a new group. Everything else with a tab of its own opens wherever
+     its tab opens; a card of the book's tables has no tab, so its glyph is not
+     drawn at all. */
   const openFrame = (key: string): void => {
     const link = parseLink(key);
     if (link.kind === 'figure') {
       const group = layoutStore.layout.groups.findIndex((g) => g.key === groupKey);
-      layoutStore.apply((l) => split(l, group < 0 ? l.focus : group, 'right', figItem(cardBooks.ref(link.section, link.book), link.id)));
+      void openItem(itemKey(figItem(cardBooks.ref(link.section, link.book), link.id)), group < 0 ? undefined : group).catch(() => {});
       return;
     }
     const item = link.kind === 'exercise' ? exItem(cardBooks.ref(link.section, link.book), link.id)
@@ -851,7 +857,7 @@
     aria-label="Drawing canvas: press P for the pen, E for the eraser, L for the lasso"
     style:cursor={gesture?.kind === 'pan' ? 'grabbing' : CURSOR[tool]}
     {onpointerdown} {onpointermove} {onpointerup} onpointercancel={oncancel}
-    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick} {onpaste}
+    {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick} {onpaste} {oncontextmenu}
     onpointerleave={() => { lastPointer = null; if (!gesture) hovered = null; }}>
     <span class="probe" data-book={focus.book} bind:this={probe} hidden></span>
     <!-- The canvas is the pane; the boxes and the frames stand on a container
@@ -954,7 +960,7 @@
   /* The tab is an `article`, and the book's own rule for one is a column of
      prose 820px wide with a wide margin under it. Here it is the pane itself,
      so that rule is turned off: the whole of the panel is drawable ground. */
-  .drawing-tab{position:absolute;inset:0;max-width:none;margin:0;padding:0;display:flex;flex-direction:column;font-family:var(--sans);background:var(--bg)}
+  .drawing-tab{position:absolute;inset:0;max-width:none;margin:0;padding:0;display:flex;flex-direction:column;font-family:var(--sans);background:var(--bg);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   /* The canvas takes every pointer for itself: no scrolling, no pinch of the
      browser's own, no long-press menu, because all of those are gestures the
      drawing means something else by. */

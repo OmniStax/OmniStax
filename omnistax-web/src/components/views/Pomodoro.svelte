@@ -3,7 +3,7 @@
   import { newestFirst, parseClock, ranMs, spanText } from '../../lib/pomodoro/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { itemKey, viewItem } from '../../lib/types/ids';
-  import { openItem } from '../../lib/sections/nav.svelte';
+  import { openItem, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import Vectors from '../pomodoro/Vectors.svelte';
   import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
   import SessionEditor from '../pomodoro/SessionEditor.svelte';
@@ -26,7 +26,7 @@
     requestAnimationFrame(() => box?.focus());
   });
   const keep = (): void => { pomodoro.keep(summary, picked); summary = ''; picked = []; };
-  const openStats = (): void => { void openItem(itemKey(viewItem('pomodoro-stats'))); };
+  const openStats = (e: MouseEvent): void => { void openItem(itemKey(viewItem('pomodoro-stats')), undefined, openingOf(e)); };
 
   const edit = (): void => { draft = pomodoro.clock; };
   const commit = (): void => {
@@ -112,7 +112,7 @@
   <div class="today">
     <div><span class="eyebrow">Today</span><strong>{todayMs ? spanText(todayMs) : '0m'}</strong></div>
     <div><span class="eyebrow">Sessions</span><strong>{today.length}</strong></div>
-    <button type="button" class="btn ghost sm" onclick={openStats}>More Stats →</button>
+    <button type="button" class="btn ghost sm" onclick={openStats} onauxclick={onMiddle(openStats)}>More Stats →</button>
   </div>
   <ul class="sessions">
     {#each today as p (p.id)}<SessionRow {p} compact />{/each}

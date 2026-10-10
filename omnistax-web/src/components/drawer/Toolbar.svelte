@@ -152,8 +152,9 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
 <style>
   .book-row{display:contents}
-  .toolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font-family:var(--sans)}
-  .group{display:flex;align-items:center;gap:3px}
+  .toolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font-family:var(--sans);touch-action:none}
+  .group{display:flex;align-items:center;flex-wrap:wrap;gap:3px;min-width:0}
+  .group.swatches{gap:6px 3px}
   .group.right{margin-left:auto;gap:6px}
   .group.view{gap:6px}
   .tool{display:grid;place-items:center;width:28px;height:28px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;padding:0}

@@ -8,7 +8,7 @@
   import { chatCorpus } from '../../lib/search/chatcorpus.svelte';
   import { showChatAt } from '../../lib/chat/open.svelte';
   import { countFound, findAll, NOTHING_FOUND, type Source } from '../../lib/search/sources';
-  import { openFile } from '../../lib/sections/nav.svelte';
+  import { openFile, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { bookId } from '../../lib/types/ids';
@@ -49,7 +49,7 @@
   onMount(() => { void fileCorpus.load(); void chatCorpus.load(); input?.focus(); });
   /* A book taken while the view is open is searched from then on. */
   $effect(() => { searchStore.books; void searchStore.loadAll(); });
-  const go = (i: number): void => { const h = hits[i]; if (!h) return; goHit(h); };
+  const go = (i: number, e?: MouseEvent | KeyboardEvent): void => { const h = hits[i]; if (!h) return; goHit(h, openingOf(e)); };
   const move = (d: 1 | -1): void => { const n = Math.min(hits.length, shown); if (n) sel = (((sel + d) % n) + n) % n; };
   /* The keys stop here, so the chords the shell listens for stay quiet while the reader types. */
   const onKey = (e: KeyboardEvent): void => {
@@ -57,7 +57,7 @@
     if (e.key === 'Escape') { e.preventDefault(); query = ''; asked = ''; return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return; }
-    if (e.key === 'Enter') { e.preventDefault(); go(sel); }
+    if (e.key === 'Enter') { e.preventDefault(); go(sel, e); }
   };
   $effect(() => {
     const r = list?.querySelector<HTMLElement>(`[data-hit="${sel}"]`); if (!r) return;
@@ -95,7 +95,7 @@
       {#each byBook as b (b.book)}
         {#if byBook.length > 1 || b.book !== focus.book}<div class="eyebrow book">{b.title}</div>{/if}
         {#each b.hits as { h, i } (i)}
-          <button type="button" class="hit k-{h.kind}" class:sel={i === sel} data-book={h.book} data-hit={i} onmousemove={() => (sel = i)} onclick={() => go(i)}>
+          <button type="button" class="hit k-{h.kind}" class:sel={i === sel} data-book={h.book} data-hit={i} onmousemove={() => (sel = i)} onclick={(e) => go(i, e)} onauxclick={onMiddle((e) => go(i, e))}>
             {#if h.kind === 'text'}
               <span class="where">{where(h)}{#if h.head} › {h.head}{/if}</span>
               <span class="line">{#each h.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
@@ -116,7 +116,7 @@
       {#if fileHits.length}
         <div class="eyebrow book">Your Files</div>
         {#each fileHits as f (`${f.file}:${f.page}`)}
-          <button type="button" class="hit k-text" onclick={() => void openFile(f.file, f.page)}>
+          <button type="button" class="hit k-text" onclick={(e) => void openFile(f.file, f.page, undefined, openingOf(e))} onauxclick={onMiddle((e) => void openFile(f.file, f.page, undefined, openingOf(e)))}>
             <span class="where">{f.name} · page {f.page}</span>
             <span class="line">{#each f.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           </button>

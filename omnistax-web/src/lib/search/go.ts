@@ -3,7 +3,7 @@
    again by its opening words; the span that introduces a concept; the span a
    symbol or a form is anchored to. */
 import { spansOf } from '../sections/concepts.svelte';
-import { findEl, goSpan, jump, openDoc } from '../sections/nav.svelte';
+import { findEl, goSpan, jump, openDoc, openingAs, type Opening } from '../sections/nav.svelte';
 import { registry } from '../sections/registry.svelte';
 import { bookId, conceptId, sectionId, sectionRef, spanId, spanRef, type BookId } from '../types/ids';
 import type { Hit } from './model';
@@ -29,20 +29,20 @@ const goText = (book: BookId, page: string, span: string, text: string): void =>
 const goAnchored = (book: BookId, section: string, anchor: string | undefined): void => { if (anchor) goSpan(spanRef(book, spanId(anchor))); else void openDoc(sectionRef(book, sectionId(section)), 'text'); };
 
 /* The concept's coverage lives in its chapter, which is loaded before the spans are read. */
-const goConcept = async (book: BookId, id: string, section: string): Promise<void> => {
+const goConcept = async (book: BookId, id: string, section: string, how: Opening): Promise<void> => {
   const ref = sectionRef(book, sectionId(section));
   await registry.ensureBook(book);
   const ch = registry.chapterOf(ref); if (ch) await registry.loadChapter(book, ch.dir).catch(() => {});
   const sp = spansOf(book, conceptId(id)); const t = sp.intro[0] ?? sp.uses[0];
-  if (t) goSpan(spanRef(book, t)); else void openDoc(ref, 'text');
+  openingAs(how, () => { if (t) goSpan(spanRef(book, t)); else void openDoc(ref, 'text'); });
 };
 
-export const goHit = (hit: Hit): void => {
+export const goHit = (hit: Hit, how: Opening = 'tab'): void => openingAs(how, () => {
   const book = bookId(hit.book);
   switch (hit.kind) {
     case 'text': goText(book, hit.page.id, hit.span, hit.text); return;
-    case 'concept': void goConcept(book, hit.concept.id, hit.concept.section); return;
+    case 'concept': void goConcept(book, hit.concept.id, hit.concept.section, how); return;
     case 'definition': goAnchored(book, hit.symbol.section, hit.symbol.anchor); return;
     case 'formula': goAnchored(book, hit.form.section, hit.form.anchor);
   }
-};
+});

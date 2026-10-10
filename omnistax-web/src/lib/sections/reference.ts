@@ -23,11 +23,10 @@ export const conceptOfTerm = (concepts: readonly ConceptDTO[], term: string, nea
   return named.find(near) ?? named[0];
 };
 
-/* The words to mark in a chapter's prose: the terms of the concepts it
-   introduces and of the ones its spans deal with, among the concepts its data
-   carries, so that every word marked has a card to open. */
-export const chapterTerms = (concepts: readonly ConceptDTO[], sections: ReadonlySet<string>, covered: ReadonlySet<string>): readonly string[] =>
-  [...new Set(concepts.filter((c) => sections.has(c.section) || covered.has(c.id)).flatMap((c) => c.terms))];
+/* The words to mark in a book's prose: the terms of every concept it has
+   built, wherever it is taught, so that every word marked has a card to open. */
+export const bookTerms = (concepts: readonly ConceptDTO[]): readonly string[] =>
+  [...new Set(concepts.filter((c) => c.status === 'built').flatMap((c) => c.terms))];
 
 /* One row of the Reference view: a concept the book has built, and the unit of
    the symbol it is denoted by, read off that symbol's meaning in the concept's

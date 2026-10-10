@@ -57,8 +57,8 @@ test('example references become links only when the example is in the article', 
 });
 test('the real sections never mark a term inside a heading or inside another term', () => {
   const book = JSON.parse(fs.readFileSync(path.join(ROOT, 'book.json'), 'utf8')) as { concepts: { section: string; terms?: string[] }[] };
+  const terms = book.concepts.flatMap((c) => c.terms ?? []);
   for (const ch of ['ch02', 'ch16']) {
-    const terms = book.concepts.filter((c) => c.section.split('.')[0] === ch.slice(2).replace(/^0/, '')).flatMap((c) => c.terms ?? []);
     /* a section folder that holds only a source.md is one being built, and has no article to check yet */
     for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, ch, d, 'text.html')))) {
       const out = wrapTerms(fs.readFileSync(path.join(ROOT, ch, dir, 'text.html'), 'utf8'), terms);

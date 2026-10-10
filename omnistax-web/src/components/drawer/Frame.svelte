@@ -33,6 +33,7 @@
   import { embedText, isBook, linkInner, parseLink } from '../../lib/notes/md/links';
   import { FigureMounts } from '../../lib/notes/md/figlive';
   import { focusedBook } from '../../lib/notes/resolve';
+  import { onMiddle, openingAs, openingOf } from '../../lib/sections/nav.svelte';
   import '../../lib/notes/md/cards.css';
 
   let {
@@ -79,6 +80,7 @@
     return () => window.removeEventListener('pointerdown', away, true);
   });
   const body = $derived(note ? noteDocs.get(note)?.body ?? '' : '');
+  const openOwn = (e: MouseEvent, key: string): void => { e.stopPropagation(); openingAs(openingOf(e), () => onopen?.(key)); };
   const onkey = (e: KeyboardEvent): void => {
     e.stopPropagation();
     if (e.key === 'Escape') { e.preventDefault(); onedit?.(false); }
@@ -184,7 +186,7 @@
   {#if target && onopen}
     {@const key = target}
     <button type="button" class="open" aria-label="Open"
-      onclick={(e) => { e.stopPropagation(); onopen(key); }}>↗</button>
+      onclick={(e) => openOwn(e, key)} onauxclick={onMiddle((e) => openOwn(e, key))}>↗</button>
   {/if}
   <span class="grab" onpointerdown={onGrab}></span>
   <span class="corner" onpointerdown={onCorner}></span>

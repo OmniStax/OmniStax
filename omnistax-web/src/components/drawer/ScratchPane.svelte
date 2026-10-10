@@ -50,7 +50,7 @@
 </div>
 
 <style>
-  .scratch-pane{position:absolute;inset:0;display:flex;flex-direction:column;font-family:var(--sans)}
+  .scratch-pane{position:absolute;inset:0;display:flex;flex-direction:column;font-family:var(--sans);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .head{flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px 6px;border-bottom:1px solid var(--rule);background:var(--bg)}
   .what{font-size:0.86rem;font-weight:600;color:var(--ink)}
   .saved{font-size:0.74rem;color:var(--muted)}

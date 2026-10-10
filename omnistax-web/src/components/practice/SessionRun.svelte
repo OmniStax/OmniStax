@@ -81,7 +81,7 @@
         <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
           <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i] ?? null} session={id}
             number={page.showAll ? `Exercise ${i + 1}` : `Exercise ${i + 1} of ${n}`}
-            onanswer={page.showAll ? undefined : (_ok, self) => { if (self) practice.afterAnswer(item, i); }} />
+            onanswer={undefined} />
         </div>
       {/key}
       <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>

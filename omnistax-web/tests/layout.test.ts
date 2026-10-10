@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, replaceTab, unreplace, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
-import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, bookPageItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
 import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
@@ -89,13 +89,13 @@ test('openInFocus takes a view out of the sidebar and gives it a group', () => {
   assert.equal(where(l, notes)?.type, 'group'); assert.deepEqual(l.sides.left.items, []);
 });
 test('a first visit stands About OmniStax before the page asked for', () => {
-  const book = ensureOwn(firstLayout(bookPageItem(B)), bookPageItem(B));
-  assert.deepEqual(book.groups[0].tabs, ['page:about', 'page:book/college-physics-2e']); assert.equal(book.groups[0].active, 'page:book/college-physics-2e');
+  const book = ensureOwn(firstLayout(own), own);
+  assert.deepEqual(book.groups[0].tabs, ['page:about', text]); assert.equal(book.groups[0].active, text);
   assert.deepEqual(firstLayout(aboutItem()).groups[0].tabs, ['page:about'], 'the root address shows About alone');
 });
 test('ensureOwn opens the page\'s own item wherever the layout left it', () => {
-  const bare = ensureOwn(defaultLayout(aboutItem()), bookPageItem(B));
-  assert.deepEqual(bare.groups[0].tabs, ['page:book/college-physics-2e', 'page:about']); assert.equal(bare.groups[0].active, 'page:book/college-physics-2e');
+  const bare = ensureOwn(defaultLayout(aboutItem()), own);
+  assert.deepEqual(bare.groups[0].tabs, [text, 'page:about']); assert.equal(bare.groups[0].active, text);
   const already = ensureOwn(defaultLayout(), own);
   assert.deepEqual(already.groups[0].tabs, [text], 'the item is where it was, and is made active');
   assert.equal(already.groups[0].active, text);
@@ -130,8 +130,8 @@ test('a tab, a pinned scope or a chord saved for Definitions or Formulas is read
   assert.deepEqual(parseLayout(saved, () => true)?.groups[0].tabs, ['view:reference'], 'the two retired tabs are one Reference tab');
 });
 test('page and note keys round-trip and belong to no section', () => {
-  assert.equal(itemKey(aboutItem()), 'page:about'); assert.equal(itemKey(bookPageItem(B)), 'page:book/college-physics-2e');
-  assert.deepEqual(parseItemKey('page:book/college-physics-2e'), bookPageItem(B)); assert.equal(parseItemKey('page:book'), null);
+  assert.equal(itemKey(aboutItem()), 'page:about');
+  assert.equal(parseItemKey('page:book/college-physics-2e'), null, 'the retired front of a book drops out of a stored layout'); assert.equal(parseItemKey('page:book'), null);
   assert.deepEqual(parseItemKey('page:about'), aboutItem());
   assert.equal(parseItemKey('page:elsewhere'), null);
   const n = noteId('a1b2c3d4');
@@ -160,9 +160,9 @@ test('a tab of a section no book has stays in the layout, for its pane to say so
 });
 test('a v5 layout is read once with its keys qualified by the boot book', () => {
   const v5 = { sides: { left: { width: 250, items: ['view:explorer'] }, right: { width: 300, items: [] } }, home: { 'doc:2.1/text': 'right' }, collapsed: [],
-    groups: [{ key: 'abc123', tabs: ['doc:2.1/text', 'fig:2.1/sim-plane', 'ex:7.intro/p3', 'sheet:elements', 'page:book', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1'], active: 'fig:2.1/sim-plane' }], focus: 0, tree: { type: 'leaf', group: 'abc123' } };
+    groups: [{ key: 'abc123', tabs: ['doc:2.1/text', 'fig:2.1/sim-plane', 'ex:7.intro/p3', 'sheet:elements', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1'], active: 'fig:2.1/sim-plane' }], focus: 0, tree: { type: 'leaf', group: 'abc123' } };
   const m = migratedV5(v5, B) as { groups: { key: string; tabs: string[]; active: string }[]; home: Record<string, string>; tree: { group: string } };
-  assert.deepEqual(m.groups[0].tabs, ['doc:college-physics-2e/2.1/text', 'fig:college-physics-2e/2.1/sim-plane', 'ex:college-physics-2e/7.intro/p3', 'sheet:college-physics-2e/elements', 'page:book/college-physics-2e', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1']);
+  assert.deepEqual(m.groups[0].tabs, ['doc:college-physics-2e/2.1/text', 'fig:college-physics-2e/2.1/sim-plane', 'ex:college-physics-2e/7.intro/p3', 'sheet:college-physics-2e/elements', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1']);
   assert.equal(m.groups[0].active, 'fig:college-physics-2e/2.1/sim-plane');
   assert.deepEqual(m.home, { 'doc:college-physics-2e/2.1/text': 'right' });
   assert.equal(m.groups[0].key, 'abc123'); assert.equal(m.tree.group, 'abc123');
@@ -415,24 +415,9 @@ test('a closed group comes back whole, in its old place, showing what it showed'
   assert.equal(last.groups[0].active, text);
 });
 
-const other = 'doc:college-physics-2e/2.2/text';
-test('a replacement takes the place of the active tab, and an empty group simply gains it', () => {
-  const l = openTab(openTab(defaultLayout(), second, 0), text, 0);
-  const r = replaceTab(l, other, 0);
-  assert.deepEqual(r.groups[0].tabs, [other, second]); assert.equal(r.groups[0].active, other);
-  const empty = closeItem(defaultLayout(), text, 0);
-  assert.deepEqual(replaceTab(empty, other, 0).groups[0].tabs, [other]);
-  assert.deepEqual(replaceTab(l, second, 0).groups[0].tabs, [text, second], 'an item the group holds already is only shown');
-});
-test('a replacement taken back stands the closed tab again before the new one', () => {
-  const l = replaceTab(defaultLayout(), other, 0);
-  const back = unreplace(l, l.groups[0].key, text, other);
-  assert.deepEqual(back.groups[0].tabs, [text, other]); assert.equal(back.groups[0].active, other);
-  assert.equal(unreplace(back, back.groups[0].key, text, other), back, 'nothing to take back twice');
-});
-test('a rail view shows in place of the focused tab, or comes forward where the group holds one', () => {
+test('a rail view opens as a tab of the focused group, or comes forward where the group holds one', () => {
   const l = showViewInFocus(defaultLayout(), 'concepts', newViewItem('concepts'));
-  assert.equal(l.groups[0].tabs.length, 1); assert.equal(viewKindOf(l.groups[0].active!), 'concepts');
+  assert.equal(l.groups[0].tabs.length, 2); assert.equal(l.groups[0].tabs[0], text); assert.equal(viewKindOf(l.groups[0].active!), 'concepts');
   const back = activate(openTab(l, text, 0), 0, text);
   const again = showViewInFocus(back, 'concepts', newViewItem('concepts'));
   assert.deepEqual(again.groups[0].tabs, back.groups[0].tabs); assert.equal(again.groups[0].active, l.groups[0].active);

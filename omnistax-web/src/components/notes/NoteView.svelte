@@ -28,7 +28,7 @@
   import { anyHighlight, fileStub, goMark } from '../../lib/files/resolver';
   import { registry } from '../../lib/sections/registry.svelte';
   import { BookResolver, focusedBook, isSpan } from '../../lib/notes/resolve';
-  import { goSpan, openDoc, openFile, openItem } from '../../lib/sections/nav.svelte';
+  import { goSpan, openDoc, openFile, openItem, openingAs, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { dragging } from '../../lib/layout/drag.svelte';
   import { drawingId as asDrawingId, drawingItem, fileId as asFileId, itemKey, noteId as asNoteId, noteItem, parseSecKey, type NoteId } from '../../lib/types/ids';
   import { chatInfo, drawingInfo, drawingNamed } from '../../lib/drawer/cards';
@@ -204,7 +204,7 @@
     if (isSpan(to)) goSpan(to); else void openDoc(to, 'text');
   };
 
-  const onclick = (e: MouseEvent): void => {
+  const follow = (e: MouseEvent): void => {
     const t = e.target as HTMLElement;
     const card = t.closest<HTMLElement>('.hl-embed[data-hl]');
     if (card?.dataset.hl) { const n = notes.get(card.dataset.hl); if (n) goNote(n); return; }
@@ -235,6 +235,8 @@
     const sec = /^section:(.+)$/.exec(link);
     if (sec) void openDoc(parseSecKey(sec[1]) ?? books.ref(sec[1]), 'text');
   };
+  const onclick = (e: MouseEvent): void => openingAs(openingOf(e), () => follow(e));
+  const onauxclick = (e: MouseEvent): void => { if ((e.target as Element).closest('a.wiki, .hl-embed, .fig-embed, .book-embed')) onMiddle(onclick)(e); };
 
   /* ── a thing dropped into the note ─────────────────────────────────────── */
 
@@ -276,7 +278,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="note-view" class:dropping bind:this={host} {onclick} {ondragover} {ondragleave} {ondrop}>
+<div class="note-view" class:dropping bind:this={host} {onclick} {onauxclick} {ondragover} {ondragleave} {ondrop}>
   {#if html}{@html html}{:else}<p class="blank">Nothing here yet — press Ctrl+E to write.</p>{/if}
 </div>
 

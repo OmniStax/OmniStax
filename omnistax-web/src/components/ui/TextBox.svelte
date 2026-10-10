@@ -14,6 +14,7 @@
      everything a note can hold — maths, a link to a section, a card of the
      book. */
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
+  import { openingAs, openingOf } from '../../lib/sections/nav.svelte';
   import type { Resolver } from '../../lib/notes/md/render';
   import '../../lib/notes/md/cards.css';
 
@@ -106,7 +107,7 @@
     const link = a?.dataset.link;
     if (!link) return;
     e.preventDefault(); e.stopPropagation();
-    onlink?.(link);
+    openingAs(openingOf(e), () => onlink?.(link));
   };
 </script>
 
@@ -114,7 +115,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="text-box" class:selected class:writing bind:this={host}
   ondblclick={(e) => { e.stopPropagation(); startWriting(); }}
-  onclick={(e) => { e.stopPropagation(); onselect?.(); follow(e); }}>
+  onclick={(e) => { e.stopPropagation(); onselect?.(); follow(e); }} onauxclick={(e) => { if (e.button === 1) follow(e); }}>
   {#if writing}
     <textarea class="text" value={body} spellcheck="false" aria-label="Text box"
       oninput={(e) => onchange((e.currentTarget as HTMLTextAreaElement).value)}

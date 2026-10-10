@@ -172,6 +172,7 @@ const readerBooks = (): readonly BookId[] => library.shelf(focus.book).map(bookI
 const entryRow = (e: Entry, where: string): PickerRow | undefined => {
   if (e.kind === 'note') { const d = noteDocs.get(noteId(e.id)); return { category: 'notes', key: e.id, label: e.name, detail: where, target: { kind: 'note', name: e.name }, text: d?.body ?? '' }; }
   if (e.kind === 'drawing' && e.drawingId) return { category: 'drawings', key: e.drawingId, label: e.name, detail: where, target: { kind: 'drawing', id: e.drawingId } };
+  if (e.kind === 'chat' && e.chatId) return { category: 'chats', key: e.chatId, label: e.name, detail: where, target: { kind: 'chat', chat: e.chatId } };
   if (e.kind === 'file' && e.fileId) return { category: 'files', key: e.fileId, label: e.name, detail: where, target: { kind: 'file', file: e.fileId } };
   return undefined;
 };

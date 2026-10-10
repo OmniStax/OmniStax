@@ -4,11 +4,12 @@
      (annotations, concept map, reference), the study tools (exercises,
      pomodoro, conversations), and at the foot read-aloud when voice is on, the
      command palette and the settings. A sidebar view's button shows it in the
-     sidebar and a second click puts it away; a page view's click shows it in
-     the focused group in place of the tab showing there, and a Ctrl click adds
-     another page of it. Every button drags, so any view can be dropped into a group. */
+     sidebar and a second click puts it away; a page view's click opens it as a
+     tab of the focused group, or brings forward the page of it that group holds,
+     and a Ctrl click puts a page of it in a new group beside. Every button drags,
+     so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, openInFocus, replaceTab, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, openInFocus, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
   import { isSidebarKind, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
@@ -38,17 +39,14 @@
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
-  /* A plain click shows the view in place of the focused group's tab, or brings
-     forward the page of it that group holds; Ctrl adds a page of its own as a
-     new tab, and Ctrl+Alt puts one in a group of its own beside. */
   const openPage = (kind: ViewKind, e: MouseEvent) => {
-    const how = openingOf(e);
-    layoutStore.apply((x) => (how === 'new' ? splitRight(x, x.focus, newViewItem(kind)) : how === 'tab' ? openTab(x, newViewItem(kind), x.focus) : showViewInFocus(x, kind, newViewItem(kind))));
+    const fresh = newViewItem(kind);
+    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, fresh) : showViewInFocus(x, kind, fresh)));
   };
-  /* The conversations are one page: wherever it stands it comes forward, and otherwise it opens the way the click asked. */
+  /* The conversations are one page: wherever it stands it comes forward. */
   const openChats = (e: MouseEvent) => {
-    const how = openingOf(e); const k = viewItem('chats');
-    layoutStore.apply((x) => (how === 'new' ? splitRight(x, x.focus, k) : where(x, k) || how === 'tab' ? openInFocus(x, k) : replaceTab(x, k, x.focus)));
+    const k = viewItem('chats');
+    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, k) : openInFocus(x, k)));
   };
   const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
   /* The chat button lights while any chat stands open, as a view's button
@@ -79,7 +77,8 @@
 </nav>
 
 <style>
-  .rail{grid-area:rl;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:var(--panel);border-right:1px solid var(--rule);font-family:var(--sans)}
+  .rail{grid-area:rl;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;min-height:0;overflow:hidden auto;scrollbar-width:none;background:var(--panel);border-right:1px solid var(--rule);font-family:var(--sans)}
+  .rail::-webkit-scrollbar{display:none}
   /* Three groups of views stand at the top, a rule between each; the app's own buttons sit at the foot. */
   .section{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
   .gap{width:20px;height:1px;background:var(--rule);margin:6px 0}
@@ -98,4 +97,6 @@
   button.counting{color:var(--accent)}
   button.counting :global(svg){transform:translateY(-4px)}
   .rail.drop{background:var(--soft)}
+  @media (max-height:620px){ button{width:32px;height:32px} button :global(svg){width:18px;height:18px} .gap{margin:4px 0} }
+  @media (max-height:440px){ .rail{padding:4px 0} button{width:28px;height:28px} .gap{margin:3px 0} }
 </style>

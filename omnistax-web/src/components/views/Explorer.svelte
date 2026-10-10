@@ -21,7 +21,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
-  import { go, openItem, openingOf, type Opening } from '../../lib/sections/nav.svelte';
+  import { go, openItem, openingOf, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { focusedGroup } from '../../lib/layout/model';
   import { draggable } from '../../lib/layout/drag.svelte';
@@ -29,7 +29,7 @@
   import { ICON } from '../../lib/icons';
   import { bookId, docItem, fileId, fileItem, itemKey, noteId, noteItem, sectionId, sectionRef, sheetId, sheetItem, sameSection, type SectionId, type SectionRef } from '../../lib/types/ids';
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
-  import { drawingId, drawingItem } from '../../lib/types/ids';
+  import { chatId, chatItem, drawingId, drawingItem } from '../../lib/types/ids';
   import { entriesOf, importFiles, importSummary, importTree, pickedOfEntries, pickedOfInput, type Picked } from '../../lib/files/import';
   import { ACCEPTED, ACCEPT_ATTR } from '../../lib/files/model';
   import ImportToast from '../files/ImportToast.svelte';
@@ -43,7 +43,7 @@
   import type { Target } from '../../lib/sections/scope';
   import { sizeLabel } from '../../lib/files/model';
 
-  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
+  type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'chat' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
     readonly key: string;            /* what selection and the expanded set call this row */
     readonly kind: RowKind;
@@ -181,6 +181,13 @@
           });
           return;
         }
+        if (e.kind === 'chat') {
+          out.push({
+            key: e.id, kind: 'chat', depth, label: e.name, icon: ICON.chat, entry: e,
+            expandable: false, open: false, dim: false, active: activeKey === itemKey(chatItem(chatId(e.chatId ?? e.id))),
+          });
+          return;
+        }
       });
     };
     /* A root is open by default, so its key in the expanded set means shut. */
@@ -310,6 +317,7 @@
     if (r.kind === 'note' && r.entry) return itemKey(noteItem(noteId(r.entry.id)));
     if (r.kind === 'file' && r.entry) return itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)));
     if (r.kind === 'drawing' && r.entry) return itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)));
+    if (r.kind === 'chat' && r.entry) return itemKey(chatItem(chatId(r.entry.chatId ?? r.entry.id)));
     if (!r.book) return null;
     if (r.kind === 'sheet') return itemKey(sheetItem(bookId(r.book), sheetId(r.key.slice(r.key.lastIndexOf('/') + 1))));
     if (r.kind === 'section' && r.section && !r.dim) return itemKey(docItem(sectionRef(bookId(r.book), r.section), 'text'));
@@ -322,15 +330,14 @@
     return true;
   };
   /* Clicking a row: the reader's rows open or select, a book's rows walk into
-     the book, and a section is a file that opens its text. A double-click is
-     a second click asking for a tab of its own. */
+     the book, and a section is a file that opens its text. */
   const activate = (r: Row, ev?: MouseEvent | KeyboardEvent): void => {
     explorer.selected = r.key;
     /* The shell closes whatever is open on any click it sees, so the row that
        opens the finder keeps its own click to itself. */
     if (r.kind === 'find') { ev?.stopPropagation(); ui.openFindTextbook(); return; }
     if (r.kind === 'root' || r.kind === 'folder' || r.kind === 'book' || r.kind === 'chapter' || r.kind === 'sheets') { fold(r); return; }
-    if (openRow(r, ev instanceof MouseEvent && ev.detail === 2 ? 'tab' : openingOf(ev))) return;
+    if (openRow(r, openingOf(ev))) return;
     if (r.kind === 'heading' && r.book && r.domId) go(bookId(r.book), r.domId);
   };
 
@@ -514,7 +521,7 @@
           role="treeitem" tabindex="-1" aria-selected={explorer.selected === r.key} aria-expanded={r.expandable ? r.open : undefined}
           style:padding-left="{6 + r.depth * 13}px"
           onclick={(ev) => activate(r, ev)}
-          onauxclick={(ev) => { if (ev.button === 1) activate(r, ev); }}
+          onauxclick={onMiddle((ev) => activate(r, ev))}
           oncontextmenu={(e) => { if (r.entry || tabOf(r) || placeOf(r)) openMenu(e, r); }}
           ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
@@ -535,10 +542,11 @@
             }
             if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); dropInto(r); }
           }}
-          draggable={r.kind === 'folder' || r.kind === 'note' || r.kind === 'file' || r.kind === 'drawing'}
+          draggable={r.kind === 'folder' || r.kind === 'note' || r.kind === 'file' || r.kind === 'drawing' || r.kind === 'chat'}
           use:noteDrag={r.kind === 'note' && r.entry ? itemKey(noteItem(noteId(r.entry.id)))
             : r.kind === 'file' && r.entry ? itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))
-              : r.kind === 'drawing' && r.entry ? itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id))) : null}>
+              : r.kind === 'drawing' && r.entry ? itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))
+                : r.kind === 'chat' && r.entry ? itemKey(chatItem(chatId(r.entry.chatId ?? r.entry.id))) : null}>
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
               aria-label={r.open ? 'Collapse' : 'Expand'}

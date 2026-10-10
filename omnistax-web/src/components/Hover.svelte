@@ -11,7 +11,7 @@
   import { targetOf, cardFor, openDelay, readyFor } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
   import { glyphOf } from '../lib/hover/data';
-  import { bookOfEl, findEl, goSpan, openingIn, openingAs } from '../lib/sections/nav.svelte';
+  import { bookOfEl, findEl, goSpan, openingIn, openingAs, onMiddle, wantsNewGroup } from '../lib/sections/nav.svelte';
   import { spanId, spanRef } from '../lib/types/ids';
   import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
@@ -110,7 +110,7 @@
       }
       const a = link?.matches('a.figref, a.xref') ? link : null; if (!a) return;
       const id = a.getAttribute('href')?.slice(1); const book = bookOfEl(a); if (!id || !book || findEl(book, id)) return;
-      e.preventDefault(); goSpan(spanRef(book, spanId(id))); close();
+      e.preventDefault(); goSpan(spanRef(book, spanId(id)), wantsNewGroup(e)); close();
     };
     const onScroll = () => { if (card) place(); };
     document.addEventListener('mouseover', onOver); document.addEventListener('mouseout', onOut);
@@ -132,9 +132,9 @@
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" data-type={card.type ?? null} use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
     {#each card.notes ?? [] as n (n.label)}<p class="aside" use:math={n.text}><span class="lead">{n.label}</span> {n.text}</p>{/each}
-    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
-    {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
-    {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)}>{a.label}</button>{/each}</div>{/if}
+    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)} onauxclick={onMiddle((e) => run(c, e))}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
+    {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} onauxclick={onMiddle((e) => run(l, e))} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)} onauxclick={onMiddle((e) => run(m, e))}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
+    {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)} onauxclick={onMiddle((e) => run(a, e))}>{a.label}</button>{/each}</div>{/if}
   </div>
 {/key}{/if}
 
@@ -177,11 +177,11 @@
   .actions button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
   /* The underline affordance: symbols (on the outer type wrapper, so a subscript
-     is included), glossary terms, example references. It is the reader's to
+     is included), glossary terms, the concepts the prose names, example references. It is the reader's to
      keep or to do without — "Underline what can be looked up" in the settings
      writes the class the rules hang from — and either way the card still opens. */
-  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
-  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word)), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word):hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
   /* A thing of the book an answer or a note names by a link: underlined in the link colour, since nothing around it says it is one. */
   :global(html:not(.no-underlines) .book-word){text-decoration:underline dotted;text-decoration-color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
   :global(.book-word .katex-html .enclosing[class*="kv-"]){text-decoration:none}
@@ -190,7 +190,7 @@
   :global(.book-word:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
   :global(.sim .katex-html .enclosing[class*="kv-"]){text-decoration:none}   /* a sim's readouts and control labels stay clean; the card still opens */
   /* The card is where a symbol is explained, not another place to look it up. */
-  :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card a.xref){text-decoration:none}
+  :global(.hover-card .katex-html .enclosing[class*="kv-"]), :global(.hover-card .term[data-term]), :global(.hover-card [data-concept]), :global(.hover-card .formula[data-formula]), :global(.hover-card a.xref){text-decoration:none}
   :global(.term[data-term]), :global(.formula[data-formula]), :global([data-sym]), :global([data-concept]), :global(a.xref), :global(a.figref), :global(html.cards-click .katex-display){cursor:pointer}
   :global(.hover-card .term[data-term]), :global(.hover-card .formula[data-formula]), :global(.hover-card [data-sym]){cursor:auto}
   :global(.formula[data-formula]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}

@@ -20,7 +20,7 @@ export const newEntryId = (): EntryId => {
   return entryId(s.slice(0, 8));
 };
 
-export type EntryKind = 'folder' | 'note' | 'book' | 'drawing' | 'file';
+export type EntryKind = 'folder' | 'note' | 'book' | 'drawing' | 'file' | 'chat';
 /* A note entry shares its id with the note document it stands for; a book
    entry names the book of the manifest it draws its chapters from. A drawing
    and a file name theirs the same way a book does, in a field of their own,
@@ -28,7 +28,7 @@ export type EntryKind = 'folder' | 'note' | 'book' | 'drawing' | 'file';
    record it stands for, and the store is asked for it when the tab opens. */
 export type Entry = {
   readonly id: EntryId; readonly parent: EntryId | null; readonly kind: EntryKind;
-  readonly name: string; readonly bookId?: string; readonly fileId?: string; readonly drawingId?: string;
+  readonly name: string; readonly bookId?: string; readonly fileId?: string; readonly drawingId?: string; readonly chatId?: string;
 };
 export type Tree = { readonly entries: readonly Entry[]; readonly expanded: readonly string[] };
 
@@ -44,7 +44,7 @@ export const entryById = (t: Tree, id: EntryId): Entry | undefined => t.entries.
 /* Folders lead, then the textbooks, then what the reader has written, drawn
    and imported, in that order; each run is in the order a reader would look
    for a name. */
-const RANK: Readonly<Record<EntryKind, number>> = { folder: 0, book: 1, note: 2, drawing: 3, file: 4 };
+const RANK: Readonly<Record<EntryKind, number>> = { folder: 0, book: 1, note: 2, drawing: 3, chat: 4, file: 5 };
 const byName = (a: Entry, b: Entry): number =>
   RANK[a.kind] - RANK[b.kind] || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }) || a.id.localeCompare(b.id);
 export const childrenOf = (t: Tree, parent: EntryId | null): Entry[] => t.entries.filter((e) => e.parent === parent).sort(byName);
@@ -102,6 +102,8 @@ export const addFile = (t: Tree, parent: EntryId | null, id: EntryId, name: stri
 
 export const addDrawing = (t: Tree, parent: EntryId | null, id: EntryId, name: string): Tree =>
   add(t, { id, parent, kind: 'drawing', name, drawingId: id });
+export const addChat = (t: Tree, parent: EntryId | null, id: EntryId, name: string): Tree =>
+  add(t, { id, parent, kind: 'chat', name, chatId: id });
 
 /* A book joins the root row once and only once, however often it is added. */
 export const addBook = (t: Tree, bookId: string, name: string, id: EntryId = newEntryId()): Tree =>
@@ -139,12 +141,12 @@ export const uniqueName = (t: Tree, parent: EntryId | null, base: string): strin
 
 /* The storage boundary: anything that is not a sound tree is refused, and an
    entry that names a parent no longer there is lifted back to the root. */
-const KINDS: readonly EntryKind[] = ['folder', 'note', 'book', 'drawing', 'file'];
+const KINDS: readonly EntryKind[] = ['folder', 'note', 'book', 'drawing', 'file', 'chat'];
 /* The kinds that name a record of another store, and the field each names it
    in: a row missing its own is not a sound row, and the whole tree is refused
    rather than a row being kept that points at nothing. */
-const REF_FIELD: Readonly<Partial<Record<EntryKind, 'bookId' | 'fileId' | 'drawingId'>>> =
-  { book: 'bookId', file: 'fileId', drawing: 'drawingId' };
+const REF_FIELD: Readonly<Partial<Record<EntryKind, 'bookId' | 'fileId' | 'drawingId' | 'chatId'>>> =
+  { book: 'bookId', file: 'fileId', drawing: 'drawingId', chat: 'chatId' };
 const parseEntry = (raw: unknown): Entry | null => {
   if (typeof raw !== 'object' || raw === null) return null;
   const o = raw as Record<string, unknown>;

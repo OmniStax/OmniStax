@@ -19,7 +19,8 @@ import type { FileMark } from '../files/marks';
 import { history, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
-import { fileId, fileItem, itemKey, noteId, noteItem, type FileId, type NoteId } from '../types/ids';
+import { chatId, chatItem, fileId, fileItem, itemKey, noteId, noteItem, type ChatId, type FileId, type NoteId } from '../types/ids';
+import { chats } from '../chat/store.svelte';
 
 /* Every store a row stands for, as they stand, and putting them back exactly
    so. A note is a row and a document; a file is a row, a record, the marks
@@ -100,6 +101,14 @@ export const createNote = (parent: EntryId | null, name?: string): NoteDoc => {
   return doc;
 };
 
+/* A chat filed as a row: the row takes the chat's id, as a note's does. */
+export const createChatEntry = (parent: EntryId | null, chat: ChatId, name: string): EntryId => {
+  const before = shot();
+  explorer.addChat(parent, entryId(chat), name);
+  commit('new chat', before);
+  return entryId(chat);
+};
+
 /* A file imported: the record, the row and, for a PDF, the marks that will
    hang off it later, all under the one id. The bytes are already in the blob
    store by the time this runs — reading a file is asynchronous and a step of
@@ -141,6 +150,7 @@ export const renameEntry = (id: EntryId, name: string): void => {
   if (e) explorer.rename(id, next);
   if (doc) noteDocs.rename(noteId(id), next);
   if (file) files.rename(file.id, next);
+  if (e?.kind === 'chat') { const c = chatId(e.chatId ?? id); void chats.load(c).then(() => chats.rename(c, next)); }
   const kindWord = e && e.kind !== 'note' ? e.kind : 'note';
   const label = naming ? (e && e.kind === 'folder' ? 'new folder' : 'new note') : `rename ${kindWord}`;
   commit(label, before, {}, naming?.step ?? null);
@@ -169,6 +179,17 @@ export const filesUnder = (id: EntryId): FileId[] => {
   return out;
 };
 
+const chatsUnder = (id: EntryId): ChatId[] => {
+  const out: ChatId[] = [];
+  const walk = (at: EntryId): void => {
+    const e = explorer.entry(at);
+    if (e?.kind === 'chat') out.push(chatId(e.chatId ?? e.id));
+    explorer.children(at).forEach((c) => walk(c.id));
+  };
+  walk(id);
+  return out;
+};
+
 /* Deleting takes the rows, the documents and files they stood for, the marks
    written on those files and the tabs they were open in. Taking the step back
    brings all of it home, bodies and all; doing it again closes those tabs
@@ -178,12 +199,14 @@ export const deleteEntry = (e: Entry): void => {
   fresh = null;
   const notes = notesUnder(e.id);
   const goneFiles = filesUnder(e.id);
+  const goneChats = chatsUnder(e.id);
   const before = shot();
   explorer.remove(e.id);
   if (notes.length) noteDocs.removeMany(notes);
   if (goneFiles.length) { files.removeMany(goneFiles); fileMarks.dropFiles(goneFiles); }
-  const keys = [...noteKeys(notes), ...fileKeys(goneFiles)];
-  commit(`delete ${e.kind === 'folder' ? 'folder' : e.kind === 'file' ? 'file' : 'note'}`, before, { onRedo: keys });
+  goneChats.forEach((c) => chats.remove(c));
+  const keys = [...noteKeys(notes), ...fileKeys(goneFiles), ...goneChats.map((c) => itemKey(chatItem(c)))];
+  commit(`delete ${e.kind === 'folder' || e.kind === 'file' || e.kind === 'chat' ? e.kind : 'note'}`, before, { onRedo: keys });
   closeTabs(keys);
 };
 

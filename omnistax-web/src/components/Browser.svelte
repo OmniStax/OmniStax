@@ -4,7 +4,7 @@
      drawing or a file, which opens. The box searches everything below the
      level standing open; Right steps in, Left or Backspace on an empty box steps out,
      and Enter or a click opens the row, the way a click on a file anywhere
-     does (Ctrl for a new tab, Ctrl+Alt for a group beside). Opened by the
+     does (as a tab, or with Ctrl in a group beside). Opened by the
      "Open…" command or a tab strip's "+", whose group it adds a tab to, and by
      "Pin view to…", which walks one book's chapters and sections to name a
      place in it rather than to open anything; browser.ts holds the trees,
@@ -15,7 +15,7 @@
   import { openTree, pickTree, pickTarget, start, tabOfRow } from '../lib/commands/browser';
   import { faceOf, levelOf, trailOf, type Listed, type PickerNode, type PickerCategory } from '../lib/picker/model';
   import { pickerRoot } from '../lib/picker/sources';
-  import { openItem, openingOf, type Opening } from '../lib/sections/nav.svelte';
+  import { openItem, openingOf, onMiddle } from '../lib/sections/nav.svelte';
   import { focus } from '../lib/sections/focus.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { ICON } from '../lib/icons';
@@ -47,8 +47,6 @@
   };
   const goUp = (depth = path.length - 1): void => { if (path.length) goto(path.slice(0, Math.max(0, depth)), path[Math.max(0, depth)] ?? null); };
   const descend = (l: Listed): void => { if (l.node.children) goto([...path, ...l.path], null); };
-  /* A tab strip's "+" asks for a tab of that group; anywhere else a file opens as a click on one does. */
-  const openingFor = (e: MouseEvent | KeyboardEvent): Opening => { const how = openingOf(e); return ui.browser.group !== null && how === 'replace' ? 'tab' : how; };
   /* Enter or a click takes the row: a place to pin to, a file to open, or one level further in. */
   const act = (l: Listed, e: MouseEvent | KeyboardEvent): void => {
     const row = l.node.row;
@@ -59,7 +57,7 @@
       return;
     }
     const key = tabOfRow(row); if (!key) return;
-    void openItem(key, ui.browser.group ?? undefined, openingFor(e));
+    void openItem(key, ui.browser.group ?? undefined, openingOf(e));
     ui.closeBrowser();
   };
 
@@ -113,7 +111,7 @@
     <div class="list" bind:this={list} role="listbox">
       {#each items as l, i (l.path.join('/'))}
         <div class="row" class:sel={i === sel} class:dim={!l.node.row && !l.node.children} role="option" aria-selected={i === sel} tabindex="-1"
-          onmousemove={() => (sel = i)} onclick={(e) => act(l, e)} onauxclick={(e) => { if (e.button === 1) act(l, e); }}>
+          onmousemove={() => (sel = i)} onclick={(e) => act(l, e)} onauxclick={onMiddle((e) => act(l, e))}>
           <span class="ico">{@html iconOf(l.node)}</span>
           <span class="lbl">{l.node.label}</span>
           {#if l.where}<span class="detail">{l.where}</span>{/if}

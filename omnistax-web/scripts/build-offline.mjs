@@ -47,6 +47,9 @@ const shrinkFigure = async (rel, body) => {
 };
 /* Every page of the book in reading order, as book.json lists them. */
 const pagesOf = (book) => [book.intro, ...(book.chapters ?? []).flatMap((c) => [c.intro, ...(c.sections ?? []), c.summary]), book.summary].filter(Boolean);
+/* The page a book is opened on offline: its first built page, whose shell reads the address. */
+const shellPageOf = (book) => { const page = pagesOf(book).find((p) => p.built); return page ? `${page.url}index.html` : null; };
+const readBook = async (out, id) => JSON.parse(await fs.readFile(path.join(out, id, 'book.json'), 'utf8'));
 
 const materialize = async (source, dest) => {
   await fs.mkdir(path.dirname(dest), { recursive: true });
@@ -72,7 +75,7 @@ const writeImmutable = async (dest, body) => {
 
 export async function buildOfflineArtifacts(out, bookIds, archive) {
   await mergeArchive(archive, out);
-  const rootRels = ['index.html', 'about.html', 'book.html', 'library.json', 'manifest.webmanifest', 'sw.js'];
+  const rootRels = ['index.html', 'about.html', 'library.json', 'manifest.webmanifest', 'sw.js'];
   const runtimeRels = [
     ...(await walk(path.join(out, 'assets'))).map((file) => path.join('assets', file)),
     ...(await walk(path.join(out, 'icons'))).map((file) => path.join('icons', file)),
@@ -83,14 +86,17 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
   const runtimeRows = await Promise.all(runtimeRels.map(async (rel) => [logicalOf(rel), sha(await fs.readFile(path.join(out, rel)))]));
   const artifactId = canonicalHash(runtimeRows);
   /* The app opens offline with no book downloaded: the worker keeps the
-     runtime and, for each book, the front page and the files it boots on. */
-  const bookShellRels = bookIds.flatMap(({ id }) => ['index.html', 'book.json', 'book.html', 'colours.css'].map((file) => path.join(id, file)));
+     runtime and, for each book, the page it opens on and the files it boots on. */
+  const bookShellRels = (await Promise.all(bookIds.map(async ({ id }) => {
+    const page = shellPageOf(await readBook(out, id));
+    return [...(page ? [page.slice(1)] : []), ...['book.json', 'colours.css'].map((file) => path.join(id, file))];
+  }))).flat();
   const shellRels = (await Promise.all([...runtimeRels.filter((rel) => rel !== 'sw.js'), ...bookShellRels].map(async (rel) => await fs.stat(path.join(out, rel)).then(() => rel).catch(() => null)))).filter(Boolean);
   const shell = await Promise.all(shellRels.map(async (rel) => { const body = await fs.readFile(path.join(out, rel)); return { url: logicalOf(rel), sha256: sha(body), bytes: body.byteLength }; }));
   await fs.writeFile(path.join(out, 'offline-shell.json'), `${JSON.stringify({ schemaVersion: 1, shellId: canonicalHash(shell.map((row) => [row.url, row.sha256])), resources: shell, totalBytes: shell.reduce((sum, row) => sum + row.bytes, 0) })}\n`);
   const catalog = [];
   for (const { id, dir } of bookIds) {
-    const bookRoot = path.join(out, id); const bookJson = JSON.parse(await fs.readFile(path.join(bookRoot, 'book.json'), 'utf8'));
+    const bookRoot = path.join(out, id); const bookJson = await readBook(out, id);
     const sourceBook = JSON.parse(await fs.readFile(path.join(dir, 'book.json'), 'utf8'));
     const bookRels = (await walk(bookRoot)).map((file) => path.join(id, file));
     const text = (await Promise.all(bookRels.filter((file) => /\.(?:html|js|json|css)$/.test(file)).map((file) => fs.readFile(path.join(out, file), 'utf8')))).join('\n');
@@ -114,10 +120,11 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
        existing release directory without changing its semantic identity. */
     const resolvedMediaRows = await Promise.all(mediaRels.map(async (rel) => [`@resolved/${rel.split(path.sep).join('/')}`, sha(await fs.readFile(path.join(out, rel)))]));
     const releaseId = canonicalHash([...inputRows, ...resolvedMediaRows, ['@figures', FIGURE_ENCODING]]);
-    /* A page of the book is opened offline by the shell on the book's front
-       page, which fetches its fragment; its own page stays on the server for
-       crawlers and cold loads. */
-    const pageFiles = new Set(pagesOf(bookJson).map((page) => `${page.url}index.html`));
+    /* A page of the book is opened offline by the shell on the book's first
+       built page, which fetches its fragment; every other page stays on the
+       server for crawlers and cold loads. */
+    const shellPage = shellPageOf(bookJson);
+    const pageFiles = new Set(pagesOf(bookJson).map((page) => `${page.url}index.html`).filter((url) => url !== shellPage));
     const allRels = [...new Set([...semanticRels, ...runtimeRels])].filter((rel) => !pageFiles.has(logicalOf(rel)));
     const media = new Set(mediaRels);
     const resources = [];
@@ -146,5 +153,5 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     catalog.push({ id, title: bookJson.title, releaseId, artifactId, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
   }
   await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), books: catalog }, null, 2)}\n`);
-  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
+  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
 }

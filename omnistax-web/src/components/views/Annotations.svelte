@@ -18,6 +18,7 @@
   import { files } from '../../lib/files/store.svelte';
   import { fileMarks } from '../../lib/files/marks.svelte';
   import { goMark } from '../../lib/files/resolver';
+  import { openingAs, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import type { FileMark } from '../../lib/files/marks';
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
@@ -57,7 +58,7 @@
       <span class="when">{when(n.updated)}</span>
       <button type="button" class="x" data-nodrag aria-label="Remove highlight" onclick={() => notes.remove(n.id)}>×</button>
     </div>
-    <button type="button" class="quote hl-{n.color}" onclick={() => goNote(n)}>{n.anchor.quote}</button>
+    <button type="button" class="quote hl-{n.color}" onclick={(e) => openingAs(openingOf(e), () => goNote(n))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goNote(n)))}>{n.anchor.quote}</button>
     {#if notes.unresolved.has(n.id)}<div class="lost" role="status">The text changed and this highlight no longer matches. Your note is kept.</div>{/if}
     <!-- A burst of typing is one step of the shell's timeline; leaving the box
          ends the burst, so the next one begins a step of its own. -->
@@ -82,12 +83,12 @@
       <button type="button" class="x" data-nodrag aria-label="Remove mark" onclick={() => fileMarks.remove(m.id)}>×</button>
     </div>
     {#if m.kind === 'highlight'}
-      <button type="button" class="quote hl-{m.color}" onclick={() => goMark(m.id)}>{m.anchor.quote}</button>
+      <button type="button" class="quote hl-{m.color}" onclick={(e) => openingAs(openingOf(e), () => goMark(m.id))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goMark(m.id)))}>{m.anchor.quote}</button>
       <textarea data-note={m.id} rows="2" placeholder="Add a note…" value={m.text}
         oninput={(e) => fileMarks.setText(m.id, (e.currentTarget as HTMLTextAreaElement).value)}
         onblur={() => history.breakCoalescing()}></textarea>
     {:else}
-      <button type="button" class="boxed" onclick={() => goMark(m.id)}>{plainWords(m.body) || 'An empty box'}</button>
+      <button type="button" class="boxed" onclick={(e) => openingAs(openingOf(e), () => goMark(m.id))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goMark(m.id)))}>{plainWords(m.body) || 'An empty box'}</button>
     {/if}
   </div>
 {/snippet}

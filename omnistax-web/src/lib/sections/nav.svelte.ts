@@ -4,9 +4,9 @@
    lone `#id` selector is answered from the document's id map; a selector
    that also names the book walks the whole document. */
 import { layoutStore } from '../layout/store.svelte';
-import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight, replaceTab, unreplace, type ItemKey } from '../layout/model';
+import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight } from '../layout/model';
 import { registry } from './registry.svelte';
-import { type BookId, type GroupKey, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
+import { type BookId, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
 import { fileOpens } from '../files/open.svelte';
 import { FIG } from '../fig/figlib';
 import { revealFolds } from './fold.svelte';
@@ -78,21 +78,14 @@ const scrollWithin = (target: HTMLElement, block: ScrollLogicalPosition): void =
   box.scrollTo({ top: box.scrollTop + t.top - b.top - Math.max(0, offset), behavior: FIG.REDUCED ? 'auto' : 'smooth' });
 };
 export const go = (book: BookId, id: string, block: ScrollLogicalPosition = 'start'): void => jump(findEl(book, id), block);
-/* How a click asks for a file: in place of the tab showing, as a tab of its
-   own (Ctrl, Cmd on a Mac, or the middle button), or in a group of its own
-   beside the focused one (Ctrl+Alt). */
+/* How a click asks for a file: as a tab of the focused group, or with Ctrl
+   (Cmd on a Mac, or the middle button) in a group of its own beside it. */
 export type Opening = 'replace' | 'tab' | 'new';
-export const openingOf = (e?: MouseEvent | KeyboardEvent | null): Opening => {
-  if (!e) return 'replace';
-  const ctrl = e.ctrlKey || e.metaKey;
-  return ctrl && e.altKey ? 'new' : ctrl || ('button' in e && e.button === 1) ? 'tab' : 'replace';
-};
-/* A plain click replaces only from the explorer, a menu or the book's own text:
-   a link in a chat, a note or a drawing never closes the tab it stands in. */
-export const openingIn = (e: MouseEvent | KeyboardEvent | null | undefined, from: Element | null): Opening => {
-  const how = openingOf(e);
-  return how === 'replace' && from?.closest('.pane') && !from.closest('article[data-doc]') ? 'tab' : how;
-};
+export const openingOf = (e?: MouseEvent | KeyboardEvent | null): Opening =>
+  e && (e.ctrlKey || e.metaKey || ('button' in e && e.button === 1)) ? 'new' : 'tab';
+export const openingIn = (e: MouseEvent | KeyboardEvent | null | undefined, _from?: Element | null): Opening => openingOf(e);
+export const openingInView = openingOf;
+export const onMiddle = (f: (e: MouseEvent) => void) => (e: MouseEvent): void => { if (e.button !== 1) return; e.preventDefault(); f(e); };
 export const wantsNewGroup = (e?: MouseEvent | KeyboardEvent | null): boolean => openingOf(e) === 'new';
 /* The opening a caller that only knows "beside or not" leaves to whoever called it. */
 let ambient: Opening = 'tab';
@@ -100,16 +93,11 @@ export const openingAs = <T>(how: Opening, f: () => T): T => {
   const was = ambient; ambient = how;
   try { return f(); } finally { ambient = was; }
 };
-export const goSpan = (ref: SpanRef | undefined, split = false): void => {
+export const goSpan = (ref: SpanRef | undefined, split = ambient === 'new'): void => {
   if (!ref) return;
   const t = split ? null : findEl(ref.book, ref.span); if (t) { jump(t); return; }
   void openDoc(sectionRef(ref.book, sectionOfSpan(ref.span)), 'text', split ? 'new' : undefined).then(() => go(ref.book, ref.span));
 };
-/* A thing a reference view lists — an exercise, a concept, a formula, a
-   definition — opens as a new tab of the focused group, or with Ctrl (Cmd, the
-   middle button) in a group of its own beside it. */
-export const openingInView = (e?: MouseEvent | KeyboardEvent | null): Opening =>
-  e && (e.ctrlKey || e.metaKey || ('button' in e && e.button === 1)) ? 'new' : 'tab';
 const viewTarget = (how: Opening): Target => (how === 'new' ? 'new' : layoutStore.layout.focus);
 export const openFromView = (key: string, how: Opening): Promise<void> => openItem(key, viewTarget(how), how);
 export const openSectionFromView = (ref: SectionRef, how: Opening): Promise<void> => openDoc(ref, 'text', viewTarget(how), how);
@@ -131,27 +119,15 @@ export const cite = (book: BookId, id: string, tries = 12): void => {
    note: activate it where it already is, or open it in the given group
    (default: focused) the way it was asked for, and load the section it comes
    out of. A page and a note come out of no section, so for them there is
-   nothing to fetch. The second click of a double-click asks for a tab of its
-   own after the first has already replaced one, so a tab asked for straight
-   after that replacement takes it back: the closed tab stands again before it. */
+   nothing to fetch. */
 export type Target = number | 'new';
-type Replaced = { readonly group: GroupKey; readonly was: ItemKey; readonly now: ItemKey; readonly at: number };
-const DOUBLE_MS = 500;
-let replaced: Replaced | null = null;
 export const openItem = (key: string, group?: Target, how: Opening = ambient): Promise<void> => {
   const l = layoutStore.layout;
   const at = typeof group === 'number' ? group : l.focus;
-  const loc = group == null || how === 'replace' ? where(l, key) : null;
-  const undo = how === 'tab' && replaced?.now === key && performance.now() - replaced.at < DOUBLE_MS ? replaced : null;
-  replaced = null;
+  const loc = group == null ? where(l, key) : null;
   if (group === 'new' || how === 'new') layoutStore.apply((x) => splitRight(x, at, key));
-  else if (undo) layoutStore.apply((x) => unreplace(x, undo.group, undo.was, undo.now));
   else if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
-  else if (how === 'replace') {
-    const g = l.groups[at]; const was = g?.active;
-    layoutStore.apply((x) => replaceTab(x, key, at));
-    if (g && was) replaced = { group: g.key, was, now: key, at: performance.now() };
-  } else layoutStore.apply((x) => openTab(x, key, at));
+  else layoutStore.apply((x) => openTab(x, key, at));
   const id = parseItemKey(key); const ref = id ? sectionOfItem(id) : null;
   return ref ? registry.load(ref) : Promise.resolve();
 };

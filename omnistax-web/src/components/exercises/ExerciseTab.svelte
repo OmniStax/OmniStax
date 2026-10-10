@@ -10,7 +10,7 @@
      exercise is gone, which is a different thing. */
   import ExerciseCard from './ExerciseCard.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { openDoc } from '../../lib/sections/nav.svelte';
+  import { openDoc, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { label } from '../../lib/sections/grouping';
   import { sectionRef, type BookId, type GroupKey, type SectionId } from '../../lib/types/ids';
 
@@ -28,7 +28,7 @@
   <header class="head">
     <span class="what">Exercise</span>
     <button type="button" class="where"
-      onclick={() => void openDoc(ref, 'text')}>{title}</button>
+      onclick={(e) => void openDoc(ref, 'text', undefined, openingOf(e))} onauxclick={onMiddle((e) => void openDoc(ref, 'text', undefined, openingOf(e)))}>{title}</button>
   </header>
   <div class="body">
     {#if exercise}

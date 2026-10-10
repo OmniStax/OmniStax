@@ -4,7 +4,7 @@
    last clicked, and the entry whose name is being typed. */
 import type { Entry, EntryId, Tree } from './model';
 import {
-  addBook, addDrawing, addFile, addFolder, addNote, childrenOf, descendants, emptyTree, entryById, isExpanded,
+  addBook, addChat, addDrawing, addFile, addFolder, addNote, childrenOf, descendants, emptyTree, entryById, isExpanded,
   migrateTree, move, newEntryId, pathOf, remove, rename, toggleExpanded, uniqueName,
 } from './model';
 import { readerWritesAllowed } from '../backup/guard';
@@ -38,6 +38,7 @@ class Explorer {
   addFile(parent: EntryId | null, id: EntryId, name: string): void { this.apply((t) => addFile(t, parent, id, name)); }
   /* A drawing's ink is written by the drawing store under this very same id. */
   addDrawing(parent: EntryId | null, id: EntryId, name: string): void { this.apply((t) => addDrawing(t, parent, id, name)); }
+  addChat(parent: EntryId | null, id: EntryId, name: string): void { this.apply((t) => addChat(t, parent, id, name)); }
   addBook(bookId: string, name: string): void { this.apply((t) => addBook(t, bookId, name)); }
   rename(id: EntryId, name: string): void { this.apply((t) => rename(t, id, name)); }
   /* Hands back every id that went with the row, so the caller can delete the

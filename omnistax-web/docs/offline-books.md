@@ -67,14 +67,13 @@ originals.
 
 The app itself opens offline with no book downloaded. The build writes
 `/offline-shell.json`: the runtime files the artifact ID hashes (less `sw.js`)
-and, for each book, its front page, `book.json`, `book.html` and
-`colours.css`. The worker saves them into `omnistax-shell:<shellId>` when it
+and, for each book, its first built page, `book.json` and `colours.css`. The worker saves them into `omnistax-shell:<shellId>` when it
 installs and again after any navigation the network answers whose list names a
 new shell ID, verifying each file's size and SHA-256; the copy counts once the
 list itself is saved, and older shell caches are then deleted. When the network
 fails, a navigation the installed snapshots cannot answer takes the shell's
-copy of its page, and a page of a book not downloaded takes that book's front
-page, whose shell opens the section and reports that it cannot load it. A file
+copy of its page, and a page of a book not downloaded takes that book's first
+built page, whose shell opens the section and reports that it cannot load it. A file
 the network cannot give, or answers 404, comes from the shell when it holds
 it. Other navigations receive an explanatory HTML response; other missing
 resources receive an HTTP 503 rather than unrelated fallback HTML.

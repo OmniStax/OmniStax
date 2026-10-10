@@ -507,6 +507,7 @@
   };
   const middle = (e: MouseEvent): void => {
     const id = idOf(e.target); if (!id || e.button !== 1) return;
+    e.preventDefault();
     if (node(id).status === 'placeholder') { openPlaceholder(id, e); return; }
     void goConceptFromView(book, conceptId(id), 'new');
   };

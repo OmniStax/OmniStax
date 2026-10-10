@@ -340,17 +340,6 @@ article.page[data-page="about"] .intro + .intro{margin-top:0.8rem}
 article.page[data-page="about"] header{margin-bottom:0}
 article.page .coda{text-align:center;margin-top:1.8rem}
 article.page .try{height:36px;padding:0 18px;font-size:0.9rem}
-article.page .chapter h2{margin-top:2rem;border-top:1px solid var(--rule);padding-top:1.2rem}
-article.page .chapter ol{list-style:none;padding:0;margin:0.6rem 0 0}
-article.page .chapter li{margin:0;font-family:var(--sans);font-size:1rem}
-article.page .chapter a{display:block;padding:7px 10px;margin:0 -10px;border-radius:5px;text-decoration:none}
-article.page .chapter a:hover{background:var(--soft)}
-article.page .chapter li.off{padding:7px 0;color:var(--muted)}
-article.page .num{display:inline-block;min-width:3.2em;color:var(--muted);font-variant-numeric:tabular-nums}
-article.page h2 .num{min-width:0;margin-right:0.4em;font-weight:500}
-article.page .soon{font-size:0.78rem;color:var(--muted);margin-left:0.5em}
-article.page .chapter.front{margin-top:2rem}
-article.page .chapter.front ol{margin-top:0}
 @media (max-height:800px){ article.page[data-page="about"]{padding-top:16px} article.page[data-page="about"] h1{font-size:2.2rem} article.page[data-page="about"] .intro{font-size:1.02rem;line-height:1.55} }
 @media (max-width:900px){ article.page{padding:20px 18px 80px} article.page h1{font-size:2.1rem} }
 

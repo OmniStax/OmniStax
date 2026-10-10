@@ -7,7 +7,11 @@ description lives on the field, and this file is written from it.
 Three files hold a book — `book.json`, a `chapter.json` per chapter and a
 `section.json` per section. Each is a record whose scalar fields describe the
 level itself and whose array fields are tables of flat rows; a row refers to
-another row by id alone.
+another row by id alone. Why the content has that shape, what the build derives
+from it and what the validator checks is in
+[content-tables.md](content-tables.md).
+
+## `book.json`
 
 The book itself: who wrote it, who published it, under what licence, and the chapters it is read in.
 
@@ -27,7 +31,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
 | `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
-| `colours` | `{ palette, vision, assign, referentOrder? }?` | no | The book’s default colour for each type, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared. |
+| `colours` | `{ palette, vision, assign, referentOrder? }?` | no | The book’s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared. |
 
 ### `types`
 
@@ -197,14 +201,14 @@ The figures the section draws, and the types each of them colours.
 | `id` | `string` | yes | The figure’s local id, which is the id the <figure> element carries in the section’s text. |
 | `kind` | `"sim" \| "figure" \| "photo"` | yes | Whether the figure is an interactive one the reader can play with, a faithful copy of a book figure that the exercises need, or a photograph. A sim is a simulation the reader can play with: its eyebrow reads Sim where the row carries no number, since the figure replaces nothing in the book, and Figure with the book’s numbers where it transforms a book figure. |
 | `number` | `string?` | no | The number the book prints the figure under, such as 16.4, where the figure keeps one. |
-| `folds` | `string[]` | no | The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure’s own, and the eyebrow reads every number in the book’s order. |
+| `folds` | `string[]` | no | The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure’s own, and the eyebrow reads every number in the book’s order. A reference to any of them, in the text or in an exercise’s prompt or worked answer, links to this figure. |
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
 | `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
 | `draws` | `string[]` | no | The types the figure colours. The default colours keep these types apart from one another and from the page’s other colours. |
 | `conventions` | `string[]` | no | The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0…). The default colours keep the types apart from these on the page. |
 | `facts` | `string[]` | no | The colours the figure draws as the fact (`F.fact`), each as #rrggbb, or "spectrum" for a figure that draws a run of real colours, which is not weighed. The default colours keep the types apart from these on the page. |
-| `ai` | `{ model, effort?, part }[]?` | no | The models that made the figure, one entry per model and pass in the order they worked, each saying what it did in `part` (at most 80 characters). The figure’s AI mark names them on hover; a figure without the list takes the section’s `ai.figures`. |
+| `ai` | `{ model, effort?, part }[]?` | no | The models that made the figure, one entry per model and pass in the order they worked, each saying what it did. The figure’s AI mark names them on hover; a figure without the list takes the section’s `ai.figures`. |
 
 ### `referents`
 

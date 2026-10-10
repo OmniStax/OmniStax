@@ -8,6 +8,7 @@ import { openInFocus, openTab } from '../layout/model';
 import { chatItem, itemKey, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
 import type { MessageId } from './model';
+import type { Chip } from './context';
 
 /* A chat of its own, opened as a tab of the focused group,
    like a page of one of the middle four views: every asking opens another. */
@@ -31,11 +32,18 @@ export const openChatTabs = (): readonly ChatId[] =>
    cleared as it takes them. */
 class Pending {
   words = $state.raw<Readonly<Record<string, string>>>({});
+  chips: Readonly<Record<string, readonly Chip[]>> = {};
 
   put(id: ChatId, text: string): void { this.words = { ...this.words, [id]: text }; }
   take(id: ChatId): string { const text = this.words[id] ?? ''; if (text) { const { [id]: _gone, ...rest } = this.words; this.words = rest; } return text; }
 }
 export const pending = new Pending();
+/* The chips a chat opens with in place of the focused section, taken once by its tab. */
+export const takeChips = (id: ChatId): readonly Chip[] | null => {
+  const c = pending.chips[id]; if (!c) return null;
+  const { [id]: _gone, ...rest } = pending.chips; pending.chips = rest;
+  return c;
+};
 
 /* "Ask AI" on the highlight bar: the selection goes to the chat the reader
    already has open, and where they have none it opens one. A selection means

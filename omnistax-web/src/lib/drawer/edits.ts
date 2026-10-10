@@ -13,7 +13,8 @@ import { explorer } from '../explorer/store.svelte';
 import { history, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
-import { drawingId, drawingItem, itemKey, type DrawingId } from '../types/ids';
+import { drawingId, drawingItem, itemKey, sectionId, type DrawingId } from '../types/ids';
+import { links } from '../practice/links.svelte';
 import { drawings, scratchKey, type ScratchKey, type ScratchNote } from './store.svelte';
 import type { Drawing, DrawingRow } from './model';
 
@@ -110,18 +111,21 @@ export const deleteDrawing = (e: Entry): void => {
 /* ── the scratch work of an exercise ─────────────────────────────────────── */
 
 /* Scratch work made a drawing of its own: the ink is copied under a new id and
-   given a row under Your Files, and the exercise remembers which drawing it
-   became. The private record is left where it is, so that detaching hands the
+   filed in the practice folder beside the exercise's other files, and the
+   exercise remembers which drawing it became. The private record is left where it is, so that detaching hands the
    very same work back rather than a copy of a copy. */
-export const saveScratchAsDrawing = (book: string, section: string, ex: string, name: string): Drawing | null => {
+export const saveScratchAsDrawing = (book: string, section: string, ex: string, _name?: string): Drawing | null => {
   const key = scratchKey(book, section, ex);
   const work = drawings.getScratch(key);
   if (!work) return null;
+  const ref = { book, section: sectionId(section), ex };
+  const folder = links.folder();
   const before = shot();
-  const made = drawings.create(explorer.uniqueName(null, name));
+  const made = drawings.create(links.fileName(ref));
   drawings.put({ ...made, items: work.items, view: work.view, updated: Date.now() });
-  explorer.addDrawing(null, entryId(made.id), made.name);
+  explorer.addDrawing(folder, entryId(made.id), made.name);
   drawings.linkScratch(key, made.id);
+  links.add(ref, itemKey(drawingItem(made.id)));
   commit('save scratch as drawing', before, { onUndo: [made.id] });
   return drawings.get(made.id) ?? made;
 };

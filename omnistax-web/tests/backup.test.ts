@@ -33,14 +33,15 @@ test('backup parser validates typed records before writes', () => {
   assert.throws(() => parseBackupText(backup([{ key: 'omnistax-practice-v2', value: '{"attempts":"lost"}', category: 'practice' }])));
 });
 
-test('an exported tree may carry a drawing and a file, and a row naming no record is refused', () => {
+test('an exported tree may carry a drawing, a file and a chat, and a row naming no record is refused', () => {
   const tree = (entries: unknown[]) => ({ key: 'omnistax-explorer-v1', value: JSON.stringify({ entries, expanded: [] }), category: 'library' as const });
   assert.equal(validReaderRecord(tree([
     { id: 'd1', parent: null, kind: 'drawing', name: 'Free body', drawingId: 'd1' },
     { id: 'x1', parent: null, kind: 'file', name: 'Handout', fileId: 'x1' },
     { id: 'n1', parent: null, kind: 'note', name: 'Beats' },
+    { id: 'c1', parent: null, kind: 'chat', name: 'Chat', chatId: 'c1' },
   ])), true);
-  assert.equal(validReaderRecord(tree([{ id: 'z1', parent: null, kind: 'chat', name: 'Chat', chatId: 'z1' }])), false);
+  assert.equal(validReaderRecord(tree([{ id: 'z1', parent: null, kind: 'video', name: 'Clip', videoId: 'z1' }])), false);
 });
 
 test('backup parser rejects future versions, duplicates, and malformed assets', () => {

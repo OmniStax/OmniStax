@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openingAs, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { onDestroy, tick, untrack } from 'svelte';
   import Widget from './Widget.svelte';
   import Steps from './Steps.svelte';
@@ -71,13 +72,15 @@
   let body = $state<HTMLElement | null>(null);
   $effect(() => { const el = body; void drawnText; void render; if (el) void tick().then(() => decorate(el)); });
 
-  const onclick = (e: MouseEvent): void => {
+  const follow = (e: MouseEvent): void => {
     const t = e.target as HTMLElement;
     const card = t.closest<HTMLElement>('[data-embed]');
     if (card?.dataset.embed) { onfollow(card.dataset.embed); return; }
     const a = t.closest<HTMLAnchorElement>('a.wiki[data-link]');
     if (a?.dataset.link) { e.preventDefault(); onfollow(a.dataset.link); }
   };
+  const onclick = (e: MouseEvent): void => openingAs(openingOf(e), () => follow(e));
+  const onauxclick = (e: MouseEvent): void => { if ((e.target as Element).closest('[data-embed], a.wiki[data-link]')) onMiddle(onclick)(e); };
 
   const math = (node: HTMLElement, _html: string) => {
     chatBooks.setMath(node);
@@ -127,7 +130,7 @@
     <div class="edit-acts" data-nodrag><button type="button" class="btn primary sm" onclick={commit}>Send</button><button type="button" class="btn ghost sm" onclick={() => (editing = false)}>Cancel</button></div>
   {:else}
     {#if message.steps?.length}<Steps steps={message.steps} />{/if}
-    <div class="answer" class:said={mine} bind:this={body} {onclick} role="presentation">
+    <div class="answer" class:said={mine} bind:this={body} {onclick} {onauxclick} role="presentation">
       {#each parts as part, i (i)}
         {#if part.kind === 'widget'}
           <Widget html={part.html} open={part.open} />

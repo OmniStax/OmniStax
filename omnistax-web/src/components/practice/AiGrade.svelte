@@ -4,19 +4,20 @@
   import type { Graded } from '../../lib/practice/grade';
   import { hasScratch, openScratch, type ScratchAt } from '../../lib/practice/scratch.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
+  import { openingOf } from '../../lib/sections/nav.svelte';
 
-  let { ex, at, ongraded, onfail }: { ex: ExerciseDTO; at: ScratchAt; ongraded: (g: Graded) => void; onfail: (why: string) => void } = $props();
+  let { ex, at, ongraded, onfail }: { ex: ExerciseDTO; at: ScratchAt; ongraded: (g: Graded, answer: string) => void; onfail: (why: string) => void } = $props();
 
   let text = $state('');
   let attached = $state(false);
   let waiting = $state(false);
-  const attach = (): void => { attached = true; openScratch(at, layoutStore.layout.focus); };
+  const attach = (e: MouseEvent): void => { attached = true; openScratch(at, layoutStore.layout.focus, openingOf(e)); };
   const canSend = $derived(!waiting && (text.trim() !== '' || (attached && hasScratch(at))));
 
   const submit = async (): Promise<void> => {
     if (!canSend) return;
     waiting = true;
-    try { ongraded(await gradeAnswer(ex, text, attached ? at : null, new AbortController().signal)); }
+    try { ongraded(await gradeAnswer(ex, text, attached ? at : null, new AbortController().signal), text.trim()); }
     catch (e) { onfail(e instanceof Error ? e.message : String(e)); }
     finally { waiting = false; }
   };

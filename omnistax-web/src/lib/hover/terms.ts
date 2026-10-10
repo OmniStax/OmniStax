@@ -54,24 +54,30 @@ export const wrappable = (c: Context): boolean => free(c) && c.block > 0;
 const termable = wrappable;
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/* A term as a pattern: whole words, any whitespace between them, case-insensitive. */
-const termRe = (term: Term): RegExp => new RegExp(`(?<![\\w-])${term.trim().split(/\s+/).map(escapeRe).join('\\s+')}(?![\\w-])`, 'i');
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 const mark = (term: Term, text: string): string => `<span class="term" data-term="${esc(term)}" tabindex="0">${text}</span>`;
 
-/* Every mention of every term, the longer term first: a shorter one matches only unmarked text, never inside
-   a span a longer one made ("metal" within "alkaline earth metal"). */
+/* A glossary as one pattern: whole words, any whitespace between them, case-insensitive, the longer term
+   first, so a shorter one never matches inside a longer one ("metal" within "alkaline earth metal"). It is
+   built once for each list of terms, so a book's whole glossary costs one pattern however many blocks it marks. */
+type Glossary = { readonly re: RegExp; readonly named: ReadonlyMap<string, Term> };
+const wordKey = (s: string): string => s.trim().split(/\s+/).join(' ').toLowerCase();
+const compiled = new WeakMap<readonly Term[], Glossary | null>();
+const glossary = (terms: readonly Term[]): Glossary | null => {
+  const had = compiled.get(terms); if (had !== undefined) return had;
+  const named = new Map<string, Term>();
+  [...terms].filter((t) => t.trim()).sort((a, b) => b.trim().length - a.trim().length).forEach((t) => { if (!named.has(wordKey(t))) named.set(wordKey(t), t); });
+  const alts = [...named.values()].map((t) => t.trim().split(/\s+/).map(escapeRe).join('\\s+'));
+  const g = alts.length ? { re: new RegExp(`(?<![\\w-])(?:${alts.join('|')})(?![\\w-])`, 'gi'), named } : null;
+  compiled.set(terms, g);
+  return g;
+};
+
+/* Every mention of every term. */
 export const wrapTerms = (html: string, terms: readonly Term[], start: Context = TOP): string => {
+  const g = glossary(terms); if (!g) return html;
   const ts = tokens(html); const cs = contexts(ts, start);
-  const longFirst = [...terms].sort((a, b) => b.trim().length - a.trim().length).map((term) => ({ term, re: new RegExp(termRe(term).source, 'gi') }));
-  type Piece = { readonly text: string; readonly marked: boolean };
-  const split = (p: Piece, { term, re }: (typeof longFirst)[number]): readonly Piece[] => {
-    if (p.marked) return [p];
-    const ms = [...p.text.matchAll(re)]; if (ms.length === 0) return [p];
-    const ends = ms.map((m) => m.index + m[0].length);
-    return [...ms.flatMap((m, i) => [{ text: p.text.slice(i ? ends[i - 1] : 0, m.index), marked: false }, { text: mark(term, m[0]), marked: true }]), { text: p.text.slice(ends[ends.length - 1]), marked: false }];
-  };
-  return ts.map((t, i) => (isTag(t) || !termable(cs[i]) ? t : longFirst.reduce<readonly Piece[]>((ps, at) => ps.flatMap((p) => split(p, at)), [{ text: t, marked: false }]).map((p) => p.text).join(''))).join('');
+  return ts.map((t, i) => (isTag(t) || !termable(cs[i]) ? t : t.replace(g.re, (m) => mark(g.named.get(wordKey(m)) ?? m, m)))).join('');
 };
 
 /* The examples an article holds, by book number: <div class="example" id="16.1-ex-car"><h3>Example 16.1 · …</h3>. */

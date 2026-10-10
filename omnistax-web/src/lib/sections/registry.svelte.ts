@@ -7,7 +7,7 @@
    chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
-import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem, bookPageItem } from '../types/ids';
+import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { entryId } from '../explorer/model';
@@ -137,7 +137,7 @@ class Registry {
   }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
-    if (id.kind === 'page') return id.page === 'about' ? 'About OmniStax' : this.books[id.book]?.title || id.book;
+    if (id.kind === 'page') return 'About OmniStax';
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
     /* A file, a drawing and a chat are the reader's own, and the name they
        know one by is the one on its row of the explorer; a tab opened for
@@ -228,8 +228,7 @@ class Registry {
     const seen = new Map<SecKey, SectionRef>();
     const next: Record<SecKey, SectionState> = { ...this.sections };
     container.querySelectorAll<HTMLElement>('article[data-page]').forEach((a) => {
-      const page = a.dataset.page === 'about' ? aboutItem() : a.dataset.page === 'book' ? bookPageItem(bookOf(a)) : null;
-      if (page?.kind === 'page') this.pages = { ...this.pages, [pageKey(page)]: a };
+      if (a.dataset.page === 'about') this.pages = { ...this.pages, [itemKey(aboutItem())]: a };
     });
     container.querySelectorAll<HTMLScriptElement>('script[data-section]').forEach((s) => {
       const ref = sectionRef(bookOf(s), sectionId(s.dataset.section ?? '')); const k = secKey(ref); const d = sectionDataOf(s);
@@ -254,7 +253,7 @@ class Registry {
   /* A root the shell built itself — one exercise in a tab of its own — asks for the
      same document-wide decoration a prepared document gets. */
   decorateRoot(root: HTMLElement): void { this.decorate(root); }
-  /* Every figure in a document gets a button that opens it in a split of its own;
+  /* Every figure in a document gets a button that opens it in a tab of its own;
      the key it carries is the one the shell delegates on, the same attribute an
      exercise card's split button uses, so one selector finds them both. */
   private splitButtons(root: HTMLElement, ref: SectionRef): void {
@@ -262,7 +261,7 @@ class Registry {
       if (head.querySelector('.fig-split')) return;
       const local = (head.closest('figure')!.id).replace(`${ref.section}-`, '');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(ref, local));
-      b.title = 'Open in a split'; b.setAttribute('aria-label', `Open ${figName(local)} in a split`); b.innerHTML = ICON.split;
+      b.title = 'Open in a tab'; b.setAttribute('aria-label', `Open ${figName(local)} in a tab`); b.innerHTML = ICON.split;
       head.appendChild(b);
     });
   }
@@ -320,10 +319,8 @@ class Registry {
     const have = this.pages[k];
     if (have) return have;
     if (!this.loadingPages[k]) {
-      const url = page.page === 'about' ? '/about.html' : `/${page.book}/book.html`;
-      const book = page.page === 'book' ? page.book : this.home;
-      this.loadingPages[k] = getText(url)
-        .then((text) => { this.adopt(templateOf(text), book); })
+      this.loadingPages[k] = getText('/about.html')
+        .then((text) => { this.adopt(templateOf(text)); })
         .catch(() => { /* the page stays empty; the pane says it is loading */ });
     }
     return null;

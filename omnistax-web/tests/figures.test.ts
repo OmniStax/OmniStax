@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, sizeImages, splitNumbers } from '../src/lib/content/fragment';
+import { linkExerciseRefs, linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, sizeImages, splitNumbers } from '../src/lib/content/fragment';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
 import { bookRoots } from './book-on-disk';
@@ -20,6 +20,13 @@ test('a single reference is wrapped whole', () => {
 test('a plural reference links each number', () => {
   assert.equal(linkFigureRefs('Figures 16.4 and 16.9 show it.', figs), `Figures ${link('16.4', '16.1-sim-spring-scale', '16.4')} and ${link('16.9', '16.3-sim-shm-oscillator', '16.9')} show it.`);
   assert.equal(linkFigureRefs('Figures 16.4, 16.9, and 16.20.', figs), `Figures ${link('16.4', '16.1-sim-spring-scale', '16.4')}, ${link('16.9', '16.3-sim-shm-oscillator', '16.9')}, and 16.20.`);
+});
+test('an exercise links its prompt and worked answer, a folded number to the figure that holds it', () => {
+  const held = new Map([...figureIds('<figure class="sim" id="sim-head-to-tail" data-figure="3.10 + 3.11">', '3.2')]);
+  const e = { id: 'p1', sourceId: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, concepts: [], prompt: 'In Figure 3.11, how far?', answer: { type: 'choice', options: ['Figure 3.11'], correct: 0, solution: 'Figure 3.10 shows it.' } } as const;
+  const linked = linkExerciseRefs(e as never, held);
+  assert.equal(linked.prompt, `In ${link('3.11', '3.2-sim-head-to-tail')}, how far?`);
+  assert.deepEqual(linked.answer, { ...e.answer, solution: `${link('3.10', '3.2-sim-head-to-tail')} shows it.` });
 });
 test('a number the chapter has no figure for stays plain', () => {
   const html = '<p>Figure 16.5 is a photograph. Example 16.4 is not a figure.</p>';

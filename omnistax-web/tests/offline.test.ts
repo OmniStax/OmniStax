@@ -11,12 +11,12 @@ import { beginInstall, commitInstall, failInstall, releaseChanges, releaseForBoo
 const put = async (root: string, rel: string, body: string) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
 const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string) => {
   const out = path.join(root, 'dist'); const sources = path.join(root, 'content');
-  for (const rel of ['index.html', 'about.html', 'book.html']) await put(out, rel, '<html><link href="/assets/app.css"></html>');
+  for (const rel of ['index.html', 'about.html']) await put(out, rel, '<html><link href="/assets/app.css"></html>');
   await put(out, 'library.json', '[]'); await put(out, 'manifest.webmanifest', '{}'); await put(out, 'assets/app.css', runtime);
   await put(out, 'media/a(x).jpg', 'image-a'); await put(out, 'media/b.jpg', 'image-b');
   for (const id of ['a', 'b']) {
     const dir = path.join(sources, id); const value = id === 'a' && changed ? 'changed' : 'same';
-    const manifest = { id, title: `Book ${id}`, chapters: [{ dir: 'ch01', sections: [{ id: '1.1', url: `/${id}/ch01/1.1/` }] }] };
+    const manifest = { id, title: `Book ${id}`, chapters: [{ dir: 'ch01', sections: [{ id: '1.1', built: true, url: `/${id}/ch01/1.1/` }] }] };
     await put(dir, 'book.json', JSON.stringify(manifest)); await put(dir, 'ch01/chapter.json', '{}'); await put(dir, 'ch01/1.1/section.json', '{}'); await put(dir, 'ch01/1.1/text.html', `${value}<figure data-original="/media/a(x).jpg,/media/b.jpg"></figure>`);
     await put(out, `${id}/book.json`, JSON.stringify(manifest)); await put(out, `${id}/ch01/1.1/index.html`, `<p>${value}</p><figure data-original="/media/a(x).jpg,/media/b.jpg"></figure>`); await put(out, `${id}/ch01/1.1/doc.html`, `<p>${value}</p>`);
   }
@@ -64,12 +64,13 @@ test('a release archive retains the prior immutable snapshot', async () => {
   assert.equal(BookReleaseManifestSchema.safeParse(JSON.parse(await readFile(oldManifest, 'utf8'))).success, true);
 });
 
-test('the shell list carries the runtime and each book front, not book content', async () => {
+test('the shell list carries the runtime and the first page of each book, not book content', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'omnistax-shell-'));
-  await fixture(root);
+  const books = await fixture(root);
+  assert.ok(books.a.resources.some((r) => r.logicalUrl === '/a/ch01/1.1/index.html'), 'a download keeps the page its book opens on');
   const shell = JSON.parse(await readFile(path.join(root, 'dist', 'offline-shell.json'), 'utf8'));
   const urls = shell.resources.map((row: { url: string }) => row.url).sort();
-  assert.deepEqual(urls, ['/a/book.json', '/about.html', '/assets/app.css', '/b/book.json', '/book.html', '/index.html', '/library.json', '/manifest.webmanifest']);
+  assert.deepEqual(urls, ['/a/book.json', '/a/ch01/1.1/index.html', '/about.html', '/assets/app.css', '/b/book.json', '/b/ch01/1.1/index.html', '/index.html', '/library.json', '/manifest.webmanifest']);
   assert.equal(shell.totalBytes, shell.resources.reduce((sum: number, row: { bytes: number }) => sum + row.bytes, 0));
 });
 

@@ -437,14 +437,22 @@ export const checkWidths: Check = (content) =>
    row of the book carries stays plain text. That is legitimate while the figure
    is in a chapter nobody has built, and a slip once it is not, so it is said as
    a warning rather than an error. The eyebrow of a figure names the figure
-   itself and is what the row says, so it is not a citation. */
+   itself and is what the row says, so it is not a citation. An exercise's
+   prompt and worked answer are read the same way, and there the book figure
+   an exercise card keeps carries the number its caption opens with. */
 const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?<\/span>/g;
 export const citedNumbers = (html: string): readonly string[] =>
   [...new Set(Array.from(html.replace(EYEBROW, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
+const CAPTION_NUMBER = /^Figure (\d+\.\d+)/;
 export const checkFigureRefs: Check = (content) => {
   const carried = new Set(pagesOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));
-  return pagesOf(content).flatMap((s) => citedNumbers(s.textHtml).flatMap((n) =>
-    (carried.has(n) ? [] : [warning(`${s.dto.id}/text.html`, `cites Figure ${n}, which no figure row of the book carries, so it stays plain text`)])));
+  const kept = new Set(pagesOf(content).flatMap((s) => s.dto.exercises.flatMap((e) => CAPTION_NUMBER.exec(e.figure?.caption ?? '')?.[1] ?? [])));
+  return pagesOf(content).flatMap((s) => [
+    ...citedNumbers(s.textHtml).flatMap((n) =>
+      (carried.has(n) ? [] : [warning(`${s.dto.id}/text.html`, `cites Figure ${n}, which no figure row of the book carries, so it stays plain text`)])),
+    ...s.dto.exercises.flatMap((e) => citedNumbers([e.prompt, e.answer.solution ?? ''].join('\n')).flatMap((n) =>
+      (carried.has(n) || kept.has(n) ? [] : [warning(inSection(s, 'exercises', e.id), `cites Figure ${n}, which no figure row or exercise card of the book carries`)]))),
+  ]);
 };
 
 /* An exercise keeps the publisher's own id for it, so that the item can be found

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import { loadBook, pageNav } from '../src/lib/content/load';
 import { fragment, qualifyIds, spanHeads } from '../src/lib/content/fragment';
-import { bookHtml } from '../src/lib/content/pages';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
@@ -114,13 +113,6 @@ test('a text ends on one centred button: practice this section, with the pencil 
   assert.doesNotMatch(row![1], /Problems &amp; Exercises/, 'the link to the problem set is gone');
   assert.doesNotMatch(html.slice(html.indexOf('class="section-end"')), /class="problems"/);
   assert.doesNotMatch(html, /data-doc="2\.1\/exercises"/, 'the old section exercise document is no longer generated');
-});
-test('the front of the book lists the preface before the chapters and the introduction before 2.1', () => {
-  const html = bookHtml(M);
-  const at = (s: string) => { const i = html.indexOf(s); assert.ok(i >= 0, s); return i; };
-  assert.ok(at('href="/framed/intro/">Preface</a>') < at('Chapter 2'));
-  assert.ok(at('href="/framed/ch02/intro/">Introduction to Kinematics</a>') < at('href="/framed/ch02/2.1/"'));
-  assert.match(html, /<li class="front"><a href="\/framed\/ch02\/intro\/">Introduction to Kinematics<\/a><\/li>/, 'no number on an introduction');
 });
 test('every text ends on the way to the page before and the page after, across the book, and only to pages that are built', () => {
   const ch = TREE.chapters[0];

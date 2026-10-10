@@ -15,7 +15,7 @@ import type {
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
-import { type PageLink, type PageNav, figureIds, figureList, linkFigureRefs, sizedImages } from './fragment';
+import { type PageLink, type PageNav, figureIds, figureList, linkExerciseRefs, linkFigureRefs, sizedImages } from './fragment';
 import { type MediaRoot, imageSizes } from './mediasize';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeId, bookDir, bookId, qualifiedId } from '../types/ids';
@@ -330,10 +330,10 @@ const loadFrontPage = async (base: string, role: FrontRole, place: PagePlace, ma
   return page ?? undefined;
 };
 
-/* Figure numbers are chapter-wide: a section may refer to a figure another page of the chapter keeps, the introduction's opener included. */
-const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta: SectionMetaDTO }>(pages: readonly T[]): readonly T[] => {
+/* Figure numbers are chapter-wide: a section or its exercises may refer to a figure another page of the chapter keeps, the introduction's opener included. */
+const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta: SectionMetaDTO; readonly exercises: readonly ExerciseDTO[] }>(pages: readonly T[]): readonly T[] => {
   const figs = new Map(pages.flatMap((s) => [...figureIds(s.textHtml, s.meta.id)]));
-  return pages.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs) }));
+  return pages.map((s) => ({ ...s, textHtml: linkFigureRefs(s.textHtml, figs), exercises: s.exercises.map((e) => linkExerciseRefs(e, figs)) }));
 };
 
 type ChapterLoaded = Omit<ChapterTree, 'concepts'>;

@@ -2,7 +2,7 @@
    The same markup goes into the full page and into doc.html, so the two
    cannot drift. Ids are qualified by section so two sections share a DOM. */
 import type { SectionSource } from './load';
-import type { BookDTO, ChapterDTO, FigureEntry, FigureRowDTO } from './schema';
+import type { BookDTO, ChapterDTO, ExerciseDTO, FigureEntry, FigureRowDTO } from './schema';
 import { aiByline, aiPartsByline, attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
@@ -145,6 +145,13 @@ export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, Spa
     return part;
   }).join('');
 };
+
+/* An exercise's prompt and worked answer link their figure references as the prose does, a folded number to the figure that holds it.
+   An option of a choice stays plain: it sits inside the control the reader picks it with. */
+export const linkExerciseRefs = (e: ExerciseDTO, figs: ReadonlyMap<FigureNumber, SpanId>): ExerciseDTO => ({
+  ...e, prompt: linkFigureRefs(e.prompt, figs),
+  answer: e.answer.solution === undefined ? e.answer : { ...e.answer, solution: linkFigureRefs(e.answer.solution, figs) },
+});
 
 /* Every generated thing says so on itself. The head of a simulation carries the mark beside its
    eyebrow — "Sim" where the figure replaces nothing in the book, "Figure 1.6" where it transforms

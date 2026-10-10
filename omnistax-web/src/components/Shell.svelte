@@ -1,8 +1,8 @@
 <script lang="ts">
   /* The shell: mounts once per page, adopts the static article from the pool,
      and lays out the rail, the sidebar and the document groups from the layout
-     store. The page it mounts on may be a section, the front of the book or the
-     front of OmniStax; what it carries is one item, and that is what opens.
+     store. The page it mounts on may be a page of a book or the front of
+     OmniStax; what it carries is one item, and that is what opens.
      Everything that touches document-wide state (theme, colour coding, pinned
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
@@ -13,9 +13,9 @@
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
-  import { findEl, jump, activePane, openDoc, bookOfEl, openingOf, openingIn } from '../lib/sections/nav.svelte';
+  import { findEl, jump, activePane, openDoc, openItem, bookOfEl, openingOf } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { focusedGroup, instancesOf, splitRight } from '../lib/layout/model';
+  import { focusedGroup, instancesOf } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
   import { applyFonts } from '../lib/settings/fonts';
   import { colours } from '../lib/colours/store.svelte';
@@ -73,7 +73,7 @@
   const { chapterDir, chapterData } = boot;
   const home = boot.manifest;
   /* The page's own item never changes. An offline copy answers every address
-     of a book with the book's page, and the 404 page every address at all, so
+     of a book with one page of it, and the 404 page every address at all, so
      the address, not the page, names the section a reader asked for. */
   const carried = untrack(() => own);
   const path = refOfPath(location.pathname);
@@ -136,8 +136,8 @@
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
-    /* Only a page of a book adds that book: the front page borrows the first
-       book's manifest for its colours and adds nothing. */
+    /* Only a page of a book adds that book: the front of OmniStax borrows the
+       first book's manifest for its colours and adds nothing. */
     const pageBook = bookOfItem(page);
     library.init(pageBook ?? '', pageBook === home.id ? home.title : undefined);
     void (async () => { await registerOfflineWorker(); await offlineBooks.refreshClientPin(); await offlineBooks.init(); await offlineBooks.reclaim(); })()
@@ -221,9 +221,9 @@
       return true;
     });
     /* A page of any book is written as a plain link, so that it can still be
-       opened in a window of its own; a click on one opens it in the group it
-       was clicked in instead of loading the page, the way the reader asked
-       (openingIn). The listen is on the way down, since the row a link stands
+       opened in a window of its own; a click on one opens it as a tab of the
+       group it was clicked in instead of loading the page, or with Ctrl in a
+       group beside it. The listen is on the way down, since the row a link stands
        in may keep the click to itself. A page no book here has falls back to
        the link, which is what it always did. */
     const onLink = (e: MouseEvent) => {
@@ -232,7 +232,7 @@
       if (!link || link.target || link.origin !== location.origin) return;
       const at = refOfPath(link.pathname);
       if (!at) return;
-      const { href, pathname, hash } = link; const group = groupOf(link); const how = openingIn(e, link);
+      const { href, pathname, hash } = link; const group = groupOf(link); const how = openingOf(e);
       e.preventDefault();
       void registry.ensureBook(at.book).then(async (m) => {
         const sec = m ? sectionOfUrl(m, pathname) : null;
@@ -246,7 +246,7 @@
       ui.closeAll();
       if ((e.target as HTMLElement).closest('[data-find-textbook]')) { ui.openFindTextbook(); return; }
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
-      if (sb?.dataset.splitKey) { const gi = groupOf(sb); layoutStore.apply((x) => splitRight(x, gi, sb.dataset.splitKey)); return; }
+      if (sb?.dataset.splitKey) { e.preventDefault(); void openItem(sb.dataset.splitKey, groupOf(sb), openingOf(e)); return; }
       /* "Practice this section" at the end of a section: a practice view opens as a
          tab of the group the section is reading in, with that one section picked. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
@@ -264,6 +264,7 @@
       if (openingOf(e) === 'new' && ab && sec) { void openDoc(sectionRef(ab, sectionId(sec)), 'text', 'new').then(() => jump(findEl(ab, id))); return; }
       jump(t);
     };
+    const onAux = (e: MouseEvent) => { if (e.button === 1) onClick(e); };
     /* A feature the about page names lights where it lives: the new note and
        new drawing buttons when the explorer shows them, the explorer's own
        button on the rail when it does not. */
@@ -275,10 +276,10 @@
       ui.spotFrom = from;
     };
     document.addEventListener('mouseover', onOver);
-    document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('focusin', clearView);
+    document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('auxclick', onAux); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
+    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
   });
 
   /* settings → document */
@@ -307,14 +308,13 @@
   $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
 
 
-  /* The page the focused tab is showing, whatever its book: a section, or the
-     front of a book. A tab of no book leaves the address alone. */
+  /* The page of a book the focused tab is showing, whatever its book. A tab of
+     no book leaves the address alone. */
   type Addressed = { readonly key: string; readonly book: BookId; readonly url: string; readonly label: string };
   const addressOf = (id: ItemId | null): Addressed | null => {
     const ref = id ? sectionOfItem(id) : null;
-    if (ref) { const e = registry.entry(ref); return e ? { key: secKey(ref), book: ref.book, url: e.url, label: pageLabel(e) } : null; }
-    const book = id?.kind === 'page' ? bookOfItem(id) : null;
-    return book && registry.hasBook(book) ? { key: book, book, url: `/${book}/`, label: registry.manifest(book).title } : null;
+    const e = ref ? registry.entry(ref) : undefined;
+    return ref && e ? { key: secKey(ref), book: ref.book, url: e.url, label: pageLabel(e) } : null;
   };
   const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; return addressOf(a ? parseItemKey(a) : null); });
   /* layout → address bar, title, released copies, spy, redraw */
@@ -327,7 +327,7 @@
       if (!at || at.key === urlKey) return; urlKey = at.key;
       try { history.replaceState(null, '', at.url); } catch { /* file:// */ }
       const title = registry.manifest(at.book).title;
-      if (at.url !== `/${at.book}/`) rememberPage(at.book, at.url);
+      rememberPage(at.book, at.url);
       document.title = at.label === title ? title : `${at.label} · ${title}`;
     });
   });
@@ -366,7 +366,7 @@
      words — "Ctrl K …" — to anything that takes the shell at its text. */
   .chord-hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:block;white-space:nowrap;padding:5px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--muted);font-family:var(--sans);font-size:0.78rem;line-height:1.5;box-shadow:0 2px 10px rgb(0 0 0 / 0.16)}
   .chord-hint kbd{display:inline-block;font:inherit;border:1px solid var(--rule);border-radius:3px;padding:0 4px;color:var(--ink)}
-  .shell{height:100vh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr);grid-template-areas:"rl sl docs"}
+  .shell{height:100vh;height:100dvh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr);grid-template-areas:"rl sl docs"}
   .docs{grid-area:docs;display:flex;min-width:0;min-height:0;background:var(--bg);position:relative}
   @media (max-width:900px){ .shell{grid-template-columns:44px 0 minmax(0,1fr)} .docs{flex-direction:column} }
 </style>

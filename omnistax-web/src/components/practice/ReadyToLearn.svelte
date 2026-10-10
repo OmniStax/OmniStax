@@ -7,7 +7,7 @@
   import type { Node } from '../../lib/practice/select';
   import { bookId, conceptId } from '../../lib/types/ids';
   import { goConceptFromView } from '../../lib/sections/concepts.svelte';
-  import { openingInView } from '../../lib/sections/nav.svelte';
+  import { openingInView, onMiddle } from '../../lib/sections/nav.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { mathHtml } from '../actions/math';
   import MasteryBox from './MasteryBox.svelte';
@@ -80,7 +80,7 @@
           {/if}
           <MasteryBox id={c.id} />
           <KindDot kind={c.kind} />
-          <span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, g.book, c.id)} onauxclick={(e) => { if (e.button === 1) goConcept(e, g.book, c.id); }} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, g.book, c.id); }} use:mathHtml={c.name}></span>
+          <span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, g.book, c.id)} onauxclick={onMiddle((e) => goConcept(e, g.book, c.id))} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, g.book, c.id); }} use:mathHtml={c.name}></span>
           <span class="meta on">{buildsOn(c)}</span>
         </div>
       {/each}

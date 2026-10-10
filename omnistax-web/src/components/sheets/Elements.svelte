@@ -5,14 +5,15 @@
 
      Everything that decides is in lib/sheets/elements.ts — where a cell stands,
      what fills it, what a filter lets through — so this file only draws and
-     listens. Hovering a cell opens a compact card beside it; clicking pins the
-     card to the right of the table with every field the sheet carries, the
-     element's own colour from the drawing palette, and a link to each section
-     of the book that names it. The arrows walk the table and Enter pins. */
+     listens. Hovering a cell opens a compact card just below it; clicking pins
+     the full card there with every field the sheet carries, the element's own
+     colour from the drawing palette, and a link to each section of the book
+     that names it. In a narrow pane the card is a sheet along the bottom. The
+     arrows walk the table and Enter pins. */
   import { tick } from 'svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { sheets } from '../../lib/sheets/store.svelte';
-  import { openDoc } from '../../lib/sections/nav.svelte';
+  import { onMiddle, openDoc, openingOf, type Opening } from '../../lib/sections/nav.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { type BookId, sectionId, sectionRef } from '../../lib/types/ids';
   import { elementColor } from '../../lib/fig/elements';
@@ -41,6 +42,12 @@
   let pinned = $state<string | null>(null);
   let hovered = $state<string | null>(null);
   let grid = $state<HTMLElement | null>(null);
+  let pop = $state<HTMLElement | null>(null);
+  let boardW = $state(0);
+  let boardH = $state(0);
+  let popW = $state(0);
+  let popH = $state(0);
+  let scrollX = $state(0);
 
   const colouring = $derived(CHOICES.find((c) => c.key === choice)?.colouring ?? CHOICES[0].colouring);
   const cells = $derived(cellsOf(sheet.elements));
@@ -51,6 +58,41 @@
   const element = (symbol: string | null) => (symbol === null ? null : sheet.elements.find((e) => e.symbol === symbol) ?? null);
   const card = $derived(element(pinned));
   const peek = $derived(pinned === null ? element(hovered) : null);
+  const narrow = $derived(boardW > 0 && boardW < 520);
+
+  type Place = { readonly left: number; readonly top: number };
+  const GAP = 4;
+  const EDGE = 8;
+  const cellOf = (symbol: string | null): HTMLElement | null =>
+    symbol === null ? null : grid?.querySelector<HTMLElement>(`[data-el="${symbol}"]`) ?? null;
+  const place = $derived.by((): Place | null => {
+    const at = cellOf(pinned ?? (peek ? hovered : null));
+    if (!at || narrow) return null;
+    const x = at.offsetLeft - scrollX + at.offsetWidth / 2 - popW / 2;
+    const left = Math.max(EDGE, Math.min(x, boardW - popW - EDGE));
+    const below = at.offsetTop + at.offsetHeight + GAP;
+    const above = at.offsetTop - popH - GAP;
+    return { left, top: below + popH > boardH && above >= 0 ? above : below };
+  });
+
+  let grace: ReturnType<typeof setTimeout> | undefined;
+  const hold = (): void => clearTimeout(grace);
+  const enter = (symbol: string): void => { hold(); hovered = symbol; };
+  const leave = (): void => { hold(); grace = setTimeout(() => (hovered = null), 120); };
+  const close = (): void => { const at = cellOf(pinned); pinned = null; at?.focus(); };
+
+  $effect(() => {
+    if (pinned === null) return;
+    const down = (e: PointerEvent): void => {
+      const t = e.target as Element | null;
+      if (pop?.contains(t) || t?.closest('[data-el]')) return;
+      pinned = null;
+    };
+    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') close(); };
+    document.addEventListener('pointerdown', down);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', down); document.removeEventListener('keydown', key); };
+  });
 
   /* A card's "Go to" sets the element before the page opens, so the page reads it once and lets go. */
   $effect(() => { const s = sheets.pinned; if (s) { pinned = s; sheets.pin(null); void reveal(s); } });
@@ -74,7 +116,7 @@
     config.split(' ').map((part) => { const m = /^(.*?)(\d+)$/.exec(part); return m ? { text: m[1], sup: m[2] } : { text: part, sup: '' }; });
 
   const pick = (symbol: string): void => { pinned = pinned === symbol ? null : symbol; };
-  const goSection = (id: string): void => { void openDoc(sectionRef(book, sectionId(id)), 'text'); };
+  const goSection = (id: string, how: Opening): void => { void openDoc(sectionRef(book, sectionId(id)), 'text', undefined, how); };
   const titleOf = (id: string): string => registry.entry(sectionRef(book, sectionId(id)))?.title ?? '';
 
   /* The arrows walk the grid, Enter pins what they stand on, Escape lets it go. */
@@ -138,8 +180,8 @@
     </div>
   {/if}
 
-  <div class="board">
-    <div class="grid" bind:this={grid} role="grid" aria-label="The periodic table">
+  <div class="board" bind:clientWidth={boardW} bind:clientHeight={boardH}>
+    <div class="grid" bind:this={grid} role="grid" aria-label="The periodic table" onscroll={(e) => (scrollX = e.currentTarget.scrollLeft)}>
       {#each placeholders() as p (p.from)}
         <div class="cell strip" style:grid-column={p.column} style:grid-row={p.row} aria-hidden="true"><span class="sym">{p.label}</span></div>
       {/each}
@@ -149,8 +191,8 @@
           data-el={c.element.symbol} style:grid-column={c.column} style:grid-row={c.row}
           style:background={fillOf(colouring, c.element, range, settings.dark, settings.shown.concepts)}
           aria-label="{c.element.name}, number {c.element.number}" aria-pressed={pinned === c.element.symbol}
-          onmouseenter={() => (hovered = c.element.symbol)} onmouseleave={() => (hovered = null)}
-          onfocus={() => (hovered = c.element.symbol)} onblur={() => (hovered = null)}
+          onmouseenter={() => enter(c.element.symbol)} onmouseleave={leave}
+          onfocus={() => enter(c.element.symbol)} onblur={leave}
           onclick={() => pick(c.element.symbol)} onkeydown={(e) => onKey(e, c)}>
           <span class="z">{c.element.number}</span>
           <span class="sym">{c.element.symbol}</span>
@@ -159,7 +201,12 @@
       {/each}
     </div>
 
-    <aside class="side">
+    {#if card || peek}
+      <div
+        class="pop" class:sheet={narrow} bind:this={pop} bind:offsetWidth={popW} bind:offsetHeight={popH}
+        role={card ? 'dialog' : 'tooltip'} aria-label={(card ?? peek)?.name}
+        style:left={place ? `${place.left}px` : null} style:top={place ? `${place.top}px` : null}
+        onmouseenter={hold} onmouseleave={leave}>
       {#if card}
         {@const e = card}
         <div class="full">
@@ -169,7 +216,7 @@
               <div class="eyebrow">{e.number} · {e.category}</div>
               <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
             </div>
-            <button type="button" class="x" aria-label="Close" onclick={() => (pinned = null)}>×</button>
+            <button type="button" class="x" aria-label="Close" onclick={close}>×</button>
           </div>
           <dl class="fields">
             <dt>Atomic weight</dt><dd>{e.weight_label}</dd>
@@ -186,7 +233,7 @@
           {#if e.sections.length}
             <div class="where">
               <div class="eyebrow">Named in</div>
-              <div class="links">{#each e.sections as s (s)}<button type="button" class="ref" onclick={() => goSection(s)} title={titleOf(s)}>{s}</button>{/each}</div>
+              <div class="links">{#each e.sections as s (s)}<button type="button" class="ref" onclick={(ev) => goSection(s, openingOf(ev))} onauxclick={onMiddle((ev) => goSection(s, openingOf(ev)))} title={titleOf(s)}>{s}</button>{/each}</div>
             </div>
           {:else}
             <p class="none">No section of this book names it.</p>
@@ -200,10 +247,9 @@
           <p>{e.weight_label} · {e.state} · block {e.block}{#if trend}<br />{TREND_META[trend].label}: {valueOf(e.symbol)}{/if}</p>
           <p class="hint">Click to keep it open.</p>
         </div>
-      {:else}
-        <div class="peekcard empty"><p>Hover an element to see it. Click to keep the card open.</p></div>
       {/if}
-    </aside>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -223,8 +269,8 @@
   .legend .lab{margin-right:8px}
   .legend .unit{margin-left:4px;font-style:italic}
 
-  .board{display:flex;gap:16px;align-items:flex-start}
-  .grid{display:grid;grid-template-columns:repeat(18,minmax(34px,1fr));grid-auto-rows:minmax(38px,auto);gap:2px;flex:1;min-width:0;overflow-x:auto}
+  .board{position:relative;isolation:isolate}
+  .grid{display:grid;grid-template-columns:repeat(18,minmax(34px,1fr));grid-auto-rows:minmax(38px,auto);gap:2px;min-width:0;overflow-x:auto}
   .cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px 1px;border:1px solid var(--rule);border-radius:4px;background:transparent;color:var(--ink);font:inherit;line-height:1.1;cursor:pointer;min-width:0}
   .cell .z{font-size:0.52rem;color:var(--muted)}
   .cell .sym{font-size:0.85rem;font-weight:700}
@@ -237,9 +283,9 @@
   .cell.strip{cursor:default;border-style:dashed;color:var(--muted)}
   .cell.strip .sym{font-size:0.6rem;font-weight:500}
 
-  .side{width:250px;flex:none;position:sticky;top:8px}
-  .full,.peekcard{border:1px solid var(--rule);border-radius:8px;background:var(--panel);padding:10px 12px}
-  .peekcard.empty{color:var(--muted);font-size:0.8rem}
+  .pop{position:absolute;z-index:2;width:300px;max-width:calc(100% - 16px);border:1px solid var(--rule);border-radius:8px;background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.08)}
+  .pop.sheet{position:fixed;left:8px;right:8px;bottom:8px;top:auto;width:auto;max-width:none;max-height:70vh;overflow-y:auto}
+  .full,.peekcard{padding:10px 12px}
   .peekcard h2,.full h2{margin:1px 0 4px;font-size:1rem}
   .peekcard p{margin:0;font-size:0.8rem;color:var(--muted)}
   .peekcard .hint{margin-top:6px;font-style:italic;opacity:.8}
@@ -258,5 +304,4 @@
   .ref{font:inherit;font-size:0.78rem;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
   .ref:hover{color:var(--accent)}
   .none{margin:10px 0 0;font-size:0.78rem;color:var(--muted)}
-  @media (max-width:900px){ .board{flex-direction:column} .side{width:100%;position:static} }
 </style>
