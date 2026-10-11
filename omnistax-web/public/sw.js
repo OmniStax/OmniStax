@@ -5,6 +5,9 @@ const DB = 'omnistax-offline', STORE = 'installations', PINS = 'clientPins';
 const pins = new Map();
 const openDb = () => new Promise((resolve, reject) => { const r = indexedDB.open(DB, 2); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE, { keyPath: 'bookId' }); if (!r.result.objectStoreNames.contains(PINS)) r.result.createObjectStore(PINS, { keyPath: 'clientId' }); }; r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
 const records = async () => { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(STORE); const r = tx.objectStore(STORE).getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); tx.oncomplete = () => db.close(); }); };
+/* Requests that arrive while the installations are being read share the read. */
+let reading = null;
+const installed = () => reading ??= records().catch(() => []).then((all) => all.filter((record) => record.installedRelease)).finally(() => { reading = null; });
 const normalizePins = (record) => {
   if (!record) return null;
   if (record.pins && typeof record.pins === 'object') return { clientId: record.clientId, primaryBook: record.primaryBook, pins: record.pins, snapshot: record.snapshot };
@@ -133,9 +136,12 @@ self.addEventListener('message', (event) => {
     }
   })());
 });
-/* The live site answers whenever it can. A snapshot stands in when the network
-   fails, or when a page is slow and the snapshot holds it. A file of a live page
-   is not cut off for being slow: the snapshot's copy may be another build's. */
+/* A downloaded book reads from its download: its pages and files come from the
+   installed snapshot, and the network only gives what the snapshot does not
+   hold. Anything else is the live site, which answers whenever it can. A
+   snapshot stands in when the network fails, or when a page is slow and the
+   snapshot holds it. A file of a live page is not cut off for being slow: the
+   snapshot's copy may be another build's. */
 const SLOW_MS = 3000;
 const liveFirst = async (request, snapshot, slowMs) => {
   const live = fetch(request).catch(() => null);
@@ -144,8 +150,9 @@ const liveFirst = async (request, snapshot, slowMs) => {
   const standIn = await snapshot();
   return standIn?.ok || first === null ? standIn : await live ?? standIn;
 };
-/* snapshot: 'chosen' when the reader asked for a release, 'fallback' when the
-   network failed; either way the page and its files come from one snapshot. */
+/* snapshot: 'chosen' when the reader asked for a release, 'downloaded' for a
+   page of a downloaded book, 'fallback' when the network failed; each way the
+   page and its files come from one snapshot. */
 const remember = async (clientId, pin, snapshot) => {
   const held = await pinsFor(clientId); const next = { ...held, primaryBook: pin.bookId, pins: { ...held.pins, [pin.bookId]: pin }, snapshot };
   pins.set(clientId, next); await pinWrite(clientId, next).catch(() => undefined);
@@ -165,12 +172,13 @@ const navigation = async (event, url) => {
     let miss = null;
     for (const candidate of own ? [own] : roots) {
       const response = (own && await cached(candidate, event.request, installs)) ?? await shellOf(candidate);
-      if (response?.ok) { pin = candidate; snapshot = chosen ? 'chosen' : 'fallback'; return response; }
+      if (response?.ok) { pin = candidate; snapshot = chosen ? 'chosen' : own ? 'downloaded' : 'fallback'; return response; }
       miss ??= response;
     }
     return miss;
   };
-  const response = (chosen && await fromSnapshot()) || await liveFirst(event.request, fromSnapshot, SLOW_MS);
+  const first = own ? await fromSnapshot() : null;
+  const response = first?.ok || (chosen && first) ? first : await liveFirst(event.request, fromSnapshot, SLOW_MS);
   if (pin && event.resultingClientId) await remember(event.resultingClientId, pin, snapshot);
   if (!pin && response?.ok) event.waitUntil(refreshShell());
   return response ?? await fromShell(url.pathname, true) ?? offlinePage();
@@ -179,8 +187,9 @@ const resource = async (event, url) => {
   /* A failed inspection still has an active installed snapshot. Keep routing
      through it so an evicted file becomes an explicit repair error instead
      of mixing a network response into the pinned release. */
-  const fromSnapshot = async () => { const installs = (await records().catch(() => [])).filter((record) => record.installedRelease); return fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs); };
-  const response = (await pinsFor(event.clientId)).snapshot ? await fromSnapshot() ?? await fetch(event.request).catch(() => null) : await liveFirst(event.request, fromSnapshot);
+  const installs = await installed();
+  const fromSnapshot = async () => fromPins(await pinnedFor(event, installs, url.pathname), event.request, installs);
+  const response = (await pinsFor(event.clientId)).snapshot || bookOf(url.pathname, installs) ? await fromSnapshot() ?? await fetch(event.request).catch(() => null) : await liveFirst(event.request, fromSnapshot);
   /* A file the network cannot give, or no longer has, comes from the shell: a page the shell answered asks for its own build's files. */
   if (response && response.status !== 404) return response;
   return await fromShell(url.pathname, false) ?? response ?? new Response('Offline resource unavailable', { status: 503 });

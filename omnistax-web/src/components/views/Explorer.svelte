@@ -34,8 +34,9 @@
   import { ACCEPTED, ACCEPT_ATTR } from '../../lib/files/model';
   import ImportToast from '../files/ImportToast.svelte';
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
-  import { pageLabel, pagesOf } from '../../lib/content/roles';
+  import { bookPagesOf, pageLabel, pagesOf } from '../../lib/content/roles';
   import RowMenu from '../explorer/RowMenu.svelte';
+  import BookUpdates from '../explorer/BookUpdates.svelte';
   import { offlineBooks } from '../../lib/offline/store.svelte';
   import { scope } from '../../lib/sections/scope.svelte';
   import { practice } from '../../lib/practice/store.svelte';
@@ -59,7 +60,6 @@
     readonly active: boolean;        /* what the focused group is showing */
     readonly book?: string;
     readonly chapter?: string;
-    readonly updated?: boolean;
     readonly root?: RootName;     /* which of the two fixed roots this row is */
   };
   type RootName = 'books' | 'notes';
@@ -104,7 +104,6 @@
         key, kind: 'section', depth, label: pageLabel(s), icon: ICON.text, section: ref.section,
         expandable: s.built, open,
         dim: !s.built, active: s.built && !!focus.section && sameSection(focus.section, ref), book: id,
-        updated: (offlineBooks.updatedSections[id] ?? []).includes(s.id),
       });
       if (!s.built || !open) return;
       const heads = headingsOf(ref);
@@ -325,7 +324,6 @@
   };
   const openRow = (r: Row, how: Opening): boolean => {
     const key = tabOf(r); if (!key) return false;
-    if (r.kind === 'section' && r.book && r.section) offlineBooks.markSeen(r.book, r.section);
     void openItem(key, undefined, how);
     return true;
   };
@@ -371,14 +369,24 @@
     { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
     { label: 'Change color palette', run: () => openPinned('colours', t) },
   ];
-  /* The offline copy: one of the pair, by whether a copy is kept. */
+  /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
   const offlineItems = (id: string) => {
     const rec = offlineBooks.records[id];
-    if (offlineBooks.downloading(id)) return [];
-    if (!rec?.installedRelease) return [{ label: 'Download for offline', run: () => void offlineBooks.install(id) }];
+    if (!rec?.installedRelease) return offlineBooks.downloading(id) ? [] : [{ label: 'Download for offline', run: () => void offlineBooks.install(id) }];
+    const auto = offlineBooks.autoUpdate(id);
+    const toggle = { label: 'Update automatically', checked: auto, run: () => offlineBooks.setAutoUpdate(id, !auto) };
+    if (offlineBooks.downloading(id)) return [toggle];
     const bytes = rec.manifest?.resources.reduce((n, x) => n + x.bytes, 0) ?? 0;
-    return [{ label: bytes ? `Remove offline copy (${sizeLabel(bytes)})` : 'Remove offline copy', danger: true, run: () => { if (confirm(`Remove the offline copy of \u201c${rec.title}\u201d? Reading it will need a connection again.`)) void offlineBooks.remove(id); } }];
+    return [toggle, { label: bytes ? `Remove offline copy (${sizeLabel(bytes)})` : 'Remove offline copy', danger: true, run: () => { if (confirm(`Remove the offline copy of \u201c${rec.title}\u201d? Reading it will need a connection again.`)) void offlineBooks.remove(id); } }];
   };
+  /* The book whose changes are open, and what its sections are called. */
+  let changesOf = $state<string | null>(null);
+  const sectionLabel = (book: string) => (id: string): string => {
+    const m = manifestOf(book); const page = m ? bookPagesOf(m).find((p) => p.id === id) : undefined;
+    return page ? pageLabel(page) : id;
+  };
+  const percent = (id: string): string => { const p = offlineBooks.progress[id]; return p?.totalBytes ? ` ${Math.floor((p.bytes / p.totalBytes) * 100)}%` : ''; };
+  $effect(() => { offlineBooks.track(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [e.bookId] : []))); });
 
   /* The row menu, hanging where the pointer or the button left it. */
   type Menu = { readonly row: Row; readonly x: number; readonly y: number };
@@ -565,7 +573,17 @@
           {:else}
             <span class="lbl">{r.label}</span>
           {/if}
-          {#if r.updated}<span class="updated" title="Updated since your last visit">Updated</span>{/if}
+          {#if r.kind === 'book' && r.entry?.bookId}
+            {@const id = r.entry.bookId}
+            {@const marks = offlineBooks.marks(id)}
+            {#if marks.update}
+              <button type="button" class="pill" tabindex="-1" disabled={offlineBooks.downloading(id)} title={offlineBooks.message || undefined}
+                onclick={(e) => { e.stopPropagation(); void offlineBooks.install(id); }}>{offlineBooks.downloading(id) ? `Updating${percent(id)}` : 'Update'}<span class="dot warm"></span></button>
+            {/if}
+            {#if marks.updated}
+              <button type="button" class="pill" tabindex="-1" onclick={(e) => { e.stopPropagation(); changesOf = id; }}>Updated<span class="dot new"></span></button>
+            {/if}
+          {/if}
           {#if r.root === 'notes'}
             <button type="button" class="tool" id="import-files" tabindex="-1" title="Import {ACCEPTED}" aria-label="Import"
               onclick={(e) => { e.stopPropagation(); importMenu = { x: e.clientX, y: e.clientY }; }}>{@html ICON.importFile}</button>
@@ -608,6 +626,9 @@
 {#if menu}
   <RowMenu x={menu.x} y={menu.y} items={menuItems} onclose={() => (menu = null)} />
 {/if}
+{#if changesOf}
+  {#key changesOf}<BookUpdates book={changesOf} label={sectionLabel(changesOf)} onclose={() => (changesOf = null)} />{/key}
+{/if}
 
 <style>
   .explorer{display:flex;flex-direction:column;min-width:0}
@@ -646,7 +667,13 @@
   .row:hover .dots,.row.sel .dots,.dots:focus-visible{opacity:1}
   @media (hover: none){ .dots{opacity:.55} }
   .dots:hover{background:var(--soft2);color:var(--ink)}
-  .updated{font-size:.65rem;color:var(--accent);font-weight:600}
+  .pill{flex:none;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--ink);font:inherit;font-size:.68rem;font-weight:600;line-height:1.5;padding:0 7px;cursor:pointer}
+  .pill:hover:not(:disabled){background:var(--soft2)}
+  .pill:disabled{cursor:default;color:var(--muted)}
+  .pill:focus-visible{outline:2px solid var(--accent)}
+  .dot{width:6px;height:6px;border-radius:50%}
+  .dot.new{background:var(--spot)}
+  .dot.warm{background:var(--m-mid)}
 
   :global(.view-pane) .row{font-size:0.92rem;line-height:2}
   :global(.view-pane) .row.r-heading .lbl{font-size:0.88rem}

@@ -42,9 +42,9 @@ const rewrite = async (rel, tail) => {
 const keep = async (phase, rels) => {
   for (const rel of rels) { const dest = path.join(work, `live-${phase}`, rel); await fs.mkdir(path.dirname(dest), { recursive: true }); await fs.copyFile(path.join(output, rel), dest); }
 };
-const front = await fs.readFile(path.join(output, 'sandbox', 'index.html'), 'utf8');
-const css = front.match(/href="\/(assets\/[^"]+\.css)"/)?.[1];
-if (!css || !(await fs.readFile(path.join(output, 'sandbox', 'ch01', '1.1', 'index.html'), 'utf8')).includes(`/${css}`)) throw new Error('no stylesheet shared by the sandbox pages');
+const page = await fs.readFile(path.join(output, 'sandbox', 'ch01', '1.1', 'index.html'), 'utf8');
+const css = page.match(/href="\/(assets\/[^"]+\.css)"/)?.[1];
+if (!css) throw new Error('no stylesheet on the sandbox page');
 const pages = ['sandbox/ch01/1.1/doc.html', 'sandbox/ch01/1.1/index.html'];
 await keep('a', [css, ...pages]);
 await keep('app', pages);
@@ -54,7 +54,7 @@ await buildOfflineArtifacts(output, [{ id: 'sandbox', dir: sourceInput }], archi
 const catalogApp = JSON.parse(await fs.readFile(path.join(output, 'offline-catalog.json'), 'utf8'));
 
 const source = path.join(work, 'source'); await fs.cp(sourceInput, source, { recursive: true });
-const marker = '\n<!-- offline-release-b -->\n';
+const marker = '\n<p>offline-release-b</p>\n';
 await fs.appendFile(path.join(source, 'ch01', '1.1', 'text.html'), marker);
 for (const rel of pages) await rewrite(rel, marker);
 await buildOfflineArtifacts(output, [{ id: 'sandbox', dir: source }], archive);

@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 DIST = pathlib.Path(__file__).resolve().parents[1] / "dist"
 BOOK = "sandbox"
-PATH = f"/{BOOK}/ch01/1.1/"
+LATER = f"/{BOOK}/ch02/2.1/"
 
 # Chromium exempts service-worker fetches from Playwright's offline emulation,
 # so the origin itself goes down: a request it drops fails in the worker too.
@@ -54,7 +54,7 @@ with sync_playwright() as playwright:
 
     # A section of a book not downloaded opens the shell on the book's first page,
     # and the section's own pane says it cannot load.
-    page.goto(BASE + PATH)
+    page.goto(BASE + LATER)
     page.wait_for_selector(".shell", timeout=20_000)
     page.locator(".loading.bad").first.wait_for(timeout=20_000)
     assert not errors, errors

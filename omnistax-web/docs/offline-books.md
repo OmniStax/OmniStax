@@ -3,8 +3,10 @@
 Offline textbooks are explicit, verified browser downloads. Adding a textbook
 to the reader tree and downloading its files are separate actions. The Find a
 textbook panel shows download size, progress, repair/remove actions, update
-availability, release dates, and deterministic release changes. Once
-downloaded, a book keeps itself up to date.
+availability, release dates, and deterministic release changes. A downloaded
+book updates itself unless the reader turns off "Update automatically" for it,
+in that panel or in the book row's menu (default on, kept per book in
+`omnistax-auto-update-v1`).
 
 ## Publication
 
@@ -34,21 +36,43 @@ cache entries are detected at startup and offered as a repair.
 
 The app checks the catalog on startup, when its window gains focus or comes
 back online, at most once per ten minutes after a successful check. Every
-downloaded book whose release or runtime artifact differs from the catalog is
-installed again in the background. A file whose SHA-256 the active snapshot
+downloaded book set to update automatically whose release or runtime artifact
+differs from the catalog is installed again in the background. A file whose SHA-256 the active snapshot
 already holds is copied from it, so a deploy that changes only the app
 downloads only the app. A background install that fails, or is refused because
 an older release is still in use, waits for the next check. The page keeps the
-artifact ID of its first catalog; a later check that names another shows
-"OmniStax was updated." with a Reload button at the foot of the window.
+artifact ID of its first catalog, or of the download it was answered from; a
+later check that names another (for a downloaded book's page, once its install
+of the new artifact completes) shows "OmniStax was updated." with a Reload
+button at the foot of the window.
 
-The production service worker is registered only on HTTPS or localhost. Online
-is the live site: every request goes to the network first. A navigation falls
-back to the installed snapshot when the network fails or takes longer than
-three seconds; a file of a live page falls back only when the network fails.
-A page the snapshot answered, or one opened on a release the reader chose,
-takes all its files from that snapshot, so its app and content come from one
-build. Offline, the front of OmniStax opens the front of a downloaded book.
+A book row in the explorer wears two marks. "Update" with a yellow dot shows
+while a downloaded book's installed release is older than the catalog's
+(runtime-only differences do not count); clicking it installs now, and it
+stays until the install completes, so with automatic updates on it shows only
+while the background install runs. "Updated" with a blue dot shows, for every
+reader whether the book is downloaded or not, when the release they have (the
+download's, else the catalog's) is not the one they last saw.
+`omnistax-seen-releases-v2` keeps per book the release, artifact and section
+fingerprints last seen; a book first seen records them silently. Clicking the
+mark records the current release as seen and opens the changes: sections
+added, changed and removed by fingerprint, each added or changed one opening
+to a line diff of its readable text (one block per line, maths as TeX, read
+from the local snapshot when held, else the release's download URLs), and the
+changed data files by name. When the earlier release is no longer on the
+server, the section list still comes from the kept fingerprints and the
+earlier text is said to be unavailable.
+
+The production service worker is registered only on HTTPS or localhost. A
+downloaded book reads from its download: a navigation under `/<book>/` and any
+file under that prefix are answered from the installed snapshot first, and the
+network only for what the snapshot does not hold. Everything else is the live
+site, network first. A navigation falls back to the installed snapshot when
+the network fails or takes longer than three seconds; a file of a live page
+falls back only when the network fails. A page the snapshot answered, or one
+opened on a release the reader chose, takes all its files from that snapshot,
+so its app and content come from one build; a downloaded book's page therefore
+runs the app of its download until the download updates. Offline, the front of OmniStax opens the front of a downloaded book.
 Each client is pinned at navigation to the book release and runtime artifact
 it falls back to, and that pin names the release practice provenance records.
 A client holds one pin per book, so practising from a second downloaded

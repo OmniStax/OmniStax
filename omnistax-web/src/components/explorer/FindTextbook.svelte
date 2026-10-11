@@ -75,6 +75,7 @@
                 <button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>{installed?.installedRelease ? 'Repair download' : installed?.status === 'failed' ? 'Retry download' : 'Download for offline use'}</button>
                 {#if installed?.installedRelease}<button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>Remove download</button>{/if}
               {/if}
+              {#if installed?.installedRelease}<label class="auto"><input type="checkbox" checked={offlineBooks.autoUpdate(b.id)} onchange={(e) => offlineBooks.setAutoUpdate(b.id, e.currentTarget.checked)}>Update automatically</label>{/if}
             </span>
             {#if offlineBooks.changes[b.id]}<span class="change-note">{offlineBooks.changes[b.id].notes ?? countChanges(b.id)}</span>{/if}
             {#if library.has(b.id)}
@@ -114,6 +115,7 @@
   .add:focus-visible{outline:2px solid var(--accent)}
   .offline-actions{grid-column:2 / -1;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .available{font-size:.72rem;color:var(--good,#16803c);white-space:nowrap}
+  .auto{display:inline-flex;align-items:center;gap:4px;font-size:.76rem;color:var(--muted);cursor:pointer}
   progress{width:100%;height:5px}
   .updates{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--rule);font-size:.76rem;color:var(--muted);overflow-wrap:anywhere}
   .change-note{grid-column:2 / -1;color:var(--muted);font-size:.74rem;overflow-wrap:anywhere}

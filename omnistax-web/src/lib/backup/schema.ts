@@ -37,7 +37,7 @@ const jsonKeys = new Set([
   'omnistax-library-v1', 'omnistax-explorer-v1', 'omnistax-notedocs-v1',
   'omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope',
   'omnistax-folded', 'omnistax-hidden-figs',
-  'omnistax-seen-releases-v1',
+  'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-auto-update-v1',
   /* The files the reader imported and what they have written on them. Only the
      metadata is here; the bytes travel as `files` below. */
   'omnistax-files-v1', 'omnistax-filemarks-v1',
@@ -69,12 +69,12 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (scalarKeys.has(key)) return 'appearance';
   if (key === 'omnistax-keys') return 'shortcuts';
   if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
-  if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1') return 'library';
+  if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
   if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
-  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1'].includes(key)) return 'reading';
+  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1'].includes(key)) return 'reading';
   if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
   return null;
 };
@@ -231,7 +231,9 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-filemarks-v1': z.array(fileMark),
   'omnistax-layout-v6': layout, 'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
   'omnistax-folded': z.array(z.string()), 'omnistax-hidden-figs': z.array(z.string()),
+  'omnistax-seen-releases-v2': z.record(z.object({ release: z.string().min(1), artifact: z.string().min(1), sections: z.array(z.object({ id: z.string().min(1), fingerprint: z.string().min(1) }).strict()) }).strict()),
   'omnistax-seen-releases-v1': z.record(z.record(z.string().min(1))),
+  'omnistax-auto-update-v1': z.record(z.boolean()),
   'omnistax-tips-v1': TipStateSchema, 'omnistax-last-page-v1': z.record(z.string()),
   'omnistax-chat-tree-v1': z.array(z.string()),
   'omnistax-pomodoros': z.array(object), 'omnistax-pomodoro-categories': z.array(object),

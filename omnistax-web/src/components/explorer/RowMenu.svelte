@@ -3,7 +3,7 @@
      It knows nothing of the tree: it is handed the choices and the corner to
      hang from, and it closes on the next click anywhere, on Escape, or once a
      choice has been taken. */
-  type MenuItem = { readonly label: string; readonly run: () => void; readonly danger?: boolean };
+  type MenuItem = { readonly label: string; readonly run: () => void; readonly danger?: boolean; readonly checked?: boolean };
   type Props = { x: number; y: number; items: readonly MenuItem[]; onclose: () => void };
   let { x, y, items, onclose }: Props = $props();
 
@@ -28,7 +28,7 @@
   onclick={(e) => e.stopPropagation()}
   onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Escape') onclose(); }}>
   {#each items as it (it.label)}
-    <button type="button" role="menuitem" class="mi" class:danger={it.danger} onclick={() => { it.run(); onclose(); }}>{it.label}</button>
+    <button type="button" role={it.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={it.checked} class="mi" class:danger={it.danger} onclick={() => { it.run(); onclose(); }}>{#if it.checked !== undefined}<span class="check">{it.checked ? '✓' : ''}</span>{/if}{it.label}</button>
   {/each}
 </div>
 
@@ -37,5 +37,6 @@
   .mi{border:0;background:transparent;color:var(--ink);font:inherit;text-align:left;padding:5px 10px;border-radius:4px;cursor:pointer;white-space:nowrap}
   .mi:hover{background:var(--soft)}
   .mi.danger{color:var(--bad)}
+  .check{display:inline-block;width:1.2em}
   .mi:focus-visible{outline:2px solid var(--accent)}
 </style>

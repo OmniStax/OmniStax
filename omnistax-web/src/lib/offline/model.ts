@@ -1,4 +1,5 @@
 import type { BookReleaseManifest, OfflineResource } from './schema';
+import { plainText } from '../content/plain';
 
 export type ReleaseChanges = {
   readonly sections: { readonly added: readonly string[]; readonly changed: readonly string[]; readonly removed: readonly string[] };
@@ -11,10 +12,29 @@ const changed = <T>(before: ReadonlyMap<string, T>, after: ReadonlyMap<string, T
   removed: [...before.keys()].filter((key) => !after.has(key)).sort(),
 });
 
+type Section = BookReleaseManifest['sections'][number];
+export const sectionChanges = (before: readonly Section[], after: readonly Section[]): ReleaseChanges['sections'] =>
+  changed(new Map(before.map((section) => [section.id, section.fingerprint])), new Map(after.map((section) => [section.id, section.fingerprint])), (a, b) => a === b);
 export const releaseChanges = (before: BookReleaseManifest, after: BookReleaseManifest): ReleaseChanges => ({
-  sections: changed(new Map(before.sections.map((section) => [section.id, section.fingerprint])), new Map(after.sections.map((section) => [section.id, section.fingerprint])), (a, b) => a === b),
+  sections: sectionChanges(before.sections, after.sections),
   resources: changed(new Map(before.resources.map((resource) => [resource.logicalUrl, resource])), new Map(after.resources.map((resource) => [resource.logicalUrl, resource])), (a: OfflineResource, b: OfflineResource) => a.sha256 === b.sha256),
 });
+
+/* The release a reader last looked at, with its section fingerprints, so the
+   changes since can be named after the server has dropped it. */
+export type SeenRelease = { readonly release: string; readonly artifact: string; readonly sections: readonly Section[] };
+/* A book row's two marks: changed since the reader looked, and a newer release
+   waiting to install. The release a reader has is the download's, else the catalog's. */
+export const bookMarks = (seen: SeenRelease | undefined, installed: string | undefined, available: string | undefined): { readonly updated: boolean; readonly update: boolean } => {
+  const current = installed ?? available;
+  return { updated: !!seen && !!current && seen.release !== current, update: !!installed && !!available && installed !== available };
+};
+
+/* A section's text one block to a line, maths as its TeX. */
+const UNREAD = /<span\b[^>]*\bclass="ai-mark"[^>]*>[\s\S]*?<\/span>|<(script|style|svg|button|nav|template)\b[\s\S]*?<\/\1>|<!--[\s\S]*?-->/g;
+const BLOCK = /<\/?(?:h[1-6]|p|li|figcaption|figure|div|section|article|blockquote|table|tr|td|th|dt|dd|ul|ol|br|hr)\b[^>]*>|<span\b[^>]*\bclass="katex-display"[^>]*>/g;
+const EYEBROW = /<span\b[^>]*\bclass="eyebrow"[^>]*>([^<]*)<\/span>/g;
+export const readableLines = (html: string): string[] => html.replace(UNREAD, '').replace(EYEBROW, '<br>$1<br>').split(BLOCK).map(plainText).filter((line) => line !== '');
 
 export type InstallPhase = 'absent' | 'downloading' | 'failed' | 'ready';
 export type InstallState = { readonly phase: InstallPhase; readonly installedRelease?: string; readonly availableRelease?: string; readonly stagingRelease?: string; readonly error?: string };

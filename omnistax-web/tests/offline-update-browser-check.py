@@ -1,6 +1,7 @@
-"""Archive-backed publish A -> app-only deploy -> content release B: live-first
-pages, the reload toast, background installs that reuse unchanged files, the
-offline snapshot before and after them, pins, provenance and reclaim."""
+"""Archive-backed publish A -> app-only deploy -> content release B: a
+downloaded book read from its download, the reload toast, background installs
+that reuse unchanged files, the offline snapshot before and after them, the
+Update and Updated marks on the book row, pins, provenance and reclaim."""
 import functools
 import http.server
 import json
@@ -95,14 +96,15 @@ with tempfile.TemporaryDirectory(prefix="omnistax-update-") as temporary:
             assert old.evaluate(PIN)['release'] == a
             assert old.evaluate(MARKER) == ''
 
-            # An app-only deploy. Opening the finder checks the catalog: the open
-            # tab is told, and the book starts re-installing on its own.
+            # An app-only deploy. Opening the finder checks the catalog and the
+            # book starts re-installing on its own; a downloaded book reads from
+            # its download, so neither tab changes app until the install lands.
             Handler.phase = "app"; Handler.stall = True; Handler.requests.clear()
             old.locator('.row.r-find').click()
-            old.locator('.update-toast').filter(has_text='OmniStax was updated.').wait_for(timeout=20_000)
             until(old, lambda record: record.get('stagingArtifact') == art_app)
+            assert old.locator('.update-toast').count() == 0
             fresh = opened(context)
-            assert fresh.evaluate(MARKER) == 'app', 'an installed book opened online shows the live app'
+            assert fresh.evaluate(MARKER) == '', 'a downloaded book opened online reads from its download'
 
             # Offline before the background install finishes: the old snapshot
             # opens whole.
@@ -123,6 +125,7 @@ with tempfile.TemporaryDirectory(prefix="omnistax-update-") as temporary:
             fetched = {p for p in Handler.requests if p.startswith(f'/offline/releases/sandbox/{a}/{art_app}/') and not p.endswith('/manifest.json')}
             assert fetched == changed_app, (fetched, changed_app)
 
+            old.get_by_role('button', name='Check for updates').click()
             old.get_by_role('button', name='Reload').click()
             old.wait_for_selector('.shell'); old.wait_for_timeout(2000)
             assert old.evaluate(MARKER) == 'app'
@@ -134,17 +137,28 @@ with tempfile.TemporaryDirectory(prefix="omnistax-update-") as temporary:
             assert cold_after.evaluate(MARKER) == 'app'
             whole(cold_after)
             Handler.down = False
+            cold_after.evaluate("localStorage.setItem('omnistax-auto-update-v1', JSON.stringify({sandbox:false}))")
             for page in (old, fresh, cold, cold_after): page.close()
 
-            # A content release: the book re-installs on its own, the changed
-            # section is marked, and the open tab keeps its pin.
+            # A content release with automatic updates off: the book row offers
+            # Update until it is taken, then says Updated, whose changes name the
+            # section and its new line. The open tab keeps its pin.
             Handler.phase = "b"
             reader = opened(context)
+            book = reader.locator('.row.r-book[data-key="book:sandbox"]')
+            book.locator('.pill').filter(has_text='Update').wait_for(timeout=20_000)
+            assert reader.evaluate(RECORD)['installedRelease'] == a
+            book.locator('.pill').filter(has_text='Update').click()
             record = until(reader, lambda record: record.get('installedRelease') == b)
             assert record['previousRelease'] == a and record['previousArtifact'] == art_app, record
-            reader.locator('.updated').filter(has_text='Updated').first.wait_for(timeout=20_000)
+            book.locator('.pill').filter(has_text='Updated').click()
+            changes = reader.locator('dialog[open]')
+            changes.locator('summary').filter(has_text='1.1').click()
+            changes.locator('.line.add').filter(has_text='offline-release-b').wait_for(timeout=20_000)
+            reader.keyboard.press('Escape')
+            assert book.locator('.pill').count() == 0
             assert reader.evaluate(PIN)['release'] == a
-            assert 'offline-release-b' in reader.evaluate("fetch('/sandbox/ch01/1.1/doc.html').then(r=>r.text())")
+            assert 'offline-release-b' not in reader.evaluate("fetch('/sandbox/ch01/1.1/doc.html').then(r=>r.text())")
             newer = opened(context)
             assert newer.evaluate(PIN)['release'] == b
 

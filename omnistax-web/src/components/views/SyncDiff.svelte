@@ -8,6 +8,7 @@
   import { GROUP_LABEL } from '../../lib/sync/layout';
   import type { Change } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
+  import LineDiff from '../ui/LineDiff.svelte';
 
   const change = $derived(session.changes.find((c) => c.path === session.selected) ?? null);
   const kind = (path: string): 'text' | 'image' | 'binary' => (path.endsWith('.json') ? 'text' : /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/.test(path) ? 'image' : 'binary');
@@ -40,12 +41,7 @@
     node.src = u;
     return { destroy: () => URL.revokeObjectURL(u) };
   };
-  const SIGN = { same: ' ', del: '−', add: '+' } as const;
 </script>
-
-{#snippet skipped(n: number)}
-  {#if n}<div class="skip">{n} unchanged {n === 1 ? 'line' : 'lines'}</div>{/if}
-{/snippet}
 
 {#snippet version(name: string, bytes: Uint8Array | null, path: string, image: boolean)}
   <figure>
@@ -84,15 +80,7 @@
         {:else if total > MAX_LINES}
           <p class="empty">{total} changed lines: too many to show.</p>
         {:else}
-          <div class="code" role="table" aria-label="Changes">
-            {#each d.hunks as h, i (i)}
-              {@render skipped(h.skipped)}
-              {#each h.lines as l, j (j)}
-                <div class="line {l.kind}" role="row"><span class="no">{l.a ?? ''}</span><span class="no">{l.b ?? ''}</span><span class="sign">{SIGN[l.kind]}</span><span class="text">{l.text}</span></div>
-              {/each}
-            {/each}
-            {@render skipped(d.tail)}
-          </div>
+          <LineDiff hunks={d.hunks} tail={d.tail} />
         {/if}
       {:else if v}
         {@const image = kind(change.path) === 'image'}
@@ -124,15 +112,6 @@
   .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;font-size:.8rem;font-weight:600}
   .legend .del{color:var(--bad)} .legend .add{color:var(--ok)}
   .counts{margin-left:auto;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
-  .code{border:1px solid var(--rule);border-radius:6px;background:var(--panel);font-family:var(--mono);font-size:.76rem;line-height:1.55;overflow:hidden}
-  .line{display:grid;grid-template-columns:3.5em 3.5em 1.5em minmax(0,1fr)}
-  .no{text-align:right;padding-right:8px;color:var(--muted);font-variant-numeric:tabular-nums;user-select:none}
-  .sign{text-align:center;user-select:none}
-  .text{white-space:pre-wrap;overflow-wrap:anywhere;padding-right:8px}
-  .line.del{background:color-mix(in srgb,var(--bad) 12%,transparent)}
-  .line.add{background:color-mix(in srgb,var(--ok) 14%,transparent)}
-  .line.del .sign{color:var(--bad)} .line.add .sign{color:var(--ok)}
-  .skip{padding:2px 12px;background:var(--soft);color:var(--muted);font-family:var(--sans);font-size:.74rem}
   .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
   figure{margin:0;border:1px solid var(--rule);border-radius:6px;background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:8px}
   figcaption{font-size:.8rem;font-weight:600}

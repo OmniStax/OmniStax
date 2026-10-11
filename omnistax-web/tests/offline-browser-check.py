@@ -103,8 +103,9 @@ with sync_playwright() as playwright:
     newer = context.new_page()
     newer.goto(BASE + PATH)
     newer.wait_for_selector('.shell')
-    # Online the live site answers; each client's pin is what stands in for it.
-    assert page.evaluate("fetch('/pin-probe.txt').then(r => r.status)") == 404
+    # A downloaded book reads from its download, online or not, through each client's pin.
+    assert page.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'A'
+    assert newer.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'B'
     Handler.down = True
     assert page.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'A'
     assert newer.evaluate("fetch('/pin-probe.txt').then(r => r.text())") == 'B'

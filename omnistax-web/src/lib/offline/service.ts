@@ -1,6 +1,6 @@
 import { BookReleaseManifestSchema, OfflineCatalogSchema, type BookReleaseManifest, type OfflineCatalog, type OfflineResource } from './schema';
 import { cacheName, deleteInstallation, getInstallation, listInstallations, putInstallation, type InstallationRecord } from './storage';
-import { releaseChanges, savedSessionReleaseReferences, type ReleaseChanges } from './model';
+import { readableLines, releaseChanges, savedSessionReleaseReferences, sectionChanges, type ReleaseChanges, type SeenRelease } from './model';
 import { liveWorkerPins } from './register';
 
 export type InstallProgress = { readonly files: number; readonly totalFiles: number; readonly bytes: number; readonly totalBytes: number };
@@ -20,7 +20,7 @@ const verified = async (resource: OfflineResource, response: Response): Promise<
   if (body.byteLength !== resource.bytes || await digest(body) !== resource.sha256) throw new Error(`${resource.logicalUrl} failed integrity verification.`);
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 };
-const fetchManifest = async (url: string, signal?: AbortSignal): Promise<BookReleaseManifest> => {
+export const fetchManifest = async (url: string, signal?: AbortSignal): Promise<BookReleaseManifest> => {
   const response = await fetch(url, { cache: 'no-store', signal });
   if (!response.ok) throw new Error(`Release manifest returned ${response.status}.`);
   const parsed = BookReleaseManifestSchema.safeParse(await response.json());
@@ -175,6 +175,32 @@ export const changesForAvailable = async (bookId: string): Promise<{ readonly ch
   if (!entry) throw new Error('This book is not in the update catalogue.');
   const available = await fetchManifest(entry.manifestUrl);
   return { changes: releaseChanges(record.manifest, available), notes: available.releaseNotes, publishedAt: available.publishedAt };
+};
+
+/* What changed in a book since the release the reader last saw. The section
+   list comes from the fingerprints kept when they saw it; the earlier
+   manifest, needed for its text and files, may be gone from the server. */
+export type BookUpdate = { readonly from: SeenRelease; readonly to: BookReleaseManifest; readonly before?: BookReleaseManifest; readonly sections: ReleaseChanges['sections']; readonly files?: ReleaseChanges['resources'] };
+const releaseManifest = async (seen: SeenRelease, bookId: string): Promise<BookReleaseManifest | undefined> => {
+  const record = await getInstallation(bookId);
+  const local = [record?.manifest, record?.previousManifest].find((manifest) => manifest?.releaseId === seen.release);
+  return local ?? fetchManifest(`/offline/releases/${encodeURIComponent(bookId)}/${seen.release}/${seen.artifact}/manifest.json`).catch(() => undefined);
+};
+export const bookUpdate = async (from: SeenRelease, to: BookReleaseManifest): Promise<BookUpdate> => {
+  const before = await releaseManifest(from, to.book.id);
+  const data = new Set([...before?.resources ?? [], ...to.resources].filter((resource) => resource.role === 'data').map((resource) => resource.logicalUrl));
+  const files = before && releaseChanges(before, to).resources;
+  const only = (urls: readonly string[]) => urls.filter((url) => data.has(url));
+  return { from, to, before, sections: sectionChanges(from.sections, to.sections), files: files && { added: only(files.added), changed: only(files.changed), removed: only(files.removed) } };
+};
+/* A section's readable text in one release, from its download when there is one. */
+export const sectionLines = async (manifest: BookReleaseManifest | undefined, section: string): Promise<string[]> => {
+  const doc = manifest?.resources.find((resource) => resource.logicalUrl.startsWith(`/${manifest.book.id}/`) && resource.logicalUrl.endsWith(`/${section}/doc.html`));
+  if (!manifest || !doc) return [];
+  const saved = 'caches' in globalThis ? await caches.match(doc.logicalUrl, { cacheName: cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId) }) : undefined;
+  const response = saved ?? await fetch(doc.downloadUrl);
+  if (!response.ok) throw new Error(`${doc.logicalUrl} returned ${response.status}.`);
+  return readableLines(await response.text());
 };
 
 export { listInstallations };

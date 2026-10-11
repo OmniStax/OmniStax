@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { buildOfflineArtifacts } from '../scripts/build-offline.mjs';
 import { BookReleaseManifestSchema } from '../src/lib/offline/schema';
-import { beginInstall, commitInstall, failInstall, releaseChanges, releaseForBook, savedSessionReleaseReferences } from '../src/lib/offline/model';
+import { beginInstall, bookMarks, commitInstall, failInstall, readableLines, releaseChanges, releaseForBook, savedSessionReleaseReferences, sectionChanges } from '../src/lib/offline/model';
 
 const put = async (root: string, rel: string, body: string) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
 const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string) => {
@@ -94,4 +94,23 @@ test('a live client pin is authoritative for new practice provenance', () => {
   assert.equal(releaseForBook('a', { a: 'release-a' }, { a: 'release-b' }, { a: 'release-c' }), 'release-a');
   assert.equal(releaseForBook('a', {}, { a: 'release-b' }, { a: 'release-c' }), 'release-b');
   assert.equal(releaseForBook('a', {}, {}, { a: 'release-c' }), 'release-c');
+});
+
+test('a book row is marked Updated against what the reader last saw, and Update while a newer release waits', () => {
+  const seen = { release: 'a', artifact: 'x', sections: [] };
+  assert.deepEqual(bookMarks(undefined, undefined, 'b'), { updated: false, update: false });
+  assert.deepEqual(bookMarks(seen, undefined, 'a'), { updated: false, update: false });
+  assert.deepEqual(bookMarks(seen, undefined, 'b'), { updated: true, update: false });
+  assert.deepEqual(bookMarks(seen, 'a', 'b'), { updated: false, update: true });
+  assert.deepEqual(bookMarks(seen, 'b', 'b'), { updated: true, update: false });
+  const f = (c: string) => c.repeat(64);
+  assert.deepEqual(sectionChanges([{ id: '1.1', fingerprint: f('a') }, { id: '1.2', fingerprint: f('b') }], [{ id: '1.1', fingerprint: f('c') }, { id: '1.3', fingerprint: f('d') }]), { added: ['1.3'], changed: ['1.1'], removed: ['1.2'] });
+});
+
+test('a section reads as one line per block, maths as TeX', () => {
+  const html = `<article><div class="eyebrow">Chapter 2</div><h1>Vectors</h1>
+<p class="lead">A <span data-concept="v">vector</span> has <em>direction</em>.<span class="ai-mark"><svg><path d="M0"/></svg></span></p>
+<!-- marker --><figure><img src="/a.jpg" alt="jet"><figcaption><span class="eyebrow">Figure 2.6</span><span>The <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="mord">x</span></span></span>-axis &amp; more.</span></figcaption></figure>
+<ul><li>One</li><li>Two</li></ul><script>var a = 1;</script><button>Try</button></article>`;
+  assert.deepEqual(readableLines(html), ['Chapter 2', 'Vectors', 'A vector has direction.', 'Figure 2.6', 'The $x$-axis & more.', 'One', 'Two']);
 });
