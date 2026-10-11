@@ -129,8 +129,8 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   things they make — a note, a folder — are icons at the top right, and the
   catalogue of textbooks is a row of the tree itself, first under User and above
   the books they have taken.
-- A symbol, a glossary term and an example reference wear a dotted rule that says
-  a card will open on them. The rule is a setting ("Underlines"), off leaves the
+- A symbol, a concept the builder marked and an example reference wear a dotted
+  rule that says a card will open on them. The rule is a setting ("Underlines"), off leaves the
   page clean and the cards still open, and inside a card nothing is underlined:
   that is where the symbol is explained, not another place to look it up.
 - One fold rule for every list a view draws: what the view's level covers is shown
@@ -197,7 +197,7 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
 - The gestures are the app's and the tokens are the book's, as a language server
   has it: physics declares typed symbols, chemistry declares element symbols and
   formulas. A book with an `elements` sheet gets **formula hover**: the same
-  runtime pass that marks glossary terms marks every run of the prose whose
+  runtime pass that links example references marks every run of the prose whose
   every symbol is an element — H₂O, Ca(OH)₂, SO₄²⁻, CuSO₄·5H₂O — and the card
   shows the composition as element chips on their own palette colours, the molar
   mass with the arithmetic on one line, and a way through to the elements page

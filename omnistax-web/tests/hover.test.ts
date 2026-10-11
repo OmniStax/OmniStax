@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { wrapTerms, wrapExampleRefs, exampleIds } from '../src/lib/hover/terms';
+import { wrapExampleRefs, wrapFigureRefs, exampleIds } from '../src/lib/hover/terms';
 import { definitionCard, variableCard, equationCard, referenceCard, conceptCard, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
 import { conceptOfTerm, formById, statedOf } from '../src/lib/sections/reference';
 import type { ConceptDTO, FormDTO, VariableDTO } from '../src/lib/content/schema';
@@ -20,34 +20,18 @@ const calls: string[] = [];
 const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
-/* ---------- terms ---------- */
-const TERMS = ['restoring force', 'force constant', 'period'];
-const T = (term: string, text = term) => `<span class="term" data-term="${term}" tabindex="0">${text}</span>`;
-test('every mention is marked, plain or emphasised, whole words, case-insensitive', () => {
-  const out = wrapTerms('<p>The Period is long. The period is short. Periodic is not it. A <em>period</em> again.</p>', TERMS);
-  assert.equal(out, `<p>The ${T('period', 'Period')} is long. The ${T('period')} is short. Periodic is not it. A <em>${T('period')}</em> again.</p>`);
-});
-test('marking twice changes nothing', () => {
-  const once = wrapTerms('<p>a restoring force and a period, then the period</p>', TERMS);
-  assert.equal(wrapTerms(once, TERMS), once);
-});
-test('nothing is marked in headings, links, math, captions or exercise hosts', () => {
-  const html = ['<h2>The period</h2>', '<p><a href="#x">period</a></p>', '<p><span class="katex"><span class="katex-html">period</span></span></p>',
-    '<figure><div class="sim-head"><span>period</span></div></figure>', '<div class="exercises"><p>period</p></div>', '<div>period outside a paragraph</div>', '<li>the period at last</li>'].join('');
-  assert.equal(wrapTerms(html, TERMS), html.replace('<li>the period at last</li>', '<li>the <span class="term" data-term="period" tabindex="0">period</span> at last</li>'));
-});
-test('a multi-word term matches across a line break', () => {
-  assert.match(wrapTerms('<p>the force\nconstant k</p>', TERMS), /<span class="term" data-term="force constant" tabindex="0">force\nconstant<\/span>/);
-});
-test('a shorter term never matches inside the span of a longer one, whichever the glossary lists first', () => {
-  const want = `<p>an ${T('alkaline earth metal')} and a ${T('metal')}, another ${T('alkaline earth metal')}</p>`;
-  assert.equal(wrapTerms('<p>an alkaline earth metal and a metal, another alkaline earth metal</p>', ['alkaline earth metal', 'metal']), want);
-  assert.equal(wrapTerms('<p>an alkaline earth metal and a metal, another alkaline earth metal</p>', ['metal', 'alkaline earth metal']), want);
-});
-test('a term inside or beside an authored type or referent span is marked and the markup stays whole', () => {
-  assert.equal(wrapTerms('<p>the <span data-type="force">restoring force</span> on <span data-ref="block-1">the block</span></p>', TERMS),
-    `<p>the <span data-type="force">${T('restoring force')}</span> on <span data-ref="block-1">the block</span></p>`);
-  assert.equal(wrapTerms('<p>a restoring <span data-type="force">force</span></p>', TERMS), '<p>a restoring <span data-type="force">force</span></p>');
+/* ---------- prose ---------- */
+test('a bare common word is not underlined: the prose passes add no span, so only a concept span the builder wrote is', () => {
+  const html = '<p>Wait a second: the <span data-concept="second">second</span> is the SI unit of time, as Figure 2.1 shows.</p>';
+  assert.equal(wrapExampleRefs(wrapFigureRefs(html, new Map([['2.1', '2.1-sim-clock']])), new Map()),
+    html.replace('Figure 2.1', '<a class="figref" href="#2.1-sim-clock" data-figref="2.1">Figure 2.1</a>'));
+  /* a section folder that holds only a source.md is one being built, and has no article to check yet */
+  for (const dir of fs.readdirSync(path.join(ROOT, 'ch02')).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, 'ch02', d, 'text.html')))) {
+    const text = fs.readFileSync(path.join(ROOT, 'ch02', dir, 'text.html'), 'utf8');
+    const out = wrapExampleRefs(text, exampleIds(text));
+    assert.equal(out.match(/<span\b/g)?.length, text.match(/<span\b/g)?.length, `ch02/${dir}: a span the builder did not write`);
+    if (dir === '2.3') assert.match(out, /is the second, abbreviated s/);
+  }
 });
 test('example references become links only when the example is in the article', () => {
   const html = '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in Example 16.1 and Example 16.2.</p>';
@@ -55,19 +39,6 @@ test('example references become links only when the example is in the article', 
   assert.deepEqual([...ids], [['16.1', '16.1-ex-car']]);
   assert.equal(wrapExampleRefs(html, ids), '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in <a class="xref" href="#16.1-ex-car" data-xref="16.1">Example 16.1</a> and Example 16.2.</p>');
 });
-test('the real sections never mark a term inside a heading or inside another term', () => {
-  const book = JSON.parse(fs.readFileSync(path.join(ROOT, 'book.json'), 'utf8')) as { concepts: { section: string; terms?: string[] }[] };
-  const terms = book.concepts.flatMap((c) => c.terms ?? []);
-  for (const ch of ['ch02', 'ch16']) {
-    /* a section folder that holds only a source.md is one being built, and has no article to check yet */
-    for (const dir of fs.readdirSync(path.join(ROOT, ch)).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, ch, d, 'text.html')))) {
-      const out = wrapTerms(fs.readFileSync(path.join(ROOT, ch, dir, 'text.html'), 'utf8'), terms);
-      assert.ok(!/<span class="term"[^>]*>[^<]*<span class="term"/.test(out), `${ch}/${dir}: a term inside a term`);
-      assert.ok(!/<h[23][^>]*>[^<]*<span class="term"/.test(out), `${ch}/${dir}: a term in a heading`);
-    }
-  }
-});
-
 /* ---------- variable ---------- */
 const vars: readonly VariableDTO[] = [{ sym: 'k', type: typeId('stiffness'), meaning: 'force constant, the stiffness of the system', unit: 'N/m', section: sectionId('16.1'), anchor: spanId('16.1-hookes-law') }];
 test('a symbol whose row names no concept carries its type and unit, its meaning here and the span that introduces it, and no definition', () => {

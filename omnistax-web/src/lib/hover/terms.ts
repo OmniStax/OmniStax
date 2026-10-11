@@ -1,16 +1,16 @@
-/* Marking glossary terms and example references in a section's prose, as a
-   pure transform of its HTML. Every mention of a glossary term in a paragraph
-   or list item becomes <span class="term" data-term="…">; every "Example 16.2"
-   whose example is in the same section becomes a link. Text inside links,
-   headings, rendered math and terms already marked is never touched, nor is a
-   figure's caption or an exercise card. The tokeniser is the same tag-splitting
-   scan the build uses for figure references (content/fragment.ts). */
+/* Marking example and figure references in a section's prose, as a pure
+   transform of its HTML: every "Example 16.2" or "Figure 16.4" the book holds
+   becomes a link. Text inside links, headings and rendered math is never
+   touched, nor is a figure's caption or an exercise card. A glossary word is
+   not marked here: it is underlined only where the builder judged it names a
+   concept and wrote <span data-concept="…"> (RULES item 7). The tokeniser is
+   the same tag-splitting scan the build uses for figure references
+   (content/fragment.ts). */
 
-export type Term = string;                                   /* a glossary term as the chapter's chapter.json spells it */
 export type ExampleNumber = string & { readonly __brand: 'ExampleNumber' };   /* "16.2" */
 export const exampleNumber = (s: string): ExampleNumber => s as ExampleNumber;
 
-/* Where a text run sits: in a paragraph or list item (a term may be marked), and under nothing that forbids it. */
+/* Where a text run sits: in a paragraph or list item (a formula may be marked), and under nothing that forbids it. */
 export type Context = { readonly block: number; readonly link: number; readonly heading: number; readonly math: number };
 export const TOP: Context = { block: 0, link: 0, heading: 0, math: 0 };            /* the whole article */
 export const IN_BLOCK: Context = { ...TOP, block: 1 };                             /* the innerHTML of one <p> or <li> */
@@ -26,10 +26,9 @@ const hasClass = (t: Token, c: string): boolean => new RegExp(`\\bclass="[^"]*\\
 
 const BLOCK = new Set(['p', 'li']);
 const HEADING = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-const isTermSpan = (t: Token): boolean => tagName(t) === 'span' && /\bclass="term"/.test(t);
-/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption, an exercise host, a term
-   already marked, and a thing of the book an answer already names by a link are forbidden as wholes. */
-const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || isTermSpan(t) || tagName(t) === 'figure' || hasClass(t, 'exercises') || hasClass(t, 'book-word') || hasClass(t, 'wiki');
+/* Rendered math is a <span class="katex…"> tree (and its <math> twin); a figure caption, an exercise host,
+   and a thing of the book an answer already names by a link are forbidden as wholes. */
+const FORBIDS = (t: Token): boolean => tagName(t) === 'math' || (tagName(t) === 'span' && hasClass(t, 'katex')) || tagName(t) === 'figure' || hasClass(t, 'exercises') || hasClass(t, 'book-word') || hasClass(t, 'wiki');
 
 /* The context of every token, from a scan that opens and closes at each tag. Forbidding subtrees are tracked by depth. */
 export const contexts = (ts: readonly Token[], start: Context): Context[] => {
@@ -51,35 +50,6 @@ export const contexts = (ts: readonly Token[], start: Context): Context[] => {
 const free = (c: Context): boolean => c.link === 0 && c.heading === 0 && c.math === 0;
 /* Where a run of text may be marked up: in a paragraph or list item, and under no link, heading or rendered math. */
 export const wrappable = (c: Context): boolean => free(c) && c.block > 0;
-const termable = wrappable;
-
-const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-const mark = (term: Term, text: string): string => `<span class="term" data-term="${esc(term)}" tabindex="0">${text}</span>`;
-
-/* A glossary as one pattern: whole words, any whitespace between them, case-insensitive, the longer term
-   first, so a shorter one never matches inside a longer one ("metal" within "alkaline earth metal"). It is
-   built once for each list of terms, so a book's whole glossary costs one pattern however many blocks it marks. */
-type Glossary = { readonly re: RegExp; readonly named: ReadonlyMap<string, Term> };
-const wordKey = (s: string): string => s.trim().split(/\s+/).join(' ').toLowerCase();
-const compiled = new WeakMap<readonly Term[], Glossary | null>();
-const glossary = (terms: readonly Term[]): Glossary | null => {
-  const had = compiled.get(terms); if (had !== undefined) return had;
-  const named = new Map<string, Term>();
-  [...terms].filter((t) => t.trim()).sort((a, b) => b.trim().length - a.trim().length).forEach((t) => { if (!named.has(wordKey(t))) named.set(wordKey(t), t); });
-  const alts = [...named.values()].map((t) => t.trim().split(/\s+/).map(escapeRe).join('\\s+'));
-  const g = alts.length ? { re: new RegExp(`(?<![\\w-])(?:${alts.join('|')})(?![\\w-])`, 'gi'), named } : null;
-  compiled.set(terms, g);
-  return g;
-};
-
-/* Every mention of every term. */
-export const wrapTerms = (html: string, terms: readonly Term[], start: Context = TOP): string => {
-  const g = glossary(terms); if (!g) return html;
-  const ts = tokens(html); const cs = contexts(ts, start);
-  return ts.map((t, i) => (isTag(t) || !termable(cs[i]) ? t : t.replace(g.re, (m) => mark(g.named.get(wordKey(m)) ?? m, m)))).join('');
-};
-
 /* The examples an article holds, by book number: <div class="example" id="16.1-ex-car"><h3>Example 16.1 · …</h3>. */
 export const exampleIds = (html: string): ReadonlyMap<ExampleNumber, string> =>
   new Map([...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bexample\b[^"]*"[^>]*\bid="([^"]+)"[^>]*>\s*<h3[^>]*>\s*Example (\d+\.\d+)/g)].map(([, id, n]) => [exampleNumber(n), id]));

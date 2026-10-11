@@ -196,6 +196,6 @@
   :global(.formula[data-formula]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
   :global(a.xref){color:inherit}
   :global(a.xref:hover){color:var(--accent)}
-  :global(.term[data-term]:focus-visible), :global([data-sym]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+  :global(.term[data-term]:focus-visible), :global([data-sym]:focus-visible), :global(article span[data-concept]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
   :global([data-sym]){outline-offset:2px}
 </style>

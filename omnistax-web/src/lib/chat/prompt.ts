@@ -17,7 +17,7 @@ Link into the books with the note grammar. Every link names its book:
 - ![[eq:college-physics-2e/16.1:eq-hooke]] sets an equation as a card.
 - ![[fig:college-physics-2e/16.4:sim-pendulum]] mounts the live figure.
 - [[concept:college-physics-2e/16.1:hookes-law]] and [[sym:college-physics-2e/16.1:k]] link a concept and a symbol.
-Link only to what you have seen in the reader's context or in a tool result; never invent an id. Glossary terms, and "Figure 16.4" or "Example 16.2" written out, become links by themselves.
+Link only to what you have seen in the reader's context or in a tool result; never invent an id. "Figure 16.4" or "Example 16.2" written out becomes a link by itself.
 
 The reader might attached context along their question: sections, notes, figures with their current parameter values and a snapshot, images.`;
 

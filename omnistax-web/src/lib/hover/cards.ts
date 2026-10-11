@@ -108,8 +108,8 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
 const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
-/* A glossary word is a word of its concept: the chapter's concepts are asked
-   first, and then every concept of the book loaded so far. */
+/* A glossary word a note names is a word of its concept: the chapter's concepts
+   are asked first, and then every concept of the book loaded so far. */
 const term = (book: BookId, t: HTMLElement): Card | null => {
   const name = t.dataset.term; const sec = sectionOf(book, t); if (!name || !sec) return null;
   const ch = registry.chapterOf(sectionRef(book, sec));
@@ -138,10 +138,14 @@ const equation = (book: BookId, t: HTMLElement): Card | null => {
 };
 
 /* A concept's places are the spans of its own book that introduce and use it,
-   by their headings. Its card waits on `readyFor` to have that book's chapters. */
+   by their headings. Its card waits on `readyFor` to have that book's chapters.
+   A concept span of the prose that says one of the concept's glossary words is
+   that word, and opens the word's card. */
+const saysTerm = (c: ConceptDTO, t: HTMLElement): boolean => { const s = (t.textContent ?? '').trim().split(/\s+/).join(' ').toLowerCase(); return c.terms.some((w) => w.toLowerCase() === s); };
 const concept = (book: BookId, t: HTMLElement): Card | null => {
   const id = t.dataset.concept; if (!id) return null;
   const c = registry.concept(book, id); if (!c) return null;
+  if (t.matches('article span[data-concept]') && saysTerm(c, t)) return definition(book, c, { section: sectionOf(book, t) ?? sectionId(c.section) });
   const sp = spansOf(book, conceptId(id));
   return conceptCard({ concept: c, intro: places(book, sp.intro), uses: places(book, sp.uses), built: !!registry.entry(sectionRef(book, sectionId(c.section)))?.built, onMap: t.matches('.node') }, navFor(book));
 };

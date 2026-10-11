@@ -1,7 +1,7 @@
 /* What a book teaches, as concepts (RULES item 6): the concept is the one
    record, and its word, its symbol and its forms hang off it. These are the
    pure lookups every reader of the concepts shares — the Reference view, the
-   cards, the notes, the marking of the text — so that a term, a symbol and an
+   cards, the notes — so that a term, a symbol and an
    equation of one concept are found the same way wherever they are hovered. */
 import type { ConceptDTO, ConceptKind, CoverageDTO, FormDTO, VariableDTO } from '../content/schema';
 
@@ -22,11 +22,6 @@ export const conceptOfTerm = (concepts: readonly ConceptDTO[], term: string, nea
   const named = concepts.filter((c) => c.terms.some((w) => w.toLowerCase() === t));
   return named.find(near) ?? named[0];
 };
-
-/* The words to mark in a book's prose: the terms of every concept it has
-   built, wherever it is taught, so that every word marked has a card to open. */
-export const bookTerms = (concepts: readonly ConceptDTO[]): readonly string[] =>
-  [...new Set(concepts.filter((c) => c.status === 'built').flatMap((c) => c.terms))];
 
 /* One row of the Reference view: a concept the book has built, and the unit of
    the symbol it is denoted by, read off that symbol's meaning in the concept's

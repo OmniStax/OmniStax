@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { KINDS, KIND_LABEL, bookTerms, referenceRows } from '../src/lib/sections/reference';
+import { KINDS, KIND_LABEL, referenceRows } from '../src/lib/sections/reference';
 import type { ConceptDTO, VariableDTO } from '../src/lib/content/schema';
 import { conceptId, sectionId, spanId } from '../src/lib/types/ids';
 
@@ -28,10 +28,4 @@ test('a row carries the unit of the concept’s own symbol, as its own section g
 });
 test('every kind is tagged, a definition too', () => {
   assert.deepEqual(KINDS.map((k) => KIND_LABEL[k]), ['Definition', 'Axiom', 'Result', 'Idea', 'Skill']);
-});
-test('the book marks the words of every concept it has built, wherever it is taught', () => {
-  const far = concept('force', 'definition', '4.2', { terms: ['force'] });
-  const near = concept('speed', 'definition', '2.3', { terms: ['speed', 'Speed'] });
-  const unbuilt = concept('wave', 'idea', '16.9', { status: 'placeholder', terms: ['wave'] } as Partial<ConceptDTO>);
-  assert.deepEqual(bookTerms([...CONCEPTS, far, near, unbuilt, far]), ['position', 'force', 'speed', 'Speed']);
 });

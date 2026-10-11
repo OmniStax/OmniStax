@@ -260,6 +260,23 @@ python3 omnistax-content/tools/apply_links.py links links/ --dry-run
 python3 omnistax-content/tools/apply_links.py symbols links/symbols-chemistry-2e.json
 ```
 
+`terms_pass.py` is the pass that marks glossary words (root rule 7): a word is
+underlined only inside a `<span data-concept>` its builder wrote. `candidates`
+lists, as JSONL, every mention of a built concept's `terms` in the prose that
+sits in no such span, each with `idx`, the `concepts` that claim the word, its
+sentence, its section's `hash`, and `class`: `jargon` where the word can hardly
+mean anything else, `judge` where it must be read. `apply` takes those rows
+back with `concept` set, or null, wraps the chosen mentions and refuses a
+section whose `text.html` changed since; a second apply changes nothing.
+`stats` counts the mentions by class and chapter and lists the top 40 `judge`
+words. The docstring has the detail.
+
+```
+python3 omnistax-content/tools/terms_pass.py candidates chemistry-2e --chapter 1 > ch01.jsonl
+python3 omnistax-content/tools/terms_pass.py apply ch01-decisions.jsonl
+python3 omnistax-content/tools/terms_pass.py stats college-physics-2e
+```
+
 ## The checker
 
 `check` and every write shell out to `npm run check:content` in `omnistax-web/`

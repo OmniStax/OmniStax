@@ -14,7 +14,7 @@ import { BookResolver } from '../notes/resolve';
 import { isBook, parseLink } from '../notes/md/links';
 import { registry } from '../sections/registry.svelte';
 import { searchStore } from '../search/store.svelte';
-import { wrapExampleRefs, wrapFigureRefs, wrapTerms, IN_BLOCK, type ExampleNumber } from '../hover/terms';
+import { wrapExampleRefs, wrapFigureRefs, IN_BLOCK, type ExampleNumber } from '../hover/terms';
 import { bookId, sectionId, sectionRef, type BookId, type ChatId, type SectionId } from '../types/ids';
 import type { MathScope, Resolver } from '../notes/md/render';
 import type { Chip } from './context';
@@ -117,11 +117,6 @@ export const openingOf = (id: ChatId): string => {
 
 /* ── what an answer marks of its own accord ────────────────────────────── */
 
-/* The terms of the book, each at the section of the concept it names: every
-   concept's where the search has read the book, and otherwise what the
-   chapters already fetched hold. */
-const glossaryOf = (book: BookId): ReadonlyMap<string, string> =>
-  new Map([...(searchStore.corpora[book]?.concepts ?? []), ...registry.concepts(book)].flatMap((c) => c.terms.map((t) => [t, c.section] as const)));
 /* Every figure the book draws, by the numbers its eyebrow prints. */
 const figuresOf = (book: BookId): ReadonlyMap<string, string> =>
   new Map(registry.manifest(book).chapters.flatMap((c) => c.sections.flatMap((s) =>
@@ -136,42 +131,30 @@ const examplesOf = (book: BookId): ReadonlyMap<ExampleNumber, string> => {
   return new Map([...read, ...open].flatMap(([n, id]) => (n ? [[n as ExampleNumber, id] as const] : [])));
 };
 
-/* The prose of an answer, a paragraph or a list item at a time: the first
-   mention of each of the book's terms in it, and every "Figure 16.4" and
-   "Example 16.2" the book holds, become what the book makes of them. A block
+/* The prose of an answer, a paragraph or a list item at a time: every
+   "Figure 16.4" and "Example 16.2" the book holds becomes a link to it. A block
    is marked once; a block drawn again is a new block. */
 const proseOf = (el: HTMLElement): HTMLElement[] =>
   Array.from(el.querySelectorAll<HTMLElement>('p, li')).filter((b) => !b.closest('pre, [data-embed], .hover-card') && !b.querySelector('p, li') && b.dataset.marked !== '1');
 /* What marking reads of a book, gathered once for all the answers drawn in
    one task (a transcript draws every one of its answers together) and afresh
    in the next, when more of the book may have come. */
-type Marks = {
-  readonly glossary: ReadonlyMap<string, string>; readonly terms: readonly string[]; readonly lower: readonly string[];
-  readonly figures: ReadonlyMap<string, string>; readonly examples: ReadonlyMap<ExampleNumber, string>;
-};
+type Marks = { readonly figures: ReadonlyMap<string, string>; readonly examples: ReadonlyMap<ExampleNumber, string> };
 const marksNow = new Map<BookId, Marks>();
 const marksOf = (book: BookId): Marks => {
   const had = marksNow.get(book); if (had) return had;
   if (marksNow.size === 0) setTimeout(() => marksNow.clear(), 0);
-  const glossary = glossaryOf(book);
-  /* the longer term first, so "kinetic energy" is marked whole before "energy" can be */
-  const terms = [...glossary.keys()].sort((a, b) => b.length - a.length);
-  const marks: Marks = { glossary, terms, lower: terms.map((t) => t.toLowerCase()), figures: figuresOf(book), examples: examplesOf(book) };
+  const marks: Marks = { figures: figuresOf(book), examples: examplesOf(book) };
   marksNow.set(book, marks);
   return marks;
 };
 const markProse = (el: HTMLElement, place: AnswerPlace): void => {
   const book = place.book; if (!book || !registry.hasBook(book)) return;
-  const { glossary, terms, lower, figures, examples } = marksOf(book);
+  const { figures, examples } = marksOf(book);
   for (const b of proseOf(el)) {
-    const words = (b.textContent ?? '').toLowerCase();
-    const here = terms.filter((_, i) => words.includes(lower[i]));
-    const html = wrapExampleRefs(wrapFigureRefs(wrapTerms(b.innerHTML, here, IN_BLOCK), figures, IN_BLOCK), examples, IN_BLOCK);
+    const html = wrapExampleRefs(wrapFigureRefs(b.innerHTML, figures, IN_BLOCK), examples, IN_BLOCK);
     if (html !== b.innerHTML) b.innerHTML = html;
     b.dataset.marked = '1';
-  }
-  for (const t of el.querySelectorAll<HTMLElement>('.term[data-term]:not([data-sec])')) {
-    const sec = glossary.get(t.dataset.term ?? ''); if (sec) t.dataset.sec = sec;
   }
 };
 
