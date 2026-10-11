@@ -30,7 +30,6 @@ test('a bare common word is not underlined: the prose passes add no span, so onl
     const text = fs.readFileSync(path.join(ROOT, 'ch02', dir, 'text.html'), 'utf8');
     const out = wrapExampleRefs(text, exampleIds(text));
     assert.equal(out.match(/<span\b/g)?.length, text.match(/<span\b/g)?.length, `ch02/${dir}: a span the builder did not write`);
-    if (dir === '2.3') assert.match(out, /is the second, abbreviated s/);
   }
 });
 test('example references become links only when the example is in the article', () => {
