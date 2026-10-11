@@ -245,6 +245,13 @@ def word_key(term: Term) -> str:
     return " ".join(term.split()).lower()
 
 
+def forms(term: Term) -> list[str]:
+    """A term as prose writes it: without the glossary's trailing "(A)" or "(ψ)", and in the plural."""
+    bare = word_key(re.sub(r"\s*\([^()]*\)\s*$", "", term)) or word_key(term)
+    plural = bare[:-1] + "ies" if re.search(r"[^aeiou]y$", bare) else bare + "es" if re.search(r"(s|x|z|ch|sh)$", bare) else bare + "s"
+    return list(dict.fromkeys([word_key(term), bare, plural]))
+
+
 def mentions(ts: Sequence[str], pattern: Optional[re.Pattern]) -> Iterator[Mention]:
     """Every mention in a block's free text, marked or not, in the order of the file."""
     stack: list[Open] = []
@@ -303,8 +310,9 @@ def glossary_of(book: ost.Book) -> Glossary:
         if c.get("status", "built") != "built":
             continue
         for t in c.get("terms", []):
-            if c["id"] not in named[word_key(t)]:
-                named[word_key(t)].append(c["id"])
+            for k in forms(t):
+                if c["id"] not in named[k]:
+                    named[k].append(c["id"])
     return Glossary(glossary(list(named)), dict(named), frozenset(c["id"] for c in concepts))
 
 
