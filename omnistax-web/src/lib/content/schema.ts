@@ -259,7 +259,7 @@ const AiMakersSchema = z.union([z.array(AiMakerSchema).min(1), z.string().transf
 /* The AI a section was built with, by role: the models that transformed the text, and the models that built the simulations. */
 export const AiCreditSchema = z.object({
   text: AiMakersSchema.describe('The models that transformed the section\u2019s text, the principal first.'),
-  figures: AiMakersSchema.describe('The models that built the section\u2019s simulations, the principal first.'),
+  figures: z.union([z.array(AiMakerSchema), z.string().transform(parseAiMakers)]).default([]).describe('The models that built the section\u2019s simulations, the principal first; empty where the section builds none.'),
 }).strict();
 export type AiCreditDTO = z.infer<typeof AiCreditSchema>;
 

@@ -357,4 +357,4 @@ The AI the section was built with, by role.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `text` | `{ model, effort? }[] \| string` | yes | The models that transformed the section’s text, the principal first. |
-| `figures` | `{ model, effort? }[] \| string` | yes | The models that built the section’s simulations, the principal first. |
+| `figures` | `{ model, effort? }[] \| string` | no | The models that built the section’s simulations, the principal first; empty where the section builds none. |

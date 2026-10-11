@@ -58,6 +58,7 @@ export const aiPartsByline = (parts: readonly AiPartDTO[]): string =>
 export const aiSentence = (ai: AiCreditDTO | undefined): string => {
   if (!ai) return '';
   const text = aiNames(ai.text), figures = aiNames(ai.figures);
+  if (!ai.figures.length) return `The text was transformed by ${text}.`;
   return text === figures ? `The text was transformed and the simulations were built by ${text}.`
     : `The text was transformed by ${text} and the simulations were built by ${figures}.`;
 };
