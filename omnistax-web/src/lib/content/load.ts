@@ -14,8 +14,8 @@ import type {
   ExerciseDTO, FigureRowDTO, FootnoteRowDTO, KindMap, MacroMap, RefGroupEntry, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
-import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
-import { type PageLink, type PageNav, figureIds, figureList, linkExerciseRefs, linkFigureRefs, sizedImages } from './fragment';
+import { aiByline, frontPageSourceUrl, sectionSourceUrl } from './attribution';
+import { type PageLink, type PageNav, figureIds, figureList, linkExerciseRefs, linkFigureRefs, noteExercise, sizedImages } from './fragment';
 import { type MediaRoot, imageSizes } from './mediasize';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeId, bookDir, bookId, qualifiedId } from '../types/ids';
@@ -208,18 +208,20 @@ export const typesWorn = (figures: readonly FigureRowDTO[], rows: readonly Varia
   ])].sort();
 
 /* The exercises of a section with the concepts they test folded in, in the order
-   the join table lists them, including legacy weights written by older builds. */
+   the join table lists them, including legacy weights written by older builds,
+   and the corrections their markers name numbered card by card. */
 export const exercisesOf = (s: SectionDTO): readonly ExerciseDTO[] => {
   const rowsOf = (id: string) => s.exerciseConcepts.filter((r) => r.exercise === id);
+  const byline = aiByline(s.ai?.text);
   return s.exercises.map(({ source_id, source_section, source_number, ...e }) => {
     const rows = rowsOf(e.id);
     const weighted = rows.flatMap((r) => (r.weight === undefined ? [] : [[r.concept, r.weight] as const]));
-    return {
+    return noteExercise({
       ...e, sourceId: source_id,
       ...(source_section === undefined ? {} : { sourceSection: source_section }),
       ...(source_number === undefined ? {} : { sourceNumber: source_number }),
       concepts: rows.map((r) => r.concept), ...(weighted.length ? { weights: Object.fromEntries(weighted) } : {}),
-    };
+    }, s.footnotes, byline);
   });
 };
 

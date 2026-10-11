@@ -15,7 +15,7 @@ import { inheritedTypes, splitSub } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
-import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
+import type { BookDTO, ChapterDTO, ExerciseRowDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
@@ -334,14 +334,29 @@ export const checkSpans: Check = (content) =>
     ];
   });
 
-/* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text or the
-   summary names a row of the footnotes table, and every row has exactly one marker. A footnote of the book keeps
-   the book's number and a correction has none, since the app numbers it. The ids the build gives the notes are its own. */
+/* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text, the
+   summary or an exercise names a row of the footnotes table, and every row has exactly one marker. An exercise's
+   marker names a correction, which its card prints. A correction of a figure's original caption names the figure
+   instead and has no marker, since the caption is an attribute. A footnote of the book keeps the book's number and
+   a correction has none, since the app numbers it. The ids the build gives the notes are its own. */
 const RESERVED_NOTE_ID = /^(fn-|fnref-)/;
+/* The strings of an exercise a marker may stand in, in the order its card numbers them. */
+const exerciseStrings = (e: ExerciseRowDTO): readonly string[] => {
+  const a = e.answer;
+  return [
+    e.prompt,
+    ...(a.type === 'choice' ? a.options : []),
+    ...(a.type === 'multi' ? a.parts.flatMap((p) => p.hint ?? []) : []),
+    ...((a.type === 'number' || a.type === 'choice') && a.hint !== undefined ? [a.hint] : []),
+    ...(a.solution === undefined ? [] : [a.solution]),
+  ];
+};
 export const checkFootnotes: Check = (content) =>
   pagesOf(content).flatMap((s) => {
-    const marks = [...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml)];
-    const rows = idsOf(s.dto.footnotes, (f) => f.id);
+    const byId = new Map(s.dto.footnotes.map((f) => [f.id, f]));
+    const exercised = s.dto.exercises.map((e) => ({ e, ids: exerciseStrings(e).flatMap(notedIds) }));
+    const marks = [...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml), ...exercised.flatMap((x) => x.ids)];
+    const captioned = new Set(s.dto.figures.filter((f) => f.original_caption !== undefined).map((f) => f.id));
     const text = `${s.dto.id}/text.html`;
     return [
       ...s.dto.footnotes.flatMap((f, i) => {
@@ -350,10 +365,21 @@ export const checkFootnotes: Check = (content) =>
           ...(s.dto.footnotes.findIndex((o) => o.id === f.id) < i ? [error(where, 'is declared twice')] : []),
           ...(f.kind === 'book' && f.number === undefined ? [error(where, 'is a footnote of the book and keeps no number')] : []),
           ...(f.kind === 'correction' && f.number !== undefined ? [error(where, 'is a correction and carries a number, which the app gives it')] : []),
-          ...(n === 1 ? [] : [error(where, n === 0 ? 'has no marker <sup class="fn" data-note="…"></sup> in the text or the summary' : `has ${n} markers, and a note has one`)]),
+          ...(f.figure === undefined
+            ? (n === 1 ? [] : [error(where, n === 0 ? 'has no marker <sup class="fn" data-note="…"></sup> in the text, the summary or an exercise' : `has ${n} markers, and a note has one`)])
+            : [
+              ...(f.kind === 'correction' ? [] : [error(where, 'names a figure, and only a correction of its original caption does')]),
+              ...(captioned.has(f.figure) ? [] : [error(where, `names the figure "${f.figure}", which is no figure of the section with an original caption`)]),
+              ...(n === 0 ? [] : [error(where, 'names a figure and has a marker, where the build sets it after the caption')]),
+            ]),
         ];
       }),
-      ...[...new Set(marks)].flatMap((id) => (rows.has(id) ? [] : [error(text, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)])),
+      ...[...new Set([...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml)])].flatMap((id) => (byId.has(id) ? [] : [error(text, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)])),
+      ...exercised.flatMap(({ e, ids }) => [...new Set(ids)].flatMap((id) => {
+        const f = byId.get(id), where = inSection(s, 'exercises', e.id);
+        if (f === undefined) return [error(where, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)];
+        return f.kind === 'correction' ? [] : [error(where, `<sup class="fn" data-note="${id}"> names a footnote of the book, and an exercise carries only corrections`)];
+      })),
       ...[...localIds(s.textHtml)].filter((id) => id === NOTES_ID || id === CORRECTIONS_ID || RESERVED_NOTE_ID.test(id))
         .map((id) => error(text, `carries the id "${id}", which the build keeps for the notes`)),
     ];

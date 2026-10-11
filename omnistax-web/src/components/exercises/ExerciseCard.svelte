@@ -70,8 +70,11 @@
   let localDone = $state(false);
   let localOutcome = $state<boolean | null>(null);
   let solutionOpen = $state(false);
+  let foldOpen = $state(false);
   const completed = $derived(outcome !== null || localDone);
   const recorded = $derived(outcome ?? localOutcome);
+  /* a correction of the solution waits for the solution, as a review's waits for its fold */
+  const solutionShown = $derived(review ? foldOpen : solutionOpen || completed);
   const record = (ok: boolean, self: boolean): void => {
     if (completed || review) return;
     if (!inline) practice.record(book, section, ex, ok, self, Date.now(), session);
@@ -164,7 +167,7 @@
 
   {#if review}
     {#if a.type === 'choice'}
-      <ol class="options">{#each a.options as o, i}<li class:right={i === a.correct}><span class="tick">{i === a.correct ? '✓' : ''}</span><span>{o}</span></li>{/each}</ol>
+      <ol class="options">{#each a.options as o, i}<li class:right={i === a.correct}><span class="tick">{i === a.correct ? '✓' : ''}</span><span use:mathHtml={o}></span></li>{/each}</ol>
     {/if}
     {@render verdict(outcome)}
   {:else if a.type === 'choice'}
@@ -225,6 +228,10 @@
     </div>
   {/if}
 
+  {#if ex.corrections?.some((c) => !c.solution || solutionShown)}
+    <ol class="corrections" aria-label="Corrections">{#each ex.corrections as c, i}{#if !c.solution || solutionShown}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
+  {/if}
+
   {#if ex.concepts.length}
     <details class="concepts" open={completed || solutionOpen}>
       <summary>Concepts</summary>
@@ -238,7 +245,7 @@
   {/if}
 
   {#if review}
-    {#if sol}<details class="solution-fold"><summary>Solution</summary>{@render solution()}</details>{/if}
+    {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{@render solution()}</details>{/if}
     {#if scratched || linked}
       <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}Scratch work</button></div>
     {/if}
@@ -306,4 +313,7 @@
   .k-definition{--dot:var(--cm-definition)} .k-axiom{--dot:var(--cm-axiom)} .k-idea{--dot:var(--cm-idea)}
   .k-result{--dot:var(--cm-result)} .k-skill{--dot:var(--cm-skill)}
   .solution-fold>summary{font-weight:600}
+  .corrections{list-style:none;margin:12px 0 0;padding:8px 0 0;border-top:1px solid var(--rule);font-size:0.78rem;color:var(--muted);max-width:68ch}
+  .corrections li{display:flex;align-items:baseline;gap:0.45em}
+  .corrections .n{flex:none;min-width:1.7em;color:var(--accent)}
 </style>

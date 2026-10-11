@@ -269,11 +269,29 @@ test('checkFootnotes: every marker names a row, every row has one marker, a book
   ]);
   assert.deepEqual(run(checkFootnotes, { section: { footnotes: [{ id: 'n1', kind: 'book', html: 'w' }, { id: 'c1', kind: 'correction', number: '1', html: 'w' }, { id: 'c1', kind: 'correction', html: 'w' }] }, textHtml: `${TEXT}<p>${fn('c1')}</p>` }), [
     '16.1/section.json footnotes[n1]: is a footnote of the book and keeps no number',
-    '16.1/section.json footnotes[n1]: has no marker <sup class="fn" data-note="…"></sup> in the text or the summary',
+    '16.1/section.json footnotes[n1]: has no marker <sup class="fn" data-note="…"></sup> in the text, the summary or an exercise',
     '16.1/section.json footnotes[c1]: is a correction and carries a number, which the app gives it',
     '16.1/section.json footnotes[c1]: is declared twice',
   ]);
   assert.throws(() => sectionOf({ footnotes: [{ id: 'n1', kind: 'erratum', html: 'w' }] }), 'a kind outside book and correction fails the schema');
+});
+
+test('checkFootnotes: an exercise marker names a correction, and a correction of an original caption names a captioned figure and has no marker', () => {
+  const fn = (id: string): string => `<sup class="fn" data-note="${id}"></sup>`;
+  const ex = { id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: `NaSO${fn('c-ex')}`, answer: { type: 'choice', options: ['a', `b${fn('c-opt')}`], correct: 0, solution: `s${fn('n1')}${fn('x')}` } };
+  const figures = [{ id: 'sim-ruler', kind: 'sim', number: '16.2', draws: ['force'], original_caption: 'the blue curve' }];
+  const footnotes = [{ id: 'c-ex', kind: 'correction', html: 'w' }, { id: 'c-opt', kind: 'correction', html: 'w' }, { id: 'c-fig', kind: 'correction', html: 'w', figure: 'sim-ruler' }];
+  assert.deepEqual(run(checkFootnotes, { section: { figures, footnotes, exercises: [{ ...ex, answer: { ...ex.answer, solution: 's' } }] } }), []);
+  assert.deepEqual(run(checkFootnotes, {
+    section: { figures, exercises: [ex], footnotes: [...footnotes.slice(0, 2), { id: 'n1', kind: 'book', number: '1', html: 'w' }, { id: 'c-fig', kind: 'correction', html: 'w', figure: 'sim-gone' }, { id: 'c-fig2', kind: 'book', number: '2', html: 'w', figure: 'sim-ruler' }] },
+    textHtml: `${TEXT}<p>${fn('c-fig2')}</p>`,
+  }), [
+    '16.1/section.json footnotes[c-fig]: names the figure "sim-gone", which is no figure of the section with an original caption',
+    '16.1/section.json footnotes[c-fig2]: names a figure, and only a correction of its original caption does',
+    '16.1/section.json footnotes[c-fig2]: names a figure and has a marker, where the build sets it after the caption',
+    '16.1/section.json exercises[p1]: <sup class="fn" data-note="n1"> names a footnote of the book, and an exercise carries only corrections',
+    '16.1/section.json exercises[p1]: <sup class="fn" data-note="x"> names no row of the footnotes table',
+  ]);
 });
 
 test('checkAttributeMarkup: markup or maths inside an attribute value', () => {

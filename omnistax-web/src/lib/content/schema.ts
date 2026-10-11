@@ -307,6 +307,7 @@ export const FootnoteSchema = z.object({
   kind: z.enum(FOOTNOTE_KINDS).describe('A footnote the book prints, in its words and under its number; or a correction of the book, in OmniStax\u2019s words and wearing the AI mark, whose marker stands right after the words it corrects, which are kept as printed.'),
   number: z.string().optional().describe('The number the book prints a footnote under. A correction carries none: the app numbers the corrections [1], [2]\u2026 in the order their markers stand.'),
   html: z.string().describe('The note, math allowed: a footnote word for word; a correction says what the book prints and what is meant.'),
+  figure: z.string().optional().describe('The local id of the figure whose original caption the correction corrects. The caption is an attribute and holds no marker, so the row has none: the app numbers the note after the caption where the reader shows the book\u2019s figure, and lists it under the figure\u2019s label.'),
 }).strict();
 export type FootnoteRowDTO = z.infer<typeof FootnoteSchema>;
 
@@ -460,7 +461,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   exercise_concepts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercise_concepts', schema: ExerciseConceptSchema, note: 'Which concepts each exercise tests, and what it is worth for them.' },
   place: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].place', schema: PlaceSchema, note: 'Where an exercise is set: at the end with the problem set, or inline after a span.' },
   answer: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer', schema: AnswerSchema, note: 'An exercise\u2019s answer, one shape per way of checking it.' },
-  footnotes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'footnotes', schema: FootnoteSchema, note: 'The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="\u2026"></sup>` in the text or the summary: the book\u2019s footnotes under the book\u2019s numbers, and OmniStax\u2019s corrections of the book, numbered [1], [2]\u2026 by the app and AI-marked.' },
+  footnotes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'footnotes', schema: FootnoteSchema, note: 'The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="\u2026"></sup>` in the text or the summary: the book\u2019s footnotes under the book\u2019s numbers, and OmniStax\u2019s corrections of the book, numbered [1], [2]\u2026 by the app and AI-marked. A correction may also stand in an exercise\u2019s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section\u2019s end; or name a figure, whose original caption it corrects.' },
   ai: { level: 'section', file: '<chapter>/<section>/section.json', field: 'ai', schema: AiCreditSchema, note: 'The AI the section was built with, by role.' },
 };
 
@@ -522,13 +523,16 @@ export const ServedConceptsSchema = z.object({
 export type ConceptsDTO = z.infer<typeof ServedConceptsSchema>;
 
 /* An exercise as a card sets it: the concepts it tests folded in from the join
-   table, and the row its origin names as its credit. `weights` remains readable for older built books but practice uses one
-   discrete evidence step for every tested concept. */
+   table, the row its origin names as its credit, and the corrections its
+   markers number, AI-marked, which the card prints under it. `weights` remains
+   readable for older built books but practice uses one discrete evidence step
+   for every tested concept. */
 const SourceNamedServedExerciseSchema = ExerciseSchema
   .extend({
     concepts: z.array(CONCEPT_REF).default([]),
     weights: z.record(z.number()).optional(),
     credit: ExerciseSourceSchema.optional(),
+    corrections: z.array(z.object({ html: z.string(), solution: z.boolean().optional() })).optional(),
   })
   .strip()
   .transform(({ source_id, source_section, source_number, ...e }) => ({

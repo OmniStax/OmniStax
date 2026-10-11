@@ -105,6 +105,8 @@ sup.fn a,.notes .fn-back{color:var(--accent);text-decoration:none}
 sup.fn.correction,.notes li.correction{font-family:var(--sans)}
 .equation{position:relative}
 .equation > sup.fn{position:absolute;top:-0.2rem;right:0}
+figure > sup.fn{display:none}
+.notes .fn-figure{margin-right:0.4em}
 .notes{margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:0.92rem}
 .notes + .notes{margin-top:1.6rem;padding-top:0;border-top:0}
 .notes h2{margin-top:0;padding-top:0;font-size:1rem}

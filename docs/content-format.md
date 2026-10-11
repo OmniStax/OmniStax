@@ -340,7 +340,7 @@ An exercise’s answer, one shape per way of checking it.
 
 ### `footnotes`
 
-The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text or the summary: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked.
+The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text or the summary: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked. A correction may also stand in an exercise’s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section’s end; or name a figure, whose original caption it corrects.
 
 | field | type | required | description |
 | --- | --- | --- | --- |
@@ -348,6 +348,7 @@ The notes printed at the end of the section, each named by one marker `<sup clas
 | `kind` | `"book" \| "correction"` | yes | A footnote the book prints, in its words and under its number; or a correction of the book, in OmniStax’s words and wearing the AI mark, whose marker stands right after the words it corrects, which are kept as printed. |
 | `number` | `string?` | no | The number the book prints a footnote under. A correction carries none: the app numbers the corrections [1], [2]… in the order their markers stand. |
 | `html` | `string` | yes | The note, math allowed: a footnote word for word; a correction says what the book prints and what is meant. |
+| `figure` | `string?` | no | The local id of the figure whose original caption the correction corrects. The caption is an attribute and holds no marker, so the row has none: the app numbers the note after the caption where the reader shows the book’s figure, and lists it under the figure’s label. |
 
 ### `ai`
 

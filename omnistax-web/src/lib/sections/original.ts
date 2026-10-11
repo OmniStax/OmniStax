@@ -33,11 +33,12 @@ const imageOf = ({ src, width }: Original, alt: string): HTMLImageElement => {
 
 /* Rule 26.4: the caption swaps with the figure. The book's caption is built into the
    head, where the live figure's own number and description sit, so the one that is
-   showing is the one the reader reads; the stylesheet hides the other. */
+   showing is the one the reader reads; the stylesheet hides the other. A correction of
+   the caption waits as a marker at the figure's end and follows the caption's words. */
 const captionOf = (fig: HTMLElement, head: HTMLElement): HTMLElement => {
   const have = head.querySelector<HTMLElement>(':scope > .ocap'); if (have) return have;
   const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = fig.dataset.figure ? `Figure ${fig.dataset.figure}` : 'Figure';
-  const text = el('span'); text.textContent = fig.dataset.originalCaption ?? ''; cap.append(num, text); head.appendChild(cap);
+  const text = el('span'); text.textContent = fig.dataset.originalCaption ?? ''; text.append(...fig.querySelectorAll(':scope > sup.fn')); cap.append(num, text); head.appendChild(cap);
   return cap;
 };
 

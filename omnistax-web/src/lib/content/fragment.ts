@@ -189,23 +189,60 @@ const summaryBlock = (s: SectionSource): string =>
 export const NOTE_MARKER = /<sup class="fn" data-note="([^"]+)"><\/sup>/g;
 export const NOTES_ID = 'section-notes', CORRECTIONS_ID = 'section-corrections';
 export const notedIds = (html: string): readonly string[] => [...html.matchAll(NOTE_MARKER)].map((m) => m[1]);
+/* the mark closes a correction's last line, as it closes the lead */
+const aiMarked = (html: string, byline?: string): string => html.replace(/(<\/p>\s*)?$/, (end) => `${aiMarkHtml(byline)}${end}`);
+/* A correction of a figure's original caption has no marker, since the caption is an attribute: the build sets
+   one at the figure's end, and the reader moves it after the caption when it shows the book's figure. */
+const atFigureEnd = (html: string, figure: SpanId, marker: string): string => {
+  const at = html.indexOf(`id="${figure}"`), end = at < 0 ? -1 : html.indexOf('</figure>', at);
+  return end < 0 ? html : `${html.slice(0, end)}${marker}${html.slice(end)}`;
+};
 type Noted = { readonly html: string; readonly notes: string };
-export const placeNotes = (html: string, rows: readonly FootnoteRowDTO[], section: string, byline?: string): Noted => {
+export const placeNotes = (html: string, rows: readonly FootnoteRowDTO[], section: string, byline?: string, figures: readonly FigureRowDTO[] = []): Noted => {
   const sec = sectionId(section), byId = new Map(rows.map((r) => [r.id, r]));
-  const placed = [...new Set(notedIds(html))].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
+  const pinned = rows.reduce((h, r) => (r.figure === undefined ? h : atFigureEnd(h, qualifiedId(sec, r.figure), `<sup class="fn" data-note="${r.id}"></sup>`)), html);
+  const placed = [...new Set(notedIds(pinned))].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
   const corrections = placed.filter((r) => r.kind === 'correction');
   const label = (r: FootnoteRowDTO): string => (r.kind === 'book' ? esc(r.number ?? '') : `[${corrections.indexOf(r) + 1}]`);
   const ref = (id: string): SpanId => qualifiedId(sec, `fnref-${id}`), note = (id: string): SpanId => qualifiedId(sec, `fn-${id}`);
-  const body = html.replace(NOTE_MARKER, (tag, id: string) => {
+  const body = pinned.replace(NOTE_MARKER, (tag, id: string) => {
     const r = byId.get(id); return r ? `<sup class="fn ${r.kind}" id="${ref(id)}"><a href="#${note(id)}">${label(r)}</a></sup>` : tag;
   });
-  /* the mark closes a correction's last line, as it closes the lead */
-  const marked = (html: string): string => html.replace(/(<\/p>\s*)?$/, (end) => `${aiMarkHtml(byline)}${end}`);
+  /* a caption's correction links back to its figure, whose marker shows only with the book's figure, and is headed by the figure's label */
+  const back = (r: FootnoteRowDTO): SpanId => (r.figure === undefined ? ref(r.id) : qualifiedId(sec, r.figure));
+  const headed = (r: FootnoteRowDTO): string => {
+    const f = r.figure === undefined ? undefined : figures.find((g) => g.id === r.figure);
+    const numbers = f && printedNumbers(f);
+    return f === undefined ? r.html : r.html.replace(/^(<p\b[^>]*>)?/, (p) => `${p}<span class="eyebrow fn-figure">${numbers === undefined ? 'Figure' : `Figure ${numbers}`}</span> `);
+  };
   const list = (rs: readonly FootnoteRowDTO[], local: string, head: string): string => (rs.length === 0 ? '' : [
     `<section class="notes" id="${qualifiedId(sec, local)}"><h2>${head}</h2><ol>`,
-    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${ref(r.id)}">${label(r)}</a><div class="fn-body">${r.kind === 'correction' ? marked(r.html) : r.html}</div></li>`),
+    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${back(r)}">${label(r)}</a><div class="fn-body">${r.kind === 'correction' ? aiMarked(headed(r), byline) : r.html}</div></li>`),
     `</ol></section>`].join(''));
   return { html: body, notes: list(placed.filter((r) => r.kind === 'book'), NOTES_ID, 'Notes') + list(corrections, CORRECTIONS_ID, 'Corrections') };
+};
+
+/* A correction of an exercise travels with its card, which may be set far from its section: the markers of the
+   prompt, the options, the hints and the solution are numbered [1], [2]… in that order, card by card, and the
+   notes ride on the exercise, AI-marked, for the card to print under it. A note on the solution says so, since the
+   card holds it back until the solution shows. The section's own list leaves them out. */
+export const noteExercise = (e: ExerciseDTO, rows: readonly FootnoteRowDTO[], byline?: string): ExerciseDTO => {
+  const byId = new Map(rows.filter((r) => r.kind === 'correction').map((r) => [r.id, r]));
+  const notes: { html: string; solution?: boolean }[] = [];
+  const num = (html: string, solution = false): string => html.replace(NOTE_MARKER, (tag, id: string) => {
+    const r = byId.get(id); if (!r) return tag;
+    notes.push({ html: aiMarked(r.html, byline), ...(solution ? { solution } : {}) });
+    return `<sup class="fn correction">[${notes.length}]</sup>`;
+  });
+  const a = e.answer, prompt = num(e.prompt);
+  const answer = {
+    ...a,
+    ...(a.type === 'choice' ? { options: a.options.map((o) => num(o)) } : {}),
+    ...(a.type === 'multi' ? { parts: a.parts.map((p) => (p.hint === undefined ? p : { ...p, hint: num(p.hint) })) } : {}),
+    ...('hint' in a && a.hint !== undefined ? { hint: num(a.hint) } : {}),
+    ...(a.solution === undefined ? {} : { solution: num(a.solution, true) }),
+  } as ExerciseDTO['answer'];
+  return notes.length === 0 ? e : { ...e, prompt, answer, corrections: notes };
 };
 
 /* The spans of one text, in the order it prints them: the <h2> that opens each
@@ -235,7 +272,7 @@ const pageNav = (nav: PageNav): string => {
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
   const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures), s.figures);
   const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text) : undefined;
-  const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s)}`, s.footnotes, s.meta.id, byline);
+  const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s)}`, s.footnotes, s.meta.id, byline, s.figures);
   const lead = byline === undefined ? s.meta.lead : `${s.meta.lead}${aiMarkHtml(byline)}`;
   return [
   `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s))} data-math="rendered">`,
