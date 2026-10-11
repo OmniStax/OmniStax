@@ -286,6 +286,12 @@ class TestWriting(Fixture):
         self.assertEqual(run("add", "chemistry-2e", "sheets", "--chapter", "1",
                              '{"id": "s", "title": "S", "kind": "table", "file": "sheets/s.json"}')[1], 1)
 
+    def test_an_exercise_source_is_written_to_book_json_in_place(self):
+        self.assertEqual(run("add", "chemistry-2e", "exercise_sources",
+                             '{"id": "mit", "title": "T", "short": "MIT"}')[1], 0)
+        book = json.loads(self.read(os.path.join(self.book, "book.json")))
+        self.assertEqual(book["exercise_sources"], [{"id": "mit", "title": "T", "short": "MIT"}])
+
     def test_a_write_reports_only_what_the_checker_says_about_the_file(self):
         ost.run_checker.return_value = (1, [
             "Chemistry 2e (chemistry-2e)", "", "2 errors",

@@ -46,6 +46,8 @@ WEB = os.path.join(REPO, "omnistax-web")
 NODE_BIN = os.environ.get("OMNISTAX_NODE_BIN", "/home/flober/.nvm/versions/node/v20.20.2/bin")
 LOCK = "/tmp/omnistax-mergebook.lock"
 STAGED_TABLES = ("types", "symbols", "concepts", "concept_prereqs")
+# A book.json table no chapter owns, written in place under the merge lock.
+DIRECT_TABLES = ("exercise_sources",)
 # A form is a row of its concept in book.json, read and written as a table of its own.
 FORM_TABLE = "forms"
 
@@ -96,6 +98,9 @@ TABLES: dict[TableName, Table] = {
         (("type", "a symbol takes its type in each section from its variables row there; set it on the row"),)),
     "exercise_kinds": Table("book", ("id",), {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
+    "exercise_sources": Table("book", ("id",), {
+        "id": _f(True), "title": _f(True), "short": _f(), "author": _f(), "url": _f(),
+        "license": _f(), "license_url": _f()}, ("id", "short", "title", "author", "license")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
         "symbol": _f(), "terms": _f(kind="list"), "type": _f(), "statement": _f(), "forms": _f(kind="list")},
@@ -129,7 +134,7 @@ TABLES: dict[TableName, Table] = {
     "exercises": Table("section", ("id",), {
         "id": _f(True), "source_id": _f(True), "source_section": _f(), "source_number": _f(), "kind": _f(True),
         "bloom": _f(True, enum=BLOOM), "tag": _f(), "place": _f(True, kind="obj"), "cite": _f(),
-        "figure": _f(kind="obj"), "prompt": _f(True), "answer": _f(True, kind="obj")},
+        "figure": _f(kind="obj"), "prompt": _f(True), "answer": _f(True, kind="obj"), "origin": _f(), "changes": _f()},
         ("id", "kind", "bloom", "place", "prompt")),
     "exercise_concepts": Table("section", ("exercise", "concept"), {
         "exercise": _f(True), "concept": _f(True), "weight": _f(kind="num"), "weights_by": _f(enum=("ai",))},
@@ -776,15 +781,19 @@ def cmd_write(args: argparse.Namespace) -> int:
     table = table_of(args.table)
     if args.table == FORM_TABLE:
         return write_form(book, table, args)
-    if table.level == "book":
+    if table.level == "book" and args.table not in DIRECT_TABLES:
         if args.table not in STAGED_TABLES:
             raise Refused(f"{args.table} is a row of book.json that no chapter stages; edit it by hand")
         return write_staged(book, table, args)
     place = place_of(book, table, args.chapter, args.section)
-    record = load(place.path)
-    record[args.table] = apply_write(table, rows_of(record, args.table), args)
-    write_record(place.path, record)
-    print(f"{args.command}: {place.label} {args.table} now has {len(record[args.table])} rows")
+
+    def write() -> int:
+        record = load(place.path)
+        record[args.table] = apply_write(table, rows_of(record, args.table), args)
+        write_record(place.path, record)
+        return len(record[args.table])
+    n = under_lock(write) if table.level == "book" else write()
+    print(f"{args.command}: {place.label} {args.table} now has {n} rows")
     return report_write(book.id, place.label)
 
 
@@ -936,10 +945,10 @@ def mergebook(book: Book) -> Any:
     return module
 
 
-def under_lock(run: Callable[[], None]) -> None:
+def under_lock(run: Callable[[], Any]) -> Any:
     with open(LOCK, "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        run()
+        return run()
 
 
 def merge_chapter(book: Book, chapter: ChapterDir) -> None:

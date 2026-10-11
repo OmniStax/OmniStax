@@ -69,6 +69,17 @@ export const ExerciseKindSchema = z.object({
 }).strict();
 export type ExerciseKindDTO = z.infer<typeof ExerciseKindSchema>;
 
+export const ExerciseSourceSchema = z.object({
+  id: z.string().describe('The id an exercise names its origin by.'),
+  title: z.string().describe('The source\u2019s title as its publisher prints it, which the credit under the prompt names.'),
+  short: z.string().optional().describe('A short name for the source, which the card\u2019s eyebrow prints before the exercise\u2019s number; the title where absent.'),
+  author: z.string().optional().describe('Who wrote the source, as it names them.'),
+  url: z.string().url().optional().describe('The source\u2019s own page.'),
+  license: z.string().optional().describe('The licence the source is shared under, as its notice names it.'),
+  license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
+}).strict();
+export type ExerciseSourceDTO = z.infer<typeof ExerciseSourceSchema>;
+
 /* One way the book writes a concept down as an equation. A concept's forms are
    ordered and the first is its main form: the one a card, the Reference view and
    the search lead with. The rest are its rearrangements, special cases and the
@@ -166,6 +177,7 @@ export const BookSchema = z.object({
   types: z.array(TypeSchema).default([]).describe('The kinds of thing the book colours (a quantity, a curve, a part\u2026). The order is the order the colour scheme lays its hues along, so it is a table and not a record.'),
   symbols: z.array(SymbolSchema).default([]).describe('Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}. The macro expansions are derived from these rows.'),
   exercise_kinds: z.array(ExerciseKindSchema).default([]).describe('The kinds of exercise the book sets, each with the name it prints above them.'),
+  exercise_sources: z.array(ExerciseSourceSchema).default([]).describe('The sources other than the book that its exercises are taken from, each with the credit its licence asks for.'),
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
@@ -174,7 +186,7 @@ export const BookSchema = z.object({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
-  ...(b.colours ? { colours: b.colours } : {}),
+  ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
 }));
 export type BookDTO = z.infer<typeof BookSchema>;
 
@@ -352,7 +364,9 @@ export const ExerciseSchema = z.object({
   id: z.string().describe('The exercise\u2019s local id, such as cq1 or p3, which names its card.'),
   source_id: z.string().describe('The publisher\u2019s own id for the exercise, so that it can be found again in the source.'),
   source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own.'),
-  source_number: z.string().optional().describe('The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it.'),
+  source_number: z.string().optional().describe('The exercise number exactly as the source prints it, such as 5.17, or Problem Set 3, Problem 2 for an exercise with an origin. Optional because older extracted books did not preserve it.'),
+  origin: z.string().optional().describe('The source the exercise is taken from, naming a row of the book\u2019s exercise sources. Absent where the book sets it.'),
+  changes: z.string().optional().describe('What was altered from the source, one plain sentence that may hold math as the prompt does, which the card prints after the credit. Absent where nothing was.'),
   kind: z.string().describe('The kind of exercise it is, naming a row of the book\u2019s exercise kinds.'),
   bloom: z.enum(BLOOM_LEVELS).describe('The level of thinking the exercise asks for.'),
   tag: z.string().optional().describe('A word the book prints beside the exercise, such as the topic of an AP item.'),
@@ -416,6 +430,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   types: { level: 'book', file: 'book.json', field: 'types', schema: TypeSchema, note: 'The kinds of thing the book colours (a quantity, a curve, a part\u2026), in the order the colour scheme lays its hues along.' },
   symbols: { level: 'book', file: 'book.json', field: 'symbols', schema: SymbolSchema, note: 'Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}.' },
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
+  exercise_sources: { level: 'book', file: 'book.json', field: 'exercise_sources', schema: ExerciseSourceSchema, note: 'The sources other than the book that exercises are taken from.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
   forms: { level: 'book', file: 'book.json', field: 'concepts[].forms', schema: FormSchema, note: 'The equations that state one concept, the main form first.' },
   concept_prereqs: { level: 'book', file: 'book.json', field: 'concept_prereqs', schema: ConceptPrereqSchema, note: 'The edges of the concept map.' },
@@ -494,12 +509,13 @@ export const ServedConceptsSchema = z.object({
 export type ConceptsDTO = z.infer<typeof ServedConceptsSchema>;
 
 /* An exercise as a card sets it: the concepts it tests folded in from the join
-   table. `weights` remains readable for older built books but practice uses one
+   table, and the row its origin names as its credit. `weights` remains readable for older built books but practice uses one
    discrete evidence step for every tested concept. */
 const SourceNamedServedExerciseSchema = ExerciseSchema
   .extend({
     concepts: z.array(CONCEPT_REF).default([]),
     weights: z.record(z.number()).optional(),
+    credit: ExerciseSourceSchema.optional(),
   })
   .strip()
   .transform(({ source_id, source_section, source_number, ...e }) => ({

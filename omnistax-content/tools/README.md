@@ -45,7 +45,7 @@ ost ids chemistry-2e 1.4
 
 `rows` takes any table of the three files:
 
-- `book.json`: `types`, `symbols`, `exercise_kinds`, `concepts`,
+- `book.json`: `types`, `symbols`, `exercise_kinds`, `exercise_sources`, `concepts`,
   `concept_prereqs`, `sheets`, and `forms`: every concept's forms as one
   table, each row carrying its `concept` and the `section` it is stated in
   (the concept's own where the form names none)
@@ -145,7 +145,8 @@ lays out: the row is staged into `<chapter>/book-rows.json` — seeded from what
 the chapter already owns in `book.json`, if the staged file is not there — and
 the chapter is merged under the lock. That is why those writes take `--chapter`.
 `exercise_kinds` and `sheets` are `book.json` rows no chapter stages, and a
-write to them is refused.
+write to them is refused. `exercise_sources` is written to `book.json` in
+place, under the same lock, and takes no `--chapter`.
 
 A form is a row of its concept, so a write to `forms` is staged on the
 concept, in the chapter that owns the concept, wherever the form is stated,

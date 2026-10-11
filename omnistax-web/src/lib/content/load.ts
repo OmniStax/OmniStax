@@ -346,7 +346,12 @@ const loadChapter = async (root: string, book: BookDTO, dir: string, dto: Chapte
     Promise.all(dto.sections.map((s) => loadPage(path.join(base, s.id), { url: sectionUrl(book.id, dir, s.id), openstax: sectionSourceUrl(book, dto, s.id) }, math, media))),
     loadFrontPage(base, 'summary', front('summary'), math, media),
   ]);
-  const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }));
+  const credited = (e: ExerciseDTO): ExerciseDTO => {
+    const credit = book.exerciseSources?.find((r) => r.id === e.origin);
+    return credit ? { ...e, credit } : e;
+  };
+  const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }))
+    .map((s) => ({ ...s, exercises: s.exercises.map(credited) }));
   const role = (r: PageRole): SectionSource | undefined => linked.find((s) => s.role === r);
   return { dto, stored, intro: role('intro'), sections: linked.filter((s) => s.role === 'section'), summary: role('summary') };
 };

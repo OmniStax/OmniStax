@@ -12,6 +12,7 @@ const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const exerciseName = (ex: ExerciseDTO, kindName?: string): string => {
   if (ex.id.startsWith('ai:')) return 'AI-generated exercise';
+  if (ex.credit) return [ex.credit.short ?? ex.credit.title, ex.sourceNumber].filter(Boolean).join(' · ');
   if (ex.sourceNumber) return `Exercise ${ex.sourceNumber}`;
   const kind = kindName ?? titled(ex.kind.replace(/-/g, ' '));
   const m = /^(?:p|cq|ap|cyu|cyl|ct|e)(\d+)$/i.exec(ex.id);

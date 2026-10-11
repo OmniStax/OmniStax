@@ -85,6 +85,10 @@ test('checkRefs: an id that names no row is an error, and a chapter nobody has a
   assert.match(run(checkRefs, { book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w', forms: [{ id: 'eq-hooke', latex: 'F', section: '16.9' }] }] } })[0], /forms\[eq-hooke\]: section "16.9" names no row/);
   assert.match(run(checkRefs, { section: { exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'riddle', bloom: 'Apply', place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } }] } })[0], /kind "riddle" names no row/);
   assert.match(run(checkRefs, { section: { exercise_concepts: [{ exercise: 'p9', concept: 'hookes-law' }] } })[0], /exercise "p9" names no row/);
+  const borrowed = { exercises: [{ id: 'p1', source_id: 'ps3-2', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'p', answer: { type: 'open' }, origin: 'mit-8422' }] };
+  assert.match(run(checkRefs, { section: borrowed })[0], /origin "mit-8422" names no row/);
+  assert.deepEqual(run(checkRefs, { section: borrowed, book: { exercise_sources: [{ id: 'mit-8422', title: 'MIT 8.422' }] } }), []);
+  assert.deepEqual(run(checkSources, { section: borrowed }), [], 'an exercise from another source is not looked for in the book\u2019s');
   assert.match(run(checkRefs, { chapter: { variables: [{ sym: 'k', concept: 'spring-constant', meaning: 'm', section: '16.1' }] } })[0], /concept "spring-constant" names no row/);
   const alongside = (c: object) => ({ book: { concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'H', statement: 'w' }, c] } });
   const waiting = checkRefs(fixture(alongside({ id: 'newtons-first-law', kind: 'idea', section: '4.2', name: 'N' })));

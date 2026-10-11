@@ -64,6 +64,8 @@
       : titled(ex.kind.replace(/-/g, ' ')),
   );
   const sourceBook = $derived(registry.hasBook(bookId(book)) ? registry.manifest(bookId(book)).title : practice.bookTitle(book));
+  const credit = $derived(ex.credit);
+  const creditLine = $derived(credit ? [credit.title, credit.author, credit.license].filter(Boolean).join(', ') : sourceBook);
 
   let localDone = $state(false);
   let localOutcome = $state<boolean | null>(null);
@@ -146,7 +148,7 @@
 {/snippet}
 
 <div class="exercise" class:inline class:hot id={domId} data-book={book} {hidden}>
-  <div class="eyebrow head" title={sourceBook}>
+  <div class="eyebrow head" title={creditLine}>
     {#if number}<span>{number}</span>{/if}
     <span>{exerciseName(ex, kindName)}</span>
     <span>§ {sourceSection}</span>
@@ -155,6 +157,9 @@
   </div>
 
   <div class="prompt"><p use:mathHtml={ex.prompt}></p></div>
+  {#if credit}
+    <p class="credit">From {#if credit.url}<a href={credit.url} target="_blank" rel="noopener">{credit.title}</a>{:else}{credit.title}{/if}{#if credit.author}, {credit.author}{/if}{#if credit.license}, {#if credit.license_url}<a href={credit.license_url} target="_blank" rel="noopener">{credit.license}</a>{:else}{credit.license}{/if}{/if}.{#if ex.changes} <AiTag /> Changed: <span use:mathHtml={ex.changes}></span>{/if}</p>
+  {/if}
   {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
 
   {#if review}
@@ -251,6 +256,8 @@
   .bloom{cursor:help}
   .prompt,.solution-block .body{font-family:var(--serif);font-size:1rem;line-height:1.6;max-width:68ch}
   .prompt :global(p){margin:0}
+  .credit{margin:6px 0 0;font-size:0.74rem;color:var(--muted);max-width:68ch}
+  .credit a{color:inherit}
   .prompt :global(table.data){border-collapse:collapse;font-family:var(--sans);font-size:0.84rem;margin:8px 0;font-variant-numeric:tabular-nums}
   .prompt :global(table.data th),.prompt :global(table.data td){border:1px solid var(--rule);padding:2px 10px;text-align:right}
   .actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}

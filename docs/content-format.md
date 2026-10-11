@@ -63,6 +63,20 @@ The kinds of exercise the book sets.
 | `id` | `string` | yes | The id an exercise names its kind by. |
 | `label` | `string` | yes | What the book calls exercises of this kind, as the card’s eyebrow prints it. |
 
+### `exercise_sources`
+
+The sources other than the book that exercises are taken from.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The id an exercise names its origin by. |
+| `title` | `string` | yes | The source’s title as its publisher prints it, which the credit under the prompt names. |
+| `short` | `string?` | no | A short name for the source, which the card’s eyebrow prints before the exercise’s number; the title where absent. |
+| `author` | `string?` | no | Who wrote the source, as it names them. |
+| `url` | `string?` | no | The source’s own page. |
+| `license` | `string?` | no | The licence the source is shared under, as its notice names it. |
+| `license_url` | `string?` | no | The licence’s own page. |
+
 ### `concepts`
 
 Every concept of the book, since ids are canonical and a chapter’s prerequisites live in other chapters.
@@ -239,7 +253,9 @@ The exercises the section sets.
 | `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card. |
 | `source_id` | `string` | yes | The publisher’s own id for the exercise, so that it can be found again in the source. |
 | `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. |
-| `source_number` | `string?` | no | The exercise number exactly as the source prints it, such as 5.17. Optional because older extracted books did not preserve it. |
+| `source_number` | `string?` | no | The exercise number exactly as the source prints it, such as 5.17, or Problem Set 3, Problem 2 for an exercise with an origin. Optional because older extracted books did not preserve it. |
+| `origin` | `string?` | no | The source the exercise is taken from, naming a row of the book’s exercise sources. Absent where the book sets it. |
+| `changes` | `string?` | no | What was altered from the source, one plain sentence that may hold math as the prompt does, which the card prints after the credit. Absent where nothing was. |
 | `kind` | `string` | yes | The kind of exercise it is, naming a row of the book’s exercise kinds. |
 | `bloom` | `"Remember" \| "Understand" \| "Apply" \| "Analyze" \| "Evaluate" \| "Create"` | yes | The level of thinking the exercise asks for. |
 | `tag` | `string?` | no | A word the book prints beside the exercise, such as the topic of an AP item. |

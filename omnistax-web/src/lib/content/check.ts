@@ -103,6 +103,7 @@ const inChapter = (ch: ChapterContent, table: string, row: string): string => `$
 export const checkRefs: Check = (content) => {
   const concepts = idsOf(content.book.concepts, (c) => c.id);
   const kinds = idsOf(content.book.exerciseKinds, (k) => k.id);
+  const origins = idsOf(content.book.exerciseSources ?? [], (o) => o.id);
   const symbols = idsOf(content.book.symbols, (s) => s.sym);
   const sections = idsOf(content.chapters.flatMap((ch) => ch.dto.sections), (s) => s.id);
   const chapters = idsOf(content.chapters, (ch) => ch.dto.id);
@@ -143,7 +144,7 @@ export const checkRefs: Check = (content) => {
     const exercises = idsOf(s.dto.exercises, (e) => e.id);
     return [
       ...s.dto.coverage.flatMap((r) => ref(inSection(s, 'coverage', r.span), 'concept', concepts, r.concept)),
-      ...s.dto.exercises.flatMap((e) => ref(inSection(s, 'exercises', e.id), 'kind', kinds, e.kind)),
+      ...s.dto.exercises.flatMap((e) => [...ref(inSection(s, 'exercises', e.id), 'kind', kinds, e.kind), ...ref(inSection(s, 'exercises', e.id), 'origin', origins, e.origin)]),
       ...s.dto.exerciseConcepts.flatMap((r) => [
         ...ref(inSection(s, 'exercise_concepts', `${r.exercise} × ${r.concept}`), 'exercise', exercises, r.exercise),
         ...ref(inSection(s, 'exercise_concepts', `${r.exercise} × ${r.concept}`), 'concept', concepts, r.concept),
@@ -462,12 +463,13 @@ export const checkFigureRefs: Check = (content) => {
    look in. Either way the id must be in that source, and a section named must be
    one the app has built, since an unbuilt one has no source to look in. Where the
    id is nowhere the finding says which source does hold it, because an id in the
-   wrong place reads very differently from one that is nowhere. */
+   wrong place reads very differently from one that is nowhere. An exercise with an
+   origin comes from outside the book, so no section's source holds it. */
 export const checkSources: Check = (content) => {
   const sources = new Map(sectionsOf(content).map((s) => [String(s.dto.id), s.sourceMd] as const));
   const elsewhere = (id: string, from: string): string =>
     [...sources].filter(([of, source]) => of !== from && (source?.includes(id) ?? false)).map(([of]) => of).join(', ');
-  return sectionsOf(content).flatMap((s): readonly Finding[] => s.dto.exercises.flatMap((e) => {
+  return sectionsOf(content).flatMap((s): readonly Finding[] => s.dto.exercises.filter((e) => e.origin === undefined).flatMap((e) => {
     const from = String(e.source_section ?? s.dto.id);
     const where = inSection(s, 'exercises', e.id);
     if (!sources.has(from)) return [error(where, `source_section "${from}" is no section the app has built`)];
