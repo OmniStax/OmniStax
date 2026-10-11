@@ -335,7 +335,7 @@ export const checkSpans: Check = (content) =>
   });
 
 /* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text, the
-   summary or an exercise names a row of the footnotes table, and every row has exactly one marker. An exercise's
+   summary, another note or an exercise names a row of the footnotes table, and every row has exactly one marker. An exercise's
    marker names a correction, which its card prints. A correction of a figure's original caption names the figure
    instead and has no marker, since the caption is an attribute. A footnote of the book keeps the book's number and
    a correction has none, since the app numbers it. The ids the build gives the notes are its own. */
@@ -355,7 +355,8 @@ export const checkFootnotes: Check = (content) =>
   pagesOf(content).flatMap((s) => {
     const byId = new Map(s.dto.footnotes.map((f) => [f.id, f]));
     const exercised = s.dto.exercises.map((e) => ({ e, ids: exerciseStrings(e).flatMap(notedIds) }));
-    const marks = [...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml), ...exercised.flatMap((x) => x.ids)];
+    const page = [...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml), ...s.dto.footnotes.flatMap((f) => notedIds(f.html))];
+    const marks = [...page, ...exercised.flatMap((x) => x.ids)];
     const captioned = new Set(s.dto.figures.filter((f) => f.original_caption !== undefined).map((f) => f.id));
     const text = `${s.dto.id}/text.html`;
     return [
@@ -366,7 +367,7 @@ export const checkFootnotes: Check = (content) =>
           ...(f.kind === 'book' && f.number === undefined ? [error(where, 'is a footnote of the book and keeps no number')] : []),
           ...(f.kind === 'correction' && f.number !== undefined ? [error(where, 'is a correction and carries a number, which the app gives it')] : []),
           ...(f.figure === undefined
-            ? (n === 1 ? [] : [error(where, n === 0 ? 'has no marker <sup class="fn" data-note="…"></sup> in the text, the summary or an exercise' : `has ${n} markers, and a note has one`)])
+            ? (n === 1 ? [] : [error(where, n === 0 ? 'has no marker <sup class="fn" data-note="…"></sup> in the text, the summary, a note or an exercise' : `has ${n} markers, and a note has one`)])
             : [
               ...(f.kind === 'correction' ? [] : [error(where, 'names a figure, and only a correction of its original caption does')]),
               ...(captioned.has(f.figure) ? [] : [error(where, `names the figure "${f.figure}", which is no figure of the section with an original caption`)]),
@@ -374,7 +375,7 @@ export const checkFootnotes: Check = (content) =>
             ]),
         ];
       }),
-      ...[...new Set([...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml)])].flatMap((id) => (byId.has(id) ? [] : [error(text, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)])),
+      ...[...new Set(page)].flatMap((id) => (byId.has(id) ? [] : [error(text, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)])),
       ...exercised.flatMap(({ e, ids }) => [...new Set(ids)].flatMap((id) => {
         const f = byId.get(id), where = inSection(s, 'exercises', e.id);
         if (f === undefined) return [error(where, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)];
@@ -489,12 +490,14 @@ export const checkWidths: Check = (content) =>
    row of the book carries stays plain text. That is legitimate while the figure
    is in a chapter nobody has built, and a slip once it is not, so it is said as
    a warning rather than an error. The eyebrow of a figure names the figure
-   itself and is what the row says, so it is not a citation. An exercise's
+   itself and is what the row says, so it is not a citation, and neither is a
+   citation the author has already linked by hand, which the linker leaves alone. An exercise's
    prompt and worked answer are read the same way, and there the book figure
    an exercise card keeps carries the number its caption opens with. */
 const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?<\/span>/g;
+const LINKED = /<a\b[^>]*>[\s\S]*?<\/a>/gi;
 export const citedNumbers = (html: string): readonly string[] =>
-  [...new Set(Array.from(html.replace(EYEBROW, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
+  [...new Set(Array.from(html.replace(EYEBROW, '').replace(LINKED, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
 const CAPTION_NUMBER = /^Figure (\d+\.\d+)/;
 export const checkFigureRefs: Check = (content) => {
   const carried = new Set(pagesOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));

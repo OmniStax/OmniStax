@@ -218,6 +218,7 @@ The figures the section draws, and the types each of them colours.
 | `folds` | `string[]` | no | The further numbers the book prints the figure under, where the book drew one scene several times and one interactive figure replaces them all; the number stays the figure’s own, and the eyebrow reads every number in the book’s order. A reference to any of them, in the text or in an exercise’s prompt or worked answer, links to this figure. |
 | `originals` | `string[]` | no | The book’s own images of the figure, served at /media, which the reader can call up beside the simulation. |
 | `original_caption` | `string?` | no | The caption the book prints under the figure, kept word for word. |
+| `withheld` | `string?` | no | Why the book’s own image of a numbered figure is not shown, in one sentence, where the book may not be copied there: the figure keeps its number and carries no original for that image. |
 | `widths` | `number[]` | no | The book’s display width in pixels for each image the row shows, one per image in order (a photo’s one image, or the originals), taken from the width attribute the CNXML gives the image. Empty where the book gives none, and then the image sits at its natural size. |
 | `draws` | `string[]` | no | The types the figure colours. The default colours keep these types apart from one another and from the page’s other colours. |
 | `conventions` | `string[]` | no | The convention colours the figure draws, as `F.el` takes them: element symbols and the particle keys (e-, p+, n0…). The default colours keep the types apart from these on the page. |
@@ -340,7 +341,7 @@ An exercise’s answer, one shape per way of checking it.
 
 ### `footnotes`
 
-The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text or the summary: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked. A correction may also stand in an exercise’s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section’s end; or name a figure, whose original caption it corrects.
+The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text, the summary or another note’s html: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked. A correction may also stand in an exercise’s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section’s end; or name a figure, whose original caption it corrects.
 
 | field | type | required | description |
 | --- | --- | --- | --- |

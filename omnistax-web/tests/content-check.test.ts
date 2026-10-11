@@ -262,6 +262,7 @@ test('checkFootnotes: every marker names a row, every row has one marker, a book
   const footnotes = [{ id: 'n1', kind: 'book', number: '3', html: 'w' }, { id: 'c1', kind: 'correction', html: 'w' }];
   assert.deepEqual(run(checkFootnotes), []);
   assert.deepEqual(run(checkFootnotes, { section: { footnotes, summary_html: `<p>s${fn('c1')}</p>` }, textHtml: `${TEXT}<p>a${fn('n1')}</p>` }), [], 'a marker may stand in the summary');
+  assert.deepEqual(run(checkFootnotes, { section: { footnotes: [{ ...footnotes[0], html: `w${fn('c1')}` }, footnotes[1]] }, textHtml: `${TEXT}<p>a${fn('n1')}</p>` }), [], 'a marker may stand in a note');
   assert.deepEqual(run(checkFootnotes, { section: { footnotes }, textHtml: `${TEXT}<p>${fn('n1')}${fn('c1')}${fn('c1')}${fn('x')}</p><p id="fn-n1"></p>` }), [
     '16.1/section.json footnotes[c1]: has 2 markers, and a note has one',
     '16.1/text.html: <sup class="fn" data-note="x"> names no row of the footnotes table',
@@ -269,7 +270,7 @@ test('checkFootnotes: every marker names a row, every row has one marker, a book
   ]);
   assert.deepEqual(run(checkFootnotes, { section: { footnotes: [{ id: 'n1', kind: 'book', html: 'w' }, { id: 'c1', kind: 'correction', number: '1', html: 'w' }, { id: 'c1', kind: 'correction', html: 'w' }] }, textHtml: `${TEXT}<p>${fn('c1')}</p>` }), [
     '16.1/section.json footnotes[n1]: is a footnote of the book and keeps no number',
-    '16.1/section.json footnotes[n1]: has no marker <sup class="fn" data-note="…"></sup> in the text, the summary or an exercise',
+    '16.1/section.json footnotes[n1]: has no marker <sup class="fn" data-note="…"></sup> in the text, the summary, a note or an exercise',
     '16.1/section.json footnotes[c1]: is a correction and carries a number, which the app gives it',
     '16.1/section.json footnotes[c1]: is declared twice',
   ]);
@@ -381,7 +382,7 @@ test('checkFigureRefs: a figure the prose cites that no row carries is a warning
   assert.deepEqual(run(checkFigureRefs, { section: folded(['16.3']), textHtml: `${FOLDED}<p>See Figures 16.2 and 16.3.</p>` }), [], 'a folded number is carried');
   assert.deepEqual(run(checkFigureRefs, cite('<figure class="photo"><figcaption><span class="eyebrow">Figure 16.9</span></figcaption></figure>')), [], 'an eyebrow names its own figure and is no citation');
   assert.deepEqual(errorsOf(checkFigureRefs(fixture(cite('Figure 4.1')))), [], 'a warning is no error');
-  assert.deepEqual(citedNumbers('Figure 2.9, Figures 2.10 and 2.9, Example 2.3, <span class="eyebrow">Figure 2.1</span>'), ['2.9', '2.10']);  const ex = (prompt: string, o: object = {}) => ({ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt, answer: { type: 'open', solution: 'As Figure 16.2 shows.' }, ...o });
+  assert.deepEqual(citedNumbers('Figure 2.9, Figures 2.10 and 2.9, Example 2.3, <span class="eyebrow">Figure 2.1</span>, <a href="#x">Figure 3.1</a>'), ['2.9', '2.10'], 'an eyebrow and a hand-linked citation are no citation');  const ex = (prompt: string, o: object = {}) => ({ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt, answer: { type: 'open', solution: 'As Figure 16.2 shows.' }, ...o });
   assert.deepEqual(run(checkFigureRefs, { section: { ...folded(['16.3']), exercises: [ex('In Figure 16.3, how far?')] }, textHtml: FOLDED }), [], 'an exercise citing a folded number is carried');
   assert.deepEqual(run(checkFigureRefs, { section: { exercises: [ex('In Figure 16.7, how far?')] } }), ['16.1/section.json exercises[p1]: cites Figure 16.7, which no figure row or exercise card of the book carries']);
   assert.deepEqual(run(checkFigureRefs, { section: { exercises: [ex('In Figure 16.7, how far?', { figure: { src: '/media/x.jpg', caption: 'Figure 16.7 A ruler.' } })] } }), [], 'the figure an exercise card keeps carries its number');

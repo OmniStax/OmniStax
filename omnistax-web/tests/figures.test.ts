@@ -110,7 +110,11 @@ test('figureList keeps math as $…$, whether the text is written or prerendered
   assert.deepEqual(figureList(prerenderMath(sim('sim-a', head), {}), '16.3'), [{ id: 'sim-a', label }]);
 });
 
-/* Every original a section names is served, and every figure with a number has an original or is a photograph. */
+type Row = { id: string; number?: string; folds?: string[]; withheld?: string };
+const figureRows = (dir: string): Row[] =>
+  (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: Row[] }).figures ?? [];
+
+/* Every original a section names is served, and every figure with a number has an original, is a photograph or withholds the book's image. */
 const sections = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d)).flatMap((ch) => fs.readdirSync(path.join(root, ch)).filter((s) => fs.existsSync(path.join(root, ch, s, 'text.html'))).map((s) => path.join(root, ch, s, 'text.html'))));
 test('data-original paths exist under the book\'s media', () => {
   assert.ok(sections.length > 0);
@@ -120,9 +124,10 @@ test('data-original paths exist under the book\'s media', () => {
     [...html.matchAll(/data-original="([^"]+)"/g)].flatMap(([, v]) => v.split(',')).forEach((p) => {
       assert.ok(fs.existsSync(path.resolve(root, p.replace(/^\//, ''))), `${file}: ${p} is not served`);
     });
+    const withheld = new Set(figureRows(path.dirname(file)).filter((f) => f.withheld).map((f) => f.id));
     [...html.matchAll(/<figure\b[^>]*>/g)].map(([tag]) => tag).filter((tag) => tag.includes('data-figure=')).forEach((tag) => {
       assert.ok(/\bid="/.test(tag), `${file}: a numbered figure needs an id: ${tag}`);
-      assert.ok(tag.includes('class="photo"') || tag.includes('data-original='), `${file}: a numbered sim needs its original: ${tag}`);
+      assert.ok(tag.includes('class="photo"') || tag.includes('data-original=') || withheld.has(/\bid="([^"]+)"/.exec(tag)![1]), `${file}: a numbered sim needs its original: ${tag}`);
     });
   });
 });
@@ -131,9 +136,6 @@ test('data-original paths exist under the book\'s media', () => {
    <figure> the text draws, and no row for a figure it does not. */
 const sectionDirs = ROOTS.flatMap((root) => fs.readdirSync(root).filter((d) => /^ch\d+$/.test(d))
   .flatMap((ch) => fs.readdirSync(path.join(root, ch)).map((s) => path.join(root, ch, s)).filter((d) => fs.existsSync(path.join(d, 'section.json')))));
-type Row = { id: string; number?: string; folds?: string[] };
-const figureRows = (dir: string): Row[] =>
-  (JSON.parse(fs.readFileSync(path.join(dir, 'section.json'), 'utf8')) as { figures?: Row[] }).figures ?? [];
 
 test('every figure of a section is a row of its figures table, and every row is a figure', () => {
   assert.ok(sectionDirs.length > 0);
@@ -160,7 +162,7 @@ test('a folded figure\'s eyebrow reads every number, and every folded image is a
       const printed = printedNumbers({ number: f.number, folds: f.folds ?? [] });
       const fig = new RegExp(`<figure\\b[^>]*\\bid="${f.id}"[^>]*\\bdata-original="([^"]+)"[^>]*>\\s*<div class="sim-head"><span class="eyebrow">Figure ${printed?.replace(/\+/g, '\\+')}<`).exec(html);
       assert.ok(fig, `${dir}: ${f.id} should read "Figure ${String(printed)}" under its eyebrow`);
-      assert.ok(fig![1].split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
+      assert.ok(f.withheld !== undefined || fig![1].split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
     });
   });
 });

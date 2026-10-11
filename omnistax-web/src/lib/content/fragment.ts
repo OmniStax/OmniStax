@@ -185,7 +185,8 @@ const summaryBlock = (s: SectionSource): string =>
    book's number and words. A correction is OmniStax's: numbered [1], [2]… in the order
    its markers stand, in an editor's brackets so it never reads as the book's footnote of
    that number, and AI-marked. The two are two lists, the book's words apart from ours,
-   and stand after the summary, so a marker there is numbered after the text's. */
+   and stand after the summary, so a marker there, or in a note, is numbered after the text's.
+   A note's ids and links are qualified as the text's are. */
 export const NOTE_MARKER = /<sup class="fn" data-note="([^"]+)"><\/sup>/g;
 export const NOTES_ID = 'section-notes', CORRECTIONS_ID = 'section-corrections';
 export const notedIds = (html: string): readonly string[] => [...html.matchAll(NOTE_MARKER)].map((m) => m[1]);
@@ -198,16 +199,19 @@ const atFigureEnd = (html: string, figure: SpanId, marker: string): string => {
   return end < 0 ? html : `${html.slice(0, end)}${marker}${html.slice(end)}`;
 };
 type Noted = { readonly html: string; readonly notes: string };
-export const placeNotes = (html: string, rows: readonly FootnoteRowDTO[], section: string, byline?: string, figures: readonly FigureRowDTO[] = []): Noted => {
+export const placeNotes = (html: string, raw: readonly FootnoteRowDTO[], section: string, byline?: string, figures: readonly FigureRowDTO[] = []): Noted => {
+  const rows = raw.map((r) => ({ ...r, html: qualifyIds(r.html, section) }));
   const sec = sectionId(section), byId = new Map(rows.map((r) => [r.id, r]));
+  const rowsOf = (ids: readonly string[]): readonly FootnoteRowDTO[] => [...new Set(ids)].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
   const pinned = rows.reduce((h, r) => (r.figure === undefined ? h : atFigureEnd(h, qualifiedId(sec, r.figure), `<sup class="fn" data-note="${r.id}"></sup>`)), html);
-  const placed = [...new Set(notedIds(pinned))].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
+  const placed = rowsOf([...notedIds(pinned), ...rowsOf(notedIds(pinned)).flatMap((r) => notedIds(r.html))]);
   const corrections = placed.filter((r) => r.kind === 'correction');
   const label = (r: FootnoteRowDTO): string => (r.kind === 'book' ? esc(r.number ?? '') : `[${corrections.indexOf(r) + 1}]`);
   const ref = (id: string): SpanId => qualifiedId(sec, `fnref-${id}`), note = (id: string): SpanId => qualifiedId(sec, `fn-${id}`);
-  const body = pinned.replace(NOTE_MARKER, (tag, id: string) => {
+  const numbered = (h: string): string => h.replace(NOTE_MARKER, (tag, id: string) => {
     const r = byId.get(id); return r ? `<sup class="fn ${r.kind}" id="${ref(id)}"><a href="#${note(id)}">${label(r)}</a></sup>` : tag;
   });
+  const body = numbered(pinned);
   /* a caption's correction links back to its figure, whose marker shows only with the book's figure, and is headed by the figure's label */
   const back = (r: FootnoteRowDTO): SpanId => (r.figure === undefined ? ref(r.id) : qualifiedId(sec, r.figure));
   const headed = (r: FootnoteRowDTO): string => {
@@ -217,7 +221,7 @@ export const placeNotes = (html: string, rows: readonly FootnoteRowDTO[], sectio
   };
   const list = (rs: readonly FootnoteRowDTO[], local: string, head: string): string => (rs.length === 0 ? '' : [
     `<section class="notes" id="${qualifiedId(sec, local)}"><h2>${head}</h2><ol>`,
-    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${back(r)}">${label(r)}</a><div class="fn-body">${r.kind === 'correction' ? aiMarked(headed(r), byline) : r.html}</div></li>`),
+    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${back(r)}">${label(r)}</a><div class="fn-body">${numbered(r.kind === 'correction' ? aiMarked(headed(r), byline) : r.html)}</div></li>`),
     `</ol></section>`].join(''));
   return { html: body, notes: list(placed.filter((r) => r.kind === 'book'), NOTES_ID, 'Notes') + list(corrections, CORRECTIONS_ID, 'Corrections') };
 };

@@ -30,6 +30,18 @@ test('placeNotes: markers become numbered links to notes that link back; the boo
   assert.deepEqual(placeNotes('<p>plain</p>', rows, '1.3'), { html: '<p>plain</p>', notes: '' }, 'a page with no markers prints no notes');
 });
 
+test('placeNotes: a marker inside a note is numbered after the text\'s, and a note\'s ids and links are qualified like the text\'s', () => {
+  const rows = [
+    { id: 'n1', kind: 'book', number: '1', html: '<p>By <a href="#eq-2-10">(2.10)</a>,</p><div class="equation" id="eq-4-7">x</div><sup class="fn" data-note="c-in"></sup>' },
+    { id: 'c-in', kind: 'correction', html: 'In the note.' },
+    { id: 'c-text', kind: 'correction', html: 'In the text.' },
+  ].map((r) => FootnoteSchema.parse(r));
+  const { notes } = placeNotes('<p>x<sup class="fn" data-note="n1"></sup><sup class="fn" data-note="c-text"></sup></p>', rows, '4.1');
+  assert.match(notes, /<a href="#4\.1-eq-2-10">\(2\.10\)<\/a>,<\/p><div class="equation" id="4\.1-eq-4-7">/);
+  assert.match(notes, /<sup class="fn correction" id="4\.1-fnref-c-in"><a href="#4\.1-fn-c-in">\[2\]<\/a><\/sup>/);
+  assert.deepEqual([...notes.matchAll(/<li class="correction" id="4\.1-fn-([\w-]+)"><a class="fn-back" href="#4\.1-fnref-\1">\[(\d)\]/g)].map((m) => [m[1], m[2]]), [['c-text', '1'], ['c-in', '2']]);
+});
+
 test('noteExercise: a card numbers its own corrections in prompt, option and solution order and carries them AI-marked; placeNotes sets a caption correction after its figure, under its label', () => {
   const fn = (id: string): string => `<sup class="fn" data-note="${id}"></sup>`;
   const rows = [
