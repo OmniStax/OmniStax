@@ -139,6 +139,9 @@ TABLES: dict[TableName, Table] = {
     "exercise_concepts": Table("section", ("exercise", "concept"), {
         "exercise": _f(True), "concept": _f(True), "weight": _f(kind="num"), "weights_by": _f(enum=("ai",))},
         ("exercise", "concept", "weight", "weights_by")),
+    "footnotes": Table("section", ("id",), {
+        "id": _f(True), "kind": _f(True, enum=("book", "correction")), "number": _f(), "html": _f(True)},
+        ("id", "kind", "number", "html")),
 }
 
 KINDS_OK = {"str": str, "num": (int, float), "bool": bool, "list": list, "obj": dict}

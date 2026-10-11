@@ -2,7 +2,7 @@
    The same markup goes into the full page and into doc.html, so the two
    cannot drift. Ids are qualified by section so two sections share a DOM. */
 import type { SectionSource } from './load';
-import type { BookDTO, ChapterDTO, ExerciseDTO, FigureEntry, FigureRowDTO } from './schema';
+import type { BookDTO, ChapterDTO, ExerciseDTO, FigureEntry, FigureRowDTO, FootnoteRowDTO } from './schema';
 import { aiByline, aiPartsByline, attributionOf, footerHtml } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
@@ -179,6 +179,35 @@ export const SUMMARY_ID = 'section-summary';
 const summaryBlock = (s: SectionSource): string =>
   (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>Section summary</h2>${s.summaryHtml}</section>`);
 
+/* The section's notes. The text marks the place a note belongs to with an empty
+   <sup class="fn" data-note="…"></sup>, which the build fills with the note's number,
+   a link to the note, whose own number links back. A footnote of the book keeps the
+   book's number and words. A correction is OmniStax's: numbered [1], [2]… in the order
+   its markers stand, in an editor's brackets so it never reads as the book's footnote of
+   that number, and AI-marked. The two are two lists, the book's words apart from ours,
+   and stand after the summary, so a marker there is numbered after the text's. */
+export const NOTE_MARKER = /<sup class="fn" data-note="([^"]+)"><\/sup>/g;
+export const NOTES_ID = 'section-notes', CORRECTIONS_ID = 'section-corrections';
+export const notedIds = (html: string): readonly string[] => [...html.matchAll(NOTE_MARKER)].map((m) => m[1]);
+type Noted = { readonly html: string; readonly notes: string };
+export const placeNotes = (html: string, rows: readonly FootnoteRowDTO[], section: string, byline?: string): Noted => {
+  const sec = sectionId(section), byId = new Map(rows.map((r) => [r.id, r]));
+  const placed = [...new Set(notedIds(html))].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
+  const corrections = placed.filter((r) => r.kind === 'correction');
+  const label = (r: FootnoteRowDTO): string => (r.kind === 'book' ? esc(r.number ?? '') : `[${corrections.indexOf(r) + 1}]`);
+  const ref = (id: string): SpanId => qualifiedId(sec, `fnref-${id}`), note = (id: string): SpanId => qualifiedId(sec, `fn-${id}`);
+  const body = html.replace(NOTE_MARKER, (tag, id: string) => {
+    const r = byId.get(id); return r ? `<sup class="fn ${r.kind}" id="${ref(id)}"><a href="#${note(id)}">${label(r)}</a></sup>` : tag;
+  });
+  /* the mark closes a correction's last line, as it closes the lead */
+  const marked = (html: string): string => html.replace(/(<\/p>\s*)?$/, (end) => `${aiMarkHtml(byline)}${end}`);
+  const list = (rs: readonly FootnoteRowDTO[], local: string, head: string): string => (rs.length === 0 ? '' : [
+    `<section class="notes" id="${qualifiedId(sec, local)}"><h2>${head}</h2><ol>`,
+    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${ref(r.id)}">${label(r)}</a><div class="fn-body">${r.kind === 'correction' ? marked(r.html) : r.html}</div></li>`),
+    `</ol></section>`].join(''));
+  return { html: body, notes: list(placed.filter((r) => r.kind === 'book'), NOTES_ID, 'Notes') + list(corrections, CORRECTIONS_ID, 'Corrections') };
+};
+
 /* The spans of one text, in the order it prints them: the <h2> that opens each
    <section id> of the article, the section's own summary among them. A head may
    carry markup and rendered math, so its words come back through plainText, the
@@ -205,15 +234,16 @@ const pageNav = (nav: PageNav): string => {
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
   const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures), s.figures);
-  const body = lazyImages(sizeImages(qualifyIds(marked, s.meta.id))), summary = summaryBlock(s);
-  const lead = s.meta.ai?.text ? `${s.meta.lead}${aiMarkHtml(aiByline(s.meta.ai.text))}` : s.meta.lead;
+  const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text) : undefined;
+  const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s)}`, s.footnotes, s.meta.id, byline);
+  const lead = byline === undefined ? s.meta.lead : `${s.meta.lead}${aiMarkHtml(byline)}`;
   return [
   `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s))} data-math="rendered">`,
   `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   ...(s.meta.lead === '' ? [] : [`<p class="lead">${lead}</p>`]),
-  body,
-  summary,
+  noted.html,
+  noted.notes,
   sectionEnd(s),
   pageNav(nav),
   footer(book, s),

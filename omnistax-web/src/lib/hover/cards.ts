@@ -13,6 +13,7 @@ import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
+import { plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
 import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, matchEquation, firstSentence } from './resolve';
@@ -119,7 +120,11 @@ const term = (book: BookId, t: HTMLElement): Card | null => {
 };
 const reference = (book: BookId, t: HTMLElement): Card | null => {
   const id = t.getAttribute('href')?.slice(1); if (!id) return null;
-  const el = findEl(book, id); if (!el || !(el.matches('.example[id]') || el.matches('section[id]'))) return null;
+  const el = findEl(book, id); if (!el) return null;
+  /* a note's marker: the note whole, under the number the reader clicked */
+  const note = el.matches('.notes li') ? el.querySelector('.fn-body') : null;
+  if (note) return referenceCard({ id: spanId(id), title: `${el.matches('.correction') ? 'Correction' : 'Note'} ${t.textContent ?? ''}`, body: plainText(note.innerHTML) }, navFor(book));
+  if (!(el.matches('.example[id]') || el.matches('section[id]'))) return null;
   const title = headingText(el.querySelector('h2, h3')) ?? id;
   const p = el.querySelector('p'); const body = p ? firstSentence(headingText(p) ?? '') : undefined;
   return referenceCard({ id: spanId(id), title: t.dataset.xref ? `Example ${t.dataset.xref} · ${title}` : title, body }, navFor(book));

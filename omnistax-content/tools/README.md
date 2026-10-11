@@ -51,7 +51,7 @@ ost ids chemistry-2e 1.4
   (the concept's own where the form names none)
 - `chapter.json`: `sections`, `variables`
 - `section.json`: `figures`, `referents`, `coverage`, `exercises`,
-  `exercise_concepts`
+  `exercise_concepts`, `footnotes`
 
 and these filters:
 
@@ -109,7 +109,7 @@ ost add college-physics-2e referents --section 2.4 \
 ```
 
 A row is named by its key fields joined with `/`: `figures`, `referents`,
-`exercises`, `forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
+`exercises`, `footnotes`, `forms`, `sections`, `types` and `concepts` by their `id` alone, `symbols`
 by `sym`, `coverage` by `span/concept/verb`, `exercise_concepts` by
 `exercise/concept`, `variables` by `section/sym`, `concept_prereqs` by
 `concept/prereq`.

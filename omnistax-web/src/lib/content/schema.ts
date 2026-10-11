@@ -39,6 +39,7 @@ export type CoverageVerb = (typeof COVERAGE_VERBS)[number];
 /* Who wrote a piece of content: the book it was adapted from, or the AI that
    built the section. */
 export const GENERATED_BY = ['source', 'ai'] as const;
+export const FOOTNOTE_KINDS = ['book', 'correction'] as const;
 export type GeneratedBy = (typeof GENERATED_BY)[number];
 /* What a figure is: an interactive figure the reader can play with, a faithful
    copy of a book figure that the exercises need, or a photograph. The kind names
@@ -299,6 +300,16 @@ export const CoverageSchema = z.object({
 }).strict();
 export type CoverageRowDTO = z.infer<typeof CoverageSchema>;
 
+/* A note at the foot of the section: a footnote the book prints, or OmniStax's
+   correction of the book, which leaves the book's words as printed. */
+export const FootnoteSchema = z.object({
+  id: z.string().describe('The note\u2019s local id, which its one marker in the text names: `<sup class="fn" data-note="\u2026"></sup>`.'),
+  kind: z.enum(FOOTNOTE_KINDS).describe('A footnote the book prints, in its words and under its number; or a correction of the book, in OmniStax\u2019s words and wearing the AI mark, whose marker stands right after the words it corrects, which are kept as printed.'),
+  number: z.string().optional().describe('The number the book prints a footnote under. A correction carries none: the app numbers the corrections [1], [2]\u2026 in the order their markers stand.'),
+  html: z.string().describe('The note, math allowed: a footnote word for word; a correction says what the book prints and what is meant.'),
+}).strict();
+export type FootnoteRowDTO = z.infer<typeof FootnoteSchema>;
+
 /* Where an exercise is set: at the end of the section with the rest of the
    problem set, or inline in the text, right after the span it follows on from. */
 export const PlaceSchema = z.discriminatedUnion('at', [
@@ -405,11 +416,12 @@ export const SectionSchema = z.object({
   coverage: z.array(CoverageSchema).default([]).describe('Which spans of the text introduce, use and reinforce each concept.'),
   exercises: z.array(ExerciseSchema).default([]).describe('The exercises the section sets, in the order the book sets them.'),
   exercise_concepts: z.array(ExerciseConceptSchema).default([]).describe('Which concepts each exercise tests, and what it is worth for them.'),
+  footnotes: z.array(FootnoteSchema).default([]).describe('The book\u2019s footnotes and OmniStax\u2019s corrections of the book, which the app prints at the section\u2019s end.'),
 }).strict().transform((s) => ({
   id: sectionId(pageId(s.id, s.chapter)), role: pageRoleOf(s.id), module: s.module, chapter: s.chapter, title: s.title, short: s.short ?? s.title,
   lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, ai: s.ai, built: s.built,
   exercisesLead: s.exercises_lead, exerciseNotes: s.exercise_notes,
-  figures: s.figures, referents: s.referents, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts,
+  figures: s.figures, referents: s.referents, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts, footnotes: s.footnotes,
 }));
 export type SectionDTO = z.infer<typeof SectionSchema>;
 
@@ -448,6 +460,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   exercise_concepts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercise_concepts', schema: ExerciseConceptSchema, note: 'Which concepts each exercise tests, and what it is worth for them.' },
   place: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].place', schema: PlaceSchema, note: 'Where an exercise is set: at the end with the problem set, or inline after a span.' },
   answer: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer', schema: AnswerSchema, note: 'An exercise\u2019s answer, one shape per way of checking it.' },
+  footnotes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'footnotes', schema: FootnoteSchema, note: 'The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="\u2026"></sup>` in the text or the summary: the book\u2019s footnotes under the book\u2019s numbers, and OmniStax\u2019s corrections of the book, numbered [1], [2]\u2026 by the app and AI-marked.' },
   ai: { level: 'section', file: '<chapter>/<section>/section.json', field: 'ai', schema: AiCreditSchema, note: 'The AI the section was built with, by role.' },
 };
 

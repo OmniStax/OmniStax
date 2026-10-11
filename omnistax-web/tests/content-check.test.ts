@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -255,6 +255,25 @@ test('checkSpans: a span, a cite and a place the text has no id for', () => {
   const ex = { id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', prompt: 'p', answer: { type: 'open' } };
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'end' }, cite: 'nowhere' }] } })[0], /cite "nowhere" is no id/);
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'inline', after: 'nowhere' } }] } })[0], /place.after "nowhere" is no id/);
+});
+
+test('checkFootnotes: every marker names a row, every row has one marker, a book note keeps its number and a correction none', () => {
+  const fn = (id: string): string => `<sup class="fn" data-note="${id}"></sup>`;
+  const footnotes = [{ id: 'n1', kind: 'book', number: '3', html: 'w' }, { id: 'c1', kind: 'correction', html: 'w' }];
+  assert.deepEqual(run(checkFootnotes), []);
+  assert.deepEqual(run(checkFootnotes, { section: { footnotes, summary_html: `<p>s${fn('c1')}</p>` }, textHtml: `${TEXT}<p>a${fn('n1')}</p>` }), [], 'a marker may stand in the summary');
+  assert.deepEqual(run(checkFootnotes, { section: { footnotes }, textHtml: `${TEXT}<p>${fn('n1')}${fn('c1')}${fn('c1')}${fn('x')}</p><p id="fn-n1"></p>` }), [
+    '16.1/section.json footnotes[c1]: has 2 markers, and a note has one',
+    '16.1/text.html: <sup class="fn" data-note="x"> names no row of the footnotes table',
+    '16.1/text.html: carries the id "fn-n1", which the build keeps for the notes',
+  ]);
+  assert.deepEqual(run(checkFootnotes, { section: { footnotes: [{ id: 'n1', kind: 'book', html: 'w' }, { id: 'c1', kind: 'correction', number: '1', html: 'w' }, { id: 'c1', kind: 'correction', html: 'w' }] }, textHtml: `${TEXT}<p>${fn('c1')}</p>` }), [
+    '16.1/section.json footnotes[n1]: is a footnote of the book and keeps no number',
+    '16.1/section.json footnotes[n1]: has no marker <sup class="fn" data-note="…"></sup> in the text or the summary',
+    '16.1/section.json footnotes[c1]: is a correction and carries a number, which the app gives it',
+    '16.1/section.json footnotes[c1]: is declared twice',
+  ]);
+  assert.throws(() => sectionOf({ footnotes: [{ id: 'n1', kind: 'erratum', html: 'w' }] }), 'a kind outside book and correction fails the schema');
 });
 
 test('checkAttributeMarkup: markup or maths inside an attribute value', () => {

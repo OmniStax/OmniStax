@@ -13,7 +13,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { inheritedTypes, splitSub } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
-import { REF, SUMMARY_ID, printedNumbers } from './fragment';
+import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
@@ -331,6 +331,31 @@ export const checkSpans: Check = (content) =>
         ...span(inSection(s, 'exercises', e.id), 'cite', e.cite),
         ...span(inSection(s, 'exercises', e.id), 'place.after', e.place.at === 'inline' ? e.place.after : undefined),
       ]),
+    ];
+  });
+
+/* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text or the
+   summary names a row of the footnotes table, and every row has exactly one marker. A footnote of the book keeps
+   the book's number and a correction has none, since the app numbers it. The ids the build gives the notes are its own. */
+const RESERVED_NOTE_ID = /^(fn-|fnref-)/;
+export const checkFootnotes: Check = (content) =>
+  pagesOf(content).flatMap((s) => {
+    const marks = [...notedIds(s.textHtml), ...notedIds(s.dto.summaryHtml)];
+    const rows = idsOf(s.dto.footnotes, (f) => f.id);
+    const text = `${s.dto.id}/text.html`;
+    return [
+      ...s.dto.footnotes.flatMap((f, i) => {
+        const where = inSection(s, 'footnotes', f.id), n = marks.filter((m) => m === f.id).length;
+        return [
+          ...(s.dto.footnotes.findIndex((o) => o.id === f.id) < i ? [error(where, 'is declared twice')] : []),
+          ...(f.kind === 'book' && f.number === undefined ? [error(where, 'is a footnote of the book and keeps no number')] : []),
+          ...(f.kind === 'correction' && f.number !== undefined ? [error(where, 'is a correction and carries a number, which the app gives it')] : []),
+          ...(n === 1 ? [] : [error(where, n === 0 ? 'has no marker <sup class="fn" data-note="…"></sup> in the text or the summary' : `has ${n} markers, and a note has one`)]),
+        ];
+      }),
+      ...[...new Set(marks)].flatMap((id) => (rows.has(id) ? [] : [error(text, `<sup class="fn" data-note="${id}"> names no row of the footnotes table`)])),
+      ...[...localIds(s.textHtml)].filter((id) => id === NOTES_ID || id === CORRECTIONS_ID || RESERVED_NOTE_ID.test(id))
+        .map((id) => error(text, `carries the id "${id}", which the build keeps for the notes`)),
     ];
   });
 
@@ -664,7 +689,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

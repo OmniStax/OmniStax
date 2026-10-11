@@ -11,7 +11,7 @@ import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
   BookDTO, BookManifest, ChapterDTO, ChapterEntry, ConceptDTO, ConceptPrereqDTO, ConceptRowDTO, ConceptsDTO, CoverageDTO,
-  ExerciseDTO, FigureRowDTO, KindMap, MacroMap, RefGroupEntry, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
+  ExerciseDTO, FigureRowDTO, FootnoteRowDTO, KindMap, MacroMap, RefGroupEntry, SectionDTO, SectionEntry, SectionMetaDTO, SectionRefDTO, SheetDTO, SheetEntry, SymbolDTO, SymbolMap, TypeDTO, TypeMap, VariableDTO,
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { frontPageSourceUrl, sectionSourceUrl } from './attribution';
@@ -36,6 +36,7 @@ export type SectionSource = {
   readonly meta: SectionMetaDTO;
   readonly textHtml: string;        /* article body, local ids, math prerendered, concept spans typed */
   readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
+  readonly footnotes: readonly FootnoteRowDTO[];   /* the book's footnotes and the corrections, math prerendered */
   readonly figuresJs: string;
   readonly figures: readonly FigureRowDTO[];
   readonly macros: MacroMap;        /* the macros the page sets otherwise than the book, from its variables rows */
@@ -315,6 +316,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   const lead = marked(rendered(dto.lead)), summaryHtml = marked(rendered(dto.summaryHtml)), exercisesLead = marked(rendered(dto.exercisesLead));
   return {
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
+    footnotes: dto.footnotes.map((f) => ({ ...f, html: marked(rendered(f.html)) })),
     figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead,
     counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])), macros: macroTypes }),
     refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead), macros: macroTypes }),

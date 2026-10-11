@@ -97,6 +97,21 @@ section[id].landed{animation-name:landed-span}
 .summary h2{margin-top:0;padding-top:0;font-size:1.2rem}
 .summary ul,.summary ol{padding-left:1.3rem}
 .summary li{max-width:66ch;margin-bottom:0.5rem}
+/* The section's notes after the text: the book's footnotes under the book's numbers in the book's face,
+   and OmniStax's corrections under bracketed numbers in OmniStax's face. A marker set after a display
+   equation stands at the equation's top right, over its number. */
+sup.fn{font-size:0.72em;line-height:0;margin-left:0.08em}
+sup.fn a,.notes .fn-back{color:var(--accent);text-decoration:none}
+sup.fn.correction,.notes li.correction{font-family:var(--sans)}
+.equation{position:relative}
+.equation > sup.fn{position:absolute;top:-0.2rem;right:0}
+.notes{margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:0.92rem}
+.notes + .notes{margin-top:1.6rem;padding-top:0;border-top:0}
+.notes h2{margin-top:0;padding-top:0;font-size:1rem}
+.notes ol{list-style:none;padding-left:0}
+.notes li{display:flex;align-items:baseline;gap:0.45em;max-width:66ch}
+.notes .fn-back{flex:none;min-width:1.7em;font-family:var(--sans)}
+.notes .fn-body > :last-child{margin-bottom:0}
 /* The one way on from a text: the practice button, centred under the last words
    of the section, with the pencil on the right of them. */
 .section-end{display:flex;justify-content:center;align-items:center;margin-top:40px;font-family:var(--sans);font-size:0.82rem}

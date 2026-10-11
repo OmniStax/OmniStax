@@ -338,6 +338,17 @@ An exercise’s answer, one shape per way of checking it.
 | `solution` | `string?` | no | The answer the book gives, which the reader compares their own against. |
 | `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
 
+### `footnotes`
+
+The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text or the summary: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The note’s local id, which its one marker in the text names: `<sup class="fn" data-note="…"></sup>`. |
+| `kind` | `"book" \| "correction"` | yes | A footnote the book prints, in its words and under its number; or a correction of the book, in OmniStax’s words and wearing the AI mark, whose marker stands right after the words it corrects, which are kept as printed. |
+| `number` | `string?` | no | The number the book prints a footnote under. A correction carries none: the app numbers the corrections [1], [2]… in the order their markers stand. |
+| `html` | `string` | yes | The note, math allowed: a footnote word for word; a correction says what the book prints and what is meant. |
+
 ### `ai`
 
 The AI the section was built with, by role.
