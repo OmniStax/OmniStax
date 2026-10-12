@@ -20,6 +20,8 @@ import { trace, limit, slope, area, cells, clipLine, judge, ticks, type Rule, ty
 import * as REV from './solid';
 import { widen, sides } from './deriv';
 import * as SLOPE from './slope';
+import * as SPACE from './space';
+import * as POLAR from './polar';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -2973,6 +2975,412 @@ function slopeEuler(ctx: Ctx, ax: Axes, f: SLOPE.Fxy, p: SLOPE.P2, h: number, n:
 }
 const slopefield = { field: slopeField, curve: slopeCurve, euler: slopeEuler, trace: SLOPE.trace, steps: SLOPE.euler, grid: SLOPE.grid, segment: SLOPE.segment };
 
+/* ---------- Calculus Chapters 12 to 16: space ----------
+   `F.space3d(d, { box, h, turn, tilt, spin, zoom, ... })` is a mathematical 3D scene (root rule 28.3) in
+   the book's coordinates, z up, framed on the box [[x0, x1], [y0, y1], [z0, z1]]: free orbit, ink and type
+   hues, no ground. `turn` and `tilt` are the opening yaw and pitch (the book's view by default, x toward
+   the reader); the rest are view3d's. The scene is layers of marks (space.ts builds them): `S.set(key,
+   marks)` replaces one layer, rebuilt only when its marks or colours changed, so a moving point costs one
+   small layer a frame. `S.headline(s)` is the stage's band. `S.drag({ at, on, move })` lets the reader
+   take the point at() (within 24 px of it) and slide it over the sheet of layer `on`; move gets what the
+   sheet reports ([x, y] on a graph, [u, v] on a surface) and the 3D point. Labels are page text over the
+   scene. Without WebGL the same layers are painted on a canvas from the opening view, still and flat,
+   and drag is left to the sliders. `F.space` holds the builders, the pure geometry and four flat parts
+   drawn on `axes`: field2, flow2, region2, cells2. */
+type SpaceOpts = View3dOpts & { readonly box: SPACE.Box3; readonly turn?: Radians; readonly fit?: number };
+type SpaceDrag = { readonly at: () => SPACE.V3 | null; readonly on: string; readonly move: (q: readonly number[], p: SPACE.V3) => void };
+export type Space3d = {
+  readonly v: View3d | null; readonly flat: boolean; readonly box: SPACE.Box3;
+  set: (key: string, marks: readonly SPACE.Mark[]) => void;
+  headline: (s: string) => void;
+  drag: (o: SpaceDrag) => void;
+};
+type SpaceLab = { readonly el: HTMLElement; p: SPACE.V3; s: string };
+type SpaceLayer = { sig: number; marks: readonly SPACE.Mark[]; g: Obj3 | null; labs: SpaceLab[] };
+const SPACE_TOKENS: Readonly<Record<string, () => Color>> = { ink: () => PAL.ink, muted: () => PAL.muted, guide: () => alpha(PAL.ink, 0.4) };
+const tone = (c: Color): Color => SPACE_TOKENS[c]?.() ?? c;
+/* a cheap signature of a layer's marks, its colours as drawn now */
+function sigOf(x: unknown, h = 7): number {
+  if (typeof x === 'number') return (Math.imul(h, 31) + Math.round(x * 4096)) | 0;
+  if (typeof x === 'string') { const t = tone(x); for (let i = 0; i < t.length; i++) h = (Math.imul(h, 31) + t.charCodeAt(i)) | 0; return h; }
+  if (Array.isArray(x)) { for (const y of x) h = sigOf(y, h); return (Math.imul(h, 37) + x.length) | 0; }
+  if (x && typeof x === 'object') for (const y of Object.values(x)) h = sigOf(y, h);
+  return h;
+}
+/* a polyline cut into its dashes, on and off in scene units */
+function dashed(pts: readonly SPACE.V3[], on: number, off: number): SPACE.V3[][] {
+  const out: SPACE.V3[][] = []; let cur: SPACE.V3[] = [], left = on, drawing = true;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    let a = pts[i]; const b = pts[i + 1]; let L = SPACE.norm(SPACE.sub(b, a));
+    if (drawing && !cur.length) cur.push(a);
+    while (L > left) {
+      const q = SPACE.add(a, SPACE.mul(SPACE.sub(b, a), left / L));
+      if (drawing) { cur.push(q); out.push(cur); cur = []; } else cur = [q];
+      L -= left; a = q; drawing = !drawing; left = drawing ? on : off;
+    }
+    left -= L; if (drawing) cur.push(b);
+  }
+  if (cur.length > 1) out.push(cur);
+  return out;
+}
+const m2r = (p: SPACE.V3): REV.P3 => [p[0], p[2], -p[1]];   /* the book's z-up frame into the y-up frame of the scene and the painter */
+
+function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, opts: SpaceOpts): Space3d {
+  const box = opts.box, H = +(d.stage.dataset.h ?? 0) || opts.h || 480, book = cur;
+  const centre = box.map(([a, b]) => (a + b) / 2) as unknown as SPACE.V3, R = Math.hypot(...box.map(([a, b]) => (b - a) / 2));
+  const turn = opts.turn ?? -2.25, tilt = opts.tilt ?? 0.42, dist = opts.dist ?? 7;
+  const layers = new Map<string, SpaceLayer>();
+  let headS = '', headEl: HTMLElement | null = null;
+  const T0 = three(), T = T0 as Three;
+  const v = view3d(d.stage, { ...opts, h: H, dist, tilt, onRender: () => { place(); opts.onRender?.(); } });
+  const flat = !T0 || !v.wrap.classList.contains('three-wrap');
+  const s = (opts.fit ?? 2.1) / R, px = (2 * dist * Math.tan(Math.PI / 12)) / H / s;
+  let inner: Obj3 = null;
+  if (!flat) {
+    v.setView(turn, tilt);
+    const part = v.part(0); part.rotation.x = -Math.PI / 2;
+    inner = new T.Group(); inner.scale.setScalar(s); inner.position.set(-centre[0] * s, -centre[1] * s, -centre[2] * s); part.add(inner);
+  }
+  const canvas = flat ? makeCanvas(d.stage, H) : null;
+  if (canvas) { v.wrap.replaceWith(canvas); }
+
+  /* ---- three.js ---- */
+  const rgb = (c: Color): { c: Obj3; a: number } => { const q = parseRgba(tone(c)) ?? [0, 0, 0, 1]; return { c: new T.Color(q[0] / 255, q[1] / 255, q[2] / 255), a: q[3] }; };
+  function build(g: Obj3, marks: readonly SPACE.Mark[]): void {
+    const mats = new Map<string, Obj3>();
+    const mat = (kind: 'basic' | 'lit', c: Color, a = 1): Obj3 => {
+      const key = `${kind}|${tone(c)}|${a}`, got = mats.get(key); if (got) return got;
+      const { c: col, a: a0 } = rgb(c), op = a * a0, see = op < 1;
+      const m = kind === 'basic' ? new T.MeshBasicMaterial({ color: col, transparent: see, opacity: op, depthWrite: !see })
+        : new T.MeshPhongMaterial({ color: col, shininess: 24, side: T.DoubleSide, transparent: see, opacity: op, depthWrite: !see, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+      mats.set(key, m); return m;
+    };
+    const lineMat = (c: Color): Obj3 => { const key = `line|${tone(c)}`, got = mats.get(key); if (got) return got; const { c: col, a } = rgb(c); const m = new T.LineBasicMaterial({ color: col, transparent: a < 1, opacity: a }); mats.set(key, m); return m; };
+    const mesh = (pos: readonly number[], idx: readonly number[] | null, m: Obj3, uv?: readonly number[]): Obj3 => {
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      if (uv) geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+      if (idx) geo.setIndex([...idx]); geo.computeVertexNormals();
+      const o = new T.Mesh(geo, m); g.add(o); return o;
+    };
+    const tubes = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color): void => {
+      const pos: number[] = [], idx: number[] = [];
+      runs.forEach((pts) => { const t = SPACE.tube(pts, (w / 2) * px, 6), base = pos.length / 3; pos.push(...t.pos); t.idx.forEach((i) => idx.push(i + base)); });
+      if (pos.length) mesh(pos, idx, mat('basic', c));
+    };
+    const thin = (runs: readonly (readonly SPACE.V3[])[], c: Color, pairs: boolean): void => {
+      const pts = runs.flatMap((r) => (pairs ? r : r.flatMap((p, i) => (i && i < r.length - 1 ? [p, p] : [p]))));
+      if (pts.length > 1) g.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(pts.map(vec3)), lineMat(c)));
+    };
+    const stroke = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color, pairs = false): void => (w > 1.5 ? tubes(runs, w, c) : thin(runs, c, pairs));
+    marks.forEach((m) => {
+      if (m.k === 'line') stroke(m.dash ? dashed(m.pts, m.dash[0] * px, m.dash[1] * px) : [m.pts], m.w ?? 4, m.color);
+      else if (m.k === 'segs') stroke(m.segs, m.w ?? 2, m.color, true);
+      else if (m.k === 'arrow') {
+        const d3 = SPACE.sub(m.b, m.a), L = SPACE.norm(d3); if (L < px) return;
+        const u = SPACE.mul(d3, 1 / L), w = m.w ?? 5, hl = Math.min(0.4 * L, 18 * px), base = SPACE.sub(m.b, SPACE.mul(u, hl));
+        stroke([[m.a, base]], w, m.color);
+        const cone = new T.Mesh(geo().cone, mat('basic', m.color)); cone.position.copy(vec3(SPACE.add(base, SPACE.mul(u, hl / 2)))); cone.quaternion.setFromUnitVectors(up3(), vec3(u)); cone.scale.set(Math.max(w * 1.3, 7) * px, hl, Math.max(w * 1.3, 7) * px); g.add(cone);
+      } else if (m.k === 'dot') {
+        const o = new T.Mesh(geo().sphere, mat('lit', m.hollow ? PAL.panel : m.color)); o.position.copy(vec3(m.p)); o.scale.setScalar((m.r ?? 8) * px); g.add(o);
+      } else if (m.k === 'sheet') {
+        const nj = m.rows.length, ni = m.rows[0]?.length ?? 0, pos: number[] = [], uv: number[] = [], idx: number[] = [];
+        m.rows.forEach((row, j) => row.forEach((p, i) => { pos.push(p[0], p[1], p[2]); uv.push(i / Math.max(1, ni - 1), j / Math.max(1, nj - 1)); }));
+        for (let j = 0; j + 1 < nj; j++) for (let i = 0; i + 1 < ni; i++) { const k = j * ni + i; idx.push(k, k + 1, k + ni + 1, k, k + ni + 1, k + ni); }
+        const o = mesh(pos, idx, mat('lit', m.color, m.alpha ?? 0.8), uv); o.userData.param = m.param;
+      } else if (m.k === 'faces') {
+        const pos: number[] = [];
+        m.faces.forEach((f) => { for (let i = 1; i + 1 < f.length; i++) [f[0], f[i], f[i + 1]].forEach((p) => pos.push(p[0], p[1], p[2])); });
+        if (pos.length) mesh(pos, null, mat('lit', m.color, m.alpha ?? 0.8));
+      }
+    });
+  }
+  function drop(g: Obj3): void {
+    const shared = Object.values(geo());
+    g.traverse((o: Obj3) => { if (o !== g) { o.material?.dispose?.(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); } });
+    g.clear();
+  }
+  /* the labels of a layer, reusing its elements; a changed string is set again, under the scene's book */
+  function labelsOf(L: SpaceLayer, marks: readonly SPACE.Mark[]): void {
+    const want = marks.filter((m): m is Extract<SPACE.Mark, { k: 'label' }> => m.k === 'label');
+    while (L.labs.length > want.length) L.labs.pop()!.el.remove();
+    want.forEach((m, i) => {
+      const lab = L.labs[i] ?? (L.labs[i] = { el: el('div', 'lab3d' + (m.cls ? ' ' + m.cls : '')), p: m.p, s: '' });
+      if (!lab.el.isConnected) v.wrap.appendChild(lab.el);
+      lab.p = m.p; lab.el.style.color = m.color ? tone(m.color) : '';
+      if (lab.s !== m.s) { lab.s = m.s; lab.el.innerHTML = m.s; const prev = cur; cur = book; try { renderMath(lab.el); } finally { cur = prev; } }
+    });
+  }
+  function place(): void {
+    if (flat) return;
+    const band = headEl ? headEl.offsetTop + headEl.offsetHeight : 0;
+    layers.forEach((L) => L.labs.forEach(({ el: e, p }) => {
+      const [x, y] = v.project(p, inner), lift = e.classList.contains('tick') || e.classList.contains('bare') ? 0 : 10;
+      e.style.left = x + 'px'; e.style.top = Math.max(band + e.offsetHeight, y - lift) + 'px';
+    }));
+  }
+
+  /* ---- the flat view ---- */
+  let queued = false;
+  function paint(): void {
+    queued = false; if (!canvas) return;
+    const { ctx } = begin(canvas), k = (0.4 * Math.min(H, LW)) / R;
+    const cam = REV.camera({ yaw: -turn, pitch: tilt, dist: 2600, cx: LW / 2, cy: H / 2 + (headS ? 18 : 0), s: k, at: m2r(centre) });
+    const P = (p: SPACE.V3): Pt => cam.P(m2r(p)) as unknown as Pt;
+    const all = [...layers.values()].flatMap((L) => L.marks);
+    revPaint(ctx, cam, all.flatMap((m) => (m.k === 'sheet' ? [{ faces: SPACE.quads(m.rows).map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8 }]
+      : m.k === 'faces' ? [{ faces: m.faces.map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8 }] : [])));
+    const path = (pts: readonly SPACE.V3[], c: Color, w: number, dash?: SPACE.Dash): void => {
+      ctx.save(); ctx.strokeStyle = tone(c); ctx.lineWidth = w; if (dash) ctx.setLineDash([...dash]); ctx.beginPath();
+      pts.forEach((p, i) => { const [x, y] = P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
+    };
+    all.forEach((m) => {
+      if (m.k === 'line') path(m.pts, m.color, m.w ?? 4, m.dash);
+      else if (m.k === 'segs') m.segs.forEach((q) => path(q, m.color, m.w ?? 2));
+      else if (m.k === 'arrow') { const a = P(m.a), b = P(m.b); arrow(ctx, a[0], a[1], b[0], b[1], tone(m.color), m.w ?? 5); }
+      else if (m.k === 'dot') { const p = P(m.p); dot(ctx, p[0], p[1], tone(m.color), !m.hollow, m.r ?? 8); }
+    });
+    all.forEach((m) => {
+      if (m.k !== 'label') return;
+      const [x, y] = P(m.p), c = m.color ? tone(m.color) : PAL.ink;
+      if (m.cls === 'tick') text(ctx, m.s, x, y, PAL.muted, { size: 17, align: 'center', tex: true });
+      else text(ctx, m.s, x, m.cls ? y : y - 22, c, { size: 22, weight: 600, align: 'center', tex: true, bg: m.cls ? undefined : PAL.panel });
+    });
+    if (headS) headline(ctx, headS);
+  }
+  const repaint = (): void => { if (!queued) { queued = true; queueMicrotask(paint); } };
+
+  return {
+    v: flat ? null : v, flat, box,
+    set(key, marks) {
+      const L = layers.get(key) ?? (layers.set(key, { sig: 0, marks: [], g: null, labs: [] }), layers.get(key)!);
+      L.marks = marks;
+      if (flat) { repaint(); return; }
+      const sig = sigOf(marks); if (sig === L.sig && L.g) return;
+      L.sig = sig;
+      if (!L.g) { L.g = new T.Group(); inner.add(L.g); } else drop(L.g);
+      build(L.g, marks); labelsOf(L, marks); v.invalidate();
+    },
+    headline(str) { headS = str; if (flat) repaint(); else headEl = v.headline(str); },
+    drag(o) {
+      if (flat) return;
+      const wrap = v.wrap, ray = new T.Raycaster(), ndc = new T.Vector2(); let held = false;
+      const near = (e: PointerEvent): boolean => { const q = o.at(); if (!q) return false; const [x, y] = v.project(q, inner), r = wrap.getBoundingClientRect(); return Math.hypot(e.clientX - r.left - x, e.clientY - r.top - y) < 24; };
+      const slide = (e: PointerEvent): void => {
+        const L = layers.get(o.on); if (!L?.g) return;
+        const r = wrap.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+        ray.setFromCamera(ndc, v.camera);
+        const hit = ray.intersectObjects(L.g.children.filter((m: Obj3) => m.userData.param), false)[0]; if (!hit?.uv) return;
+        const p = inner.worldToLocal(hit.point.clone());
+        o.move(hit.object.userData.param(hit.uv.x, hit.uv.y), [p.x, p.y, p.z]);
+      };
+      wrap.addEventListener('pointerdown', (e) => { if (!near(e)) return; e.stopPropagation(); e.preventDefault(); held = true; wrap.setPointerCapture(e.pointerId); }, true);
+      wrap.addEventListener('pointermove', (e) => { if (held) { e.stopPropagation(); slide(e); } else if (!e.buttons) wrap.style.cursor = near(e) ? 'move' : ''; }, true);
+      const up = (): void => { held = false; };
+      wrap.addEventListener('pointerup', up, true); wrap.addEventListener('pointercancel', up, true);
+    },
+  };
+}
+
+/* the flat parts, on a graph's axes */
+type Field2 = (p: readonly number[]) => readonly number[];
+/* A plane field as arrows at the centres of an n[0] by n[1] grid of cells (one about every 70 canvas
+   units by default), the longest 0.85 of a cell on the canvas, or scale graph units long per unit of F. */
+function field2(ctx: Ctx, ax: Axes, F: Field2, color: Color, o: { readonly n?: readonly [number, number]; readonly scale?: number; readonly w?: number } = {}): void {
+  const q = during(arrivalAt(ctx), 0, 0.5); if (!(q > 0)) return;
+  const { box, X, Y, xr, yr } = ax, W = box.r - box.l, Hh = box.b - box.t;
+  const n = o.n ?? [Math.max(2, Math.round(W / 70)), Math.max(2, Math.round(Hh / 70))], cell = Math.min(W / n[0], Hh / n[1]);
+  const sx = W / (xr[1] - xr[0]), sy = Hh / (yr[1] - yr[0]);
+  const at = SLOPE.grid(xr, yr, n), vs = at.map((p) => F(p)).map(([a, b]): readonly [number, number] => [a * sx, -b * sy]);
+  const big = Math.max(...vs.map(([a, b]) => (Number.isFinite(a) && Number.isFinite(b) ? Math.hypot(a, b) : 0)));
+  const k = o.scale ?? (big > 0 ? (0.85 * cell) / big : 0);
+  ctx.save(); ctx.globalAlpha *= q;
+  at.forEach((p, i) => {
+    const [a, b] = vs[i]; if (!(Math.hypot(a, b) * k > 3)) return;
+    const x = X(p[0]) - (a * k) / 2, y = Y(p[1]) - (b * k) / 2;
+    arrow(ctx, x, y, x + a * k, y + b * k, color, o.w ?? 3);
+  });
+  ctx.restore();
+}
+/* the flow line through seed traced across the box both ways, an arrowhead just past the seed; returns its points */
+function flow2(ctx: Ctx, ax: Axes, F: Field2, seed: readonly [number, number], color: Color, o: { readonly w?: number } = {}): number[][] {
+  const pts = SPACE.flow(F, seed, [ax.xr, ax.yr]), q = during(arrivalAt(ctx), 0.3, 1);
+  if (!(q > 0)) return pts;
+  polyIn(ctx, ax, pts as unknown as SLOPE.P2[], color, o.w ?? 5, q);
+  const i = pts.findIndex((p) => p[0] === seed[0] && p[1] === seed[1]), j = Math.min(pts.length - 1, i + 8);
+  if (i >= 0 && j > i && q >= 1) { const [a, b] = [pts[i], pts[j]]; arrow(ctx, ax.X(a[0]), ax.Y(a[1]), ax.X(b[0]), ax.Y(b[1]), color, o.w ?? 5); }
+  return pts;
+}
+/* a plane region filled at alpha with its edges stroked; returns its outline */
+function region2(ctx: Ctx, ax: Axes, R: SPACE.Region, color: Color, o: { readonly alpha?: number; readonly w?: number } = {}): SPACE.V3[] {
+  const ol = SPACE.outline(R), q = during(arrivalAt(ctx), 0, 0.6);
+  if (!(q > 0)) return ol;
+  ctx.save(); clipTo(ctx, ax.box); ctx.globalAlpha *= q;
+  ctx.fillStyle = alpha(color, o.alpha ?? 0.25); ctx.beginPath(); ol.forEach((p, i) => (i ? ctx.lineTo(ax.X(p[0]), ax.Y(p[1])) : ctx.moveTo(ax.X(p[0]), ax.Y(p[1])))); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = o.w ?? 3;
+  SPACE.edges(R).forEach((e) => { ctx.beginPath(); e.forEach((p, i) => (i ? ctx.lineTo(ax.X(p[0]), ax.Y(p[1])) : ctx.moveTo(ax.X(p[0]), ax.Y(p[1])))); ctx.stroke(); });
+  ctx.restore();
+  return ol;
+}
+/* the cells of a double Riemann sum seen from above, each filled faintly and outlined, its sample point dotted */
+function cells2(ctx: Ctx, ax: Axes, cells: readonly SPACE.Cell[], color: Color, o: { readonly alpha?: number; readonly dots?: boolean } = {}): void {
+  const k = during(arrivalAt(ctx), 0, 0.6); if (!(k > 0)) return;
+  ctx.save(); ctx.globalAlpha *= k; ctx.lineWidth = 1.5; ctx.strokeStyle = color; ctx.fillStyle = alpha(color, o.alpha ?? 0.18);
+  cells.forEach((c, i) => {
+    ctx.save(); ctx.globalAlpha *= stagger(k, i, cells.length, 0.02);
+    ctx.beginPath(); c.outline.forEach((p, j) => (j ? ctx.lineTo(ax.X(p[0]), ax.Y(p[1])) : ctx.moveTo(ax.X(p[0]), ax.Y(p[1])))); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  });
+  ctx.restore();
+  if (o.dots ?? true) cells.forEach((c) => dot(ctx, ax.X(c.at[0]), ax.Y(c.at[1]), color, true, 5));
+}
+const space = { ...SPACE, field2, flow2, region2, cells2 };
+
+/* ---------- Calculus Chapter 11: polar frames, polar curves and traced paths ----------
+   `F.polar.frame(ctx, box, win, o)` sets an equal-scale frame on box holding the window
+   win = { x: [x0, x1], y: [y0, y1] } (graph units, centred) and draws the polar grid under it: circles
+   about the pole every o.ring units (1), spokes every 2π/o.spokes (12, so π/6), faint x- and y-axes,
+   the radii of the rings along the polar axis and, unless o.angles is false, each spoke's angle
+   beyond the largest ring the box holds; it returns axes as `axes` does. `.path(ctx, ax, p, [t0, t1],
+   color, { w, upto, faint, marks, gap })` draws the path p(t) faint over its range and solid from t0
+   to upto (all of it by default), arriving along its length, with marks arrowheads along the solid
+   part pointing the way t runs, and no line across a jump wider than gap; `.curve(ctx, ax, f, [α, β],
+   color, o)` does the same for r = f(θ). `.ray(ctx, ax, θ, r, color)` draws the ray from the pole at
+   angle θ to the box's edge, and the opposite ray dashed where r < 0, and returns the canvas point of
+   (r, θ). `.grip(d, { t, at, span })` lets the reader drag the point at(t) along its path, t a slider
+   it moves (a polar curve's at is `polar.of(f)`), never farther than span from where the point is;
+   `.grip(d, { t: θ slider, r: r slider })` drags a free polar point, θ turning with the pointer about
+   the pole and r its distance, keeping its sign; each returns { draw(ctx, ax, color), at } as `drag`
+   does. `.sectors(ctx, ax, f, α, β, n, color)` draws the n sectors of the Riemann sum of ½∫f² dθ
+   (rᵢ = f(θᵢ)) and `.strips(ctx, ax, p, t0, t1, n, color)` the n rectangles under a path of the sum
+   Σ y(tᵢ₋₁)(x(tᵢ) − x(tᵢ₋₁)), each cascading in and returning the sum. The pure geometry of polar.ts
+   rides along (`cells` and `stripCells` are its sectors and strips). */
+type PolarWin = { readonly x: Range; readonly y: Range };
+type PolarFrameOpts = { readonly ring?: number; readonly spokes?: number; readonly angles?: boolean };
+const piFrac = (k: number, n: number): string => {
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a), g = gcd(2 * k, n), p = (2 * k) / g, q = n / g;
+  return k === 0 ? '0' : `${p === 1 ? '' : p}π${q === 1 ? '' : '/' + q}`;
+};
+function polarFrame(ctx: Ctx, box: Box, win: PolarWin, o: PolarFrameOpts = {}): Axes {
+  const W = box.r - box.l, H = box.b - box.t, s = Math.min(W / (win.x[1] - win.x[0]), H / (win.y[1] - win.y[0]));
+  const cx = (win.x[0] + win.x[1]) / 2, cy = (win.y[0] + win.y[1]) / 2;
+  const xr: Range = [cx - W / (2 * s), cx + W / (2 * s)], yr: Range = [cy - H / (2 * s), cy + H / (2 * s)];
+  const X: Scale = (v) => box.l + (v - xr[0]) * s, Y: Scale = (v) => box.b - (v - yr[0]) * s;
+  const px = X(0), py = Y(0), ring = o.ring ?? 1, nsp = o.spokes ?? 12;
+  const far = Math.max(...[[box.l, box.t], [box.r, box.t], [box.l, box.b], [box.r, box.b]].map(([x, y]) => Math.hypot(x - px, y - py)));
+  const inner = Math.min(px - box.l, box.r - px, py - box.t, box.b - py);
+  const fade = during(arrivalAt(ctx), 0, 0.4);
+  ctx.save(); ctx.globalAlpha *= fade; clipTo(ctx, box); ctx.strokeStyle = PAL.rule; ctx.lineWidth = 1.5;
+  for (let r = ring; r * s <= far; r += ring) { ctx.beginPath(); ctx.arc(px, py, r * s, 0, 2 * Math.PI); ctx.stroke(); }
+  for (let i = 0; i < nsp; i++) { const a = (2 * Math.PI * i) / nsp; line(ctx, px, py, px + far * Math.cos(a), py - far * Math.sin(a), PAL.rule, 1.5); }
+  line(ctx, box.l, py, box.r, py, PAL.muted, 2); line(ctx, px, box.t, px, box.b, PAL.muted, 2);
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha *= fade;
+  const R = Math.floor(inner / s / ring) * ring;
+  for (let r = ring; r * s < Math.min(box.r - px, inner + 2 * ring * s) - 14 && r * s < box.r - px - 14; r += ring) text(ctx, fmt(r, ring < 1 ? 1 : 0), px + r * s, py + 18, PAL.muted, { size: 17, align: 'center', bg: PAL.panel });
+  if (o.angles !== false && R >= ring) for (let i = 0; i < nsp; i++) {
+    const a = (2 * Math.PI * i) / nsp, lx = px + (R * s + 26) * Math.cos(a), ly = py - (R * s + 22) * Math.sin(a);
+    if (lx > box.l && lx < box.r && ly > box.t && ly < box.b) text(ctx, piFrac(i, nsp), lx, ly, PAL.muted, { size: 17, align: 'center', bg: PAL.panel });
+  }
+  ctx.restore();
+  return { X, Y, box, xr, yr };
+}
+type PolarPathOpts = { readonly w?: number; readonly upto?: number; readonly faint?: number; readonly marks?: number; readonly gap?: number; readonly n?: number };
+function strokeRuns(ctx: Ctx, ax: Axes, rs: readonly (readonly POLAR.P2[])[], color: Color, w: number): void {
+  ctx.strokeStyle = color; ctx.lineWidth = w;
+  rs.forEach((run) => { ctx.beginPath(); run.forEach(([x, y], i) => (i ? ctx.lineTo(ax.X(x), ax.Y(y)) : ctx.moveTo(ax.X(x), ax.Y(y)))); ctx.stroke(); });
+}
+function polarPathDraw(ctx: Ctx, ax: Axes, p: POLAR.Path, span: Range, color: Color, o: PolarPathOpts = {}): void {
+  const q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return;
+  const [t0, t1] = span, up = Math.min(t1, Math.max(t0, o.upto ?? t1)), end = t0 + (up - t0) * q;
+  const n = o.n ?? 900, gap = o.gap ?? (ax.xr[1] - ax.xr[0]) / 3, w = o.w ?? 5, faint = o.faint ?? 0.28;
+  ctx.save(); clipTo(ctx, ax.box); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if (faint > 0 && up < t1) strokeRuns(ctx, ax, POLAR.runs(p, t0, t1, n, gap), alpha(color, faint), Math.max(2, w - 2));
+  if (end > t0) strokeRuns(ctx, ax, POLAR.runs(p, t0, end, Math.max(12, Math.round((n * (end - t0)) / (t1 - t0))), gap), color, w);
+  const m = o.marks ?? 0, e = (t1 - t0) * 1e-4;
+  for (let j = 1; j <= m && end > t0; j++) {
+    const t = t0 + ((end - t0) * (j - 0.5)) / m, [x, y] = p(t), [xa, ya] = p(t - e), [xb, yb] = p(t + e);
+    if (![x, y, xa, ya, xb, yb].every(Number.isFinite)) continue;
+    const a = Math.atan2(ax.Y(yb) - ax.Y(ya), ax.X(xb) - ax.X(xa)), cx = ax.X(x), cy = ax.Y(y), hl = 16;
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(cx + hl * 0.6 * Math.cos(a), cy + hl * 0.6 * Math.sin(a));
+    ctx.lineTo(cx - hl * 0.6 * Math.cos(a) + hl * 0.5 * Math.cos(a + Math.PI / 2), cy - hl * 0.6 * Math.sin(a) + hl * 0.5 * Math.sin(a + Math.PI / 2));
+    ctx.lineTo(cx - hl * 0.6 * Math.cos(a) - hl * 0.5 * Math.cos(a + Math.PI / 2), cy - hl * 0.6 * Math.sin(a) - hl * 0.5 * Math.sin(a + Math.PI / 2));
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+const polarCurveDraw = (ctx: Ctx, ax: Axes, f: (th: number) => number, span: Range, color: Color, o: PolarPathOpts = {}): void => polarPathDraw(ctx, ax, POLAR.polarPath(f), span, color, o);
+function polarRay(ctx: Ctx, ax: Axes, th: number, r: number, color: Color, o: { readonly w?: number } = {}): { x: Logical; y: Logical } {
+  const px = ax.X(0), py = ax.Y(0), far = Math.hypot(ax.box.r - ax.box.l, ax.box.b - ax.box.t) * 2, c = Math.cos(th), s = Math.sin(th);
+  ctx.save(); clipTo(ctx, ax.box);
+  line(ctx, px, py, px + far * c, py - far * s, color, o.w ?? 3);
+  if (r < 0) line(ctx, px, py, px - far * c, py + far * s, color, 2.5, [10, 10]);
+  ctx.restore();
+  const [x, y] = POLAR.xy(r, th); return { x: ax.X(x), y: ax.Y(y) };
+}
+type PolarGripOpts = { readonly t: Slider; readonly at?: POLAR.Path; readonly r?: Slider; readonly span?: number };
+function polarGrip(d: { readonly fig: HTMLElement; readonly c: HTMLCanvasElement | null; readonly stage: HTMLElement }, o: PolarGripOpts): Drag {
+  const c = d.c ?? d.stage.querySelector('canvas'); if (!c) throw new Error('F.polar.grip: the figure has no canvas');
+  const g = gripsOf(c), sliders = o.r ? [o.t, o.r] : [o.t], tin = inputOf(o.t);
+  const pos = (): POLAR.P2 => (o.r ? POLAR.xy(o.r.v, o.t.v) : o.at ? o.at(o.t.v) : POLAR.xy(1, o.t.v));
+  let ax: Axes | null = null, spot: Pt | null = null;
+  const grip: Grip = {
+    spot: () => spot,
+    move: ([px, py]) => {
+      if (!ax) return; const { box, xr, yr } = ax;
+      const q: POLAR.P2 = [xr[0] + ((px - box.l) / (box.r - box.l)) * (xr[1] - xr[0]), yr[0] + ((box.b - py) / (box.b - box.t)) * (yr[1] - yr[0])];
+      if (o.r) { const a = POLAR.aim(q, o.t.v, o.r.v); handOn(o.t, a.th); handOn(o.r, a.r); }
+      else if (o.at) handOn(o.t, POLAR.nearest(o.at, q, o.t.v, +tin.min, +tin.max, o.span ?? Math.PI));
+      else handOn(o.t, POLAR.unwrap(Math.atan2(q[1], q[0]), o.t.v));
+    },
+    done: () => { sliders.forEach((s) => inputOf(s).dispatchEvent(new Event('change', { bubbles: true }))); touch(d.fig); },
+  };
+  g.list.push(grip); c.style.touchAction = 'none';
+  sliders.forEach((s) => ['focus', 'blur'].forEach((t) => inputOf(s).addEventListener(t, () => touch(d.fig))));
+  return {
+    get at() { return pos(); },
+    draw(ctx, a, color) {
+      ax = a; const [xv, yv] = pos();
+      if (!Number.isFinite(xv) || !Number.isFinite(yv)) { spot = null; return null; }
+      const p = pinned(ctx, a.box, a.X, a.Y, xv, yv, color); spot = [p.x, p.y];
+      const hot = g.held === grip || sliders.some((s) => document.activeElement === inputOf(s));
+      ctx.save(); ctx.globalAlpha *= hot ? 0.6 : 0.28; ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 17, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      return p;
+    },
+  };
+}
+function polarSectors(ctx: Ctx, ax: Axes, f: (th: number) => number, a: number, b: number, n: number, color: Color): number {
+  const { cells, sum } = POLAR.sectors(f, a, b, n), k = during(arrivalAt(ctx), 0.3, 1);
+  const px = ax.X(0), py = ax.Y(0), s = (ax.box.r - ax.box.l) / (ax.xr[1] - ax.xr[0]);
+  ctx.save(); clipTo(ctx, ax.box); ctx.fillStyle = ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  const base = ctx.globalAlpha;
+  cells.forEach((cl, i) => {
+    const e = stagger(k, i, cells.length); if (!(e > 0) || !Number.isFinite(cl.r)) return;
+    const flip = cl.r < 0 ? Math.PI : 0;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.arc(px, py, Math.abs(cl.r) * s, -(cl.t0 + flip), -(cl.t1 + flip), true); ctx.closePath();
+    ctx.globalAlpha = base * 0.22 * e; ctx.fill(); ctx.globalAlpha = base * e; ctx.stroke();
+  });
+  ctx.restore();
+  return sum;
+}
+function polarStrips(ctx: Ctx, ax: Axes, p: POLAR.Path, t0: number, t1: number, n: number, color: Color): number {
+  const { cells, sum } = POLAR.strips(p, t0, t1, n), k = during(arrivalAt(ctx), 0.3, 1), { box, X, Y } = ax;
+  ctx.save(); clipTo(ctx, box); ctx.fillStyle = ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  const base = ctx.globalAlpha;
+  cells.forEach((cl, i) => {
+    const e = stagger(k, i, cells.length); if (!(e > 0) || !Number.isFinite(cl.h)) return;
+    ctx.beginPath(); ctx.rect(X(Math.min(cl.x0, cl.x1)), Y(Math.max(0, cl.h)), Math.abs(X(cl.x1) - X(cl.x0)), Math.abs(Y(cl.h) - Y(0)));
+    ctx.globalAlpha = base * 0.22 * e; ctx.fill(); ctx.globalAlpha = base * e; ctx.stroke();
+  });
+  ctx.restore();
+  return sum;
+}
+const polar = {
+  xy: POLAR.xy, of: POLAR.polarPath, runs: POLAR.runs, unwrap: POLAR.unwrap, nearest: POLAR.nearest, aim: POLAR.aim,
+  cells: POLAR.sectors, stripCells: POLAR.strips, area: POLAR.area, length: POLAR.length, chords: POLAR.chords, under: POLAR.under, extent: POLAR.extent,
+  frame: polarFrame, path: polarPathDraw, curve: polarCurveDraw, ray: polarRay, grip: polarGrip, sectors: polarSectors, strips: polarStrips,
+};
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, typeset, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
@@ -2989,6 +3397,8 @@ export const FIG = {
   revolve,
   deriv, secants,
   slopefield,
+  space, space3d,
+  polar,
 };
 export type Fig = typeof FIG;
 

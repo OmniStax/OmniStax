@@ -83,6 +83,14 @@ slopefield.field(ctx,ax,f,color,{n,len,w})  the direction field of y′ = f(x, y
 slopefield.curve(ctx,ax,f,[x0,y0],color,{w}) -> pts   the solution through (x0, y0) traced both ways across the box (RK4), stopping where
                                           it blows up; with drag(d,{x,y}) on two sliders the point is the reader's
 slopefield.euler(ctx,ax,f,[x0,y0],h,n,color,{w,dots}) -> pts   Euler's polyline of n steps of size h, vertices dotted; .trace .steps pure
+polar.frame(ctx,box,{x,y},{ring,spokes,angles}) -> ax   an equal-scale frame holding the window, the polar grid under it (Calculus Ch 11)
+polar.curve(ctx,ax,f,[a,b],color,{w,upto,faint,marks,gap})   r = f(θ) faint over [a,b], solid up to upto, marks arrowheads the way θ runs;
+                                          polar.path(ctx,ax,p,[t0,t1],color,o) the same for a path p(t) -> [x,y] (a parametric curve)
+polar.ray(ctx,ax,th,r,color) -> {x,y}     the ray from the pole at th, the opposite ray dashed where r < 0; the canvas point (r, th)
+const G = polar.grip(d,{t,at,span})       drag the point at(t) along its path, t a slider (a polar curve's at is polar.of(f));
+                                          polar.grip(d,{t: th, r}) a free polar point, th turning with the pointer, r keeping its sign; G.draw(ctx,ax,color)
+polar.sectors(ctx,ax,f,a,b,n,color) -> sum   the sectors of ½∫f² dθ's Riemann sum (rᵢ = f(θᵢ)); polar.strips(ctx,ax,p,t0,t1,n,color) -> sum
+                                          the rectangles Σ y(tᵢ₋₁)(x(tᵢ) − x(tᵢ₋₁)) under a path; .xy .of .area .length .chords .under .extent pure
 ```
 
 Specials on the point's slider are where the point catches (a horizontal tangent, a hole); the slider stays in the controls row as the point's value and its keyboard path. Hover names carry the tangent and secant, since they move with the point (rule 26.7).
@@ -177,6 +185,45 @@ volume(faces) / area(faces)               what the faces enclose and their area 
 ```
 
 `mesh` is for a figure the reader turns; `paint` keeps a page's still copies of solids in 2D cost, since a page holds only a few WebGL scenes.
+
+Space (Calculus Ch 12–16; `F.space3d`, `F.space`, geometry in `space.ts`; the book's coordinates, z up; mathematical 3D, rule 28.3):
+
+```
+const S = F.space3d(d, {box: [[x0,x1],[y0,y1],[z0,z1]], h, turn, tilt, spin, zoom, ...})   a free-orbit scene framed on the box, opening
+                                          from the book's view (x toward the reader) or from turn (yaw) and tilt (pitch); without WebGL
+                                          the same layers are painted on a canvas from that view, still, and S.flat is true
+S.set(key, marks)                         one layer of the scene, rebuilt only when its marks or colours change: call it in draw, a
+                                          static layer costs nothing a frame; S.headline(s); S.v the view3d (null when flat)
+S.drag({at: () => p, on: key, move: (q, p) => ...})   the reader takes the point at() and slides it over the sheet of layer key;
+                                          q is [x, y] on a graph, [u, v] on a surface; move drives the sliders that hold it (slider.drive)
+```
+
+Marks are plain records (`line`, `segs`, `arrow`, `dot`, `label`, `sheet`, `faces`), widths and radii in canvas units, colours a hue or the tokens `ink`, `muted`, `guide` (ink at 0.4). The builders return them, and a layer may concatenate several:
+
+```
+F.space.axes(box,{ticks,names,color})     axes through the origin, arrowheads and names at the positive ends, round ticks as page text
+F.space.point(p,color,{name,drop})        a dot, its name; drop dashes its feet to the xy-plane and the axes
+F.space.vector(a,b,color,{name,drop,w})   the arrow from tail a to head b; drop lays its components from the tail along x, y, z
+F.space.curve(r,[t0,t1],color,{n,w,dash}) r(t) in space       F.space.frame(r,t,[cT,cN,cB],{len,names}) the point and its T, N, B
+F.space.graph(f,region,color,{n,grid,alpha,levels,floor,levelColor,lift})   z = f(x, y) over a region with grid curves; levels
+                                          [c, ...] are its level curves drawn on z = floor (and on the surface with lift); drag reports [x, y]
+F.space.tangent(f,x0,y0,color,{size})     the tangent plane at (x0, y0) as a square patch, and the point
+F.space.surface(r,U,V,color,{n,grid,alpha})   r(u, v) with its grid curves; drag reports [u, v]
+F.space.normals(r,U,V,color,{n,len})      unit normals r_u × r_v on a grid     F.space.patch(r,u,v,du,dv,color) the patch, t_u Δu, t_v Δv
+F.space.plane(p,n,color,{box,size,alpha}) the plane through p square to n, cut by the box or a square    F.space.line(p,d,color,{t,box})
+F.space.field(F,box,color,{n,scale})      arrows of a field in space on an n³ grid, the longest 0.9 of a cell
+F.space.solid(region,color,{n,alpha})     a solid's boundary, translucent, its edges in ink
+F.space.boxes(cells,color)                the Riemann columns over riemann2's cells (the 3D F.riemann)
+```
+
+A region is its iterated integral's bounds, outermost first: `{x: [0, 2], y: [(x) => x / 2, 1]}` (Type I), `{y: [0, 1], x: [0, (y) => 2 * y]}` (Type II), `{theta: [0, Math.PI], r: [0, (t) => 1 + Math.cos(t)]}` (polar); in space a third key, with `z, r, theta` cylindrical and `rho, phi, theta` spherical. Pure: `riemann2(region,f,m,n,rule) -> {cells, sum}` (rule `mid`, `ll`, `lr`, `ul`, `ur`; polar cells are polar rectangles), `outline` / `edges` / `skins`, `frenet(r,t) -> {p,v,a,T,N,B,kappa}`, `circle(c,n,R)`, `partials(f,x,y)`, `tangents(r,u,v) -> {tu,tv,n}`, `contours(g,c,n)`, `flow(F,seed,box) -> points` (2D or 3D, closed orbits joined), `clipPlane`, `clipLine`, and `add sub mul dot cross norm unit`. Flat, on an `axes` frame:
+
+```
+F.space.field2(ctx,ax,F,color,{n,scale,w})     a plane field's arrows on a grid, the longest 0.85 of a cell
+F.space.flow2(ctx,ax,F,[x0,y0],color,{w})      the flow line through the seed both ways, an arrowhead past it; F.drag on two sliders drags the seed
+F.space.region2(ctx,ax,region,color,{alpha})   a plane region filled, its edges stroked; returns the outline
+F.space.cells2(ctx,ax,cells,color)             riemann2's cells from above, sample points dotted
+```
 
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
