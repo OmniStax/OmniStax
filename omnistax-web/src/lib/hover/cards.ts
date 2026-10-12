@@ -16,15 +16,16 @@ import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
 import { plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
-import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, matchEquation, firstSentence } from './resolve';
+import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence } from './resolve';
+import { readRow } from '../grapher/expr';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
-export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], [data-eq], .formula[data-formula]';
+export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], [data-eq], .formula[data-formula], [data-fn]';
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
   const t = el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
-  return t?.hasAttribute('data-sym') ? t.closest<HTMLElement>('[data-concept]') ?? t : t;   /* except on a concept, whose name may set a symbol in math: the concept wins */
+  return t?.hasAttribute('data-sym') ? t.closest<HTMLElement>('[data-concept], [data-fn]') ?? t : t;   /* except on a concept or a function, whose name may set a symbol in math: the concept or the function wins */
 };
 
 /* The section a node is read in: its article or figure root, else the focused
@@ -77,7 +78,13 @@ export const navFor = (book: BookId): Nav => {
     sheets.pin(symbol);
     void openItem(itemKey(sheetItem(book, sheetId(entry.id))), split ? 'new' : undefined);
   };
-  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement };
+  /* The grapher, with the function among its rows. */
+  const showGraph = (expr: string, split?: boolean): void => {
+    const entry = sheets.grapherEntry(book); if (!entry) return;
+    sheets.ask(book, entry.id, [expr]);
+    void openItem(itemKey(sheetItem(book, sheetId(entry.id))), split ? 'new' : undefined);
+  };
+  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement, showGraph };
 };
 
 /* ---------- the definition card's facts ----------
@@ -160,7 +167,9 @@ const concept = (book: BookId, t: HTMLElement): Card | null => {
 const TABLED = '[data-concept], .term[data-term], [data-sym], [data-eq]';
 const unloaded = (book: BookId, dir: string): boolean => { const s = registry.chapterStatusOf(book, dir); return s !== 'loaded' && s !== 'failed'; };
 export const readyFor = (t: HTMLElement): Promise<void> | null => {
-  const book = bookOfEl(t); if (!book || !t.matches(TABLED)) return null;
+  const book = bookOfEl(t); if (!book) return null;
+  if (t.matches('[data-fn]')) { const g = registry.hasBook(book) ? sheets.grapherEntry(book) : undefined; return g && !sheets.dataOf(book, g.id) ? sheets.load(book, g.id) : null; }
+  if (!t.matches(TABLED)) return null;
   if (!registry.hasBook(book)) return registry.ensureBook(book).then((m) => (m ? readyFor(t) ?? undefined : undefined));
   if (!t.matches('[data-concept]')) {
     const sec = sectionOf(book, t); const dir = sec ? registry.chapterOf(sectionRef(book, sec))?.dir : undefined;
@@ -182,6 +191,14 @@ const formula = (book: BookId, t: HTMLElement): Card | null => {
   return formulaCard({ formula: text, parts, ...(mass ? { mass } : {}) }, navFor(book));
 };
 
+/* A function token: its rule, set as y = …, and the type the book's grapher says it wears. */
+const fn = (book: BookId, t: HTMLElement): Card | null => {
+  const expr = t.dataset.fn; if (!expr) return null;
+  const row = readRow(expr); if (row.kind !== 'curve') return null;
+  const entry = sheets.grapherEntry(book); const data = entry ? sheets.dataOf(book, entry.id) : undefined;
+  return functionCard({ expr, tex: row.tex, graphed: !!entry, ...(data?.kind === 'grapher' && data.type ? { type: data.type } : {}) }, navFor(book));
+};
+
 /* The card for a target, or null when there is nothing to say. */
 export const cardFor = (t: HTMLElement): Card | null => {
   const book = bookOfEl(t); if (!book) return null;
@@ -191,6 +208,7 @@ export const cardFor = (t: HTMLElement): Card | null => {
   if (t.matches('[data-concept]')) return concept(book, t);
   if (t.matches('.formula[data-formula]')) return formula(book, t);
   if (t.matches('a[href^="#"]')) return reference(book, t);
+  if (t.matches('[data-fn]')) return fn(book, t);
   return null;
 };
 /* Equation blocks open more slowly: the reader is likely just reading them. */

@@ -16,8 +16,12 @@
   import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
   import { settings } from '../lib/settings/store.svelte';
+  import { sketch, pathOf, type Win } from '../lib/grapher/plot';
 
   const CLOSE_GRACE = 200;
+  const PLOT_W = 260, PLOT_H = 150;
+  const px = (w: Win, x: number): number => ((x - w.x0) / (w.x1 - w.x0)) * PLOT_W;
+  const py = (w: Win, y: number): number => ((w.y1 - y) / (w.y1 - w.y0)) * PLOT_H;
   type Placed = { readonly top: number; readonly left: number; readonly ready: boolean; readonly most?: number };
   let card = $state<Card | null>(null);
   let anchor = $state<HTMLElement | null>(null);
@@ -130,6 +134,12 @@
   <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" style:max-height={pos.most ? `${pos.most}px` : null} style:overflow-y={pos.most ? 'auto' : null} data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
     <div class="eyebrow">{card.eyebrow}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" data-type={card.type ?? null} use:math={card.title}>{@html card.title}</div>{/if}
+    {#if card.plot}{@const sk = sketch(card.plot, PLOT_W)}{#if sk}{@const w = sk.win}<svg class="plot" viewBox="0 0 {PLOT_W} {PLOT_H}" data-type={card.type ?? null} aria-hidden="true">
+      {#if w.y0 < 0 && w.y1 > 0}<line class="axis" x1="0" x2={PLOT_W} y1={py(w, 0)} y2={py(w, 0)} />{/if}
+      <line class="axis" x1={px(w, 0)} x2={px(w, 0)} y1="0" y2={PLOT_H} />
+      <path class="curve" d={pathOf(sk.trace.pieces, w, PLOT_W, PLOT_H)} />
+      {#each sk.trace.marks as m, i (i)}<circle class="mark" class:open={m.open} cx={px(w, m.x)} cy={py(w, m.y)} r="3" />{/each}
+    </svg>{/if}{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
     {#each card.notes ?? [] as n (n.label)}<p class="aside" use:math={n.text}><span class="lead">{n.label}</span> {n.text}</p>{/each}
     {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)} onauxclick={onMiddle((e) => run(c, e))}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
@@ -171,6 +181,11 @@
   .refs .sep{color:var(--muted);font-size:0.78rem}
   .ref :global(.katex){font-size:1em}
   .hover-card[data-kind="concept"]{max-width:min(400px,calc(100vw - 16px))}
+  .plot{display:block;width:260px;max-width:100%;height:auto;margin:4px 0 2px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);overflow:hidden}
+  .plot .axis{stroke:var(--muted);stroke-width:1}
+  .plot .curve{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .plot .mark{fill:currentColor;stroke:currentColor;stroke-width:1.5}
+  .plot .mark.open{fill:var(--bg)}
   .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
   .actions button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
   .actions button:hover{background:var(--soft)}
@@ -182,6 +197,12 @@
      writes the class the rules hang from — and either way the card still opens. */
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word)), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word):hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
+  /* A function token wraps its math, which a text decoration does not reach into, so it is underlined by a border. */
+  :global(html:not(.no-underlines) article [data-fn]){border-bottom:1px dotted var(--muted)}
+  :global(html:not(.no-underlines) article [data-fn]:hover){border-bottom-color:var(--accent)}
+  :global(html:not(.no-underlines) article [data-fn] .katex-html .enclosing[class*="kv-"]){text-decoration:none}
+  :global([data-fn]){cursor:pointer}
+  :global([data-fn]:focus-visible){outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
   /* A thing of the book an answer or a note names by a link: underlined in the link colour, since nothing around it says it is one. */
   :global(html:not(.no-underlines) .book-word){text-decoration:underline dotted;text-decoration-color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
   :global(.book-word .katex-html .enclosing[class*="kv-"]){text-decoration:none}

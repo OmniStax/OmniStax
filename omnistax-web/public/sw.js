@@ -194,7 +194,16 @@ const resource = async (event, url) => {
   if (response && response.status !== 404) return response;
   return await fromShell(url.pathname, false) ?? response ?? new Response('Offline resource unavailable', { status: 503 });
 };
+/* Pyodide, which the calculator sheet loads from its CDN at a pinned version,
+   is kept from its first use, so the sheet works offline after that. */
+const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/', PYODIDE_CACHE = 'omnistax-pyodide';
+const pyodide = async (event) => {
+  const cache = await caches.open(PYODIDE_CACHE); const kept = await cache.match(event.request); if (kept) return kept;
+  const response = await fetch(event.request); if (response.ok) event.waitUntil(cache.put(event.request, response.clone()));
+  return response;
+};
 self.addEventListener('fetch', (event) => {
+  if (event.request.url.startsWith(PYODIDE)) { event.respondWith(pyodide(event)); return; }
   const url = new URL(event.request.url); if (url.origin !== location.origin) return;
   if (url.pathname === '/offline-catalog.json') { event.respondWith(fetch(event.request, { cache: 'no-store' })); return; }
   event.respondWith(event.request.mode === 'navigate' ? navigation(event, url) : resource(event, url));

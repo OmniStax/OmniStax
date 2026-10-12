@@ -7,7 +7,10 @@
    periodic table, whose rows the app draws as cells and whose masses the
    formula hover sums, and a `table` sheet is one data appendix of the book:
    its tables, each of named columns and rows of HTML cells, which the app
-   draws as searchable, sortable tables.
+   draws as searchable, sortable tables. A `grapher`, a `unit-circle` and a
+   `cas` sheet are instruments rather than tables, and their files hold what
+   the instrument starts from: the grapher's opening rows and the type a
+   function token wears, the circle's special angles with their exact values.
 
    Every field carries a description for the same reason the content tables do:
    the meaning of a field is written on the field and nowhere else. */
@@ -111,6 +114,18 @@ export const cellNumber = (cell: string): number | null => {
   return bare ? Number(bare[1]) : null;
 };
 
+/* ---------- the unit circle ---------- */
+
+/* One special angle, with the exact values the book prints for it, as TeX. */
+export const UnitAngleSchema = z.object({
+  degrees: z.number().describe('The angle in degrees, from 0 up to but not including 360.'),
+  radians: z.string().describe('The angle in radians as TeX: "\\frac{\\pi}{6}".'),
+  sin: z.string().describe('The exact sine as TeX.'),
+  cos: z.string().describe('The exact cosine as TeX.'),
+  tan: z.string().nullable().describe('The exact tangent as TeX, or nothing where the cosine is zero and the tangent is undefined.'),
+}).strict();
+export type UnitAngleDTO = z.infer<typeof UnitAngleSchema>;
+
 /* ---------- one sheet file ---------- */
 
 const SheetBase = {
@@ -131,7 +146,25 @@ export const SheetDataSchema = z.discriminatedUnion('kind', [
     source: TableSourceSchema.describe('The module the tables were read from and the letter the book prints it under, since a table sheet is an appendix as data.'),
     tables: z.array(TableBlockSchema).default([]).describe('The tables of the appendix, in the order it prints them.'),
   }).strict(),
+  z.object({
+    kind: z.literal('grapher').describe('A graphing calculator: rows of expressions drawn as curves, which the function tokens of the prose open with their own function.'),
+    ...SheetBase,
+    expressions: z.array(z.string()).default([]).describe('The rows the grapher opens with when the address names none, each as a reader would type it: "x^2", "y = sin x", "a = 1".'),
+    type: z.string().optional().describe('The type a function the prose marks <span data-fn> wears on its hover card, by its id among the book’s types.'),
+  }).strict(),
+  z.object({
+    kind: z.literal('unit-circle').describe('The unit circle: an angle the reader turns, its sine, cosine and tangent, and their graphs beside it.'),
+    ...SheetBase,
+    angles: z.array(UnitAngleSchema).describe('The special angles the circle marks and snaps to, from 0\u00b0 up, each with its exact values.'),
+  }).strict(),
+  z.object({
+    kind: z.literal('cas').describe('A computer algebra system the reader types into.'),
+    ...SheetBase,
+  }).strict(),
 ]);
 export type SheetDataDTO = z.infer<typeof SheetDataSchema>;
 export type ElementsSheetDTO = Extract<SheetDataDTO, { kind: 'elements' }>;
 export type TableSheetDTO = Extract<SheetDataDTO, { kind: 'table' }>;
+export type GrapherSheetDTO = Extract<SheetDataDTO, { kind: 'grapher' }>;
+export type UnitCircleSheetDTO = Extract<SheetDataDTO, { kind: 'unit-circle' }>;
+export type CasSheetDTO = Extract<SheetDataDTO, { kind: 'cas' }>;

@@ -24,7 +24,7 @@
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { aboutItem, bookId, bookOfItem, docItem, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
+  import { aboutItem, bookId, bookOfItem, docItem, itemKey, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, sheetId, sheetItem, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
   import { refOfPath, resolvePath, sectionOfUrl } from '../lib/content/urls';
   import { bookPagesOf, pageLabel } from '../lib/content/roles';
   import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
@@ -232,9 +232,16 @@
       if (!link || link.target || link.origin !== location.origin) return;
       const at = refOfPath(link.pathname);
       if (!at) return;
-      const { href, pathname, hash } = link; const group = groupOf(link); const how = openingOf(e);
+      const { href, pathname, hash, search } = link; const group = groupOf(link); const how = openingOf(e);
       e.preventDefault();
       void registry.ensureBook(at.book).then(async (m) => {
+        /* a sheet, with what its address asks of it: a grapher's ?expr= rows */
+        const sheet = at.chapterDir === 'sheets' ? m?.sheets.find((s) => s.id === at.section) : undefined;
+        if (sheet) {
+          const exprs = new URLSearchParams(search).getAll('expr');
+          if (exprs.length) sheets.ask(at.book, sheet.id, exprs);
+          await openItem(itemKey(sheetItem(at.book, sheetId(sheet.id))), group, how); return;
+        }
         const sec = m ? sectionOfUrl(m, pathname) : null;
         if (!sec) { location.assign(href); return; }
         await openDoc(sectionRef(at.book, sec), 'text', group, how);

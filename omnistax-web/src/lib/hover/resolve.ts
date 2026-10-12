@@ -7,7 +7,7 @@ import type { SpanId, SectionId } from '../types/ids';
 import type { Stated } from '../sections/reference';
 import { KIND_LABEL as CONCEPT_KIND } from '../sections/reference';
 
-export type Kind = 'definition' | 'variable' | 'reference' | 'equation' | 'concept' | 'formula';
+export type Kind = 'definition' | 'variable' | 'reference' | 'equation' | 'concept' | 'formula' | 'function';
 export type Action = { readonly label: string; readonly run: (split?: boolean) => void };
 /* Places the card points at, under a lead of their own: "Introduced in", "Used
    in". A long list is cut short and the rest stand behind one
@@ -29,6 +29,7 @@ export type Card = {
   readonly notes?: readonly Note[];  /* $…$ allowed */
   readonly refs?: readonly RefGroup[];
   readonly chips?: readonly Chip[];   /* a formula's composition, one chip per element */
+  readonly plot?: string;             /* a function's expression, drawn as a small graph */
   readonly actions: readonly Action[];
 };
 
@@ -39,9 +40,10 @@ export type Nav = {
   readonly showView: (view: 'reference' | 'concepts', split?: boolean) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
+  readonly showGraph: (expr: string, split?: boolean) => void;   /* opens the book's grapher with that function among its rows */
 };
 
-const KIND_LABEL: Readonly<Record<Kind, string>> = { definition: 'Definition', variable: 'Symbol', reference: 'Reference', equation: 'Formula', concept: 'Concept', formula: 'Formula' };
+const KIND_LABEL: Readonly<Record<Kind, string>> = { definition: 'Definition', variable: 'Symbol', reference: 'Reference', equation: 'Formula', concept: 'Concept', formula: 'Formula', function: 'Function' };
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const sentence = (s: string): string => { const t = s.trim(); return t === '' ? '' : /[.!?]$/.test(t) ? cap(t) : cap(t) + '.'; };
 const spanIdOf = (s: string): SpanId => s as SpanId;
@@ -207,3 +209,13 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
     ],
   };
 };
+
+/* ---------- function ---------- */
+
+/* A function the builder marked in the prose: its rule as TeX, a small graph of
+   it, and the way into the grapher, where the book keeps one. */
+export type FunctionFacts = { readonly expr: string; readonly tex: string; readonly type?: string; readonly graphed: boolean };
+export const functionCard = (f: FunctionFacts, nav: Nav): Card => ({
+  kind: 'function', eyebrow: KIND_LABEL.function, title: f.expr, tex: f.tex, plot: f.expr, ...(f.type ? { type: f.type } : {}),
+  actions: f.graphed ? [{ label: 'Open in Grapher', run: (s?: boolean) => nav.showGraph(f.expr, s) }] : [],
+});

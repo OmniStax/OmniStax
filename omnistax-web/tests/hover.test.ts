@@ -17,7 +17,7 @@ const ROOT = await bookRoot(PHYSICS);
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`), showGraph: (e) => calls.push(`graph:${e}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- prose ---------- */

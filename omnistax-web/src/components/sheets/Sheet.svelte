@@ -6,6 +6,9 @@
   import { sheets } from '../../lib/sheets/store.svelte';
   import Elements from './Elements.svelte';
   import Table from './Table.svelte';
+  import Grapher from './Grapher.svelte';
+  import UnitCircle from './UnitCircle.svelte';
+  import Cas from './Cas.svelte';
   import type { BookId } from '../../lib/types/ids';
   let { book, id }: { book: BookId; id: string } = $props();
   const entry = $derived(sheets.entry(book, id));
@@ -21,6 +24,12 @@
     <Elements {book} sheet={data} />
   {:else if data && data.kind === 'table'}
     <Table {book} sheet={data} />
+  {:else if data && data.kind === 'grapher'}
+    <Grapher {book} sheet={data} />
+  {:else if data && data.kind === 'unit-circle'}
+    <UnitCircle {book} sheet={data} />
+  {:else if data && data.kind === 'cas'}
+    <Cas {book} sheet={data} />
   {:else if status === 'failed'}
     <p class="note bad">Could not read {entry.title}.</p>
   {:else}

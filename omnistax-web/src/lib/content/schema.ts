@@ -134,8 +134,10 @@ const framed = (o: { readonly intro?: FrontPageRefDTO; readonly summary?: FrontP
    token up in. The kind is an ADT tag, since a sheet of one kind carries data
    a sheet of another kind does not: an `elements` sheet is the periodic table,
    which the app draws and the formula hover reads, and a `table` is a plain
-   reference table of rows and columns. */
-export const SHEET_KINDS = ['elements', 'table'] as const;
+   reference table of rows and columns. A `grapher`, a `unit-circle` and a
+   `cas` are instruments the reader works: a book that keeps a grapher has
+   function tokens, <span data-fn>, which hover as a plot and go to the grapher. */
+export const SHEET_KINDS = ['elements', 'table', 'grapher', 'unit-circle', 'cas'] as const;
 export type SheetKind = (typeof SHEET_KINDS)[number];
 /* One sheet's id, which names its page under the book: "elements". */
 export type SheetId = string & { readonly __brand: 'SheetId' };
@@ -144,8 +146,8 @@ export const sheetId = (s: string): SheetId => s as SheetId;
 export const SheetSchema = z.object({
   id: z.string().describe('The sheet\u2019s id, which names its page at /<book>/sheets/<id>/ and the storage anything keyed by sheet is kept under.'),
   title: z.string().describe('The sheet\u2019s title as the book prints it, which is what the explorer and the contents page call it.'),
-  kind: z.enum(SHEET_KINDS).describe('What the sheet is, which is what the app draws it as: "elements" is the periodic table and "table" a plain reference table.'),
-  file: z.string().describe('The sheet\u2019s data file, as a path under the book\u2019s own folder; by convention sheets/<id>.json.'),
+  kind: z.enum(SHEET_KINDS).describe('What the sheet is, which is what the app draws it as: "elements" is the periodic table, "table" a plain reference table, "grapher" a graphing calculator, "unit-circle" the unit circle with the sine and cosine graphs, and "cas" a computer algebra system.'),
+  file: z.string().describe('The sheet\u2019s data file, as a path under the book\u2019s own folder; by convention sheets/<id>.json. Every kind has one: an instrument\u2019s file holds what it starts from.'),
 }).strict();
 export type SheetDTO = z.infer<typeof SheetSchema>;
 

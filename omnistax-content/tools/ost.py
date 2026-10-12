@@ -112,7 +112,7 @@ TABLES: dict[TableName, Table] = {
     "concept_prereqs": Table("book", ("concept", "prereq"), {
         "concept": _f(True), "prereq": _f(True)}, ("concept", "prereq")),
     "sheets": Table("book", ("id",), {
-        "id": _f(True), "title": _f(True), "kind": _f(True, enum=("elements", "table")),
+        "id": _f(True), "title": _f(True), "kind": _f(True, enum=("elements", "table", "grapher", "unit-circle", "cas")),
         "file": _f(True)}, ("id", "kind", "title", "file")),
 
     "sections": Table("chapter", ("id",), {

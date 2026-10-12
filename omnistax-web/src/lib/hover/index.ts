@@ -24,6 +24,6 @@ const blocks = (root: HTMLElement): HTMLElement[] =>
 export const decorateProse = (root: HTMLElement): void => {
   const examples = exampleIds(root.innerHTML);
   blocks(root).forEach((b) => { const h = wrapExampleRefs(b.innerHTML, examples, IN_BLOCK); if (h !== b.innerHTML) b.innerHTML = h; });
-  root.querySelectorAll<HTMLElement>('.katex-html [data-sym], span[data-concept]:not(.book-word)').forEach((s) => { if (!s.hasAttribute('tabindex')) s.tabIndex = 0; });
+  root.querySelectorAll<HTMLElement>('.katex-html [data-sym], span[data-concept]:not(.book-word), span[data-fn]').forEach((s) => { if (!s.hasAttribute('tabindex')) s.tabIndex = 0; });
   markFormulas(root);
 };

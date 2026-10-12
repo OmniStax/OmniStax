@@ -123,8 +123,8 @@ The reference sheets the book keeps beside its chapters, each a page of its own 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The sheet’s id, which names its page at /<book>/sheets/<id>/ and the storage anything keyed by sheet is kept under. |
 | `title` | `string` | yes | The sheet’s title as the book prints it, which is what the explorer and the contents page call it. |
-| `kind` | `"elements" \| "table"` | yes | What the sheet is, which is what the app draws it as: "elements" is the periodic table and "table" a plain reference table. |
-| `file` | `string` | yes | The sheet’s data file, as a path under the book’s own folder; by convention sheets/<id>.json. |
+| `kind` | `"elements" \| "table" \| "grapher" \| "unit-circle" \| "cas"` | yes | What the sheet is, which is what the app draws it as: "elements" is the periodic table, "table" a plain reference table, "grapher" a graphing calculator, "unit-circle" the unit circle with the sine and cosine graphs, and "cas" a computer algebra system. |
+| `file` | `string` | yes | The sheet’s data file, as a path under the book’s own folder; by convention sheets/<id>.json. Every kind has one: an instrument’s file holds what it starts from. |
 
 ### `book_pages`
 

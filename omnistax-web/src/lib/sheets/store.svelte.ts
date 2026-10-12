@@ -28,6 +28,8 @@ class Sheets {
   status = $state.raw<Readonly<Record<SheetKey, SheetStatus>>>({});
   /* The element the elements page stands on, which a formula card's "Go to" sets before the page opens. */
   pinned = $state.raw<ElementSymbol | null>(null);
+  /* Rows a link or a function card asked a grapher to show, kept until that grapher takes them. */
+  asked = $state.raw<{ readonly key: SheetKey; readonly exprs: readonly string[] } | null>(null);
   private waiting: HTMLElement[] = [];
   private mark: (root: HTMLElement) => void = () => {};
 
@@ -67,5 +69,12 @@ class Sheets {
     void this.load(book, entry.id);
   }
   pin(symbol: string | null): void { this.pinned = symbol === null ? null : elementSymbol(symbol); }
+  /* The one grapher a book may keep, which its function tokens open. */
+  grapherEntry(book: BookId): SheetEntry | undefined { return registry.manifest(book).sheets.find((s) => s.kind === 'grapher'); }
+  ask(book: BookId, id: string, exprs: readonly string[]): void { this.asked = { key: sheetKey(book, id), exprs }; }
+  take(book: BookId, id: string): readonly string[] | null {
+    const a = this.asked; if (!a || a.key !== sheetKey(book, id)) return null;
+    this.asked = null; return a.exprs;
+  }
 }
 export const sheets = new Sheets();

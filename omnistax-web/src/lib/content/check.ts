@@ -23,6 +23,7 @@ import { asidesOf, referentGroups } from '../colours/scopes';
 import { isElementSymbol } from '../fig/elements';
 import { figureLiterals, figureRefs } from './figrefs';
 import { conceptSpanIds } from './conceptspans';
+import { functionNames, readRow } from '../grapher/expr';
 import type { TableSheetDTO } from './sheets';
 
 /* What a check found. An error is content that will not work: a reference to a
@@ -209,6 +210,19 @@ export const checkConceptSpans: Check = (content) => {
   const concepts = idsOf(content.book.concepts, (c) => c.id);
   return pagesOf(content).flatMap((s) => proseOf(s).flatMap((m) => conceptSpanIds(m.html).flatMap((id) =>
     (concepts.has(id) ? [] : [error(m.file, `<span data-concept="${id}"> names no concept of the book`)]))));
+};
+
+/* A function the builder marked <span data-fn="…"> is a token only a book that keeps a grapher has, and its
+   expression reads as a curve y = f(x), since that is what its card draws and its grapher row shows. */
+export const checkFunctionSpans: Check = (content) => {
+  const graphed = content.book.sheets.some((s) => s.kind === 'grapher');
+  return pagesOf(content).flatMap((s) => proseOf(s).flatMap((m) => attrValues(m.html, 'data-fn').flatMap((e) => {
+    const row = readRow(e.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+    return [
+      ...(graphed ? [] : [error(m.file, `<span data-fn="${e}"> marks a function, and the book keeps no grapher sheet`)]),
+      ...(row.kind === 'curve' ? [] : [error(m.file, `<span data-fn="${e}"> does not read as a function of x${row.kind === 'error' ? `: ${row.message}` : ''}`)]),
+    ];
+  })));
 };
 
 /* A referent is one thing of one example or figure (block 1, Firm B), which the text marks <span data-ref="…">
@@ -675,6 +689,8 @@ export const checkSheets: Check = (content) => {
       ...(d.id === s.row.id ? [] : [error(`${s.row.file}`, `calls itself "${d.id}" and the book lists it as "${s.row.id}"`)]),
       ...(d.title === s.row.title ? [] : [warning(`${s.row.file}`, `is titled "${d.title}" and the book lists it as "${s.row.title}"`)]),
       ...(d.kind !== 'table' ? [] : checkTableSheet(s.row.file, d)),
+      ...(d.kind === 'grapher' && d.type && !content.book.types.some((t) => t.id === d.type) ? [error(`${s.row.file}`, `gives functions the type "${d.type}", which the book does not declare`)] : []),
+      ...(d.kind !== 'grapher' ? [] : d.expressions.flatMap((e) => (readRow(e, functionNames(d.expressions)).kind === 'error' ? [warning(`${s.row.file}`, `opens with "${e}", which the grapher does not read`)] : []))),
       ...(d.kind !== 'elements' ? [] : d.elements.flatMap((e) => e.sections.filter((sec) => !pages.has(sec)).map((sec) => warning(`${s.row.file}`, `${e.symbol} names section "${sec}", which the book does not build`)))),
     ];
   });
@@ -718,7 +734,7 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
