@@ -157,10 +157,10 @@ export const StoredHueSchema = z.object({
   dark: HEX6.describe('The colour on the dark theme, as #rrggbb.'),
 }).strict();
 export const BookColoursSchema = z.object({
-  palette: z.string().describe('The palette the colours were taken from, by its id in the app (oklab).'),
+  palette: z.string().describe('The palette the colours were taken from, by its id in the app (families, or oklab).'),
   vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).describe('The colour vision the assignment keeps the colours of one page apart for: normal, protan, deutan or tritan.'),
   assign: z.record(z.string(), StoredHueSchema).describe('Each type\u2019s colour, keyed by type id. A type the book declares and this omits takes the next palette colour no listed type wears, and the checker says the default is stale.'),
-  referentOrder: z.array(z.number().int().min(0).max(35)).length(36).optional().describe('The order smart dealing walks the default referent palette in for this book: the OKLab palette\u2019s 36 slots (0\u201335), sorted by how many referents of the book each colour stands at least the default target distance from every colour their group shows, most first. Absent, the palette\u2019s own order.'),
+  referentOrder: z.array(z.number().int().min(0).max(35)).length(36).optional().describe('The order smart dealing walks the default referent palette in for this book: the hue-families palette\u2019s 36 referent slots (0\u201335), sorted by how many referents of the book each colour stands at least the default target distance from every colour their group shows, most first. Absent, the palette\u2019s own order.'),
 }).strict();
 export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
 
@@ -188,7 +188,7 @@ export const BookSchema = z.object({
   concepts: z.array(ConceptSchema).default([]).describe('Every concept of the book in one table, because ids are canonical and a chapter\u2019s prerequisites live in other chapters.'),
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
-  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the OKLab palette in the order they are declared.'),
+  colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
