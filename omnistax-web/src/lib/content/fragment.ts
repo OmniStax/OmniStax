@@ -159,7 +159,11 @@ export const markAiFigures = (html: string, byline: string | undefined, figures:
 };
 
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
-const footer = (book: BookDTO, s: SectionSource): string => footerHtml(attributionOf(book, s.meta));
+/* A figure whose book image is withheld says why under the attribution, after what the section left out. */
+const footer = (book: BookDTO, s: SectionSource): string => {
+  const notes = [s.meta.notes, ...s.figures.flatMap((f) => (f.withheld ? [f.withheld] : []))].filter(Boolean).join(' ');
+  return footerHtml(attributionOf(book, { ...s.meta, notes }));
+};
 
 /* The line above the title: the chapter and the section's number, or for a page of the chapter's own only the
    chapter, and for a page of the book's own the book. The chapter is null for the book's own pages. */
