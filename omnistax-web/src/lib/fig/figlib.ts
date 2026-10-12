@@ -16,6 +16,7 @@ import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf
 import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './hand';
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
+import { trace, limit, slope, area, cells, clipLine, type Rule } from './plot';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -875,7 +876,8 @@ function scale(ctx: Ctx, X: Scale, from: number, to: number, step: number, y: Lo
   let i = 0;
   for (let m = from; m <= to + 1e-9; m += step, i++) { line(ctx, X(m), y - 8, X(m), y + 8, PAL.muted, 2); if (i % every === 0) text(ctx, fmt(m, 0) + (unit ? ' ' + unit : ''), X(m), y + 28, PAL.muted, { size: 17, align: 'center' }); }
 }
-function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): { X: Scale; Y: Scale } {
+export type Axes = { readonly X: Scale; readonly Y: Scale; readonly box: Box; readonly xr: Range; readonly yr: Range };
+function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): Axes {
   const X: Scale = (v) => box.l + ((v - xr[0]) / (xr[1] - xr[0])) * (box.r - box.l);
   const Y: Scale = (v) => box.b - ((v - yr[0]) / (yr[1] - yr[0])) * (box.b - box.t);
   const nx = o.nx ?? 4, ny = o.ny ?? 3;
@@ -886,12 +888,12 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): { X: 
   if (o.xl) text(ctx, o.xl, box.r, box.b + 58, o.xc ?? PAL.ink, { align: 'right', weight: 600, size: 20 });
   if (o.yl) text(ctx, o.yl, box.l, box.t - 24, o.yc ?? PAL.ink, { align: 'left', weight: 600, size: 20 });
   ctx.restore();
-  if (!(grow > 0)) return { X, Y };
+  if (!(grow > 0)) return { X, Y, box, xr, yr };
   const up = box.b - (box.b - box.t) * grow, across = box.l + (box.r - box.l) * grow;
   line(ctx, box.l, box.b, box.l, up, PAL.muted, 2); line(ctx, box.l, box.b, across, box.b, PAL.muted, 2);
   if (xr[0] < 0 && xr[1] > 0) line(ctx, X(0), box.b, X(0), up, PAL.muted, 2);
   if (yr[0] < 0 && yr[1] > 0) line(ctx, box.l, Y(0), across, Y(0), PAL.muted, 2);
-  return { X, Y };
+  return { X, Y, box, xr, yr };
 }
 function nice(lo: number, hi: number, want = 4): { lo: number; hi: number; n: number } {
   const raw = (hi - lo) / want, p = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -923,6 +925,153 @@ function curve(ctx: Ctx, f: (t: number) => number, t0: number, t1: number, X: Sc
 /* `F.blendCurve`: curve of fa bending into fb, both sampled at the same t */
 function blendCurve(ctx: Ctx, fa: (t: number) => number, fb: (t: number) => number, k: number, t0: number, t1: number, X: Scale, Y: Scale, color: Color, w = 4, n = 80): void {
   curve(ctx, blendFn(fa, fb, k), t0, t1, X, Y, color, w, n);
+}
+/* ---------- graphs of functions ----------
+   `plot` draws y = f(x) honestly on the axes it is given: no line across a jump or a pole, the
+   domain's edge found, an open circle at a hole and at an open end, a filled one at a closed end
+   and at a point the function takes off its curve. A piecewise function is a list of pieces, each
+   on its own interval with its ends written as an interval is ('[)', '(]', '[]', '()'). */
+export type PlotPiece = { readonly f: (x: number) => number; readonly x: Range; readonly ends?: string };
+export type PlotOpts = { w?: number; x?: Range; holes?: readonly (number | readonly [number, number])[]; dots?: readonly (readonly [number, number])[]; poles?: readonly number[] };
+const PLOT_PAD = 6;
+const clipTo = (ctx: Ctx, box: Box, right = box.r): void => { ctx.beginPath(); ctx.rect(box.l - PLOT_PAD, box.t - PLOT_PAD, right - box.l + 2 * PLOT_PAD, box.b - box.t + 2 * PLOT_PAD); ctx.clip(); };
+function plot(ctx: Ctx, ax: Axes, fn: ((x: number) => number) | readonly PlotPiece[], color: Color, o: PlotOpts = {}): void {
+  const q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return;
+  const { box, X, Y } = ax, reach = box.l + (box.r - box.l) * q;
+  const pieces: readonly PlotPiece[] = typeof fn === 'function' ? [{ f: fn, x: o.x ?? ax.xr }] : fn;
+  ctx.save(); clipTo(ctx, box, reach);
+  (o.poles ?? []).forEach((p) => line(ctx, X(p), box.t, X(p), box.b, PAL.muted, 2, [10, 10]));
+  ctx.strokeStyle = color; ctx.lineWidth = o.w ?? 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  pieces.forEach((p) => trace(p.f, p.x[0], p.x[1], ax).forEach((run) => {
+    ctx.beginPath(); run.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+  }));
+  ctx.restore();
+  const mark = (x: number, y: number, filled: boolean): void => {
+    const px = X(x), py = Y(y);
+    if (Number.isFinite(py) && px <= reach + 1 && py >= box.t - 1 && py <= box.b + 1) dot(ctx, px, py, color, filled, 8);
+  };
+  const end = (c: string | undefined, f: (x: number) => number, x: number, dir: -1 | 1): void => {
+    if (c === '(' || c === ')') mark(x, limit(f, x, dir), false);
+    else if (c === '[' || c === ']') { const y = f(x); mark(x, Number.isFinite(y) ? y : limit(f, x, dir), true); }
+  };
+  pieces.forEach((p) => { const [l, r] = Array.from(p.ends ?? ''); end(l, p.f, p.x[0], 1); end(r, p.f, p.x[1], -1); });
+  const fAt = (x: number): ((x: number) => number) | undefined => pieces.find((p) => p.x[0] <= x && x <= p.x[1])?.f;
+  (o.holes ?? []).forEach((h) => { if (typeof h !== 'number') { mark(h[0], h[1], false); return; } const f = fAt(h); if (f) mark(h, limit(f, h), false); });
+  (o.dots ?? []).forEach(([x, y]) => mark(x, y, true));
+}
+/* `shade`: the region between f and g (a function, or a level; the axis by default) over [a, b],
+   filled once its curve has arrived; returns the signed area ∫(f − g). */
+function shade(ctx: Ctx, ax: Axes, f: (x: number) => number, g: number | ((x: number) => number), a: number, b: number, color: Color, o: { alpha?: number } = {}): number {
+  const gf = typeof g === 'number' ? () => g : g, A = area(f, gf, a, b);
+  const q = during(arrivalAt(ctx), 0.6, 1); if (!(q > 0)) return A;
+  const { box, X, Y } = ax, n = 160, xs = Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
+  const y = (v: number): Logical => Math.min(box.b + 1e4, Math.max(box.t - 1e4, Y(v)));
+  const pts = [...xs.map((x) => [x, f(x)]), ...xs.reverse().map((x) => [x, gf(x)])].filter(([, v]) => Number.isFinite(v));
+  ctx.save(); clipTo(ctx, box); ctx.globalAlpha *= (o.alpha ?? 0.25) * q; ctx.fillStyle = color; ctx.beginPath();
+  pts.forEach(([x, v], i) => (i ? ctx.lineTo(X(x), y(v)) : ctx.moveTo(X(x), y(v)))); ctx.closePath(); ctx.fill(); ctx.restore();
+  return A;
+}
+/* `riemann`: n cells from the axis to f on [a, b] by a rule ('left', 'right', 'mid', 'trap', 'upper',
+   'lower'), arriving one after another; returns their sum. */
+function riemann(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, b: number, n: number, color: Color, o: { rule?: Rule } = {}): number {
+  const { cells: cs, sum } = cells(f, a, b, n, o.rule), k = during(arrivalAt(ctx), 0.3, 1), { box, X, Y } = ax;
+  ctx.save(); clipTo(ctx, box); ctx.fillStyle = ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  const base = ctx.globalAlpha;
+  cs.forEach((c, i) => {
+    const e = stagger(k, i, cs.length); if (!(e > 0) || !Number.isFinite(c.yl) || !Number.isFinite(c.yr)) return;
+    ctx.beginPath(); ctx.moveTo(X(c.x0), Y(0)); ctx.lineTo(X(c.x0), Y(c.yl)); ctx.lineTo(X(c.x1), Y(c.yr)); ctx.lineTo(X(c.x1), Y(0)); ctx.closePath();
+    ctx.globalAlpha = base * 0.22 * e; ctx.fill(); ctx.globalAlpha = base * e; ctx.stroke();
+  });
+  ctx.restore();
+  return sum;
+}
+/* `tangent` at a (slope from df, or a central difference) and `secant` through a and b: each drawn
+   across the axes' box, growing from the point on arrival; each returns its slope. */
+function through(ctx: Ctx, ax: Axes, x0: number, y0: number, m: number, color: Color, w: number, dash?: number[]): void {
+  if (!Number.isFinite(m) || !Number.isFinite(y0)) return;
+  const seg = clipLine(x0, y0, m, ax.xr, ax.yr); if (!seg) return;
+  const q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return;
+  const [[xa, ya], [xb, yb]] = seg, at = (x: number, y: number): [Logical, Logical] => [ax.X(x0 + (x - x0) * q), ax.Y(y0 + (y - y0) * q)];
+  const [p, r] = [at(xa, ya), at(xb, yb)];
+  ctx.save(); clipTo(ctx, ax.box); line(ctx, p[0], p[1], r[0], r[1], color, w, dash); ctx.restore();
+}
+type LineOpts = { w?: number; dash?: number[] };
+function tangent(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, color: Color, o: LineOpts & { df?: (x: number) => number } = {}): number {
+  const m = o.df ? o.df(a) : slope(f, a); through(ctx, ax, a, f(a), m, color, o.w ?? 3, o.dash); return m;
+}
+function secant(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, b: number, color: Color, o: LineOpts = {}): number {
+  const m = (f(b) - f(a)) / (b - a); through(ctx, ax, a, f(a), m, color, o.w ?? 3, o.dash); return m;
+}
+
+/* ---------- a point the reader drags ----------
+   `drag(d, { x, y })`: a point on the canvas held by sliders, so it steps by keyboard, catches on
+   their dashed circles and is stored by a note under their keys. y is a slider (free in the plane),
+   a function (along its graph) or a level (along x; 0 by default). Dragging the point moves its
+   sliders as a hand on them would; the point draws through `draw(ctx, ax, color)` each frame,
+   pinned at the edge when it leaves the box, and its ring brightens while held or focused. */
+export type DragOpts = { readonly x: Slider; readonly y?: Slider | ((x: number) => number) | number };
+export type Drag = { draw: (ctx: Ctx, ax: Axes, color: Color) => { x: Logical; y: Logical; out: boolean } | null; readonly at: readonly [number, number] };
+type Grip = { spot: () => Pt | null; move: (p: Pt) => void; done: () => void };
+type Grips = { list: Grip[]; held: Grip | null };
+const gripsBy = new WeakMap<HTMLCanvasElement, Grips>();
+function gripsOf(c: HTMLCanvasElement): Grips {
+  const had = gripsBy.get(c); if (had) return had;
+  const g: Grips = { list: [], held: null }; gripsBy.set(c, g);
+  let off: Pt = [0, 0];
+  const local = (e: PointerEvent): Pt | null => { const r = c.getBoundingClientRect(), H = +(c.dataset.h ?? 0); return r.width && H ? [((e.clientX - r.left) / r.width) * LW, ((e.clientY - r.top) / r.height) * H] : null; };
+  const nearest = (p: Pt): { grip: Grip; at: Pt } | null => {
+    let best: { grip: Grip; at: Pt } | null = null, bd = Math.max(34, (22 * LW) / (c.getBoundingClientRect().width || LW));
+    g.list.forEach((grip) => { const q = grip.spot(); if (!q) return; const dd = Math.hypot(q[0] - p[0], q[1] - p[1]); if (dd <= bd) { best = { grip, at: q }; bd = dd; } });
+    return best;
+  };
+  c.addEventListener('pointerdown', (e) => {
+    const p = local(e), hit = p && nearest(p); if (!p || !hit) return;
+    e.preventDefault(); c.setPointerCapture?.(e.pointerId); c.style.cursor = 'grabbing';
+    g.held = hit.grip; off = [hit.at[0] - p[0], hit.at[1] - p[1]];
+  });
+  c.addEventListener('pointermove', (e) => {
+    const p = local(e); if (!p) return;
+    if (g.held) { g.held.move([p[0] + off[0], p[1] + off[1]]); return; }
+    c.style.cursor = nearest(p) ? 'grab' : '';
+  });
+  const letGo = (): void => { const h = g.held; if (!h) return; g.held = null; c.style.cursor = ''; h.done(); };
+  c.addEventListener('pointerup', letGo); c.addEventListener('pointercancel', letGo);
+  return g;
+}
+const inputOf = (s: Slider): HTMLInputElement => s.el.querySelector('input')!;
+const handOn = (s: Slider, v: number): void => {
+  const inp = inputOf(s), was = inp.value; inp.value = String(clampTo(v, +inp.min, +inp.max));
+  if (inp.value !== was) inp.dispatchEvent(new Event('input', { bubbles: true }));
+};
+function drag(d: { readonly fig: HTMLElement; readonly c: HTMLCanvasElement | null; readonly stage: HTMLElement }, o: DragOpts): Drag {
+  const c = d.c ?? d.stage.querySelector('canvas'); if (!c) throw new Error('F.drag: the figure has no canvas');
+  const ys = typeof o.y === 'object' ? o.y : null, y = o.y, yOf = (x: number): number => (ys ? ys.v : typeof y === 'function' ? y(x) : typeof y === 'number' ? y : 0);
+  const g = gripsOf(c), sliders = ys ? [o.x, ys] : [o.x];
+  let ax: Axes | null = null, spot: Pt | null = null;
+  const grip: Grip = {
+    spot: () => spot,
+    move: ([px, py]) => {
+      if (!ax) return; const { box, xr, yr } = ax;
+      handOn(o.x, xr[0] + ((px - box.l) / (box.r - box.l)) * (xr[1] - xr[0]));
+      if (ys) handOn(ys, yr[0] + ((box.b - py) / (box.b - box.t)) * (yr[1] - yr[0]));
+    },
+    done: () => { sliders.forEach((s) => inputOf(s).dispatchEvent(new Event('change', { bubbles: true }))); touch(d.fig); },
+  };
+  g.list.push(grip);
+  if (ys) c.style.touchAction = 'none'; else if (c.style.touchAction !== 'none') c.style.touchAction = 'pan-y';
+  sliders.forEach((s) => ['focus', 'blur'].forEach((t) => inputOf(s).addEventListener(t, () => touch(d.fig))));
+  return {
+    get at() { return [o.x.v, yOf(o.x.v)] as const; },
+    draw(ctx, a, color) {
+      ax = a; const xv = o.x.v, yv = yOf(xv);
+      if (!Number.isFinite(yv)) { spot = null; return null; }
+      const p = pinned(ctx, a.box, a.X, a.Y, xv, yv, color); spot = [p.x, p.y];
+      const hot = g.held === grip || sliders.some((s) => document.activeElement === inputOf(s));
+      ctx.save(); ctx.globalAlpha *= hot ? 0.6 : 0.28; ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 17, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      return p;
+    },
+  };
 }
 /* `F.faded(ctx, alpha, [dx, dy], draw)`: draw under globalAlpha × alpha, translated; skipped at 0 */
 function faded(ctx: Ctx, a: number, off: readonly [number, number], draw: () => void): void {
@@ -2662,6 +2811,7 @@ export const FIG = {
   ease, lerp, partial, tween, tour, morph, morphAt,
   arrival, stagger, resample, lerpPts, measure,
   faded, mixColor, blendCurve, readout,
+  plot, shade, riemann, tangent, secant, drag,
 };
 export type Fig = typeof FIG;
 

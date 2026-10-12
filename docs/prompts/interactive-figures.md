@@ -47,6 +47,31 @@ strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
 axes(..., {nx: 0})                        nx or ny 0 draws that axis with no ticks or tick labels
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
+```
+
+Graphs of functions take the `ax` that `axes` returns (`{X, Y, box, xr, yr}`), are clipped to its box and arrive like `curve`:
+
+```
+plot(ctx,ax,f,color,{w=5,x,holes,dots,poles})   y = f(x) on x (default ax.xr), drawn honestly: chords refined where it is steep,
+                                          no line across a jump or a pole, the domain's edge found where f stops being finite;
+                                          holes [x | [x,y]] open circles (y the limit by default), dots [[x,y]] filled points,
+                                          poles [x] dashed asymptotes (the break needs no listing)
+plot(ctx,ax,[{f,x:[a,b],ends:'[)'}, ...],color,o)   piecewise: each piece on its interval, ends written as intervals are:
+                                          [ ] filled, ( ) open at the one-sided limit, - or nothing unmarked
+shade(ctx,ax,f,g,a,b,color,{alpha=0.25}) -> ∫(f − g)   the region between f and g (a function or a level, 0 the axis) on [a,b]
+riemann(ctx,ax,f,a,b,n,color,{rule}) -> sum   n cells from the axis; rule left | right | mid | trap | upper | lower; cells cascade in
+tangent(ctx,ax,f,a,color,{df,w=3,dash}) -> slope    across the box through (a, f(a)); slope df(a), else a central difference
+secant(ctx,ax,f,a,b,color,{w=3,dash}) -> slope      across the box through (a, f(a)) and (b, f(b)); a non-finite slope draws nothing
+const P = drag(d,{x: slider, y})          a point the reader drags on the canvas, held by sliders so it steps by keyboard, catches on
+                                          their dashed circles and a note stores it under their keys; y a slider (free in the plane),
+                                          a function (along its graph) or a level (along x, default 0)
+P.draw(ctx,ax,color) -> {x,y,out} | null  draw it each frame (pinned at the box edge when out); its ring brightens held or focused;
+                                          P.at is [x, y]
+```
+
+Specials on the point's slider are where the point catches (a horizontal tangent, a hole); the slider stays in the controls row as the point's value and its keyboard path. Hover names carry the tangent and secant, since they move with the point (rule 26.7).
+
+```
 arrival(d) -> 0..1                        axes and curves arrive on first view; register(fig,{...,arrive:false}) opts out
 stagger(k,i,n,lag=0.1)                    member i of n within progress k (LaggedStart)
 resample(pts,n,closed) / lerpPts(a,b,k,closed)   polylines evenly by arc length; two blended point by point
