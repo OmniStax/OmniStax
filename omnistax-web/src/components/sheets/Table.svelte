@@ -12,7 +12,7 @@
      when it is long — so a wide table never pushes the page wider than the
      reader's screen and a long one keeps its heading row in view. */
   import { sheets } from '../../lib/sheets/store.svelte';
-  import { isGroup, marked, nextSort, rowCount, sortable, viewRows, type Sort } from '../../lib/sheets/table';
+  import { isGroup, marked, typeset, nextSort, rowCount, sortable, viewRows, type Sort } from '../../lib/sheets/table';
   import type { TableBlockDTO, TableSheetDTO } from '../../lib/content/sheets';
 
   import type { BookId } from '../../lib/types/ids';
@@ -40,7 +40,7 @@
 <div class="table-sheet">
   <header>
     <h1>{sheet.title}</h1>
-    <p class="lead">Appendix {sheet.source.appendix} of the book, as data.</p>
+    <p class="lead">{sheet.source.appendix ? `Appendix ${sheet.source.appendix}` : `Section ${sheet.source.section}`} of the book, as data.</p>
     <label class="search">
       <span class="vh">Search this sheet</span>
       <input type="search" bind:value={query} placeholder="Search {sheet.title.toLowerCase()}…" />
@@ -50,7 +50,7 @@
 
   {#each shown as { block, rows } (block.id)}
     <section class="block" data-table={block.id}>
-      <h2>{block.title}</h2>
+      <h2>{@html block.title}</h2>
       {#if rows.length === 0}
         <p class="count">No matching rows.</p>
       {:else}
@@ -63,11 +63,11 @@
                     <th class:num={c.kind === 'number'} aria-sort={sortOf(block)?.column === i ? (sortOf(block)?.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
                       {#if sortable(c)}
                         <button type="button" onclick={() => onHeading(block, i)}>
-                          {@html c.label}{#if c.unit}<span class="unit"> ({@html c.unit})</span>{/if}
+                          {@html typeset(c.label)}{#if c.unit}<span class="unit"> ({@html c.unit})</span>{/if}
                           <span class="arrow" aria-hidden="true">{sortOf(block)?.column === i ? (sortOf(block)?.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
                         </button>
                       {:else}
-                        {@html c.label}{#if c.unit}<span class="unit"> ({@html c.unit})</span>{/if}
+                        {@html typeset(c.label)}{#if c.unit}<span class="unit"> ({@html c.unit})</span>{/if}
                       {/if}
                     </th>
                   {/each}
@@ -120,6 +120,7 @@
   .arrow{color:var(--muted);font-size:0.7em}
   .unit{color:var(--muted);font-weight:400}
   .book-table td.num{font-variant-numeric:tabular-nums}
+  .book-table td.num:first-child{width:1%;white-space:nowrap}
   tr.group th{background:var(--soft);font-weight:600;text-transform:none}
   .notes{margin:8px 0 0;padding-left:1.2rem;color:var(--muted);font-size:0.78rem;line-height:1.5}
   @media (max-width:520px){

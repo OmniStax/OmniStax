@@ -94,7 +94,8 @@ export type TableBlockDTO = z.infer<typeof TableBlockSchema>;
    one appendix of the book, since a table sheet is the appendix as data. */
 export const TableSourceSchema = z.object({
   module: z.string().describe('The publisher\u2019s id for the module the tables were read from.'),
-  appendix: z.string().describe('The letter the book prints the appendix under.'),
+  appendix: z.string().optional().describe('The letter the book prints the appendix under.'),
+  section: z.string().optional().describe('The section the table is printed in, for a table that is not an appendix.'),
 }).strict();
 export type TableSourceDTO = z.infer<typeof TableSourceSchema>;
 

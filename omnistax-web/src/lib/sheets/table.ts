@@ -11,6 +11,7 @@ import { cellNumber } from '../content/sheets';
 import type { TableBlockDTO, TableColumnDTO } from '../content/sheets';
 import { wrapFormulas, type ElementTable } from './formula';
 import { IN_BLOCK } from '../hover/terms';
+import { prerenderMath } from '../math/prerender';
 
 /* One row as the sheet writes it: one cell of HTML per column, in column order. */
 export type Row = readonly string[];
@@ -52,8 +53,11 @@ export const nextSort = (sort: Sort | null, column: number): Sort | null => {
 
 /* A cell with its formulas marked, where the book declares an elements sheet
    and it has arrived; the cell's own HTML until then, never a blank. */
-export const marked = (html: string, table: ElementTable): string => (table.size === 0 ? html : wrapFormulas(html, table, IN_BLOCK));
+export const marked = (html: string, table: ElementTable): string => typeset(table.size === 0 ? html : wrapFormulas(html, table, IN_BLOCK));
+
+/* A cell or heading with its $…$ LaTeX set, as a section page sets it. */
+export const typeset = (html: string): string => (html.includes('$') ? prerenderMath(html, {}) : html);
 
 /* How many rows a table has, said in the page's own words. */
 export const rowCount = (table: TableBlockDTO, shown: number): string =>
-  (shown === table.rows.length ? `${table.rows.length} rows` : `${shown} of ${table.rows.length} rows`);
+  (shown === table.rows.length ? `${shown} ${shown === 1 ? 'row' : 'rows'}` : `${shown} of ${table.rows.length} rows`);
