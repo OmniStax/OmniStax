@@ -2987,7 +2987,7 @@ const slopefield = { field: slopeField, curve: slopeCurve, euler: slopeEuler, tr
    scene. Without WebGL the same layers are painted on a canvas from the opening view, still and flat,
    and drag is left to the sliders. `F.space` holds the builders, the pure geometry and four flat parts
    drawn on `axes`: field2, flow2, region2, cells2. */
-type SpaceOpts = View3dOpts & { readonly box: SPACE.Box3; readonly turn?: Radians; readonly fit?: number };
+type SpaceOpts = View3dOpts & { readonly box: SPACE.Box3; readonly turn?: Radians; readonly fit?: number; readonly locked?: boolean };
 type SpaceDrag = { readonly at: () => SPACE.V3 | null; readonly on: string; readonly move: (q: readonly number[], p: SPACE.V3) => void };
 export type Space3d = {
   readonly v: View3d | null; readonly flat: boolean; readonly box: SPACE.Box3;
@@ -3032,8 +3032,9 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   const layers = new Map<string, SpaceLayer>();
   let headS = '', headEl: HTMLElement | null = null;
   const T0 = three(), T = T0 as Three;
-  const v = view3d(d.stage, { ...opts, h: H, dist, tilt, onRender: () => { place(); opts.onRender?.(); } });
-  const flat = !T0 || !v.wrap.classList.contains('three-wrap');
+  /* Calculus Chapter 12: locked paints the opening view on a canvas and opens no WebGL context, for a still copy of a book figure, since a page holds only a few live scenes */
+  const v = opts.locked ? stub(d.stage) : view3d(d.stage, { ...opts, h: H, dist, tilt, onRender: () => { place(); opts.onRender?.(); } });
+  const flat = !!opts.locked || !T0 || !v.wrap.classList.contains('three-wrap');
   const s = (opts.fit ?? 2.1) / R, px = (2 * dist * Math.tan(Math.PI / 12)) / H / s;
   let inner: Obj3 = null;
   if (!flat) {
@@ -3125,7 +3126,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   let queued = false;
   function paint(): void {
     queued = false; if (!canvas) return;
-    const { ctx } = begin(canvas), k = (0.5 * Math.min(H, LW)) / R;
+    const { ctx } = begin(canvas), k = ((0.5 * Math.min(H, LW)) / R) * ((opts.fit ?? 2.1) / 2.1);   /* Calculus Ch 12: the painted view takes fit too */
     const cam = REV.camera({ yaw: -turn, pitch: tilt, dist: 2600, cx: LW / 2, cy: H / 2 + (headS ? 18 : 0), s: k, at: m2r(centre) });
     const P = (p: SPACE.V3): Pt => cam.P(m2r(p)) as unknown as Pt;
     const all = [...layers.values()].flatMap((L) => L.marks);
@@ -3277,9 +3278,10 @@ function polarFrame(ctx: Ctx, box: Box, win: PolarWin, o: PolarFrameOpts = {}): 
   line(ctx, box.l, py, box.r, py, PAL.muted, 2); line(ctx, px, box.t, px, box.b, PAL.muted, 2);
   ctx.restore();
   ctx.save(); ctx.globalAlpha *= fade;
-  const R = Math.floor(inner / s / ring) * ring;
-  for (let r = ring; r * s < Math.min(box.r - px, inner + 2 * ring * s) - 14 && r * s < box.r - px - 14; r += ring) text(ctx, fmt(r, ring < 1 ? 1 : 0), px + r * s, py + 18, PAL.muted, { size: 17, align: 'center', bg: PAL.panel });
-  if (o.angles !== false && R >= ring) for (let i = 0; i < nsp; i++) {
+  const R = Math.floor((inner - 34) / s / ring) * ring;
+  for (let r = ring; r <= R && r * s < box.r - px - 14; r += ring) text(ctx, fmt(r, ring < 1 ? 1 : 0), px + r * s, py + 18, PAL.muted, { size: 17, align: 'center', bg: PAL.panel });
+  const every = Math.max(1, Math.round(nsp / 12));
+  if (o.angles !== false && R >= ring) for (let i = 0; i < nsp; i += every) {
     const a = (2 * Math.PI * i) / nsp, lx = px + (R * s + 26) * Math.cos(a), ly = py - (R * s + 22) * Math.sin(a);
     if (lx > box.l && lx < box.r && ly > box.t && ly < box.b) text(ctx, piFrac(i, nsp), lx, ly, PAL.muted, { size: 17, align: 'center', bg: PAL.panel });
   }

@@ -192,6 +192,8 @@ Space (Calculus Ch 12–16; `F.space3d`, `F.space`, geometry in `space.ts`; the 
 const S = F.space3d(d, {box: [[x0,x1],[y0,y1],[z0,z1]], h, turn, tilt, spin, zoom, ...})   a free-orbit scene framed on the box, opening
                                           from the book's view (x toward the reader) or from turn (yaw) and tilt (pitch); without WebGL
                                           the same layers are painted on a canvas from that view, still, and S.flat is true
+F.space3d(d, {box, locked: true, ...})     the same layers painted from the opening view on a canvas, no orbit and no WebGL context:
+                                          a still copy of a book figure, or a slider figure where turning adds nothing (Calculus Ch 12)
 S.set(key, marks)                         one layer of the scene, rebuilt only when its marks or colours change: call it in draw, a
                                           static layer costs nothing a frame; S.headline(s); S.v the view3d (null when flat)
 S.drag({at: () => p, on: key, move: (q, p) => ...})   the reader takes the point at() and slides it over the sheet of layer key;
