@@ -3,7 +3,7 @@
    their colours to categories by what the pages show together. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { type Lab, HUE_FAMILIES, INKS, deltaE, hueGap, deltaEHex, distance, groundContrast, hexOfLab, labOf, labOfLch, lightGap, linearOf, sameFamily, seenHue, simulate, labOfLinear } from '../src/lib/colours/oklab';
+import { type Lab, HUE_FAMILIES, INKS, deltaE, hueGap, deltaEHex, distance, groundContrast, hexOfLab, labOf, labOfLch, lchOfLab, lightGap, linearOf, sameFamily, seenHue, simulate, labOfLinear } from '../src/lib/colours/oklab';
 import { CONTRAST_FLOOR, FAMILY_HUES, familyHues, minDistance, oklabHues } from '../src/lib/colours/sample';
 import { assignInOrder, assignSmart, assignmentCost } from '../src/lib/colours/assign';
 import { type PageCounts, fixedHueOf, pageCounts } from '../src/lib/colours/counts';
@@ -132,6 +132,10 @@ test('the hue-families palette fills ten families before any takes a second, kee
     assert.ok(pairs(FAMILY_HUES.length).every(([p, q]) => !sameFamily(p, q, HUE_FAMILIES)), `the first ten are of ten families for ${v}`);
     assert.ok(pairs(19).every(([p, q]) => !sameFamily(p, q, HUE_FAMILIES) || lightGap(p, q) >= HUE_FAMILIES.lightness), `the first nineteen are of two families or a clear step apart for ${v}`);
     assert.ok(minDistance(fifty.slice(0, 8), v) > (v === 'normal' ? 0.1 : 0.05), `eight are far apart for ${v}, as far as ten hue families let a deuteranope see`);
+  });
+  [familyHues(50, 'normal'), oklabHues(50, 'normal')].flat().forEach((h) => {
+    const [, C, hue] = lchOfLab(labOf(h.light));
+    assert.ok(C <= 0.15 || Math.abs(((hue - 25 + 540) % 360) - 180) > 20, `${h.light} is no bright red`);
   });
   assert.ok(FAMILY_HUES.every((h, i) => hueGap(labOfLch([0.5, 0.1, h]), labOfLch([0.5, 0.1, FAMILY_HUES[(i + 1) % FAMILY_HUES.length]]), 0) >= 32), 'the families stand 32° apart, room for a hex to round off its hue');
 });

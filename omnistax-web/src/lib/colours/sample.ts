@@ -10,7 +10,7 @@
 
    OKLab takes its candidates from a fine grid of OKLCH lightness, chroma and
    hue, none of them the ink. Hue families takes them on ten hues only, each at
-   the strongest chroma both grounds allow, at every lightness where the colour
+   the strongest chroma both grounds allow (red no stronger than a brick), at every lightness where the colour
    stands the default target from the ink and the muted text in both themes. It
    fills the families first: one colour in each, then a second a clear step of
    lightness from the first, and only then a colour nearer a family's own. The
@@ -34,12 +34,17 @@ const GRID_L = range(0.3, 0.6, 0.02);
 const GRID_C = range(0.06, 0.3, 0.02);
 const GRID_H = range(0, 357, 3);
 
+/* Bright red reads as an error, so a colour within RED_SPAN of red's hue goes no stronger than a brick. */
+const RED_HUE = 25, RED_SPAN = 20, RED_CHROMA = 0.14;
+const tooRed = (C: number, h: number): boolean => C > RED_CHROMA && Math.abs(((h - RED_HUE + 540) % 360) - 180) <= RED_SPAN;
+
 const groundsOf = (theme: 'light' | 'dark') => GROUNDS[theme].map(linearOf);
 const LIGHT_GROUNDS = groundsOf('light');
 const DARK_GROUNDS = groundsOf('dark');
 
 type Candidate = { readonly hue: Hue; readonly lch: Lch };
 const candidateAt = ([L, C, h]: Lch): Candidate | null => {
+  if (tooRed(C, h)) return null;
   const light = linearOfLab(labOfLch([L, C, h]));
   const dark = linearOfLab(labOfLch([PIVOT - L, C, h]));
   if (!inGamut(light) || !inGamut(dark)) return null;
@@ -64,6 +69,7 @@ const HUE_SLACK = 1;
 /* The strongest colour of a hue at a lightness that, as a hex, reads on a theme's grounds and keeps its hue. */
 const strongest = (L: number, h: number, grounds: readonly Linear[]): Hex | null => {
   for (const C of FAMILY_C) {
+    if (tooRed(C, h)) continue;
     const exact = linearOfLab(labOfLch([L, C, h]));
     if (!inGamut(exact)) continue;
     const hex = hexOfLinear(exact), rgb = linearOf(hex);
