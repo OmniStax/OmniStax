@@ -6,6 +6,9 @@
    wins. Conventions and facts are on the page with their own fixed colours, so
    a category is kept from them too; and the ink is on every page, as often as
    the category is, with a colour nearer it than the target read as the ink.
+   With a hue rule, two categories that share a page also count as one colour
+   where both are chromatic and their hues lie nearer than its degrees, so that
+   no page shows two of one family, a purple beside a magenta.
 
    τ = 0.03 ΔE_OK. Two colours 0.02 apart read as one (φ ≈ 0.51), 0.08 is where
    small marks start to read as two (φ ≈ 0.07) and 0.15 is
@@ -19,7 +22,7 @@
    order, the colour farthest from the ink first. */
 import type { Hue, TypeKey } from './model';
 import type { CountKey, PageCounts } from './counts';
-import { type DeltaE, type SeenHue, type Vision, INKS, seenHue, seenHueDistance } from './oklab';
+import { type DeltaE, type SeenHue, type Vision, INKS, seenHue, seenHueDistance, seenHueGap } from './oklab';
 import { TARGET_DEFAULT } from './referents';
 
 export type Seed = number;
@@ -27,6 +30,9 @@ export type Cost = number;
 export type Assignment = ReadonlyMap<TypeKey, Hue>;
 
 export const TAU: DeltaE = 0.03;
+/* The nearest two categories of a page may stand in hue, and the chroma under which a colour counts as grey. */
+export type HueRule = { readonly degrees: number; readonly chroma: number };
+export const HUE_FAMILIES: HueRule = { degrees: 30, chroma: 0.05 };
 const phi = (d: DeltaE): Cost => Math.exp(-d / TAU);
 const inkPhi = (d: DeltaE): Cost => (d < TARGET_DEFAULT ? 1 : phi(d));
 
@@ -56,7 +62,7 @@ type Problem = {
 
 const problemOf = (
   categories: readonly TypeKey[], colours: readonly Hue[], pages: readonly PageCounts[],
-  fixed: ReadonlyMap<CountKey, Hue>, vision: Vision,
+  fixed: ReadonlyMap<CountKey, Hue>, vision: Vision, hues: HueRule | null,
 ): Problem => {
   const n = categories.length;
   const index = new Map(categories.map((c, i) => [c, i] as const));
@@ -77,7 +83,7 @@ const problemOf = (
   const seen = colours.map((h) => seenHue(h, vision));
   const fixedSeen = fixedKeys.map((k) => seenHue(fixed.get(k) as Hue, vision));
   const D = new Float64Array(n * n);
-  seen.forEach((p, a) => seen.forEach((q, b) => { D[a * n + b] = a === b ? 1 : phi(seenHueDistance(p, q)); }));
+  seen.forEach((p, a) => seen.forEach((q, b) => { D[a * n + b] = a === b || (hues && seenHueGap(p, q, hues.chroma) < hues.degrees) ? 1 : phi(seenHueDistance(p, q)); }));
   const E = seen.map((p) => fixedSeen.map((q) => phi(seenHueDistance(p, q))));
   const inks = INKS.map((h) => seenHue(h, vision));
   const inkRoom = seen.map((p) => Math.min(...inks.map((q) => seenHueDistance(p, q))));
@@ -173,12 +179,13 @@ export type SmartInput = {
   readonly fixed: ReadonlyMap<CountKey, Hue>;            /* the convention and fact colours by key */
   readonly vision: Vision;
   readonly seed?: Seed;
+  readonly hues?: HueRule | null;                        /* off unless given */
 };
 
-export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 1 }: SmartInput): Assignment => {
+export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 1, hues = null }: SmartInput): Assignment => {
   if (colours.length < categories.length) throw new Error(`assignSmart: ${colours.length} colours for ${categories.length} categories`);
   const cs = colours.slice(0, categories.length);
-  const p = problemOf(categories, cs, pages, fixed, vision);
+  const p = problemOf(categories, cs, pages, fixed, vision, hues);
   const perm = settleUncounted(p, anneal(p, greedy(p), seed));
   return new Map(categories.map((c, i) => [c, cs[perm[i]]] as const));
 };
@@ -186,7 +193,7 @@ export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 
 /* The cost of any assignment under the same objective, for comparing two. */
 export const assignmentCost = (a: Assignment, pages: readonly PageCounts[], fixed: ReadonlyMap<CountKey, Hue>, vision: Vision): Cost => {
   const categories = [...a.keys()];
-  const p = problemOf(categories, categories.map((c) => a.get(c) as Hue), pages, fixed, vision);
+  const p = problemOf(categories, categories.map((c) => a.get(c) as Hue), pages, fixed, vision, null);
   return costOf(p, Int32Array.from(categories, (_, i) => i));
 };
 

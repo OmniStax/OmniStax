@@ -3,7 +3,7 @@
    to categories by what the pages show together. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { type Lab, INKS, deltaE, deltaEHex, distance, groundContrast, hexOfLab, labOf, linearOf, simulate, labOfLinear } from '../src/lib/colours/oklab';
+import { type Lab, INKS, deltaE, hueGap, deltaEHex, distance, groundContrast, hexOfLab, labOf, linearOf, simulate, labOfLinear } from '../src/lib/colours/oklab';
 import { CONTRAST_FLOOR, minDistance, oklabHues } from '../src/lib/colours/sample';
 import { assignInOrder, assignSmart, assignmentCost } from '../src/lib/colours/assign';
 import { type PageCounts, fixedHueOf, pageCounts } from '../src/lib/colours/counts';
@@ -91,6 +91,19 @@ test('the ink is on every page, so a category on a page keeps off a colour near 
   const nearInk: Hue = { light: '#422C58', dark: '#DEC4FB' };
   const smart = assignSmart({ categories: ['point', 'spare'], colours: [nearInk, COLOURS[2]], pages: [new Map([['point', 4]])], fixed: new Map(), vision: 'normal' });
   assert.deepEqual(smart.get('point'), COLOURS[2], 'the point takes the blue, not the purple beside the ink');
+});
+
+test('the hue rule keeps two of one family off a page that a distance alone would allow', () => {
+  const purple: Hue = { light: '#A804CC', dark: '#D047F6' }, plum: Hue = { light: '#6B116D', dark: '#FA9DFA' }, green: Hue = { light: '#317D01', dark: '#62AE45' };
+  const pages: readonly PageCounts[] = [new Map([['function', 4], ['derivative', 3]]), new Map([['spare', 2], ['#A804CC', 1], ['#6B116D', 1]])];
+  const fixed = new Map([purple, plum].map((h) => [h.light, { light: h.light, dark: h.light }] as const));
+  const cats = ['function', 'derivative', 'spare'];
+  const off = assignSmart({ categories: cats, colours: [purple, plum, green], pages, fixed, vision: 'normal' });
+  assert.deepEqual(off.get('spare'), green, 'without the rule the purple and the plum share the first page');
+  assert.ok(distance(purple, plum, 'normal') > 0.12 && hueGap(labOf(purple.light), labOf(plum.light), 0.05) < 45, 'they pass on distance alone');
+  const on = assignSmart({ categories: cats, colours: [purple, plum, green], pages, fixed, vision: 'normal', hues: { degrees: 45, chroma: 0.05 } });
+  assert.ok([on.get('function'), on.get('derivative')].includes(green), 'with the rule one of the pair takes the green');
+  assert.equal(hueGap(labOf('#808080'), labOf('#A804CC'), 0.05), 180, 'a grey has no hue to clash');
 });
 
 test('categories no page shows take what is left in their declared order, whatever the seed', () => {

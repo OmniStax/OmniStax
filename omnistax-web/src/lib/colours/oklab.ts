@@ -90,6 +90,20 @@ export const seenHue = (h: Hue, vision: Vision): SeenHue => ({ light: seenOf(h.l
 export const seenHueDistance = (p: SeenHue, q: SeenHue): DeltaE =>
   Math.min(seenDistance(p.light, q.light), seenDistance(p.dark, q.dark));
 
+/* How far apart two colours sit in OKLCH hue, in degrees round the shorter way;
+   a colour under the chroma floor is grey enough that its hue does not read, and
+   a pair with one is no nearer in hue than opposite. A pair is as near as its
+   nearer theme, as normal sight sees it: a deficient sight folds the hues onto
+   one or two families, which its distance already counts. */
+export const hueGap = (p: Lab, q: Lab, floor: number): number => {
+  const [, cp, hp] = lchOfLab(p), [, cq, hq] = lchOfLab(q);
+  if (cp < floor || cq < floor) return 180;
+  const d = Math.abs(hp - hq) % 360;
+  return d > 180 ? 360 - d : d;
+};
+export const seenHueGap = (p: SeenHue, q: SeenHue, floor: number): number =>
+  Math.min(hueGap(p.light.lab, q.light.lab, floor), hueGap(p.dark.lab, q.dark.lab, floor));
+
 /* How far apart two category colours are for a reader: the nearer theme, and
    the nearer of normal sight and theirs. */
 export const distance = (a: Hue, b: Hue, vision: Vision): DeltaE => seenHueDistance(seenHue(a, vision), seenHue(b, vision));
