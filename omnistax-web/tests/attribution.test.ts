@@ -99,3 +99,9 @@ test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, { openstax: AT, notes: '', ai: { text: FABLE, figures: FABLE } })),
     'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement. The text was transformed and the simulations were built by Claude Fable 5.1.');
 });
+test('a book joined from several works credits each by its title and page', () => {
+  const vol = (n: number) => ({ title: `Calculus Volume ${n}`, url: `https://openstax.org/details/books/calculus-volume-${n}` });
+  const a = attributionOf({ ...book, title: 'Calculus', sources: [vol(1), vol(2), vol(3)] }, { openstax: AT, notes: '', ai: undefined });
+  assert.match(footerHtml(a), /Text from <cite><a href="https:\/\/openstax.org\/details\/books\/calculus-volume-1">Calculus Volume 1<\/a><\/cite>, <cite><a href="[^"]*-2">Calculus Volume 2<\/a><\/cite> and <cite><a href="[^"]*-3">Calculus Volume 3<\/a><\/cite> by Paul Peter Urone and Roger Hinrichs \(OpenStax, © Rice University\), /);
+  assert.match(citation(a), /^Calculus Volume 1 \(https:\/\/openstax.org\/details\/books\/calculus-volume-1\), Calculus Volume 2 \([^)]*-2\) and Calculus Volume 3 \([^)]*-3\) by Paul Peter Urone and Roger Hinrichs, OpenStax, /);
+});

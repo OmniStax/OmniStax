@@ -170,6 +170,10 @@ export const BookSchema = z.object({
   publisher: z.string().describe('Who published the book.'),
   authors: z.array(z.string()).default([]).describe('The authors named on the book, in the order it names them.'),
   source_url: z.string().url().optional().describe('The book\u2019s own page at the publisher.'),
+  sources: z.array(z.object({
+    title: z.string().describe('The work\u2019s title as the publisher prints it.'),
+    url: z.string().url().describe('The work\u2019s own page at the publisher.'),
+  }).strict()).min(1).optional().describe('The published works the book is made from, each by its title and its own page at the publisher, for a book that joins several; the attribution credits each. Absent, it credits the title and source_url.'),
   copyright: z.string().optional().describe('The holder named in the book\u2019s copyright notice, kept because the licence asks for it.'),
   license: z.string().describe('The licence the book is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
@@ -189,7 +193,7 @@ export const BookSchema = z.object({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
-  ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
+  ...(b.sources ? { sources: b.sources } : {}), ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
 }));
 export type BookDTO = z.infer<typeof BookSchema>;
 

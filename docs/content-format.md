@@ -24,6 +24,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `publisher` | `string` | yes | Who published the book. |
 | `authors` | `string[]` | no | The authors named on the book, in the order it names them. |
 | `source_url` | `string?` | no | The book’s own page at the publisher. |
+| `sources` | `{ title, url }[]?` | no | The published works the book is made from, each by its title and its own page at the publisher, for a book that joins several; the attribution credits each. Absent, it credits the title and source_url. |
 | `copyright` | `string?` | no | The holder named in the book’s copyright notice, kept because the licence asks for it. |
 | `license` | `string` | yes | The licence the book is shared under, as its notice names it. |
 | `license_url` | `string?` | no | The licence’s own page. |

@@ -12,6 +12,7 @@ export type Attribution = {
   readonly authors: readonly string[];
   readonly publisher: string;
   readonly publisherUrl?: string;   /* the book at the publisher */
+  readonly sources?: readonly { readonly title: string; readonly url: string }[];   /* the works a book joins, each credited in place of the title */
   readonly copyright?: string;      /* holder of the copyright notice, retained as the licence asks */
   readonly sourceUrl?: string;      /* this section at the publisher */
   readonly license: string;
@@ -32,7 +33,7 @@ export const frontPageSourceUrl = (book: Pick<BookDTO, 'openstax'>, page: FrontP
 
 /* The credit for one page, whichever role it has: the page's own place at the publisher rides on its meta. */
 export const attributionOf = (book: BookDTO, meta: Pick<SectionMetaDTO, 'notes' | 'ai' | 'openstax'>): Attribution => ({
-  title: book.title, authors: book.authors, publisher: book.publisher, publisherUrl: book.sourceUrl, copyright: book.copyright,
+  title: book.title, authors: book.authors, publisher: book.publisher, publisherUrl: book.sources ? undefined : book.sourceUrl, sources: book.sources, copyright: book.copyright,
   sourceUrl: meta.openstax, license: book.license, licenseUrl: book.licenseUrl,
   notes: meta.notes, ai: meta.ai,
 });
@@ -75,10 +76,11 @@ export const nameList = (names: readonly string[]): string =>
 /* Plain text, for metadata and for anyone copying the credit on. */
 export const citation = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${nameList(a.authors)}` : '';
+  const works = a.sources ? nameList(a.sources.map((w) => `${w.title} (${w.url})`)) : a.title;
   const access = a.sourceUrl ? ` Access for free at ${a.sourceUrl}.` : '';
   const holder = a.copyright ? ` © ${a.copyright},` : '';
   const ai = a.ai ? ` ${aiSentence(a.ai)}` : '';
-  return `${a.title}${by}, ${a.publisher},${holder} ${a.license}, adapted by OmniStax and shared under the same licence.${access}${ai}`;
+  return `${works}${by}, ${a.publisher},${holder} ${a.license}, adapted by OmniStax and shared under the same licence.${access}${ai}`;
 };
 
 /* The footer of every adapted article: the credit, the publisher's own
@@ -87,7 +89,8 @@ export const citation = (a: Attribution): string => {
 export const footerHtml = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${esc(nameList(a.authors))}` : '';
   const holder = a.copyright ? `, © ${esc(a.copyright)}` : '';
-  const credit = `Text from <cite>${esc(a.title)}</cite>${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same licence.`;
+  const works = a.sources ? nameList(a.sources.map((w) => `<cite>${link(w.url, esc(w.title))}</cite>`)) : `<cite>${esc(a.title)}</cite>`;
+  const credit = `Text from ${works}${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same licence.`;
   const access = a.sourceUrl ? ` Access for free at ${link(a.sourceUrl, esc(bare(a.sourceUrl)))}.` : '';
   const ai = a.ai ? `<p>${esc(aiSentence(a.ai))}</p>` : '';
   const notes = a.notes ? `<p>${a.notes}</p>` : '';   /* swept for math on the way in, so it is set as it stands */
