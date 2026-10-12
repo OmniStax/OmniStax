@@ -8,15 +8,13 @@
    resolves a reference against it. */
 import { layoutStore } from '../layout/store.svelte';
 import { focusedGroup } from '../layout/model';
-import { aboutItem, bookId, bookOfItem, parseItemKey, sectionOfItem, type BookId, type ItemId, type SectionRef } from '../types/ids';
+import { aboutItem, bookOfItem, parseItemKey, sectionOfItem, type BookId, type ItemId, type SectionRef } from '../types/ids';
 import type { ItemKey } from '../layout/model';
 
 const activeItem = (): ItemId | null => { const active = focusedGroup(layoutStore.layout).active; return active ? parseItemKey(active) : null; };
 
 class Focus {
   own: ItemId = aboutItem();
-  /* The book the page was served for; the 404 page has none of its own. */
-  boot: BookId = bookId('');
   view = $state<ItemKey | null>(null);
   last = $state.raw<SectionRef | null>(null);
   /* Called from an effect, so the last section read outlives a chat or view tab taking focus. */

@@ -79,9 +79,10 @@
   const path = refOfPath(location.pathname);
   const addressedBy = (): SectionRef | null => {
     if (!path) return null;
-    if (!carried) return resolvePath(path.book === home.id ? home : null, path);
-    const s = path.book === home.id ? sectionOfUrl(home, location.pathname) : null;
-    return s ? sectionRef(home.id, s) : null;
+    const own = home && path.book === home.id ? home : null;
+    if (!carried) return resolvePath(own, path);
+    const s = own ? sectionOfUrl(own, location.pathname) : null;
+    return own && s ? sectionRef(own.id, s) : null;
   };
   const addressed = addressedBy();
   const carriedRef = carried ? sectionOfItem(carried) : null;
@@ -123,7 +124,7 @@
   };
 
   onMount(() => {
-    initFig(figBookOf(home));
+    initFig(home ? figBookOf(home) : { id: '', macros: {}, symbols: {}, colorKeys: [] });
     notes.init();
     noteDocs.init();
     ai.init();
@@ -136,24 +137,21 @@
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
-    /* Only a page of a book adds that book: the front of OmniStax borrows the
-       first book's manifest for its colours and adds nothing. */
+    /* Only a page of a book adds that book. */
     const pageBook = bookOfItem(page);
-    library.init(pageBook ?? '', pageBook === home.id ? home.title : undefined);
+    library.init(pageBook ?? '', home && pageBook === home.id ? home.title : undefined);
     void (async () => { await registerOfflineWorker(); await offlineBooks.refreshClientPin(); await offlineBooks.init(); await offlineBooks.reclaim(); })()
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
     registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); });
-    registry.home = home.id;
-    focus.boot = home.id;
-    registry.addBook(home);
+    if (home) { registry.home = home.id; registry.addBook(home); }
     sheets.init(markFormulas);
-    colours.init(home);
-    if (chapterDir && chapterData) registry.setChapter(home.id, chapterDir, chapterData);
+    if (home) colours.init(home);
+    if (home && chapterDir && chapterData) registry.setChapter(home.id, chapterDir, chapterData);
     focus.own = page;
     const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
-    const restored = layoutStore.init(page, known, home.id, reload);
+    const restored = layoutStore.init(page, known, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     installCommands();
     registry.adopt(document.getElementById('pool') ?? document);

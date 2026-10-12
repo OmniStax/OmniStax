@@ -50,7 +50,7 @@ export const BookReleaseManifestSchema = z.object({
 });
 
 export const OfflineCatalogSchema = z.object({
-  schemaVersion: z.literal(1), generatedAt: z.string().datetime(),
+  schemaVersion: z.literal(1), generatedAt: z.string().datetime(), artifactId: digest.optional(),
   books: z.array(z.object({ id: bookId, title: z.string().min(1), releaseId: digest, artifactId: digest, publishedAt: z.string().datetime(), manifestUrl: safeUrl, totalBytes: z.number().int().nonnegative() }).strict()),
 }).strict().superRefine((catalog, ctx) => {
   const books = new Set<string>();

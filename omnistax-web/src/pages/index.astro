@@ -8,12 +8,9 @@ import { aboutHtml } from '../lib/content/pages';
 import { aboutItem } from '../lib/types/ids';
 const books = await trees();
 if (books.length === 0) throw new Error('this build carries no books: check OMNISTAX_CONTENT_DIR and OMNISTAX_BOOKS');
-/* The about page belongs to no book; it takes the first book's colour tokens, which is all the shell asks a tree for here. */
-const t = books[0];
 const description = 'OmniStax/万象 is a next-gen, self-hostable STEM learning platform built from open source textbooks.';
 ---
 <ShellPage
-  tree={t}
   own={aboutItem()}
   pool={aboutHtml()}
   title="OmniStax"

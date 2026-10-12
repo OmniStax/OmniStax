@@ -98,7 +98,7 @@ class OfflineBooks {
   /* A page answered from a download runs that download's app; any other runs the catalog's. */
   private appArtifact(): string | undefined {
     const record = this.pinnedBook ? this.records[this.pinnedBook] : undefined;
-    return record?.installedRelease ? artifactOf(record) : this.catalog?.books[0]?.artifactId;
+    return record?.installedRelease ? artifactOf(record) : this.catalog?.artifactId;
   }
   private noteApp(): void {
     const artifact = this.appArtifact();

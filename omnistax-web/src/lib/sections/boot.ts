@@ -9,14 +9,14 @@
 import type { BookManifest, ConceptsDTO } from '../content/schema';
 
 export type BootUrls = {
-  readonly manifest: string;
+  readonly manifest?: string;
   readonly chapter?: { readonly dir: string; readonly concepts: string };
 };
 
-/* What the shell boots from. The chapter's data is absent on the two standing
-   pages, which stand in no chapter. */
+/* What the shell boots from. The front of OmniStax and the 404 page stand in no
+   book, so they boot on none; the chapter's data is there only on a page of a chapter. */
 export type BootDTO = {
-  readonly manifest: BookManifest;
+  readonly manifest?: BookManifest;
   readonly chapterDir?: string;
   readonly chapterData?: ConceptsDTO;
 };
@@ -29,6 +29,7 @@ const getJson = async <T>(url: string): Promise<T> => {
 
 export const loadBoot = async (urls: BootUrls): Promise<BootDTO> => {
   const ch = urls.chapter;
+  if (!urls.manifest) return {};
   const [manifest, concepts] = await Promise.all([
     getJson<BookManifest>(urls.manifest),
     ch ? getJson<ConceptsDTO>(ch.concepts).catch(() => undefined) : undefined,

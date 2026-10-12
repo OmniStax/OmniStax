@@ -152,6 +152,6 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     await writeImmutable(path.join(out, manifestRel), Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
     catalog.push({ id, title: bookJson.title, releaseId, artifactId, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
   }
-  await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), books: catalog }, null, 2)}\n`);
+  await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), artifactId, books: catalog }, null, 2)}\n`);
   await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
 }
