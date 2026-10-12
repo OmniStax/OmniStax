@@ -233,6 +233,14 @@ test('without WebGL a 3D view shows one line and every call on it, its parts inc
     assert.equal(v.project([0, 0, 0], g).join(), '0,0');
   });
 });
+test('a locked space scene paints its opening view and opens no WebGL context (Calculus Chapter 12)', () => {
+  let made = 0;
+  const three = anything({ WebGLRenderer: function () { made += 1; return anything(); } });
+  onStage(three, (stage) => {
+    const S = FIG.space3d({ stage: stage as unknown as HTMLElement, fig: anything() }, { box: [[0, 1], [0, 1], [0, 1]], locked: true });
+    assert.equal(S.flat, true); assert.equal(S.v, null); assert.equal(made, 0);
+  });
+});
 test('a library-formatted negative takes a true minus, and one that rounds to zero no sign', () => {
   assert.equal(FIG.fmt(-1.5, 1), '\u22121.5');
   assert.equal(FIG.fmt(-0.04, 1), '0.0');
