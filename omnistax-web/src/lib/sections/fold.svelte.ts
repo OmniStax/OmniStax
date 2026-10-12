@@ -5,23 +5,21 @@
    The toggles are buttons put into the headings and figure heads when a
    document is prepared (registry.svelte.ts), one delegated click listener
    per root, like the "Original" button. */
-import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, renamedSimId, foldKey, qualifyIds } from './fold';
-import { focus } from './focus.svelte';
+import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, foldKey } from './fold';
 import { readerWritesAllowed } from '../backup/guard';
 export { FOLDABLE, HIDEABLE, foldableOf, hideableOf, headingOf } from './fold';
 
 type StorageKey = 'omnistax-folded' | 'omnistax-hidden-figs';
 const load = (key: StorageKey): readonly string[] => {
   if (typeof localStorage === 'undefined') return [];
-  try { return parseIds(JSON.parse(localStorage.getItem(key) ?? 'null'))?.map(renamedSimId) ?? []; } catch { return []; }
+  /* a key kept before keys named their book is let go: which book it was is not known */
+  try { return parseIds(JSON.parse(localStorage.getItem(key) ?? 'null'))?.filter((x) => x.includes('|')) ?? []; } catch { return []; }
 };
 const save = (key: StorageKey, ids: readonly string[]): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* private mode */ } };
 
 class IdSet {
   ids = $state.raw<readonly string[]>([]);
   constructor(private readonly key: StorageKey) { this.ids = load(key); }
-  /* Old keys name no book; they are given the boot book once it is known. */
-  settle(): void { if (focus.boot && this.ids.some((x) => !x.includes('|'))) this.set(qualifyIds(this.ids, focus.boot)); }
   has(id: string): boolean { return this.ids.includes(id); }
   toggle(id: string): void { this.set(toggleId(this.ids, id)); }
   add(ids: readonly string[]): void { this.set(addIds(this.ids, ids)); }
@@ -66,7 +64,6 @@ const syncFig = (fig: HTMLElement, on: boolean): void => {
 /* Put the remembered state on every span and figure under `root`. Reads the
    stores, so an effect that calls it follows them. */
 export const applyState = (root: ParentNode): void => {
-  folded.settle(); hiddenFigs.settle();
   const f = folded.ids, h = hiddenFigs.ids;
   foldableOf(root).forEach((s) => syncSpan(s, f.includes(keyOf(s))));
   hideableOf(root).forEach((g) => syncFig(g, h.includes(keyOf(g))));

@@ -1,13 +1,11 @@
 /* The live layout: one reactive value, changed only through the pure model
    functions, saved to this browser after every change. */
 import type { ItemKey, Layout } from './model';
-import { closeGroup, closeItem, reopenGroup, defaultLayout, ensureOwn, firstLayout, migratedV5, openTab, parseLayout, renamedSimKeys } from './model';
-import { type BookId, type ItemId, aboutItem, retiredViewKeys } from '../types/ids';
+import { closeGroup, closeItem, reopenGroup, defaultLayout, ensureOwn, firstLayout, openTab, parseLayout } from './model';
+import { type ItemId, aboutItem, retiredViewKeys } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 
 const KEY = 'omnistax-layout-v6';
-/* Keys named no book; read once, with the book the page was served for. */
-const V5 = 'omnistax-layout-v5';
 /* How many closed tabs the shell can hand back, this reading only. */
 const REOPEN = 20;
 
@@ -15,16 +13,11 @@ const REOPEN = 20;
 type Closed =
   | { readonly kind: 'tab'; readonly key: ItemKey; readonly group: number }
   | { readonly kind: 'group'; readonly tabs: readonly ItemKey[]; readonly active: ItemKey | null; readonly group: number };
-const saved = (book: BookId): unknown => {
-  const v6 = localStorage.getItem(KEY);
-  if (v6 !== null) return JSON.parse(retiredViewKeys(v6));
-  const v5 = localStorage.getItem(V5);
-  return v5 === null ? null : migratedV5(JSON.parse(retiredViewKeys(renamedSimKeys(v5))), book);
-};
+const saved = (): unknown => { const v6 = localStorage.getItem(KEY); return v6 === null ? null : JSON.parse(retiredViewKeys(v6)); };
 /* A reload restores the saved layout as it stood, unless it holds no tab at all. */
-const load = (own: ItemId, known: (k: string) => boolean, book: BookId, reload: boolean): { layout: Layout; restored: boolean } => {
+const load = (own: ItemId, known: (k: string) => boolean, reload: boolean): { layout: Layout; restored: boolean } => {
   try {
-    const parsed = parseLayout(saved(book), known);
+    const parsed = parseLayout(saved(), known);
     if (parsed && reload && parsed.groups.some((g) => g.tabs.length)) return { layout: parsed, restored: true };
     if (parsed) return { layout: ensureOwn(parsed, own), restored: false };
   } catch { /* fall through */ }
@@ -42,8 +35,8 @@ class LayoutStore {
   private closed = $state.raw<readonly Closed[]>([]);
 
   /* Whether the saved layout came back untouched, own page or not. */
-  init(own: ItemId, known: (k: string) => boolean, book: BookId, reload = false): boolean {
-    const { layout, restored } = load(own, known, book, reload);
+  init(own: ItemId, known: (k: string) => boolean, reload = false): boolean {
+    const { layout, restored } = load(own, known, reload);
     this.own = own; this.layout = layout; this.save();
     return restored;
   }

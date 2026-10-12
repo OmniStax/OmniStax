@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bookId, sectionId } from '../src/lib/types/ids';
 import { bookOfNotesKey, notesKey, notesOfBook, parseNotes } from '../src/lib/notes/stored';
-import { foldKey, qualifyIds } from '../src/lib/sections/fold';
+import { foldKey } from '../src/lib/sections/fold';
 import { render, type Resolver } from '../src/lib/notes/md/render';
 import { chip, contextBlock } from '../src/lib/chat/context';
 
@@ -25,9 +25,8 @@ test('a notes key names its book, and only a notes key does', () => {
   assert.equal(bookOfNotesKey('omnistax-notes-Bad/key'), null);
 });
 
-test('fold keys name the book, and old keys take the boot book once', () => {
+test('fold keys name the book', () => {
   assert.equal(foldKey(phys, '2.5-notation'), 'college-physics-2e|2.5-notation');
-  assert.deepEqual(qualifyIds(['2.5-notation', 'chemistry-2e|1.1-intro'], phys), ['college-physics-2e|2.5-notation', 'chemistry-2e|1.1-intro']);
 });
 
 const asked: string[] = [];

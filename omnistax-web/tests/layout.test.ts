@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, renamedSimKeys, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
-import { focusedSection, migratedV5, qualifiedV5Key } from '../src/lib/layout/model';
+import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
 
 const B = bookId('college-physics-2e');
@@ -141,9 +141,6 @@ test('page and note keys round-trip and belong to no section', () => {
   assert.deepEqual(l.groups[1].tabs, ['note:a1b2c3d4']);
   assert.deepEqual(focusedSection(l, at('9.9')), at('9.9'), 'a note leaves the views where they stood');
 });
-test('a saved layout names its figure tabs under the new prefix', () => {
-  assert.equal(renamedSimKeys('{"tabs":["fig:2.5/demo-avg","fig:2.5/fig-paths","doc:2.5/text"]}'), '{"tabs":["fig:2.5/sim-avg","fig:2.5/fig-paths","doc:2.5/text"]}');
-});
 test('parseLayout drops an unknown tab and keeps the rest, and dedupes, and assigns keys', () => {
   const known = (k: string) => [text, second, map].includes(k);
   const sides = { left: { width: 1, items: [] }, right: { width: 1, items: [] } };
@@ -157,17 +154,6 @@ test('a tab of a section no book has stays in the layout, for its pane to say so
   const missing = itemKey(docItem(at('145.6'), 'text'));
   const l = parseLayout({ sides: { left: { width: 1, items: [] }, right: { width: 1, items: [] } }, groups: [{ tabs: [text, missing], active: missing }] }, (k) => parseItemKey(k) !== null);
   assert.deepEqual(l!.groups[0].tabs, [text, missing]); assert.equal(l!.groups[0].active, missing);
-});
-test('a v5 layout is read once with its keys qualified by the boot book', () => {
-  const v5 = { sides: { left: { width: 250, items: ['view:explorer'] }, right: { width: 300, items: [] } }, home: { 'doc:2.1/text': 'right' }, collapsed: [],
-    groups: [{ key: 'abc123', tabs: ['doc:2.1/text', 'fig:2.1/sim-plane', 'ex:7.intro/p3', 'sheet:elements', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1'], active: 'fig:2.1/sim-plane' }], focus: 0, tree: { type: 'leaf', group: 'abc123' } };
-  const m = migratedV5(v5, B) as { groups: { key: string; tabs: string[]; active: string }[]; home: Record<string, string>; tree: { group: string } };
-  assert.deepEqual(m.groups[0].tabs, ['doc:college-physics-2e/2.1/text', 'fig:college-physics-2e/2.1/sim-plane', 'ex:college-physics-2e/7.intro/p3', 'sheet:college-physics-2e/elements', 'page:about', 'note:a1b2c3d4', 'scratch:college-physics-2e/2.1/p1']);
-  assert.equal(m.groups[0].active, 'fig:college-physics-2e/2.1/sim-plane');
-  assert.deepEqual(m.home, { 'doc:college-physics-2e/2.1/text': 'right' });
-  assert.equal(m.groups[0].key, 'abc123'); assert.equal(m.tree.group, 'abc123');
-  assert.ok(m.groups[0].tabs.every((k) => parseItemKey(k) !== null), 'every migrated key parses');
-  assert.equal(qualifiedV5Key('doc:college-physics-2e/2.1/text', B), 'doc:college-physics-2e/2.1/text', 'a v6 key is left alone');
 });
 test('prune keeps one empty group', () => {
   const l = prune({ ...defaultLayout(), groups: [] });

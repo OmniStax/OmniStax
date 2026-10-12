@@ -8,7 +8,7 @@
    forward onto that kind's singleton. */
 import { focus } from './focus.svelte';
 import { registry } from './registry.svelte';
-import { UNKNOWN, inBook, atLevel, bookOfScope, choose, levelOf, narrow, parseScopes, resolve, scopeAt, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
+import { atLevel, bookOfScope, choose, levelOf, narrow, parseScopes, resolve, scopeAt, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
 import type { BookTree } from '../commands/browser';
 import type { ItemKey } from '../layout/model';
 import { readerWritesAllowed } from '../backup/guard';
@@ -20,15 +20,14 @@ const OLD = 'omnistax-scope';   /* { [kind]: sectionId }, the pins before views 
 const read = (key: string): unknown => { try { return JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null')); } catch { return null; } };
 const load = (): Scopes => {
   try {
-    if (localStorage.getItem(KEY) !== null) return parseScopes(read(KEY), UNKNOWN);
-    const old = parseScopes(read(OLD), UNKNOWN); if (readerWritesAllowed()) localStorage.removeItem(OLD); return old;
+    if (localStorage.getItem(KEY) !== null) return parseScopes(read(KEY));
+    const old = parseScopes(read(OLD)); if (readerWritesAllowed()) localStorage.removeItem(OLD); return old;
   } catch { return {}; }   /* private mode, or no browser at all */
 };
 
 class Scope {
   scopes = $state.raw<Scopes>(load());
-  /* Old pins are read before the shell knows its boot book, so they take it here. */
-  of(key: ItemKey): ViewScope { return inBook(scopeAt(this.scopes, key), focus.boot); }
+  of(key: ItemKey): ViewScope { return scopeAt(this.scopes, key); }
   /* The tree of the book a view stands in. */
   treeOf(key: ItemKey): BookTree | null { const b = bookOfScope(this.of(key), focus.section); return b ? registry.manifest(b) : null; }
   targetFor(key: ItemKey): Target | null { return resolve(this.of(key), focus.section, this.treeOf(key)); }

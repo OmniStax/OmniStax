@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, parseScopes, resolve, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, inBook, UNKNOWN, type Target, type ViewScope } from '../src/lib/sections/scope';
+import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, parseScopes, resolve, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
 import { bookId, chapterId, sectionId, sectionRef, type SectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
@@ -159,31 +159,31 @@ test('the book has no siblings to step through', () => {
   assert.deepEqual(stepSibling(follow('book'), -1, at(here), BOOK), follow('book'));
 });
 
-test('a stored scope is read back, and a stored pin on the book is no pin at all unless it names its book', () => {
-  assert.deepEqual(parseScope({ follow: true, level: 'chapter' }, B), follow('chapter'));
-  assert.deepEqual(parseScope({ follow: false, target: { level: 'chapter', chapter: '16' } }, B), pin(chapter));
-  assert.deepEqual(parseScope({ follow: false, target: { level: 'section', section: '16.3' } }, B), pin(section));
-  assert.deepEqual(parseScope({ follow: false, target: { level: 'book' } }, B), follow('book'));
-  assert.deepEqual(parseScope({ follow: false, target: { level: 'book', book: 'chemistry-2e' } }, B), pin({ level: 'book', book: bookId('chemistry-2e') }));
-  assert.deepEqual(parseScope({ follow: false, target: { level: 'section', book: 'chemistry-2e', section: '1.1' } }, B), pin({ level: 'section', book: bookId('chemistry-2e'), section: sectionId('1.1') }));
+test('a stored scope is read back, and a stored pin that names no book is no pin at all', () => {
+  assert.deepEqual(parseScope({ follow: true, level: 'chapter' }), follow('chapter'));
+  assert.deepEqual(parseScope({ follow: false, target: { level: 'chapter', book: B, chapter: '16' } }), pin(chapter));
+  assert.deepEqual(parseScope({ follow: false, target: { level: 'section', book: B, section: '16.3' } }), pin(section));
+  assert.equal(parseScope({ follow: false, target: { level: 'section', section: '16.3' } }), null, 'which book it was is not known');
+  assert.deepEqual(parseScope({ follow: false, target: { level: 'book' } }), follow('book'));
+  assert.deepEqual(parseScope({ follow: false, target: { level: 'book', book: 'chemistry-2e' } }), pin({ level: 'book', book: bookId('chemistry-2e') }));
+  assert.deepEqual(parseScope({ follow: false, target: { level: 'section', book: 'chemistry-2e', section: '1.1' } }), pin({ level: 'section', book: bookId('chemistry-2e'), section: sectionId('1.1') }));
 });
-test('the pins the older shell wrote, one section per view, are read as pinned sections', () => {
-  assert.deepEqual(parseScope('16.3', B), pin(section));
-  assert.equal(parseScope('', B), null);
+test('the pins the older shell wrote, one section per view, are let go', () => {
+  assert.equal(parseScope('16.3'), null);
 });
 test('anything else out of storage is refused', () => {
   [null, undefined, 7, [], {}, { follow: true, level: 'page' }, { follow: false }, { follow: false, target: { level: 'chapter' } }, { follow: false, target: null }].forEach((raw) =>
-    assert.equal(parseScope(raw, B), null, JSON.stringify(raw ?? null)));
+    assert.equal(parseScope(raw), null, JSON.stringify(raw ?? null)));
 });
 
 test('every page of a view stands where it was left, and a new one follows the page being read', () => {
   const map = 'view:concepts@ab12cd', other = 'view:concepts@ef34gh';
-  const saved = parseScopes({ concepts: '16.3', [map]: { follow: false, target: { level: 'chapter', chapter: '16' } }, [other]: { follow: true, level: 'book' }, 'view:formulas': 42 }, B);
+  const saved = parseScopes({ concepts: { follow: false, target: { level: 'section', book: B, section: '16.3' } }, [map]: { follow: false, target: { level: 'chapter', book: B, chapter: '16' } }, [other]: { follow: true, level: 'book' }, 'view:formulas': 42 });
   assert.deepEqual(saved['view:concepts'], pin(section), 'a pin saved against the bare kind belongs to that kind\'s singleton');
   assert.deepEqual(saved[map], pin(chapter)); assert.deepEqual(saved[other], follow('book'), 'two pages of one view stand where each was left');
   assert.equal('view:formulas' in saved, false, 'an entry that does not read as a scope is left out');
   assert.deepEqual(scopeAt(saved, 'view:concepts@999999'), FOLLOW_SECTION, 'a page nothing was saved for follows the section being read');
-  assert.deepEqual(parseScopes(null, B), {}); assert.deepEqual(parseScopes('scopes', B), {});
+  assert.deepEqual(parseScopes(null), {}); assert.deepEqual(parseScopes('scopes'), {});
 });
 
 test('a target names its book, and the same place in two books is two places', () => {
@@ -194,9 +194,4 @@ test('a target names its book, and the same place in two books is two places', (
   assert.deepEqual(narrow(pin(chapter), sectionRef(other, sibling), BOOK), pin(section), 'the same number in another book is not the section being read');
   assert.deepEqual(choose({ level: 'book', book: other }, at(here), BOOK), pin({ level: 'book', book: other }));
   assert.deepEqual(narrow(pin(book), at(elsewhere), BOOK), pin({ level: 'chapter', book: B, chapter: chapterId('2') }));
-});
-test('a pin read before targets named their book takes the boot book', () => {
-  const read = parseScope('16.3', UNKNOWN)!;
-  assert.deepEqual(inBook(read, B), pin(section));
-  assert.deepEqual(inBook(follow('book'), B), follow('book'));
 });

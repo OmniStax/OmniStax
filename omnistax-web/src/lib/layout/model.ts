@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionRef, type BookId, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -348,22 +348,6 @@ export const ensureOwn = (l: Layout, own: ItemId): Layout => {
   return focusOn(settle(withGroups(l, groups)), g.key);
 };
 
-/* A layout saved before the sim rename of 2026-09-11 names a figure tab "fig:2.5/demo-avg" where the figure now says "fig:2.5/sim-avg"; read as saved, it would be thrown away whole. */
-export const renamedSimKeys = (saved: string): string => saved.replace(/"fig:(\d+\.\d+)\/demo-/g, '"fig:$1/sim-');
-/* A key saved by layout v5, before keys named their book, qualified with the book the page was served for. */
-export const qualifiedV5Key = (k: string, book: BookId): string => {
-  const inSection = /^(doc|fig|ex):([^/]+)\/([\w-]+)$/.exec(k);
-  if (inSection) return `${inSection[1]}:${book}/${inSection[2]}/${inSection[3]}`;
-  const sheet = /^sheet:([\w.-]+)$/.exec(k);
-  if (sheet) return `sheet:${book}/${sheet[1]}`;
-  return k;
-};
-/* Every string a saved v5 layout holds, keys qualified; group keys and numbers pass through. */
-export const migratedV5 = (raw: unknown, book: BookId): unknown =>
-  typeof raw === 'string' ? qualifiedV5Key(raw, book)
-    : Array.isArray(raw) ? raw.map((x) => migratedV5(x, book))
-      : typeof raw === 'object' && raw !== null ? Object.fromEntries(Object.entries(raw).map(([k, v]) => [qualifiedV5Key(k, book), migratedV5(v, book)]))
-        : raw;
 /* Persistence boundary: anything read from storage is untrusted and comes back as a Layout or not at all. */
 export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layout | null => {
   const isRec = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;

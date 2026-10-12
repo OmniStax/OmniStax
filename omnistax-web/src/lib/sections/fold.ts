@@ -26,12 +26,9 @@ export const toggleId = (ids: readonly string[], id: string): readonly string[] 
 export const addIds = (ids: readonly string[], more: readonly string[]): readonly string[] => [...ids, ...more.filter((m) => !ids.includes(m))];
 export const removeIds = (ids: readonly string[], drop: readonly string[]): readonly string[] => ids.filter((x) => !drop.includes(x));
 
-/* A figure id remembered before the sim rename of 2026-09-11 says "2.5-demo-avg" where the figure now says "2.5-sim-avg". */
-export const renamedSimId = (id: string): string => id.replace(/^(\d+\.\d+)-demo-/, '$1-sim-');
 /* What was remembered, kept only when it is a list of strings. */
 export const parseIds = (raw: unknown): readonly string[] | null => (Array.isArray(raw) && raw.every((x) => typeof x === 'string') ? raw : null);
 
 /* A remembered span or figure is named with its book, "college-physics-2e|2.5-notation", so the same
-   number in two books folds apart. A key kept before books were named takes the book the page was served for. */
+   number in two books folds apart. */
 export const foldKey = (book: string, id: string): string => `${book}|${id}`;
-export const qualifyIds = (ids: readonly string[], book: string): readonly string[] => ids.map((x) => (x.includes('|') ? x : foldKey(book, x)));

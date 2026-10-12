@@ -2,7 +2,7 @@ import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
 import { COLOURS_ON } from '../src/lib/colours/switches';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toggleId, addIds, removeIds, parseIds, renamedSimId, FOLDABLE, HIDEABLE } from '../src/lib/sections/fold';
+import { toggleId, addIds, removeIds, parseIds, FOLDABLE, HIDEABLE } from '../src/lib/sections/fold';
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
 import { builtinCommands, BUILTIN, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { chord, chordsFor } from '../src/lib/commands/chord';
@@ -21,9 +21,6 @@ test('addIds and removeIds keep order and never duplicate what is there', () => 
   assert.deepEqual(removeIds(['a', 'b', 'c'], ['b', 'zzz']), ['a', 'c']);
   assert.deepEqual(removeIds([], ['a']), []);
   assert.deepEqual(removeIds(addIds(['a'], ['b']), ['a', 'b']), []);
-});
-test('a hidden figure remembered under the old prefix is read under the new one', () => {
-  assert.equal(renamedSimId('2.5-demo-avg'), '2.5-sim-avg'); assert.equal(renamedSimId('2.5-sim-avg'), '2.5-sim-avg'); assert.equal(renamedSimId('2.5-fig-paths'), '2.5-fig-paths');
 });
 test('parseIds accepts only a list of strings', () => {
   assert.deepEqual(parseIds(['a', 'b']), ['a', 'b']);

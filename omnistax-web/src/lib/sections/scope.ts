@@ -152,24 +152,20 @@ export const stepSibling = (scope: ViewScope, dir: 1 | -1, focused: SectionRef |
   return next ? choose(next, focused, tree) : scope;
 };
 
-/* The boundary with storage, where anything may come back: the shape written here,
-   or the bare section id a per-kind pin used to be. A pin on the book is no pin at
-   all, so it comes back as following the book. A pin written before targets named
-   their book is of `boot`, the only book there was. */
-const bookOr = (raw: unknown, boot: BookId): BookId => (typeof raw === 'string' && raw !== '' ? bookId(raw) : boot);
-export const UNKNOWN: BookId = bookId('');
-/* A pin read without its book, given the one it belongs to. */
-export const inBook = (scope: ViewScope, boot: BookId): ViewScope =>
-  scope.follow || scope.target.book !== UNKNOWN ? scope : { follow: false, target: { ...scope.target, book: boot } };
-export const parseScope = (raw: unknown, boot: BookId): ViewScope | null => {
-  if (typeof raw === 'string') return raw ? { follow: false, target: { level: 'section', book: boot, section: sectionId(raw) } } : null;
+/* The boundary with storage, where anything may come back. A pin on the book with no
+   book named is no pin at all, so it comes back as following the book; any other pin
+   that names no book — as the older shells wrote them — is left out, and the view
+   follows the page again. */
+const bookOf = (raw: unknown): BookId | null => (typeof raw === 'string' && raw !== '' ? bookId(raw) : null);
+export const parseScope = (raw: unknown): ViewScope | null => {
   if (typeof raw !== 'object' || raw === null) return null;
   const o = raw as { follow?: unknown; level?: unknown; target?: unknown };
   if (o.follow === true) return isLevel(o.level) ? { follow: true, level: o.level } : null;
   if (o.follow !== false || typeof o.target !== 'object' || o.target === null) return null;
   const t = o.target as { level?: unknown; book?: unknown; chapter?: unknown; section?: unknown };
-  const book = bookOr(t.book, boot);
-  if (t.level === 'book') return typeof t.book === 'string' && t.book !== '' ? { follow: false, target: bookAt(book) } : { follow: true, level: 'book' };
+  const book = bookOf(t.book);
+  if (t.level === 'book') return book ? { follow: false, target: bookAt(book) } : { follow: true, level: 'book' };
+  if (!book) return null;
   if (t.level === 'chapter') return typeof t.chapter === 'string' && t.chapter !== '' ? { follow: false, target: { level: 'chapter', book, chapter: chapterId(t.chapter) } } : null;
   if (t.level === 'section') return typeof t.section === 'string' && t.section !== '' ? { follow: false, target: { level: 'section', book, section: sectionId(t.section) } } : null;
   return null;
@@ -181,9 +177,9 @@ export const parseScope = (raw: unknown, boot: BookId): ViewScope | null => {
    and an entry that does not read as a scope is left out. */
 export type Scopes = Readonly<Record<string, ViewScope>>;
 const scopeKey = (k: string): string => ((VIEW_KINDS as readonly string[]).includes(k) ? itemKey(viewItem(k as ViewKind)) : k);
-export const parseScopes = (raw: unknown, boot: BookId): Scopes =>
+export const parseScopes = (raw: unknown): Scopes =>
   typeof raw !== 'object' || raw === null ? {}
-    : Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => { const s = parseScope(v, boot); return s ? [[scopeKey(k), s]] : []; }));
+    : Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => { const s = parseScope(v); return s ? [[scopeKey(k), s]] : []; }));
 /* Where one page stands: what was saved for it, and the section being read for a page
    nothing was saved for — a view opens following the page it was opened beside. */
 export const scopeAt = (scopes: Scopes, key: string): ViewScope => scopes[key] ?? FOLLOW_SECTION;
