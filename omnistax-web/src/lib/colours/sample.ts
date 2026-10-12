@@ -11,16 +11,13 @@
 import type { Hue } from './model';
 import {
   type Contrast, type DeltaE, type Lch, type SeenHue, type Vision,
-  GROUNDS, contrastOf, hexOfLinear, inGamut, labOfLch, linearOf, linearOfLab, seenHue, seenHueDistance,
+  GROUNDS, INKS, contrastOf, hexOfLinear, inGamut, labOfLch, linearOf, linearOfLab, seenHue, seenHueDistance,
 } from './oklab';
 
 /* WCAG AA for body text, which a coloured word in the prose is. */
 export const CONTRAST_FLOOR: Contrast = 4.5;
 const PIVOT = 1.2;
 const SEED: Lch = [0.5, 0.15, 30];
-/* The page's ink and muted text (--ink, --muted), which a category colour must
-   stand apart from as it stands apart from another category. */
-const INKS: readonly Hue[] = [{ light: '#1B1F27', dark: '#E7E9EE' }, { light: '#5D6470', dark: '#9AA2AF' }];
 
 const range = (from: number, to: number, step: number): readonly number[] =>
   Array.from({ length: Math.floor((to - from) / step + 1e-9) + 1 }, (_, i) => from + i * step);

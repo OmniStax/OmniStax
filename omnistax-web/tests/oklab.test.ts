@@ -3,7 +3,7 @@
    to categories by what the pages show together. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { type Lab, deltaE, deltaEHex, distance, groundContrast, hexOfLab, labOf, linearOf, simulate, labOfLinear } from '../src/lib/colours/oklab';
+import { type Lab, INKS, deltaE, deltaEHex, distance, groundContrast, hexOfLab, labOf, linearOf, simulate, labOfLinear } from '../src/lib/colours/oklab';
 import { CONTRAST_FLOOR, minDistance, oklabHues } from '../src/lib/colours/sample';
 import { assignInOrder, assignSmart, assignmentCost } from '../src/lib/colours/assign';
 import { type PageCounts, fixedHueOf, pageCounts } from '../src/lib/colours/counts';
@@ -85,6 +85,23 @@ test('a fixed colour on the page keeps a category off it', () => {
   const pages: readonly PageCounts[] = [new Map([['charge', 3], ['#B23B19', 3]])];
   const smart = assignSmart({ categories: ['charge', 'spare'], colours: [COLOURS[1], COLOURS[2]], pages, fixed: new Map([['#B23B19', { light: '#B23B19', dark: '#B23B19' }]]), vision: 'normal' });
   assert.deepEqual(smart.get('charge'), COLOURS[2], 'the charge takes the blue, not the red the fact already draws');
+});
+
+test('the ink is on every page, so a category on a page keeps off a colour near it', () => {
+  const nearInk: Hue = { light: '#422C58', dark: '#DEC4FB' };
+  const smart = assignSmart({ categories: ['point', 'spare'], colours: [nearInk, COLOURS[2]], pages: [new Map([['point', 4]])], fixed: new Map(), vision: 'normal' });
+  assert.deepEqual(smart.get('point'), COLOURS[2], 'the point takes the blue, not the purple beside the ink');
+});
+
+test('categories no page shows take what is left in their declared order, whatever the seed', () => {
+  const cats = ['force', 'mass', 'u1', 'u2', 'u3', 'u4'];
+  const colours = oklabHues(6, 'normal');
+  const pages: readonly PageCounts[] = [new Map([['force', 3], ['mass', 2]])];
+  const [one, two] = [1, 2].map((seed) => assignSmart({ categories: cats, colours, pages, fixed: new Map(), vision: 'normal', seed }));
+  assert.deepEqual([...one], [...two]);
+  const settled = ['u1', 'u2', 'u3', 'u4'].map((c) => one.get(c) as Hue);
+  const room = settled.map((h) => Math.min(...INKS.map((k) => distance(h, k, 'normal'))));
+  assert.ok(room.every((x, i) => i === 0 || room[i - 1] >= x), 'farthest from the ink first');
 });
 
 test('the smart assignment is deterministic, and fast enough for fifty categories in the browser', () => {

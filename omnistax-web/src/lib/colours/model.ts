@@ -17,7 +17,7 @@ import { pagesOf } from '../content/roles';
 import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
 import type { Target } from '../sections/scope';
 import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
-import { type Vision, isVision } from './oklab';
+import { type Vision, INKS, isVision } from './oklab';
 import { oklabHues } from './sample';
 import {
   type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, clashOrder, dealGroup, huesOfGroups,
@@ -402,8 +402,9 @@ const pagesAt = (m: BookManifest): readonly PageAt[] => [
   ...[m.intro, m.summary].flatMap((entry): PageAt[] => (entry ? [{ entry, place: { level: 'book' } }] : [])),
 ];
 const pageAt = (m: BookManifest, id: string): PageAt | null => pagesAt(m).find((p) => p.entry.id === id) ?? null;
+/* What a referent group's scope shows: the ink, and the colour of every key it counts. */
 const shownAt = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme, keys: readonly CountKey[]): readonly Hue[] =>
-  keys.flatMap((k) => (isCategoryKey(k) ? effectiveHue(m, c, k, at.place, scheme).hue : fixedHueOf(k)) ?? []);
+  [...INKS, ...keys.flatMap((k) => (isCategoryKey(k) ? effectiveHue(m, c, k, at.place, scheme).hue : fixedHueOf(k)) ?? [])];
 
 /* A page's referent groups as the manifest ships them, or one group of them all, showing every colour of the page, where it ships none. */
 export const groupsOf = (e: Pick<SectionEntry, 'referents' | 'refGroups' | 'counts'>): readonly RefGroupEntry[] => e.refGroups ?? (e.referents?.length

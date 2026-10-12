@@ -15,7 +15,7 @@ import { fixedHueOf } from '../src/lib/colours/counts';
 import { bookRulesCss } from '../src/lib/colours/rules';
 import { paletteId } from '../src/lib/colours/palettes';
 import { oklabHues } from '../src/lib/colours/sample';
-import { distance, seenHue } from '../src/lib/colours/oklab';
+import { INKS, distance, seenHue } from '../src/lib/colours/oklab';
 import type { BookManifest } from '../src/lib/content/schema';
 import { bookId } from '../src/lib/types/ids';
 import { elementColor } from '../src/lib/fig/elements';
@@ -207,7 +207,7 @@ test('the book’s order is worked out from what each group shows under the read
   assert.equal(new Set(order).size, REFERENT_COUNT);
   const hues = oklabHues(REFERENT_COUNT, 'normal');
   const scheme = schemeOf(MANIFEST, NO_CHOICES).hues;
-  const groups = [{ size: 2, shown: [scheme.time] }, { size: 2, shown: [scheme.mass, fixedHueOf('el:O') as Hue] }];
+  const groups = [{ size: 2, shown: [...INKS, scheme.time] }, { size: 2, shown: [...INKS, scheme.mass, fixedHueOf('el:O') as Hue] }];
   const suits = (j: number): number => groups.reduce((n, g) => (g.shown.every((h) => distance(hues[j], h, 'normal') >= TARGET_DEFAULT) ? n + g.size : n), 0);
   const scores = order.map(suits);
   assert.ok(scores.every((x, i) => i === 0 || scores[i - 1] >= x), 'most first');

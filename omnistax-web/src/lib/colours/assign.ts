@@ -4,7 +4,8 @@
    min(count₁, count₂) · φ(d), d the distance between their colours for the
    reader's vision and φ(d) = exp(−d / τ), and the assignment with the least sum
    wins. Conventions and facts are on the page with their own fixed colours, so
-   a category is kept from them too.
+   a category is kept from them too; and the ink is on every page, as often as
+   the category is, with a colour nearer it than the target read as the ink.
 
    τ = 0.03 ΔE_OK. Two colours 0.02 apart read as one (φ ≈ 0.51), 0.08 is where
    small marks start to read as two (φ ≈ 0.07) and 0.15 is
@@ -13,10 +14,13 @@
 
    The search: a greedy start, the most-weighted category first taking the
    colour that adds least, then simulated annealing over swaps of two
-   categories' colours, each move costed in O(n). Seeded, so deterministic. */
+   categories' colours, each move costed in O(n). Seeded, so deterministic; the
+   categories no page counts tie, so they take what is left in their declared
+   order, the colour farthest from the ink first. */
 import type { Hue, TypeKey } from './model';
 import type { CountKey, PageCounts } from './counts';
-import { type DeltaE, type SeenHue, type Vision, seenHue, seenHueDistance } from './oklab';
+import { type DeltaE, type SeenHue, type Vision, INKS, seenHue, seenHueDistance } from './oklab';
+import { TARGET_DEFAULT } from './referents';
 
 export type Seed = number;
 export type Cost = number;
@@ -24,6 +28,7 @@ export type Assignment = ReadonlyMap<TypeKey, Hue>;
 
 export const TAU: DeltaE = 0.03;
 const phi = (d: DeltaE): Cost => Math.exp(-d / TAU);
+const inkPhi = (d: DeltaE): Cost => (d < TARGET_DEFAULT ? 1 : phi(d));
 
 export const assignInOrder = (categories: readonly TypeKey[], colours: readonly Hue[]): Assignment =>
   new Map(categories.flatMap((c, i) => (colours[i] ? [[c, colours[i]] as const] : [])));
@@ -42,8 +47,12 @@ const rng = (seed: Seed): (() => number) => {
 
 /* The problem as numbers: W[i·n+j] the weight between categories i and j, U[i·n+a]
    the cost of category i wearing colour a against the fixed colours of its pages,
-   D[a·n+b] = φ(distance) between colours a and b. */
-type Problem = { readonly n: number; readonly W: Float64Array; readonly U: Float64Array; readonly D: Float64Array };
+   D[a·n+b] = φ(distance) between colours a and b; counted[i] whether any page
+   shows category i, inkRoom[a] how far colour a stands from the nearest ink. */
+type Problem = {
+  readonly n: number; readonly W: Float64Array; readonly U: Float64Array; readonly D: Float64Array;
+  readonly counted: readonly boolean[]; readonly inkRoom: readonly DeltaE[];
+};
 
 const problemOf = (
   categories: readonly TypeKey[], colours: readonly Hue[], pages: readonly PageCounts[],
@@ -55,10 +64,12 @@ const problemOf = (
   const fixedIndex = new Map(fixedKeys.map((k, i) => [k, i] as const));
   const W = new Float64Array(n * n);
   const F = new Float64Array(n * fixedKeys.length);
+  const total = new Float64Array(n);
   pages.forEach((page) => {
     const cats = [...page].flatMap(([k, c]) => { const i = index.get(k); return i === undefined ? [] : [[i, c] as const]; });
     const fix = [...page].flatMap(([k, c]) => { const f = fixedIndex.get(k); return f === undefined ? [] : [[f, c] as const]; });
     cats.forEach(([i, ci]) => {
+      total[i] += ci;
       cats.forEach(([j, cj]) => { if (i !== j) W[i * n + j] += Math.min(ci, cj); });
       fix.forEach(([f, cf]) => { F[i * fixedKeys.length + f] += Math.min(ci, cf); });
     });
@@ -68,13 +79,16 @@ const problemOf = (
   const D = new Float64Array(n * n);
   seen.forEach((p, a) => seen.forEach((q, b) => { D[a * n + b] = a === b ? 1 : phi(seenHueDistance(p, q)); }));
   const E = seen.map((p) => fixedSeen.map((q) => phi(seenHueDistance(p, q))));
+  const inks = INKS.map((h) => seenHue(h, vision));
+  const inkRoom = seen.map((p) => Math.min(...inks.map((q) => seenHueDistance(p, q))));
+  const inkCost = seen.map((p) => inks.reduce((s, q) => s + inkPhi(seenHueDistance(p, q)), 0));
   const U = new Float64Array(n * n);
   for (let i = 0; i < n; i++) for (let a = 0; a < n; a++) {
-    let u = 0;
+    let u = total[i] * inkCost[a];
     for (let f = 0; f < fixedKeys.length; f++) u += F[i * fixedKeys.length + f] * E[a][f];
     U[i * n + a] = u;
   }
-  return { n, W, U, D };
+  return { n, W, U, D, counted: Array.from(total, (t) => t > 0), inkRoom };
 };
 
 /* The total cost of an assignment, perm[i] the colour category i wears. */
@@ -143,6 +157,15 @@ const anneal = (p: Problem, start: Int32Array, seed: Seed): Int32Array => {
   return best;
 };
 
+/* The colours the uncounted categories hold, farthest from the ink first, the palette's order on a tie, dealt in declared order. */
+const settleUncounted = ({ counted, inkRoom }: Problem, perm: Int32Array): Int32Array => {
+  const idle = counted.flatMap((c, i) => (c ? [] : [i]));
+  const held = idle.map((i) => perm[i]).sort((a, b) => inkRoom[b] - inkRoom[a] || a - b);
+  const out = Int32Array.from(perm);
+  idle.forEach((i, k) => { out[i] = held[k]; });
+  return out;
+};
+
 export type SmartInput = {
   readonly categories: readonly TypeKey[];
   readonly colours: readonly Hue[];                      /* exactly as many as categories */
@@ -156,7 +179,7 @@ export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 
   if (colours.length < categories.length) throw new Error(`assignSmart: ${colours.length} colours for ${categories.length} categories`);
   const cs = colours.slice(0, categories.length);
   const p = problemOf(categories, cs, pages, fixed, vision);
-  const perm = anneal(p, greedy(p), seed);
+  const perm = settleUncounted(p, anneal(p, greedy(p), seed));
   return new Map(categories.map((c, i) => [c, cs[perm[i]]] as const));
 };
 
