@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Convert an OpenStax CNXML module to markdown with LaTeX math.
 
-Usage: cnxml2md.py path/to/index.cnxml > out.md
+Usage: cnxml2md.py [--full] path/to/index.cnxml > out.md
 
 Shared by every book that comes from OpenStax as CNXML (College Physics 2e,
-Chemistry 2e). Lossy but faithful to prose order. Tags are preserved as
+Chemistry 2e, Calculus). Lossy but faithful to prose order. Tags are preserved as
 markers where OmniStax needs them later, and the markers are the same for
 every book; a book's own RULES.md says which of them its source uses.
 
@@ -22,7 +22,9 @@ Markers, in the order a module prints them:
                                  "## Key Concepts and Summary {section:summary}".
   $$ … $$  {eq:id}               a display equation; an <equation> that mixes
                                  prose and several maths is one line of text
-                                 with the same marker.
+                                 with the same marker. One the book numbers
+                                 (Calculus: class="numbered") ends with
+                                 class=numbered after the marker.
   {term:…}                       a term the book defines (bolds) here.
   {index:…}                      a <term class="no-emphasis">: an index entry
                                  the book does not bold and rarely glosses.
@@ -46,6 +48,8 @@ Markers, in the order a module prints them:
                                  <title>, else a title row (a single entry
                                  spanning every column at the top of thead),
                                  else its <caption>, where there is one.
+  > caption: …                   with --full, the <caption> of a table that also
+                                 has a title (Calculus prints a data source there).
   > summary: …                   the book's alt text for the table.
   | a | b |                      then the rows. A regular table is a markdown
   | --- | --- |                  table: the header row is the last row of thead
@@ -63,15 +67,27 @@ Markers, in the order a module prints them:
                                  class whose title is "Answer:" is [answer],
                                  which is how Chemistry keys the Check Your
                                  Learning question that precedes it inside an
-                                 example.
+                                 example. An untitled class whose title is
+                                 "Definition" is [definition] and one whose title
+                                 begins "Rule:" is [rule] (Calculus; its other
+                                 boxes carry theorem, checkpoint, problem-solving,
+                                 media-2 and project).
   :::example {ex:id} Title … ::: a worked example. Chemistry titles the parts
                                  of an example with paragraph titles, which
                                  come through in bold: **Solution**,
-                                 **Check Your Learning**.
-  :::exercise {id} type=… Title  an exercise, PROBLEM: and SOLUTION: inside.
-  … :::                          Chemistry's exercises carry no type; the
+                                 **Check Your Learning**. Calculus titles an
+                                 example on the problem of its one exercise, and
+                                 that title moves up to the example line.
+  :::exercise {id} type=… [class=…] Title
+  … :::                          an exercise, PROBLEM: and SOLUTION: inside.
+                                 Chemistry's exercises carry no type; the
                                  {section:exercises} header above them says
-                                 what they are.
+                                 what they are. class is the book's where it
+                                 differs from the type (Calculus: material-set-2).
+                                 A titled problem has its title in bold on the
+                                 line after PROBLEM:. COMMENTARY: carries its
+                                 title where it has one: COMMENTARY: Hint.
+  **Title** then a list          a <list> with a <title>.
   - {def} **term**: meaning      a glossary entry.
   ^[…]                           a footnote, inline where the book anchors it.
   <sub>…</sub> <sup>…</sup>      subscripts and superscripts in prose (the
@@ -88,6 +104,14 @@ state labels and formulas are \\text{…}, charges are superscripts, a cancelled
 unit (menclose horizontalstrike) is \\cancel{…}, a cell diagram's bars are | and
 \\|, and an aligned block (mtable) is an array whose columns follow the
 book's columnalign. Text inside \\text{} has %, $, #, _, & and braces escaped.
+The calculus vocabulary is \\int, \\iint, \\iiint and \\oint (scripts set on
+the sign, and an under-script as \\limits), \\partial, \\nabla, \\langle \\rangle,
+\\|, \\in, \\mathbb{R} and the set signs; an under-scripted "lim" is \\lim_{…},
+an overbar written with a dash is \\bar, ⏟ is \\underbrace, and a run of
+underscores (a blank to fill in) is escaped. With --full, an mstyle's
+mathvariant bold is \\mathbf{…} (Calculus's vectors), bold-italic is
+\\boldsymbol{…}, and displaystyle="true" is {\\displaystyle …}; the earlier
+books are converted without --full, so their output stays as it was.
 Anything the converter cannot place is reported on stderr with the module
 path, so a run over a book ends with a list of what to look at.
 """
@@ -101,6 +125,7 @@ C = "{http://cnx.rice.edu/cnxml}"
 MD = "{http://cnx.rice.edu/mdml}"
 
 SOURCE = ""          # the path being converted, for warnings
+FULL = False         # --full: keep what the earlier books' conversions drop (see the docstring)
 WARNED = set()
 
 def warn(msg):
@@ -113,7 +138,8 @@ def tag(e):
 
 # ---------- MathML -> LaTeX ----------
 MI = {"Δ": r"\Delta ", "π": r"\pi ", "θ": r"\theta ", "ω": r"\omega ", "α": r"\alpha ",
-      "ℳ": r"\mathcal{M}", "∞": r"\infty ", "ħ": r"\hbar ", "ℏ": r"\hbar ", "%": r"\%"}
+      "ℳ": r"\mathcal{M}", "∞": r"\infty ", "ħ": r"\hbar ", "ℏ": r"\hbar ", "%": r"\%",
+      "∂": r"\partial ", "ℝ": r"\mathbb{R}"}
 MO = {"−": "-", "–": "-", "×": r"\times ", "·": r"\cdot ", "±": r"\pm ", "≈": r"\approx ",
       "→": r"\to ", "′": "'", "∞": r"\infty ", "∣": "|",
       # the chemistry vocabulary
@@ -123,24 +149,34 @@ MO = {"−": "-", "–": "-", "×": r"\times ", "·": r"\cdot ", "±": r"\pm ", 
       "≥": r"\ge ", "≤": r"\le ", "…": r"\ldots ", ". . .": r"\ldots ", "△": r"\triangle ",
       "•": r"\bullet ", "~": r"\sim ", "{": r"\{", "}": r"\}", "%": r"\%", "#": r"\#", "_": r"\_",
       "^": r"\wedge ", "∘": r"\circ ", "—": "-", "ν": r"\nu ", "°": r"{}^{\circ}",
-      "°C": r"{}^{\circ}\text{C}", "_____": r"\_\_\_\_\_", "____": r"\_\_\_\_"}
+      "°C": r"{}^{\circ}\text{C}", "_____": r"\_\_\_\_\_", "____": r"\_\_\_\_",
+      # the calculus vocabulary
+      "∫": r"\int ", "∬": r"\iint ", "∭": r"\iiint ", "∮": r"\oint ", "∂": r"\partial ", "∇": r"\nabla ",
+      "〈": r"\langle ", "〉": r"\rangle ", "\u2329": r"\langle ", "\u232a": r"\rangle ", "⟨": r"\langle ", "⟩": r"\rangle ", "‖": r"\| ", "″": "''",
+      "∈": r"\in ", "ℝ": r"\mathbb{R}", "∪": r"\cup ", "∩": r"\cap ", "∅": r"\emptyset ", "⊆": r"\subseteq ",
+      "⊂": r"\subset ", "⋮": r"\vdots ", "↛": r"\nrightarrow ", "≃": r"\simeq ", "∴": r"\therefore ",
+      "⌊": r"\lfloor ", "⌋": r"\rfloor ", "∼": r"\sim ", "◦": r"\circ ", "¢": r"\text{¢}", "\u2061": ""}
+# an integral sign takes its limits as a big operator does, not as a braced base
+INTS = (r"\int", r"\iint", r"\iiint", r"\oint")
 
-GREEK = {"α": r"\alpha", "β": r"\beta", "γ": r"\gamma", "δ": r"\delta", "ε": r"\varepsilon", "θ": r"\theta",
+MATH_IN_TEXT = {"α": r"\alpha", "β": r"\beta", "γ": r"\gamma", "δ": r"\delta", "ε": r"\varepsilon", "θ": r"\theta",
          "λ": r"\lambda", "μ": r"\mu", "ν": r"\nu", "π": r"\pi", "ρ": r"\rho", "σ": r"\sigma", "τ": r"\tau",
-         "φ": r"\phi", "χ": r"\chi", "ψ": r"\psi", "ω": r"\omega", "Σ": r"\Sigma", "Π": r"\Pi", "ℳ": r"\mathcal{M}"}
+         "φ": r"\phi", "χ": r"\chi", "ψ": r"\psi", "ω": r"\omega", "Σ": r"\Sigma", "Π": r"\Pi", "ℳ": r"\mathcal{M}",
+         "″": "''", "‴": "'''", "‖": r"\|", "•": r"\bullet"}
 
 def mtext_escape(s):
     return re.sub(r"([%$#_&{}])", r"\\\1", s)
 
 def mtext(s):
     """\\text{…} for a run of text; a Greek letter KaTeX cannot set in text mode
-    (Δ it can) is written as its math symbol between the text runs."""
+    (Δ it can), or a prime, a norm bar or a bullet, is written as its math
+    symbol between the text runs."""
     s = s.replace("\u200b", "")
-    parts = re.split("([" + "".join(GREEK) + "])", s)
+    parts = re.split("([" + "".join(MATH_IN_TEXT) + "])", s)
     out = ""
     for i, part in enumerate(parts):
         if i % 2:
-            out += GREEK[part] + " "
+            out += MATH_IN_TEXT[part] + " "
         elif part:
             out += r"\text{" + mtext_escape(part) + "}"
     return out
@@ -160,7 +196,18 @@ def mml(e):
     t = tag(e)
     kids = list(e)
     txt = (e.text or "")
-    if t in ("math", "mrow", "mstyle", "semantics"):
+    if t == "mstyle" and FULL:
+        body = "".join(mml(k) for k in kids)
+        variant = e.get("mathvariant")
+        if variant in ("bold", "bold-italic"):
+            # \mathbf does not reach into \text, so a bold text run is \textbf
+            body = body.replace(r"\text{", r"\textbf{")
+            if not re.fullmatch(r"\\textbf\{[^{}]*\}", body):
+                body = (r"\mathbf{" if variant == "bold" else r"\boldsymbol{") + body + "}"
+        if e.get("displaystyle") == "true":
+            body = r"{\displaystyle " + body + "}"
+        return body
+    if t in ("math", "mrow", "mstyle", "semantics", "mpadded"):
         return "".join(mml(k) for k in kids)
     if t == "mi":
         s = txt.strip()
@@ -172,6 +219,8 @@ def mml(e):
         s = txt.strip()
         if s in MO:
             return MO[s]
+        if re.fullmatch(r"_{2,}", s):
+            return r"\_" * len(s)
         # a charge or a signed group written as one operator: "2−", "−(", "−[("
         s2 = s.replace("−", "-").replace("–", "-")
         if s2 != s and re.fullmatch(r"[-0-9(\[]+", s2):
@@ -184,17 +233,21 @@ def mml(e):
         return mspace(e)
     if t == "mfrac":
         return r"\frac{" + mml(kids[0]) + "}{" + mml(kids[1]) + "}"
-    if t == "msub":
-        return "{" + mml(kids[0]) + "}_{" + mml(kids[1]) + "}"
-    if t == "msup":
-        return "{" + mml(kids[0]) + "}^{" + mml(kids[1]) + "}"
-    if t == "msubsup":
-        return "{" + mml(kids[0]) + "}_{" + mml(kids[1]) + "}^{" + mml(kids[2]) + "}"
+    if t in ("msub", "msup", "msubsup"):
+        base = mml(kids[0])
+        base = base.strip() if base.strip() in INTS else "{" + base + "}"
+        if t == "msub":
+            return base + "_{" + mml(kids[1]) + "}"
+        if t == "msup":
+            return base + "^{" + mml(kids[1]) + "}"
+        return base + "_{" + mml(kids[1]) + "}^{" + mml(kids[2]) + "}"
     if t == "mover":
         acc = ((kids[1].text or "").strip() if tag(kids[1]) == "mo" else mml(kids[1]).strip())
         base = mml(kids[0])
-        if acc in ("-", "¯", "‾", "―"):
+        if acc in ("-", "¯", "‾", "―", "–", "−", "—"):
             return r"\bar{" + base + "}"
+        if acc == "˜":
+            return r"\tilde{" + base + "}"
         if acc in ("→", "⃗"):
             return r"\vec{" + base + "}"
         return r"\overset{" + mml(kids[1]) + "}{" + base + "}"
@@ -202,6 +255,13 @@ def mml(e):
         acc = ((kids[1].text or "").strip() if tag(kids[1]) == "mo" else mml(kids[1]).strip())
         if acc in ("¯", "_", "‾", "―", "̲"):
             return r"\underline{" + mml(kids[0]) + "}"
+        if acc == "⏟":
+            return r"\underbrace{" + mml(kids[0]) + "}"
+        base = mml(kids[0]).strip()
+        if base == r"\text{lim}":
+            return r"\lim_{" + mml(kids[1]) + "}"
+        if base in INTS:
+            return base + r"\limits_{" + mml(kids[1]) + "}"
         return r"\underset{" + mml(kids[1]) + "}{" + mml(kids[0]) + "}"
     if t == "munderover":
         base = mml(kids[0]).strip()
@@ -441,9 +501,13 @@ def table(e):
     if irregular:
         head[0] += " irregular"
     cap = e.find(C + "caption")
-    title_text = title_text or (inline(cap).strip() if cap is not None else "")
-    if title_text:
+    cap_text = inline(cap).strip() if cap is not None else ""
+    if title_text and cap_text and FULL:
+        # a table with both: Calculus prints its sources under the table
         head.append(f"> title: {title_text}")
+        head.append(f"> caption: {cap_text}")
+    elif title_text or cap_text:
+        head.append(f"> title: {title_text or cap_text}")
     if e.get("summary"):
         head.append(f"> summary: {e.get('summary')}")
     lines = ["\n" + "\n".join(head), ""]
@@ -481,10 +545,11 @@ def block(e, depth):
         maths = e.findall(M + "math")
         # Some solutions put prose and several maths inside one <equation>; that is a line of text, not a display equation.
         mixed = (e.text or "").strip() or len(maths) != 1 or any(k.tag != M + "math" or (k.tail or "").strip() for k in e)
+        cls = " class=numbered" if e.get("class") == "numbered" else ""
         if mixed:
-            lines.append(f"\n{para_text(inline(e).strip())}  {{eq:{eid}}}\n")
+            lines.append(f"\n{para_text(inline(e).strip())}  {{eq:{eid}}}{cls}\n")
         else:
-            lines.append(f"\n$$ {latex(maths[0])} $$  {{eq:{eid}}}\n")
+            lines.append(f"\n$$ {latex(maths[0])} $$  {{eq:{eid}}}{cls}\n")
     elif t == "figure":
         title = e.find(C + "title")
         media = e.find(C + "media")
@@ -516,6 +581,10 @@ def block(e, depth):
         cls = e.get("class", e.get("type", ""))
         if not cls and ttl.rstrip(":").strip().lower() == "answer":
             cls = "answer"
+        elif not cls and ttl == "Definition":
+            cls = "definition"
+        elif not cls and ttl.startswith("Rule:"):
+            cls = "rule"
         lines.append(f"\n:::note [{cls}] {ttl}")
         lines.extend(container(e, depth))
         lines.append(":::")
@@ -531,24 +600,39 @@ def block(e, depth):
                 # the paragraph's text is the title's tail; keep it when the title goes
                 first.text = (first.text or "") + (ptitle.tail or "")
                 first.remove(ptitle)
+            elif first is not None and tag(first) == "exercise":
+                # Calculus titles an example on the problem of its one exercise
+                prob = first.find(C + "problem")
+                ptitle = prob.find(C + "title") if prob is not None else None
+                if ptitle is not None:
+                    ttl = inline(ptitle).strip()
+                    prob.remove(ptitle)
         lines.append(f"\n:::example {{ex:{e.get('id','')}}} {ttl}")
         lines.extend(container(e, depth))
         lines.append(":::")
     elif t == "exercise":
         title = e.find(C + "title")
-        lines.append(f"\n:::exercise {{{e.get('id','')}}} type={e.get('type','')} {inline(title).strip() if title is not None else ''}")
+        cls = f" class={e.get('class')}" if e.get("class") and e.get("class") != e.get("type") else ""
+        lines.append(f"\n:::exercise {{{e.get('id','')}}} type={e.get('type','')}{cls} {inline(title).strip() if title is not None else ''}")
         lines.extend(container(e, depth))
         lines.append(":::")
     elif t == "problem":
         lines.append("PROBLEM:")
+        title = e.find(C + "title")
+        if title is not None:
+            lines.append("**" + inline(title).strip() + "**")
         lines.extend(container(e, depth))
     elif t == "solution":
         lines.append("SOLUTION:")
         lines.extend(container(e, depth))
     elif t == "commentary":
-        lines.append("COMMENTARY:")
+        title = e.find(C + "title")
+        lines.append("COMMENTARY:" + (" " + inline(title).strip() if title is not None else ""))
         lines.extend(container(e, depth))
     elif t == "list":
+        title = e.find(C + "title")
+        if title is not None:
+            lines.append("**" + inline(title).strip() + "**")
         items = e.findall(C + "item")
         enumerated = e.get("list-type") == "enumerated"
         style = e.get("number-style", "arabic")
@@ -617,4 +701,8 @@ def main(path):
     print(s)
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    args = sys.argv[1:]
+    if "--full" in args:
+        FULL = True
+        args.remove("--full")
+    main(args[0])
