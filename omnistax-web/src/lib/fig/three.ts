@@ -4,14 +4,15 @@
    first time a figure reaches for it.
 
    What a script can reach through `F` that needs the global is `F.view3d`, the
-   viewer, and `F.mesh`, the bundle every mesh helper hangs off (`F.mesh.sphere`
-   and the rest), so those two words in the script's source are the whole test.
+   viewer, `F.mesh`, the bundle every mesh helper hangs off (`F.mesh.sphere`
+   and the rest), and `F.space3d`, the scene of space, so those words in the
+   script's source are the whole test.
    It is a text test, and so generous by design: a figure that names one of them
    and never calls it costs one fetch, and one that calls neither costs none. */
 export type ThreeUrl = string;
 
-/* the two names of the library that read `window.THREE` */
-const THREE_WORDS = /\b(?:view3d|mesh)\b/;
+/* the names of the library that read `window.THREE` */
+const THREE_WORDS = /\b(?:view3d|mesh|space3d)\b/;
 
 /* Whether this section's script draws in three dimensions. Pure: the source text is the evidence. */
 export const needsThree = (f: Function): boolean => THREE_WORDS.test(String(f));

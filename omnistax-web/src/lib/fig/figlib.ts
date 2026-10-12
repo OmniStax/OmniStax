@@ -3045,6 +3045,8 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   if (canvas) { v.wrap.replaceWith(canvas); }
 
   /* ---- three.js ---- */
+  /* a dark hue glows a little of itself, so the face turned from the lamp still reads as its colour */
+  const lum = (c: Obj3): number => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
   const rgb = (c: Color): { c: Obj3; a: number } => { const q = parseRgba(tone(c)) ?? [0, 0, 0, 1]; return { c: new T.Color(q[0] / 255, q[1] / 255, q[2] / 255), a: q[3] }; };
   function build(g: Obj3, marks: readonly SPACE.Mark[]): void {
     const mats = new Map<string, Obj3>();
@@ -3052,7 +3054,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       const key = `${kind}|${tone(c)}|${a}`, got = mats.get(key); if (got) return got;
       const { c: col, a: a0 } = rgb(c), op = a * a0, see = op < 1;
       const m = kind === 'basic' ? new T.MeshBasicMaterial({ color: col, transparent: see, opacity: op, depthWrite: !see })
-        : new T.MeshPhongMaterial({ color: col, shininess: 24, side: T.DoubleSide, transparent: see, opacity: op, depthWrite: !see, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+        : new T.MeshPhongMaterial({ color: col, emissive: col.clone().multiplyScalar(0.4 * (1 - lum(col))), shininess: 24, side: T.DoubleSide, transparent: see, opacity: op, depthWrite: !see, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
       mats.set(key, m); return m;
     };
     const lineMat = (c: Color): Obj3 => { const key = `line|${tone(c)}`, got = mats.get(key); if (got) return got; const { c: col, a } = rgb(c); const m = new T.LineBasicMaterial({ color: col, transparent: a < 1, opacity: a }); mats.set(key, m); return m; };
@@ -3123,7 +3125,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   let queued = false;
   function paint(): void {
     queued = false; if (!canvas) return;
-    const { ctx } = begin(canvas), k = (0.4 * Math.min(H, LW)) / R;
+    const { ctx } = begin(canvas), k = (0.5 * Math.min(H, LW)) / R;
     const cam = REV.camera({ yaw: -turn, pitch: tilt, dist: 2600, cx: LW / 2, cy: H / 2 + (headS ? 18 : 0), s: k, at: m2r(centre) });
     const P = (p: SPACE.V3): Pt => cam.P(m2r(p)) as unknown as Pt;
     const all = [...layers.values()].flatMap((L) => L.marks);
