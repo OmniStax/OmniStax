@@ -13,7 +13,7 @@ import { fixedOf, pagesOfBook } from '../src/lib/colours/counts';
 import { NO_CHOICES, bookReferents, cssFor, referentOrder, schemeOf } from '../src/lib/colours/model';
 import { DEFAULT_REFERENTS, TARGET_DEFAULT } from '../src/lib/colours/referents';
 import { DEFAULT_VISION, palettesFor } from '../src/lib/colours/palettes';
-import { oklabHues } from '../src/lib/colours/sample';
+import { familyHues } from '../src/lib/colours/sample';
 import { bookRulesCss } from '../src/lib/colours/rules';
 
 type Files = Readonly<Record<string, unknown>>;
@@ -66,9 +66,9 @@ const colourEverything = async (files: Files, id: string) => {
   const categories = tree.dto.types.map((t) => String(t.id));
   const pages = pagesOfBook(m);
   const fixed = fixedOf(pages);
-  const colours = oklabHues(categories.length, DEFAULT_VISION);
+  const colours = familyHues(categories.length, DEFAULT_VISION);
   const smart = assignSmart({ categories, colours, pages, fixed, vision: DEFAULT_VISION });
-  const stored = { ...m, colours: { palette: 'oklab', vision: DEFAULT_VISION, assign: Object.fromEntries(smart) } };
+  const stored = { ...m, colours: { palette: 'families', vision: DEFAULT_VISION, assign: Object.fromEntries(smart) } };
   return {
     tree, categories, pages, smart,
     inOrder: assignInOrder(categories, colours),
@@ -97,7 +97,7 @@ test('a book that writes no symbols loads, counts its words and deals its refere
 test('a book that declares no categories loads, assigns nothing and still deals its referents', async () => {
   const r = await colourEverything(NO_TYPES, 'no-types');
   assert.deepEqual(r.categories, []);
-  assert.deepEqual(oklabHues(0, DEFAULT_VISION), []);
+  assert.deepEqual(familyHues(0, DEFAULT_VISION), []);
   assert.equal(r.smart.size, 0); assert.equal(r.inOrder.size, 0);
   assert.deepEqual(r.nearest, []);
   assert.ok(palettesFor(0).every((o) => o.hues.length === 0));

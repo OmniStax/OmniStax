@@ -1,10 +1,10 @@
 /* The colour arithmetic the default colours rest on: OKLab and its distance,
-   colour-vision deficiency, the OKLab palette and the assignment of its colours
-   to categories by what the pages show together. */
+   colour-vision deficiency, the two generated palettes and the assignment of
+   their colours to categories by what the pages show together. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { type Lab, INKS, deltaE, hueGap, deltaEHex, distance, groundContrast, hexOfLab, labOf, linearOf, simulate, labOfLinear } from '../src/lib/colours/oklab';
-import { CONTRAST_FLOOR, minDistance, oklabHues } from '../src/lib/colours/sample';
+import { type Lab, HUE_FAMILIES, INKS, deltaE, hueGap, deltaEHex, distance, groundContrast, hexOfLab, labOf, labOfLch, lightGap, linearOf, sameFamily, seenHue, simulate, labOfLinear } from '../src/lib/colours/oklab';
+import { CONTRAST_FLOOR, FAMILY_HUES, familyHues, minDistance, oklabHues } from '../src/lib/colours/sample';
 import { assignInOrder, assignSmart, assignmentCost } from '../src/lib/colours/assign';
 import { type PageCounts, fixedHueOf, pageCounts } from '../src/lib/colours/counts';
 import type { Hue } from '../src/lib/colours/model';
@@ -93,17 +93,47 @@ test('the ink is on every page, so a category on a page keeps off a colour near 
   assert.deepEqual(smart.get('point'), COLOURS[2], 'the point takes the blue, not the purple beside the ink');
 });
 
+const lch = (L: number, C: number, h: number): Hue => ({ light: hexOfLab(labOfLch([L, C, h])), dark: hexOfLab(labOfLch([1.2 - L, C, h])) });
+
 test('the hue rule keeps two of one family off a page that a distance alone would allow', () => {
-  const purple: Hue = { light: '#A804CC', dark: '#D047F6' }, plum: Hue = { light: '#6B116D', dark: '#FA9DFA' }, green: Hue = { light: '#317D01', dark: '#62AE45' };
-  const pages: readonly PageCounts[] = [new Map([['function', 4], ['derivative', 3]]), new Map([['spare', 2], ['#A804CC', 1], ['#6B116D', 1]])];
-  const fixed = new Map([purple, plum].map((h) => [h.light, { light: h.light, dark: h.light }] as const));
+  const purple = lch(0.5, 0.22, 318), dull = lch(0.4, 0.12, 322), green = lch(0.5, 0.12, 150);
+  const pages: readonly PageCounts[] = [new Map([['function', 4], ['derivative', 3]]), new Map([['spare', 2], [purple.light, 1], [dull.light, 1]])];
+  const fixed = new Map([purple, dull].map((h) => [h.light, h] as const));
   const cats = ['function', 'derivative', 'spare'];
-  const off = assignSmart({ categories: cats, colours: [purple, plum, green], pages, fixed, vision: 'normal' });
-  assert.deepEqual(off.get('spare'), green, 'without the rule the purple and the plum share the first page');
-  assert.ok(distance(purple, plum, 'normal') > 0.12 && hueGap(labOf(purple.light), labOf(plum.light), 0.05) < 45, 'they pass on distance alone');
-  const on = assignSmart({ categories: cats, colours: [purple, plum, green], pages, fixed, vision: 'normal', hues: { degrees: 45, chroma: 0.05 } });
+  assert.ok(distance(purple, dull, 'normal') > 0.12 && hueGap(labOf(purple.light), labOf(dull.light), 0.05) < 30, 'they pass on distance alone');
+  const off = assignSmart({ categories: cats, colours: [purple, dull, green], pages, fixed, vision: 'normal', hues: null });
+  assert.deepEqual(off.get('spare'), green, 'without the rule the two purples share the first page');
+  const on = assignSmart({ categories: cats, colours: [purple, dull, green], pages, fixed, vision: 'normal' });
   assert.ok([on.get('function'), on.get('derivative')].includes(green), 'with the rule one of the pair takes the green');
   assert.equal(hueGap(labOf('#808080'), labOf('#A804CC'), 0.05), 180, 'a grey has no hue to clash');
+});
+
+test('two of one family a clear step of lightness apart cost more than two families and far less than one colour', () => {
+  const deep = lch(0.38, 0.14, 25), light = lch(0.54, 0.2, 25), near = lch(0.44, 0.17, 25), orange = lch(0.54, 0.13, 57);
+  const page: readonly PageCounts[] = [new Map([['a', 1], ['b', 1]])];
+  const cost = (x: Hue, y: Hue): number => assignmentCost(new Map([['a', x], ['b', y]]), page, new Map(), 'normal');
+  assert.ok(distance(deep, light, 'normal') > 0.12 && distance(deep, orange, 'normal') > 0.12);
+  assert.ok(cost(deep, near) > 0.9, 'a step short of clear wears one colour');
+  assert.ok(cost(deep, light) > 5 * cost(deep, orange), `one family ${cost(deep, light).toFixed(3)} against two ${cost(deep, orange).toFixed(3)}`);
+  assert.ok(cost(deep, light) < 0.2);
+  assert.ok(Math.abs(assignmentCost(new Map([['a', deep], ['b', near]]), page, new Map(), 'normal', null) - cost(deep, near)) > 0.5, 'off, only the distance counts');
+});
+
+test('the hue-families palette fills ten families before any takes a second, keeps a family’s colours a clear step apart, and keeps off the ink', () => {
+  (['normal', 'deutan'] as const).forEach((v) => {
+    const fifty = familyHues(50, v);
+    assert.equal(fifty.length, 50);
+    assert.deepEqual(familyHues(12, v), fifty.slice(0, 12), 'the first twelve are the same whatever the count');
+    fifty.forEach((h) => assert.ok(groundContrast(h) >= CONTRAST_FLOOR, `${h.light}/${h.dark} reads on every ground (${groundContrast(h).toFixed(2)})`));
+    fifty.forEach((h) => assert.ok(Math.min(...INKS.map((k) => distance(h, k, 'normal'))) >= 0.12, `${h.light}/${h.dark} keeps off the ink`));
+    assert.equal(new Set(fifty.map((h) => h.light)).size, 50);
+    const seen = fifty.map((h) => seenHue(h, 'normal'));
+    const pairs = (n: number) => seen.slice(0, n).flatMap((p, i) => seen.slice(i + 1, n).map((q) => [p, q] as const));
+    assert.ok(pairs(FAMILY_HUES.length).every(([p, q]) => !sameFamily(p, q, HUE_FAMILIES)), `the first ten are of ten families for ${v}`);
+    assert.ok(pairs(19).every(([p, q]) => !sameFamily(p, q, HUE_FAMILIES) || lightGap(p, q) >= HUE_FAMILIES.lightness), `the first nineteen are of two families or a clear step apart for ${v}`);
+    assert.ok(minDistance(fifty.slice(0, 8), v) > (v === 'normal' ? 0.1 : 0.05), `eight are far apart for ${v}, as far as ten hue families let a deuteranope see`);
+  });
+  assert.ok(FAMILY_HUES.every((h, i) => hueGap(labOfLch([0.5, 0.1, h]), labOfLch([0.5, 0.1, FAMILY_HUES[(i + 1) % FAMILY_HUES.length]]), 0) >= 32), 'the families stand 32° apart, room for a hex to round off its hue');
 });
 
 test('categories no page shows take what is left in their declared order, whatever the seed', () => {

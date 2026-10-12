@@ -1,16 +1,16 @@
 /* Ready-made colours the reader can take: whole palettes, which dress every
    quantity of a place at once, and single swatches for changing one of them.
    A published hue is written for a light ground and its dark one is worked out
-   from it; the OKLab palette works out both values together.
+   from it; the generated palettes work out both values together.
 
    A palette is one of two things, and which it is matters beyond the colours it
    holds. A fixed palette is a list somebody published, and it dresses any count
    up to its length by taking that many from the front; a variable one works its
    colours out for the count it is given, so it answers for a level of any size.
-   The book's own scheme is the OKLab palette, which never runs out. */
+   The book's own scheme is the hue-families palette, which never runs out. */
 import { type Hex, type Hue, d3Rainbow, darkOf, normHex, oklchRing } from './model';
 import type { Vision } from './oklab';
-import { oklabHues } from './sample';
+import { familyHues, oklabHues } from './sample';
 
 export type PaletteId = string & { readonly __brand: 'PaletteId' };
 export const paletteId = (s: string): PaletteId => s as PaletteId;
@@ -98,8 +98,18 @@ export const OKLCH: Palette = generated(
   (n) => oklchRing(n),
 );
 
-/* The book's own palette (sample.ts): the colours farthest apart for the
-   reader's vision that read as text on both grounds, as many as are asked for. */
+/* The book's own palette (sample.ts): ten hue families filled one colour each,
+   then a second a clear step lighter or darker, each farthest apart for the
+   reader's vision and reading as text on both grounds. */
+export const FAMILIES: Palette = generatedPairs(
+  'families',
+  'Hue families',
+  'Ten hues, each used once before any takes a second color a clear step lighter or darker, spread as far as the screen allows for your vision and all readable as text in both themes.',
+  (n, vision) => familyHues(n, vision),
+);
+
+/* The colours farthest apart for the reader's vision that read as text on both
+   grounds, of any hue. */
 export const OKLAB: Palette = generatedPairs(
   'oklab',
   'OKLab',
@@ -112,6 +122,7 @@ export const OKLAB: Palette = generatedPairs(
    rainbow, which is cut rather than trimmed; then the published lists, the
    short and careful ones before the long ones. */
 export const PALETTES: readonly Palette[] = [
+  FAMILIES,
   OKLAB,
   OKLCH,
   generated(

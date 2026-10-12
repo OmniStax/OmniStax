@@ -4,13 +4,14 @@
    readable as hex, and nothing at all once it is past what it can dress. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_VISION, OKLAB, PALETTES, fixed, generated, huesOf, pairsOf, palettesFor } from '../src/lib/colours/palettes';
+import { DEFAULT_VISION, FAMILIES, PALETTES, fixed, generated, huesOf, pairsOf, palettesFor } from '../src/lib/colours/palettes';
 import { isHex, normHex } from '../src/lib/colours/model';
 
 /* The largest count each palette can dress: the two generated ones and Tol's cut
    answer for as many as they are asked, up to their own ceiling, and every
    published list stops at its length. */
 const LIMIT: Readonly<Record<string, number>> = {
+  families: Infinity,
   oklab: Infinity,
   oklch: Infinity,
   rainbow: Infinity,
@@ -33,7 +34,7 @@ const CEILING = 40;
 
 test("the page offers the book's own palette, then the generated palettes, then the published lists", () => {
   assert.deepEqual(PALETTES.map((p) => p.id), [
-    'oklab', 'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
+    'families', 'oklab', 'oklch', 'rainbow', 'tol-rainbow', 'okabe-ito', 'tol-bright', 'tol-vibrant', 'tol-muted', 'tableau-10',
     'category10', 'dark2', 'set1', 'kelly', 'polychrome', 'glasbey',
   ]);
   assert.equal(new Set(PALETTES.map((p) => p.id)).size, PALETTES.length, 'no id is used twice');
@@ -59,8 +60,8 @@ test('every palette answers with exactly the colours the level needs, or with no
   });
 });
 
-test('the three generated palettes never refuse a level', () => {
-  ['oklab', 'oklch', 'rainbow'].forEach((id) => {
+test('the four generated palettes never refuse a level', () => {
+  ['families', 'oklab', 'oklch', 'rainbow'].forEach((id) => {
     const p = PALETTES.find((q) => q.id === id);
     assert.ok(p, `${id} is on offer`);
     for (let n = 1; n <= CEILING; n++) assert.ok(huesOf(p, n), `${id} answers for ${n}`);
@@ -70,16 +71,16 @@ test('the three generated palettes never refuse a level', () => {
 
 test('a level of n is offered every palette that can give n colours, the book\'s own first', () => {
   const offered = (n: number) => palettesFor(n).map((o) => o.palette.id);
-  assert.equal(offered(8)[0], OKLAB.id);
+  assert.equal(offered(8)[0], FAMILIES.id);
   assert.ok(offered(8).some((id) => id === 'okabe-ito') && !offered(9).some((id) => id === 'okabe-ito'), 'a list of eight dresses eight and not nine');
-  assert.deepEqual(offered(50), ['oklab', 'oklch', 'rainbow'], 'past every list only the generators answer');
+  assert.deepEqual(offered(50), ['families', 'oklab', 'oklch', 'rainbow'], 'past every list only the generators answer');
   palettesFor(12).forEach((o) => assert.equal(o.hues.length, 12, `${o.palette.id} gives twelve`));
-  assert.deepEqual(pairsOf(OKLAB, 5, 'deutan'), palettesFor(5, 'deutan')[0].hues);
+  assert.deepEqual(pairsOf(FAMILIES, 5, 'deutan'), palettesFor(5, 'deutan')[0].hues);
 });
 
 test('the default is worked out for normal vision; any other is the reader\'s to state', () => {
   assert.equal(DEFAULT_VISION, 'normal');
-  assert.deepEqual(pairsOf(OKLAB, 5), pairsOf(OKLAB, 5, 'normal'));
+  assert.deepEqual(pairsOf(FAMILIES, 5), pairsOf(FAMILIES, 5, 'normal'));
 });
 
 test("Tol's rainbow is cut afresh for each count rather than trimmed from one list", () => {

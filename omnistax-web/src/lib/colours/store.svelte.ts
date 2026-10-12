@@ -10,7 +10,7 @@ import { settings } from '../settings/store.svelte';
 import { type Edit, type Stack, breakCoalescing, canRedo, canUndo, coalesce, emptyStack, push, redo, redoLabel, undo, undoLabel } from '../history/model';
 import type { BookManifest } from '../content/schema';
 import { type BookId, bookId } from '../types/ids';
-import { DEFAULT_VISION, OKLAB, type Offer, type Palette, type PaletteId, pairsOf } from './palettes';
+import { DEFAULT_VISION, FAMILIES, type Offer, type Palette, type PaletteId, pairsOf } from './palettes';
 import { assignInOrder, assignSmart } from './assign';
 import { fixedOf, pagesOfBook } from './counts';
 import {
@@ -38,7 +38,7 @@ const whereOf = (p: Place): string => (p.level === 'book' ? 'the book' : p.level
 /* Nothing is known about a book until its manifest arrives, and a page may read
    the scheme before then, so the ring standing over no quantities at all is
    what a store without a manifest answers with. */
-const NO_SCHEME: Scheme = { palette: OKLAB, hues: {} };
+const NO_SCHEME: Scheme = { palette: FAMILIES, hues: {} };
 
 /* One book's colours: its manifest, what the reader chose, and its own timeline. */
 type BookColours = { readonly manifest: BookManifest; readonly choices: Choices; readonly stack: Stack };

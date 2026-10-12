@@ -103,6 +103,18 @@ export const hueGap = (p: Lab, q: Lab, floor: number): number => {
 };
 export const seenHueGap = (p: SeenHue, q: SeenHue, floor: number): number =>
   Math.min(hueGap(p.light.lab, q.light.lab, floor), hueGap(p.dark.lab, q.dark.lab, floor));
+/* How far apart a pair sits in OKLab lightness, in its nearer theme. */
+export const lightGap = (p: SeenHue, q: SeenHue): number =>
+  Math.min(Math.abs(p.light.lab[0] - q.light.lab[0]), Math.abs(p.dark.lab[0] - q.dark.lab[0]));
+
+/* A hue family: the colours nearer in hue than `degrees`, both at or above the
+   chroma under which a colour counts as grey. Two of one family are told apart
+   by lightness alone, so they stand a clear step apart only where their
+   lightness differs by `lightness`, the distance a reader takes for two colours
+   (TARGET_DEFAULT): the hue gives no help, so the step alone must reach it. */
+export type HueRule = { readonly degrees: number; readonly chroma: number; readonly lightness: number };
+export const HUE_FAMILIES: HueRule = { degrees: 30, chroma: 0.05, lightness: 0.12 };
+export const sameFamily = (p: SeenHue, q: SeenHue, rule: HueRule): boolean => seenHueGap(p, q, rule.chroma) < rule.degrees;
 
 /* How far apart two category colours are for a reader: the nearer theme, and
    the nearer of normal sight and theirs. */

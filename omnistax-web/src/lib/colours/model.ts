@@ -1,7 +1,7 @@
 /* The colours of the book's quantities, as a plain immutable value. Colour is a
    function of type: the book declares its types, and the app dresses them from
-   a scheme — the default the book stores (book.json `colours`), and the OKLab
-   palette laid along the order for any type it does not cover. What the reader
+   a scheme — the default the book stores (book.json `colours`), and the
+   palette it was taken from laid along the order for any type it does not cover. What the reader
    chooses stands over that scheme. They choose two things: the order the
    quantities stand in, which is what every palette lays its hues along, and a
    colour at a place — the whole book, one chapter, or one section — which
@@ -16,9 +16,8 @@ import type { BookManifest, RefGroupEntry, SectionEntry } from '../content/schem
 import { pagesOf } from '../content/roles';
 import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
 import type { Target } from '../sections/scope';
-import { type Palette, type PaletteId, DEFAULT_VISION, OKLAB } from './palettes';
+import { type Palette, type PaletteId, DEFAULT_VISION, FAMILIES, paletteById, paletteId, pairsOf } from './palettes';
 import { type Vision, INKS, isVision } from './oklab';
-import { oklabHues } from './sample';
 import {
   type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, clashOrder, dealGroup, huesOfGroups,
   inPaletteOrder, isPaletteOrder, isRefMode, referentHues, sameOrder, targetOf,
@@ -237,7 +236,7 @@ export const applyPalette = (c: Choices, place: Place, types: readonly TypeKey[]
   return overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), ...chosen }));
 };
 
-/* The same with both values of every colour given, as the OKLab palette gives them. */
+/* The same with both values of every colour given, as the generated palettes give them. */
 export const applyHues = (c: Choices, place: Place, types: readonly TypeKey[], hues: readonly Hue[]): Choices | null => {
   if (types.length > hues.length) return null;
   const chosen = Object.fromEntries(types.map((t, i) => [t, normHue(hues[i])] as const));
@@ -307,9 +306,9 @@ export const moveType = (m: BookManifest, c: Choices, type: TypeKey, before: Typ
 
 /* The colours the book wears before the reader touches anything. A type the
    book's stored default names wears the colour stored for it; every other type
-   takes, in the reader's order, the next OKLab colour no stored type wears, for
-   the vision the default was worked out for. A book that stores no default is
-   the OKLab palette laid along the order. */
+   takes, in the reader's order, the next colour of the stored default's palette
+   that no stored type wears, for the vision the default was worked out for. A
+   book that stores no default is the hue-families palette laid along the order. */
 export type Scheme = { readonly palette: Palette; readonly hues: Readonly<Record<TypeKey, Hue>> };
 export const schemeOf = (m: Pick<BookManifest, 'types' | 'colours'>, c: Choices): Scheme => {
   const order = orderOf(m, c);
@@ -317,9 +316,11 @@ export const schemeOf = (m: Pick<BookManifest, 'types' | 'colours'>, c: Choices)
   const kept = order.filter((k) => k in stored);
   const rest = order.filter((k) => !(k in stored));
   const worn = new Set(kept.map((k) => normHex(stored[k].light)));
-  const spare = oklabHues(order.length + kept.length, m.colours?.vision ?? DEFAULT_VISION).filter((h) => !worn.has(normHex(h.light)));
+  const own = m.colours ? paletteById(paletteId(m.colours.palette)) : null;
+  const palette = own?.kind === 'variable' ? own : FAMILIES;
+  const spare = (pairsOf(palette, order.length + kept.length, m.colours?.vision ?? DEFAULT_VISION) ?? []).filter((h) => !worn.has(normHex(h.light)));
   return {
-    palette: OKLAB,
+    palette,
     hues: Object.fromEntries([
       ...kept.map((k) => [k, normHue(stored[k])] as const),
       ...rest.map((k, i) => [k, normHue(spare[i])] as const),

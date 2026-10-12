@@ -1,7 +1,7 @@
 /* The referent palette: the colours a page gives the particular things its
    text and figures point at — two tugboats, three skaters, Firm A and Firm B.
    It is always thirty-six colours, taken from any palette that can give that
-   many; by default the OKLab palette's own thirty-six. Colours are dealt per
+   many; by default the hue-families palette's own thirty-six. Colours are dealt per
    group of referents seen together (scopes.ts), in table order, so groups that
    never meet wear the same colours and each group's i-th referent is its
    referent i.
@@ -10,9 +10,12 @@
    then i + 1, i + 2 … round the palette, and wears the first that no earlier
    referent of the group wears, that stands at least the reader's target from
    every colour the group's scope shows and at least twice the target from every
-   referent of the group dealt before it. Where some referent finds none, a group
-   of three or fewer is dealt farthest apart instead: each referent in turn takes
-   the colour left that stands farthest from all of those; a larger group walks
+   referent of the group dealt before it, and of another hue family than each of
+   those (oklab.ts); the scope's colours may share its family. Where some
+   referent finds none, a group of three or fewer is dealt farthest apart
+   instead: each referent in turn takes the colour left that stands farthest
+   from all of those, one of a family a referent before it wears standing
+   nearer than any that is not; a larger group walks
    again at the target alone, and only where that fails too is it dealt farthest
    apart. Smart walks the palette in the order kept for the book: its
    colours sorted by how many referents of the whole book they stand clear of
@@ -20,7 +23,7 @@
    tried first. Pure throughout. */
 import type { Hex, Hue } from './model';
 import { type Offer, type PaletteId, PALETTES, pairsOf } from './palettes';
-import { type DeltaE, type Seen, type SeenHue, type Vision, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
+import { type DeltaE, type HueRule, type Seen, type SeenHue, type Vision, HUE_FAMILIES, sameFamily, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
 
 export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
@@ -39,10 +42,10 @@ export const TARGET_MAX: DeltaE = 0.25;
 export const TARGET_STEP: DeltaE = 0.01;
 export const clampTarget = (t: DeltaE): DeltaE => Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(t * 100) / 100));
 
-/* Written out rather than taken from OKLAB, since palettes.ts reaches this module through model.ts and is
+/* Written out rather than taken from FAMILIES, since palettes.ts reaches this module through model.ts and is
    not yet evaluated when this line runs. */
-const OKLAB_ID = 'oklab' as PaletteId;
-export const DEFAULT_REFERENTS: RefSettings = { palette: OKLAB_ID, mode: 'smart' };
+const FAMILIES_ID = 'families' as PaletteId;
+export const DEFAULT_REFERENTS: RefSettings = { palette: FAMILIES_ID, mode: 'smart' };
 
 export const isRefMode = (s: unknown): s is RefMode => s === 'order' || s === 'smart';
 export const isPaletteOrder = (o: unknown): o is PaletteOrder =>
@@ -67,7 +70,7 @@ export const referentHues = (s: RefSettings, vision: Vision): readonly Hue[] => 
     const p = PALETTES.find((q) => q.id === id);
     return p ? pairsOf(p, REFERENT_COUNT, vision) : null;
   };
-  return pick(s.palette) ?? (pick(OKLAB_ID) as readonly Hue[]);
+  return pick(s.palette) ?? (pick(FAMILIES_ID) as readonly Hue[]);
 };
 
 export type RefHues = ReadonlyMap<ReferentId, Hue>;
@@ -89,13 +92,15 @@ export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight
 
 export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
 
-/* The smart walk: the slot each referent wears, or null where one finds none. `gap` is how far the group's referents stand from each other. */
-export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target): readonly Slot[] | null => {
+/* The smart walk: the slot each referent wears, or null where one finds none. `gap` is how far the group's referents stand from each
+   other, and `hues` keeps each of them in a family of its own. */
+export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target, hues: HueRule | null = HUE_FAMILIES): readonly Slot[] | null => {
   const n = palette.length;
   const clear = palette.map((p) => nearest(p, shown) >= target);
   const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {
-    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j) && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= gap);
+    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j)
+      && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= gap && !(hues && sameFamily(palette[j], palette[s], hues)));
     const slot = Array.from({ length: n }, (_, k) => (i + k) % n).find(fits);
     if (slot === undefined) return null;
     slots.push(slot);
@@ -104,15 +109,17 @@ export const smartSlots = (count: number, palette: readonly SeenHue[], shown: re
 };
 
 /* Farthest apart: each referent in turn takes the slot left that stands farthest from what the scope shows and
-   from the referents dealt before it, the earlier slot on a tie; past the palette's length the slots come round again. */
-export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[]): readonly Slot[] => {
+   from the referents dealt before it, the earlier slot on a tie; past the palette's length the slots come round again.
+   With `hues`, a slot of a family a referent before it wears stands a whole unit nearer, so it goes only where every
+   family is worn. */
+export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], hues: HueRule | null = HUE_FAMILIES): readonly Slot[] => {
   const room = palette.map((p) => nearest(p, shown));
   const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {
     const left = palette.map((_, j) => j).filter((j) => !slots.slice(slots.length - (slots.length % palette.length)).includes(j));
     const pick = left.reduce((best, j) => (room[j] > room[best] ? j : best), left[0]);
     slots.push(pick);
-    palette.forEach((p, j) => { room[j] = Math.min(room[j], seenHueDistance(p, palette[pick])); });
+    palette.forEach((p, j) => { room[j] = Math.min(room[j], seenHueDistance(p, palette[pick]) - (hues && sameFamily(p, palette[pick], hues) ? 1 : 0)); });
   }
   return slots;
 };

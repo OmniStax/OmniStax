@@ -6,9 +6,13 @@
    wins. Conventions and facts are on the page with their own fixed colours, so
    a category is kept from them too; and the ink is on every page, as often as
    the category is, with a colour nearer it than the target read as the ink.
-   With a hue rule, two categories that share a page also count as one colour
-   where both are chromatic and their hues lie nearer than its degrees, so that
-   no page shows two of one family, a purple beside a magenta.
+   The hue rule, on unless turned off, puts two categories that share a page in
+   two hue families (oklab.ts), so that no page shows a purple beside a magenta.
+   Two of one family count as one colour, unless their lightness differs by a
+   clear step, a deep red beside a light one, which a page with more categories
+   than families needs: such a pair costs at least what two colours half a step
+   apart would, more than any two families at the target and far less than one
+   colour.
 
    τ = 0.03 ΔE_OK. Two colours 0.02 apart read as one (φ ≈ 0.51), 0.08 is where
    small marks start to read as two (φ ≈ 0.07) and 0.15 is
@@ -22,7 +26,7 @@
    order, the colour farthest from the ink first. */
 import type { Hue, TypeKey } from './model';
 import type { CountKey, PageCounts } from './counts';
-import { type DeltaE, type SeenHue, type Vision, INKS, seenHue, seenHueDistance, seenHueGap } from './oklab';
+import { type DeltaE, type HueRule, type SeenHue, type Vision, HUE_FAMILIES, INKS, lightGap, sameFamily, seenHue, seenHueDistance } from './oklab';
 import { TARGET_DEFAULT } from './referents';
 
 export type Seed = number;
@@ -30,10 +34,13 @@ export type Cost = number;
 export type Assignment = ReadonlyMap<TypeKey, Hue>;
 
 export const TAU: DeltaE = 0.03;
-/* The nearest two categories of a page may stand in hue, and the chroma under which a colour counts as grey. */
-export type HueRule = { readonly degrees: number; readonly chroma: number };
-export const HUE_FAMILIES: HueRule = { degrees: 30, chroma: 0.05 };
 const phi = (d: DeltaE): Cost => Math.exp(-d / TAU);
+/* What two colours on one page cost. */
+const pairCost = (p: SeenHue, q: SeenHue, hues: HueRule | null): Cost => {
+  const d = phi(seenHueDistance(p, q));
+  if (!hues || !sameFamily(p, q, hues)) return d;
+  return lightGap(p, q) >= hues.lightness ? Math.max(d, phi(hues.lightness / 2)) : 1;
+};
 const inkPhi = (d: DeltaE): Cost => (d < TARGET_DEFAULT ? 1 : phi(d));
 
 export const assignInOrder = (categories: readonly TypeKey[], colours: readonly Hue[]): Assignment =>
@@ -83,7 +90,7 @@ const problemOf = (
   const seen = colours.map((h) => seenHue(h, vision));
   const fixedSeen = fixedKeys.map((k) => seenHue(fixed.get(k) as Hue, vision));
   const D = new Float64Array(n * n);
-  seen.forEach((p, a) => seen.forEach((q, b) => { D[a * n + b] = a === b || (hues && seenHueGap(p, q, hues.chroma) < hues.degrees) ? 1 : phi(seenHueDistance(p, q)); }));
+  seen.forEach((p, a) => seen.forEach((q, b) => { D[a * n + b] = a === b ? 1 : pairCost(p, q, hues); }));
   const E = seen.map((p) => fixedSeen.map((q) => phi(seenHueDistance(p, q))));
   const inks = INKS.map((h) => seenHue(h, vision));
   const inkRoom = seen.map((p) => Math.min(...inks.map((q) => seenHueDistance(p, q))));
@@ -179,10 +186,10 @@ export type SmartInput = {
   readonly fixed: ReadonlyMap<CountKey, Hue>;            /* the convention and fact colours by key */
   readonly vision: Vision;
   readonly seed?: Seed;
-  readonly hues?: HueRule | null;                        /* off unless given */
+  readonly hues?: HueRule | null;                        /* HUE_FAMILIES unless given; null turns it off */
 };
 
-export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 1, hues = null }: SmartInput): Assignment => {
+export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 1, hues = HUE_FAMILIES }: SmartInput): Assignment => {
   if (colours.length < categories.length) throw new Error(`assignSmart: ${colours.length} colours for ${categories.length} categories`);
   const cs = colours.slice(0, categories.length);
   const p = problemOf(categories, cs, pages, fixed, vision, hues);
@@ -191,9 +198,9 @@ export const assignSmart = ({ categories, colours, pages, fixed, vision, seed = 
 };
 
 /* The cost of any assignment under the same objective, for comparing two. */
-export const assignmentCost = (a: Assignment, pages: readonly PageCounts[], fixed: ReadonlyMap<CountKey, Hue>, vision: Vision): Cost => {
+export const assignmentCost = (a: Assignment, pages: readonly PageCounts[], fixed: ReadonlyMap<CountKey, Hue>, vision: Vision, hues: HueRule | null = HUE_FAMILIES): Cost => {
   const categories = [...a.keys()];
-  const p = problemOf(categories, categories.map((c) => a.get(c) as Hue), pages, fixed, vision, null);
+  const p = problemOf(categories, categories.map((c) => a.get(c) as Hue), pages, fixed, vision, hues);
   return costOf(p, Int32Array.from(categories, (_, i) => i));
 };
 
