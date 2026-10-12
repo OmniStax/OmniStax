@@ -3,7 +3,7 @@
      one, its antiderivative or derivative, and the working that reaches it.
      SymPy does the mathematics in a worker (lib/cas), loaded the first time the
      sheet opens; this file asks, draws the answer and nothing else. The address
-     may hand it an expression (?expr=…), which is worked out on arrival. */
+     may hand it an expression (?expr=…), which is worked out on arrival, and ?op=derivative for a derivative. */
   import katex from 'katex';
   import { onMount } from 'svelte';
   import { sheets } from '../../lib/sheets/store.svelte';
@@ -56,6 +56,7 @@
   onMount(() => {
     const own = sheets.entry(book, sheet.id)?.url === location.pathname;
     const given = own ? exprOf(location.search) : null;
+    if (own && new URLSearchParams(location.search).get('op') === 'derivative') op = 'derivative';
     if (given) { text = given; solve(); }
     else ask({ op, text: 'x', preview: true }).then(() => { engine = 'ready'; }, () => { engine = 'failed'; });
   });
