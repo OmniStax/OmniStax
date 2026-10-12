@@ -71,13 +71,16 @@ const TRUSTED: ReadonlySet<string> = new Set(['\\htmlClass', '\\htmlData']);   /
 /* A book's table with the motion macro beside it, made once per table rather than for every formula set. */
 const withMk = new WeakMap<Macros, Macros>();
 const macrosOf = (m: Macros): Macros => { const had = withMk.get(m); if (had) return had; const all = { '\\mk': MK_MACRO, ...m } as Macros; withMk.set(m, all); return all; };
-/* The macros TeX is set with at an element: the book's, under what the page it stands in sets otherwise. */
+/* The macros TeX is set with at an element: its own book's, under what the page it stands in sets otherwise.
+   A figure redraws outside the call that made it, so the element names its book, not `active()`. */
 const pageMacros = new WeakMap<FigPage, Macros>();
 const macrosAt = (el?: Element): Macros => {
+  const own = el?.closest<HTMLElement>('[data-book]')?.dataset.book;
+  const book = (own && figBooks.get(own)) || active();
   const page = el ? pageOf(placeOf(el)) : undefined;
-  if (!page?.macros) return active().macros;
+  if (!page?.macros) return book.macros;
   const had = pageMacros.get(page); if (had) return had;
-  const all = { ...active().macros, ...page.macros }; pageMacros.set(page, all);
+  const all = { ...book.macros, ...page.macros }; pageMacros.set(page, all);
   return all;
 };
 const KOPT = (el?: Element) => ({ macros: macrosOf(macrosAt(el)), trust: (c: { command: string }) => TRUSTED.has(c.command), strict: false as const, throwOnError: false });
