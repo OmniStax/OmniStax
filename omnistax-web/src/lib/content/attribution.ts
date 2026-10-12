@@ -42,7 +42,7 @@ export type AiPart = AiCreditDTO['text'];
 const joinMakers = (part: AiPart, one: (m: AiMakerDTO) => string): string => part.map(one).join(', with ');
 
 /* The models of one part by name, the principal first: "Claude Opus 5, with Claude Fable 5.1". */
-export const aiNames = (part: AiPart): string => joinMakers(part, (m) => aiModelName(m.model));
+export const aiNames = (part: AiPart): string => [...new Set(part.map((m) => aiModelName(m.model)))].join(', with ');
 
 const makerName = (m: AiMakerDTO): string => (m.effort ? `${aiModelName(m.model)} · ${m.effort} effort` : aiModelName(m.model));
 
@@ -80,7 +80,7 @@ export const citation = (a: Attribution): string => {
   const access = a.sourceUrl ? ` Access for free at ${a.sourceUrl}.` : '';
   const holder = a.copyright ? ` © ${a.copyright},` : '';
   const ai = a.ai ? ` ${aiSentence(a.ai)}` : '';
-  return `${works}${by}, ${a.publisher},${holder} ${a.license}, adapted by OmniStax and shared under the same licence.${access}${ai}`;
+  return `${works}${by}, ${a.publisher},${holder} ${a.license}, adapted by OmniStax and shared under the same license.${access}${ai}`;
 };
 
 /* The footer of every adapted article: the credit, the publisher's own
@@ -90,7 +90,7 @@ export const footerHtml = (a: Attribution): string => {
   const by = a.authors.length ? ` by ${esc(nameList(a.authors))}` : '';
   const holder = a.copyright ? `, © ${esc(a.copyright)}` : '';
   const works = a.sources ? nameList(a.sources.map((w) => `<cite>${link(w.url, esc(w.title))}</cite>`)) : `<cite>${esc(a.title)}</cite>`;
-  const credit = `Text from ${works}${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same licence.`;
+  const credit = `Text from ${works}${by} (${link(a.publisherUrl, esc(a.publisher))}${holder}), ${link(a.licenseUrl, esc(a.license), 'license')}, adapted by OmniStax and shared under the same license.`;
   const access = a.sourceUrl ? ` Access for free at ${link(a.sourceUrl, esc(bare(a.sourceUrl)))}.` : '';
   const ai = a.ai ? `<p>${esc(aiSentence(a.ai))}</p>` : '';
   const notes = a.notes ? `<p>${a.notes}</p>` : '';   /* swept for math on the way in, so it is set as it stands */

@@ -70,7 +70,7 @@ test('footer carries author, publisher, copyright, licence, access line and note
   assert.match(html, /<cite>College Physics 2e<\/cite> by Paul Peter Urone and Roger Hinrichs/);
   assert.match(html, /\(<a href="https:\/\/openstax.org\/details\/books\/college-physics-2e">OpenStax<\/a>, © Rice University\), /);
   assert.match(html, /<a href="https:\/\/creativecommons.org\/licenses\/by-nc-sa\/4.0\/" rel="license">CC BY-NC-SA 4.0<\/a>/);
-  assert.match(html, /shared under the same licence/);
+  assert.match(html, /shared under the same license/);
   assert.match(html, /Access for free at <a href="https:\/\/openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement">openstax.org\/books\/college-physics-2e\/pages\/2-1-displacement<\/a>\./);
   assert.match(html, /<p>Problems 2 and 4 are left out.<\/p><\/footer>$/);
 });
@@ -95,13 +95,17 @@ test('footer escapes the book\u2019s own fields and sets the notes as the swept 
 });
 test('citation is plain text with the access line', () => {
   assert.equal(citation(attributionOf(book, { openstax: AT, notes: '', ai: undefined })),
-    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
+    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same license. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement.');
   assert.equal(citation(attributionOf(book, { openstax: AT, notes: '', ai: { text: FABLE, figures: FABLE } })),
-    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same licence. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement. The text was transformed and the simulations were built by Claude Fable 5.1.');
+    'College Physics 2e by Paul Peter Urone and Roger Hinrichs, OpenStax, © Rice University, CC BY-NC-SA 4.0, adapted by OmniStax and shared under the same license. Access for free at https://openstax.org/books/college-physics-2e/pages/2-1-displacement. The text was transformed and the simulations were built by Claude Fable 5.1.');
 });
 test('a book joined from several works credits each by its title and page', () => {
   const vol = (n: number) => ({ title: `Calculus Volume ${n}`, url: `https://openstax.org/details/books/calculus-volume-${n}` });
   const a = attributionOf({ ...book, title: 'Calculus', sources: [vol(1), vol(2), vol(3)] }, { openstax: AT, notes: '', ai: undefined });
   assert.match(footerHtml(a), /Text from <cite><a href="https:\/\/openstax.org\/details\/books\/calculus-volume-1">Calculus Volume 1<\/a><\/cite>, <cite><a href="[^"]*-2">Calculus Volume 2<\/a><\/cite> and <cite><a href="[^"]*-3">Calculus Volume 3<\/a><\/cite> by Paul Peter Urone and Roger Hinrichs \(OpenStax, © Rice University\), /);
   assert.match(citation(a), /^Calculus Volume 1 \(https:\/\/openstax.org\/details\/books\/calculus-volume-1\), Calculus Volume 2 \([^)]*-2\) and Calculus Volume 3 \([^)]*-3\) by Paul Peter Urone and Roger Hinrichs, OpenStax, /);
+});
+
+test('a model listed at two efforts is named once', () => {
+  assert.equal(aiNames([{ model: 'claude-fable-5-1' }, { model: 'claude-opus-5-5', effort: 'low' }, { model: 'claude-opus-5-5', effort: 'high' }]), 'Claude Fable 5.1, with Claude Opus 5.5');
 });
