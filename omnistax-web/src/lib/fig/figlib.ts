@@ -17,6 +17,9 @@ import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './han
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
 import { trace, limit, slope, area, cells, clipLine, judge, ticks, type Rule, type Target } from './plot';
+import * as REV from './solid';
+import { widen, sides } from './deriv';
+import * as SLOPE from './slope';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -2843,6 +2846,133 @@ function readout(d: { readonly readout: HTMLElement }): Readout {
   return { formula, note, set };
 }
 
+/* ---------- Calculus Chapter 6: solids of revolution ----------
+   A region of the book's plane turned about a line of that plane (solid.ts holds the geometry, pure).
+   `F.revolve.mesh` lays the body the region sweeps into a view3d group, lit, in its colour, with the rims
+   and, where the turn stops short, the outline at each cut in ink; `F.revolve.paint` draws faces as a
+   locked view on the canvas, far to near, for the still figures of a page that already holds its 3D
+   scenes. Both take the region as its closed outline (`between`, `betweenY`, `rect`, `strips`) or, for a
+   surface of revolution, a curve with `closed: false`. */
+type RevOpts = { readonly sweep?: REV.Sweep; readonly closed?: boolean; readonly alpha?: number; readonly edges?: Color | null };
+function revMesh(g: Obj3, line: readonly REV.P2[], axis: REV.Axis, color: Color, o: RevOpts = {}): Obj3 {
+  const T = three(); if (!T) return inert();
+  const { sweep = {}, closed = true, alpha: a = 1, edges = PAL.ink } = o;
+  const body = new T.Group();
+  const mat = new T.MeshPhongMaterial({ color: new T.Color(color), shininess: 24, side: T.DoubleSide, transparent: a < 1, opacity: a, depthWrite: a >= 1, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const sheet = (pts: readonly REV.P3[], tris: readonly (readonly [number, number, number])[]): void => {
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pts.flatMap((p) => [p[0], p[1], p[2]]), 3));
+    geo.setIndex(tris.flatMap((t) => [t[0], t[1], t[2]])); geo.computeVertexNormals();
+    body.add(new T.Mesh(geo, mat));
+  };
+  REV.runs(line, closed).forEach((run) => {
+    const rows = REV.grid(run, axis, sweep), w = run.length, tris: [number, number, number][] = [];
+    for (let j = 0; j + 1 < rows.length; j++) for (let i = 0; i + 1 < w; i++) { const k = j * w + i; tris.push([k, k + 1, k + w + 1], [k, k + w + 1, k + w]); }
+    sheet(rows.flat(), tris);
+  });
+  const cut = !REV.full(sweep), tris = closed && cut ? REV.triangulate(line) : [];
+  if (closed && cut) [sweep.from ?? 0, sweep.to ?? 2 * Math.PI].forEach((ang) => sheet(line.map((p) => REV.turn(p, axis, ang)), tris));
+  if (edges) {
+    const ink = new T.LineBasicMaterial({ color: new T.Color(edges) });
+    const poly = (pts: readonly REV.P3[]): void => { body.add(new T.Line(new T.BufferGeometry().setFromPoints(pts.map((p) => new T.Vector3(p[0], p[1], p[2]))), ink)); };
+    const runs = REV.runs(line, closed);
+    runs.forEach((run, i) => { if (closed || i > 0) poly(REV.ring(run[0], axis, sweep)); });
+    if (!closed) poly(REV.ring(line[line.length - 1], axis, sweep));
+    if (cut) [sweep.from ?? 0, sweep.to ?? 2 * Math.PI].forEach((ang) => poly((closed ? [...line, line[0]] : line).map((p) => REV.turn(p, axis, ang))));
+  }
+  g.add(body); return body;
+}
+/* one layer of a painted scene: faces in a colour, at an opacity */
+type RevLayer = { readonly faces: readonly REV.Face[]; readonly color: Color; readonly alpha?: number };
+function revPaint(ctx: Ctx, cam: REV.Cam, layers: readonly RevLayer[]): void {
+  const all = layers.flatMap((l) => l.faces.map((f) => ({ f, l, d: f.reduce((s, p) => s + cam.depth(p), 0) / f.length })));
+  all.sort((p, q) => q.d - p.d);
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = 1;
+  all.forEach(({ f, l }) => {
+    const c = mixColor(l.color, PAL.ink, cam.light(REV.normal(f)));
+    const a = l.alpha ?? 1;
+    ctx.globalAlpha = a; ctx.fillStyle = c; ctx.strokeStyle = c;
+    ctx.beginPath(); f.forEach((p, i) => { const [x, y] = cam.P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath();
+    ctx.fill(); if (a >= 1) ctx.stroke();   /* the hairline hides the seams between opaque faces; on a translucent one it would show as a grid */
+  });
+  ctx.restore();
+}
+const revolve = { ...REV, mesh: revMesh, paint: revPaint };
+
+/* ---------- Calculus Chapter 3: the derivative traced, and one-sided secants ----------
+   `F.deriv({ f, df })` keeps the stretch of x its point has been dragged over. Its draw(ctx, top, below,
+   x, { fc, lc, dc }) plots f on the top axes with the tangent at x, and on the axes below, on the same
+   x-range, f′ faint over the whole range and solid over the stretch traced, a dot at (x, f′(x)) pinned
+   at the edge when it is off the box, and a dashed drop joining the two points; it returns f′(x).
+   reset(x?) forgets the stretch. `F.secants(ctx, ax, f, a, h, color)` draws the secants from (a, f(a))
+   through the points at a − h, dashed, and a + h, dotted, and returns their slopes { left, right }. */
+type DerivColors = { readonly fc: Color; readonly lc: Color; readonly dc: Color };
+export type Tracer = { draw: (ctx: Ctx, top: Axes, below: Axes, x: number, c: DerivColors) => number; reset: (x?: number) => void; readonly seen: Range | null };
+function deriv(o: { readonly f: (x: number) => number; readonly df?: (x: number) => number }): Tracer {
+  const df = o.df ?? ((x: number): number => slope(o.f, x));
+  let seen: Range | null = null;
+  const draw = (ctx: Ctx, top: Axes, below: Axes, x: number, { fc, lc, dc }: DerivColors): number => {
+    const sp = widen(seen, x); seen = sp;
+    plot(ctx, top, o.f, fc);
+    const m = tangent(ctx, top, o.f, x, lc, { df, w: 4 });
+    plot(ctx, below, df, alpha(dc, 0.3), { w: 3 });
+    if (sp[1] > sp[0]) plot(ctx, below, df, dc, { x: sp });
+    const y = o.f(x), inY = (ax: Axes, v: number): Logical => Math.min(ax.box.b, Math.max(ax.box.t, ax.Y(v)));
+    if (Number.isFinite(y) && Number.isFinite(m)) line(ctx, top.X(x), inY(top, y), below.X(x), inY(below, m), alpha(PAL.ink, 0.4), 2.5, [4, 8]);
+    if (Number.isFinite(m)) pinned(ctx, below.box, below.X, below.Y, x, m, dc);
+    return m;
+  };
+  return { draw, reset: (x) => { seen = x === undefined ? null : [x, x]; }, get seen() { return seen; } };
+}
+function secants(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, h: number, color: Color, o: { w?: number } = {}): { left: number; right: number } {
+  const s = sides(f, a, h), fa = f(a), w = o.w ?? 4;
+  through(ctx, ax, a, fa, s.left, color, w, [10, 10]); through(ctx, ax, a, fa, s.right, color, w, [3, 7]);
+  return s;
+}
+
+/* ---------- Calculus Chapter 8: direction fields ----------
+   `F.slopefield.field(ctx, ax, f, color, { n, len, w })` draws the direction field of y′ = f(x, y): a
+   short segment of slope f(x, y) at the centre of each cell of an n[0] by n[1] grid (by default one cell
+   about every 60 canvas units), len canvas units long (by default 0.62 of the smaller cell side), the
+   same length on the canvas whatever its slope, clipped to the box; where f is not a number there is
+   none, and an infinite slope is vertical. `.curve(ctx, ax, f, p, color, { w })` traces the solution
+   through p = [x₀, y₀] both ways across the box and draws it, returning its points; with `F.drag(d,
+   { x, y })` on two sliders, p is the point the reader drags. `.euler(ctx, ax, f, p, h, n, color, { w,
+   dots })` draws Euler's polyline of n steps of size h from p, its vertices dotted, and returns its
+   points. `.trace`, `.steps` (Euler's points), `.grid` and `.segment` are the pure geometry of slope.ts. */
+type FieldOpts = { readonly n?: readonly [number, number]; readonly len?: number; readonly w?: number };
+function slopeField(ctx: Ctx, ax: Axes, f: SLOPE.Fxy, color: Color, o: FieldOpts = {}): void {
+  const q = during(arrivalAt(ctx), 0, 0.5); if (!(q > 0)) return;
+  const { box, X, Y, xr, yr } = ax, W = box.r - box.l, H = box.b - box.t;
+  const n = o.n ?? [Math.max(2, Math.round(W / 60)), Math.max(2, Math.round(H / 60))];
+  const len = o.len ?? 0.62 * Math.min(W / n[0], H / n[1]), sx = W / (xr[1] - xr[0]), sy = H / (yr[1] - yr[0]);
+  ctx.save(); clipTo(ctx, box); ctx.globalAlpha *= q; ctx.strokeStyle = color; ctx.lineWidth = o.w ?? 2.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  SLOPE.grid(xr, yr, n).forEach(([x, y]) => {
+    const s = SLOPE.segment(x, y, f(x, y), len, sx, sy); if (!s) return;
+    ctx.moveTo(X(s[0][0]), Y(s[0][1])); ctx.lineTo(X(s[1][0]), Y(s[1][1]));
+  });
+  ctx.stroke(); ctx.restore();
+}
+function polyIn(ctx: Ctx, ax: Axes, pts: readonly SLOPE.P2[], color: Color, w: number, q: number): void {
+  const { box, X, Y } = ax, far = (v: number): Logical => Math.min(box.b + 1e4, Math.max(box.t - 1e4, Y(v)));
+  ctx.save(); clipTo(ctx, box, box.l + (box.r - box.l) * q); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), far(y)) : ctx.moveTo(X(x), far(y)))); ctx.stroke(); ctx.restore();
+}
+function slopeCurve(ctx: Ctx, ax: Axes, f: SLOPE.Fxy, p: SLOPE.P2, color: Color, o: { readonly w?: number } = {}): SLOPE.P2[] {
+  const pts = SLOPE.trace(f, p, ax.xr, ax.yr), q = during(arrivalAt(ctx), 0.3, 1);
+  if (q > 0) polyIn(ctx, ax, pts, color, o.w ?? 5, q);
+  return pts;
+}
+function slopeEuler(ctx: Ctx, ax: Axes, f: SLOPE.Fxy, p: SLOPE.P2, h: number, n: number, color: Color, o: { readonly w?: number; readonly dots?: boolean } = {}): SLOPE.P2[] {
+  const pts = SLOPE.euler(f, p, h, n), q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return pts;
+  polyIn(ctx, ax, pts, color, o.w ?? 4, q);
+  const { box, X, Y } = ax, reach = box.l + (box.r - box.l) * q;
+  if (o.dots ?? true) pts.forEach(([x, y]) => { const px = X(x), py = Y(y); if (px <= reach + 1 && px >= box.l - 1 && py >= box.t - 1 && py <= box.b + 1) dot(ctx, px, py, color, true, 6); });
+  return pts;
+}
+const slopefield = { field: slopeField, curve: slopeCurve, euler: slopeEuler, trace: SLOPE.trace, steps: SLOPE.euler, grid: SLOPE.grid, segment: SLOPE.segment };
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, typeset, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
@@ -2856,6 +2986,9 @@ export const FIG = {
   arrival, stagger, resample, lerpPts, measure,
   faded, mixColor, blendCurve, readout,
   plot, shade, riemann, tangent, secant, drag, band, judge,
+  revolve,
+  deriv, secants,
+  slopefield,
 };
 export type Fig = typeof FIG;
 

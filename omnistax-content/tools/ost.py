@@ -748,7 +748,7 @@ def parse_row(text: str) -> RowDTO:
 
 
 def find_row(table: Table, rows: Sequence[RowDTO], wanted: str) -> int:
-    keys = [w for w in wanted.split("/")]
+    keys = wanted.split("/", len(table.key) - 1)
     for i, row in enumerate(rows):
         if list(key_of(table, row)) == keys or (len(table.key) == 1 and row.get(table.key[0]) == wanted):
             return i

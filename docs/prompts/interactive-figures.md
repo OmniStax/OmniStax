@@ -74,6 +74,15 @@ band(ctx,ax,f,a,target,delta,color,{side,reach}) -> {ok,best,left,right}   the �
                                           δ works and the escaping graph in PAL.bad when not; best is the largest δ that works (Infinity
                                           if f never leaves within reach, default the box's x-extent from a), left and right per side
 judge(f,a,delta,target,side,reach)        band's verdict without drawing, for a δ slider's special: {at: () => judge(...).best}
+const T = deriv({f, df})                  the derivative traced (Calculus Ch 3): T.draw(ctx, top, below, x, {fc, lc, dc}) plots f on top with
+                                          its tangent at x, and below on the same x-range f′ faint, solid over the stretch dragged over,
+                                          a dot at (x, f′(x)) and a dashed drop between them; returns f′(x); T.reset(x?) forgets the stretch
+secants(ctx,ax,f,a,h,color,{w}) -> {left,right}   the secants from (a, f(a)) to a − h (dashed) and a + h (dotted), for a corner
+slopefield.field(ctx,ax,f,color,{n,len,w})  the direction field of y′ = f(x, y) (Calculus Ch 8): a segment of slope f(x, y) at each cell
+                                          centre, one length on the canvas at every slope, none where f is NaN; color the derivative's, lightened
+slopefield.curve(ctx,ax,f,[x0,y0],color,{w}) -> pts   the solution through (x0, y0) traced both ways across the box (RK4), stopping where
+                                          it blows up; with drag(d,{x,y}) on two sliders the point is the reader's
+slopefield.euler(ctx,ax,f,[x0,y0],h,n,color,{w,dots}) -> pts   Euler's polyline of n steps of size h, vertices dotted; .trace .steps pure
 ```
 
 Specials on the point's slider are where the point catches (a horizontal tangent, a hole); the slider stays in the controls row as the point's value and its keyboard path. Hover names carry the tangent and secant, since they move with the point (rule 26.7).
@@ -154,6 +163,20 @@ F.mesh.hand({curl,thumb,right,scale,color,ink,opacity,aim,palm,at,grip}) -> THRE
                                    along aim × palm on a right hand; ink rim and half fill, recoloured through userData.ink and .fill,
                                    each mesh's part (palm, wrist, thumb, index, middle, ring, little) in userData.part for hover names
 ```
+
+Solids and surfaces of revolution (`F.revolve`, geometry in `solid.ts`; book plane x right, y up, z toward the reader; an axis is `{y: c}` or `{x: c}`):
+
+```
+between(top,bottom,a,b,n) / betweenY(right,left,c,d,n) / rect(x0,x1,y0,y1) -> outline   a region's closed outline
+strips(top,bottom,a,b,n,rule) / stripsY(...) -> outlines   the Riemann rectangles: about a horizontal axis disks or washers, a vertical one shells
+mesh(g,outline,axis,color,{sweep:{from,to,m},closed,alpha,edges}) -> group   the body it sweeps in a view3d group, rims and cut outlines in ink;
+                                          closed:false turns a curve into a surface of revolution; a sweep short of 2π is closed by its cut faces
+solid(outline,axis,sweep) / lathe(line,axis,sweep,closed) / cuts(...) -> faces    turn(p,axis,phi) / ring(p,axis,sweep) -> points
+camera({yaw,pitch,dist,cx,cy,s,at}) -> cam   paint(ctx,cam,[{faces,color,alpha}])   a locked view on the canvas, faces far to near, lit
+volume(faces) / area(faces)               what the faces enclose and their area (a test checks them against the book's integrals)
+```
+
+`mesh` is for a figure the reader turns; `paint` keeps a page's still copies of solids in 2D cost, since a page holds only a few WebGL scenes.
 
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
