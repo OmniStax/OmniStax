@@ -5,12 +5,13 @@
    once, and a key the reader's hand changed glows beneath (glow.ts). The geometry is
    morphgeom's; this file measures, draws and times. */
 import { mkKeys, morphPlan } from './motion';
-import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, type Glyph, type KeyMap, type Track, type Pt } from './morphgeom';
+import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, type Glyph, type KeyMap, type Track, type Pt, type Ring } from './morphgeom';
 import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
 import { lazy, importing } from './lazy';
 
-export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean };
+/* `hi`: keys whose glyphs a box follows through the morph (a derivation's rearranged terms), at `hiAlpha`. */
+export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean; readonly hi?: readonly string[]; readonly hiAlpha?: number };
 type Macros = Readonly<Record<string, string>>;
 const MS = 1200, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/2000/svg';
 const BETWEEN = '\u0000between';
@@ -119,14 +120,37 @@ function overlay(el: HTMLElement, h: Host): SVGSVGElement {
   h.fly = fly;
   return fly;
 }
-function draw(fly: SVGSVGElement, tracks: readonly Track[], t: number, pathArc: number): void {
-  const drawn = frame(tracks, t, pathArc);
-  while (fly.childNodes.length < drawn.length) fly.appendChild(document.createElementNS(SVGNS, 'path'));
-  while (fly.childNodes.length > drawn.length) fly.lastChild!.remove();
+/* The overlay's two layers: the boxes under the keys `hi` names, then the glyphs above them. */
+function layer(fly: SVGSVGElement, cls: 'tm-hi' | 'tm-ink'): SVGGElement {
+  const had = fly.querySelector<SVGGElement>(`:scope > g.${cls}`); if (had) return had;
+  const g = document.createElementNS(SVGNS, 'g'); g.classList.add(cls);
+  if (cls === 'tm-hi') fly.prepend(g); else fly.appendChild(g);
+  return g;
+}
+function boxes(fly: SVGSVGElement, groups: readonly (readonly Ring[])[], alpha: number): void {
+  const g = layer(fly, 'tm-hi'), bs = groups.map((rs) => boxOf(rs)).filter((b) => b.x1 > b.x0);
+  while (g.childNodes.length < bs.length) g.appendChild(document.createElementNS(SVGNS, 'rect'));
+  while (g.childNodes.length > bs.length) g.lastChild!.remove();
+  bs.forEach((b, i) => {
+    const r = g.childNodes[i] as SVGRectElement;
+    Object.entries({ x: b.x0 - 3, y: b.y0 - 3, width: b.x1 - b.x0 + 6, height: b.y1 - b.y0 + 6, rx: 3, opacity: alpha.toFixed(3) }).forEach(([k, v]) => r.setAttribute(k, String(v)));
+    r.style.fill = 'var(--hl-yellow)';
+  });
+}
+function draw(fly: SVGSVGElement, tracks: readonly Track[], t: number, pathArc: number, hi: readonly string[] = [], alpha = 1): void {
+  const drawn = frame(tracks, t, pathArc), ink = layer(fly, 'tm-ink');
+  while (ink.childNodes.length < drawn.length) ink.appendChild(document.createElementNS(SVGNS, 'path'));
+  while (ink.childNodes.length > drawn.length) ink.lastChild!.remove();
   drawn.forEach((d, i) => {
-    const p = fly.childNodes[i] as SVGPathElement;
+    const p = ink.childNodes[i] as SVGPathElement;
     p.setAttribute('d', pathD(d.rings)); p.setAttribute('fill', d.ink); p.setAttribute('opacity', d.opacity.toFixed(3));
   });
+  if (hi.length) boxes(fly, hi.map((k) => drawn.flatMap((d, i) => (tracks[i].end.key === k && d.opacity > 0.3 ? d.rings : []))), alpha);
+}
+/* A still formula's boxes, for the beats before and after its morph. */
+function still(el: HTMLElement, h: Host, svgs: readonly SVGSVGElement[], r: Render, hi: readonly string[], alpha: number): void {
+  const gs = measure(svgs, r); if (!gs || !(alpha > 0)) return;
+  boxes(overlay(el, h), hi.map((k) => gs.filter((g) => g.key === k).flatMap((g) => g.rings)), alpha);
 }
 /* Both ends measured in place: the source as it stands, then the target laid out hidden. */
 function prepare(el: HTMLElement, h: Host, a: Render, b: Render, macros: Macros, keyMap?: KeyMap): { tracks: Track[]; svg: SVGSVGElement[] } | null {
@@ -255,7 +279,11 @@ export function morphAt(el: HTMLElement, a: string, b: string, k: number, displa
     const ra = renderOf(m, macros, a, display), rb = renderOf(m, macros, b, display);
     const end = REDUCED ? (k < 0.5 ? ra : rb) : k <= 0 ? ra : k >= 1 ? rb : null;
     h.tex = end ? end.tex : BETWEEN; h.target = end;
-    if (end) { if (h.shown !== end || !el.firstChild) show(el, h, end, macros); return; }
+    if (end) {
+      const svgs = h.shown !== end || !el.firstChild ? show(el, h, end, macros) : svgsOf(el);
+      if (opts.hi?.length) still(el, h, svgs, end, opts.hi, opts.hiAlpha ?? 1);
+      return;
+    }
     const box = (el.parentElement ?? el).getBoundingClientRect();
     const sig = [a, b, display, box.left + scrollX, box.top + scrollY, box.width, getComputedStyle(el).color].join('\u0000');
     if (h.scrub?.sig !== sig) {
@@ -264,6 +292,6 @@ export function morphAt(el: HTMLElement, a: string, b: string, k: number, displa
       h.scrub = { sig, tracks: p.tracks, b: rb };
     } else if (h.shown !== rb) show(el, h, rb, macros, true);
     else svgsOf(el).forEach((s) => { s.style.visibility = 'hidden'; });
-    draw(overlay(el, h), h.scrub.tracks, k, opts.pathArc ?? 0);
+    draw(overlay(el, h), h.scrub.tracks, k, opts.pathArc ?? 0, opts.hi, opts.hiAlpha ?? 1);
   });
 }
