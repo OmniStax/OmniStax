@@ -220,6 +220,16 @@ test('a 3D view draws a button row only for the buttons it asks for: spin when i
   assert.equal(bars({ zoom: true }), 1);
   assert.equal(bars({ views: [{ label: 'front', yaw: 0, pitch: 0 }] }), 1);
 });
+test('a 3D view turns to any pitch when its pitch is free, and clamps it to the bounds it is given', () => {
+  const pitchAt = (o: Record<string, unknown>, p: number) => onStage(anything({ WebGLRenderer: function () { return anything(); } }), (stage) => {
+    const v = FIG.view3d(stage as unknown as HTMLElement, o);
+    v.setView(0.4, p);
+    return [v.at.yaw, v.at.pitch];
+  });
+  assert.deepEqual(pitchAt({ yaw: 'free', pitch: 'free' }, 2), [0.4, 2]);
+  assert.deepEqual(pitchAt({ pitch: [-1, 1] }, 2), [0.4, 1]);
+  assert.deepEqual(pitchAt({}, -3), [0.4, -Math.PI / 2]);
+});
 test('without WebGL a 3D view shows one line and every call on it, its parts included, is a safe no-op', () => {
   const thrower = anything({ WebGLRenderer: function () { throw new Error('no WebGL'); } });
   for (const three of [thrower, undefined]) onStage(three, (stage) => {

@@ -2196,7 +2196,7 @@ type Spin = 'idle' | 'off';
 type View3dOpts = {
   h?: Logical; dist?: number; tilt?: Radians;
   spin?: Spin; zoom?: boolean; views?: readonly ViewPreset[];
-  pitch?: readonly [Radians, Radians]; yaw?: readonly [Radians, Radians] | 'free';
+  pitch?: readonly [Radians, Radians] | 'free'; yaw?: readonly [Radians, Radians] | 'free';
   zoomMin?: number; zoomMax?: number; onRender?: () => void;
 };
 export type View3d = {
@@ -2388,7 +2388,7 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
   const orient = (): void => { orbit.setFromAxisAngle(AX, pitch).multiply(qy.setFromAxisAngle(UP, yaw)); need = true; };
   const aim = (y: Radians, p: Radians): void => {
     yaw = yawLim === 'free' ? y : clamp(y, yawLim[0], yawLim[1]);
-    pitch = clamp(p, pitchLim[0], pitchLim[1]); orient();
+    pitch = pitchLim === 'free' ? p : clamp(p, pitchLim[0], pitchLim[1]); orient();
   };
   const setZoom = (z: number): void => { zoom = clamp(z, zoomMin, zoomMax); camera.position.set(target[0], target[1], target[2] + dist / zoom); camera.updateProjectionMatrix(); need = true; };
   const viewNow = (): CamView => ({ yaw, pitch, zoom, target });
