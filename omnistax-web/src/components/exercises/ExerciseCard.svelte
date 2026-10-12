@@ -3,7 +3,7 @@
   import { pin } from '../../lib/sections/concepts.svelte';
   import { conceptId, exerciseDomId, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
-  import { solutionText, type Verdict } from '../../lib/exercises/check';
+  import { hintText, solutionText, type Verdict } from '../../lib/exercises/check';
   import { practice } from '../../lib/practice/store.svelte';
   import type { SessionId } from '../../lib/practice/model';
   import { mathHtml } from '../actions/math';
@@ -43,6 +43,7 @@
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
   const sol = $derived(solutionText(a));
+  const hint = $derived(hintText(a));
   const gen = $derived(isGenerated(ex.id) ? generated.get(ex.id) : undefined);
   const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -70,11 +71,14 @@
   let localDone = $state(false);
   let localOutcome = $state<boolean | null>(null);
   let solutionOpen = $state(false);
+  let hintOpen = $state(false);
   let foldOpen = $state(false);
   const completed = $derived(outcome !== null || localDone);
   const recorded = $derived(outcome ?? localOutcome);
   /* a correction of the solution waits for the solution, as a review's waits for its fold */
   const solutionShown = $derived(review ? foldOpen : solutionOpen || completed);
+  const hintShown = $derived(!!hint && (hintOpen || solutionShown));
+  const noteShown = (c: { solution?: boolean; hint?: boolean }): boolean => (c.solution ? solutionShown : c.hint ? hintShown : true);
   const record = (ok: boolean, self: boolean): void => {
     if (completed || review) return;
     if (!inline) practice.record(book, section, ex, ok, self, Date.now(), session);
@@ -94,6 +98,7 @@
   let answered = $state('');
   const onGraded = (g: Graded, answer: string): void => { graded = g; answered = answer; solutionOpen = true; record(g.verdict === 'right', false); };
   const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed && !aiGrading);
+  const hintable = $derived(!review && !!hint && !hintShown && !completed);
   const openLinked = (e: MouseEvent): void => { if (linked) void openItem(itemKey(drawingItem(linked)), undefined, openingOf(e)); };
 
   const KIND_ICON: Readonly<Record<string, string>> = { note: ICON.note, drawing: ICON.drawing, chat: ICON.chat };
@@ -145,6 +150,17 @@
   </div>
 {/snippet}
 
+{#snippet hintBlock()}
+  <div class="solution-block">
+    <div class="eyebrow">Hint</div>
+    <div class="body" use:mathHtml={hint}></div>
+  </div>
+{/snippet}
+
+{#snippet hintButton()}
+  <button type="button" class="btn reveal-btn" onclick={() => (hintOpen = true)}>Show hint</button>
+{/snippet}
+
 {#snippet verdict(ok: boolean | null)}
   {#if ok === null}<p class="verdict skipped">Skipped</p>
   {:else}<p class="verdict" class:ok class:bad={!ok}><span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{ok ? 'Correct' : 'Incorrect'}</span></p>{/if}
@@ -174,6 +190,7 @@
     <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} tools={inline ? undefined : scratchpad} />
     {#if completed && sol}{@render solution()}{/if}
   {:else if sol}
+    {#if hintShown}{@render hintBlock()}{/if}
     {#if solutionOpen || completed}
       {#if graded}<div class="graded" role="status"><b class="v-{graded.verdict}">{GRADED[graded.verdict]}</b>{#if graded.feedback} <span use:mathHtml={graded.feedback}></span>{/if}</div>{/if}
       {@render solution()}
@@ -190,10 +207,12 @@
   {/if}
 
   {#if !review && aiGrading && !completed}
+    {#if hintable}<div class="actions">{@render hintButton()}</div>{/if}
     <AiGrade {ex} {at} ongraded={onGraded} onfail={(why) => (gradeFailed = why)} />
-  {:else if !review && ((!inline && a.type !== 'choice') || revealable)}
+  {:else if !review && ((!inline && a.type !== 'choice') || revealable || hintable)}
     <div class="actions">
       {#if !inline}{@render scratchpad()}{/if}
+      {#if hintable}{@render hintButton()}{/if}
       {#if revealable}<button type="button" class="btn primary reveal-btn" onclick={() => (solutionOpen = true)}>Show solution</button>{/if}
     </div>
   {/if}
@@ -228,8 +247,8 @@
     </div>
   {/if}
 
-  {#if ex.corrections?.some((c) => !c.solution || solutionShown)}
-    <ol class="corrections" aria-label="Corrections">{#each ex.corrections as c, i}{#if !c.solution || solutionShown}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
+  {#if ex.corrections?.some(noteShown)}
+    <ol class="corrections" aria-label="Corrections">{#each ex.corrections as c, i}{#if noteShown(c)}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
   {/if}
 
   {#if ex.concepts.length}
@@ -245,7 +264,7 @@
   {/if}
 
   {#if review}
-    {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{@render solution()}</details>{/if}
+    {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
     {#if scratched || linked}
       <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}Scratch work</button></div>
     {/if}
@@ -269,6 +288,7 @@
   .prompt :global(table.data th),.prompt :global(table.data td){border:1px solid var(--rule);padding:2px 10px;text-align:right}
   .actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
   .reveal-btn{margin-left:auto}
+  .reveal-btn+.reveal-btn{margin-left:0}
   .tools{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
   .follow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
   .linked{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}

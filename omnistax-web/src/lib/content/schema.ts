@@ -363,6 +363,7 @@ export const AnswerSchema = z.discriminatedUnion('type', [
   }).strict(),
   z.object({
     type: z.literal('open').describe('An answer in words, which the reader checks themselves.'),
+    hint: z.string().optional().describe('A nudge the reader can ask for before seeing the answer.'),
     solution: z.string().optional().describe('The answer the book gives, which the reader compares their own against.'),
     generated_by: GEN,
   }).strict(),
@@ -535,7 +536,7 @@ const SourceNamedServedExerciseSchema = ExerciseSchema
     concepts: z.array(CONCEPT_REF).default([]),
     weights: z.record(z.number()).optional(),
     credit: ExerciseSourceSchema.optional(),
-    corrections: z.array(z.object({ html: z.string(), solution: z.boolean().optional() })).optional(),
+    corrections: z.array(z.object({ html: z.string(), solution: z.boolean().optional(), hint: z.boolean().optional() })).optional(),
   })
   .strip()
   .transform(({ source_id, source_section, source_number, ...e }) => ({

@@ -361,7 +361,7 @@ const exerciseStrings = (e: ExerciseRowDTO): readonly string[] => {
     e.prompt,
     ...(a.type === 'choice' ? a.options : []),
     ...(a.type === 'multi' ? a.parts.flatMap((p) => p.hint ?? []) : []),
-    ...((a.type === 'number' || a.type === 'choice') && a.hint !== undefined ? [a.hint] : []),
+    ...(a.type !== 'multi' && a.hint !== undefined ? [a.hint] : []),
     ...(a.solution === undefined ? [] : [a.solution]),
   ];
 };

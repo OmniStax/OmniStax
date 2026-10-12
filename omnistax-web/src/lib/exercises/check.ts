@@ -22,3 +22,8 @@ export const checkChoice = (picked: number | null, correct: number, hint?: strin
    to compare against, and gets none. */
 export const solutionText = (a: AnswerDTO): string | undefined =>
   a.solution ?? (a.type === 'number' ? `${a.value} ${a.unit}`.trim() : a.type === 'multi' ? a.parts.map((p) => `${p.part}: ${p.value} ${p.unit}`.trim()).join(' · ') : undefined);
+
+/* The nudge a card holds back until the reader asks for it. A choice's hint answers a wrong pick instead. */
+export const hintText = (a: AnswerDTO): string | undefined =>
+  a.type === 'multi' ? (a.parts.some((p) => p.hint) ? a.parts.flatMap((p) => (p.hint ? [`<p>${p.part}. ${p.hint}</p>`] : [])).join('') : undefined)
+  : a.type === 'choice' ? undefined : a.hint;

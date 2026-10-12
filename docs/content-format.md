@@ -264,7 +264,7 @@ The exercises the section sets.
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
 | `figure` | `{ src, alt?, caption? }?` | no | A book figure the problem refers to, kept in the card. |
 | `prompt` | `string` | yes | The question as the book asks it. |
-| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", solution?, generated_by? }` | yes | The answer and how it is checked. |
+| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", hint?, solution?, generated_by? }` | yes | The answer and how it is checked. |
 
 ### `exercise_concepts`
 
@@ -336,6 +336,7 @@ An exercise’s answer, one shape per way of checking it.
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `type` | `"open"` | yes | An answer in words, which the reader checks themselves. |
+| `hint` | `string?` | no | A nudge the reader can ask for before seeing the answer. |
 | `solution` | `string?` | no | The answer the book gives, which the reader compares their own against. |
 | `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
 

@@ -232,23 +232,23 @@ export const placeNotes = (html: string, raw: readonly FootnoteRowDTO[], section
 
 /* A correction of an exercise travels with its card, which may be set far from its section: the markers of the
    prompt, the options, the hints and the solution are numbered [1], [2]… in that order, card by card, and the
-   notes ride on the exercise, AI-marked, for the card to print under it. A note on the solution says so, since the
-   card holds it back until the solution shows. The section's own list leaves them out. */
+   notes ride on the exercise, AI-marked, for the card to print under it. A note on the solution, or on a hint the card
+   holds back, says so, since the card holds the note back with it. The section's own list leaves them out. */
 export const noteExercise = (e: ExerciseDTO, rows: readonly FootnoteRowDTO[], byline?: string): ExerciseDTO => {
   const byId = new Map(rows.filter((r) => r.kind === 'correction').map((r) => [r.id, r]));
-  const notes: { html: string; solution?: boolean }[] = [];
-  const num = (html: string, solution = false): string => html.replace(NOTE_MARKER, (tag, id: string) => {
+  const notes: { html: string; solution?: boolean; hint?: boolean }[] = [];
+  const num = (html: string, held?: 'solution' | 'hint'): string => html.replace(NOTE_MARKER, (tag, id: string) => {
     const r = byId.get(id); if (!r) return tag;
-    notes.push({ html: aiMarked(r.html, byline), ...(solution ? { solution } : {}) });
+    notes.push({ html: aiMarked(r.html, byline), ...(held ? { [held]: true } : {}) });
     return `<sup class="fn correction">[${notes.length}]</sup>`;
   });
-  const a = e.answer, prompt = num(e.prompt);
+  const a = e.answer, prompt = num(e.prompt), held = a.type === 'choice' ? undefined : 'hint';
   const answer = {
     ...a,
     ...(a.type === 'choice' ? { options: a.options.map((o) => num(o)) } : {}),
-    ...(a.type === 'multi' ? { parts: a.parts.map((p) => (p.hint === undefined ? p : { ...p, hint: num(p.hint) })) } : {}),
-    ...('hint' in a && a.hint !== undefined ? { hint: num(a.hint) } : {}),
-    ...(a.solution === undefined ? {} : { solution: num(a.solution, true) }),
+    ...(a.type === 'multi' ? { parts: a.parts.map((p) => (p.hint === undefined ? p : { ...p, hint: num(p.hint, held) })) } : {}),
+    ...('hint' in a && a.hint !== undefined ? { hint: num(a.hint, held) } : {}),
+    ...(a.solution === undefined ? {} : { solution: num(a.solution, 'solution') }),
   } as ExerciseDTO['answer'];
   return notes.length === 0 ? e : { ...e, prompt, answer, corrections: notes };
 };
