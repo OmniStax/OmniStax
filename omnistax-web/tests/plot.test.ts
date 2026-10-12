@@ -1,7 +1,7 @@
 /* figlib's function plotter: where a graph breaks, and the numbers drawn beside it. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { trace, limit, slope, area, cells, clipLine } from '../src/lib/fig/plot';
+import { trace, limit, slope, area, cells, clipLine, judge, ticks } from '../src/lib/fig/plot';
 
 const box = { l: 100, r: 1300, t: 100, b: 500 };
 const frame = (xr: [number, number], yr: [number, number]) => ({
@@ -47,4 +47,36 @@ test('a line is clipped to the frame, or is nowhere in it', () => {
   const [a, b] = clipLine(0, 0, 2, [-5, 5], [-4, 4])!;
   assert.deepEqual([a[0], a[1], b[0], b[1]], [-2, -4, 2, 4]);
   assert.equal(clipLine(0, 10, 0, [-5, 5], [-4, 4]), null);
+});
+
+const near = (a: number, b: number, tol = 1e-6) => assert.ok(Math.abs(a - b) < tol, `${a} is not ${b}`);
+
+test('the largest δ for ε is found where the graph leaves the band', () => {
+  near(judge((x) => 2 * x + 1, 1, 0.1, { L: 3, eps: 0.5 }, 0, 4).best, 0.25);
+  const sq = judge((x) => x * x, 2, 0.2, { L: 4, eps: 1 }, 0, 4);
+  near(sq.best, Math.min(2 - Math.sqrt(3), Math.sqrt(5) - 2)); assert.ok(sq.ok);
+  near(sq.left, 2 - Math.sqrt(3)); near(sq.right, Math.sqrt(5) - 2);
+  assert.equal(judge((x) => x * x, 2, 0.3, { L: 4, eps: 1 }, 0, 4).ok, false);
+  assert.ok(judge((x) => 2 * x + 1, 1, 0.25, { L: 3, eps: 0.5 }, 0, 4).ok);
+  assert.equal(judge(() => 3, 1, 1, { L: 3, eps: 0.5 }, 0, 4).best, Infinity);
+});
+
+test('no δ works for a wrong L or a jump, and one side can work alone', () => {
+  assert.ok(judge((x) => Math.abs(x) / x, 0, 1e-3, { L: 0.3, eps: 0.5 }, 0, 2).best < 1e-6);
+  assert.equal(judge((x) => Math.abs(x) / x, 0, 1, { L: 1, eps: 0.5 }, 1, 2).best, Infinity);
+  near(judge((x) => Math.sqrt(x - 4), 4, 0.01, { L: 0, eps: 0.5 }, 1, 4).best, 0.25);
+  assert.ok(judge((x) => Math.sin(1 / x), 0, 1e-3, { L: 0, eps: 0.5 }, 0, 1).best < 1e-6);
+});
+
+test('an infinite limit: δ where f stays past M', () => {
+  near(judge((x) => 1 / (x - 1) ** 2, 1, 0.1, { M: 25 }, 0, 4).best, 0.2);
+  near(judge((x) => 1 / (x - 1), 1, 0.1, { M: -10, to: -1 }, -1, 4).best, 0.1);
+  assert.ok(judge((x) => 1 / (x - 1), 1, 0.1, { M: -10, to: -1 }, 1, 4).best < 1e-6);
+});
+
+test('ticks fall on round values at every zoom', () => {
+  assert.deepEqual(ticks(-1, 1, 4), { vals: [-1, -0.5, 0, 0.5, 1], dec: 1 });
+  const t = ticks(-0.0037, 0.0037, 4);
+  assert.equal(t.dec, 3); assert.equal(t.vals.length, 3); near(t.vals[0], -0.002, 1e-12);
+  assert.deepEqual(ticks(0, 8, 4).vals, [0, 2, 4, 6, 8]);
 });

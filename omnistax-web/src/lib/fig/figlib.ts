@@ -16,7 +16,7 @@ import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf
 import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './hand';
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
-import { trace, limit, slope, area, cells, clipLine, type Rule } from './plot';
+import { trace, limit, slope, area, cells, clipLine, judge, ticks, type Rule, type Target } from './plot';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -47,7 +47,7 @@ type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Log
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color; tex?: boolean };
 type CtlOpts = { label: string; cls: string; key?: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
-type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string };
+type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string; nice?: boolean };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
 const $$ = <T extends Element = Element>(s: string, r: ParentNode = document): T[] => Array.from(r.querySelectorAll<T>(s));
@@ -180,7 +180,7 @@ function renderMath(root: HTMLElement): void {
 /* What each of the reader's colour families shows (RULES item 7): facts and conventions, referents, concepts. */
 let SHOWN: ColourShown = { facts: true, refs: true, concepts: true };
 const PAL: Record<string, Color> = {};
-const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg']);
+const NEUTRAL = new Set(['ink', 'muted', 'rule', 'soft', 'soft2', 'panel', 'bg', 'bad']);
 const cssVar = (n: string, el: Element = document.documentElement): string => getComputedStyle(el).getPropertyValue(n).trim();
 /* The element palette is not a type and takes nothing from the scheme, so it is
    read beside the palette rather than out of it: the only thing it needs from
@@ -208,7 +208,7 @@ const baseOf = (book: string): Record<string, Color> => {
 };
 function readPal(): void {
   darkTheme = readTheme();
-  neutral = { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg') };
+  neutral = { ink: cssVar('--ink'), muted: cssVar('--muted'), rule: cssVar('--rule'), soft: cssVar('--soft'), soft2: cssVar('--soft2'), panel: cssVar('--panel'), bg: cssVar('--bg'), bad: cssVar('--bad') };
   bookPal.clear(); scopePal.clear(); hued.clear(); unnamed.clear(); bound.clear(); Object.assign(PAL, neutral, baseOf(bootBook));
 }
 /* A figure draws with the palette of its own book and of the article it sits in, and a section may
@@ -883,8 +883,11 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): Axes 
   const nx = o.nx ?? 4, ny = o.ny ?? 3;
   const k = arrivalAt(ctx), grow = during(k, 0, 0.25), fade = during(k, 0.15, 0.4);
   ctx.save(); ctx.globalAlpha *= fade;
-  for (let i = 0; nx > 0 && i <= nx; i++) { const v = xr[0] + ((xr[1] - xr[0]) * i) / nx; if (i) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, 0), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); }
-  for (let i = 0; ny > 0 && i <= ny; i++) { const v = yr[0] + ((yr[1] - yr[0]) * i) / ny; if (i) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, 0), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); }
+  /* nice: ticks at round values for whatever range this frame has, as a zoom needs */
+  const at = (r: Range, n: number): { vals: number[]; dec: number } => n <= 0 ? { vals: [], dec: 0 } : o.nice ? ticks(r[0], r[1], n) : { vals: Array.from({ length: n + 1 }, (_, i) => r[0] + ((r[1] - r[0]) * i) / n), dec: 0 };
+  const tx = at(xr, nx), ty = at(yr, ny);
+  tx.vals.forEach((v) => { if (v !== xr[0]) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, tx.dec), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); });
+  ty.vals.forEach((v) => { if (v !== yr[0]) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, ty.dec), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); });
   if (o.xl) text(ctx, o.xl, box.r, box.b + 58, o.xc ?? PAL.ink, { align: 'right', weight: 600, size: 20 });
   if (o.yl) text(ctx, o.yl, box.l, box.t - 24, o.yc ?? PAL.ink, { align: 'left', weight: 600, size: 20 });
   ctx.restore();
@@ -1001,6 +1004,44 @@ function tangent(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, color:
 }
 function secant(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, b: number, color: Color, o: LineOpts = {}): number {
   const m = (f(b) - f(a)) / (b - a); through(ctx, ax, a, f(a), m, color, o.w ?? 3, o.dash); return m;
+}
+/* `band`: the ε–δ picture of a limit claim about f at a. The target (L ± ε, or past M for an infinite
+   limit) is a strip across the box in color, the δ window about a (or on one side of it) a strip in
+   ink, where the graph first leaves the target on each side is dropped to the x-axis, and the box
+   window × target is outlined in color when δ works; when it does not, the graph's escaping part over
+   the window is drawn in bad. Returns judge's verdict: ok, best (the largest δ that works), left, right. */
+type BandOpts = { side?: -1 | 0 | 1; reach?: number };
+function band(ctx: Ctx, ax: Axes, f: (x: number) => number, a: number, t: Target, delta: number, color: Color, o: BandOpts = {}): ReturnType<typeof judge> {
+  const { box, X, Y, xr, yr } = ax, side = o.side ?? 0;
+  const v = judge(f, a, delta, t, side, o.reach ?? Math.max(side > 0 ? 0 : a - xr[0], side < 0 ? 0 : xr[1] - a));
+  const q = during(arrivalAt(ctx), 0.3, 1); if (!(q > 0)) return v;
+  const [y0, y1] = 'L' in t ? [t.L - t.eps, t.L + t.eps] : (t.to ?? 1) > 0 ? [t.M, Infinity] : [-Infinity, t.M];
+  const [x0, x1] = [side > 0 ? a : a - delta, side < 0 ? a : a + delta];
+  const T = Math.max(box.t, Math.min(box.b, Y(y1))), B = Math.max(box.t, Math.min(box.b, Y(y0)));
+  const L = Math.max(box.l, X(x0)), R = Math.min(box.r, X(x1));
+  ctx.save(); ctx.globalAlpha *= q; clipTo(ctx, box);
+  const fill = (c: Color, k: number, x: Logical, y: Logical, w: Logical, h: Logical): void => faded(ctx, k, [0, 0], () => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); });
+  fill(color, 0.14, box.l, T, box.r - box.l, B - T); fill(PAL.ink, 0.07, L, box.t, R - L, box.b - box.t);
+  [y0, y1].filter(Number.isFinite).forEach((y) => line(ctx, box.l, Y(y), box.r, Y(y), color, 2, [10, 10]));
+  [x0, x1].filter((x) => x !== a).forEach((x) => line(ctx, X(x), box.t, X(x), box.b, alpha(PAL.ink, 0.5), 2, [10, 10]));
+  line(ctx, X(a), box.t, X(a), box.b, alpha(PAL.ink, 0.35), 2, [4, 8]);
+  const axisY = yr[0] < 0 && yr[1] > 0 ? Y(0) : box.b;
+  ([[-1, v.left], [1, v.right]] as const).forEach(([s, d]) => {
+    if (!Number.isFinite(d)) return; const x = a + s * d, y = limit(f, x, s === 1 ? -1 : 1);
+    if (!Number.isFinite(y) || X(x) < box.l || X(x) > box.r) return;
+    line(ctx, X(x), Y(y), X(x), axisY, color, 2, [4, 8]); dot(ctx, X(x), Math.max(box.t, Math.min(box.b, Y(y))), color, true, 6);
+  });
+  const stroke = (c: Color): void => {
+    ctx.strokeStyle = c; ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const e = 1e-9 * Math.max(1, Math.abs(a));
+    [[x0, a - e], [a + e, x1]].filter(([p, r]) => r > p).forEach(([p, r]) => trace(f, p, r, ax).forEach((run) => {
+      ctx.beginPath(); run.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    }));
+  };
+  if (v.ok) { ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.strokeRect(L, T, R - L, B - T); }
+  else { ctx.beginPath(); ctx.rect(L, box.t - PLOT_PAD, R - L, T - box.t + PLOT_PAD); ctx.rect(L, B, R - L, box.b - B + PLOT_PAD); ctx.clip(); stroke(PAL.bad); }
+  ctx.restore();
+  return v;
 }
 
 /* ---------- a point the reader drags ----------
@@ -2811,7 +2852,7 @@ export const FIG = {
   ease, lerp, partial, tween, tour, morph, morphAt,
   arrival, stagger, resample, lerpPts, measure,
   faded, mixColor, blendCurve, readout,
-  plot, shade, riemann, tangent, secant, drag,
+  plot, shade, riemann, tangent, secant, drag, band, judge,
 };
 export type Fig = typeof FIG;
 

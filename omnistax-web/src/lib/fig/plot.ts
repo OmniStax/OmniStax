@@ -74,3 +74,44 @@ export function clipLine(x0: number, y0: number, m: number, xr: readonly [number
   else if (y0 < yr[0] || y0 > yr[1]) return null;
   return lo < hi ? [[lo, y0 + m * (lo - x0)], [hi, y0 + m * (hi - x0)]] : null;
 }
+
+/* The ε–δ claim about f near a: the target band (L − ε, L + ε), or y > M (to 1) or y < M (to −1)
+   for an infinite limit, and the side of a it is judged on (0 both, 1 the right, −1 the left). */
+export type Target = { readonly L: number; readonly eps: number } | { readonly M: number; readonly to?: 1 | -1 };
+export const within = (y: number, t: Target): boolean =>
+  'L' in t ? Math.abs(y - t.L) < t.eps : (t.to ?? 1) > 0 ? y > t.M : y < t.M;
+
+const STEPS = 12000;   /* samples from 1e-9·reach to reach, each 0.17 % farther than the last */
+/* How far from a, on the side dir, f first leaves the target: the distance found between the last
+   sample in and the first out, Infinity when f stays in out to reach. x = a and x where f is not
+   finite (outside the domain) are not judged. ponytail: an excursion narrower than the sample
+   spacing (0.17 % of its distance from a) is missed. */
+export function escape(f: (x: number) => number, a: number, dir: -1 | 1, t: Target, reach: number): number {
+  const out = (d: number): boolean => { const y = f(a + dir * d); return Number.isFinite(y) && !within(y, t); };
+  const r = Math.pow(1e9, 1 / STEPS);
+  let lo = 0;
+  for (let i = 0, d = reach * 1e-9; i <= STEPS; i++, d *= r) {
+    if (!out(d)) { lo = d; continue; }
+    let hi = d;
+    for (let k = 0; k < 60 && hi - lo > 1e-12 * Math.max(1, hi); k++) { const m = (lo + hi) / 2; if (out(m)) hi = m; else lo = m; }
+    return hi;
+  }
+  return Infinity;
+}
+
+/* Whether δ works for the target on the side asked, the largest δ that does, and how far f stays
+   in on each side (NaN on a side not judged). */
+export function judge(f: (x: number) => number, a: number, delta: number, t: Target, side: -1 | 0 | 1, reach: number): { ok: boolean; best: number; left: number; right: number } {
+  const left = side <= 0 ? escape(f, a, -1, t, reach) : NaN, right = side >= 0 ? escape(f, a, 1, t, reach) : NaN;
+  const best = Math.min(...[left, right].filter((v) => !Number.isNaN(v)));
+  return { ok: delta <= best * (1 + 1e-9), best, left, right };
+}
+
+/* Ticks at round values across [lo, hi], about want of them, and the decimals their step needs. */
+export function ticks(lo: number, hi: number, want = 4): { vals: number[]; dec: number } {
+  const raw = (hi - lo) / want, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 5, 10].map((m) => m * p).find((st) => raw <= st * 1.0000001) ?? 10 * p;
+  const vals: number[] = [];
+  for (let i = Math.ceil(lo / step - 1e-9); i * step <= hi + step * 1e-9; i++) vals.push(i * step || 0);
+  return { vals, dec: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+}

@@ -46,6 +46,7 @@ fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the 
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
 axes(..., {nx: 0})                        nx or ny 0 draws that axis with no ticks or tick labels
+axes(..., {nice: true})                   about nx, ny ticks on round values of this frame's range, labelled to their step's decimals: a zoom
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
 ```
 
@@ -67,6 +68,12 @@ const P = drag(d,{x: slider, y})          a point the reader drags on the canvas
                                           a function (along its graph) or a level (along x, default 0)
 P.draw(ctx,ax,color) -> {x,y,out} | null  draw it each frame (pinned at the box edge when out); its ring brightens held or focused;
                                           P.at is [x, y]
+band(ctx,ax,f,a,target,delta,color,{side,reach}) -> {ok,best,left,right}   the ε–δ picture: target {L,eps} (the strip L ± ε) or
+                                          {M,to} (y > M, to −1 for y < M) in color, the δ window about a in ink (side 1 or −1 one-sided),
+                                          where f first leaves the target dropped to the axis on each side, the box outlined in color when
+                                          δ works and the escaping graph in PAL.bad when not; best is the largest δ that works (Infinity
+                                          if f never leaves within reach, default the box's x-extent from a), left and right per side
+judge(f,a,delta,target,side,reach)        band's verdict without drawing, for a δ slider's special: {at: () => judge(...).best}
 ```
 
 Specials on the point's slider are where the point catches (a horizontal tangent, a hole); the slider stays in the controls row as the point's value and its keyboard path. Hover names carry the tangent and secant, since they move with the point (rule 26.7).
@@ -154,7 +161,7 @@ Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft /
 
 `F.ref('block-1')` for a row of the section's `referents` table, the one thing of an example that the text marks `<span data-ref="block-1">`: it returns the referent colour the text wears beside it, one of the reader's thirty-six, dealt within the referent's scope (its figures and the text blocks that mention it) and kept at the reader's target distance from the scope's category, convention and fact colours, so it is one colour in every figure; referents whose scopes don't touch reuse colours. List in the referent's `figures` every figure that draws it, and in `draws`, `conventions` and `facts` what the figure colours, so the referent colours keep clear of them. `F.cat(i)` already skips the colours of the section's referents. Call it in `draw`, as `C`. A symbol for a referent's quantity (F_x of the first tug) is split by its variables row's `ref`: its subscript wears the referent's hue in the text, and a readout set through `F.tex` inside the section does the same.
 
-Axis ranges are fixed per figure from the slider maxima (or from the default range where the maximum would leave the default state tiny), rounded to ticks, stated in a comment, never rescaled; a value outside the range goes through `pinned()`.
+Axis ranges are fixed per figure from the slider maxima (or from the default range where the maximum would leave the default state tiny), rounded to ticks, stated in a comment, never rescaled; a value outside the range goes through `pinned()`. The one exception is a zoom the plan line names: the range follows the slider each frame (`axes(..., {nice: true})`), and where a curve oscillates faster than the canvas resolves (sin(1/x) inside about √(6w/(1160π)) of 0 on a window ±w) the figure fills that stretch with `shade` between its bounds and plots the rest.
 
 The reader has four colour switches, All, Facts and conventions, Referents and Concepts (its two sub-switches, Words and phrases and Symbols, reach only text and readouts: Symbols off sets a readout's and a slider value's `.kv-` symbols in ink), and a figure reaches them only through the library: `C` follows Concepts, `F.ref` and `F.cat` follow Referents, `F.el` and `F.fact` follow Facts and conventions, and each answers `PAL.ink` while its switch is off; All off turns all of them to ink. A colour written any other way stays on whatever the reader chose. Every switch redraws every figure, so read colours in `draw`, never once at setup; a scene that caches its materials keys them on a signature that includes `F.CC`, the `F.el` and `F.cat` it uses (`F.shown` holds all three families).
 
