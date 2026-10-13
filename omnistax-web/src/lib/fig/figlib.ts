@@ -12,7 +12,7 @@ import { bookPagesOf } from '../content/roles';
 import { morph as texMorph, morphAt as texMorphAt, setFallback as setMorphFallback, type MorphOpts } from './texmorph';
 import { lazy, importing } from './lazy';
 import { step as glowStep, glowOf, byHand, inputSeq, skeletonOf, tokensOf, type Trace } from './glow';
-import { commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, shownIn, type Glyph, type Piece, type Box as TextBox } from './textlayer';
+import { FLOOR as TEXT_FLOOR, commit as commitText, syncLayers, forgetFaces, forgetTex, texEm, baseOf as baselineOf, mapPoint, scaleOf, angleOf, shownWeight, shownIn, type Glyph, type Piece, type Box as TextBox } from './textlayer';
 import { handParts, GRIP, type HandBody, type HandPart, type Thumb } from './hand';
 import { enrol } from './params';
 import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } from './regroup';
@@ -108,7 +108,16 @@ const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.defau
 export type TexOpts = { readonly values?: boolean };
 function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
   const opts = KOPT(el);
-  withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); if (o.values !== false) texGlow(el); });
+  withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); fitReadout(el); if (o.values !== false) texGlow(el); });
+}
+/* A readout wider than its box where it cannot break (a table of rows, one long product) is set
+   smaller until it fits, though never below the figure text's floor. */
+function fitReadout(el: HTMLElement): void {
+  const k = el.querySelector<HTMLElement>(':scope > .katex');
+  if (!k || !el.closest('.readout')) return;
+  const cs = getComputedStyle(el), room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const need = Math.max(k.getBoundingClientRect().width, room + el.scrollWidth - el.clientWidth);   /* a piece may stand out past the run's own box */
+  if (room > 0 && need > room + 0.5) k.style.fontSize = Math.max(TEXT_FLOOR, parseFloat(getComputedStyle(k).fontSize) * room / need) + 'px';
 }
 
 /* ---------- the glow under a changed number in a formula ----------
@@ -147,7 +156,8 @@ function texGlow(el: HTMLElement): void {
   const er = el.getBoundingClientRect(), ox = er.left + el.clientLeft - el.scrollLeft, oy = er.top + el.clientTop - el.scrollTop;
   const layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   layer.setAttribute('aria-hidden', 'true'); layer.classList.add('tm-glow');
-  layer.style.width = Math.max(el.scrollWidth, er.width) + 'px'; layer.style.height = Math.max(el.clientHeight, er.height) + 'px';
+  /* the padding box, or the scrolled extent where the text overflows it: never the border box, whose extra pixel would itself overflow and scroll */
+  layer.style.width = el.scrollWidth > el.clientWidth ? el.scrollWidth + 'px' : '100%'; layer.style.height = el.scrollHeight > el.clientHeight ? el.scrollHeight + 'px' : '100%';
   const bars = toks.flatMap((t, i) => {
     if (tr.lit[i] === -Infinity) return [];
     const a = spots[t.i], b = spots[t.j - 1];

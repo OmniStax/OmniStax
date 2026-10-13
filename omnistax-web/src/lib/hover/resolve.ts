@@ -2,7 +2,7 @@
    short body, perhaps a symbol or equation to set in TeX, and one or two
    actions. Composition is pure: the facts come in as plain records and the
    navigation as callbacks, so the cards can be tested without a DOM. */
-import type { VariableDTO, FormDTO, ConceptDTO } from '../content/schema';
+import type { VariableDTO, FormDTO, ConceptDTO, TypeMap } from '../content/schema';
 import type { SpanId, SectionId } from '../types/ids';
 import type { Stated } from '../sections/reference';
 import { KIND_LABEL as CONCEPT_KIND } from '../sections/reference';
@@ -30,7 +30,15 @@ export type Card = {
   readonly refs?: readonly RefGroup[];
   readonly chips?: readonly Chip[];   /* a formula's composition, one chip per element */
   readonly plot?: string;             /* a function's expression, drawn as a small graph */
+  readonly swatch?: Swatch;
   readonly actions: readonly Action[];
+};
+
+/* The colour category a card's target wears, under the book's label for it; an untyped target has none. */
+export type Swatch = { readonly type: string; readonly label: string };
+export const swatchOf = (type: string | null | undefined, types: TypeMap): Swatch | undefined => {
+  const t = type ? types[type] : undefined;
+  return type && t ? { type, label: t.label } : undefined;
 };
 
 /* What the cards can do. The shell's navigation is injected so this file stays pure. */
@@ -56,14 +64,13 @@ const secIdOf = (s: string): SectionId => s as SectionId;
 export type VariableFacts = {
   readonly sym: string;
   readonly tex: string;                      /* the macro from the book's symbol table, or the key itself */
-  readonly typeLabel?: string;               /* "Force" */
   readonly variable?: VariableDTO;
   readonly section: SectionId;               /* the section the hover sits in */
   readonly formulasLoaded: boolean;
 };
 export const variableCard = (f: VariableFacts, nav: Nav): Card => {
   const v = f.variable;
-  const eyebrow = [KIND_LABEL.variable, f.typeLabel, v?.unit].filter((s): s is string => !!s).join(' · ');
+  const eyebrow = [KIND_LABEL.variable, v?.unit].filter((s): s is string => !!s).join(' · ');
   if (!f.formulasLoaded) return { kind: 'variable', eyebrow, title: f.sym, tex: f.tex, body: `Defined in ${f.section}.`, actions: [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(f.section, s) }] };
   if (!v) return { kind: 'variable', eyebrow, title: f.sym, tex: f.tex, actions: [] };
   const anchor = v.anchor ? spanIdOf(v.anchor) : undefined;

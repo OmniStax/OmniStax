@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { wrapExampleRefs, wrapFigureRefs, exampleIds } from '../src/lib/hover/terms';
-import { definitionCard, variableCard, equationCard, referenceCard, conceptCard, normTex, matchEquation, firstSentence, type Nav } from '../src/lib/hover/resolve';
+import { definitionCard, variableCard, equationCard, referenceCard, conceptCard, normTex, matchEquation, firstSentence, swatchOf, type Nav } from '../src/lib/hover/resolve';
 import { conceptOfTerm, formById, statedOf } from '../src/lib/sections/reference';
 import type { ConceptDTO, FormDTO, VariableDTO } from '../src/lib/content/schema';
 import type { SectionId, SpanId } from '../src/lib/types/ids';
@@ -38,11 +38,17 @@ test('example references become links only when the example is in the article', 
   assert.deepEqual([...ids], [['16.1', '16.1-ex-car']]);
   assert.equal(wrapExampleRefs(html, ids), '<div class="example" id="16.1-ex-car"><h3>Example 16.1 · Cars</h3><p>See Example 16.2.</p></div><p>As in <a class="xref" href="#16.1-ex-car" data-xref="16.1">Example 16.1</a> and Example 16.2.</p>');
 });
+/* ---------- swatch ---------- */
+test('a card shows the swatch of a type the book declares, under its label, and none for an untyped or unknown one', () => {
+  const types = { function: { label: 'function' }, derivative: { label: 'derivative' } };
+  assert.deepEqual(swatchOf('derivative', types), { type: 'derivative', label: 'derivative' });
+  assert.equal(swatchOf(undefined, types), undefined); assert.equal(swatchOf(null, types), undefined); assert.equal(swatchOf('force', types), undefined);
+});
 /* ---------- variable ---------- */
 const vars: readonly VariableDTO[] = [{ sym: 'k', type: typeId('stiffness'), meaning: 'force constant, the stiffness of the system', unit: 'N/m', section: sectionId('16.1'), anchor: spanId('16.1-hookes-law') }];
-test('a symbol whose row names no concept carries its type and unit, its meaning here and the span that introduces it, and no definition', () => {
-  const c = variableCard({ sym: 'k', tex: '\\kk', typeLabel: 'Stiffness', variable: vars[0], section: sec('16.1'), formulasLoaded: true }, nav);
-  assert.equal(c.kind, 'variable'); assert.equal(c.tex, '\\kk'); assert.equal(c.eyebrow, 'Symbol · Stiffness · N/m');
+test('a symbol whose row names no concept carries its unit, its meaning here and the span that introduces it, and no definition', () => {
+  const c = variableCard({ sym: 'k', tex: '\\kk', variable: vars[0], section: sec('16.1'), formulasLoaded: true }, nav);
+  assert.equal(c.kind, 'variable'); assert.equal(c.tex, '\\kk'); assert.equal(c.eyebrow, 'Symbol · N/m');
   assert.equal(c.body, 'Force constant, the stiffness of the system.');
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced']);
   assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law');

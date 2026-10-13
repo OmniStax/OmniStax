@@ -16,7 +16,7 @@ import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
 import { plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
-import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence } from './resolve';
+import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence, swatchOf } from './resolve';
 import { readRow } from '../grapher/expr';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
@@ -108,11 +108,11 @@ const definition = (book: BookId, c: ConceptDTO, from: Named): Card => {
 const variable = (book: BookId, t: HTMLElement): Card | null => {
   const sym = symOf(t); const sec = sectionOf(book, t); if (!sym || !sec) return null;
   const data = chapterData(sectionRef(book, sec));
-  const m = registry.manifest(book); const type = typeOf(t); const typeLabel = type ? m.types[type]?.label : undefined;
+  const m = registry.manifest(book);
   const target = data ? symbolTarget(data.variables, sym, sec, (id) => registry.concept(book, id)) : undefined;
   const other = data ? otherMeanings(data.variables, sym, sec)[0] : undefined;
   if (target?.kind === 'concept') return definition(book, target.concept, { sym, variable: target.variable, elsewhere: other, section: sec });
-  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, typeLabel, section: sec, formulasLoaded: !!data, variable: target?.variable }, navFor(book));
+  const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, section: sec, formulasLoaded: !!data, variable: target?.variable }, navFor(book));
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
 const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
@@ -199,9 +199,14 @@ const fn = (book: BookId, t: HTMLElement): Card | null => {
   return functionCard({ expr, tex: row.tex, graphed: !!entry, ...(data?.kind === 'grapher' && data.type ? { type: data.type } : {}) }, navFor(book));
 };
 
-/* The card for a target, or null when there is nothing to say. */
+/* The card for a target, or null when there is nothing to say. A symbol's swatch is the type its glyph wears. */
 export const cardFor = (t: HTMLElement): Card | null => {
   const book = bookOfEl(t); if (!book) return null;
+  const c = cardOf(book, t); if (!c || !registry.hasBook(book)) return c;
+  const swatch = swatchOf(t.hasAttribute('data-sym') ? typeOf(t) : c.type, registry.manifest(book).types);
+  return swatch ? { ...c, swatch } : c;
+};
+const cardOf = (book: BookId, t: HTMLElement): Card | null => {
   if (t.hasAttribute('data-sym')) return variable(book, t);
   if (t.matches('.term')) return term(book, t);
   if (t.matches('.katex-display, [data-eq]')) return equation(book, t);

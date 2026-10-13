@@ -144,6 +144,7 @@
     {#each card.notes ?? [] as n (n.label)}<p class="aside" use:math={n.text}><span class="lead">{n.label}</span> {n.text}</p>{/each}
     {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)} onauxclick={onMiddle((e) => run(c, e))}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
     {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} onauxclick={onMiddle((e) => run(l, e))} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)} onauxclick={onMiddle((e) => run(m, e))}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
+    {#if card.swatch}<div class="swatch"><span class="box" style:background="var(--c-{card.swatch.type})"></span>{card.swatch.label}</div>{/if}
     {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)} onauxclick={onMiddle((e) => run(a, e))}>{a.label}</button>{/each}</div>{/if}
   </div>
 {/key}{/if}
@@ -186,6 +187,8 @@
   .plot .curve{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
   .plot .mark{fill:currentColor;stroke:currentColor;stroke-width:1.5}
   .plot .mark.open{fill:var(--bg)}
+  .swatch{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.72rem;color:var(--muted)}
+  .swatch .box{width:10px;height:10px;border-radius:2px;flex:none}
   .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
   .actions button{font:inherit;font-size:0.76rem;font-weight:600;padding:3px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--accent);cursor:pointer}
   .actions button:hover{background:var(--soft)}

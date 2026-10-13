@@ -321,8 +321,12 @@ html.anim-off .vbtn.spin{opacity:.45;pointer-events:none}
 .readout{font-family:var(--figure);margin:0;padding:12px 18px 14px;text-align:center;font-size:1.15rem;overflow-x:auto;background:var(--soft);border-top:1px solid var(--rule)}
 .readout:empty{display:none}
 .readout .katex{font-size:1.1em}
-/* KaTeX keeps a run of maths on one line; a readout lets it break so a long one wraps at the figure's width */
+/* KaTeX keeps a run of maths on one line; a readout lets it break between the run's atoms so a long one wraps at the figure's width,
+   never inside one, where a stacked or overlaid piece (a fraction, the slash of ∉) would wrap out of its box */
 .readout .katex .base{white-space:normal;width:auto}
+.readout .katex .base>:not(.text){white-space:nowrap}
+/* a morphing formula breaks between its parts; a part wider than the readout scales down to its width */
+.readout svg.tm-part{max-width:100%}
 .readout small{font-family:var(--figure);color:var(--muted);display:block;margin-top:6px;font-size:0.85rem}
 
 /* shared small controls */

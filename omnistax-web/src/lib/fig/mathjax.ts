@@ -59,7 +59,9 @@ export function typeset(macros: Macros, tex: string, display: boolean): Typeset 
   const vb: ViewBox = [vbs[0], vbs[1], vbs[2], vbs[3]];
   const em = (x: number): string => (x * EM_PER_UNIT).toFixed(3) + 'em';
   adaptor.removeAttribute(svg, 'width'); adaptor.removeAttribute(svg, 'height');
-  adaptor.setAttribute(svg, 'style', `display:inline-block;position:static;width:${em(vb[2])};height:${em(vb[3])};vertical-align:${em(-(vb[1] + vb[3]))};overflow:visible`);
+  /* tall by its ratio rather than a fixed height, so a part a narrow readout caps in width scales whole */
+  const tall = vb[2] > 0 && vb[3] > 0 ? `aspect-ratio:${vb[2]} / ${vb[3]}` : `height:${em(vb[3])}`;
+  adaptor.setAttribute(svg, 'style', `display:inline-block;position:static;width:${em(vb[2])};${tall};vertical-align:${em(-(vb[1] + vb[3]))};overflow:visible`);
   adaptor.setAttribute(svg, 'aria-hidden', 'true');
   adaptor.setAttribute(svg, 'class', 'tm-part');
   adaptor.removeAttribute(svg, 'role');
