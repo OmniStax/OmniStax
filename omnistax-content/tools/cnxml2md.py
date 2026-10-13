@@ -110,7 +110,12 @@ the sign, and an under-script as \\limits), \\partial, \\nabla, \\langle \\rangl
 an overbar written with a dash is \\bar, ⏟ is \\underbrace, and a run of
 underscores (a blank to fill in) is escaped. With --full, an mstyle's
 mathvariant bold is \\mathbf{…} (Calculus's vectors), bold-italic is
-\\boldsymbol{…}, and displaystyle="true" is {\\displaystyle …}; the earlier
+\\boldsymbol{…}, displaystyle="true" is {\\displaystyle …}, an arrow or a
+bar over more than one glyph (the vector PQ, the segment OP, a repeating
+66) is \\overrightarrow or \\overline, and the bars, parentheses or brace
+around a table (a determinant, a matrix, a binomial coefficient, a piecewise
+function, an evaluation bar) are \\left and \\right, so they span every
+row; the earlier
 books are converted without --full, so their output stays as it was.
 Anything the converter cannot place is reported on stderr with the module
 path, so a run over a book ends with a list of what to look at.
@@ -192,6 +197,41 @@ def align_of(e, default):
     a = e.get("columnalign")
     return a[0] if a in ("left", "right", "center") else default
 
+def wide_base(e):
+    """Whether an accent's base is more than one glyph (PQ, 66), which the
+    stretching \\overrightarrow and \\overline span and \\vec and \\bar do not."""
+    kids = list(e)
+    if tag(e) in ("mrow", "mstyle"):
+        return len(kids) > 1 or (len(kids) == 1 and wide_base(kids[0]))
+    return tag(e) in ("mi", "mn") and len((e.text or "").strip()) > 1
+
+def is_table(e):
+    kids = list(e)
+    return tag(e) == "mtable" or (tag(e) in ("mrow", "mstyle") and len(kids) == 1 and is_table(kids[0]))
+
+# a delimiter around a table stretches to its height as \left and \right
+DELIM = {"(": "(", ")": ")", "[": "[", "]": "]", "{": r"\{", "}": r"\}", "|": "|", "∣": "|", "‖": r"\|", "": "."}
+OPENS, CLOSES = ("(", "[", "{", "|", "∣", "‖"), (")", "]", "}", "|", "∣", "‖")
+
+def mo_text(e):
+    return (e.text or "").strip() if tag(e) == "mo" else None
+
+def fenced_tables(kids):
+    """An mrow, with the bars of a determinant, the parentheses of a matrix, the
+    brace of a piecewise function and the bar of an evaluation made to stretch
+    over the table they fence."""
+    parts = [mml(k) for k in kids]
+    for i in range(len(kids) - 1):
+        o = mo_text(kids[i])
+        if o not in OPENS or not is_table(kids[i + 1]):
+            continue
+        c = mo_text(kids[i + 2]) if i + 2 < len(kids) else None
+        if c in CLOSES:
+            parts[i], parts[i + 2] = r"\left" + DELIM[o], r"\right" + DELIM[c]
+        elif o in ("{", "|"):
+            parts[i], parts[i + 1] = r"\left" + DELIM[o], parts[i + 1] + r"\right."
+    return "".join(parts)
+
 def mml(e):
     t = tag(e)
     kids = list(e)
@@ -207,6 +247,8 @@ def mml(e):
         if e.get("displaystyle") == "true":
             body = r"{\displaystyle " + body + "}"
         return body
+    if t == "mrow" and FULL:
+        return fenced_tables(kids)
     if t in ("math", "mrow", "mstyle", "semantics", "mpadded"):
         return "".join(mml(k) for k in kids)
     if t == "mi":
@@ -244,12 +286,13 @@ def mml(e):
     if t == "mover":
         acc = ((kids[1].text or "").strip() if tag(kids[1]) == "mo" else mml(kids[1]).strip())
         base = mml(kids[0])
+        wide = FULL and wide_base(kids[0])
         if acc in ("-", "¯", "‾", "―", "–", "−", "—"):
-            return r"\bar{" + base + "}"
+            return (r"\overline{" if wide else r"\bar{") + base + "}"
         if acc == "˜":
             return r"\tilde{" + base + "}"
         if acc in ("→", "⃗"):
-            return r"\vec{" + base + "}"
+            return (r"\overrightarrow{" if wide else r"\vec{") + base + "}"
         return r"\overset{" + mml(kids[1]) + "}{" + base + "}"
     if t == "munder":
         acc = ((kids[1].text or "").strip() if tag(kids[1]) == "mo" else mml(kids[1]).strip())
@@ -273,6 +316,9 @@ def mml(e):
         return r"\sqrt{" + "".join(mml(k) for k in kids) + "}"
     if t == "mroot":
         return r"\sqrt[" + mml(kids[1]) + "]{" + mml(kids[0]) + "}"
+    if t == "mfenced" and FULL and len(kids) == 1 and is_table(kids[0]):
+        return (r"\left" + DELIM.get(e.get("open", "("), e.get("open", "(")) + mml(kids[0])
+                + r"\right" + DELIM.get(e.get("close", ")"), e.get("close", ")")))
     if t == "mfenced":
         return e.get("open", "(") + ",".join(mml(k) for k in kids) + e.get("close", ")")
     if t == "menclose":
