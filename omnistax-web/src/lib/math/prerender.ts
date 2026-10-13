@@ -10,7 +10,7 @@ const options = (macros: Macros, display: boolean) => ({ macros: { ...macros }, 
 const unescape = (s: string): string => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 const render = (macros: Macros, src: string, display: boolean): string => katex.renderToString(unescape(src), options(macros, display));
 
+/* One pass, so a $ that KaTeX writes into its output is never read as a delimiter. */
 export const prerenderMath = (html: string, macros: Macros): string =>
-  html
-    .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex: string) => render(macros, tex, true))
-    .replace(/\$([^$\n]+?)\$/g, (_, tex: string) => render(macros, tex, false));
+  html.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_, display: string | undefined, inline: string | undefined) =>
+    display !== undefined ? render(macros, display, true) : render(macros, inline ?? '', false));

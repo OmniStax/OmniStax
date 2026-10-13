@@ -162,3 +162,10 @@ test('a lead keeps its type and referent spans and sets the page\'s macros', () 
   assert.equal(lead.match(/data-ref="tug-1"/g)?.length, 2, 'the subscript carries the referent too');
   assert.deepEqual(typesWorn([], [], dto.lead), ['force']);
 });
+
+/* A $ that KaTeX writes into display output is not read as the start of inline math. */
+test('math renders in one pass', () => {
+  const html = prerenderMath('$$x=\\text{\\textdollar}1$$ then $y$ and $$z=\\text{\\textdollar}2$$', {});
+  assert.equal(html.match(/class="katex"/g)?.length, 3);
+  assert.doesNotMatch(html, /katex-error/);
+});
