@@ -150,7 +150,8 @@ function draw(fly: SVGSVGElement, tracks: readonly Track[], t: number, pathArc: 
 /* A still formula's boxes, for the beats before and after its morph. */
 function still(el: HTMLElement, h: Host, svgs: readonly SVGSVGElement[], r: Render, hi: readonly string[], alpha: number): void {
   const gs = measure(svgs, r); if (!gs || !(alpha > 0)) return;
-  boxes(overlay(el, h), hi.map((k) => gs.filter((g) => g.key === k).flatMap((g) => g.rings)), alpha);
+  const fly = overlay(el, h); fly.style.zIndex = '-1';   /* behind the formula, which shows itself here */
+  boxes(fly, hi.map((k) => gs.filter((g) => g.key === k).flatMap((g) => g.rings)), alpha);
 }
 /* Both ends measured in place: the source as it stands, then the target laid out hidden. */
 function prepare(el: HTMLElement, h: Host, a: Render, b: Render, macros: Macros, keyMap?: KeyMap): { tracks: Track[]; svg: SVGSVGElement[] } | null {

@@ -198,6 +198,7 @@ test('a key whose content changes past recognition crossfades where it stands, c
   assert.ok(bends(seq('50', 'n', 0), seq('51', 'n', 0)));
   assert.ok(bends(seq('2.00', 'n', 0), seq('2.25', 'n', 0)));
   assert.ok(!bends(seq('9.42x10-4', 'n', 0), seq('2.01', 'n', 0)));
+  assert.ok(!bends(seq('sin5.0', 'n', 0), seq('(0.08)', 'n', 0)), 'a term of the same length that shares little crossfades');
   const tr = tracksOf(match(seq('9.42x10-4', 'B', 0), seq('2.01', 'B', 100)), 1);
   assert.equal(tr.length, 13, 'nine out, four in, none paired');
   const f = frame(tr, 1);

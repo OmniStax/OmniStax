@@ -271,10 +271,12 @@ function moveTrack(g: Glyph | null, h: Glyph | null, wA: number, wB: number, ste
   return { a: pairs.map((p) => p[0]), b: pairs.map((p) => p[1]), inkA: a.ink || b.ink, inkB: b.ink || a.ink, opA: g ? (g.alpha ?? 1) * wA : 0, opB: h ? wB : 0, moves: true, end: h ?? g! };
 }
 /* A key's glyphs bend when the two contents read as the same text changing: their longest
-   shared run covers half the longer one, or the counts differ by one at most. Otherwise the
-   key crossfades where it stands, the old glyphs out and the new in, carried as the key moves. */
+   shared run covers half the longer one, or both are numbers whose counts differ by one at most.
+   Otherwise the key crossfades where it stands, the old glyphs out and the new in, carried as
+   the key moves: two unrelated runs of letters never bend glyph into glyph. */
+const numeral = (g: Glyph): boolean => (g.c !== undefined ? NUMERIC.test(g.c) : /^[0-9.]$/.test(g.shape));
 export const bends = (A: readonly Glyph[], B: readonly Glyph[]): boolean =>
-  Math.abs(A.length - B.length) <= 1 || 2 * lcs(reading(A), reading(B)).length >= Math.max(A.length, B.length);
+  (Math.abs(A.length - B.length) <= 1 && A.every(numeral) && B.every(numeral)) || 2 * lcs(reading(A), reading(B)).length >= Math.max(A.length, B.length);
 /* Parts on their way out are gone by FADE_BY of the window, before the survivors settle. */
 export const FADE_BY = 0.6;
 const fadeOut = (g: Glyph, v: Pt, moves: boolean, w = 1): Piece => ({ a: g.rings.map((r) => [...r]), b: shifted(g.rings, v), inkA: g.ink, inkB: g.ink, opA: (g.alpha ?? 1) * w, opB: 0, moves, end: g, quick: true });
