@@ -96,7 +96,10 @@ function measure(svgs: readonly SVGSVGElement[], r: Render): Glyph[] | null {
 }
 function inksOf(svg: SVGSVGElement, r: Part): readonly string[] {
   const sig = getComputedStyle(svg).color + '\u0000' + (document.documentElement.getAttribute('data-theme') ?? '');
-  if (r.inks?.sig !== sig) r.inks = { sig, list: Array.from(svg.querySelectorAll('path, rect'), (e) => getComputedStyle(e).color) };
+  /* the same elements glyphsOf keeps, in the same order: MathJax's empty paths (the invisible
+     function application after cos, ln, lim) carry no glyph, and counting them would hand every
+     later glyph its neighbour's ink */
+  if (r.inks?.sig !== sig) r.inks = { sig, list: Array.from(svg.querySelectorAll('path, rect'), (e) => e).filter((e) => e.tagName.toLowerCase() !== 'path' || !!e.getAttribute('d')).map((e) => getComputedStyle(e).color) };
   return r.inks.list;
 }
 function measurePart(svg: SVGSVGElement, r: Part): Glyph[] | null {
