@@ -274,7 +274,7 @@ function moveTrack(g: Glyph | null, h: Glyph | null, wA: number, wB: number, ste
    shared run covers half the longer one, or both are numbers whose counts differ by one at most.
    Otherwise the key crossfades where it stands, the old glyphs out and the new in, carried as
    the key moves: two unrelated runs of letters never bend glyph into glyph. */
-const numeral = (g: Glyph): boolean => (g.c !== undefined ? NUMERIC.test(g.c) : /^[0-9.]$/.test(g.shape));
+const numeral = (g: Glyph): boolean => (g.c !== undefined ? NUMERIC.test(g.c) : /^[0-9.x-]$/.test(g.shape));
 export const bends = (A: readonly Glyph[], B: readonly Glyph[]): boolean =>
   (Math.abs(A.length - B.length) <= 1 && A.every(numeral) && B.every(numeral)) || 2 * lcs(reading(A), reading(B)).length >= Math.max(A.length, B.length);
 /* Parts on their way out are gone by FADE_BY of the window, before the survivors settle. */
@@ -285,7 +285,24 @@ export function tracksOf(m: Match, step = 1.5, lag = LAG): Track[] {
   const moving = m.moves.flatMap(([A, B, wA, wB]) => {
     if (bends(A, B)) return pairGlyphs(A, B).map(([g, h]) => ({ x: xOf((h ?? g)!), t: moveTrack(g, h, wA, wB, step) }));
     const p = centre(boxOf(A.flatMap((g) => g.rings))), q = centre(boxOf(B.flatMap((g) => g.rings))), v: Pt = [q[0] - p[0], q[1] - p[1]];
-    return [...A.map((g) => ({ x: xOf(g), t: fadeOut(g, v, true, wA) })), ...B.map((g) => ({ x: xOf(g), t: fadeIn(g, v, true, wB) }))];
+    /* a key that changes past bending still carries the glyphs both ends share, letter for letter
+       (T_{Lx} into T_L cos 5°: the T and the L move, the x fades, cos 5° arrives); digits never pair this way,
+       so a number that is not a value changing crossfades */
+    const ra = reading(A), rb = reading(B), same: [number, number][] = A.every(numeral) && B.every(numeral) ? [] : lcs(ra, rb).filter(([i]) => !numeral(ra[i]));
+    /* then, as TransformMatchingShapes, a glyph left over pairs with the nearest same shape left on the other side, in any order */
+    if (same.length || !(A.every(numeral) && B.every(numeral))) {
+      const usedA = new Set(same.map((x) => x[0])), usedB = new Set(same.map((x) => x[1]));
+      ra.forEach((g, i) => {
+        if (usedA.has(i)) return;
+        let best = -1, d = Infinity;
+        if (numeral(g)) return;
+        rb.forEach((h, j) => { if (usedB.has(j) || h.shape !== g.shape) return; const e = Math.abs(xOf(h) - xOf(g)); if (e < d) { d = e; best = j; } });
+        if (best >= 0) { same.push([i, best]); usedA.add(i); usedB.add(best); }
+      });
+    }
+    const ia = new Set(same.map((x) => x[0])), ib = new Set(same.map((x) => x[1]));
+    return [...same.map(([i, j]) => ({ x: xOf(rb[j]), t: moveTrack(ra[i], rb[j], wA, wB, step) })),
+      ...ra.filter((_, i) => !ia.has(i)).map((g) => ({ x: xOf(g), t: fadeOut(g, v, true, wA) })), ...rb.filter((_, j) => !ib.has(j)).map((g) => ({ x: xOf(g), t: fadeIn(g, v, true, wB) }))];
   });
   const outs = m.out.map((g) => ({ x: xOf(g), t: fadeOut(g, m.shift, false) }));
   const ins = m.in.map((g) => ({ x: xOf(g), t: fadeIn(g, m.shift, false) }));
