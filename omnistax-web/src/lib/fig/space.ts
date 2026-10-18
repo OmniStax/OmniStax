@@ -16,14 +16,15 @@ export type Dash = readonly [number, number];
 
 /* w and r are canvas units, as a flat figure's strokes are; a sheet's `param` turns its grid
    coordinates (s, t) in [0, 1]² into what a drag on it reports */
-export type Mark =
+export type Mark = (
   | { readonly k: 'line'; readonly pts: readonly V3[]; readonly color: Color; readonly w?: number; readonly dash?: Dash }
   | { readonly k: 'segs'; readonly segs: readonly (readonly [V3, V3])[]; readonly color: Color; readonly w?: number }
   | { readonly k: 'arrow'; readonly a: V3; readonly b: V3; readonly color: Color; readonly w?: number }
   | { readonly k: 'dot'; readonly p: V3; readonly color: Color; readonly r?: number; readonly hollow?: boolean }
   | { readonly k: 'label'; readonly s: string; readonly p: V3; readonly color?: Color; readonly cls?: 'tick' | 'bare' }
   | { readonly k: 'sheet'; readonly rows: readonly (readonly V3[])[]; readonly color: Color; readonly alpha?: number; readonly param?: (s: number, t: number) => readonly number[] }
-  | { readonly k: 'faces'; readonly faces: readonly (readonly V3[])[]; readonly color: Color; readonly alpha?: number };
+  | { readonly k: 'faces'; readonly faces: readonly (readonly V3[])[]; readonly color: Color; readonly alpha?: number }
+) & { readonly name?: string };   /* a named mark shows its name under the pointer (root 26.6) */
 
 export const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 export const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];

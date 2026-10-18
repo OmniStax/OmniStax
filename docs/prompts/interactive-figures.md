@@ -227,6 +227,42 @@ F.space.region2(ctx,ax,region,color,{alpha})   a plane region filled, its edges 
 F.space.cells2(ctx,ax,cells,color)             riemann2's cells from above, sample points dotted
 ```
 
+Quantum information (Preskill; `F.bloch` and `F.circuit`, the geometry and the simulator in `quantum.ts`). Marks may carry `name`, the hover name of what they draw, in any `F.space3d` scene.
+
+```
+const B = F.bloch(d, {h = 820, turn, tilt, fit = 1.85, poles: ['|0\\rangle','|1\\rangle'], spin, zoom})   the Bloch ball on F.space3d:
+                                          ink wireframe, equator, axes x y z, |0⟩ up; free orbit, no ground; flat without WebGL;
+                                          a narrow pane gets a taller stage. Call its parts in draw, each one layer:
+B.state(key, P, {color = C('state'), name, label, trail, hollow})   the Bloch vector P (|P| < 1 inside: mixed); null removes
+B.rotate(key, P0, n, a, o) -> P            P0 turned about n by a, its arc as the trail
+B.axis(n, {color = C('operator'), name, label, key})   a rotation or measurement axis through the ball
+B.image({M, c}, {k = 1, color = C('channel'), name})   the ellipsoid P → MP + c, translucent; k bends it out of the ball
+F.bloch.rho(P, {dec, lhs, vec}) -> TeX    ρ = ½(1 + P·σ) with its 2×2 entries; .rotate .arc .affine .toward .of(a, b)
+                                          .channels.depolarizing(p) / phaseDamping(p) / amplitudeDamping(p) -> {M, c}
+```
+```js
+const B = F.bloch(d), P = B.rotate('psi', [0, 0, 1], [1, 0, 0], th.v, { label: '$|\\psi\\rangle$' });
+B.image(F.bloch.channels.depolarizing(p.v)); tex(d.readout, F.bloch.rho(P));
+```
+
+```
+const Q = F.circuit(d, {wires, steps, input | inputs, value, classical, probs, beat = 1.4, ket, headline, onDraw})
+                                          wires n or [{in, out, name, color, width}] (width > 1: a register, double line, slash);
+                                          steps [gate | [gates in one column]]; a gate {g, t, c, o, m, label, name, k, phi, theta, outcome}:
+                                          g H X Y Z S T R (R_k, k) P (phi) Rx Ry Rz (theta), SWAP (t: [a, b]), M (a meter; outcome 0 or 1
+                                          collapses, none defers), any other with m its 2ᵏ×2ᵏ matrix over the wires t; c controls on 1,
+                                          o on 0; X with controls draws ⊕ (CNOT, θ⁽³⁾, θ⁽ⁿ⁾); a control on a measured wire is classical.
+                                          input: a bit string over the qubits, a basis index, {vec} or {wires: [bit | [a, b]]};
+                                          inputs [{value, label, state, ins}] become a choice (a select beyond four).
+                                          The transport is the clock, a step dot per state; beneath, a bar per basis state (|a_x|, a dial
+                                          for arg a_x, |x⟩ with wire 0 leftmost; probs adds p_x); classical shows the bits at the cursor.
+Q.ket(i?) -> TeX   Q.state(i?) -> {re, im}   Q.bits(i?)   Q.at (the state shown)   Q.set({steps, input})   F.circuit.run / .ket pure
+```
+```js
+F.circuit(d, { wires: 2, probs: true, steps: [{ g: 'H', t: 0 }, { g: 'X', t: 1, c: 0 }],
+  inputs: ['00', '01', '10', '11'].map((b) => ({ value: b, label: `|${b}⟩`, state: b })), onDraw: (q) => tex(d.readout, `|\\Psi\\rangle = ${q.ket()}`) });
+```
+
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
 Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.ref(id)` for the section's referents and `F.cat(i)` for other instances with no element that must be told apart, and a hex only where the colour is the physical fact and the plan names it: a named constant, named as the fact, unchanged in both themes, drawn through `F.fact(hex)` (the NFPA diamond of Chemistry 2e 1.3; a spectral colour computed from a wavelength goes through `F.fact` too). No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.

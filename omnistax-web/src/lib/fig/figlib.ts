@@ -22,6 +22,7 @@ import { widen, sides } from './deriv';
 import * as SLOPE from './slope';
 import * as SPACE from './space';
 import * as POLAR from './polar';
+import * as Q from './quantum';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -2453,7 +2454,11 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     project(p, g) { const w = vec3(p); g.localToWorld(w); w.project(camera); return [((w.x + 1) / 2) * wrap.clientWidth, ((1 - w.y) / 2) * wrap.clientHeight]; },
     move(e, p) { const l = labels.find((x) => x.el === e); if (l) l.p.set(p[0], p[1], p[2]); need = true; },
     invalidate() { need = true; },
-    pickable(m, name) { picks.push({ m, name }); return m; },
+    pickable(m, name) {
+      const inScene = (o: Obj3): boolean => { for (let x = o; x; x = x.parent) if (x === scene) return true; return false; };
+      for (let i = picks.length - 1; i >= 0; i--) if (!inScene(picks[i].m)) picks.splice(i, 1);   /* a rebuilt layer's old meshes */
+      picks.push({ m, name }); return m;
+    },
     setView: aim,
     dispose,
     get turned() { return turned; },
@@ -3075,35 +3080,37 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       if (idx) geo.setIndex([...idx]); geo.computeVertexNormals();
       const o = new T.Mesh(geo, m); g.add(o); return o;
     };
-    const tubes = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color): void => {
+    const tubes = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color): Obj3 => {
       const pos: number[] = [], idx: number[] = [];
       runs.forEach((pts) => { const t = SPACE.tube(pts, (w / 2) * px, 6), base = pos.length / 3; pos.push(...t.pos); t.idx.forEach((i) => idx.push(i + base)); });
-      if (pos.length) mesh(pos, idx, mat('basic', c));
+      return pos.length ? mesh(pos, idx, mat('basic', c)) : null;
     };
-    const thin = (runs: readonly (readonly SPACE.V3[])[], c: Color, pairs: boolean): void => {
+    const thin = (runs: readonly (readonly SPACE.V3[])[], c: Color, pairs: boolean): Obj3 => {
       const pts = runs.flatMap((r) => (pairs ? r : r.flatMap((p, i) => (i && i < r.length - 1 ? [p, p] : [p]))));
-      if (pts.length > 1) g.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(pts.map(vec3)), lineMat(c)));
+      if (pts.length < 2) return null;
+      const o = new T.LineSegments(new T.BufferGeometry().setFromPoints(pts.map(vec3)), lineMat(c)); g.add(o); return o;
     };
-    const stroke = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color, pairs = false): void => (w > 1.5 ? tubes(runs, w, c) : thin(runs, c, pairs));
+    const stroke = (runs: readonly (readonly SPACE.V3[])[], w: number, c: Color, pairs = false): Obj3 => (w > 1.5 ? tubes(runs, w, c) : thin(runs, c, pairs));
+    const named = (m: SPACE.Mark, o: Obj3): void => { if (o && m.name) v.pickable(o, m.name); };
     marks.forEach((m) => {
-      if (m.k === 'line') stroke(m.dash ? dashed(m.pts, m.dash[0] * px, m.dash[1] * px) : [m.pts], m.w ?? 4, m.color);
-      else if (m.k === 'segs') stroke(m.segs, m.w ?? 2, m.color, true);
+      if (m.k === 'line') named(m, stroke(m.dash ? dashed(m.pts, m.dash[0] * px, m.dash[1] * px) : [m.pts], m.w ?? 4, m.color));
+      else if (m.k === 'segs') named(m, stroke(m.segs, m.w ?? 2, m.color, true));
       else if (m.k === 'arrow') {
         const d3 = SPACE.sub(m.b, m.a), L = SPACE.norm(d3); if (L < px) return;
         const u = SPACE.mul(d3, 1 / L), w = m.w ?? 5, hl = Math.min(0.4 * L, 18 * px), base = SPACE.sub(m.b, SPACE.mul(u, hl));
-        stroke([[m.a, base]], w, m.color);
-        const cone = new T.Mesh(geo().cone, mat('basic', m.color)); cone.position.copy(vec3(SPACE.add(base, SPACE.mul(u, hl / 2)))); cone.quaternion.setFromUnitVectors(up3(), vec3(u)); cone.scale.set(Math.max(w * 1.3, 7) * px, hl, Math.max(w * 1.3, 7) * px); g.add(cone);
+        named(m, stroke([[m.a, base]], w, m.color));
+        const cone = new T.Mesh(geo().cone, mat('basic', m.color)); cone.position.copy(vec3(SPACE.add(base, SPACE.mul(u, hl / 2)))); cone.quaternion.setFromUnitVectors(up3(), vec3(u)); cone.scale.set(Math.max(w * 1.3, 7) * px, hl, Math.max(w * 1.3, 7) * px); g.add(cone); named(m, cone);
       } else if (m.k === 'dot') {
-        const o = new T.Mesh(geo().sphere, mat('lit', m.hollow ? PAL.panel : m.color)); o.position.copy(vec3(m.p)); o.scale.setScalar((m.r ?? 8) * px); g.add(o);
+        const o = new T.Mesh(geo().sphere, mat('lit', m.hollow ? PAL.panel : m.color)); o.position.copy(vec3(m.p)); o.scale.setScalar((m.r ?? 8) * px); g.add(o); named(m, o);
       } else if (m.k === 'sheet') {
         const nj = m.rows.length, ni = m.rows[0]?.length ?? 0, pos: number[] = [], uv: number[] = [], idx: number[] = [];
         m.rows.forEach((row, j) => row.forEach((p, i) => { pos.push(p[0], p[1], p[2]); uv.push(i / Math.max(1, ni - 1), j / Math.max(1, nj - 1)); }));
         for (let j = 0; j + 1 < nj; j++) for (let i = 0; i + 1 < ni; i++) { const k = j * ni + i; idx.push(k, k + 1, k + ni + 1, k, k + ni + 1, k + ni); }
-        const o = mesh(pos, idx, mat('lit', m.color, m.alpha ?? 0.8), uv); o.userData.param = m.param;
+        const o = mesh(pos, idx, mat('lit', m.color, m.alpha ?? 0.8), uv); o.userData.param = m.param; named(m, o);
       } else if (m.k === 'faces') {
         const pos: number[] = [];
         m.faces.forEach((f) => { for (let i = 1; i + 1 < f.length; i++) [f[0], f[i], f[i + 1]].forEach((p) => pos.push(p[0], p[1], p[2])); });
-        if (pos.length) mesh(pos, null, mat('lit', m.color, m.alpha ?? 0.8));
+        if (pos.length) named(m, mesh(pos, null, mat('lit', m.color, m.alpha ?? 0.8)));
       }
     });
   }
@@ -3134,8 +3141,11 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
 
   /* ---- the flat view ---- */
   let queued = false;
+  const flatHits: Hit[] = [];
+  if (canvas) hover(d.stage, () => flatHits, canvas);
   function paint(): void {
     queued = false; if (!canvas) return;
+    flatHits.length = 0;
     const { ctx } = begin(canvas), k = ((0.5 * Math.min(H, LW)) / R) * ((opts.fit ?? 2.1) / 2.1);   /* Calculus Ch 12: the painted view takes fit too */
     const cam = REV.camera({ yaw: -turn, pitch: tilt, dist: 2600, cx: LW / 2, cy: H / 2 + (headS ? 18 : 0), s: k, at: m2r(centre) });
     const P = (p: SPACE.V3): Pt => cam.P(m2r(p)) as unknown as Pt;
@@ -3146,6 +3156,14 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       ctx.save(); ctx.strokeStyle = tone(c); ctx.lineWidth = w; if (dash) ctx.setLineDash([...dash]); ctx.beginPath();
       pts.forEach((p, i) => { const [x, y] = P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
     };
+    all.forEach((m) => {
+      if (!m.name) return;
+      const at = (p: SPACE.V3, r: number): void => { const [x, y] = P(p); flatHits.push({ x, y, r, name: m.name! }); };
+      if (m.k === 'arrow') at(m.b, 22); else if (m.k === 'dot') at(m.p, 16);
+      else if (m.k === 'line') m.pts.forEach((p, i) => { if (i % 6 === 0) at(p, 12); });
+      else if (m.k === 'sheet') m.rows.forEach((row, j) => row.forEach((p, i) => { if (i % 4 === 0 && j % 4 === 0) at(p, 26); }));
+    });
+    flatHits.sort((p, q) => p.r - q.r);
     all.forEach((m) => {
       if (m.k === 'line') path(m.pts, m.color, m.w ?? 4, m.dash);
       else if (m.k === 'segs') m.segs.forEach((q) => path(q, m.color, m.w ?? 2));
@@ -3395,6 +3413,340 @@ const polar = {
   frame: polarFrame, path: polarPathDraw, curve: polarCurveDraw, ray: polarRay, grip: polarGrip, sectors: polarSectors, strips: polarStrips,
 };
 
+/* ---------- Preskill's quantum information: the Bloch ball and circuits ----------
+   `F.bloch(d, opts)` is the Bloch ball, a mathematical 3D scene (root 28.3) on F.space3d: an ink
+   wireframe ball with its equator, axes x, y, z and the poles |0⟩ (up) and |1⟩, state vectors that
+   arrive from the centre, trails, an axis and a channel's image ellipsoid that bends out of the
+   ball. Without WebGL it is painted flat from the opening view. The figure calls its parts in its
+   draw; each is one layer, rebuilt only when it changed. `F.bloch.rho(P)` is the readout's ρ. */
+type BlochOpts = View3dOpts & { readonly turn?: Radians; readonly fit?: number; readonly poles?: readonly [string, string] };
+type BlochState = { readonly color?: Color; readonly name?: string; readonly label?: string; readonly trail?: readonly Q.V3[]; readonly hollow?: boolean };
+type BlochMap = { readonly M: Q.M3; readonly c: Q.V3 };
+export type Bloch = {
+  readonly S: Space3d; readonly flat: boolean;
+  state: (key: string, P: Q.V3 | null, o?: BlochState) => void;
+  rotate: (key: string, P0: Q.V3, n: Q.V3, a: number, o?: BlochState) => Q.V3;
+  axis: (n: Q.V3 | null, o?: { readonly color?: Color; readonly name?: string; readonly label?: string; readonly key?: string }) => void;
+  image: (map: BlochMap | null, o?: { readonly k?: number; readonly color?: Color; readonly name?: string }) => void;
+  headline: (s: string) => void;
+};
+const BALL: SPACE.Box3 = [[-1, 1], [-1, 1], [-1, 1]];
+const ringOf = (f: (a: number) => Q.V3, n = 96): Q.V3[] => Array.from({ length: n + 1 }, (_, i) => f((2 * Math.PI * i) / n));
+const vecName = (P: Q.V3): string => {
+  const r = Math.hypot(...P);
+  return `the Bloch vector P = (${P.map((x) => fmt(x, 2)).join(', ')}), |P| = ${fmt(r, 2)}: ${r > 0.995 ? 'a pure state' : r < 0.005 ? 'the maximally mixed state' : 'a mixed state'}`;
+};
+function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, opts: BlochOpts = {}): Bloch {
+  const S = space3d(d, { h: 820, fit: 1.85, ...opts, box: BALL });
+  /* a narrow pane gets a taller stage, so the ball keeps room for its labels */
+  const wrap = S.v?.wrap;
+  if (wrap && typeof ResizeObserver === 'function') {
+    const tall = (): void => { const want = wrap.clientWidth > 0 && wrap.clientWidth < 520 ? '1400 / 1300' : ''; if (wrap.style.aspectRatio !== want) wrap.style.aspectRatio = want; };
+    new ResizeObserver(tall).observe(d.stage); tall();
+  }
+  let along: Q.V3 | null = null;   /* the labelled axis: its label takes the place of the coordinate label it lies along */
+  const [top, bottom] = opts.poles ?? ['|0\\rangle', '|1\\rangle'];
+  const grown = (): number => ease.smooth(arrival(d));
+  function ball(): void {
+    const k = grown(), on = (pts: Q.V3[]): Q.V3[] => partial(pts, k) as Q.V3[];
+    const marks: SPACE.Mark[] = [
+      { k: 'sheet', rows: Q.ellipsoid(Q.I3, [0, 0, 0], 32, 16), color: PAL.ink, alpha: 0.05 * k },
+      { k: 'line', pts: on(ringOf((a) => [Math.cos(a), Math.sin(a), 0])), color: 'ink', w: 2.5, name: 'the equator: the states (|0⟩ + e^{iφ}|1⟩)/√2' },
+      { k: 'line', pts: on(ringOf((a) => [Math.cos(a), 0, Math.sin(a)])), color: 'guide', w: 2 },
+      { k: 'line', pts: on(ringOf((a) => [0, Math.cos(a), Math.sin(a)])), color: 'guide', w: 2 },
+    ];
+    (['x', 'y', 'z'] as const).forEach((nm, i) => {
+      const u: Q.V3 = [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0], m = (s: number): Q.V3 => [u[0] * s, u[1] * s, u[2] * s];
+      marks.push({ k: 'line', pts: on([m(-1), m(1.22)]), color: 'guide', w: 2, name: `the ${nm} axis` });
+      if (k > 0.5 && !(along && SPACE.dot(along, u) > 0.97)) marks.push({ k: 'label', s: `$${nm}$`, p: m(nm === 'z' ? 1.42 : 1.36), color: 'muted', cls: 'bare' });
+    });
+    marks.push({ k: 'dot', p: [0, 0, 1], color: 'ink', r: 5, name: `the pure state ${top.replace(/\\rangle/, '⟩')}, P along +z` },
+      { k: 'dot', p: [0, 0, -1], color: 'ink', r: 5, name: `the pure state ${bottom.replace(/\\rangle/, '⟩')}, P along −z` });
+    if (k > 0.5) marks.push({ k: 'label', s: `$${top}$`, p: [0, -0.3, 1], color: 'ink' }, { k: 'label', s: `$${bottom}$`, p: [0, -0.3, -1.12], color: 'ink', cls: 'bare' });
+    S.set('ball', marks);
+  }
+  const scale = (P: Q.V3, k: number): Q.V3 => [P[0] * k, P[1] * k, P[2] * k];
+  const B: Bloch = {
+    S, flat: S.flat,
+    state(key, P, o = {}) {
+      ball();
+      if (!P) { S.set('state:' + key, []); return; }
+      const k = grown(), col = o.color ?? C('state'), tip = scale(P, k), name = o.name ?? vecName(P), marks: SPACE.Mark[] = [];
+      if (o.trail?.length) marks.push({ k: 'line', pts: partial(o.trail, k) as Q.V3[], color: alpha(col, 0.6), w: 3, name: name + ' (its path)' });
+      if (o.hollow) marks.push({ k: 'line', pts: [[0, 0, 0], tip], color: col, w: 4, dash: [10, 8], name }, { k: 'dot', p: tip, color: col, r: 8, hollow: true, name });
+      else marks.push({ k: 'arrow', a: [0, 0, 0], b: tip, color: col, w: 6, name });
+      if (o.label && k > 0.5) marks.push({ k: 'label', s: o.label, p: tip, color: col });
+      S.set('state:' + key, marks);
+    },
+    rotate(key, P0, n, a, o = {}) {
+      const P = Q.rotate(P0, n, a);
+      B.state(key, P, { ...o, trail: Q.arc(P0, n, 0, a, Math.max(8, Math.ceil((Math.abs(a) / (2 * Math.PI)) * 96))) });
+      return P;
+    },
+    axis(n, o = {}) {
+      along = n && o.label ? SPACE.unit(n) : null; ball();
+      const key = 'axis:' + (o.key ?? 'axis');
+      if (!n) { S.set(key, []); return; }
+      const u = SPACE.unit(n), k = grown(), col = o.color ?? C('operator');
+      const marks: SPACE.Mark[] = [{ k: 'arrow', a: scale(u, -1.3 * k), b: scale(u, 1.3 * k), color: col, w: 3, name: o.name ?? `the axis n = (${u.map((x) => fmt(x, 2)).join(', ')})` }];
+      if (o.label && k > 0.5) marks.push({ k: 'label', s: o.label, p: scale(u, 1.44), color: col, cls: 'bare' });
+      S.set(key, marks);
+    },
+    image(map, o = {}) {
+      ball();
+      if (!map) { S.set('image', []); return; }
+      const t = Q.toward(map.M, map.c, (o.k ?? 1) * grown()), col = o.color ?? C('channel');
+      S.set('image', [
+        { k: 'sheet', rows: Q.ellipsoid(t.M, t.c, 32, 16), color: col, alpha: 0.2 },
+        { k: 'line', pts: ringOf((a) => Q.affine(t.M, t.c, [Math.cos(a), Math.sin(a), 0])), color: col, w: 3, name: o.name ?? 'the image of the ball under the channel' },
+      ]);
+    },
+    headline(s) { ball(); S.headline(s); },
+  };
+  return B;
+}
+/* ρ = ½(1 + P·σ) with its entries as numbers, set in the state's colour */
+function rhoTex(P: Q.V3, o: { readonly dec?: number; readonly lhs?: string; readonly vec?: string } = {}): string {
+  const dec = o.dec ?? 2, n = (x: number): string => { const s = x.toFixed(dec); return /^-0\.?0*$/.test(s) ? s.slice(1) : s; };
+  const z = ([re, im]: Q.Cx): string => (Math.abs(im) < 0.5 * 10 ** -dec ? n(re) : Math.abs(re) < 0.5 * 10 ** -dec ? `${n(im)}i` : `${n(re)} ${im < 0 ? '-' : '+'} ${n(Math.abs(im))}i`);
+  const r = Q.rho(P);
+  return `${o.lhs ?? '\\rho'} = \\tfrac{1}{2}\\left(1 + ${o.vec ?? '\\vec{P}'}\\cdot\\vec{\\sigma}\\right) = \\htmlClass{kv-state}{\\begin{pmatrix} ${z(r[0][0])} & ${z(r[0][1])} \\\\ ${z(r[1][0])} & ${z(r[1][1])} \\end{pmatrix}}`;
+}
+const bloch = Object.assign(blochScene, {
+  rho: rhoTex, rotate: Q.rotate, arc: Q.arc, affine: Q.affine, toward: Q.toward, ellipsoid: Q.ellipsoid, of: Q.blochOf, channels: Q.channels,
+});
+
+/* `F.circuit(d, opts)`: a quantum or reversible classical circuit, 2D, that steps gate by gate on the
+   transport (root 14: the circuit's time is the clock), a dot on the scrubber for every state, each
+   exact in either direction. Wires run left to right with labels at both ends; gates are ink boxes,
+   controls dots (open for control-on-0), ⊕ targets, SWAP crosses, meters, registers a double line
+   with a slash and their width. A wire wears a colour only where the figure gives one. Beneath, one
+   bar per basis state, its length |a_x| and its dial arg a_x; a classical circuit shows the bits on
+   the wires at the cursor instead. The input is a choice (a select beyond four). */
+type WireSpec = { readonly in?: string; readonly out?: string; readonly name?: string; readonly color?: Color; readonly width?: number };
+type CircuitInput = { readonly value: string; readonly label: string; readonly state: Q.Input; readonly ins?: readonly string[] };
+type CircuitOpts = {
+  readonly wires: number | readonly WireSpec[]; readonly steps: readonly Q.Step[];
+  readonly input?: Q.Input; readonly inputs?: readonly CircuitInput[]; readonly value?: string;
+  readonly classical?: boolean; readonly probs?: boolean; readonly beat?: number;
+  readonly ket?: (x: number) => string;
+  readonly headline?: (c: Circuit) => string | null; readonly onDraw?: (c: Circuit) => void;
+};
+export type Circuit = {
+  readonly states: readonly Q.Amps[]; readonly layout: Q.Layout; readonly at: number; readonly t: number; readonly input: Picker | null;
+  state: (i?: number) => Q.Amps; ket: (i?: number, o?: { readonly dec?: number }) => string; bits: (i?: number) => number[];
+  set: (o: { readonly steps?: readonly Q.Step[]; readonly input?: Q.Input }) => void;
+};
+const SUBS = '₀₁₂₃₄₅₆₇₈₉', SUPS = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sub = (i: number): string => String(i).split('').map((c) => SUBS[+c]).join('');
+const sup = (i: number): string => String(i).split('').map((c) => SUPS[+c]).join('');
+const GATE_LABEL: Readonly<Record<string, string>> = { Rx: 'R_x', Ry: 'R_y', Rz: 'R_z' };
+const GATE_NAME: Readonly<Record<string, string>> = {
+  H: 'the Hadamard gate H', X: 'the NOT gate X', Y: 'the Pauli gate Y', Z: 'the phase flip Z', S: 'the phase gate S', T: 'the π/8 gate T',
+  P: 'a phase gate', Rx: 'a rotation about x', Ry: 'a rotation about y', Rz: 'a rotation about z', SWAP: 'the SWAP gate', M: 'a measurement in the basis |0⟩, |1⟩',
+};
+const labelOf = (g: Q.GateSpec): string => g.label ?? (g.g === 'R' ? `R_${g.k ?? 1}` : GATE_LABEL[g.g] ?? g.g);
+const isNot = (g: Q.GateSpec): boolean => g.g === 'X' && !g.label && Q.controls(g).on.length + Q.controls(g).off.length > 0;
+function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement; readonly controls: HTMLElement }, o: CircuitOpts): Circuit {
+  const wires: readonly WireSpec[] = typeof o.wires === 'number' ? Array.from({ length: o.wires }, () => ({})) : o.wires;
+  const L = Q.layoutOf(wires.map((w) => w.width ?? 1)), nW = wires.length, classical = !!o.classical, beat = o.beat ?? 1.4;
+  let steps = o.steps, inputs = o.inputs ?? [], states: Q.Amps[] = [];
+  const wname = (w: number): string => wires[w].name ?? `q${sub(w)}`;
+  const nameOf = (g: Q.GateSpec): string => {
+    const { on, off } = Q.controls(g), cs = on.length + off.length, T = Q.targets(g).map(wname).join(', ');
+    const plain = labelOf(g).replace(/[_{}$]/g, '');
+    const base = g.name ?? (isNot(g) ? (cs === 1 ? 'the controlled-NOT (XOR) gate' : `the Toffoli gate θ${sup(cs + 1)}`) : cs ? `the controlled-${plain} gate` : GATE_NAME[g.g] ?? `the gate ${plain}`);
+    const ctl = [...on.map((w) => wname(w)), ...off.map((w) => `${wname(w)} (on 0)`)];
+    return `${base}${ctl.length ? `, control ${ctl.join(', ')}, target ${T}` : ` on ${T}`}`;
+  };
+  const stepName = (j: number): string => 'After ' + Q.stepGates(steps[j]).map((g) => `${g.g === 'M' ? 'measuring' : isNot(g) ? 'the controlled-NOT' : labelOf(g).replace(/[_{}$]/g, '')} on ${Q.targets(g).map(wname).join(', ')}`).join(' and ');
+  const measuredAt = (w: number): number => steps.findIndex((s) => Q.stepGates(s).some((g) => g.g === 'M' && Q.targets(g).includes(w)));
+  /* the basis states drawn: all of them up to four qubits, else those any step reaches (ponytail: at most 32 bars, wider registers need a register-level view) */
+  let shown: number[] = [];
+  let inState: Q.Input = o.input ?? inputs.find((x) => x.value === o.value)?.state ?? inputs[0]?.state ?? 0;
+  const recompute = (): void => {
+    states = Q.run(inState, L, steps);
+    const N = 1 << L.n;
+    shown = L.n <= 4 ? Array.from({ length: N }, (_, x) => x) : Array.from({ length: N }, (_, x) => x).filter((x) => states.some((s) => Q.modulus(s, x) > 1e-9)).slice(0, 32);
+  };
+  recompute();
+  const ins = (): readonly string[] => {
+    const own = inputs.find((x) => x.state === inState)?.ins;
+    if (own) return own;
+    const s = inState;
+    if (typeof s === 'string' || typeof s === 'number') {
+      const bits = Q.bitsOf(Q.prepare(s, L), L);
+      return bits.map((b, w) => (classical ? Q.basisLabel(b, L.width[w]) : `|${Q.basisLabel(b, L.width[w])}⟩`));
+    }
+    if ('wires' in s) return s.wires.map((x, w) => (typeof x === 'number' || typeof x === 'string' ? (classical ? String(x) : `|${typeof x === 'number' ? Q.basisLabel(x, L.width[w]) : x}⟩`) : ''));
+    return wires.map(() => '');
+  };
+
+  /* the canvas: the wires, then for a quantum circuit the bars */
+  const S = 96, headH = o.headline ? 92 : 36, yw = (w: number): Logical => headH + 44 + w * S, cBot = yw(nW - 1) + 56;
+  const yD = cBot + 34, yT = yD + 32, BH = 150, yB = yT + BH, yL = yB + 30, yP = yL + 30;
+  const H = classical ? cBot + 10 : (o.probs ? yP : yL) + 26;
+  const c = makeCanvas(d.stage, H);
+  const hits: Hit[] = []; hover(d.stage, () => hits, c);
+  const cy = cycle(() => steps.length, 1.2);
+  const input = inputs.length > 1 ? (inputs.length > 4 ? select : choice)(d.controls, {
+    label: '\\text{input}', key: 'input', value: o.value ?? inputs[0].value, aria: 'the input state', ms: 0,
+    options: inputs.map((x) => ({ value: x.value, label: x.label })),
+    onInput: (v) => { inState = inputs.find((x) => x.value === v)?.state ?? inState; recompute(); cy.reset(); },
+  }) : null;
+
+  let tau = 0, at = 0;
+  const api: Circuit = {
+    get states() { return states; }, layout: L, get at() { return at; }, get t() { return tau; }, input,
+    state: (i = at) => states[i], ket: (i = at, ko = {}) => Q.ketTex(states[i], L.n, ko), bits: (i = at) => Q.bitsOf(states[i], L),
+    set(x) { if (x.steps) steps = x.steps; if (x.input !== undefined) inState = x.input; recompute(); dots(); touch(d.fig); },
+  };
+
+  /* the step dots on the scrubber, one per state; a click jumps there as a drag of the scrubber would */
+  let dotEls: HTMLElement[] = [];
+  function dots(): void {
+    const s = d.fig.querySelector<HTMLInputElement>('.transport .scrub'); if (!s) return;
+    let w = s.parentElement!;
+    if (!w.classList.contains('dv-track')) { w = el('span', 'dv-track'); s.replaceWith(w); w.appendChild(s); }
+    dotEls.forEach((b) => b.remove());
+    const N = steps.length;
+    dotEls = Array.from({ length: N + 1 }, (_, i) => {
+      const b = w.appendChild(el('button', 'dv-dot')); b.type = 'button';
+      const t = i === 0 ? 'Input' : stepName(i - 1); b.title = t; b.setAttribute('aria-label', t);
+      b.style.left = `calc(8px + (100% - 16px) * ${i / N})`;
+      b.addEventListener('click', () => { s.max = String(N); s.value = String(i); s.dispatchEvent(new Event('input', { bubbles: true })); });
+      return b;
+    });
+  }
+
+  function gate(ctx: Ctx, g: Q.GateSpec, x: Logical, j: number, box: Logical, glow: number, a: number): void {
+    const T = Q.targets(g), { on, off } = Q.controls(g), ys = [...T, ...on, ...off].map(yw), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const ink = PAL.ink, name = nameOf(g), half = box / 2;
+    ctx.save(); ctx.globalAlpha *= a;
+    if (y1 > y0) {
+      const cl = [...on, ...off].some((w) => { const m = measuredAt(w); return m >= 0 && m < j; });
+      if (cl) { line(ctx, x - 3.5, y0, x - 3.5, y1, ink, 2); line(ctx, x + 3.5, y0, x + 3.5, y1, ink, 2); } else line(ctx, x, y0, x, y1, ink, 3);
+    }
+    on.forEach((w) => { dot(ctx, x, yw(w), ink, true, 10); hits.push({ x, y: yw(w), r: 16, name }); });
+    off.forEach((w) => { ctx.save(); ctx.fillStyle = PAL.panel; ctx.beginPath(); ctx.arc(x, yw(w), 10, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); dot(ctx, x, yw(w), ink, false, 10); hits.push({ x, y: yw(w), r: 16, name }); });
+    const panel = (bx: Logical, by: Logical, bw: Logical, bh: Logical): void => {
+      ctx.save(); ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fillStyle = PAL.panel; ctx.fill();
+      if (glow > 0) { ctx.fillStyle = alpha(ink, 0.14 * glow); ctx.fill(); }
+      ctx.strokeStyle = ink; ctx.lineWidth = 3 + 1.5 * glow; ctx.stroke(); ctx.restore();
+    };
+    if (isNot(g)) T.forEach((w) => {
+      const y = yw(w), r = 21 * (1 + 0.12 * glow);
+      ctx.save(); ctx.fillStyle = PAL.panel; ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke(); ctx.restore();
+      hits.push({ x, y, r: r + 6, name });
+    });
+    else if (g.g === 'SWAP') T.forEach((w) => {
+      const y = yw(w), s = 13 * (1 + 0.15 * glow);
+      line(ctx, x - s, y - s, x + s, y + s, ink, 3.5); line(ctx, x - s, y + s, x + s, y - s, ink, 3.5); hits.push({ x, y, r: 20, name });
+    });
+    else if (g.g === 'M') T.forEach((w) => {
+      const y = yw(w), bw = box * 1.1, bh = box * 0.82; panel(x - bw / 2, y - bh / 2, bw, bh);
+      ctx.save(); ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y + bh * 0.28, bw * 0.32, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke(); ctx.restore();
+      arrow(ctx, x, y + bh * 0.28, x + bw * 0.24, y - bh * 0.3, ink, 2.5);
+      hits.push({ x, y, r: half + 6, name: g.outcome === undefined ? name : `${name}; outcome ${g.outcome}` });
+    });
+    else {
+      /* a matrix gate on several wires is one box over them; a known one-qubit gate is a box on each */
+      const spans = g.m && T.length > 1 ? [[Math.min(...T), Math.max(...T)]] : T.map((w) => [w, w]);
+      spans.forEach(([a0, a1]) => {
+        const yt = yw(a0) - half, h = yw(a1) - yw(a0) + box, lab = labelOf(g);
+        panel(x - half, yt, box, h);
+        const size = Math.min(28, (28 * (box - 12)) / Math.max(1, measure(ctx, lab, { size: 28, weight: 600, tex: lab.includes('$') })));
+        text(ctx, lab, x, yt + h / 2, ink, { size, weight: 600, align: 'center', tex: lab.includes('$') });
+        hits.push({ x, y: yt + h / 2, r: Math.max(half, h / 2) + 4, name });
+      });
+    }
+    ctx.restore();
+  }
+
+  function draw(): void {
+    const { ctx } = begin(c), N = steps.length, ink = PAL.ink; hits.length = 0;
+    tau = Math.min(cy.now(), N);
+    const i = Math.min(N - 1, Math.floor(tau)), f = tau - i, move = ease.smooth(Math.min(1, f / 0.6));
+    at = move < 0.5 ? i : i + 1;
+    dotEls.forEach((b, j) => b.classList.toggle('at', j === at));
+    const ka = arrival(d), kw = ease.smooth(Math.min(1, ka / 0.5)), kg = ease.smooth(Math.max(0, (ka - 0.3) / 0.7));
+    if (o.headline) { const s = o.headline(api); if (s) topline(ctx, s); }
+
+    /* the end labels, then the columns between them */
+    const inL = ins(), outL = wires.map((w) => w.out ?? ''), lsz = 26;
+    const tx = (s: string): boolean => s.includes('$');
+    const wOf = (s: string): Logical => (s ? measure(ctx, s, { size: lsz, weight: 600, tex: tx(s) }) : 0);
+    const inW = Math.max(0, ...inL.map(wOf)), outW = Math.max(0, ...outL.map(wOf));
+    /* the cursor rests a third of a column inside each end of the wires, clear of the end labels */
+    const xs = 24 + inW + (inW ? 18 : 0), xe = LW - 24 - outW - (outW ? 18 : 0), colW = (xe - xs) / (N + 0.6), box = Math.min(72, colW * 0.62);
+    const px = (k: number): Logical => xs + (k + 0.3) * colW, col = (j: number): Logical => px(j + 0.5);
+    const ket = classical ? C('bit-string') : C('state');
+
+    wires.forEach((ws, w) => {
+      const y = yw(w), wc = ws.color ?? ink, m = measuredAt(w), xr = xs + (xe - xs) * kw, bundle = (ws.width ?? 1) > 1;
+      const dbl = (a: Logical, b: Logical): void => { if (b > a) { line(ctx, a, y - 3.5, b, y - 3.5, wc, 2); line(ctx, a, y + 3.5, b, y + 3.5, wc, 2); } };
+      if (bundle) dbl(xs, xr);
+      else if (m >= 0) { const xm = col(m); line(ctx, xs, y, Math.min(xr, xm), y, wc, 3); dbl(xm, xr); }
+      else line(ctx, xs, y, xr, y, wc, 3);
+      if (bundle) { line(ctx, xs + 22, y + 12, xs + 38, y - 12, wc, 2.5); text(ctx, String(ws.width), xs + 34, y - 26, wc, { size: 17, align: 'center' }); }
+      for (let x = xs + 30; x < xe; x += 110) hits.push({ x, y, r: 12, name: `the ${classical ? 'bit' : bundle ? 'register' : 'qubit'} ${wname(w)}` });
+      const a = Math.min(1, ka * 2);
+      ctx.save(); ctx.globalAlpha *= a;
+      if (inL[w]) { text(ctx, inL[w], xs - 16, y, ws.color ?? ket, { size: lsz, weight: 600, align: 'right', tex: tx(inL[w]) }); hits.push({ x: xs - 16 - wOf(inL[w]) / 2, y, r: 22, name: `${wname(w)} starts in ${inL[w].replace(/\$/g, '')}` }); }
+      if (outL[w]) { text(ctx, outL[w], xe + 16, y, ws.color ?? ket, { size: lsz, weight: 600, tex: tx(outL[w]) }); hits.push({ x: xe + 16 + wOf(outL[w]) / 2, y, r: 22, name: `${wname(w)} ends in ${outL[w].replace(/\$/g, '')}` }); }
+      ctx.restore();
+    });
+    const cur = px(i) + (px(i + 1) - px(i)) * move;
+    steps.forEach((s, j) => {
+      const glow = j === i && f < 0.6 && move > 0 ? ease.thereAndBack(move) : 0;
+      Q.stepGates(s).forEach((g) => gate(ctx, g, col(j), j, box, glow, stagger(kg, j, N)));
+    });
+
+    /* the cursor: now, between the gate just done and the next */
+    const tc = C('time');
+    ctx.save(); ctx.globalAlpha *= kg; line(ctx, cur, yw(0) - 50, cur, yw(nW - 1) + 46, alpha(tc, 0.75), 3, [8, 7]);
+    ctx.fillStyle = tc; ctx.beginPath(); ctx.moveTo(cur - 9, yw(0) - 62); ctx.lineTo(cur + 9, yw(0) - 62); ctx.lineTo(cur, yw(0) - 50); ctx.fill(); ctx.restore();
+    hits.push({ x: cur, y: yw(0) - 58, r: 16, name: at === 0 ? 'now: the input' : `now: ${stepName(at - 1).toLowerCase()}` });
+
+    const s0 = states[i], s1 = states[i + 1];
+    if (classical) {
+      const bits = Q.bitsOf(move < 0.5 ? s0 : s1, L), bc = C('bit-string');
+      wires.forEach((_, w) => {
+        const y = yw(w), s = String(bits[w]), bw = Math.max(34, measure(ctx, s, { size: 24, weight: 600 }) + 14), bh = Math.max(36, shownH(ctx, 24) + 10);
+        ctx.save(); ctx.globalAlpha *= kg; ctx.beginPath(); ctx.roundRect(cur - bw / 2, y - bh / 2, bw, bh, 6); ctx.fillStyle = PAL.panel; ctx.fill(); ctx.strokeStyle = bc; ctx.lineWidth = 2.5; ctx.stroke();
+        text(ctx, s, cur, y, bc, { size: 24, weight: 600, align: 'center' }); ctx.restore();
+        hits.push({ x: cur, y, r: 20, name: `${wname(w)} = ${s} now` });
+      });
+    } else {
+      const ac = C('amplitude'), pc = C('probability'), B = shown.length, cb = (LW - 120) / B, bw = Math.min(64, cb * 0.5);
+      const ls = cb >= 130 ? 24 : cb >= 90 ? 20 : 17, kb = kg;
+      line(ctx, 50, yB, LW - 50, yB, alpha(ink, 0.4), 2);
+      line(ctx, 50, yT, LW - 50, yT, alpha(ink, 0.22), 2, [10, 10]);
+      text(ctx, '1', LW - 44, yT, PAL.muted, { size: 17 }); text(ctx, '0', LW - 44, yB, PAL.muted, { size: 17 });
+      shown.forEach((x, n) => {
+        const cx0 = 60 + (n + 0.5) * cb, m0 = Q.modulus(s0, x), m1 = Q.modulus(s1, x), p0 = Q.phase(s0, x), p1 = Q.phase(s1, x);
+        let dp = p1 - p0; dp -= 2 * Math.PI * Math.round(dp / (2 * Math.PI));
+        const m = m0 + (m1 - m0) * move, ph = m0 < 1e-9 ? p1 : m1 < 1e-9 ? p0 : p0 + dp * move, h = m * BH * kb;
+        if (h > 0.5) { ctx.save(); ctx.fillStyle = ac; ctx.fillRect(cx0 - bw / 2, yB - h, bw, h); ctx.restore(); }
+        ctx.save(); ctx.strokeStyle = alpha(ink, 0.35); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx0, yD, 15, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+        if (m > 1e-6) { ctx.save(); ctx.globalAlpha *= Math.min(1, m * 5) * kb; line(ctx, cx0, yD, cx0 + 15 * Math.cos(ph), yD - 15 * Math.sin(ph), ac, 3.5); ctx.restore(); }
+        const lab = o.ket ? o.ket(x) : `|${Q.basisLabel(x, L.n)}⟩`;
+        text(ctx, lab, cx0, yL, ink, { size: ls, align: 'center', tex: lab.includes('$') });
+        const shownS = move < 0.5 ? s0 : s1, ms = Q.modulus(shownS, x), pr = ms * ms;
+        if (o.probs) text(ctx, fmt(pr, 2), cx0, yP, pc, { size: ls - 2, align: 'center' });
+        const nm = `${lab.replace(/\$/g, '')}: amplitude modulus ${fmt(ms, 3)}${ms > 1e-9 ? `, phase ${fmt((Q.phase(shownS, x) * 180) / Math.PI, 0)}°` : ''}${o.probs ? `, probability ${fmt(pr, 3)}` : ''}`;
+        hits.push({ x: cx0, y: yB - Math.max(h, 30) / 2, r: Math.max(24, Math.min(bw, h / 2)), name: nm }, { x: cx0, y: yD, r: 18, name: nm });
+      });
+    }
+    o.onDraw?.(api);
+  }
+  register(d.fig, { update: (dt) => cy.step(dt, () => 1 / beat), draw });
+  dots();
+  return api;
+}
+const circuit = Object.assign(circuitFig, { run: Q.run, layout: Q.layoutOf, ket: Q.ketTex, bits: Q.bitsOf, prepare: Q.prepare });
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, typeset, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
@@ -3413,6 +3765,7 @@ export const FIG = {
   slopefield,
   space, space3d,
   polar,
+  bloch, circuit,
 };
 export type Fig = typeof FIG;
 
