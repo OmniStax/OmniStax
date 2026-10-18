@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -312,6 +312,18 @@ test('checkFigures: a row with no figure, a figure with no row, and a number the
 /* A sim that folds several book figures prints them all, and the text must print the same joined string. */
 const FOLDED = TEXT.replaceAll('16.2', '16.2 + 16.3');
 const folded = (folds: readonly string[], more: readonly object[] = []) => ({ figures: [{ id: 'sim-ruler', kind: 'sim', number: '16.2', folds }, ...more] });
+const DRV = { id: 'tug', what: 'the tension', nodes: [{ assumes: [{ tex: 'a = b', src: '1.1' }, { text: 'It is at rest.' }], then: { tex: '\\mk{f}{F} = \\mk{m}{m}\\mk{a}{a}', uses: [1] }, steps: [{ tex: '\\mk{f}{F} = \\mk{m}{m}\\mk{a}{b}', uses: [0] }] }] };
+const HOSTED = '<figure class="dv" id="drv-tug"></figure>';
+test('checkDerivations: a row with no host, a host with no row, and a node that lists what it never uses', () => {
+  assert.deepEqual(run(checkDerivations, { section: { derivations: [DRV] }, textHtml: HOSTED }), []);
+  assert.match(run(checkDerivations, { section: { derivations: [DRV] } })[0], /is no <figure class="dv">/);
+  assert.match(run(checkDerivations, { textHtml: HOSTED })[0], /<figure id="drv-tug"> is no row of the derivations table/);
+  const idle = { ...DRV, nodes: [{ ...DRV.nodes[0], steps: [{ tex: DRV.nodes[0].steps[0].tex, uses: [] }] }] };
+  assert.match(run(checkDerivations, { section: { derivations: [idle] }, textHtml: HOSTED })[0], /assumes\[0\] is never used/);
+  const twice = { ...DRV, nodes: [{ ...DRV.nodes[0], steps: [{ tex: '\\mk{f}{F} = \\mk{f}{m}', uses: [0] }] }] };
+  assert.match(run(checkDerivations, { section: { derivations: [twice] }, textHtml: HOSTED })[0], /line 1 keys a term twice/);
+});
+
 test('checkFigures: a folded figure whose text does not print the joined string, or whose fold repeats a number', () => {
   assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED }), []);
   assert.match(run(checkFigures, { section: folded(['16.3']) })[0], /numbered 16.2 \+ 16.3 in the table and 16.2 in the text/);

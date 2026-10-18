@@ -141,7 +141,7 @@ test('every figure of a section is a row of its figures table, and every row is 
   assert.ok(sectionDirs.length > 0);
   sectionDirs.forEach((dir) => {
     const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
-    const drawn = [...html.matchAll(/<figure\b[^>]*\bid="([^"]+)"/g)].map(([, id]) => id).sort();
+    const drawn = [...html.matchAll(/<figure\b[^>]*>/g)].map(([tag]) => tag).filter((tag) => !/\bclass="[^"]*\bdv\b/.test(tag)).map((tag) => /\bid="([^"]+)"/.exec(tag)?.[1] ?? '').sort();   /* a derivation's host is a figure element too, and is checked against the derivations table instead */
     assert.deepEqual(figureRows(dir).map((f) => f.id).sort(), drawn, `${dir}: the figures table and the text disagree`);
   });
 });

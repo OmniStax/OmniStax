@@ -65,8 +65,12 @@ const chapterOfSection = (section: string): string => section.split('.')[0];
 /* Every id the section's text carries, which is what a span, an anchor, a cite and an inline exercise's place must name. */
 export const localIds = (html: string): ReadonlySet<string> => new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (m) => m[1]));
 /* Every <figure> of the text by its id, with the number the browser reads off it. */
+/* the figures of a text by id, with the number each prints; a derivation's host (`<figure class="dv">`) is not one of them */
+const isDerivationHost = (tag: string): boolean => /\bclass="[^"]*\bdv\b[^"]*"/.test(tag);
 const figureTags = (html: string): ReadonlyMap<string, string | undefined> =>
-  new Map(Array.from(html.matchAll(/<figure\b[^>]*>/g), ([tag]) => [/\bid="([^"]+)"/.exec(tag)?.[1] ?? '', /\bdata-figure="([^"]+)"/.exec(tag)?.[1]] as const));
+  new Map(Array.from(html.matchAll(/<figure\b[^>]*>/g), ([tag]) => tag).filter((tag) => !isDerivationHost(tag)).map((tag) => [/\bid="([^"]+)"/.exec(tag)?.[1] ?? '', /\bdata-figure="([^"]+)"/.exec(tag)?.[1]] as const));
+const derivationHosts = (html: string): readonly string[] =>
+  Array.from(html.matchAll(/<figure\b[^>]*>/g), ([tag]) => tag).filter(isDerivationHost).map((tag) => /\bid="([^"]+)"/.exec(tag)?.[1] ?? '');
 /* The label an eyebrow prints: the eyebrow's own text, which is what sits at depth one inside the first span of
    class eyebrow. A badge nested in it (the 3D tag) is chrome beside the label and is left out, as the tag walk of
    linkFigureRefs leaves it. Nothing where the element has no eyebrow. */
@@ -734,7 +738,30 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+/* A derivation's host and its row say the same thing, and its nodes rest only on what they list and use all of it. */
+const stripKeys = (tex: string): string => tex.replace(/\\mk\{[^{}]*\}/g, '');
+export const checkDerivations: Check = (content) =>
+  pagesOf(content).flatMap((s) => {
+    const hosts = new Set(derivationHosts(s.textHtml)), rows = s.dto.derivations;
+    return [
+      ...rows.flatMap((d) => (hosts.has(`drv-${d.id}`) ? [] : [error(inSection(s, 'derivations', d.id), 'is no <figure class="dv"> of the section’s text')])),
+      ...[...hosts].flatMap((id) => (rows.some((d) => `drv-${d.id}` === id) ? [] : [error(`${s.dto.id}/text.html`, `<figure id="${id}"> is no row of the derivations table`)])),
+      ...rows.flatMap((d) => {
+        const results = d.nodes.map((m) => stripKeys(m.steps[m.steps.length - 1]!.tex));
+        return d.nodes.flatMap((n, i) => {
+          const where = inSection(s, 'derivations', `${d.id}].nodes[${i}`);
+          const used = new Set([...n.then.uses, ...n.steps.flatMap((x) => x.uses)]);
+          return [
+            ...[...used].flatMap((u) => (u < n.assumes.length ? [] : [error(where, `uses assumes[${u}], which it has no entry for`)])),
+            ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined && stripKeys(n.then.tex) === results[a.step]) ? [] : [error(where, `assumes[${k}] is never used`)])),
+            ...n.assumes.flatMap((a, k) => (a.step !== undefined && a.step >= i ? [error(where, `assumes[${k}] rests on node ${a.step}, which comes no earlier`)] : [])),
+            ...[n.then.tex, ...n.steps.map((x) => x.tex)].flatMap((l, j) => { const ks = [...l.matchAll(/\\mk\{([^{}]*)\}/g)].map((m) => m[1]); return new Set(ks).size === ks.length ? [] : [error(where, `line ${j} keys a term twice`)]; }),
+          ];
+        });
+      }),
+    ];
+  });
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

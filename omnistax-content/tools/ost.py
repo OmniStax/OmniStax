@@ -139,6 +139,9 @@ TABLES: dict[TableName, Table] = {
     "exercise_concepts": Table("section", ("exercise", "concept"), {
         "exercise": _f(True), "concept": _f(True), "weight": _f(kind="num"), "weights_by": _f(enum=("ai",))},
         ("exercise", "concept", "weight", "weights_by")),
+    "derivations": Table("section", ("id",), {
+        "id": _f(True), "what": _f(True), "source": _f(), "nodes": _f(True, kind="list")}, ("id", "what", "source"),
+        (("node", "a derivation's nodes are a list of objects; write the whole row as JSON (`ost add … --json`) rather than field by field"),)),
     "footnotes": Table("section", ("id",), {
         "id": _f(True), "kind": _f(True, enum=("book", "correction")), "number": _f(), "html": _f(True), "figure": _f()},
         ("id", "kind", "number", "html", "figure")),

@@ -19,7 +19,11 @@ export const bookFigures = (book: string, sec: string, js: string): string => {
   if (out === js && /\bfunction\b|=>/.test(js)) throw new Error(`${book}/${sec}/figures.js registers no OMNISTAX_FIGURES['<section>'] key`);
   return out;
 };
+/* The section's derivations ride in the same module, as data the registry hands to the library (rule 29). */
+export const derivationsJs = (book: string, sec: string, rows: readonly unknown[]): string =>
+  (rows.length ? `\n(window.OMNISTAX_DERIVATIONS = window.OMNISTAX_DERIVATIONS || {})[${JSON.stringify(`${book}/${sec}`)}] = ${JSON.stringify(rows)};\n` : '');
 export const figuresJs: APIRoute = ({ props }) => {
   const { tree, section } = props as PageProps;
-  return new Response(bookFigures(tree.dto.id, section.meta.id, section.figuresJs), { headers: { 'content-type': 'text/javascript; charset=utf-8' } });
+  const js = bookFigures(tree.dto.id, section.meta.id, section.figuresJs) + derivationsJs(tree.dto.id, section.meta.id, section.dto.derivations);
+  return new Response(js, { headers: { 'content-type': 'text/javascript; charset=utf-8' } });
 };

@@ -291,6 +291,51 @@ export const FigureSchema = z.object({
 }).strict();
 export type FigureRowDTO = z.infer<typeof FigureSchema>;
 
+/* ---------- derivations ---------- */
+
+/* One thing a derivation's node rests on: an equation the book states, a sentence it states, or the result of an earlier node. */
+export const DerivationFactSchema = z.object({
+  tex: z.string().optional().describe('The fact as an equation, in TeX through the book\u2019s macros; absent where the fact is a sentence or an earlier result.'),
+  text: z.string().optional().describe('The fact as a sentence in the book\u2019s voice, `$\u2026$` for inline maths; absent where the fact is an equation or an earlier result.'),
+  step: z.number().int().min(0).optional().describe('The 0-based index of the earlier node whose result this fact is; absent where the fact is an equation or a sentence.'),
+  src: z.string().optional().describe('Where the book states the fact: a section, an equation number, a table, a figure or an example, as the book prints it. Absent on a given of the example itself and on an earlier result.'),
+}).strict().refine((a) => [a.tex, a.text, a.step].filter((x) => x !== undefined).length === 1, { message: 'a fact is one equation, one sentence or one earlier result' });
+export type DerivationFactDTO = z.infer<typeof DerivationFactSchema>;
+
+/* One move of a node's work: the line it produces, the facts it uses, and why where the why is not obvious. */
+export const DerivationStepSchema = z.object({
+  tex: z.string().describe('The line this move produces, in TeX through the book\u2019s macros, every persisting term keyed `\\mk{key}{\u2026}` by its role so the morph pairs it with the line before.'),
+  uses: z.array(z.number().int().min(0)).default([]).describe('The 0-based indices into the node\u2019s `assumes` of the facts and earlier results this move relies on; empty for a move of pure algebra.'),
+  cap: z.string().optional().describe('Why the move is allowed, one or two sentences in the book\u2019s voice, only for a move beyond grade-school algebra or a non-obvious reason a fact applies.'),
+  map: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional().describe('Where one key splits into several or several merge into one on this move: each old key to its new key or keys, so each part travels to its place.'),
+}).strict();
+export type DerivationStepDTO = z.infer<typeof DerivationStepSchema>;
+
+/* One node of a derivation: an equation brought in and worked, move by move, to a result that later nodes may rest on. */
+export const DerivationNodeSchema = z.object({
+  assumes: z.array(DerivationFactSchema).default([]).describe('Every fact and earlier result the node rests on, each once; every entry is used by `then.uses` or by some step\u2019s `uses`.'),
+  then: z.object({
+    tex: z.string().describe('The raw equation the node starts from, before any fact is applied to it, keyed like a step\u2019s line.'),
+    src: z.string().optional().describe('Where the book states the starting equation, where it is not an earlier result.'),
+    uses: z.array(z.number().int().min(0)).default([]).describe('The 0-based indices into `assumes` of the conditions under which the starting equation holds; empty where it needs none.'),
+    why: z.string().optional().describe('Why those conditions make it hold, where the facts alone do not say so; one or two sentences in the book\u2019s voice.'),
+  }).strict().describe('The equation the node starts from and what makes it hold.'),
+  steps: z.array(DerivationStepSchema).min(1).describe('The moves, in order; the last line is the node\u2019s result.'),
+  num: z.string().optional().describe('The number the book prints the result under, such as (17.21), only where it prints one.'),
+  src: z.string().optional().describe('Where the book prints this result: an example, a section, a named rule.'),
+  note: z.string().optional().describe('A correction of the book, where its printed line is wrong: the work follows the correct mathematics and this says what the book printed.'),
+}).strict();
+export type DerivationNodeDTO = z.infer<typeof DerivationNodeSchema>;
+
+/* A derivation the section draws as a graph of facts and results worked in place (rule 29, docs/prompts/derivations.md). */
+export const DerivationSchema = z.object({
+  id: z.string().describe('The derivation\u2019s local id; the section\u2019s text hosts it as `<figure class="dv" id="drv-<id>">`.'),
+  what: z.string().describe('What is derived, as one lower-case phrase the title reads after its eyebrow word (\u201cDerivation \u00b7\u201d, \u201cDerivations \u00b7\u201d where more than one result is an end, or the book\u2019s \u201cExample N.M \u00b7\u201d where `source` names the example it works); where the derivation replaces something the book numbers and refers to, that reference instead.'),
+  source: z.string().optional().describe('Where the book works it: the book and the section, and the example where there is one.'),
+  nodes: z.array(DerivationNodeSchema).min(1).describe('The nodes in the book\u2019s order, the last one\u2019s result being what is derived.'),
+}).strict();
+export type DerivationDTO = z.infer<typeof DerivationSchema>;
+
 /* A particular thing that exists only in one example or figure of the section
    (block 1 and block 2, Firm A and Firm B), which the text and the figure both point at. */
 export const ReferentSchema = z.object({
@@ -426,11 +471,12 @@ export const SectionSchema = z.object({
   exercises: z.array(ExerciseSchema).default([]).describe('The exercises the section sets, in the order the book sets them.'),
   exercise_concepts: z.array(ExerciseConceptSchema).default([]).describe('Which concepts each exercise tests, and what it is worth for them.'),
   footnotes: z.array(FootnoteSchema).default([]).describe('The book\u2019s footnotes and OmniStax\u2019s corrections of the book, which the app prints at the section\u2019s end.'),
+  derivations: z.array(DerivationSchema).default([]).describe('The derivations the section draws as graphs worked in place, in the order the text hosts them.'),
 }).strict().transform((s) => ({
   id: sectionId(pageId(s.id, s.chapter)), role: pageRoleOf(s.id), module: s.module, chapter: s.chapter, title: s.title, short: s.short ?? s.title,
   lead: s.lead, objectives: s.objectives, summaryHtml: s.summary_html, notes: s.notes, ai: s.ai, built: s.built,
   exercisesLead: s.exercises_lead, exerciseNotes: s.exercise_notes,
-  figures: s.figures, referents: s.referents, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts, footnotes: s.footnotes,
+  figures: s.figures, referents: s.referents, coverage: s.coverage, exercises: s.exercises, exerciseConcepts: s.exercise_concepts, footnotes: s.footnotes, derivations: s.derivations,
 }));
 export type SectionDTO = z.infer<typeof SectionSchema>;
 
@@ -471,6 +517,10 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   answer: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer', schema: AnswerSchema, note: 'An exercise\u2019s answer, one shape per way of checking it.' },
   footnotes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'footnotes', schema: FootnoteSchema, note: 'The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="\u2026"></sup>` in the text, the summary or another note\u2019s html: the book\u2019s footnotes under the book\u2019s numbers, and OmniStax\u2019s corrections of the book, numbered [1], [2]\u2026 by the app and AI-marked. A correction may also stand in an exercise\u2019s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section\u2019s end; or name a figure, whose original caption it corrects.' },
   ai: { level: 'section', file: '<chapter>/<section>/section.json', field: 'ai', schema: AiCreditSchema, note: 'The AI the section was built with, by role.' },
+  derivations: { level: 'section', file: '<chapter>/<section>/section.json', field: 'derivations', schema: DerivationSchema, note: 'The derivations the section draws as graphs of facts and results worked in place; each is hosted by a `<figure class="dv" id="drv-<id>">` in the text.' },
+  derivation_nodes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'derivations[].nodes', schema: DerivationNodeSchema, note: 'One node of a derivation: an equation brought in and worked, move by move, to a result.' },
+  derivation_facts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'derivations[].nodes[].assumes', schema: DerivationFactSchema, note: 'What a node rests on: an equation, a sentence or an earlier result, with where the book states it.' },
+  derivation_steps: { level: 'section', file: '<chapter>/<section>/section.json', field: 'derivations[].nodes[].steps', schema: DerivationStepSchema, note: 'One move of a node\u2019s work.' },
 };
 
 /* ---------- what the build serves ---------- */

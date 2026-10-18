@@ -19,6 +19,8 @@ import { layoutPlan, rangeAt as rangeFrame, type SliderRange, type RangeFrame } 
 import { trace, limit, slope, area, cells, clipLine, judge, ticks, type Rule, type Target } from './plot';
 import * as REV from './solid';
 import { widen, sides } from './deriv';
+import { derivation as derivationOf } from './derivation';
+import type { DerivationDTO } from '../content/schema';
 import * as SLOPE from './slope';
 import * as SPACE from './space';
 import * as POLAR from './polar';
@@ -3762,6 +3764,8 @@ export const FIG = {
   plot, shade, riemann, tangent, secant, drag, band, judge,
   revolve,
   deriv, secants,
+  /* a derivation worked in place, into the `<figure class="dv" id="drv-<id>">` of the root (rule 29) */
+  derivation: (root: HTMLElement, D: DerivationDTO): void => derivationOf(root, FIG, D),
   slopefield,
   space, space3d,
   polar,

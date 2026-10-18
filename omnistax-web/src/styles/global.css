@@ -410,3 +410,55 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem}
 .input{height:30px;padding:0 10px;border:0;border-radius:7px;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:0.86rem;box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow 120ms}
 .input::placeholder{color:var(--muted);opacity:0.8}
 .input:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent),0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+
+/* ---------- a derivation worked in place (fig/derivation.ts, rule 29) ---------- */
+.dv{border:1px solid var(--rule);border-radius:6px;margin:1rem 0 1.6rem;font-family:var(--sans);container-type:inline-size;position:relative}
+.dv>.controls:empty,.dv>.readout:empty{display:none}
+.dv-bar{display:flex;gap:.6rem;padding:8px 14px;border-bottom:1px solid var(--rule);align-items:center}
+.dv-title{font-size:.9rem;color:var(--ink);margin-right:auto;min-width:0}
+.dv-title b{font-weight:600}
+.dv-title span{color:var(--muted)}
+.dv-bar .ctl-seg{margin:0}
+.dv .tbtn[aria-pressed="true"]{color:var(--ink);background:var(--soft);border-color:var(--muted)}
+.dv-bar .tbtn svg,.dv .transport .work svg{width:16px;height:16px;fill:none}
+.dv .transport{position:relative}
+.dv .transport .work{margin-left:14px}
+.dv-menu{position:absolute;bottom:calc(100% + 2px);background:var(--panel);border:1px solid var(--rule);border-radius:5px;padding:4px;display:flex;flex-direction:column;gap:2px;z-index:5}
+.dv-menu button{font:inherit;font-family:var(--mono);font-size:.75rem;background:none;border:0;color:var(--ink);padding:3px 10px;text-align:left;cursor:pointer;border-radius:4px}
+.dv-menu button:hover{background:var(--soft)}
+.dv-body{overflow:hidden;margin-left:-.35rem;padding-left:.35rem}
+.dv-view{position:relative;overflow:hidden;height:min(480px,70vh);cursor:grab;touch-action:none;user-select:none}
+.dv-view.panning{cursor:grabbing}
+.dv-world{position:absolute;left:0;top:0;transform-origin:0 0}
+.dv-world>svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.dv-node{position:absolute;width:max-content;border:1px solid var(--rule);border-radius:6px;background:var(--bg);padding:.35rem .6rem;font-size:.8rem;color:var(--muted);line-height:1.35}
+.dv-node .katex{color:var(--ink)}
+.dv-fact{border-style:dashed;max-width:15rem}
+.dv-fact.eq{max-width:none;white-space:nowrap}
+.dv-fact.then{border-style:solid}
+.dv-box{border-color:var(--ink);font-size:.86rem;white-space:nowrap}
+.dv-box.wait{border-style:dashed;border-color:var(--rule)}
+.dv-no{position:absolute;top:-.62rem;right:-.62rem;min-width:1.15rem;height:1.15rem;border-radius:999px;background:var(--ink);color:var(--bg);font-size:.66rem;font-weight:600;display:grid;place-items:center;padding:0 .2rem;z-index:1}
+.dv-fno{position:absolute;top:-.62rem;left:-.5rem;min-width:1.1rem;height:1.1rem;border-radius:4px;background:var(--muted);color:var(--bg);font-size:.62rem;font-weight:600;display:grid;place-items:center;padding:0 .2rem}
+.dv-prov{position:absolute;bottom:-.62rem;right:.35rem;background:var(--bg);color:var(--muted);font-size:.64rem;padding:0 .25rem;white-space:nowrap;line-height:1.2}
+.dv-rows{display:grid;grid-template-columns:max-content max-content;justify-content:start}
+.dv.inplace .dv-rows{grid-template-columns:max-content}
+.dv-row{position:relative;grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center}
+.dv-rowin{display:contents}
+.dv.inplace .dv-why,.dv-why:empty{display:none}
+.dv-eq{display:flex;align-items:center;min-height:2rem;position:relative}
+.dv-eq .katex-display{margin:0;text-align:left;overflow:visible}
+.dv-stage{position:relative;transform-origin:0 50%}
+.dv-stage .tm>.katex{border-radius:5px;padding:.1rem .35rem;margin-left:-.35rem}
+.dv-why,.dv-cap{font-size:.76rem;color:var(--muted);white-space:normal;line-height:1.35}
+.dv-why{width:max-content;max-width:16rem;margin-left:1rem}
+.dv-why b,.dv-cap b{font-weight:600;color:var(--ink)}
+.dv-cap{color:var(--ink);width:max-content;max-width:26rem;padding-top:.15rem}
+.dv-cap:empty{display:none}
+.dv.writing .dv-cap{display:none}
+.dv-note{font-size:.76rem;color:var(--muted);white-space:normal;max-width:26rem;padding-top:.2rem}
+.dv-track{position:relative;flex:1;display:flex;align-items:center;margin:0 8px;max-width:none}
+.dv-track .scrub{max-width:none;margin:0;flex:1}
+.dv-dot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:1.5px dotted var(--muted);background:var(--bg);padding:0;cursor:pointer;z-index:2}
+.dv-dot:hover{border-color:var(--ink)}
+.dv-dot.at{border-style:solid;border-color:var(--ink);background:var(--ink)}

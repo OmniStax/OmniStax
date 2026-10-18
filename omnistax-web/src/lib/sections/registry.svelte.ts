@@ -6,7 +6,7 @@
    built from the fragment source with its own exercises and figures. A
    chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
-import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry } from '../content/schema';
+import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry, DerivationDTO } from '../content/schema';
 import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
@@ -247,7 +247,7 @@ class Registry {
   private prepare(root: HTMLElement, ref: SectionRef): void {
     if (root.dataset.math !== 'rendered') this.figFor?.(ref.book).renderMath(root);
     this.mountExercises(root, ref);
-    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); decorateProse(root); this.figFor?.(ref.book).paintRefs(root); dragFigures(root, ref);
+    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); this.bootDerivations(root, ref); decorateProse(root); this.figFor?.(ref.book).paintRefs(root); dragFigures(root, ref);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the
@@ -280,6 +280,14 @@ class Registry {
     ensureThree(this.threeUrl)
       .then(() => this.runFigures(root, ref, f))
       .catch((e: Error) => console.error(`figures ${secKey(ref)}`, e));
+  }
+  /* The section's derivations, which its figure module carries as data: each is drawn by the library into its host. */
+  private bootDerivations(root: HTMLElement, ref: SectionRef): void {
+    const all = (window as unknown as { OMNISTAX_DERIVATIONS?: Record<string, readonly DerivationDTO[]> }).OMNISTAX_DERIVATIONS;
+    const list = all?.[secKey(ref)]; if (!list?.length || !this.figFor || root.dataset.derived) return;
+    root.dataset.derived = '1';
+    const F = this.figFor(ref.book);
+    list.forEach((D) => { try { F.derivation(root, D); } catch (e) { console.error(`derivation ${secKey(ref)}/${D.id}`, e); } });
   }
   private runFigures(root: HTMLElement, ref: SectionRef, f: FigureScript): void {
     try { f(root, this.figFor!(ref.book)); } catch (e) { console.error(`figures ${secKey(ref)}`, e); }

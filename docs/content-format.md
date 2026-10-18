@@ -361,3 +361,49 @@ The AI the section was built with, by role.
 | --- | --- | --- | --- |
 | `text` | `{ model, effort? }[] \| string` | yes | The models that transformed the section’s text, the principal first. |
 | `figures` | `{ model, effort? }[] \| string` | no | The models that built the section’s simulations, the principal first; empty where the section builds none. |
+
+### `derivations`
+
+The derivations the section draws as graphs of facts and results worked in place; each is hosted by a `<figure class="dv" id="drv-<id>">` in the text.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The derivation’s local id; the section’s text hosts it as `<figure class="dv" id="drv-<id>">`. |
+| `what` | `string` | yes | What is derived, as one lower-case phrase the title reads after “Derivation ·”; where the derivation replaces something the book numbers and refers to, that reference instead. |
+| `source` | `string?` | no | Where the book works it: the book and the section, and the example where there is one. |
+| `nodes` | `{ assumes?, then, steps, num?, src?, note? }[]` | yes | The nodes in the book’s order, the last one’s result being what is derived. |
+
+### `derivation_nodes`
+
+One node of a derivation: an equation brought in and worked, move by move, to a result.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `assumes` | `{ tex?, text?, step?, src? }[]` | no | Every fact and earlier result the node rests on, each once; every entry is used by `then.uses` or by some step’s `uses`. |
+| `then` | `{ tex, src?, uses?, why? }` | yes | The equation the node starts from and what makes it hold. |
+| `steps` | `{ tex, uses?, cap?, map? }[]` | yes | The moves, in order; the last line is the node’s result. |
+| `num` | `string?` | no | The number the book prints the result under, such as (17.21), only where it prints one. |
+| `src` | `string?` | no | Where the book prints this result: an example, a section, a named rule. |
+| `note` | `string?` | no | A correction of the book, where its printed line is wrong: the work follows the correct mathematics and this says what the book printed. |
+
+### `derivation_facts`
+
+What a node rests on: an equation, a sentence or an earlier result, with where the book states it.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `tex` | `string?` | no | The fact as an equation, in TeX through the book’s macros; absent where the fact is a sentence or an earlier result. |
+| `text` | `string?` | no | The fact as a sentence in the book’s voice, `$…$` for inline maths; absent where the fact is an equation or an earlier result. |
+| `step` | `number?` | no | The 0-based index of the earlier node whose result this fact is; absent where the fact is an equation or a sentence. |
+| `src` | `string?` | no | Where the book states the fact: a section, an equation number, a table, a figure or an example, as the book prints it. Absent on a given of the example itself and on an earlier result. |
+
+### `derivation_steps`
+
+One move of a node’s work.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `tex` | `string` | yes | The line this move produces, in TeX through the book’s macros, every persisting term keyed `\mk{key}{…}` by its role so the morph pairs it with the line before. |
+| `uses` | `number[]` | no | The 0-based indices into the node’s `assumes` of the facts and earlier results this move relies on; empty for a move of pure algebra. |
+| `cap` | `string?` | no | Why the move is allowed, one or two sentences in the book’s voice, only for a move beyond grade-school algebra or a non-obvious reason a fact applies. |
+| `map` | `record of string \| string[]?` | no | Where one key splits into several or several merge into one on this move: each old key to its new key or keys, so each part travels to its place. |
