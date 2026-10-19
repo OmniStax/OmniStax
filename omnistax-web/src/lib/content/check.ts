@@ -515,7 +515,7 @@ export const checkWidths: Check = (content) =>
 const EYEBROW = /<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?<\/span>/g;
 const LINKED = /<a\b[^>]*>[\s\S]*?<\/a>/gi;
 export const citedNumbers = (html: string): readonly string[] =>
-  [...new Set(Array.from(html.replace(EYEBROW, '').replace(LINKED, '').matchAll(REF), ([run]) => run.match(/\d+\.\d+/g) ?? []).flat())];
+  [...new Set(Array.from(html.replace(EYEBROW, '').replace(LINKED, '').matchAll(REF), ([run]) => run.match(/(?:\d+|[A-Z])\.\d+/g) ?? []).flat())];
 const CAPTION_NUMBER = /^Figure ((?:\d+|[A-Z])\.\d+)/;
 export const checkFigureRefs: Check = (content) => {
   const carried = new Set(pagesOf(content).flatMap((s) => s.dto.figures.flatMap(numbersOf)));
