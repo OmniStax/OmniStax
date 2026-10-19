@@ -272,7 +272,7 @@ const conceptOf = (c: ConceptRowDTO, prereqs: readonly ConceptId[], built: Reado
 export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: readonly SectionSource[], built: ReadonlySet<string>): ConceptsDTO => {
   const here = new Set(chapter.sections.map((s) => s.id));
   const prereqs = prereqIndex(book.conceptPrereqs);
-  const named = sections.flatMap((s) => [...s.coverage.map((c) => c.concept), ...s.exercises.flatMap((e) => e.concepts)]);
+  const named = sections.flatMap((s) => [...s.coverage.flatMap((c) => [...c.introduces, ...c.uses, ...c.reinforces]), ...s.exercises.flatMap((e) => e.concepts)]);
   const seen = reachable([...book.concepts.filter((c) => here.has(c.section)).map((c) => c.id), ...named], prereqs);
   return {
     concepts: book.concepts.filter((c) => seen.has(c.id)).map((c) => conceptOf(c, prereqs.get(c.id) ?? [], built)),
