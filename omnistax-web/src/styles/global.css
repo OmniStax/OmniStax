@@ -155,7 +155,8 @@ mark.hl.flash{outline:2px solid var(--accent);outline-offset:1px}
    attributes set keeps the height in step. */
 :root{--book-px:1.2333px}
 .photo{margin:2rem 0;font-family:var(--sans)}
-.photo img,.sim .original img{display:block;width:auto;max-width:100%;max-height:60vh;height:auto;margin:0 auto;border:1px solid var(--rule);border-radius:6px}
+/* A book image stands on white in both themes: the publisher's drawings are black ink on a transparent ground, which the dark theme would otherwise swallow. */
+.photo img,.sim .original img{display:block;width:auto;max-width:100%;max-height:60vh;height:auto;margin:0 auto;border:1px solid var(--rule);border-radius:6px;background:#fff}
 /* A book image kept without a number (a structure or an equation the book draws as a picture) stands no wider than the prose beside it. */
 article figure.photo[id]:not([data-figure]) img{font-family:var(--serif);max-width:min(100%,66ch)}
 .photo img[data-width],.sim .original img[data-width]{max-width:min(100%,calc(var(--book-w) * var(--book-px)))}
