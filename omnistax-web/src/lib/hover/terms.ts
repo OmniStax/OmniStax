@@ -56,7 +56,7 @@ export const exampleIds = (html: string): ReadonlyMap<ExampleNumber, string> =>
   new Map([...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bexample\b[^"]*"[^>]*\bid="([^"]+)"[^>]*>\s*<h3[^>]*>\s*Example ((?:\d+|[A-Z])(?:\.\d+)+)/g)].map(([, id, n]) => [exampleNumber(n), id]));
 const EXREF = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)(?![\d.])/g;
 /* Every "Figure 16.4" in free text becomes a link when the figure is known, as the build links the book's own. */
-const FIGREF = /\bFigure (\d+\.\d+)(?![\d.])/g;
+const FIGREF = /\bFigure ((?:\d+|[A-Z])\.\d+)(?![\d.])/g;
 export const wrapFigureRefs = (html: string, figures: ReadonlyMap<string, string>, start: Context = TOP): string => {
   if (figures.size === 0) return html;
   const ts = tokens(html); const cs = contexts(ts, start);

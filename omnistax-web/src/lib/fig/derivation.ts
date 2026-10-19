@@ -105,8 +105,9 @@ function model(D: DerivationDTO) {
 export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const { el, tex, morphAt, sim, cycle, register, choice } = F;
   if (!F.byId(root, 'drv-' + D.id)) return;
-  const T = (host: HTMLElement, s: string): void => tex(host, '\\displaystyle ' + s, false, { values: false });
-  const words = (host: HTMLElement, s: string): void => s.split(/(\$[^$]+\$)/).forEach((p) => { if (!p) return; if (p.startsWith('$')) tex(host.appendChild(el('span')), p.slice(1, -1), false, { values: false }); else host.appendChild(document.createTextNode(p)); });
+  /* the cards are built before they are mounted, so their TeX takes the page's macros through the root it will stand in */
+  const T = (host: HTMLElement, s: string): void => tex(host, '\\displaystyle ' + s, false, { values: false, at: root });
+  const words = (host: HTMLElement, s: string): void => s.split(/(\$[^$]+\$)/).forEach((p) => { if (!p) return; if (p.startsWith('$')) tex(host.appendChild(el('span')), p.slice(1, -1), false, { values: false, at: root }); else host.appendChild(document.createTextNode(p)); });
   const toggle = (host: HTMLElement, cls: string, title: (v: boolean) => readonly [IconName, string], on: boolean, set: (v: boolean) => void): HTMLButtonElement => {
     const b = host.appendChild(el('button', 'tbtn ' + cls)); b.type = 'button';
     const show = (v: boolean): void => { b.setAttribute('aria-pressed', String(v)); const [ic, tt] = title(v); b.innerHTML = ICON[ic]; b.title = tt; b.setAttribute('aria-label', tt); };
