@@ -264,13 +264,16 @@ const conceptOf = (c: ConceptRowDTO, prereqs: readonly ConceptId[], built: Reado
   return built.has(c.section) ? { status: 'built', ...base, ...(statement === undefined ? {} : { statement }) } : { status: 'placeholder', ...base };
 };
 
-/* What one chapter serves: the concepts its sections introduce, everything
-   those reach through the prerequisite edges, the coverage of the sections it
-   has built, and the meanings it gives the book's symbols. */
+/* What one chapter serves: the concepts its sections introduce, every concept
+   their prose spans or exercises name (a page may use or test a concept of
+   another chapter that none of its own rests on, and its card still needs the
+   name), everything those reach through the prerequisite edges, the coverage of
+   the sections it has built, and the meanings it gives the book's symbols. */
 export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: readonly SectionSource[], built: ReadonlySet<string>): ConceptsDTO => {
   const here = new Set(chapter.sections.map((s) => s.id));
   const prereqs = prereqIndex(book.conceptPrereqs);
-  const seen = reachable(book.concepts.filter((c) => here.has(c.section)).map((c) => c.id), prereqs);
+  const named = sections.flatMap((s) => [...s.coverage.map((c) => c.concept), ...s.exercises.flatMap((e) => e.concepts)]);
+  const seen = reachable([...book.concepts.filter((c) => here.has(c.section)).map((c) => c.id), ...named], prereqs);
   return {
     concepts: book.concepts.filter((c) => seen.has(c.id)).map((c) => conceptOf(c, prereqs.get(c.id) ?? [], built)),
     coverage: sections.flatMap((s) => s.coverage),

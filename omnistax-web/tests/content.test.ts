@@ -59,6 +59,12 @@ test('a chapter draws the concepts its sections teach and everything those rest 
   assert.deepEqual(concepts.find((c) => c.id === 'hookes-law')?.prereqs, ['restoring-force']);
   assert.deepEqual(concepts.find((c) => c.id === 'restoring-force')?.prereqs, ['displacement', 'newtons-first-law']);
 });
+test('a chapter also draws a concept its pages only use or test, so the card and the span have its name', () => {
+  const page = { coverage: [{ span: '16.1-p', concept: 'newtons-first-law', verb: 'uses' }], exercises: [{ id: 'p9', concepts: ['displacement', 'shm'] }] } as never;
+  const ch2 = ChapterSchema.parse({ id: '2', dir: 'ch02', title: 'Kinematics', sections: [{ id: '2.1', title: 'Displacement' }] });
+  const { concepts } = conceptsOfChapter(BOOK, ch2, [page], new Set(['2.1']));
+  assert.deepEqual(concepts.map((c) => c.id), ['displacement', 'newtons-first-law', 'shm'], 'what a page names comes with the chapter, and what that rests on');
+});
 test('a concept stands as a placeholder until the section that introduces it is built', () => {
   const { concepts } = conceptsOfChapter(BOOK, CH16, [], new Set(['2.1', '16.1']));
   const status = Object.fromEntries(concepts.map((c) => [c.id, c.status]));
