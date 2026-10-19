@@ -3415,7 +3415,7 @@ const polar = {
   frame: polarFrame, path: polarPathDraw, curve: polarCurveDraw, ray: polarRay, grip: polarGrip, sectors: polarSectors, strips: polarStrips,
 };
 
-/* ---------- Preskill's quantum information: the Bloch ball and circuits ----------
+/* ---------- Quantum information: the Bloch ball and circuits ----------
    `F.bloch(d, opts)` is the Bloch ball, a mathematical 3D scene (root 28.3) on F.space3d: an ink
    wireframe ball with its equator, axes x, y, z and the poles |0⟩ (up) and |1⟩, state vectors that
    arrive from the centre, trails, an axis and a channel's image ellipsoid that bends out of the

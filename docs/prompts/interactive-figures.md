@@ -227,7 +227,7 @@ F.space.region2(ctx,ax,region,color,{alpha})   a plane region filled, its edges 
 F.space.cells2(ctx,ax,cells,color)             riemann2's cells from above, sample points dotted
 ```
 
-Quantum information (Preskill; `F.bloch` and `F.circuit`, the geometry and the simulator in `quantum.ts`). Marks may carry `name`, the hover name of what they draw, in any `F.space3d` scene.
+Quantum information (`F.bloch` and `F.circuit`, the geometry and the simulator in `quantum.ts`). Marks may carry `name`, the hover name of what they draw, in any `F.space3d` scene.
 
 ```
 const B = F.bloch(d, {h = 820, turn, tilt, fit = 1.85, poles: ['|0\\rangle','|1\\rangle'], spin, zoom})   the Bloch ball on F.space3d:

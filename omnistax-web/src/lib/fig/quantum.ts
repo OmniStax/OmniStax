@@ -1,4 +1,4 @@
-/* Preskill's quantum information notes with no canvas and no three.js: the Bloch ball's geometry
+/* Quantum information with no canvas and no three.js: the Bloch ball's geometry
    (rotations, the affine maps of channels, ρ from the Bloch vector) and a state-vector simulator for
    circuits of up to eight qubits, exact in complex doubles. figlib draws them as F.bloch and F.circuit.
    Basis order is the book's: wire 0 is the leftmost bit of |x⟩, so |01⟩ has wire 0 at 0 and wire 1 at 1. */
@@ -47,7 +47,7 @@ export function blochOf(a: CxIn, b: CxIn): V3 {
   /* P_x + i P_y = 2 a* b */
   return [(2 * (ar * br + ai * bi)) / n, (2 * (ar * bi - ai * br)) / n, (ar * ar + ai * ai - br * br - bi * bi) / n];
 }
-/* Preskill 3.4: the three channels of one qubit as affine maps, p their probability */
+/* The three channels of one qubit as affine maps, p their probability */
 export const channels = {
   depolarizing: (p: number): { M: M3; c: V3 } => { const s = 1 - (4 * p) / 3; return { M: [[s, 0, 0], [0, s, 0], [0, 0, s]], c: [0, 0, 0] }; },
   phaseDamping: (p: number): { M: M3; c: V3 } => ({ M: [[1 - p, 0, 0], [0, 1 - p, 0], [0, 0, 1]], c: [0, 0, 0] }),
