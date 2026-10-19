@@ -50,10 +50,11 @@ export const contexts = (ts: readonly Token[], start: Context): Context[] => {
 const free = (c: Context): boolean => c.link === 0 && c.heading === 0 && c.math === 0;
 /* Where a run of text may be marked up: in a paragraph or list item, and under no link, heading or rendered math. */
 export const wrappable = (c: Context): boolean => free(c) && c.block > 0;
-/* The examples an article holds, by book number: <div class="example" id="16.1-ex-car"><h3>Example 16.1 · …</h3>. */
+/* The examples an article holds, by book number: <div class="example" id="16.1-ex-car"><h3>Example 16.1 · …</h3>.
+   A number is 16.1, or a book's 1.9.1 or A.1.2 where examples count within the section or an appendix. */
 export const exampleIds = (html: string): ReadonlyMap<ExampleNumber, string> =>
-  new Map([...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bexample\b[^"]*"[^>]*\bid="([^"]+)"[^>]*>\s*<h3[^>]*>\s*Example (\d+\.\d+)/g)].map(([, id, n]) => [exampleNumber(n), id]));
-const EXREF = /\bExample (\d+\.\d+)(?![\d.])/g;
+  new Map([...html.matchAll(/<div\b[^>]*\bclass="[^"]*\bexample\b[^"]*"[^>]*\bid="([^"]+)"[^>]*>\s*<h3[^>]*>\s*Example ((?:\d+|[A-Z])(?:\.\d+)+)/g)].map(([, id, n]) => [exampleNumber(n), id]));
+const EXREF = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)(?![\d.])/g;
 /* Every "Figure 16.4" in free text becomes a link when the figure is known, as the build links the book's own. */
 const FIGREF = /\bFigure (\d+\.\d+)(?![\d.])/g;
 export const wrapFigureRefs = (html: string, figures: ReadonlyMap<string, string>, start: Context = TOP): string => {

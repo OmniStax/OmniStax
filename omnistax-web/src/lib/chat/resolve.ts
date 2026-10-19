@@ -123,7 +123,7 @@ const figuresOf = (book: BookId): ReadonlyMap<string, string> =>
     s.figures.flatMap((f) => (/^Figures? ([^·]+)/.exec(f.label)?.[1].match(/\d+\.\d+/g) ?? []).map((n) => [n, `${s.id}-${f.id}`] as const)))));
 /* Every worked example the book holds, by number: from the search's reading of
    the book, and from every section of it already open. */
-const EXAMPLE = /^Example (\d+\.\d+)\b/;
+const EXAMPLE = /^Example ((?:\d+|[A-Z])(?:\.\d+)+)(?![\d.])/;   /* 16.2, or a book's 1.9.1 and A.1.2 */
 const examplesOf = (book: BookId): ReadonlyMap<ExampleNumber, string> => {
   const read = (searchStore.corpora[book]?.pages ?? []).flatMap((p) => p.blocks.map((b) => [EXAMPLE.exec(b.head)?.[1], b.span] as const));
   const open = registry.manifest(book).chapters.flatMap((c) => c.sections.flatMap((s) =>

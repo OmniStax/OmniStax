@@ -96,7 +96,7 @@ function model(D: DerivationDTO) {
   visit(last); N.forEach((_, i) => visit(i));
   /* the eyebrow word: the book's example where the record works one, else plural where more than one result is an end */
   const ends = N.filter((_, i) => !nodes.some((m) => m.steps.includes(i))).length;
-  const ex = /\bExample (\d+\.\d+)/.exec(D.source ?? '');
+  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1 and A.1.2 */
   const label = ex ? `Example ${ex[1]}` : ends > 1 ? 'Derivations' : 'Derivation';
   return { N, lines, facts, nodes, thenFrom, last, order, label };
 }
