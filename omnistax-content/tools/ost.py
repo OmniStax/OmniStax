@@ -185,6 +185,22 @@ def validate(table: Table, row: RowDTO) -> None:
             raise Refused(f"ai part {part[:30]!r}… is {len(part)} characters; at most 80")
     if "answer" in table.fields and isinstance(row.get("answer"), dict):
         validate_answer(row["answer"])
+    bad = next((s for s in strings_of(row) if '\\"' in s), None)
+    if bad is not None:   # a quote escaped twice on its way in: the HTML reads <ol type=\"a\"> and every link or image in it breaks
+        at = bad.index('\\"')
+        raise Refused(f"a string holds a backslash before a quote, {bad[max(0, at - 20):at + 12]!r}…; write the quote alone")
+
+
+def strings_of(value: Any) -> Iterable[str]:
+    """Every string inside a row, however deep."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from strings_of(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from strings_of(v)
 
 
 # The answer is an ADT in the app's schema (src/lib/content/schema.ts,

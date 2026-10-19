@@ -268,6 +268,11 @@ class TestWriting(Fixture):
         self.assertEqual(next(v for v in self.rows("variables", chapter) if v["section"] == "1.4" and v["sym"] == row["sym"])["ref"], "block-1")
         self.assertIn("ref block-1", run("meanings", "chemistry-2e", row["sym"])[0])
 
+    def test_a_quote_escaped_twice_is_refused(self):
+        with self.assertRaisesRegex(ost.Refused, "backslash before a quote"):
+            ost.validate(ost.table_of("footnotes"), {"id": "f", "kind": "book", "html": '<a href=\\"#x\\">x</a>'})
+        ost.validate(ost.table_of("footnotes"), {"id": "f", "kind": "book", "html": '<a href="#x">x</a> and $\\kx$'})
+
     def test_a_symbol_takes_no_type(self):
         with self.assertRaisesRegex(ost.Refused, "variables row"):
             ost.validate(ost.table_of("symbols"), {"sym": "q", "latex": "q", "type": "charge"})
