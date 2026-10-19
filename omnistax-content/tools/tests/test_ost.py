@@ -129,6 +129,19 @@ class TestReading(Fixture):
         self.assertIn("three-parts", text.splitlines())
         self.assertIn("density", text.splitlines())
 
+    def test_a_lettered_appendix_is_a_chapter_after_the_numbered_ones(self):
+        book = ost.book_of("chemistry-2e")
+        os.makedirs(os.path.join(self.book, "appA"))
+        self.assertEqual(ost.chapter_dirs(book), ["ch01", "appA"])
+        for named in ("A", "appA", "A.3"):
+            self.assertEqual(ost.chapter_dir_of(book, named), "appA")
+        for named in ("1", "01", "ch01", "1.4"):
+            self.assertEqual(ost.chapter_dir_of(book, named), "ch01")
+        with self.assertRaises(ost.Refused):
+            ost.chapter_dir_of(book, "B")
+        with self.assertRaises(ost.Refused):
+            ost.chapter_dir_of(book, "appendix")
+
 
 class TestFormatting(Fixture):
     def test_a_round_trip_of_every_file_is_byte_identical(self):

@@ -264,19 +264,25 @@ def book_of(book_id: BookId) -> Book:
     raise Refused(f"no book {book_id!r}; the books are {', '.join(b.id for b in books())}")
 
 
+CHAPTER_DIR = re.compile(r"ch\d\d|app[A-Z]")      # a numbered chapter, or a lettered appendix built as one (appA, chapter id A)
+
+
 def chapter_dirs(book: Book) -> list[ChapterDir]:
-    return sorted(d for d in os.listdir(book.dir) if re.fullmatch(r"ch\d\d", d))
+    """The chapter directories, numbered ones first and the appendices after them."""
+    return sorted((d for d in os.listdir(book.dir) if CHAPTER_DIR.fullmatch(d)), key=lambda d: (d[:2] != "ch", d))
 
 
 def chapter_dir_of(book: Book, named: str) -> ChapterDir:
-    """A chapter by its directory ("ch01"), its number ("1") or a section of it ("1.4")."""
+    """A chapter by its directory ("ch01", "appA"), its number or letter ("1", "A") or a section of it ("1.4", "A.3")."""
     name = named.split(".")[0]
-    if re.fullmatch(r"ch\d\d", named):
+    if CHAPTER_DIR.fullmatch(named):
         want = named
     elif re.fullmatch(r"\d+", name):
         want = f"ch{int(name):02d}"
+    elif re.fullmatch(r"[A-Z]", name):
+        want = f"app{name}"
     else:
-        raise Refused(f"{named!r} names no chapter; say 1, 01 or ch01")
+        raise Refused(f"{named!r} names no chapter; say 1, 01 or ch01 (A or appA for an appendix)")
     if want not in chapter_dirs(book):
         raise Refused(f"{book.id} has no chapter {want}")
     return want
@@ -882,7 +888,8 @@ def with_book_symbol(book: Book, chapter: ChapterDir, rows: list[RowDTO],
         return rows, None
     owner = next((c for c, owned in merge_state(book).items() if sym in owned.get("symbols", [])), None)
     if owner:
-        raise Refused(f"symbol {sym} belongs to {owner}; set it with --chapter {int(owner[2:])}")
+        named = str(int(owner[2:])) if owner.startswith("ch") else owner[3:]
+        raise Refused(f"symbol {sym} belongs to {owner}; set it with --chapter {named}")
     row = next((r for r in rows_of(load(book.book_path), "symbols") if r.get("sym") == sym), None)
     return (rows + [row], row) if row else (rows, None)
 
