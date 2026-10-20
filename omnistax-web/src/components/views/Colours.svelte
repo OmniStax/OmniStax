@@ -168,7 +168,7 @@
         {@const value = hlValues[k]}
         {@const def = hlBook.defaults[k]}
         <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
-          <span class="name">{HIGHLIGHT_LABELS[k]}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} onclick={() => highlights.set(k, !value, book)}>{value ? 'On' : 'Off'}</button>
+          <span class="name">{HIGHLIGHT_LABELS[k]}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} aria-label={HIGHLIGHT_LABELS[k]} onclick={() => highlights.set(k, !value, book)}></button>
           {#if value !== def}
             <button type="button" class="clear" title={`Back to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
           {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
@@ -375,6 +375,7 @@
   .hl .row.sub{padding-left:16px}
   .hl .row.held{opacity:.55}
   .hl .row{display:flex;align-items:center;gap:8px}
+  .hl .toggle{padding:0 6px}
   .hl .toggle:disabled{cursor:default}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>
