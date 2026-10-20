@@ -12,6 +12,7 @@
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { explorer } from '../../lib/explorer/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { symbolsOf, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
@@ -24,6 +25,8 @@
   import SymbolList from './SymbolList.svelte';
 
   const scoped = getContext<() => Target>('scope');
+  const chooseBook = getContext<(id: string) => void>('chooseBook');
+  const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
   const book = $derived(scoped()?.book ?? null);
   $effect.pre(() => { if (book) colours.select(book); });
   const manifest = $derived(book ? registry.manifest(book) : null);
@@ -159,7 +162,15 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="colours" tabindex="-1" bind:this={root}>
   {#if !manifest || !hlBook || !hlValues}
-    <p class="note">Open a book to see its theme.</p>
+    <h2 class="title">Theme</h2>
+    <div class="eyebrow">Which book</div>
+    <ul class="rows">
+      {#each books as b (b.id)}
+        <li><button type="button" class="pick" onclick={() => chooseBook(b.id)}>{b.name}</button></li>
+      {:else}
+        <li><p class="note">Add a book first.</p></li>
+      {/each}
+    </ul>
   {:else}
     <h2 class="title">{manifest.title || manifest.id}</h2>
 
@@ -311,6 +322,8 @@
   .strip i{flex:1;display:block}
   .rows{list-style:none;padding:0;margin:0 0 14px}
   .rows > li{border-bottom:1px solid var(--rule)}
+  .pick{font:inherit;width:100%;text-align:left;padding:8px 4px;border:0;background:none;color:var(--ink);cursor:pointer}
+  .pick:hover{background:var(--soft)}
   .row{display:flex;align-items:center;gap:8px;padding:6px 0}
   /* the row being carried, and the line that says where it would land */
   .row.carried{opacity:.45}
