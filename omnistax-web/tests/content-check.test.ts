@@ -4,7 +4,7 @@ import { config } from '../omnistax.config';
 import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, warningsOf,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -219,6 +219,11 @@ test('checkFixedColours: a literal F.el or F.fact a figure draws is listed in it
     "16.1/figures.js: draws F.fact('#000'), which no figure row's facts lists",
   ]);
   assert.throws(() => sectionOf({ figures: [{ id: 'f', kind: 'sim', facts: ['red'] }] }), 'a fact is a hex or "spectrum"');
+});
+
+test('checkHighlights: a book that declares no highlights is warned, one that does is not', () => {
+  assert.match(run(checkHighlights, { book: { highlights: undefined } })[0] ?? '', /highlights.*not declared/);
+  assert.deepEqual(run(checkHighlights, { book: { highlights: { facts: true, refs: true, concepts: true, words: false, symbols: true, underlines: true } } }), []);
 });
 
 test('checkColourDefault: a stored default that misses a declared type, or keeps one dropped, is stale', () => {

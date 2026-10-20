@@ -177,6 +177,8 @@ export const BookHighlightsSchema = z.object({
   underlines: z.boolean().describe('Whether what opens a card (a symbol, a marked concept, an example reference) wears a dotted rule in this book by default; the reader may change it for the book.'),
 }).strict();
 export type BookHighlightsDTO = z.infer<typeof BookHighlightsSchema>;
+/* What a book that declares nothing highlights: everything, as the first books did before the field existed; the content check says so. */
+export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true };
 
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
@@ -192,7 +194,7 @@ export const BookSchema = z.object({
   license: z.string().describe('The licence the book is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
   openstax: z.string().url().optional().describe('The prefix of the publisher\u2019s section pages; a chapter\u2019s section slugs complete it.'),
-  highlights: BookHighlightsSchema.describe('What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types\u2019 colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book, and their own switches stay masters over all of them. Every book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink.'),
+  highlights: BookHighlightsSchema.optional().describe('What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types\u2019 colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book, and their own switches stay masters over all of them. A published book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink; absent, everything is on and the content check warns.'),
   chapters: z.array(z.string()).describe('The chapter directories, in the order the book sets them.'),
   intro: FrontPageRefSchema.optional().describe('The book\u2019s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter.'),
   summary: FrontPageRefSchema.optional().describe('The book\u2019s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter.'),
@@ -206,7 +208,7 @@ export const BookSchema = z.object({
   colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
-  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, highlights: b.highlights, chapterDirs: b.chapters, ...framed(b),
+  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, ...(b.highlights ? { highlights: b.highlights } : {}), chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
   ...(b.sources ? { sources: b.sources } : {}), ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
 }));

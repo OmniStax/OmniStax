@@ -275,6 +275,10 @@ export const checkColourDefault: Check = (content) => {
   ];
 };
 
+/* A book says what it highlights by default (RULES item 7). One that says nothing highlights everything, which
+   suits a playground and not a published book, so the check says so. */
+export const checkHighlights: Check = (content) => (content.book.highlights ? [] : [warning('book.json highlights', 'is not declared, so the book colours everything and underlines by default; declare facts, refs, concepts, words, symbols and underlines')]);
+
 /* A figure that passes a literal to F.el or F.fact lists it in its row's conventions or facts, which the default
    colours keep the types apart from. A call is credited to every figure whose statement reaches it (figrefs.ts);
    a call no figure's statement reaches is held to the section's rows together. */
@@ -761,7 +765,7 @@ export const checkDerivations: Check = (content) =>
       }),
     ];
   });
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

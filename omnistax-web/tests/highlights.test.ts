@@ -61,9 +61,9 @@ test('a book key says what holds it off, or nothing when it is free', () => {
 });
 
 const BOOK = { id: 'b', title: 'B', publisher: 'P', license: 'L', chapters: [] };
-test('book.json must declare its highlights, all six', () => {
+test('book.json declares its highlights, all six, or none and takes the default', () => {
   assert.deepEqual(BookSchema.parse({ ...BOOK, highlights: MATHS }).highlights, MATHS);
-  assert.throws(() => BookSchema.parse(BOOK), /highlights/);
+  assert.equal(BookSchema.parse(BOOK).highlights, undefined, 'a book that says nothing declares nothing');
   const { underlines: _, ...five } = MATHS;
   assert.throws(() => BookSchema.parse({ ...BOOK, highlights: five }), /underlines/);
   assert.throws(() => BookSchema.parse({ ...BOOK, highlights: { ...MATHS, colours: true } }), /Unrecognized key/);
