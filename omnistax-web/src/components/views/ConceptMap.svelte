@@ -21,7 +21,8 @@
      it, and Escape puts the button back and lets the selection go), and a click
      on the background lets the selection go. Focus lays out the selection,
      every prerequisite of it and every concept built on it on their own, glides
-     them there and lets the rest fade; Unfocus glides them home. The goto card
+     them there and lets the rest fade; Unfocus glides them home. Ready selects
+     the concepts on the map whose prerequisites are all mastered. The goto card
      opens on hover, or on a double-click where cards open on click; a
      double-click also pins the concept, and opens another section's node in its
      section. A press that travels is a drag, not a click, so a node dragged
@@ -46,7 +47,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
-  import { availabilityOf } from '../../lib/practice/model';
+  import { availabilityOf, readyConcepts } from '../../lib/practice/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { flushSync, getContext as getCtx, onDestroy, tick, untrack } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
@@ -394,6 +395,7 @@
   const toggleKind = (k: ConceptKind) => { const s = new Set(hidden); if (!s.delete(k)) s.add(k); hidden = s; };
   const shown = $derived(hidden.size ? list.filter((c) => !hidden.has(c.kind)) : list);
   const shownIds = $derived(hidden.size ? new Set(shown.map((c) => c.id)) : null);
+  const ready = $derived(readyConcepts(shown.filter((c) => !c.ext), practice.mastery).map((c) => c.id as string));
   /* A layout is put on the map a few hundred nodes a frame, those nearest the
      middle first, so what the opening view shows is drawn at once and the page
      never holds still for the rest. */
@@ -668,6 +670,7 @@
       {/each}
       <span class="sep" aria-hidden="true"></span>
       <button type="button" class="tool" title="Lasso (or Shift-drag)" aria-label="Lasso" aria-pressed={lassoMode} onclick={() => (lassoMode = !lassoMode)}>{@html ICON.lasso}</button>
+      <button type="button" class="tool wide" title="Select what you are ready to learn" disabled={!ready.length} onclick={() => (selected = new Set(ready))}><span>Ready {ready.length}</span></button>
       <button type="button" class="tool wide" title={focusing ? 'Unfocus' : 'Focus on the selection'} aria-pressed={focusing} disabled={!focusing && !selected.size} onclick={toggleFocus}>{@html ICON.focus}<span>{focusing ? 'Unfocus' : selected.size ? `Focus ${selected.size}` : 'Focus'}</span></button>
       <span class="sep" aria-hidden="true"></span>
       <button type="button" class="tool" title="Progress" aria-label="Progress" aria-pressed={showProgress} onclick={() => (showProgress = !showProgress)}>{@html ICON.progress}</button>
