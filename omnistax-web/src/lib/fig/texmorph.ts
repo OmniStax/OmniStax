@@ -5,7 +5,7 @@
    once, and a key the reader's hand changed glows beneath (glow.ts). The geometry is
    morphgeom's; this file measures, draws and times. */
 import { mkKeys, morphPlan } from './motion';
-import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, type Glyph, type KeyMap, type Track, type Pt, type Ring } from './morphgeom';
+import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, pageFrame, type Glyph, type KeyMap, type Track, type Pt, type Ring } from './morphgeom';
 import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
 import { lazy, importing } from './lazy';
@@ -13,7 +13,7 @@ import { lazy, importing } from './lazy';
 /* `hi`: keys whose glyphs a box follows through the morph (a derivation's rearranged terms), at `hiAlpha`. */
 export type MorphOpts = { readonly ms?: number; readonly pathArc?: number; readonly keyMap?: KeyMap; readonly force?: boolean; readonly values?: boolean; readonly hi?: readonly string[]; readonly hiAlpha?: number };
 type Macros = Readonly<Record<string, string>>;
-const MS = 1200, HIGHLIGHT_MS = 1200, CACHE = 400, SVGNS = 'http://www.w3.org/2000/svg';
+const MS = 1200, HIGHLIGHT_MS = 1200, CACHE = 400, PROBE = 1000, SVGNS = 'http://www.w3.org/2000/svg';
 const BETWEEN = '\u0000between';
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -112,14 +112,20 @@ function measurePart(svg: SVGSVGElement, r: Part): Glyph[] | null {
   return r.glyphs.map((g, i) => ({ ...g, ink: inks[i] ?? '', rings: g.rings.map((ring) => ring.map((p): Pt => [ox + (p[0] - vb[0]) * kx, oy + (p[1] - vb[1]) * ky])) }));
 }
 /* Glyphs are measured in page coordinates, so a host that changes size under the morph leaves the
-   old formula where it stood; the overlay sits in the new formula's box, shifted back to the page. */
+   old formula where it stood; the overlay sits in the new formula's box, shifted back to the page,
+   and scaled back by any scale above the host (a derivation's camera), so the outlines and their
+   boxes land on the formula at its own size. */
 function overlay(el: HTMLElement, h: Host): SVGSVGElement {
   h.fly?.remove();
-  const wrap = el.querySelector<HTMLElement>(':scope > .tm') ?? el, wr = wrap.getBoundingClientRect();
+  const wrap = el.querySelector<HTMLElement>(':scope > .tm') ?? el;
   const fly = document.createElementNS(SVGNS, 'svg');
   fly.setAttribute('aria-hidden', 'true');
-  fly.style.cssText = `position:absolute;left:${-(wr.left + scrollX + wrap.clientLeft)}px;top:${-(wr.top + scrollY + wrap.clientTop)}px;width:1px;height:1px;overflow:visible;pointer-events:none`;
+  /* read at a known size where it stands, so the scale above is exact rather than a rounded offsetWidth's */
+  fly.style.cssText = `position:absolute;left:0;top:0;width:${PROBE}px;height:${PROBE}px;overflow:visible;pointer-events:none`;
   wrap.appendChild(fly);
+  const at = pageFrame(fly.getBoundingClientRect(), PROBE, PROBE, [0, 0], [scrollX, scrollY]);
+  const scale = at.sx === 1 && at.sy === 1 ? '' : `;transform-origin:0 0;transform:scale(${1 / at.sx},${1 / at.sy})`;
+  fly.style.cssText = `position:absolute;left:${at.left}px;top:${at.top}px;width:1px;height:1px;overflow:visible;pointer-events:none${scale}`;
   h.fly = fly;
   return fly;
 }

@@ -88,6 +88,14 @@ export function boxOf(rings: readonly Ring[]): Box {
     : { x0: 0, y0: 0, x1: 0, y1: 0 };
 }
 export const centre = (b: Box): Pt => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2];
+/* Where an overlay drawn in page pixels stands inside a host whose page box is `r` and whose own
+   (untransformed) size is w × h with the border `inset`: a scaled ancestor (a derivation's camera)
+   makes screen pixels and the host's pixels differ, so the overlay sits at the page origin in the
+   host's pixels and is scaled back by the ancestor's scale, else the outlines are scaled twice. */
+export function pageFrame(r: { readonly left: number; readonly top: number; readonly width: number; readonly height: number }, w: number, h: number, inset: Pt, scroll: Pt): { readonly left: number; readonly top: number; readonly sx: number; readonly sy: number } {
+  const sx = w > 0 && r.width > 0 ? r.width / w : 1, sy = h > 0 && r.height > 0 ? r.height / h : 1;
+  return { left: -(r.left + scroll[0]) / sx - inset[0], top: -(r.top + scroll[1]) / sy - inset[1], sx, sy };
+}
 
 /* `n` points evenly spaced by arc length around a closed ring, from its first point. */
 export function resample(r: Ring, n: number): Pt[] {

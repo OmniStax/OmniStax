@@ -15,7 +15,7 @@ type Beat = { readonly kind: BeatKind; readonly node: number; readonly step: num
 type Cam = { readonly s: number; readonly x: number; readonly y: number };
 type Frame = { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number };
 type Row = { readonly row: HTMLElement; readonly eq: HTMLElement; readonly st: HTMLElement; readonly stage: HTMLElement; readonly why: HTMLElement };
-type Box = { readonly el: HTMLElement; readonly body: HTMLElement; readonly rows: HTMLElement; readonly R: readonly Row[]; readonly cap: HTMLElement; readonly note: HTMLElement | null; sz: { w: number; h: number } | null; max: { w: number; h: number; bw: number } };
+type Box = { readonly el: HTMLElement; readonly body: HTMLElement; readonly rows: HTMLElement; readonly R: readonly Row[]; readonly cap: HTMLElement; readonly note: HTMLElement | null; sz: { w: number; h: number } | null; max: { w: number; h: number; bw: number; col: number } };
 type Item = { readonly id: string; readonly el: HTMLElement; readonly preds: readonly string[]; pre: Item[]; succ: Item[]; layer: number; w: number; h: number; x: number; y: number };
 /* a box's state for one frame: how far each row is open, which row holds the morph, what else shows */
 type State = { vis: number[]; whyA: number[]; active: number; note: boolean; capA: number; wide: boolean; rowsA?: number; open?: boolean };
@@ -177,7 +177,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
     const cap = body.appendChild(el('div', 'dv-cap'));
     let note: HTMLElement | null = null; if (N[i]!.note) { note = body.appendChild(el('div', 'dv-note')); words(note, N[i]!.note!); }
     sticker(b, 'dv-no', String(i + 1));
-    return { el: b, body, rows: rowsEl, R: rows, cap, note, sz: null, max: { w: 0, h: 0, bw: 0 } };
+    return { el: b, body, rows: rowsEl, R: rows, cap, note, sz: null, max: { w: 0, h: 0, bw: 0, col: 0 } };
   });
   const FE: HTMLElement[] = facts.map((f, fi) => {
     const c = el('div', 'dv-node dv-fact' + (f.tex ? ' eq' : '') + (f.then ? ' then' : ''));
@@ -355,19 +355,22 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
       R.stage.style.display = act ? '' : 'none'; R.stage.style.transform = ''; if (!act) glow(stageOf(R), 0);
     });
     X.rows.style.opacity = String(S.rowsA ?? 1);
+    /* written out, the reasons stand where the settled lines put them, whatever the morphing line measures meanwhile */
+    X.rows.style.gridTemplateColumns = S.wide && opt.write && X.max.col ? `${X.max.col}px max-content` : '';
     if (X.note) X.note.style.display = S.note ? '' : 'none';
     X.cap.style.opacity = String(S.capA); if (!S.capA) X.cap.replaceChildren();
     X.body.style.overflow = S.open ? 'visible' : '';
     settle(X, S.wide);
   };
-  /* a box's full size, every line and reason shown, read on the first frames while fonts settle */
+  /* a box's full size, every line and reason shown, read on the first frames while fonts settle; and the widest
+     settled line, which is where the reasons stand while the box works */
   let measured = 0;
   const measure = (): void => {
     if (measured > 30) return; measured += 1;
     B.forEach((X) => {
-      X.body.style.width = ''; X.body.style.height = '';
-      X.R.forEach((R) => { R.row.style.display = ''; R.row.style.height = ''; R.why.style.display = R.why.childNodes.length ? '' : 'none'; R.why.style.opacity = '1'; });
-      X.max = { w: X.el.offsetWidth, h: X.el.offsetHeight, bw: X.body.offsetWidth + 12 };
+      X.body.style.width = ''; X.body.style.height = ''; X.rows.style.gridTemplateColumns = '';
+      X.R.forEach((R) => { R.row.style.display = ''; R.row.style.height = ''; R.st.style.display = ''; R.stage.style.display = 'none'; R.why.style.display = R.why.childNodes.length ? '' : 'none'; R.why.style.opacity = '1'; });
+      X.max = { w: X.el.offsetWidth, h: X.el.offsetHeight, bw: X.body.offsetWidth + 12, col: Math.max(...X.R.map((R) => R.eq.offsetWidth)) };
     });
   };
 

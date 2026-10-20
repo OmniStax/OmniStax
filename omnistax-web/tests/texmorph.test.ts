@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parsePath, parseTransform, apply, resample, bestOffset, rotate, pairRings, area, perimeter, glyphsOf, match, pairGlyphs,
-  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, bends, FADE_BY, type Glyph, type Ring, type Pt, type SvgNode,
+  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, bends, FADE_BY, pageFrame, type Glyph, type Ring, type Pt, type SvgNode,
 } from '../src/lib/fig/morphgeom';
 import { typeset } from '../src/lib/fig/mathjax';
 
@@ -214,4 +214,16 @@ test('parts with no counterpart are gone by 60 % of the window', () => {
   const pi = tr.findIndex((t) => t.end.key === 'pi');
   assert.equal(frame(tr, FADE_BY)[pi].opacity, 0);
   assert.ok(frame(tr, FADE_BY).some((d, i) => i !== pi && d.rings[0][0][0] !== tr[i].b[0][0][0]), 'the survivors are still moving');
+});
+
+test('an overlay in page pixels under a scaled ancestor stands at the page origin and is scaled back once', () => {
+  /* unscaled: the old placement, shifted back by the box, the border and the scroll */
+  assert.deepEqual(pageFrame({ left: 100, top: 50, width: 1000, height: 1000 }, 1000, 1000, [2, 3], [0, 40]), { left: -102, top: -93, sx: 1, sy: 1 });
+  /* a camera at 0.8: a page point p drawn at p in the overlay lands on screen at p - scroll */
+  const r = { left: 100, top: 50, width: 800, height: 800 }, f = pageFrame(r, 1000, 1000, [0, 0], [0, 40]);
+  near(f.sx, 0.8); near(f.sy, 0.8);
+  const screen = (p: Pt): Pt => [r.left + f.sx * (f.left + p[0] / f.sx), r.top + f.sy * (f.top + p[1] / f.sy)];
+  const q = screen([300, 400]); near(q[0], 300); near(q[1], 400 - 40);
+  /* nothing measured: no scale */
+  assert.deepEqual(pageFrame({ left: 0, top: 0, width: 0, height: 0 }, 0, 0, [0, 0], [0, 0]), { left: -0, top: -0, sx: 1, sy: 1 });
 });
