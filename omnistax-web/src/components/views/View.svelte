@@ -45,7 +45,6 @@
   const crumbs = $derived(deepest ? crumbsOf(deepest, registry.manifest(deepest.book)) : []);
   const at = $derived(target ? crumbs.findIndex((c) => c.level === target.level) : -1);
   setContext('scope', () => target);
-  setContext('chooseBook', (id: string) => chooseBook(id));
   /* Which crumb's menu is open, and where under the bar it hangs — the chevron that
      opened it, which the menu hands the focus back to when it closes. */
   let menu = $state<Level | null>(null);

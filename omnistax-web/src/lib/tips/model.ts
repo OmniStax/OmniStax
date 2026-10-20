@@ -6,7 +6,7 @@ import { z } from 'zod';
 export type Millis = number;
 /* A calendar day in the reader's own time zone, as YYYY-MM-DD. */
 export type DayKey = string;
-export type TipAction = 'new-drawing' | 'colours' | 'import';
+export type TipAction = 'new-drawing' | 'import';
 export type Tip = { readonly text: string; readonly action?: { readonly kind: TipAction; readonly label: string } };
 
 export const TipStateSchema = z.object({ first: z.number(), day: z.string().nullable(), next: z.number().int().nonnegative() });
@@ -16,7 +16,7 @@ export const RETURNING_AFTER: Millis = 24 * 60 * 60 * 1000;
 
 export const TIPS: readonly Tip[] = [
   { text: 'Work notes and exercises by hand in the drawing view, with a tablet and pen.', action: { kind: 'new-drawing', label: 'New drawing' } },
-  { text: 'Each book has a theme: the color of every quantity, the palette, and what it highlights.', action: { kind: 'colours', label: 'Open the theme' } },
+  { text: 'Each book has a theme, behind the palette button on its row in the Explorer: the color of every quantity, the palette, and what it color codes.' },
   { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
   { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
   { text: 'Ctrl-click or middle-click a section, note, drawing or link to open it in a new group beside this one.' },

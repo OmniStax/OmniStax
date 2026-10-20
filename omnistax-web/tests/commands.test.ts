@@ -224,9 +224,10 @@ test('a view is pinned or unpinned by one command or the other, never both', () 
 test('the sidebar views open in a group or in the sidebar, the rest only in a split', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   VIEW_KINDS.forEach((k) => {
+    if (k === 'colours') { assert.equal(cmds.some((c) => c.id === openViewId(k)), false, 'the theme opens from the Explorer alone'); return; }
     assert.ok(cmds.some((c) => c.id === openViewId(k)), k);
     assert.equal(cmds.some((c) => c.id === showViewId(k)), isSidebarKind(k), k);
-    if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, k === 'colours' ? 'Appearance' : 'View', k);
+    if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, 'View', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'search', 'sync', 'annotations', 'pomodoro']);
   assert.equal(by(openViewId('reference')).label, 'Open Reference in a split');
@@ -282,11 +283,7 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
 test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours', 'chats', 'sync-diff']);
-  assert.equal(by(openViewId('colours')).label, "Open this book's theme");
-  assert.equal(by(openViewId('colours')).group, 'Appearance');
-  assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');
-  by(openViewId('colours')).run();
-  assert.deepEqual(d.log, ['view colours group']);
+  assert.equal(cmds.some((c) => c.id === openViewId('colours') || c.id === showViewId('colours')), false, 'no command opens the theme; the Explorer row does');
 });
 test('the colours have a timeline of their own, apart from the reader\u2019s edits', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;

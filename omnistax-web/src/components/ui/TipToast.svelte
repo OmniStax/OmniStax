@@ -6,12 +6,11 @@
   import { TIPS, type TipAction } from '../../lib/tips/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { commands } from '../../lib/commands/registry.svelte';
-  import { BUILTIN, openViewId, showViewId } from '../../lib/commands/builtin';
+  import { BUILTIN, showViewId } from '../../lib/commands/builtin';
 
   const act = async (kind: TipAction): Promise<void> => {
     tips.close();
     if (kind === 'new-drawing') { commands.run(BUILTIN.drawingNew); return; }
-    if (kind === 'colours') { commands.run(openViewId('colours')); return; }
     commands.run(showViewId('explorer'));
     await tick();
     document.getElementById('import-files')?.click();

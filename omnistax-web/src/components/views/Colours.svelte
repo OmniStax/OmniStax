@@ -12,7 +12,6 @@
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { explorer } from '../../lib/explorer/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { symbolsOf, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
@@ -25,8 +24,6 @@
   import SymbolList from './SymbolList.svelte';
 
   const scoped = getContext<() => Target>('scope');
-  const chooseBook = getContext<(id: string) => void>('chooseBook');
-  const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
   const book = $derived(scoped()?.book ?? null);
   $effect.pre(() => { if (book) colours.select(book); });
   const manifest = $derived(book ? registry.manifest(book) : null);
@@ -160,28 +157,18 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="colours" tabindex="-1" bind:this={root}>
-  {#if !manifest || !hlBook || !hlValues}
-    <h2 class="title">Theme</h2>
-    <div class="eyebrow">Which book</div>
-    <ul class="rows">
-      {#each books as b (b.id)}
-        <li><button type="button" class="pick" onclick={() => chooseBook(b.id)}>{b.name}</button></li>
-      {:else}
-        <li><p class="note">Add a book first.</p></li>
-      {/each}
-    </ul>
-  {:else}
+<div class="colours" tabindex="-1" bind:this={root} data-book={book}>
+  {#if manifest && hlBook && hlValues}
     <h2 class="title">{manifest.title || manifest.id}</h2>
 
-    <div class="eyebrow">What this book highlights</div>
+    <div class="eyebrow">Color code</div>
     <ul class="rows hl">
       {#each HIGHLIGHT_KEYS as k (k)}
         {@const held = heldOffBy(hlValues, k)}
         {@const value = hlValues[k]}
         {@const def = hlBook.defaults[k]}
         <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
-          <label class="name"><span>{HIGHLIGHT_LABELS[k]}</span><input type="checkbox" class="hl-{k}" disabled={held !== null} checked={value} onchange={(e) => highlights.set(k, e.currentTarget.checked, book)} /></label>
+          <span class="name">{HIGHLIGHT_LABELS[k]}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} onclick={() => highlights.set(k, !value, book)}>{value ? 'On' : 'Off'}</button>
           {#if value !== def}
             <button type="button" class="clear" title={`Back to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
           {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
@@ -322,8 +309,6 @@
   .strip i{flex:1;display:block}
   .rows{list-style:none;padding:0;margin:0 0 14px}
   .rows > li{border-bottom:1px solid var(--rule)}
-  .pick{font:inherit;width:100%;text-align:left;padding:8px 4px;border:0;background:none;color:var(--ink);cursor:pointer}
-  .pick:hover{background:var(--soft)}
   .row{display:flex;align-items:center;gap:8px;padding:6px 0}
   /* the row being carried, and the line that says where it would land */
   .row.carried{opacity:.45}
@@ -389,9 +374,7 @@
   .hl .row{padding:4px 0}
   .hl .row.sub{padding-left:16px}
   .hl .row.held{opacity:.55}
-  .hl label.name{display:flex;align-items:center;gap:8px;cursor:pointer}
-  .hl label.name span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .hl input{accent-color:var(--accent);margin:0}
-  .hl input:disabled{cursor:default}
+  .hl .row{display:flex;align-items:center;gap:8px}
+  .hl .toggle:disabled{cursor:default}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>
