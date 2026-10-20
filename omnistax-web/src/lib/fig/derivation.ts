@@ -117,9 +117,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
 
   const d = sim(root, 'drv-' + D.id); d.fig.classList.add('dv', 'writing');
   const { N, lines: L, facts, nodes, thenFrom, last, order, label } = model(D);
-  const depth = ((): number => { const m = new Map<number, number>(); const go = (i: number): number => m.has(i) ? m.get(i)! : (m.set(i, 1 + Math.max(0, ...nodes[i]!.steps.map(go))), m.get(i)!); return go(last); })();
-  const breadth = Math.max(...nodes.map((nd) => nd.facts.length + nd.steps.length + (nd.thenFact >= 0 ? 1 : 0)));
-  const opt = { dir: depth > breadth ? 'v' : 'h', reveal: true, write: true };
+  const opt = { dir: 'v', reveal: true, write: true };
   const own = new Set(N.map((n) => n.num || n.src).filter((s): s is string => !!s));
 
   /* ---------- the timeline ---------- */
@@ -193,7 +191,8 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const ctl = el('div', 'dv-bar'); d.fig.prepend(ctl);
   const title = ctl.appendChild(el('div', 'dv-title')); title.appendChild(el('b')).textContent = label;
   if (D.what) { const w = title.appendChild(el('span')); w.appendChild(document.createTextNode(' · ')); words(w, D.what); }
-  choice(ctl, { options: [{ value: 'h', label: '→' }, { value: 'v', label: '↓' }], value: opt.dir, aria: 'Direction', onInput: (v) => { opt.dir = v; poke(); } });
+  let picked = false;
+  const dirPick = choice(ctl, { options: [{ value: 'h', label: '→' }, { value: 'v', label: '↓' }], value: opt.dir, aria: 'Direction', onInput: (v) => { opt.dir = v; picked = true; poke(); } });
   tips(ctl, { h: 'Layers run left to right', v: 'Layers run top to bottom' });
   toggle(ctl, 'eye', (v) => (v ? ['reveal', 'Revealing each fact and result as the derivation reaches it; click to show all'] : ['all', 'Showing every fact and result; click to reveal them step by step']), true, (v) => { opt.reveal = v; poke(); });
   let locked = false, held: Cam | null = null;
@@ -216,9 +215,9 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const layers: Item[][] = Array.from({ length: Math.max(...items.map((it) => it.layer)) + 1 }, () => []);
   items.forEach((it) => layers[it.layer]!.push(it));
   const itemOf = (e: HTMLElement): Item | undefined => items.find((it) => it.el === e);
-  function place(): void {
-    const H = opt.dir === 'h';
-    items.forEach((it) => { it.w = it.el.offsetWidth; it.h = it.el.offsetHeight; });
+  function place(dir = opt.dir, full = false): void {
+    const H = dir === 'h';
+    items.forEach((it) => { const M = full && it.id[0] === 'n' ? B[+it.id.slice(1)]!.max : null; it.w = Math.max(it.el.offsetWidth, M?.w ?? 0); it.h = Math.max(it.el.offsetHeight, M?.h ?? 0); });
     const along = (it: Item): number => (H ? it.h : it.w), across = (it: Item): number => (H ? it.w : it.h);
     const c = new Map<string, number>(); let pos = 0;
     layers.forEach((Lr) => Lr.forEach((it) => { c.set(it.id, pos + along(it) / 2); pos += along(it) + GAP; }));
@@ -314,7 +313,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
       b.addEventListener('click', () => jump(st.t)); return [st, b] as const;
     });
     const tb = bar()!;
-    toggle(tb, 'work', (v) => ['work', v ? 'Showing all work: each move on its own line with its reason; click to replace the line instead' : 'Replacing the line move by move; click to show all work'], true, (v) => { opt.write = v; d.fig.classList.toggle('writing', v); d.fig.classList.toggle('inplace', !v); poke(); });
+    toggle(tb, 'work', (v) => ['work', v ? 'Showing all work: each move on its own line with its reason; click to replace the line instead' : 'Replacing the line move by move; click to show all work'], true, (v) => { opt.write = v; d.fig.classList.toggle('writing', v); d.fig.classList.toggle('inplace', !v); measured = 0; poke(); });
     /* a right click on the speed button lists every speed */
     const sp = tb.querySelector<HTMLElement>('.speed'); if (!sp) return;
     sp.addEventListener('contextmenu', (e) => {
@@ -371,11 +370,32 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
       X.body.style.width = ''; X.body.style.height = ''; X.rows.style.gridTemplateColumns = '';
       X.R.forEach((R) => { R.row.style.display = ''; R.row.style.height = ''; R.st.style.display = ''; R.stage.style.display = 'none'; R.why.style.display = R.why.childNodes.length ? '' : 'none'; R.why.style.opacity = '1'; });
       X.max = { w: X.el.offsetWidth, h: X.el.offsetHeight, bw: X.body.offsetWidth + 12, col: Math.max(...X.R.map((R) => R.eq.offsetWidth)) };
+      if (opt.write) return;
+      /* in place, one line stands at a time with its reason beside it */
+      const i = B.indexOf(X); X.max.w = 0; X.max.h = 0; X.max.bw = 0;
+      X.R.forEach((R, r) => {
+        X.R.forEach((Q, q) => { Q.row.style.display = q === r ? '' : 'none'; });
+        captioned(X.cap, i, r);
+        X.max.w = Math.max(X.max.w, X.el.offsetWidth); X.max.h = Math.max(X.max.h, X.el.offsetHeight); X.max.bw = Math.max(X.max.bw, X.body.offsetWidth + 12);
+      });
+      X.cap.replaceChildren();
     });
   };
 
+  /* the direction whose type is largest with every box at its full size: first the smallest step, then the whole;
+     across wins only by a clear margin, since boxes are wider than tall */
+  let fitKey = '';
+  const choose = (): void => {
+    const key = `${view.clientWidth}x${view.clientHeight}x${measured}`;
+    if (picked || key === fitKey || !view.clientWidth || !view.clientHeight) return; fitKey = key;
+    const fit = (dir: string): readonly [number, number] => { place(dir, true); return [Math.min(...order.map((i) => scene(i).s)), scene(-1).s]; };
+    const [v1, v2] = fit('v'), [h1, h2] = fit('h');
+    opt.dir = h1 > v1 * 1.1 || (h1 >= v1 && h2 > v2 * 1.1) ? 'h' : 'v';
+    if (dirPick.value !== opt.dir) dirPick.set(opt.dir);
+  };
+
   function draw(): void {
-    track(); measure();
+    track(); measure(); choose();
     const now = performance.now(); frameDt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now; settling = false;
     const t = cy.now(), b = at(t), p = clamp((t - b.t0) / b.dur), k = ease(p), cur = b.node, rest = cur < 0;
     dots.forEach(([st, e]) => e.classList.toggle('at', st.node === cur));

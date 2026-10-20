@@ -456,6 +456,9 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem}
 .dv-cap{color:var(--ink);width:max-content;max-width:26rem;padding-top:.15rem}
 .dv-cap:empty{display:none}
 .dv.writing .dv-cap{display:none}
+.dv.inplace .dv-body{display:flex;flex-wrap:wrap;align-items:center}
+.dv.inplace .dv-cap{max-width:16rem;margin-left:1rem;padding-top:0}
+.dv.inplace .dv-note{flex-basis:100%}
 .dv-note{font-size:.76rem;color:var(--muted);white-space:normal;max-width:26rem;padding-top:.2rem}
 .dv-track{position:relative;flex:1;display:flex;align-items:center;margin:0 8px;max-width:none}
 .dv-track .scrub{max-width:none;margin:0;flex:1}

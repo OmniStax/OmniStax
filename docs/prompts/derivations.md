@@ -24,7 +24,7 @@ A derivation is drawn once as a graph. Every fact and every result appears exact
 | Closing | 0.5 s result, 1.0 s settle |
 | Return to the whole | 0.9 s |
 | Box size | eases to its content, τ ≈ 0.12 s; width settled during the opening |
-| Layout | layers 64 px apart, nodes 30 px apart; horizontal when no chain is deeper than any step is wide, else vertical |
+| Layout | layers 64 px apart, nodes 30 px apart; the direction is the one whose type is largest with every box at full size (smallest step first, then the whole graph); horizontal only by a margin over 10 %, else vertical; chosen again on resize until the reader picks |
 
 ## 3. Words
 
