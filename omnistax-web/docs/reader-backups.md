@@ -13,7 +13,7 @@ excluded.
 
 | Category | Storage records |
 | --- | --- |
-| Appearance and reading | `omnistax-cc`, `omnistax-theme`, `omnistax-anim`, `omnistax-exmode`, `omnistax-voice`, `omnistax-underlines`, `omnistax-map-progress`, `omnistax-zoom`, `omnistax-zoom-keys`, `omnistax-folded`, `omnistax-hidden-figs`, `omnistax-seen-releases-v2` (and the older `-v1`) |
+| Appearance and reading | `omnistax-theme`, `omnistax-anim`, `omnistax-exmode`, `omnistax-voice`, every `omnistax-highlights-<book>` record, `omnistax-map-progress`, `omnistax-zoom`, `omnistax-zoom-keys`, `omnistax-folded`, `omnistax-hidden-figs`, `omnistax-seen-releases-v2` (and the older `-v1`) |
 | Keyboard | `omnistax-keys` |
 | Practice | `omnistax-practice-v1`, `omnistax-practice-v2`, the corresponding `pages` and `sessions` v1/v2 records |
 | Library | `omnistax-library-v1`, `omnistax-explorer-v1`, `omnistax-auto-update-v1` |

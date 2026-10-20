@@ -1,20 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  NO_CHOICES, type Choices, type Hue, type Place, applyPalette, clearHue, clearPlace, cssFor, d3Rainbow, darkOf,
-  effectiveHue, fitCount, fromFile, hueFrom, isEmpty, isHex, lightOf, moveType, normHex, oklchRing, orderOf, ownHue, placeKey,
-  placeOf, schemeOf, setHue, symbolsOf, toFile, typesAt,
+  NO_CHOICES, type Choices, type Hue, applyHues, clearHue, cssFor, d3Rainbow, darkOf,
+  effectiveHue, fitCount, fromFile, hueFrom, isEmpty, isHex, lightOf, moveType, normHex, oklchRing, orderOf, ownHue,
+  schemeOf, setCategories, setHue, symbolsOf, toFile,
 } from '../src/lib/colours/model';
 import { SWATCHES, huesOf, paletteById, paletteId } from '../src/lib/colours/palettes';
 import { familyHues } from '../src/lib/colours/sample';
 import type { BookManifest } from '../src/lib/content/schema';
-import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
+import { bookId } from '../src/lib/types/ids';
 import { bookRulesCss } from '../src/lib/colours/rules';
 
-/* A book of two chapters and four quantities. Section 16.1 is listed but never
-   built, so what it would colour counts for nothing; 16.4 wears no type yet,
-   so its own panel lists them all. The book stores no default: what its
-   quantities wear is the hue-families palette laid along the order. */
+/* A book of two chapters and four quantities. The book stores no default: what
+   its quantities wear is the hue-families palette laid along the order. */
 const section = (id: string, types: readonly string[], built: boolean) =>
   ({ id, title: id, built, url: '', fragment: '', figuresJs: '', figures: [], types, exercises: [] });
 const manifestOf = (types: Readonly<Record<string, { label: string; dimension?: string }>>, chapters: readonly unknown[] = [], macros: Readonly<Record<string, string>> = {}) =>
@@ -50,24 +48,11 @@ const MACROS = manifestOf(MANIFEST.types, [], {
 const bookOf = (n: number): BookManifest =>
   manifestOf(Object.fromEntries(Array.from({ length: n }, (_, i) => [`q${i + 1}`, { label: `q${i + 1}` }])));
 
-const BOOK: Place = { level: 'book' };
-const CH16: Place = { level: 'chapter', chapter: chapterId('16') };
-const CH2: Place = { level: 'chapter', chapter: chapterId('2') };
-const S163: Place = { level: 'section', chapter: chapterId('16'), section: sectionId('16.3') };
 const hue = (light: string, dark: string): Hue => ({ light, dark });
 const chose = (order: readonly string[]): Choices => ({ ...NO_CHOICES, order });
 /* The first four hue-families colours for normal vision, which is what a book of four
    quantities wears before the reader touches anything. */
 const SCHEME: readonly Hue[] = familyHues(4, 'normal');
-
-test('a target names a place, and a section names its chapter as well', () => {
-  assert.deepEqual(placeOf({ level: 'book', book: bookId('college-physics-2e') }), BOOK);
-  assert.deepEqual(placeOf({ level: 'chapter', book: bookId('college-physics-2e'), chapter: chapterId('16') }), CH16);
-  assert.deepEqual(placeOf({ level: 'section', book: bookId('college-physics-2e'), section: sectionId('16.3') }), S163);
-  assert.equal(placeKey(BOOK), 'book');
-  assert.equal(placeKey(CH16), 'chapter:16');
-  assert.equal(placeKey(S163), 'section:16.3');
-});
 
 test('the order is what the reader has placed, and then the book for the rest', () => {
   assert.deepEqual(orderOf(MANIFEST, NO_CHOICES), ['time', 'position', 'frequency', 'stiffness'],
@@ -113,66 +98,50 @@ test('the scheme lays its hues along the reader\'s order, so a quantity moved ch
   assert.deepEqual(moved.hues.time, SCHEME[1]);
 });
 
-test('a section wins over its chapter, a chapter over the book, and the book over the scheme', () => {
-  const at = (c: Choices) => effectiveHue(MANIFEST, c, 'time', S163);
+test('the reader\u2019s colour wins over the scheme, and clearing it hands the type back', () => {
+  const at = (c: Choices) => effectiveHue(MANIFEST, c, 'time');
   assert.deepEqual(at(NO_CHOICES), { hue: SCHEME[0], from: { kind: 'scheme', palette: paletteId('families') } });
-  const book = setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222'));
-  assert.deepEqual(at(book), { hue: hue('#111111', '#222222'), from: { kind: 'book' } });
-  const chapter = setHue(book, CH16, 'time', hue('#333333', '#444444'));
-  assert.deepEqual(at(chapter), { hue: hue('#333333', '#444444'), from: { kind: 'chapter', chapter: chapterId('16') } });
-  const sec = setHue(chapter, S163, 'time', hue('#555555', '#666666'));
-  assert.deepEqual(at(sec), { hue: hue('#555555', '#666666'), from: { kind: 'section', section: sectionId('16.3') } });
-  /* Nothing is copied downwards, so another chapter still reads the book's own. */
-  assert.deepEqual(effectiveHue(MANIFEST, sec, 'time', CH2), { hue: hue('#111111', '#222222'), from: { kind: 'book' } });
-  /* Clearing hands the type back to the tier above, one step at a time. */
-  assert.deepEqual(at(clearHue(sec, S163, 'time')), { hue: hue('#333333', '#444444'), from: { kind: 'chapter', chapter: chapterId('16') } });
-  assert.deepEqual(at(clearHue(clearHue(sec, S163, 'time'), CH16, 'time')), { hue: hue('#111111', '#222222'), from: { kind: 'book' } });
-  assert.deepEqual(at(clearPlace(clearPlace(clearPlace(sec, S163), CH16), BOOK)).from, { kind: 'scheme', palette: paletteId('families') });
-});
-
-test('every quantity of the book has a colour, and only a stranger has none', () => {
-  assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'stiffness', S163).from, { kind: 'scheme', palette: paletteId('families') },
-    'a page that wears no stiffness still knows what colour it would be');
-  assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'energy', BOOK), { hue: null, from: { kind: 'none' } },
+  const own = setHue(NO_CHOICES, 'time', hue('#111111', '#222222'));
+  assert.deepEqual(at(own), { hue: hue('#111111', '#222222'), from: { kind: 'own' } });
+  assert.deepEqual(effectiveHue(MANIFEST, own, 'position').from, { kind: 'scheme', palette: paletteId('families') }, 'another type still wears the scheme');
+  assert.deepEqual(at(clearHue(own, 'time')).from, { kind: 'scheme', palette: paletteId('families') });
+  assert.deepEqual(effectiveHue(MANIFEST, NO_CHOICES, 'energy'), { hue: null, from: { kind: 'none' } },
     'a key the book does not declare is not a quantity of it');
 });
 
-test('what is set at a place is read back at that place and nowhere else', () => {
-  const c = setHue(NO_CHOICES, CH16, 'time', hue('#333333', '#444444'));
-  assert.deepEqual(ownHue(c.overrides, 'time', CH16), hue('#333333', '#444444'));
-  assert.equal(ownHue(c.overrides, 'time', S163), null);
-  assert.equal(ownHue(c.overrides, 'time', BOOK), null);
-  assert.equal(ownHue(c.overrides, 'position', CH16), null);
+test('what is set is read back for that type and no other', () => {
+  const c = setHue(NO_CHOICES, 'time', hue('#333333', '#444444'));
+  assert.deepEqual(ownHue(c, 'time'), hue('#333333', '#444444'));
+  assert.equal(ownHue(c, 'position'), null);
   assert.equal(isEmpty(c), false);
-  assert.equal(isEmpty(clearHue(c, CH16, 'time')), true, 'and an emptied chapter leaves nothing behind it');
+  assert.equal(isEmpty(clearHue(c, 'time')), true, 'and a cleared colour leaves nothing behind it');
   assert.equal(isEmpty(chose(['frequency'])), false, 'an order the reader has chosen is a choice like any other');
-  assert.equal(clearHue(c, CH16, 'position'), c, 'clearing what was never set changes nothing');
-  assert.equal(clearPlace(NO_CHOICES, CH16), NO_CHOICES);
+  assert.equal(clearHue(c, 'position'), c, 'clearing what was never set changes nothing');
 });
 
-test('every level shows the types it has to show, in the order the reader has put them in', () => {
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, BOOK), ['time', 'position', 'frequency', 'stiffness']);
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, CH16), ['time', 'position', 'frequency'],
-    'what its built sections wear between them, the unbuilt 16.1 counting for nothing');
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, CH2), ['time', 'position'], 'what its one built section colours');
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, S163), ['time', 'position', 'frequency'], 'in the order the book declares them');
-  assert.deepEqual(typesAt(MANIFEST, NO_CHOICES, { level: 'section', chapter: chapterId('16'), section: sectionId('16.4') }),
-    ['time', 'position', 'frequency', 'stiffness'], 'a page that wears nothing yet lists every type');
-  const moved = moveType(MANIFEST, NO_CHOICES, 'frequency', 'time');
-  assert.deepEqual(typesAt(MANIFEST, moved, S163), ['frequency', 'time', 'position'], 'and every level follows the reader\'s order');
-  assert.deepEqual(typesAt(MANIFEST, moved, CH2), ['time', 'position'], 'without showing a quantity the level does not colour');
-});
-
-test('a palette dresses the types in order and refuses to leave any of them out', () => {
-  const types = typesAt(MANIFEST, NO_CHOICES, S163);
-  const c = applyPalette(NO_CHOICES, S163, types, ['#E69F00', '#56B4E9', '#009E73', '#F0E442']);
+test('hues dress the types in order and refuse to leave any of them out', () => {
+  const types = ['time', 'position', 'frequency'];
+  const hues = ['#E69F00', '#56B4E9', '#009E73', '#F0E442'].map((h) => hue(h, darkOf(h)));
+  const c = applyHues(NO_CHOICES, types, hues);
   assert.ok(c);
-  const lights = types.map((t) => ownHue(c.overrides, t, S163)?.light);
+  const lights = types.map((t) => ownHue(c, t)?.light);
   assert.deepEqual(lights, ['#E69F00', '#56B4E9', '#009E73'], 'each type takes the next hue');
   assert.equal(new Set(lights).size, types.length, 'so no two of them come out the same');
-  assert.deepEqual(ownHue(c.overrides, 'time', S163)?.dark, darkOf('#E69F00'), 'and the dark slot is worked out from it');
-  assert.equal(applyPalette(NO_CHOICES, S163, types, ['#E69F00', '#56B4E9']), null, 'two colours cannot dress three quantities');
-  assert.notEqual(applyPalette(NO_CHOICES, S163, types, ['#E69F00', '#56B4E9', '#009E73']), null, 'three exactly can');
+  assert.equal(applyHues(NO_CHOICES, types, hues.slice(0, 2)), null, 'two colours cannot dress three quantities');
+  assert.notEqual(applyHues(NO_CHOICES, types, hues.slice(0, 3)), null, 'three exactly can');
+});
+
+test('the palette the reader applied is remembered as in use, and cleared with everything else', () => {
+  const c = setCategories(NO_CHOICES, { palette: paletteId('oklab'), mode: 'smart' });
+  assert.deepEqual(c.categories, { palette: 'oklab', mode: 'smart' });
+  assert.equal(setCategories(c, { palette: paletteId('oklab'), mode: 'smart' }), c, 'the same again is no change');
+  assert.equal(isEmpty(c), false);
+  assert.equal(isEmpty(setCategories(c, undefined)), true);
+  const book = bookId('college-physics-2e');
+  const back = fromFile(JSON.parse(JSON.stringify(toFile(book, c))), book);
+  assert.deepEqual(back.ok && back.choices.categories, { palette: 'oklab', mode: 'smart' });
+  const odd = fromFile({ ...toFile(book, NO_CHOICES), categories: { palette: 'oklab', mode: 'odd' } }, book);
+  assert.deepEqual(odd, { ok: true, choices: NO_CHOICES }, 'a mode that is not one is left out');
 });
 
 test('every swatch on offer is a colour of its own with a plain name', () => {
@@ -217,32 +186,27 @@ test('the stylesheet carries the scheme even when the reader has chosen nothing'
     + `:root[data-theme="dark"] ${book}{${scheme('dark')}}`);
 });
 
-test('the stylesheet writes the three blocks the book writes, and the section rule outranks its chapter', () => {
-  const c = setHue(setHue(setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222')), CH16, 'frequency', hue('#333333', '#444444')), S163, 'position', hue('#555555', '#666666'));
+test('the stylesheet writes the scheme and then the reader\u2019s colours, on the book alone', () => {
+  const c = setHue(setHue(NO_CHOICES, 'time', hue('#111111', '#222222')), 'frequency', hue('#333333', '#444444'));
   const css = cssFor(MANIFEST, c);
   const b = '[data-book="college-physics-2e"]';
-  assert.ok(css.startsWith(`${b}{--c-time:${SCHEME[0].light};`) && css.includes(`}${b}{--c-time:#111111}`),
+  assert.ok(css.startsWith(`${b}{--c-time:${SCHEME[0].light};`) && css.includes(`}${b}{--c-time:#111111;--c-frequency:#333333}`),
     'the scheme first and the reader after it, so theirs wins without either being marked important');
-  assert.ok(css.includes(`${b}[data-chapter="ch16"],${b} [data-chapter="ch16"]{--c-frequency:#333333}`));
-  assert.ok(css.includes(`${b}[data-sec="16.3"],${b} [data-sec="16.3"]{--c-position:#555555}`));
-  assert.ok(css.indexOf('[data-sec="16.3"]') > css.indexOf('[data-chapter="ch16"]'), 'the section comes after its chapter and wins at equal weight');
-  const dark = `:root[data-theme="dark"] ${b}`;
-  assert.ok(css.includes(`${dark}[data-chapter="ch16"],${dark} [data-chapter="ch16"]{--c-frequency:#444444}`));
+  assert.ok(css.includes(`:root[data-theme="dark"] ${b}{--c-time:#222222;--c-frequency:#444444}`));
+  assert.doesNotMatch(css, /data-chapter|data-sec/, 'no chapter or section has colours of its own');
 });
 
-test('the stylesheet lists the types in the reader\'s order and names a chapter by its directory', () => {
-  const c = setHue(setHue(NO_CHOICES, BOOK, 'position', hue('#555555', '#666666')), BOOK, 'time', hue('#111111', '#222222'));
+test('the stylesheet lists the types in the reader\'s order', () => {
+  const c = setHue(setHue(NO_CHOICES, 'position', hue('#555555', '#666666')), 'time', hue('#111111', '#222222'));
   assert.match(cssFor(MANIFEST, c), /\]\{--c-time:#111111;--c-position:#555555\}/, 'time is declared first, however it was set');
   const moved = moveType(MANIFEST, c, 'position', 'time');
   assert.match(cssFor(MANIFEST, moved), /\]\{--c-position:#555555;--c-time:#111111\}/, 'and the order the reader chose is the order they are written in');
-  const stray = setHue(NO_CHOICES, { level: 'chapter', chapter: chapterId('99') }, 'time', hue('#111111', '#222222'));
-  assert.doesNotMatch(cssFor(MANIFEST, stray), /data-chapter="ch99"/, 'a chapter the book does not have has no selector to write');
 });
 
 /* Every selector of a book's sheet names the book, so two books' sheets on one page never reach each other's elements. */
 test('two books\' stylesheets never cross, and nothing is coloured on the root', () => {
   const other = { ...MANIFEST, id: bookId('chemistry-2e') } as BookManifest;
-  const c = setHue(setHue(NO_CHOICES, CH16, 'frequency', hue('#333333', '#444444')), S163, 'position', hue('#555555', '#666666'));
+  const c = setHue(setHue(NO_CHOICES, 'frequency', hue('#333333', '#444444')), 'position', hue('#555555', '#666666'));
   const selectors = (css: string): string[] =>
     css.replace(/@media[^{]*\{/g, '').replace(/:is\([^)]*\)/g, ':is()').split('}').map((r) => r.split('{')[0].trim()).filter(Boolean).flatMap((s) => s.split(','));
   for (const [m, mine, theirs] of [[MANIFEST, 'college-physics-2e', 'chemistry-2e'], [other, 'chemistry-2e', 'college-physics-2e']] as const) {
@@ -269,8 +233,9 @@ test('words the text marks with a type wear it as its symbols do, under the Word
 
 test('the file and the storage hold one document, which reads back as it was written', () => {
   const book = bookId('college-physics-2e');
-  const c = moveType(MANIFEST, setHue(setHue(NO_CHOICES, BOOK, 'time', hue('#111111', '#222222')), S163, 'position', hue('#555555', '#666666')), 'frequency', 'time');
+  const c = moveType(MANIFEST, setHue(setHue(NO_CHOICES, 'time', hue('#111111', '#222222')), 'position', hue('#555555', '#666666')), 'frequency', 'time');
   const file = toFile(book, c);
+  assert.deepEqual(file.overrides, { book: c.overrides }, 'the colours sit under book, where the app has always written them');
   assert.equal(file.format, 'omnistax-colours');
   assert.equal(file.version, 1);
   assert.equal(file.book, book);
@@ -313,9 +278,7 @@ test('what comes back from a file is only what reads as a colour', () => {
   }, book);
   assert.ok(good.ok);
   assert.deepEqual(good.choices.order, ['frequency', 'time']);
-  assert.deepEqual(good.choices.overrides.book, { time: { light: '#AABBCC', dark: '#123456' } }, 'a colour with a slot missing is left out, and hex is normalised');
-  assert.deepEqual(Object.keys(good.choices.overrides.chapters), ['2'], 'a chapter left holding nothing is dropped');
-  assert.deepEqual(good.choices.overrides.sections['16.3'], { position: { light: '#555555', dark: '#666666' } });
+  assert.deepEqual(good.choices.overrides, { time: { light: '#AABBCC', dark: '#123456' } }, 'a colour with a slot missing is left out, hex is normalised, and the chapter and section tables of an older file are not read');
   assert.deepEqual(fromFile({ format: 'omnistax-colours', version: 1, book, overrides: 'nonsense' }, book),
     { ok: true, choices: NO_CHOICES }, 'and an envelope holding nothing readable is simply no choices');
 });

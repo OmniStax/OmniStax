@@ -16,7 +16,7 @@ export const RETURNING_AFTER: Millis = 24 * 60 * 60 * 1000;
 
 export const TIPS: readonly Tip[] = [
   { text: 'Work notes and exercises by hand in the drawing view, with a tablet and pen.', action: { kind: 'new-drawing', label: 'New drawing' } },
-  { text: 'Change the color of any quantity, for the whole book or one chapter or section.', action: { kind: 'colours', label: 'Open the color menu' } },
+  { text: 'Each book has a theme: the color of every quantity, the palette, and what it highlights.', action: { kind: 'colours', label: 'Open the theme' } },
   { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
   { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
   { text: 'Ctrl-click or middle-click a section, note, drawing or link to open it in a new group beside this one.' },

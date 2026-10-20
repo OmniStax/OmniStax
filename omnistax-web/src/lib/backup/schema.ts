@@ -101,7 +101,9 @@ const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(
 const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional() }).strict();
 const hue = z.object({ light: z.string().regex(/^#[0-9A-Fa-f]{6}$/), dark: z.string().regex(/^#[0-9A-Fa-f]{6}$/) }).strict();
 const hues = z.record(hue);
-const overrides = z.object({ book: hues, chapters: z.record(hues), sections: z.record(hues) }).strict();
+/* The reader's colours for a book sit under `book`; files written before colours were per book only carry chapter and section tables beside it. */
+const overrides = z.object({ book: hues, chapters: z.record(hues).optional(), sections: z.record(hues).optional() }).strict();
+const paletteChoice = z.object({ palette: z.string().min(1), mode: z.enum(['order', 'smart']), order: z.array(z.number()).optional(), target: z.number().optional() }).strict();
 const side = z.object({ width: finite, items: z.array(z.string()) }).strict();
 const splitNode: z.ZodType<unknown> = z.lazy(() => z.union([z.object({ type: z.literal('leaf'), group: z.string() }).strict(), z.object({ type: z.literal('split'), dir: z.enum(['row', 'column']), children: z.array(splitNode).min(1), sizes: z.array(finite.positive()).optional() }).strict()]));
 const layout = z.object({ sides: z.object({ left: side, right: side }).strict(), home: z.record(z.enum(['left', 'right'])), collapsed: z.array(z.string()), groups: z.array(z.object({ key: z.string(), tabs: z.array(z.string()), active: z.string().nullable() }).strict()).min(1), focus: finite, tree: splitNode, offered: z.array(z.string()).optional() }).strict();
@@ -248,7 +250,10 @@ const typedJson = (key: string, raw: string): boolean => {
     if (HIGHLIGHTS_KEY.test(key)) return bookHighlights.safeParse(value).success;
     if (/^omnistax-notes-[^/]+$/.test(key)) return z.array(note).safeParse(value).success;
     if (/^omnistax-colours-[^/]+$/.test(key)) {
-      const parsed = z.object({ format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides }).strict().safeParse(value);
+      const parsed = z.object({
+        format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides,
+        vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).optional(), categories: paletteChoice.optional(), referents: paletteChoice.optional(),
+      }).strict().safeParse(value);
       return parsed.success && key === `omnistax-colours-${parsed.data.book}`;
     }
     return validators[key]?.safeParse(value).success === true;

@@ -40,7 +40,6 @@ test("the page offers the book's own palette, then the generated palettes, then 
   assert.equal(new Set(PALETTES.map((p) => p.id)).size, PALETTES.length, 'no id is used twice');
   PALETTES.forEach((p) => {
     assert.ok(p.name.length > 0, `${p.id} has a name`);
-    assert.match(p.note, /\.$/, `${p.id} says what it is for in a full sentence`);
     assert.ok(p.id in LIMIT, `${p.id} is one of the palettes this test knows`);
   });
 });
@@ -102,12 +101,12 @@ test('the long published lists begin where their authors begin', () => {
 });
 
 test('the two kinds of palette say how a list and a generator differ', () => {
-  const list = fixed('two', 'Two', 'Two colours.', ['#112233', '#445566']);
+  const list = fixed('two', 'Two', ['#112233', '#445566']);
   assert.equal(list.kind, 'fixed');
   assert.deepEqual(huesOf(list, 1), ['#112233'], 'a list hands back as many as are asked for, from the front');
   assert.deepEqual(huesOf(list, 2), ['#112233', '#445566']);
   assert.equal(huesOf(list, 3), null, 'and cannot say what a third would be');
-  const made = generated('odd', 'Odd', 'A colour for each.', (n) => Array.from({ length: n }, () => '#000000'));
+  const made = generated('odd', 'Odd', (n) => Array.from({ length: n }, () => '#000000'));
   assert.equal(made.kind, 'variable');
   assert.equal(huesOf(made, 3)?.length, 3, 'a generator lays out as many as the count');
   assert.equal(huesOf(made, 0), null, 'and no palette dresses nothing');

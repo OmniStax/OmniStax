@@ -294,9 +294,8 @@
   });
 
   /* settings → document */
-  /* The colour switches and the underlines are masters over the book's own
-     highlights: the root wears what both allow, for the book the page stands on. */
-  $effect(() => { Object.entries(highlightClasses(settings, highlights.values)).forEach(([c, on]) => document.documentElement.classList.toggle(c, on)); FIG.setShown(settings.shown); FIG.redrawAll(); });
+  /* The root wears what the book the page stands on highlights. */
+  $effect(() => { Object.entries(highlightClasses(highlights.values)).forEach(([c, on]) => document.documentElement.classList.toggle(c, on)); FIG.setShown(settings.shown); FIG.redrawAll(); });
   $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
   $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });

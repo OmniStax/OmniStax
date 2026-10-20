@@ -16,12 +16,12 @@ export type PaletteId = string & { readonly __brand: 'PaletteId' };
 export const paletteId = (s: string): PaletteId => s as PaletteId;
 
 export type Palette =
-  | { readonly kind: 'fixed'; readonly id: PaletteId; readonly name: string; readonly note: string; readonly hues: readonly Hex[] }
-  | { readonly kind: 'variable'; readonly id: PaletteId; readonly name: string; readonly note: string; readonly pairsFor: (n: number, vision: Vision) => readonly Hue[] | null };
+  | { readonly kind: 'fixed'; readonly id: PaletteId; readonly name: string; readonly hues: readonly Hex[] }
+  | { readonly kind: 'variable'; readonly id: PaletteId; readonly name: string; readonly pairsFor: (n: number, vision: Vision) => readonly Hue[] | null };
 
 /* A published list, which dresses any count up to its length. */
-export const fixed = (id: string, name: string, note: string, hues: readonly Hex[]): Palette =>
-  ({ kind: 'fixed', id: paletteId(id), name, note, hues });
+export const fixed = (id: string, name: string, hues: readonly Hex[]): Palette =>
+  ({ kind: 'fixed', id: paletteId(id), name, hues });
 
 /* The vision the book's default is worked out for; any other is the reader's to state. */
 export const DEFAULT_VISION: Vision = 'normal';
@@ -29,12 +29,12 @@ export const DEFAULT_VISION: Vision = 'normal';
 const pairOf = (hex: Hex): Hue => ({ light: normHex(hex), dark: darkOf(hex) });
 
 /* A palette that works its light colours out for the count it is given. */
-export const generated = (id: string, name: string, note: string, huesFor: (n: number) => readonly Hex[] | null): Palette =>
-  ({ kind: 'variable', id: paletteId(id), name, note, pairsFor: (n) => huesFor(n)?.map(pairOf) ?? null });
+export const generated = (id: string, name: string, huesFor: (n: number) => readonly Hex[] | null): Palette =>
+  ({ kind: 'variable', id: paletteId(id), name, pairsFor: (n) => huesFor(n)?.map(pairOf) ?? null });
 
 /* A palette that works out both values of each colour, for the reader's vision. */
-export const generatedPairs = (id: string, name: string, note: string, pairsFor: (n: number, vision: Vision) => readonly Hue[] | null): Palette =>
-  ({ kind: 'variable', id: paletteId(id), name, note, pairsFor });
+export const generatedPairs = (id: string, name: string, pairsFor: (n: number, vision: Vision) => readonly Hue[] | null): Palette =>
+  ({ kind: 'variable', id: paletteId(id), name, pairsFor });
 
 /* The colours for n quantities, in order and all distinct, or nothing at all
    when the palette cannot dress that many, which is how the page knows not to
@@ -94,7 +94,6 @@ const tolRainbow = (n: number): readonly Hex[] | null => {
 export const OKLCH: Palette = generated(
   'oklch',
   'Even hues',
-  'Evenly spaced hues at one lightness, as many as the level needs.',
   (n) => oklchRing(n),
 );
 
@@ -104,7 +103,6 @@ export const OKLCH: Palette = generated(
 export const FAMILIES: Palette = generatedPairs(
   'families',
   'Hue families',
-  'Ten hues, each used once before any takes a second color a clear step lighter or darker, spread as far as the screen allows for your vision and all readable as text in both themes.',
   (n, vision) => familyHues(n, vision),
 );
 
@@ -113,7 +111,6 @@ export const FAMILIES: Palette = generatedPairs(
 export const OKLAB: Palette = generatedPairs(
   'oklab',
   'OKLab',
-  'As many colors as the level needs, each as far as the screen allows from those before it for your vision, and all readable as text in both themes.',
   (n, vision) => oklabHues(n, vision),
 );
 
@@ -128,67 +125,56 @@ export const PALETTES: readonly Palette[] = [
   generated(
     'rainbow',
     'Rainbow',
-    "D3's rainbow sampled as many times as the level needs, so the run of hues reads as one band.",
     (n) => d3Rainbow(n),
   ),
   generated(
     'tol-rainbow',
     'Paul Tol discrete rainbow',
-    "Paul Tol's rainbow cut for exactly this many, up to twenty-three, so each cut stays distinct for readers with the common forms of colour blindness.",
     tolRainbow,
   ),
   fixed(
     'okabe-ito',
     'Okabe–Ito',
-    'Eight colors that stay distinct under common color blindness.',
     ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#000000'],
   ),
   fixed(
     'tol-bright',
     'Paul Tol bright',
-    'Seven strong colors that stay distinct on screen and in print.',
     ['#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377', '#BBBBBB'],
   ),
   fixed(
     'tol-vibrant',
     'Paul Tol vibrant',
-    'Seven bright colors for lines and markers seen from afar.',
     ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988', '#BBBBBB'],
   ),
   fixed(
     'tol-muted',
     'Paul Tol muted',
-    'Nine quiet colors for pages with many quantities.',
     ['#CC6677', '#332288', '#DDCC77', '#117733', '#88CCEE', '#882255', '#44AA99', '#999933', '#AA4499'],
   ),
   fixed(
     'tableau-10',
     'Tableau 10',
-    'Ten muted colors made for charts.',
     ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC'],
   ),
   fixed(
     'category10',
     'D3 category10',
-    'The ten familiar plotting colors, in their usual order.',
     ['#1F77B4', '#FF7F0E', '#2CA02C', '#D62728', '#9467BD', '#8C564B', '#E377C2', '#7F7F7F', '#BCBD22', '#17BECF'],
   ),
   fixed(
     'dark2',
     'ColorBrewer Dark2',
-    'Eight deep colors that read well as text and in drawings.',
     ['#1B9E77', '#D95F02', '#7570B3', '#E7298A', '#66A61E', '#E6AB02', '#A6761D', '#666666'],
   ),
   fixed(
     'set1',
     'ColorBrewer Set1',
-    'Nine bold primary colors, easy to name aloud.',
     ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#FFFF33', '#A65628', '#F781BF', '#999999'],
   ),
   fixed(
     'kelly',
     "Kelly's colors of maximum contrast",
-    "Kenneth Kelly's twenty-two colors in the order that keeps each new one far from those before it; white, black and grey are left out, since they are the page and the ink.",
     [
       '#F3C300', '#875692', '#F38400', '#A1CAF1', '#BE0032', '#C2B280', '#008856', '#E68FAC', '#0067A5', '#F99379',
       '#604E97', '#F6A600', '#B3446C', '#DCD300', '#882D17', '#8DB600', '#654522', '#E25822', '#2B3D26',
@@ -197,7 +183,6 @@ export const PALETTES: readonly Palette[] = [
   fixed(
     'polychrome',
     'Polychrome 36',
-    'Thirty-six colors built to stay apart on a white page; the grey and the near-white that open the set are left out.',
     [
       '#F6222E', '#FE00FA', '#16FF32', '#3283FE', '#FEAF16', '#B00068', '#1CFFCE', '#90AD1C', '#2ED9FF', '#DEA0FD',
       '#AA0DFE', '#F8A19F', '#325A9B', '#C4451C', '#1C8356', '#85660D', '#B10DA1', '#FBE426', '#1CBE4F', '#FA0087',
@@ -208,7 +193,6 @@ export const PALETTES: readonly Palette[] = [
   fixed(
     'glasbey',
     'Glasbey',
-    'Colors picked one by one to differ most from all before, from colorcet.',
     [
       '#D70000', '#8C3CFF', '#028800', '#00ACC7', '#98FF00', '#FF7FD1', '#6C004F', '#FFA530', '#583B00', '#005759',
       '#0000DD', '#00FDCF', '#A1756A', '#BCB7FF', '#95B578', '#C004B9', '#645474', '#790000', '#0774D8', '#FEF590',

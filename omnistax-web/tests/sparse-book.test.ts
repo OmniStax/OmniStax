@@ -11,7 +11,7 @@ import { bookDir, bookId } from '../src/lib/types/ids';
 import { assignInOrder, assignSmart, pageNearest } from '../src/lib/colours/assign';
 import { fixedOf, pagesOfBook } from '../src/lib/colours/counts';
 import { NO_CHOICES, bookReferents, cssFor, referentOrder, schemeOf } from '../src/lib/colours/model';
-import { DEFAULT_REFERENTS, TARGET_DEFAULT } from '../src/lib/colours/referents';
+import { DEFAULT_REFERENTS } from '../src/lib/colours/referents';
 import { DEFAULT_VISION, palettesFor } from '../src/lib/colours/palettes';
 import { familyHues } from '../src/lib/colours/sample';
 import { bookRulesCss } from '../src/lib/colours/rules';
@@ -73,7 +73,7 @@ const colourEverything = async (files: Files, id: string) => {
     tree, categories, pages, smart,
     inOrder: assignInOrder(categories, colours),
     nearest: pageNearest(smart, pages, fixed, DEFAULT_VISION),
-    order: referentOrder(stored, NO_CHOICES, DEFAULT_REFERENTS.palette, TARGET_DEFAULT),
+    order: referentOrder(stored, NO_CHOICES, DEFAULT_REFERENTS.palette),
     referents: bookReferents(stored, NO_CHOICES),
     scheme: schemeOf(stored, NO_CHOICES),
     css: cssFor(stored, NO_CHOICES),

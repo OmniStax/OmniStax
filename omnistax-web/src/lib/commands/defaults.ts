@@ -22,7 +22,6 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+,', 'settings'], ['Ctrl+K Ctrl+S', 'settings'],
   ['Ctrl+P', 'open'],   /* the editors' quick open; Ctrl+P is the browser's print, which the shell already swallows */
   ['Ctrl+Shift+A', 'animations'],
-  ['Ctrl+Shift+C', 'colour-coding'],
   /* The browser's own zoom chords, taken for the book's text while the "Zoom
      keys" setting is on; off, the shell never dispatches them and the browser
      zooms the page as it always did. Any key that types + reads as Ctrl++

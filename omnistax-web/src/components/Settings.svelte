@@ -7,9 +7,7 @@
      another command owns is shown as a conflict and taken only on Enter. */
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { FONTS, fontStack, isFontId, type FontId } from '../lib/settings/fonts';
-  import { COLOUR_SWITCHES, COLOUR_LABELS, COLOUR_PARENT, COLOUR_TIPS } from '../lib/colours/switches';
   import { commands } from '../lib/commands/registry.svelte';
-  import { openViewId } from '../lib/commands/builtin';
   import { keys } from '../lib/commands/keys.svelte';
   import { chordOf, chordKeys, type Chord } from '../lib/commands/chord';
   import type { Command, CommandId } from '../lib/commands/command';
@@ -30,8 +28,6 @@
   const HINT = {
     zoom: 'Change the size of the text without resizing the window.',
     zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
-    underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
-    cc: 'Each book sets its own defaults on its Colours page.',
     tips: 'Show a tip each day in the bottom-right corner.',
     cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
     anim: 'Turn off to pause every interactive figure.',
@@ -40,14 +36,14 @@
     lockGrace: 'Seconds before a focus lock starts.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')} ${HINT.cc}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, tips: `Tips tip of the day ${HINT.tips}`,
     anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
     startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
     storage: 'Storage space used quota persist retention browser clear data imported files Safari',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.cc, ROWS.underlines, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
+  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife];
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
   let kq = $state('');
@@ -173,16 +169,6 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
-        <div class="row colours" role="group" aria-labelledby="cc-name" hidden={!hit(ROWS.cc)}>
-          <div class="head"><span class="name" id="cc-name">Color coding</span><span class="hint">Each book sets its own defaults on its <button class="link" type="button" onclick={() => { ui.settings = false; commands.run(openViewId('colours')); }}>Colours page</button>.</span></div>
-          <div class="switches">
-            {#each COLOUR_SWITCHES as k (k)}
-              {@const parent = COLOUR_PARENT[k]}
-              <label class="switch" class:sub={parent !== undefined} title={COLOUR_TIPS[k] ?? null}><span class="name">{COLOUR_LABELS[k]}{@render back(settings.colours[k] !== DEFAULTS.colours[k], 'Reset to on', () => settings.setColour(k, DEFAULTS.colours[k]))}</span><input type="checkbox" id="cc-{k}-toggle" disabled={k !== 'all' && (!settings.colours.all || (parent !== undefined && !settings.colours[parent]))} checked={settings.colours[k]} onchange={(e) => settings.setColour(k, e.currentTarget.checked)}></label>
-            {/each}
-          </div>
-        </div>
-        <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Reset to on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">{HINT.underlines}</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </Fold>
 
@@ -311,13 +297,6 @@
   .row.off{opacity:.6}
   .back{border:0;background:transparent;color:var(--muted);font:inherit;font-size:0.9rem;line-height:1;cursor:pointer;padding:1px 3px;border-radius:3px}
   .back:hover{background:var(--soft);color:var(--ink)}
-  .colours{align-items:start}
-  .head{display:flex;flex-direction:column;gap:2px}
-  .switches{grid-column:2 / -1;display:flex;flex-direction:column;gap:6px}
-  .switches label{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .switches .name{font-weight:400}
-  .switches .sub{padding-left:16px}
-  .link{border:0;background:transparent;color:var(--accent);font:inherit;font-size:0.8rem;padding:0;cursor:pointer;text-decoration:underline}
   small{color:var(--muted);font-size:0.75rem}
   .dialog :global(.switch){cursor:pointer;user-select:none}
   .dialog :global(.switch>input){appearance:none;width:38px;height:22px;border-radius:11px;background:var(--soft2);position:relative;cursor:pointer;margin:0;transition:background .15s}
@@ -340,5 +319,5 @@
   .recording{color:var(--muted);font-style:italic}
   .conflict{color:var(--bad);font-size:0.8rem}
   .conflict em{font-style:normal;font-weight:600}
-  @media (max-width:600px){ .dialog :global(.row){grid-template-columns:1fr auto} .dialog :global(.hint){grid-column:1 / -1} .switches{grid-column:1 / -1} .seg{grid-column:auto} }
+  @media (max-width:600px){ .dialog :global(.row){grid-template-columns:1fr auto} .dialog :global(.hint){grid-column:1 / -1} .seg{grid-column:auto} }
 </style>

@@ -1,12 +1,12 @@
-/* User settings: the colour switches, theme, animations, exercise view mode, voice,
-   whether what can be looked up wears a rule under it, and whether a concept
-   map opens with the practice bars drawn on its nodes.
+/* User settings: theme, animations, exercise view mode, voice, and whether a concept
+   map opens with the practice bars drawn on its nodes. What a book colours and
+   underlines is the book's own (highlights.ts), read here for the page.
    Each is remembered in this browser and applied to the document as a class or
    attribute. */
 import { type ZoomStep, ZOOM_DEFAULT, nearestZoom, zoomBy } from './zoom';
 import { readerWritesAllowed } from '../backup/guard';
 import { type FontId, DEFAULT_FIGURE_FONT, DEFAULT_BODY_FONT, parseFont, effective } from './fonts';
-import { type ColourSwitch, type ColourSwitches, type ColourShown, COLOURS_ON, COLOUR_SWITCHES } from '../colours/switches';
+import type { ColourShown } from '../colours/switches';
 import { type PageHighlights, pageHighlights } from './highlights';
 import { highlights } from './highlights.svelte';
 export type { FontId } from './fonts';
@@ -18,13 +18,10 @@ export type CardOpen = 'hover' | 'click';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
 export type Preview = { figureFont?: FontId; bodyFont?: FontId; theme?: Theme };
 export const LOCK_GRACE = { min: 3, max: 120 } as const;
-export const DEFAULTS = { theme: 'system' as Theme, colours: COLOURS_ON, underlines: true, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
+export const DEFAULTS = { theme: 'system' as Theme, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
 
-const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', underlines: 'omnistax-underlines', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
+const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
-/* Concepts keeps the key of the one colour-coding switch it grew out of, so a reader who had turned that off finds Concepts off. */
-export const COLOUR_KEYS: Readonly<Record<ColourSwitch, string>> = { all: 'omnistax-cc-all', facts: 'omnistax-cc-facts', refs: 'omnistax-cc-refs', concepts: 'omnistax-cc', words: 'omnistax-cc-words', symbols: 'omnistax-cc-symbols' };
-const readColours = (): ColourSwitches => Object.fromEntries(COLOUR_SWITCHES.map((k) => [k, read(COLOUR_KEYS[k]) !== '0'])) as Record<ColourSwitch, boolean>;
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
 const sysDark = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
@@ -34,15 +31,10 @@ const clampGrace = (v: number): number => Math.round(Math.min(LOCK_GRACE.max, Ma
 const readGrace = (): number => { const s = read(KEYS.lockGrace); const v = Number(s); return s !== null && Number.isFinite(v) ? clampGrace(v) : DEFAULTS.lockGrace; };
 
 class Settings {
-  colours = $state<ColourSwitches>(readColours());
   theme = $state<Theme>(readTheme());
   animations = $state(read(KEYS.anim) !== '0');
   exerciseMode = $state<ExerciseMode>(read(KEYS.exmode) === 'one' ? 'one' : 'all');
   voice = $state(read(KEYS.voice) === '1');
-  /* The dotted rule under a symbol, a glossary term or an example reference,
-     which says the card will open on it. Some readers would rather have the
-     page clean and hover anyway, so it can be turned off. */
-  underlines = $state(read(KEYS.underlines) !== '0');
   /* Where a concept map starts: with the mastery bars on its nodes, or without
      them. Each map keeps its own switch afterwards, so this only says what a
      map that has just opened shows. */
@@ -73,15 +65,14 @@ class Settings {
   get effectiveFigureFont(): FontId { return effective(this.preview.figureFont, this.figureFont); }
   get effectiveBodyFont(): FontId { return effective(this.preview.bodyFont, this.bodyFont); }
 
-  /* What the page being read shows: these switches as masters over the book's own (highlights.ts). */
-  get page(): PageHighlights { return pageHighlights({ colours: this.colours, underlines: this.underlines }, highlights.values); }
+  /* What the page being read shows: the book's own highlights (highlights.ts). */
+  get page(): PageHighlights { return pageHighlights(highlights.values); }
   get shown(): ColourShown { return this.page.shown; }
   get dark(): boolean { const t = this.effectiveTheme; return t === 'system' ? sysDark() : t === 'dark'; }
   setFigureFont(id: FontId): void { this.figureFont = id; write(KEYS.figureFont, id); }
   setBodyFont(id: FontId): void { this.bodyFont = id; write(KEYS.bodyFont, id); }
   setPreview(p: Partial<Preview>): void { this.preview = { ...this.preview, ...p }; }
   clearPreview(): void { this.preview = {}; }
-  setColour(k: ColourSwitch, on: boolean): void { this.colours = { ...this.colours, [k]: on }; write(COLOUR_KEYS[k], on ? '1' : '0'); }
   setTheme(t: Theme): void { this.theme = t; if (t === 'system') remove(KEYS.theme); else write(KEYS.theme, t); }
   /* Kept for the old dark-mode switch; setTheme is the way back to 'system'. */
   setDark(on: boolean): void { this.setTheme(on ? 'dark' : 'light'); }
@@ -99,7 +90,6 @@ class Settings {
   setTips(on: boolean): void { this.tips = on; write(KEYS.tips, on ? '1' : '0'); }
   setCardOpen(m: CardOpen): void { this.cardOpen = m; write(KEYS.cardOpen, m); }
   setLockGrace(s: number): void { if (!Number.isFinite(s)) return; this.lockGrace = clampGrace(s); write(KEYS.lockGrace, String(this.lockGrace)); }
-  setUnderlines(on: boolean): void { this.underlines = on; write(KEYS.underlines, on ? '1' : '0'); }
-  reset(): void { [...Object.values(KEYS), ...Object.values(COLOUR_KEYS)].forEach(remove); }
+  reset(): void { Object.values(KEYS).forEach(remove); }
 }
 export const settings = new Settings();

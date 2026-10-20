@@ -367,7 +367,7 @@
     { label: 'Open concept map', run: () => openPinned('concepts', t) },
     { label: 'Open reference', run: () => openPinned('reference', t) },
     { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
-    { label: 'Change color palette', run: () => openPinned('colours', t) },
+    { label: 'Theme', run: () => openPinned('colours', { level: 'book', book: t.book }) },
   ];
   /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
   const offlineItems = (id: string) => {
@@ -583,6 +583,8 @@
             {#if marks.updated}
               <button type="button" class="pill" tabindex="-1" onclick={(e) => { e.stopPropagation(); changesOf = id; }}>Updated<span class="dot new"></span></button>
             {/if}
+            <button type="button" class="tool theme" tabindex="-1" title="Theme" aria-label="Theme of {r.label}"
+              onclick={(e) => { e.stopPropagation(); openPinned('colours', { level: 'book', book: bookId(id) }); }}>{@html ICON.colours}</button>
           {/if}
           {#if r.root === 'notes'}
             <button type="button" class="tool" id="import-files" tabindex="-1" title="Import {ACCEPTED}" aria-label="Import"
@@ -638,6 +640,11 @@
   .tool{flex:none;display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .tool:hover{background:var(--soft);color:var(--ink)}
   .tool:focus-visible{outline:2px solid var(--accent)}
+  /* a book's theme: shown with the row's menu button, so the tree stays quiet */
+  .tool.theme{opacity:0}
+  .row:hover .tool.theme,.row.sel .tool.theme,.tool.theme:focus-visible{opacity:1}
+  @media (hover: none){ .tool.theme{opacity:.55} }
+  .tool.theme :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5}
   .tool :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
   .tree{display:flex;flex-direction:column;min-width:0;outline:none}

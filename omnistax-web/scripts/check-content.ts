@@ -9,6 +9,8 @@ import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
 import { type ContentRoot, contentRoot } from '../src/lib/types/ids';
 import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
+import { defaultColours, isFreshDefault } from '../src/lib/colours/defaults';
+import type { BookTree } from '../src/lib/content/load';
 import { unmarkedRedefinitions } from '../src/lib/hover/data';
 
 /* The command's own layer over the build's configuration: the content root and
@@ -51,6 +53,12 @@ export const redefinitions = (content: Content): readonly Finding[] =>
     what: `means something else in ${a.section} ("${a.meaning}"); reuse that meaning, or reword this one to stand alone and set "redefines": true`,
   })));
 
+/* The stored default colours (book.json `colours`) against what the script would write today: pages built
+   since move the smart assignment, so a stale default is not what the Theme page's Apply smart gives. */
+export const staleDefault = (book: BookTree): readonly Finding[] =>
+  (book.dto.colours && !isFreshDefault(book.dto.colours, defaultColours(book.dto.types.map((t) => String(t.id)), book.manifest))
+    ? [{ level: 'warning', where: 'book.json colours', what: 'is stale: the smart assignment has moved since it was written; run npm run colours:default' }] : []);
+
 /* ---------- the command ---------- */
 
 /* One book's heading and report, with a blank line between books so that a run over several reads as several. */
@@ -59,7 +67,7 @@ const bookReport = (content: Content, findings: readonly Finding[]): string => `
 const main = async (): Promise<number> => {
   const args = parseArgs(process.argv.slice(2), parseConfig(process.env));
   const books = await loadBooks(args.root, args.books);
-  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: [...checkContent(content), ...redefinitions(content)] }; }));
+  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: [...checkContent(content), ...redefinitions(content), ...staleDefault(book)] }; }));
   console.log(checked.map((c) => bookReport(c.content, c.findings)).join('\n\n'));
   return checked.every((c) => errorsOf(c.findings).length === 0) ? 0 : 1;
 };

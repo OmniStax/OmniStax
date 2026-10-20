@@ -11,18 +11,17 @@ import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { VIEW_TITLE } from '../icons';
-import type { ColourSwitch, ColourSwitches } from '../colours/switches';
 
 export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly colours: ColourSwitches; readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly underlines: boolean; readonly zoom: ZoomStep;
+    readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly zoom: ZoomStep;
     readonly figureFont: FontId; readonly bodyFont: FontId;
     setFigureFont(id: FontId): void; setBodyFont(id: FontId): void;
     setPreview(p: { figureFont?: FontId; bodyFont?: FontId; theme?: Theme }): void; clearPreview(): void;
     zoomIn(): void; zoomOut(): void; resetZoom(): void;
-    setColour(k: ColourSwitch, on: boolean): void; setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void; setUnderlines(on: boolean): void;
+    setTheme(t: Theme): void; cycleTheme(): void; setAnimations(on: boolean): void; setVoice(on: boolean): void;
   };
   readonly layout: {
     reset(): void;
@@ -66,7 +65,7 @@ export type ViewWhere = 'group' | 'side' | 'split';
 /* Ids the defaults and the Rail refer to. */
 export const BUILTIN = {
   palette: commandId('palette'), settings: commandId('settings'), open: commandId('open'),
-  animations: commandId('animations'), colourCoding: commandId('colour-coding'), underlines: commandId('underlines'),
+  animations: commandId('animations'),
   zoomIn: commandId('zoom-in'), zoomOut: commandId('zoom-out'), zoomReset: commandId('zoom-reset'),
   theme: commandId('theme'), themeCycle: commandId('theme-cycle'),
   figureFont: commandId('figure-font'), bodyFont: commandId('body-font'),
@@ -124,7 +123,7 @@ const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap(
     { id: showViewId(kind), label: `Show ${VIEW_TITLE[kind]} in the sidebar`, group: 'View', run: () => d.docs.openView(kind, 'side') },
   ]
   : isPaletteOnlyKind(kind)
-    ? [{ id: openViewId(kind), label: kind === 'colours' ? 'Open the colour menu' : `Open ${VIEW_TITLE[kind]}`, group: kind === 'colours' ? 'Appearance' : 'View', run: () => d.docs.openView(kind, 'group') }]
+    ? [{ id: openViewId(kind), label: kind === 'colours' ? "Open this book's theme" : `Open ${VIEW_TITLE[kind]}`, group: kind === 'colours' ? 'Appearance' : 'View', run: () => d.docs.openView(kind, 'group') }]
     : [{ id: openViewId(kind), label: `Open ${VIEW_TITLE[kind]} in a split`, group: 'View', run: () => d.docs.openView(kind, 'split') }]));
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
@@ -134,10 +133,6 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.undo, label: 'Undo', group: 'App', run: () => d.history.undo(), when: () => d.history.canUndo, detail: () => d.history.undoLabel },
   { id: BUILTIN.redo, label: 'Redo', group: 'App', run: () => d.history.redo(), when: () => d.history.canRedo, detail: () => d.history.redoLabel },
   { id: BUILTIN.open, label: 'Open…', group: 'App', run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
-  { id: BUILTIN.colourCoding, label: 'Toggle color coding', group: 'Appearance', run: () => d.settings.setColour('all', !d.settings.colours.all), detail: () => onOff(d.settings.colours.all) },
-  /* The dotted rule under symbols, glossary terms and example references; what
-     they open is unaffected either way. */
-  { id: BUILTIN.underlines, label: 'Toggle underlines', group: 'Appearance', run: () => d.settings.setUnderlines(!d.settings.underlines), detail: () => onOff(d.settings.underlines) },
   { id: BUILTIN.theme, label: 'Theme: change theme', group: 'Appearance', run: () => {}, detail: () => d.settings.theme,
     choices: () => settingChoices(d, THEME_OPTIONS, d.settings.theme, (theme) => d.settings.setPreview({ theme }), (t) => d.settings.setTheme(t)) },
   { id: BUILTIN.themeCycle, label: 'Theme: cycle', group: 'Appearance', run: () => d.settings.cycleTheme(), detail: () => d.settings.theme },

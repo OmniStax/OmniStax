@@ -1,5 +1,4 @@
 import { ZOOM_DEFAULT } from '../src/lib/settings/zoom';
-import { COLOURS_ON } from '../src/lib/colours/switches';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, rebind, chordsFor, withoutCommand, parseBindings, startsSequence, type Bindings, type Chord, type KeyLike } from '../src/lib/commands/chord';
@@ -114,7 +113,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
-    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), colours: COLOURS_ON, theme: 'system', animations: true, voice: false, underlines: true, setColour: (k, v) => log.push(`colour ${k} ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), setUnderlines: (v) => log.push(`underlines ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
+    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), theme: 'system', animations: true, voice: false, setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
@@ -244,14 +243,6 @@ test('the front of OmniStax can be opened again once its tab has been closed', (
   assert.equal(by(BUILTIN.reopenAbout).group, 'App');
   assert.equal(available(by(BUILTIN.reopenAbout)), true, 'the page stands whether or not a tab holds it');
 });
-test('the underline affordance is the reader\u2019s to keep or to do without', () => {
-  const d = deps(); const by = (id: string) => builtinCommands(d).find((c) => c.id === id)!;
-  by(BUILTIN.underlines).run();
-  assert.deepEqual(d.log, ['underlines false']);
-  assert.equal(by(BUILTIN.underlines).label, 'Toggle underlines');
-  assert.equal(by(BUILTIN.underlines).group, 'Appearance');
-  assert.equal(by(BUILTIN.underlines).detail?.(), 'on');
-});
 test('undo and redo stand where the reader can read what they would take back', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   by(BUILTIN.undo).run(); by(BUILTIN.redo).run();
@@ -291,7 +282,7 @@ test('Open… is hidden while the browser is up, so its chord cannot reset the t
 test('the colour menu is asked for by name and opens as a tab of the group it was asked from', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   assert.deepEqual([...PALETTE_ONLY_KINDS], ['pomodoro-stats', 'colours', 'chats', 'sync-diff']);
-  assert.equal(by(openViewId('colours')).label, 'Open the colour menu');
+  assert.equal(by(openViewId('colours')).label, "Open this book's theme");
   assert.equal(by(openViewId('colours')).group, 'Appearance');
   assert.equal(cmds.some((c) => c.id === showViewId('colours')), false, 'no sidebar holds it');
   by(openViewId('colours')).run();

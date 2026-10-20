@@ -8,7 +8,7 @@
 
    In order, a group's i-th referent wears colour i. Smart, it tries colour i,
    then i + 1, i + 2 … round the palette, and wears the first that no earlier
-   referent of the group wears, that stands at least the reader's target from
+   referent of the group wears, that stands at least the target from
    every colour the group's scope shows and at least twice the target from every
    referent of the group dealt before it, and of another hue family than each of
    those (oklab.ts); the scope's colours may share its family. Where some
@@ -31,16 +31,12 @@ export type RefMode = 'order' | 'smart';
 export type DealtMode = RefMode | 'farthest';
 /* The palette's slots in the order smart walks them: a permutation of 0 … 35. */
 export type PaletteOrder = readonly number[];
-export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly target?: DeltaE; readonly order?: PaletteOrder };
+export type RefSettings = { readonly palette: PaletteId; readonly mode: RefMode; readonly order?: PaletteOrder };
 
 export const REFERENT_COUNT = 36;
 
-/* The nearest a smart referent may stand to the colours its group shows, which the reader sets. */
+/* The nearest a smart referent may stand to the colours its group shows. */
 export const TARGET_DEFAULT: DeltaE = 0.12;
-export const TARGET_MIN: DeltaE = 0.02;
-export const TARGET_MAX: DeltaE = 0.25;
-export const TARGET_STEP: DeltaE = 0.01;
-export const clampTarget = (t: DeltaE): DeltaE => Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(t * 100) / 100));
 
 /* Written out rather than taken from FAMILIES, since palettes.ts reaches this module through model.ts and is
    not yet evaluated when this line runs. */
@@ -55,7 +51,6 @@ export const sameOrder = (a: PaletteOrder | undefined, b: PaletteOrder | undefin
 /* The palette laid in an order, or as it stands where the order does not fit it. */
 export const inPaletteOrder = (palette: readonly Hue[], order: PaletteOrder | undefined): readonly Hue[] =>
   order && order.length === palette.length ? order.map((j) => palette[j]) : palette;
-export const targetOf = (s: RefSettings): DeltaE => s.target ?? TARGET_DEFAULT;
 
 /* The palettes that can give the referents their thirty-six. */
 export const referentPalettes = (vision: Vision): readonly Offer[] =>

@@ -2,25 +2,21 @@
    function of type: the book declares its types, and the app dresses them from
    a scheme — the default the book stores (book.json `colours`), and the
    palette it was taken from laid along the order for any type it does not cover. What the reader
-   chooses stands over that scheme. They choose two things: the order the
+   chooses stands over that scheme, for the whole book: the order the
    quantities stand in, which is what every palette lays its hues along, and a
-   colour at a place — the whole book, one chapter, or one section — which
-   reaches every lower place that has not chosen its own, so nothing is ever
-   copied downwards and clearing a setting simply hands the type back to the
-   tier above.
+   colour for a type, which clearing hands back to the scheme.
 
    Everything here is pure: the store applies these functions, saves the result
    and writes the stylesheet they build. */
 import { z } from 'zod';
 import type { BookManifest, RefGroupEntry, SectionEntry } from '../content/schema';
 import { pagesOf } from '../content/roles';
-import { type BookId, type ChapterId, type SectionId, chapterId, sectionId } from '../types/ids';
-import type { Target } from '../sections/scope';
+import type { BookId } from '../types/ids';
 import { type Palette, type PaletteId, DEFAULT_VISION, FAMILIES, paletteById, paletteId, pairsOf } from './palettes';
 import { type Vision, INKS, isVision } from './oklab';
 import {
-  type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clampTarget, clashOrder, dealGroup, huesOfGroups,
-  inPaletteOrder, isPaletteOrder, isRefMode, referentHues, sameOrder, targetOf,
+  type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefMode, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clashOrder, dealGroup, huesOfGroups,
+  inPaletteOrder, isPaletteOrder, isRefMode, referentHues, sameOrder,
 } from './referents';
 import { type CountKey, fixedHueOf, isCategoryKey } from './counts';
 
@@ -28,34 +24,15 @@ export type Hex = string;                          /* '#RRGGBB', normalised by n
 export type Hue = { readonly light: Hex; readonly dark: Hex };
 export type TypeKey = string;                      /* a key of manifest.types */
 
-/* Where a colour is set: the tier and the place. This mirrors Target in
-   sections/scope.ts, with the chapter a section lies in written down as well,
-   since a section's rule is scoped by its chapter's directory. */
-export type Place =
-  | { readonly level: 'book' }
-  | { readonly level: 'chapter'; readonly chapter: ChapterId }
-  | { readonly level: 'section'; readonly chapter: ChapterId; readonly section: SectionId };
+/* The colours the reader set, one per type. */
+export type Overrides = Readonly<Record<TypeKey, Hue>>;
+/* The palette the reader last laid over the types and how, which the page marks as in use. */
+export type Categories = { readonly palette: PaletteId; readonly mode: RefMode };
 
-/* A section id names its chapter: "16.3" lies in chapter 16. */
-const chapterOfSection = (s: SectionId): ChapterId => chapterId(String(s).split('.')[0]);
-export const placeOf = (t: Target): Place =>
-  t.level === 'section' ? { level: 'section', chapter: chapterOfSection(t.section), section: t.section } : t.level === 'chapter' ? { level: 'chapter', chapter: t.chapter } : { level: 'book' };
-export const placeKey = (p: Place): string =>
-  p.level === 'book' ? 'book' : p.level === 'chapter' ? `chapter:${p.chapter}` : `section:${p.section}`;
-export const samePlace = (a: Place, b: Place): boolean => placeKey(a) === placeKey(b);
-
-export type Overrides = {
-  readonly book: Readonly<Record<TypeKey, Hue>>;
-  readonly chapters: Readonly<Record<string /* ChapterId */, Readonly<Record<TypeKey, Hue>>>>;
-  readonly sections: Readonly<Record<string /* SectionId */, Readonly<Record<TypeKey, Hue>>>>;
-};
-const EMPTY: Overrides = { book: {}, chapters: {}, sections: {} };
-
-/* What the reader has chosen: the order the quantities stand in and the colours
-   set at each place. The order is one list for the whole book, since a palette
-   lays its hues along it and a quantity that moves should move everywhere. */
-export type Choices = { readonly order: readonly TypeKey[]; readonly overrides: Overrides; readonly vision?: Vision; readonly referents?: RefSettings };
-export const NO_CHOICES: Choices = { order: [], overrides: EMPTY };
+/* What the reader has chosen: the order the quantities stand in, the colours
+   they set, the vision, the palette they applied and the referent settings. */
+export type Choices = { readonly order: readonly TypeKey[]; readonly overrides: Overrides; readonly vision?: Vision; readonly categories?: Categories; readonly referents?: RefSettings };
+export const NO_CHOICES: Choices = { order: [], overrides: {} };
 
 /* ---------- colour arithmetic ---------- */
 
@@ -100,7 +77,7 @@ export const LIGHT_L = 0.42;
 export const darkOf = (light: Hex): Hex => toHex({ ...toHsl(light), l: DARK_L });
 export const lightOf = (dark: Hex): Hex => toHex({ ...toHsl(dark), l: LIGHT_L });
 /* One colour picked while one theme is shown fills that theme's slot. The other
-   slot is whatever the reader had already chosen for this same type and place,
+   slot is whatever the reader had already chosen for this same type,
    and otherwise the same hue carried across to the other ground. */
 export const hueFrom = (picked: Hex, dark: boolean, keep: Hue | null): Hue => {
   const p = normHex(picked);
@@ -163,15 +140,15 @@ export const d3Rainbow = (n: number): Hex[] =>
 /* ---------- the value ---------- */
 
 const isEmptyRecord = (r: Readonly<Record<string, unknown>>): boolean => Object.keys(r).length === 0;
-const noOverrides = (o: Overrides): boolean =>
-  isEmptyRecord(o.book) && Object.values(o.chapters).every(isEmptyRecord) && Object.values(o.sections).every(isEmptyRecord);
 /* Whether the reader has chosen anything at all, which is what the store asks
    before it writes: a book they have left alone is stored as nothing. */
-export const isEmpty = (c: Choices): boolean => c.order.length === 0 && noOverrides(c.overrides) && c.vision === undefined && c.referents === undefined;
+export const isEmpty = (c: Choices): boolean =>
+  c.order.length === 0 && isEmptyRecord(c.overrides) && c.vision === undefined && c.categories === undefined && c.referents === undefined;
 
 /* The boundary with the file, where anything may come back. A type whose colour
-   does not read as a pair of hexes is left out, and so is everything above it
-   that then holds nothing. */
+   does not read as a pair of hexes is left out. The file keeps the colours under
+   `overrides.book`, where the app has always written them; the chapter and section
+   tables older files carry beside it are no longer read. */
 const parseHues = (raw: unknown): Record<TypeKey, Hue> => {
   if (typeof raw !== 'object' || raw === null) return {};
   return Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => {
@@ -181,66 +158,39 @@ const parseHues = (raw: unknown): Record<TypeKey, Hue> => {
     return [[k, { light: normHex(h.light), dark: normHex(h.dark) }] as const];
   }));
 };
-const parseTable = (raw: unknown): Record<string, Readonly<Record<TypeKey, Hue>>> => {
-  if (typeof raw !== 'object' || raw === null) return {};
-  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => {
-    const hues = parseHues(v);
-    return k !== '' && !isEmptyRecord(hues) ? [[k, hues] as const] : [];
-  }));
-};
-const parseOverrides = (raw: unknown): Overrides => {
-  if (typeof raw !== 'object' || raw === null) return EMPTY;
-  const o = raw as { book?: unknown; chapters?: unknown; sections?: unknown };
-  return { book: parseHues(o.book), chapters: parseTable(o.chapters), sections: parseTable(o.sections) };
-};
+const parseOverrides = (raw: unknown): Overrides =>
+  typeof raw === 'object' && raw !== null ? parseHues((raw as { book?: unknown }).book) : {};
 
-const at = (o: Overrides, p: Place): Readonly<Record<TypeKey, Hue>> =>
-  p.level === 'book' ? o.book : p.level === 'chapter' ? o.chapters[p.chapter] ?? {} : o.sections[p.section] ?? {};
+/* What the reader set for a type, and nothing of the scheme. */
+export const ownHue = (c: Choices, type: TypeKey): Hue | null => c.overrides[type] ?? null;
 
-/* A table with one place rewritten, and the place dropped altogether once it
-   holds nothing, so that an emptied chapter leaves no trace behind it. */
-const withPlace = (o: Overrides, p: Place, hues: Readonly<Record<TypeKey, Hue>>): Overrides => {
-  if (p.level === 'book') return { ...o, book: hues };
-  const key = p.level === 'chapter' ? String(p.chapter) : String(p.section);
-  const table = { ...(p.level === 'chapter' ? o.chapters : o.sections) };
-  if (isEmptyRecord(hues)) delete table[key]; else table[key] = hues;
-  return p.level === 'chapter' ? { ...o, chapters: table } : { ...o, sections: table };
+export const setHue = (c: Choices, type: TypeKey, hue: Hue): Choices => ({ ...c, overrides: { ...c.overrides, [type]: normHue(hue) } });
+/* An operation that changes nothing hands back the very value it was given, so
+   the store can tell a real edit from a gesture that came to nothing. */
+export const clearHue = (c: Choices, type: TypeKey): Choices => {
+  if (!(type in c.overrides)) return c;
+  const { [type]: _, ...rest } = c.overrides;
+  return { ...c, overrides: rest };
 };
 
-/* What the reader set at exactly this place, and nothing from any tier above it. */
-export const ownHue = (o: Overrides, type: TypeKey, place: Place): Hue | null => at(o, place)[type] ?? null;
-
-/* The reader's choices with their overrides rewritten. An operation that changes
-   nothing hands back the very value it was given, so the store can tell a real
-   edit from a gesture that came to nothing. */
-const overriding = (c: Choices, o: Overrides): Choices => (o === c.overrides ? c : { ...c, overrides: o });
-
-export const setHue = (c: Choices, place: Place, type: TypeKey, hue: Hue): Choices =>
-  overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), [type]: normHue(hue) }));
-export const clearHue = (c: Choices, place: Place, type: TypeKey): Choices => {
-  const hues = { ...at(c.overrides, place) };
-  if (!(type in hues)) return c;
-  delete hues[type];
-  return overriding(c, withPlace(c.overrides, place, hues));
-};
-/* Every type at that one place, handed back to the tier above in one step. */
-export const clearPlace = (c: Choices, place: Place): Choices =>
-  isEmptyRecord(at(c.overrides, place)) ? c : overriding(c, withPlace(c.overrides, place, {}));
-
-/* A palette dressed onto the types in the order they are given, each type taking
-   the next hue, so no two of them come out the same. A palette with fewer hues
-   than there are types cannot say what the rest would be, and is refused. */
-export const applyPalette = (c: Choices, place: Place, types: readonly TypeKey[], hues: readonly Hex[]): Choices | null => {
-  if (types.length > hues.length) return null;
-  const chosen = Object.fromEntries(types.map((t, i) => [t, { light: normHex(hues[i]), dark: darkOf(hues[i]) }] as const));
-  return overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), ...chosen }));
-};
-
-/* The same with both values of every colour given, as the generated palettes give them. */
-export const applyHues = (c: Choices, place: Place, types: readonly TypeKey[], hues: readonly Hue[]): Choices | null => {
+/* Hues laid onto the types in the order they are given, each type taking the
+   next, so no two of them come out the same. Fewer hues than types cannot say
+   what the rest would be, and are refused. */
+export const applyHues = (c: Choices, types: readonly TypeKey[], hues: readonly Hue[]): Choices | null => {
   if (types.length > hues.length) return null;
   const chosen = Object.fromEntries(types.map((t, i) => [t, normHue(hues[i])] as const));
-  return overriding(c, withPlace(c.overrides, place, { ...at(c.overrides, place), ...chosen }));
+  return { ...c, overrides: { ...c.overrides, ...chosen } };
+};
+
+/* The palette the reader laid over the types, and how; the book's own until they do. */
+export const setCategories = (c: Choices, categories: Categories | undefined): Choices => {
+  if (c.categories?.palette === categories?.palette && c.categories?.mode === categories?.mode) return c;
+  const { categories: _, ...rest } = c;
+  return categories ? { ...rest, categories } : rest;
+};
+const parseCategories = (raw: unknown): Categories | undefined => {
+  const r = raw as { palette?: unknown; mode?: unknown } | null;
+  return r && typeof r === 'object' && typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode } : undefined;
 };
 
 /* The vision the reader has said they read with, else the one the book's
@@ -252,15 +202,14 @@ export const setVision = (c: Choices, vision: Vision | undefined): Choices => {
   return vision === undefined ? rest : { ...rest, vision };
 };
 
-/* The referent palette, how a group deals it, the target distance and, smart, the order it is walked in, the
+/* The referent palette, how a group deals it and, smart, the order it is walked in, the
    default until the reader chooses; a setting equal to the default is stored as nothing. In order keeps no order. */
 export const referentsOf = (c: Choices): RefSettings => c.referents ?? DEFAULT_REFERENTS;
 const sameReferents = (a: RefSettings, b: RefSettings): boolean =>
-  a.palette === b.palette && a.mode === b.mode && targetOf(a) === targetOf(b) && sameOrder(a.order, b.order);
+  a.palette === b.palette && a.mode === b.mode && sameOrder(a.order, b.order);
 export const setReferents = (c: Choices, next: RefSettings): Choices => {
   const kept: RefSettings = {
     palette: next.palette, mode: next.mode,
-    ...(targetOf(next) === TARGET_DEFAULT ? {} : { target: targetOf(next) }),
     ...(next.mode === 'smart' && next.order ? { order: [...next.order] } : {}),
   };
   if (sameReferents(referentsOf(c), kept)) return c;
@@ -269,15 +218,12 @@ export const setReferents = (c: Choices, next: RefSettings): Choices => {
 };
 const parseReferents = (raw: unknown): RefSettings | undefined => {
   if (typeof raw !== 'object' || raw === null) return undefined;
-  const r = raw as { palette?: unknown; mode?: unknown; target?: unknown; order?: unknown };
-  const target = typeof r.target === 'number' && Number.isFinite(r.target) ? { target: clampTarget(r.target) } : {};
+  const r = raw as { palette?: unknown; mode?: unknown; order?: unknown };
   const order = r.mode === 'smart' && isPaletteOrder(r.order) ? { order: r.order } : {};
-  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...target, ...order } : undefined;
+  return typeof r.palette === 'string' && r.palette !== '' && isRefMode(r.mode) ? { palette: r.palette as PaletteId, mode: r.mode, ...order } : undefined;
 };
 
 /* ---------- the order, and the scheme that follows it ---------- */
-
-const chapterEntry = (m: BookManifest, chapter: ChapterId) => m.chapters.find((c) => c.id === String(chapter));
 
 /* The quantities in the reader's order: the ones they have placed, in the order
    they placed them, and then every type the book declares that they have not
@@ -328,46 +274,21 @@ export const schemeOf = (m: Pick<BookManifest, 'types' | 'colours'>, c: Choices)
   };
 };
 
-/* Where the colour a place shows came from: one of the three tiers the reader
-   sets, the scheme the book wears under them, or nothing at all. */
+/* Where the colour a type shows came from: the reader, the scheme the book
+   wears under their choices, or nothing at all. */
 export type Source =
-  | { readonly kind: 'section'; readonly section: SectionId }
-  | { readonly kind: 'chapter'; readonly chapter: ChapterId }
-  | { readonly kind: 'book' }
+  | { readonly kind: 'own' }
   | { readonly kind: 'scheme'; readonly palette: PaletteId }
   | { readonly kind: 'none' };
 
-/* The colour that shows at a place and where it came from: the place's own
-   setting, else the chapter's, else the book's, else the scheme. Every type the
-   book declares has a scheme hue, so nothing at all is left only for a key the
-   manifest does not know. */
-export const effectiveHue = (m: BookManifest, c: Choices, type: TypeKey, place: Place, scheme: Scheme = schemeOf(m, c)): { readonly hue: Hue | null; readonly from: Source } => {
-  const o = c.overrides;
-  if (place.level === 'section') {
-    const own = ownHue(o, type, place);
-    if (own) return { hue: own, from: { kind: 'section', section: place.section } };
-  }
-  if (place.level !== 'book') {
-    const own = ownHue(o, type, { level: 'chapter', chapter: place.chapter });
-    if (own) return { hue: own, from: { kind: 'chapter', chapter: place.chapter } };
-  }
-  const book = ownHue(o, type, { level: 'book' });
-  if (book) return { hue: book, from: { kind: 'book' } };
+/* The colour a type shows and where it came from: the reader's own, else the
+   scheme's. Every type the book declares has a scheme hue, so nothing at all is
+   left only for a key the manifest does not know. */
+export const effectiveHue = (m: Pick<BookManifest, 'types' | 'colours'>, c: Choices, type: TypeKey, scheme: Scheme = schemeOf(m, c)): { readonly hue: Hue | null; readonly from: Source } => {
+  const own = ownHue(c, type);
+  if (own) return { hue: own, from: { kind: 'own' } };
   const dressed = scheme.hues[type];
   return dressed ? { hue: dressed, from: { kind: 'scheme', palette: scheme.palette.id } } : { hue: null, from: { kind: 'none' } };
-};
-
-/* The types a place shows, in the reader's order. The book shows every type it
-   declares. A section shows the types its page wears, and a chapter what its
-   built sections wear between them; a place that wears none yet shows them all. */
-export const typesAt = (m: BookManifest, c: Choices, place: Place): readonly TypeKey[] => {
-  const all = orderOf(m, c);
-  if (place.level === 'book') return all;
-  const ch = chapterEntry(m, place.chapter);
-  const worn = new Set<TypeKey>(place.level === 'section'
-    ? ch?.sections.find((s) => s.id === String(place.section))?.types ?? []
-    : (ch?.sections ?? []).filter((s) => s.built).flatMap((s) => s.types));
-  return worn.size === 0 ? all : all.filter((k) => worn.has(k));
 };
 
 /* The symbols a type carries, as the book's macros write them: a macro that
@@ -395,17 +316,15 @@ export const fitCount = (widths: readonly number[], room: number, ellipsis: numb
 
 /* ---------- the referents of a page ---------- */
 
-/* A page of the book and the place its colours are read at: a chapter's pages at
-   their own section place, the book's own front and back pages at the book. */
-type PageAt = { readonly entry: SectionEntry; readonly place: Place };
-const pagesAt = (m: BookManifest): readonly PageAt[] => [
-  ...m.chapters.flatMap((ch) => pagesOf(ch).map((entry): PageAt => ({ entry, place: { level: 'section', chapter: chapterId(ch.id), section: sectionId(entry.id) } }))),
-  ...[m.intro, m.summary].flatMap((entry): PageAt[] => (entry ? [{ entry, place: { level: 'book' } }] : [])),
+/* The pages of the book: every chapter's, then its own front and back pages. */
+const pagesAt = (m: BookManifest): readonly SectionEntry[] => [
+  ...m.chapters.flatMap((ch) => pagesOf(ch)),
+  ...[m.intro, m.summary].flatMap((entry) => (entry ? [entry] : [])),
 ];
-const pageAt = (m: BookManifest, id: string): PageAt | null => pagesAt(m).find((p) => p.entry.id === id) ?? null;
+const pageAt = (m: BookManifest, id: string): SectionEntry | null => pagesAt(m).find((p) => p.id === id) ?? null;
 /* What a referent group's scope shows: the ink, and the colour of every key it counts. */
-const shownAt = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme, keys: readonly CountKey[]): readonly Hue[] =>
-  [...INKS, ...keys.flatMap((k) => (isCategoryKey(k) ? effectiveHue(m, c, k, at.place, scheme).hue : fixedHueOf(k)) ?? [])];
+const shownAt = (m: BookManifest, c: Choices, scheme: Scheme, keys: readonly CountKey[]): readonly Hue[] =>
+  [...INKS, ...keys.flatMap((k) => (isCategoryKey(k) ? effectiveHue(m, c, k, scheme).hue : fixedHueOf(k)) ?? [])];
 
 /* A page's referent groups as the manifest ships them, or one group of them all, showing every colour of the page, where it ships none. */
 export const groupsOf = (e: Pick<SectionEntry, 'referents' | 'refGroups' | 'counts'>): readonly RefGroupEntry[] => e.refGroups ?? (e.referents?.length
@@ -422,14 +341,14 @@ const walkOrder = (m: Pick<BookManifest, 'colours'>, s: RefSettings): PaletteOrd
 /* A page's referents dealt their colours, group by group: the palette as they walk it and the vision it was measured for. */
 export type GroupReferents = DealtGroup & { readonly figures: readonly string[] };
 export type PageReferents = { readonly hues: RefHues; readonly groups: readonly GroupReferents[]; readonly palette: readonly Hue[]; readonly vision: Vision };
-const referentsAtPage = (m: BookManifest, c: Choices, at: PageAt, scheme: Scheme = schemeOf(m, c)): PageReferents => {
+const referentsAtPage = (m: BookManifest, c: Choices, at: SectionEntry, scheme: Scheme = schemeOf(m, c)): PageReferents => {
   const vision = visionOf(m, c);
   const settings = referentsOf(c);
   const own = referentHues(settings, vision);
   const palette = settings.mode === 'smart' ? inPaletteOrder(own, walkOrder(m, settings)) : own;
-  const deal = { palette, mode: settings.mode, vision, target: targetOf(settings) };
-  const groups = groupsOf(at.entry).map((g): GroupReferents => ({
-    ...dealGroup({ ids: g.referents, shown: shownAt(m, c, at, scheme, g.shows) }, deal), figures: g.figures,
+  const deal = { palette, mode: settings.mode, vision, target: TARGET_DEFAULT };
+  const groups = groupsOf(at).map((g): GroupReferents => ({
+    ...dealGroup({ ids: g.referents, shown: shownAt(m, c, scheme, g.shows) }, deal), figures: g.figures,
   }));
   return { hues: huesOfGroups(groups), groups, palette, vision };
 };
@@ -438,7 +357,7 @@ export const pageReferents = (m: BookManifest, c: Choices, page: string): PageRe
   return at ? referentsAtPage(m, c, at) : null;
 };
 
-const withReferents = (m: BookManifest): readonly PageAt[] => pagesAt(m).filter((at) => at.entry.referents?.length);
+const withReferents = (m: BookManifest): readonly SectionEntry[] => pagesAt(m).filter((at) => at.referents?.length);
 
 /* Every page of the book with referents, each with its groups dealt under these choices. */
 export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferents[] => {
@@ -448,11 +367,11 @@ export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferen
 
 /* The order smart walks a referent palette in for this book: every referent group of the book, weighed by its
    referents, with the colours its scope shows under these choices and their vision. */
-export const referentOrder = (m: BookManifest, c: Choices, palette: RefSettings['palette'], target: number): PaletteOrder => {
+export const referentOrder = (m: BookManifest, c: Choices, palette: RefSettings['palette']): PaletteOrder => {
   const vision = visionOf(m, c);
   const scheme = schemeOf(m, c);
-  const groups = withReferents(m).flatMap((at) => groupsOf(at.entry).map((g): GroupWeight => ({ size: g.referents.length, shown: shownAt(m, c, at, scheme, g.shows) })));
-  return clashOrder(referentHues({ palette, mode: 'smart' }, vision), groups, vision, target);
+  const groups = withReferents(m).flatMap((at) => groupsOf(at).map((g): GroupWeight => ({ size: g.referents.length, shown: shownAt(m, c, scheme, g.shows) })));
+  return clashOrder(referentHues({ palette, mode: 'smart' }, vision), groups, vision, TARGET_DEFAULT);
 };
 
 /* ---------- the stylesheet ---------- */
@@ -463,22 +382,16 @@ const varsOf = (order: readonly TypeKey[], hues: Readonly<Record<TypeKey, Hue>>,
 };
 
 /* One block of the sheet, all of it under the book's own attribute so two books on one page never colour each
-   other: the scheme on the book, then the reader's book overrides after it, so that theirs win without either
-   rule having to be marked important; then each chapter's, then each section's, later and so winning at equal
-   weight. A tier's attribute may sit on the element that carries the book or on one inside it, so each is
-   written both ways. The prefix is the theme's switch on an ancestor. */
+   other: the scheme on the book, then the reader's overrides after it, so that theirs win without either rule
+   having to be marked important. The prefix is the theme's switch on an ancestor. */
 const blockOf = (m: BookManifest, c: Choices, scheme: Scheme, mode: 'light' | 'dark', prefix: string): string => {
   const order = orderOf(m, c);
-  const o = c.overrides;
   const book = `${prefix}[data-book="${m.id}"]`;
-  const rule = (sel: string, hues: Readonly<Record<TypeKey, Hue>>): string => {
+  const rule = (hues: Readonly<Record<TypeKey, Hue>>): string => {
     const vars = varsOf(order, hues, mode);
-    return vars ? `${sel}{${vars}}` : '';
+    return vars ? `${book}{${vars}}` : '';
   };
-  const both = (tier: string): string => `${book}${tier},${book} ${tier}`;
-  const chapters = m.chapters.map((ch) => rule(both(`[data-chapter="${ch.dir}"]`), o.chapters[ch.id] ?? {})).join('');
-  const sections = m.chapters.flatMap((ch) => ch.sections.map((sec) => rule(both(`[data-sec="${sec.id}"]`), o.sections[sec.id] ?? {}))).join('');
-  return rule(book, scheme.hues) + rule(book, o.book) + chapters + sections;
+  return rule(scheme.hues) + rule(c.overrides);
 };
 
 /* The whole sheet: the one the book is built with, and the one the store hangs
@@ -509,12 +422,17 @@ export const zColourFile = z.object({
   order: z.array(z.string()).default([]),
   overrides: z.unknown().transform(parseOverrides),
   vision: z.unknown().optional().transform((v) => (isVision(v) ? v : undefined)),
+  categories: z.unknown().optional().transform(parseCategories),
   referents: z.unknown().optional().transform(parseReferents),
 });
-export type ColourFileDTO = z.infer<typeof zColourFile>;
+/* What is written: the choices with the colours under `overrides.book`, as every file has had them. */
+export type ColourFileDTO = {
+  readonly format: 'omnistax-colours'; readonly version: 1; readonly book: BookId; readonly order: readonly TypeKey[];
+  readonly overrides: { readonly book: Overrides }; readonly vision?: Vision; readonly categories?: Categories; readonly referents?: RefSettings;
+};
 
 export const toFile = (book: BookId, c: Choices): ColourFileDTO =>
-  ({ format: 'omnistax-colours', version: 1, book, order: [...c.order], overrides: c.overrides, ...(c.vision ? { vision: c.vision } : {}), ...(c.referents ? { referents: c.referents } : {}) });
+  ({ format: 'omnistax-colours', version: 1, book, order: [...c.order], overrides: { book: c.overrides }, ...(c.vision ? { vision: c.vision } : {}), ...(c.categories ? { categories: c.categories } : {}), ...(c.referents ? { referents: c.referents } : {}) });
 
 /* A file read back. It is refused when it is not a colour file at all — which is
    what storage written before the envelope existed reads as, so an older
@@ -524,6 +442,6 @@ export const fromFile = (raw: unknown, book: BookId): { readonly ok: true; reado
   const read = zColourFile.safeParse(raw);
   if (!read.success) return { ok: false, reason: 'not-colours' };
   if (read.data.book !== book) return { ok: false, reason: 'other-book' };
-  const { order, overrides, vision, referents } = read.data;
-  return { ok: true, choices: { order, overrides, ...(vision ? { vision } : {}), ...(referents ? { referents } : {}) } };
+  const { order, overrides, vision, categories, referents } = read.data;
+  return { ok: true, choices: { order, overrides, ...(vision ? { vision } : {}), ...(categories ? { categories } : {}), ...(referents ? { referents } : {}) } };
 };

@@ -1,14 +1,11 @@
-/* What a book highlights, beneath the reader's master switches. Three layers
-   decide whether a page shows a way of colouring or the dotted rule: the
-   global switches in the settings (All, the three families, Words, Symbols,
-   Underlines), which stay masters; the book's own default, declared in its
+/* What a book highlights. Two layers decide whether a page shows a way of
+   colouring or the dotted rule: the book's own default, declared in its
    book.json because a calculus text has no use for coloured words where a
    physics text does; and the reader's choice for that book, which holds only
    the keys they changed, so a later change of the book's default reaches every
-   key they never touched. A key shows on the page only when its global switch
-   and the book's value are both on. Pure: the store reads and writes, and the
-   shell turns what this answers into classes on the root. */
-import { type ColourSwitch, type ColourSwitches, type ColourShown, COLOUR_LABELS, rootClasses, shownOf } from '../colours/switches';
+   key they never touched. Pure: the store reads and writes, and the shell turns
+   what this answers into classes on the root. */
+import { type ColourSwitches, type ColourShown, COLOUR_LABELS, rootClasses, shownOf } from '../colours/switches';
 
 export type HighlightKey = 'facts' | 'refs' | 'concepts' | 'words' | 'symbols' | 'underlines';
 export type BookHighlights = Readonly<Record<HighlightKey, boolean>>;
@@ -21,13 +18,6 @@ export const HIGHLIGHTS_ON: BookHighlights = { facts: true, refs: true, concepts
 export const HIGHLIGHT_LABELS: Readonly<Record<HighlightKey, string>> = { facts: COLOUR_LABELS.facts, refs: COLOUR_LABELS.refs, concepts: COLOUR_LABELS.concepts, words: COLOUR_LABELS.words, symbols: COLOUR_LABELS.symbols, underlines: 'Underlines' };
 /* The book key a key sits under, as Words and Symbols sit under Concepts globally. */
 export const HIGHLIGHT_PARENT: Readonly<Partial<Record<HighlightKey, HighlightKey>>> = { words: 'concepts', symbols: 'concepts' };
-/* The global switches a key needs on, outermost first, by the name the dialog gives them. */
-const MASTERS: Readonly<Record<HighlightKey, readonly (ColourSwitch | 'underlines')[]>> = {
-  facts: ['all', 'facts'], refs: ['all', 'refs'], concepts: ['all', 'concepts'], words: ['all', 'concepts', 'words'], symbols: ['all', 'concepts', 'symbols'], underlines: ['underlines'],
-};
-/* The masters as the settings hold them. */
-export type GlobalHighlights = { readonly colours: ColourSwitches; readonly underlines: boolean };
-
 const isKey = (k: string): k is HighlightKey => (HIGHLIGHT_KEYS as readonly string[]).includes(k);
 
 /* The book layer: the reader's choice where they made one, else the book's default. */
@@ -45,29 +35,20 @@ export const parseOverrides = (raw: unknown): HighlightOverrides =>
     ? Object.fromEntries(Object.entries(raw).filter(([k, v]) => isKey(k) && typeof v === 'boolean'))
     : {};
 
-/* The switches the page is drawn by: each global switch and-ed with the
-   book's value. All has no book key, so it passes as it is. The figures and
-   the stylesheets then read these exactly as they read the global ones. */
-export const effectiveSwitches = (colours: ColourSwitches, book: BookHighlights): ColourSwitches => ({
-  all: colours.all, facts: colours.facts && book.facts, refs: colours.refs && book.refs, concepts: colours.concepts && book.concepts, words: colours.words && book.words, symbols: colours.symbols && book.symbols,
-});
+/* The switches the page is drawn by, which the figures and the stylesheets read. */
+export const switchesOf = (book: BookHighlights): ColourSwitches => ({ facts: book.facts, refs: book.refs, concepts: book.concepts, words: book.words, symbols: book.symbols });
 /* What the page shows: the families the figures read, and whether the rule is drawn. */
 export type PageHighlights = { readonly switches: ColourSwitches; readonly shown: ColourShown; readonly underlines: boolean };
-export const pageHighlights = (g: GlobalHighlights, book: BookHighlights): PageHighlights => {
-  const switches = effectiveSwitches(g.colours, book);
-  return { switches, shown: shownOf(switches), underlines: g.underlines && book.underlines };
+export const pageHighlights = (book: BookHighlights): PageHighlights => {
+  const switches = switchesOf(book);
+  return { switches, shown: shownOf(switches), underlines: book.underlines };
 };
 /* The classes the root wears for it: the cc-* of rootClasses, and no-underlines. */
-export const highlightClasses = (g: GlobalHighlights, book: BookHighlights): Readonly<Record<string, boolean>> => {
-  const p = pageHighlights(g, book);
-  return { ...rootClasses(p.switches), 'no-underlines': !p.underlines };
-};
+export const highlightClasses = (book: BookHighlights): Readonly<Record<string, boolean>> =>
+  ({ ...rootClasses(switchesOf(book)), 'no-underlines': !book.underlines });
 
-/* Why a book key can do nothing just now: the global switch, or the book's own
-   parent, that holds it off, said as the dialog says it; null when it is free. */
-export const heldOffBy = (g: GlobalHighlights, book: BookHighlights, k: HighlightKey): string | null => {
-  const off = MASTERS[k].find((m) => (m === 'underlines' ? !g.underlines : !g.colours[m]));
-  if (off) return off === 'underlines' ? 'Underlines is off for every book.' : `${COLOUR_LABELS[off]} is off in Color coding, for every book.`;
+/* Why a book key can do nothing just now: the parent that holds it off; null when it is free. */
+export const heldOffBy = (book: BookHighlights, k: HighlightKey): string | null => {
   const parent = HIGHLIGHT_PARENT[k];
   return parent && !book[parent] ? `${HIGHLIGHT_LABELS[parent]} is off for this book.` : null;
 };

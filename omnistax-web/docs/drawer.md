@@ -36,7 +36,7 @@ tokens plus the book's quantity colours when a book is open, so a force can
 be drawn in the force colour.
 
 Undo is the drawing's own (Ctrl+Z inside the tab), not the shell timeline,
-like the note editor and the colour menu.
+like the note editor and a book's theme page.
 
 ## Things dropped on the canvas
 

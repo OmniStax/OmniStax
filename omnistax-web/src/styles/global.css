@@ -27,7 +27,6 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --spot:#60A5FA; } }
 :root[data-theme="dark"]{ --spot:#60A5FA; }
 .spot{outline:2px solid var(--spot)!important;outline-offset:1px;border-radius:6px}
-html:not(.cc-all){ --accent:var(--ink); --warm:var(--ink); }
 
 *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--thumb) transparent}
 *::-webkit-scrollbar{width:6px;height:6px}

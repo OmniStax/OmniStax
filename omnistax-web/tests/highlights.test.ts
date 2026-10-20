@@ -2,14 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { COLOURS_ON } from '../src/lib/colours/switches';
-import { HIGHLIGHTS_ON, bookLayer, effectiveSwitches, heldOffBy, highlightClasses, pageHighlights, parseOverrides, withChoice, type BookHighlights } from '../src/lib/settings/highlights';
+import { HIGHLIGHTS_ON, bookLayer, heldOffBy, highlightClasses, pageHighlights, parseOverrides, switchesOf, withChoice, type BookHighlights } from '../src/lib/settings/highlights';
 import { BookSchema } from '../src/lib/content/schema';
 import { loadBook } from '../src/lib/content/load';
 import { bookDir, bookId } from '../src/lib/types/ids';
 
 /* A mathematics book: everything on but the words that name a concept. */
 const MATHS: BookHighlights = { ...HIGHLIGHTS_ON, words: false };
-const ON = { colours: COLOURS_ON, underlines: true };
 
 test('the book layer is its default where the reader chose nothing, and their choice where they did', () => {
   assert.deepEqual(bookLayer(MATHS, {}), MATHS);
@@ -33,31 +32,25 @@ test('stored choices are read past anything that is not a known key with a boole
   assert.deepEqual(parseOverrides(null), {});
 });
 
-test('a key shows only when its global switch and the book both have it on', () => {
-  assert.equal(highlightClasses(ON, MATHS)['cc-words'], false, 'the book holds words off');
-  assert.equal(highlightClasses(ON, HIGHLIGHTS_ON)['cc-words'], true, 'a physics book shows them');
-  assert.equal(highlightClasses({ ...ON, colours: { ...COLOURS_ON, words: false } }, HIGHLIGHTS_ON)['cc-words'], false, 'global off beats the book on');
-  assert.equal(highlightClasses({ ...ON, colours: { ...COLOURS_ON, concepts: false } }, HIGHLIGHTS_ON)['cc-words'], false, 'a global parent off beats the book on');
-  assert.equal(highlightClasses(ON, { ...HIGHLIGHTS_ON, concepts: false })['cc-symbols'], false, 'the book’s own parent off holds its children off');
-  assert.equal(highlightClasses(ON, bookLayer(MATHS, { words: true }))['cc-words'], true, 'book default off, reader override on');
-  assert.equal(highlightClasses({ ...ON, colours: { ...COLOURS_ON, all: false } }, HIGHLIGHTS_ON)['cc-facts'], false, 'All off sets everything in ink');
-  assert.equal(highlightClasses(ON, { ...HIGHLIGHTS_ON, underlines: false })['no-underlines'], true);
-  assert.equal(highlightClasses({ ...ON, underlines: false }, HIGHLIGHTS_ON)['no-underlines'], true, 'global underlines off beats the book on');
-  assert.equal(highlightClasses(ON, HIGHLIGHTS_ON)['no-underlines'], false);
+test('the root wears what the book highlights', () => {
+  assert.equal(highlightClasses(MATHS)['cc-words'], false, 'the book holds words off');
+  assert.equal(highlightClasses(HIGHLIGHTS_ON)['cc-words'], true, 'a physics book shows them');
+  assert.equal(highlightClasses({ ...HIGHLIGHTS_ON, concepts: false })['cc-symbols'], false, 'a parent off holds its children off');
+  assert.equal(highlightClasses(bookLayer(MATHS, { words: true }))['cc-words'], true, 'book default off, reader override on');
+  assert.equal(highlightClasses({ ...HIGHLIGHTS_ON, underlines: false })['no-underlines'], true);
+  assert.equal(highlightClasses(HIGHLIGHTS_ON)['no-underlines'], false);
 });
 
-test('the figures read the families both layers allow', () => {
-  assert.deepEqual(pageHighlights(ON, { ...HIGHLIGHTS_ON, refs: false }).shown, { facts: true, refs: false, concepts: true });
-  assert.deepEqual(pageHighlights(ON, MATHS).shown, { facts: true, refs: true, concepts: true }, 'words reach the text only');
-  assert.deepEqual(effectiveSwitches(COLOURS_ON, HIGHLIGHTS_ON), COLOURS_ON, 'no book holds nothing back');
+test('the figures read the families the book allows', () => {
+  assert.deepEqual(pageHighlights({ ...HIGHLIGHTS_ON, refs: false }).shown, { facts: true, refs: false, concepts: true });
+  assert.deepEqual(pageHighlights(MATHS).shown, { facts: true, refs: true, concepts: true }, 'words reach the text only');
+  assert.deepEqual(switchesOf(HIGHLIGHTS_ON), COLOURS_ON, 'a book that holds nothing back');
 });
 
 test('a book key says what holds it off, or nothing when it is free', () => {
-  assert.equal(heldOffBy(ON, MATHS, 'words'), null, 'off by its own value is not held');
-  assert.match(heldOffBy({ ...ON, colours: { ...COLOURS_ON, concepts: false } }, HIGHLIGHTS_ON, 'symbols') ?? '', /Concepts is off in Color coding/);
-  assert.match(heldOffBy(ON, { ...HIGHLIGHTS_ON, concepts: false }, 'words') ?? '', /Concepts is off for this book/);
-  assert.match(heldOffBy({ ...ON, underlines: false }, HIGHLIGHTS_ON, 'underlines') ?? '', /Underlines is off/);
-  assert.match(heldOffBy({ ...ON, colours: { ...COLOURS_ON, all: false } }, HIGHLIGHTS_ON, 'facts') ?? '', /All is off/);
+  assert.equal(heldOffBy(MATHS, 'words'), null, 'off by its own value is not held');
+  assert.match(heldOffBy({ ...HIGHLIGHTS_ON, concepts: false }, 'words') ?? '', /Concepts is off for this book/);
+  assert.equal(heldOffBy({ ...HIGHLIGHTS_ON, concepts: false }, 'underlines'), null);
 });
 
 const BOOK = { id: 'b', title: 'B', publisher: 'P', license: 'L', chapters: [] };

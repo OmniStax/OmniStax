@@ -33,8 +33,8 @@
      the search, which reads every book of the library, and the exercises view,
      whose curriculum is chosen across books rather than read off the place the
      reader is standing in; so does the pomodoro clock, which times the reader
-     rather than the book. */
-  const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'sync' && kind !== 'sync-diff' && kind !== 'exercises' && kind !== 'pomodoro' && kind !== 'pomodoro-stats' && kind !== 'chats');
+     rather than the book; and so does a book's theme, which is the whole book's. */
+  const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'sync' && kind !== 'sync-diff' && kind !== 'exercises' && kind !== 'pomodoro' && kind !== 'pomodoro-stats' && kind !== 'chats' && kind !== 'colours');
   const target = $derived(scope.targetFor(item));
   const pinned = $derived(scope.isPinned(item));
   /* The trail is read from the narrowest place this view could stand at, so every crumb

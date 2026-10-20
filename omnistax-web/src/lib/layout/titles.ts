@@ -24,5 +24,7 @@ export const tabTitle = (k: ItemKey): string => {
   const kind = viewKindOf(k);
   if (!kind) return registry.title(id);
   const t = PLACELESS.includes(kind) ? null : scope.targetFor(k);
+  /* A book's theme is the book's, whatever page the reader opened it from. */
+  if (kind === 'colours') return t ? `${VIEW_TITLE[kind]} · ${registry.manifest(t.book).title || t.book}` : VIEW_TITLE[kind];
   return t ? `${VIEW_TITLE[kind]} · ${placeOf(t)}` : VIEW_TITLE[kind];
 };

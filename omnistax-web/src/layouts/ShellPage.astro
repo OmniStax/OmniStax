@@ -54,8 +54,8 @@ const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 {colourBook && <link rel="stylesheet" data-book-rules={colourBook} href={bookColoursHref(colourBook)}>}
 {boot.manifest && <link rel="preload" href={boot.manifest} as="fetch" crossorigin="anonymous">}
 {boot.chapter && <link rel="preload" href={boot.chapter.concepts} as="fetch" crossorigin="anonymous">}
-<script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('omnistax-underlines')==="0")document.documentElement.classList.add('no-underlines')}catch(e){}</script>
-<!-- The book's own underlines (highlights.ts) under the reader's master, before the first paint as the master is. -->
+<script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<!-- The book's underlines (highlights.ts), before the first paint as the theme is. -->
 {tree && <script is:inline define:vars={{ hlKey: `omnistax-highlights-${tree.manifest.id}`, hlOn: tree.manifest.highlights.underlines }}>try{var h=JSON.parse(localStorage.getItem(hlKey)||'{}');if((typeof h.underlines==='boolean'?h.underlines:hlOn)===false)document.documentElement.classList.add('no-underlines')}catch(e){}</script>}
 <slot name="head" />
 </head>

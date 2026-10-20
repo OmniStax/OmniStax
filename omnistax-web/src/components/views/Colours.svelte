@@ -1,120 +1,64 @@
-<script lang="ts" module>
-  /* Whether the per-quantity list stands open, for as long as the app is. */
-  let customizing = $state(false);
-</script>
-
 <script lang="ts">
-  /* The colour menu: one page where the reader chooses the colour of every
-     quantity the book draws, and the order the quantities stand in. The book
-     declares its types and says nothing about their hues; the app dresses them
-     from its scheme, and everything here stands over that. The bar above says
-     where the page stands, and that place is the tier being edited — a colour
-     set at the book reaches every chapter and section that has not chosen its
-     own, a colour set at a chapter reaches its sections the same way, and a
-     colour set at a section stops there. Clearing a colour hands the quantity
-     back to the tier above it. Every colour is a pair, one for the light ground
-     and one for the dark; the reader edits the one they are looking at and the
-     other follows unless they have chosen it too. The order is one list for the
-     whole book, and it is what every palette lays its hues along, so dragging a
-     quantity upwards recolours whatever still follows the scheme. The edits keep
-     a timeline of their own, so taking a colour back never takes back a
-     highlight. The list of quantities waits behind Customize; the palettes stand
-     open. */
+  /* A book's theme: what it highlights, the colour of every quantity it draws
+     and the order they stand in, the palette laid over them, and the palette its
+     referents are dealt from. The book declares its types and says nothing about
+     their hues; the app dresses them from its scheme, and everything here stands
+     over that, for the whole book. Every colour is a pair, one for the light
+     ground and one for the dark; the reader edits the one they are looking at and
+     the other follows unless they have chosen it too. The order is what every
+     palette lays its hues along, so dragging a quantity upwards recolours whatever
+     still follows the scheme. The edits keep a timeline of their own, so taking a
+     colour back never takes back a highlight. */
   import { getContext } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { bookId, type BookId } from '../../lib/types/ids';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
-  import { placeKey, placeOf, symbolsOf, typesAt, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
-  import { SWATCHES, palettesFor, type Palette } from '../../lib/colours/palettes';
-  import { VISIONS, isVision, type Vision } from '../../lib/colours/oklab';
-  import { type DealtMode, type RefMode, TARGET_MAX, TARGET_MIN, TARGET_STEP, targetOf } from '../../lib/colours/referents';
+  import { symbolsOf, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
+  import { SWATCHES, palettesFor, type Palette, type PaletteId } from '../../lib/colours/palettes';
+  import { VISIONS, type Vision } from '../../lib/colours/oklab';
+  import type { DealtMode, RefMode } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
   import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy } from '../../lib/settings/highlights';
   import { highlights } from '../../lib/settings/highlights.svelte';
   import SymbolList from './SymbolList.svelte';
 
   const scoped = getContext<() => Target>('scope');
-  const target = $derived(scoped());
-  const targetBook = $derived(target.book);
-  const loaded = $derived(Object.values(registry.books));
-  let picked = $state<BookId | null>(null);
-  const book = $derived(picked ?? targetBook);
-  /* The scope's chapter or section belongs to its own book; another book is edited whole. */
-  const place = $derived(book === targetBook ? placeOf(target) : placeOf({ level: 'book', book }));
-  $effect.pre(() => { colours.select(book); });
-  const manifest = $derived(registry.manifest(book));
-  const types = $derived(typesAt(manifest, colours.choices, place));
-  /* The chapter the page stands in, which a badge names when a colour comes from there. */
-  const chapter = $derived(place.level === 'book' ? '' : place.chapter);
-  const labelOf = (k: TypeKey): string => manifest.types[k]?.label ?? k;
-  /* What the selected book highlights: the reader's choice for it, else its default.
-     Underlines stands here too though it is no colour, since this is the one page per book. */
-  const hlBook = $derived(highlights.bookOf(book));
-  const hlValues = $derived(highlights.valuesOf(book));
+  const book = $derived(scoped()?.book ?? null);
+  $effect.pre(() => { if (book) colours.select(book); });
+  const manifest = $derived(book ? registry.manifest(book) : null);
+  const types = $derived(colours.order);
+  const labelOf = (k: TypeKey): string => manifest?.types[k]?.label ?? k;
+  const hlBook = $derived(book ? highlights.bookOf(book) : null);
+  const hlValues = $derived(book ? highlights.valuesOf(book) : null);
 
-  const lead = $derived(
-    place.level === 'book'
-      ? `A color set here is the color of that quantity everywhere in the book, except where a chapter or a section has chosen its own. Until you choose otherwise, the book takes its colours from ${colours.scheme.palette.name}.`
-      : place.level === 'chapter'
-        ? `A color set here is the color of that quantity in every section of chapter ${chapter} that has not chosen its own.`
-        : `A color set here is the color of that quantity in section ${place.section} only.`,
-  );
   /* The reader edits the ground they are looking at; the other one is derived for them. */
   const themeNote = $derived(settings.dark ? 'Dark theme colors' : 'Light theme colors');
   const shown = (h: Hue | null): string | null => (h ? (settings.dark ? h.dark : h.light) : null);
   const spare = (h: Hue | null): string | null => (h ? (settings.dark ? h.light : h.dark) : null);
-  const hueOf = (k: TypeKey) => colours.hueAt(k, place);
-  /* What the reader set at this very place, which is what the clear button hands back. */
-  const ownOf = (k: TypeKey): Hue | null => colours.own(k, place);
-  /* Whether anything at all has been set at this place, read from the overrides themselves
-     so that a type this level does not list still counts. */
-  const setHere = $derived.by(() => {
-    const o = colours.choices.overrides;
-    const at = place.level === 'book' ? o.book : place.level === 'chapter' ? o.chapters[place.chapter] : o.sections[place.section];
-    return Object.keys(at ?? {}).length > 0;
-  });
   const nothingSet = $derived(isEmpty(colours.choices));
-
-  /* Where the colour on a row came from, said the way the reader would say it. */
-  const source = (from: Source): string => {
-    switch (from.kind) {
-      case 'section': return 'set here';
-      case 'chapter': return `from chapter ${from.chapter}`;
-      case 'book': return 'from the book';
-      case 'scheme': return `from ${colours.scheme.palette.name}`;
-      case 'none': return 'not a quantity of this book';
-    }
-  };
+  const source = (from: Source): string => (from.kind === 'own' ? 'yours' : from.kind === 'scheme' ? 'default' : '');
 
   /* One picker stands open at a time, under the row it belongs to. */
   let open = $state<TypeKey | null>(null);
   let draft = $state('');
   const openPicker = (k: TypeKey): void => {
-    trouble = '';
     if (open === k) { open = null; return; }
     open = k;
-    draft = shown(hueOf(k).hue) ?? '';
+    draft = shown(colours.hueOf(k).hue) ?? '';
     colours.breakCoalescing();
   };
   const closePicker = (): void => { open = null; colours.breakCoalescing(); };
-  /* A picker belongs to the place it was opened at; walking the bar to another tier closes it. */
-  $effect(() => { placeKey(place); open = null; });
   /* Dragging the input is one step: every message of the drag joins the one before it. */
-  const drag = (k: TypeKey, hex: string): void => colours.pick(place, k, hex, `${placeKey(place)}/${k}`);
+  const drag = (k: TypeKey, hex: string): void => colours.pick(k, hex, k);
   const settle = (): void => colours.breakCoalescing();
   const commitHex = (k: TypeKey): void => {
-    if (!isHex(draft)) { draft = shown(hueOf(k).hue) ?? ''; return; }
+    if (!isHex(draft)) { draft = shown(colours.hueOf(k).hue) ?? ''; return; }
     colours.breakCoalescing();
-    colours.pick(place, k, normHex(draft));
+    colours.pick(k, normHex(draft));
     colours.breakCoalescing();
   };
   const sameHex = (a: string | null, b: string): boolean => a !== null && isHex(a) && normHex(a) === normHex(b);
-
-  /* One line under the toolbar when a file could not be read, cleared as soon as
-     the reader does anything that works. */
-  let trouble = $state('');
 
   /* ---------- rearranging the quantities ---------- */
 
@@ -143,7 +87,6 @@
   const onDrop = (e: DragEvent, k: TypeKey): void => {
     if (carried === null) return;
     e.preventDefault();
-    trouble = '';
     const below = over?.type === k ? over.below : false;
     const moved = carried;
     clearDrag();
@@ -152,7 +95,6 @@
   /* The keyboard says the same thing one step at a time: up is before the row
      above, down is after the row below, which is before the one after that. */
   const step = (k: TypeKey, way: -1 | 1): void => {
-    trouble = '';
     const i = types.indexOf(k);
     if (i < 0) return;
     if (way === -1 && i > 0) colours.move(k, types[i - 1]);
@@ -162,31 +104,6 @@
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     step(k, e.key === 'ArrowUp' ? -1 : 1);
     e.preventDefault();
-  };
-
-  /* ---------- the file the colours are kept in ---------- */
-
-  let picker = $state<HTMLInputElement | null>(null);
-  const exportFile = (): void => {
-    trouble = '';
-    const url = URL.createObjectURL(new Blob([JSON.stringify(colours.exportFile(), null, 1)], { type: 'application/json' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: `omnistax-colours-${manifest.id}.json` });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-  const loadFile = async (file: File): Promise<void> => {
-    const raw = await file.text();
-    const parsed = ((): unknown => { try { return JSON.parse(raw); } catch { return null; } })();
-    const got = colours.load(parsed);
-    trouble = got.ok ? '' : got.reason === 'other-book' ? 'That file is for another book.' : 'That file holds no colors.';
-  };
-  const onFile = (e: Event): void => {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';   /* so that the same file chosen twice is read twice */
-    if (file) void loadFile(file);
   };
 
   /* Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y belong to the colour timeline while the reader
@@ -218,78 +135,65 @@
      takes that vision on only when one of them is applied. */
   const VISION_NAMES: Readonly<Record<Vision, string>> = { normal: 'Normal', protan: 'Protanopia', deutan: 'Deuteranopia', tritan: 'Tritanopia' };
   const vision = $derived(colours.statedVision);
+  const visionPending = $derived(vision !== colours.vision);
   /* Only the palettes that can dress every quantity of the book, each already cut
      to that many, so that the strip the reader sees is the very set the buttons
      deal and a palette that cannot answer is simply not offered. */
-  const shownPalettes = $derived(palettesFor(colours.order.length, vision));
-  const apply = (p: Palette, mode: RefMode): void => { trouble = ''; colours.applyCategories(place, types, p, mode, vision); };
+  const shownPalettes = $derived(palettesFor(types.length, vision));
   const referentOffers = $derived(colours.referentPalettes(vision));
+  const cats = $derived(colours.categories);
   const refNow = $derived(colours.referents);
-  const refTarget = $derived(targetOf(refNow));
-  /* Smart deals a group farthest apart where it finds no way, which the section's palette line says. */
-  const refFarthest = $derived(place.level === 'section' && (colours.referentsAt(book, place.section)?.groups ?? []).some((g) => g.mode === 'farthest'));
+  /* A button is in use when the book wears that palette in that mode, worked out for the vision shown. */
+  const catsInUse = (p: PaletteId, mode: RefMode): boolean => !visionPending && cats.palette === p && cats.mode === mode;
+  const refsInUse = (p: PaletteId, mode: RefMode): boolean => !visionPending && refNow.palette === p && refNow.mode === mode;
+  const apply = (p: Palette, mode: RefMode): void => { colours.applyCategories(p, mode, vision); };
   const TIPS = {
-    categoryOrder: 'Give the first color to the first category in your order, the second to the second, and so on.',
-    categorySmart: 'Arrange these colors so that categories appearing on the same page are the easiest to tell apart.',
+    categoryOrder: 'Give the first color to the first quantity in your order, the second to the second, and so on.',
+    categorySmart: 'Assign colors with an algorithm that maximizes the color distance on each page, judged over the whole book.',
     referentOrder: 'Give each referent the color at its own position in this set.',
-    referentSmart: 'Put first the colors that clash least in this book, then skip any color too close to the colors near a referent.',
-    target: 'How different a referent\u2019s color must look from the colors near it. Higher values look more distinct but move more referents off their usual color.',
+    referentSmart: 'Assign referent colors the same way: on each page, every referent gets a color far from the other colors there, judged over the whole book.',
   } as const;
   const MODE_NAMES: Readonly<Record<DealtMode, string>> = { order: 'in order', smart: 'smart', farthest: 'farthest apart' };
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="colours" tabindex="-1" bind:this={root}>
-  {#if loaded.length > 1}
-    <label class="book">Book
-      <select value={book} onchange={(e) => { trouble = ''; picked = bookId(e.currentTarget.value); }}>
-        {#each loaded as m (m.id)}<option value={m.id}>{m.title || m.id}</option>{/each}
-      </select>
-    </label>
-  {/if}
-  {#if hlBook}
+  {#if !manifest || !hlBook || !hlValues}
+    <p class="note">Open a book to see its theme.</p>
+  {:else}
+    <h2 class="title">{manifest.title || manifest.id}</h2>
+
     <div class="eyebrow">What this book highlights</div>
     <ul class="rows hl">
       {#each HIGHLIGHT_KEYS as k (k)}
-        {@const held = heldOffBy(settings, hlValues, k)}
+        {@const held = heldOffBy(hlValues, k)}
         {@const value = hlValues[k]}
         {@const def = hlBook.defaults[k]}
         <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
           <label class="name"><span>{HIGHLIGHT_LABELS[k]}</span><input type="checkbox" class="hl-{k}" disabled={held !== null} checked={value} onchange={(e) => highlights.set(k, e.currentTarget.checked, book)} /></label>
           {#if value !== def}
-            <button type="button" class="clear" title={`Reset to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
+            <button type="button" class="clear" title={`Back to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
           {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
         </li>
       {/each}
     </ul>
-    <p class="note explain">The switches in Settings → Color coding, and Underlines there, are masters over these: off there is off in every book.</p>
-  {/if}
-  {#if !settings.shown.concepts}
-    <p class="off">Concepts color coding is off. Turn it on in Settings → Color coding, or in the block above, to see these colors.</p>
-  {/if}
 
-  <div class="bar">
-    <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>Undo</button>
-    <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>Redo</button>
-    <button type="button" aria-expanded={customizing} onclick={() => { closePicker(); customizing = !customizing; }}>{customizing ? 'Done' : 'Customize'}</button>
-    {#if place.level === 'book'}
-      <button type="button" disabled={nothingSet} onclick={() => { trouble = ''; colours.resetAll(); }}>Reset every color</button>
+    <div class="eyebrow">Quantities</div>
+    <p class="note explain">Each kind of quantity, like force or velocity, keeps one color everywhere in the book: in words, in symbols and in figures.</p>
+    {#if !hlValues.concepts}
+      <p class="note explain">Concepts is off for this book, so these colors do not show on its pages.</p>
     {/if}
-    <button type="button" onclick={exportFile}>Export…</button>
-    <button type="button" onclick={() => picker?.click()}>Load…</button>
-    <input type="file" accept="application/json,.json" bind:this={picker} onchange={onFile} hidden />
-    <span class="theme">{themeNote}</span>
-  </div>
-  {#if trouble}<p class="trouble">{trouble}</p>{/if}
-
-  {#if customizing}
-    <p class="lead">{lead}</p>
-    <div class="bar"><button type="button" disabled={!setHere} onclick={() => { trouble = ''; colours.clearPlace(place); }}>Clear this level</button></div>
+    <div class="bar">
+      <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>Undo</button>
+      <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>Redo</button>
+      <button type="button" disabled={nothingSet} onclick={() => colours.resetAll()}>Back to the book's colors</button>
+      <span class="theme">{themeNote}</span>
+    </div>
     {#if types.length > 8}
       <!-- the whole set at a glance, in the order the rows below take -->
       <div class="strip" aria-hidden="true">
         {#each types as k (k)}
-          {@const hex = shown(hueOf(k).hue)}
+          {@const hex = shown(colours.hueOf(k).hue)}
           <i style:background-color={hex ?? 'var(--soft2)'} title={labelOf(k)}></i>
         {/each}
       </div>
@@ -297,10 +201,10 @@
 
     <ul class="rows">
       {#each types as k (k)}
-        {@const eff = hueOf(k)}
+        {@const eff = colours.hueOf(k)}
         {@const hex = shown(eff.hue)}
         {@const alt = spare(eff.hue)}
-        {@const own = ownOf(k)}
+        {@const own = colours.own(k)}
         {@const name = labelOf(k)}
         {@const dim = manifest.types[k]?.dimension ?? ''}
         <li class:open={open === k}>
@@ -321,15 +225,15 @@
             <SymbolList macros={symbolsOf(manifest, k)} label={name} />
             <span class="from" class:own={own !== null}>{source(eff.from)}</span>
             {#if own}
-              <button type="button" class="clear" title="Use inherited" aria-label={`Use the inherited color for ${name}`} onclick={() => colours.clear(place, k)}>×</button>
-            {/if}
+              <button type="button" class="clear" title="Back to the book's color" aria-label={`Back to the book's color for ${name}`} onclick={() => colours.clear(k)}>×</button>
+            {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
           </div>
           {#if open === k}
             <div class="picker">
               <div class="grid">
                 {#each SWATCHES as s (s.hex)}
                   <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={s.name}
-                    onclick={() => { colours.breakCoalescing(); colours.pick(place, k, s.hex); draft = s.hex; }}></button>
+                    onclick={() => { colours.breakCoalescing(); colours.pick(k, s.hex); draft = s.hex; }}></button>
                 {/each}
               </div>
               <div class="fine">
@@ -344,68 +248,64 @@
         </li>
       {/each}
     </ul>
+
+    <div class="eyebrow">Palettes</div>
+    <div class="vision">
+      <span class="vlabel">Color vision</span>
+      <div class="seg" role="radiogroup" aria-label="Color vision">
+        {#each VISIONS as v (v)}
+          <button type="button" class:on={vision === v} role="radio" aria-checked={vision === v} onclick={() => colours.stateVision(v)}>{VISION_NAMES[v]}</button>
+        {/each}
+      </div>
+    </div>
+    {#if visionPending}
+      <p class="note explain">The palettes below are made for {VISION_NAMES[vision].toLowerCase()} vision. Apply one to use it.</p>
+    {/if}
+    {#if shownPalettes.length === 0}
+      <p class="note">Nothing to color here.</p>
+    {/if}
+    <ul class="pals">
+      {#each shownPalettes as { palette: p, hues } (p.id)}
+        <li>
+          <div class="phead"><span class="pname">{p.name}</span>
+            {#each ['order', 'smart'] as const as mode (mode)}
+              {@const now = catsInUse(p.id, mode)}
+              <button type="button" class:on={now} disabled={now} title={now ? 'In use' : mode === 'order' ? TIPS.categoryOrder : TIPS.categorySmart} onclick={() => apply(p, mode)}>{now ? 'In use' : mode === 'order' ? 'Apply in order' : 'Apply smart'}</button>
+            {/each}
+          </div>
+          <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
+        </li>
+      {/each}
+    </ul>
+
+    <div class="eyebrow refs">Referent palettes</div>
+    <p class="note explain">Referents are things both a figure and the text point to, so they get the same color in both. They take colors from a set of 36, kept clear of the other colors near them.</p>
+    <ul class="pals">
+      {#each referentOffers as { palette: p, hues } (p.id)}
+        <li>
+          <div class="phead"><span class="pname">{p.name}</span>
+            {#each ['order', 'smart'] as const as mode (mode)}
+              {@const now = refsInUse(p.id, mode)}
+              <button type="button" class:on={now} disabled={now} title={now ? `In use, ${MODE_NAMES[mode]}` : mode === 'order' ? TIPS.referentOrder : TIPS.referentSmart} onclick={() => colours.applyReferents(p.id, mode, vision)}>{now ? 'In use' : mode === 'order' ? 'Apply in order' : 'Apply smart'}</button>
+            {/each}
+          </div>
+          <div class="refgrid" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
+        </li>
+      {/each}
+    </ul>
   {/if}
-
-  <label class="book">Color vision
-    <select value={vision} onchange={(e) => { if (isVision(e.currentTarget.value)) colours.stateVision(e.currentTarget.value); }}>
-      {#each VISIONS as v (v)}<option value={v}>{VISION_NAMES[v]}</option>{/each}
-    </select>
-  </label>
-
-  <div class="eyebrow">Recommended palettes</div>
-  <p class="note explain">Each kind of quantity, like force or velocity, keeps one color everywhere in the book: in words, in symbols and in figures.</p>
-  {#if shownPalettes.length === 0}
-    <p class="note">Nothing to color here.</p>
-  {/if}
-  <ul class="pals">
-    {#each shownPalettes as { palette: p, hues } (p.id)}
-      <li>
-        <div class="phead"><span class="pname">{p.name}</span>
-          <button type="button" title={TIPS.categoryOrder} onclick={() => apply(p, 'order')}>Apply in order</button>
-          <button type="button" title={TIPS.categorySmart} onclick={() => apply(p, 'smart')}>Apply smart</button>
-        </div>
-        <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
-        <p class="note">{p.note}</p>
-      </li>
-    {/each}
-  </ul>
-
-  <div class="eyebrow refs">Referent palettes</div>
-  <p class="note explain">Referents are the particular things a figure and its text both point to, like the car or tug 1. They take colors from a set of 36, kept clear of the other colors near them.</p>
-  <label class="book target">Target distance
-    <input type="range" title={TIPS.target} min={TARGET_MIN} max={TARGET_MAX} step={TARGET_STEP} value={refTarget}
-      oninput={(e) => colours.setReferentTarget(Number(e.currentTarget.value))} onchange={() => colours.breakCoalescing()} />
-    <output>{refTarget.toFixed(2)}</output>
-  </label>
-  <ul class="pals">
-    {#each referentOffers as { palette: p, hues } (p.id)}
-      {@const now = refNow.palette === p.id}
-      <li class:now>
-        <div class="phead"><span class="pname">{p.name}</span>
-          {#if now}<span class="in-use">In use, {MODE_NAMES[refNow.mode]}{#if refFarthest && refNow.mode === 'smart'}; {MODE_NAMES.farthest} in this section{/if}</span>{/if}
-          <button type="button" class:on={now && refNow.mode === 'order'} title={TIPS.referentOrder} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'order', vision); }}>Apply in order</button>
-          <button type="button" class:on={now && refNow.mode === 'smart'} title={TIPS.referentSmart} onclick={() => { trouble = ''; colours.applyReferents(p.id, 'smart', vision); }}>Apply smart</button>
-        </div>
-        <div class="refgrid" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
-        <p class="note">{p.note}</p>
-      </li>
-    {/each}
-  </ul>
 </div>
 
 <style>
   /* Focusable so that a click on the page's prose brings Ctrl+Z here; the ring would say nothing, so it is off. */
   .colours{font-size:0.82rem;outline:none}
-  .lead{margin:0 0 8px;color:var(--muted);line-height:1.45}
-  .book{display:flex;gap:6px;align-items:center;margin:0 0 8px;color:var(--muted);font-size:0.85rem}
-  .off{margin:0 0 8px;color:var(--muted);font-size:0.78rem}
+  .title{margin:0 0 12px;font-size:1rem;font-weight:600}
   .bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
   .bar button{font:inherit;font-size:0.78rem;padding:3px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
   .bar button:hover:not(:disabled){background:var(--soft)}
   .bar button:disabled{opacity:.45;cursor:default}
   .bar button:focus-visible{outline:2px solid var(--accent)}
   .theme{color:var(--muted);font-size:0.76rem;margin-left:auto}
-  .trouble{margin:-4px 0 10px;color:var(--ink);font-size:0.78rem}
   /* the whole set read at a glance: cells that touch, so the run of hues is one band */
   .strip{display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:10px}
   .strip i{flex:1;display:block}
@@ -435,6 +335,7 @@
   .clear{flex:none;width:20px;height:20px;line-height:1;border:0;border-radius:4px;background:transparent;color:var(--muted);font:inherit;font-size:0.95rem;cursor:pointer}
   .clear:hover{background:var(--soft2);color:var(--ink)}
   .clear:focus-visible{outline:2px solid var(--accent)}
+  .clear-room{flex:none;width:20px}
   .picker{padding:2px 0 10px;display:grid;gap:8px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(20px,1fr));gap:4px}
   .cell{height:20px;border:1px solid var(--rule);border-radius:4px;padding:0;cursor:pointer}
@@ -446,25 +347,32 @@
   .hex:focus-visible{outline:2px solid var(--accent)}
   .hint{color:var(--muted);font-size:0.72rem}
   .eyebrow{color:var(--muted);font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+  /* the vision as a row of choices, one of them on */
+  .vision{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+  .vlabel{color:var(--muted);font-size:0.78rem}
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+  .seg button{font:inherit;font-size:0.76rem;padding:3px 9px;border:0;border-left:1px solid var(--rule);background:var(--panel);color:var(--muted);cursor:pointer}
+  .seg button:first-child{border-left:0}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--soft2);color:var(--ink)}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .pals{list-style:none;padding:0;margin:0}
   .pals > li{padding:8px 0;border-bottom:1px solid var(--rule)}
   .phead{display:flex;align-items:center;gap:8px;margin-bottom:5px}
   .pname{flex:1;font-weight:600}
   .phead button{font:inherit;font-size:0.76rem;padding:2px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
-  .phead button:hover{background:var(--soft)}
+  .phead button:hover:not(:disabled){background:var(--soft)}
   .phead button:focus-visible{outline:2px solid var(--accent)}
+  /* the palette the book wears: greyed, since there is nothing to apply */
+  .phead button.on{border-color:var(--accent);color:var(--muted);cursor:default}
   .pstrip{margin-bottom:5px}
   .refs{margin-top:16px}
-  .target input{flex:1;min-width:0;accent-color:var(--accent)}
-  .target output{font-family:var(--mono);font-size:0.76rem;color:var(--ink);min-width:2.5em;text-align:right}
-  .in-use{color:var(--muted);font-size:0.74rem}
-  .phead button.on{border-color:var(--accent)}
   .refgrid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin-bottom:5px}
   .refgrid i{display:block;height:12px;border-radius:2px}
   .note{margin:0;color:var(--muted);font-size:0.76rem;line-height:1.4}
   .explain{margin-bottom:8px}
   /* the book's own switches: a name and its box, the reset beside it, and room kept for it */
-  .hl{margin-bottom:6px}
+  .hl{margin-bottom:14px}
   .hl .row{padding:4px 0}
   .hl .row.sub{padding-left:16px}
   .hl .row.held{opacity:.55}
@@ -472,6 +380,5 @@
   .hl label.name span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .hl input{accent-color:var(--accent);margin:0}
   .hl input:disabled{cursor:default}
-  .clear-room{flex:none;width:20px}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>

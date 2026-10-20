@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  DEFAULT_REFERENTS, REFERENT_COUNT, TARGET_DEFAULT, clashOrder, dealGroup, farthestSlots, inPaletteOrder, pickWrapped, referentHues, referentPalettes, smartSlots, targetOf, unnamedOrder,
+  DEFAULT_REFERENTS, REFERENT_COUNT, TARGET_DEFAULT, clashOrder, dealGroup, farthestSlots, inPaletteOrder, pickWrapped, referentHues, referentPalettes, smartSlots, unnamedOrder,
 } from '../src/lib/colours/referents';
 import { referentGroups } from '../src/lib/colours/scopes';
 import { prerenderMath } from '../src/lib/math/prerender';
@@ -161,20 +161,12 @@ test('groups that never meet recycle the same colours, each numbered from its ow
   assert.equal(pageReferents(MANIFEST, NO_CHOICES, '9.9'), null);
 });
 
-test('the target distance is a reader setting: kept with the referents, default stored as nothing, and it recolours', () => {
+test('the target distance is the app\u2019s, and a file that still carries one reads past it', () => {
   const book = bookId('b');
-  assert.equal(targetOf(referentsOf(NO_CHOICES)), TARGET_DEFAULT);
-  assert.equal(setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: TARGET_DEFAULT }), NO_CHOICES);
-  const wide = setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: 0.2 });
-  const back = fromFile(JSON.parse(JSON.stringify(toFile(book, wide))), book);
-  assert.ok(back.ok);
-  assert.equal(back.ok && targetOf(referentsOf(back.choices)), 0.2);
-  assert.ok(isEmpty(setReferents(wide, DEFAULT_REFERENTS)));
   const odd = fromFile({ ...toFile(book, NO_CHOICES), referents: { palette: 'oklab', mode: 'smart', target: 9 } }, book);
-  assert.equal(odd.ok && targetOf(referentsOf(odd.choices)), 0.25, 'a target out of range is brought into it');
-  const tight = pageReferents(MANIFEST, setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: 0.02 }), '1.1')!;
-  const loose = pageReferents(MANIFEST, wide, '1.1')!;
-  assert.notDeepEqual(tight.groups.map((g) => g.hues), loose.groups.map((g) => g.hues), 'a new target deals new colours');
+  assert.ok(odd.ok);
+  assert.deepEqual(odd.ok && referentsOf(odd.choices), { palette: 'oklab', mode: 'smart' });
+  assert.ok(isEmpty(setReferents(odd.ok ? odd.choices : NO_CHOICES, DEFAULT_REFERENTS)));
 });
 
 /* ---------- the order smart walks ---------- */
@@ -197,7 +189,6 @@ test('smart walks the order kept with the setting, the book’s own by default; 
   assert.deepEqual(kept.palette, [...own].reverse());
   const book = { ...MANIFEST, colours: { palette: 'oklab', vision: 'normal' as const, assign: {}, referentOrder: ORDER } };
   assert.deepEqual(pageReferents(book, NO_CHOICES, '1.1')!.palette, [...own].reverse(), 'no reader choice: the book’s stored order');
-  assert.deepEqual(pageReferents(book, setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, target: 0.2 }), '1.1')!.palette, [...own].reverse(), 'a new target keeps the order');
   const inOrder = pageReferents(book, setReferents(NO_CHOICES, { ...DEFAULT_REFERENTS, mode: 'order', order: ORDER }), '1.1')!;
   assert.deepEqual(inOrder.palette, own);
   assert.deepEqual(inOrder.groups[0].hues, own.slice(0, 2));
@@ -218,7 +209,7 @@ test('the kept order is remembered with the referents, dropped in order, and rea
 });
 
 test('the book’s order is worked out from what each group shows under the reader’s colours', () => {
-  const order = referentOrder(MANIFEST, NO_CHOICES, DEFAULT_REFERENTS.palette, TARGET_DEFAULT);
+  const order = referentOrder(MANIFEST, NO_CHOICES, DEFAULT_REFERENTS.palette);
   assert.equal(new Set(order).size, REFERENT_COUNT);
   const hues = familyHues(REFERENT_COUNT, 'normal');
   const scheme = schemeOf(MANIFEST, NO_CHOICES).hues;
@@ -227,7 +218,7 @@ test('the book’s order is worked out from what each group shows under the read
   const scores = order.map(suits);
   assert.ok(scores.every((x, i) => i === 0 || scores[i - 1] >= x), 'most first');
   assert.ok(scores[0] > scores[scores.length - 1], 'a colour near what the groups show sinks');
-  const other = referentOrder(MANIFEST, setVision(NO_CHOICES, 'deutan'), DEFAULT_REFERENTS.palette, TARGET_DEFAULT);
+  const other = referentOrder(MANIFEST, setVision(NO_CHOICES, 'deutan'), DEFAULT_REFERENTS.palette);
   assert.equal(new Set(other).size, REFERENT_COUNT);
 });
 
@@ -287,13 +278,11 @@ test('each colour door reads its own switch and nothing else does', () => {
   ].sort());
 });
 
-test('All off sets every family in ink and on gives each back its own switch', () => {
-  const some = { all: true, facts: false, refs: true, concepts: false, words: true, symbols: true };
+test('each family shows by its own switch, and the root wears a class for each', () => {
+  const some = { facts: false, refs: true, concepts: false, words: true, symbols: true };
   assert.deepEqual(shownOf(some), { facts: false, refs: true, concepts: false });
-  assert.deepEqual(shownOf({ ...some, all: false }), { facts: false, refs: false, concepts: false });
   assert.deepEqual(shownOf(COLOURS_ON), { facts: true, refs: true, concepts: true });
-  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-all': true, 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': true, 'cc-symbols': true });
-  assert.deepEqual(rootClasses({ ...COLOURS_ON, all: false }), { 'cc-all': false, 'cc-facts': false, 'cc-refs': false, 'cc-concepts': false, 'cc-words': false, 'cc-symbols': false });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': true, 'cc-symbols': true });
 });
 
 test('Words and phrases sits under Concepts: off, words read in ink while symbols and figures keep their colours', () => {
