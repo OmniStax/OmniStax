@@ -44,6 +44,21 @@
   const scheduleOpen = (t: HTMLElement) => { if (t === anchor || t === pending) { clearTimeout(closeT); return; } clearTimers(); pending = t; openT = window.setTimeout(() => show(t), openDelay(t)); };
   const scheduleClose = () => { clearTimers(); if (card) closeT = window.setTimeout(close, CLOSE_GRACE); };
   const inCard = (n: EventTarget | null): boolean => n instanceof Node && !!box && box.contains(n);
+  /* A symbol reaches a few pixels past its box: a derivation drawn small makes it a sliver, an italic glyph hangs over
+     the bracket beside it, and a figure's labels let the pointer through to the canvas under them. */
+  const REACH = 6;
+  const nearSym = (e: MouseEvent): HTMLElement | null => {
+    const at = e.target instanceof Element ? e.target : null, scope = at?.closest('figure') ?? at?.closest('.katex-html'); if (!scope) return null;
+    let best: Element | null = null, bd = REACH;
+    for (const s of scope.querySelectorAll('[data-sym]')) {
+      const r = (s.closest('.enclosing[class*="kv-"]') ?? s).getBoundingClientRect(); if (!r.width) continue;
+      const d = Math.hypot(Math.max(r.left - e.clientX, 0, e.clientX - r.right), Math.max(r.top - e.clientY, 0, e.clientY - r.bottom));
+      if (d < bd) { bd = d; best = s; }
+    }
+    return best ? targetOf(best) : null;
+  };
+  /* a whole equation's card gives way to a symbol in reach */
+  const hoverTarget = (e: MouseEvent): HTMLElement | null => { const t = targetOf(e.target); return t && !t.matches('.katex-display, [data-eq]') ? t : nearSym(e) ?? t; };
 
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
   /* The card never covers what it belongs to. It hangs below the target, or
@@ -81,7 +96,7 @@
   onMount(() => {
     const onOver = (e: MouseEvent) => {
       if (mouseDown || byClick()) return;
-      const t = targetOf(e.target);
+      const t = hoverTarget(e);
       if (t) { scheduleOpen(t); return; }
       if (inCard(e.target)) { clearTimeout(closeT); return; }
       if (card || pending) scheduleClose();
@@ -97,7 +112,14 @@
       close();
     };
     const onPointerUp = () => { mouseDown = false; };
-    const onPointerMove = (e: PointerEvent) => { if (e.pointerType === 'mouse') touch = false; };   /* a mouse after a touch hovers again */
+    /* over a figure the pointer can come near a symbol without crossing into an element, so the reach is read as it moves */
+    let lastNear: HTMLElement | null = null;
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return; touch = false;   /* a mouse after a touch hovers again */
+      if (mouseDown || byClick() || !(e.target instanceof Element) || !e.target.closest('figure')) { lastNear = null; return; }
+      const t = hoverTarget(e); if (t === lastNear) return; lastNear = t;
+      if (t) scheduleOpen(t); else if ((card || pending) && !inCard(e.target)) scheduleClose();
+    };
     /* Capture phase, so it runs before the shell's own link handler. */
     /* A target that asks for a double-click — a node of the concept map, whose
        single click selects it — opens its card on the second click where
@@ -199,7 +221,7 @@
      keep or to do without — "Underline what can be looked up" in the settings
      writes the class the rules hang from — and either way the card still opens. */
   :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word)), :global(html:not(.no-underlines) .formula[data-formula]), :global(html:not(.no-underlines) a.xref){text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-decoration-thickness:1px}
-  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:has([data-sym]:hover)), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word):hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
+  :global(html:not(.no-underlines) .katex-html .enclosing[class*="kv-"]:hover:has([data-sym])), :global(html:not(.no-underlines) .term[data-term]:hover), :global(html:not(.no-underlines) article span[data-concept]:not(.book-word):hover), :global(html:not(.no-underlines) .formula[data-formula]:hover), :global(html:not(.no-underlines) a.xref:hover){text-decoration-color:var(--accent)}
   /* A function token wraps its math, which a text decoration does not reach into, so it is underlined by a border. */
   :global(html:not(.no-underlines) article [data-fn]){border-bottom:1px dotted var(--muted)}
   :global(html:not(.no-underlines) article [data-fn]:hover){border-bottom-color:var(--accent)}

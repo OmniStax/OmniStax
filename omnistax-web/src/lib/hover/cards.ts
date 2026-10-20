@@ -24,7 +24,9 @@ export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"
 export const targetOf = (node: EventTarget | null): HTMLElement | null => {
   const el = node instanceof Element ? node : null; if (!el) return null;
   if (el.closest('.hover-card')) return null;
-  const t = el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
+  /* anywhere under a symbol's underline is the symbol: the wrapper carries the line, the glyph the data */
+  const wrap = el.closest('.katex-html .enclosing[class*="kv-"]');
+  const t = (wrap && !el.closest('[data-sym]') ? wrap.querySelector<HTMLElement>('[data-sym]') : null) ?? el.closest<HTMLElement>(TARGET);   /* the nearest wins: a symbol inside an equation block is the symbol */
   return t?.hasAttribute('data-sym') ? t.closest<HTMLElement>('[data-concept], [data-fn]') ?? t : t;   /* except on a concept or a function, whose name may set a symbol in math: the concept or the function wins */
 };
 
