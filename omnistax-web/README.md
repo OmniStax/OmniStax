@@ -136,9 +136,10 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
 - The colour switches and Underlines in the settings are masters; beneath them
   each book has a value of its own for each family, Words, Symbols and
   Underlines, which `book.json` declares (`highlights`) and the reader may change
-  for that book alone. A page shows a key only when both are on, for the book
-  the shell stands on; `settings/highlights.ts` resolves the layers and the
-  reader's choices keep only what differs from the book's default.
+  for that book alone, on that book's Colours page, the per-book place in the
+  app. A page shows a key only when both are on, for the book the shell stands
+  on; `settings/highlights.ts` resolves the layers and the reader's choices keep
+  only what differs from the book's default.
 - One fold rule for every list a view draws: what the view's level covers is shown
   grouped by chapter and by section, in the order the book sets, and everything
   outside it is folded away under a single heading. `grouping.ts` makes the cut

@@ -31,6 +31,8 @@
   import { VISIONS, isVision, type Vision } from '../../lib/colours/oklab';
   import { type DealtMode, type RefMode, TARGET_MAX, TARGET_MIN, TARGET_STEP, targetOf } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
+  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy } from '../../lib/settings/highlights';
+  import { highlights } from '../../lib/settings/highlights.svelte';
   import SymbolList from './SymbolList.svelte';
 
   const scoped = getContext<() => Target>('scope');
@@ -47,6 +49,10 @@
   /* The chapter the page stands in, which a badge names when a colour comes from there. */
   const chapter = $derived(place.level === 'book' ? '' : place.chapter);
   const labelOf = (k: TypeKey): string => manifest.types[k]?.label ?? k;
+  /* What the selected book highlights: the reader's choice for it, else its default.
+     Underlines stands here too though it is no colour, since this is the one page per book. */
+  const hlBook = $derived(highlights.bookOf(book));
+  const hlValues = $derived(highlights.valuesOf(book));
 
   const lead = $derived(
     place.level === 'book'
@@ -241,8 +247,25 @@
       </select>
     </label>
   {/if}
+  {#if hlBook}
+    <div class="eyebrow">What this book highlights</div>
+    <ul class="rows hl">
+      {#each HIGHLIGHT_KEYS as k (k)}
+        {@const held = heldOffBy(settings, hlValues, k)}
+        {@const value = hlValues[k]}
+        {@const def = hlBook.defaults[k]}
+        <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
+          <label class="name"><span>{HIGHLIGHT_LABELS[k]}</span><input type="checkbox" class="hl-{k}" disabled={held !== null} checked={value} onchange={(e) => highlights.set(k, e.currentTarget.checked, book)} /></label>
+          {#if value !== def}
+            <button type="button" class="clear" title={`Reset to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
+          {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
+        </li>
+      {/each}
+    </ul>
+    <p class="note explain">The switches in Settings → Color coding, and Underlines there, are masters over these: off there is off in every book.</p>
+  {/if}
   {#if !settings.shown.concepts}
-    <p class="off">Concepts color coding is off. Turn it on in Settings, under Color coding or This book, to see these colors.</p>
+    <p class="off">Concepts color coding is off. Turn it on in Settings → Color coding, or in the block above, to see these colors.</p>
   {/if}
 
   <div class="bar">
@@ -440,5 +463,15 @@
   .refgrid i{display:block;height:12px;border-radius:2px}
   .note{margin:0;color:var(--muted);font-size:0.76rem;line-height:1.4}
   .explain{margin-bottom:8px}
+  /* the book's own switches: a name and its box, the reset beside it, and room kept for it */
+  .hl{margin-bottom:6px}
+  .hl .row{padding:4px 0}
+  .hl .row.sub{padding-left:16px}
+  .hl .row.held{opacity:.55}
+  .hl label.name{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .hl label.name span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .hl input{accent-color:var(--accent);margin:0}
+  .hl input:disabled{cursor:default}
+  .clear-room{flex:none;width:20px}
   :global(.view-pane) .colours{font-size:0.9rem}
 </style>

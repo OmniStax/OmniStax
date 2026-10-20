@@ -145,7 +145,7 @@
       .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
-    registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); });
+    registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); highlights.ensureBook(m); });
     if (home) { registry.home = home.id; registry.addBook(home); }
     sheets.init(markFormulas);
     if (home) { colours.init(home); highlights.init(home); }
