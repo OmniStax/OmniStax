@@ -110,13 +110,13 @@ export const figureList = (html: string, section: string): readonly FigureEntry[
       return { id, label: headLabel(body) || figName(id) };
     });
 
-/* A reference in the prose: "Figure 16.4", "Figures 16.4 and 16.9". The check reads the same pattern, so the two cannot drift. */
-export const REF = /\bFigures? \d+\.\d+(?:(?:,| and| or|, and|, or) \d+\.\d+)*/g;
+/* A reference in the prose: "Figure 16.4", "Figures 16.4 and 16.9", an appendix's "Figure A.7". The check reads the same pattern, so the two cannot drift. */
+export const REF = /\bFigures? (?:\d+|[A-Z])\.\d+(?:(?:,| and| or|, and|, or) (?:\d+|[A-Z])\.\d+)*/g;
 const figLink = (n: string, figs: ReadonlyMap<FigureNumber, SpanId>, text: string): string => {
   const id = figs.get(figureNumber(n)); return id ? `<a class="figref" href="#${id}" data-figref="${n}">${text}</a>` : text;
 };
 const linkRun = (run: string, figs: ReadonlyMap<FigureNumber, SpanId>): string =>
-  run.startsWith('Figure ') ? figLink(run.slice(7), figs, run) : run.replace(/\d+\.\d+/g, (n) => figLink(n, figs, n));
+  run.startsWith('Figure ') ? figLink(run.slice(7), figs, run) : run.replace(/(?:\d+|[A-Z])\.\d+/g, (n) => figLink(n, figs, n));
 
 /* Wrap the prose's figure references in links. A run of text is skipped inside an <a> and inside a caption's
    eyebrow, which is a figure naming itself. The map is chapter-wide, so a reference may cross sections. */

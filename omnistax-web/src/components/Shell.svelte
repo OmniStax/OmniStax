@@ -226,11 +226,16 @@
        the link, which is what it always did. */
     const onLink = (e: MouseEvent) => {
       if (e.button > 1 || e.shiftKey || (e.altKey && !e.ctrlKey && !e.metaKey) || e.defaultPrevented) return;
-      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
-      if (!link || link.target || link.origin !== location.origin) return;
-      const at = refOfPath(link.pathname);
+      /* Read through the attributes, not the anchor's own fields: an `<a>` inside an
+         inline SVG (a chapter diagram whose names are links) has an animated `target`
+         and no `origin`, and it should open a page the way the prose's links do. */
+      const link = (e.target as Element).closest<HTMLAnchorElement | SVGAElement>('a[href]');
+      if (!link || link.getAttribute('target')) return;
+      const url = new URL(link.getAttribute('href') ?? '', location.href);
+      if (url.origin !== location.origin) return;
+      const at = refOfPath(url.pathname);
       if (!at) return;
-      const { href, pathname, hash, search } = link; const group = groupOf(link); const how = openingOf(e);
+      const { href, pathname, hash, search } = url; const group = groupOf(link as unknown as HTMLElement); const how = openingOf(e);
       e.preventDefault();
       void registry.ensureBook(at.book).then(async (m) => {
         /* a sheet, with what its address asks of it: a grapher's ?expr= rows */

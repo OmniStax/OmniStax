@@ -96,7 +96,7 @@ function model(D: DerivationDTO) {
   visit(last); N.forEach((_, i) => visit(i));
   /* the eyebrow word: the book's example where the record works one, else plural where more than one result is an end */
   const ends = N.filter((_, i) => !nodes.some((m) => m.steps.includes(i))).length;
-  const ex = /\bExample (\d+\.\d+)/.exec(D.source ?? '');
+  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1 and A.1.2 */
   const label = ex ? `Example ${ex[1]}` : ends > 1 ? 'Derivations' : 'Derivation';
   return { N, lines, facts, nodes, thenFrom, last, order, label };
 }
@@ -105,8 +105,9 @@ function model(D: DerivationDTO) {
 export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const { el, tex, morphAt, sim, cycle, register, choice } = F;
   if (!F.byId(root, 'drv-' + D.id)) return;
-  const T = (host: HTMLElement, s: string): void => tex(host, '\\displaystyle ' + s, false, { values: false });
-  const words = (host: HTMLElement, s: string): void => s.split(/(\$[^$]+\$)/).forEach((p) => { if (!p) return; if (p.startsWith('$')) tex(host.appendChild(el('span')), p.slice(1, -1), false, { values: false }); else host.appendChild(document.createTextNode(p)); });
+  /* the cards are built before they are mounted, so their TeX takes the page's macros through the root it will stand in */
+  const T = (host: HTMLElement, s: string): void => tex(host, '\\displaystyle ' + s, false, { values: false, at: root });
+  const words = (host: HTMLElement, s: string): void => s.split(/(\$[^$]+\$)/).forEach((p) => { if (!p) return; if (p.startsWith('$')) tex(host.appendChild(el('span')), p.slice(1, -1), false, { values: false, at: root }); else host.appendChild(document.createTextNode(p)); });
   const toggle = (host: HTMLElement, cls: string, title: (v: boolean) => readonly [IconName, string], on: boolean, set: (v: boolean) => void): HTMLButtonElement => {
     const b = host.appendChild(el('button', 'tbtn ' + cls)); b.type = 'button';
     const show = (v: boolean): void => { b.setAttribute('aria-pressed', String(v)); const [ic, tt] = title(v); b.innerHTML = ICON[ic]; b.title = tt; b.setAttribute('aria-label', tt); };

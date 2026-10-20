@@ -10,8 +10,9 @@ validating the row before it lands and running the app's own checker after.
     python3 omnistax-content/tools/ost.py <command> ...
 
 It runs from anywhere. A book is named by its id (`chemistry-2e`), a chapter by
-its number or its directory (`1`, `01`, `ch01`), a section by its number
-(`1.4`), and a chapter's or the book's own front page by `1.intro`, `1.summary`,
+its number or its directory (`1`, `01`, `ch01`; an appendix built as a chapter
+by its letter or its directory, `A`, `appA`), a section by its number
+(`1.4`, `A.3`), and a chapter's or the book's own front page by `1.intro`, `1.summary`,
 `intro` or `summary`. Output is one row per line, the fields that matter,
 separated by `·`; `--json` gives the rows as they sit on disk. Every command
 takes `-h`. An error is one line on stderr and a non-zero exit.

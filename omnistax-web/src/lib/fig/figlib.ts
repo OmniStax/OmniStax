@@ -108,9 +108,11 @@ const katexChunk = importing(() => import('katex')), autoChunk = importing(() =>
 const katexLib = lazy((): Promise<Katex> => katexChunk().then((m) => m.default)), withKatex = katexLib.use;
 const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.default)).use;
 
-export type TexOpts = { readonly values?: boolean };
+/* `at` names the element whose page sets the macros, for TeX set into an element not yet in the page
+   (a derivation builds its cards before it mounts them, and a detached card would read only the book's). */
+export type TexOpts = { readonly values?: boolean; readonly at?: Element };
 function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
-  const opts = KOPT(el);
+  const opts = KOPT(el.isConnected || !o.at ? el : o.at);
   withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); fitReadout(el); if (o.values !== false) texGlow(el); });
 }
 /* A readout wider than its box where it cannot break (a table of rows, one long product) is set
