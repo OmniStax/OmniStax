@@ -54,7 +54,7 @@ test('a chapter and a book name their own pages by module and slug, and the old 
   assert.deepEqual(ch.intro, { module: 'm42122', slug: '2-introduction' }); assert.equal(ch.summary, undefined);
   assert.equal('summary' in ch, false, 'a page the chapter does not print is no key at all');
   assert.throws(() => ChapterSchema.parse({ id: '2', dir: 'ch02', title: 'K', intro_module: 'm42122' }), /Unrecognized key/);
-  const book = BookSchema.parse({ id: 'b', title: 'B', publisher: 'P', license: 'L', chapters: [], intro: { module: 'm42955', slug: 'preface' } });
+  const book = BookSchema.parse({ id: 'b', title: 'B', publisher: 'P', license: 'L', highlights: { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true }, chapters: [], intro: { module: 'm42955', slug: 'preface' } });
   assert.deepEqual(book.intro, { module: 'm42955', slug: 'preface' });
 });
 

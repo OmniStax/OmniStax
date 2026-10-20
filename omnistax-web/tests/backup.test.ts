@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, categoryOf, parseBackupText, summarizeBackup, validReaderRecord } from '../src/lib/backup/schema';
-import { readBackupFile } from '../src/lib/backup/adapters';
+import { readBackupFile, readerRecords } from '../src/lib/backup/adapters';
 
 const backup = (records: unknown[] = []) => JSON.stringify({
   format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: '2026-09-18T12:00:00.000Z',
@@ -58,4 +58,24 @@ test('book-qualified notes, pins, layout and fold keys pass the backup check', (
   assert.equal(validReaderRecord({ key: 'omnistax-scope-v2', value: JSON.stringify(pins), category: 'layout' }), true);
   assert.equal(categoryOf('omnistax-layout-v6'), 'layout');
   assert.equal(validReaderRecord({ key: 'omnistax-folded', value: JSON.stringify(['chemistry-2e|1.1-intro']), category: 'reading' }), true);
+});
+
+test('a book’s highlights travel with the appearance, and a malformed one is refused', () => {
+  const key = 'omnistax-highlights-calculus', value = JSON.stringify({ words: true, underlines: false });
+  assert.equal(categoryOf(key), 'appearance');
+  const parsed = parseBackupText(backup([{ key, value, category: 'appearance' }]));
+  assert.deepEqual(parsed.records, [{ key, value, category: 'appearance' }], 'exported and read back as it was written');
+  assert.deepEqual(JSON.parse(parsed.records[0].value), { words: true, underlines: false });
+  assert.equal(validReaderRecord({ key, value: '{}', category: 'appearance' }), true, 'a book whose every switch follows its default');
+  assert.equal(validReaderRecord({ key, value, category: 'notes' }), false);
+  assert.equal(validReaderRecord({ key, value: '{"words":"yes"}', category: 'appearance' }), false);
+  assert.equal(validReaderRecord({ key, value: '{"colour":true}', category: 'appearance' }), false);
+});
+
+test('an export picks a book’s highlights out of this browser', () => {
+  const kept = new Map([['omnistax-highlights-diffyqs', '{"words":true}'], ['unrelated', 'x']]);
+  const was = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { get length() { return kept.size; }, key: (i: number) => [...kept.keys()][i] ?? null, getItem: (k: string) => kept.get(k) ?? null } });
+  try { assert.deepEqual(readerRecords(), [{ key: 'omnistax-highlights-diffyqs', value: '{"words":true}', category: 'appearance' }]); }
+  finally { if (was) Object.defineProperty(globalThis, 'localStorage', was); else delete (globalThis as { localStorage?: unknown }).localStorage; }
 });

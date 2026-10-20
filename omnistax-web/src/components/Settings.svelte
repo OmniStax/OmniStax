@@ -8,6 +8,8 @@
   import { settings, THEMES, DEFAULTS, LOCK_GRACE, zoomLabel } from '../lib/settings/store.svelte';
   import { FONTS, fontStack, isFontId, type FontId } from '../lib/settings/fonts';
   import { COLOUR_SWITCHES, COLOUR_LABELS, COLOUR_PARENT, COLOUR_TIPS } from '../lib/colours/switches';
+  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy } from '../lib/settings/highlights';
+  import { highlights } from '../lib/settings/highlights.svelte';
   import { commands } from '../lib/commands/registry.svelte';
   import { keys } from '../lib/commands/keys.svelte';
   import { chordOf, chordKeys, type Chord } from '../lib/commands/chord';
@@ -30,6 +32,8 @@
     zoom: 'Change the size of the text without resizing the window.',
     zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
     underlines: 'Underline symbols, glossary terms and example references. Cards still open when this is off.',
+    cc: 'Each book also sets its own defaults, below.',
+    book: 'What this book colors and underlines. The switches above still turn each off everywhere.',
     tips: 'Show a tip each day in the bottom-right corner.',
     cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
     anim: 'Turn off to pause every interactive figure.',
@@ -38,7 +42,7 @@
     lockGrace: 'Seconds before a focus lock starts.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, cc: `Color coding colour hue ${Object.values(COLOUR_LABELS).join(' ')} ${HINT.cc}`, book: `This book color coding colour underlines defaults ${Object.values(HIGHLIGHT_LABELS).join(' ')} ${HINT.book}`, underlines: `Underlines dotted ${HINT.underlines}`, tips: `Tips tip of the day ${HINT.tips}`,
     anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
@@ -150,7 +154,7 @@
         <button type="button" class="x" aria-label="Close" onclick={() => (ui.settings = false)}>×</button>
       </header>
 
-      <Fold name="Appearance" show={APPEARANCE.some(hit)} force={!!q}>
+      <Fold name="Appearance" show={APPEARANCE.some(hit) || (!!highlights.book && hit(ROWS.book))} force={!!q}>
         <div class="row" hidden={!hit(ROWS.theme)}>
           <span class="name">Theme{@render back(settings.theme !== DEFAULTS.theme, 'Reset to system', () => settings.setTheme(DEFAULTS.theme))}</span>
           <div class="seg" role="radiogroup" aria-label="Theme">
@@ -172,7 +176,7 @@
         </div>
         <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
         <div class="row colours" role="group" aria-labelledby="cc-name" hidden={!hit(ROWS.cc)}>
-          <span class="name" id="cc-name">Color coding</span>
+          <div class="head"><span class="name" id="cc-name">Color coding</span><span class="hint">{HINT.cc}</span></div>
           <div class="switches">
             {#each COLOUR_SWITCHES as k (k)}
               {@const parent = COLOUR_PARENT[k]}
@@ -181,6 +185,19 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.underlines)}><span class="name">Underlines{@render back(settings.underlines !== DEFAULTS.underlines, 'Reset to on', () => settings.setUnderlines(DEFAULTS.underlines))}</span><span class="hint">{HINT.underlines}</span><input type="checkbox" id="underline-toggle" checked={settings.underlines} onchange={(e) => settings.setUnderlines(e.currentTarget.checked)}></label>
+        {#if highlights.book}
+          {@const book = highlights.book}
+          <div class="row colours" role="group" aria-labelledby="hl-name" hidden={!hit(ROWS.book)}>
+            <div class="head"><span class="name" id="hl-name">This book</span><span class="hint">{book.title}</span></div>
+            <div class="switches">
+              {#each HIGHLIGHT_KEYS as k (k)}
+                {@const held = heldOffBy(settings, highlights.values, k)}
+                {@const value = highlights.values[k]}
+                <label class="switch" class:sub={HIGHLIGHT_PARENT[k] !== undefined} title={held}><span class="name">{HIGHLIGHT_LABELS[k]}{@render back(value !== book.defaults[k], `Reset to the book's default (${book.defaults[k] ? 'on' : 'off'})`, () => highlights.reset(k))}</span><input type="checkbox" id="hl-{k}-toggle" disabled={held !== null} checked={value} onchange={(e) => highlights.set(k, e.currentTarget.checked)}></label>
+              {/each}
+            </div>
+          </div>
+        {/if}
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </Fold>
 
@@ -310,6 +327,7 @@
   .back{border:0;background:transparent;color:var(--muted);font:inherit;font-size:0.9rem;line-height:1;cursor:pointer;padding:1px 3px;border-radius:3px}
   .back:hover{background:var(--soft);color:var(--ink)}
   .colours{align-items:start}
+  .head{display:flex;flex-direction:column;gap:2px}
   .switches{grid-column:2 / -1;display:flex;flex-direction:column;gap:6px}
   .switches label{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .switches .name{font-weight:400}

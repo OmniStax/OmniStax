@@ -7,7 +7,8 @@
      concept highlights, the address bar) is an effect here. */
   import { onMount, mount, tick, untrack } from 'svelte';
   import { initFig, FIG, figFor, registerFigBook, figBookOf } from '../lib/fig/figlib';
-  import { rootClasses } from '../lib/colours/switches';
+  import { highlightClasses } from '../lib/settings/highlights';
+  import { highlights } from '../lib/settings/highlights.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { focus } from '../lib/sections/focus.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
@@ -147,7 +148,7 @@
     registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); });
     if (home) { registry.home = home.id; registry.addBook(home); }
     sheets.init(markFormulas);
-    if (home) colours.init(home);
+    if (home) { colours.init(home); highlights.init(home); }
     if (home && chapterDir && chapterData) registry.setChapter(home.id, chapterDir, chapterData);
     focus.own = page;
     const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
@@ -293,11 +294,12 @@
   });
 
   /* settings → document */
-  $effect(() => { Object.entries(rootClasses(settings.colours)).forEach(([c, on]) => document.documentElement.classList.toggle(c, on)); FIG.setShown(settings.shown); FIG.redrawAll(); });
+  /* The colour switches and the underlines are masters over the book's own
+     highlights: the root wears what both allow, for the book the page stands on. */
+  $effect(() => { Object.entries(highlightClasses(settings, highlights.values)).forEach(([c, on]) => document.documentElement.classList.toggle(c, on)); FIG.setShown(settings.shown); FIG.redrawAll(); });
   $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
   $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
-  $effect(() => { document.documentElement.classList.toggle('no-underlines', !settings.underlines); });
   /* The app's own text size: one root font size, which every rem in the book and
      in the chrome is measured against, so the reading column, the rails and the
      views grow together. Figures are drawn in their own logical space and are

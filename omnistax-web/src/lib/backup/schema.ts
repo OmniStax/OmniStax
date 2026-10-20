@@ -56,6 +56,8 @@ const jsonKeys = new Set([
 ]);
 const JSON_KEY_LIST = [...jsonKeys];
 
+/* One key per book, omnistax-highlights-<book>, beside the appearance scalars. */
+const HIGHLIGHTS_KEY = /^omnistax-highlights-[^/]+$/;
 const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
 export type ReaderCategory = typeof CATEGORIES[number];
 const FOCUS_KEYS = ['omnistax-pomodoros', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-len', 'omnistax-pomodoro-lock', 'omnistax-lock-grace'];
@@ -66,7 +68,7 @@ export const isScalarKey = (key: string): boolean => scalarKeys.has(key);
 
 export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
-  if (scalarKeys.has(key)) return 'appearance';
+  if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key)) return 'appearance';
   if (key === 'omnistax-keys') return 'shortcuts';
   if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
   if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
@@ -238,9 +240,12 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-chat-tree-v1': z.array(z.string()),
   'omnistax-pomodoros': z.array(object), 'omnistax-pomodoro-categories': z.array(object),
 };
+/* The reader's highlights for one book: only the switches they set apart from its default. */
+const bookHighlights = z.object({ facts: z.boolean(), refs: z.boolean(), concepts: z.boolean(), words: z.boolean(), symbols: z.boolean(), underlines: z.boolean() }).partial().strict();
 const typedJson = (key: string, raw: string): boolean => {
   try {
     const value: unknown = JSON.parse(raw);
+    if (HIGHLIGHTS_KEY.test(key)) return bookHighlights.safeParse(value).success;
     if (/^omnistax-notes-[^/]+$/.test(key)) return z.array(note).safeParse(value).success;
     if (/^omnistax-colours-[^/]+$/.test(key)) {
       const parsed = z.object({ format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides }).strict().safeParse(value);
@@ -256,7 +261,7 @@ export const validReaderRecord = (record: ReaderRecord): boolean => {
   if (category === null || category !== record.category) return false;
   const scalar = scalarKeys.get(record.key);
   if (scalar) return scalar(record.value);
-  if (JSON_KEY_LIST.includes(record.key) || /^omnistax-(?:notes|colours)-[^/]+$/.test(record.key)) return typedJson(record.key, record.value);
+  if (JSON_KEY_LIST.includes(record.key) || /^omnistax-(?:notes|colours)-[^/]+$/.test(record.key) || HIGHLIGHTS_KEY.test(record.key)) return typedJson(record.key, record.value);
   return false;
 };
 

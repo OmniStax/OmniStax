@@ -21,6 +21,7 @@ import { foldControls } from './fold.svelte';
 import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { chapterConceptsOf } from '../content/bookdata';
 import { parseBookConcepts } from '../practice/books';
+import { HIGHLIGHTS_ON } from '../settings/highlights';
 
 /* When the book's own concepts.json is worth fetching over the chapters' own
    files: a chapter file is about a tenth of the book file, so it pays for
@@ -61,7 +62,7 @@ export type RegistryInit = {
 type FigureScript = (root: HTMLElement, F: Fig) => void;
 
 const EMPTY_STATE: Omit<SectionState, 'status'> = { meta: null, exercises: [], docs: {}, src: {} };
-const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, chapters: [], sheets: [], exercises: '', concepts: '' };
+const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, highlights: HIGHLIGHTS_ON, chapters: [], sheets: [], exercises: '', concepts: '' };
 const BOOK_ID = /^[a-z0-9-]+$/;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');

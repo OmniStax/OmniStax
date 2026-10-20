@@ -242,7 +242,7 @@
     </label>
   {/if}
   {#if !settings.shown.concepts}
-    <p class="off">Concepts color coding is off. Turn it on to see these colors.</p>
+    <p class="off">Concepts color coding is off. Turn it on in Settings, under Color coding or This book, to see these colors.</p>
   {/if}
 
   <div class="bar">

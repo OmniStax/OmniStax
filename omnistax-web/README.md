@@ -67,7 +67,7 @@ src/lib/history     model.ts (the timeline of the reader's edits, pure), store.s
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/files       model.ts (the imported files, pure) and store.svelte.ts, blobs.ts (their bytes and a PDF's text, in one IndexedDB), marks.ts/marks.svelte.ts (the highlights and text boxes written on them), import.ts (the one way in, from the icon or a drop), pdfjs.ts (the vendored pdf.js, fetched on demand), text.ts (the pages pulled out at import), resolver.ts (what a box's markdown may point at, and where its links go), open.svelte.ts (the page or mark a tab is asked to land on)
 src/lib/storage     health.ts: whether this browser has promised to keep the reader's data, how much it is using, and what to tell them where it has not
-src/lib/settings    colour switches, theme, animations, exercise mode, underlines
+src/lib/settings    colour switches, theme, animations, exercise mode, underlines, each book's highlights
 src/lib/practice    model.ts (discrete attainment, freshness, the curriculum and fixed-round planner; pure), store.svelte.ts (attempts, presentations, reviews, self-assessments and running rounds persisted across books), books.ts (reading another book's manifest, concepts and exercises off the build — the manifest names the book-level exercises.json, concepts.json and formulas.json, and book.json is the one address derived from the book's base — and joining them to the book being read; pure), books.svelte.ts (the lightweight exercises cache: one request per book)
 src/lib/search      model.ts (a corpus per book and what a query finds in it, by kind, with the prose capped; pure), books.ts (a formula sheet and a text index off the wire, leniently; pure), store.svelte.ts (the corpora, the book being read out of the registry and the rest off the build — book.json, search.json, concepts.json and formulas.json — fetched once), go.ts (landing on a hit: the block, the span, the term, or a link out)
 src/lib/exercises   check.ts: pure answer checking
@@ -133,6 +133,12 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   rule that says a card will open on them. The rule is a setting ("Underlines"), off leaves the
   page clean and the cards still open, and inside a card nothing is underlined:
   that is where the symbol is explained, not another place to look it up.
+- The colour switches and Underlines in the settings are masters; beneath them
+  each book has a value of its own for each family, Words, Symbols and
+  Underlines, which `book.json` declares (`highlights`) and the reader may change
+  for that book alone. A page shows a key only when both are on, for the book
+  the shell stands on; `settings/highlights.ts` resolves the layers and the
+  reader's choices keep only what differs from the book's default.
 - One fold rule for every list a view draws: what the view's level covers is shown
   grouped by chapter and by section, in the order the book sets, and everything
   outside it is folded away under a single heading. `grouping.ts` makes the cut

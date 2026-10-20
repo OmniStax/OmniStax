@@ -6,7 +6,9 @@
 import { type ZoomStep, ZOOM_DEFAULT, nearestZoom, zoomBy } from './zoom';
 import { readerWritesAllowed } from '../backup/guard';
 import { type FontId, DEFAULT_FIGURE_FONT, DEFAULT_BODY_FONT, parseFont, effective } from './fonts';
-import { type ColourSwitch, type ColourSwitches, type ColourShown, COLOURS_ON, COLOUR_SWITCHES, shownOf } from '../colours/switches';
+import { type ColourSwitch, type ColourSwitches, type ColourShown, COLOURS_ON, COLOUR_SWITCHES } from '../colours/switches';
+import { type PageHighlights, pageHighlights } from './highlights';
+import { highlights } from './highlights.svelte';
 export type { FontId } from './fonts';
 export type { ZoomStep } from './zoom';
 export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
@@ -71,7 +73,9 @@ class Settings {
   get effectiveFigureFont(): FontId { return effective(this.preview.figureFont, this.figureFont); }
   get effectiveBodyFont(): FontId { return effective(this.preview.bodyFont, this.bodyFont); }
 
-  get shown(): ColourShown { return shownOf(this.colours); }
+  /* What the page being read shows: these switches as masters over the book's own (highlights.ts). */
+  get page(): PageHighlights { return pageHighlights({ colours: this.colours, underlines: this.underlines }, highlights.values); }
+  get shown(): ColourShown { return this.page.shown; }
   get dark(): boolean { const t = this.effectiveTheme; return t === 'system' ? sysDark() : t === 'dark'; }
   setFigureFont(id: FontId): void { this.figureFont = id; write(KEYS.figureFont, id); }
   setBodyFont(id: FontId): void { this.bodyFont = id; write(KEYS.bodyFont, id); }

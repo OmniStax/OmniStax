@@ -35,7 +35,7 @@ export const readerRecords = (): ReaderRecord[] => {
 const booksOf = (records: readonly ReaderRecord[]): { id: string }[] => {
   const ids = new Set<string>();
   records.forEach(({ key }) => {
-    const match = /^omnistax-(?:notes|colours)-(.+)$/.exec(key); if (match?.[1]) ids.add(match[1]);
+    const match = /^omnistax-(?:notes|colours|highlights)-(.+)$/.exec(key); if (match?.[1]) ids.add(match[1]);
   });
   return [...ids].sort().map((id) => ({ id }));
 };

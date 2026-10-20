@@ -9,6 +9,7 @@ import { prerenderMath } from '../src/lib/math/prerender';
    that has not, and one section of it. */
 const BOOK = BookSchema.parse({
   id: 'college-physics-2e', title: 'College Physics 2e', publisher: 'OpenStax', license: 'CC BY-NC-SA 4.0',
+  highlights: { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true },
   chapters: ['ch02', 'ch16'],
   types: [{ id: 'force', label: 'force', dimension: 'N' }, { id: 'position', label: 'position', dimension: 'm' }],
   concepts: [

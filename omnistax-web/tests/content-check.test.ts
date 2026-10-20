@@ -52,7 +52,7 @@ const TEXT = `<section id="hookes-law"><h2>Hooke’s law</h2>${figureOf('class="
 const SOURCE = ':::exercise {fs-1} type=problem\nPROBLEM: How far?\n';
 
 const bookOf = (o: object) => BookSchema.parse({
-  id: 'b', title: 'B', publisher: 'P', license: 'L', chapters: ['ch16'],
+  id: 'b', title: 'B', publisher: 'P', license: 'L', highlights: { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true }, chapters: ['ch16'],
   types: [{ id: 'force', label: 'force' }, { id: 'position', label: 'position' }],
   exercise_kinds: [{ id: 'problem', label: 'Problem' }],
   concepts: [{ id: 'hookes-law', kind: 'result', section: '16.1', name: 'Hooke’s law', statement: 'w' }],

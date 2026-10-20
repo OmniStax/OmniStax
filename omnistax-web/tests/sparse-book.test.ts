@@ -30,7 +30,7 @@ const sectionFiles = (text: string): Files => ({
 });
 
 const bookFiles = (id: string, book: Record<string, unknown>, text: string): Files => ({
-  'book.json': json({ id, title: id, publisher: 'P', authors: ['A'], license: 'CC BY 4.0', chapters: ['ch01'], ...book }),
+  'book.json': json({ id, title: id, publisher: 'P', authors: ['A'], license: 'CC BY 4.0', highlights: { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true }, chapters: ['ch01'], ...book }),
   ...sectionFiles(text),
 });
 

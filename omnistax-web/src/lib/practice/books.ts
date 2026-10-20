@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { BookConceptsSchema, ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
 import type { BookConceptsDTO, BookFileUrls, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, SectionEntry } from '../content/schema';
 import { bookId, sectionId } from '../types/ids';
+import { HIGHLIGHTS_ON, parseOverrides } from '../settings/highlights';
 import type { Catalog } from './model';
 
 /* One foreign book, whole: what `/${id}/book.json` said, what its chapters'
@@ -58,7 +59,7 @@ export const parseManifest = (raw: unknown): BookManifest | null => {
   const fallback = bookFiles(bookBase(id));   /* a manifest written before the book carried its own file urls */
   return {
     id: bookId(id), title: str(o.title), publisher: '', authors: [], license: '',
-    types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [],
+    types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [], highlights: { ...HIGHLIGHTS_ON, ...parseOverrides(o.highlights) },
     exercises: str(o.exercises) || fallback.exercises, concepts: str(o.concepts) || fallback.concepts,
     chapters: o.chapters.flatMap(parseChapter),
   };

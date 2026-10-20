@@ -5,6 +5,7 @@
  "authors": ["A"],
  "license": "CC BY 4.0",
  "openstax": "https://example.org/pages/",
+ "highlights": { "facts": true, "refs": true, "concepts": true, "words": false, "symbols": true, "underlines": true },
  "chapters": ["ch02"],
  "intro": { "module": "m1", "slug": "preface" },
  "types": [{ "id": "velocity", "label": "velocity" }],

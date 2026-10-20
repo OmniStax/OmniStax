@@ -29,6 +29,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `license` | `string` | yes | The licence the book is shared under, as its notice names it. |
 | `license_url` | `string?` | no | The licence’s own page. |
 | `openstax` | `string?` | no | The prefix of the publisher’s section pages; a chapter’s section slugs complete it. |
+| `highlights` | `{ facts, refs, concepts, words, symbols, underlines }` | yes | What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types’ colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book, and their own switches stay masters over all of them. Every book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink. |
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
 | `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
@@ -369,7 +370,7 @@ The derivations the section draws as graphs of facts and results worked in place
 | field | type | required | description |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The derivation’s local id; the section’s text hosts it as `<figure class="dv" id="drv-<id>">`. |
-| `what` | `string` | yes | What is derived, as one lower-case phrase the title reads after “Derivation ·”; where the derivation replaces something the book numbers and refers to, that reference instead. |
+| `what` | `string` | yes | What is derived, as one lower-case phrase the title reads after its eyebrow word (“Derivation ·”, “Derivations ·” where more than one result is an end, or the book’s “Example N.M ·” where `source` names the example it works); where the derivation replaces something the book numbers and refers to, that reference instead. |
 | `source` | `string?` | no | Where the book works it: the book and the section, and the example where there is one. |
 | `nodes` | `{ assumes?, then, steps, num?, src?, note? }[]` | yes | The nodes in the book’s order, the last one’s result being what is derived. |
 

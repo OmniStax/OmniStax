@@ -164,6 +164,20 @@ export const BookColoursSchema = z.object({
 }).strict();
 export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
 
+/* What the book colours and underlines by default (RULES item 7): one switch
+   for each way colour reaches its pages, and the dotted rule. The reader's
+   switches in the settings stay masters over these, and the reader may change
+   any of them for this book alone. */
+export const BookHighlightsSchema = z.object({
+  facts: z.boolean().describe('Whether facts and conventions (the fixed colours of elements, charges and the like) wear their colours in this book by default; the reader may change it for the book.'),
+  refs: z.boolean().describe('Whether referents (the things a figure and its text both point at) wear their colours in this book by default; the reader may change it for the book.'),
+  concepts: z.boolean().describe('Whether the book\u2019s types colour its figures, slider thumbs and text by default; off, everything under it reads in ink. The reader may change it for the book.'),
+  words: z.boolean().describe('Whether the words and phrases that name a concept are coloured by their type in this book by default; it sits under concepts. A book whose prose would read as a rainbow sets it false. The reader may change it for the book.'),
+  symbols: z.boolean().describe('Whether the symbols in equations and readouts are coloured by their type in this book by default; it sits under concepts. The reader may change it for the book.'),
+  underlines: z.boolean().describe('Whether what opens a card (a symbol, a marked concept, an example reference) wears a dotted rule in this book by default; the reader may change it for the book.'),
+}).strict();
+export type BookHighlightsDTO = z.infer<typeof BookHighlightsSchema>;
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
@@ -178,6 +192,7 @@ export const BookSchema = z.object({
   license: z.string().describe('The licence the book is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
   openstax: z.string().url().optional().describe('The prefix of the publisher\u2019s section pages; a chapter\u2019s section slugs complete it.'),
+  highlights: BookHighlightsSchema.describe('What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types\u2019 colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book, and their own switches stay masters over all of them. Every book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink.'),
   chapters: z.array(z.string()).describe('The chapter directories, in the order the book sets them.'),
   intro: FrontPageRefSchema.optional().describe('The book\u2019s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter.'),
   summary: FrontPageRefSchema.optional().describe('The book\u2019s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter.'),
@@ -191,7 +206,7 @@ export const BookSchema = z.object({
   colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared.'),
 }).strict().transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
-  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, chapterDirs: b.chapters, ...framed(b),
+  license: b.license, licenseUrl: b.license_url, openstax: b.openstax, highlights: b.highlights, chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
   ...(b.sources ? { sources: b.sources } : {}), ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
 }));
@@ -715,6 +730,7 @@ export type BookManifest = {
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
   readonly colours?: BookColoursDTO;         /* the book's stored default colours */
+  readonly highlights: BookHighlightsDTO;    /* what the book colours and underlines by default */
   readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
   readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
 } & BookFileUrls;
