@@ -3,13 +3,14 @@
    this browser under one key per book that holds only what they changed. Books
    come in as the colours store's do, through ensureBook as the registry learns
    each manifest; the Colours page reads and sets the layer of the book it has
-   selected, where the reader changes it. `values` is the layer of the book the
-   shell stands on, which the page being read is drawn by; the about page stands
-   on no book, and there the layer is all on. The model is highlights.ts; this
+   selected, where the reader changes it. `values` is the layer of the focused
+   book, which the page being read is drawn by, so a change on its Theme page
+   shows at once; the about page stands on no book, and there the layer is all on. The model is highlights.ts; this
    only reads and writes. */
 import type { BookId } from '../types/ids';
 import type { BookManifest } from '../content/schema';
 import { readerWritesAllowed } from '../backup/guard';
+import { focus } from '../sections/focus.svelte';
 import { type BookHighlights, type HighlightKey, type HighlightOverrides, HIGHLIGHTS_ON, bookLayer, parseOverrides, withChoice } from './highlights';
 
 export const highlightsKey = (book: BookId | string): string => `omnistax-highlights-${book}`;
@@ -40,10 +41,12 @@ class Highlights {
   /* The book layer: the reader's choice where they made one, else the book's default. */
   valuesOf(id: BookId): BookHighlights { const e = this.books[id]; return e ? bookLayer(e.book.defaults, e.overrides) : HIGHLIGHTS_ON; }
 
-  /* The same for the book the shell stands on, which the settings and the page combine with the masters. */
-  get book(): HighlightBook | null { return this.home ? this.bookOf(this.home) : null; }
-  get defaults(): BookHighlights { return this.home ? this.defaultsOf(this.home) : HIGHLIGHTS_ON; }
-  get values(): BookHighlights { return this.home ? this.valuesOf(this.home) : HIGHLIGHTS_ON; }
+  /* The same for the book the shell stands on: the focused one, else the one it was served for.
+     One layer on the root, so panes of two books side by side both wear the focused book's. */
+  private get here(): BookId | null { return focus.book ?? this.home; }
+  get book(): HighlightBook | null { const id = this.here; return id ? this.bookOf(id) : null; }
+  get defaults(): BookHighlights { const id = this.here; return id ? this.defaultsOf(id) : HIGHLIGHTS_ON; }
+  get values(): BookHighlights { const id = this.here; return id ? this.valuesOf(id) : HIGHLIGHTS_ON; }
 
   /* The reader sets one key of a book, the one the shell stands on unless another is named. */
   set(k: HighlightKey, on: boolean, id: BookId | null = this.home): void {
