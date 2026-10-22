@@ -35,6 +35,16 @@ translation), `source.md`, `plan.md`, `exploration.md`, `book-rows.json`,
 `concept-migration.json`, the source's other tools, or the book's own
 `intro/` and `summary/`.
 
+`add` carries more of the source's chapters into a scaffold that exists,
+the same way `new` carried the first ones (the chapter's `chapter.json`,
+`COLOR.md`, a fresh `config.md` and every page's three files, byte for byte),
+and appends them to `book.json`'s `chapters` in the source's order. The
+translator and effort it writes into each `config.md` are the pass's own,
+which may differ from the book's first:
+
+    python3 -I omnistax-content/tools/scaffold_translation.py add college-physics-2e-zh-cn \
+      --translator claude-sonnet-5-5 --effort medium --date 2026-10-22 --chapters ch02 ch03
+
 `labels` writes what no chapter stages and `ost` will not write: the book's
 `title`, `types[].label`, `exercise_kinds[].label`, `sheets[].title`, and each
 chapter's own `title`, from one JSON file, so that `book.json` is never edited
@@ -258,6 +268,60 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_add(args: argparse.Namespace) -> int:
+    """Carry more of the source's chapters into a scaffold that exists."""
+    if args.effort and args.effort not in EFFORTS:
+        raise Refused(f"effort is {args.effort!r}; one of {', '.join(EFFORTS)}")
+    book = ost.book_of(args.book)
+    target = book.dir
+    out = ost.load(book.book_path)
+    if "translation_of" not in out or "language" not in out:
+        raise Refused(f"{args.book} is not a translation (no translation_of)")
+    source_book = ost.book_of(out["translation_of"])
+    source = source_book.dir
+    source_name = os.path.basename(source.rstrip(os.sep))
+    have = load(os.path.join(source, "book.json")).get("chapters", [])
+    missing = [c for c in args.chapters if c not in have]
+    if missing:
+        raise Refused(f"the source lists no chapter {', '.join(missing)}; its chapters are {', '.join(have)}")
+    already = [c for c in args.chapters if c in out.get("chapters", [])]
+    if already:
+        raise Refused(f"{args.book} carries {', '.join(already)} already")
+    for ch in args.chapters:
+        if os.path.exists(os.path.join(target, ch)):
+            raise Refused(f"{os.path.join(os.path.relpath(target), ch)} exists already")
+    args.title, args.tag = out["title"], out["language"]
+    args.glossary = out.get("translation", {}).get("glossary", f"glossary.{args.tag}.json")
+    chapters = []
+    for ch in args.chapters:
+        path = os.path.join(source, ch, "chapter.json")
+        if not os.path.exists(path):
+            raise Refused(f"{ch} has no chapter.json in the source")
+        chapters.append((ch, load(path)))
+
+    copied = 0
+    for ch, chapter in chapters:
+        sdir, tdir = os.path.join(source, ch), os.path.join(target, ch)
+        os.makedirs(tdir)
+        shutil.copy2(os.path.join(sdir, "chapter.json"), os.path.join(tdir, "chapter.json"))
+        if os.path.exists(os.path.join(sdir, "COLOR.md")):
+            shutil.copy2(os.path.join(sdir, "COLOR.md"), os.path.join(tdir, "COLOR.md"))
+        write_text(os.path.join(tdir, "config.md"), config_text(args, chapter, source_name))
+        for page in page_dirs(sdir, chapter):
+            os.makedirs(os.path.join(tdir, page))
+            for name in SECTION_FILES:
+                if os.path.exists(os.path.join(sdir, page, name)):
+                    shutil.copy2(os.path.join(sdir, page, name), os.path.join(tdir, page, name))
+                    copied += 1
+    wanted = set(out.get("chapters", [])) | set(args.chapters)
+
+    def write() -> None:
+        ost.write_record(book.book_path, {**ost.load(book.book_path), "chapters": [c for c in have if c in wanted]})
+    ost.under_lock(write)
+    print(f"scaffold: {args.book} gains chapters {', '.join(args.chapters)}, {copied} page files copied")
+    return 0
+
+
 def apply_labels(book: RecordDTO, labels: RecordDTO) -> RecordDTO:
     """The pure step of `labels`: the book with each named label replaced, or a refusal naming what is not there."""
     unknown = set(labels) - {"title", "types", "exercise_kinds", "sheets", "chapters"}
@@ -316,6 +380,12 @@ def parser() -> argparse.ArgumentParser:
     new.add_argument("--chapters", required=True, nargs="+", help="the chapter directories to carry, such as ch01")
     new.add_argument("--authority", help="the published translation whose terms are followed, where one exists")
     new.add_argument("--authority-url", dest="authority_url", help="that translation's own page")
+    add = subs.add_parser("add", help="carry more of the source's chapters into a scaffold that exists")
+    add.add_argument("book", help="the translated book's id")
+    add.add_argument("--translator", required=True, help="the model's API id, or a person, of this pass")
+    add.add_argument("--effort", help="low, medium, high or max")
+    add.add_argument("--date", required=True, help="the ISO date of the pass")
+    add.add_argument("--chapters", required=True, nargs="+", help="the chapter directories to add, such as ch02")
     labels = subs.add_parser("labels", help="write the book's title, type, exercise kind and sheet labels and chapter titles")
     labels.add_argument("book", help="the translated book's id")
     labels.add_argument("file", help="the labels, as JSON")
@@ -325,7 +395,7 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser().parse_args(argv)
     try:
-        return {"new": cmd_new, "labels": cmd_labels}[args.command](args)
+        return {"new": cmd_new, "add": cmd_add, "labels": cmd_labels}[args.command](args)
     except (Refused, ost.Refused) as e:
         print(f"scaffold_translation: {e}", file=sys.stderr)
         return 1
