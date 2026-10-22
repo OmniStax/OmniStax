@@ -82,7 +82,7 @@ test('a figure the introduction keeps is linked from a section that cites it, ac
 test('the front page’s article has the book’s words and nothing invented, and no problem set beside it', () => {
   const ch = TREE.chapters[0];
   const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!), 'en');
-  assert.match(html, /<article data-book="framed" data-doc="2\.intro\/text" data-sec="2\.intro" data-chapter="ch02" data-title="Introduction to Kinematics"/);
+  assert.match(html, /<article lang="en" data-book="framed" data-doc="2\.intro\/text" data-sec="2\.intro" data-chapter="ch02" data-title="Introduction to Kinematics"/);
   assert.match(html, /<div class="eyebrow">Chapter 2 · Kinematics<\/div>/);
   assert.doesNotMatch(html, /<p class="lead">/, 'an empty lead prints no line');
   assert.doesNotMatch(html, /data-doc="2\.intro\/exercises"/);
@@ -90,7 +90,7 @@ test('the front page’s article has the book’s words and nothing invented, an
   assert.match(html, /Access for free at <a href="https:\/\/example.org\/pages\/2-introduction-to-kinematics">/);
   assert.match(html, /<p>The trailer is left out.<\/p><\/footer>/);
   const preface = fragment(TREE.dto, null, TREE.intro!, pageNav(TREE, TREE.intro!), 'en');
-  assert.match(preface, /<article data-book="framed" data-doc="intro\/text" data-sec="intro" data-title="Preface"/);
+  assert.match(preface, /<article lang="en" data-book="framed" data-doc="intro\/text" data-sec="intro" data-title="Preface"/);
   assert.doesNotMatch(preface, /data-chapter=/, 'the book’s own page belongs to no chapter');
   assert.match(preface, /<div class="eyebrow">A Framed Book<\/div>/);
   assert.match(preface, /<script type="application\/json" data-book="framed" data-section="intro">/, 'the data travels with its book');

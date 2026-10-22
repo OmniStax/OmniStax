@@ -4,9 +4,9 @@
 import type { chat as source } from '../en/chat';
 
 export const chat: Readonly<Record<keyof typeof source, string>> = {
-  'chat.age.days': '{n} 天前',
-  'chat.age.hours': '{n} 小时前',
-  'chat.age.minutes': '{n} 分钟前',
+  'chat.age.days': '{n}天前',
+  'chat.age.hours': '{n}小时前',
+  'chat.age.minutes': '{n}分钟前',
   'chat.age.now': '刚刚',
   'chat.bubble.cancel': '取消',
   'chat.bubble.collapse': '折叠消息',
@@ -44,7 +44,7 @@ export const chat: Readonly<Record<keyof typeof source, string>> = {
   'chat.conversations.undo': '撤销',
   'chat.crumbs.empty': '（空）',
   'chat.crumbs.label': '此分支的分叉处',
-  'chat.crumbs.others': '此分叉处的其他 {n} 个',
+  'chat.crumbs.others': '此分叉处的其他{n}个',
   'chat.day.today': '今天',
   'chat.day.yesterday': '昨天',
   'chat.error.cors': '此主机不允许来自浏览器的请求；请运行本地代理，或选择其他主机',
@@ -60,7 +60,7 @@ export const chat: Readonly<Record<keyof typeof source, string>> = {
   'chat.speaker.assistant': '助手',
   'chat.speaker.you': '你',
   'chat.step.contents': '{book} 的目录',
-  'chat.step.contentsChapter': '{book} 第 {chapter} 章的目录',
+  'chat.step.contentsChapter': '{book} 第{chapter}章的目录',
   'chat.step.figure': '图 {section} {id}',
   'chat.step.listBooks': '列出了教材',
   'chat.step.lookedUp': '查找了{kind}“{query}”',

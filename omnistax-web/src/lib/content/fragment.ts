@@ -182,7 +182,7 @@ const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, lo
 };
 /* The attributes every article of a page carries: what book, page and chapter it belongs to, and the name its tab takes. */
 const articleAttrs = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, doc: 'text', title: string): string =>
-  `data-book="${book.id}" data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
+  `lang="${book.language}" data-book="${book.id}" data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
 const textTitle = (s: SectionSource, locale: Locale): string => (s.role === 'section' ? tIn(locale, 'content.textTitle', { id: s.meta.id }) : s.meta.title);
 
 /* The section's own summary, where the book prints one, stands at the end of the text as the book stands it (rule 21).

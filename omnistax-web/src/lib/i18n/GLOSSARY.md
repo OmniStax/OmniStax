@@ -9,7 +9,7 @@ confirmation (the rows are the planner's; the field terms of a book are not
 here, they live in the book's own glossary).
 
 Rules for zh-CN: Chinese punctuation （，。：；？！“”） in sentences, ASCII in
-keys and code; no space between a digit and a CJK character (3 章), a space
+keys and code; no space between a digit or a numeric placeholder and a CJK character (3章, 第{n}页, 共#节), a space on either side of a placeholder that carries a Latin value (移除 {name}), a space
 between CJK and a Latin word or acronym (OmniStax 已更新, SI 单位); plurals have
 only an `other` branch; a key's `{name}` placeholders are kept as written.
 

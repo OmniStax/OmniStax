@@ -4,6 +4,7 @@
    catalogue and a book's manifest in, ids out. The live half, which opens the
    other edition where the reader stands, is editions.svelte.ts. */
 import { bookPagesOf } from '../content/roles';
+import { LOCALE_NAMES, parseLocale } from '../i18n';
 
 /* What an edition is to these functions: the fields of a catalogue entry (LibraryBookDTO) they read. */
 export type Edition = { readonly id: string; readonly language: string; readonly translationOf?: string };
@@ -51,7 +52,10 @@ export const editionGroups = <T extends Edition>(books: readonly T[]): readonly 
 
 /* A language's name as the reader's own language writes it ("Chinese (China)",
    "中文（中国）"), else the tag itself where the runtime has no name for it. */
+/* A language the shell has a catalog for is named as that catalog names itself, so the menu says 中文（简体）, not 中文（中国）. */
 export const languageName = (tag: string, uiLocale: string): string => {
+  const own = parseLocale(tag);
+  if (own) return LOCALE_NAMES[own];
   try { return new Intl.DisplayNames([uiLocale], { type: 'language' }).of(tag) ?? tag; } catch { return tag; }
 };
 

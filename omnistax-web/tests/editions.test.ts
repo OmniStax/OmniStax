@@ -52,7 +52,8 @@ test('editionPage: the same page where the other edition builds it, else its fir
   assert.equal(editionPage({ chapters: [{ sections: [page('1.1', false)] }] }, '1.1'), null);
 });
 
-test('languageName: the name in the reader’s language, else the tag', () => {
-  assert.match(languageName('zh-CN', 'en'), /Chinese/);
+test('languageName: a catalog’s own name, else the name in the reader’s language, else the tag', () => {
+  assert.equal(languageName('zh-CN', 'en'), '中文（简体）');
+  assert.match(languageName('es', 'en'), /Spanish/);
   assert.equal(languageName('not a tag!', 'en'), 'not a tag!');
 });
