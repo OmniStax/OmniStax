@@ -17,6 +17,8 @@ const positive = (v: string): boolean => v !== '' && Number.isFinite(Number(v)) 
 const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-cc', (v) => v === '0' || v === '1'], ['omnistax-cc-all', bit], ['omnistax-cc-facts', bit], ['omnistax-cc-refs', bit], ['omnistax-cc-words', bit], ['omnistax-cc-symbols', bit],
   ['omnistax-theme', (v) => v === 'light' || v === 'dark'],
+  /* The reader's UI language (i18n/store.svelte.ts); absent, it follows the browser. */
+  ['omnistax-lang', (v) => v === 'en' || v === 'zh-CN'],
   ['omnistax-anim', (v) => v === '0' || v === '1'],
   ['omnistax-exmode', (v) => v === 'all' || v === 'one'],
   ['omnistax-voice', (v) => v === '0' || v === '1'],

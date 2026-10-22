@@ -15,7 +15,8 @@ import type {
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { aiByline, frontPageSourceUrl, sectionSourceUrl } from './attribution';
-import { type PageLink, type PageNav, figureIds, figureList, linkExerciseRefs, linkFigureRefs, noteExercise, sizedImages } from './fragment';
+import { type PageLink, type PageNav, bookLocale, figureIds, figureList, linkExerciseRefs, linkFigureRefs, noteExercise, sizedImages } from './fragment';
+import type { Locale } from '../i18n/index';
 import { type MediaRoot, imageSizes } from './mediasize';
 import { type FrontRole, type PageRole, bookPagesOf, neighboursOf, pageLabel, pagesOf } from './roles';
 import { type BookDir, type BookId, type ConceptId, type ContentRoot, type TypeId, bookDir, bookId, qualifiedId } from '../types/ids';
@@ -209,10 +210,11 @@ export const typesWorn = (figures: readonly FigureRowDTO[], rows: readonly Varia
 
 /* The exercises of a section with the concepts they test folded in, in the order
    the join table lists them, including legacy weights written by older builds,
-   and the corrections their markers name numbered card by card. */
-export const exercisesOf = (s: SectionDTO): readonly ExerciseDTO[] => {
+   and the corrections their markers name numbered card by card, the AI credit
+   on a correction in the book's own language. */
+export const exercisesOf = (s: SectionDTO, locale: Locale = 'en'): readonly ExerciseDTO[] => {
   const rowsOf = (id: string) => s.exerciseConcepts.filter((r) => r.exercise === id);
-  const byline = aiByline(s.ai?.text);
+  const byline = aiByline(s.ai?.text, locale);
   return s.exercises.map(({ source_id, source_section, source_number, ...e }) => {
     const rows = rowsOf(e.id);
     const weighted = rows.flatMap((r) => (r.weight === undefined ? [] : [[r.concept, r.weight] as const]));
@@ -286,8 +288,9 @@ export const conceptsOfChapter = (book: BookDTO, chapter: ChapterDTO, sections: 
 /* Where a page stands: the address the site serves it at, and its page at the publisher, where the book keeps one. */
 type PagePlace = { readonly url: string; readonly openstax?: string };
 /* What a page sets its maths with: the book's symbols and the variables rows of the chapter it stands in, both typed;
-   and the type of each of the book's concepts, which its prose's concept spans wear. */
-type PageMath = { readonly symbols: readonly SymbolDTO[]; readonly book: MacroMap; readonly rows: readonly VariableDTO[]; readonly concepts: ConceptTypes };
+   and the type of each of the book's concepts, which its prose's concept spans wear; and the
+   book's language, which what the build writes beside the text (a correction's AI credit) is written in. */
+type PageMath = { readonly symbols: readonly SymbolDTO[]; readonly book: MacroMap; readonly rows: readonly VariableDTO[]; readonly concepts: ConceptTypes; readonly locale: Locale };
 
 /* Every reader-facing string of a page is swept for math, not only the prose and the
    summary: the book writes $v$ in a lead and in the notes under the footer exactly as it
@@ -322,7 +325,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   return {
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
     footnotes: dto.footnotes.map((f) => ({ ...f, html: marked(rendered(f.html)) })),
-    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto), exercisesLead,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto, math.locale), exercisesLead,
     counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])), macros: macroTypes }),
     refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead), macros: macroTypes }),
   };
@@ -346,7 +349,7 @@ const linkChapterFigures = <T extends { readonly textHtml: string; readonly meta
 type ChapterLoaded = Omit<ChapterTree, 'concepts'>;
 const loadChapter = async (root: string, book: BookDTO, dir: string, dto: ChapterDTO, stored: ChapterDTO, macros: MacroMap, concepts: ConceptTypes, media: readonly MediaRoot[]): Promise<ChapterLoaded> => {
   const base = path.join(root, dir);
-  const math: PageMath = { symbols: book.symbols, book: macros, rows: dto.variables, concepts };
+  const math: PageMath = { symbols: book.symbols, book: macros, rows: dto.variables, concepts, locale: bookLocale(book) };
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(book.id, dir, role), openstax: frontPageSourceUrl(book, dto[role]) });
   const [intro, loaded, summary] = await Promise.all([
     loadFrontPage(base, 'intro', front('intro'), math, media),
@@ -429,7 +432,7 @@ export const loadBook = async (root: BookDir, id: BookId, mediaRoots: readonly M
   const concepts = conceptTypes(dto.concepts);
   const media = mediaRoots;
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
-  const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [], concepts };
+  const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [], concepts, locale: bookLocale(dto) };
   const [intro, loaded, summary, sheets] = await Promise.all([
     loadFrontPage(root, 'intro', front('intro'), bookMath, media),
     Promise.all(chapterDtos.map((ch, i) => loadChapter(root, dto, stored.chapterDirs[i], ch, storedChapters[i], macros, concepts, media))),

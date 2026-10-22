@@ -29,7 +29,11 @@ import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
-import { i18n } from '../i18n/store.svelte';
+import { i18n, type LocaleChoice } from '../i18n/store.svelte';
+import { library } from '../explorer/library.svelte';
+import { languageName } from '../explorer/editions';
+import { switchEdition, switchableFrom } from '../explorer/editions.svelte';
+import { bookId } from '../types/ids';
 
 const GROUP_COMMANDS = 9;   /* the palette lists this many groups by number */
 
@@ -167,6 +171,22 @@ export const installCommands = (): void => {
     get undoLabel(): string { return colours.undoLabel; },
     get redoLabel(): string { return colours.redoLabel; },
   };
-  commands.register([...builtinCommands({ t: i18n.t, settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps }), ...groupCommands()]);
+  /* The reader's language, read when the palette draws. */
+  const languageDeps = {
+    get choice(): LocaleChoice { return i18n.choice; },
+    get system() { return i18n.system; },
+    setChoice: (c: LocaleChoice) => i18n.setChoice(c),
+  };
+  /* The other editions of the book being read, each named by its language in the reader's own. */
+  const editionsDeps = {
+    current: () => {
+      const s = switchableFrom(); if (!s) return null;
+      return { from: s.from, to: s.to.map((b) => ({ id: b.id, label: languageName(b.language, i18n.locale), detail: b.title })) };
+    },
+    switchTo: (from: string, to: string) => { void switchEdition(bookId(from), bookId(to)); },
+  };
+  /* The catalogue the editions are read from; fetched once, outside any derivation. */
+  void library.load();
+  commands.register([...builtinCommands({ t: i18n.t, settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, language: languageDeps, editions: editionsDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

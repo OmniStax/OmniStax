@@ -79,3 +79,19 @@ test('an export picks a book’s highlights out of this browser', () => {
   try { assert.deepEqual(readerRecords(), [{ key: 'omnistax-highlights-diffyqs', value: '{"words":true}', category: 'appearance' }]); }
   finally { if (was) Object.defineProperty(globalThis, 'localStorage', was); else delete (globalThis as { localStorage?: unknown }).localStorage; }
 });
+
+test('the reader’s language travels with the appearance records, and only a language the app speaks', () => {
+  assert.equal(categoryOf('omnistax-lang'), 'appearance');
+  const kept = new Map([['omnistax-lang', 'zh-CN'], ['unrelated', 'x']]);
+  const was = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { get length() { return kept.size; }, key: (i: number) => [...kept.keys()][i] ?? null, getItem: (k: string) => kept.get(k) ?? null } });
+  let exported: ReturnType<typeof readerRecords>;
+  try { exported = readerRecords(); }
+  finally { if (was) Object.defineProperty(globalThis, 'localStorage', was); else delete (globalThis as { localStorage?: unknown }).localStorage; }
+  assert.deepEqual(exported, [{ key: 'omnistax-lang', value: 'zh-CN', category: 'appearance' }]);
+  const back = parseBackupText(backup(exported));
+  assert.deepEqual(back.records, exported);
+  assert.equal(validReaderRecord({ key: 'omnistax-lang', value: 'en', category: 'appearance' }), true);
+  assert.throws(() => parseBackupText(backup([{ key: 'omnistax-lang', value: 'fr', category: 'appearance' }])));
+  assert.equal(validReaderRecord({ key: 'omnistax-lang', value: 'zh-CN', category: 'reading' }), false);
+});

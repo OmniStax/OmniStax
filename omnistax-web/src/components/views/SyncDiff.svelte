@@ -5,7 +5,7 @@
      sides changed the file, the version to keep is chosen here too. */
   import { sizeLabel } from '../../lib/files/model';
   import { hunksOf, lineDiff } from '../../lib/sync/diff';
-  import { GROUP_LABEL } from '../../lib/sync/layout';
+  import { groupLabel } from '../../lib/sync/layout';
   import type { Change } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
   import LineDiff from '../ui/LineDiff.svelte';
@@ -60,7 +60,7 @@
     {@const s = sides(change)}
     <header>
       <h2>{change.label}</h2>
-      <p class="path">{GROUP_LABEL[change.group]} · {change.path}</p>
+      <p class="path">{groupLabel(change.group, i18n.locale)} · {change.path}</p>
       <p class="about">{about(change)}</p>
       {#if change.side === 'both'}
         <span class="choose" role="group" aria-label={i18n.t('views.diff.keepWhich')}>

@@ -19,8 +19,9 @@ import { offline } from './offline';
 import { tips } from './tips';
 import { content } from './content';
 import { about } from './about';
+import { language } from './language';
 
-export const AREAS = { shell, settings, commands, explorer, views, exercises, practice, notes, files, drawer, chat, pomodoro, sheets, offline, tips, content, about } as const;
-export const en = { ...shell, ...settings, ...commands, ...explorer, ...views, ...exercises, ...practice, ...notes, ...files, ...drawer, ...chat, ...pomodoro, ...sheets, ...offline, ...tips, ...content, ...about } as const;
+export const AREAS = { shell, settings, commands, explorer, views, exercises, practice, notes, files, drawer, chat, pomodoro, sheets, offline, tips, content, about, language } as const;
+export const en = { ...shell, ...settings, ...commands, ...explorer, ...views, ...exercises, ...practice, ...notes, ...files, ...drawer, ...chat, ...pomodoro, ...sheets, ...offline, ...tips, ...content, ...about, ...language } as const;
 export type MessageKey = keyof typeof en;
 export type Catalog = Readonly<Record<MessageKey, string>>;

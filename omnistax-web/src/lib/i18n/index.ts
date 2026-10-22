@@ -30,6 +30,19 @@ export const parseLocale = (s: string | null | undefined): Locale | null => {
   return LOCALES.find((l) => l.toLowerCase() === want) ?? null;
 };
 
+/* The language an address asks for, ?lang=zh-CN, and the query without it, so
+   the address the reader keeps names no language: a link can open the app in
+   one once, and the choice is the reader's from then on. An unknown tag is
+   ignored and left where it is. */
+export const localeOfQuery = (search: string): { readonly locale: Locale | null; readonly rest: string } => {
+  const q = new URLSearchParams(search);
+  const locale = parseLocale(q.get('lang'));
+  if (!locale) return { locale: null, rest: search };
+  q.delete('lang');
+  const rest = q.toString();
+  return { locale, rest: rest ? `?${rest}` : '' };
+};
+
 const languageOf = (tag: string): string => tag.trim().replace(/_/g, '-').split('-')[0].toLowerCase();
 
 /* The first of the reader's languages the app has a catalog for: an exact tag,

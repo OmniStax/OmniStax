@@ -18,6 +18,7 @@ import { offline } from './offline';
 import { tips } from './tips';
 import { content } from './content';
 import { about } from './about';
+import { language } from './language';
 
-export const AREAS = { shell, settings, commands, explorer, views, exercises, practice, notes, files, drawer, chat, pomodoro, sheets, offline, tips, content, about } as const;
-export const zhCN: Catalog = { ...shell, ...settings, ...commands, ...explorer, ...views, ...exercises, ...practice, ...notes, ...files, ...drawer, ...chat, ...pomodoro, ...sheets, ...offline, ...tips, ...content, ...about };
+export const AREAS = { shell, settings, commands, explorer, views, exercises, practice, notes, files, drawer, chat, pomodoro, sheets, offline, tips, content, about, language } as const;
+export const zhCN: Catalog = { ...shell, ...settings, ...commands, ...explorer, ...views, ...exercises, ...practice, ...notes, ...files, ...drawer, ...chat, ...pomodoro, ...sheets, ...offline, ...tips, ...content, ...about, ...language };

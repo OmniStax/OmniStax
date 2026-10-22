@@ -11,7 +11,8 @@ import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { viewTitle } from '../icons';
-import type { MessageKey, TFn } from '../i18n/index';
+import { LOCALES, LOCALE_NAMES, type Locale, type MessageKey, type TFn } from '../i18n/index';
+import type { LocaleChoice } from '../i18n/store.svelte';
 
 export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
@@ -61,6 +62,13 @@ export type BuiltinDeps = {
   /* The colours the reader has chosen keep a timeline of their own, so that taking
      back a colour never takes back a highlight. */
   readonly colours: { undo(): void; redo(): void; readonly canUndo: boolean; readonly canRedo: boolean; readonly undoLabel: string; readonly redoLabel: string };
+  /* The reader's UI language (i18n/store.svelte.ts): their choice, what the browser asks for, and the change. */
+  readonly language: { readonly choice: LocaleChoice; readonly system: Locale; setChoice(c: LocaleChoice): void };
+  /* The other editions of the book the focused page belongs to (editions.svelte.ts), and the switch to one. */
+  readonly editions: {
+    current(): { readonly from: string; readonly to: readonly { readonly id: string; readonly label: string; readonly detail?: string }[] } | null;
+    switchTo(from: string, to: string): void;
+  };
 };
 
 /* Where a view is asked for: a tab of the group in hand, the sidebar it calls
@@ -96,6 +104,7 @@ export const BUILTIN = {
   chatNew: commandId('chat-new'),
   findTextbook: commandId('explorer-find-textbook'),
   coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
+  language: commandId('language'), switchLanguage: commandId('book-switch-language'),
 } as const;
 /* One id per view for opening it, and a second for the two that a sidebar holds. */
 export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${kind}`);
@@ -114,6 +123,16 @@ const THEME_KEY: Readonly<Record<Theme, MessageKey>> = { system: 'settings.theme
 const themeOptions = (d: BuiltinDeps) => (['system', 'light', 'dark'] as const satisfies readonly Theme[]).map((t) => ({ value: t, label: d.t(THEME_KEY[t]) }));
 const themeName = (d: BuiltinDeps): string => d.t(THEME_KEY[d.settings.theme]);
 const fontLabel = (id: FontId): string => FONTS.find((f) => f.id === id)?.label ?? id;
+/* The UI language: System (whatever the browser asks for) or a catalog by its own name. */
+const languageOptions = (d: BuiltinDeps) => [
+  { value: 'system', label: d.t('language.setting.system'), detail: LOCALE_NAMES[d.language.system] },
+  ...LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l] })),
+];
+const languageDetail = (d: BuiltinDeps): string => {
+  const c = d.language.choice;
+  return c === 'system' ? d.t('language.command.detail.system', { language: LOCALE_NAMES[d.language.system] }) : LOCALE_NAMES[c];
+};
+const isChoice = (v: string): v is LocaleChoice => v === 'system' || (LOCALES as readonly string[]).includes(v);
 /* Moving the focus between groups only means anything once there are several. */
 const focusGroupCommand = (d: BuiltinDeps, id: CommandId, dir: FocusDir, label: MessageKey): Command =>
   ({ id, label: d.t(label), group: d.t('commands.group.layout'), run: () => d.layout.focusGroup(dir), when: () => d.layout.groupCount > 1 });
@@ -144,6 +163,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
   { id: BUILTIN.open, label: d.t('commands.open'), group: g.app, run: () => d.ui.openBrowser({ group: d.ui.palette.group ?? undefined }), when: () => !d.ui.browser.open },
   { id: BUILTIN.theme, label: d.t('commands.theme'), group: g.appearance, run: () => {}, detail: () => themeName(d),
     choices: () => settingChoices(d, themeOptions(d), d.settings.theme, (theme) => d.settings.setPreview({ theme }), (t) => d.settings.setTheme(t)) },
+  { id: BUILTIN.language, label: d.t('language.command'), group: g.appearance, run: () => {}, detail: () => languageDetail(d),
+    choices: () => ({ options: languageOptions(d), current: d.language.choice, commit: (v) => { if (isChoice(v)) d.language.setChoice(v); } }) },
   { id: BUILTIN.themeCycle, label: d.t('commands.themeCycle'), group: g.appearance, run: () => d.settings.cycleTheme(), detail: () => themeName(d) },
   { id: BUILTIN.figureFont, label: d.t('commands.figureFont'), group: g.appearance, run: () => {}, detail: () => fontLabel(d.settings.figureFont),
     choices: () => settingChoices(d, FONT_OPTIONS, d.settings.figureFont, (figureFont) => d.settings.setPreview({ figureFont }), (f) => d.settings.setFigureFont(f)) },
@@ -183,6 +204,15 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
   { id: BUILTIN.scopeNarrow, label: d.t('commands.scope.narrower'), group: g.view, run: () => d.scope.narrow(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'section' },
   { id: BUILTIN.scopePrevious, label: d.t('commands.scope.previous'), group: g.view, run: () => d.scope.previous(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
   { id: BUILTIN.scopeNext, label: d.t('commands.scope.next'), group: g.view, run: () => d.scope.next(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' },
+  /* The same page in another edition of its book. With one other edition the
+     palette's list holds just it; with none the command is not offered. */
+  { id: BUILTIN.switchLanguage, label: d.t('language.switchBook'), group: g.view,
+    run: () => { const c = d.editions.current(); if (c && c.to.length === 1) d.editions.switchTo(c.from, c.to[0].id); },
+    when: () => d.editions.current() !== null,
+    choices: () => {
+      const c = d.editions.current();
+      return { options: (c?.to ?? []).map((b) => ({ value: b.id, label: b.label, ...(b.detail ? { detail: b.detail } : {}) })), current: '', commit: (to) => { if (c) d.editions.switchTo(c.from, to); } };
+    } },
   scopeCommand(d, BUILTIN.scopeBook, 'book'), scopeCommand(d, BUILTIN.scopeChapter, 'chapter'), scopeCommand(d, BUILTIN.scopeSection, 'section'),
   { id: BUILTIN.scopePin, label: d.t('commands.scope.pin'), group: g.view, run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' && !d.scope.pinned() },
   { id: BUILTIN.scopeUnpin, label: d.t('commands.scope.unpin'), group: g.view, run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.pinned() },

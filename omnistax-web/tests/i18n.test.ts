@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CATALOGS, LOCALES, LOCALE_NAMES, currentLocale, en, format, matchLocale, onLocaleChange, parseLocale, setCurrentLocale, t, tIn, templateShape, type MessageKey } from '../src/lib/i18n/index';
+import { CATALOGS, LOCALES, LOCALE_NAMES, currentLocale, localeOfQuery, en, format, matchLocale, onLocaleChange, parseLocale, setCurrentLocale, t, tIn, templateShape, type MessageKey } from '../src/lib/i18n/index';
 import { AREAS } from '../src/lib/i18n/en/index';
 import { aboutHtml } from '../src/lib/content/pages';
 import fs from 'node:fs';
@@ -181,4 +181,11 @@ test('the linter counts findings per directory with --summary', () => {
   const { code, rows } = lint({ 'a.ts': "const a = 'Hello there friend';\nconst b = 'Another one here';" }, '--summary');
   assert.equal(code, 1);
   assert.match(rows.at(-1)!, /^total\s+2$/);
+});
+
+test('an address may ask for a language once: ?lang= is read and taken off the query', () => {
+  assert.deepEqual(localeOfQuery('?lang=zh-CN'), { locale: 'zh-CN', rest: '' });
+  assert.deepEqual(localeOfQuery('?expr=x%5E2&lang=zh-cn'), { locale: 'zh-CN', rest: '?expr=x%5E2' });
+  assert.deepEqual(localeOfQuery('?lang=fr&expr=1'), { locale: null, rest: '?lang=fr&expr=1' });
+  assert.deepEqual(localeOfQuery(''), { locale: null, rest: '' });
 });

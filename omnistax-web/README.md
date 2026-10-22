@@ -95,6 +95,31 @@ What the linter must never report (a product name, a unit, the content
 check's messages to a book's author) is a line of `scripts/i18n-allow.txt`,
 with the reason above it.
 
+The reader's language is chosen once, as the shell boots
+(`i18n.boot()` in `store.svelte.ts`, called from `Shell.svelte` before the
+commands are registered), in this order: `?lang=zh-CN` in the address (an
+exact catalog tag, any case; it becomes the reader's choice and is taken off
+the address, so a link can open the app in a language once), else the choice
+remembered in this browser under `omnistax-lang`, else the first of the
+browser's languages the app has a catalog for (`zh`, `zh-Hans`, `zh-TW` all
+pick `zh-CN` while it is the only Chinese one), else English. The reader
+changes it in Settings → Appearance → Language (System, English, 中文（简体）;
+the ↺ goes back to System, which follows the browser and changes with it) or
+with the palette's "Change language". Each language is named in itself
+(`LOCALE_NAMES`), never translated. The shell root carries the reader's
+language as its `lang`; on a page of no book (the front page, 404) so does
+`<html>`, while a page of a book keeps the book's. `omnistax-lang` travels in
+a backup with the appearance settings.
+
+A book's editions (a source and its translations, `translation_of` in
+`book.json`) are listed together in Find a textbook, each translation under
+its source. The reader switches the book they are reading to another edition
+from the book row's menu in the Explorer ("Open in Chinese (China)", the language named in the
+reader's language) or with the palette's "Book: switch language"; the same
+page opens in the other edition, or its first built page where that edition
+has not built it yet (`src/lib/explorer/editions.ts` and
+`editions.svelte.ts`). Mastery, highlights and notes stay with each book.
+
 A book's pages are in the book's language, not the reader's. `book.json`
 declares `language` (a BCP 47 tag, `en` where absent); `bookLocale` in
 `fragment.ts` turns it into a catalog, and everything the build writes into

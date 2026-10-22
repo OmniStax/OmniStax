@@ -31,7 +31,7 @@
   import { createDrawing, deleteDrawing, renameDrawing } from '../../lib/drawer/edits';
   import { chatId, chatItem, drawingId, drawingItem } from '../../lib/types/ids';
   import { entriesOf, importFiles, importSummary, importTree, pickedOfEntries, pickedOfInput, type Picked } from '../../lib/files/import';
-  import { ACCEPTED, ACCEPT_ATTR } from '../../lib/files/model';
+  import { acceptedLine, ACCEPT_ATTR } from '../../lib/files/model';
   import ImportToast from '../files/ImportToast.svelte';
   import type { BookManifest, SectionEntry, SheetEntry } from '../../lib/content/schema';
   import { bookPagesOf, pageLabel, pagesOf } from '../../lib/content/roles';
@@ -45,6 +45,9 @@
   import { sizeLabel } from '../../lib/files/model';
   import { i18n } from '../../lib/i18n/store.svelte';
   import type { MessageKey } from '../../lib/i18n/index';
+  import { library } from '../../lib/explorer/library.svelte';
+  import { editionsToSwitch, switchEdition } from '../../lib/explorer/editions.svelte';
+  import { languageName } from '../../lib/explorer/editions';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'chat' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
@@ -372,6 +375,11 @@
     { label: i18n.t('explorer.menu.theme'), run: () => openPinned('colours', { level: 'book', book: t.book }) },
   ];
   const PRACTISE_KEY: Readonly<Record<Target['level'], MessageKey>> = { book: 'explorer.menu.practiseBook', chapter: 'explorer.menu.practiseChapter', section: 'explorer.menu.practiseSection' };
+  /* The book's other editions, one item each: the same page opens in the other language. */
+  const editionItems = (id: string) => editionsToSwitch(bookId(id)).map((b) => ({
+    label: i18n.t('language.openIn', { language: languageName(b.language, i18n.locale) }),
+    run: () => { void switchEdition(bookId(id), bookId(b.id)); },
+  }));
   /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
   const offlineItems = (id: string) => {
     const rec = offlineBooks.records[id];
@@ -404,7 +412,7 @@
     ] : [];
     const t = placeOf(r);
     if (!e) return t ? [...opens, ...placeItems(t)] : opens;
-    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: i18n.t('explorer.menu.removeBook'), danger: true, run: () => removeBookRow(e) }];
+    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? editionItems(e.bookId) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: i18n.t('explorer.menu.removeBook'), danger: true, run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       ...opens,
@@ -509,6 +517,8 @@
   /* On the first showing, the book of the page opens down to the chapter being
      read, so that the tree says where the reader is standing. */
   let seeded = false;
+  /* The catalogue the row menu reads a book's editions from. */
+  onMount(() => { void library.load(); });
   onMount(() => {
     if (seeded || explorer.tree.expanded.length) { seeded = true; return; }
     seeded = true;
@@ -590,7 +600,7 @@
               onclick={(e) => { e.stopPropagation(); openPinned('colours', { level: 'book', book: bookId(id) }); }}>{@html ICON.colours}</button>
           {/if}
           {#if r.root === 'notes'}
-            <button type="button" class="tool" id="import-files" tabindex="-1" title={i18n.t('explorer.importTitle', { types: ACCEPTED })} aria-label={i18n.t('explorer.import')}
+            <button type="button" class="tool" id="import-files" tabindex="-1" title={i18n.t('explorer.importTitle', { types: acceptedLine() })} aria-label={i18n.t('explorer.import')}
               onclick={(e) => { e.stopPropagation(); importMenu = { x: e.clientX, y: e.clientY }; }}>{@html ICON.importFile}</button>
             <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" aria-label={i18n.t('explorer.newNote')}
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>

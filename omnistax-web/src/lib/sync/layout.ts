@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
 import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, isScalarKey, parseBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
-import { t, type MessageKey } from '../i18n';
+import { type Locale, type MessageKey, currentLocale, t, tIn } from '../i18n';
 
 export type RepoPath = string;
 export type SyncGroup = 'records' | 'chats' | 'drawings' | 'scratch' | 'generated' | 'files' | 'images';
@@ -16,10 +16,9 @@ export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'sc
 const GROUP_KEY: Readonly<Record<SyncGroup, MessageKey>> = {
   records: 'files.sync.group.records', chats: 'files.sync.group.chats', drawings: 'files.sync.group.drawings', scratch: 'files.sync.group.scratch', generated: 'files.sync.group.generated', files: 'files.sync.group.files', images: 'files.sync.group.images',
 };
-export const groupLabel = (g: SyncGroup): string => t(GROUP_KEY[g]);
-/* Read in the language of the moment each time a label is asked for. */
-export const GROUP_LABEL: Readonly<Record<SyncGroup, string>> = Object.defineProperties({} as Record<SyncGroup, string>,
-  Object.fromEntries(GROUPS.map((g) => [g, { enumerable: true, get: () => groupLabel(g) }])));
+/* A group's name in the given language, the current one by default; a
+   component passes i18n.locale so that the name follows a change of it. */
+export const groupLabel = (g: SyncGroup, locale: Locale = currentLocale()): string => tIn(locale, GROUP_KEY[g]);
 
 export const groupOf = (path: RepoPath): SyncGroup | null =>
   path === MANIFEST ? 'records' : GROUPS.find((g) => path.startsWith(`${g}/`)) ?? null;

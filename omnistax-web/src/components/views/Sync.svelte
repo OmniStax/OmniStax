@@ -11,7 +11,7 @@
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { openInFocus } from '../../lib/layout/model';
   import { repoName } from '../../lib/sync/github';
-  import { GROUP_LABEL } from '../../lib/sync/layout';
+  import { groupLabel } from '../../lib/sync/layout';
   import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
   import { sync } from '../../lib/sync/store.svelte';
@@ -98,7 +98,7 @@
               <span class="label">{c.label}</span>
               <span class="state" class:bad={s?.kind === 'failed' || (!s && stuck(c))} class:ok={s?.kind === 'done'}>{stateText(s, c)}</span>
               <span class="letter l{c.letter === '!' ? 'C' : c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
-              <span class="group">{GROUP_LABEL[c.group]}</span>
+              <span class="group">{groupLabel(c.group, i18n.locale)}</span>
             </button>
             {#if choosing}
               <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
@@ -181,7 +181,7 @@
     {#if lost.length}
       <p class="loss">{pull ? i18n.t('views.sync.lossDevice', { n: lost.length }) : i18n.t('views.sync.lossRepo', { n: lost.length })}</p>
       <ul class="lost">
-        {#each lost.slice(0, 8) as c (c.path)}<li>{c.label} <span>{GROUP_LABEL[c.group]}</span></li>{/each}
+        {#each lost.slice(0, 8) as c (c.path)}<li>{c.label} <span>{groupLabel(c.group, i18n.locale)}</span></li>{/each}
         {#if lost.length > 8}<li class="rest">{i18n.t('views.hover.andMore', { n: lost.length - 8 })}</li>{/if}
       </ul>
     {:else}

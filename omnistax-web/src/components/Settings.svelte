@@ -20,7 +20,8 @@
   import Ai, { aiWords } from './settings/Ai.svelte';
   import Fold from './settings/Fold.svelte';
   import { i18n } from '../lib/i18n/store.svelte';
-  import type { MessageKey } from '../lib/i18n/index';
+  import { LOCALES, LOCALE_NAMES, type MessageKey } from '../lib/i18n/index';
+  import type { LocaleChoice } from '../lib/i18n/store.svelte';
   import type { Theme } from '../lib/settings/store.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
@@ -54,7 +55,11 @@
     lockGrace: t('settings.lockGrace.hint'),
   });
   const fontNames = FONTS.map((f) => f.label).join(' ');
+  /* The language row: System, then each catalog by its own name, which is never translated. */
+  const LANGUAGE_CHOICES: readonly LocaleChoice[] = ['system', ...LOCALES];
+  const languageLabel = (c: LocaleChoice): string => (c === 'system' ? t('language.setting.system') : LOCALE_NAMES[c]);
   const ROWS = $derived({
+    language: `${t('language.setting.name')} ${t('language.searchWords')} ${LOCALE_NAMES[i18n.system]}`,
     theme: `${t('settings.theme.name')} ${t('settings.theme.keywords')}`, figureFont: `${t('settings.figureFont.name')} ${t('settings.figureFont.keywords')} ${fontNames}`, bodyFont: `${t('settings.bodyFont.name')} ${t('settings.bodyFont.keywords')} ${fontNames}`,
     zoom: `${t('settings.zoom.name')} ${t('settings.zoom.keywords')} ${HINT.zoom}`, zoomKeys: `${t('settings.zoomKeys.name')} ${HINT.zoomKeys}`, tips: `${t('settings.tips.name')} ${t('settings.tips.keywords')} ${HINT.tips}`,
     anim: `${t('settings.anim.name')} ${t('settings.anim.keywords')} ${HINT.anim}`, voice: `${t('settings.voice.name')} ${t('settings.voice.keywords')} ${HINT.voice}`, cardOpen: `${t('settings.cardOpen.name')} ${t('settings.cardOpen.keywords')} ${HINT.cardOpen}`,
@@ -63,7 +68,7 @@
     startingHalfLife: `${t('settings.startingHalfLife.name')} ${t('settings.startingHalfLife.keywords')}`, maxHalfLife: `${t('settings.maxHalfLife.name')} ${t('settings.maxHalfLife.keywords')}`,
     storage: `${t('settings.section.storage')} ${t('settings.storage.keywords')}`,
   });
-  const APPEARANCE = $derived([ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips]), READING = $derived([ROWS.cardOpen, ROWS.anim, ROWS.voice]);
+  const APPEARANCE = $derived([ROWS.language, ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips]), READING = $derived([ROWS.cardOpen, ROWS.anim, ROWS.voice]);
   const PRACTICE = $derived([ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife]);
   const SHORTCUT_WORDS = $derived(`${t('settings.section.shortcuts')} ${t('settings.shortcuts.keywords')}`);
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
@@ -172,6 +177,15 @@
       </header>
 
       <Fold id="Appearance" name={t('settings.section.appearance')} show={APPEARANCE.some(hit)} force={!!q}>
+        <div class="row" hidden={!hit(ROWS.language)}>
+          <span class="name">{t('language.setting.name')}{@render back(i18n.choice !== 'system', resetTo(t('language.setting.system')), () => i18n.setChoice('system'))}</span>
+          <span class="hint">{t('language.setting.hint', { language: LOCALE_NAMES[i18n.system] })}</span>
+          <div class="seg" role="radiogroup" aria-label={t('language.setting.name')} id="language-setting">
+            {#each LANGUAGE_CHOICES as c (c)}
+              <button type="button" class:on={i18n.choice === c} role="radio" aria-checked={i18n.choice === c} lang={c === 'system' ? undefined : c} onclick={() => i18n.setChoice(c)}>{languageLabel(c)}</button>
+            {/each}
+          </div>
+        </div>
         <div class="row" hidden={!hit(ROWS.theme)}>
           <span class="name">{t('settings.theme.name')}{@render back(settings.theme !== DEFAULTS.theme, resetTo(t(THEME_NAME[DEFAULTS.theme])), () => settings.setTheme(DEFAULTS.theme))}</span>
           <div class="seg" role="radiogroup" aria-label={t('settings.theme.name')}>
@@ -303,7 +317,7 @@
   .find{flex:1;min-width:0}
   .seg,.row>.num{display:inline-flex;align-items:center;overflow:hidden;padding:0}
   .seg{grid-column:3}
-  .seg button,.row>.num button{font:inherit;font-size:0.82rem;line-height:1.25;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
+  .seg button,.row>.num button{font:inherit;font-size:0.82rem;line-height:1.25;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer;white-space:nowrap}
   .seg button+button,.row>.num button:last-child,.row>.num input,.row>.num .unit.zoom{border-left:1px solid var(--rule)}
   .seg button:hover,.row>.num button:hover:not(:disabled){background:var(--soft);color:var(--ink)}
   .seg button.on{background:var(--soft);color:var(--ink);font-weight:600}

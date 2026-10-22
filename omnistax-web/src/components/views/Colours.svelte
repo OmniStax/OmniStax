@@ -20,7 +20,7 @@
   import { VISIONS, type Vision } from '../../lib/colours/oklab';
   import type { DealtMode, RefMode } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
-  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy } from '../../lib/settings/highlights';
+  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy, type HighlightKey } from '../../lib/settings/highlights';
   import { highlights } from '../../lib/settings/highlights.svelte';
   import SymbolList from './SymbolList.svelte';
 
@@ -29,6 +29,10 @@
   $effect.pre(() => { if (book) colours.select(book); });
   const manifest = $derived(book ? registry.manifest(book) : null);
   const types = $derived(colours.order);
+  /* The switches' names and reasons are read in the current language; reading
+     i18n.locale here makes the row say them anew when the reader changes it. */
+  const hlLabel = (k: HighlightKey): string => { void i18n.locale; return HIGHLIGHT_LABELS[k]; };
+  const heldOf = (v: Parameters<typeof heldOffBy>[0], k: HighlightKey): string | null => { void i18n.locale; return heldOffBy(v, k); };
   const labelOf = (k: TypeKey): string => manifest?.types[k]?.label ?? k;
   const hlBook = $derived(book ? highlights.bookOf(book) : null);
   const hlValues = $derived(book ? highlights.valuesOf(book) : null);
@@ -165,13 +169,13 @@
     <div class="eyebrow">{i18n.t('views.colours.colorCode')}</div>
     <ul class="rows hl">
       {#each HIGHLIGHT_KEYS as k (k)}
-        {@const held = heldOffBy(hlValues, k)}
+        {@const held = heldOf(hlValues, k)}
         {@const value = hlValues[k]}
         {@const def = hlBook.defaults[k]}
         <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
-          <span class="name">{HIGHLIGHT_LABELS[k]}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} aria-label={HIGHLIGHT_LABELS[k]} onclick={() => highlights.set(k, !value, book)}></button>
+          <span class="name">{hlLabel(k)}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} aria-label={hlLabel(k)} onclick={() => highlights.set(k, !value, book)}></button>
           {#if value !== def}
-            <button type="button" class="clear" title={i18n.t(def ? 'views.colours.backToDefaultOn' : 'views.colours.backToDefaultOff')} aria-label={i18n.t(def ? 'views.colours.resetToDefaultOn' : 'views.colours.resetToDefaultOff', { name: HIGHLIGHT_LABELS[k] })} onclick={() => highlights.reset(k, book)}>×</button>
+            <button type="button" class="clear" title={i18n.t(def ? 'views.colours.backToDefaultOn' : 'views.colours.backToDefaultOff')} aria-label={i18n.t(def ? 'views.colours.resetToDefaultOn' : 'views.colours.resetToDefaultOff', { name: hlLabel(k) })} onclick={() => highlights.reset(k, book)}>×</button>
           {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
         </li>
       {/each}
