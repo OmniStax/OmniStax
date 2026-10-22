@@ -1,4 +1,4 @@
-/* User settings: theme, animations, exercise view mode, voice, and whether a concept
+/* User settings: theme, whether figures start playing, exercise view mode, voice, and whether a concept
    map opens with the practice bars drawn on its nodes. What a book colours and
    underlines is the book's own (highlights.ts), read here for the page.
    Each is remembered in this browser and applied to the document as a class or
@@ -18,9 +18,9 @@ export type CardOpen = 'hover' | 'click';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
 export type Preview = { figureFont?: FontId; bodyFont?: FontId; theme?: Theme };
 export const LOCK_GRACE = { min: 3, max: 120 } as const;
-export const DEFAULTS = { theme: 'system' as Theme, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, zoomKeys: true, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
+export const DEFAULTS = { theme: 'system' as Theme, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
 
-const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', zoomKeys: 'omnistax-zoom-keys', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
+const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -32,6 +32,8 @@ const readGrace = (): number => { const s = read(KEYS.lockGrace); const v = Numb
 
 class Settings {
   theme = $state<Theme>(readTheme());
+  /* Whether every figure runs or every figure stands still: the "Figures start"
+     setting, playing unless the reader chose paused. */
   animations = $state(read(KEYS.anim) !== '0');
   exerciseMode = $state<ExerciseMode>(read(KEYS.exmode) === 'one' ? 'one' : 'all');
   voice = $state(read(KEYS.voice) === '1');
@@ -39,12 +41,10 @@ class Settings {
      them. Each map keeps its own switch afterwards, so this only says what a
      map that has just opened shows. */
   mapProgress = $state(read(KEYS.mapProgress) !== '0');
-  /* How large the app's own text is, and whether Ctrl+= / Ctrl+− / Ctrl+0 are
-     the book's keys or the browser's. Off hands the three chords straight back
-     to the browser, which zooms the whole page with them as it always did; the
-     three commands stay in the palette either way. */
+  /* How large the app's own text is. Ctrl+= / Ctrl+− / Ctrl+0 are the book's
+     keys, always: the shell takes them for its own text and the browser never
+     sees them. */
   zoom = $state<ZoomStep>(readZoom());
-  zoomKeys = $state(read(KEYS.zoomKeys) !== '0');
   /* Which mouse button drags a card out of a panel. Off — the way the book
      comes — the left button drags and the right one sweeps a selection across
      the words; on, the two trade places, for a reader who would rather keep
@@ -85,11 +85,10 @@ class Settings {
   zoomIn(): void { this.setZoom(zoomBy(this.zoom, 1)); }
   zoomOut(): void { this.setZoom(zoomBy(this.zoom, -1)); }
   resetZoom(): void { this.setZoom(ZOOM_DEFAULT); }
-  setZoomKeys(on: boolean): void { this.zoomKeys = on; write(KEYS.zoomKeys, on ? '1' : '0'); }
   setSwapDragButtons(on: boolean): void { this.swapDragButtons = on; write(KEYS.swapDrag, on ? '1' : '0'); }
   setTips(on: boolean): void { this.tips = on; write(KEYS.tips, on ? '1' : '0'); }
   setCardOpen(m: CardOpen): void { this.cardOpen = m; write(KEYS.cardOpen, m); }
   setLockGrace(s: number): void { if (!Number.isFinite(s)) return; this.lockGrace = clampGrace(s); write(KEYS.lockGrace, String(this.lockGrace)); }
-  reset(): void { Object.values(KEYS).forEach(remove); }
+  reset(): void { Object.values(KEYS).forEach(remove); remove('omnistax-zoom-keys'); }
 }
 export const settings = new Settings();

@@ -22,10 +22,8 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+,', 'settings'], ['Ctrl+K Ctrl+S', 'settings'],
   ['Ctrl+P', 'open'],   /* the editors' quick open; Ctrl+P is the browser's print, which the shell already swallows */
   ['Ctrl+Shift+A', 'animations'],
-  /* The browser's own zoom chords, taken for the book's text while the "Zoom
-     keys" setting is on; off, the shell never dispatches them and the browser
-     zooms the page as it always did. Any key that types + reads as Ctrl++
-     (chord.ts), and Ctrl+= spares the Shift. */
+  /* The browser's own zoom chords, taken for the book's text. Any key that
+     types + reads as Ctrl++ (chord.ts), and Ctrl+= spares the Shift. */
   ['Ctrl++', 'zoom-in'], ['Ctrl+=', 'zoom-in'],
   ['Ctrl+-', 'zoom-out'], ['Ctrl+0', 'zoom-reset'],
   ['Ctrl+Shift+[', 'fold-all'], ['Ctrl+Shift+]', 'unfold-all'],

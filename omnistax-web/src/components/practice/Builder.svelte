@@ -2,7 +2,6 @@
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import PageHead from './PageHead.svelte';
-  import UpNext from './UpNext.svelte';
   import ReadyToLearn from './ReadyToLearn.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
   import SessionPlan from './SessionPlan.svelte';
@@ -20,8 +19,6 @@
   {#if loading}<p class="loading" role="status">Loading exercises…</p>{/if}
   <div class="cols">
     <section class="choose">
-      <h3 class="section-title">Choose</h3>
-      <UpNext {item} mode="add" label="Quick picks" />
       <ReadyToLearn {item} selectable folded />
       <div class="tree"><CurriculumTree {item} {shelf} open={shelf[0] ?? null} /></div>
     </section>
@@ -36,7 +33,6 @@
   .loading{margin:0 0 12px;color:var(--muted);font-size:0.78rem}
   .cols{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
   .choose{display:flex;flex-direction:column;gap:12px;min-width:0}
-  .choose h3{margin:0}
   .tree{max-height:55vh;overflow:auto;border-bottom:1px solid var(--rule)}
   @container (min-width:760px){
     .cols{grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:32px}

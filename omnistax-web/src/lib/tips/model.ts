@@ -19,7 +19,7 @@ export const TIPS: readonly Tip[] = [
   { text: 'Each book has a theme, behind the palette button on its row in the Explorer: the color of every quantity, the palette, and what it color codes.' },
   { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
   { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
-  { text: 'Ctrl-click or middle-click a section, note, drawing or link to open it in a new group beside this one.' },
+  { text: 'Hold Ctrl as you open most things, or middle-click them, to open them in a new group beside this one.' },
 ];
 
 /* The tip a step forward or back from this one, wrapping at either end. */

@@ -26,17 +26,14 @@ does not determine placement or the amount of evidence.
 
 ## Attainment
 
-The global mastery target defaults to three. For concept `c`, the actual target
-is
-
-```
-q(c) = min(global mastery target, distinct end exercises that test c)
-```
-
-Concepts with no end exercises can be selected only while generated exercises
-are included; then stored generated items count toward availability too (see
-`generated-exercises.md`). A correct answer adds one step to every unmastered concept the exercise tests; an
-incorrect answer subtracts one, clamped to `0..q(c)`. The UI therefore shows
+The global mastery target defaults to three, and it is the target of every
+concept, however few end exercises test it: a concept the book has one or no
+exercise for is mastered by generated exercises or by the reader's own
+override, never by a lower bar. Concepts with no end exercises can be selected
+for a round only while generated exercises are included; then stored generated
+items count toward availability too (see `generated-exercises.md`). A correct
+answer adds one step to every unmastered concept the exercise tests; an
+incorrect answer subtracts one, clamped to `0..target`. The UI therefore shows
 discrete fractions such as `1/3` and `2/3`.
 
 Outcomes are settled together when the round ends. Reaching the target marks
@@ -93,13 +90,12 @@ the concepts it introduces (Concepts lens) or its end exercises in print order
 (Exercises lens). A concept unfolds to every exercise that tests it. Every row
 in the builder has a checkbox, down to a single exercise; selecting happens
 only in New session. On the dashboard the tree is read-only progress, with
-"Mark mastered", "Mark unpracticed" and "Calculate mastery from exercise
-history" on each concept, and "Mark all mastered", "Mark
-all unpracticed" and "Calculate mastery from exercise history" on each
-section, chapter or book. A concept's name opens its card on hover and does
+"Mark mastered", "Mark unpracticed" and "Remove override" on each concept,
+and "Mark all mastered", "Mark all unpracticed" and "Remove overrides" on
+each section, chapter or book; the remove item is greyed out where there is no
+override to remove. A concept's name opens its card on hover and does
 not navigate.
-Quick picks in the builder add the due concepts, the concepts in progress, or
-the section being read. Ready to learn lists the built, unmastered concepts
+Ready to learn lists the built, unmastered concepts
 whose prerequisites are all mastered, grouped by section. On the dashboard each
 opens the concept, and "Show all N" toggles to "Show fewer". New session holds
 it folded as "Ready to learn · N concepts", with a checkbox per concept and
@@ -168,10 +164,10 @@ only when opened. Practice still loads the full shelf before it composes a
 round.
 
 Override is not a mode. A concept row's ⋯ menu marks it mastered or
-unpracticed, or calculates its mastery from exercise history again. Every
-built concept has it, including concepts with no exercise. No intermediate
-level can be set by hand. The mark is stored as a separate self-assessment
-rather than as fake attempts; calculating from history removes it.
+unpracticed, or removes the override so mastery is read from exercise history
+again. Every built concept has it, including concepts with no exercise. No
+intermediate level can be set by hand. The mark is stored as a separate
+self-assessment rather than as fake attempts; removing it removes the mark.
 
 An overridden mastered concept begins at the starting half-life. Concepts
 with exercises use normal exercise reviews. The store still keeps the

@@ -19,12 +19,14 @@ const inChapter = (p: Pick, book: string, chapter: string, cat: Catalog): boolea
   isChapterPick(p, book, chapter) || (isPlacePick(p) && p.book === book && !!p.section && (p.chapter === chapter || cat.sectionsOf(book, chapter).includes(p.section)));
 const roll = (checks: readonly Check[]): Check => checks.length > 0 && checks.every((k) => k === 'on') ? 'on' : checks.some((k) => k !== 'off') ? 'some' : 'off';
 
-export const checkOf = (c: Curriculum, node: Node, cat: Catalog, shape: Shape): Check => {
+/* `inside` is the set conceptsOf(c, cat) names, passed by a caller that asks for
+   many nodes of one curriculum so the set is read once rather than per node. */
+export const checkOf = (c: Curriculum, node: Node, cat: Catalog, shape: Shape, inside?: ReadonlySet<string>): Check => {
   switch (node.level) {
     case 'exercise': return c.some((p) => isExercisePick(p) && p.exercise.book === node.book && p.exercise.section === node.section && p.exercise.ex === node.ex) ? 'on' : 'off';
     case 'concept':
       if (c.some((p) => isConceptPick(p) && p.concept === node.concept)) return 'on';
-      if (conceptsOf(c, cat).has(node.concept)) return 'some';
+      if ((inside ?? conceptsOf(c, cat)).has(node.concept)) return 'some';
       return c.filter(isExercisePick).some((p) => cat.exercises.some((e) => e.book === p.exercise.book && e.section === p.exercise.section && e.ex.id === p.exercise.ex && e.ex.concepts.includes(conceptId(node.concept)))) ? 'some' : 'off';
     case 'section': {
       if (c.some((p) => isBookPick(p, node.book) || isChapterPick(p, node.book, node.chapter) || isSectionPick(p, node.book, node.section))) return 'on';
@@ -33,10 +35,10 @@ export const checkOf = (c: Curriculum, node: Node, cat: Catalog, shape: Shape): 
     }
     case 'chapter':
       if (c.some((p) => isBookPick(p, node.book) || isChapterPick(p, node.book, node.chapter))) return 'on';
-      return roll(cat.sectionsOf(node.book, node.chapter).map((section) => checkOf(c, { level: 'section', book: node.book, chapter: node.chapter, section }, cat, shape)));
+      return roll(cat.sectionsOf(node.book, node.chapter).map((section) => checkOf(c, { level: 'section', book: node.book, chapter: node.chapter, section }, cat, shape, inside)));
     case 'book':
       if (c.some((p) => isBookPick(p, node.book))) return 'on';
-      return roll(shape.chapters(node.book).map((chapter) => checkOf(c, { level: 'chapter', book: node.book, chapter }, cat, shape)));
+      return roll(shape.chapters(node.book).map((chapter) => checkOf(c, { level: 'chapter', book: node.book, chapter }, cat, shape, inside)));
   }
 };
 

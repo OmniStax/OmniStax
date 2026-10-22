@@ -47,7 +47,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
-  import { availabilityOf, readyConcepts } from '../../lib/practice/model';
+  import { readyConcepts } from '../../lib/practice/model';
   import { settings } from '../../lib/settings/store.svelte';
   import { flushSync, getContext as getCtx, onDestroy, tick, untrack } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
@@ -121,7 +121,6 @@
   /* Whether this map draws the practice bars: it starts where the setting says and is this map's own from then on. */
   let showProgress = $state(settings.mapProgress);
   $effect(() => { if (showProgress) void books.load(book); });
-  const practicable = $derived(showProgress ? availabilityOf(practice.catalog()) : {});
 
   /* ---------- where the nodes stand ---------- */
   type Source = 'build' | 'worker' | 'here';
@@ -636,7 +635,7 @@
             {@const p = place(c.id)}
             {#if p && p.s > GONE}
               {@const l = labelOf(c)}
-              {@const bar = showProgress && !c.ext && (practice.stateOf(c.id) !== 'untouched' || (practicable[c.id] ?? 0) > 0)}
+              {@const bar = showProgress && !c.ext}
               <g class="node k-{c.kind}" class:ext={c.ext} class:in={inFocus(c.id)} class:far={p.s < LABEL_MIN} class:selected={selected.has(c.id)} class:pinned={pin.pinned === c.id} class:open={open === c.id} class:active={coverage?.introduces.includes(c.id)} class:active-weak={coverage?.uses.includes(c.id)}
                 transform="translate({p.x},{p.y}){p.s === 1 ? '' : ` scale(${p.s})`}" data-id={c.id} data-concept={c.status === 'placeholder' ? undefined : c.id} data-card-open="dblclick"
                 data-state={bar ? practice.stateOf(c.id) : undefined} data-half={bar && practice.share(c.id) >= 0.5 ? '1' : undefined} tabindex="0" role="button" aria-label={plain(c.name)}>

@@ -145,6 +145,8 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
       canUndo: colourTimeline.undoLabel !== undefined, canRedo: colourTimeline.redoLabel !== undefined,
       undoLabel: colourTimeline.undoLabel ?? '', redoLabel: colourTimeline.redoLabel ?? '',
     },
+    highlights: { here: 'physics', on: () => true, set: (k, on) => log.push(`colour ${k} ${on}`) },
+    practice: { canPractise: () => true, practise: (l) => log.push(`practise ${l}`) },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {
@@ -230,7 +232,7 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
     if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, 'View', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'search', 'sync', 'annotations', 'pomodoro']);
-  assert.equal(by(openViewId('reference')).label, 'Open Reference in a split');
+  assert.equal(by(openViewId('reference')).label, 'Open Reference');
   assert.equal(by(openViewId('explorer')).label, 'Open Explorer in a group');
   assert.equal(by(showViewId('annotations')).label, 'Show Annotations in the sidebar');
   by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run();

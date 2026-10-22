@@ -141,10 +141,10 @@ const builtOf = (ch: ChapterEntry): readonly SectionEntry[] => [...(ch.intro ? [
 const chapterNode = (book: BookId, ch: ChapterEntry): PickerNode => {
   const secs = builtOf(ch);
   const row: PickerRow = {
-    category: 'chapters', key: `${book}/${ch.id}`, label: ch.title, detail: '',
-    text: [ch.title, ...secs.map((s) => sectionLabel(s.id, s.title))].join('\n'),
+    category: 'chapters', key: `${book}/${ch.id}`, label: sectionLabel(ch.id, ch.title), detail: '',
+    text: [sectionLabel(ch.id, ch.title), ...secs.map((s) => sectionLabel(s.id, s.title))].join('\n'),
   };
-  return { key: ch.id, label: ch.title, detail: count(secs.length, 'section', 'sections'), row, children: () => secs.map((s) => sectionNode(book, ch, s)) };
+  return { key: ch.id, label: sectionLabel(ch.id, ch.title), detail: count(secs.length, 'section', 'sections'), row, children: () => secs.map((s) => sectionNode(book, ch, s)) };
 };
 
 /* A book's chapters come with its manifest; its concepts, tables and problem

@@ -52,15 +52,14 @@ The chrome:
   opens the chosen text as a tab in that group. The focused group has the underlined tab, and the companion
   views follow its scroll position.
 - **Settings** is a popover from the gear, not a view: colour coding, dark
-  mode, text size, a "Play animations" switch that pauses every figure in every
-  loaded section, reset layout.
+  mode, text size, a "Figures start" choice (paused or playing) that pauses or
+  runs every figure in every loaded section, reset layout.
 - **Text size** is the app's own zoom: one root font size, which every rem in
   the book and in the chrome is measured against, so the reading column, the
   rails and the views grow together and the window keeps its width. Ctrl+=,
   Ctrl+− and Ctrl+0 walk a ladder of sizes and are remembered in this browser;
-  the "Zoom keys" switch hands the three chords back to the browser, which
-  zooms the whole page with them as it always did. The three commands stay in
-  the palette either way.
+  the shell always takes the three chords, so the browser never zooms the page
+  with them.
 - **Exercises** in the end-of-section list show all at once or one at a
   time with previous/next; the choice is remembered per browser, and a
   link into a hidden card switches to that card.

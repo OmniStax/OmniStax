@@ -6,7 +6,7 @@ import { registry } from '../sections/registry.svelte';
 import { books } from './books.svelte';
 import { emptyCatalog, mergeCatalog } from './books';
 import {
-  DEFAULT_SETTINGS, availabilityOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, readyConcepts, rebuild,
+  DEFAULT_SETTINGS, availabilityOf, conceptsOf, dueConcepts, exerciseRefsOf, freshnessOf, keyOf, newSessionId, prepare, progressOf, readyConcepts, rebuild,
   sessionId, shareOf, startedConcepts, dropSlots, fillSlots, removeSlot, isPending, PENDING, stateOf, togglePick, uniqueById,
   type Attempt, type Catalog, type Curriculum, type Drawn, type ExerciseRef, type Mastery, type Pick,
   type PracticeSettings, type Presentation, type Progress, type RoundEnd, type RoundPlan,
@@ -168,8 +168,11 @@ class Practice {
   pages = $state.raw<Readonly<Record<ItemKey, Page>>>({});
   sessions = $state.raw<Readonly<Record<SessionId, Session>>>({});
   /* Book exercises per concept, and the stored generated ones beside them unless the reader keeps to the book. */
+  /* The book's own end exercises per concept, read once per change of the books:
+     the session plan asks for it on every row. */
+  private readonly bookAvailability: Readonly<Record<string, number>> = $derived(availabilityOf(this.catalog()));
   readonly availability: Readonly<Record<string, number>> = $derived.by(() => {
-    const book = availabilityOf(this.catalog());
+    const book = this.bookAvailability;
     if (this.settings.generated !== 'include') return book;
     const out = { ...book };
     Object.entries(generated.counts()).forEach(([id, n]) => { out[id] = (out[id] ?? 0) + n; });
@@ -190,8 +193,22 @@ class Practice {
     void generated.load();
   }
 
-  catalog(): Catalog {
-    return mergeCatalog(emptyCatalog, Object.entries(books.loaded));
+  /* The books' exercises as one catalog, merged once per change of the books
+     rather than on every ask: the curriculum tree asks for it on every row. */
+  private readonly merged: Catalog = $derived(mergeCatalog(emptyCatalog, Object.entries(books.loaded)));
+  catalog(): Catalog { return this.merged; }
+  /* The built concepts of each loaded book by section, read once per change of the books. */
+  private readonly bySection: ReadonlyMap<string, readonly string[]> = $derived.by(() => {
+    const out = new Map<string, string[]>();
+    Object.entries(books.loaded).forEach(([book, b]) => uniqueById(b.concepts).forEach((c) => { if (c.status !== 'built') return; const k = `${book}/${c.section}`; (out.get(k) ?? out.set(k, []).get(k)!).push(c.id); }));
+    return out;
+  });
+  /* The concepts a curriculum reaches, kept for the curriculum and catalog it was read from. */
+  private inside: { readonly curriculum: Curriculum; readonly catalog: Catalog; readonly set: ReadonlySet<string> } | null = null;
+  private insideOf(curriculum: Curriculum): ReadonlySet<string> {
+    const cat = this.catalog();
+    if (this.inside?.curriculum !== curriculum || this.inside.catalog !== cat) this.inside = { curriculum, catalog: cat, set: conceptsOf(curriculum, cat) };
+    return this.inside.set;
   }
   conceptOf(id: string, book?: string): ConceptDTO | undefined { return books.concept(id, book); }
   bookTitle(id: string): string { return books.title(id); }
@@ -206,12 +223,12 @@ class Practice {
   get lifetime(): number { return this.attempts.length; }
   available(id: string): number { return this.availability[id] ?? 0; }
   /* The book's own end exercises for a concept, without the generated ones. */
-  bookAvailable(id: string): number { return availabilityOf(this.catalog())[id] ?? 0; }
+  bookAvailable(id: string): number { return this.bookAvailability[id] ?? 0; }
 
   record(book: string, section: SectionId, ex: ExerciseDTO, ok: boolean, _self = true, now = Date.now(), inRound?: SessionId): Attempt {
     const round = inRound ?? Object.values(this.sessions).find((s) => s.drawn[s.at]?.book === book && s.drawn[s.at]?.section === section && s.drawn[s.at]?.ex === ex.id)?.id;
     const release = offlineBooks.releaseOf(book);
-    const mastered = ok ? ex.concepts.filter((id) => { const before = this.mastery[id]; const target = before?.target ?? Math.min(this.settings.masteryTarget, Math.max(1, this.available(id))); return !before?.mastered && (before?.level ?? 0) + 1 >= target; }) : [];
+    const mastered = ok ? ex.concepts.filter((id) => { const before = this.mastery[id]; const target = before?.target ?? this.settings.masteryTarget; return !before?.mastered && (before?.level ?? 0) + 1 >= target; }) : [];
     const attempt: Attempt = { book, section, ex: ex.id, at: now, ok, concepts: [...ex.concepts], ...(round ? { round } : {}), ...(release ? { release } : {}), ...(mastered.length ? { mastered } : {}) };
     this.attempts = [...this.attempts, attempt];
     if (round) {
@@ -276,10 +293,10 @@ class Practice {
   shape(): Shape {
     return {
       chapters: (book) => books.manifest(book)?.chapters.map((c) => c.id) ?? [],
-      conceptsIn: (book, section) => this.conceptsIn(book).filter((c) => c.status === 'built' && c.section === section).map((c) => c.id),
+      conceptsIn: (book, section) => this.bySection.get(`${book}/${section}`) ?? (books.loaded[book] ? [] : registry.concepts(bookId(book)).filter((c) => c.status === 'built' && c.section === section).map((c) => c.id)),
     };
   }
-  check(key: ItemKey, node: Node): Check { return checkOf(this.page(key).curriculum, node, this.catalog(), this.shape()); }
+  check(key: ItemKey, node: Node): Check { const c = this.page(key).curriculum; return checkOf(c, node, this.catalog(), this.shape(), this.insideOf(c)); }
   setNode(key: ItemKey, node: Node, on: boolean): void { const page = this.page(key); this.set(key, { ...page, curriculum: [...setNode(page.curriculum, node, on, this.catalog(), this.shape())] }); }
   toggleNode(key: ItemKey, node: Node): void { this.setNode(key, node, this.check(key, node) !== 'on'); }
   pinned(key: ItemKey): readonly CatalogExercise[] {
@@ -353,7 +370,7 @@ class Practice {
     });
     const newlyMastered = concepts.filter((c) => {
       if (c.wasMastered) return false;
-      const before = s.before[c.id]?.level ?? 0, target = s.before[c.id]?.target ?? Math.min(this.settings.masteryTarget, Math.max(1, this.available(c.id)));
+      const before = s.before[c.id]?.level ?? 0, target = s.before[c.id]?.target ?? this.settings.masteryTarget;
       return Math.max(0, Math.min(target, before + c.correct - (c.answered - c.correct))) >= target;
     }).map((c) => c.id);
     if (!this.rounds.some((r) => r.id === s.id)) this.rounds = [...this.rounds, { id: s.id, started: s.started, at: now, concepts, newlyMastered }];

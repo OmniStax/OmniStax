@@ -5,9 +5,9 @@
      section, under a line per section for a chapter, under a fold per chapter
      for the book.
 
-     A row goes to where its concept is introduced, a form to where the text
-     states it, and a row dragged into a note writes the concept out there as a
-     card. */
+     The arrow at the end of a row goes to where its concept is introduced, the
+     one on a form to where the text states it, and a row dragged into a note
+     writes the concept out there as a card. */
   import { registry } from '../../lib/sections/registry.svelte';
   import Fold from '../ui/Fold.svelte';
   import { getContext as getCtx } from 'svelte';
@@ -19,8 +19,6 @@
   import type { FormDTO } from '../../lib/content/schema';
   import { goSpanFromView, openSectionFromView, openingInView, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
   import { goConceptFromView } from '../../lib/sections/concepts.svelte';
-  import { targetOf } from '../../lib/hover/cards';
-  import { settings } from '../../lib/settings/store.svelte';
   import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
   const scoped = getCtx<() => Target>('scope');
@@ -38,41 +36,37 @@
     const set = (t: string): void => { node.textContent = t; figFor(book).renderMath(node); };
     set(s); return { update: set };
   };
-  /* A click the reader's card setting gives to a symbol or a form inside the row stays the card's. */
-  const pick = (r: ReferenceRow, e: MouseEvent): void => {
-    const how = openingInView(e);
-    if (how === 'tab' && settings.cardOpen === 'click' && targetOf(e.target)) return;
-    void goConceptFromView(book, conceptId(r.concept.id), how);
-  };
+  const pick = (r: ReferenceRow, e: MouseEvent): void => { e.stopPropagation(); void goConceptFromView(book, conceptId(r.concept.id), openingInView(e)); };
   const goForm = (f: FormDTO, how: Opening): void => {
     if (f.anchor) goSpanFromView(spanRef(book, spanId(f.anchor)), how); else void openSectionFromView(sectionRef(book, f.section), how);
   };
-  const pickForm = (f: FormDTO, e: MouseEvent): void => {
-    e.stopPropagation();
-    const how = openingInView(e);
-    if (how === 'tab' && settings.cardOpen === 'click' && targetOf(e.target)) return;
-    goForm(f, how);
-  };
+  const pickForm = (f: FormDTO, e: MouseEvent): void => { e.stopPropagation(); goForm(f, openingInView(e)); };
 </script>
 
+{#snippet goto(label: string, onclick: (e: MouseEvent) => void)}
+  <button type="button" class="goto" aria-label={label} title={label} onclick={onclick} onauxclick={onMiddle(onclick)}>
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+{/snippet}
+
 {#snippet form(f: FormDTO)}
-  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="form" data-eq={f.id} onclick={(e) => pickForm(f, e)} onauxclick={onMiddle((e) => pickForm(f, e))}>
+  <div class="form" data-eq={f.id}>
     <div class="eq" use:tex={f.tex}></div>
     {#if f.condition}<small>{f.condition}</small>{/if}
+    {@render goto('Go to where this form is stated', (e) => pickForm(f, e))}
   </div>
 {/snippet}
 
 {#snippet row(r: ReferenceRow)}
   {@const c = r.concept}
   {@const extra = c.forms.slice(1)}
-  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-  <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }} onclick={(e) => pick(r, e)} onauxclick={onMiddle((e) => pick(r, e))}>
+  <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}>
     <div class="head">
       <i class="tag k-{c.kind}">{KIND_LABEL[c.kind]}</i>
       <span class="name" use:math={c.name}></span>
       {#if c.symbol}<span class="sym" use:tex={tree.symbols[c.symbol] ?? c.symbol}></span>{/if}
       {#if r.unit}<span class="unit">{r.unit}</span>{/if}
+      {@render goto('Go to where this is introduced', (e) => pick(r, e))}
     </div>
     {#if c.status === 'built' && c.statement}<p class="statement" use:math={c.statement}></p>{/if}
     {#if c.forms[0]}{@render form(c.forms[0])}{/if}
@@ -118,6 +112,12 @@
   .refs > li{padding:8px 0;border-bottom:1px solid var(--rule);font-size:0.82rem;cursor:grab;min-width:0}
   .refs > li:active{cursor:grabbing}
   .head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+  /* the arrow stands at the right end of its row, and shows itself on hover */
+  .goto{margin-left:auto;align-self:center;flex:none;display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:5px;background:none;color:var(--muted);cursor:pointer;opacity:.55}
+  .goto svg{width:14px;height:14px}
+  .refs > li:hover .goto,.goto:focus-visible{opacity:1}
+  .goto:hover{color:var(--ink);background:var(--soft)}
+  .goto:focus-visible{outline:2px solid var(--accent)}
   .name{font-weight:600}
   .name :global(.katex){font-size:1em}
   .sym :global(.katex){font-size:1.05em}
@@ -125,10 +125,13 @@
   .unit{font-family:var(--mono);font-size:0.72rem;color:var(--muted)}
   .statement{margin:2px 0 0;line-height:1.4}
   .statement :global(.katex){font-size:1em}
-  .form{margin-top:4px;cursor:pointer}
-  .form small{display:block;color:var(--muted);font-size:0.72rem}
-  .eq{overflow-x:auto}
+  .form{margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:0 8px}
+  .form small{display:block;flex:1 0 100%;color:var(--muted);font-size:0.72rem}
+  /* the whole form is shown, as tall as it is, with a long one wrapping at its text rather than scrolling */
+  .eq{flex:1;min-width:0;overflow:visible}
   .eq :global(.katex){font-size:1em}
+  .eq :global(.katex .base){white-space:normal;width:auto}
+  .eq :global(.katex .base>:not(.text)){white-space:nowrap}
   .more{margin-top:3px;padding:0;border:0;background:none;font:inherit;font-size:0.72rem;color:var(--muted);cursor:pointer}
   .more:hover{color:var(--ink)}
   .more:focus-visible{outline:2px solid var(--accent)}

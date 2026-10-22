@@ -49,6 +49,8 @@ const deps = (): BuiltinDeps => ({
   history: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'highlight in yellow', redoLabel: '' },
   chat: { newChat: () => {} },
   colours: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'velocity in section 16.3', redoLabel: '' },
+  highlights: { here: null, on: () => true, set: () => {} },
+  practice: { canPractise: () => false, practise: () => {} },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {
   const chords = DEFAULT_PAIRS.map(([c]) => c);

@@ -26,24 +26,21 @@
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
   /* What each row says, and extra words it should answer to. The filter reads both. */
   const HINT = {
-    zoom: 'Change the size of the text without resizing the window.',
-    zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
     tips: 'Show a tip each day in the bottom-right corner.',
     cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
-    anim: 'Turn off to pause every interactive figure.',
     voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
     decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',
     lockGrace: 'Seconds before a focus lock starts.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, tips: `Tips tip of the day ${HINT.tips}`,
-    anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: 'Text size zoom larger smaller Ctrl + Ctrl − Ctrl 0', tips: `Tips tip of the day ${HINT.tips}`,
+    anim: 'Figures start paused playing play pause animations sim', voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
     startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
     storage: 'Storage space used quota persist retention browser clear data imported files Safari',
   } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
+  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
   const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife];
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
   let kq = $state('');
@@ -75,7 +72,7 @@
   /* The numbers under Exercises commit on change or on a stepper click, clamped. */
   type NumKey = 'masteryTarget' | 'startingHalfLife' | 'maxHalfLife';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
-  const MASTERY: NumRow = { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept, capped at its exercise count.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' };
+  const MASTERY: NumRow = { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' };
   const HALF_LIVES: readonly NumRow[] = [
     { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days until a newly mastered concept is first due for review.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Reset to 3 days' },
     { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest gap between reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Reset to 240 days' },
@@ -161,14 +158,12 @@
         {@render fontRow('Body font', 'bodyFont', settings.bodyFont, DEFAULTS.bodyFont, (id) => settings.setBodyFont(id))}
         <div class="row" hidden={!hit(ROWS.zoom)}>
           <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Reset to 100%', () => settings.resetZoom())}</span>
-          <span class="hint">{HINT.zoom}</span>
           <div class="num">
             <button type="button" aria-label="Smaller text" onclick={() => settings.zoomOut()}>−</button>
             <span class="unit zoom">{zoomLabel(settings.zoom)}</span>
             <button type="button" aria-label="Larger text" onclick={() => settings.zoomIn()}>+</button>
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </Fold>
 
@@ -182,7 +177,13 @@
             {/each}
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Reset to on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">{HINT.anim}</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <div class="row" hidden={!hit(ROWS.anim)}>
+          <span class="name">Figures start{@render back(settings.animations !== DEFAULTS.animations, 'Reset to playing', () => settings.setAnimations(DEFAULTS.animations))}</span>
+          <div class="seg" role="radiogroup" aria-label="Figures start">
+            <button type="button" id="figures-paused" class:on={!settings.animations} role="radio" aria-checked={!settings.animations} onclick={() => settings.setAnimations(false)}>paused</button>
+            <button type="button" id="figures-playing" class:on={settings.animations} role="radio" aria-checked={settings.animations} onclick={() => settings.setAnimations(true)}>playing</button>
+          </div>
+        </div>
         <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Reset to off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? HINT.voice : 'This browser doesn’t support speech.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </Fold>
 

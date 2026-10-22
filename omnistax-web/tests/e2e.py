@@ -63,7 +63,7 @@ with sync_playwright() as p:
     # 7 transport + settings
     t = pg.query_selector('.transport'); pg.evaluate('document.querySelector(".transport .speed").click()'); print('7 speed:', pg.eval_on_selector('.transport .speed','b=>b.textContent'))
     js('#gear'); pg.wait_for_timeout(200); print('7 settings:', pg.is_visible('#settings'))
-    pg.evaluate('document.getElementById("anim-toggle").click()'); pg.wait_for_timeout(100); print('7 paused:', pg.evaluate('window.FIG.paused'), 'anim-off:', pg.evaluate('document.documentElement.classList.contains("anim-off")'))
+    pg.evaluate('document.getElementById("figures-paused").click()'); pg.wait_for_timeout(100); print('7 paused:', pg.evaluate('window.FIG.paused'), 'anim-off:', pg.evaluate('document.documentElement.classList.contains("anim-off")'))
     # #theme-toggle is the "dark" segment of the Theme radio group; the first segment is "system"
     pg.evaluate('document.getElementById("theme-toggle").click()'); pg.wait_for_timeout(100); print('7 theme:', pg.evaluate('document.documentElement.getAttribute("data-theme")'))
     pg.evaluate('document.querySelector("#settings .seg[aria-label=Theme] button").click()')

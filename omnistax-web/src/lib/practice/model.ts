@@ -107,7 +107,10 @@ export const rebuild = (
   const roundsMastering = indexBy(rounds, (r) => r.newlyMastered);
   const roundsReviewing = indexBy(rounds, (r) => r.concepts.map((c) => c.id));
   ids.forEach((id) => {
-    const target = Math.min(Math.max(1, Math.round(s.masteryTarget)), Math.max(1, available[id] ?? s.masteryTarget));
+    /* The target is the setting for every concept, however few exercises the book
+       has for it: one short of exercises is mastered by the reader's own say-so
+       or by exercises the model writes, never by a lower bar. */
+    const target = Math.max(1, Math.round(s.masteryTarget));
     const own = self[id];
     const on = attemptsOn.get(id) ?? [];
     const relevant = on.filter((a) => (!a.round || ended.has(a.round)) && (!own || a.at > own.at)).sort((a, b) => a.at - b.at);

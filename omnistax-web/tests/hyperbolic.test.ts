@@ -1,7 +1,7 @@
 /* The hyperbolic tree and the disk's motions. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { abs2, apply, centring, dragged, geodesic, hyperTree, IDENTITY, positionsFrom, reanchored, ROOT } from '../src/lib/sections/hyperbolic';
+import { abs2, apply, centring, dragged, geodesic, hyperTree, IDENTITY, positionsFrom, reanchored, ROOT, SEP, STEP } from '../src/lib/sections/hyperbolic';
 import type { Edge } from '../src/lib/sections/sugiyama';
 
 const IDS = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
@@ -49,4 +49,31 @@ test('a view anchored on another node draws every node where it was', () => {
     assert.ok(Math.hypot(p.x - q.x, p.y - q.y) < 1e-9, id);
   });
   assert.ok(abs2(after.get('d')!) < 1e-18);
+});
+
+/* Siblings stand apart: a crowd under one parent is pushed out along its wedge, and
+   split into two rings when one would not do, so that neighbours in a ring are at
+   least SEP apart at the scale a node is drawn at there. A small family keeps STEP. */
+test('siblings never overlap, and a small family stands at STEP', () => {
+  const ids = Array.from({ length: 30 }, (_, i) => `n${i}`);
+  const { pos } = hyperTree(ids, []);
+  const rings = new Map<number, string[]>();
+  ids.forEach((id) => { const r = Math.round(Math.sqrt(abs2(pos.get(id)!)) * 1e6) / 1e6; (rings.get(r) ?? rings.set(r, []).get(r)!).push(id); });
+  assert.ok(rings.size === 2, 'thirty children take two rings');
+  rings.forEach((ring, r) => {
+    const room = SEP * (1 - r * r);
+    ring.forEach((a, i) => ring.slice(i + 1).forEach((b) => {
+      const p = pos.get(a)!, q = pos.get(b)!;
+      assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= room - 1e-9, `${a} and ${b} overlap`);
+    }));
+  });
+  ids.forEach((id) => assert.ok(abs2(pos.get(id)!) < 1, id));
+  const few = hyperTree(['a', 'b', 'c'], []).pos;
+  ['a', 'b', 'c'].forEach((id) => assert.ok(Math.abs(Math.sqrt(abs2(few.get(id)!)) - STEP) < 1e-9));
+  /* a dozen in one ring, pushed out past STEP */
+  const dozen = Array.from({ length: 12 }, (_, i) => `d${i}`);
+  const mid = hyperTree(dozen, []).pos;
+  const r12 = Math.sqrt(abs2(mid.get('d0')!));
+  assert.ok(r12 > STEP && r12 <= 0.75);
+  dozen.forEach((id) => assert.ok(Math.abs(Math.sqrt(abs2(mid.get(id)!)) - r12) < 1e-9));
 });
