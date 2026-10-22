@@ -41,7 +41,7 @@ HEADERS = {"Referer": "https://www.termonline.cn/", "Accept": "application/json,
 PHYSICS = ("物理学名词", "力学名词", "光学名词", "声学名词", "电子学名词", "电气工程名词", "核科学技术名词",
            "天文学名词", "计量学名词", "数学名词", "化学名词", "材料科学技术名词", "地球物理学名词",
            "大气科学名词", "生物物理学名词", "医学名词", "自动化名词", "航天科学技术名词")
-PACE = 4.0          # seconds between page loads of the browser engine
+PACE = 2.0          # seconds between page loads of the browser engine
 EMPTY_RETRIES = 5   # an empty answer is retried this many times (the API answers empty at random)
 RESET_RETRIES = 4
 
@@ -129,7 +129,8 @@ class Cache:
         with open(self.path + ".terms", "w", encoding="utf-8") as f:
             json.dump(missing, f, ensure_ascii=False)
         engine = os.path.join(os.path.dirname(os.path.abspath(__file__)), "termonline_fetch.mjs")
-        done = subprocess.run(["node", engine, self.path, self.path + ".terms", str(int(PACE * 1000))], text=True)
+        # The engine's progress lines go to stderr, so that --json output stays parseable.
+        done = subprocess.run(["node", engine, self.path, self.path + ".terms", str(int(PACE * 1000))], text=True, stdout=sys.stderr)
         if done.returncode != 0:
             raise RuntimeError(f"termonline: the browser engine failed ({done.returncode})")
         with open(self.path, encoding="utf-8") as f:

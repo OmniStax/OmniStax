@@ -55,8 +55,16 @@ export const symbolTarget = <C,>(vars: readonly VariableDTO[], sym: SymKey, sect
    (R as resultant and as range; W' as the Otto cycle's output and as the heat
    pump's input). A heuristic, tuned on both books to flag real redefinitions. */
 const STOP = new Set('the and for from with its that which this into than then over under when where what whose their there these those been being'.split(' '));
-const contentWords = (meaning: string): ReadonlySet<string> =>
-  new Set((meaning.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)).map((w) => w.replace(/s$/, '')));
+const latinWords = (meaning: string): readonly string[] =>
+  (meaning.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)).map((w) => w.replace(/s$/, ''));
+/* A language written without spaces has no words to pick out: each CJK character
+   is a morpheme and stands in for a word (位 and 置 in 初位置 and in 位置，相对于所选
+   参考系), the function characters left out, so a translated book's rows are
+   compared as its source's are. */
+const CJK_STOP = new Set('的了与和或即其为在对于是及并而把被将所这那它们'.split(''));
+const cjkMorphemes = (meaning: string): readonly string[] =>
+  (meaning.match(/[\u3400-\u9fff]/g) ?? []).filter((ch) => !CJK_STOP.has(ch));
+const contentWords = (meaning: string): ReadonlySet<string> => new Set([...latinWords(meaning), ...cjkMorphemes(meaning)]);
 const OVERLAP = 0.15;
 export const differentMeaning = (a: VariableDTO, b: VariableDTO): boolean => {
   if ((a.type ?? '') !== (b.type ?? '')) return true;

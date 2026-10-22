@@ -39,7 +39,7 @@ for (const term of terms) {
     try {
       await page.goto('https://www.termonline.cn/search?searchText=' + encodeURIComponent(term), { waitUntil: 'load', timeout: 60000 });
       primed = await waitReq;
-      await page.waitForTimeout(2500);
+      await page.waitForTimeout(1200);
     } catch (e) { console.error(`${term}: ${e.message.split('\n')[0]}`); }
     if (primed) {
       const got = await page.evaluate(async (u) => {

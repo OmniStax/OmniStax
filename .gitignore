@@ -8,3 +8,6 @@ node_modules
 __pycache__/
 # the figure sandbox is a local playground for visualisations, never published
 omnistax-content/Figure Sandbox/
+
+# termonline lookup cache: large and rebuilt on demand
+omnistax-content/*/tools/termonline-cache.json*
