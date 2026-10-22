@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -225,6 +226,52 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def _strip_old(note: str) -> str:
+    return re.sub(r"\s*termonline\.cn could not be reached.*?to be confirmed at termonline\.", "", note or "").strip()
+
+
+def cmd_apply(args: argparse.Namespace) -> int:
+    """Write a verify run's verdicts into the glossary: confirmed and unlisted rows lose `confirm`
+    and gain the entry URL or the fact; a row whose target differs from every listing is printed
+    for the orchestrator to decide and left as it is (with --accept-differs it is kept and noted)."""
+    with open(args.glossary, encoding="utf-8") as f:
+        glossary = json.load(f)
+    with open(args.verdicts, encoding="utf-8") as f:
+        verdicts = {r["source"]: r for r in json.load(f)}
+    norm = lambda cn: re.sub(r"[\[\]［］]", "", cn or "")
+    today = args.date
+    n = {"confirmed": 0, "unlisted": 0, "differs": 0}
+    for t in glossary["terms"]:
+        r = verdicts.get(t["source"])
+        if not r or t.get("confirm") != "termonline":
+            continue
+        listed = [(norm(cn), v) for cn, v in r["listed"]] + [(norm(a), c) for a, b, c in r.get("near", [])]
+        hit = next((x for x in listed if x[0] == t["target"]), None)
+        base = re.sub(r"\s*Provisional: termonline verification pending[^.]*\.", "", _strip_old(t.get("note", ""))).strip()
+        if hit or r["verdict"] in ("ok", "near-ok", "other"):
+            vocab = hit[1] if hit else (r.get("best") or {}).get("vocab", "")
+            t["url"] = (r.get("best") or {}).get("url") or "https://www.termonline.cn/"
+            t["note"] = (base + " " if base else "") + f"termonline {today}: confirmed ({vocab})."
+            t.pop("confirm", None)
+            n["confirmed"] += 1
+        elif r["verdict"] == "unlisted" or (not r["listed"] and not r.get("near")):
+            t["note"] = (base + " " if base else "") + f"termonline {today}: not listed under this English term; taken from the named authority."
+            t.pop("confirm", None)
+            n["unlisted"] += 1
+        else:
+            n["differs"] += 1
+            forms = "; ".join(f"{cn}（{v}）" for cn, v in r["listed"][:4]) or "; ".join(f"{a} ({b}, {c})" for a, b, c in r["near"][:4])
+            if args.accept_differs:
+                t["note"] = (base + " " if base else "") + f"termonline {today}: lists {forms}; kept, see the chapter's log."
+                t.pop("confirm", None)
+            print(f"differs  {t['source']} → {t['target']}    termonline: {forms}")
+    with open(args.glossary, "w", encoding="utf-8") as f:
+        json.dump(glossary, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print(n, file=sys.stderr)
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="termonline", description=__doc__.split("\n\n")[0])
     subs = p.add_subparsers(dest="command", required=True)
@@ -237,9 +284,14 @@ def main(argv=None) -> int:
     vf.add_argument("--cache")
     vf.add_argument("--all", action="store_true", help="every row, not only those marked confirm: termonline")
     vf.add_argument("--json", action="store_true")
+    ap = subs.add_parser("apply", help="write a verify run's verdicts into the glossary")
+    ap.add_argument("glossary")
+    ap.add_argument("verdicts", help="the --json output of verify")
+    ap.add_argument("--date", required=True)
+    ap.add_argument("--accept-differs", action="store_true", help="keep a differing target, noting the listed forms")
     args = p.parse_args(argv)
     try:
-        return {"lookup": cmd_lookup, "verify": cmd_verify}[args.command](args)
+        return {"lookup": cmd_lookup, "verify": cmd_verify, "apply": cmd_apply}[args.command](args)
     except RuntimeError as e:
         print(e, file=sys.stderr)
         return 1
