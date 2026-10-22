@@ -62,7 +62,7 @@ export type RegistryInit = {
 type FigureScript = (root: HTMLElement, F: Fig) => void;
 
 const EMPTY_STATE: Omit<SectionState, 'status'> = { meta: null, exercises: [], docs: {}, src: {} };
-const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, highlights: HIGHLIGHTS_ON, chapters: [], sheets: [], exercises: '', concepts: '' };
+const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', language: 'en', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, highlights: HIGHLIGHTS_ON, chapters: [], sheets: [], exercises: '', concepts: '' };
 const BOOK_ID = /^[a-z0-9-]+$/;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');

@@ -29,6 +29,8 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `license` | `string` | yes | The licence the book is shared under, as its notice names it. |
 | `license_url` | `string?` | no | The licence’s own page. |
 | `openstax` | `string?` | no | The prefix of the publisher’s section pages; a chapter’s section slugs complete it. |
+| `language` | `string?` | no | The language the book is written in, as a BCP 47 tag such as en or zh-CN; absent, en, and the content check warns. It is the lang of every page of the book and what the library lists the edition under. |
+| `translation_of` | `string?` | no | The id of the book this one translates, which must be a book of the same content root. A translation keeps every chapter directory, section id, concept id, form id, symbol key, exercise id, figure id and span id of its source, so the same place can be opened in either edition; the content check compares them. |
 | `highlights` | `{ facts, refs, concepts, words, symbols, underlines }?` | no | What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types’ colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book on its Theme page, and nothing stands above the book. A published book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink; absent, everything is on and the content check warns. |
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
@@ -136,6 +138,21 @@ The book’s own introduction and closing summary, where it prints them. Each is
 | --- | --- | --- | --- |
 | `module` | `string?` | no | The publisher’s own id for the page, kept so the source can be found again. |
 | `slug` | `string?` | no | The last part of the page’s address at the publisher, which completes the book’s page prefix. |
+
+### `translation`
+
+How a book that translates another (translation_of) was made: from which release of its source, by whom, after which published translation, and the glossary its terms are fixed in.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `source_release` | `string?` | no | The release id of the source book the translation was made from, as the offline catalog names it, where one is known. |
+| `source_commit` | `string?` | no | The git commit of the source book the translation was made from. |
+| `translator` | `string` | yes | Who made the translation: a model id (claude-fable-5-1) or a person. |
+| `effort` | `"low" \| "medium" \| "high" \| "max"?` | no | The effort the model ran at, as rule 17 records it. |
+| `date` | `string` | yes | The ISO date the translation was made. |
+| `authority` | `string?` | no | The official or published translation whose terms this one follows, where one exists, named as its publisher names it. |
+| `authority_url` | `string?` | no | That translation’s own page. |
+| `glossary` | `string` | yes | The glossary file under the book’s folder, such as glossary.zh-CN.json: every term chosen, its source term and the authority it was taken from. |
 
 ## `<chapter>/chapter.json`
 

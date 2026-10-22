@@ -396,6 +396,7 @@ const sheetEntry = (book: BookDTO, s: SheetSource): SheetEntry =>
 
 const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary' | 'sheets'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
+  language: book.language, ...(book.translationOf !== undefined ? { translationOf: book.translationOf } : {}),
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
   ...(book.colours ? { colours: book.colours } : {}), highlights: book.highlights ?? BOOK_HIGHLIGHTS_DEFAULT,
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),

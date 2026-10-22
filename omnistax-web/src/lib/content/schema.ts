@@ -180,6 +180,20 @@ export type BookHighlightsDTO = z.infer<typeof BookHighlightsSchema>;
 /* What a book that declares nothing highlights: everything, as the first books did before the field existed; the content check says so. */
 export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true };
 
+/* How a translated book was made (RULES item 30): what it was translated from,
+   by whom, after which authority, and the glossary its terms are fixed in. */
+export const TranslationSchema = z.object({
+  source_release: z.string().optional().describe('The release id of the source book the translation was made from, as the offline catalog names it, where one is known.'),
+  source_commit: z.string().optional().describe('The git commit of the source book the translation was made from.'),
+  translator: z.string().describe('Who made the translation: a model id (claude-fable-5-1) or a person.'),
+  effort: z.enum(['low', 'medium', 'high', 'max']).optional().describe('The effort the model ran at, as rule 17 records it.'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('The ISO date the translation was made.'),
+  authority: z.string().optional().describe('The official or published translation whose terms this one follows, where one exists, named as its publisher names it.'),
+  authority_url: z.string().url().optional().describe('That translation\u2019s own page.'),
+  glossary: z.string().describe('The glossary file under the book\u2019s folder, such as glossary.zh-CN.json: every term chosen, its source term and the authority it was taken from.'),
+}).strict();
+export type TranslationDTO = z.infer<typeof TranslationSchema>;
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
@@ -194,6 +208,9 @@ export const BookSchema = z.object({
   license: z.string().describe('The licence the book is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
   openstax: z.string().url().optional().describe('The prefix of the publisher\u2019s section pages; a chapter\u2019s section slugs complete it.'),
+  language: z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{4})?(-[A-Z]{2})?$/).optional().describe('The language the book is written in, as a BCP 47 tag such as en or zh-CN; absent, en, and the content check warns. It is the lang of every page of the book and what the library lists the edition under.'),
+  translation_of: z.string().optional().describe('The id of the book this one translates, which must be a book of the same content root. A translation keeps every chapter directory, section id, concept id, form id, symbol key, exercise id, figure id and span id of its source, so the same place can be opened in either edition; the content check compares them.'),
+  translation: TranslationSchema.optional().describe('How the translation was made, where the book is one. Written on a book that names translation_of and nowhere else.'),
   highlights: BookHighlightsSchema.optional().describe('What the book colours and underlines by default, one boolean each: facts (facts and conventions), refs (referents), concepts (the types\u2019 colours), words (the words and phrases that name a concept, under concepts), symbols (the symbols in equations and readouts, under concepts) and underlines (the dotted rule under what opens a card). The reader may change each for this book on its Theme page, and nothing stands above the book. A published book declares all six, so each says what suits its subject: a physics or chemistry text colours its words, a mathematics text leaves them in ink; absent, everything is on and the content check warns.'),
   chapters: z.array(z.string()).describe('The chapter directories, in the order the book sets them.'),
   intro: FrontPageRefSchema.optional().describe('The book\u2019s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter.'),
@@ -206,8 +223,12 @@ export const BookSchema = z.object({
   concept_prereqs: z.array(ConceptPrereqSchema).default([]).describe('The edges of the concept map: which concept rests on which.'),
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
   colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared.'),
-}).strict().transform((b) => ({
+}).strict().superRefine((b, ctx) => {
+  if (b.translation !== undefined && b.translation_of === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['translation'], message: 'translation is written only on a book that names translation_of' });
+}).transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
+  language: b.language ?? 'en', languageDeclared: b.language !== undefined,
+  ...(b.translation_of !== undefined ? { translationOf: b.translation_of } : {}), ...(b.translation ? { translation: b.translation } : {}),
   license: b.license, licenseUrl: b.license_url, openstax: b.openstax, ...(b.highlights ? { highlights: b.highlights } : {}), chapterDirs: b.chapters, ...framed(b),
   types: b.types, symbols: b.symbols, exerciseKinds: b.exercise_kinds, concepts: b.concepts, conceptPrereqs: b.concept_prereqs, sheets: b.sheets,
   ...(b.sources ? { sources: b.sources } : {}), ...(b.colours ? { colours: b.colours } : {}), ...(b.exercise_sources.length ? { exerciseSources: b.exercise_sources } : {}),
@@ -520,6 +541,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   concept_prereqs: { level: 'book', file: 'book.json', field: 'concept_prereqs', schema: ConceptPrereqSchema, note: 'The edges of the concept map.' },
   sheets: { level: 'book', file: 'book.json', field: 'sheets', schema: SheetSchema, note: 'The reference sheets the book keeps beside its chapters, each a page of its own whose data is read from the file the row names.' },
   book_pages: { level: 'book', file: 'book.json', field: 'intro, summary', schema: FrontPageRefSchema, note: 'The book\u2019s own introduction and closing summary, where it prints them. Each is a page built in intro/ or summary/ beside the chapters, with a section.json whose id is the literal intro or summary and which names no chapter.' },
+  translation: { level: 'book', file: 'book.json', field: 'translation', schema: TranslationSchema, note: 'How a book that translates another (translation_of) was made: from which release of its source, by whom, after which published translation, and the glossary its terms are fixed in.' },
   chapter: { level: 'chapter', file: '<chapter>/chapter.json', field: null, schema: ChapterSchema, note: 'One chapter: its number, its title and the sections it is read in.' },
   sections: { level: 'chapter', file: '<chapter>/chapter.json', field: 'sections', schema: SectionRefSchema, note: 'Every section of the chapter, built or not.' },
   variables: { level: 'chapter', file: '<chapter>/chapter.json', field: 'variables', schema: VariableSchema, note: 'The symbols the chapter\u2019s sections give a meaning to.' },
@@ -730,6 +752,8 @@ export type SheetEntry = {
 export type BookManifest = {
   readonly id: BookId; readonly title: string; readonly publisher: string; readonly authors: readonly string[]; readonly sourceUrl?: string; readonly copyright?: string;
   readonly license: string; readonly licenseUrl?: string; readonly openstax?: string;
+  readonly language: string;                 /* the book's language, a BCP 47 tag; en where book.json declares none */
+  readonly translationOf?: string;           /* the id of the book this one translates */
   readonly types: TypeMap; readonly macros: MacroMap; readonly symbols: SymbolMap; readonly exerciseKinds: KindMap;
   readonly colours?: BookColoursDTO;         /* the book's stored default colours */
   readonly highlights: BookHighlightsDTO;    /* what the book colours and underlines by default */

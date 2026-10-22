@@ -1,0 +1,18 @@
+# What scripts/i18n-lint.mjs should never report. One JavaScript regular
+# expression per line, tested against the whole finding as it prints:
+#   path/to/file.ts:12: the text
+# so a line can name a file, a file and a text, or a text anywhere. Each line
+# says why on the comment above it. An extraction agent adds lines only for the
+# files it owns.
+
+# The content format: zod schemas, the TABLES notes the docs generator prints
+# and the parse errors check:content reports to a book's author, not UI.
+^src/lib/content/schema\.ts:
+# Font family names and CSS font stacks (product names, never translated).
+^src/lib/settings/fonts\.ts:
+# The product's own name.
+: (aria-label|title|alt)="OmniStax"$
+# A keyboard chord shown as a tooltip.
+: title="(Ctrl|Shift|Alt|Meta|Cmd)\+[^"]*"$
+# A bare unit beside a number.
+\.svelte:\d+: (ms|px|s|kg|nm|Hz)$
