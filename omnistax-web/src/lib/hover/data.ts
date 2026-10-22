@@ -66,11 +66,15 @@ const cjkMorphemes = (meaning: string): readonly string[] =>
   (meaning.match(/[\u3400-\u9fff]/g) ?? []).filter((ch) => !CJK_STOP.has(ch));
 const contentWords = (meaning: string): ReadonlySet<string> => new Set([...latinWords(meaning), ...cjkMorphemes(meaning)]);
 const OVERLAP = 0.15;
+/* A character is about half a word (夹角 for "angle"), so two CJK rows share
+   half as many units per idea as two English rows do, and the bar is halved. */
+const CJK_OVERLAP = OVERLAP / 2;
 export const differentMeaning = (a: VariableDTO, b: VariableDTO): boolean => {
   if ((a.type ?? '') !== (b.type ?? '')) return true;
   const [x, y] = [contentWords(a.meaning), contentWords(b.meaning)];
   const shared = [...x].filter((w) => y.has(w)).length;
-  return shared / Math.max(1, Math.min(x.size, y.size)) < OVERLAP;
+  const cjk = latinWords(a.meaning).length === 0 && latinWords(b.meaning).length === 0;
+  return shared / Math.max(1, Math.min(x.size, y.size)) < (cjk ? CJK_OVERLAP : OVERLAP);
 };
 
 /* The rows elsewhere in the chapter that give `sym` another meaning than the row of `section`. */
