@@ -23,6 +23,7 @@
      double-click puts the note's own editor in the frame, writing to the note
      itself, and Escape or a press outside the frame leaves it. */
   import { tick } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import type MarkdownEditorType from '../notes/MarkdownEditor.svelte';
   import { getAsset, putAsset } from '../../lib/notes/assets';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -185,7 +186,7 @@
 
   {#if target && onopen}
     {@const key = target}
-    <button type="button" class="open" aria-label="Open"
+    <button type="button" class="open" aria-label={i18n.t('drawer.chat.open')}
       onclick={(e) => openOwn(e, key)} onauxclick={onMiddle((e) => openOwn(e, key))}>↗</button>
   {/if}
   <span class="grab" onpointerdown={onGrab}></span>

@@ -13,6 +13,7 @@
 import type { FigureInfo } from './render';
 import type { SectionId } from '../../types/ids';
 import { localFigureId } from './dragfig';
+import { t } from '../../i18n';
 
 const EYEBROW = '.eyebrow';
 const HEAD = '.sim-head';
@@ -48,7 +49,7 @@ export const figureInfo = (doc: ParentNode, sec: SectionId, id: string): FigureI
   const eyebrow = textOf((head ?? caption)?.querySelector(EYEBROW) ?? null);
   const src = fig.querySelector('img')?.getAttribute('src') ?? undefined;
   return {
-    eyebrow: eyebrow || 'Figure',
+    eyebrow: eyebrow || t('notes.card.figure'),
     title: head ? words(head) : '',
     caption: caption ? words(caption) : '',
     section: sec,

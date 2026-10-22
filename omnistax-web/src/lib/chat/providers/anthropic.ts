@@ -7,6 +7,7 @@
    The system prompt and the last reader turn carry `cache_control`, so two
    branches of one chat read their shared beginning from the cache. */
 import { errorOf, json, parseArgs, resultOf, roundsOf, sse, type ChatRequest, type Provider, type StreamEvent, type Turn } from './index';
+import { t } from '../../i18n';
 
 export const ANTHROPIC_VERSION = '2023-06-01';
 export const MAX_TOKENS = 8192;
@@ -80,7 +81,7 @@ export const anthropic: Provider = {
     const open = new Map<number, Open>();
     for await (const data of sse(response)) {
       const event = json(data); if (!event) continue;
-      if (event.type === 'error') throw new Error(String((event.error as { message?: string } | undefined)?.message ?? 'the provider reported an error'));
+      if (event.type === 'error') throw new Error(String((event.error as { message?: string } | undefined)?.message ?? t('chat.error.provider')));
       const index = Number(event.index);
       if (event.type === 'content_block_start') {
         const block = event.content_block as { type?: string; id?: string; name?: string } | undefined;

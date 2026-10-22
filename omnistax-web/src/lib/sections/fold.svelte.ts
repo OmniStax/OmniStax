@@ -7,6 +7,7 @@
    per root, like the "Original" button. */
 import { FOLDABLE, HIDEABLE, FOLDED_CLASS, HIDDEN_CLASS, FOLD_HEAD_CLASS, foldableOf, hideableOf, headingOf, toggleId, addIds, removeIds, parseIds, foldKey } from './fold';
 import { readerWritesAllowed } from '../backup/guard';
+import { t } from '../i18n/index';
 export { FOLDABLE, HIDEABLE, foldableOf, hideableOf, headingOf } from './fold';
 
 type StorageKey = 'omnistax-folded' | 'omnistax-hidden-figs';
@@ -54,12 +55,12 @@ const hideButtonOf = (fig: HTMLElement): HTMLButtonElement | null => fig.querySe
 const syncSpan = (span: HTMLElement, on: boolean): void => {
   span.classList.toggle(FOLDED_CLASS, on);
   const b = foldButtonOf(span); if (!b) return;
-  b.setAttribute('aria-expanded', String(!on)); b.title = on ? 'Unfold' : 'Fold';
+  b.setAttribute('aria-expanded', String(!on)); b.title = t(on ? 'views.fold.unfold' : 'views.fold.fold');
 };
 const syncFig = (fig: HTMLElement, on: boolean): void => {
   fig.classList.toggle(HIDDEN_CLASS, on);
   const b = hideButtonOf(fig); if (!b) return;
-  b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Show figure' : 'Hide figure';
+  b.setAttribute('aria-pressed', String(on)); b.title = t(on ? 'views.fold.showFigure' : 'views.fold.hideFigure');
 };
 /* Put the remembered state on every span and figure under `root`. Reads the
    stores, so an effect that calls it follows them. */
@@ -76,7 +77,7 @@ const foldButtons = (root: HTMLElement): void => {
   foldableOf(root).forEach((span) => {
     const h = headingOf(span); if (!h || h.querySelector(':scope > button.fold')) return;
     if (h.parentElement !== span) h.parentElement?.classList.add(FOLD_HEAD_CLASS);
-    const b = el('button', 'fold'); b.type = 'button'; b.dataset.fold = span.id; b.title = 'Fold'; b.setAttribute('aria-expanded', 'true'); b.setAttribute('aria-label', 'Fold this heading'); b.innerHTML = CHEVRON;
+    const b = el('button', 'fold'); b.type = 'button'; b.dataset.fold = span.id; b.title = t('views.fold.fold'); b.setAttribute('aria-expanded', 'true'); b.setAttribute('aria-label', t('views.fold.foldHeading')); b.innerHTML = CHEVRON;
     h.prepend(b);
   });
 };
@@ -84,7 +85,7 @@ const foldButtons = (root: HTMLElement): void => {
 const hideButtons = (root: HTMLElement): void => {
   root.querySelectorAll<HTMLElement>('figure.sim[id] > .sim-head, figure.photo[id] > figcaption').forEach((head) => {
     if (head.querySelector(':scope > button.fig-hide')) return;
-    const b = el('button', 'fig-hide'); b.type = 'button'; b.dataset.fig = head.parentElement!.id; b.title = 'Hide figure'; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', 'Hide this figure'); b.innerHTML = EYE;
+    const b = el('button', 'fig-hide'); b.type = 'button'; b.dataset.fig = head.parentElement!.id; b.title = t('views.fold.hideFigure'); b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', t('views.fold.hideThisFigure')); b.innerHTML = EYE;
     head.appendChild(b);
   });
 };

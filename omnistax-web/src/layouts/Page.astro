@@ -9,18 +9,21 @@
 import ShellPage from './ShellPage.astro';
 import { config } from '../../omnistax.config';
 import { type BookTree, type ChapterTree, type SectionSource, pageNav } from '../lib/content/load';
-import { fragment, plainText } from '../lib/content/fragment';
+import { bookLocale, fragment, plainText } from '../lib/content/fragment';
 import { attributionOf, citation } from '../lib/content/attribution';
 import { pageLabel } from '../lib/content/roles';
 import { bookId, docItem, sectionId, sectionRef } from '../lib/types/ids';
+import { tIn } from '../lib/i18n/index';
 
 type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
 const { tree, chapter, section } = Astro.props as Props;
 const book = tree.dto;
 const sec = section.meta;
+/* What the build writes beside the book's words is in the book's language, not the reader's. */
+const locale = bookLocale(book);
 const canonical = new URL(section.url, config.site.baseUrl).href;
-const label = pageLabel(sec);
-const title = `${label} · ${book.title}`;
+const label = pageLabel(sec, locale);
+const title = tIn(locale, 'content.pageTitle', { page: label, book: book.title });
 /* The lead is swept for math on the way in, so the head's description takes it back to plain text. */
 const description = sec.objectives.join(' ') || plainText(sec.lead) || sec.title;
 /* The pages before and after this one among the built pages of the book, in its reading order: the head names them and the text ends on them. */
@@ -29,18 +32,19 @@ const credit = attributionOf(book, sec);
 const ld = {
   '@context': 'https://schema.org', '@type': 'LearningResource', name: label, description, url: canonical,
   isPartOf: { '@type': 'Book', name: book.title, url: book.sourceUrl, author: book.authors.map((name) => ({ '@type': 'Person', name })), publisher: { '@type': 'Organization', name: book.publisher } },
-  isBasedOn: credit.sourceUrl, license: book.licenseUrl ?? book.license, creditText: citation(credit),
-  educationalLevel: 'Undergraduate', learningResourceType: 'Interactive textbook section',
+  isBasedOn: credit.sourceUrl, license: book.licenseUrl ?? book.license, creditText: citation(credit, locale),
+  educationalLevel: 'Undergraduate', learningResourceType: tIn(locale, 'content.ld.resourceType'),
   teaches: chapter ? chapter.concepts.concepts.filter((c) => c.section === sec.id && c.status === 'built').map((c) => c.name) : [],
 };
 ---
 <ShellPage
   tree={tree}
   own={docItem(sectionRef(bookId(book.id), sectionId(sec.id)), 'text')}
-  pool={fragment(book, chapter?.dto ?? null, section, nav)}
+  pool={fragment(book, chapter?.dto ?? null, section, nav, locale)}
   title={title}
   description={description}
   chapterDir={chapter?.dto.dir}
+  lang={tree.manifest.language}
 >
   <Fragment slot="head">
     <link rel="canonical" href={canonical}>

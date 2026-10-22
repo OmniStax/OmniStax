@@ -11,12 +11,13 @@
   import PageHead from './PageHead.svelte';
   import MasteryBox from './MasteryBox.svelte';
   import KindDot from './KindDot.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { item }: { item: ItemKey } = $props();
 
   const session = $derived(practice.sessionOf(item));
   const r = $derived(session ? practice.reviewOf(session.id) : null);
-  const when = $derived(session ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(session.ended ?? session.started) : '');
+  const when = $derived(session ? new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeStyle: 'short' }).format(session.ended ?? session.started) : '');
   const missed = $derived(r ? r.wrong + r.skipped : 0);
   const moved = $derived((r?.changes ?? []).flatMap((c) => {
     const concept = practice.conceptOf(c.id);
@@ -55,23 +56,23 @@
 {#if session && r}
   {@const id = session.id}
   <div class="review">
-    <PageHead title="Session · {when}" back={() => practice.finish(item)}>
+    <PageHead title={i18n.t('practice.review.title', { when })} back={() => practice.finish(item)}>
       {#snippet actions()}
-        {#if missed > 0}<button type="button" class="btn" onclick={() => practice.again(item, id, true)}>Retry the {missed} I missed</button>{/if}
-        <button type="button" class="btn primary" onclick={() => practice.again(item, id, false)}>Practice all again</button>
-        <button type="button" class="btn ghost icon sm" aria-label="More" onclick={openMenu}>⋯</button>
+        {#if missed > 0}<button type="button" class="btn" onclick={() => practice.again(item, id, true)}>{i18n.t('practice.review.retryMissed', { n: missed })}</button>{/if}
+        <button type="button" class="btn primary" onclick={() => practice.again(item, id, false)}>{i18n.t('practice.review.again')}</button>
+        <button type="button" class="btn ghost icon sm" aria-label={i18n.t('practice.more')} onclick={openMenu}>⋯</button>
       {/snippet}
     </PageHead>
 
     <p class="summary">
-      <span><span class="ok g" aria-hidden="true">✓</span><b>{r.correct}</b> correct</span>
-      {#if r.wrong}<span><span class="bad g" aria-hidden="true">✗</span><b>{r.wrong}</b> incorrect</span>{/if}
-      {#if r.skipped}<span><b>{r.skipped}</b> skipped</span>{/if}
-      {#if session.ended}<span>{durationText(session.ended - session.started)}</span>{/if}
+      <span><span class="ok g" aria-hidden="true">✓</span><b>{r.correct}</b> {i18n.t('practice.review.correctWord')}</span>
+      {#if r.wrong}<span><span class="bad g" aria-hidden="true">✗</span><b>{r.wrong}</b> {i18n.t('practice.review.incorrectWord')}</span>{/if}
+      {#if r.skipped}<span><b>{r.skipped}</b> {i18n.t('practice.review.skippedWord')}</span>{/if}
+      {#if session.ended}<span>{durationText(session.ended - session.started, i18n.t)}</span>{/if}
     </p>
 
     <section>
-      <h3 class="section-title">What moved</h3>
+      <h3 class="section-title">{i18n.t('practice.review.moved')}</h3>
       {#if moved.length}
         <ul class="list">
           {#each moved as m (m.id)}
@@ -90,17 +91,17 @@
             <li class="concept">
               <KindDot kind={t.concept.kind} />
               <span class="name" use:mathHtml={t.concept.name}></span>
-              <span class="quiet">{t.correct}/{t.answered} correct</span>
+              <span class="quiet">{i18n.t('practice.rows.correct', { n: t.correct, total: t.answered })}</span>
             </li>
           {/each}
         </ul>
       {:else}
-        <p class="quiet">No concept changed level.</p>
+        <p class="quiet">{i18n.t('practice.review.noChange')}</p>
       {/if}
     </section>
 
     <section>
-      <h3 class="section-title">Exercises</h3>
+      <h3 class="section-title">{i18n.t('practice.review.exercises')}</h3>
       <ol class="list" bind:this={listRoot}>
         {#each rows as { d, i, hit } (i)}
           {@const v = session.outcomes[i]}
@@ -108,11 +109,11 @@
           <li class="ex">
             <button type="button" class="ex-row" aria-expanded={shown} onclick={() => toggle(i)}>
               <span class="num">{i + 1}</span>
-              {#if v === true}<span class="ok" aria-label="Correct">✓</span>
-              {:else if v === false}<span class="bad" aria-label="Incorrect">✗</span>
-              {:else}<span class="quiet" aria-label="Skipped">–</span>{/if}
+              {#if v === true}<span class="ok" aria-label={i18n.t('practice.review.correct')}>✓</span>
+              {:else if v === false}<span class="bad" aria-label={i18n.t('practice.review.incorrect')}>✗</span>
+              {:else}<span class="quiet" aria-label={i18n.t('practice.review.skipped')}>–</span>{/if}
               {#if hit}
-                <span class="ex-name">{exerciseName(hit.ex, kindName(hit.book, hit.ex.kind))}</span>
+                <span class="ex-name">{exerciseName(hit.ex, kindName(hit.book, hit.ex.kind), i18n.t)}</span>
                 <span class="quiet ex-text">{excerpt(hit.ex.prompt)}</span>
               {:else}
                 <span class="quiet ex-text">{practice.bookTitle(d.book)}</span>
@@ -125,7 +126,7 @@
                     <ExerciseCard book={hit.book} section={hit.section} ex={hit.ex} outcome={v} review />
                   </div>
                 {:else}
-                  <p class="quiet" role="status">This exercise is loading or no longer exists.</p>
+                  <p class="quiet" role="status">{i18n.t('practice.review.missing')}</p>
                 {/if}
               </div>
             {/if}
@@ -135,7 +136,7 @@
     </section>
   </div>
   {#if menu}
-    <RowMenu x={menu.x} y={menu.y} onclose={() => (menu = null)} items={[{ label: 'Delete session', danger: true, run: () => practice.discard(id) }]} />
+    <RowMenu x={menu.x} y={menu.y} onclose={() => (menu = null)} items={[{ label: i18n.t('practice.review.delete'), danger: true, run: () => practice.discard(id) }]} />
   {/if}
 {/if}
 

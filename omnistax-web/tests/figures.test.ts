@@ -5,11 +5,15 @@ import path from 'node:path';
 import { linkExerciseRefs, linkFigureRefs, figureIds, figureList, figureNumber, printedNumbers, qualifyIds, sizeImages, splitNumbers } from '../src/lib/content/fragment';
 import { prerenderMath } from '../src/lib/math/prerender';
 import { spanId } from '../src/lib/types/ids';
-import { bookRoots } from './book-on-disk';
+import { ROOT, bookRoots } from './book-on-disk';
+import { findBooks, mediaRootsOf } from '../src/lib/content/load';
 import { bookFigures } from '../src/lib/content/endpoints';
 
 /* The tests over the real files below walk every book this build carries. */
 const ROOTS = await bookRoots();
+/* A translation keeps no media of its own and reads its source's, so an original is looked for under every root the book draws media from. */
+const FOUND = await findBooks(ROOT);
+const mediaOf = (bookRoot: string): readonly string[] => { const f = FOUND.find((x) => x.dir === bookRoot); return f ? mediaRootsOf(FOUND, f) : [path.join(bookRoot, 'media')]; };
 
 const figs = new Map([[figureNumber('16.4'), spanId('16.1-sim-spring-scale')], [figureNumber('16.9'), spanId('16.3-sim-shm-oscillator')]]);
 const link = (n: string, id: string, text = `Figure ${n}`): string => `<a class="figref" href="#${id}" data-figref="${n}">${text}</a>`;
@@ -122,7 +126,8 @@ test('data-original paths exist under the book\'s media', () => {
     const html = fs.readFileSync(file, 'utf8');
     const root = path.resolve(file, '..', '..', '..');   /* <book>/chNN/<section>/text.html, so the book is three up */
     [...html.matchAll(/data-original="([^"]+)"/g)].flatMap(([, v]) => v.split(',')).forEach((p) => {
-      assert.ok(fs.existsSync(path.resolve(root, p.replace(/^\//, ''))), `${file}: ${p} is not served`);
+      const rest = p.replace(/^\/?media\//, '');
+      assert.ok(mediaOf(root).some((m) => fs.existsSync(path.join(m, rest))), `${file}: ${p} is not served`);
     });
     const withheld = new Set(figureRows(path.dirname(file)).filter((f) => f.withheld).map((f) => f.id));
     [...html.matchAll(/<figure\b[^>]*>/g)].map(([tag]) => tag).filter((tag) => tag.includes('data-figure=')).forEach((tag) => {

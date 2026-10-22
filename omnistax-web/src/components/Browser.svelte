@@ -19,6 +19,7 @@
   import { focus } from '../lib/sections/focus.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { ICON } from '../lib/icons';
+  import { i18n } from '../lib/i18n/store.svelte';
   import type { BookManifest } from '../lib/content/schema';
 
   type Props = { manifest: BookManifest };
@@ -31,7 +32,8 @@
   let list = $state<HTMLElement | null>(null);
 
   const mode = $derived(ui.browser.mode);
-  const root = $derived<readonly PickerNode[]>(mode === 'pick' ? pickTree(manifest) : openTree(pickerRoot()));
+  /* The pick tree names the whole book and counts sections in the reader's language. */
+  const root = $derived.by<readonly PickerNode[]>(() => { void i18n.locale; return mode === 'pick' ? pickTree(manifest) : openTree(pickerRoot()); });
   const items = $derived<readonly Listed[]>(faceOf({ path: path.map((key) => ({ key, mark: '' })), index: 0 }, root, query));
   const trail = $derived(trailOf(root, path));
   const searching = $derived(query.trim() !== '');
@@ -98,16 +100,16 @@
 </script>
 
 {#if ui.browser.open}
-  <div class="browser" role="dialog" aria-label={mode === 'pick' ? 'Pin the view to a place in the book' : 'Open a file'} onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
+  <div class="browser" role="dialog" aria-label={i18n.t(mode === 'pick' ? 'shell.browser.pickTitle' : 'shell.browser.openTitle')} onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
     <div class="crumbs">
-      <button type="button" class="back" aria-label="Back" disabled={!path.length} onclick={() => goUp()}>‹</button>
-      {#if trail.length}<button type="button" class="crumb" onclick={() => goUp(0)}>{mode === 'pick' ? manifest.title : 'Open'}</button>{:else}<span class="here">{mode === 'pick' ? manifest.title : 'Open'}</span>{/if}
+      <button type="button" class="back" aria-label={i18n.t('shell.browser.back')} disabled={!path.length} onclick={() => goUp()}>‹</button>
+      {#if trail.length}<button type="button" class="crumb" onclick={() => goUp(0)}>{mode === 'pick' ? manifest.title : i18n.t('shell.browser.open')}</button>{:else}<span class="here">{mode === 'pick' ? manifest.title : i18n.t('shell.browser.open')}</span>{/if}
       {#each trail as n, i (n.key)}
         <span class="sep">›</span>
         {#if i === trail.length - 1}<span class="here">{n.label}</span>{:else}<button type="button" class="crumb" onclick={() => goUp(i + 1)}>{n.label}</button>{/if}
       {/each}
     </div>
-    <input bind:this={input} bind:value={query} oninput={() => (sel = 0)} type="text" spellcheck="false" autocomplete="off" aria-label="Filter" placeholder="Filter…" />
+    <input bind:this={input} bind:value={query} oninput={() => (sel = 0)} type="text" spellcheck="false" autocomplete="off" aria-label={i18n.t('shell.browser.filter')} placeholder={i18n.t('shell.browser.filterPlaceholder')} />
     <div class="list" bind:this={list} role="listbox">
       {#each items as l, i (l.path.join('/'))}
         <div class="row" class:sel={i === sel} class:dim={!l.node.row && !l.node.children} role="option" aria-selected={i === sel} tabindex="-1"
@@ -118,7 +120,7 @@
           <span class="chev">{l.node.children ? '›' : ''}</span>
         </div>
       {:else}
-        <div class="none">Nothing matches</div>
+        <div class="none">{i18n.t('shell.browser.none')}</div>
       {/each}
     </div>
   </div>

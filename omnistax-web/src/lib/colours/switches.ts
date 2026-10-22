@@ -2,6 +2,8 @@
    Words and phrases and Symbols sit under Concepts and reach the page's text only:
    off, the words that name a concept, or the symbols in its equations and readouts,
    read in ink while figures and slider thumbs follow Concepts itself. */
+import { t } from '../i18n/index';
+
 export type ColourFamily = 'facts' | 'refs' | 'concepts';
 export type ColourSwitch = ColourFamily | 'words' | 'symbols';
 export type ColourSwitches = Readonly<Record<ColourSwitch, boolean>>;
@@ -9,8 +11,12 @@ export type ColourShown = Readonly<Record<ColourFamily, boolean>>;
 
 export const COLOUR_FAMILIES: readonly ColourFamily[] = ['facts', 'refs', 'concepts'];
 export const COLOUR_SWITCHES: readonly ColourSwitch[] = [...COLOUR_FAMILIES, 'words', 'symbols'];
-export const COLOUR_LABELS: Readonly<Record<ColourSwitch, string>> = { facts: 'Facts and conventions', refs: 'Referents', concepts: 'Concepts', words: 'Words and phrases', symbols: 'Symbols' };
-export const COLOUR_TIPS: Readonly<Partial<Record<ColourSwitch, string>>> = { words: 'Color the words that name a concept.', symbols: 'Color the symbols in equations and readouts.' };
+/* Read in the current language each time a label is asked for (getters, not stored strings). */
+export const COLOUR_LABELS: Readonly<Record<ColourSwitch, string>> = {
+  get facts() { return t('views.colours.switch.facts'); }, get refs() { return t('views.colours.switch.refs'); }, get concepts() { return t('views.colours.switch.concepts'); },
+  get words() { return t('views.colours.switch.words'); }, get symbols() { return t('views.colours.switch.symbols'); },
+};
+export const COLOUR_TIPS: Readonly<Partial<Record<ColourSwitch, string>>> = { get words() { return t('views.colours.switch.wordsTip'); }, get symbols() { return t('views.colours.switch.symbolsTip'); } };
 /* The switch a sub-switch sits under, which must be on for it to do anything. */
 export const COLOUR_PARENT: Readonly<Partial<Record<ColourSwitch, ColourSwitch>>> = { words: 'concepts', symbols: 'concepts' };
 export const COLOURS_ON: ColourSwitches = { facts: true, refs: true, concepts: true, words: true, symbols: true };

@@ -6,8 +6,11 @@
   import { tabTitle } from '../lib/layout/titles';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { ICON } from '../lib/icons';
+  import { i18n } from '../lib/i18n/store.svelte';
+  import type { ItemKey } from '../lib/layout/model';
   let { index, group, onPick }: { index: number; group: Group; onPick: (index: number, anchor: HTMLElement) => void } = $props();
-  const title = tabTitle;
+  /* A tab is named in the reader's language: reading the locale here names it again when that changes. */
+  const title = (k: ItemKey): string => { void i18n.locale; return tabTitle(k); };
   let drop = $state(false);
 </script>
 
@@ -16,13 +19,13 @@
     <div class="tab" class:active={k === group.active} role="tab" aria-selected={k === group.active} data-tab={k} tabindex="0"
       use:draggable={{ key: k, from: group.key }} onclick={() => layoutStore.apply((x) => activate(x, index, k))} onkeydown={(e) => { if (e.key === 'Enter') layoutStore.apply((x) => activate(x, index, k)); }}>
       <span class="ttl">{title(k)}</span>
-      <button type="button" class="x" title="Close" aria-label="Close {title(k)}" onclick={(e) => { e.stopPropagation(); layoutStore.closeTab(index, k); }}>×</button>
+      <button type="button" class="x" title={i18n.t('shell.close')} aria-label={i18n.t('shell.tabStrip.closeTab', { title: title(k) })} onclick={(e) => { e.stopPropagation(); layoutStore.closeTab(index, k); }}>×</button>
     </div>
   {/each}
-  <button type="button" class="act plus" title="Open a section here" aria-label="Open a section in this group" onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>
+  <button type="button" class="act plus" title={i18n.t('shell.tabStrip.openHere')} aria-label={i18n.t('shell.tabStrip.openInGroup')} onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>
   <span class="spacer"></span>
-  <button type="button" class="act" aria-label="Split right" onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
-  <button type="button" class="act" aria-label="Split down" onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
+  <button type="button" class="act" aria-label={i18n.t('commands.splitRight')} onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
+  <button type="button" class="act" aria-label={i18n.t('commands.splitDown')} onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
 </div>
 
 <style>

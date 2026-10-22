@@ -10,6 +10,7 @@
    What the reader may drop on the tree is decided here too, so that the
    explorer, the import and the tests all agree on one answer. */
 import type { FileId } from '../types/ids';
+import { t } from '../i18n';
 
 /* Where the list is kept. It lives with the pure model rather than with the
    store so that the backup can name the key without pulling a reactive module
@@ -43,6 +44,8 @@ const PDF = /\.pdf$/i;
 /* What the import takes, as the tooltip and the chooser say it; kept beside
    `takeOf` so that the words and the rule cannot drift apart. */
 export const ACCEPTED = 'PDF, images (PNG, JPG, GIF, WebP, AVIF, BMP, SVG), Markdown or text as notes';
+/* The same words in the reader's language, asked for when they are shown. */
+export const acceptedLine = (): string => t('files.import.accepted');
 export const ACCEPT_ATTR = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.avif,.bmp,.svg,.md,.markdown,.mdown,.txt';
 
 /* The type the browser gives is trusted first and the name after it: a drop
@@ -81,11 +84,11 @@ export const dirOf = (path: RelPath): RelPath => {
    name and the rest counted, so a folder of strays does not fill the window. */
 const NAMED = 5;
 export const refusedLine = (names: readonly string[]): string =>
-  names.length <= NAMED ? names.join(', ') : `${names.slice(0, NAMED).join(', ')} and ${names.length - NAMED} more`;
+  names.length <= NAMED ? names.join(', ') : t('files.import.andMore', { names: names.slice(0, NAMED).join(', '), n: names.length - NAMED });
 
 /* The name of an import's step on the timeline, as Undo shows it. */
 export const importLabel = (files: number, folders: number): string =>
-  [folders ? `import ${folders} ${folders === 1 ? 'folder' : 'folders'}` : 'import', `${files} ${files === 1 ? 'file' : 'files'}`].join(folders ? ', ' : ' ');
+  folders ? t('files.undo.importFolders', { folders, files }) : t('files.undo.importFiles', { files });
 
 /* A dotfile or anything inside a dot-folder (.DS_Store, .git): left out of a
    folder import without a word, since the reader never put it there. */

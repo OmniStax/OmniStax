@@ -14,7 +14,8 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { groupBySection, label, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
-  import { KIND_LABEL, referenceRows, type ReferenceRow } from '../../lib/sections/reference';
+  import { kindLabel, referenceRows, type ReferenceRow } from '../../lib/sections/reference';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { conceptId, sectionId, sectionRef, spanId, spanRef } from '../../lib/types/ids';
   import type { FormDTO } from '../../lib/content/schema';
   import { goSpanFromView, openSectionFromView, openingInView, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
@@ -69,7 +70,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
   <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }} onclick={(e) => pick(r, e)} onauxclick={onMiddle((e) => pick(r, e))}>
     <div class="head">
-      <i class="tag k-{c.kind}">{KIND_LABEL[c.kind]}</i>
+      <i class="tag k-{c.kind}">{kindLabel(c.kind, i18n.t)}</i>
       <span class="name" use:math={c.name}></span>
       {#if c.symbol}<span class="sym" use:tex={tree.symbols[c.symbol] ?? c.symbol}></span>{/if}
       {#if r.unit}<span class="unit">{r.unit}</span>{/if}
@@ -78,7 +79,7 @@
     {#if c.forms[0]}{@render form(c.forms[0])}{/if}
     {#if extra.length}
       <button type="button" class="more" aria-expanded={shown.has(c.id)} onclick={(e) => { e.stopPropagation(); toggle(c.id); }}>
-        {shown.has(c.id) ? 'Fewer forms' : `${extra.length} more ${extra.length === 1 ? 'form' : 'forms'}`}
+        {shown.has(c.id) ? i18n.t('views.reference.fewerForms') : i18n.t('views.reference.moreForms', { n: extra.length })}
       </button>
       {#if shown.has(c.id)}<div class="extra">{#each extra as f (f.id)}{@render form(f)}{/each}</div>{/if}
     {/if}

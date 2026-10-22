@@ -11,6 +11,7 @@
 import type { ConceptDTO, FormDTO, VariableDTO } from '../content/schema';
 import { tokensOf, type TextPageDTO } from '../content/textindex';
 import { type Piece, pieces } from '../commands/pieces';
+import { t } from '../i18n/index';
 /* The marked pieces of an excerpt travel with a hit, so whoever draws one
    needs the type; it is the search's to hand on. */
 export type { Piece };
@@ -20,7 +21,11 @@ export type SearchKind = (typeof SEARCH_KINDS)[number];
 /* What the reader asks for: one kind, or everything. */
 export type Filter = 'all' | SearchKind;
 export const FILTERS: readonly Filter[] = ['all', ...SEARCH_KINDS];
-export const FILTER_LABEL: Readonly<Record<Filter, string>> = { all: 'All', concept: 'Concepts', definition: 'Definitions', formula: 'Formulas', text: 'Text' };
+/* Getters: each read is in the current language. */
+export const FILTER_LABEL: Readonly<Record<Filter, string>> = {
+  get all() { return t('views.search.filter.all'); }, get concept() { return t('views.search.filter.concept'); }, get definition() { return t('views.search.filter.definition'); },
+  get formula() { return t('views.search.filter.formula'); }, get text() { return t('views.search.filter.text'); },
+};
 
 /* One book as the search reads it. The id is the book's, the title what to call it. */
 export type Corpus = {

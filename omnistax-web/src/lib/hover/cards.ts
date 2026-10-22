@@ -18,6 +18,7 @@ import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
 import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence, swatchOf } from './resolve';
 import { readRow } from '../grapher/expr';
+import { t as tr } from '../i18n/index';
 
 /* The elements a card can open for. An equation block has no underline; the rest are underlined by Hover.svelte. */
 export const TARGET = '[data-sym], .term[data-term], a.xref, article a[href^="#"]:not(.figref), .fig-root a[href^="#"]:not(.figref), .katex-display, [data-concept], [data-eq], .formula[data-formula], [data-fn]';
@@ -117,7 +118,7 @@ const variable = (book: BookId, t: HTMLElement): Card | null => {
   const card = variableCard({ sym, tex: m.symbols[sym] ?? sym, section: sec, formulasLoaded: !!data, variable: target?.variable }, navFor(book));
   return other && card.body ? { ...card, body: `${card.body} ${elsewhere(other)}` } : card;
 };
-const elsewhere = (v: VariableDTO): string => `Elsewhere in this chapter (${v.section}): ${v.meaning.replace(/[.\s]+$/, '')}.`;
+const elsewhere = (v: VariableDTO): string => tr('views.hover.elsewhereLine', { section: v.section, meaning: v.meaning.replace(/[.\s]+$/, '') });
 /* A glossary word a note names is a word of its concept: the chapter's concepts
    are asked first, and then every concept of the book loaded so far. */
 const term = (book: BookId, t: HTMLElement): Card | null => {
@@ -132,11 +133,11 @@ const reference = (book: BookId, t: HTMLElement): Card | null => {
   const el = findEl(book, id); if (!el) return null;
   /* a note's marker: the note whole, under the number the reader clicked */
   const note = el.matches('.notes li') ? el.querySelector('.fn-body') : null;
-  if (note) return referenceCard({ id: spanId(id), title: `${el.matches('.correction') ? 'Correction' : 'Note'} ${t.textContent ?? ''}`, body: plainText(note.innerHTML) }, navFor(book));
+  if (note) return referenceCard({ id: spanId(id), title: tr(el.matches('.correction') ? 'views.hover.correction' : 'views.hover.note', { n: t.textContent ?? '' }), body: plainText(note.innerHTML) }, navFor(book));
   if (!(el.matches('.example[id]') || el.matches('section[id]'))) return null;
   const title = headingText(el.querySelector('h2, h3')) ?? id;
   const p = el.querySelector('p'); const body = p ? firstSentence(headingText(p) ?? '') : undefined;
-  return referenceCard({ id: spanId(id), title: t.dataset.xref ? `Example ${t.dataset.xref} · ${title}` : title, body }, navFor(book));
+  return referenceCard({ id: spanId(id), title: t.dataset.xref ? tr('views.hover.example', { n: t.dataset.xref, title }) : title, body }, navFor(book));
 };
 /* An equation set on the page is known by its TeX; one named by a link, as an
    answer names it, by its id. Either way it is a form of a concept, and the

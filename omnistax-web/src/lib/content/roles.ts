@@ -8,6 +8,8 @@
    their DOM ids or their tabs colliding. Everything that tells the roles apart
    is here, pure, so the loader, the validator, the explorer and the tab strip
    all read a page the same way. */
+import { type Locale, currentLocale, tIn } from '../i18n/index';
+
 export const PAGE_ROLES = ['section', 'intro', 'summary'] as const;
 export type PageRole = (typeof PAGE_ROLES)[number];
 /* The two roles whose page is written under a fixed folder name rather than a section number. */
@@ -29,9 +31,10 @@ export const pageDir = (id: string): string => { const role = pageRoleOf(id); re
 
 /* How a page is named wherever it is listed: a section by its number and title
    ("2.1 Displacement"), an introduction or summary by its title alone, since
-   the book prints no number on it. */
-export const pageLabel = (page: { readonly id: string; readonly title: string }): string =>
-  (pageRoleOf(page.id) === 'section' ? `${page.id} ${page.title}` : page.title);
+   the book prints no number on it. Written into a built page it is in the
+   book's language (Page.astro passes it); in the shell, the reader's. */
+export const pageLabel = (page: { readonly id: string; readonly title: string }, locale: Locale = currentLocale()): string =>
+  (pageRoleOf(page.id) === 'section' ? tIn(locale, 'content.pageLabel', { id: page.id, title: page.title }) : page.title);
 
 /* The pages of a chapter, or of a book, in reading order: the introduction
    first, then what the level lists, then the summary. Generic over the shape,

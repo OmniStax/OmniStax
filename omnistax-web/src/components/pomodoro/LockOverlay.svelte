@@ -1,5 +1,6 @@
 <script lang="ts">
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   const until = $derived(pomodoro.awayUntil);
   let now = $state(Date.now());
   $effect(() => {
@@ -9,11 +10,15 @@
     return () => clearInterval(t);
   });
   const secs = $derived(until === null ? 0 : Math.max(0, Math.ceil((until - now) / 1000)));
+  /* The sentence in the reader's language, cut where the number stands so the
+     number can be set bold wherever the language puts it. */
+  const MARK = '\u0001';
+  const said = $derived(i18n.t('pomodoro.lock.failing', { n: secs, secs: MARK }).split(MARK));
 </script>
 
 {#if until !== null}
   <div class="wash" role="alert">
-    <p>Session failing in <strong>{secs}</strong> {secs === 1 ? 'second' : 'seconds'}</p>
+    <p>{said[0]}<strong>{secs}</strong>{said.slice(1).join(String(secs))}</p>
   </div>
 {/if}
 

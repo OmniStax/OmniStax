@@ -4,6 +4,7 @@
   import { loadBoot, type BootUrls } from '../lib/sections/boot';
   import { hasInterruptedRestore, recoverInterruptedRestore } from '../lib/backup/journal';
   import { startReaderLifetimeLock } from '../lib/backup/guard';
+  import { i18n } from '../lib/i18n/store.svelte';
 
   type Props = { own?: ItemId; threeUrl?: string; boot: BootUrls };
   let props: Props = $props();
@@ -39,6 +40,6 @@
 </script>
 
 <div bind:this={host}></div>
-{#if failed}<p class="failed" role="alert">Your data could not be recovered safely. Reload the page or import a backup.</p>{/if}
+{#if failed}<p class="failed" role="alert">{i18n.t('shell.loader.failed')}</p>{/if}
 
 <style>.failed{margin:24px;font-family:system-ui,sans-serif;color:#b42318}</style>

@@ -24,10 +24,11 @@ import { focus } from '../sections/focus.svelte';
 import { linkInner } from '../notes/md/links';
 import type { ChapterEntry, SectionEntry } from '../content/schema';
 import { CATEGORY_CHIP, type PickerNode, type PickerRow } from './model';
+import { t, type MessageKey } from '../i18n';
 
 const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const plain = (s: string): string => s.replace(/\$[^$]*\$/g, '').replace(/\s+/g, ' ').trim();
-const count = (n: number, one: string, many: string): string => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+const count = (n: number, key: MessageKey): string => t(key, { n });
 
 /* ── the text of a section ─────────────────────────────────────────────── */
 
@@ -99,11 +100,11 @@ const definitionsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly Pi
   const f = dataOf(book, ch); if (!f) return [];
   return [
     ...f.concepts.filter((c) => c.section === sec).flatMap((c) => c.terms.map((term): PickerRow => ({
-      category: 'definitions', key: `term:${book}/${c.section}:${term}`, label: term, detail: 'term', target: { kind: 'term', book, section: c.section, term }, embed: true,
+      category: 'definitions', key: `term:${book}/${c.section}:${term}`, label: term, detail: t('notes.picker.term'), target: { kind: 'term', book, section: c.section, term }, embed: true,
       text: `${term}: ${c.status === 'built' ? c.statement ?? '' : ''}`,
     }))),
     ...f.variables.filter((v) => v.section === sec).map((v): PickerRow => ({
-      category: 'definitions', key: `sym:${book}/${v.section}:${v.sym}`, label: cut(`${v.sym} · ${v.meaning}`, 60), detail: 'symbol', target: { kind: 'symbol', book, section: v.section, sym: v.sym }, embed: true,
+      category: 'definitions', key: `sym:${book}/${v.section}:${v.sym}`, label: cut(`${v.sym} · ${v.meaning}`, 60), detail: t('notes.picker.symbol'), target: { kind: 'symbol', book, section: v.section, sym: v.sym }, embed: true,
       text: `${v.sym}: ${v.meaning}${v.unit ? ` (${v.unit})` : ''}`,
     })),
   ];
@@ -126,11 +127,11 @@ const sectionNode = (book: BookId, ch: ChapterEntry, s: SectionEntry): PickerNod
   return {
     key: s.id, label: row.label, detail: '', row,
     children: () => [
-      ...kind('figures', 'Figures', figuresOf(book, s.id)),
-      ...kind('concepts', 'Concepts', conceptsOf(book, ch, s.id)),
-      ...kind('equations', 'Equations', equationsOf(book, ch, s.id)),
-      ...kind('definitions', 'Definitions', definitionsOf(book, ch, s.id)),
-      ...kind('exercises', 'Exercises', exercisesOf(book, s.id)),
+      ...kind('figures', t('notes.picker.figures'), figuresOf(book, s.id)),
+      ...kind('concepts', t('notes.picker.concepts'), conceptsOf(book, ch, s.id)),
+      ...kind('equations', t('notes.picker.equations'), equationsOf(book, ch, s.id)),
+      ...kind('definitions', t('notes.picker.definitions'), definitionsOf(book, ch, s.id)),
+      ...kind('exercises', t('notes.picker.exercises'), exercisesOf(book, s.id)),
     ],
     load: () => registry.load(sectionRef(book, sectionId(s.id))),
   };
@@ -144,7 +145,7 @@ const chapterNode = (book: BookId, ch: ChapterEntry): PickerNode => {
     category: 'chapters', key: `${book}/${ch.id}`, label: ch.title, detail: '',
     text: [ch.title, ...secs.map((s) => sectionLabel(s.id, s.title))].join('\n'),
   };
-  return { key: ch.id, label: ch.title, detail: count(secs.length, 'section', 'sections'), row, children: () => secs.map((s) => sectionNode(book, ch, s)) };
+  return { key: ch.id, label: ch.title, detail: count(secs.length, 'notes.picker.sections'), row, children: () => secs.map((s) => sectionNode(book, ch, s)) };
 };
 
 /* A book's chapters come with its manifest; its concepts, tables and problem
@@ -160,7 +161,7 @@ const bookNode = (book: BookId): PickerNode => {
   const chapters = (m?.chapters ?? []).filter((c) => builtOf(c).length > 0);
   const title = books.title(book);
   const row: PickerRow = { category: 'books', key: book, label: title, detail: '', text: [title, ...chapters.map((c) => c.title)].join('\n') };
-  return { key: book, label: title, detail: m ? count(chapters.length, 'chapter', 'chapters') : '', row, children: () => chapters.map((c) => chapterNode(book, c)), load: () => loadBook(book) };
+  return { key: book, label: title, detail: m ? count(chapters.length, 'notes.picker.chapters') : '', row, children: () => chapters.map((c) => chapterNode(book, c)), load: () => loadBook(book) };
 };
 
 /* The reader's books: their shelf, the focused one first. A book the registry
@@ -177,15 +178,19 @@ const entryRow = (e: Entry, where: string): PickerRow | undefined => {
   return undefined;
 };
 
+/* What a row of the reader's own tree is, as its detail says it. */
+const ENTRY_KIND: Readonly<Partial<Record<Entry['kind'], MessageKey>>> = {
+  note: 'notes.picker.note', drawing: 'notes.picker.drawing', chat: 'notes.picker.chat', file: 'notes.picker.file',
+};
 const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
   childrenOf(explorer.tree, parent).flatMap((e): readonly PickerNode[] => {
     if (e.kind === 'book') return [];
     if (e.kind === 'folder') {
       const inside = childrenOf(explorer.tree, e.id).filter((c) => c.kind !== 'book');
       const row: PickerRow = { category: 'folders', key: e.id, label: e.name, detail: '', text: [pathOf(explorer.tree, e.id), ...inside.map((c) => c.name)].join('\n') };
-      return [{ key: e.id, label: e.name, detail: count(inside.length, 'item', 'items'), row, children: () => entryNodes(e.id) }];
+      return [{ key: e.id, label: e.name, detail: count(inside.length, 'notes.picker.items'), row, children: () => entryNodes(e.id) }];
     }
-    const row = entryRow(e, e.kind); return row ? [leaf(row)] : [];
+    const row = entryRow(e, t(ENTRY_KIND[e.kind] ?? 'notes.picker.file')); return row ? [leaf(row)] : [];
   });
 
 /* ── the root ──────────────────────────────────────────────────────────── */
@@ -194,7 +199,7 @@ const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
    top, fetches the focused book's tables, so its things are found at once. */
 export const pickerRoot = (): readonly PickerNode[] => [
   { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map(bookNode), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
-  { key: 'files', label: 'Files', detail: '', children: () => entryNodes(null) },
+  { key: 'files', label: t('notes.picker.files'), detail: '', children: () => entryNodes(null) },
 ];
 
 /* The chip a row becomes. A section's text is read here rather than held on

@@ -1,5 +1,6 @@
 import { readerWritesAllowed } from '../backup/guard';
-import { TIPS, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
+import { tipsOf, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
+import { i18n } from '../i18n/store.svelte';
 
 const KEY = 'omnistax-tips-v1';
 
@@ -14,7 +15,8 @@ const save = (s: TipState): void => { if (!readerWritesAllowed()) return; try { 
 
 class Tips {
   at = $state<number | null>(null);
-  get current(): Tip | null { return this.at === null ? null : TIPS[this.at] ?? null; }
+  /* In the reader's language: i18n.t reads the locale, so the card follows a change of it. */
+  get current(): Tip | null { return this.at === null ? null : tipsOf(i18n.t)[this.at] ?? null; }
   /* Called once per page load. */
   arrive(enabled: boolean, now: number = Date.now()): void {
     const { state, tip } = visit(load(), now, enabled);

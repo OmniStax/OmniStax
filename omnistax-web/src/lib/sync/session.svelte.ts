@@ -8,9 +8,10 @@ import { toRepo, type RepoPath } from './layout';
 import { changesOf, overwrite, planOf, rebase, type Change, type Pick, type Plan, type Status } from './plan';
 import { carry, hashed, survey, type HashedFile, type Survey } from './run';
 import { sync } from './store.svelte';
+import { t } from '../i18n';
 
 export type Phase = 'idle' | 'reading' | 'ready' | 'moving';
-const failure = (e: unknown): string => e instanceof Error ? e.message : 'Couldn’t reach GitHub.';
+const failure = (e: unknown): string => e instanceof Error ? e.message : t('files.sync.error.unreachable');
 
 class SyncSession {
   phase = $state<Phase>('idle');
@@ -52,7 +53,7 @@ class SyncSession {
       const out = await carry(remote, fetch.bind(globalThis), this.seen, this.local, plan, sync.last?.base ?? {}, (path, s) => { this.status = new Map(this.status).set(path, s); });
       if (out.backup) {
         try { await importBackup(out.backup); sync.agreed(out.base, true); }
-        catch (e) { alert(e instanceof Error ? e.message : 'Couldn’t update your data. Your previous data was restored.'); }
+        catch (e) { alert(e instanceof Error ? e.message : t('files.sync.error.restored')); }
         location.reload();
         return;
       }

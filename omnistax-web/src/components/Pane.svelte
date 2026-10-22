@@ -18,6 +18,7 @@
   import ScratchPane from './drawer/ScratchPane.svelte';
   import ExerciseTab from './exercises/ExerciseTab.svelte';
   import ChatTab from './chat/ChatTab.svelte';
+  import { i18n } from '../lib/i18n/store.svelte';
   let { groupKey, groupIndex, itemKey, active }: { groupKey: GroupKey; groupIndex: number; itemKey: string; active: boolean } = $props();
   const id = $derived(parseItemKey(itemKey));
   const holds = (g: GroupKey, k: string) => layoutStore.layout.groups.some((x) => x.key === g && x.tabs.includes(k));
@@ -28,6 +29,8 @@
   const error = $derived(sec ? registry.state(sec)?.error : undefined);
   const entry = $derived(sec ? registry.entry(sec) : undefined);
   $effect(() => { if (sec && status === 'loading' && !registry.state(sec)?.docs.text) void registry.load(sec); });
+  /* The failure line around its link: {link} is left in place by the template and cut here. */
+  const failed = $derived(i18n.t('shell.pane.failed', { section: sec?.section ?? '', error: String(error) }).split('{link}'));
   const onscroll = (e: Event) => { if (active && layoutStore.layout.focus === groupIndex) spy.read(e.currentTarget as HTMLElement); };
 </script>
 
@@ -53,11 +56,11 @@
   {:else if sec && status === 'missing'}
     <article class="placeholder"><div class="loading">{registry.missingLine(sec)}</div></article>
   {:else if status === 'failed' && !navigator.onLine}
-    <article class="placeholder"><div class="loading">{sec?.section ?? 'This section'} is not downloaded. Reconnect, or download its book for offline from the Explorer.</div></article>
+    <article class="placeholder"><div class="loading">{sec ? i18n.t('shell.pane.notDownloaded', { section: sec.section }) : i18n.t('shell.pane.notDownloadedThis')}</div></article>
   {:else if status === 'failed'}
-    <article class="placeholder"><div class="loading bad">Could not load {sec?.section ?? ''} ({error}). Serve the site over http, or <a href={entry?.url}>open it as its own page</a>.</div></article>
+    <article class="placeholder"><div class="loading bad">{failed[0]}<a href={entry?.url}>{i18n.t('shell.pane.ownPage')}</a>{failed[1] ?? ''}</div></article>
   {:else}
-    <article class="placeholder"><div class="loading">Loading {id ? registry.title(id) : itemKey}…</div></article>
+    <article class="placeholder"><div class="loading">{i18n.t('shell.pane.loading', { title: id ? registry.title(id) : itemKey })}</div></article>
   {/if}
 </div>
 

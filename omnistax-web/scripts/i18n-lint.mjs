@@ -11,10 +11,22 @@
    (c) in .ts files, script blocks, Astro frontmatter and markup expressions
        (but never {@html …}), a string literal shaped like a sentence — a
        capitalised word followed by a space and a lowercase letter, or by
-       punctuation — or one given to a field such as label: or title:.
+       punctuation — or one given to a field such as label: or title:;
+   (d) a string literal holding HTML (fragment.ts and the other build-time
+       writers): its text and its attributes are read as (a) and (b) read
+       markup, so `<h2>Section summary</h2>` is found; and markup written
+       inside an Astro expression ({cond && <p>Text</p>}) is read as markup.
+   Svelte blocks ({#if}, {:else}, {/each}, {#snippet name(args)}, {@const},
+   {@render}) are expressions; {@html …} is never read, nor are <style> and
+   comments, and an attribute may run over several lines.
    It skips src/lib/i18n/, *.worker.ts, *.d.ts, and any line that mentions
    console., throw new Error or new Error(. Exit code 1 when a finding is left.
-   `node scripts/i18n-lint.mjs src/components/views` lints only what it names. */
+   `node scripts/i18n-lint.mjs src/components/views` lints only what it names.
+   --summary prints the count of findings per directory (two levels under src/)
+   instead of the findings. --unused instead lists every key of the English
+   catalog that no file under src/ outside src/lib/i18n/ names (a key built
+   as `area.thing.${x}` counts every key under that prefix as named), and
+   exits 1 when one is left. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -124,10 +136,19 @@ const literals = (src, from = 0, to = src.length) => {
 const DOCS = /\.describe\(\s*$/;
 /* A string literal type: type Mode = 'A b' | 'C d'. A single | is a union, || is not. */
 const TYPE = /(?:(?:^|[^|])\|\s*|\btype\s+\w+(?:<[^>]*>)?\s*=\s*)$/;
+/* A literal that writes HTML: an element closed in it, </p> or <br/>. A message
+   that only names a tag ("is named by no <span data-ref>") writes none. */
+const HTML_TAG = /<\/[a-z][\w-]*>|<[a-z][\w-]*\b[^<>]*\/>/;
+const htmlFindings = (offset, text, starts) => {
+  const line = lineAt(starts, offset);
+  return markupFindings(text, lineStarts(text), 0, text.length).map((f) => ({ line: line + f.line - 1, text: f.text }));
+};
 const scriptFindings = (src, starts, from, to) => literals(src, from, to)
   .filter(([, , before]) => !DOCS.test(before) && !TYPE.test(before))
-  .filter(([, text, before]) => SENTENCE.test(text) || (FIELD.test(before) && /^[A-Z][a-z]/.test(text) && !/^[A-Z][a-z]+[A-Z]/.test(text)))
-  .map(([offset, text]) => ({ line: lineAt(starts, offset), text }));
+  .flatMap(([offset, text, before]) => [
+    ...(SENTENCE.test(text) || (FIELD.test(before) && /^[A-Z][a-z]/.test(text) && !/^[A-Z][a-z]+[A-Z]/.test(text)) ? [{ line: lineAt(starts, offset), text }] : []),
+    ...(HTML_TAG.test(text) ? htmlFindings(offset, text, starts) : []),
+  ]);
 
 /* ---------- markup ---------- */
 
@@ -148,6 +169,54 @@ const pastExpression = (src, open) => {
   return src.length;
 };
 
+/* Markup written inside an expression, as Astro allows: {nav.prev && <link …/>},
+   {items.map((i) => <li>{i}</li>)}. A tag counts when the code before it ends
+   in an operator that starts a value, so a comparison a < b is never one.
+   Returns [start, end) ranges, end just past the element. */
+const JSX_BEFORE = /(?:[(?:,[=]|&&|\|\||=>|\breturn)\s*$/;
+const tagEnd = (src, i, to) => {   /* i at '<'; the index just past the '>' that closes this tag, and whether it closed itself */
+  i += 1;
+  while (i < to) {
+    const c = src[i];
+    if (c === '{') { i = pastExpression(src, i); continue; }
+    if (c === '"' || c === "'") { const end = src.indexOf(c, i + 1); i = end < 0 ? to : end + 1; continue; }
+    if (c === '>') return [i + 1, src[i - 1] === '/'];
+    i++;
+  }
+  return [to, true];
+};
+const jsxRanges = (src, from, to) => {
+  const out = [];
+  for (let i = from; i < to; i++) {
+    const c = src[i];
+    if (c === "'" || c === '"' || c === '`') { const q = c; i++; while (i < to && src[i] !== q) { if (src[i] === '\\') i++; i++; } continue; }
+    if (c !== '<' || !/[A-Za-z]/.test(src[i + 1] ?? '') || !JSX_BEFORE.test(src.slice(Math.max(from, i - 12), i))) continue;
+    const name = /^<([A-Za-z][\w:.-]*)/.exec(src.slice(i, i + 64))[1];
+    let [end, self] = tagEnd(src, i, to), depth = self ? 0 : 1;
+    while (depth > 0 && end < to) {
+      const next = src.indexOf('<', end);
+      if (next < 0 || next >= to) { end = to; break; }
+      if (src.startsWith(`</${name}`, next)) { depth--; end = src.indexOf('>', next) + 1 || to; continue; }
+      if (src.startsWith(`<${name}`, next) && /[\s/>]/.test(src[next + name.length + 1] ?? '')) { const [e, s2] = tagEnd(src, next, to); if (!s2) depth++; end = e; continue; }
+      end = next + 1;
+    }
+    out.push([i, end]);
+    i = end - 1;
+  }
+  return out;
+};
+/* An expression's findings: its markup read as markup, the rest as script. */
+const expressionFindings = (src, starts, from, to) => {
+  const out = [];
+  let at = from;
+  for (const [a, b] of jsxRanges(src, from, to)) {
+    out.push(...scriptFindings(src, starts, at, a), ...markupFindings(src, starts, a, b));
+    at = b;
+  }
+  out.push(...scriptFindings(src, starts, at, to));
+  return out;
+};
+
 const ENTITY = /&[#\w]+;/g;
 const markupFindings = (src, starts, from, to) => {
   const out = [];
@@ -159,7 +228,7 @@ const markupFindings = (src, starts, from, to) => {
   };
   const expression = (open) => {
     const end = pastExpression(src, open);
-    if (!/^\{\s*@html\b/.test(src.slice(open, open + 12))) out.push(...scriptFindings(src, starts, open + 1, end - 1));
+    if (!/^\{\s*@html\b/.test(src.slice(open, open + 12))) out.push(...expressionFindings(src, starts, open + 1, end - 1));
     return end;
   };
   let i = from;
@@ -219,24 +288,60 @@ const findingsOf = (file, src) => {
   return [...found, ...markupFindings(src, starts, from, src.length)];
 };
 
-const results = [];
+const args = process.argv.slice(2);
+const flags = new Set(args.filter((a) => a.startsWith('--')));
+const unknown = [...flags].filter((f) => f !== '--summary' && f !== '--unused');
+if (unknown.length) { console.error(`i18n-lint: unknown option ${unknown.join(' ')} (--summary, --unused)`); process.exit(2); }
 /* Files or folders named on the command line, else all of src/. */
-const targets = process.argv.slice(2).map((a) => path.resolve(a));
+const targets = args.filter((a) => !a.startsWith('--')).map((a) => path.resolve(a));
 const files = (targets.length ? targets : [SRC]).flatMap((t) => fs.statSync(t).isDirectory() ? walk(t) : [t]);
+const shown = (abs) => path.relative(ROOT, abs).split(path.sep).join('/');
+const skipped = (rel) => SKIP_FILE.test(rel) || SKIP_DIRS.some((d) => rel.startsWith(d.split(path.sep).join('/')));
+
+/* ---------- --unused: catalog keys no source names ---------- */
+
+if (flags.has('--unused')) {
+  const EN = path.join(SRC, 'lib', 'i18n', 'en');
+  const keys = fs.readdirSync(EN).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort().flatMap((f) =>
+    [...fs.readFileSync(path.join(EN, f), 'utf8').matchAll(/^\s*'([^']+)'\s*:/gm)].map((m) => ({ key: m[1], file: `src/lib/i18n/en/${f}` })));
+  /* every source of src/, whatever the command line names: a key is used if anything uses it */
+  const sources = walk(SRC).filter((abs) => !shown(abs).startsWith('src/lib/i18n/')).map((abs) => fs.readFileSync(abs, 'utf8')).join('\n');
+  const quoted = new Set([...sources.matchAll(/['"`]([a-z][\w]*(?:\.[\w]+)+)['"`]/g)].map((m) => m[1]));
+  /* a key put together at run time: `about.feature.${name}` names every key under about.feature. */
+  const prefixes = [...new Set([...sources.matchAll(/`([a-z][\w]*(?:\.[\w]+)*\.)\$\{/g)].map((m) => m[1]))];
+  const unused = keys.filter(({ key }) => !quoted.has(key) && !prefixes.some((p) => key.startsWith(p)));
+  unused.forEach(({ key, file }) => console.log(`${file}: ${key}`));
+  if (unused.length) { console.error(`\n${unused.length} of ${keys.length} catalog key${keys.length === 1 ? '' : 's'} named nowhere under src/.`); process.exit(1); }
+  console.error(`i18n: all ${keys.length} catalog keys are named under src/.`);
+  process.exit(0);
+}
+
+/* ---------- the lint ---------- */
+
+const results = [];
 for (const abs of files.sort()) {
-  const rel = path.relative(ROOT, abs);
-  if (SKIP_FILE.test(rel) || SKIP_DIRS.some((d) => rel.startsWith(d))) continue;
+  const rel = shown(abs);
+  if (skipped(rel)) continue;
   const src = fs.readFileSync(abs, 'utf8');
   const lines = src.split('\n');
   for (const f of findingsOf(rel, src)) {
     if (SKIP_LINE.test(lines[f.line - 1] ?? '')) continue;
-    const shown = f.text.replace(/\s+/g, ' ').trim();
-    const row = `${rel.split(path.sep).join('/')}:${f.line}: ${shown.length > 140 ? `${shown.slice(0, 139)}…` : shown}`;
+    const text = f.text.replace(/\s+/g, ' ').trim();
+    const row = `${rel}:${f.line}: ${text.length > 140 ? `${text.slice(0, 139)}…` : text}`;
     if (allow.some((re) => re.test(row))) continue;
     results.push(row);
   }
 }
 const unique = [...new Set(results)];
-unique.forEach((r) => console.log(r));
+if (flags.has('--summary')) {
+  /* by the directory two levels under src/ (src/lib/content, src/components/views), or the file's own folder above that */
+  const dirOf = (row) => { const parts = row.slice(0, row.indexOf(':')).split('/'); return parts.slice(0, Math.min(3, parts.length - 1)).join('/'); };
+  const counts = new Map();
+  for (const r of unique) counts.set(dirOf(r), (counts.get(dirOf(r)) ?? 0) + 1);
+  const rows = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const width = Math.max(5, ...rows.map(([d]) => d.length));
+  rows.forEach(([d, n]) => console.log(`${d.padEnd(width)}  ${String(n).padStart(5)}`));
+  console.log(`${'total'.padEnd(width)}  ${String(unique.length).padStart(5)}`);
+} else unique.forEach((r) => console.log(r));
 if (unique.length) { console.error(`\n${unique.length} UI text${unique.length === 1 ? '' : 's'} not read from the catalog (src/lib/i18n/); allowlist in scripts/i18n-allow.txt.`); process.exit(1); }
 console.error('i18n: no UI text outside the catalog.');

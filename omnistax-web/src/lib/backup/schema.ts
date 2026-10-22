@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { t } from '../i18n/index';
 import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
 import { TipStateSchema } from '../tips/model';
@@ -313,15 +314,15 @@ const BackupSchema = z.object({
 export type ReaderBackup = z.infer<typeof BackupSchema>;
 
 export const parseBackupText = (text: string): ReaderBackup => {
-  if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(`The backup is larger than ${MAX_BACKUP_LABEL}.`);
+  if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.tooLarge', { limit: MAX_BACKUP_LABEL }));
   let raw: unknown;
-  try { raw = JSON.parse(text); } catch { throw new Error('This file is not valid JSON.'); }
+  try { raw = JSON.parse(text); } catch { throw new Error(t('shell.backup.notJson')); }
   return parseBackup(raw);
 };
 
 export const parseBackup = (raw: unknown): ReaderBackup => {
   const parsed = BackupSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(`This is not a valid OmniStax backup: ${parsed.error.issues[0]?.message ?? 'invalid data'}.`);
+  if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: parsed.error.issues[0]?.message ?? t('shell.backup.invalidData') }));
   return parsed.data;
 };
 

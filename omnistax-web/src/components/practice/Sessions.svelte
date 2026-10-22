@@ -2,6 +2,7 @@
   import { practice } from '../../lib/practice/store.svelte';
   import PageHead from './PageHead.svelte';
   import SessionRows from './SessionRows.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { item }: { item: string } = $props();
 
   let asking = $state(false);
@@ -10,16 +11,16 @@
 </script>
 
 <div class="sessions">
-  <PageHead title="Sessions" back={() => practice.dashboard(item)}>
+  <PageHead title={i18n.t('practice.sessions.title')} back={() => practice.dashboard(item)}>
     {#snippet actions()}
       {#if asking}
         <span class="ask">
-          Delete {done === 1 ? 'the finished session' : `all ${done} finished sessions`}, {n === 1 ? '1 completed exercise' : `${n} completed exercises`} and every mastery record?
-          <button type="button" class="btn sm danger" onclick={() => { practice.clearHistory(); asking = false; }}>Yes</button>
-          <button type="button" class="btn ghost sm" onclick={() => (asking = false)}>No</button>
+          {i18n.t('practice.sessions.clearAsk', { done, n })}
+          <button type="button" class="btn sm danger" onclick={() => { practice.clearHistory(); asking = false; }}>{i18n.t('practice.yes')}</button>
+          <button type="button" class="btn ghost sm" onclick={() => (asking = false)}>{i18n.t('practice.no')}</button>
         </span>
       {:else}
-        <button type="button" class="btn sm danger" disabled={!done && !n} onclick={() => (asking = true)}>Clear practice history</button>
+        <button type="button" class="btn sm danger" disabled={!done && !n} onclick={() => (asking = true)}>{i18n.t('practice.sessions.clear')}</button>
       {/if}
     {/snippet}
   </PageHead>

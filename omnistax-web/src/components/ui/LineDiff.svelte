@@ -1,15 +1,16 @@
 <script lang="ts">
   /* A line diff drawn as its changed stretches, each with a few unchanged lines around it. */
   import type { Hunk } from '../../lib/sync/diff';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { hunks, tail }: { hunks: readonly Hunk[]; tail: number } = $props();
   const SIGN = { same: ' ', del: '−', add: '+' } as const;
 </script>
 
 {#snippet skipped(n: number)}
-  {#if n}<div class="skip">{n} unchanged {n === 1 ? 'line' : 'lines'}</div>{/if}
+  {#if n}<div class="skip">{i18n.t('shell.lineDiff.unchanged', { n })}</div>{/if}
 {/snippet}
 
-<div class="code" role="table" aria-label="Changes">
+<div class="code" role="table" aria-label={i18n.t('shell.lineDiff.label')}>
   {#each hunks as h, i (i)}
     {@render skipped(h.skipped)}
     {#each h.lines as l, j (j)}

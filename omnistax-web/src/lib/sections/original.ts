@@ -16,6 +16,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLEl
 
 /* The paths of the originals and, aligned with them, the widths the book prints them at: data-original-width
    is comma-separated in the same order, and absent where the book gives no width. */
+import { t } from '../i18n/index';
+
 const list = (csv: string | undefined): readonly string[] => (csv ?? '').split(',').map((p) => p.trim()).filter(Boolean);
 type Original = { readonly src: string; readonly width?: string };
 const originalsOf = (fig: HTMLElement): readonly Original[] => {
@@ -50,8 +52,8 @@ const originalOf = (fig: HTMLElement): HTMLElement => {
   return box;
 };
 
-const labelOf = (shown: boolean): string => (shown ? 'Live' : 'Original');
-const titleOf = (shown: boolean): string => (shown ? 'Show the live figure' : 'Show the book’s original figure');
+const labelOf = (shown: boolean): string => t(shown ? 'views.original.live' : 'views.original.original');
+const titleOf = (shown: boolean): string => t(shown ? 'views.original.showLive' : 'views.original.showOriginal');
 
 const toggle = (fig: HTMLElement, button: HTMLButtonElement): void => {
   const shown = fig.classList.toggle(CLS);

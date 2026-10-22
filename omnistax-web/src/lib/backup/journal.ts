@@ -1,6 +1,7 @@
 import { categoryOf, type ReaderRecord } from './schema';
 import { exportAssets, replaceAssets, waitForAssetWrites, type Asset } from '../notes/assets';
 import { setReaderWritesAllowed, withExclusiveReaderLock } from './guard';
+import { t } from '../i18n/index';
 
 const DB = 'omnistax-reader-restore';
 const STORE = 'journal';
@@ -63,7 +64,7 @@ export const recoverInterruptedRestore = async (): Promise<void> => {
 };
 
 export const restoreWithJournal = async (after: readonly ReaderRecord[], afterAssets: readonly Asset[]): Promise<void> => {
-  if (typeof indexedDB === 'undefined') throw new Error('This browser lacks IndexedDB, so it cannot restore a backup safely.');
+  if (typeof indexedDB === 'undefined') throw new Error(t('shell.backup.noIndexedDb'));
   /* A pasted image whose transaction started before the button press must be
      represented in the before snapshot rather than arriving during restore. */
   setReaderWritesAllowed(false);

@@ -1,5 +1,6 @@
 /* Answer checking without a grader: numbers within a relative tolerance (2 percent unless the answer names one), choices by index. Pure. */
 import type { AnswerDTO } from '../content/schema';
+import { t } from '../i18n/index';
 export type Verdict = { readonly ok: boolean; readonly text: string };
 export type Tolerance = number;
 export const DEFAULT_TOL: Tolerance = 0.02;
@@ -8,13 +9,13 @@ export const nearly = (input: number, value: number, tol: Tolerance = DEFAULT_TO
 export const parseNumber = (s: string): number | null => { const v = parseFloat(s.replace(/,/g, '')); return Number.isNaN(v) ? null : v; };
 export const checkNumber = (raw: string, value: number, unit: string, hint?: string, terse = false, tol: Tolerance = DEFAULT_TOL): Verdict => {
   const v = parseNumber(raw);
-  if (v === null) return { ok: false, text: 'Enter a number.' };
-  if (nearly(v, value, tol)) return { ok: true, text: terse ? 'Correct' : `Correct: ${value} ${unit}` };
-  if (nearly(-v, value, tol)) return { ok: false, text: terse ? 'Wrong sign' : 'Right magnitude, wrong sign. Which direction is positive?' };
-  return { ok: false, text: hint ?? (terse ? 'Not quite' : 'Not quite. Check units and which quantity the question asks for.') };
+  if (v === null) return { ok: false, text: t('exercises.check.enterNumber') };
+  if (nearly(v, value, tol)) return { ok: true, text: terse ? t('exercises.check.correct') : t('exercises.check.correctValue', { value, unit }) };
+  if (nearly(-v, value, tol)) return { ok: false, text: terse ? t('exercises.check.wrongSign') : t('exercises.check.wrongSignLong') };
+  return { ok: false, text: hint ?? (terse ? t('exercises.check.notQuite') : t('exercises.check.notQuiteLong')) };
 };
 export const checkChoice = (picked: number | null, correct: number, hint?: string): Verdict =>
-  picked === null ? { ok: false, text: 'Pick one.' } : picked === correct ? { ok: true, text: 'Correct.' } : { ok: false, text: hint ?? 'Not that one.' };
+  picked === null ? { ok: false, text: t('exercises.check.pickOne') } : picked === correct ? { ok: true, text: t('exercises.check.correctChoice') } : { ok: false, text: hint ?? t('exercises.check.notThatOne') };
 
 /* The line a reader checks their own work against. A book usually writes a solution
    out; where it has not, a numeric answer is its own solution, so compose one from

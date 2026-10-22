@@ -9,6 +9,7 @@
    and single letters otherwise, so "pix" is π·x and "ab" is a·b; e is Euler's
    number and never a parameter. A piecewise function is written as Desmos
    writes one, {x<2: x^2, 3x+1}. */
+import { t as msg } from '../i18n';
 
 export type Cmp = '<' | '<=' | '>' | '>=' | '=';
 export type Node =
@@ -61,7 +62,7 @@ export const lex = (src: string): Tok[] => {
     const two = s.slice(i, i + 2);
     if (two === '<=' || two === '>=' || two === '**') { out.push({ k: 'op', v: two === '**' ? '^' : two }); i += 2; continue; }
     if ('+-*/^()[]{},|:<>=\'_'.includes(c)) { out.push({ k: 'op', v: c === '[' ? '(' : c === ']' ? ')' : c }); i++; continue; }
-    throw new ParseError(`“${c}” is not something the grapher reads`);
+    throw new ParseError(msg('sheets.grapher.error.unknown', { c }));
   }
   return out;
 };
@@ -75,7 +76,7 @@ export const parse = (src: string, fns: ReadonlySet<string> = new Set()): Node =
   const toks = lex(src); let i = 0; let absDepth = 0;
   const peek = (): Tok | undefined => toks[i];
   const isOp = (v: string): boolean => { const t = toks[i]; return !!t && t.k === 'op' && t.v === v; };
-  const expect = (v: string): void => { if (!isOp(v)) throw new ParseError(peek() ? `expected “${v}”` : `missing “${v}”`); i++; };
+  const expect = (v: string): void => { if (!isOp(v)) throw new ParseError(peek() ? msg('sheets.grapher.error.expected', { v }) : msg('sheets.grapher.error.missing', { v })); i++; };
   const startsFactor = (): boolean => {
     const t = peek(); if (!t) return false;
     if (t.k === 'id') return true;
@@ -124,7 +125,7 @@ export const parse = (src: string, fns: ReadonlySet<string> = new Set()): Node =
   };
   const piecewise = (): Node => {
     const cases: { cond: Node | null; val: Node }[] = [];
-    if (isOp('}')) throw new ParseError('an empty { }');
+    if (isOp('}')) throw new ParseError(msg('sheets.grapher.error.emptyBraces'));
     for (;;) {
       const first = chain();
       if (isOp(':')) { i++; cases.push({ cond: first, val: sum() }); }
@@ -134,14 +135,14 @@ export const parse = (src: string, fns: ReadonlySet<string> = new Set()): Node =
     }
   };
   const primary = (): Node => {
-    const t = peek(); if (!t) throw new ParseError('the expression ends too soon');
+    const t = peek(); if (!t) throw new ParseError(msg('sheets.grapher.error.endsSoon'));
     i++;
     if (t.k === 'num') return { t: 'num', v: Number(t.v), raw: t.v };
     if (t.k === 'op') {
       if (t.v === '(') { const e = sum(); expect(')'); return e; }
       if (t.v === '{') return piecewise();
       if (t.v === '|') { absDepth++; const e = sum(); absDepth--; expect('|'); return { t: 'call', fn: 'abs', arg: e }; }
-      throw new ParseError(`“${t.v}” cannot stand here`);
+      throw new ParseError(msg('sheets.grapher.error.cannotStand', { v: t.v }));
     }
     if (t.v === 'pi') return { t: 'const', name: 'pi' };
     if (t.v === 'e') return { t: 'const', name: 'e' };
@@ -157,15 +158,15 @@ export const parse = (src: string, fns: ReadonlySet<string> = new Set()): Node =
     }
     if (fns.has(t.v)) {
       let primes = 0; while (isOp('\'')) { i++; primes++; }
-      if (!isOp('(')) throw new ParseError(`${t.v} is a function: write ${t.v}(x)`);
+      if (!isOp('(')) throw new ParseError(msg('sheets.grapher.error.function', { f: t.v }));
       i++; const arg = sum(); expect(')');
       return { t: 'user', name: t.v, primes, arg };
     }
     return { t: 'var', name: t.v };
   };
-  if (toks.length === 0) throw new ParseError('nothing to read');
+  if (toks.length === 0) throw new ParseError(msg('sheets.grapher.error.nothing'));
   const n = chain();
-  if (i < toks.length) throw new ParseError(`“${(peek() as Tok).v}” cannot stand here`);
+  if (i < toks.length) throw new ParseError(msg('sheets.grapher.error.cannotStand', { v: (peek() as Tok).v }));
   return n;
 };
 
@@ -337,8 +338,8 @@ export const readRow = (text: string, fns: ReadonlySet<string> = new Set()): Row
       return { kind: 'curve', node, name: def[1], arg: def[2], tex: `${def[1]}\\left(${GREEK[def[2]] ?? def[2]}\\right)=${toTex(node)}` };
     }
     const n = parse(text, fns);
-    if (n.t !== 'cmp') return varsOf(n).has('y') ? { kind: 'error', message: 'an expression in y needs an equation' } : { kind: 'curve', node: n, arg: 'x', tex: `y=${toTex(n)}` };
-    if (n.ops.length !== 1 || n.ops[0] !== '=') return { kind: 'error', message: 'inequalities are not drawn' };
+    if (n.t !== 'cmp') return varsOf(n).has('y') ? { kind: 'error', message: msg('sheets.grapher.error.needsEquation') } : { kind: 'curve', node: n, arg: 'x', tex: `y=${toTex(n)}` };
+    if (n.ops.length !== 1 || n.ops[0] !== '=') return { kind: 'error', message: msg('sheets.grapher.error.inequality') };
     const [l, r] = n.terms;
     if (isLetter(l, 'y') && !varsOf(r).has('y')) return { kind: 'curve', node: r, arg: 'x', tex: `y=${toTex(r)}` };
     if (isLetter(l) && l.name !== 'x' && l.name !== 'y' && !varsOf(r).has(l.name) && !varsOf(r).has('x') && !varsOf(r).has('y'))

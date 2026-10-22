@@ -3,6 +3,7 @@
    pure pieces the page draws with (a step's sentence split into text and
    formulas, the grapher's address, the expression an address carries). */
 import type { CasMessage, CasPost } from './worker';
+import { t } from '../i18n';
 
 export type CasOp = 'integral' | 'derivative';
 export type CasRequest = {
@@ -46,9 +47,9 @@ const workerFor = (): Worker => {
   w.onmessage = (e: MessageEvent<CasPost>) => {
     const m = e.data, held = waiting.get(m.id); if (!held) return;
     waiting.delete(m.id); clearTimeout(held.timer);
-    if ('failed' in m) held.fail(new Error('Could not load SymPy.')); else held.done(JSON.parse(m.reply) as CasReply);
+    if ('failed' in m) held.fail(new Error(t('sheets.cas.loadFailed'))); else held.done(JSON.parse(m.reply) as CasReply);
   };
-  w.onerror = () => drop('Could not load SymPy.');
+  w.onerror = () => drop(t('sheets.cas.loadFailed'));
   return worker = w;
 };
 
@@ -56,7 +57,7 @@ export const ask = (q: CasRequest): Promise<CasReply> =>
   new Promise((done, fail) => {
     const id = next++, w = workerFor();
     /* The first request also waits for Pyodide and SymPy to arrive. */
-    const timer = setTimeout(() => drop('Took too long.'), engineReady ? TIMEOUT_MS : TIMEOUT_MS * 6);
+    const timer = setTimeout(() => drop(t('sheets.cas.timeout')), engineReady ? TIMEOUT_MS : TIMEOUT_MS * 6);
     waiting.set(id, { done: (r) => { engineReady = true; done(r); }, fail, timer });
     w.postMessage({ id, request: JSON.stringify(q) } satisfies CasMessage);
   });

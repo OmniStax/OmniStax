@@ -9,6 +9,7 @@ import { FILES_KEY, parseFiles } from '../files/model';
 import type { FileId } from '../types/ids';
 import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ReaderBackup, type ReaderRecord } from './schema';
 import { restoreWithJournal } from './journal';
+import { t } from '../i18n/index';
 import { exportGenerated, replaceGenerated } from '../practice/generated-db';
 import type { GeneratedExercise } from '../practice/generated';
 
@@ -65,14 +66,14 @@ export const downloadBackup = async (): Promise<void> => {
   const backup = await createBackup();
   const text = `${JSON.stringify(backup, null, 2)}\n`;
   const blob = new Blob([text], { type: 'application/json' });
-  if (blob.size > MAX_BACKUP_BYTES) throw new Error(`This profile is larger than the ${MAX_BACKUP_LABEL} backup limit. Remove large imported files or pasted note images and try again.`);
+  if (blob.size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.exportTooLarge', { limit: MAX_BACKUP_LABEL }));
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: `omnistax-reader-${backup.exportedAt.slice(0, 10)}.json` });
   a.click(); URL.revokeObjectURL(url);
 };
 
 export const readBackupFile = async (file: File): Promise<ReaderBackup> => {
-  if (file.size > MAX_BACKUP_BYTES) throw new Error(`This backup exceeds the ${MAX_BACKUP_LABEL} import limit.`);
+  if (file.size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.importTooLarge', { limit: MAX_BACKUP_LABEL }));
   return parseBackupText(await file.text());
 };
 

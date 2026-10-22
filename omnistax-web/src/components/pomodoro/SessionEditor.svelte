@@ -3,6 +3,7 @@
   import { type DayKey, type EntryDraft, type Pomodoro, blankDraft, draftOf, entryOf, ranMs, spanText } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import CategoryPicker from './CategoryPicker.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { entry = null, ondone }: { entry?: Pomodoro | null; ondone: () => void } = $props();
 
   const first: EntryDraft = untrack(() => (entry ? draftOf(entry) : blankDraft(Date.now())));
@@ -22,20 +23,20 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<form class="editor" aria-label={entry ? 'Edit session' : 'Add session'} onsubmit={(e) => { e.preventDefault(); save(); }}
+<form class="editor" aria-label={entry ? i18n.t('pomodoro.editor.edit') : i18n.t('pomodoro.editor.add')} onsubmit={(e) => { e.preventDefault(); save(); }}
   onkeydown={(e) => { if (e.key === 'Escape') ondone(); }}>
   <div class="when">
-    <input class="input day" type="date" aria-label="Day" bind:value={day} />
-    <input class="input time" type="time" aria-label="From" bind:value={from} />
+    <input class="input day" type="date" aria-label={i18n.t('pomodoro.editor.day')} bind:value={day} />
+    <input class="input time" type="time" aria-label={i18n.t('pomodoro.editor.from')} bind:value={from} />
     <span class="dash">–</span>
-    <input class="input time" type="time" aria-label="To" bind:value={to} />
+    <input class="input time" type="time" aria-label={i18n.t('pomodoro.editor.to')} bind:value={to} />
     <span class="ran">{next ? spanText(ranMs(next)) : ''}</span>
   </div>
-  <input class="input" type="text" aria-label="Summary" placeholder="What did you work on?" bind:value={summary} autocomplete="off" />
+  <input class="input" type="text" aria-label={i18n.t('pomodoro.editor.summary')} placeholder={i18n.t('pomodoro.editor.placeholder')} bind:value={summary} autocomplete="off" />
   <CategoryPicker picked={cats} onpick={(ids) => (cats = ids)} />
   <div class="acts">
-    <button type="submit" class="btn primary sm" disabled={!next}>{entry ? 'Save' : 'Add'}</button>
-    <button type="button" class="btn ghost sm" onclick={ondone}>Cancel</button>
+    <button type="submit" class="btn primary sm" disabled={!next}>{entry ? i18n.t('pomodoro.editor.save') : i18n.t('pomodoro.category.add')}</button>
+    <button type="button" class="btn ghost sm" onclick={ondone}>{i18n.t('pomodoro.cancel')}</button>
   </div>
 </form>
 

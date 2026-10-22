@@ -2,6 +2,7 @@
    reply lands, and the times the transcript and the Conversations page print. */
 import { messageOf, transcript, type Chat, type Message, type MessageId } from './model';
 import type { Size } from '../tree/layout';
+import { currentLocale, t } from '../i18n';
 
 /* The leaf set to one message exactly, where `goTo` would follow on to the
    newest branch under it. */
@@ -43,7 +44,7 @@ export const nodeSize = (m: Message, s: NodeScale): Size =>
 export const openSize = (m: Message, s: NodeScale, measured?: number): Size =>
   ({ w: s.wide, h: s.chrome + (measured ?? linesOf(m.text.trim(), s.wide) * s.line) });
 
-export const speakerOf = (m: Message): string => (m.role === 'user' ? 'You' : m.model || 'Assistant');
+export const speakerOf = (m: Message): string => (m.role === 'user' ? t('chat.speaker.you') : m.model || t('chat.speaker.assistant'));
 
 /* The path the reader stands on, as Markdown: each message under who said it. */
 export const markdownOf = (chat: Chat): string =>
@@ -56,24 +57,29 @@ const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 
 export const ageOf = (at: number, now: number): string => {
   const d = Math.max(0, now - at);
-  if (d < MINUTE) return 'just now';
-  if (d < HOUR) return `${Math.floor(d / MINUTE)} min ago`;
-  if (d < DAY) return `${Math.floor(d / HOUR)} h ago`;
-  if (d < 7 * DAY) return `${Math.floor(d / DAY)} d ago`;
-  return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: new Date(at).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
+  if (d < MINUTE) return t('chat.age.now');
+  if (d < HOUR) return t('chat.age.minutes', { n: Math.floor(d / MINUTE) });
+  if (d < DAY) return t('chat.age.hours', { n: Math.floor(d / HOUR) });
+  if (d < 7 * DAY) return t('chat.age.days', { n: Math.floor(d / DAY) });
+  return new Date(at).toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: new Date(at).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
 };
 
 export const dayOf = (at: number): string => { const d = new Date(at); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 
 export const dayLabel = (at: number, now: number): string => {
-  if (dayOf(at) === dayOf(now)) return 'Today';
-  if (dayOf(at) === dayOf(now - DAY)) return 'Yesterday';
-  return new Date(at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: new Date(at).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
+  if (dayOf(at) === dayOf(now)) return t('chat.day.today');
+  if (dayOf(at) === dayOf(now - DAY)) return t('chat.day.yesterday');
+  return new Date(at).toLocaleDateString(currentLocale(), { weekday: 'long', month: 'long', day: 'numeric', year: new Date(at).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
 };
 
-/* One formatter for every stamp: a transcript or a tree stamps each of its messages. */
-const STAMP = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-export const timeOf = (at: number): string => STAMP.format(new Date(at));
+/* One formatter for every stamp, per language: a transcript or a tree stamps each of its messages. */
+const STAMPS = new Map<string, Intl.DateTimeFormat>();
+const stamp = (locale: string): Intl.DateTimeFormat => {
+  let f = STAMPS.get(locale);
+  if (!f) { f = new Intl.DateTimeFormat(locale, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); STAMPS.set(locale, f); }
+  return f;
+};
+export const timeOf = (at: number): string => stamp(currentLocale()).format(new Date(at));
 
 /* Whether a divider stands above the message at `i`: the first one, and each
    one whose day differs from the one before. */

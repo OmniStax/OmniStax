@@ -2,6 +2,7 @@
   /* A whole chat held in a note, `![[chat:<id>]]`: the tree, inline, at a
      fixed height, panned and zoomed on its own plane, or as its transcript. */
   import TreeView from '../chat/TreeView.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Transcript from '../chat/Transcript.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { showChat } from '../../lib/chat/open.svelte';
@@ -25,9 +26,9 @@
 <div class="chat-tree" data-chat={id}>
   <div class="head">
     <span class="name">{chats.nameOf(cid)}</span>
-    <button type="button" class="act" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
-    {#if tree}<button type="button" class="act" onclick={() => (fitted += 1)}>Fit</button>{/if}
-    <button type="button" class="act" onclick={() => open()}>Open</button>
+    <button type="button" class="act" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>{i18n.t('drawer.chat.tree')}</button>
+    {#if tree}<button type="button" class="act" onclick={() => (fitted += 1)}>{i18n.t('drawer.toolbar.fit')}</button>{/if}
+    <button type="button" class="act" onclick={() => open()}>{i18n.t('drawer.chat.open')}</button>
   </div>
   <div class="body">
     {#if chat}

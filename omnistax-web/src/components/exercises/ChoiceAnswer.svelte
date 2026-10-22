@@ -5,6 +5,7 @@
   import type { AnswerDTO } from '../../lib/content/schema';
   import { checkChoice, type Verdict } from '../../lib/exercises/check';
   import { mathHtml } from '../actions/math';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { answer, name, oncheck, locked = null, tools }: { answer: Extract<AnswerDTO, { type: 'choice' }>; name: string; oncheck?: (v: Verdict) => void; locked?: boolean | null; tools?: Snippet } = $props();
   let picked = $state<number | null>(null); let verdict = $state<Verdict | null>(null);
   const done = $derived(locked !== null || verdict !== null);
@@ -15,9 +16,9 @@
 <div class="choices">
   {#each answer.options as o, i}<label><input type="radio" {name} value={i} disabled={done} onchange={() => (picked = i)}><span use:mathHtml={o}></span></label>{/each}
 </div>
-<div class="actions">{@render tools?.()}<button type="button" class="btn primary check" disabled={done || picked === null} onclick={check}>Check</button></div>
+<div class="actions">{@render tools?.()}<button type="button" class="btn primary check" disabled={done || picked === null} onclick={check}>{i18n.t('exercises.choice.check')}</button></div>
 <div class="feedback" role="status" class:ok={ok === true} class:bad={ok === false}>
-  {#if ok !== null}<span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{verdict?.text ?? (ok ? 'Correct' : 'Incorrect')}</span>{/if}
+  {#if ok !== null}<span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{verdict?.text ?? (ok ? i18n.t('exercises.check.correct') : i18n.t('exercises.check.incorrect'))}</span>{/if}
 </div>
 
 <style>

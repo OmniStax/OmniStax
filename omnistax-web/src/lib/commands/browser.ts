@@ -8,6 +8,7 @@
 import { type BookId, type SectionId, bookId, sectionId, sectionRef, chapterId, docItem, drawingId, drawingItem, fileId, fileItem, itemKey, noteId, noteItem } from '../types/ids';
 import type { PickerCategory, PickerNode, PickerRow } from '../picker/model';
 import type { Target } from '../sections/scope';   /* type only: scope.ts reads BookTree from here */
+import { t } from '../i18n/index';
 
 /* What the tree needs of the book; the manifest (content/schema) is assignable to it.
    A section's figures and exercises are optional, since a tree may be described without them. */
@@ -58,16 +59,16 @@ const pickRow = (category: PickerCategory, key: string, label: string): PickerRo
 /* A chapter's detail counts every section it lists; when some are not yet built it says how many of them stand. */
 const chapterDetail = (c: ChapterNode): string => {
   const total = c.sections.length; const built = c.sections.filter((s) => s.built).length;
-  return built === total ? `${total} section${total === 1 ? '' : 's'}` : `${built} of ${total} sections`;
+  return built === total ? t('commands.browser.sections', { total }) : t('commands.browser.sectionsBuilt', { built, total });
 };
 /* A section is a place to stand only once it is built; until then it is listed, dim, and names nothing. */
 const pickSection = (s: SectionNode): PickerNode => {
   const label = named(s.id, s.title);
-  return s.built ? { key: sectionKey(s.id), label, detail: '', row: pickRow('sections', s.id, label) } : { key: sectionKey(s.id), label, detail: 'not yet built' };
+  return s.built ? { key: sectionKey(s.id), label, detail: '', row: pickRow('sections', s.id, label) } : { key: sectionKey(s.id), label, detail: t('commands.browser.notBuilt') };
 };
 /* The whole book above its chapters, and each chapter above its sections. */
 export const pickTree = (tree: BookTree): readonly PickerNode[] => [
-  { key: BOOK_KEY, label: 'Whole book', detail: '', row: pickRow('books', tree.id, 'Whole book') },
+  { key: BOOK_KEY, label: t('commands.browser.wholeBook'), detail: '', row: pickRow('books', tree.id, t('commands.browser.wholeBook')) },
   ...tree.chapters.map((c): PickerNode => {
     const label = named(c.id, c.title);
     return { key: chapterKey(c.id), label, detail: chapterDetail(c), row: pickRow('chapters', c.id, label), children: () => c.sections.map(pickSection) };

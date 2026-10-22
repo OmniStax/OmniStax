@@ -6,6 +6,7 @@
   import ReadyToLearn from './ReadyToLearn.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
   import SessionPlan from './SessionPlan.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { item, shelf }: { item: string; shelf: readonly string[] } = $props();
 
@@ -16,12 +17,12 @@
 </script>
 
 <div class="builder">
-  <PageHead title="New session" back={() => practice.dashboard(item)} />
-  {#if loading}<p class="loading" role="status">Loading exercises…</p>{/if}
+  <PageHead title={i18n.t('practice.builder.newSession')} back={() => practice.dashboard(item)} />
+  {#if loading}<p class="loading" role="status">{i18n.t('practice.builder.loading')}</p>{/if}
   <div class="cols">
     <section class="choose">
-      <h3 class="section-title">Choose</h3>
-      <UpNext {item} mode="add" label="Quick picks" />
+      <h3 class="section-title">{i18n.t('practice.builder.choose')}</h3>
+      <UpNext {item} mode="add" label={i18n.t('practice.builder.quickPicks')} />
       <ReadyToLearn {item} selectable folded />
       <div class="tree"><CurriculumTree {item} {shelf} open={shelf[0] ?? null} /></div>
     </section>

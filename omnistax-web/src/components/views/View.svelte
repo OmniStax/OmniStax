@@ -12,6 +12,8 @@
   import { explorer } from '../../lib/explorer/store.svelte';
   import { mapViews, viewKeyOf } from '../../lib/sections/mapview';
   import CrumbMenu from './CrumbMenu.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
   import ConceptMap from './ConceptMap.svelte';
   import Exercises from './Exercises.svelte';
   import Explorer from './Explorer.svelte';
@@ -42,7 +44,9 @@
      which section it would come down to. */
   const tree = $derived(scope.treeOf(item));
   const deepest = $derived(tree ? resolve(atLevel(scope.of(item), 'section', focus.section, tree), focus.section, tree) : null);
-  const crumbs = $derived(deepest ? crumbsOf(deepest, registry.manifest(deepest.book)) : []);
+  /* crumbsOf names the crumbs through the pure t; reading the locale here redraws them on a change of language */
+  const crumbs = $derived.by(() => { void i18n.locale; return deepest ? crumbsOf(deepest, registry.manifest(deepest.book)) : []; });
+  const LEVEL_KEY: Readonly<Record<Level, MessageKey>> = { book: 'views.crumbs.chooseBook', chapter: 'views.crumbs.chooseChapter', section: 'views.crumbs.chooseSection' };
   const at = $derived(target ? crumbs.findIndex((c) => c.level === target.level) : -1);
   setContext('scope', () => target);
   /* Which crumb's menu is open, and where under the bar it hangs — the chevron that
@@ -88,11 +92,11 @@
 <div class="view" data-view={kind} data-item={item} onpointerdown={() => (focus.view = item)} onfocusincapture={() => (focus.view = item)}>
   {#if hasBar}
   <div class="scope" class:pinned>
-    <nav class="crumbs" aria-label="Where this view stands">
+    <nav class="crumbs" aria-label={i18n.t('views.crumbs.label')}>
       {#if nowhere}
-        <span class="crumb">Book</span>
+        <span class="crumb">{i18n.t('views.scope.book')}</span>
         <button type="button" class="chev" bind:this={chevrons.book} aria-haspopup="listbox" aria-expanded={menu === 'book'}
-          aria-label="Choose a book" onclick={(e) => openMenu('book', e.currentTarget)}>▾</button>
+          aria-label={i18n.t('views.crumbs.chooseBook')} onclick={(e) => openMenu('book', e.currentTarget)}>▾</button>
       {/if}
       {#each crumbs as c, i (c.level)}
         {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
@@ -101,13 +105,13 @@
         </button>
         {#if c.level !== 'book' || books.length > 1}
           <button type="button" class="chev" bind:this={chevrons[c.level]} aria-haspopup="listbox" aria-expanded={menu === c.level}
-            aria-label={`Choose another ${c.level}`}
+            aria-label={i18n.t(LEVEL_KEY[c.level])}
             onclick={(e) => openMenu(c.level, e.currentTarget)}>▾</button>
         {/if}
       {/each}
     </nav>
     {#if target && (target.level !== 'book' || pinned)}
-      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? 'Unpin' : `Pin to ${crumbs[at]?.short ?? 'here'}`} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
+      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? i18n.t('views.crumbs.unpin') : crumbs[at] ? i18n.t('views.crumbs.pinTo', { place: crumbs[at].short }) : i18n.t('views.crumbs.pinHere')} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
     {/if}
     {#if menu}
       <div class="menuhold" style="margin-left:min({menuLeft}px, max(0px, 100% - 220px))">
@@ -116,7 +120,7 @@
       </div>
     {/if}
   </div>
-  {#if loading}<div class="chapters">Loading chapter data…</div>{:else if failed}<div class="chapters bad">Could not load chapter data.</div>{/if}
+  {#if loading}<div class="chapters">{i18n.t('views.chapters.loading')}</div>{:else if failed}<div class="chapters bad">{i18n.t('views.chapters.failed')}</div>{/if}
   {/if}
   {#if nowhere}
   {:else if kind === 'explorer'}<Explorer />

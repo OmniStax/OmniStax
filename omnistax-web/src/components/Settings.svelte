@@ -17,34 +17,55 @@
   import { practice } from '../lib/practice/store.svelte';
   import { DEFAULT_SETTINGS } from '../lib/practice/model';
   import Storage from './settings/Storage.svelte';
-  import Ai, { AI_WORDS } from './settings/Ai.svelte';
+  import Ai, { aiWords } from './settings/Ai.svelte';
   import Fold from './settings/Fold.svelte';
+  import { i18n } from '../lib/i18n/store.svelte';
+  import type { MessageKey } from '../lib/i18n/index';
+  import type { Theme } from '../lib/settings/store.svelte';
 
   type Recording = { readonly id: CommandId; readonly pending: { readonly chord: Chord; readonly other: Command } | null };
   let rec = $state<Recording | null>(null);
   let q = $state('');
   const hit = (text: string): boolean => { const needle = q.trim().toLowerCase(); return !needle || text.toLowerCase().includes(needle); };
-  /* What each row says, and extra words it should answer to. The filter reads both. */
-  const HINT = {
-    zoom: 'Change the size of the text without resizing the window.',
-    zoomKeys: 'Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let the browser zoom the whole page instead.',
-    tips: 'Show a tip each day in the bottom-right corner.',
-    cardOpen: 'Hover opens a card as you point at it. Click keeps it open until you click elsewhere; on the concept map, where a click selects, a double-click opens it.',
-    anim: 'Turn off to pause every interactive figure.',
-    voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
-    decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',
-    lockGrace: 'Seconds before a focus lock starts.',
-  } as const;
-  const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: `Text size zoom larger smaller ${HINT.zoom}`, zoomKeys: `Zoom keys ${HINT.zoomKeys}`, tips: `Tips tip of the day ${HINT.tips}`,
-    anim: `Play animations sim ${HINT.anim}`, voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
-    lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
-    masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
-    startingHalfLife: 'Starting half-life first review interval days', maxHalfLife: 'Maximum half-life review interval days',
-    storage: 'Storage space used quota persist retention browser clear data imported files Safari',
-  } as const;
-  const APPEARANCE = [ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips], READING = [ROWS.cardOpen, ROWS.anim, ROWS.voice];
-  const PRACTICE = [ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife];
+  const t = i18n.t;
+  /* A message cut at one of its placeholders, which the template fills with
+     markup of its own; the placeholder is left in place by format. */
+  const cut = (s: string, name: string): readonly [string, string] => {
+    const at = s.indexOf(`{${name}}`);
+    return at < 0 ? [s, ''] : [s.slice(0, at), s.slice(at + name.length + 2)];
+  };
+  const THEME_NAME: Readonly<Record<Theme, MessageKey>> = { system: 'settings.theme.system', light: 'settings.theme.light', dark: 'settings.theme.dark' };
+  const CARD_OPEN_NAME = { hover: 'settings.cardOpen.hover', click: 'settings.cardOpen.click' } as const satisfies Readonly<Record<string, MessageKey>>;
+  const resetTo = (value: string): string => t('settings.reset.to', { value });
+  const onOff = (on: boolean): string => t(on ? 'commands.detail.on' : 'commands.detail.off');
+  /* The chords this window never sees, because the browser keeps them. A
+     browser the shell cannot name is named in the reader's language. */
+  const browserName = $derived.by(() => { void i18n.locale; return BROWSER_NAMES[host.browser]; });
+  /* What each row says, and extra words it should answer to. The filter reads
+     both, in the reader's language, so the words follow a change of it. */
+  const HINT = $derived({
+    zoom: t('settings.zoom.hint'),
+    zoomKeys: t('settings.zoomKeys.hint', { browser: browserName }),
+    tips: t('settings.tips.hint'),
+    cardOpen: t('settings.cardOpen.hint'),
+    anim: t('settings.anim.hint'),
+    voice: t('settings.voice.hint'),
+    decay: t('settings.decay.hint'),
+    lockGrace: t('settings.lockGrace.hint'),
+  });
+  const fontNames = FONTS.map((f) => f.label).join(' ');
+  const ROWS = $derived({
+    theme: `${t('settings.theme.name')} ${t('settings.theme.keywords')}`, figureFont: `${t('settings.figureFont.name')} ${t('settings.figureFont.keywords')} ${fontNames}`, bodyFont: `${t('settings.bodyFont.name')} ${t('settings.bodyFont.keywords')} ${fontNames}`,
+    zoom: `${t('settings.zoom.name')} ${t('settings.zoom.keywords')} ${HINT.zoom}`, zoomKeys: `${t('settings.zoomKeys.name')} ${HINT.zoomKeys}`, tips: `${t('settings.tips.name')} ${t('settings.tips.keywords')} ${HINT.tips}`,
+    anim: `${t('settings.anim.name')} ${t('settings.anim.keywords')} ${HINT.anim}`, voice: `${t('settings.voice.name')} ${t('settings.voice.keywords')} ${HINT.voice}`, cardOpen: `${t('settings.cardOpen.name')} ${t('settings.cardOpen.keywords')} ${HINT.cardOpen}`,
+    lockGrace: `${t('settings.lockGrace.name')} ${t('settings.lockGrace.keywords')} ${HINT.lockGrace}`,
+    masteryTarget: `${t('settings.masteryTarget.name')} ${t('settings.masteryTarget.keywords')}`, decay: `${t('settings.decay.name')} ${t('settings.decay.keywords')} ${HINT.decay}`,
+    startingHalfLife: `${t('settings.startingHalfLife.name')} ${t('settings.startingHalfLife.keywords')}`, maxHalfLife: `${t('settings.maxHalfLife.name')} ${t('settings.maxHalfLife.keywords')}`,
+    storage: `${t('settings.section.storage')} ${t('settings.storage.keywords')}`,
+  });
+  const APPEARANCE = $derived([ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips]), READING = $derived([ROWS.cardOpen, ROWS.anim, ROWS.voice]);
+  const PRACTICE = $derived([ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife]);
+  const SHORTCUT_WORDS = $derived(`${t('settings.section.shortcuts')} ${t('settings.shortcuts.keywords')}`);
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
   let kq = $state('');
   let byKeys = $state(false);
@@ -57,10 +78,10 @@
   };
   const groups = $derived.by(() => {
     const m = new Map<string, Command[]>();
-    commands.all().filter((c) => shortcutHit(c) && (hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`) || hit('Keyboard shortcuts keys chords bindings'))).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
+    commands.all().filter((c) => shortcutHit(c) && (hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`) || hit(SHORTCUT_WORDS))).forEach((c) => { const g = m.get(c.group); if (g) g.push(c); else m.set(c.group, [c]); });
     return Array.from(m.entries());
   });
-  const shortcutsShown = $derived(hit('Keyboard shortcuts keys chords bindings') || commands.all().some((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)));
+  const shortcutsShown = $derived(hit(SHORTCUT_WORDS) || commands.all().some((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)));
   const toggleByKeys = () => { byKeys = !byKeys; keyChord = null; kq = ''; };
   const onKeyFilter = (e: KeyboardEvent) => {
     if (!byKeys) return;
@@ -75,11 +96,12 @@
   /* The numbers under Exercises commit on change or on a stepper click, clamped. */
   type NumKey = 'masteryTarget' | 'startingHalfLife' | 'maxHalfLife';
   type NumRow = { readonly key: NumKey; readonly words: string; readonly name: string; readonly hint: string; readonly min: number; readonly max: number; readonly step: number; readonly scale: number; readonly unit?: string; readonly restore: string };
-  const MASTERY: NumRow = { key: 'masteryTarget', words: ROWS.masteryTarget, name: 'Mastery target', hint: 'Correct answers needed to master a concept, capped at its exercise count.', min: 1, max: 12, step: 1, scale: 1, restore: 'Reset to 3' };
-  const HALF_LIVES: readonly NumRow[] = [
-    { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: 'Starting half-life', hint: 'Days until a newly mastered concept is first due for review.', min: 1, max: 365, step: 1, scale: 1, unit: 'days', restore: 'Reset to 3 days' },
-    { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: 'Maximum half-life', hint: 'The longest gap between reviews.', min: 1, max: 3650, step: 1, scale: 1, unit: 'days', restore: 'Reset to 240 days' },
-  ];
+  const days = (n: number): string => t('settings.days', { n });
+  const MASTERY: NumRow = $derived({ key: 'masteryTarget', words: ROWS.masteryTarget, name: t('settings.masteryTarget.name'), hint: t('settings.masteryTarget.hint'), min: 1, max: 12, step: 1, scale: 1, restore: resetTo(String(DEFAULT_SETTINGS.masteryTarget)) });
+  const HALF_LIVES: readonly NumRow[] = $derived([
+    { key: 'startingHalfLife', words: ROWS.startingHalfLife, name: t('settings.startingHalfLife.name'), hint: t('settings.startingHalfLife.hint'), min: 1, max: 365, step: 1, scale: 1, unit: t('settings.unit.days'), restore: resetTo(days(DEFAULT_SETTINGS.startingHalfLife)) },
+    { key: 'maxHalfLife', words: ROWS.maxHalfLife, name: t('settings.maxHalfLife.name'), hint: t('settings.maxHalfLife.hint'), min: 1, max: 3650, step: 1, scale: 1, unit: t('settings.unit.days'), restore: resetTo(days(DEFAULT_SETTINGS.maxHalfLife)) },
+  ]);
   const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
   const shown = (n: NumRow): number => Math.round(practice.settings[n.key] * n.scale);
   const commit = (n: NumRow, v: number): void => { if (Number.isFinite(v)) practice.setSetting(n.key, clamp(v, n.min, n.max) / n.scale); };
@@ -106,10 +128,11 @@
   const record = (id: CommandId) => { rec = rec?.id === id ? null : { id, pending: null }; };
   const focus = (el: HTMLElement) => { el.focus(); };
 
-  /* The chords this window never sees, because the browser keeps them. */
-  const browserName = $derived(BROWSER_NAMES[host.browser]);
   const held = $derived(commands.all().filter((c) => keys.chordsFor(c.id).some((ch) => kept(host.info, ch))).length);
-  const keptTitle = $derived(`Reserved by ${browserName}`);
+  const keptTitle = $derived(t('settings.shortcuts.reservedBy', { browser: browserName }));
+  /* The line under the toolbar, cut where its mark and its install button stand. */
+  const reserved = $derived(cut(t('settings.shortcuts.reserved', { browser: browserName, n: held }), 'mark'));
+  const installLine = $derived(cut(t('settings.shortcuts.install', { n: held }), 'install'));
 </script>
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
@@ -122,17 +145,17 @@
     <span class="name">{n.name}{@render back(practice.settings[n.key] !== DEFAULT_SETTINGS[n.key], n.restore, () => practice.setSetting(n.key, DEFAULT_SETTINGS[n.key]))}</span>
     <span class="hint">{n.hint}</span>
     <div class="num">
-      <button type="button" aria-label="Less" disabled={off} onclick={() => commit(n, shown(n) - n.step)}>−</button>
+      <button type="button" aria-label={t('settings.num.less')} disabled={off} onclick={() => commit(n, shown(n) - n.step)}>−</button>
       <input type="number" min={n.min} max={n.max} step={n.step} inputmode="numeric" aria-label={n.name} disabled={off} value={shown(n)} onchange={(e) => { commit(n, e.currentTarget.valueAsNumber); e.currentTarget.value = String(shown(n)); }}>
       {#if n.unit}<span class="unit">{n.unit}</span>{/if}
-      <button type="button" aria-label="More" disabled={off} onclick={() => commit(n, shown(n) + n.step)}>+</button>
+      <button type="button" aria-label={t('settings.num.more')} disabled={off} onclick={() => commit(n, shown(n) + n.step)}>+</button>
     </div>
   </div>
 {/snippet}
 
 {#snippet fontRow(name: string, key: 'figureFont' | 'bodyFont', value: FontId, fallback: FontId, set: (id: FontId) => void)}
   <div class="row" hidden={!hit(ROWS[key])}>
-    <span class="name">{name}{@render back(value !== fallback, `Reset to ${FONTS.find((f) => f.id === fallback)?.label}`, () => set(fallback))}</span>
+    <span class="name">{name}{@render back(value !== fallback, resetTo(FONTS.find((f) => f.id === fallback)?.label ?? fallback), () => set(fallback))}</span>
     <select class="font" aria-label={name} style:font-family={fontStack(value)} value={value} onchange={(e) => { const v = e.currentTarget.value; if (isFontId(v)) set(v); }}>
       {#each FONTS as f (f.id)}<option value={f.id} style:font-family={fontStack(f.id)}>{f.label}</option>{/each}
     </select>
@@ -141,87 +164,87 @@
 
 {#if ui.settings}
   <div class="scrim">
-    <div class="dialog" id="settings" onclick={(e) => e.stopPropagation()} onkeydown={onKey} role="dialog" tabindex="-1" aria-label="Settings">
+    <div class="dialog" id="settings" onclick={(e) => e.stopPropagation()} onkeydown={onKey} role="dialog" tabindex="-1" lang={i18n.locale} aria-label={t('settings.title')}>
       <header>
-        <div class="eyebrow">Settings</div>
-        <input class="find" type="search" placeholder="Search settings" aria-label="Search settings" bind:value={q} use:focus>
-        <button type="button" class="x" aria-label="Close" onclick={() => (ui.settings = false)}>×</button>
+        <div class="eyebrow">{t('settings.title')}</div>
+        <input class="find" type="search" placeholder={t('settings.search.placeholder')} aria-label={t('settings.search.placeholder')} bind:value={q} use:focus>
+        <button type="button" class="x" aria-label={t('shell.close')} onclick={() => (ui.settings = false)}>×</button>
       </header>
 
-      <Fold name="Appearance" show={APPEARANCE.some(hit)} force={!!q}>
+      <Fold id="Appearance" name={t('settings.section.appearance')} show={APPEARANCE.some(hit)} force={!!q}>
         <div class="row" hidden={!hit(ROWS.theme)}>
-          <span class="name">Theme{@render back(settings.theme !== DEFAULTS.theme, 'Reset to system', () => settings.setTheme(DEFAULTS.theme))}</span>
-          <div class="seg" role="radiogroup" aria-label="Theme">
-            {#each THEMES as t (t)}
-              <button type="button" class:on={settings.theme === t} id={t === 'dark' ? 'theme-toggle' : undefined} role="radio" aria-checked={settings.theme === t} onclick={() => settings.setTheme(t)}>{t}</button>
+          <span class="name">{t('settings.theme.name')}{@render back(settings.theme !== DEFAULTS.theme, resetTo(t(THEME_NAME[DEFAULTS.theme])), () => settings.setTheme(DEFAULTS.theme))}</span>
+          <div class="seg" role="radiogroup" aria-label={t('settings.theme.name')}>
+            {#each THEMES as th (th)}
+              <button type="button" class:on={settings.theme === th} id={th === 'dark' ? 'theme-toggle' : undefined} role="radio" aria-checked={settings.theme === th} onclick={() => settings.setTheme(th)}>{t(THEME_NAME[th])}</button>
             {/each}
           </div>
         </div>
-        {@render fontRow('Figure font', 'figureFont', settings.figureFont, DEFAULTS.figureFont, (id) => settings.setFigureFont(id))}
-        {@render fontRow('Body font', 'bodyFont', settings.bodyFont, DEFAULTS.bodyFont, (id) => settings.setBodyFont(id))}
+        {@render fontRow(t('settings.figureFont.name'), 'figureFont', settings.figureFont, DEFAULTS.figureFont, (id) => settings.setFigureFont(id))}
+        {@render fontRow(t('settings.bodyFont.name'), 'bodyFont', settings.bodyFont, DEFAULTS.bodyFont, (id) => settings.setBodyFont(id))}
         <div class="row" hidden={!hit(ROWS.zoom)}>
-          <span class="name">Text size{@render back(settings.zoom !== DEFAULTS.zoom, 'Reset to 100%', () => settings.resetZoom())}</span>
+          <span class="name">{t('settings.zoom.name')}{@render back(settings.zoom !== DEFAULTS.zoom, resetTo(zoomLabel(DEFAULTS.zoom)), () => settings.resetZoom())}</span>
           <span class="hint">{HINT.zoom}</span>
           <div class="num">
-            <button type="button" aria-label="Smaller text" onclick={() => settings.zoomOut()}>−</button>
+            <button type="button" aria-label={t('commands.zoomOut')} onclick={() => settings.zoomOut()}>−</button>
             <span class="unit zoom">{zoomLabel(settings.zoom)}</span>
-            <button type="button" aria-label="Larger text" onclick={() => settings.zoomIn()}>+</button>
+            <button type="button" aria-label={t('commands.zoomIn')} onclick={() => settings.zoomIn()}>+</button>
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">Zoom keys{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, 'Reset to on', () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">Ctrl +, Ctrl − and Ctrl 0 change the text size. Turn off to let {browserName} zoom the whole page instead.</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">{t('settings.zoomKeys.name')}{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, resetTo(onOff(DEFAULTS.zoomKeys)), () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">{HINT.zoomKeys}</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">{t('settings.tips.name')}{@render back(settings.tips !== DEFAULTS.tips, resetTo(onOff(DEFAULTS.tips)), () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
       </Fold>
 
-      <Fold name="Reading" show={READING.some(hit)} force={!!q}>
+      <Fold id="Reading" name={t('settings.section.reading')} show={READING.some(hit)} force={!!q}>
         <div class="row" hidden={!hit(ROWS.cardOpen)}>
-          <span class="name">Cards open on{@render back(settings.cardOpen !== DEFAULTS.cardOpen, 'Reset to hover', () => settings.setCardOpen(DEFAULTS.cardOpen))}</span>
+          <span class="name">{t('settings.cardOpen.name')}{@render back(settings.cardOpen !== DEFAULTS.cardOpen, resetTo(t(CARD_OPEN_NAME[DEFAULTS.cardOpen])), () => settings.setCardOpen(DEFAULTS.cardOpen))}</span>
           <span class="hint">{HINT.cardOpen}</span>
-          <div class="seg" role="radiogroup" aria-label="Cards open on">
+          <div class="seg" role="radiogroup" aria-label={t('settings.cardOpen.name')}>
             {#each ['hover', 'click'] as const as m (m)}
-              <button type="button" class:on={settings.cardOpen === m} role="radio" aria-checked={settings.cardOpen === m} onclick={() => settings.setCardOpen(m)}>{m}</button>
+              <button type="button" class:on={settings.cardOpen === m} role="radio" aria-checked={settings.cardOpen === m} onclick={() => settings.setCardOpen(m)}>{t(CARD_OPEN_NAME[m])}</button>
             {/each}
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">Play animations{@render back(settings.animations !== DEFAULTS.animations, 'Reset to on', () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">{HINT.anim}</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
-        <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">Voice{@render back(settings.voice !== DEFAULTS.voice, 'Reset to off', () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? HINT.voice : 'This browser doesn’t support speech.'}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">{t('settings.anim.name')}{@render back(settings.animations !== DEFAULTS.animations, resetTo(onOff(DEFAULTS.animations)), () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">{HINT.anim}</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">{t('settings.voice.name')}{@render back(settings.voice !== DEFAULTS.voice, resetTo(onOff(DEFAULTS.voice)), () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? HINT.voice : t('settings.voice.unsupported')}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </Fold>
 
-      <Fold name="Exercises" show={PRACTICE.some(hit)} force={!!q}>
+      <Fold id="Exercises" name={t('settings.section.exercises')} show={PRACTICE.some(hit)} force={!!q}>
         {@render numRow(MASTERY)}
-        <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">Freshness decay{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, 'Reset to on', () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">{HINT.decay}</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.decay)}><span class="name">{t('settings.decay.name')}{@render back(practice.settings.freshnessDecay !== DEFAULT_SETTINGS.freshnessDecay, resetTo(onOff(DEFAULT_SETTINGS.freshnessDecay)), () => practice.setSetting('freshnessDecay', DEFAULT_SETTINGS.freshnessDecay))}</span><span class="hint">{HINT.decay}</span><input type="checkbox" checked={practice.settings.freshnessDecay} onchange={(e) => practice.setSetting('freshnessDecay', e.currentTarget.checked)}></label>
         {#each HALF_LIVES as n (n.key)}{@render numRow(n, true)}{/each}
-        <p class="hint sub" hidden={!practice.settings.freshnessDecay || !hit(`${ROWS.startingHalfLife} ${ROWS.maxHalfLife}`)}>Reviews come due after {intervals} days.</p>
+        <p class="hint sub" hidden={!practice.settings.freshnessDecay || !hit(`${ROWS.startingHalfLife} ${ROWS.maxHalfLife}`)}>{t('settings.intervals', { intervals })}</p>
       </Fold>
 
-      <Fold name="Focus / Pomodoro" show={hit(ROWS.lockGrace)} force={!!q}>
+      <Fold id="Focus / Pomodoro" name={t('settings.section.focus')} show={hit(ROWS.lockGrace)} force={!!q}>
         <div class="row num">
-          <span class="name">Lock grace{@render back(settings.lockGrace !== DEFAULTS.lockGrace, 'Reset to 10 seconds', () => settings.setLockGrace(DEFAULTS.lockGrace))}</span>
+          <span class="name">{t('settings.lockGrace.name')}{@render back(settings.lockGrace !== DEFAULTS.lockGrace, resetTo(t('settings.seconds', { n: DEFAULTS.lockGrace })), () => settings.setLockGrace(DEFAULTS.lockGrace))}</span>
           <span class="hint">{HINT.lockGrace}</span>
           <div class="num">
-            <button type="button" aria-label="Less" onclick={() => settings.setLockGrace(settings.lockGrace - 1)}>−</button>
-            <input type="number" min={LOCK_GRACE.min} max={LOCK_GRACE.max} step="1" inputmode="numeric" aria-label="Lock grace" value={settings.lockGrace} onchange={(e) => { settings.setLockGrace(e.currentTarget.valueAsNumber); e.currentTarget.value = String(settings.lockGrace); }}>
+            <button type="button" aria-label={t('settings.num.less')} onclick={() => settings.setLockGrace(settings.lockGrace - 1)}>−</button>
+            <input type="number" min={LOCK_GRACE.min} max={LOCK_GRACE.max} step="1" inputmode="numeric" aria-label={t('settings.lockGrace.name')} value={settings.lockGrace} onchange={(e) => { settings.setLockGrace(e.currentTarget.valueAsNumber); e.currentTarget.value = String(settings.lockGrace); }}>
             <span class="unit">s</span>
-            <button type="button" aria-label="More" onclick={() => settings.setLockGrace(settings.lockGrace + 1)}>+</button>
+            <button type="button" aria-label={t('settings.num.more')} onclick={() => settings.setLockGrace(settings.lockGrace + 1)}>+</button>
           </div>
         </div>
       </Fold>
 
-      <Fold name="AI" show={hit(AI_WORDS)} force={!!q}><Ai /></Fold>
+      <Fold id="AI" name={t('settings.section.ai')} show={hit(aiWords(t))} force={!!q}><Ai /></Fold>
 
-      <Fold name="Storage" show={hit(ROWS.storage)} force={!!q}><Storage /></Fold>
+      <Fold id="Storage" name={t('settings.section.storage')} show={hit(ROWS.storage)} force={!!q}><Storage /></Fold>
 
-      <Fold name="Keyboard shortcuts" show={shortcutsShown} force={!!q}>
+      <Fold id="Keyboard shortcuts" name={t('settings.section.shortcuts')} show={shortcutsShown} force={!!q}>
         <div class="toolbar">
           {#if byKeys}
-            <input class="find keys-find" type="text" readonly placeholder="Press a shortcut" aria-label="Search by pressing a shortcut" value={keyChord ? chordKeys(keyChord).join(' ') : ''} onkeydown={onKeyFilter} use:focus>
+            <input class="find keys-find" type="text" readonly placeholder={t('settings.shortcuts.press')} aria-label={t('settings.shortcuts.searchByKeys')} value={keyChord ? chordKeys(keyChord).join(' ') : ''} onkeydown={onKeyFilter} use:focus>
           {:else}
-            <input class="find" type="search" placeholder="Search shortcuts" aria-label="Search shortcuts" bind:value={kq}>
+            <input class="find" type="search" placeholder={t('settings.shortcuts.search')} aria-label={t('settings.shortcuts.search')} bind:value={kq}>
           {/if}
-          <button type="button" class="btn-sm" class:on={byKeys} aria-pressed={byKeys} onclick={toggleByKeys}>Record keys</button>
-          <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>Reset all</button>
+          <button type="button" class="btn-sm" class:on={byKeys} aria-pressed={byKeys} onclick={toggleByKeys}>{t('settings.shortcuts.recordKeys')}</button>
+          <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>{t('settings.shortcuts.resetAll')}</button>
         </div>
         {#if held}
-          <p class="hint">{browserName} reserves {held === 1 ? '1 shortcut' : `${held} shortcuts`} in a browser tab, marked <span class="kept" aria-hidden="true">⊘</span>.{#if host.canInstall} <button class="link" type="button" onclick={() => host.install()}>Install as app</button> to use {held === 1 ? 'it' : 'them'}.{/if}</p>
+          <p class="hint">{reserved[0]}<span class="kept" aria-hidden="true">⊘</span>{reserved[1]}{#if host.canInstall} {installLine[0]}<button class="link" type="button" onclick={() => host.install()}>{t('settings.shortcuts.installButton')}</button>{installLine[1]}{/if}</p>
         {/if}
         <table>
           <tbody>
@@ -230,15 +253,17 @@
               {#each cmds as c (c.id)}
                 {@const on = rec?.id === c.id}
                 <tr>
-                  <td class="cmd">{c.label}{@render back(!keys.isDefaultFor(c.id), 'Reset to default', () => keys.restoreDefault(c.id))}</td>
+                  <td class="cmd">{c.label}{@render back(!keys.isDefaultFor(c.id), t('settings.reset.default'), () => keys.restoreDefault(c.id))}</td>
                   <td class="keys">
-                    <button type="button" class="chord-cell" class:on onclick={() => record(c.id)} aria-label="Shortcut for {c.label}" title="Click to change">
+                    <button type="button" class="chord-cell" class:on onclick={() => record(c.id)} aria-label={t('settings.shortcuts.for', { command: c.label })} title={t('settings.shortcuts.change')}>
                       {#if on && rec?.pending}
-                        <span class="conflict">{#each chordKeys(rec.pending.chord) as k}<kbd class="kbd">{k}</kbd>{/each} is used by <em>{rec.pending.other.label}</em>. Press Enter to reassign.</span>
+                        {@const used = cut(t('settings.shortcuts.conflict'), 'keys')}
+                        {@const by = cut(used[1], 'command')}
+                        <span class="conflict">{used[0]}{#each chordKeys(rec.pending.chord) as k}<kbd class="kbd">{k}</kbd>{/each}{by[0]}<em>{rec.pending.other.label}</em>{by[1]}</span>
                       {:else if on}
-                        <span class="recording">Press a shortcut…</span>
+                        <span class="recording">{t('settings.shortcuts.recording')}</span>
                       {:else}
-                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">or</span>{/if}<span class="chord" class:held={kept(host.info, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(host.info, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
+                        {#each keys.chordsFor(c.id) as ch, i (ch)}{#if i}<span class="or">{t('settings.shortcuts.or')}</span>{/if}<span class="chord" class:held={kept(host.info, ch)}>{#each chordKeys(ch) as k}<kbd class="kbd">{k}</kbd>{/each}{#if kept(host.info, ch)}<span class="kept" title={keptTitle} aria-label={keptTitle} role="img">⊘</span>{/if}</span>{:else}<span class="none">—</span>{/each}
                       {/if}
                     </button>
                   </td>
@@ -247,10 +272,10 @@
             {/each}
           </tbody>
         </table>
-        {#if !groups.length}<p class="hint">No matching shortcuts.</p>{/if}
+        {#if !groups.length}<p class="hint">{t('settings.shortcuts.none')}</p>{/if}
       </Fold>
 
-      <small>Settings are saved in this browser.</small>
+      <small>{t('settings.saved')}</small>
     </div>
   </div>
 {/if}

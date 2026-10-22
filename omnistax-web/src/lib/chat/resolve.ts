@@ -20,6 +20,7 @@ import type { MathScope, Resolver } from '../notes/md/render';
 import type { Chip } from './context';
 import { chats } from './store.svelte';
 import { firstWords, messageOf, spokenIn, type Chat, type Message, type MessageId } from './model';
+import { t } from '../i18n';
 
 export const chatBooks = new BookResolver();
 
@@ -97,13 +98,13 @@ export const chatResolver = (place: AnswerPlace = NOWHERE): Resolver => ({
     const chat = chats.get(id as ChatId);
     const entry = chats.entry(id as ChatId);
     if (!chat && !entry) return null;
-    return { name: chat?.name || entry?.name || 'Chat' };
+    return { name: chat?.name || entry?.name || t('chat.untitled') };
   },
   chatMessage: (id, message) => {
     const chat = chats.get(id as ChatId); if (!chat) return null;
     const m = chat.messages[message as keyof typeof chat.messages];
     if (!m) return null;
-    return { name: chat.name || 'Chat', role: m.role, line: firstWords(m.text, 18) };
+    return { name: chat.name || t('chat.untitled'), role: m.role, line: firstWords(m.text, 18) };
   },
 });
 

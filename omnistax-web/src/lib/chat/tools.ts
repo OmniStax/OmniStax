@@ -7,6 +7,7 @@ import type { Corpus, Filter, Hit } from '../search/model';
 import { type ConceptDTO, type FormDTO, mainForm } from '../content/schema';
 import type { ToolSpec } from './providers/index';
 import type { ToolStep } from './model';
+import { t } from '../i18n';
 
 export type BookSummary = { readonly id: string; readonly title: string };
 export type TocSection = { readonly id: string; readonly title: string; readonly built: boolean };
@@ -157,12 +158,14 @@ export const runTool = async (lib: Library, name: string, input: unknown): Promi
 export const stepLabel = (s: ToolStep): string => {
   const i = (typeof s.input === 'object' && s.input !== null ? s.input : {}) as Input;
   switch (s.name) {
-    case 'list_books': return 'Listed the books';
-    case 'table_of_contents': return `Contents of ${field(i, 'book')}${field(i, 'chapter') ? `, chapter ${field(i, 'chapter')}` : ''}`;
-    case 'read_section': return `Read ${s.output?.match(/^# (.+)$/m)?.[1] ?? field(i, 'section')}`;
-    case 'search': return `Searched “${field(i, 'query')}”`;
-    case 'lookup': return `Looked up ${field(i, 'kind') || 'the book'} “${field(i, 'query')}”`;
-    case 'figure': return `Figure ${field(i, 'section')} ${field(i, 'id')}`;
+    case 'list_books': return t('chat.step.listBooks');
+    case 'table_of_contents': return field(i, 'chapter')
+      ? t('chat.step.contentsChapter', { book: field(i, 'book'), chapter: field(i, 'chapter') })
+      : t('chat.step.contents', { book: field(i, 'book') });
+    case 'read_section': return t('chat.step.read', { section: s.output?.match(/^# (.+)$/m)?.[1] ?? field(i, 'section') });
+    case 'search': return t('chat.step.searched', { query: field(i, 'query') });
+    case 'lookup': return t('chat.step.lookedUp', { kind: field(i, 'kind') || t('chat.step.theBook'), query: field(i, 'query') });
+    case 'figure': return t('chat.step.figure', { section: field(i, 'section'), id: field(i, 'id') });
     default: return s.name;
   }
 };

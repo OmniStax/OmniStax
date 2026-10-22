@@ -4,6 +4,7 @@
 import type { Anchor } from './anchor';
 import { sameSection, type BookId, type SectionRef, type DocKind } from '../types/ids';
 import { history } from '../history/store.svelte';
+import { t } from '../i18n';
 import { readerWritesAllowed } from '../backup/guard';
 import { bookOfNotesKey, notesKey, notesOfBook, parseNotes, type HlColor, type Note } from './stored';
 
@@ -29,17 +30,17 @@ class Notes {
   }
   add(ref: SectionRef, doc: DocKind, anchor: Anchor, color: HlColor): Note {
     const now = Date.now(); const n: Note = { id: newId(), book: ref.book, section: ref.section, doc, anchor, color, text: '', created: now, updated: now };
-    this.record(`highlight in ${color}`, () => { this.list = [...this.list, n]; this.save(); this.paintVersion++; });
+    this.record(t('notes.undo.highlight', { color }), () => { this.list = [...this.list, n]; this.save(); this.paintVersion++; });
     return n;
   }
   get(id: string): Note | undefined { return this.list.find((n) => n.id === id); }
-  setColor(id: string, color: HlColor): void { this.record('recolour highlight', () => { this.patch(id, { color }); this.paintVersion++; }); }
+  setColor(id: string, color: HlColor): void { this.record(t('notes.undo.recolour'), () => { this.patch(id, { color }); this.paintVersion++; }); }
   /* Typing an annotation is one edit however many keystrokes it took, so long
      as they follow one another and stay with the same highlight. */
-  setText(id: string, text: string): void { this.record('annotation', () => this.patch(id, { text }), `annotation:${id}`); }
+  setText(id: string, text: string): void { this.record(t('notes.undo.annotation'), () => this.patch(id, { text }), `annotation:${id}`); }
   remove(id: string): void {
     if (!this.get(id)) return;
-    this.record('remove highlight', () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; });
+    this.record(t('notes.undo.removeHighlight'), () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; });
   }
   forSection(ref: SectionRef): readonly Note[] { return this.list.filter((n) => sameSection(n, ref)); }
   setUnresolved(ref: SectionRef, ids: readonly string[]): void {

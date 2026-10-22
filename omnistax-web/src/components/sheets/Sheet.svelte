@@ -4,6 +4,7 @@
      is exhaustive and a sheet of a kind this build does not draw says so rather
      than showing an empty page. */
   import { sheets } from '../../lib/sheets/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Elements from './Elements.svelte';
   import Table from './Table.svelte';
   import Grapher from './Grapher.svelte';
@@ -19,7 +20,7 @@
 
 <div class="sheet" data-book={book} data-sheet={id}>
   {#if !entry}
-    <p class="note">This book keeps no sheet called “{id}”.</p>
+    <p class="note">{i18n.t('sheets.sheet.missing', { id })}</p>
   {:else if data && data.kind === 'elements'}
     <Elements {book} sheet={data} />
   {:else if data && data.kind === 'table'}
@@ -31,9 +32,9 @@
   {:else if data && data.kind === 'cas'}
     <Cas {book} sheet={data} />
   {:else if status === 'failed'}
-    <p class="note bad">Could not read {entry.title}.</p>
+    <p class="note bad">{i18n.t('sheets.sheet.failed', { title: entry.title })}</p>
   {:else}
-    <p class="note">Reading {entry.title}…</p>
+    <p class="note">{i18n.t('sheets.sheet.reading', { title: entry.title })}</p>
   {/if}
 </div>
 

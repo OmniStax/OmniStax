@@ -15,6 +15,8 @@
   import { TOOL_KEY, type Tool } from '../../lib/drawer/tools';
   import { SHAPE_TOOLS, type ShapeTool } from '../../lib/drawer/model';
 import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n';
 
   let {
     tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false, fingerDraws,
@@ -39,16 +41,17 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   /* The tools in the order the hand reaches for them: what lays ink down,
      what takes it away, what picks it up, what stands on the page, and the
      hand that moves the page itself. */
-  const TOOLS: readonly { readonly id: Tool; readonly label: string; readonly glyph: string }[] = [
-    { id: 'pen', label: 'Pen', glyph: ICON.pen },
-    { id: 'highlighter', label: 'Highlighter', glyph: ICON.highlighter },
-    { id: 'eraser', label: 'Eraser', glyph: ERASER_GLYPH() },
-    { id: 'lasso', label: 'Lasso', glyph: ICON.lasso },
-    { id: 'text', label: 'Text box', glyph: ICON.note },
-    { id: 'shape', label: 'Shapes', glyph: SHAPE_GLYPH() },
-    { id: 'group', label: 'Group', glyph: GROUP_GLYPH() },
-    { id: 'pan', label: 'Pan', glyph: HAND_GLYPH() },
+  const TOOLS: readonly { readonly id: Tool; readonly label: MessageKey; readonly glyph: string }[] = [
+    { id: 'pen', label: 'drawer.tool.pen', glyph: ICON.pen },
+    { id: 'highlighter', label: 'drawer.tool.highlighter', glyph: ICON.highlighter },
+    { id: 'eraser', label: 'drawer.tool.eraser', glyph: ERASER_GLYPH() },
+    { id: 'lasso', label: 'drawer.tool.lasso', glyph: ICON.lasso },
+    { id: 'text', label: 'drawer.tool.text', glyph: ICON.note },
+    { id: 'shape', label: 'drawer.tool.shapes', glyph: SHAPE_GLYPH() },
+    { id: 'group', label: 'drawer.tool.group', glyph: GROUP_GLYPH() },
+    { id: 'pan', label: 'drawer.tool.pan', glyph: HAND_GLYPH() },
   ];
+  const SHAPE_NAME: Readonly<Record<ShapeTool, MessageKey>> = { line: 'drawer.shape.line', arrow: 'drawer.shape.arrow', rect: 'drawer.shape.rect', ellipse: 'drawer.shape.ellipse' };
   /* Three glyphs the rail has no use for, so they live here rather than in the
      shared set: a rubber, a square with a circle, and an open hand. */
   function ERASER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M15.5 4.5 20 9l-8.5 8.5H7L3.5 14z"/><path d="M9 9l6 6"/></svg>'; }
@@ -57,13 +60,13 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   function FINGER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M9 13V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5a1.5 1.5 0 0 1 3 0V12"/><path d="M15 11.5a1.5 1.5 0 0 1 3 0v3c0 3.3-2.4 6-5.5 6h-1c-2 0-3.4-1-4.5-2.6L4.6 14a1.4 1.4 0 0 1 2.2-1.7L9 14.5"/><path d="M14 5c1.2-1.2 2.4 1.2 3.6 0s2.4 1.2 3.6 0"/></svg>'; }
   function HAND_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 11V9a1.5 1.5 0 0 0-3 0v5.5c0 3.6 2.6 6 6 6h1.5c3 0 5.5-2.4 5.5-5.5V13"/></svg>'; }
 
-  const INK: readonly { readonly name: string; readonly token: Colour }[] = [
-    { name: 'Ink', token: 'ink' },
-    { name: 'Accent', token: 'accent' },
-    { name: 'Warm', token: 'warm' },
-    { name: 'Correct', token: 'ok' },
-    { name: 'Wrong', token: 'bad' },
-    { name: 'Muted', token: 'muted' },
+  const INK: readonly { readonly name: MessageKey; readonly token: Colour }[] = [
+    { name: 'drawer.ink.ink', token: 'ink' },
+    { name: 'drawer.ink.accent', token: 'accent' },
+    { name: 'drawer.ink.warm', token: 'warm' },
+    { name: 'drawer.ink.correct', token: 'ok' },
+    { name: 'drawer.ink.wrong', token: 'bad' },
+    { name: 'drawer.ink.muted', token: 'muted' },
   ];
 
   /* The book's own quantities, in the order the book declares them, each in
@@ -85,16 +88,16 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   };
 </script>
 
-<div class="toolbar" role="toolbar" aria-label="Drawing tools">
+<div class="toolbar" role="toolbar" aria-label={i18n.t('drawer.toolbar.label')}>
   <div class="group tools">
     {#each TOOLS as t (t.id)}
-      <button type="button" class="tool" class:on={tool === t.id} title="{t.label} ({TOOL_KEY[t.id].toUpperCase()})"
-        aria-pressed={tool === t.id} aria-label={t.label} onclick={() => ontool(t.id)}>{@html t.glyph}</button>
+      <button type="button" class="tool" class:on={tool === t.id} title="{i18n.t(t.label)} ({TOOL_KEY[t.id].toUpperCase()})"
+        aria-pressed={tool === t.id} aria-label={i18n.t(t.label)} onclick={() => ontool(t.id)}>{@html t.glyph}</button>
     {/each}
-    <button type="button" class="tool finger" class:on={fingerDraws} title="Draw with finger"
-      aria-pressed={fingerDraws} aria-label="Draw with finger" onclick={() => onfinger(!fingerDraws)}>{@html FINGER_GLYPH()}</button>
+    <button type="button" class="tool finger" class:on={fingerDraws} title={i18n.t('drawer.toolbar.finger')}
+      aria-pressed={fingerDraws} aria-label={i18n.t('drawer.toolbar.finger')} onclick={() => onfinger(!fingerDraws)}>{@html FINGER_GLYPH()}</button>
     {#if onimage}
-      <button type="button" class="tool" aria-label="Place an image" onclick={pickImage}>{@html ICON.plus}</button>
+      <button type="button" class="tool" aria-label={i18n.t('drawer.toolbar.image')} onclick={pickImage}>{@html ICON.plus}</button>
       <input class="hidden-file" type="file" accept="image/*" bind:this={fileInput} onchange={took} tabindex="-1" aria-hidden="true" />
     {/if}
   </div>
@@ -102,15 +105,15 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   {#if tool === 'shape'}
     <div class="group">
       {#each SHAPE_TOOLS as s (s)}
-        <button type="button" class="chip" class:on={shape === s} onclick={() => onshape(s)}>{s}</button>
+        <button type="button" class="chip" class:on={shape === s} onclick={() => onshape(s)}>{i18n.t(SHAPE_NAME[s])}</button>
       {/each}
-      <label class="fill"><input type="checkbox" checked={fill} onchange={(e) => onfill((e.currentTarget as HTMLInputElement).checked)} /> Fill</label>
+      <label class="fill"><input type="checkbox" checked={fill} onchange={(e) => onfill((e.currentTarget as HTMLInputElement).checked)} /> {i18n.t('drawer.toolbar.fill')}</label>
     </div>
   {/if}
 
   <div class="group swatches">
     {#each INK as c (c.token)}
-      <button type="button" class="swatch" class:on={color === c.token} aria-label={c.name} data-token={c.token}
+      <button type="button" class="swatch" class:on={color === c.token} aria-label={i18n.t(c.name)} data-token={c.token}
         style:background={cssOf(c.token)} onclick={() => oncolor(c.token)}></button>
     {/each}
     {#if quantities.length}
@@ -122,30 +125,30 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
         {/each}
       </span>
     {/if}
-    <label class="swatch custom" class:on={!isToken(color)} title="Custom color" style:background={isToken(color) ? null : color}>
-      <input type="color" value={isToken(color) ? '#888888' : color} aria-label="Custom color"
+    <label class="swatch custom" class:on={!isToken(color)} title={i18n.t('drawer.toolbar.custom')} style:background={isToken(color) ? null : color}>
+      <input type="color" value={isToken(color) ? '#888888' : color} aria-label={i18n.t('drawer.toolbar.custom')}
         onchange={(e) => oncolor((e.currentTarget as HTMLInputElement).value.toLowerCase())} />
     </label>
   </div>
 
   <div class="group sizes">
     {#each SIZES as s (s)}
-      <button type="button" class="size" class:on={size === s} aria-label="Size {s}" onclick={() => onsize(s)}>
+      <button type="button" class="size" class:on={size === s} aria-label={i18n.t('drawer.toolbar.size', { size: s })} onclick={() => onsize(s)}>
         <span class="dot" style:width="{Math.min(14, 3 + s)}px" style:height="{Math.min(14, 3 + s)}px"></span>
       </button>
     {/each}
   </div>
 
   <div class="group view">
-    <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="0">Fit</button>
-    <button type="button" class="chip" onclick={onreset} title="Shift+0">Reset view</button>
+    <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="0">{i18n.t('drawer.toolbar.fit')}</button>
+    <button type="button" class="chip" onclick={onreset} title="Shift+0">{i18n.t('drawer.toolbar.reset')}</button>
   </div>
 
   <div class="group right">
-    <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Ctrl+Z">Undo</button>
-    <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Ctrl+Shift+Z">Redo</button>
+    <button type="button" class="chip" disabled={!canUndo} onclick={onundo} title="Ctrl+Z">{i18n.t('drawer.toolbar.undo')}</button>
+    <button type="button" class="chip" disabled={!canRedo} onclick={onredo} title="Ctrl+Shift+Z">{i18n.t('drawer.toolbar.redo')}</button>
     {#if scratch && onsave}
-      <button type="button" class="chip save" disabled={busy} onclick={onsave}>Save as drawing</button>
+      <button type="button" class="chip save" disabled={busy} onclick={onsave}>{i18n.t('drawer.toolbar.save')}</button>
     {/if}
   </div>
 </div>

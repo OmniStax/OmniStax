@@ -6,7 +6,8 @@
   import { catalogOf, isGenerated, generatedIdOf } from '../../lib/practice/generated';
   import { standingOf, exercisesIn, exercisesTesting, keyOf, type CatalogExercise, type Standing } from '../../lib/practice/model';
   import type { Node } from '../../lib/practice/select';
-  import { plain, count, exerciseName, excerpt, standingLine } from '../../lib/practice/labels';
+  import { plain, exerciseName, excerpt } from '../../lib/practice/labels';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import type { ChapterEntry, SectionEntry, ConceptDTO } from '../../lib/content/schema';
   import { bookId, sectionId, sectionRef, exItem, itemKey, type SectionId } from '../../lib/types/ids';
   import { openFromView } from '../../lib/sections/nav.svelte';
@@ -57,14 +58,17 @@
   const exercisesAt = (b: string, sec: SectionId): readonly CatalogExercise[] =>
     [...exercisesIn(cat, b, sec), ...generated.list.filter((g) => g.book === b && g.section === sec).map(catalogOf)];
   const testing = (id: string): readonly CatalogExercise[] => [...exercisesTesting(cat, id), ...generated.forConcept(id).map(catalogOf)];
-  const nameOf = (e: CatalogExercise): string => exerciseName(e.ex, books.manifest(e.book)?.exerciseKinds?.[e.ex.kind]);
+  const nameOf = (e: CatalogExercise): string => exerciseName(e.ex, books.manifest(e.book)?.exerciseKinds?.[e.ex.kind], i18n.t);
 
   const standingIn = (concepts: readonly ConceptDTO[]): Standing => standingOf(concepts, practice.mastery);
   const chapterConcepts = (b: string, c: ChapterEntry): readonly ConceptDTO[] => {
     const ids = c.sections.map((s) => s.id);
     return builtIn(b).filter((x) => ids.includes(x.section));
   };
-  const short = (s: Standing): string => standingLine(s).split(' · ')[0];
+  const short = (s: Standing): string => {
+    const total = s.untouched + s.practised + s.mastered;
+    return total === 0 ? i18n.t('practice.labels.noConcepts') : i18n.t('practice.tree.mastered', { mastered: s.mastered, total });
+  };
 
   const conceptHit = (c: ConceptDTO): boolean => has(plain(c.name)) || has(c.id);
   const exerciseHit = (e: CatalogExercise): boolean => has(nameOf(e));
@@ -106,13 +110,13 @@
       if (book && (books.status[book] ?? 'idle') === 'idle') books.load(book).catch(() => {});
     };
     return [
-      { label: 'Mark all mastered', run: ask('mastered') },
-      { label: 'Mark all unpracticed', run: ask('unpracticed') },
-      { label: 'Calculate mastery from exercise history', run: ask('history') },
+      { label: i18n.t('practice.tree.markAllMastered'), run: ask('mastered') },
+      { label: i18n.t('practice.tree.markAllUnpracticed'), run: ask('unpracticed') },
+      { label: i18n.t('practice.tree.fromHistory'), run: ask('history') },
     ];
   };
   const question = (act: Bulk, n: number): string =>
-    act === 'history' ? `Calculate mastery from exercise history for ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
+    i18n.t(act === 'history' ? 'practice.tree.askHistory' : act === 'mastered' ? 'practice.tree.askMastered' : 'practice.tree.askUnpracticed', { n });
   const apply = (act: Bulk, concepts: readonly ConceptDTO[]): void => {
     const ids = concepts.map((c) => c.id);
     if (act === 'mastered') practice.setSelfMany(ids, practice.settings.masteryTarget, true, false);
@@ -122,27 +126,27 @@
   };
   const deleteAll = (id: string): void => {
     const own = generated.forConcept(id);
-    if (confirm(`Delete ${count(own.length, 'AI-generated exercise')} for “${plain(practice.conceptOf(id)?.name ?? id)}”?`)) own.forEach((g) => generated.remove(g.id));
+    if (confirm(i18n.t('practice.tree.deleteAllAsk', { n: own.length, name: plain(practice.conceptOf(id)?.name ?? id) }))) own.forEach((g) => generated.remove(g.id));
   };
   const conceptMenu = (id: string): readonly MenuItem[] => [
-    { label: 'Mark mastered', run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
-    { label: 'Mark unpracticed', run: () => practice.setSelf(id, 0, false, false) },
-    { label: 'Calculate mastery from exercise history', run: () => practice.clearSelf(id) },
-    ...(generated.forConcept(id).length ? [{ label: 'Delete AI-generated exercises', danger: true, run: () => deleteAll(id) }] : []),
+    { label: i18n.t('practice.tree.markMastered'), run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
+    { label: i18n.t('practice.tree.markUnpracticed'), run: () => practice.setSelf(id, 0, false, false) },
+    { label: i18n.t('practice.tree.fromHistory'), run: () => practice.clearSelf(id) },
+    ...(generated.forConcept(id).length ? [{ label: i18n.t('practice.tree.deleteAll'), danger: true, run: () => deleteAll(id) }] : []),
   ];
   const exerciseMenu = (e: CatalogExercise): readonly MenuItem[] => [
-    { label: 'Open in a tab', run: () => openExercise(e) },
-    ...(isGenerated(e.ex.id) ? [{ label: 'Delete', danger: true, run: () => { if (confirm(`Delete the AI-generated exercise “${excerpt(e.ex.prompt, 60)}”?`)) generated.remove(generatedIdOf(e.ex.id)); } }] : []),
+    { label: i18n.t('practice.tree.openInTab'), run: () => openExercise(e) },
+    ...(isGenerated(e.ex.id) ? [{ label: i18n.t('practice.rows.delete'), danger: true, run: () => { if (confirm(i18n.t('practice.plan.deleteAsk', { prompt: excerpt(e.ex.prompt, 60) }))) generated.remove(generatedIdOf(e.ex.id)); } }] : []),
   ];
 </script>
 
 {#snippet twisty(key: string, name: string, book?: string)}
-  <button type="button" class="tw" aria-expanded={isOpen(key)} aria-label={`${isOpen(key) ? 'Fold' : 'Open'} ${name}`} onclick={() => flip(key, book)}><span aria-hidden="true">▸</span></button>
+  <button type="button" class="tw" aria-expanded={isOpen(key)} aria-label={i18n.t(isOpen(key) ? 'practice.tree.fold' : 'practice.tree.open', { name })} onclick={() => flip(key, book)}><span aria-hidden="true">▸</span></button>
 {/snippet}
 
 {#snippet box(node: Node, name: string)}
   {@const ck = practice.check(item, node)}
-  <input type="checkbox" checked={ck === 'on'} use:tri={ck === 'some'} aria-label={`Select ${name}`} onchange={() => practice.toggleNode(item, node)}>
+  <input type="checkbox" checked={ck === 'on'} use:tri={ck === 'some'} aria-label={i18n.t('practice.select', { name })} onchange={() => practice.toggleNode(item, node)}>
 {/snippet}
 
 {#snippet place(key: string, name: string, node: Node, concepts: readonly ConceptDTO[], book?: string)}
@@ -156,15 +160,15 @@
       {@const act = asking.act}
       <span class="end ask">
         {question(act, concepts.length)}
-        <button type="button" class="btn sm primary" disabled={!concepts.length} onclick={() => apply(act, concepts)}>Yes</button>
-        <button type="button" class="btn ghost sm" onclick={() => (asking = null)}>No</button>
+        <button type="button" class="btn sm primary" disabled={!concepts.length} onclick={() => apply(act, concepts)}>{i18n.t('practice.yes')}</button>
+        <button type="button" class="btn ghost sm" onclick={() => (asking = null)}>{i18n.t('practice.no')}</button>
       </span>
     {:else}
       <span class="end">
-        {#if concepts.length && concepts.every((k) => practice.self[k.id])}<span class="muted tag">overridden</span>{/if}
+        {#if concepts.length && concepts.every((k) => practice.self[k.id])}<span class="muted tag">{i18n.t('practice.tree.overridden')}</span>{/if}
         <span class="muted num">{short(standing)}</span>
         <span class="meter"><StandingMeter {standing} /></span>
-        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, placeMenu(key, book))}>⋯</button>
+        <button type="button" class="btn ghost icon sm" aria-label={i18n.t('practice.tree.actionsFor', { name })} onclick={(ev) => showMenu(ev, placeMenu(key, book))}>⋯</button>
       </span>
     {/if}
   </div>
@@ -180,8 +184,8 @@
     <span class="lab ex"><span class="exname">{name}</span>{#if withSection}<span class="muted num src">§ {e.section}</span>{/if}<span class="excerpt">{excerpt(e.ex.prompt)}</span></span>
     <span class="end">
       {#if isGenerated(e.ex.id)}<AiTag model={generated.list.find((g) => g.id === generatedIdOf(e.ex.id))?.model} text />{/if}
-      {#if last === true}<span class="ok" aria-label="Last answer correct">✓</span>{:else if last === false}<span class="bad" aria-label="Last answer incorrect">✗</span>{/if}
-      <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, exerciseMenu(e))}>⋯</button>
+      {#if last === true}<span class="ok" aria-label={i18n.t('practice.tree.lastCorrect')}>✓</span>{:else if last === false}<span class="bad" aria-label={i18n.t('practice.tree.lastIncorrect')}>✗</span>{/if}
+      <button type="button" class="btn ghost icon sm" aria-label={i18n.t('practice.tree.actionsFor', { name })} onclick={(ev) => showMenu(ev, exerciseMenu(e))}>⋯</button>
     </span>
   </div>
 {/snippet}
@@ -189,15 +193,15 @@
 <div class="tree">
   <div class="bar">
     {#if selectable}
-      <div class="seg" role="radiogroup" aria-label="Sections open to">
-        <button type="button" role="radio" aria-checked={lens === 'concepts'} class:on={lens === 'concepts'} onclick={() => (lens = 'concepts')}>Concepts</button>
-        <button type="button" role="radio" aria-checked={lens === 'exercises'} class:on={lens === 'exercises'} onclick={() => (lens = 'exercises')}>Exercises</button>
+      <div class="seg" role="radiogroup" aria-label={i18n.t('practice.tree.lens')}>
+        <button type="button" role="radio" aria-checked={lens === 'concepts'} class:on={lens === 'concepts'} onclick={() => (lens = 'concepts')}>{i18n.t('practice.tree.concepts')}</button>
+        <button type="button" role="radio" aria-checked={lens === 'exercises'} class:on={lens === 'exercises'} onclick={() => (lens = 'exercises')}>{i18n.t('practice.review.exercises')}</button>
       </div>
     {/if}
-    <input class="input find" type="search" placeholder="Find a concept, section or exercise" aria-label="Find in the curriculum" bind:value={query}>
+    <input class="input find" type="search" placeholder={i18n.t('practice.tree.findPlaceholder')} aria-label={i18n.t('practice.tree.find')} bind:value={query}>
   </div>
 
-  {#if nothing}<p class="muted note" role="status">Nothing matches.</p>{/if}
+  {#if nothing}<p class="muted note" role="status">{i18n.t('practice.tree.nothing')}</p>{/if}
 
   {#each shelf.filter(bookHit) as b (b)}
     {@const title = practice.bookTitle(b)}
@@ -205,9 +209,9 @@
     {#if isOpen(`b:${b}`)}
       {@const status = books.status[b] ?? 'idle'}
       {#if status === 'failed'}
-        <p class="muted note" style:--d={1} role="status">This book could not be loaded.</p>
+        <p class="muted note" style:--d={1} role="status">{i18n.t('practice.tree.bookFailed')}</p>
       {:else if status !== 'loaded'}
-        <p class="muted note" style:--d={1} role="status">Loading…</p>
+        <p class="muted note" style:--d={1} role="status">{i18n.t('practice.loading')}</p>
       {:else}
         {#each chaptersOf(b).filter((c) => sectionsOf(c).length && (!needle || chapterHit(b, c))) as c (c.id)}
           {@const ck = `c:${b}/${c.id}`}
@@ -237,20 +241,20 @@
                       <KindDot kind={k.kind} />
                       <span class="lab"><span class="go" data-book={b} data-concept={k.id} use:mathHtml={k.name}></span></span>
                       <span class="end">
-                        <span class="muted num">{count(tests.length, 'exercise')}</span>
+                        <span class="muted num">{i18n.t('practice.run.count', { n: tests.length })}</span>
                         {#if ai > 0}<span class="ai num"><AiTag />{ai}</span>{/if}
-                        {#if practice.self[k.id]}<span class="muted tag">overridden</span>{/if}
-                        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, conceptMenu(k.id))}>⋯</button>
+                        {#if practice.self[k.id]}<span class="muted tag">{i18n.t('practice.tree.overridden')}</span>{/if}
+                        <button type="button" class="btn ghost icon sm" aria-label={i18n.t('practice.tree.actionsFor', { name })} onclick={(ev) => showMenu(ev, conceptMenu(k.id))}>⋯</button>
                       </span>
                     </div>
                     {#if selectable && isOpen(kk)}
-                      {#each tests as e (keyOf(e))}{@render exRow(e, 4, true)}{:else}<p class="muted note" style:--d={4}>No exercises here.</p>{/each}
+                      {#each tests as e (keyOf(e))}{@render exRow(e, 4, true)}{:else}<p class="muted note" style:--d={4}>{i18n.t('practice.tree.noExercises')}</p>{/each}
                     {/if}
                   {:else}
-                    <p class="muted note" style:--d={3}>No concepts introduced here.</p>
+                    <p class="muted note" style:--d={3}>{i18n.t('practice.tree.noConcepts')}</p>
                   {/each}
                 {:else}
-                  {#each shownExercises(b, s) as e (keyOf(e))}{@render exRow(e, 3, false)}{:else}<p class="muted note" style:--d={3}>No exercises here.</p>{/each}
+                  {#each shownExercises(b, s) as e (keyOf(e))}{@render exRow(e, 3, false)}{:else}<p class="muted note" style:--d={3}>{i18n.t('practice.tree.noExercises')}</p>{/each}
                 {/if}
               {/if}
             {/each}

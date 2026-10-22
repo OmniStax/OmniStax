@@ -1,4 +1,5 @@
-/* English UI text for src/components/files/, src/lib/files/.
+/* English UI text for src/components/files/, src/lib/files/, and src/lib/sync/
+   (keyed 'files.sync.…').
 
    Keys are dotted, area.component.thing ('files.…'), sorted inside the file;
    the value is the English the reader sees, a template of index.ts (format):
@@ -6,7 +7,56 @@
    extraction agent that owns these sources fills this file; every key here
    needs a value in zh-CN/files.ts too, or npm run check fails. */
 export const files = {
+  'files.import.accepted': 'PDF, images (PNG, JPG, GIF, WebP, AVIF, BMP, SVG), Markdown or text as notes',
+  'files.import.andMore': '{names} and {n} more',
+  'files.import.imported': '{n, plural, one {# file} other {# files}} imported',
+  'files.import.importing': 'Importing {name}',
+  'files.import.importingOf': 'Importing {name} ({done} of {all})',
+  'files.import.notTaken': 'not taken: {names}',
+  'files.import.nothing': 'Nothing to import',
+  'files.import.readingPage': 'Reading {name} — page {page} of {pages}',
+  'files.pdf.failed': 'This PDF could not be opened.',
   'files.pdf.fitWidth': 'Fit width',
   'files.pdf.larger': 'Larger',
+  'files.pdf.opening': 'Opening…',
+  'files.pdf.pageOf': 'Page {page} of {pages}',
+  'files.pdf.reading': 'Reading {name}…',
   'files.pdf.smaller': 'Smaller',
+  'files.pdf.textBox': 'Text box',
+  'files.pdf.toolbar': 'Reading this PDF',
+  'files.sync.error.failed': 'Failed.',
+  'files.sync.error.manifest': 'The repo’s omnistax.json isn’t one this version can read.',
+  'files.sync.error.noData': 'The repo holds no OmniStax data.',
+  'files.sync.error.notArrived': '{n, plural, one {A file} other {# files}} didn’t arrive. Nothing was changed.',
+  'files.sync.error.notSent': '{n, plural, one {A file} other {# files}} didn’t reach GitHub. Nothing was committed.',
+  'files.sync.error.nothing': 'Nothing to sync.',
+  'files.sync.error.restored': 'Couldn’t update your data. Your previous data was restored.',
+  'files.sync.error.unreachable': 'Couldn’t reach GitHub.',
+  'files.sync.github.answered': 'GitHub answered {status}.',
+  'files.sync.github.cantWrite': 'The token can’t write to this repo. It needs Contents read and write.',
+  'files.sync.github.empty': 'The repo is empty.',
+  'files.sync.github.moved': 'The branch moved on while pushing. Try again.',
+  'files.sync.github.notFound': 'Repo not found, or the token can’t see it.',
+  'files.sync.github.overLimit': 'Over GitHub’s 100 MB limit.',
+  'files.sync.github.rateLimit': 'GitHub’s rate limit was reached. Try again later.',
+  'files.sync.github.said': 'GitHub said: {message}',
+  'files.sync.github.token': 'GitHub refused the token.',
+  'files.sync.github.tooLarge': 'Too large for GitHub.',
+  'files.sync.github.truncated': 'The repo has too many files for GitHub to list at once.',
+  'files.sync.group.chats': 'Chats',
+  'files.sync.group.drawings': 'Drawings',
+  'files.sync.group.files': 'Imported files',
+  'files.sync.group.generated': 'Generated exercises',
+  'files.sync.group.images': 'Note images',
+  'files.sync.group.records': 'Settings and records',
+  'files.sync.group.scratch': 'Scratch pages',
+  'files.tab.deleted': 'This file was deleted.',
+  'files.tab.fetching': 'Fetching {name}…',
+  'files.tab.missing': 'This browser no longer holds the file. Import it again or restore a backup.',
+  'files.tab.opening': 'Opening {name}…',
+  'files.undo.importFiles': 'import {files, plural, one {# file} other {# files}}',
+  'files.undo.importFolders': 'import {folders, plural, one {# folder} other {# folders}}, {files, plural, one {# file} other {# files}}',
+  'files.undo.moveTextBox': 'move text box',
+  'files.undo.removeMark': 'remove mark',
+  'files.undo.textBox': 'text box',
 } as const;

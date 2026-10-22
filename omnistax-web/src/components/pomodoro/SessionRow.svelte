@@ -3,24 +3,25 @@
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import RowMenu from '../explorer/RowMenu.svelte';
   import SessionEditor from './SessionEditor.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { p, compact = false }: { p: Pomodoro; compact?: boolean } = $props();
   const cats = $derived(pomodoro.categories);
 
   let menu = $state<{ x: number; y: number } | null>(null);
   let editing = $state(false);
   let asking = $state(false);
-  const items = [
-    { label: 'Edit', run: () => { editing = true; } },
-    { label: 'Delete', run: () => { asking = true; }, danger: true },
-  ];
+  const items = $derived([
+    { label: i18n.t('pomodoro.row.edit'), run: () => { editing = true; } },
+    { label: i18n.t('pomodoro.row.delete'), run: () => { asking = true; }, danger: true },
+  ]);
   const openAt = (e: MouseEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     menu = menu ? null : { x: e.clientX, y: e.clientY };
   };
 
-  const day = (ms: number): string => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const at = (ms: number): string => new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const day = (ms: number): string => new Date(ms).toLocaleDateString(i18n.locale, { month: 'short', day: 'numeric' });
+  const at = (ms: number): string => new Date(ms).toLocaleTimeString(i18n.locale, { hour: 'numeric', minute: '2-digit' });
 </script>
 
 {#if editing}
@@ -36,12 +37,12 @@
     </span>
     {#if asking}
       <span class="ask">
-        Delete?
-        <button type="button" class="btn sm danger" onclick={() => pomodoro.remove(p.id ?? '')}>Yes</button>
-        <button type="button" class="btn ghost sm" onclick={() => (asking = false)}>No</button>
+        {i18n.t('pomodoro.row.ask')}
+        <button type="button" class="btn sm danger" onclick={() => pomodoro.remove(p.id ?? '')}>{i18n.t('pomodoro.row.yes')}</button>
+        <button type="button" class="btn ghost sm" onclick={() => (asking = false)}>{i18n.t('pomodoro.row.no')}</button>
       </span>
     {:else}
-      <button type="button" class="btn ghost icon sm more" aria-label="Actions for this session" onclick={openAt}>⋯</button>
+      <button type="button" class="btn ghost icon sm more" aria-label={i18n.t('pomodoro.row.actions')} onclick={openAt}>⋯</button>
     {/if}
   </li>
 {/if}

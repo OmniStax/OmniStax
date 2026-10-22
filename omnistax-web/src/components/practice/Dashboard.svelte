@@ -6,35 +6,36 @@
   import SessionRows from './SessionRows.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
   import ReadyToLearn from './ReadyToLearn.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { item, shelf }: { item: string; shelf: readonly string[] } = $props();
 
   const opened = Date.now();
   const weeks = heatWeeks(opened);
-  const monthOf = (day: string): string => new Date(`${day}T00:00`).toLocaleDateString(undefined, { month: 'short' });
-  const months = weeks.map((w, i) => (i > 0 && w[0].slice(0, 7) !== weeks[i - 1][0].slice(0, 7) ? monthOf(w[0]) : ''));
+  const monthOf = (day: string): string => new Date(`${day}T00:00`).toLocaleDateString(i18n.locale, { month: 'short' });
+  const months = $derived(weeks.map((w, i) => (i > 0 && w[0].slice(0, 7) !== weeks[i - 1][0].slice(0, 7) ? monthOf(w[0]) : '')));
   const byDay = $derived(workByDay(practice.attempts));
   const depth = (day: string): number => { const n = byDay[day]?.completed ?? 0; return n === 0 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 10 ? 3 : n < 15 ? 4 : 5; };
-  const dayTitle = (day: string): string => { const work = byDay[day]; return `${day} · ${work ? `${work.completed} exercises · ${work.correct} correct` : 'no exercises'}`; };
+  const dayTitle = (day: string): string => { const work = byDay[day]; return work ? i18n.t('practice.dashboard.day', { day, n: work.completed, correct: work.correct }) : i18n.t('practice.dashboard.dayNone', { day }); };
   let heat = $state<HTMLElement | null>(null);
   $effect(() => { if (heat) heat.scrollLeft = heat.scrollWidth; });
 
   const standing = $derived(standingOf(practice.catalog().concepts, practice.mastery));
   const due = $derived(practice.due());
   const figures = $derived([
-    { label: 'Day streak', title: undefined, value: streakOf(practice.attempts, Date.now()) },
-    { label: 'Exercises done', title: undefined, value: practice.lifetime },
-    { label: 'Practiced', title: 'Concepts practiced', value: standing.practised + standing.mastered },
-    { label: 'Mastered', title: 'Concepts mastered', value: standing.mastered },
-    { label: 'Due', title: 'Concepts due for review', value: due.length },
+    { label: i18n.t('practice.dashboard.streak'), title: undefined, value: streakOf(practice.attempts, Date.now()) },
+    { label: i18n.t('practice.dashboard.done'), title: undefined, value: practice.lifetime },
+    { label: i18n.t('practice.dashboard.practiced'), title: i18n.t('practice.dashboard.practicedTitle'), value: standing.practised + standing.mastered },
+    { label: i18n.t('practice.dashboard.mastered'), title: i18n.t('practice.dashboard.masteredTitle'), value: standing.mastered },
+    { label: i18n.t('practice.dashboard.due'), title: i18n.t('practice.dashboard.dueTitle'), value: due.length },
   ]);
 </script>
 
 <div class="dashboard">
-  <PageHead title="Practice">
-    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, [])}>New practice session</button>{/snippet}
+  <PageHead title={i18n.t('practice.dashboard.title')}>
+    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, [])}>{i18n.t('practice.dashboard.newSession')}</button>{/snippet}
   </PageHead>
 
-  <section aria-label="Activity">
+  <section aria-label={i18n.t('practice.dashboard.activity')}>
     <div class="figures">
       {#each figures as f (f.label)}
         <div class="figure" title={f.title}><span class="eyebrow">{f.label}</span><span class="value">{f.value}</span></div>
@@ -52,21 +53,21 @@
         {/each}
       </div>
     </div>
-    <div class="key" aria-hidden="true">Less{#each [0, 1, 3, 4, 5] as d (d)}<i class="cell" data-d={d}></i>{/each}More</div>
+    <div class="key" aria-hidden="true">{i18n.t('practice.dashboard.less')}{#each [0, 1, 3, 4, 5] as d (d)}<i class="cell" data-d={d}></i>{/each}{i18n.t('practice.dashboard.more')}</div>
   </section>
 
   <section class="part">
-    <div class="head"><h3 class="section-title">Sessions</h3><button type="button" class="btn ghost sm" onclick={() => practice.sessionsPage(item)}>All sessions ›</button></div>
+    <div class="head"><h3 class="section-title">{i18n.t('practice.sessions.title')}</h3><button type="button" class="btn ghost sm" onclick={() => practice.sessionsPage(item)}>{i18n.t('practice.dashboard.allSessions')}</button></div>
     <SessionRows {item} limit={5} />
   </section>
 
   <section class="part">
-    <h3 class="section-title">Ready to learn</h3>
+    <h3 class="section-title">{i18n.t('practice.dashboard.ready')}</h3>
     <ReadyToLearn />
   </section>
 
   <section class="part">
-    <h3 class="section-title">Progress</h3>
+    <h3 class="section-title">{i18n.t('practice.dashboard.progress')}</h3>
     <CurriculumTree {item} {shelf} open={focus.book} selectable={false} />
   </section>
 </div>

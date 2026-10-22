@@ -9,6 +9,8 @@ export type LibraryStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 export type LibraryBookDTO = {
   readonly id: string; readonly title: string; readonly publisher: string; readonly authors: readonly string[];
   readonly chapters: number; readonly sections: number; readonly url: string;
+  /* the language the book is written in, a BCP 47 tag, and the book it translates where it is a translation (editions.ts) */
+  readonly language: string; readonly translationOf?: string;
 };
 
 const KEY = 'omnistax-library-v1';
@@ -23,6 +25,8 @@ const parseBook = (raw: unknown): LibraryBookDTO | null => {
     authors: Array.isArray(o.authors) ? o.authors.filter((a): a is string => typeof a === 'string') : [],
     chapters: Number(o.chapters) || 0, sections: Number(o.sections) || 0,
     url: typeof o.url === 'string' ? o.url : `/${o.id}/`,
+    language: typeof o.language === 'string' && o.language !== '' ? o.language : 'en',
+    ...(typeof o.translationOf === 'string' && o.translationOf !== '' && o.translationOf !== o.id ? { translationOf: o.translationOf } : {}),
   };
 };
 export const parseBooks = (raw: unknown): LibraryBookDTO[] => (Array.isArray(raw) ? raw.flatMap((b) => { const p = parseBook(b); return p ? [p] : []; }) : []);

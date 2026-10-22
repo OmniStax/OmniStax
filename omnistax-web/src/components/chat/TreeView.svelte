@@ -1,5 +1,6 @@
 <script lang="ts">
   import Plane, { type PlaneRect } from '../ui/Plane.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { layoutTree, boundsOf, meets, type Box } from '../../lib/tree/layout';
   import { childrenOf, pathTo, type Chat, type Message, type MessageId } from '../../lib/chat/model';
   import { ANCHOR, NODE, NODE_COMPACT, nodeSize, opening, openSize, speakerOf, timeOf } from '../../lib/chat/tree';
@@ -98,8 +99,8 @@
 <div class="tree" class:compact data-tree>
   {#if !compact}
     <div class="head-bar">
-      <button type="button" class="btn ghost sm" disabled={selection.size === 0} onclick={expandPicked}>{pickedOpen ? 'Collapse' : 'Expand'}</button>
-      <button type="button" class="btn ghost sm" disabled={ids.length === 0} onclick={expandAll}>{allOpen ? 'Collapse all' : 'Expand all'}</button>
+      <button type="button" class="btn ghost sm" disabled={selection.size === 0} onclick={expandPicked}>{pickedOpen ? i18n.t('chat.tree.collapse') : i18n.t('chat.tree.expand')}</button>
+      <button type="button" class="btn ghost sm" disabled={ids.length === 0} onclick={expandAll}>{allOpen ? i18n.t('chat.collapseAll') : i18n.t('chat.expandAll')}</button>
     </div>
   {/if}
   <Plane fit onlasso={lassoed} onblank={() => (selection = new Set())}>

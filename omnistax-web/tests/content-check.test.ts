@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { config } from '../omnistax.config';
-import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
+import { findBooks, loadBook, loadBooks, mediaRootsOf, withInheritedTypes } from '../src/lib/content/load';
+import { bookDir, bookId } from '../src/lib/types/ids';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
   CHECKS, checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
-  citedNumbers, contentOf, errorsOf, warningsOf,
+  citedNumbers, contentOf, errorsOf, warningsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
 
@@ -38,7 +40,9 @@ test('the only warnings a book on disk raises are a figure it has not built yet,
     const lead = (f: Finding): boolean => /^has a lead of \d+ words/.test(f.what);
     /* figure rows name the convention and fact colours they draw once the tags are backfilled */
     const tag = (f: Finding): boolean => /^draws F\.(el|fact)\('[^']*'\), which (its|no figure row's) (conventions|facts)/.test(f.what);
-    assert.ok(raised.every((f) => figure(f) || cell(f) || lead(f) || tag(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
+    /* the books written before book.json declared a language are read as en until they say so */
+    const language = (f: Finding): boolean => f.where === 'book.json language' && /^is not declared; the book is read as en$/.test(f.what);
+    assert.ok(raised.every((f) => figure(f) || cell(f) || lead(f) || tag(f) || language(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
   });
 });
 
@@ -463,4 +467,78 @@ test('checkPrereqCycles: a loop in the concept map is an error that names it, an
   assert.deepEqual(run(checkPrereqCycles), []);
   assert.deepEqual(run(checkPrereqCycles, { book: { concept_prereqs: [edge('hookes-law', 'hookes-law')] } }),
     ['book.json concept_prereqs: closes a loop, each concept resting on the one before: hookes-law → hookes-law']);
+});
+
+/* ---------- a translation and its source ---------- */
+
+const TRANSLATED = { id: 'b-zh-cn', language: 'zh-CN', translation_of: 'b', translation: { translator: 'claude-opus-5-5', date: '2026-10-22', glossary: 'glossary.zh-CN.json' } };
+
+test('checkLanguage: a book that declares no language is read as en, and says so', () => {
+  assert.deepEqual(run(checkLanguage), ['book.json language: is not declared; the book is read as en']);
+  assert.deepEqual(run(checkLanguage, { book: { language: 'en' } }), []);
+  assert.equal(fixture().book.language, 'en');
+});
+
+test('checkTranslationMeta: a translation names another book and says how it was made', () => {
+  assert.deepEqual(run(checkTranslationMeta), [], 'a book that translates nothing says nothing');
+  assert.deepEqual(run(checkTranslationMeta, { book: TRANSLATED }), []);
+  assert.deepEqual(run(checkTranslationMeta, { book: { ...TRANSLATED, translation_of: 'b-zh-cn' } }), ['book.json translation_of: names the book itself ("b-zh-cn")']);
+  const bare = checkTranslationMeta(fixture({ book: { id: 'b-zh-cn', language: 'zh-CN', translation_of: 'b' } }));
+  assert.deepEqual(bare.map((f) => [f.level, f.where]), [['warning', 'book.json translation']]);
+  assert.match(run(checkTranslationMeta, { book: { ...TRANSLATED, translation: { ...TRANSLATED.translation, glossary: '../elsewhere.json' } } })[0], /is no file of the book's own folder/);
+  assert.throws(() => bookOf({ translation: TRANSLATED.translation }), /translation is written only on a book that names translation_of/);
+});
+
+test('checkParity: an identical copy in another language passes, and one renamed span is one error', () => {
+  const source = fixture({ book: { language: 'en' } });
+  assert.deepEqual(said(checkParity(fixture({ book: TRANSLATED }), source)), []);
+  const renamed = fixture({ book: TRANSLATED, textHtml: TEXT.replace('id="hookes-law"', 'id="hooke-law"') });
+  assert.deepEqual(said(checkParity(renamed, source)), ['ch16/16.1/text.html: span ids differ from the source\'s: lacks "hookes-law"; has "hooke-law", which the source does not']);
+});
+
+test('checkParity: the language differs, the chapters are the source\'s in its order, and every table keeps its ids', () => {
+  const source = fixture({ book: { language: 'en' } });
+  const errors = (p: Parts): readonly string[] => said(checkParity(fixture({ ...p, book: { ...TRANSLATED, ...p.book } }), source));
+  assert.match(errors({ book: { language: 'en' } })[0], /^book\.json language: is "en", the language of the source/);
+  assert.match(errors({ book: { translation_of: 'c' } })[0], /^book\.json translation_of: is "c", and the book compared with is "b"/);
+  assert.match(errors({ book: { chapters: ['ch16', 'ch17'] } })[0], /^book\.json chapters: must be chapters of the source/);
+  assert.match(errors({ book: { types: [{ id: 'force', label: '力' }] } })[0], /^book\.json types: type ids differ from the source's: lacks "position"/);
+  assert.deepEqual(errors({ book: { types: [{ id: 'force', label: '力' }, { id: 'position', label: '位置' }] } }), [], 'a label is translated, its id is not');
+  assert.match(errors({ chapter: { sections: [{ id: '16.2', title: 'x' }] } })[0], /^ch16\/chapter\.json sections: section ids differ/);
+  assert.match(errors({ section: { figures: [{ id: 'sim-rule', kind: 'sim', number: '16.2', draws: ['force'] }] } })[0], /^ch16\/16\.1\/section\.json figures: figure ids differ/);
+  assert.match(errors({ section: { coverage: [{ span: 'hookes-law', concept: 'hookes-law', verb: 'uses' }] } })[0], /^ch16\/16\.1\/section\.json coverage: coverage rows/);
+  assert.match(errors({ section: { exercises: [] } })[0], /^ch16\/16\.1\/section\.json exercises: exercise ids differ/);
+  const subset: Content = { ...fixture({ book: TRANSLATED }), chapters: [] };
+  assert.deepEqual(said(checkParity({ ...subset, book: { ...subset.book, chapterDirs: [] } }, source)), [], 'a translation may list fewer chapters than its source');
+});
+
+const localPages = (c: Content): number => c.chapters.flatMap((ch) => [ch.intro, ...ch.sections]).filter(Boolean).length;
+/* The fixture book on disk against itself, read as a translation: every id the loader reads is compared, and none differs. */
+test('checkParity: a book read off disk matches itself as a translation', async () => {
+  const source = await contentOf(await loadBook(bookDir(path.resolve(import.meta.dirname, 'fixtures/framed-book')), bookId('framed')));
+  const translated: Content = { ...source, book: { ...source.book, id: 'framed-zh-cn', language: 'zh-CN', languageDeclared: true, translationOf: 'framed' } };
+  assert.deepEqual(said(checkParity(translated, source)), []);
+  assert.ok(localPages(source) > 0, 'the fixture has pages to compare');
+});
+
+test('a translation’s media are its own and then its source’s, and a translation_of that names no book is an error', () => {
+  const source = { id: bookId('b'), dir: bookDir('/root/B') };
+  const own = { id: bookId('b-zh-cn'), dir: bookDir('/root/B (zh-CN)'), translationOf: bookId('b') };
+  assert.deepEqual(mediaRootsOf([source, own], source), [path.join('/root/B', 'media')]);
+  assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B (zh-CN)', 'media'), path.join('/root/B', 'media')]);
+  assert.throws(() => mediaRootsOf([own], own), /translation_of "b" names no book under the content root/);
+});
+
+/* Every translation under the content root against its source. A translation in progress may not parse yet, and
+   is passed over rather than failing the suite; one that does parse keeps every id of its source. */
+test('every translation on disk keeps the ids of its source', async (t) => {
+  const found = await findBooks(config.content.root).catch(() => null);
+  if (found === null) { t.skip('a book.json under the content root does not parse yet'); return; }
+  const translations = found.filter((f) => f.translationOf !== undefined);
+  if (translations.length === 0) { t.skip('no translation under the content root'); return; }
+  for (const f of translations) {
+    const pair = await Promise.all([f.id, f.translationOf!].map((id) => loadBooks(config.content.root, { kind: 'named', ids: [id] }).then(([tree]) => contentOf(tree)))).catch(() => null);
+    if (pair === null) { t.diagnostic(`${f.id} does not load yet; passed over`); continue; }
+    assert.deepEqual(said(errorsOf(checkParity(pair[0], pair[1]))), [], f.id);
+  }
 });

@@ -28,6 +28,7 @@
      menu: Ctrl+Z inside this tab takes back a stroke and never a highlight
      made somewhere else. */
   import { onMount, tick } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Toolbar from './Toolbar.svelte';
   import Frame from './Frame.svelte';
   import Group from './Group.svelte';
@@ -517,7 +518,7 @@
       const w = Math.abs(g.to[0] - g.from[0]), h = Math.abs(g.to[1] - g.from[1]);
       if (w < 20 / view.zoom || h < 20 / view.zoom) return;
       const id = newDrawItemId();
-      commit(addGroup(drawing, { kind: 'group', id, x, y, w, h, label: 'Group', ...(color === 'ink' ? {} : { color }) }));
+      commit(addGroup(drawing, { kind: 'group', id, x, y, w, h, label: i18n.t('drawer.group.default'), ...(color === 'ink' ? {} : { color }) }));
       selection = [id];
       return;
     }
@@ -854,7 +855,7 @@
 
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="surface" class:dropping bind:this={host} role="application" tabindex="0"
-    aria-label="Drawing canvas: press P for the pen, E for the eraser, L for the lasso"
+    aria-label={i18n.t('drawer.canvas.label')}
     style:cursor={gesture?.kind === 'pan' ? 'grabbing' : CURSOR[tool]}
     {onpointerdown} {onpointermove} {onpointerup} onpointercancel={oncancel}
     {onwheel} {onkeydown} {onkeyup} {ondragover} {ondragleave} {ondrop} {ondblclick} {onpaste} {oncontextmenu}
@@ -911,7 +912,7 @@
             onpointerdown={(e) => { e.stopPropagation(); selection = [link.id]; }}
             ondblclick={(e) => { e.stopPropagation(); naming = link.id; }}>
             {#if naming === link.id}
-              <input value={link.label} aria-label="Connector label" use:takeFocus
+              <input value={link.label} aria-label={i18n.t('drawer.link.label')} use:takeFocus
                 onblur={(e) => nameLink(link, (e.currentTarget as HTMLInputElement).value.trim())}
                 onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') (e.currentTarget as HTMLInputElement).blur(); }} />
             {:else}{link.label}{/if}
@@ -921,7 +922,7 @@
           {@const r = hoveredRect}
           {#each SIDES as side (side)}
             {@const [hx, hy] = sideAt({ x: r.x - 10 / scale, y: r.y - 10 / scale, w: r.w + 20 / scale, h: r.h + 20 / scale }, side)}
-            <span class="side" data-side={side} title="Drag to connect"
+            <span class="side" data-side={side} title={i18n.t('drawer.link.connect')}
               style:left="{hx}px" style:top="{hy}px" style:width="{10 / scale}px" style:height="{10 / scale}px" style:border-width="{1.5 / scale}px"></span>
           {/each}
         {/if}
@@ -943,14 +944,14 @@
         onpointerdown={(e) => e.stopPropagation()}>
         {#if selectedLink}
           {@const l = selectedLink}
-          <button type="button" class="chip" onclick={() => setLink(l, { curve: l.curve === 'bezier' ? 'straight' : 'bezier' })}>{l.curve === 'bezier' ? 'Curved' : 'Straight'}</button>
-          <button type="button" class="chip" class:on={l.heads.start} title="Start arrowhead" onclick={() => setLink(l, { heads: { ...l.heads, start: !l.heads.start } })}>&larr;</button>
-          <button type="button" class="chip" class:on={l.heads.end} title="End arrowhead" onclick={() => setLink(l, { heads: { ...l.heads, end: !l.heads.end } })}>&rarr;</button>
-          <button type="button" class="chip" onclick={() => (naming = l.id)}>Label</button>
+          <button type="button" class="chip" onclick={() => setLink(l, { curve: l.curve === 'bezier' ? 'straight' : 'bezier' })}>{l.curve === 'bezier' ? i18n.t('drawer.link.curved') : i18n.t('drawer.link.straight')}</button>
+          <button type="button" class="chip" class:on={l.heads.start} title={i18n.t('drawer.link.startHead')} onclick={() => setLink(l, { heads: { ...l.heads, start: !l.heads.start } })}>&larr;</button>
+          <button type="button" class="chip" class:on={l.heads.end} title={i18n.t('drawer.link.endHead')} onclick={() => setLink(l, { heads: { ...l.heads, end: !l.heads.end } })}>&rarr;</button>
+          <button type="button" class="chip" onclick={() => (naming = l.id)}>{i18n.t('drawer.link.labelButton')}</button>
         {:else}
-          <button type="button" class="chip" title="Ctrl+G" onclick={groupSelection}>Group</button>
+          <button type="button" class="chip" title="Ctrl+G" onclick={groupSelection}>{i18n.t('drawer.selection.group')}</button>
         {/if}
-        <button type="button" class="chip" title="Delete" onclick={deleteSelection}>Delete</button>
+        <button type="button" class="chip" title={i18n.t('drawer.selection.delete')} onclick={deleteSelection}>{i18n.t('drawer.selection.delete')}</button>
       </div>
     {/if}
   </div>

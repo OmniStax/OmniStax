@@ -1,4 +1,5 @@
 /* Rail and strip icons: 24-unit strokes, coloured by currentColor. */
+import type { MessageKey, TFn } from './i18n/index';
 export const ICON = {
   text: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7M9 8h3"/></svg>',
   /* exercises: a dumbbell — practice is strength the reader builds */
@@ -60,4 +61,8 @@ export const ICON = {
   /* progress: a bar part filled */
   progress: '<svg viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="2"/><path d="M6.5 12h7" stroke-width="3"/></svg>',
 } as const;
-export const VIEW_TITLE: Record<string, string> = { explorer: 'Explorer', search: 'Search', sync: 'Sync', 'sync-diff': 'Sync changes', exercises: 'Exercises', concepts: 'Concept map', reference: 'Reference', annotations: 'Annotations', pomodoro: 'Pomodoro', 'pomodoro-stats': 'Pomodoro stats', colours: 'Theme', chats: 'Conversations' };
+/* What each view is called, in the reader's language: the rail's buttons, the
+   tab of a view, the palette's commands that open one. A kind without a name
+   is called by its id. */
+const VIEW_TITLE_KEY: Readonly<Record<string, MessageKey>> = { explorer: 'shell.view.explorer', search: 'shell.view.search', sync: 'shell.view.sync', 'sync-diff': 'shell.view.syncDiff', exercises: 'shell.view.exercises', concepts: 'shell.view.concepts', reference: 'shell.view.reference', annotations: 'shell.view.annotations', pomodoro: 'shell.view.pomodoro', 'pomodoro-stats': 'shell.view.pomodoroStats', colours: 'shell.view.colours', chats: 'shell.view.chats' };
+export const viewTitle = (kind: string, t: TFn): string => { const k = VIEW_TITLE_KEY[kind]; return k ? t(k) : kind; };

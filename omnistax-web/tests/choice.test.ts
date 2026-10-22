@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openChoice, filter, key, perform, shown, type ChoiceList, type ChoiceStage } from '../src/lib/commands/choice';
 import { builtinCommands, BUILTIN, type BuiltinDeps } from '../src/lib/commands/builtin';
+import { tIn } from '../src/lib/i18n/index';
 
 const list = (log: string[]): ChoiceList => ({
   options: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }, { value: 'c', label: 'Gamma' }],
@@ -46,7 +47,7 @@ test('font and theme commands preview, save and revert through the settings', ()
     setTheme: (t: string) => log.push(`theme ${t}`), setFigureFont: (f: string) => log.push(`figure ${f}`), setBodyFont: (f: string) => log.push(`body ${f}`),
     setPreview: (p: object) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear'),
   };
-  const cmds = builtinCommands({ settings } as unknown as BuiltinDeps);
+  const cmds = builtinCommands({ t: tIn.bind(null, 'en'), settings } as unknown as BuiltinDeps);
   const by = (id: string) => cmds.find((c) => c.id === id)!;
   const fig = by(BUILTIN.figureFont).choices!();
   assert.equal(fig.options.length, 6); assert.equal(fig.current, 'ncm');

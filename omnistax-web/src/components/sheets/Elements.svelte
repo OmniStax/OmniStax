@@ -11,6 +11,8 @@
      that names it. In a narrow pane the card is a sheet along the bottom. The
      arrows walk the table and Enter pins. */
   import { tick } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n';
   import { settings } from '../../lib/settings/store.svelte';
   import { sheets } from '../../lib/sheets/store.svelte';
   import { onMiddle, openDoc, openingOf, type Opening } from '../../lib/sections/nav.svelte';
@@ -29,11 +31,11 @@
   const GROUPS = Array.from({ length: COLUMNS }, (_, i) => i + 1);
   const ROWS = Array.from({ length: PERIODS }, (_, i) => i + 1);
   /* The colouring as one control: the three flat ones and the four trends in one list. */
-  type Choice = { readonly key: string; readonly label: string; readonly colouring: Colouring };
+  type Choice = { readonly key: string; readonly label: MessageKey; readonly colouring: Colouring };
   const CHOICES: readonly Choice[] = [
-    { key: 'classification', label: 'Metals, metalloids, nonmetals', colouring: { by: 'classification' } },
-    { key: 'category', label: 'Family', colouring: { by: 'category' } },
-    { key: 'block', label: 'Block', colouring: { by: 'block' } },
+    { key: 'classification', label: 'sheets.elements.classification', colouring: { by: 'classification' } },
+    { key: 'category', label: 'sheets.elements.family', colouring: { by: 'category' } },
+    { key: 'block', label: 'sheets.elements.block', colouring: { by: 'block' } },
     ...TRENDS.map((t): Choice => ({ key: t, label: TREND_META[t].label, colouring: { by: 'trend', trend: t } })),
   ];
 
@@ -134,43 +136,43 @@
 <div class="elements" data-sheet="elements">
   <header>
     <h1>{sheet.title}</h1>
-    <p class="lead">Hover an element to see it. Click to keep it open.</p>
+    <p class="lead">{i18n.t('sheets.elements.lead')}</p>
   </header>
 
   <div class="controls">
     <label class="control wide">
-      <span>Color by</span>
-      <select bind:value={choice}>{#each CHOICES as c (c.key)}<option value={c.key}>{c.label}</option>{/each}</select>
+      <span>{i18n.t('sheets.elements.colorBy')}</span>
+      <select bind:value={choice}>{#each CHOICES as c (c.key)}<option value={c.key}>{i18n.t(c.label)}</option>{/each}</select>
     </label>
-    <label class="control"><span>Group</span>
+    <label class="control"><span>{i18n.t('sheets.elements.group')}</span>
       <select value={[...filters.groups][0] ?? ''} onchange={(e) => setFilter('groups', one(filters.groups, num(e.currentTarget.value)))}>
-        <option value="">any</option>{#each GROUPS as g (g)}<option value={g}>{g}</option>{/each}
+        <option value="">{i18n.t('sheets.elements.any')}</option>{#each GROUPS as g (g)}<option value={g}>{g}</option>{/each}
       </select>
     </label>
-    <label class="control"><span>Period</span>
+    <label class="control"><span>{i18n.t('sheets.elements.period')}</span>
       <select value={[...filters.periods][0] ?? ''} onchange={(e) => setFilter('periods', one(filters.periods, num(e.currentTarget.value)))}>
-        <option value="">any</option>{#each ROWS as p (p)}<option value={p}>{p}</option>{/each}
+        <option value="">{i18n.t('sheets.elements.any')}</option>{#each ROWS as p (p)}<option value={p}>{p}</option>{/each}
       </select>
     </label>
-    <label class="control"><span>Block</span>
+    <label class="control"><span>{i18n.t('sheets.elements.block')}</span>
       <select value={[...filters.blocks][0] ?? ''} onchange={(e) => setFilter('blocks', one(filters.blocks, str(e.currentTarget.value)))}>
-        <option value="">any</option>{#each ELEMENT_BLOCKS as b (b)}<option value={b}>{b}</option>{/each}
+        <option value="">{i18n.t('sheets.elements.any')}</option>{#each ELEMENT_BLOCKS as b (b)}<option value={b}>{b}</option>{/each}
       </select>
     </label>
-    <label class="control"><span>State</span>
+    <label class="control"><span>{i18n.t('sheets.elements.state')}</span>
       <select value={[...filters.states][0] ?? ''} onchange={(e) => setFilter('states', one(filters.states, str(e.currentTarget.value)))}>
-        <option value="">any</option>{#each ELEMENT_STATES as s (s)}<option value={s}>{s}</option>{/each}
+        <option value="">{i18n.t('sheets.elements.any')}</option>{#each ELEMENT_STATES as s (s)}<option value={s}>{s}</option>{/each}
       </select>
     </label>
-    <label class="control wide"><span>Family</span>
+    <label class="control wide"><span>{i18n.t('sheets.elements.family')}</span>
       <select value={[...filters.categories][0] ?? ''} onchange={(e) => setFilter('categories', one(filters.categories, str(e.currentTarget.value)))}>
-        <option value="">any</option>{#each ELEMENT_CATEGORIES as c (c)}<option value={c}>{c}</option>{/each}
+        <option value="">{i18n.t('sheets.elements.any')}</option>{#each ELEMENT_CATEGORIES as c (c)}<option value={c}>{c}</option>{/each}
       </select>
     </label>
-    <label class="control wide"><span>Search</span>
-      <input type="search" placeholder="name or symbol" value={filters.query} oninput={(e) => setFilter('query', e.currentTarget.value)} />
+    <label class="control wide"><span>{i18n.t('sheets.elements.searchLabel')}</span>
+      <input type="search" placeholder={i18n.t('sheets.elements.search')} value={filters.query} oninput={(e) => setFilter('query', e.currentTarget.value)} />
     </label>
-    <button type="button" class="clear" onclick={clear}>Clear</button>
+    <button type="button" class="clear" onclick={clear}>{i18n.t('sheets.elements.clear')}</button>
   </div>
 
   {#if legend.length}
@@ -181,7 +183,7 @@
   {/if}
 
   <div class="board" bind:clientWidth={boardW} bind:clientHeight={boardH}>
-    <div class="grid" bind:this={grid} role="grid" aria-label="The periodic table" onscroll={(e) => (scrollX = e.currentTarget.scrollLeft)}>
+    <div class="grid" bind:this={grid} role="grid" aria-label={i18n.t('sheets.elements.table')} onscroll={(e) => (scrollX = e.currentTarget.scrollLeft)}>
       {#each placeholders() as p (p.from)}
         <div class="cell strip" style:grid-column={p.column} style:grid-row={p.row} aria-hidden="true"><span class="sym">{p.label}</span></div>
       {/each}
@@ -190,7 +192,7 @@
           type="button" class="cell" class:out={!shown.has(c.element.symbol)} class:on={pinned === c.element.symbol} class:below={c.row > 7}
           data-el={c.element.symbol} style:grid-column={c.column} style:grid-row={c.row}
           style:background={fillOf(colouring, c.element, range, settings.dark, settings.shown.concepts)}
-          aria-label="{c.element.name}, number {c.element.number}" aria-pressed={pinned === c.element.symbol}
+          aria-label={i18n.t('sheets.elements.cell', { name: c.element.name, number: c.element.number })} aria-pressed={pinned === c.element.symbol}
           onmouseenter={() => enter(c.element.symbol)} onmouseleave={leave}
           onfocus={() => enter(c.element.symbol)} onblur={leave}
           onclick={() => pick(c.element.symbol)} onkeydown={(e) => onKey(e, c)}>
@@ -216,27 +218,27 @@
               <div class="eyebrow">{e.number} · {e.category}</div>
               <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
             </div>
-            <button type="button" class="x" aria-label="Close" onclick={close}>×</button>
+            <button type="button" class="x" aria-label={i18n.t('sheets.elements.close')} onclick={close}>×</button>
           </div>
           <dl class="fields">
-            <dt>Atomic weight</dt><dd>{e.weight_label}</dd>
-            <dt>Group, period</dt><dd>{e.group ?? '—'}, {e.period}</dd>
-            <dt>Block</dt><dd>{e.block}</dd>
-            <dt>State at 25 °C</dt><dd>{e.state}</dd>
-            <dt>Shading</dt><dd>{e.classification}</dd>
-            <dt>Electronegativity</dt><dd>{e.electronegativity ?? '—'}</dd>
-            <dt>First ionization</dt><dd>{e.ionization === null ? '—' : `${e.ionization} kJ/mol`}</dd>
-            <dt>Covalent radius</dt><dd>{e.radius === null ? '—' : `${e.radius} pm`}</dd>
-            <dt>Discovered</dt><dd>{e.discovered ?? 'known since antiquity'}</dd>
-            <dt>Configuration</dt><dd class="config">{#each configParts(e.configuration) as p, i (i)}{p.text}{#if p.sup}<sup>{p.sup}</sup>{/if}{' '}{/each}</dd>
+            <dt>{i18n.t('sheets.elements.weight')}</dt><dd>{e.weight_label}</dd>
+            <dt>{i18n.t('sheets.elements.groupPeriod')}</dt><dd>{e.group ?? '—'}, {e.period}</dd>
+            <dt>{i18n.t('sheets.elements.block')}</dt><dd>{e.block}</dd>
+            <dt>{i18n.t('sheets.elements.stateAt')}</dt><dd>{e.state}</dd>
+            <dt>{i18n.t('sheets.elements.shading')}</dt><dd>{e.classification}</dd>
+            <dt>{i18n.t('sheets.elements.electronegativity')}</dt><dd>{e.electronegativity ?? '—'}</dd>
+            <dt>{i18n.t('sheets.elements.ionization')}</dt><dd>{e.ionization === null ? '—' : `${e.ionization} kJ/mol`}</dd>
+            <dt>{i18n.t('sheets.elements.radius')}</dt><dd>{e.radius === null ? '—' : `${e.radius} pm`}</dd>
+            <dt>{i18n.t('sheets.elements.discovered')}</dt><dd>{e.discovered ?? i18n.t('sheets.elements.antiquity')}</dd>
+            <dt>{i18n.t('sheets.elements.configuration')}</dt><dd class="config">{#each configParts(e.configuration) as p, i (i)}{p.text}{#if p.sup}<sup>{p.sup}</sup>{/if}{' '}{/each}</dd>
           </dl>
           {#if e.sections.length}
             <div class="where">
-              <div class="eyebrow">Named in</div>
+              <div class="eyebrow">{i18n.t('sheets.elements.namedIn')}</div>
               <div class="links">{#each e.sections as s (s)}<button type="button" class="ref" onclick={(ev) => goSection(s, openingOf(ev))} onauxclick={onMiddle((ev) => goSection(s, openingOf(ev)))} title={titleOf(s)}>{s}</button>{/each}</div>
             </div>
           {:else}
-            <p class="none">No section of this book names it.</p>
+            <p class="none">{i18n.t('sheets.elements.namedNowhere')}</p>
           {/if}
         </div>
       {:else if peek}
@@ -244,8 +246,8 @@
         <div class="peekcard">
           <div class="eyebrow">{e.number} · {e.category}</div>
           <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
-          <p>{e.weight_label} · {e.state} · block {e.block}{#if trend}<br />{TREND_META[trend].label}: {valueOf(e.symbol)}{/if}</p>
-          <p class="hint">Click to keep it open.</p>
+          <p>{e.weight_label} · {e.state} · {i18n.t('sheets.elements.blockOf', { block: e.block })}{#if trend}<br />{i18n.t(TREND_META[trend].label)}: {valueOf(e.symbol)}{/if}</p>
+          <p class="hint">{i18n.t('sheets.elements.keepOpen')}</p>
         </div>
       {/if}
       </div>

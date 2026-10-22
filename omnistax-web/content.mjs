@@ -60,9 +60,11 @@ const copyMedia = async (mediaRoots, out) => {
   }
 };
 
-/* `books` are the folders of the books this build carries, under `root`. */
-export default function content(root, books) {
-  const mediaRoots = books.map((dir) => path.join(dir, 'media'));
+/* `books` are the folders of the books this build carries, under `root`, and
+   `mediaRoots` the media folders it serves and copies, first wins: each book's
+   own and, for a translation, its source's, which the translation's pages name
+   (mediaDirsOf in load.ts). Left out, each book's own folder. */
+export default function content(root, books, mediaRoots = books.map((dir) => path.join(dir, 'media'))) {
   return {
     name: 'omnistax-content',
     hooks: {

@@ -13,7 +13,8 @@
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
   import { isSidebarKind, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
-  import { ICON, VIEW_TITLE } from '../lib/icons';
+  import { ICON, viewTitle } from '../lib/icons';
+  import { i18n } from '../lib/i18n/store.svelte';
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
@@ -21,7 +22,7 @@
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const iconOf = (kind: ViewKind): string => ICON[kind as keyof typeof ICON] ?? '';
-  const titleOf = (kind: ViewKind): string => VIEW_TITLE[kind] ?? kind;
+  const titleOf = (kind: ViewKind): string => viewTitle(kind, i18n.t);
   /* The clock reads itself back from this browser as soon as the shell is up, so
      that a countdown can stand under the icon wherever the panel happens to be. */
   $effect(() => { pomodoro.init(); });
@@ -48,20 +49,20 @@
     const k = viewItem('chats');
     layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, k) : openInFocus(x, k)));
   };
-  const voiceTitle = $derived(reader.speaking ? 'Stop reading' : 'Read section aloud');
+  const voiceTitle = $derived(i18n.t(reader.speaking ? 'commands.stopReading' : 'commands.readAloud'));
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */
   const chatsOpen = $derived(l.groups.some((g) => g.tabs.some((t) => t.startsWith('chat:') || viewKindOf(t) === 'chats')));
 </script>
 
-<nav class="rail" class:drop aria-label="Views"
+<nav class="rail" class:drop aria-label={i18n.t('shell.rail.views')}
   use:dropzone={{ over: () => (drop = true), leave: () => (drop = false), drop: (d) => { const k = d.key; layoutStore.apply((x) => (k.startsWith('view:') ? openSide(x, k, 'left') : openTab(x, k, x.focus, { from: d.from }))); } }}>
   {#each GROUPS as kinds, i (i)}
     {#if i}<div class="gap"></div>{/if}
     <div class="section">
       {#each kinds as kind (kind)}
         {@const count = kind === 'pomodoro' ? pomodoro.railText : ''}
-        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Ask AI' : titleOf(kind)}
+        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? i18n.t('shell.rail.askAi') : titleOf(kind)}
           use:draggable={{ key: keyOf(kind), from: null }} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
       {/each}
     </div>
@@ -71,8 +72,8 @@
     {#if settings.voice && reader.supported}
       <button type="button" id="voice" class:on={reader.speaking} class:speaking={reader.speaking} aria-label={voiceTitle} onclick={(e) => { e.stopPropagation(); reader.toggle(); }}>{@html ICON.speaker}</button>
     {/if}
-    <button type="button" id="palette-btn" class:on={ui.palette.open} title="Command palette (Ctrl+Shift+P)" aria-label="Command palette" onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
-    <button type="button" id="gear" class:on={ui.settings} title="Settings (Ctrl+,)" aria-label="Settings" onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
+    <button type="button" id="palette-btn" class:on={ui.palette.open} title={`${i18n.t('shell.rail.palette')} (Ctrl+Shift+P)`} aria-label={i18n.t('shell.rail.palette')} onclick={(e) => { e.stopPropagation(); ui.togglePalette(); }}>{@html ICON.palette}</button>
+    <button type="button" id="gear" class:on={ui.settings} title={`${i18n.t('settings.title')} (Ctrl+,)`} aria-label={i18n.t('settings.title')} onclick={(e) => { e.stopPropagation(); ui.toggleSettings(); }}>{@html ICON.gear}</button>
   </div>
 </nav>
 

@@ -21,6 +21,7 @@ import * as REV from './solid';
 import { widen, sides } from './deriv';
 import { derivation as derivationOf } from './derivation';
 import type { DerivationDTO } from '../content/schema';
+import { t as msg, type MessageKey } from '../i18n';
 import * as SLOPE from './slope';
 import * as SPACE from './space';
 import * as POLAR from './polar';
@@ -601,7 +602,7 @@ const SPEEDS = [1, 2, 4, 0.5] as const; const SPEED_LABEL: Record<number, string
 const TICON = { play: '<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>', pause: '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>' };
 /* the speed button every transport ends with: cycles 1×, 2×, 4×, ½× */
 function speedBtn(get: () => number, set: (x: number) => void, sync: () => void): HTMLButtonElement {
-  const b = el('button', 'tbtn speed'); b.type = 'button'; b.title = 'Speed'; b.setAttribute('aria-label', 'Playback speed');
+  const b = el('button', 'tbtn speed'); b.type = 'button'; b.title = msg('fig.transport.speed'); b.setAttribute('aria-label', msg('fig.transport.playbackSpeed'));
   b.addEventListener('click', () => { set(SPEEDS[(SPEEDS.indexOf(get() as 1) + 1) % SPEEDS.length]); sync(); });
   return b;
 }
@@ -615,10 +616,10 @@ function syncScrub(d: Sim): void {
 function transport(d: Sim): void {
   const bar = el('div', 'transport'); const play = el('button', 'tbtn'); play.type = 'button';
   const speed = speedBtn(() => d.speed, (x) => { d.speed = x; }, () => sync());
-  const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? 'Pause' : 'Play'; play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); syncScrub(d); };
+  const sync = () => { play.innerHTML = d.playing ? TICON.pause : TICON.play; play.title = d.playing ? msg('fig.transport.pause') : msg('fig.transport.play'); play.setAttribute('aria-label', play.title); speed.textContent = SPEED_LABEL[d.speed]; bar.classList.toggle('playing', d.playing); syncScrub(d); };
   play.addEventListener('click', () => { d.playing = !d.playing; if (d.playing && d.cycles.every((c) => c.tau === Infinity)) rewind(d); sync(); });
   if (d.cycles.length && isFinite(periodOf(d))) {   /* a steady oscillation runs endlessly and has nothing to scrub */
-    const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.step = 'any'; scrub.setAttribute('aria-label', 'Time');
+    const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.step = 'any'; scrub.setAttribute('aria-label', msg('fig.transport.time'));
     scrub.addEventListener('input', () => { d.playing = false; const v = +scrub.value; d.cycles.forEach((c) => { c.tau = v; c.wait = 0; }); d.draw(); sync(); });
     d.scrub = scrub; bar.append(play, scrub, speed);
   } else bar.append(play, speed);
@@ -1998,7 +1999,7 @@ function turning(host: HTMLElement, first: string, ms: number, cur: () => string
 }
 
 const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
-const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : 'Choice');
+const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : msg('fig.choice'));
 function ctlLabel(lab: HTMLElement, o: ChoiceOpts): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label); lab.appendChild(name); }
 
 const enrolPicker = (host: HTMLElement, o: ChoiceOpts, input: EventTarget, value: () => string, drive: (v: string) => void, list: () => readonly Choice[]): void =>
@@ -2372,7 +2373,7 @@ function inert(): Obj3 {
   return p;
 }
 const stub = (stage: HTMLElement): View3d => {
-  const T = three(), wrap = el('p', 'three-none', 'This figure needs WebGL, which this browser does not provide.'); stage.appendChild(wrap);
+  const T = three(), wrap = el('p', 'three-none', msg('fig.three.noWebgl')); stage.appendChild(wrap);
   const nil = (): void => {};
   return { wrap, scene: T ? new T.Scene() : inert(), camera: T ? new T.PerspectiveCamera() : inert(), part: () => (T ? new T.Group() : inert()), label: () => el('span'), headline: () => el('span'), clear: nil, project: () => [0, 0] as Pt, move: nil, invalidate: nil, pickable: (m: Obj3) => m, setView: nil, dispose: nil, get turned() { return false; },
     at: { yaw: 0, pitch: 0, zoom: 1, target: [0, 0, 0] }, look: nil, glide: () => Promise.resolve(), onReader: () => nil };
@@ -2484,13 +2485,13 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
 
   /* the button row: what dragging cannot say, and only what the figure asked for */
   const bar = el('div', 'view3d-bar');
-  const spinBtn = spinMode === 'idle' ? vbtn(bar, VICON.spin, 'Auto-rotate', 'spin') : null;
+  const spinBtn = spinMode === 'idle' ? vbtn(bar, VICON.spin, msg('fig.three.autoRotate'), 'spin') : null;
   function markSpin(): void { spinBtn?.setAttribute('aria-pressed', String(spinning)); spinBtn?.classList.toggle('on', spinning); }
   spinBtn?.addEventListener('click', () => { byHand(); spinning = !spinning; markSpin(); need = true; }); markSpin();
-  (opts.views ?? []).forEach((p) => vbtn(bar, p.label, 'View: ' + p.label, 'named').addEventListener('click', () => { byHand(); spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
+  (opts.views ?? []).forEach((p) => vbtn(bar, p.label, msg('fig.three.view', { name: p.label }), 'named').addEventListener('click', () => { byHand(); spinning = false; markSpin(); turned = true; aim(p.yaw, p.pitch); }));
   if (opts.zoom) {
-    vbtn(bar, VICON.out, 'Zoom out').addEventListener('click', () => { byHand(); setZoom(zoom / 1.25); });
-    vbtn(bar, VICON.in, 'Zoom in').addEventListener('click', () => { byHand(); setZoom(zoom * 1.25); });
+    vbtn(bar, VICON.out, msg('fig.three.zoomOut')).addEventListener('click', () => { byHand(); setZoom(zoom / 1.25); });
+    vbtn(bar, VICON.in, msg('fig.three.zoomIn')).addEventListener('click', () => { byHand(); setZoom(zoom * 1.25); });
   }
   if (bar.childElementCount) stage.appendChild(bar);
 
@@ -2633,11 +2634,11 @@ function tour(d: FigRef, spec: TourSpec): Tour {
     touch(fig);
   };
 
-  const bar = el('div', 'transport tour'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Tour');
+  const bar = el('div', 'transport tour'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', msg('fig.tour.label'));
   const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
-  const playB = btn(TICON.play, 'Play'), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
+  const playB = btn(TICON.play, msg('fig.transport.play')), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
   const track = el('span', 'tour-track');
-  const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.max = String(tl.total); scrub.step = 'any'; scrub.setAttribute('aria-label', 'Story time');
+  const scrub = el('input', 'scrub s-t'); scrub.type = 'range'; scrub.min = '0'; scrub.max = String(tl.total); scrub.step = 'any'; scrub.setAttribute('aria-label', msg('fig.tour.time'));
   track.appendChild(scrub);
   tl.starts.forEach((s0, i) => {
     const tick = el('span', 'tour-tick'); tick.style.setProperty('--at', String(tl.total > 0 ? s0 / tl.total : 0)); tick.title = beats[i].name;
@@ -2647,7 +2648,7 @@ function tour(d: FigRef, spec: TourSpec): Tour {
   function sync(): void {
     const name = beats[beatAt(tl, t)]?.name ?? '';
     playB.innerHTML = playing ? TICON.pause : TICON.play;
-    playB.title = (playing ? 'Pause: ' : 'Play: ') + name; playB.setAttribute('aria-label', playB.title);
+    playB.title = playing ? msg('fig.tour.pauseAt', { name }) : msg('fig.tour.playAt', { name }); playB.setAttribute('aria-label', playB.title);
     bar.classList.toggle('playing', playing); scrub.value = String(t); speedB.textContent = SPEED_LABEL[speed];
   }
   const endOf = (i: number): number => tl.starts[i] + tl.moves[i];
@@ -2703,11 +2704,11 @@ function story(d: FigRef, slider: Slider, o: StoryOpts): Story | null {
   const after = (v: number): number => stops.findIndex((x) => x > v + 1e-9);
   const before = (v: number): number => stops.reduce((b, x, i) => (x < v - 1e-9 ? i : b), -1);
   const go = (i: number): void => { const to = stops[i]; if (REDUCED) { move = null; slider.drive(to); return; } move = { from: slider.v, to, t0: now() }; };
-  const bar = el('div', 'transport tour story'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Story');
+  const bar = el('div', 'transport tour story'); bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', msg('fig.story.label'));
   const btn = (html: string, title: string): HTMLButtonElement => { const b = el('button', 'tbtn', html); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); return b; };
-  const playB = btn(TICON.play, 'Play'), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
+  const playB = btn(TICON.play, msg('fig.transport.play')), speedB = speedBtn(() => speed, (x) => { speed = x; }, () => sync());
   bar.append(playB);
-  const sync = (): void => { playB.innerHTML = playing ? TICON.pause : TICON.play; playB.title = playing ? 'Pause' : 'Play'; playB.setAttribute('aria-label', playB.title); speedB.textContent = SPEED_LABEL[speed]; bar.classList.toggle('playing', playing); };
+  const sync = (): void => { playB.innerHTML = playing ? TICON.pause : TICON.play; playB.title = playing ? msg('fig.transport.pause') : msg('fig.transport.play'); playB.setAttribute('aria-label', playB.title); speedB.textContent = SPEED_LABEL[speed]; bar.classList.toggle('playing', playing); };
   function pause(): void { playing = false; move = null; sync(); }
   function play(): void {
     if (REDUCED) { next(); return; }
@@ -3438,7 +3439,7 @@ const BALL: SPACE.Box3 = [[-1, 1], [-1, 1], [-1, 1]];
 const ringOf = (f: (a: number) => Q.V3, n = 96): Q.V3[] => Array.from({ length: n + 1 }, (_, i) => f((2 * Math.PI * i) / n));
 const vecName = (P: Q.V3): string => {
   const r = Math.hypot(...P);
-  return `the Bloch vector P = (${P.map((x) => fmt(x, 2)).join(', ')}), |P| = ${fmt(r, 2)}: ${r > 0.995 ? 'a pure state' : r < 0.005 ? 'the maximally mixed state' : 'a mixed state'}`;
+  return msg('fig.bloch.vector', { p: P.map((x) => fmt(x, 2)).join(', '), r: fmt(r, 2), kind: msg(r > 0.995 ? 'fig.bloch.pure' : r < 0.005 ? 'fig.bloch.maximallyMixed' : 'fig.bloch.mixed') });
 };
 function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, opts: BlochOpts = {}): Bloch {
   const S = space3d(d, { h: 820, fit: 1.85, ...opts, box: BALL });
@@ -3455,17 +3456,17 @@ function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement 
     const k = grown(), on = (pts: Q.V3[]): Q.V3[] => partial(pts, k) as Q.V3[];
     const marks: SPACE.Mark[] = [
       { k: 'sheet', rows: Q.ellipsoid(Q.I3, [0, 0, 0], 32, 16), color: PAL.ink, alpha: 0.05 * k },
-      { k: 'line', pts: on(ringOf((a) => [Math.cos(a), Math.sin(a), 0])), color: 'ink', w: 2.5, name: 'the equator: the states (|0⟩ + e^{iφ}|1⟩)/√2' },
+      { k: 'line', pts: on(ringOf((a) => [Math.cos(a), Math.sin(a), 0])), color: 'ink', w: 2.5, name: msg('fig.bloch.equator') },
       { k: 'line', pts: on(ringOf((a) => [Math.cos(a), 0, Math.sin(a)])), color: 'guide', w: 2 },
       { k: 'line', pts: on(ringOf((a) => [0, Math.cos(a), Math.sin(a)])), color: 'guide', w: 2 },
     ];
     (['x', 'y', 'z'] as const).forEach((nm, i) => {
       const u: Q.V3 = [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0], m = (s: number): Q.V3 => [u[0] * s, u[1] * s, u[2] * s];
-      marks.push({ k: 'line', pts: on([m(-1), m(1.22)]), color: 'guide', w: 2, name: `the ${nm} axis` });
+      marks.push({ k: 'line', pts: on([m(-1), m(1.22)]), color: 'guide', w: 2, name: msg('fig.bloch.axisOf', { axis: nm }) });
       if (k > 0.5 && !(along && SPACE.dot(along, u) > 0.97)) marks.push({ k: 'label', s: `$${nm}$`, p: m(nm === 'z' ? 1.42 : 1.36), color: 'muted', cls: 'bare' });
     });
-    marks.push({ k: 'dot', p: [0, 0, 1], color: 'ink', r: 5, name: `the pure state ${top.replace(/\\rangle/, '⟩')}, P along +z` },
-      { k: 'dot', p: [0, 0, -1], color: 'ink', r: 5, name: `the pure state ${bottom.replace(/\\rangle/, '⟩')}, P along −z` });
+    marks.push({ k: 'dot', p: [0, 0, 1], color: 'ink', r: 5, name: msg('fig.bloch.pole', { state: top.replace(/\\rangle/, '⟩'), along: '+z' }) },
+      { k: 'dot', p: [0, 0, -1], color: 'ink', r: 5, name: msg('fig.bloch.pole', { state: bottom.replace(/\\rangle/, '⟩'), along: '−z' }) });
     if (k > 0.5) marks.push({ k: 'label', s: `$${top}$`, p: [0, -0.3, 1], color: 'ink' }, { k: 'label', s: `$${bottom}$`, p: [0, -0.3, -1.12], color: 'ink', cls: 'bare' });
     S.set('ball', marks);
   }
@@ -3476,7 +3477,7 @@ function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement 
       ball();
       if (!P) { S.set('state:' + key, []); return; }
       const k = grown(), col = o.color ?? C('state'), tip = scale(P, k), name = o.name ?? vecName(P), marks: SPACE.Mark[] = [];
-      if (o.trail?.length) marks.push({ k: 'line', pts: partial(o.trail, k) as Q.V3[], color: alpha(col, 0.6), w: 3, name: name + ' (its path)' });
+      if (o.trail?.length) marks.push({ k: 'line', pts: partial(o.trail, k) as Q.V3[], color: alpha(col, 0.6), w: 3, name: msg('fig.bloch.path', { name }) });
       if (o.hollow) marks.push({ k: 'line', pts: [[0, 0, 0], tip], color: col, w: 4, dash: [10, 8], name }, { k: 'dot', p: tip, color: col, r: 8, hollow: true, name });
       else marks.push({ k: 'arrow', a: [0, 0, 0], b: tip, color: col, w: 6, name });
       if (o.label && k > 0.5) marks.push({ k: 'label', s: o.label, p: tip, color: col });
@@ -3492,7 +3493,7 @@ function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement 
       const key = 'axis:' + (o.key ?? 'axis');
       if (!n) { S.set(key, []); return; }
       const u = SPACE.unit(n), k = grown(), col = o.color ?? C('operator');
-      const marks: SPACE.Mark[] = [{ k: 'arrow', a: scale(u, -1.3 * k), b: scale(u, 1.3 * k), color: col, w: 3, name: o.name ?? `the axis n = (${u.map((x) => fmt(x, 2)).join(', ')})` }];
+      const marks: SPACE.Mark[] = [{ k: 'arrow', a: scale(u, -1.3 * k), b: scale(u, 1.3 * k), color: col, w: 3, name: o.name ?? msg('fig.bloch.axis', { n: u.map((x) => fmt(x, 2)).join(', ') }) }];
       if (o.label && k > 0.5) marks.push({ k: 'label', s: o.label, p: scale(u, 1.44), color: col, cls: 'bare' });
       S.set(key, marks);
     },
@@ -3502,7 +3503,7 @@ function blochScene(d: { readonly stage: HTMLElement; readonly fig: HTMLElement 
       const t = Q.toward(map.M, map.c, (o.k ?? 1) * grown()), col = o.color ?? C('channel');
       S.set('image', [
         { k: 'sheet', rows: Q.ellipsoid(t.M, t.c, 32, 16), color: col, alpha: 0.2 },
-        { k: 'line', pts: ringOf((a) => Q.affine(t.M, t.c, [Math.cos(a), Math.sin(a), 0])), color: col, w: 3, name: o.name ?? 'the image of the ball under the channel' },
+        { k: 'line', pts: ringOf((a) => Q.affine(t.M, t.c, [Math.cos(a), Math.sin(a), 0])), color: col, w: 3, name: o.name ?? msg('fig.bloch.image') },
       ]);
     },
     headline(s) { ball(); S.headline(s); },
@@ -3545,9 +3546,9 @@ const SUBS = '₀₁₂₃₄₅₆₇₈₉', SUPS = '⁰¹²³⁴⁵⁶⁷⁸�
 const sub = (i: number): string => String(i).split('').map((c) => SUBS[+c]).join('');
 const sup = (i: number): string => String(i).split('').map((c) => SUPS[+c]).join('');
 const GATE_LABEL: Readonly<Record<string, string>> = { Rx: 'R_x', Ry: 'R_y', Rz: 'R_z' };
-const GATE_NAME: Readonly<Record<string, string>> = {
-  H: 'the Hadamard gate H', X: 'the NOT gate X', Y: 'the Pauli gate Y', Z: 'the phase flip Z', S: 'the phase gate S', T: 'the π/8 gate T',
-  P: 'a phase gate', Rx: 'a rotation about x', Ry: 'a rotation about y', Rz: 'a rotation about z', SWAP: 'the SWAP gate', M: 'a measurement in the basis |0⟩, |1⟩',
+const GATE_NAME: Readonly<Record<string, MessageKey>> = {
+  H: 'fig.gate.h', X: 'fig.gate.x', Y: 'fig.gate.y', Z: 'fig.gate.z', S: 'fig.gate.s', T: 'fig.gate.t',
+  P: 'fig.gate.p', Rx: 'fig.gate.rx', Ry: 'fig.gate.ry', Rz: 'fig.gate.rz', SWAP: 'fig.gate.swap', M: 'fig.gate.m',
 };
 const labelOf = (g: Q.GateSpec): string => g.label ?? (g.g === 'R' ? `R_${g.k ?? 1}` : GATE_LABEL[g.g] ?? g.g);
 const isNot = (g: Q.GateSpec): boolean => g.g === 'X' && !g.label && Q.controls(g).on.length + Q.controls(g).off.length > 0;
@@ -3559,11 +3560,14 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
   const nameOf = (g: Q.GateSpec): string => {
     const { on, off } = Q.controls(g), cs = on.length + off.length, T = Q.targets(g).map(wname).join(', ');
     const plain = labelOf(g).replace(/[_{}$]/g, '');
-    const base = g.name ?? (isNot(g) ? (cs === 1 ? 'the controlled-NOT (XOR) gate' : `the Toffoli gate θ${sup(cs + 1)}`) : cs ? `the controlled-${plain} gate` : GATE_NAME[g.g] ?? `the gate ${plain}`);
-    const ctl = [...on.map((w) => wname(w)), ...off.map((w) => `${wname(w)} (on 0)`)];
-    return `${base}${ctl.length ? `, control ${ctl.join(', ')}, target ${T}` : ` on ${T}`}`;
+    const known = GATE_NAME[g.g];
+    const base = g.name ?? (isNot(g) ? (cs === 1 ? msg('fig.gate.cnot') : msg('fig.gate.toffoli', { k: sup(cs + 1) })) : cs ? msg('fig.gate.controlled', { gate: plain }) : known ? msg(known) : msg('fig.gate.named', { gate: plain }));
+    const ctl = [...on.map((w) => wname(w)), ...off.map((w) => msg('fig.gate.onZero', { wire: wname(w) }))];
+    return ctl.length ? msg('fig.gate.controlledBy', { gate: base, controls: ctl.join(', '), target: T }) : msg('fig.gate.on', { gate: base, target: T });
   };
-  const stepName = (j: number): string => 'After ' + Q.stepGates(steps[j]).map((g) => `${g.g === 'M' ? 'measuring' : isNot(g) ? 'the controlled-NOT' : labelOf(g).replace(/[_{}$]/g, '')} on ${Q.targets(g).map(wname).join(', ')}`).join(' and ');
+  const stepName = (j: number): string => msg('fig.circuit.after', {
+    steps: Q.stepGates(steps[j]).map((g) => msg('fig.circuit.stepOn', { what: g.g === 'M' ? msg('fig.circuit.measuring') : isNot(g) ? msg('fig.circuit.cnot') : labelOf(g).replace(/[_{}$]/g, ''), wires: Q.targets(g).map(wname).join(', ') })).join(msg('fig.circuit.and')),
+  });
   const measuredAt = (w: number): number => steps.findIndex((s) => Q.stepGates(s).some((g) => g.g === 'M' && Q.targets(g).includes(w)));
   /* the basis states drawn: all of them up to four qubits, else those any step reaches (ponytail: at most 32 bars, wider registers need a register-level view) */
   let shown: number[] = [];
@@ -3594,7 +3598,7 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
   const hits: Hit[] = []; hover(d.stage, () => hits, c);
   const cy = cycle(() => steps.length, 1.2);
   const input = inputs.length > 1 ? (inputs.length > 4 ? select : choice)(d.controls, {
-    label: '\\text{input}', key: 'input', value: o.value ?? inputs[0].value, aria: 'the input state', ms: 0,
+    label: `\\text{${msg('fig.circuit.inputLabel')}}`, key: 'input', value: o.value ?? inputs[0].value, aria: msg('fig.circuit.inputAria'), ms: 0,
     options: inputs.map((x) => ({ value: x.value, label: x.label })),
     onInput: (v) => { inState = inputs.find((x) => x.value === v)?.state ?? inState; recompute(); cy.reset(); },
   }) : null;
@@ -3616,7 +3620,7 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
     const N = steps.length;
     dotEls = Array.from({ length: N + 1 }, (_, i) => {
       const b = w.appendChild(el('button', 'dv-dot')); b.type = 'button';
-      const t = i === 0 ? 'Input' : stepName(i - 1); b.title = t; b.setAttribute('aria-label', t);
+      const t = i === 0 ? msg('fig.circuit.input') : stepName(i - 1); b.title = t; b.setAttribute('aria-label', t);
       b.style.left = `calc(8px + (100% - 16px) * ${i / N})`;
       b.addEventListener('click', () => { s.max = String(N); s.value = String(i); s.dispatchEvent(new Event('input', { bubbles: true })); });
       return b;
@@ -3694,11 +3698,11 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
       else if (m >= 0) { const xm = col(m); line(ctx, xs, y, Math.min(xr, xm), y, wc, 3); dbl(xm, xr); }
       else line(ctx, xs, y, xr, y, wc, 3);
       if (bundle) { line(ctx, xs + 22, y + 12, xs + 38, y - 12, wc, 2.5); text(ctx, String(ws.width), xs + 34, y - 26, wc, { size: 17, align: 'center' }); }
-      for (let x = xs + 30; x < xe; x += 110) hits.push({ x, y, r: 12, name: `the ${classical ? 'bit' : bundle ? 'register' : 'qubit'} ${wname(w)}` });
+      for (let x = xs + 30; x < xe; x += 110) hits.push({ x, y, r: 12, name: msg(classical ? 'fig.circuit.bit' : bundle ? 'fig.circuit.register' : 'fig.circuit.qubit', { wire: wname(w) }) });
       const a = Math.min(1, ka * 2);
       ctx.save(); ctx.globalAlpha *= a;
-      if (inL[w]) { text(ctx, inL[w], xs - 16, y, ws.color ?? ket, { size: lsz, weight: 600, align: 'right', tex: tx(inL[w]) }); hits.push({ x: xs - 16 - wOf(inL[w]) / 2, y, r: 22, name: `${wname(w)} starts in ${inL[w].replace(/\$/g, '')}` }); }
-      if (outL[w]) { text(ctx, outL[w], xe + 16, y, ws.color ?? ket, { size: lsz, weight: 600, tex: tx(outL[w]) }); hits.push({ x: xe + 16 + wOf(outL[w]) / 2, y, r: 22, name: `${wname(w)} ends in ${outL[w].replace(/\$/g, '')}` }); }
+      if (inL[w]) { text(ctx, inL[w], xs - 16, y, ws.color ?? ket, { size: lsz, weight: 600, align: 'right', tex: tx(inL[w]) }); hits.push({ x: xs - 16 - wOf(inL[w]) / 2, y, r: 22, name: msg('fig.circuit.starts', { wire: wname(w), state: inL[w].replace(/\$/g, '') }) }); }
+      if (outL[w]) { text(ctx, outL[w], xe + 16, y, ws.color ?? ket, { size: lsz, weight: 600, tex: tx(outL[w]) }); hits.push({ x: xe + 16 + wOf(outL[w]) / 2, y, r: 22, name: msg('fig.circuit.ends', { wire: wname(w), state: outL[w].replace(/\$/g, '') }) }); }
       ctx.restore();
     });
     const cur = px(i) + (px(i + 1) - px(i)) * move;
@@ -3711,7 +3715,7 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
     const tc = C('time');
     ctx.save(); ctx.globalAlpha *= kg; line(ctx, cur, yw(0) - 50, cur, yw(nW - 1) + 46, alpha(tc, 0.75), 3, [8, 7]);
     ctx.fillStyle = tc; ctx.beginPath(); ctx.moveTo(cur - 9, yw(0) - 62); ctx.lineTo(cur + 9, yw(0) - 62); ctx.lineTo(cur, yw(0) - 50); ctx.fill(); ctx.restore();
-    hits.push({ x: cur, y: yw(0) - 58, r: 16, name: at === 0 ? 'now: the input' : `now: ${stepName(at - 1).toLowerCase()}` });
+    hits.push({ x: cur, y: yw(0) - 58, r: 16, name: at === 0 ? msg('fig.circuit.nowInput') : msg('fig.circuit.now', { step: stepName(at - 1).toLowerCase() }) });
 
     const s0 = states[i], s1 = states[i + 1];
     if (classical) {
@@ -3720,7 +3724,7 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
         const y = yw(w), s = String(bits[w]), bw = Math.max(34, measure(ctx, s, { size: 24, weight: 600 }) + 14), bh = Math.max(36, shownH(ctx, 24) + 10);
         ctx.save(); ctx.globalAlpha *= kg; ctx.beginPath(); ctx.roundRect(cur - bw / 2, y - bh / 2, bw, bh, 6); ctx.fillStyle = PAL.panel; ctx.fill(); ctx.strokeStyle = bc; ctx.lineWidth = 2.5; ctx.stroke();
         text(ctx, s, cur, y, bc, { size: 24, weight: 600, align: 'center' }); ctx.restore();
-        hits.push({ x: cur, y, r: 20, name: `${wname(w)} = ${s} now` });
+        hits.push({ x: cur, y, r: 20, name: msg('fig.circuit.bitNow', { wire: wname(w), bit: s }) });
       });
     } else {
       const ac = C('amplitude'), pc = C('probability'), B = shown.length, cb = (LW - 120) / B, bw = Math.min(64, cb * 0.5);
@@ -3739,7 +3743,9 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
         text(ctx, lab, cx0, yL, ink, { size: ls, align: 'center', tex: lab.includes('$') });
         const shownS = move < 0.5 ? s0 : s1, ms = Q.modulus(shownS, x), pr = ms * ms;
         if (o.probs) text(ctx, fmt(pr, 2), cx0, yP, pc, { size: ls - 2, align: 'center' });
-        const nm = `${lab.replace(/\$/g, '')}: amplitude modulus ${fmt(ms, 3)}${ms > 1e-9 ? `, phase ${fmt((Q.phase(shownS, x) * 180) / Math.PI, 0)}°` : ''}${o.probs ? `, probability ${fmt(pr, 3)}` : ''}`;
+        const nm = msg('fig.circuit.amplitude', { ket: lab.replace(/\$/g, ''), m: fmt(ms, 3) })
+          + (ms > 1e-9 ? msg('fig.circuit.phase', { deg: fmt((Q.phase(shownS, x) * 180) / Math.PI, 0) }) : '')
+          + (o.probs ? msg('fig.circuit.probability', { p: fmt(pr, 3) }) : '');
         hits.push({ x: cx0, y: yB - Math.max(h, 30) / 2, r: Math.max(24, Math.min(bw, h / 2)), name: nm }, { x: cx0, y: yD, r: 18, name: nm });
       });
     }

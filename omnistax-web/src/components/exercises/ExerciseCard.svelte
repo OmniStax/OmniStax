@@ -28,6 +28,8 @@
   import { discussExercise } from '../../lib/practice/discuss.svelte';
   import { createNote } from '../../lib/explorer/edits';
   import { explorer } from '../../lib/explorer/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
 
   let {
     book, section, ex, hidden = false,
@@ -47,16 +49,19 @@
   const gen = $derived(isGenerated(ex.id) ? generated.get(ex.id) : undefined);
   const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
-  const BLOOM_HELP: Readonly<Record<string, string>> = {
-    remember: 'Remember: recall a fact, term, definition or procedure.',
-    understand: 'Understand: explain an idea or interpret it in your own words.',
-    apply: 'Apply: use a known method in a problem.',
-    analyze: 'Analyze: break a problem apart and relate its pieces.',
-    analyse: 'Analyze: break a problem apart and relate its pieces.',
-    evaluate: 'Evaluate: judge a result or method using evidence.',
-    create: 'Create: produce and justify a new solution or design.',
+  /* The level of Bloom's taxonomy, named and explained in the reader's language. */
+  const BLOOM: Readonly<Record<string, readonly [MessageKey, MessageKey]>> = {
+    remember: ['exercises.bloom.remember', 'exercises.bloom.remember.help'],
+    understand: ['exercises.bloom.understand', 'exercises.bloom.understand.help'],
+    apply: ['exercises.bloom.apply', 'exercises.bloom.apply.help'],
+    analyze: ['exercises.bloom.analyze', 'exercises.bloom.analyze.help'],
+    analyse: ['exercises.bloom.analyze', 'exercises.bloom.analyze.help'],
+    evaluate: ['exercises.bloom.evaluate', 'exercises.bloom.evaluate.help'],
+    create: ['exercises.bloom.create', 'exercises.bloom.create.help'],
   };
-  const bloomHelp = $derived(BLOOM_HELP[ex.bloom.trim().toLowerCase()] ?? `${titled(ex.bloom)} is the kind of thinking this exercise asks for.`);
+  const bloomKeys = $derived(BLOOM[ex.bloom.trim().toLowerCase()]);
+  const bloomName = $derived(bloomKeys ? i18n.t(bloomKeys[0]) : titled(ex.bloom));
+  const bloomHelp = $derived(bloomKeys ? i18n.t(bloomKeys[1]) : i18n.t('exercises.bloom.other', { level: titled(ex.bloom) }));
 
   const sourceSection = $derived(ex.sourceSection ?? section);
   const kindName = $derived(
@@ -90,7 +95,7 @@
   const at = $derived({ book, section, ex: ex.id });
   const scratched = $derived(hasScratch(at));
   const linked = $derived(linkedDrawing(at));
-  const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
+  const linkedName = $derived(linked ? drawings.row(linked)?.name ?? i18n.t('exercises.card.drawing') : null);
   const scratch = (e?: MouseEvent): void => openScratch(at, layoutStore.layout.focus, openingOf(e));
   let gradeFailed = $state<string | null>(null);
   let graded = $state<Graded | null>(null);
@@ -128,56 +133,56 @@
   };
   const linkKey = (e: KeyboardEvent): void => { if (linkPicker?.handleKey(e)) e.preventDefault(); };
   const focusField = (node: HTMLInputElement) => { node.focus(); };
-  const GRADED: Readonly<Record<Graded['verdict'], string>> = { right: '✓ Correct', partial: '~ Partly right', wrong: '✗ Incorrect' };
+  const GRADED = $derived<Readonly<Record<Graded['verdict'], string>>>({ right: `✓ ${i18n.t('exercises.check.correct')}`, partial: `~ ${i18n.t('exercises.card.partlyRight')}`, wrong: `✗ ${i18n.t('exercises.check.incorrect')}` });
 </script>
 
 {#snippet scratchpad()}
   <span class="tools">
     <button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>
-      {@html ICON.drawing}Scratchpad{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
+      {@html ICON.drawing}{i18n.t('exercises.card.scratchpad')}{#if scratched && !linked}<span class="mark" aria-label={i18n.t('exercises.card.hasScratch')}>•</span>{/if}
     </button>
     {#if linked && linkedName}
       <button type="button" class="btn ghost sm link" onclick={openLinked} onauxclick={onMiddle(openLinked)}>{linkedName}</button>
-      <button type="button" class="btn ghost sm" onclick={() => detachScratch(book, section, ex.id)} title="Back to scratch work">Detach</button>
+      <button type="button" class="btn ghost sm" onclick={() => detachScratch(book, section, ex.id)} title={i18n.t('exercises.card.backToScratch')}>{i18n.t('exercises.card.detach')}</button>
     {/if}
   </span>
 {/snippet}
 
 {#snippet solution()}
   <div class="solution-block">
-    <div class="eyebrow">Solution · {#if a.generated_by === 'ai'}<AiTag model={gen?.model} text />{:else}from the book{/if}</div>
+    <div class="eyebrow">{i18n.t('exercises.card.solution')} · {#if a.generated_by === 'ai'}<AiTag model={gen?.model} text />{:else}{i18n.t('exercises.card.fromTheBook')}{/if}</div>
     <div class="body" use:mathHtml={sol}></div>
   </div>
 {/snippet}
 
 {#snippet hintBlock()}
   <div class="solution-block">
-    <div class="eyebrow">Hint</div>
+    <div class="eyebrow">{i18n.t('exercises.card.hint')}</div>
     <div class="body" use:mathHtml={hint}></div>
   </div>
 {/snippet}
 
 {#snippet hintButton()}
-  <button type="button" class="btn reveal-btn" onclick={() => (hintOpen = true)}>Show hint</button>
+  <button type="button" class="btn reveal-btn" onclick={() => (hintOpen = true)}>{i18n.t('exercises.card.showHint')}</button>
 {/snippet}
 
 {#snippet verdict(ok: boolean | null)}
-  {#if ok === null}<p class="verdict skipped">Skipped</p>
-  {:else}<p class="verdict" class:ok class:bad={!ok}><span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{ok ? 'Correct' : 'Incorrect'}</span></p>{/if}
+  {#if ok === null}<p class="verdict skipped">{i18n.t('exercises.card.skipped')}</p>
+  {:else}<p class="verdict" class:ok class:bad={!ok}><span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{ok ? i18n.t('exercises.check.correct') : i18n.t('exercises.check.incorrect')}</span></p>{/if}
 {/snippet}
 
 <div class="exercise" class:inline class:hot id={domId} data-book={book} {hidden}>
   <div class="eyebrow head" title={creditLine}>
     {#if number}<span>{number}</span>{/if}
-    <span>{exerciseName(ex, kindName)}</span>
+    <span>{exerciseName(ex, kindName, i18n.t)}</span>
     <span>§ {sourceSection}</span>
-    <span class="bloom" title={bloomHelp}>{titled(ex.bloom)}</span>
+    <span class="bloom" title={bloomHelp}>{bloomName}</span>
     {#if gen}<span><AiTag model={gen.model} text /></span>{/if}
   </div>
 
   <div class="prompt"><p use:mathHtml={ex.prompt}></p></div>
   {#if credit}
-    <p class="credit">From {#if credit.url}<a href={credit.url} target="_blank" rel="noopener">{credit.title}</a>{:else}{credit.title}{/if}{#if credit.author}, {credit.author}{/if}{#if credit.license}, {#if credit.license_url}<a href={credit.license_url} target="_blank" rel="noopener">{credit.license}</a>{:else}{credit.license}{/if}{/if}.{#if ex.changes} <AiTag /> Changed: <span use:mathHtml={ex.changes}></span>{/if}</p>
+    <p class="credit">{i18n.t('exercises.card.from')} {#if credit.url}<a href={credit.url} target="_blank" rel="noopener">{credit.title}</a>{:else}{credit.title}{/if}{#if credit.author}, {credit.author}{/if}{#if credit.license}, {#if credit.license_url}<a href={credit.license_url} target="_blank" rel="noopener">{credit.license}</a>{:else}{credit.license}{/if}{/if}.{#if ex.changes} <AiTag /> {i18n.t('exercises.card.changed')} <span use:mathHtml={ex.changes}></span>{/if}</p>
   {/if}
   {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
 
@@ -195,15 +200,15 @@
       {#if graded}<div class="graded" role="status"><b class="v-{graded.verdict}">{GRADED[graded.verdict]}</b>{#if graded.feedback} <span use:mathHtml={graded.feedback}></span>{/if}</div>{/if}
       {@render solution()}
       {#if !completed && !inline}
-        <div class="selfcheck" aria-label="Mark your answer">
-          <span class="ask">Did you get it?</span>
-          <button type="button" class="btn" onclick={() => record(true, true)}><span class="g ok" aria-hidden="true">✓</span>I got it right</button>
-          <button type="button" class="btn" onclick={() => record(false, true)}><span class="g bad" aria-hidden="true">✗</span>I got it wrong</button>
+        <div class="selfcheck" aria-label={i18n.t('exercises.card.markAnswer')}>
+          <span class="ask">{i18n.t('exercises.card.didYouGetIt')}</span>
+          <button type="button" class="btn" onclick={() => record(true, true)}><span class="g ok" aria-hidden="true">✓</span>{i18n.t('exercises.card.gotRight')}</button>
+          <button type="button" class="btn" onclick={() => record(false, true)}><span class="g bad" aria-hidden="true">✗</span>{i18n.t('exercises.card.gotWrong')}</button>
         </div>
       {/if}
     {/if}
   {:else}
-    <p class="note">This exercise has no answer to check against.</p>
+    <p class="note">{i18n.t('exercises.card.noAnswer')}</p>
   {/if}
 
   {#if !review && aiGrading && !completed}
@@ -213,17 +218,17 @@
     <div class="actions">
       {#if !inline}{@render scratchpad()}{/if}
       {#if hintable}{@render hintButton()}{/if}
-      {#if revealable}<button type="button" class="btn primary reveal-btn" onclick={() => (solutionOpen = true)}>Show solution</button>{/if}
+      {#if revealable}<button type="button" class="btn primary reveal-btn" onclick={() => (solutionOpen = true)}>{i18n.t('exercises.card.showSolution')}</button>{/if}
     </div>
   {/if}
 
-  {#if gradeFailed}<p class="note" role="status">Grading failed: {gradeFailed}</p>{/if}
+  {#if gradeFailed}<p class="note" role="status">{i18n.t('exercises.card.gradingFailed', { why: gradeFailed })}</p>{/if}
   {#if !review && a.type !== 'choice' && !graded && recorded !== null}{@render verdict(recorded)}{/if}
 
   {#if !inline && !review && completed}
     <div class="follow">
-      <button type="button" class="btn sm" onclick={discuss} onauxclick={onMiddle(discuss)}>{@html ICON.chat}Discuss with AI</button>
-      <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>{@html ICON.note}Add a note</button>
+      <button type="button" class="btn sm" onclick={discuss} onauxclick={onMiddle(discuss)}>{@html ICON.chat}{i18n.t('exercises.card.discuss')}</button>
+      <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>{@html ICON.note}{i18n.t('exercises.card.addNote')}</button>
     </div>
   {/if}
   {#if !inline && (linkedItems.length || (!review && completed))}
@@ -231,29 +236,29 @@
       {#each linkedItems as l (l.key)}
         <span class="chip link-chip">
           <button type="button" class="open" onclick={(e) => openLink(l.key, e)} onauxclick={onMiddle((e) => openLink(l.key, e))}>{@html l.icon}<span>{l.name}</span></button>
-          {#if !review}<button type="button" class="x" aria-label="Unlink {l.name}" onclick={() => links.remove(at, l.key)}>×</button>{/if}
+          {#if !review}<button type="button" class="x" aria-label={i18n.t('exercises.card.unlink', { name: l.name })} onclick={() => links.remove(at, l.key)}>×</button>{/if}
         </span>
       {/each}
       {#if !review}
         {#if linking}
           <span class="link-pick">
             <AtPicker bind:this={linkPicker} root={filesRoot} query={linkQuery} field={linkField} needsTarget onchoose={chooseLink} onclose={closeLink} />
-            <input class="input" bind:this={linkField} bind:value={linkQuery} use:focusField onkeydown={linkKey} onblur={closeLink} aria-label="Find a note, drawing or chat" />
+            <input class="input" bind:this={linkField} bind:value={linkQuery} use:focusField onkeydown={linkKey} onblur={closeLink} aria-label={i18n.t('exercises.card.findLink')} />
           </span>
         {:else}
-          <button type="button" class="btn ghost sm" onclick={() => (linking = true)}>Link…</button>
+          <button type="button" class="btn ghost sm" onclick={() => (linking = true)}>{i18n.t('exercises.card.link')}</button>
         {/if}
       {/if}
     </div>
   {/if}
 
   {#if ex.corrections?.some(noteShown)}
-    <ol class="corrections" aria-label="Corrections">{#each ex.corrections as c, i}{#if noteShown(c)}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
+    <ol class="corrections" aria-label={i18n.t('exercises.card.corrections')}>{#each ex.corrections as c, i}{#if noteShown(c)}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
   {/if}
 
   {#if ex.concepts.length}
     <details class="concepts" open={completed || solutionOpen}>
-      <summary>Concepts</summary>
+      <summary>{i18n.t('exercises.card.concepts')}</summary>
       <div class="pills">
         {#each ex.concepts as c (c)}
           {@const k = concept(c)}
@@ -264,9 +269,9 @@
   {/if}
 
   {#if review}
-    {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
+    {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>{i18n.t('exercises.card.solution')}</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
     {#if scratched || linked}
-      <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}Scratch work</button></div>
+      <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}{i18n.t('exercises.card.scratchWork')}</button></div>
     {/if}
   {/if}
 </div>

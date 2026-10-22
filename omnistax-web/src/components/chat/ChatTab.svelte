@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
   import Transcript from './Transcript.svelte';
@@ -96,7 +97,7 @@
   let copied = $state<string | null>(null);
   const copy = (how: () => Promise<boolean>): void => {
     copying = false;
-    void how().then((ok) => { copied = ok ? 'Copied' : 'Copy failed'; setTimeout(() => (copied = null), 1200); });
+    void how().then((ok) => { copied = ok ? i18n.t('chat.bubble.copied') : i18n.t('chat.bubble.copyFailed'); setTimeout(() => (copied = null), 1200); });
   };
   const onCopyBlur = (e: FocusEvent): void => {
     if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) copying = false;
@@ -107,7 +108,7 @@
   /* In the tree the reply goes under the one selected node, or on from the
      leaf when none is: the chat stands on it for the asking, and the new
      branch becomes the leaf. */
-  const blocked = $derived(tree && selection.size > 1 ? 'Select one message to reply to' : undefined);
+  const blocked = $derived(tree && selection.size > 1 ? i18n.t('chat.tab.selectOne') : undefined);
   const send = (text: string): void => {
     const c = chat;
     const [one] = selection;
@@ -121,23 +122,23 @@
 <article class="chat-tab" data-chat={chatId}>
   <header class="chat-head">
     {#if renaming}
-      <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label="Chat name" />
+      <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label={i18n.t('chat.tab.name')} />
     {:else}
-      <button type="button" class="name" title="Rename" onclick={startRename}>{chat?.name || 'New chat'}</button>
+      <button type="button" class="name" title={i18n.t('chat.tab.rename')} onclick={startRename}>{chat?.name || i18n.t('chat.newChat')}</button>
     {/if}
     {#if chat && !tree}
-      <button type="button" class="btn ghost sm" disabled={path.length === 0} onclick={foldAll}>{anyOpen ? 'Collapse all' : 'Expand all'}</button>
+      <button type="button" class="btn ghost sm" disabled={path.length === 0} onclick={foldAll}>{anyOpen ? i18n.t('chat.collapseAll') : i18n.t('chat.expandAll')}</button>
     {/if}
     {#if copying}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <span class="split" role="group" aria-label="Copy" onfocusout={onCopyBlur} onkeydown={onCopyKey} use:focusFirst>
-        <button type="button" class="btn ghost sm" onclick={() => copy(() => copyChatReference(chatId))}>Copy reference</button>
-        <button type="button" class="btn ghost sm" onclick={() => { const c = chat; if (c) copy(() => copyChatPlain(c)); }}>Copy plain</button>
+      <span class="split" role="group" aria-label={i18n.t('chat.bubble.copy')} onfocusout={onCopyBlur} onkeydown={onCopyKey} use:focusFirst>
+        <button type="button" class="btn ghost sm" onclick={() => copy(() => copyChatReference(chatId))}>{i18n.t('chat.tab.copyReference')}</button>
+        <button type="button" class="btn ghost sm" onclick={() => { const c = chat; if (c) copy(() => copyChatPlain(c)); }}>{i18n.t('chat.tab.copyPlain')}</button>
       </span>
     {:else}
-      <button type="button" class="btn ghost sm" disabled={!chat} onclick={() => (copying = true)}>{copied ?? 'Copy'}</button>
+      <button type="button" class="btn ghost sm" disabled={!chat} onclick={() => (copying = true)}>{copied ?? i18n.t('chat.bubble.copy')}</button>
     {/if}
-    <button type="button" class="toggle" class:on={tree} aria-pressed={tree} onclick={() => setTree(!tree)}>Tree</button>
+    <button type="button" class="toggle" class:on={tree} aria-pressed={tree} onclick={() => setTree(!tree)}>{i18n.t('drawer.chat.tree')}</button>
   </header>
 
   {#if chat}
@@ -150,7 +151,7 @@
     <Composer bind:this={composer} {chatId} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
       {streaming} {offer} onoffer={takeOffer} {blocked} />
   {:else}
-    <div class="messages"><p class="empty">Opening this chat…</p></div>
+    <div class="messages"><p class="empty">{i18n.t('chat.tab.opening')}</p></div>
   {/if}
 </article>
 

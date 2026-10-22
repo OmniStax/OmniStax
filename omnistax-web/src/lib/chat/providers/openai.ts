@@ -4,6 +4,7 @@
    tool call arrives in pieces keyed by its index, and `GET /v1/models` names
    what the key can ask for. */
 import { dataUrlOf, errorOf, json, parseArgs, resultOf, roundsOf, sse, type ChatRequest, type Provider, type ProviderId, type StreamEvent, type Turn } from './index';
+import { t } from '../../i18n';
 
 type Part = { readonly type: 'text'; readonly text: string } | { readonly type: 'image_url'; readonly image_url: { readonly url: string } };
 type CallDTO = { readonly id: string; readonly type: 'function'; readonly function: { readonly name: string; readonly arguments: string } };
@@ -67,7 +68,7 @@ async function* streamFrom(r: ChatRequest, signal: AbortSignal): AsyncIterable<S
   let calls: ReadonlyMap<number, Pending> = new Map();
   for await (const data of sse(response)) {
     const event = json(data); if (!event) continue;
-    if (event.error) throw new Error(String((event.error as { message?: string }).message ?? 'the provider reported an error'));
+    if (event.error) throw new Error(String((event.error as { message?: string }).message ?? t('chat.error.provider')));
     const delta = (event.choices as readonly { delta?: DeltaDTO }[] | undefined)?.[0]?.delta;
     if (!delta) continue;
     if (typeof delta.content === 'string' && delta.content !== '') yield { kind: 'text', text: delta.content };

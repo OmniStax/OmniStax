@@ -5,6 +5,7 @@
      and its corner are its own: the border and the label move the group, and
      the parent carries along whatever lies inside it; a double-click on the
      label renames it in place. */
+  import { i18n } from '../../lib/i18n/store.svelte';
   let {
     x, y, w, h, label, tint = null, selected = false, scale = 1,
     ongrab, onmove, onresize, onend, onlabel, onselect,
@@ -53,11 +54,11 @@
   <div class="label" onpointerdown={(e) => drag(e, onmove)}
     ondblclick={(e) => { e.stopPropagation(); naming = true; }}>
     {#if naming}
-      <input value={label} aria-label="Group name" use:takeFocus onblur={done}
+      <input value={label} aria-label={i18n.t('drawer.group.name')} use:takeFocus onblur={done}
         onpointerdown={(e) => e.stopPropagation()}
         onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') (e.currentTarget as HTMLInputElement).blur(); }} />
     {:else}
-      {label || 'Group'}
+      {label || i18n.t('drawer.group.default')}
     {/if}
   </div>
   {#each ['top', 'right', 'bottom', 'left'] as side (side)}

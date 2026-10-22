@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import TextBox from '../ui/TextBox.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { openPdf, type PdfDoc, type PdfPage, type RenderTask } from '../../lib/files/pdfjs';
   import { loadPdfjs } from '../../lib/files/pdfjs';
   import { files } from '../../lib/files/store.svelte';
@@ -44,7 +45,7 @@
       await tick();
       fit();
       land();
-    }).catch((e: unknown) => { if (live) failed = e instanceof Error ? e.message : 'This PDF could not be opened.'; });
+    }).catch((e: unknown) => { if (live) failed = e instanceof Error ? e.message : i18n.t('files.pdf.failed'); });
     return () => { live = false; void doc?.destroy().catch(() => {}); doc = null; };
   });
 
@@ -213,13 +214,13 @@
 </script>
 
 <div class="pdf">
-  <div class="bar" role="toolbar" aria-label="Reading this PDF">
-    <span class="where">{sheets.length ? `Page ${at} of ${sheets.length}` : 'Opening…'}</span>
+  <div class="bar" role="toolbar" aria-label={i18n.t('files.pdf.toolbar')}>
+    <span class="where">{sheets.length ? i18n.t('files.pdf.pageOf', { page: at, pages: sheets.length }) : i18n.t('files.pdf.opening')}</span>
     <span class="gap"></span>
-    <button type="button" class:on={placing} onclick={() => (placing = !placing)}>Text box</button>
-    <button type="button" aria-label="Smaller" onclick={() => zoom(1 / 1.2)}>−</button>
-    <button type="button" title="Fit width" onclick={refit}>{Math.round(scale * 100)}%</button>
-    <button type="button" aria-label="Larger" onclick={() => zoom(1.2)}>+</button>
+    <button type="button" class:on={placing} onclick={() => (placing = !placing)}>{i18n.t('files.pdf.textBox')}</button>
+    <button type="button" aria-label={i18n.t('files.pdf.smaller')} onclick={() => zoom(1 / 1.2)}>−</button>
+    <button type="button" title={i18n.t('files.pdf.fitWidth')} onclick={refit}>{Math.round(scale * 100)}%</button>
+    <button type="button" aria-label={i18n.t('files.pdf.larger')} onclick={() => zoom(1.2)}>+</button>
   </div>
   {#if failed}
     <div class="gone">{failed}</div>
@@ -247,7 +248,7 @@
         {/each}
       </div>
     {/each}
-    {#if doc0 && !sheets.length && !failed}<div class="gone">Reading {doc0.name}…</div>{/if}
+    {#if doc0 && !sheets.length && !failed}<div class="gone">{i18n.t('files.pdf.reading', { name: doc0.name })}</div>{/if}
   </div>
 </div>
 

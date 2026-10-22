@@ -7,6 +7,7 @@
    in the shell's own vocabulary, where Ctrl also means Cmd on a Mac, so the same
    list serves both. */
 import { chord, type Chord } from './chord';
+import { t } from '../i18n/index';
 
 export type Browser = 'chromium' | 'firefox' | 'safari' | 'other';
 export type Surface = 'tab' | 'app' | 'fullscreen';
@@ -36,7 +37,9 @@ export const kept = (h: Host, c: Chord): boolean => {
   return keptChords(h).includes(first);
 };
 
-export const BROWSER_NAMES: Readonly<Record<Browser, string>> = { chromium: 'Chrome', firefox: 'Firefox', safari: 'Safari', other: 'This browser' };
-export const SURFACE_NAMES: Readonly<Record<Surface, string>> = { tab: 'a browser tab', app: 'an installed app', fullscreen: 'full screen' };
+/* Product names stay as they are; a browser the shell does not know is named
+   in the current language of i18n/index.ts, read when asked for. */
+export const BROWSER_NAMES: Readonly<Record<Browser, string>> = { chromium: 'Chrome', firefox: 'Firefox', safari: 'Safari', get other() { return t('commands.host.thisBrowser'); } };
+export const SURFACE_NAMES: Readonly<Record<Surface, string>> = { get tab() { return t('commands.host.tab'); }, get app() { return t('commands.host.app'); }, get fullscreen() { return t('commands.host.fullscreen'); } };
 /* "Chrome, in a browser tab" */
-export const hostName = (h: Host): string => `${BROWSER_NAMES[h.browser]}, in ${SURFACE_NAMES[h.surface]}`;
+export const hostName = (h: Host): string => t('commands.host.name', { browser: BROWSER_NAMES[h.browser], surface: SURFACE_NAMES[h.surface] });

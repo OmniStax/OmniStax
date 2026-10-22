@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Standing } from '../../lib/practice/model';
   import { standingLine } from '../../lib/practice/labels';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { standing }: { standing: Standing } = $props();
 
@@ -8,7 +9,7 @@
   const pct = (n: number): string => `${n / total * 100}%`;
 </script>
 
-<span class="standing-meter" role="img" aria-label={standingLine(standing)}>
+<span class="standing-meter" role="img" aria-label={standingLine(standing, i18n.t)}>
   {#if total > 0}
     <i class="meter-mastered" style:width={pct(standing.mastered)}></i>
     <i class="meter-practised" style:width={pct(standing.practised)}></i>

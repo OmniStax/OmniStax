@@ -2,6 +2,7 @@
   import { openingAs, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { onDestroy, tick, untrack } from 'svelte';
   import Widget from './Widget.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Steps from './Steps.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { chatBooks, chatResolver, decorateAnswer, placeAttrs, placeOf } from '../../lib/chat/resolve';
@@ -59,12 +60,12 @@
       if (pre.dataset.copy === '1') continue;
       pre.dataset.copy = '1';
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'copy btn ghost sm'; button.textContent = 'Copy';
+      button.type = 'button'; button.className = 'copy btn ghost sm'; button.textContent = i18n.t('chat.bubble.copy');
       button.addEventListener('click', () => {
         void navigator.clipboard?.writeText(pre.querySelector('code')?.textContent ?? '').then(() => {
-          button.textContent = 'Copied';
-          setTimeout(() => { button.textContent = 'Copy'; }, 1200);
-        }).catch(() => { button.textContent = 'Copy failed'; });
+          button.textContent = i18n.t('chat.bubble.copied');
+          setTimeout(() => { button.textContent = i18n.t('chat.bubble.copy'); }, 1200);
+        }).catch(() => { button.textContent = i18n.t('chat.bubble.copyFailed'); });
       });
       pre.appendChild(button);
     }
@@ -93,24 +94,24 @@
   <div class="who">
     {#if ontoggle}
       <button type="button" class="fold btn ghost icon sm" class:shut={collapsed} data-nodrag aria-expanded={!collapsed}
-        aria-label={collapsed ? 'Expand message' : 'Collapse message'} onclick={ontoggle}>▾</button>
+        aria-label={collapsed ? i18n.t('chat.bubble.expand') : i18n.t('chat.bubble.collapse')} onclick={ontoggle}>▾</button>
     {/if}
     <span class="role">{speakerOf(message)}</span>
     <time class="at" datetime={new Date(message.at).toISOString()}>{timeOf(message.at)}</time>
     {#if pager}
       <span class="pager" data-nodrag>
-        <button type="button" class="btn ghost icon sm" aria-label="Previous version" disabled={pager.index === 0} onclick={() => chats.choose(chatId, message.id, pager.index - 1)}>‹</button>
+        <button type="button" class="btn ghost icon sm" aria-label={i18n.t('chat.bubble.previous')} disabled={pager.index === 0} onclick={() => chats.choose(chatId, message.id, pager.index - 1)}>‹</button>
         <span class="count">{pager.index + 1}/{pager.count}</span>
-        <button type="button" class="btn ghost icon sm" aria-label="Next version" disabled={pager.index === pager.count - 1} onclick={() => chats.choose(chatId, message.id, pager.index + 1)}>›</button>
+        <button type="button" class="btn ghost icon sm" aria-label={i18n.t('chat.bubble.next')} disabled={pager.index === pager.count - 1} onclick={() => chats.choose(chatId, message.id, pager.index + 1)}>›</button>
       </span>
     {/if}
     <span class="spacer"></span>
     {#if !readonly && !collapsed}
       <span class="acts" data-nodrag>
         {#if mine}
-          <button type="button" class="btn ghost sm" onclick={startEdit}>Edit</button>
+          <button type="button" class="btn ghost sm" onclick={startEdit}>{i18n.t('chat.bubble.edit')}</button>
         {:else if message.state !== 'streaming'}
-          <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>Retry</button>
+          <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>{i18n.t('chat.bubble.retry')}</button>
         {/if}
       </span>
     {/if}
@@ -126,8 +127,8 @@
   {/if}
 
   {#if editing}
-    <textarea class="edit" bind:value={draft} onkeydown={onEditKey} use:takeFocus aria-label="Edit and send again" data-nodrag></textarea>
-    <div class="edit-acts" data-nodrag><button type="button" class="btn primary sm" onclick={commit}>Send</button><button type="button" class="btn ghost sm" onclick={() => (editing = false)}>Cancel</button></div>
+    <textarea class="edit" bind:value={draft} onkeydown={onEditKey} use:takeFocus aria-label={i18n.t('chat.bubble.editLabel')} data-nodrag></textarea>
+    <div class="edit-acts" data-nodrag><button type="button" class="btn primary sm" onclick={commit}>{i18n.t('chat.bubble.send')}</button><button type="button" class="btn ghost sm" onclick={() => (editing = false)}>{i18n.t('chat.bubble.cancel')}</button></div>
   {:else}
     {#if message.steps?.length}<Steps steps={message.steps} />{/if}
     <div class="answer" class:said={mine} bind:this={body} {onclick} {onauxclick} role="presentation">
@@ -139,13 +140,13 @@
           {@html html(part.text)}
         {/if}
       {/each}
-      {#if message.state === 'streaming' && message.text === ''}<p class="waiting">Thinking…</p>{/if}
+      {#if message.state === 'streaming' && message.text === ''}<p class="waiting">{i18n.t('chat.bubble.thinking')}</p>{/if}
     </div>
   {/if}
 
-  {#if message.state === 'stopped'}<p class="note-line">Stopped.</p>{/if}
+  {#if message.state === 'stopped'}<p class="note-line">{i18n.t('chat.bubble.stopped')}</p>{/if}
   {#if message.state === 'failed'}
-    <p class="bad" role="alert">{message.error === CORS_MESSAGE ? `The answer did not come: ${CORS_MESSAGE}.` : message.error}</p>
+    <p class="bad" role="alert">{message.error === CORS_MESSAGE ? i18n.t('chat.bubble.failed', { why: i18n.t('chat.error.cors') }) : message.error}</p>
   {/if}
   {/if}
 </div>

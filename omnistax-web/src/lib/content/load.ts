@@ -416,16 +416,18 @@ const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | '
 });
 
 /* One book, read from its own folder. The id the caller expects is checked against the file, so a folder renamed out from under the build says so. */
-export const loadBook = async (root: BookDir, id: BookId): Promise<BookTree> => {
+/* `mediaRoots` are the folders the page's images are sized from, first root
+   wins, as the merged `/media/` address space has it: a book's own pages name
+   its own media, so its own folder is the whole of it, except for a translation,
+   which keeps no images of its own and names its source's (mediaRootsOf). */
+export const loadBook = async (root: BookDir, id: BookId, mediaRoots: readonly MediaRoot[] = [path.join(root, 'media')]): Promise<BookTree> => {
   const stored = await readJson(path.join(root, 'book.json'), BookSchema);
   if (stored.id !== id) throw new Error(`book.json is "${stored.id}", expected "${id}"`);
   const storedChapters = await Promise.all(stored.chapterDirs.map((dir) => readJson(path.join(root, dir, 'chapter.json'), ChapterSchema)));
   const { book: dto, chapters: chapterDtos } = withInheritedTypes(stored, storedChapters);
   const macros = macrosOf(dto.symbols);
   const concepts = conceptTypes(dto.concepts);
-  /* The books share one `/media/` address space, but a book's own pages only
-     ever name its own media, so its own folder is the whole of the root here. */
-  const media: readonly MediaRoot[] = [path.join(root, 'media')];
+  const media = mediaRoots;
   const front = (role: FrontRole): PagePlace => ({ url: frontPageUrl(dto.id, null, role), openstax: frontPageSourceUrl(dto, dto[role]) });
   const bookMath: PageMath = { symbols: dto.symbols, book: macros, rows: [], concepts };
   const [intro, loaded, summary, sheets] = await Promise.all([
@@ -454,7 +456,7 @@ export const pageNav = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>, 
 
 /* One book as the root holds it: the id its book.json carries, and the folder
    it lives in, which is named for its title rather than its id. */
-export type BookFolder = { readonly id: BookId; readonly dir: BookDir };
+export type BookFolder = { readonly id: BookId; readonly dir: BookDir; readonly translationOf?: BookId };
 
 /* Every book under the content root, by id. A folder with no book.json is not
    a book — `tools/` is one — and is passed over; a book.json that will not
@@ -466,7 +468,7 @@ export const findBooks = async (root: ContentRoot): Promise<readonly BookFolder[
   const found = await Promise.all(dirs.map(async (dir): Promise<readonly BookFolder[]> => {
     if (!(await exists(path.join(dir, 'book.json')))) return [];
     const dto = await readJson(path.join(dir, 'book.json'), BookSchema);
-    return [{ id: bookId(dto.id), dir }];
+    return [{ id: bookId(dto.id), dir, ...(dto.translationOf !== undefined ? { translationOf: bookId(dto.translationOf) } : {}) }];
   }));
   return found.flat();
 };
@@ -482,8 +484,26 @@ export const chooseBooks = (found: readonly BookFolder[], books: BookSelection):
   });
 };
 
-export const loadBooks = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> =>
-  Promise.all(chooseBooks(await findBooks(root), books).map((f) => loadBook(f.dir, f.id)));
+/* The media folders one book's images are read from: its own, and for a
+   translation its source's after it, since a translation keeps no images of its
+   own and its text names the source's `/media/…` paths as they are. A
+   translation_of that names no book under the root is an error here, at load,
+   because the pages could not be sized or served without it. */
+export const mediaRootsOf = (found: readonly BookFolder[], folder: BookFolder): readonly MediaRoot[] => {
+  const own = path.join(folder.dir, 'media');
+  if (folder.translationOf === undefined || folder.translationOf === folder.id) return [own];
+  const source = found.find((f) => f.id === folder.translationOf);
+  if (!source) throw new Error(`${path.join(folder.dir, 'book.json')}: translation_of "${folder.translationOf}" names no book under the content root; found ${found.map((f) => f.id).join(', ') || 'none'}`);
+  return [own, path.join(source.dir, 'media')];
+};
+/* Every media folder a build of these books serves and copies, each once, in the order the books are built. */
+export const mediaDirsOf = (found: readonly BookFolder[], chosen: readonly BookFolder[]): readonly MediaRoot[] =>
+  [...new Set(chosen.flatMap((f) => mediaRootsOf(found, f)))];
+
+export const loadBooks = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> => {
+  const found = await findBooks(root);
+  return Promise.all(chooseBooks(found, books).map((f) => loadBook(f.dir, f.id, mediaRootsOf(found, f))));
+};
 
 /* The trees are read once and kept until the file they were read from moves.
    A build never moves a version, so the cache is filled once and stands; in dev
@@ -500,9 +520,10 @@ const freshOr = <T>(held: Cached<T> | null | undefined, at: ContentVersion, load
 
 export const bookTrees = async (root: ContentRoot, books: BookSelection): Promise<readonly BookTree[]> => {
   folders = freshOr(folders, rootVersion(), () => findBooks(root));
-  const chosen = chooseBooks(await folders.value, books);
+  const found = await folders.value;
+  const chosen = chooseBooks(found, books);
   return Promise.all(chosen.map((f) => {
-    const held = freshOr(trees.get(f.dir), bookVersion(f.dir), () => loadBook(f.dir, f.id));
+    const held = freshOr(trees.get(f.dir), bookVersion(f.dir), () => loadBook(f.dir, f.id, mediaRootsOf(found, f)));
     trees.set(f.dir, held);
     return held.value;
   }));

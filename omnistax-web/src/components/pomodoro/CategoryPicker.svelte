@@ -1,7 +1,9 @@
 <script lang="ts">
   import { CATEGORY_COLORS, type Category } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
-  let { picked, onpick, label = 'Categories' }: { picked: readonly string[]; onpick: (ids: readonly string[]) => void; label?: string } = $props();
+  import { i18n } from '../../lib/i18n/store.svelte';
+  let { picked, onpick, label: given }: { picked: readonly string[]; onpick: (ids: readonly string[]) => void; label?: string } = $props();
+  const label = $derived(given ?? i18n.t('pomodoro.category.label'));
   const cats = $derived(pomodoro.categories);
   const chosen = $derived(cats.filter((c) => picked.includes(c.id)));
   let open = $state(false);
@@ -44,23 +46,23 @@
           <span class="name">{c.name}</span>
         </label>
       {/each}
-      {#if !cats.length && !adding}<p class="empty">No categories yet.</p>{/if}
+      {#if !cats.length && !adding}<p class="empty">{i18n.t('pomodoro.category.empty')}</p>{/if}
       {#if adding}
         <form class="new" onsubmit={(e) => { e.preventDefault(); make(); }}>
           <!-- svelte-ignore a11y_autofocus -->
-          <input class="input name-field" bind:value={name} type="text" autocomplete="off" placeholder="Category name" autofocus />
+          <input class="input name-field" bind:value={name} type="text" autocomplete="off" placeholder={i18n.t('pomodoro.category.placeholder')} autofocus />
           <div class="grid">
             {#each CATEGORY_COLORS as c (c)}
-              <button type="button" class="swatch" class:on={colour === c} style="--hue:{c}" aria-label="Color {c}" onclick={() => (colour = c)}></button>
+              <button type="button" class="swatch" class:on={colour === c} style="--hue:{c}" aria-label={i18n.t('pomodoro.category.color', { color: c })} onclick={() => (colour = c)}></button>
             {/each}
           </div>
           <div class="acts">
-            <button type="submit" class="btn primary sm">Add</button>
-            <button type="button" class="btn ghost sm" onclick={() => { adding = false; name = ''; }}>Cancel</button>
+            <button type="submit" class="btn primary sm">{i18n.t('pomodoro.category.add')}</button>
+            <button type="button" class="btn ghost sm" onclick={() => { adding = false; name = ''; }}>{i18n.t('pomodoro.cancel')}</button>
           </div>
         </form>
       {:else}
-        <button type="button" class="add" onclick={() => (adding = true)}>New category…</button>
+        <button type="button" class="add" onclick={() => (adding = true)}>{i18n.t('pomodoro.category.new')}</button>
       {/if}
     </div>
   {/if}

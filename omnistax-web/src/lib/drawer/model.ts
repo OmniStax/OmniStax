@@ -11,6 +11,7 @@
    drawing lands where they left it. */
 import { newDrawingId, type DrawingId } from '../types/ids';
 import { readColour, type Colour } from './colour';
+import { t } from '../i18n';
 
 /* One item of a drawing: the id it is named by within its own drawing, eight
    characters of base 36 as everything the reader owns is named. */
@@ -208,7 +209,7 @@ export const setColour = (d: Drawing, ids: readonly DrawItemId[], color: Colour,
 /* A group of what is selected: a rectangle round it, with a margin, laid
    beneath everything else. */
 export const GROUP_PAD = 24;
-export const groupAround = (d: Drawing, box: Box, id: DrawItemId = newDrawItemId(), label = 'Group', now?: number): Drawing =>
+export const groupAround = (d: Drawing, box: Box, id: DrawItemId = newDrawItemId(), label = t('drawer.group.default'), now?: number): Drawing =>
   touched(d, [{ kind: 'group', id, x: box.x - GROUP_PAD, y: box.y - GROUP_PAD - 20, w: box.w + 2 * GROUP_PAD, h: box.h + 2 * GROUP_PAD + 20, label }, ...d.items], now);
 
 /* A new group drawn with the tool also goes beneath everything. */
@@ -344,7 +345,7 @@ export const parseDrawing = (raw: unknown): Drawing | null => {
   const now = Date.now();
   return {
     id: o.id as DrawingId,
-    name: str(o.name, 'Untitled drawing'),
+    name: str(o.name, t('drawer.untitled')),
     items: o.items.map(parseItem).filter((i): i is DrawItem => i !== null),
     view: parseView(o.view),
     created: num(o.created, now),
@@ -365,7 +366,7 @@ export const parseRows = (raw: unknown): readonly DrawingRow[] => {
     if (typeof r !== 'object' || r === null) return [];
     const o = r as Record<string, unknown>;
     if (typeof o.id !== 'string' || !o.id) return [];
-    return [{ id: o.id as DrawingId, name: str(o.name, 'Untitled drawing'), created: num(o.created, now), updated: num(o.updated, now) }];
+    return [{ id: o.id as DrawingId, name: str(o.name, t('drawer.untitled')), created: num(o.created, now), updated: num(o.updated, now) }];
   });
 };
 

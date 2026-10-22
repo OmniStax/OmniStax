@@ -1,12 +1,15 @@
 /* The name a tab carries. A view is named by what it is and where it stands,
    since two tabs of the same view can describe different places; a document or a
    figure takes the title its section registered. Shared, because the tab strip
-   and the command palette must call the same thing by the same name. */
+   and the command palette must call the same thing by the same name. The view's
+   name is in the current language of i18n/index.ts; the strip reads
+   i18n.locale, so a change of language names every tab again. */
 import { parseItemKey, viewKindOf } from '../types/ids';
 import { registry } from '../sections/registry.svelte';
 import { scope } from '../sections/scope.svelte';
 import { targetLabel, type Target } from '../sections/scope';
-import { VIEW_TITLE } from '../icons';
+import { viewTitle } from '../icons';
+import { t as tr } from '../i18n/index';
 import type { ItemKey } from './model';
 
 /* The views that stand nowhere in particular and so wear no scope bar: the
@@ -25,6 +28,7 @@ export const tabTitle = (k: ItemKey): string => {
   if (!kind) return registry.title(id);
   const t = PLACELESS.includes(kind) ? null : scope.targetFor(k);
   /* A book's theme is the book's, whatever page the reader opened it from. */
-  if (kind === 'colours') return t ? `${VIEW_TITLE[kind]} · ${registry.manifest(t.book).title || t.book}` : VIEW_TITLE[kind];
-  return t ? `${VIEW_TITLE[kind]} · ${placeOf(t)}` : VIEW_TITLE[kind];
+  const name = viewTitle(kind, tr);
+  if (kind === 'colours') return t ? `${name} · ${registry.manifest(t.book).title || t.book}` : name;
+  return t ? `${name} · ${placeOf(t)}` : name;
 };

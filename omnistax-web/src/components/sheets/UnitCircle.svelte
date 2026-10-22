@@ -5,6 +5,8 @@
      At a special angle (the sheet's own list) the point snaps and the values are
      the exact ones the book prints; elsewhere they are decimals. */
   import { settings } from '../../lib/settings/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n';
   import { colours } from '../../lib/colours/store.svelte';
   import { pickWrapped, referentHues, unnamedOrder } from '../../lib/colours/referents';
   import { figFor } from '../../lib/fig/figlib';
@@ -17,7 +19,7 @@
   const TAU = 2 * Math.PI, DEG = Math.PI / 180;
   const SNAP = 3 * DEG;
   let theta = $state(Math.PI / 6);
-  const UNITS = [{ id: 'degrees', label: 'Degrees' }, { id: 'radians', label: 'Radians' }] as const;
+  const UNITS: readonly { readonly id: 'degrees' | 'radians'; readonly label: MessageKey }[] = [{ id: 'degrees', label: 'sheets.circle.degrees' }, { id: 'radians', label: 'sheets.circle.radians' }];
   let unit = $state<'degrees' | 'radians'>('degrees');
 
   const deg = $derived(theta / DEG);
@@ -73,11 +75,12 @@
   /* ---------- readout ---------- */
   const v = (x: number): string => fmt(x).replace('−', '-');
   const angleTex = $derived(unit === 'degrees' ? `${special ? special.degrees : v(deg)}^\\circ` : special ? special.radians : v(theta));
+  const undefinedTex = $derived(`\\text{${i18n.t('sheets.grapher.undefined')}}`);
   const lines = $derived([
     `\\theta = ${angleTex}`,
     `\\sin\\theta = ${special ? special.sin : v(s)}`,
     `\\cos\\theta = ${special ? special.cos : v(c)}`,
-    `\\tan\\theta = ${special ? special.tan ?? '\\text{undefined}' : tanOk ? v(t) : '\\text{undefined}'}`,
+    `\\tan\\theta = ${special ? special.tan ?? undefinedTex : tanOk ? v(t) : undefinedTex}`,
   ]);
   const tex = (node: HTMLElement, x: string) => { figFor(book).tex(node, x); return { update(n: string) { figFor(book).tex(node, n); } }; };
   const markTex = (node: SVGForeignObjectElement, x: string) => tex(node.firstElementChild as HTMLElement, x);
@@ -86,8 +89,8 @@
 <div class="unit-circle">
   <header>
     <h1>{sheet.title}</h1>
-    <div class="seg" role="radiogroup" aria-label="Angle in">
-      {#each UNITS as u (u.id)}<button type="button" role="radio" aria-checked={unit === u.id} class:on={unit === u.id} onclick={() => (unit = u.id)}>{u.label}</button>{/each}
+    <div class="seg" role="radiogroup" aria-label={i18n.t('sheets.circle.angleIn')}>
+      {#each UNITS as u (u.id)}<button type="button" role="radio" aria-checked={unit === u.id} class:on={unit === u.id} onclick={() => (unit = u.id)}>{i18n.t(u.label)}</button>{/each}
     </div>
   </header>
   <div class="body">
@@ -114,7 +117,7 @@
         {#each lines as l, i (i)}<div class="line" style:color={i === 1 ? hue(SIN) : i === 2 ? hue(COS) : i === 3 ? hue(TAN) : null} use:tex={l}></div>{/each}
       </div>
     </div>
-    <svg class="graphs" viewBox="0 0 {GW} {GH}" role="slider" tabindex="0" aria-label="θ along the graphs" aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round(deg)}
+    <svg class="graphs" viewBox="0 0 {GW} {GH}" role="slider" tabindex="0" aria-label={i18n.t('sheets.circle.alongGraphs')} aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round(deg)}
       onpointerdown={onGraph} onpointermove={onGraph} onkeydown={onKey}>
       {#each [-1, 1] as yv (yv)}<line class="grid" x1={GL} x2={GW - GR} y1={gy(yv)} y2={gy(yv)} /><text class="tl" x={GL - 6} y={gy(yv) + 4} text-anchor="end">{yv === 1 ? '1' : '−1'}</text>{/each}
       {#each TICKS as k (k.a)}<line class="grid" x1={gx(k.a)} x2={gx(k.a)} y1={GT} y2={GH - GB} />{/each}

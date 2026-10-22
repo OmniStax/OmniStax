@@ -9,6 +9,7 @@
    reader's hand on the view. The styles are in global.css under `.dv`. */
 import type { DerivationDTO, DerivationFactDTO } from '../content/schema';
 import type { Fig } from './figlib';
+import { t as msg } from '../i18n';
 
 type BeatKind = 'over' | 'glow' | 'load' | 'holds' | 'lead' | 'move' | 'land' | 'result' | 'bank' | 'back';
 type Beat = { readonly kind: BeatKind; readonly node: number; readonly step: number; readonly t0: number; readonly dur: number };
@@ -97,7 +98,7 @@ function model(D: DerivationDTO) {
   /* the eyebrow word: the book's example where the record works one, else plural where more than one result is an end */
   const ends = N.filter((_, i) => !nodes.some((m) => m.steps.includes(i))).length;
   const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1 and A.1.2 */
-  const label = ex ? `Example ${ex[1]}` : ends > 1 ? 'Derivations' : 'Derivation';
+  const label = ex ? msg('fig.derivation.example', { n: ex[1] }) : ends > 1 ? msg('fig.derivation.many') : msg('fig.derivation.one');
   return { N, lines, facts, nodes, thenFrom, last, order, label };
 }
 
@@ -136,7 +137,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const bankEnd = new Map(beats.filter((b) => b.kind === 'bank').map((b) => [b.node, b.t0 + b.dur] as const));
   const factStart = facts.map((f) => Math.min(...f.users.map((i) => glowStart.get(i)!)));
   const prevOf = (i: number): number => { const o = order.indexOf(i); return o > 0 ? order[o - 1]! : -1; };
-  const stopAt = [{ t: 0, label: 'The derivation', node: -1 }, ...order.map((i) => { const b = beats.find((x) => x.kind === 'load' && x.node === i)!; return { t: b.t0 + b.dur, label: `Step ${i + 1}`, node: i }; })];
+  const stopAt = [{ t: 0, label: msg('fig.derivation.start'), node: -1 }, ...order.map((i) => { const b = beats.find((x) => x.kind === 'load' && x.node === i)!; return { t: b.t0 + b.dur, label: msg('fig.derivation.step', { n: i + 1 }), node: i }; })];
   const bar = (): HTMLElement | null => d.fig.querySelector('.transport');
   const playing = (): boolean => !!bar()?.classList.contains('playing');
   const poke = (): void => { d.fig.dispatchEvent(new Event('input')); };
@@ -145,17 +146,17 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   /* ---------- the reason beside a line: what it is or what it uses, then why ---------- */
   const factsUsed = (i: number, uses: readonly number[]): number[] => [...new Set(uses.filter((u) => N[i]!.assumes[u]!.step === undefined).map((u) => nodes[i]!.facts.indexOf(nodes[i]!.factOf.get(u)!)).filter((x) => x >= 0))].sort((x, y) => x - y);
   const stepsUsed = (i: number, uses: readonly number[]): number[] => uses.filter((u) => N[i]!.assumes[u]!.step !== undefined).map((u) => N[i]!.assumes[u]!.step!);
-  const named = (i: number, uses: readonly number[]): string[] => [...factsUsed(i, uses).map((n) => `fact ${nodes[i]!.facts[n]! + 1}`), ...stepsUsed(i, uses).map((j) => `result ${j + 1}`)];
-  const list = (xs: readonly string[]): string => xs.map((x, n) => (n ? (n === xs.length - 1 ? ' and ' : ', ') : '') + x).join('');
-  const reason = (host: HTMLElement, i: number, uses: readonly number[], lead: string, text: string | undefined): void => {
+  const named = (i: number, uses: readonly number[]): string[] => [...factsUsed(i, uses).map((n) => msg('fig.derivation.factRef', { n: nodes[i]!.facts[n]! + 1 })), ...stepsUsed(i, uses).map((j) => msg('fig.derivation.resultRef', { n: j + 1 }))];
+  const list = (xs: readonly string[]): string => xs.map((x, n) => (n ? (n === xs.length - 1 ? msg('fig.circuit.and') : msg('fig.derivation.comma')) : '') + x).join('');
+  const reason = (host: HTMLElement, i: number, uses: readonly number[], lead: 'by' | 'using', text: string | undefined): void => {
     const all = named(i, uses);
-    if (all.length) host.appendChild(document.createTextNode(`${lead}${list(all)}.${text ? ' ' : ''}`));
+    if (all.length) host.appendChild(document.createTextNode(`${msg(lead === 'by' ? 'fig.derivation.holdsBy' : 'fig.derivation.using', { list: list(all) })}${text ? ' ' : ''}`));
     if (text) words(host, text);
   };
   const reasonOf = (i: number, r: number): HTMLElement | null => {
     const f = el('span');
-    if (r === 0) { f.appendChild(document.createTextNode(thenFrom[i]! >= 0 ? `Result ${thenFrom[i]! + 1}. ` : `Fact ${nodes[i]!.thenFact + 1}. `)); reason(f, i, N[i]!.then.uses, 'Holds by ', N[i]!.then.why); }
-    else { const s = N[i]!.steps[r - 1]!; reason(f, i, s.uses, 'Using ', s.cap); }
+    if (r === 0) { f.appendChild(document.createTextNode(`${thenFrom[i]! >= 0 ? msg('fig.derivation.result', { n: thenFrom[i]! + 1 }) : msg('fig.derivation.fact', { n: nodes[i]!.thenFact + 1 })} `)); reason(f, i, N[i]!.then.uses, 'by', N[i]!.then.why); }
+    else { const s = N[i]!.steps[r - 1]!; reason(f, i, s.uses, 'using', s.cap); }
     return f.childNodes.length ? f : null;
   };
   const captioned = (host: HTMLElement, i: number, r: number): void => { const rs = reasonOf(i, r); host.replaceChildren(...(rs ? [rs] : [])); };
@@ -192,11 +193,11 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const title = ctl.appendChild(el('div', 'dv-title')); title.appendChild(el('b')).textContent = label;
   if (D.what) { const w = title.appendChild(el('span')); w.appendChild(document.createTextNode(' · ')); words(w, D.what); }
   let picked = false;
-  const dirPick = choice(ctl, { options: [{ value: 'h', label: '→' }, { value: 'v', label: '↓' }], value: opt.dir, aria: 'Direction', onInput: (v) => { opt.dir = v; picked = true; poke(); } });
-  tips(ctl, { h: 'Layers run left to right', v: 'Layers run top to bottom' });
-  toggle(ctl, 'eye', (v) => (v ? ['reveal', 'Revealing each fact and result as the derivation reaches it; click to show all'] : ['all', 'Showing every fact and result; click to reveal them step by step']), true, (v) => { opt.reveal = v; poke(); });
+  const dirPick = choice(ctl, { options: [{ value: 'h', label: '→' }, { value: 'v', label: '↓' }], value: opt.dir, aria: msg('fig.derivation.direction'), onInput: (v) => { opt.dir = v; picked = true; poke(); } });
+  tips(ctl, { h: msg('fig.derivation.across'), v: msg('fig.derivation.down') });
+  toggle(ctl, 'eye', (v) => (v ? ['reveal', msg('fig.derivation.revealing')] : ['all', msg('fig.derivation.showingAll')]), true, (v) => { opt.reveal = v; poke(); });
   let locked = false, held: Cam | null = null;
-  toggle(ctl, 'lock', (v) => (v ? ['lock', 'View held still; click to let it follow each step'] : ['unlock', 'View follows each step; click to hold it still']), false, (v) => { locked = v; held = v ? { ...wantNow } : null; poke(); });
+  toggle(ctl, 'lock', (v) => (v ? ['lock', msg('fig.derivation.held')] : ['unlock', msg('fig.derivation.follows')]), false, (v) => { locked = v; held = v ? { ...wantNow } : null; poke(); });
   const view = el('div', 'dv-view'), world = view.appendChild(el('div', 'dv-world')); d.stage.appendChild(view);
   const svg = world.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
   FE.forEach((c) => world.appendChild(c)); B.forEach((X) => world.appendChild(X.el));
@@ -313,7 +314,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
       b.addEventListener('click', () => jump(st.t)); return [st, b] as const;
     });
     const tb = bar()!;
-    toggle(tb, 'work', (v) => ['work', v ? 'Showing all work: each move on its own line with its reason; click to replace the line instead' : 'Replacing the line move by move; click to show all work'], true, (v) => { opt.write = v; d.fig.classList.toggle('writing', v); d.fig.classList.toggle('inplace', !v); measured = 0; poke(); });
+    toggle(tb, 'work', (v) => ['work', v ? msg('fig.derivation.allWork') : msg('fig.derivation.inPlace')], true, (v) => { opt.write = v; d.fig.classList.toggle('writing', v); d.fig.classList.toggle('inplace', !v); measured = 0; poke(); });
     /* a right click on the speed button lists every speed */
     const sp = tb.querySelector<HTMLElement>('.speed'); if (!sp) return;
     sp.addEventListener('contextmenu', (e) => {

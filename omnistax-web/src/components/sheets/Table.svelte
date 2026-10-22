@@ -12,6 +12,7 @@
      when it is long — so a wide table never pushes the page wider than the
      reader's screen and a long one keeps its heading row in view. */
   import { sheets } from '../../lib/sheets/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { isGroup, marked, typeset, nextSort, rowCount, sortable, viewRows, type Sort } from '../../lib/sheets/table';
   import type { TableBlockDTO, TableSheetDTO } from '../../lib/content/sheets';
 
@@ -40,19 +41,19 @@
 <div class="table-sheet">
   <header>
     <h1>{sheet.title}</h1>
-    <p class="lead">{sheet.source.appendix ? `Appendix ${sheet.source.appendix}` : `Section ${sheet.source.section}`} of the book, as data.</p>
+    <p class="lead">{sheet.source.appendix ? i18n.t('sheets.table.fromAppendix', { appendix: sheet.source.appendix }) : i18n.t('sheets.table.fromSection', { section: sheet.source.section ?? '' })}</p>
     <label class="search">
-      <span class="vh">Search this sheet</span>
-      <input type="search" bind:value={query} placeholder="Search {sheet.title.toLowerCase()}…" />
+      <span class="vh">{i18n.t('sheets.table.searchLabel')}</span>
+      <input type="search" bind:value={query} placeholder={i18n.t('sheets.table.search', { title: sheet.title.toLowerCase() })} />
     </label>
-    {#if query.trim() !== ''}<p class="count">{found} matching {found === 1 ? 'row' : 'rows'}</p>{/if}
+    {#if query.trim() !== ''}<p class="count">{i18n.t('sheets.table.matching', { n: found })}</p>{/if}
   </header>
 
   {#each shown as { block, rows } (block.id)}
     <section class="block" data-table={block.id}>
       <h2>{@html block.title}</h2>
       {#if rows.length === 0}
-        <p class="count">No matching rows.</p>
+        <p class="count">{i18n.t('sheets.table.none')}</p>
       {:else}
         <div class="book-table">
           <table>

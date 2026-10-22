@@ -5,6 +5,7 @@
      the canvas. Double-clicking a message opens the chat there. The header
      turns it to the transcript and back; neither asks anything. */
   import TreeView from '../chat/TreeView.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import Transcript from '../chat/Transcript.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { showChat } from '../../lib/chat/open.svelte';
@@ -59,8 +60,8 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="head" onpointerdown={onGrab}>
     <span class="name">{chats.nameOf(cid)}</span>
-    <button type="button" class="tree" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
-    <button type="button" class="open" aria-label="Open the chat" onclick={() => open()}>↗</button>
+    <button type="button" class="tree" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>{i18n.t('drawer.chat.tree')}</button>
+    <button type="button" class="open" aria-label={i18n.t('drawer.chat.openChat')} onclick={() => open()}>↗</button>
   </div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="body" onpointerdown={(e) => { e.stopPropagation(); onselect(); }} onwheel={(e) => e.stopPropagation()} ondblclick={(e) => e.stopPropagation()}>

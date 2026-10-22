@@ -9,6 +9,7 @@
   import type { Change } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
   import LineDiff from '../ui/LineDiff.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   const change = $derived(session.changes.find((c) => c.path === session.selected) ?? null);
   const kind = (path: string): 'text' | 'image' | 'binary' => (path.endsWith('.json') ? 'text' : /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/.test(path) ? 'image' : 'binary');
@@ -17,9 +18,9 @@
   /* The old side is the one the sync writes over: the repo for a push, this
      device for a pull. A file changed in both reads repo to device. */
   const sides = (c: Change): { readonly from: string; readonly to: string; readonly pull: boolean } =>
-    (c.side === 'down' ? { from: 'This device', to: 'The repo', pull: true } : { from: 'The repo', to: 'This device', pull: false });
+    (c.side === 'down' ? { from: i18n.t('views.diff.device'), to: i18n.t('views.diff.repo'), pull: true } : { from: i18n.t('views.diff.repo'), to: i18n.t('views.diff.device'), pull: false });
   const about = (c: Change): string =>
-    c.side === 'up' ? 'Pushing makes these changes in the repo.' : c.side === 'down' ? 'Pulling makes these changes on this device.' : 'Both sides changed this file since the last sync. Keep one version.';
+    c.side === 'up' ? i18n.t('views.diff.aboutPush') : c.side === 'down' ? i18n.t('views.diff.aboutPull') : i18n.t('views.diff.aboutBoth');
 
   type Versions = { readonly mine: Uint8Array | null; readonly theirs: Uint8Array | null };
   const versions = async (c: Change): Promise<Versions> => ({
@@ -46,15 +47,15 @@
 {#snippet version(name: string, bytes: Uint8Array | null, path: string, image: boolean)}
   <figure>
     <figcaption>{name}</figcaption>
-    {#if !bytes}<p class="none">Not there</p>
-    {:else if image}<img alt="{name} version" use:url={{ bytes, path }}>
+    {#if !bytes}<p class="none">{i18n.t('views.diff.notThere')}</p>
+    {:else if image}<img alt={i18n.t('views.diff.version', { name })} use:url={{ bytes, path }}>
     {:else}<p class="none">{sizeLabel(bytes.length)}</p>{/if}
   </figure>
 {/snippet}
 
 <div class="diff">
   {#if !change}
-    <p class="empty">Choose a changed file in Sync to see what differs.</p>
+    <p class="empty">{i18n.t('views.diff.empty')}</p>
   {:else}
     {@const s = sides(change)}
     <header>
@@ -62,35 +63,35 @@
       <p class="path">{GROUP_LABEL[change.group]} · {change.path}</p>
       <p class="about">{about(change)}</p>
       {#if change.side === 'both'}
-        <span class="choose" role="group" aria-label="Keep which version">
-          <button type="button" aria-pressed={session.picks.get(change.path) === 'mine'} disabled={session.phase !== 'ready'} onclick={() => session.pick(change.path, 'mine')}>Keep this device’s</button>
-          <button type="button" aria-pressed={session.picks.get(change.path) === 'theirs'} disabled={session.phase !== 'ready'} onclick={() => session.pick(change.path, 'theirs')}>Keep the repo’s</button>
+        <span class="choose" role="group" aria-label={i18n.t('views.diff.keepWhich')}>
+          <button type="button" aria-pressed={session.picks.get(change.path) === 'mine'} disabled={session.phase !== 'ready'} onclick={() => session.pick(change.path, 'mine')}>{i18n.t('views.diff.keepMine')}</button>
+          <button type="button" aria-pressed={session.picks.get(change.path) === 'theirs'} disabled={session.phase !== 'ready'} onclick={() => session.pick(change.path, 'theirs')}>{i18n.t('views.diff.keepTheirs')}</button>
         </span>
       {/if}
     </header>
     {#await loading}
-      <p class="empty">Reading…</p>
+      <p class="empty">{i18n.t('views.diff.reading')}</p>
     {:then v}
       {#if v && kind(change.path) === 'text'}
         {@const d = diffOf(change, v)}
         {@const total = d.hunks.reduce((n, h) => n + h.lines.length, 0)}
-        <p class="legend"><span class="del">− {s.from}</span><span class="add">+ {s.to}</span><span class="counts">{d.removed} removed · {d.added} added</span></p>
+        <p class="legend"><span class="del">− {s.from}</span><span class="add">+ {s.to}</span><span class="counts">{i18n.t('views.diff.counts', { removed: d.removed, added: d.added })}</span></p>
         {#if !d.hunks.length}
-          <p class="empty">The same text on both sides.</p>
+          <p class="empty">{i18n.t('views.diff.same')}</p>
         {:else if total > MAX_LINES}
-          <p class="empty">{total} changed lines: too many to show.</p>
+          <p class="empty">{i18n.t('views.diff.tooMany', { n: total })}</p>
         {:else}
           <LineDiff hunks={d.hunks} tail={d.tail} />
         {/if}
       {:else if v}
         {@const image = kind(change.path) === 'image'}
         <div class="pair">
-          {@render version(s.pull ? 'This device' : 'The repo', s.pull ? v.mine : v.theirs, change.path, image)}
-          {@render version(s.pull ? 'The repo' : 'This device', s.pull ? v.theirs : v.mine, change.path, image)}
+          {@render version(s.pull ? i18n.t('views.diff.device') : i18n.t('views.diff.repo'), s.pull ? v.mine : v.theirs, change.path, image)}
+          {@render version(s.pull ? i18n.t('views.diff.repo') : i18n.t('views.diff.device'), s.pull ? v.theirs : v.mine, change.path, image)}
         </div>
       {/if}
     {:catch e}
-      <p class="empty bad" role="alert">{e instanceof Error ? e.message : 'Couldn’t read the repo’s copy.'}</p>
+      <p class="empty bad" role="alert">{e instanceof Error ? e.message : i18n.t('views.diff.failed')}</p>
     {/await}
   {/if}
 </div>

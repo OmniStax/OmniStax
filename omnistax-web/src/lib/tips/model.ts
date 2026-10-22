@@ -2,6 +2,7 @@
    stamped, a day later tips begin, and they are taken in turn so that none
    comes round again until every other has had its day. Pure. */
 import { z } from 'zod';
+import type { TFn } from '../i18n/index';
 
 export type Millis = number;
 /* A calendar day in the reader's own time zone, as YYYY-MM-DD. */
@@ -14,16 +15,20 @@ export type TipState = z.infer<typeof TipStateSchema>;
 
 export const RETURNING_AFTER: Millis = 24 * 60 * 60 * 1000;
 
-export const TIPS: readonly Tip[] = [
-  { text: 'Work notes and exercises by hand in the drawing view, with a tablet and pen.', action: { kind: 'new-drawing', label: 'New drawing' } },
-  { text: 'Each book has a theme, behind the palette button on its row in the Explorer: the color of every quantity, the palette, and what it color codes.' },
-  { text: 'Drag a concept, formula, definition, figure or sim straight into a note.' },
-  { text: 'Import your own PDFs, annotate them, and link their highlights into your notes.', action: { kind: 'import', label: 'Import files' } },
-  { text: 'Ctrl-click or middle-click a section, note, drawing or link to open it in a new group beside this one.' },
+/* Every tip, in the words t gives them: asked for when one is shown, so a
+   change of language says the tip on screen anew. */
+export const tipsOf = (t: TFn): readonly Tip[] => [
+  { text: t('tips.drawing'), action: { kind: 'new-drawing', label: t('tips.drawing.action') } },
+  { text: t('tips.theme') },
+  { text: t('tips.drag') },
+  { text: t('tips.import'), action: { kind: 'import', label: t('tips.import.action') } },
+  { text: t('tips.newGroup') },
 ];
+/* How many there are, whatever language they are said in. */
+export const TIP_COUNT = tipsOf((k) => k).length;
 
 /* The tip a step forward or back from this one, wrapping at either end. */
-export const stepTip = (at: number, delta: 1 | -1, count: number = TIPS.length): number => (at + delta + count) % count;
+export const stepTip = (at: number, delta: 1 | -1, count: number = TIP_COUNT): number => (at + delta + count) % count;
 
 export const dayOf = (at: Millis): DayKey => {
   const d = new Date(at);
@@ -34,7 +39,7 @@ export type Visit = { readonly state: TipState; readonly tip: number | null };
 
 /* What a page load makes of the stored state: a first visit is stamped and
    shows nothing; a returning reader's first load of a day takes the next tip. */
-export const visit = (stored: TipState | null, now: Millis, enabled: boolean, count: number = TIPS.length): Visit => {
+export const visit = (stored: TipState | null, now: Millis, enabled: boolean, count: number = TIP_COUNT): Visit => {
   if (!stored) return { state: { first: now, day: null, next: 0 }, tip: null };
   const today = dayOf(now);
   if (!enabled || count === 0 || stored.day === today || now - stored.first < RETURNING_AFTER) return { state: stored, tip: null };

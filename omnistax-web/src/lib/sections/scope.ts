@@ -10,6 +10,7 @@
 import { type BookId, type ChapterId, type SectionId, type SectionRef, type ViewKind, VIEW_KINDS, bookId, chapterId, itemKey, sectionId, viewItem } from '../types/ids';
 import type { BookTree } from '../commands/browser';
 import { pagesOf } from '../content/roles';
+import { t } from '../i18n/index';
 
 export type Level = 'book' | 'chapter' | 'section';
 export const LEVELS: readonly Level[] = ['book', 'chapter', 'section'];   /* wider first */
@@ -104,12 +105,12 @@ export const sectionsOf = (target: Target, tree: BookTree): readonly SectionId[]
    above the section names the places narrowing would land on, so the trail the reader
    clicks is the trail the level buttons walk; a book too small to have them says less. */
 export const crumbsOf = (target: Target, tree: BookTree): readonly Crumb[] => {
-  const book: Crumb = { level: 'book', short: 'Book', long: tree.title, target: bookAt(tree.id) };
+  const book: Crumb = { level: 'book', short: t('views.scope.book'), long: tree.title, target: bookAt(tree.id) };
   const section = target.level === 'section' ? target.section : null;
   const id = target.level === 'chapter' ? target.chapter : section ? chapterOf(tree, section) : tree.chapters.length > 0 ? chapterId(tree.chapters[0].id) : null;
   if (!id) return [book];
   const c = chapterNode(tree, id);
-  const chapter: Crumb = { level: 'chapter', short: `Ch ${id}`, long: c ? named(c.id, c.title) : id, target: { level: 'chapter', book: tree.id, chapter: id } };
+  const chapter: Crumb = { level: 'chapter', short: t('views.scope.chapterShort', { id }), long: c ? named(c.id, c.title) : id, target: { level: 'chapter', book: tree.id, chapter: id } };
   const sec = section ?? firstBuilt(tree, id);
   if (!sec) return [book, chapter];
   const s = c?.sections.find((x) => x.id === sec);
@@ -117,7 +118,7 @@ export const crumbsOf = (target: Target, tree: BookTree): readonly Crumb[] => {
 };
 
 /* What a button naming the target reads: its own step of the trail. */
-export const targetLabel = (target: Target, tree: BookTree): string => crumbsOf(target, tree).find((c) => c.level === target.level)?.short ?? 'Book';
+export const targetLabel = (target: Target, tree: BookTree): string => crumbsOf(target, tree).find((c) => c.level === target.level)?.short ?? t('views.scope.book');
 export const sameTarget = (a: Target, b: Target): boolean =>
   a.book === b.book && (a.level === 'book' ? b.level === 'book' : a.level === 'chapter' ? b.level === 'chapter' && a.chapter === b.chapter : b.level === 'section' && a.section === b.section);
 

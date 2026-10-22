@@ -11,6 +11,7 @@
      The rows come from the address (?expr=, repeatable), from whatever a
      function card or a link asked for, else from the sheet's own file. */
   import { onMount, untrack } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { sheets } from '../../lib/sheets/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
@@ -183,8 +184,8 @@
   const readoutOf = (it: Item, r: Row): string[] => {
     const f = fnOf(r); if (!f) return [];
     const name = nameOf(r); const out: string[] = [];
-    if (it.tangent !== null) { const x0 = it.tangent, m = slopeAt(f, x0); out.push(`${name}'(${n(x0)}) \\approx ${Number.isFinite(m) ? n(m) : '\\text{undefined}'}`); }
-    if (it.area) { const [a, b] = it.area, v = integrate(f, a, b), tiny = Math.abs(v) < 1e-10 * Math.max(1, Math.abs(b - a)); out.push(`\\int_{${n(a)}}^{${n(b)}} ${name}(x)\\,dx ${Number.isFinite(v) ? `\\approx ${tiny ? '0' : n(v)}` : '\\text{ is undefined}'}`); }
+    if (it.tangent !== null) { const x0 = it.tangent, m = slopeAt(f, x0); out.push(`${name}'(${n(x0)}) \\approx ${Number.isFinite(m) ? n(m) : `\\text{${i18n.t('sheets.grapher.undefined')}}`}`); }
+    if (it.area) { const [a, b] = it.area, v = integrate(f, a, b), tiny = Math.abs(v) < 1e-10 * Math.max(1, Math.abs(b - a)); out.push(`\\int_{${n(a)}}^{${n(b)}} ${name}(x)\\,dx ${Number.isFinite(v) ? `\\approx ${tiny ? '0' : n(v)}` : `\\text{ ${i18n.t('sheets.grapher.isUndefined')}}`}`); }
     return out;
   };
 
@@ -204,24 +205,24 @@
           {@const r = reads[i]}
           <li class="row" class:bad={r?.kind === 'error'} style:--hue={hueOf(it)}>
             {#if r?.kind === 'curve' || r?.kind === 'equation'}
-              <button type="button" class="swatch" class:off={it.hidden} aria-pressed={!it.hidden} aria-label={it.hidden ? `Show row ${i + 1}` : `Hide row ${i + 1}`} onclick={() => (it.hidden = !it.hidden)}></button>
+              <button type="button" class="swatch" class:off={it.hidden} aria-pressed={!it.hidden} aria-label={it.hidden ? i18n.t('sheets.grapher.showRow', { n: i + 1 }) : i18n.t('sheets.grapher.hideRow', { n: i + 1 })} onclick={() => (it.hidden = !it.hidden)}></button>
             {:else}<span class="swatch none"></span>{/if}
             <div class="main">
-              <input type="text" spellcheck="false" autocomplete="off" aria-label="Expression {i + 1}" bind:value={it.text} onchange={commit} onkeydown={(e) => { if (e.key === 'Enter') { commit(); if (i === items.length - 1 && it.text.trim()) add(); } }} />
+              <input type="text" spellcheck="false" autocomplete="off" aria-label={i18n.t('sheets.grapher.expression', { n: i + 1 })} bind:value={it.text} onchange={commit} onkeydown={(e) => { if (e.key === 'Enter') { commit(); if (i === items.length - 1 && it.text.trim()) add(); } }} />
               {#if r?.kind === 'error'}<p class="err">{r.message}</p>
               {:else if r && r.kind !== 'empty'}<div class="preview" use:tex={`\\displaystyle ${r.tex}`}></div>{/if}
               {#if r?.kind === 'constant' && r.slider}
                 {@const v = env.vars[r.name] ?? 0}
                 <div class="slider">
-                  <input type="number" class="bound" aria-label="Least {r.name}" step="any" value={it.min} onchange={(e) => (it.min = num(e.currentTarget.value, it.min))} />
+                  <input type="number" class="bound" aria-label={i18n.t('sheets.grapher.least', { name: r.name })} step="any" value={it.min} onchange={(e) => (it.min = num(e.currentTarget.value, it.min))} />
                   <input type="range" aria-label={r.name} min={Math.min(it.min, v)} max={Math.max(it.max, v)} step={(it.max - it.min) / 200} value={v} oninput={(e) => (it.text = `${r.name} = ${Number(Number(e.currentTarget.value).toPrecision(4))}`)} />
-                  <input type="number" class="bound" aria-label="Greatest {r.name}" step="any" value={it.max} onchange={(e) => (it.max = num(e.currentTarget.value, it.max))} />
+                  <input type="number" class="bound" aria-label={i18n.t('sheets.grapher.greatest', { name: r.name })} step="any" value={it.max} onchange={(e) => (it.max = num(e.currentTarget.value, it.max))} />
                 </div>
               {/if}
               {#if r?.kind === 'curve'}
                 <div class="tools">
-                  <button type="button" aria-pressed={it.tangent !== null} onclick={() => toggleTangent(it)}>Tangent</button>
-                  <button type="button" aria-pressed={it.area !== null} onclick={() => toggleArea(it)}>Area</button>
+                  <button type="button" aria-pressed={it.tangent !== null} onclick={() => toggleTangent(it)}>{i18n.t('sheets.grapher.tangent')}</button>
+                  <button type="button" aria-pressed={it.area !== null} onclick={() => toggleArea(it)}>{i18n.t('sheets.grapher.area')}</button>
                   {#if it.tangent !== null}<label>x₀ <input type="number" step="any" value={Number(it.tangent.toPrecision(5))} onchange={(e) => (it.tangent = num(e.currentTarget.value, it.tangent ?? 0))} /></label>{/if}
                   {#if it.area}{@const ab = it.area}
                     <label>a <input type="number" step="any" value={ab[0]} onchange={(e) => (it.area = [num(e.currentTarget.value, ab[0]), ab[1]])} /></label>
@@ -231,15 +232,15 @@
                 {#each readoutOf(it, r) as line (line)}<div class="out" use:tex={line}></div>{/each}
               {/if}
             </div>
-            <button type="button" class="x" aria-label="Remove row {i + 1}" onclick={() => remove(it.id)}>×</button>
+            <button type="button" class="x" aria-label={i18n.t('sheets.grapher.removeRow', { n: i + 1 })} onclick={() => remove(it.id)}>×</button>
           </li>
         {/each}
       </ol>
-      <button type="button" class="add" onclick={add}>Add expression</button>
+      <button type="button" class="add" onclick={add}>{i18n.t('sheets.grapher.add')}</button>
     </div>
 
     <div class="stage" bind:clientWidth={W} bind:clientHeight={H}>
-      <svg bind:this={svg} width={W} height={H} viewBox="0 0 {W} {H}" role="application" aria-label="The plane" tabindex="0"
+      <svg bind:this={svg} width={W} height={H} viewBox="0 0 {W} {H}" role="application" aria-label={i18n.t('sheets.grapher.plane')} tabindex="0"
         onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp} onpointerleave={onLeave} onkeydown={onKey}>
         <g class="grid">
           {#each xticks as v (v)}<line x1={sx(v)} x2={sx(v)} y1="0" y2={H} />{/each}
@@ -273,9 +274,9 @@
         {/if}
       </svg>
       <div class="zoom">
-        <button type="button" aria-label="Zoom in" onclick={() => zoom(1 / 1.5)}>+</button>
-        <button type="button" aria-label="Zoom out" onclick={() => zoom(1.5)}>−</button>
-        <button type="button" aria-label="Back to the origin" onclick={home}><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5" /></svg></button>
+        <button type="button" aria-label={i18n.t('sheets.grapher.zoomIn')} onclick={() => zoom(1 / 1.5)}>+</button>
+        <button type="button" aria-label={i18n.t('sheets.grapher.zoomOut')} onclick={() => zoom(1.5)}>−</button>
+        <button type="button" aria-label={i18n.t('sheets.grapher.home')} onclick={home}><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5" /></svg></button>
       </div>
     </div>
   </div>

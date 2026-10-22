@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { title, back, backLabel, actions, sub }: { title: string; back?: () => void; backLabel?: string; actions?: Snippet; sub?: Snippet } = $props();
 </script>
 
 <header class="page-head">
   <div class="row">
-    {#if back}<button type="button" class="btn ghost sm" onclick={back}>‹ {backLabel ?? 'Practice'}</button>{/if}
+    {#if back}<button type="button" class="btn ghost sm" onclick={back}>‹ {backLabel ?? i18n.t('practice.dashboard.title')}</button>{/if}
     <h2 class="page-title">{title}</h2>
     {#if actions}<div class="actions">{@render actions()}</div>{/if}
   </div>

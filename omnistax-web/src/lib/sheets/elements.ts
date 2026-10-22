@@ -10,6 +10,7 @@
    the four trends, which are a ramp from the least to the greatest value the
    table holds. */
 import type { ElementDTO, ElementsSheetDTO } from '../content/sheets';
+import type { MessageKey } from '../i18n';
 import { type Composition, type ElementSymbol, type ElementTable, elementSymbol } from './formula';
 
 /* The lanthanides and the actinides, which the table prints below it. */
@@ -36,12 +37,13 @@ export const placeholders = (): readonly Placeholder[] =>
 /* The four numbers the table can be read as a ramp of. */
 export const TRENDS = ['electronegativity', 'ionization', 'radius', 'weight'] as const;
 export type Trend = (typeof TRENDS)[number];
-export type TrendMeta = { readonly label: string; readonly unit: string };
+/* The label is a key of the catalog, said in the reader's language where it is shown. */
+export type TrendMeta = { readonly label: MessageKey; readonly unit: string };
 export const TREND_META: Readonly<Record<Trend, TrendMeta>> = {
-  electronegativity: { label: 'Electronegativity', unit: 'Pauling' },
-  ionization: { label: 'First ionization energy', unit: 'kJ/mol' },
-  radius: { label: 'Covalent radius', unit: 'pm' },
-  weight: { label: 'Atomic weight', unit: 'amu' },
+  electronegativity: { label: 'sheets.elements.electronegativity', unit: 'Pauling' },
+  ionization: { label: 'sheets.elements.ionizationEnergy', unit: 'kJ/mol' },
+  radius: { label: 'sheets.elements.radius', unit: 'pm' },
+  weight: { label: 'sheets.elements.weight', unit: 'amu' },
 };
 /* How the table is coloured: the book's shading, a family, a block, or a trend.
    An ADT, because a trend carries which trend it is and the other two carry

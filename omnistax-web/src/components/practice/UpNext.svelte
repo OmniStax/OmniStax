@@ -2,7 +2,7 @@
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
-  import { count } from '../../lib/practice/labels';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { type Pick, samePick } from '../../lib/practice/model';
   import { conceptId } from '../../lib/types/ids';
   let { item, mode = 'seed', label }: { item: string; mode?: 'seed' | 'add'; label?: string } = $props();
@@ -17,9 +17,9 @@
   const chips = $derived.by((): readonly Chip[] => {
     const due = practice.due(), started = practice.started(), s = focus.section;
     return [
-      ...(due.length ? [{ label: `Add the ${count(due.length, 'concept')} due for review`, picks: concepts(due) }] : []),
-      ...(started.length ? [{ label: `Add the ${count(started.length, 'concept')} in progress`, picks: concepts(started) }] : []),
-      ...(s ? [{ label: [`Add section ${s.section}`, sectionTitle(s.book, s.section)].filter(Boolean).join(' · '), picks: [{ book: s.book, section: s.section }] }] : []),
+      ...(due.length ? [{ label: i18n.t('practice.upNext.due', { n: due.length }), picks: concepts(due) }] : []),
+      ...(started.length ? [{ label: i18n.t('practice.upNext.started', { n: started.length }), picks: concepts(started) }] : []),
+      ...(s ? [{ label: [i18n.t('practice.upNext.section', { section: s.section }), sectionTitle(s.book, s.section)].filter(Boolean).join(' · '), picks: [{ book: s.book, section: s.section }] }] : []),
     ];
   });
 

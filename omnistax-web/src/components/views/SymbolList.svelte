@@ -8,6 +8,7 @@
      is dragged wider or narrower. */
   import { fitCount } from '../../lib/colours/model';
   import { FIG } from '../../lib/fig/figlib';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { macros, label }: { macros: readonly string[]; label: string } = $props();
 
   const tex = (node: HTMLElement, s: string) => { FIG.tex(node, s); return { update(n: string) { FIG.tex(node, n); } }; };
@@ -17,7 +18,7 @@
   let widths = $state<readonly number[]>([]);
   let room = $state(0);
   const shown = $derived(widths.length === 0 ? macros.length : fitCount(widths, room, 12, GAP));
-  const title = $derived(shown < macros.length ? `Every symbol of ${label}: ${macros.join(' ')}` : '');
+  const title = $derived(shown < macros.length ? i18n.t('views.colours.everySymbol', { label, symbols: macros.join(' ') }) : '');
 
   /* The widths are the ones the symbols take when they all stand and are all set,
      which is how the first pass draws them; the room is the row's own, which the overflow keeps to the

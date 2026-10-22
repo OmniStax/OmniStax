@@ -20,18 +20,22 @@
   import { goMark } from '../../lib/files/resolver';
   import { openingAs, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import type { FileMark } from '../../lib/files/marks';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
   const scoped = getContext<() => Target>('scope');
   const target = $derived(scoped());
   const grouped = $derived(groupBySection(notes.list.filter((n) => n.book === target.book), (n) => n.section, target, registry.manifest(target.book)));
   const inside = $derived(countOf(grouped));
   const openChapter = $derived(focus.section && focus.section.book === target.book ? registry.chapterOf(focus.section)?.id ?? '' : '');
-  const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const plural = (n: number) => `${n} ${n === 1 ? 'annotation' : 'annotations'}`;
+  const when = (t: number) => new Date(t).toLocaleDateString(i18n.locale, { month: 'short', day: 'numeric' });
+  const plural = (n: number) => i18n.t('views.annotations.count', { n });
+  const COLOR_KEY: Readonly<Record<string, MessageKey>> = { yellow: 'views.annotations.color.yellow', green: 'views.annotations.color.green', blue: 'views.annotations.color.blue', pink: 'views.annotations.color.pink' };
+  const colorLabel = (c: string): string => i18n.t('views.annotations.color', { color: COLOR_KEY[c] ? i18n.t(COLOR_KEY[c]) : c });
   /* what to say where a place has nothing marked in it yet */
   const blank = $derived(
-    target.level === 'section' ? 'Select text in the section to highlight or annotate it.'
-      : target.level === 'chapter' ? 'Nothing annotated in this chapter yet.'
-      : 'Nothing annotated in this book yet.',
+    target.level === 'section' ? i18n.t('views.annotations.blankSection')
+      : target.level === 'chapter' ? i18n.t('views.annotations.blankChapter')
+      : i18n.t('views.annotations.blankBook'),
   );
   /* What the reader has written on their own files. It stands below the book's
      own annotations and outside its scope, since a file is no section: the
@@ -54,15 +58,15 @@
 {#snippet card(n: Note)}
   <div class="note" data-id={n.id} use:dragout={{ kind: 'highlight', id: n.id }}>
     <div class="head">
-      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} aria-label="Color {c}" onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
+      <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={n.color === c} aria-label={colorLabel(c)} onclick={() => notes.setColor(n.id, c)}></button>{/each}</span>
       <span class="when">{when(n.updated)}</span>
-      <button type="button" class="x" data-nodrag aria-label="Remove highlight" onclick={() => notes.remove(n.id)}>×</button>
+      <button type="button" class="x" data-nodrag aria-label={i18n.t('views.annotations.removeHighlight')} onclick={() => notes.remove(n.id)}>×</button>
     </div>
     <button type="button" class="quote hl-{n.color}" onclick={(e) => openingAs(openingOf(e), () => goNote(n))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goNote(n)))}>{n.anchor.quote}</button>
-    {#if notes.unresolved.has(n.id)}<div class="lost" role="status">The text changed and this highlight no longer matches. Your note is kept.</div>{/if}
+    {#if notes.unresolved.has(n.id)}<div class="lost" role="status">{i18n.t('views.annotations.lost')}</div>{/if}
     <!-- A burst of typing is one step of the shell's timeline; leaving the box
          ends the burst, so the next one begins a step of its own. -->
-    <textarea data-note={n.id} rows="2" placeholder="Add a note…" value={n.text}
+    <textarea data-note={n.id} rows="2" placeholder={i18n.t('views.annotations.addNote')} value={n.text}
       oninput={(e) => notes.setText(n.id, (e.currentTarget as HTMLTextAreaElement).value)}
       onblur={() => history.breakCoalescing()}></textarea>
   </div>
@@ -75,20 +79,20 @@
   <div class="note" data-id={m.id} use:dragout={{ kind: 'highlight', id: m.id }}>
     <div class="head">
       {#if m.kind === 'highlight'}
-        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} aria-label="Color {c}" onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
+        <span class="dots" data-nodrag>{#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={m.color === c} aria-label={colorLabel(c)} onclick={() => fileMarks.setColor(m.id, c)}></button>{/each}</span>
       {:else}
-        <span class="kind">Text box</span>
+        <span class="kind">{i18n.t('views.annotations.textBox')}</span>
       {/if}
-      <span class="when">page {m.page} · {when(m.updated)}</span>
-      <button type="button" class="x" data-nodrag aria-label="Remove mark" onclick={() => fileMarks.remove(m.id)}>×</button>
+      <span class="when">{i18n.t('views.annotations.page', { page: m.page, when: when(m.updated) })}</span>
+      <button type="button" class="x" data-nodrag aria-label={i18n.t('views.annotations.removeMark')} onclick={() => fileMarks.remove(m.id)}>×</button>
     </div>
     {#if m.kind === 'highlight'}
       <button type="button" class="quote hl-{m.color}" onclick={(e) => openingAs(openingOf(e), () => goMark(m.id))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goMark(m.id)))}>{m.anchor.quote}</button>
-      <textarea data-note={m.id} rows="2" placeholder="Add a note…" value={m.text}
+      <textarea data-note={m.id} rows="2" placeholder={i18n.t('views.annotations.addNote')} value={m.text}
         oninput={(e) => fileMarks.setText(m.id, (e.currentTarget as HTMLTextAreaElement).value)}
         onblur={() => history.breakCoalescing()}></textarea>
     {:else}
-      <button type="button" class="boxed" onclick={(e) => openingAs(openingOf(e), () => goMark(m.id))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goMark(m.id)))}>{plainWords(m.body) || 'An empty box'}</button>
+      <button type="button" class="boxed" onclick={(e) => openingAs(openingOf(e), () => goMark(m.id))} onauxclick={onMiddle((e) => openingAs(openingOf(e), () => goMark(m.id)))}>{plainWords(m.body) || i18n.t('views.annotations.emptyBox')}</button>
     {/if}
   </div>
 {/snippet}
@@ -109,7 +113,7 @@
   </details>
 {/snippet}
 
-<div class="eyebrow">{targetLabel(target, registry.manifest(target.book))} · {plural(inside)}</div>
+<div class="eyebrow">{(void i18n.locale, targetLabel(target, registry.manifest(target.book)))} · {plural(inside)}</div>
 {#if inside === 0}
   <div class="blank">{blank}</div>
 {:else if target.level === 'section'}
@@ -121,7 +125,7 @@
 {/if}
 {#if fileCount}
   <details class="other" open>
-    <summary>Your Files · {plural(fileCount)}</summary>
+    <summary>{i18n.t('views.annotations.yourFiles')} · {plural(fileCount)}</summary>
     {#each fileGroups as g (g.file.id)}
       <div class="eyebrow">{g.file.name} · {plural(g.marks.length)}</div>
       {#each g.marks as m (m.id)}{@render fileCard(m)}{/each}

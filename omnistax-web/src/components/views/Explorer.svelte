@@ -43,6 +43,8 @@
   import { chapterId, newViewItem, type ViewKind } from '../../lib/types/ids';
   import type { Target } from '../../lib/sections/scope';
   import { sizeLabel } from '../../lib/files/model';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'chat' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
@@ -107,7 +109,7 @@
       });
       if (!s.built || !open) return;
       const heads = headingsOf(ref);
-      if (heads === null) hint(`${key}?`, depth + 1, 'Open the section to list its headings');
+      if (heads === null) hint(`${key}?`, depth + 1, i18n.t('explorer.hint.openSection'));
       else heads.forEach((h) => out.push({
         key: `${key}#${h.id}`, kind: 'heading', depth: depth + 1, label: h.label, icon: '', domId: h.id, book: id,
         expandable: false, open: false, dim: false, active: spy.current.section?.book === id && spy.current.section.span === h.id,
@@ -118,7 +120,7 @@
        prints them (rule 21). */
     const book = (bookId: string, depth: number): void => {
       const m = manifestOf(bookId);
-      if (!m) { hint(`${bookKey(bookId)}?`, depth, 'Reading the book…'); return; }
+      if (!m) { hint(`${bookKey(bookId)}?`, depth, i18n.t('explorer.hint.readingBook')); return; }
       /* The book's reference sheets stand above its text: a reader reaches for
          the periodic table at any point in the book, not at one place in it.
          One sheet is a row of its own; a book with a shelf of them — the
@@ -134,7 +136,7 @@
       else {
         const key = `sheets:${bookId}`;
         const open = explorer.expanded(key);
-        out.push({ key, kind: 'sheets', depth, label: 'Reference', icon: ICON.folder, expandable: true, open, dim: false, active: false });
+        out.push({ key, kind: 'sheets', depth, label: i18n.t('explorer.row.reference'), icon: ICON.folder, expandable: true, open, dim: false, active: false });
         if (open) m.sheets.forEach((sh) => out.push(sheetRow(sh, depth + 1)));
       }
       if (m.intro) section(bookId, m.intro, depth);
@@ -200,8 +202,8 @@
       out.push({ key, kind: 'book', depth: 1, label: e.name, icon: ICON.book, entry: e, expandable: true, open, dim: false, active: false });
       if (open) book(bookId, 2);
     });
-    if (booksOpen) out.push({ key: 'find', kind: 'find', depth: 1, label: 'Find new OmniBooks', icon: ICON.search, expandable: false, open: false, dim: false, active: false });
-    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: 'Your Files', icon: ICON.folder, expandable: true, open: notesOpen, dim: false, active: false });
+    if (booksOpen) out.push({ key: 'find', kind: 'find', depth: 1, label: i18n.t('explorer.row.find'), icon: ICON.search, expandable: false, open: false, dim: false, active: false });
+    out.push({ key: ROOT_KEY.notes, kind: 'root', root: 'notes', depth: 0, label: i18n.t('explorer.row.yourFiles'), icon: ICON.folder, expandable: true, open: notesOpen, dim: false, active: false });
     if (notesOpen) walk(null, 1);
     return out;
   });
@@ -241,13 +243,13 @@
      is nothing to lose, but it is asked for all the same. */
   const removeBookRow = (e: Entry): void => {
     const kept = !!(e.bookId && offlineBooks.records[e.bookId]?.installedRelease);
-    if (!confirm(`Remove \u201c${e.name}\u201d from your books?${kept ? ' Its offline copy goes with it.' : ''}`)) return;
+    if (!confirm(i18n.t(kept ? 'explorer.confirm.removeBookOffline' : 'explorer.confirm.removeBook', { name: e.name }))) return;
     if (kept && e.bookId) void offlineBooks.remove(e.bookId);
     removeBook(e);
   };
   const remove = (e: Entry): void => {
     const kids = explorer.children(e.id);
-    if (kids.length && !confirm(`Delete “${e.name}” and the ${kids.length === 1 ? 'row' : 'rows'} inside it?`)) return;
+    if (kids.length && !confirm(i18n.t('explorer.confirm.delete', { name: e.name, n: kids.length }))) return;
     /* A drawing is a row and the ink under it, kept by a store of its own, so
        its own compound edit takes both away together. */
     if (e.kind === 'drawing') { deleteDrawing(e); return; }
@@ -364,20 +366,21 @@
     void openItem(k, undefined, 'tab');
   };
   const placeItems = (t: Target) => [
-    { label: 'Open concept map', run: () => openPinned('concepts', t) },
-    { label: 'Open reference', run: () => openPinned('reference', t) },
-    { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
-    { label: 'Theme', run: () => openPinned('colours', { level: 'book', book: t.book }) },
+    { label: i18n.t('explorer.menu.openConceptMap'), run: () => openPinned('concepts', t) },
+    { label: i18n.t('explorer.menu.openReference'), run: () => openPinned('reference', t) },
+    { label: i18n.t(PRACTISE_KEY[t.level]), run: () => practiseAt(t) },
+    { label: i18n.t('explorer.menu.theme'), run: () => openPinned('colours', { level: 'book', book: t.book }) },
   ];
+  const PRACTISE_KEY: Readonly<Record<Target['level'], MessageKey>> = { book: 'explorer.menu.practiseBook', chapter: 'explorer.menu.practiseChapter', section: 'explorer.menu.practiseSection' };
   /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
   const offlineItems = (id: string) => {
     const rec = offlineBooks.records[id];
-    if (!rec?.installedRelease) return offlineBooks.downloading(id) ? [] : [{ label: 'Download for offline', run: () => void offlineBooks.install(id) }];
+    if (!rec?.installedRelease) return offlineBooks.downloading(id) ? [] : [{ label: i18n.t('explorer.menu.download'), run: () => void offlineBooks.install(id) }];
     const auto = offlineBooks.autoUpdate(id);
-    const toggle = { label: 'Update automatically', checked: auto, run: () => offlineBooks.setAutoUpdate(id, !auto) };
+    const toggle = { label: i18n.t('offline.autoUpdate'), checked: auto, run: () => offlineBooks.setAutoUpdate(id, !auto) };
     if (offlineBooks.downloading(id)) return [toggle];
     const bytes = rec.manifest?.resources.reduce((n, x) => n + x.bytes, 0) ?? 0;
-    return [toggle, { label: bytes ? `Remove offline copy (${sizeLabel(bytes)})` : 'Remove offline copy', danger: true, run: () => { if (confirm(`Remove the offline copy of \u201c${rec.title}\u201d? Reading it will need a connection again.`)) void offlineBooks.remove(id); } }];
+    return [toggle, { label: bytes ? i18n.t('explorer.menu.removeOfflineSize', { size: sizeLabel(bytes) }) : i18n.t('explorer.menu.removeOffline'), danger: true, run: () => { if (confirm(i18n.t('explorer.menu.removeOfflineAsk', { title: rec.title }))) void offlineBooks.remove(id); } }];
   };
   /* The book whose changes are open, and what its sections are called. */
   let changesOf = $state<string | null>(null);
@@ -396,22 +399,22 @@
     if (!m) return [];
     const r = m.row, e = r.entry;
     const opens = tabOf(r) ? [
-      { label: 'Open in new tab', run: () => { openRow(r, 'tab'); } },
-      { label: 'Open to the side', run: () => { openRow(r, 'new'); } },
+      { label: i18n.t('explorer.menu.openTab'), run: () => { openRow(r, 'tab'); } },
+      { label: i18n.t('explorer.menu.openSide'), run: () => { openRow(r, 'new'); } },
     ] : [];
     const t = placeOf(r);
     if (!e) return t ? [...opens, ...placeItems(t)] : opens;
-    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: 'Remove from OmniBooks', danger: true, run: () => removeBookRow(e) }];
+    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: i18n.t('explorer.menu.removeBook'), danger: true, run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       ...opens,
-      { label: 'New note here', run: () => newNote(inside) },
-      { label: 'New drawing here', run: () => newDrawing(inside) },
-      { label: 'Import files here', run: () => { pickInto = inside; picker?.click(); } },
-      { label: 'Import folder here', run: () => { pickInto = inside; folderPicker?.click(); } },
-      ...(e.kind === 'folder' ? [{ label: 'New folder here', run: () => newFolder(inside) }] : []),
-      { label: 'Rename', run: () => { explorer.selected = e.id; explorer.renaming = e.id; } },
-      { label: 'Delete', run: () => remove(e), danger: true },
+      { label: i18n.t('explorer.menu.newNoteHere'), run: () => newNote(inside) },
+      { label: i18n.t('explorer.menu.newDrawingHere'), run: () => newDrawing(inside) },
+      { label: i18n.t('explorer.menu.importFilesHere'), run: () => { pickInto = inside; picker?.click(); } },
+      { label: i18n.t('explorer.menu.importFolderHere'), run: () => { pickInto = inside; folderPicker?.click(); } },
+      ...(e.kind === 'folder' ? [{ label: i18n.t('explorer.menu.newFolderHere'), run: () => newFolder(inside) }] : []),
+      { label: i18n.t('explorer.menu.rename'), run: () => { explorer.selected = e.id; explorer.renaming = e.id; } },
+      { label: i18n.t('explorer.menu.delete'), run: () => remove(e), danger: true },
     ];
   });
   const openMenu = (ev: MouseEvent, r: Row): void => {
@@ -434,10 +437,10 @@
   let folderPicker = $state<HTMLInputElement | null>(null);
   /* Where the import icon's menu hangs, while it is open. */
   let importMenu = $state.raw<{ readonly x: number; readonly y: number } | null>(null);
-  const importItems = [
-    { label: 'Import files', run: () => { pickInto = null; picker?.click(); } },
-    { label: 'Import folder', run: () => { pickInto = null; folderPicker?.click(); } },
-  ];
+  const importItems = $derived([
+    { label: i18n.t('explorer.menu.importFiles'), run: () => { pickInto = null; picker?.click(); } },
+    { label: i18n.t('explorer.menu.importFolder'), run: () => { pickInto = null; folderPicker?.click(); } },
+  ]);
   /* Which folder the chooser was opened for; the root when it was the icon. */
   let pickInto: EntryId | null = null;
   const say = (line: string | null): void => {
@@ -519,7 +522,7 @@
 </script>
 
 <div class="explorer">
-  <div class="tree" role="tree" aria-label="Explorer" tabindex="0" onkeydown={onKey}>
+  <div class="tree" role="tree" aria-label={i18n.t('explorer.title')} tabindex="0" onkeydown={onKey}>
     {#each rows as r (r.key)}
       {#if r.kind === 'hint'}
         <div class="row hint" style:padding-left="{6 + r.depth * 13}px">{r.label}</div>
@@ -557,7 +560,7 @@
                 : r.kind === 'chat' && r.entry ? itemKey(chatItem(chatId(r.entry.chatId ?? r.entry.id))) : null}>
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
-              aria-label={r.open ? 'Collapse' : 'Expand'}
+              aria-label={r.open ? i18n.t('explorer.collapse') : i18n.t('explorer.expand')}
               onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; fold(r); }}>▾</button>
           {:else}
             <span class="twist gap"></span>
@@ -565,7 +568,7 @@
           {#if r.icon}<span class="ico">{@html r.icon}</span>{:else}<span class="ico dot">·</span>{/if}
           {#if r.entry && explorer.renaming === r.entry.id}
             {@const own = r.entry}
-            <input class="rename" value={own.name} spellcheck="false" autocomplete="off" aria-label="Name"
+            <input class="rename" value={own.name} spellcheck="false" autocomplete="off" aria-label={i18n.t('explorer.name')}
               use:takeBox={own}
               onclick={(ev) => ev.stopPropagation()}
               onkeydown={(ev) => renameKey(ev, own)}
@@ -578,26 +581,26 @@
             {@const marks = offlineBooks.marks(id)}
             {#if marks.update}
               <button type="button" class="pill" tabindex="-1" disabled={offlineBooks.downloading(id)} title={offlineBooks.message || undefined}
-                onclick={(e) => { e.stopPropagation(); void offlineBooks.install(id); }}>{offlineBooks.downloading(id) ? `Updating${percent(id)}` : 'Update'}<span class="dot warm"></span></button>
+                onclick={(e) => { e.stopPropagation(); void offlineBooks.install(id); }}>{offlineBooks.downloading(id) ? i18n.t('explorer.updating', { percent: percent(id) }) : i18n.t('offline.update')}<span class="dot warm"></span></button>
             {/if}
             {#if marks.updated}
-              <button type="button" class="pill" tabindex="-1" onclick={(e) => { e.stopPropagation(); changesOf = id; }}>Updated<span class="dot new"></span></button>
+              <button type="button" class="pill" tabindex="-1" onclick={(e) => { e.stopPropagation(); changesOf = id; }}>{i18n.t('explorer.updated')}<span class="dot new"></span></button>
             {/if}
-            <button type="button" class="tool theme" tabindex="-1" title="Theme" aria-label="Theme of {r.label}"
+            <button type="button" class="tool theme" tabindex="-1" title={i18n.t('explorer.menu.theme')} aria-label={i18n.t('explorer.themeOf', { name: r.label })}
               onclick={(e) => { e.stopPropagation(); openPinned('colours', { level: 'book', book: bookId(id) }); }}>{@html ICON.colours}</button>
           {/if}
           {#if r.root === 'notes'}
-            <button type="button" class="tool" id="import-files" tabindex="-1" title="Import {ACCEPTED}" aria-label="Import"
+            <button type="button" class="tool" id="import-files" tabindex="-1" title={i18n.t('explorer.importTitle', { types: ACCEPTED })} aria-label={i18n.t('explorer.import')}
               onclick={(e) => { e.stopPropagation(); importMenu = { x: e.clientX, y: e.clientY }; }}>{@html ICON.importFile}</button>
-            <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" aria-label="New note"
+            <button type="button" class="tool" data-spot="notes" class:spot={ui.spot === 'notes'} tabindex="-1" aria-label={i18n.t('explorer.newNote')}
               onclick={(e) => { e.stopPropagation(); newNote(parentForNew()); }}>{@html ICON.notePlus}</button>
-            <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" aria-label="New drawing"
+            <button type="button" class="tool" data-spot="drawer" class:spot={ui.spot === 'drawer'} tabindex="-1" aria-label={i18n.t('explorer.newDrawing')}
               onclick={(e) => { e.stopPropagation(); newDrawing(parentForNew()); }}>{@html ICON.drawingPlus}</button>
-            <button type="button" class="tool" tabindex="-1" aria-label="New folder"
+            <button type="button" class="tool" tabindex="-1" aria-label={i18n.t('explorer.newFolder')}
               onclick={(e) => { e.stopPropagation(); newFolder(parentForNew()); }}>{@html ICON.folderPlus}</button>
           {/if}
           {#if r.entry || placeOf(r)}
-            <button type="button" class="dots" tabindex="-1" title="More" aria-label="More for {r.label}"
+            <button type="button" class="dots" tabindex="-1" title={i18n.t('explorer.more')} aria-label={i18n.t('explorer.moreFor', { name: r.label })}
               onclick={(e) => openMenu(e, r)}>…</button>
           {/if}
         </div>

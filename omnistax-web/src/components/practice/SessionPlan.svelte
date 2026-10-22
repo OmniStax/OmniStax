@@ -6,7 +6,8 @@
   import { generatedIdOf, isGenerated } from '../../lib/practice/generated';
   import { generated } from '../../lib/practice/generated.svelte';
   import { books } from '../../lib/practice/books.svelte';
-  import { count, exerciseName, excerpt, plain } from '../../lib/practice/labels';
+  import { exerciseName, excerpt, plain } from '../../lib/practice/labels';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import ModelMenu from '../chat/ModelMenu.svelte';
   import { mathHtml } from '../actions/math';
   import KindDot from './KindDot.svelte';
@@ -14,10 +15,9 @@
 
   let { item }: { item: string } = $props();
 
-  const FROM = [['include', 'Book and AI'], ['book-only', 'Book only']] as const;
-  const ORDER = [['mixed', 'Mixed'], ['grouped', 'Grouped']] as const;
-  const CHECKING = [['reveal', 'I check'], ['ai', 'AI grades']] as const;
-  const NOTHING = 'No exercises left for now. Choose more of the book or try again later.';
+  const FROM = $derived([['include', i18n.t('practice.plan.from.include')], ['book-only', i18n.t('practice.plan.from.bookOnly')]] as const);
+  const ORDER = $derived([['mixed', i18n.t('practice.plan.order.mixed')], ['grouped', i18n.t('practice.plan.order.grouped')]] as const);
+  const CHECKING = $derived([['reveal', i18n.t('practice.plan.checking.reveal')], ['ai', i18n.t('practice.plan.checking.ai')]] as const);
 
   const page = $derived(practice.page(item));
   const s = $derived(practice.settings);
@@ -31,9 +31,9 @@
   const aiNeeded = $derived(gapTotal > 0 || s.grading === 'ai');
   const aiReady = $derived.by(() => { const pick = practicePick(); return pick !== null && ai.access(pick) !== null; });
   const why = $derived(
-    page.curriculum.length === 0 ? 'Nothing chosen yet.'
-      : total === 0 ? 'Your choice has no exercises. Pick another part of the book.'
-        : aiNeeded && !aiReady ? `Configure a model under Settings → AI, or set ${[gapTotal > 0 && 'Exercises from to Book only', s.grading === 'ai' && 'Checking to I check'].filter(Boolean).join(' and ')}.`
+    page.curriculum.length === 0 ? i18n.t('practice.plan.nothingChosen')
+      : total === 0 ? i18n.t('practice.plan.noExercises')
+        : aiNeeded && !aiReady ? i18n.t(gapTotal > 0 && s.grading === 'ai' ? 'practice.plan.needModelBoth' : gapTotal > 0 ? 'practice.plan.needModelFrom' : 'practice.plan.needModelChecking')
           : '',
   );
 
@@ -41,7 +41,7 @@
   const setPer = (v: number): void => practice.setRound(item, { ...page.round, perConcept: clamp(v) });
   const setWanted = (id: string) => (v: number): void =>
     practice.setRound(item, { ...page.round, wanted: { ...page.round?.wanted, [id]: clamp(v) } });
-  const nameOf = (d: Drawn): string => exerciseName(d.ex, books.manifest(d.book)?.exerciseKinds[d.ex.kind]);
+  const nameOf = (d: Drawn): string => exerciseName(d.ex, books.manifest(d.book)?.exerciseKinds[d.ex.kind], i18n.t);
   const remove = (d: Drawn): void => {
     if (d.pinned) practice.toggleNode(item, { level: 'exercise', book: d.book, section: d.section, ex: d.ex.id });
     else practice.exclude(item, keyOf(d));
@@ -50,7 +50,7 @@
   let note = $state('');
   const begin = (): void => {
     const id = practice.startLive(item);
-    if (!id) { note = NOTHING; return; }
+    if (!id) { note = i18n.t('practice.plan.nothingLeft'); return; }
     note = '';
     if (gapTotal > 0) void fillLive(id);
   };
@@ -58,10 +58,10 @@
 
 {#snippet stepper(value: number, set: (v: number) => void, label: string, compact: boolean)}
   <span class="stepper" class:compact role="group" aria-label={label}>
-    <button type="button" aria-label="{label}: fewer" disabled={value <= 0} onclick={() => set(value - 1)}>−</button>
+    <button type="button" aria-label={i18n.t('practice.plan.fewer', { label })} disabled={value <= 0} onclick={() => set(value - 1)}>−</button>
     <input type="number" min="0" max={MAX_WANTED} {value} aria-label={label}
       onchange={(e) => { const v = clamp(Number(e.currentTarget.value)); e.currentTarget.value = String(v); set(v); }}>
-    <button type="button" aria-label="{label}: more" disabled={value >= MAX_WANTED} onclick={() => set(value + 1)}>+</button>
+    <button type="button" aria-label={i18n.t('practice.plan.more', { label })} disabled={value >= MAX_WANTED} onclick={() => set(value + 1)}>+</button>
   </span>
 {/snippet}
 
@@ -71,29 +71,29 @@
 
 <section class="plan">
   <div class="group">
-    <h3 class="section-title">This session</h3>
+    <h3 class="section-title">{i18n.t('practice.plan.thisSession')}</h3>
     {#if page.curriculum.length === 0}
-      <p class="muted">Tick a chapter, section, concept or exercise.</p>
+      <p class="muted">{i18n.t('practice.plan.tick')}</p>
     {:else}
-      <p class="headline">{count(total, 'exercise')} · {count(plan.concepts.length, 'concept')}</p>
+      <p class="headline">{i18n.t('practice.plan.headline', { n: total, concepts: plan.concepts.length })}</p>
     {/if}
   </div>
 
   {#if rows.length}
     <div class="group">
       <div class="opt">
-        <span class="name">Exercises per concept</span>
-        {@render stepper(perConcept, setPer, 'Exercises per concept', false)}
+        <span class="name">{i18n.t('practice.plan.perConcept')}</span>
+        {@render stepper(perConcept, setPer, i18n.t('practice.plan.perConcept'), false)}
       </div>
       <div class="table" class:scroll={rows.length > 8}>
         <table>
-          <thead><tr><th class="cname">Concept</th><th>In book</th><th>This session</th><th>AI-generated</th></tr></thead>
+          <thead><tr><th class="cname">{i18n.t('practice.plan.concept')}</th><th>{i18n.t('practice.plan.inBook')}</th><th>{i18n.t('practice.plan.thisSession')}</th><th>{i18n.t('practice.ai.generated')}</th></tr></thead>
           <tbody>
             {#each rows as r (r.id)}
               <tr>
                 <td class="cname"><span class="cell"><KindDot kind={r.c?.kind ?? 'idea'} /><span class="nm" use:mathHtml={r.c?.name ?? r.id}></span></span></td>
                 <td class="n">{practice.bookAvailable(r.id)}</td>
-                <td class="n">{@render stepper(r.q?.wanted ?? 0, setWanted(r.id), `This session: ${plain(r.c?.name ?? r.id)}`, true)}</td>
+                <td class="n">{@render stepper(r.q?.wanted ?? 0, setWanted(r.id), i18n.t('practice.plan.thisSessionFor', { name: plain(r.c?.name ?? r.id) }), true)}</td>
                 <td class="n">{#if (r.q?.gap ?? 0) > 0}+{r.q?.gap}{:else}<span class="muted">–</span>{/if}</td>
               </tr>
             {/each}
@@ -105,7 +105,7 @@
 
   {#if total > 0 || excluded}
     <details class="group">
-      <summary>The {count(total, 'exercise')}</summary>
+      <summary>{i18n.t('practice.plan.theExercises', { n: total })}</summary>
       <ul class="exs">
         {#each plan.drawn as d (keyOf(d))}
           {@const name = nameOf(d)}
@@ -113,71 +113,71 @@
             <span class="exname">{name}</span>
             <span class="excerpt">{excerpt(d.ex.prompt)}</span>
             {#if isGenerated(d.ex.id)}<AiTag text />{/if}
-            {#if d.pinned}<span class="tag">picked</span>{/if}
-            {#if isGenerated(d.ex.id)}<button class="btn ghost sm danger" type="button" aria-label="Delete {name}" onclick={() => { if (confirm(`Delete the AI-generated exercise “${excerpt(d.ex.prompt, 60)}”?`)) generated.remove(generatedIdOf(d.ex.id)); }}>Delete</button>{/if}
-            <button class="btn ghost icon sm" type="button" aria-label="Remove {name}" onclick={() => remove(d)}>×</button>
+            {#if d.pinned}<span class="tag">{i18n.t('practice.plan.picked')}</span>{/if}
+            {#if isGenerated(d.ex.id)}<button class="btn ghost sm danger" type="button" aria-label={i18n.t('practice.plan.deleteName', { name })} onclick={() => { if (confirm(i18n.t('practice.plan.deleteAsk', { prompt: excerpt(d.ex.prompt, 60) }))) generated.remove(generatedIdOf(d.ex.id)); }}>{i18n.t('practice.rows.delete')}</button>{/if}
+            <button class="btn ghost icon sm" type="button" aria-label={i18n.t('practice.plan.removeName', { name })} onclick={() => remove(d)}>×</button>
           </li>
         {/each}
         {#each gaps as r (r.id)}
-          <li class="ex gaprow muted">+{r.q?.gap} AI-generated for <span use:mathHtml={r.c?.name ?? r.id}></span>, written when you start</li>
+          <li class="ex gaprow muted">{i18n.t('practice.plan.gapBefore', { n: r.q?.gap ?? 0 })} <span use:mathHtml={r.c?.name ?? r.id}></span>{i18n.t('practice.plan.gapAfter')}</li>
         {/each}
       </ul>
       {#if excluded}
-        <p class="excluded"><span class="muted">{excluded} excluded</span><button class="btn ghost sm" type="button" onclick={() => practice.restore(item)}>Restore</button></p>
+        <p class="excluded"><span class="muted">{i18n.t('practice.plan.excluded', { n: excluded })}</span><button class="btn ghost sm" type="button" onclick={() => practice.restore(item)}>{i18n.t('practice.plan.restore')}</button></p>
       {/if}
     </details>
   {/if}
 
   <div class="group">
-    <h3 class="section-title">Options</h3>
+    <h3 class="section-title">{i18n.t('practice.plan.options')}</h3>
     <div class="opt">
-      {@render option('Exercises from', 'AI writes more when the book runs short.')}
-      <div class="seg one-line" role="radiogroup" aria-label="Exercises from">
+      {@render option(i18n.t('practice.plan.from'), i18n.t('practice.plan.fromHint'))}
+      <div class="seg one-line" role="radiogroup" aria-label={i18n.t('practice.plan.from')}>
         {#each FROM as [v, t] (v)}<button type="button" role="radio" class:on={s.generated === v} aria-checked={s.generated === v} onclick={() => practice.setSetting('generated', v)}>{t}</button>{/each}
       </div>
     </div>
     <div class="opt">
-      {@render option('Order', 'Mixed interleaves concepts. Grouped keeps each concept’s exercises together.')}
-      <div class="seg" role="radiogroup" aria-label="Order">
+      {@render option(i18n.t('practice.plan.order'), i18n.t('practice.plan.orderHint'))}
+      <div class="seg" role="radiogroup" aria-label={i18n.t('practice.plan.order')}>
         {#each ORDER as [v, t] (v)}<button type="button" role="radio" class:on={s.order === v} aria-checked={s.order === v} onclick={() => practice.setSetting('order', v)}>{t}</button>{/each}
       </div>
     </div>
     <div class="opt">
-      {@render option('Checking', 'Check your answers against the solution yourself, or hide it and have your model grade.')}
-      <div class="seg one-line" role="radiogroup" aria-label="Checking">
+      {@render option(i18n.t('practice.plan.checking'), i18n.t('practice.plan.checkingHint'))}
+      <div class="seg one-line" role="radiogroup" aria-label={i18n.t('practice.plan.checking')}>
         {#each CHECKING as [v, t] (v)}<button type="button" role="radio" class:on={s.grading === v} aria-checked={s.grading === v} onclick={() => practice.setSetting('grading', v)}>{t}</button>{/each}
       </div>
     </div>
     <div class="opt">
-      {@render option('Mastered concepts', 'Include ones not yet due for review.')}
-      <button class="toggle" type="button" class:on={s.includeFresh} aria-pressed={s.includeFresh} aria-label="Include mastered concepts" onclick={() => practice.setSetting('includeFresh', !s.includeFresh)}></button>
+      {@render option(i18n.t('practice.plan.mastered'), i18n.t('practice.plan.masteredHint'))}
+      <button class="toggle" type="button" class:on={s.includeFresh} aria-pressed={s.includeFresh} aria-label={i18n.t('practice.plan.includeMastered')} onclick={() => practice.setSetting('includeFresh', !s.includeFresh)}></button>
     </div>
     {#if gapTotal > 0 || s.grading === 'ai'}
       <div class="opt">
-        <div class="label"><span class="name">Model</span></div>
+        <div class="label"><span class="name">{i18n.t('practice.plan.model')}</span></div>
         <ModelMenu pick={practicePick()} onchoose={(p) => practice.setSetting('model', p)} />
       </div>
     {/if}
     {#if gapTotal > 0}
       <div class="opt wide">
-        {@render option('Prompt', 'Say what the new exercises should be like.')}
-        <input class="input" type="text" aria-label="Prompt" value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}>
+        {@render option(i18n.t('practice.plan.prompt'), i18n.t('practice.plan.promptHint'))}
+        <input class="input" type="text" aria-label={i18n.t('practice.plan.prompt')} value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}>
       </div>
       <div class="opt">
-        {@render option('Reuse', 'Use AI exercises already written before writing new ones.')}
-        <button class="toggle" type="button" class:on={!s.fresh} aria-pressed={!s.fresh} aria-label="Reuse AI exercises" onclick={() => practice.setSetting('fresh', !s.fresh)}></button>
+        {@render option(i18n.t('practice.plan.reuse'), i18n.t('practice.plan.reuseHint'))}
+        <button class="toggle" type="button" class:on={!s.fresh} aria-pressed={!s.fresh} aria-label={i18n.t('practice.plan.reuseLabel')} onclick={() => practice.setSetting('fresh', !s.fresh)}></button>
       </div>
     {/if}
   </div>
 
   <div class="group start">
     <button class="btn primary lg" type="button" disabled={total === 0 || (aiNeeded && !aiReady)} onclick={begin}>
-      Start {count(total, 'exercise')}
+      {i18n.t('practice.plan.start', { n: total })}
     </button>
     {#if why}<p class="muted">{why}</p>{/if}
     <p class="muted" role="status">{note}</p>
     {#if plan.shortages > 0}
-      <p class="short">{count(plan.shortages, 'concept')} {plan.shortages === 1 ? 'has' : 'have'} fewer exercises than asked.</p>
+      <p class="short">{i18n.t('practice.plan.shortages', { n: plan.shortages })}</p>
     {/if}
   </div>
 </section>

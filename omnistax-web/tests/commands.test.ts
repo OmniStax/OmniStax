@@ -8,6 +8,7 @@ import { commandId, available } from '../src/lib/commands/command';
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
 import { PALETTE_ONLY_KINDS, SIDEBAR_KINDS, VIEW_KINDS, isPaletteOnlyKind, isSidebarKind, itemKey, newViewItem } from '../src/lib/types/ids';
 import type { Level } from '../src/lib/sections/scope';
+import { tIn } from '../src/lib/i18n/index';
 
 /* chords */
 test('chord parse/format round trip, any modifier order and spelling', () => {
@@ -113,6 +114,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
+    t: tIn.bind(null, 'en'),
     settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), theme: 'system', animations: true, voice: false, setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),

@@ -3,6 +3,7 @@
      message folds to its opening and the last question stays pinned above;
      held compact in a drawing or a note it is read only. */
   import Bubble from './Bubble.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
   import { dayLabel, lastAsked, opening, startsDay } from '../../lib/chat/tree';
@@ -44,7 +45,7 @@
 <div class="messages" class:compact bind:this={list}>
   {#if asked}
     <button type="button" class="asked" onclick={() => scrollTo(asked.id, 'start')}>
-      <span class="you">You</span><span class="words">{opening(asked.text, 200).replace(/\s+/g, ' ')}</span>
+      <span class="you">{i18n.t('chat.speaker.you')}</span><span class="words">{opening(asked.text, 200).replace(/\s+/g, ' ')}</span>
     </button>
   {/if}
   {#each path as m, i (m.id)}

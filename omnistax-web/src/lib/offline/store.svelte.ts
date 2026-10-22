@@ -5,6 +5,7 @@ import type { BookReleaseManifest, OfflineCatalog } from './schema';
 import type { ReleaseChanges, SeenRelease } from './model';
 import { bookMarks, releaseForBook } from './model';
 import { readerWritesAllowed } from '../backup/guard';
+import { t } from '../i18n/index';
 import { SvelteMap } from 'svelte/reactivity';
 
 const SEEN = 'omnistax-seen-releases-v2', AUTO = 'omnistax-auto-update-v1';
@@ -64,7 +65,7 @@ class OfflineBooks {
       }
       void this.recordSeen();
     })
-      .catch((error) => { this.message = error instanceof Error ? error.message : 'Update check failed.'; })
+      .catch((error) => { this.message = error instanceof Error ? error.message : t('offline.error.checkFailed'); })
       .finally(() => { this.checking = false; this.inFlight = null; });
     return this.inFlight;
   }
@@ -78,14 +79,14 @@ class OfflineBooks {
       this.noteApp(); void this.recordSeen();
     } catch (error) {
       const records = await listInstallations(); this.records = Object.fromEntries(records.map((record) => [record.bookId, record]));
-      if (!background) this.message = error instanceof Error ? error.message : 'Download failed.';
+      if (!background) this.message = error instanceof Error ? error.message : t('offline.error.downloadFailed');
     } finally { this.abort.delete(bookId); this.progress = Object.fromEntries(Object.entries(this.progress).filter(([id]) => id !== bookId)); }
   }
   cancel(bookId: string): void { this.abort.get(bookId)?.abort(); }
   dismissUpdate(): void { this.knownArtifact = this.appArtifact() ?? this.knownArtifact; this.appUpdated = false; }
   async remove(bookId: string): Promise<void> {
     try { await removeDownload(bookId); this.records = Object.fromEntries(Object.entries(this.records).filter(([id]) => id !== bookId)); }
-    catch (error) { this.message = error instanceof Error ? error.message : 'The offline download could not be removed.'; }
+    catch (error) { this.message = error instanceof Error ? error.message : t('offline.error.removeFailed'); }
   }
   downloading(bookId: string): boolean { return this.abort.has(bookId); }
   releaseOf(bookId: string): string | undefined {
@@ -93,7 +94,7 @@ class OfflineBooks {
   }
   async loadChanges(bookId: string): Promise<void> {
     try { this.changes = { ...this.changes, [bookId]: await changesForAvailable(bookId) }; }
-    catch (error) { this.message = error instanceof Error ? error.message : 'Changes could not be loaded.'; }
+    catch (error) { this.message = error instanceof Error ? error.message : t('offline.error.changesFailed'); }
   }
   /* A page answered from a download runs that download's app; any other runs the catalog's. */
   private appArtifact(): string | undefined {
@@ -133,7 +134,7 @@ class OfflineBooks {
   /* Opening the changes is seeing them: the mark goes until the next release. */
   async openUpdate(bookId: string): Promise<BookUpdate> {
     const from = this.seen[bookId]; const to = await this.current(bookId);
-    if (!from || !to) throw new Error('This book has no earlier release to compare.');
+    if (!from || !to) throw new Error(t('offline.error.noEarlierRelease'));
     this.see(to); return bookUpdate(from, to);
   }
 }

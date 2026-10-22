@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
   /* The menu a crumb's chevron opens. Places nothing is built for are dimmed and
      refuse the choice. Keys stop here so the shell's chords stay quiet. */
+  import { i18n } from '../../lib/i18n/store.svelte';
   type Entry = { readonly target: T; readonly label: string; readonly enabled: boolean; readonly here: boolean; readonly page: boolean };
   type Props = { entries: readonly Entry[]; onchoose: (target: T) => void; onclose: () => void };
   let { entries, onchoose, onclose }: Props = $props();
@@ -39,11 +40,11 @@
   });
 </script>
 
-<div class="menu" role="listbox" tabindex="-1" aria-label="Choose a place" aria-activedescendant="{uid}-{sel}" bind:this={list} onkeydown={onKey}>
+<div class="menu" role="listbox" tabindex="-1" aria-label={i18n.t('views.crumbs.choosePlace')} aria-activedescendant="{uid}-{sel}" bind:this={list} onkeydown={onKey}>
   {#each entries as e, i (e.label)}
     <div class="row" id="{uid}-{i}" class:sel={i === sel} class:here={e.here} class:off={!e.enabled} role="option" aria-selected={e.here} aria-disabled={!e.enabled} onmousemove={() => (sel = i)} onclick={() => take(i)}>
       <span class="lbl">{e.label}</span>
-      {#if e.page}<span class="detail">open page</span>{/if}
+      {#if e.page}<span class="detail">{i18n.t('views.crumbs.openPage')}</span>{/if}
     </div>
   {/each}
 </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { searchStore } from '../../lib/search/store.svelte';
-  import { FILTERS, FILTER_LABEL, type Filter, type Hit } from '../../lib/search/model';
+  import { FILTERS, type Filter, type Hit } from '../../lib/search/model';
   import { EMPTY, buildIndex } from '../../lib/search/index';
   import { goHit } from '../../lib/search/go';
   import { fileCorpus } from '../../lib/search/filecorpus.svelte';
@@ -16,6 +16,9 @@
   import { ICON } from '../../lib/icons';
   import { figFor } from '../../lib/fig/figlib';
   import { mathHtml } from '../actions/math';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
+  import { kindLabel } from '../../lib/sections/reference';
   const PAUSE = 120;
   const PAGE = 60;
   let query = $state('');
@@ -65,31 +68,32 @@
   });
   const tex = (node: HTMLElement, v: { readonly book: string; readonly tex: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, x.tex); set(v); return { update: set }; };
   const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, registry.manifest(bookId(x.book)).symbols[x.sym] ?? x.sym); set(v); return { update: set }; };
-  const KIND: Readonly<Record<Hit['kind'], string>> = { concept: 'concept', definition: 'definition', formula: 'formula', text: 'text' };
+  const KIND: Readonly<Record<Hit['kind'], MessageKey>> = { concept: 'views.search.kind.concept', definition: 'views.search.kind.definition', formula: 'views.search.kind.formula', text: 'views.search.kind.text' };
   const DAY = 86_400_000;
   const when = (t: number): string => {
     const days = Math.floor((Date.now() - t) / DAY);
-    return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days < 30 ? `${days} days ago` : new Date(t).toLocaleDateString();
+    return days <= 0 ? i18n.t('views.search.today') : days === 1 ? i18n.t('views.search.yesterday') : days < 30 ? i18n.t('views.search.daysAgo', { n: days }) : new Date(t).toLocaleDateString(i18n.locale);
   };
+  const FILTER_KEY: Readonly<Record<Filter, MessageKey>> = { all: 'views.search.filter.all', concept: 'views.search.filter.concept', definition: 'views.search.filter.definition', formula: 'views.search.filter.formula', text: 'views.search.filter.text' };
   const where = (h: Hit): string => h.kind === 'text' ? pageLabel(h.page) : h.kind === 'concept' ? h.concept.section : h.kind === 'formula' ? h.form.section : h.symbol.section;
 </script>
 
 <div class="search">
   <div class="box">
     <span class="glyph" aria-hidden="true">{@html ICON.search}</span>
-    <input bind:this={input} bind:value={query} type="search" spellcheck="false" autocomplete="off" aria-label="Search your library" placeholder="Search your library…" onkeydown={onKey} />
+    <input bind:this={input} bind:value={query} type="search" spellcheck="false" autocomplete="off" aria-label={i18n.t('views.search.label')} placeholder={i18n.t('views.search.placeholder')} onkeydown={onKey} />
   </div>
-  <div class="filters" role="radiogroup" aria-label="What to look for">
+  <div class="filters" role="radiogroup" aria-label={i18n.t('views.search.filters')}>
     {#each FILTERS as f (f)}
-      <button type="button" class="chip" class:on={filter === f} role="radio" aria-checked={filter === f} onclick={() => (filter = f)}>{FILTER_LABEL[f]}</button>
+      <button type="button" class="chip" class:on={filter === f} role="radio" aria-checked={filter === f} onclick={() => (filter = f)}>{i18n.t(FILTER_KEY[f])}</button>
     {/each}
   </div>
-  {#if searchStore.busy}<div class="status">Reading the library…</div>
-  {:else if failed.length}<div class="status bad">Could not read all of {failed.map((b) => searchStore.corpora[b]?.title || b).join(', ')}.</div>{/if}
+  {#if searchStore.busy}<div class="status">{i18n.t('views.search.reading')}</div>
+  {:else if failed.length}<div class="status bad">{i18n.t('views.search.failed', { books: failed.map((b) => searchStore.corpora[b]?.title || b).join(', ') })}</div>{/if}
   {#if !asked}
-    <div class="hint">Search text, concepts, definitions and formulas in your textbooks.</div>
+    <div class="hint">{i18n.t('views.search.hint')}</div>
   {:else if !countFound(results) && !searchStore.busy}
-    <div class="hint">Nothing matches.</div>
+    <div class="hint">{i18n.t('views.search.nothing')}</div>
   {:else}
     <div class="hits" bind:this={list}>
       {#each byBook as b (b.book)}
@@ -100,39 +104,39 @@
               <span class="where">{where(h)}{#if h.head} › {h.head}{/if}</span>
               <span class="line">{#each h.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
             {:else if h.kind === 'concept'}
-              <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)} · {h.concept.kind}</span>
+              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t(KIND[h.kind])}</i>{/if}{where(h)} · {kindLabel(h.concept.kind, i18n.t).toLocaleLowerCase(i18n.locale)}</span>
               <span class="line name" use:mathHtml={h.concept.name}></span>
               {#if h.concept.status === 'built' && h.concept.statement}<span class="line statement">{h.concept.statement}</span>{/if}
             {:else if h.kind === 'formula'}
-              <span class="where">{#if filter === 'all'}<i class="kind">{KIND[h.kind]}</i>{/if}{where(h)}{#if h.form.condition} · {h.form.condition}{/if}</span>
+              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t(KIND[h.kind])}</i>{/if}{where(h)}{#if h.form.condition} · {h.form.condition}{/if}</span>
               <span class="line eq" use:tex={{ book: h.book, tex: h.form.tex }}></span>
             {:else}
-              <span class="where">{#if filter === 'all'}<i class="kind">symbol</i>{/if}{where(h)}</span>
+              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t('views.search.kind.symbol')}</i>{/if}{where(h)}</span>
               <span class="line"><span class="sym" use:sym={{ book: h.book, sym: h.symbol.sym }}></span> {h.symbol.meaning}{#if h.symbol.unit} <span class="unit">{h.symbol.unit}</span>{/if}</span>
             {/if}
           </button>
         {/each}
       {/each}
       {#if fileHits.length}
-        <div class="eyebrow book">Your Files</div>
+        <div class="eyebrow book">{i18n.t('views.annotations.yourFiles')}</div>
         {#each fileHits as f (`${f.file}:${f.page}`)}
           <button type="button" class="hit k-text" onclick={(e) => void openFile(f.file, f.page, undefined, openingOf(e))} onauxclick={onMiddle((e) => void openFile(f.file, f.page, undefined, openingOf(e)))}>
-            <span class="where">{f.name} · page {f.page}</span>
+            <span class="where">{i18n.t('views.search.filePage', { name: f.name, page: f.page })}</span>
             <span class="line">{#each f.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           </button>
         {/each}
       {/if}
       {#if chatHits.length}
-        <div class="eyebrow book">Chats</div>
+        <div class="eyebrow book">{i18n.t('views.search.chats')}</div>
         {#each chatHits as c (`${c.chat}:${c.message}`)}
           <button type="button" class="hit k-text" onclick={() => void showChatAt(c.chat, c.message)}>
-            <span class="where">{c.name || 'Chat'} · {c.role === 'user' ? 'you' : 'AI'} · {when(c.at)}</span>
+            <span class="where">{c.name || i18n.t('views.search.chat')} · {c.role === 'user' ? i18n.t('views.search.you') : i18n.t('views.search.ai')} · {when(c.at)}</span>
             <span class="line">{#each c.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           </button>
         {/each}
       {/if}
-      {#if hits.length > shown}<button type="button" class="more" onclick={() => (shown += PAGE)}>Show more ({hits.length - shown})</button>{/if}
-      {#if found.cut > 0}<div class="hint">…and {found.cut} more in the text{#if filter === 'all'}: choose Text to see them{/if}.</div>{/if}
+      {#if hits.length > shown}<button type="button" class="more" onclick={() => (shown += PAGE)}>{i18n.t('views.search.showMore', { n: hits.length - shown })}</button>{/if}
+      {#if found.cut > 0}<div class="hint">{filter === 'all' ? i18n.t('views.search.cutAll', { n: found.cut }) : i18n.t('views.search.cut', { n: found.cut })}</div>{/if}
     </div>
   {/if}
 </div>

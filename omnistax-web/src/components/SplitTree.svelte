@@ -6,6 +6,7 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { groupIndex, resizeSplit, type SplitNode, type SplitPath } from '../lib/layout/model';
   import { FIG } from '../lib/fig/figlib';
+  import { i18n } from '../lib/i18n/store.svelte';
   import DocGroup from './DocGroup.svelte';
   import SplitTree from './SplitTree.svelte';
   let { node, path = [], onPick }: { node: SplitNode; path?: SplitPath; onPick: (index: number, anchor: HTMLElement) => void } = $props();
@@ -58,7 +59,7 @@
   <div class="split {node.dir}" style:--cell-min="{MIN}px">
     {#each node.children as child, i (nodeKey(child))}
       {#if i > 0}
-        <div class="grip" role="separator" aria-orientation={node.dir === 'row' ? 'vertical' : 'horizontal'} aria-label="Resize groups"
+        <div class="grip" role="separator" aria-orientation={node.dir === 'row' ? 'vertical' : 'horizontal'} aria-label={i18n.t('shell.splitTree.resize')}
           onpointerdown={(e) => drag(e, i - 1)} ondblclick={() => evenPair(i - 1)}></div>
       {/if}
       <div class="cell" style:flex="{weights[i]} 1 0px">

@@ -11,6 +11,7 @@
      (Ctrl as well to add to what is held); a press that does not move is a
      click on nothing. */
   import type { Snippet } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { fit = false, minZoom = 0.2, maxZoom = 3, view = $bindable({ x: 0, y: 0, zoom: 1 }), onlasso, onblank, children }:
     { fit?: boolean; minZoom?: number; maxZoom?: number; view?: PlaneView;
@@ -122,8 +123,8 @@
   </div>
   {#if shown}<div class="lasso" style:left="{shown.x}px" style:top="{shown.y}px" style:width="{shown.w}px" style:height="{shown.h}px"></div>{/if}
   <div class="tools">
-    <button type="button" class="btn ghost sm" onclick={fitView}>Fit</button>
-    <button type="button" class="btn ghost sm" onclick={reset}>Reset</button>
+    <button type="button" class="btn ghost sm" onclick={fitView}>{i18n.t('shell.plane.fit')}</button>
+    <button type="button" class="btn ghost sm" onclick={reset}>{i18n.t('shell.plane.reset')}</button>
   </div>
 </div>
 

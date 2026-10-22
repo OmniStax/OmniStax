@@ -1,4 +1,5 @@
 import type { BookReleaseManifest } from './schema';
+import { t } from '../i18n/index';
 
 export type InstallStatus = 'downloading' | 'failed' | 'ready';
 export type InstallationRecord = {
@@ -15,14 +16,14 @@ const DB = 'omnistax-offline'; const STORE = 'installations'; const VERSION = 2;
 const open = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
   const request = indexedDB.open(DB, VERSION);
   request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE, { keyPath: 'bookId' }); if (!request.result.objectStoreNames.contains('clientPins')) request.result.createObjectStore('clientPins', { keyPath: 'clientId' }); };
-  request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error ?? new Error('Offline storage could not be opened.'));
+  request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error ?? new Error(t('offline.error.storageOpen')));
 });
 const transaction = <T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => open().then((db) => new Promise((resolve, reject) => {
   const tx = db.transaction(STORE, mode); const request = operation(tx.objectStore(STORE)); let result: T;
   request.onsuccess = () => { result = request.result; };
   tx.oncomplete = () => { db.close(); resolve(result); };
-  tx.onerror = () => { db.close(); reject(tx.error ?? request.error ?? new Error('Offline storage failed.')); };
-  tx.onabort = () => { db.close(); reject(tx.error ?? new Error('Offline storage was interrupted.')); };
+  tx.onerror = () => { db.close(); reject(tx.error ?? request.error ?? new Error(t('offline.error.storageFailed'))); };
+  tx.onabort = () => { db.close(); reject(tx.error ?? new Error(t('offline.error.storageInterrupted'))); };
 }));
 
 export const listInstallations = async (): Promise<InstallationRecord[]> => typeof indexedDB === 'undefined' ? [] : transaction('readonly', (store) => store.getAll());

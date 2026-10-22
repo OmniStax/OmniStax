@@ -9,6 +9,7 @@
   import { bookKey } from '../../lib/explorer/model';
   import { ICON } from '../../lib/icons';
   import { offlineBooks } from '../../lib/offline/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   $effect(() => { if (ui.findTextbook) { void library.load(); void offlineBooks.check(); } });
 
@@ -20,35 +21,34 @@
   };
   const parts = (b: LibraryBookDTO): string =>
     [b.publisher, b.authors.join(', ')].filter((s) => s.length > 0).join(' · ');
-  const size = (b: LibraryBookDTO): string =>
-    `${b.chapters} ${b.chapters === 1 ? 'chapter' : 'chapters'} · ${b.sections} ${b.sections === 1 ? 'section' : 'sections'}`;
+  const size = (b: LibraryBookDTO): string => i18n.t('explorer.findTextbook.size', { chapters: b.chapters, sections: b.sections });
   const bytes = (n: number): string => n < 1024 * 1024 ? `${Math.ceil(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
   const offlineSize = (id: string): string => { const n = offlineBooks.catalog?.books.find((book) => book.id === id)?.totalBytes; return n ? bytes(n) : ''; };
   const countChanges = (id: string): string => {
     const change = offlineBooks.changes[id]?.changes; if (!change) return '';
     const s = change.sections, r = change.resources;
-    return `${s.added.length} sections added · ${s.changed.length} changed · ${s.removed.length} removed; ${r.added.length} resources added · ${r.changed.length} changed · ${r.removed.length} removed`;
+    return i18n.t('offline.changes.count', { sa: s.added.length, sc: s.changed.length, sr: s.removed.length, ra: r.added.length, rc: r.changed.length, rr: r.removed.length });
   };
-  const when = (value: string | number | undefined): string => value ? new Date(value).toLocaleString() : 'never';
-  const releaseWhen = (value: string | undefined): string => !value || value.startsWith('1970-01-01') ? 'date not provided' : new Date(value).toLocaleDateString();
+  const when = (value: string | number | undefined): string => value ? new Date(value).toLocaleString(i18n.locale) : i18n.t('offline.never');
+  const releaseWhen = (value: string | undefined): string => !value || value.startsWith('1970-01-01') ? i18n.t('offline.noDate') : new Date(value).toLocaleDateString(i18n.locale);
   const lastCheck = $derived(offlineBooks.lastCheck ?? Math.max(0, ...Object.values(offlineBooks.records).map((record) => record.lastCheck ?? 0)));
 </script>
 
 {#if ui.findTextbook}
-  <div class="finder" role="dialog" aria-label="Find a textbook" tabindex="-1"
+  <div class="finder" role="dialog" aria-label={i18n.t('explorer.findTextbook.title')} tabindex="-1"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); ui.closeFindTextbook(); } }}>
     <header>
       <span class="ico">{@html ICON.search}</span>
-      <span class="title">Find a textbook</span>
-      <button type="button" class="x" aria-label="Close" onclick={() => ui.closeFindTextbook()}>×</button>
+      <span class="title">{i18n.t('explorer.findTextbook.title')}</span>
+      <button type="button" class="x" aria-label={i18n.t('explorer.close')} onclick={() => ui.closeFindTextbook()}>×</button>
     </header>
     <div class="list">
-      <div class="updates"><button type="button" class="add" disabled={offlineBooks.checking} onclick={() => void offlineBooks.check()}>{offlineBooks.checking ? 'Checking…' : 'Check for updates'}</button><span>Last successful check: {when(lastCheck || undefined)}</span>{#if offlineBooks.message}<span class="bad">{offlineBooks.message}</span>{/if}</div>
+      <div class="updates"><button type="button" class="add" disabled={offlineBooks.checking} onclick={() => void offlineBooks.check()}>{offlineBooks.checking ? i18n.t('offline.checking') : i18n.t('offline.checkUpdates')}</button><span>{i18n.t('offline.lastCheck', { when: when(lastCheck || undefined) })}</span>{#if offlineBooks.message}<span class="bad">{offlineBooks.message}</span>{/if}</div>
       {#if library.status === 'loading'}
-        <div class="none">Looking for books…</div>
+        <div class="none">{i18n.t('explorer.findTextbook.loading')}</div>
       {:else if library.status === 'failed'}
-        <div class="none bad">Could not load the catalog.</div>
+        <div class="none bad">{i18n.t('explorer.findTextbook.failed')}</div>
       {:else}
         {#each library.books as b (b.id)}
           {@const installed = offlineBooks.records[b.id]}
@@ -59,33 +59,33 @@
             <span class="what">
               <span class="name">{b.title}</span>
               {#if parts(b)}<span class="who">{parts(b)}</span>{/if}
-              <span class="counts">{size(b)}{offlineSize(b.id) ? ` · ${offlineSize(b.id)} offline` : ''}</span>
-              {#if installed?.publishedAt}<span class="counts">Installed release: {releaseWhen(installed.publishedAt)}{installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact) ? ' · update available' : ''}</span>{/if}
-              {#if available && installed?.installedRelease && (available.releaseId !== installed.installedRelease || available.artifactId !== installed.installedArtifact)}<span class="counts">Available release: {releaseWhen(available.publishedAt)}</span>{/if}
-              {#if progress}<progress value={progress.bytes} max={progress.totalBytes}></progress><span class="counts">{progress.files} / {progress.totalFiles} files</span>{/if}
+              <span class="counts">{size(b)}{offlineSize(b.id) ? ` · ${i18n.t('offline.size', { size: offlineSize(b.id) })}` : ''}</span>
+              {#if installed?.publishedAt}<span class="counts">{i18n.t('offline.installedRelease', { when: releaseWhen(installed.publishedAt) })}{installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact) ? ` · ${i18n.t('offline.updateAvailable')}` : ''}</span>{/if}
+              {#if available && installed?.installedRelease && (available.releaseId !== installed.installedRelease || available.artifactId !== installed.installedArtifact)}<span class="counts">{i18n.t('offline.availableRelease', { when: releaseWhen(available.publishedAt) })}</span>{/if}
+              {#if progress}<progress value={progress.bytes} max={progress.totalBytes}></progress><span class="counts">{i18n.t('offline.progress', { done: progress.files, total: progress.totalFiles })}</span>{/if}
             </span>
             <span class="offline-actions">
               {#if offlineBooks.downloading(b.id)}
-                <button type="button" class="add" onclick={() => offlineBooks.cancel(b.id)}>Cancel</button>
+                <button type="button" class="add" onclick={() => offlineBooks.cancel(b.id)}>{i18n.t('offline.cancel')}</button>
               {:else if installed?.installedRelease && installed.status === 'ready'}
-                <span class="available">Available offline</span>
-                {#if installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact)}<button type="button" class="add" onclick={() => void offlineBooks.loadChanges(b.id)}>View changes</button><button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>Update</button>{/if}
-                <button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>Remove download</button>
+                <span class="available">{i18n.t('offline.available')}</span>
+                {#if installed.availableRelease && (installed.availableRelease !== installed.installedRelease || installed.availableArtifact !== installed.installedArtifact)}<button type="button" class="add" onclick={() => void offlineBooks.loadChanges(b.id)}>{i18n.t('offline.viewChanges')}</button><button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>{i18n.t('offline.update')}</button>{/if}
+                <button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>{i18n.t('offline.remove')}</button>
               {:else}
-                <button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>{installed?.installedRelease ? 'Repair download' : installed?.status === 'failed' ? 'Retry download' : 'Download for offline use'}</button>
-                {#if installed?.installedRelease}<button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>Remove download</button>{/if}
+                <button type="button" class="add" onclick={() => void offlineBooks.install(b.id)}>{installed?.installedRelease ? i18n.t('offline.repair') : installed?.status === 'failed' ? i18n.t('offline.retry') : i18n.t('offline.download')}</button>
+                {#if installed?.installedRelease}<button type="button" class="add" onclick={() => void offlineBooks.remove(b.id)}>{i18n.t('offline.remove')}</button>{/if}
               {/if}
-              {#if installed?.installedRelease}<label class="auto"><input type="checkbox" checked={offlineBooks.autoUpdate(b.id)} onchange={(e) => offlineBooks.setAutoUpdate(b.id, e.currentTarget.checked)}>Update automatically</label>{/if}
+              {#if installed?.installedRelease}<label class="auto"><input type="checkbox" checked={offlineBooks.autoUpdate(b.id)} onchange={(e) => offlineBooks.setAutoUpdate(b.id, e.currentTarget.checked)}>{i18n.t('offline.autoUpdate')}</label>{/if}
             </span>
             {#if offlineBooks.changes[b.id]}<span class="change-note">{offlineBooks.changes[b.id].notes ?? countChanges(b.id)}</span>{/if}
             {#if library.has(b.id)}
-              <button type="button" class="add" disabled>Added</button>
+              <button type="button" class="add" disabled>{i18n.t('explorer.findTextbook.added')}</button>
             {:else}
-              <button type="button" class="add" onclick={() => add(b)}>Add</button>
+              <button type="button" class="add" onclick={() => add(b)}>{i18n.t('explorer.findTextbook.add')}</button>
             {/if}
           </div>
         {:else}
-          <div class="none">No books yet.</div>
+          <div class="none">{i18n.t('explorer.findTextbook.empty')}</div>
         {/each}
       {/if}
     </div>

@@ -3,7 +3,11 @@
    (about.html) and placed in the static pool of the page whose URL it is.
    Everything is a string; no DOM is touched and no dependency is added,
    because this runs at build time. The page is one <article class="page"
-   data-page="about"> that the shell adopts as it adopts a section's article. */
+   data-page="about"> that the shell adopts as it adopts a section's article.
+   Its words are the `about` area of the catalog. The page is static and one
+   for the whole site, so it is English for now (every caller passes no
+   locale); a front page per language is a page that passes its own. */
+import { type Locale, tIn } from '../i18n/index';
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -14,7 +18,11 @@ const GITHUB_MARK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden
 /* The front of OmniStax: the title with the repository beside it, the
    introduction in the author's own words, and a way into the books. Each
    feature named in the introduction lights its place in the shell on hover. */
-export const aboutHtml = (): string => `<article class="page" data-page="about">
+export const aboutHtml = (locale: Locale = 'en'): string => {
+  const t = (key: Parameters<typeof tIn>[1], params?: Parameters<typeof tIn>[2]): string => tIn(locale, key, params);
+  const feature = (name: 'notes' | 'pomodoro' | 'drawer' | 'ai'): string =>
+    `<span class="feature" data-feature="${name}">${esc(t(`about.feature.${name}`))}</span>`;
+  return `<article class="page" data-page="about">
   <header>
     <div class="masthead">
       <h1>OmniStax/万象</h1>
@@ -23,12 +31,13 @@ export const aboutHtml = (): string => `<article class="page" data-page="about">
         <span class="name">BlastWind/OmniStax</span>
       </a>
     </div>
-    <p class="intro">OmniStax/万象 is a next-gen, open-sourced STEM learning platform. It mimics the user experience of programming IDEs to reduce cognitive friction. As such, I'm calling it the first Integrated Learning Environment (ILE).</p>
-    <p class="intro">The main contribution of OmniStax is our OmniBooks: Open-source textbooks transformed by AI. AI maintains the original writing but replaces old and static diagrams with interactive widgets. AI also organizes the text, doing natural language stuff to extract exercises and color code.</p>
-    <p class="intro">OmniStax is feature-rich. It has a <span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and even an annotator for your uploaded PDFs. Everything is integrated! For example, you can drag a formula or figure from an OmniBook and drop it into a note.</p>
+    <p class="intro">${esc(t('about.intro.platform'))}</p>
+    <p class="intro">${esc(t('about.intro.books'))}</p>
+    <p class="intro">${t('about.intro.features', { notes: feature('notes'), pomodoro: feature('pomodoro'), drawer: feature('drawer'), ai: feature('ai') })}</p>
   </header>
 
   <div class="coda">
-    <button type="button" class="btn primary try" data-find-textbook>Try an OmniBook</button>
+    <button type="button" class="btn primary try" data-find-textbook>${esc(t('about.try'))}</button>
   </div>
 </article>`;
+};
