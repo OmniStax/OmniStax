@@ -293,7 +293,7 @@ stages and `ost` refuses — the title, `types` and `exercise_kinds` labels,
 
 ```
 python3 -I omnistax-content/tools/scaffold_translation.py new --source "omnistax-content/College Physics 2e" \
-  --target "omnistax-content/College Physics 2e (zh-CN)" --tag zh-CN --id college-physics-2e-zh-cn \
+  --target "omnistax-content/College Physics 2e/translations/zh-CN" --tag zh-CN --id college-physics-2e-zh-cn \
   --title "大学物理（第2版）" --translator claude-opus-5-5 --effort medium --date 2026-10-22 \
   --glossary glossary.zh-CN.json --chapters ch01
 python3 -I omnistax-content/tools/scaffold_translation.py labels college-physics-2e-zh-cn labels.json

@@ -4,7 +4,7 @@
 
 ```
 omnistax-content/<Book Title>/   one folder per book, named by the title in its book.json
-omnistax-content/<Book Title> (<tag>)/   a translation of that book into the language <tag> (item 30)
+omnistax-content/<Book Title>/translations/<tag>/   a translation of that book into the language <tag>, a book of its own (item 30)
   book.json                      the book: identity, licence, types, symbols, concepts
   RULES.md                       the book's own rules (item 18)
   LOG.md                         the running log of passes over this book
@@ -235,4 +235,4 @@ A derivation is a chain of equations the book works from stated facts to a resul
 
 ## 30. Translating a book
 
-A translation is a book of its own, in `omnistax-content/<Source folder> (<tag>)/`, where `<tag>` is the BCP 47 tag of its language, with its own id `<source id>-<tag lowercased>` and its title in that language. Its `book.json` declares `language`, `translation_of` (the source's id) and `translation` (who translated it, at what effort, on what date, after which authority, with which glossary). Every id is the source's, so the same place opens in either edition, and the content check compares them. The folder is made by `omnistax-content/tools/scaffold_translation.py`. The rules of the translation are `docs/prompts/translate.md`: the field's standard terms, looked up and never coined, fixed in the book's glossary; the source's tone, sentences and content kept, with nothing added or removed except a forced scenario, which is written down where the owner will see it. The humanizer review is the owner's, after the translation is built.
+A translation is a book of its own, in `omnistax-content/<Source folder>/translations/<tag>/`, where `<tag>` is the BCP 47 tag of its language, with its own id `<source id>-<tag lowercased>` and its title in that language. Its `book.json` declares `language`, `translation_of` (the source's id) and `translation` (who translated it, at what effort, on what date, after which authority, with which glossary). Every id is the source's, so the same place opens in either edition, and the content check compares them. The folder is made by `omnistax-content/tools/scaffold_translation.py`. The rules of the translation are `docs/prompts/translate.md`: the field's standard terms, looked up and never coined, fixed in the book's glossary; the source's tone, sentences and content kept, with nothing added or removed except a forced scenario, which is written down where the owner will see it. The humanizer review is the owner's, after the translation is built.

@@ -2,7 +2,7 @@
 """Compare a translated page with its source page: what must be byte for byte, is it?
 
     python3 -I omnistax-content/tools/translation_parity.py "omnistax-content/College Physics 2e" \\
-        "omnistax-content/College Physics 2e (zh-CN)" ch02/2.1 [ch02/2.2 ...]
+        "omnistax-content/College Physics 2e/translations/zh-CN" ch02/2.1 [ch02/2.2 ...]
     python3 -I omnistax-content/tools/translation_parity.py SOURCE TARGET --chapter ch02
 
 For each page it reports, as `file: finding`, one line per difference:

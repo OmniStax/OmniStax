@@ -36,7 +36,7 @@ book; a book's pages carry the book's language on `<html>`.
 absent, the checker warns), `translation_of` and a `translation`
 provenance block (translator, effort, date, authority, glossary, source
 commit). A translation is a book of its own under
-`omnistax-content/<Title> (<tag>)/` with id `<source-id>-<tag>`, keeps
+`omnistax-content/<Title>/translations/<tag>/` with id `<source-id>-<tag>`, keeps
 every id of its source, and the content check compares the chapter dirs
 and the section, concept, form, symbol, type, exercise, figure and span
 ids, one error per set that differs. It has no `media/`: image sizes and
@@ -53,7 +53,7 @@ chapter's `config.md` and the book's `translation-notes.md`; exactly which
 fields are translated and which stay. `omnistax-content/tools/
 scaffold_translation.py` makes the folder.
 
-**The pilot.** `omnistax-content/College Physics 2e (zh-CN)/`
+**The pilot.** `omnistax-content/College Physics 2e/translations/zh-CN/`
 (`college-physics-2e-zh-cn`, 大学物理（第2版）), chapter 1 only: the
 introduction and 1.1–1.4, every field, text node, figure string and
 exercise, with `glossary.zh-CN.json` (253 terms) and 22 forced scenarios.

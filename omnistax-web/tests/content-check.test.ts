@@ -523,9 +523,9 @@ test('checkParity: a book read off disk matches itself as a translation', async 
 
 test('a translation’s media are its own and then its source’s, and a translation_of that names no book is an error', () => {
   const source = { id: bookId('b'), dir: bookDir('/root/B') };
-  const own = { id: bookId('b-zh-cn'), dir: bookDir('/root/B (zh-CN)'), translationOf: bookId('b') };
+  const own = { id: bookId('b-zh-cn'), dir: bookDir('/root/B/translations/zh-CN'), translationOf: bookId('b') };
   assert.deepEqual(mediaRootsOf([source, own], source), [path.join('/root/B', 'media')]);
-  assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B (zh-CN)', 'media'), path.join('/root/B', 'media')]);
+  assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B/translations/zh-CN', 'media'), path.join('/root/B', 'media')]);
   assert.throws(() => mediaRootsOf([own], own), /translation_of "b" names no book under the content root/);
 });
 

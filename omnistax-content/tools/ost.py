@@ -261,15 +261,27 @@ def load(path: str) -> RecordDTO:
         raise Refused(f"{os.path.relpath(path, REPO)} does not parse: {e}")
 
 
+TRANSLATIONS_DIR = "translations"   # a book's translations, one folder per language tag, each a book of its own (RULES item 30)
+
+
 def books() -> list[Book]:
+    """Every book of the content root: each folder with a book.json, and each folder of its translations/ with one."""
     found = []
-    for name in sorted(os.listdir(CONTENT)):
-        path = os.path.join(CONTENT, name, "book.json")
+
+    def book_at(d: str) -> None:
+        path = os.path.join(d, "book.json")
         if os.path.exists(path):
             try:
-                found.append(Book(json.loads(read_text(path))["id"], os.path.join(CONTENT, name)))
+                found.append(Book(json.loads(read_text(path))["id"], d))
             except Exception:
-                continue
+                pass
+
+    for name in sorted(os.listdir(CONTENT)):
+        book_at(os.path.join(CONTENT, name))
+        nested = os.path.join(CONTENT, name, TRANSLATIONS_DIR)
+        if os.path.isdir(nested):
+            for tag in sorted(os.listdir(nested)):
+                book_at(os.path.join(nested, tag))
     return found
 
 

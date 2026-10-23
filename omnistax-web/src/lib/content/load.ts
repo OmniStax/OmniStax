@@ -461,17 +461,30 @@ export const pageNav = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>, 
    it lives in, which is named for its title rather than its id. */
 export type BookFolder = { readonly id: BookId; readonly dir: BookDir; readonly translationOf?: BookId };
 
-/* Every book under the content root, by id. A folder with no book.json is not
-   a book — `tools/` is one — and is passed over; a book.json that will not
-   parse is an error, since a book that cannot be read is not a folder that was
-   never meant to be one. */
+/* The folder of a book that holds its translations, one folder per language
+   tag beneath it (`College Physics 2e/translations/zh-CN/`); no chapter is
+   named so, and a walker of a book's pages passes it over. */
+export const TRANSLATIONS_DIR = 'translations';
+
+/* Every book under the content root, by id: each folder of the root with a
+   book.json, and each folder of its `translations/` with one. A folder with
+   no book.json is not a book — `tools/` is one — and is passed over; a
+   book.json that will not parse is an error, since a book that cannot be read
+   is not a folder that was never meant to be one. */
 export const findBooks = async (root: ContentRoot): Promise<readonly BookFolder[]> => {
-  const entries = await fs.readdir(root, { withFileTypes: true });
-  const dirs = entries.filter((e) => e.isDirectory()).map((e) => bookDir(path.join(root, e.name)));
-  const found = await Promise.all(dirs.map(async (dir): Promise<readonly BookFolder[]> => {
+  const subdirs = async (dir: string): Promise<readonly string[]> => {
+    const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+    return entries.filter((e) => e.isDirectory()).map((e) => path.join(dir, e.name));
+  };
+  const bookAt = async (dir: BookDir): Promise<readonly BookFolder[]> => {
     if (!(await exists(path.join(dir, 'book.json')))) return [];
     const dto = await readJson(path.join(dir, 'book.json'), BookSchema);
     return [{ id: bookId(dto.id), dir, ...(dto.translationOf !== undefined ? { translationOf: bookId(dto.translationOf) } : {}) }];
+  };
+  const found = await Promise.all((await subdirs(root)).map(async (dir): Promise<readonly BookFolder[]> => {
+    const own = await bookAt(bookDir(dir));
+    const nested = await Promise.all((await subdirs(path.join(dir, TRANSLATIONS_DIR))).map((t) => bookAt(bookDir(t))));
+    return [...own, ...nested.flat()];
   }));
   return found.flat();
 };

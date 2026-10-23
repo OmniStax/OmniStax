@@ -22,13 +22,17 @@ const versions = (): Versions => {
   return (holder[KEY] ??= { root: 0, books: new Map() });
 };
 
-/* The folder directly under the root that a changed file lies in, which is the
-   book it belongs to; a file at the root itself belongs to no book. */
-const folderOf = (root: ContentRoot, file: string): string | null => {
+/* The book folder a changed file lies in: the folder directly under the root,
+   or, for a file under a book's `translations/<tag>/`, that translation's own
+   folder, since it is a book of its own (load.ts findBooks). A file at the root
+   itself belongs to no book. */
+const TRANSLATIONS_DIR = 'translations';
+export const folderOf = (root: ContentRoot, file: string): string | null => {
   const rest = path.relative(root, file);
   if (rest === '' || rest.startsWith('..') || path.isAbsolute(rest)) return null;
-  const [first] = rest.split(path.sep);
-  return first === undefined || first === '' ? null : path.join(root, first);
+  const [first, second, third] = rest.split(path.sep);
+  if (first === undefined || first === '') return null;
+  return second === TRANSLATIONS_DIR && third !== undefined && third !== '' ? path.join(root, first, second, third) : path.join(root, first);
 };
 
 /* A file under the root changed. Its book is stale, and on an add or an unlink

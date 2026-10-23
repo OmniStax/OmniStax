@@ -51,8 +51,8 @@ order they are built.
 A book may be a translation of another: its `book.json` declares `language`
 (a BCP 47 tag; absent, `en`, and `npm run check:content` warns),
 `translation_of` (the source's id) and `translation` (how it was made). A
-translation lives in a folder of its own beside its source, by convention the
-source's folder name with the tag (`College Physics 2e (zh-CN)`), keeps every id
+translation lives in a folder of its own under its source's `translations/`,
+named by the tag (`College Physics 2e/translations/zh-CN`), keeps every id
 of its source, and keeps **no `media/` folder**: its text names the source's
 `/media/…` paths as they are. So a translation's images are sized from its own
 `media/` and then its source's, and a build serves and copies the source's

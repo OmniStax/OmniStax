@@ -39,7 +39,7 @@ class Fixture(unittest.TestCase):
         shutil.copytree(os.path.join(PHYSICS, "ch01"), os.path.join(self.source, "ch01"))
         os.makedirs(os.path.join(self.source, "media", "ch01"))
         open(os.path.join(self.source, "media", "ch01", "a.jpg"), "wb").close()
-        self.target = os.path.join(self.dir, "College Physics 2e (zh-CN)")
+        self.target = os.path.join(self.dir, "College Physics 2e", "translations", "zh-CN")
         self.patches = [mock.patch.object(ost, "CONTENT", self.dir), mock.patch.object(ost, "LOCK", os.path.join(self.dir, "lock")),
                         mock.patch.object(ost, "run_checker", mock.Mock(return_value=NO_FINDINGS))]
         for p in self.patches:

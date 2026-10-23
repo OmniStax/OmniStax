@@ -11,3 +11,10 @@ omnistax-content/Figure Sandbox/
 
 # termonline lookup cache: large and rebuilt on demand
 omnistax-content/*/tools/termonline-cache.json*
+
+# termonline lookup caches (working files of the translation tools)
+termonline-cache*.json
+termonline-cache*.json.terms
+termonline-cache*.json.tmp
+.termonline-cache.json
+.termonline-cache.json.terms

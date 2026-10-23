@@ -8,7 +8,7 @@ The root `RULES.md`; the source book's `RULES.md` and `COLOR.md`; the translated
 
 ## 1. Folder, id and title
 
-1. A translation lives in `omnistax-content/<Source folder> (<tag>)/`, where `<tag>` is the BCP 47 tag of its language (`College Physics 2e (zh-CN)`). The pair sorts together and the app finds it as it finds any folder with a `book.json`.
+1. A translation lives in `omnistax-content/<Source folder>/translations/<tag>/`, where `<tag>` is the BCP 47 tag of its language (`College Physics 2e/translations/zh-CN`). The source's folder holds its editions, and the app finds a translation there as it finds any folder with a `book.json`; no chapter is named `translations`, and the tools that walk a book's pages pass that folder over.
 2. Its id is `<source id>-<tag lowercased>` (`college-physics-2e-zh-cn`). The id names URL routes, the reader's storage keys and the offline release, so it stays lowercase ASCII with hyphens.
 3. Its `title` is the title in the target language, as a reader of that language would look the book up; an edition marker is written the way that language writes one (`（第2版）`, not `2e`).
 4. `language` is the tag, `translation_of` the source's id, and `translation` the provenance record of item 9.

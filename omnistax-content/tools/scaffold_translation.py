@@ -8,7 +8,7 @@ untranslated copy is clean:
 
     python3 -I omnistax-content/tools/scaffold_translation.py new \\
       --source "omnistax-content/College Physics 2e" \\
-      --target "omnistax-content/College Physics 2e (zh-CN)" \\
+      --target "omnistax-content/College Physics 2e/translations/zh-CN" \\
       --tag zh-CN --id college-physics-2e-zh-cn --title "大学物理（第2版）" \\
       --translator claude-opus-5-5 --effort medium --date 2026-10-22 \\
       --glossary glossary.zh-CN.json --chapters ch01
@@ -369,7 +369,7 @@ def parser() -> argparse.ArgumentParser:
     subs = p.add_subparsers(dest="command", required=True)
     new = subs.add_parser("new", help="make the folder of a translated book")
     new.add_argument("--source", required=True, help="the source book's folder")
-    new.add_argument("--target", required=True, help='the new folder, "<Source folder> (<tag>)"')
+    new.add_argument("--target", required=True, help='the new folder, "<Source folder>/translations/<tag>"')
     new.add_argument("--tag", required=True, help="the BCP 47 tag of the language, such as zh-CN")
     new.add_argument("--id", required=True, help="the translation's id, <source id>-<tag lowercased>")
     new.add_argument("--title", required=True, help="the title in the target language")
