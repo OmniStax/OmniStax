@@ -3,7 +3,8 @@ import { currentWorkerPin } from './register';
 import type { InstallationRecord } from './storage';
 import type { BookReleaseManifest, OfflineCatalog } from './schema';
 import type { ReleaseChanges, SeenRelease } from './model';
-import { bookMarks, releaseForBook } from './model';
+import { bookMarks, releaseForBook, sharedAutoUpdate } from './model';
+import { library } from '../explorer/library.svelte';
 import { readerWritesAllowed } from '../backup/guard';
 import { t } from '../i18n/index';
 import { SvelteMap } from 'svelte/reactivity';
@@ -77,6 +78,8 @@ class OfflineBooks {
       const record = await installFromCatalog(bookId, { signal: controller.signal, progress: (value) => { this.progress = { ...this.progress, [bookId]: value }; } });
       this.records = { ...this.records, [bookId]: record };
       this.noteApp(); void this.recordSeen();
+      /* A download the reader asked for puts the book on their shelf too: what is kept is what they read. */
+      if (!background) library.add(bookId, record.title);
     } catch (error) {
       const records = await listInstallations(); this.records = Object.fromEntries(records.map((record) => [record.bookId, record]));
       if (!background) this.message = error instanceof Error ? error.message : t('offline.error.downloadFailed');
@@ -106,9 +109,12 @@ class OfflineBooks {
     if (artifact) { this.knownArtifact ??= artifact; this.appUpdated = artifact !== this.knownArtifact; }
   }
   autoUpdate(bookId: string): boolean { return this.auto[bookId] !== false; }
-  setAutoUpdate(bookId: string, on: boolean): void {
-    this.auto = { ...this.auto, [bookId]: on }; writeJson(AUTO, this.auto);
-    if (on && this.marks(bookId).update) void this.install(bookId, true);
+  setAutoUpdate(bookId: string, on: boolean): void { this.setAutoUpdateOf([bookId], on); }
+  /* The setting over a book and its translations, which the finder and the row menu show as one box. */
+  autoUpdateOf(bookIds: readonly string[]): boolean { return sharedAutoUpdate(this.auto, bookIds); }
+  setAutoUpdateOf(bookIds: readonly string[], on: boolean): void {
+    this.auto = { ...this.auto, ...Object.fromEntries(bookIds.map((id) => [id, on])) }; writeJson(AUTO, this.auto);
+    if (on) for (const bookId of bookIds) if (this.records[bookId]?.installedRelease && this.marks(bookId).update) void this.install(bookId, true);
   }
   marks(bookId: string): { readonly updated: boolean; readonly update: boolean } {
     const record = this.records[bookId];

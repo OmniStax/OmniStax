@@ -47,7 +47,7 @@
   import type { MessageKey } from '../../lib/i18n/index';
   import { library } from '../../lib/explorer/library.svelte';
   import { editionsToSwitch, switchEdition } from '../../lib/explorer/editions.svelte';
-  import { languageName } from '../../lib/explorer/editions';
+  import { editionsOf, languageName } from '../../lib/explorer/editions';
 
   type RowKind = 'root' | 'find' | 'folder' | 'note' | 'file' | 'drawing' | 'chat' | 'book' | 'sheet' | 'sheets' | 'chapter' | 'section' | 'heading' | 'hint';
   type Row = {
@@ -384,8 +384,10 @@
   const offlineItems = (id: string) => {
     const rec = offlineBooks.records[id];
     if (!rec?.installedRelease) return offlineBooks.downloading(id) ? [] : [{ label: i18n.t('explorer.menu.download'), run: () => void offlineBooks.install(id) }];
-    const auto = offlineBooks.autoUpdate(id);
-    const toggle = { label: i18n.t('offline.autoUpdate'), checked: auto, run: () => offlineBooks.setAutoUpdate(id, !auto) };
+    /* One setting for the book and its translations; the book alone until the catalogue is fetched. */
+    const family = editionsOf(library.books, id).map((b) => b.id); const ids = family.length ? family : [id];
+    const auto = offlineBooks.autoUpdateOf(ids);
+    const toggle = { label: i18n.t('offline.autoUpdate'), checked: auto, run: () => offlineBooks.setAutoUpdateOf(ids, !auto) };
     if (offlineBooks.downloading(id)) return [toggle];
     const bytes = rec.manifest?.resources.reduce((n, x) => n + x.bytes, 0) ?? 0;
     return [toggle, { label: bytes ? i18n.t('explorer.menu.removeOfflineSize', { size: sizeLabel(bytes) }) : i18n.t('explorer.menu.removeOffline'), danger: true, run: () => { if (confirm(i18n.t('explorer.menu.removeOfflineAsk', { title: rec.title }))) void offlineBooks.remove(id); } }];

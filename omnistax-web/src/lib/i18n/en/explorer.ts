@@ -22,6 +22,7 @@ export const explorer = {
   'explorer.findTextbook.added': 'Added',
   'explorer.findTextbook.empty': 'No books yet.',
   'explorer.findTextbook.failed': 'Could not load the catalog.',
+  'explorer.findTextbook.languages': 'Language',
   'explorer.findTextbook.loading': 'Looking for books…',
   'explorer.findTextbook.size': '{chapters, plural, one {# chapter} other {# chapters}}, {sections, plural, one {# section} other {# sections}}',
   'explorer.findTextbook.title': 'Find a textbook',

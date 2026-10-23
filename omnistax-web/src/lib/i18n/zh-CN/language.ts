@@ -5,7 +5,6 @@ import type { language as source } from '../en/language';
 export const language: Readonly<Record<keyof typeof source, string>> = {
   'language.command': '切换语言',
   'language.command.detail.system': '跟随系统（{language}）',
-  'language.edition': '{language}版本',
   'language.openIn': '以{language}打开',
   'language.searchWords': '语言 Language English 中文 locale 界面语言',
   'language.setting.hint': '跟随浏览器：{language}',

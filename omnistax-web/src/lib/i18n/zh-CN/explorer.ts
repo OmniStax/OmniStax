@@ -20,6 +20,7 @@ export const explorer: Readonly<Record<keyof typeof source, string>> = {
   'explorer.findTextbook.added': '已添加',
   'explorer.findTextbook.empty': '还没有教材。',
   'explorer.findTextbook.failed': '无法加载目录。',
+  'explorer.findTextbook.languages': '语言',
   'explorer.findTextbook.loading': '正在查找教材…',
   'explorer.findTextbook.size': '{chapters, plural, other {#章}}，{sections, plural, other {#节}}',
   'explorer.findTextbook.title': '查找教材',
