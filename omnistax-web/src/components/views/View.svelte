@@ -55,10 +55,9 @@
   /* A place chosen from a menu is a move elsewhere, not a step along the trail: the map lets go of where it stood. */
   const leave = (): void => { if (target) mapViews.forget(viewKeyOf(item, target)); };
   const choose = (place: Target): void => { leave(); scope.choose(item, place); closeMenu(); };
-  /* The places the open menu offers: the crumb's own place is the one the view stands on,
-     and the place the open page lies in is named, since choosing it is following again. */
+  /* The places the open menu offers: the crumb's own place is the one the view stands on. */
   const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
-  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book, page: b.id === focus.section?.book })));
+  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book })));
   const chooseBook = (id: string): void => {
     closeMenu(); const book = bookId(id);
     void registry.ensureBook(book).then((m) => { if (m) { leave(); scope.choose(item, { level: 'book', book }); } });
@@ -67,8 +66,7 @@
     const level = menu;
     if (!level || level === 'book' || !deepest) return [];
     const mark = crumbs.find((c) => c.level === level)?.target ?? null;
-    const page = focus.section ? resolve({ follow: true, level }, focus.section, registry.manifest(focus.section.book)) : null;
-    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark), page: page !== null && sameTarget(s.target, page) }));
+    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark) }));
   });
   /* The chapters a view reads from: the one it stands in, or every chapter its
      book has built something of. */
@@ -147,7 +145,8 @@
   .chev[aria-expanded="true"]{color:var(--ink);background:var(--soft2)}
   .chev:focus-visible{outline:2px solid var(--accent)}
   .sep{flex:none;color:var(--muted);opacity:.45}
-  .long{display:none}
+  /* every bar carries the full names; a narrow one cuts them short with an ellipsis */
+  .short{display:none}
   /* the menu hangs under the crumb that opened it, and never past the edge of the bar */
   .menuhold{position:absolute;top:100%;left:0;right:0;z-index:20;display:flex}
   .pin{width:22px;height:22px;flex:none;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
@@ -157,9 +156,6 @@
   .pin:focus-visible{outline:2px solid var(--accent)}
   .chapters{color:var(--muted);font-size:0.78rem;padding:0 0 8px}
   .chapters.bad{color:var(--bad)}
-  /* a tab has room for the full names, a sidebar only for the short ones */
-  :global(.view-pane) .short{display:none}
-  :global(.view-pane) .long{display:inline}
   :global(.view-pane) .scope{font-size:0.85rem}
   .view :global(details){margin:6px 0 10px}
   .view :global(details > summary){cursor:pointer;color:var(--muted);font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}

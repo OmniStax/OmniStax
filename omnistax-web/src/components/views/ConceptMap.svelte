@@ -36,10 +36,9 @@
      A node is plain SVG, a rect and its name, measured once per name on a
      canvas; every press, hover and key is read off the one svg by the node's
      `data-id`. A node's shape says what kind of thing it is: a definition is a
-     plain box, an axiom stands on a heavy rule down its left edge, a result
-     wears a double rule, an idea is a soft box with no rule, and a skill carries
-     a wrench. Colour only seconds the shape, and the dashed rule is kept for
-     another section's work. Each kind in the legend is a switch that takes its
+     plain box, an axiom and a result are the same box in bolder type, an idea
+     is a soft box with no rule, and a skill carries a wrench. Colour tells the
+     kinds apart, and the dashed rule is kept for another section's work. Each kind in the legend is a switch that takes its
      nodes off the map. How the reader stands on a concept is a thin bar along
      the bottom edge, as long as its evidence stands towards mastery, in the
      mastery box's colours; the Progress button takes it away again, and opens
@@ -455,11 +454,8 @@
   });
 
   /* Walking to a node: a short glide of the view, or in the disk, the node glided to the middle. */
-  const goTo = (id: string, k = 1) => {
-    if (kind === 'disk') { centreOn(id); return; }
-    const el = svgEl, p = place(id); if (!el || !p || !zoomer) return;
+  const slideTo = (to: ZoomTransform): void => {
     walked = true;
-    const to = zoomIdentity.translate(el.clientWidth / 2 - p.x * k, el.clientHeight / 2 - p.y * k).scale(k);
     const from = tf, t0 = performance.now(), dur = 420;
     const step = () => {
       const u = Math.min(1, (performance.now() - t0) / dur), e = ease(u);
@@ -467,6 +463,24 @@
       if (u < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+  };
+  const goTo = (id: string, k = 1) => {
+    if (kind === 'disk') { centreOn(id); return; }
+    const el = svgEl, p = place(id); if (!el || !p || !zoomer) return;
+    slideTo(zoomIdentity.translate(el.clientWidth / 2 - p.x * k, el.clientHeight / 2 - p.y * k).scale(k));
+  };
+  /* The view pans and zooms until the selected concepts (the focus, or every
+     shown concept, when nothing is selected) fill the pane with a margin. */
+  const fitSelection = (): void => {
+    const el = svgEl; if (!el || !zoomer) return;
+    const ids = selected.size ? [...selected] : focusing && focus ? [...focus.ids] : shown.map((c) => c.id);
+    if (kind === 'disk') { if (ids.length === 1) centreOn(ids[0]); return; }
+    const pts = ids.flatMap((id) => { const p = place(id); return p ? [p] : []; }); if (!pts.length) return;
+    const x0 = Math.min(...pts.map((p) => p.x)), x1 = Math.max(...pts.map((p) => p.x)), y0 = Math.min(...pts.map((p) => p.y)), y1 = Math.max(...pts.map((p) => p.y));
+    const pad = 140, w = el.clientWidth, h = el.clientHeight;
+    const k = pts.length === 1 ? 1 : Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.min(w / (x1 - x0 + pad), h / (y1 - y0 + pad))));
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    slideTo(zoomIdentity.translate(w / 2 - cx * k, h / 2 - cy * k).scale(k));
   };
 
   /* ---------- presses ----------
@@ -640,8 +654,6 @@
                 transform="translate({p.x},{p.y}){p.s === 1 ? '' : ` scale(${p.s})`}" data-id={c.id} data-concept={c.status === 'placeholder' ? undefined : c.id} data-card-open="dblclick"
                 data-state={bar ? practice.stateOf(c.id) : undefined} data-half={bar && practice.share(c.id) >= 0.5 ? '1' : undefined} tabindex="0" role="button" aria-label={plain(c.name)}>
                 <rect class="box" x={-l.w / 2} y={-l.h / 2} width={l.w} height={l.h} rx={c.ext ? 5 : RX[c.kind]} />
-                {#if !c.ext && c.kind === 'axiom'}<rect class="rule" x={-l.w / 2} y={-l.h / 2} width="4" height={l.h} />{/if}
-                {#if !c.ext && c.kind === 'result'}<rect class="rule" x={-l.w / 2 + 2.5} y={-l.h / 2 + 2.5} width={l.w - 5} height={l.h - 5} rx="3" />{/if}
                 {#if l.math}
                   <foreignObject x={-l.w / 2} y={-l.h / 2} width={l.w} height={l.h - SEC_LINE}><div class="tex"><span use:mathHtml={c.name}></span></div></foreignObject>
                 {:else}
@@ -690,6 +702,7 @@
     {/if}
   </div>
   <div class="readout" data-count={count} data-source={home?.source}>
+    <button type="button" class="fit" title={selected.size ? 'Fit the selected concepts in the pane' : 'Fit the concepts in the pane'} disabled={laying || !shown.length} onclick={fitSelection}>{@html ICON.focus}Fit</button>
     {#if laying}laying out {list.length} concepts…{:else}{count} concepts{#if home?.ms}{' · laid out in '}{home.ms} ms{/if}{/if}
   </div>
 </div>
@@ -717,15 +730,12 @@
   .node text{font-size:12px;fill:var(--ink);text-anchor:middle;dominant-baseline:central;text-rendering:geometricPrecision;pointer-events:none}
   /* a definition is a plain box */
   .k-definition .box{fill:var(--f-definition);stroke:var(--l-definition)}
-  /* an axiom stands on a heavy rule down its left edge */
+  /* an axiom and a result are the same box in bolder type */
   .k-axiom .box{fill:var(--f-axiom);stroke:var(--l-axiom)}
-  .k-axiom .rule{fill:var(--l-axiom)}
   .k-axiom text,.k-result text{font-weight:600}
   /* an idea is a soft box with no rule */
   .k-idea .box{fill:var(--f-idea);stroke:none}
-  /* a result wears the double rule a book prints round a law it has just derived */
   .k-result .box{fill:var(--f-result);stroke:var(--l-result)}
-  .k-result .rule{fill:none;stroke:var(--l-result)}
   /* a skill carries a wrench */
   .k-skill .box{fill:var(--f-skill);stroke:var(--l-skill)}
   .k-skill text{font-style:italic}
@@ -760,7 +770,11 @@
   .map.focusing .node:not(.in),.map.focusing .wires path.out{visibility:hidden;pointer-events:none}
   .lasso{fill:color-mix(in srgb,var(--accent) 10%,transparent);stroke:var(--accent);stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
 
-  .readout{position:absolute;right:8px;bottom:6px;font-size:0.65rem;color:var(--muted);pointer-events:none}
+  .readout{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:8px;font-size:0.65rem;color:var(--muted);pointer-events:none}
+  .readout .fit{pointer-events:auto;display:inline-flex;align-items:center;gap:4px;padding:2px 7px;font:inherit;font-size:0.65rem;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:5px;cursor:pointer}
+  .readout .fit :global(svg){width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .readout .fit:hover{border-color:var(--accent);color:var(--accent)}
+  .readout .fit:disabled{opacity:0.5;cursor:default}
 
   /* ---------- the toolbar ---------- */
   .hud{position:absolute;top:8px;left:10px;z-index:2;display:flex;flex-direction:column;gap:4px;align-items:flex-start;max-width:calc(100% - 200px)}
@@ -783,9 +797,9 @@
   .sw{display:inline-grid;place-items:center;width:16px;height:11px;flex:none;border:1px solid var(--rule);border-radius:3px;background:var(--panel)}
   .sw svg{width:8px;height:8px;fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
   .k-definition .sw{background:var(--f-definition);border-color:var(--l-definition)}
-  .k-axiom .sw{background:var(--f-axiom);border-color:var(--l-axiom);border-left:3px solid var(--l-axiom);border-radius:1px}
+  .k-axiom .sw{background:var(--f-axiom);border-color:var(--l-axiom)}
   .k-idea .sw{background:var(--f-idea);border-color:transparent;border-radius:5px}
-  .k-result .sw{border:3px double var(--l-result);background:var(--f-result)}
+  .k-result .sw{background:var(--f-result);border-color:var(--l-result)}
   .k-skill .sw{background:var(--f-skill);border-color:var(--l-skill)}
   .ext .sw{border-style:dashed;background:transparent}
 

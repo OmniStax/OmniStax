@@ -31,7 +31,8 @@
     if (query.trim()) return rank(query, all, text).map((r) => ({ ...r, recent: false }));
     const byId = new Map(all.map((c) => [c.id, c] as const));
     const used = recent.ids.flatMap((id) => { const c = byId.get(id); return c ? [{ item: c, match: { indices: [] }, recent: true }] : []; });
-    const rest = [...all].sort((a, b) => text(a).localeCompare(text(b), undefined, { sensitivity: 'base' }));
+    const seen = new Set(used.map((r) => r.item.id));
+    const rest = all.filter((c) => !seen.has(c.id)).sort((a, b) => text(a).localeCompare(text(b), undefined, { sensitivity: 'base' }));
     return [...used, ...rest.map((c) => ({ item: c, match: { indices: [] }, recent: false }))];
   });
   const firstAll = $derived(items.findIndex((r) => !r.recent));

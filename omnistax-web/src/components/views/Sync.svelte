@@ -143,8 +143,8 @@
         <button type="button" class="icon" title="Edit repo, branch and token" aria-label="Edit repo, branch and token" onclick={() => (editing = true)}>{@html ICON.pen}</button>
       </div>
       <p class="meta"><span class="branch">{remote.branch}</span>{#if phase === 'ready' && !changes.length}<span>{lastSynced}</span>{/if}</p>
-      <label class="every"><span>Push every</span>
-        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label="Push every">
+      <label class="every"><span>Sync every</span>
+        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label="Sync every">
           {#each PUSH_EVERY as m (m)}<option value={String(m)}>{PUSH_EVERY_LABEL[m]}</option>{/each}
         </select>
       </label>

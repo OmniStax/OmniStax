@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   /* The menu a crumb's chevron opens. Places nothing is built for are dimmed and
      refuse the choice. Keys stop here so the shell's chords stay quiet. */
-  type Entry = { readonly target: T; readonly label: string; readonly enabled: boolean; readonly here: boolean; readonly page: boolean };
+  type Entry = { readonly target: T; readonly label: string; readonly enabled: boolean; readonly here: boolean };
   type Props = { entries: readonly Entry[]; onchoose: (target: T) => void; onclose: () => void };
   let { entries, onchoose, onclose }: Props = $props();
 
@@ -43,7 +43,6 @@
   {#each entries as e, i (e.label)}
     <div class="row" id="{uid}-{i}" class:sel={i === sel} class:here={e.here} class:off={!e.enabled} role="option" aria-selected={e.here} aria-disabled={!e.enabled} onmousemove={() => (sel = i)} onclick={() => take(i)}>
       <span class="lbl">{e.label}</span>
-      {#if e.page}<span class="detail">open page</span>{/if}
     </div>
   {/each}
 </div>
@@ -55,5 +54,4 @@
   .row.here{font-weight:600}
   .row.off{opacity:.45;cursor:default}
   .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .detail{color:var(--muted);font-size:0.74rem}
 </style>

@@ -38,7 +38,9 @@ The chrome:
 - **Activity rails** on both edges, 44px. Left rail: the views that live
   on the left, then the bottom group in order: voice (when it is on),
   Sync (a sidebar view: GitHub sync and the backup file; a changed
-  file's diff opens as a tab), the command palette, the gear. Right rail: the views that live on the
+  file's diff opens as a tab; "Sync every" runs a pass on a timer, this
+  device's changes up and the other side's down, a file changed on both
+  left for the view to settle), the command palette, the gear. Right rail: the views that live on the
   right. Documents have no rail icon; the page opens with its text, and
   the "+" on a tab strip brings any section text back.
   There is no top bar; the tab strip is the top of the page. A view's
@@ -98,7 +100,10 @@ Unpinned, the view follows the focused document, so switching tabs from
 notes to 2.5. Pinned, the view holds its section and shows a picker of
 the built sections, so 2.1's concept map can stay up while 2.5 is read.
 The pin is per view and remembered in this browser (`omnistax-scope`). The
-same header appears whether the view sits in a sidebar box or in a tab.
+same header appears whether the view sits in a sidebar box or in a tab,
+with the full names in both, cut short with an ellipsis where the bar is
+narrow; the menu a crumb opens lists the places alone, and nothing marks the
+place the open page is in.
 The design chosen over the alternatives: a global freeze would hold every
 view at once, which is rarely wanted; turning following off altogether
 would make the companion views stale by default. A pin on the one view

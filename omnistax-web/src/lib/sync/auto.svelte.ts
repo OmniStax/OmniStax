@@ -1,9 +1,10 @@
-/* Pushing on a timer. Every half minute the clock looks: when the reader asked
-   for a push every so many minutes, that long has passed since the last one,
+/* Syncing on a timer. Every half minute the clock looks: when the reader asked
+   for a sync every so many minutes, that long has passed since the last one,
    nothing is being synced, and the reader has been quiet for a while (the
    strokes of a drawing and the keys of a note come too fast to push on), the
-   repo is read and this device's changes go up, all of them in one push. A
-   conflict is left for the Sync view. A push that fails raises an alert once,
+   repo is read, this device's changes go up and the other devices' changes
+   come down, all in one pass. A file changed on both sides is a conflict,
+   which is left for the Sync view to settle. A sync that fails raises an alert once,
    with the way to the Sync view, unless that view is already open; the next
    try waits a whole interval. */
 import { sync } from './store.svelte';
@@ -31,12 +32,12 @@ export const tick = async (now = Date.now()): Promise<void> => {
   try {
     await session.read();
     if (session.phase !== 'ready') throw new Error(session.problem || 'Could not read the repo.');
-    const up = session.plan.up;
-    if (!up.length) return;
-    await session.go({ up, down: [] });
+    const { up, down } = session.plan;   /* with nothing picked, down holds only the files changed on the other side alone */
+    if (!up.length && !down.length) return;
+    await session.go({ up, down });
     if (session.problem) throw new Error(session.problem);
   } catch (e) {
-    if (!syncOpen()) alerts.show({ text: `Error pushing: ${e instanceof Error ? e.message : String(e)}`, action: { label: 'Open Sync view', run: () => { commands.run(showViewId('sync')); } } });
+    if (!syncOpen()) alerts.show({ text: `Error syncing: ${e instanceof Error ? e.message : String(e)}`, action: { label: 'Open Sync view', run: () => { commands.run(showViewId('sync')); } } });
   } finally { running = false; }
 };
 
