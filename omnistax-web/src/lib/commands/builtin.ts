@@ -163,7 +163,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.zoomIn, label: 'Larger text', group: 'Appearance', run: () => d.settings.zoomIn(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomOut, label: 'Smaller text', group: 'Appearance', run: () => d.settings.zoomOut(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomReset, label: 'Text size back to normal', group: 'Appearance', run: () => d.settings.resetZoom(), detail: () => zoomLabel(d.settings.zoom) },
-  { id: BUILTIN.fill, label: 'Appearance: Fill horizontal space', group: 'Appearance', run: () => d.settings.setFillAll(!d.settings.fillAll), detail: () => onOff(d.settings.fillAll) },
+  { id: BUILTIN.fill, label: 'Fill horizontal space', group: 'Appearance', run: () => d.settings.setFillAll(!d.settings.fillAll), detail: () => onOff(d.settings.fillAll) },
   { id: BUILTIN.animations, label: 'Figures: play or pause all', group: 'Reading', run: () => d.settings.setAnimations(!d.settings.animations), detail: () => (d.settings.animations ? 'playing' : 'paused') },
   /* The setting by name, as the Settings dialog puts it. */
   { id: BUILTIN.figuresStart, label: 'Figures start: paused or playing', group: 'Reading', run: () => {}, detail: () => (d.settings.animations ? 'playing' : 'paused'),

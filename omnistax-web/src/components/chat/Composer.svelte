@@ -29,7 +29,7 @@
   let query = $state('');
   let dragging = $state(false);
   /* A chat is handed figures, concepts and exercises; the rest of the tree is the note editor's. */
-  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises', 'annotations'], files: false });
+  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises', 'annotations'] });
 
   const ready = $derived.by(() => { const p = chats.pickOf(chatId); return p !== null && ai.access(p) !== null; });
 

@@ -21,6 +21,8 @@ such element too, plus a fresh copy for every further group it is open
 in:
 
 - **Documents** (`[data-doc]`): the text of every section that has been opened.
+  A tab new to a group opens just right of the group's active tab, so closing
+  it lands the reader back on what they were reading; a drop names its place.
 - **Views** (`.view`): concept map, contents, formulas, definitions, and
   notes. Comments and search are planned as further views.
 

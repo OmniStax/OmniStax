@@ -132,6 +132,7 @@
 </div>
 
 <style>
+  .view{position:relative}
   .scope{position:relative;display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:0.74rem;color:var(--muted);min-width:0}
   .crumbs{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden}
   .crumb{font:inherit;font-size:inherit;color:var(--muted);background:none;border:0;border-radius:4px;padding:1px 3px;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -154,7 +155,8 @@
   .pin.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
   .pin :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .pin:focus-visible{outline:2px solid var(--accent)}
-  .chapters{color:var(--muted);font-size:0.78rem;padding:0 0 8px}
+  /* the notice stands in the middle of the view's body, where the data it waits on will be */
+  .chapters{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:0.78rem;pointer-events:none;z-index:1}
   .chapters.bad{color:var(--bad)}
   :global(.view-pane) .scope{font-size:0.85rem}
   .view :global(details){margin:6px 0 10px}

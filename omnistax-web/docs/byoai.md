@@ -33,11 +33,12 @@ carries no other meaning.
 Typing `@` in the composer opens the **picker**, `components/ui/AtPicker.svelte`
 over `src/lib/picker/model.ts` (pure): first a list of categories, then a
 tree or list within the category, filtered by what is typed after the `@`.
-In a chat the tree offers the books' figures, sims and derivations,
-concepts and exercises, and the reader's own annotations (every highlight
-they wrote on, as its quote and their words), and nothing else; the note
-editor's `[[` picker offers every category (notes, drawings, files,
-sections, equations, definitions, chats as well). A figure's row pointed
+In a chat the tree offers, under each section, the books' figures, sims
+and derivations, concepts, exercises and the reader's own annotations on
+that section (every highlight they wrote on, as its quote and their words),
+and beside the books the reader's files; the note editor's `[[` picker
+offers every category (notes, drawings, sections, equations, definitions,
+chats as well). A figure's row pointed
 at shows the figure in a panel beside the list as a still: no head,
 controls, readouts or transport, a sim at rest, a derivation with every
 fact and result shown and its view held on the whole (`[data-still]` on

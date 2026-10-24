@@ -62,6 +62,11 @@
     if (c.act === 'regenerate') regenerateExercise(session.id, c.i); else deleteExercise(session.id, c.i);
     confirming = null;
   };
+  /* Taking the last exercise out leaves nothing to practise, so it is asked
+     about, and a yes takes the reader back to the dashboard. */
+  let removingLast = $state(false);
+  const remove = (i: number): void => { if (n <= 1) { removingLast = true; return; } removeExercise(id, i); };
+  const removeLastAndLeave = (): void => { if (session) removeExercise(session.id, 0); removingLast = false; endSession(); };
   /* Ending the round ends the stopwatch it started, and the sitting is kept under the round's name. */
   const endSession = (): void => {
     if (practice.settings.stopwatch && pomodoro.mode === 'stopwatch' && pomodoro.session.phase !== 'idle') { pomodoro.finish(); pomodoro.keep('Practice session'); }
@@ -118,7 +123,7 @@
           {/if}
         </div>
       {/if}
-      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>
+      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => remove(i)}>×</button>
     </div>
   {:else if isPending(d.ex)}
     {@render writing(id, d.concept, i)}
@@ -129,7 +134,7 @@
         {:else if statusOf(d.book) === 'failed'}This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.
         {:else}Loading this exercise…{/if}
       </p>
-      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>
+      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => remove(i)}>×</button>
     </div>
   {/if}
 {/snippet}
@@ -151,7 +156,13 @@
           {/each}
         </nav>
       {/if}
-      {#if ending}
+      {#if removingLast}
+        <div class="confirm">
+          <span class="ask">This is the only problem. Deleting it returns you to the dashboard.</span>
+          <button type="button" class="btn primary sm" onclick={removeLastAndLeave}>Yes</button>
+          <button type="button" class="btn ghost sm" onclick={() => (removingLast = false)}>No</button>
+        </div>
+      {:else if ending}
         {@const incomplete = practice.incompleteReviews(item)}
         <div class="confirm">
           <span class="ask">{incomplete ? `Review incomplete. ${incomplete} mastered ${incomplete === 1 ? 'concept still has' : 'concepts still have'} unanswered freshness exercises. Ending now will leave their freshness unchanged, although incorrect answers already submitted may shorten it.` : allDone ? 'End this session? You have answered all of the questions.' : 'End this session? Your completed exercises are kept.'}</span>

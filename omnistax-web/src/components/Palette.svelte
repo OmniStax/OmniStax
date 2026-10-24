@@ -142,9 +142,10 @@
   .head{padding:8px 16px 2px;font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
   .head + .row{border-top:0}
   .row + .head{margin-top:4px;border-top:1px solid var(--rule);padding-top:8px}
-  .acts{display:none;gap:2px}
-  .row.sel .acts,.row:hover .acts{display:inline-flex}
-  .act{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:0.9rem;line-height:1;padding:0}
+  /* the actions keep their room in every row and only show on the one under the pointer, so a row never grows on hover */
+  .acts{display:inline-flex;gap:2px;visibility:hidden}
+  .row.sel .acts,.row:hover .acts{visibility:visible}
+  .act{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:0.9rem;line-height:1;padding:0}
   .act:hover{background:var(--soft2);color:var(--ink)}
   .act :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6}
 </style>

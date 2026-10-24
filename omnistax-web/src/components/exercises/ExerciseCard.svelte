@@ -262,7 +262,9 @@
   .tools{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
   .follow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
   .linked{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
-  .link-chip{gap:2px;padding:0 4px 0 8px;color:var(--ink)}
+  /* a linked file is a bordered pill with a blue dot, so the link reads at a glance */
+  .link-chip{gap:4px;padding:0 8px 0 7px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:7px}
+  .link-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
   .link-chip button{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0}
   .link-chip .x{width:18px;justify-content:center;color:var(--muted);border-radius:999px;transition:color 120ms}
   .link-chip .x:hover{color:var(--ink)}

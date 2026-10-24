@@ -143,7 +143,7 @@ const sectionNode = (book: BookId, ch: ChapterEntry, s: SectionEntry, scope: Pic
   /* The kinds are gathered once per state of the section's data, since the
      picker walks every section of the shelf on each keystroke. */
   let held: { readonly stamp: string; readonly nodes: readonly PickerNode[] } | null = null;
-  const stamp = (): string => `${registry.state(sectionRef(book, sectionId(s.id)))?.docs.text ? 1 : 0}|${registry.chapter(book, ch.dir) ? 1 : 0}|${books.status[book] ?? ''}|${generated.list.length}`;
+  const stamp = (): string => `${registry.state(sectionRef(book, sectionId(s.id)))?.docs.text ? 1 : 0}|${registry.chapter(book, ch.dir) ? 1 : 0}|${books.status[book] ?? ''}|${generated.list.length}|${notes.list.length}`;
   return {
     key: s.id, label: row.label, detail: '', row,
     children: () => {
@@ -155,6 +155,7 @@ const sectionNode = (book: BookId, ch: ChapterEntry, s: SectionEntry, scope: Pic
         ...(kinds.includes('equations') ? kind('equations', 'Equations', equationsOf(book, ch, s.id)) : []),
         ...(kinds.includes('definitions') ? kind('definitions', 'Definitions', definitionsOf(book, ch, s.id)) : []),
         ...(kinds.includes('exercises') ? kind('exercises', 'Exercises', exercisesOf(book, s.id)) : []),
+        ...(kinds.includes('annotations') ? kind('annotations', 'Annotations', annotationsOf(book, s.id)) : []),
       ];
       held = { stamp: now, nodes };
       return nodes;
@@ -221,7 +222,6 @@ const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
    top, fetches the focused book's tables, so its things are found at once. */
 export const pickerRoot = (scope: PickerScope = {}): readonly PickerNode[] => [
   { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map((b) => bookNode(b, scope)), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
-  ...(scope.kinds?.includes('annotations') ? [{ key: 'annotations', label: 'Annotations', detail: '', children: () => annotationRows().map(leaf) }] : []),
   ...(scope.files === false ? [] : [{ key: 'files', label: 'Files', detail: '', children: () => entryNodes(null) }]),
 ];
 
@@ -236,10 +236,10 @@ export const chipOf = (row: PickerRow): Chip => {
   return chip(kind, key, row.label, row.text ?? row.textOf?.() ?? row.label);
 };
 
-/* The reader's annotations: every highlight they wrote on, as a row a chat can
-   be handed, the quote and the words beside it. */
-const annotationRows = (): readonly PickerRow[] => notes.list.filter((n) => n.text.trim() !== '').map((n): PickerRow => ({
-  category: 'annotations', key: n.id, label: cut(n.anchor.quote, 60), detail: `${books.title(n.book) || n.book} · ${n.section}`,
+/* The reader's annotations on one section: every highlight they wrote on, as
+   a row a chat can be handed, the quote and the words beside it. */
+const annotationsOf = (book: BookId, sec: string): readonly PickerRow[] => notes.list.filter((n) => n.book === book && n.section === sec && n.text.trim() !== '').map((n): PickerRow => ({
+  category: 'annotations', key: n.id, label: cut(n.anchor.quote, 60), detail: '',
   text: `Highlighted in ${books.title(n.book) || n.book}, section ${n.section}:\n“${n.anchor.quote}”\n\nThe reader's note: ${n.text}`,
 }));
 
