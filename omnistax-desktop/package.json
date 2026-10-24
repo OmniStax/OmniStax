@@ -1,0 +1,61 @@
+{
+  "name": "omnistax-desktop",
+  "productName": "OmniStax",
+  "private": true,
+  "version": "0.0.0",
+  "description": "OmniStax in a window of its own",
+  "author": "Andrew Chen",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "electron": "44.9.3",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "org.omnistax.desktop",
+    "productName": "OmniStax",
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/BlastWind/OmniStax/releases/latest/download"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "OmniStax-Setup.${ext}",
+      "icon": "../omnistax-web/public/icons/icon-512.png"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "artifactName": "OmniStax.${ext}",
+      "category": "public.app-category.education",
+      "icon": "../omnistax-web/public/icons/icon-512.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "artifactName": "OmniStax.${ext}",
+      "category": "Education",
+      "icon": "../omnistax-web/public/icons/icon-512.png",
+      "syncDesktopName": true
+    }
+  },
+  "desktopName": "omnistax.desktop"
+}

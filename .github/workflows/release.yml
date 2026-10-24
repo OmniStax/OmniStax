@@ -1,0 +1,68 @@
+# A release note pushed to main becomes a GitHub Release; installers are built
+# and attached when the desktop shell changed or the note asks for them
+# (omnistax-web/docs/release-plan.md, decision 9). Only a release with
+# installers is marked Latest, so releases/latest/download/… always has them.
+name: Release
+on:
+  push:
+    branches: [main]
+    paths: ['omnistax-web/releases/**']
+permissions:
+  contents: write
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      semver: ${{ steps.plan.outputs.semver }}
+      desktop: ${{ steps.desktop.outputs.build }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: plan
+        run: node .github/scripts/release-notes.mjs "${{ github.event.before }}" "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Create and edit releases
+        run: |
+          for v in ${{ steps.plan.outputs.added }}; do
+            gh release create "$v" --target "$GITHUB_SHA" --title "$(cat "notes/$v.title")" --notes-file "notes/$v.md" --latest=false
+          done
+          for v in ${{ steps.plan.outputs.edited }}; do
+            gh release edit "$v" --notes-file "notes/$v.md" || true
+          done
+      - id: desktop
+        if: steps.plan.outputs.tag != ''
+        run: |
+          last=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          [ "$last" = "${{ steps.plan.outputs.tag }}" ] && last=
+          if [ "${{ steps.plan.outputs.force_desktop }}" = true ] || [ -z "$last" ] || ! git diff --quiet "$last" "$GITHUB_SHA" -- omnistax-desktop; then
+            echo build=true >> "$GITHUB_OUTPUT"
+          fi
+  installers:
+    needs: notes
+    if: needs.notes.outputs.desktop == 'true'
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run: { working-directory: omnistax-desktop, shell: bash }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm pkg set version=${{ needs.notes.outputs.semver }}
+      - run: npx electron-builder --publish never
+      - run: gh release upload "${{ needs.notes.outputs.tag }}" dist/OmniStax* dist/latest*.yml --clobber
+  latest:
+    needs: [notes, installers]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: gh release edit "${{ needs.notes.outputs.tag }}" --latest --repo "$GITHUB_REPOSITORY"
