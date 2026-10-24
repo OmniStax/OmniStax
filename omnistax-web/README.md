@@ -40,6 +40,13 @@ concern and read from the environment with defaults:
 | build | threeUrl | `OMNISTAX_THREE_URL` | `/vendor/three.min.js` |
 | publishing | release archive | `OMNISTAX_RELEASE_ARCHIVE_DIR` | none (fresh build contains current releases only) |
 
+Each book is its own git repository. `../omnistax-content/books.json` maps a
+book's folder to its repository and branch, and `npm run books` (run after
+every `npm install`) shallow-clones any listed book the root lacks; a folder
+already there is left as it is. A push to a book repository rebuilds the site
+through the Worker's deploy hook, held in that repository's `DEPLOY_HOOK_URL`
+secret.
+
 The content root holds one folder per book, named for the book's title; a
 book's id comes from its `book.json`, and a folder without one (`tools/`) is
 not a book. `OMNISTAX_BOOKS` is a comma-separated list of book ids, which also

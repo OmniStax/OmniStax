@@ -1,17 +1,9 @@
-# a book's source bundle is large; the publisher keeps it
-omnistax-content/*/source
-omnistax-content/*/source/
-omnistax-content/**/*.pdf
-# rendered page images are derived from the PDF
-omnistax-content/**/pages/
+# each book is its own repository, cloned here by `npm run books` (books.json)
+omnistax-content/*
+!omnistax-content/tools/
+!omnistax-content/books.json
 node_modules
 __pycache__/
-# the figure sandbox is a local playground for visualisations, never published
-omnistax-content/Figure Sandbox/
-
-# termonline lookup cache: large and rebuilt on demand
-omnistax-content/*/tools/termonline-cache.json*
-
 # termonline lookup caches (working files of the translation tools)
 termonline-cache*.json
 termonline-cache*.json.terms

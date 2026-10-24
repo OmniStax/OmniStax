@@ -1,0 +1,7 @@
+{
+  "College Physics 2e": { "repo": "https://github.com/BlastWind/omnistax-book-college-physics-2e.git", "branch": "main" },
+  "Chemistry 2e": { "repo": "https://github.com/BlastWind/omnistax-book-chemistry-2e.git", "branch": "main" },
+  "Calculus": { "repo": "https://github.com/BlastWind/omnistax-book-calculus.git", "branch": "main" },
+  "Differential Equations for Engineers": { "repo": "https://github.com/BlastWind/omnistax-book-diffyqs.git", "branch": "main" },
+  "Modern Atomic and Optical Physics II": { "repo": "https://github.com/BlastWind/omnistax-book-lukin-amo-ii.git", "branch": "main" }
+}

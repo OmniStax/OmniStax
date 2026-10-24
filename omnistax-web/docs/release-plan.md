@@ -1,7 +1,8 @@
 # Releases, desktop and installs
 
 Implementation handoff for issues #47 (release) and #48 (desktop OmniStax).
-Status: built 2026-10-24 (steps 1 to 6 below); the repo split (24) is later.
+Status: built 2026-10-24 (steps 1 to 6 below); the repo split (24) built the
+same day in its own session.
 Settled with Chen over one conversation; anything he did not object to is
 agreed.
 
@@ -200,6 +201,13 @@ read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.
     conventions in `omnistax-web/README.md`.
 
 ### One repo per book, before beta
+
+Built 2026-10-24: `omnistax-content/books.json` lists five repos
+`BlastWind/omnistax-book-<id>`; `scripts/books.mjs` clones what is missing,
+run as `postinstall` so the Cloudflare build command is unchanged; each book
+repo's `deploy.yml` POSTs its `DEPLOY_HOOK_URL` secret. The deleted
+`College Physics 2e (zh-CN)` history went with no book; the backup bundle of
+the whole pre-split repository holds it.
 
 24. **Each book moves to its own repo; images stay in plain git.** Not in this
     session: its own session, before beta, so the history rewrite breaks no
