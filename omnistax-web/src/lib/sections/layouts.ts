@@ -84,7 +84,7 @@ export const boxOf = (c: { readonly name: string; readonly ext: boolean; readonl
   const skill = c.kind === 'skill' ? 1.2 : 0;
   const pieces = [...(skill ? [{ em: skill, tall: 0 }] : []), ...piecesOf(c.name).map((p) => ({ ...p, em: p.em * heavy }))];
   const { w, heights } = linesOf(pieces, MAXW - PAD_X);
-  return { w: Math.ceil(Math.max(MINW, w + PAD_X)), h: Math.ceil(PAD_Y + Math.max(NODE_LINE, heights.reduce((a, b) => a + b, 0)) + (c.ext ? SEC_LINE : 0)) };
+  return { w: Math.ceil(Math.max(MINW, w + PAD_X)), h: Math.ceil(PAD_Y + Math.max(NODE_LINE, heights.reduce((a, b) => a + b, 0)) + SEC_LINE) };
 };
 
 /* ---------- names ---------- */

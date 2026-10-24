@@ -11,7 +11,7 @@
   import type { PickerRow } from '../../lib/picker/model';
   import type { ChatId } from '../../lib/types/ids';
 
-  let { chatId, chips, onchips, onsend, onstop, streaming, offer, onoffer, blocked }: {
+  let { chatId, chips, onchips, onsend, onstop, streaming, blocked }: {
     chatId: ChatId;
     chips: readonly Chip[];
     onchips: (c: readonly Chip[]) => void;
@@ -19,8 +19,6 @@
     onstop: () => void;
     streaming: boolean;
     blocked?: string;
-    offer: Chip | null;
-    onoffer: () => void;
   } = $props();
 
   let text = $state('');
@@ -137,12 +135,6 @@
 </script>
 
 <div class="composer" bind:this={box}>
-  {#if offer}
-    <div class="offer">
-      <span>Now reading {offer.label}</span>
-      <button type="button" class="btn ghost sm" onclick={onoffer}>Add</button>
-    </div>
-  {/if}
 
   {#if chips.length}
     <ul class="chips" aria-label="What the model is shown">
@@ -192,6 +184,5 @@
   .chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .chips button{font:inherit;line-height:1;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .chips button:hover{color:var(--ink);background:var(--soft2)}
-  .offer{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.78rem;color:var(--muted)}
   @media (max-width:900px){ .composer{padding:8px 18px 12px} }
 </style>

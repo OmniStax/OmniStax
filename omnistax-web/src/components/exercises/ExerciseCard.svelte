@@ -1,6 +1,5 @@
 <script lang="ts">
   import { registry } from '../../lib/sections/registry.svelte';
-  import { pin } from '../../lib/sections/concepts.svelte';
   import { conceptId, exerciseDomId, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
   import { hintText, solutionText, type Verdict } from '../../lib/exercises/check';
@@ -38,7 +37,6 @@
     number?: string; review?: boolean;
   } = $props();
 
-  const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
   const concept = (id: string) => practice.conceptOf(id, book);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
@@ -166,13 +164,10 @@
   {:else}<p class="verdict" class:ok class:bad={!ok}><span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{ok ? 'Correct' : 'Incorrect'}</span></p>{/if}
 {/snippet}
 
-<div class="exercise" class:inline class:hot id={domId} data-book={book} {hidden}>
-  <div class="eyebrow head" title={creditLine}>
+<div class="exercise" class:inline id={domId} data-book={book} {hidden}>
+  <div class="eyebrow head">
     {#if number}<span>{number}</span>{/if}
     <span>{exerciseName(ex, kindName)}</span>
-    <span>§ {sourceSection}</span>
-    <span class="bloom" title={bloomHelp}>{titled(ex.bloom)}</span>
-    {#if gen}<span><AiTag model={gen.model} text /></span>{/if}
   </div>
 
   <div class="prompt"><p use:mathHtml={ex.prompt}></p></div>
@@ -251,15 +246,22 @@
     <ol class="corrections" aria-label="Corrections">{#each ex.corrections as c, i}{#if noteShown(c)}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
   {/if}
 
-  {#if ex.concepts.length}
-    <details class="concepts" open={completed || solutionOpen}>
-      <summary>Concepts</summary>
+  <details class="concepts" open={completed || solutionOpen}>
+    <summary>Meta</summary>
+    <!-- the concepts first, as bubbles in their kind's colour that open their card on hover; then where the exercise is from and what it asks for -->
+    {#if ex.concepts.length}
       <div class="pills">
         {#each ex.concepts as c (c)}
           {@const k = concept(c)}
-          <button type="button" class="pill k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-book={book} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span class="dot" aria-hidden="true"></span><span use:mathHtml={k?.name ?? c}></span></button>
+          <span class="pill kb k-{k?.kind ?? 'idea'}" data-book={book} data-concept={c}><span use:mathHtml={k?.name ?? c}></span></span>
         {/each}
       </div>
+    {/if}
+    <div class="meta eyebrow" title={creditLine}>
+      <span>§ {sourceSection}</span>
+      <span class="bloom" title={bloomHelp}>{titled(ex.bloom)}</span>
+      {#if gen}<span><AiTag model={gen.model} text /></span>{:else}<span>from the book</span>{/if}
+    </div>
     </details>
   {/if}
 
@@ -274,8 +276,6 @@
 <style>
   .exercise{margin:0 0 12px;font-family:var(--sans);font-size:0.84rem;transition:box-shadow 120ms,padding-left 120ms}
   .exercise.inline{border:1px solid var(--rule);border-radius:6px;background:var(--panel);padding:14px 18px}
-  .exercise.hot:not(.inline){border-left:2px solid var(--ink);padding-left:12px}
-  .exercise.inline.hot{box-shadow:inset 2px 0 0 var(--ink)}
   .exercise[hidden]{display:none}
   .head{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-bottom:8px}
   .head>span+span::before{content:'·';margin-right:8px}
@@ -325,11 +325,10 @@
   summary:hover{color:var(--ink)}
   summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-  .pill{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border:0;border-radius:999px;background:var(--soft);color:var(--ink);font:inherit;font-size:0.74rem;cursor:pointer;transition:box-shadow 120ms,background 120ms}
-  .pill:hover{background:var(--soft2)}
-  .pill.hot{box-shadow:inset 0 0 0 1px var(--ink)}
-  .pill:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .dot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--dot,var(--cm-idea))}
+  /* a concept as a bubble in its kind's colour, in the words' own case; it opens its card on hover */
+  .pill.kb{text-transform:none;letter-spacing:0;font-size:0.74rem;font-weight:500;line-height:1.5;padding:2px 10px;border-radius:999px;cursor:default}
+  .pill :global(.katex){font-size:1em}
+  .meta{display:flex;flex-wrap:wrap;gap:0 8px;margin-top:8px}
   .k-definition{--dot:var(--cm-definition)} .k-axiom{--dot:var(--cm-axiom)} .k-idea{--dot:var(--cm-idea)}
   .k-result{--dot:var(--cm-result)} .k-skill{--dot:var(--cm-skill)}
   .solution-fold>summary{font-weight:600}

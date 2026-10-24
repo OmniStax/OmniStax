@@ -14,7 +14,7 @@ export type HighlightOverrides = Readonly<Partial<Record<HighlightKey, boolean>>
 
 export const HIGHLIGHT_KEYS: readonly HighlightKey[] = ['facts', 'refs', 'concepts', 'words', 'symbols', 'underlines'];
 /* The book layer where there is no book (the about page): nothing held back. */
-export const HIGHLIGHTS_ON: BookHighlights = { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true };
+export const HIGHLIGHTS_ON: BookHighlights = { facts: true, refs: true, concepts: true, words: false, symbols: true, underlines: true };
 export const HIGHLIGHT_LABELS: Readonly<Record<HighlightKey, string>> = { facts: COLOUR_LABELS.facts, refs: COLOUR_LABELS.refs, concepts: COLOUR_LABELS.concepts, words: COLOUR_LABELS.words, symbols: COLOUR_LABELS.symbols, underlines: 'Underlines' };
 /* The book key a key sits under, as Words and Symbols sit under Concepts globally. */
 export const HIGHLIGHT_PARENT: Readonly<Partial<Record<HighlightKey, HighlightKey>>> = { words: 'concepts', symbols: 'concepts' };

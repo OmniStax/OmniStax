@@ -45,12 +45,6 @@
     });
   });
 
-  const offer = $derived.by((): Chip | null => {
-    const here = focus.section; if (!here) return null; const key = secKey(here);
-    if (key === pinnedSection || chips.some((c) => c.kind === 'section' && c.key === key)) return null;
-    return chipFor(here);
-  });
-  const takeOffer = (): void => { const c = offer; if (!c) return; chips = withChip(chips, c); pinnedSection = c.key; };
 
   let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
   $effect(() => {
@@ -148,7 +142,7 @@
       <Transcript bind:this={list} {chat} bind:collapsed />
     {/if}
     <Composer bind:this={composer} {chatId} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
-      {streaming} {offer} onoffer={takeOffer} {blocked} />
+      {streaming} {blocked} />
   {:else}
     <div class="messages"><p class="empty">Opening this chat…</p></div>
   {/if}

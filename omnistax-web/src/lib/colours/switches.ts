@@ -13,7 +13,7 @@ export const COLOUR_LABELS: Readonly<Record<ColourSwitch, string>> = { facts: 'F
 export const COLOUR_TIPS: Readonly<Partial<Record<ColourSwitch, string>>> = { words: 'Color the words that name a concept.', symbols: 'Color the symbols in equations and readouts.' };
 /* The switch a sub-switch sits under, which must be on for it to do anything. */
 export const COLOUR_PARENT: Readonly<Partial<Record<ColourSwitch, ColourSwitch>>> = { words: 'concepts', symbols: 'concepts' };
-export const COLOURS_ON: ColourSwitches = { facts: true, refs: true, concepts: true, words: true, symbols: true };
+export const COLOURS_ON: ColourSwitches = { facts: true, refs: true, concepts: true, words: false, symbols: true };
 
 export const shownOf = (s: ColourSwitches): ColourShown => ({ facts: s.facts, refs: s.refs, concepts: s.concepts });
 

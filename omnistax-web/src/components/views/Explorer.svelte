@@ -363,11 +363,12 @@
     practice.seed(k, [t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);
     void openItem(k, undefined, 'tab');
   };
+  /* The theme is the book's, so only a book's row offers it. */
   const placeItems = (t: Target) => [
     { label: 'Open concept map', run: () => openPinned('concepts', t) },
     { label: 'Open reference', run: () => openPinned('reference', t) },
     { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
-    { label: 'Theme', run: () => openPinned('colours', { level: 'book', book: t.book }) },
+    ...(t.level === 'book' ? [{ label: 'Theme', run: () => openPinned('colours', { level: 'book', book: t.book }) }] : []),
   ];
   /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
   const offlineItems = (id: string) => {
@@ -401,7 +402,7 @@
     ] : [];
     const t = placeOf(r);
     if (!e) return t ? [...opens, ...placeItems(t)] : opens;
-    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: 'Remove from OmniBooks', danger: true, run: () => removeBookRow(e) }];
+    if (e.kind === 'book') return [...(t ? placeItems(t) : []), ...(e.bookId ? offlineItems(e.bookId) : []), { label: 'Archive', danger: true, run: () => removeBookRow(e) }];
     const inside = e.kind === 'folder' ? e.id : e.parent;
     return [
       ...opens,

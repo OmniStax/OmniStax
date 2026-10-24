@@ -34,7 +34,8 @@ test('stored choices are read past anything that is not a known key with a boole
 
 test('the root wears what the book highlights', () => {
   assert.equal(highlightClasses(MATHS)['cc-words'], false, 'the book holds words off');
-  assert.equal(highlightClasses(HIGHLIGHTS_ON)['cc-words'], true, 'a physics book shows them');
+  assert.equal(highlightClasses(HIGHLIGHTS_ON)['cc-words'], false, 'words are off unless a book or the reader turns them on');
+  assert.equal(highlightClasses({ ...HIGHLIGHTS_ON, words: true })['cc-words'], true, 'a book that colours its words shows them');
   assert.equal(highlightClasses({ ...HIGHLIGHTS_ON, concepts: false })['cc-symbols'], false, 'a parent off holds its children off');
   assert.equal(highlightClasses(bookLayer(MATHS, { words: true }))['cc-words'], true, 'book default off, reader override on');
   assert.equal(highlightClasses({ ...HIGHLIGHTS_ON, underlines: false })['no-underlines'], true);

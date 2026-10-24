@@ -100,7 +100,7 @@
   const labelOf = (c: DagNode): Label => {
     void fontsIn;
     const k = `${c.kind}|${c.ext ? 1 : 0}|${c.name}`, had = labels.get(k); if (had) return had;
-    const ext = c.ext ? SEC_LINE : 0;
+    const ext = SEC_LINE;   /* every node names its section on a line of its own */
     if (c.name.includes('$') || typeof document === 'undefined') { const b = boxOf(c); const l = { ...b, lines: [], math: true }; labels.set(k, l); return l; }
     if (!ink) { ink = document.createElement('canvas').getContext('2d'); family = getComputedStyle(svgEl ?? document.body).fontFamily; }
     const skill = c.kind === 'skill' ? SKILL_ICON : 0;
@@ -643,14 +643,14 @@
                 {#if !c.ext && c.kind === 'axiom'}<rect class="rule" x={-l.w / 2} y={-l.h / 2} width="4" height={l.h} />{/if}
                 {#if !c.ext && c.kind === 'result'}<rect class="rule" x={-l.w / 2 + 2.5} y={-l.h / 2 + 2.5} width={l.w - 5} height={l.h - 5} rx="3" />{/if}
                 {#if l.math}
-                  <foreignObject x={-l.w / 2} y={-l.h / 2} width={l.w} height={l.h - (c.ext ? SEC_LINE : 0)}><div class="tex"><span use:mathHtml={c.name}></span></div></foreignObject>
+                  <foreignObject x={-l.w / 2} y={-l.h / 2} width={l.w} height={l.h - SEC_LINE}><div class="tex"><span use:mathHtml={c.name}></span></div></foreignObject>
                 {:else}
                   {@const top = -l.h / 2 + PAD_Y / 2 + NODE_LINE / 2}
                   {@const shift = c.kind === 'skill' ? SKILL_ICON / 2 : 0}
                   {#if c.kind === 'skill'}<path class="wrench" d={WRENCH} transform="translate({-l.w / 2 + PAD_X / 2 - 1},{top - 5}) scale(0.42)" />{/if}
                   <text>{#each l.lines as line, i (i)}<tspan x={shift} y={top + i * NODE_LINE}>{line}</tspan>{/each}</text>
                 {/if}
-                {#if c.ext}<text class="sec" y={l.h / 2 - PAD_Y / 2 - 3}>{c.section}</text>{/if}
+                <text class="sec" y={l.h / 2 - PAD_Y / 2 - 3}>{c.section}</text>
                 {#if bar}<rect class="meter" x={-l.w / 2 + 6} y={l.h / 2 - 5} height="3" rx="1.5" width={practice.stateOf(c.id) === 'untouched' ? 8 : Math.max(0, (l.w - 12) * practice.share(c.id))} />{/if}
               </g>
             {/if}
@@ -669,7 +669,7 @@
       {/each}
       <span class="sep" aria-hidden="true"></span>
       <button type="button" class="tool" title="Lasso (or Shift-drag)" aria-label="Lasso" aria-pressed={lassoMode} onclick={() => (lassoMode = !lassoMode)}>{@html ICON.lasso}</button>
-      <button type="button" class="tool wide" title="Select what you are ready to learn" disabled={!ready.length} onclick={() => (selected = new Set(ready))}><span>Ready {ready.length}</span></button>
+      <button type="button" class="tool wide" title="Select concepts you have mastered the prerequisites of" disabled={!ready.length} onclick={() => (selected = new Set(ready))}><span>Ready {ready.length}</span></button>
       <button type="button" class="tool wide" title={focusing ? 'Unfocus' : 'Focus on the selection'} aria-pressed={focusing} disabled={!focusing && !selected.size} onclick={toggleFocus}>{@html ICON.focus}<span>{focusing ? 'Unfocus' : selected.size ? `Focus ${selected.size}` : 'Focus'}</span></button>
       <span class="sep" aria-hidden="true"></span>
       <button type="button" class="tool" title="Progress" aria-label="Progress" aria-pressed={showProgress} onclick={() => (showProgress = !showProgress)}>{@html ICON.progress}</button>
@@ -733,9 +733,8 @@
   .tex{display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;line-height:15px;color:var(--ink);text-align:center;pointer-events:none}
   .tex :global(.katex){font-size:0.95em}
   .node text.sec{font-size:9px;fill:var(--muted)}
-  /* another section's work: the line thins and breaks */
-  .node.ext .box{fill:transparent;stroke:var(--rule);stroke-dasharray:4 3}
-  .node.ext text{fill:var(--muted)}
+  /* another section's work keeps its kind's colours; only its line breaks */
+  .node.ext .box{stroke-dasharray:4 3}
   /* the reading states sit on top of every kind */
   .node.active .box{stroke:var(--accent);stroke-width:2}
   .node.active-weak .box{stroke:var(--muted)}

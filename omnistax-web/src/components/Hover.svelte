@@ -10,6 +10,8 @@
   import { onMount, tick } from 'svelte';
   import { targetOf, cardFor, openDelay, readyFor } from '../lib/hover/cards';
   import type { Card } from '../lib/hover/resolve';
+  import { KIND_LABEL } from '../lib/sections/reference';
+  import type { ConceptKind } from '../lib/content/schema';
   import { glyphOf } from '../lib/hover/data';
   import { bookOfEl, findEl, goSpan, openingIn, openingAs, onMiddle, wantsNewGroup } from '../lib/sections/nav.svelte';
   import { spanId, spanRef } from '../lib/types/ids';
@@ -154,7 +156,7 @@
 
 {#if card}{#key card}
   <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" style:max-height={pos.most ? `${pos.most}px` : null} style:overflow-y={pos.most ? 'auto' : null} data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
-    <div class="eyebrow">{card.eyebrow}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
+    <div class="eyebrow">{#each card.eyebrow.split(' · ') as piece, i (i)}{#if i}{' · '}{/if}{#if card.conceptKind && piece === KIND_LABEL[card.conceptKind as ConceptKind]}<span class="kb k-{card.conceptKind}">{piece}</span>{:else}{piece}{/if}{/each}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" data-type={card.type ?? null} use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.plot}{@const sk = sketch(card.plot, PLOT_W)}{#if sk}{@const w = sk.win}<svg class="plot" viewBox="0 0 {PLOT_W} {PLOT_H}" data-type={card.type ?? null} aria-hidden="true">
       {#if w.y0 < 0 && w.y1 > 0}<line class="axis" x1="0" x2={PLOT_W} y1={py(w, 0)} y2={py(w, 0)} />{/if}

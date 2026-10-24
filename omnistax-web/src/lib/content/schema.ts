@@ -178,7 +178,7 @@ export const BookHighlightsSchema = z.object({
 }).strict();
 export type BookHighlightsDTO = z.infer<typeof BookHighlightsSchema>;
 /* What a book that declares nothing highlights: everything, as the first books did before the field existed; the content check says so. */
-export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true };
+export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: false, symbols: true, underlines: true };
 
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),

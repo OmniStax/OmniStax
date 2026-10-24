@@ -55,7 +55,6 @@
 
 {#snippet writing(id: SessionId, concept: string | undefined, i: number)}
   <div class="writing">
-    <p class="eyebrow">Exercise {i + 1} of {n}</p>
     <div class="quiet" role="status">
       {#if writingFor(id, concept)}
         <p><span class="spin" aria-hidden="true"></span> Writing an exercise for {conceptName(concept)}…</p>

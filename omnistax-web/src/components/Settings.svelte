@@ -278,6 +278,8 @@
   .dialog :global(:is(.btn-sm,.font,.find,input):focus-visible){outline:2px solid var(--accent);outline-offset:-1px}
   .find{flex:1;min-width:0}
   .seg,.row>.num{display:inline-flex;align-items:center;overflow:hidden;padding:0}
+  /* a number group keeps to its own width at the right end of the row, hint or no hint */
+  .row>.num{flex:0 0 auto;margin-left:auto}
   .seg{grid-column:3}
   .seg button,.row>.num button{font:inherit;font-size:0.82rem;line-height:1.25;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
   .seg button+button,.row>.num button:last-child,.row>.num input,.row>.num .unit.zoom{border-left:1px solid var(--rule)}

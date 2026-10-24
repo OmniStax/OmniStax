@@ -62,7 +62,7 @@
   {@const extra = c.forms.slice(1)}
   <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}>
     <div class="head">
-      <i class="tag k-{c.kind}">{KIND_LABEL[c.kind]}</i>
+      <i class="kb k-{c.kind}">{KIND_LABEL[c.kind]}</i>
       <span class="name" use:math={c.name}></span>
       {#if c.symbol}<span class="sym" use:tex={tree.symbols[c.symbol] ?? c.symbol}></span>{/if}
       {#if r.unit}<span class="unit">{r.unit}</span>{/if}
@@ -121,7 +121,6 @@
   .name{font-weight:600}
   .name :global(.katex){font-size:1em}
   .sym :global(.katex){font-size:1.05em}
-  .tag{font-style:normal;text-transform:uppercase;letter-spacing:0.06em;font-size:0.6rem;padding:0 5px;border-radius:9px;background:var(--soft);color:var(--muted)}
   .unit{font-family:var(--mono);font-size:0.72rem;color:var(--muted)}
   .statement{margin:2px 0 0;line-height:1.4}
   .statement :global(.katex){font-size:1em}

@@ -15,8 +15,8 @@
   let { item }: { item: string } = $props();
 
   const FROM = [['include', 'Book and AI'], ['book-only', 'Book only']] as const;
-  const ORDER = [['mixed', 'Mixed'], ['grouped', 'Grouped']] as const;
-  const CHECKING = [['reveal', 'I check'], ['ai', 'AI grades']] as const;
+  const ORDER = [['mixed', 'Interleaved'], ['grouped', 'By concept']] as const;
+  const CHECKING = [['reveal', 'Self grade'], ['ai', 'AI grades']] as const;
   const NOTHING = 'No exercises left for now. Choose more of the book or try again later.';
 
   const page = $derived(practice.page(item));
@@ -33,7 +33,7 @@
   const why = $derived(
     page.curriculum.length === 0 ? 'Nothing chosen yet.'
       : total === 0 ? 'Your choice has no exercises. Pick another part of the book.'
-        : aiNeeded && !aiReady ? `Configure a model under Settings → AI, or set ${[gapTotal > 0 && 'Exercises from to Book only', s.grading === 'ai' && 'Checking to I check'].filter(Boolean).join(' and ')}.`
+        : aiNeeded && !aiReady ? `Configure a model under Settings → AI, or set ${[gapTotal > 0 && 'Exercises from to Book only', s.grading === 'ai' && 'Checking to Self grade'].filter(Boolean).join(' and ')}.`
           : '',
   );
 
@@ -137,7 +137,7 @@
       </div>
     </div>
     <div class="opt">
-      {@render option('Order', 'Mixed interleaves concepts. Grouped keeps each concept’s exercises together.')}
+      {@render option('Order', 'Interleaved keeps neighbouring exercises on different concepts.')}
       <div class="seg" role="radiogroup" aria-label="Order">
         {#each ORDER as [v, t] (v)}<button type="button" role="radio" class:on={s.order === v} aria-checked={s.order === v} onclick={() => practice.setSetting('order', v)}>{t}</button>{/each}
       </div>
