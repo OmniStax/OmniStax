@@ -38,7 +38,7 @@
   import { fetchMissing } from '../../lib/notes/md/fetch';
   import TextBox from '../ui/TextBox.svelte';
   import {
-    addGroup, addItem, amend, canRedo, canUndo, clampZoom, endPoint, groupAround, moveItems, newDrawItemId, ORIGIN, rectOf,
+    addGroup, addItem, amend, canRedo, canUndo, clampZoom, cloneItems, endPoint, groupAround, isPlaced, moveItems, newDrawItemId, ORIGIN, rectOf,
     redo, removeItems, replaceItem, scaleItems, setBoxBody, setColour, setView, sideAt, SIDES, step, timeline, undo,
     type Box, type Drawing, type DrawItem, type DrawItemId, type End, type GroupItem, type LinkItem, type Placed, type Point,
     type ShapeTool, type Side, type View,
@@ -373,9 +373,11 @@
   const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
 
   const OWN_POINTER = '.boxed, .frame, .chat-item, .link-label, .sel-bar';
+  /* A press inside the selection moves it: several things, or one piece of ink,
+     a shape or a connector; a single card, frame, chat or group has grips of its own. */
   const grabsSelection = (e: PointerEvent): boolean => {
     const box = selectionBox;
-    if (tool !== 'lasso' || !box || selection.length < 2) return false;
+    if (tool !== 'lasso' || !box || !selection.length || (selection.length === 1 && selected[0] !== undefined && isPlaced(selected[0]))) return false;
     const [x, y] = at(e.clientX, e.clientY);
     return inBox(box, x, y);
   };
@@ -547,6 +549,13 @@
   };
 
   const deleteSelection = (): void => { commit(removeItems(drawing, selection)); selection = []; };
+  /* The selection copied a little down and to the right, and the copies selected. */
+  const cloneSelection = (): void => {
+    const { drawing: next, ids } = cloneItems(drawing, carried(drawing.items, selection));
+    if (!ids.length) return;
+    commit(next);
+    selection = ids;
+  };
 
   const groupSelection = (): void => {
     const box = selectionBox;
@@ -849,7 +858,7 @@
     onfill={(on) => (fill = on)} onshape={(s) => (shape = s)}
     {fingerDraws} onfinger={setFingerDraws}
     onundo={takeBack} onredo={putBack} {onsave}
-    onfit={zoomToFit} onreset={resetView} canFit={drawing.items.length > 0}
+    onfit={zoomToFit} canFit={drawing.items.length > 0}
     onimage={(f) => void dropImage(f, null)} />
 
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -950,6 +959,7 @@
         {:else}
           <button type="button" class="chip" title="Ctrl+G" onclick={groupSelection}>Group</button>
         {/if}
+        <button type="button" class="chip" title="Clone" onclick={cloneSelection}>Clone</button>
         <button type="button" class="chip" title="Delete" onclick={deleteSelection}>Delete</button>
       </div>
     {/if}

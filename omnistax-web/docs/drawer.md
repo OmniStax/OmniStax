@@ -20,8 +20,8 @@ with a finger, two fingers to zoom, and draw with the pencil; on a desktop
 the mouse draws, space-drag, middle-drag or the hand tool pans, Ctrl+wheel
 zooms about the pointer and a plain wheel walks the plane (Shift for
 sideways). Zoom is held between 0.1 and 8. "Fit" on the toolbar, or 0 while
-in the tab, frames everything there is; "Reset view", or Shift+0, goes home
-to the origin at full size. Where the reader was looking is kept with the
+in the tab, frames everything there is; Shift+0 goes home to the origin at
+full size. Where the reader was looking is kept with the
 drawing, so opening it again lands where they left off. While a pen is
 touching, touches are ignored (palm rejection). Pressure sets the pen width
 when the device reports it.
@@ -31,9 +31,11 @@ transparent, multiply blend), eraser (stroke-wise), lasso (select strokes,
 boxes and frames by drawing round them; then drag to move, Delete removes,
 handles resize), text box, shapes (line, arrow, rectangle, ellipse; Shift
 snaps a line to 45° and makes a square or circle; a fill toggle), image.
-Colour and stroke size are on the toolbar too; colours are the app's ink
-tokens plus the book's quantity colours when a book is open, so a force can
-be drawn in the force colour.
+Colour and stroke size are on the toolbar too; the colours are one palette
+every drawing shares (`lib/drawer/palette.svelte.ts`): ink, which follows the
+theme, and fourteen the reader may change for good by clicking the swatch
+already chosen, double-clicking any, or holding one down. What was drawn
+before keeps its colour.
 
 Undo is the drawing's own (Ctrl+Z inside the tab), not the shell timeline,
 like the note editor and a book's theme page.
@@ -69,12 +71,10 @@ it is not an explorer entry, it lives in the practice-side store keyed by
 book, section and exercise id, and returning to the exercise shows the old
 work. The card shows a small mark while scratch work exists.
 
-The scratch tab's toolbar has "Save as drawing", which turns it into a real
-drawing entry under Your Files, named "<exercise number> scratch", and
-links the exercise to it; the card then shows a chip with the drawing's name
-that opens it. "Detach" on that chip turns the linked drawing back into
-private scratch (the entry is removed, the content kept). Both directions
-are undoable compound edits.
+Scratch work is a drawing of the reader's own from its first opening: it is
+filed under `_practice/scratch`, named by the exercise, and the exercise
+keeps the link. The rows under `_practice` are renamed freely and never
+moved.
 
 An exercise opens as a tab of its own (`ex:<section>/<exId>`, milestone 0 of
 `imports.md`), so the practice split can show one exercise beside its
@@ -230,7 +230,7 @@ thumbnail is not remade and a row is not touched because the reader looked
 somewhere else. The view is written down when a gesture ends — a drag lifted, a
 pinch let go, the wheel come to rest — and it rides the tab's own timeline as a
 nudge, so taking back a stroke never takes back a pan. Zoom is held between 0.1
-and 8; "Fit" and 0 frame everything there is, "Reset view" and Shift+0 go home.
+and 8; "Fit" and 0 frame everything there is, Shift+0 goes home.
 
 One thing was read more narrowly than the brief wrote it. A card, a figure or
 an image dragged onto the plane still lands under the pointer, where it was let

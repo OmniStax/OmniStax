@@ -63,7 +63,7 @@ src/lib/types       ids.ts: branded ids, the ItemId ADT (a document, a view, one
 src/lib/layout      model.ts (pure Layout operations), store.svelte.ts (live value + persistence), drag.svelte.ts (actions)
 src/lib/sections    registry (loaded sections, DOM instances, fetch), nav (find/reveal/jump), concepts (pin), spy (scroll), focus, scope (the level a view stands at — book, chapter or section — following or pinned), grouping (a list cut by chapter and section, inside the level or outside it), dag, boot (the page's boot data — the manifest and the chapter's concepts and formulas — fetched from the book's and the chapter's own files before the shell mounts)
 src/lib/notes       anchor.ts (text anchoring, pure), paint.ts (marks on a document), store.svelte.ts (the book's highlights, persisted), go.ts (jump to a highlight), docs.svelte.ts (the reader's markdown notes); md/: links.ts (the wiki-link grammar, one place), render.ts (markdown to HTML, pure, the cards a note holds), complete.ts (the rows the picker offers), dragout.ts (a panel row dragged into a note)
-src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (the live stack the palette and Ctrl+Z read)
+src/lib/history     model.ts (the timeline of the reader's edits, pure), store.svelte.ts (one live stack per view; the palette and Ctrl+Z read the focused one)
 src/lib/explorer    model.ts (the reader's tree, pure), store.svelte.ts (live and persisted), edits.ts (row and document changed as one, and recorded), library.svelte.ts (the textbooks on offer)
 src/lib/files       model.ts (the imported files, pure) and store.svelte.ts, blobs.ts (their bytes and a PDF's text, in one IndexedDB), marks.ts/marks.svelte.ts (the highlights and text boxes written on them), import.ts (the one way in, from the icon or a drop), pdfjs.ts (the vendored pdf.js, fetched on demand), text.ts (the pages pulled out at import), resolver.ts (what a box's markdown may point at, and where its links go), open.svelte.ts (the page or mark a tab is asked to land on)
 src/lib/storage     health.ts: whether this browser has promised to keep the reader's data, how much it is using, and what to tell them where it has not
@@ -175,8 +175,10 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
   own (`Colours: undo`, `Colours: redo`, and Ctrl+Z inside the page), so taking
   back a colour never takes back a highlight; `colours/model.ts` is pure and the
   store writes one style element and redraws the figures.
-- Undo and redo are one timeline of the reader's own edits — highlights,
-  annotations, the rows and documents of the explorer — and nothing else: the
+- Undo and redo walk the reader's own edits, one timeline per view: the
+  Explorer's rows, a note's text, a drawing's ink, a section's highlights and
+  annotations, a file's marks, each taken back only while that view has focus —
+  and nothing else: the
   layout, what is open and where the reader has scrolled are not edits, and a
   tab closed comes back through Reopen closed tab (Ctrl+Shift+T) instead. An
   edit knows how to take itself back and how to do itself again, and a burst

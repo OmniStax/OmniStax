@@ -13,6 +13,8 @@
   import { rank } from '../lib/commands/fuzzy';
   import { pieces } from '../lib/commands/pieces';
   import { openChoice, filter, key, perform, shown, type ChoiceStage, type ChoiceKey, type ChoiceOption } from '../lib/commands/choice';
+  import { recent } from '../lib/commands/recent.svelte';
+  import { ICON } from '../lib/icons';
 
   let query = $state('');
   let sel = $state(0);
@@ -20,7 +22,22 @@
   let list = $state<HTMLElement | null>(null);
 
   const text = (c: Command): string => `${c.group} ${c.label}`;
-  const items = $derived(rank(query, commands.all().filter(available), text));
+  /* With nothing typed, the commands run lately stand at the top and every
+     command follows in alphabetical order, group and all; typed, the matches
+     are ranked best first as before. */
+  type Row = { readonly item: Command; readonly match: { readonly indices: readonly number[] }; readonly recent: boolean };
+  const items = $derived.by((): readonly Row[] => {
+    const all = commands.all().filter(available);
+    if (query.trim()) return rank(query, all, text).map((r) => ({ ...r, recent: false }));
+    const byId = new Map(all.map((c) => [c.id, c] as const));
+    const used = recent.ids.flatMap((id) => { const c = byId.get(id); return c ? [{ item: c, match: { indices: [] }, recent: true }] : []; });
+    const rest = [...all].sort((a, b) => text(a).localeCompare(text(b), undefined, { sensitivity: 'base' }));
+    return [...used, ...rest.map((c) => ({ item: c, match: { indices: [] }, recent: false }))];
+  });
+  const firstAll = $derived(items.findIndex((r) => !r.recent));
+  /* The gear opens Settings on the command's shortcut; the cross strikes it from the recent list. */
+  const configure = (c: Command): void => { ui.openSettings({ shortcutFor: c.id }); };
+  const forget = (c: Command): void => { recent.forget(c.id); };
   let choice = $state.raw<ChoiceStage | null>(null);
   const options = $derived(choice ? shown(choice) : []);
   const focusInput = () => tick().then(() => input?.focus());
@@ -33,6 +50,7 @@
   $effect(() => { const row = list?.children[choice ? choice.sel : sel] as HTMLElement | undefined; row?.scrollIntoView({ block: 'nearest' }); });
 
   const run = (c: Command) => {
+    recent.note(c.id);
     if (c.choices) { choice = openChoice(c.label, c.choices()); focusInput(); return; }
     c.run(); ui.closePalette();
   };
@@ -82,13 +100,18 @@
         <div class="none">No matches</div>
       {/each}
     {:else}
-      {#each items as { item, match }, i (item.id)}
+      {#each items as { item, match, recent: used }, i (item.id)}
         {@const detail = item.detail?.() ?? ''}
+        {#if !query.trim() && (i === 0 && used || i === firstAll)}<div class="head">{used ? 'Recently used' : 'All commands'}</div>{/if}
         <div class="row" class:sel={i === sel} role="option" aria-selected={i === sel} onmousemove={() => (sel = i)} onclick={() => run(item)}>
           <span class="grp">{#each pieces(item.group, 0, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           <span class="lbl">{#each pieces(item.label, item.group.length + 1, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           {#if detail}<span class="detail">{detail}</span>{/if}
           <span class="keys">{#each keys.chordsFor(item.id) as c (c)}<span class="chord">{#each chordKeys(c) as k}<kbd class="kbd">{k}</kbd>{/each}</span>{/each}</span>
+          <span class="acts">
+            <button type="button" class="act" title="Configure keybind" aria-label="Configure the keybind of {item.label}" onclick={(e) => { e.stopPropagation(); configure(item); }}>{@html ICON.gear}</button>
+            {#if used}<button type="button" class="act" title="Remove from recently used" aria-label="Remove {item.label} from recently used" onclick={(e) => { e.stopPropagation(); forget(item); }}>×</button>{/if}
+          </span>
         </div>
       {:else}
         <div class="none">No matching commands</div>
@@ -114,4 +137,13 @@
   .keys{display:flex;gap:8px}
   .chord{display:inline-flex;gap:2px}
   .none{padding:14px 16px;color:var(--muted)}
+  /* the two parts of the list with nothing typed: a small head and a rule between them */
+  .head{padding:8px 16px 2px;font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+  .head + .row{border-top:0}
+  .row + .head{margin-top:4px;border-top:1px solid var(--rule);padding-top:8px}
+  .acts{display:none;gap:2px}
+  .row.sel .acts,.row:hover .acts{display:inline-flex}
+  .act{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:0.9rem;line-height:1;padding:0}
+  .act:hover{background:var(--soft2);color:var(--ink)}
+  .act :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6}
 </style>

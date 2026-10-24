@@ -31,7 +31,9 @@ class Ui {
   openBrowser(opts: { group?: number; pick?: (t: Target) => void } = {}): void { this.settings = false; this.closePalette(); this.browser = { open: true, group: opts.group ?? null, mode: opts.pick ? 'pick' : 'open', onPick: opts.pick ?? null }; }
   closeBrowser(): void { if (this.browser.open) this.browser = BROWSER_CLOSED; }
   toggleBrowser(): void { if (this.browser.open) this.closeBrowser(); else this.openBrowser(); }
-  openSettings(): void { this.closePalette(); this.closeBrowser(); this.closeFindTextbook(); this.settings = true; }
+  /* A command whose shortcut Settings should show first, set by the palette's gear and taken by Settings as it opens. */
+  shortcutFor = $state<string | null>(null);
+  openSettings(opts: { shortcutFor?: string } = {}): void { this.closePalette(); this.closeBrowser(); this.closeFindTextbook(); this.shortcutFor = opts.shortcutFor ?? null; this.settings = true; }
   toggleSettings(): void { if (this.settings) this.settings = false; else this.openSettings(); }
   openFindTextbook(): void { this.closePalette(); this.closeBrowser(); this.settings = false; this.findTextbook = true; }
   closeFindTextbook(): void { this.findTextbook = false; }

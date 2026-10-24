@@ -60,6 +60,13 @@
   });
   const shortcutsShown = $derived(hit('Keyboard shortcuts keys chords bindings') || commands.all().some((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)));
   const toggleByKeys = () => { byKeys = !byKeys; keyChord = null; kq = ''; };
+  /* Opened from the palette's gear: the shortcuts fold stands open, filtered to that one command. */
+  let openShortcuts = $state(false);
+  $effect(() => {
+    const id = ui.shortcutFor; if (!id) return;
+    const c = commands.get(id as CommandId); ui.shortcutFor = null;
+    if (c) { byKeys = false; keyChord = null; kq = c.label; openShortcuts = true; }
+  });
   const onKeyFilter = (e: KeyboardEvent) => {
     if (!byKeys) return;
     e.stopPropagation(); if (e.key === 'Tab') return;
@@ -168,8 +175,8 @@
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
         <!-- the column's width, and under it the two caps inside the column -->
         <label class="row switch" hidden={!hit(ROWS.fill)}><span class="name">Fill all horizontal space{@render back(settings.fillAll || settings.fillParagraphs || settings.fillFigures, 'Reset to off', () => { settings.setFillAll(false); settings.setFillParagraphs(false); settings.setFillFigures(false); })}</span><span class="hint">{HINT.fill}</span><input type="checkbox" checked={settings.fillAll} onchange={(e) => { settings.setFillAll(e.currentTarget.checked); settings.setFillParagraphs(e.currentTarget.checked); settings.setFillFigures(e.currentTarget.checked); }}></label>
-        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Paragraphs fill horizontal space</span><input type="checkbox" checked={settings.fillParagraphs} onchange={(e) => settings.setFillParagraphs(e.currentTarget.checked)}></label>
-        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Figures fill horizontal space</span><input type="checkbox" checked={settings.fillFigures} onchange={(e) => settings.setFillFigures(e.currentTarget.checked)}></label>
+        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Paragraphs fill horizontal space</span><span class="hint"></span><input type="checkbox" checked={settings.fillParagraphs} onchange={(e) => settings.setFillParagraphs(e.currentTarget.checked)}></label>
+        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Figures fill horizontal space</span><span class="hint"></span><input type="checkbox" checked={settings.fillFigures} onchange={(e) => settings.setFillFigures(e.currentTarget.checked)}></label>
       </Fold>
 
       <Fold name="Reading" show={READING.some(hit)} force={!!q}>
@@ -216,7 +223,7 @@
 
       <Fold name="Storage" show={hit(ROWS.storage)} force={!!q}><Storage /></Fold>
 
-      <Fold name="Keyboard shortcuts" show={shortcutsShown} force={!!q}>
+      <Fold name="Keyboard shortcuts" show={shortcutsShown} force={!!q || openShortcuts}>
         <div class="toolbar">
           {#if byKeys}
             <input class="find keys-find" type="text" readonly placeholder="Press a shortcut" aria-label="Search by pressing a shortcut" value={keyChord ? chordKeys(keyChord).join(' ') : ''} onkeydown={onKeyFilter} use:focus>

@@ -113,7 +113,9 @@ pick into the remaining parts.
 
 In the session a sticky bar holds the numbered grid (✓ or ✗ per answered
 exercise), "One at a time | All", and End session. Every answered exercise
-stays until Next, with its verdict, Discuss with AI and Add a note beneath it.
+stays until Next, with its verdict and Discuss with AI beneath it; Scratchpad and
+Note stand beside the answer while the exercise is open, each filed under
+`_practice` and named by the exercise.
 
 An exercise is marked seen only when its card is actually presented. Slots in
 an abandoned round that the reader never visited remain unseen.

@@ -234,7 +234,6 @@
       {#if gen}<span><AiTag model={gen.model} text /></span>{:else}<span>from the book</span>{/if}
     </div>
     </details>
-  {/if}
 
   {#if review}
     {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
