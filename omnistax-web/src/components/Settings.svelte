@@ -45,14 +45,12 @@
   /* What each row says, and extra words it should answer to. The filter reads
      both, in the reader's language, so the words follow a change of it. */
   const HINT = $derived({
-    zoom: t('settings.zoom.hint'),
-    zoomKeys: t('settings.zoomKeys.hint', { browser: browserName }),
     tips: t('settings.tips.hint'),
     cardOpen: t('settings.cardOpen.hint'),
-    anim: t('settings.anim.hint'),
     voice: t('settings.voice.hint'),
     decay: t('settings.decay.hint'),
     lockGrace: t('settings.lockGrace.hint'),
+    fill: t('settings.fill.hint'),
   });
   const fontNames = FONTS.map((f) => f.label).join(' ');
   /* The language row: System, then each catalog by its own name, which is never translated. */
@@ -61,14 +59,15 @@
   const ROWS = $derived({
     language: `${t('language.setting.name')} ${t('language.searchWords')} ${LOCALE_NAMES[i18n.system]}`,
     theme: `${t('settings.theme.name')} ${t('settings.theme.keywords')}`, figureFont: `${t('settings.figureFont.name')} ${t('settings.figureFont.keywords')} ${fontNames}`, bodyFont: `${t('settings.bodyFont.name')} ${t('settings.bodyFont.keywords')} ${fontNames}`,
-    zoom: `${t('settings.zoom.name')} ${t('settings.zoom.keywords')} ${HINT.zoom}`, zoomKeys: `${t('settings.zoomKeys.name')} ${HINT.zoomKeys}`, tips: `${t('settings.tips.name')} ${t('settings.tips.keywords')} ${HINT.tips}`,
-    anim: `${t('settings.anim.name')} ${t('settings.anim.keywords')} ${HINT.anim}`, voice: `${t('settings.voice.name')} ${t('settings.voice.keywords')} ${HINT.voice}`, cardOpen: `${t('settings.cardOpen.name')} ${t('settings.cardOpen.keywords')} ${HINT.cardOpen}`,
+    zoom: `${t('settings.zoom.name')} ${t('settings.zoom.keywords')}`, tips: `${t('settings.tips.name')} ${t('settings.tips.keywords')} ${HINT.tips}`,
+    fill: `${t('settings.fill.name')} ${t('settings.fill.keywords')} ${HINT.fill}`,
+    anim: `${t('settings.anim.name')} ${t('settings.anim.keywords')}`, voice: `${t('settings.voice.name')} ${t('settings.voice.keywords')} ${HINT.voice}`, cardOpen: `${t('settings.cardOpen.name')} ${t('settings.cardOpen.keywords')} ${HINT.cardOpen}`,
     lockGrace: `${t('settings.lockGrace.name')} ${t('settings.lockGrace.keywords')} ${HINT.lockGrace}`,
     masteryTarget: `${t('settings.masteryTarget.name')} ${t('settings.masteryTarget.keywords')}`, decay: `${t('settings.decay.name')} ${t('settings.decay.keywords')} ${HINT.decay}`,
     startingHalfLife: `${t('settings.startingHalfLife.name')} ${t('settings.startingHalfLife.keywords')}`, maxHalfLife: `${t('settings.maxHalfLife.name')} ${t('settings.maxHalfLife.keywords')}`,
     storage: `${t('settings.section.storage')} ${t('settings.storage.keywords')}`,
   });
-  const APPEARANCE = $derived([ROWS.language, ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.zoomKeys, ROWS.tips]), READING = $derived([ROWS.cardOpen, ROWS.anim, ROWS.voice]);
+  const APPEARANCE = $derived([ROWS.language, ROWS.theme, ROWS.figureFont, ROWS.bodyFont, ROWS.zoom, ROWS.tips, ROWS.fill]), READING = $derived([ROWS.cardOpen, ROWS.anim, ROWS.voice]);
   const PRACTICE = $derived([ROWS.masteryTarget, ROWS.decay, ROWS.startingHalfLife, ROWS.maxHalfLife]);
   const SHORTCUT_WORDS = $derived(`${t('settings.section.shortcuts')} ${t('settings.shortcuts.keywords')}`);
   /* The toolbar's own filter: words, or with Record keys on, the chord pressed. */
@@ -88,6 +87,13 @@
   });
   const shortcutsShown = $derived(hit(SHORTCUT_WORDS) || commands.all().some((c) => hit(`${c.group} ${c.label} ${keys.chordsFor(c.id).map(chordKeys).flat().join(' ')}`)));
   const toggleByKeys = () => { byKeys = !byKeys; keyChord = null; kq = ''; };
+  /* Opened from the palette's gear: the shortcuts fold stands open, filtered to that one command. */
+  let openShortcuts = $state(false);
+  $effect(() => {
+    const id = ui.shortcutFor; if (!id) return;
+    const c = commands.get(id as CommandId); ui.shortcutFor = null;
+    if (c) { byKeys = false; keyChord = null; kq = c.label; openShortcuts = true; }
+  });
   const onKeyFilter = (e: KeyboardEvent) => {
     if (!byKeys) return;
     e.stopPropagation(); if (e.key === 'Tab') return;
@@ -120,7 +126,7 @@
   const plain = (e: KeyboardEvent): boolean => !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
   const onKey = (e: KeyboardEvent) => {
     e.stopPropagation();
-    if (!rec) { if (e.key === 'Escape') { ui.settings = false; return; } if (e.ctrlKey || e.metaKey || e.altKey) keys.dispatch(e); return; }
+    if (!rec) { if (e.key === 'Escape') { e.preventDefault(); ui.settings = false; return; } if (e.ctrlKey || e.metaKey || e.altKey) keys.dispatch(e); return; }
     e.preventDefault();
     if (e.key === 'Escape') { rec = null; return; }
     if (e.key === 'Backspace' && plain(e)) { keys.clear(rec.id); rec = null; return; }
@@ -198,15 +204,14 @@
         {@render fontRow(t('settings.bodyFont.name'), 'bodyFont', settings.bodyFont, DEFAULTS.bodyFont, (id) => settings.setBodyFont(id))}
         <div class="row" hidden={!hit(ROWS.zoom)}>
           <span class="name">{t('settings.zoom.name')}{@render back(settings.zoom !== DEFAULTS.zoom, resetTo(zoomLabel(DEFAULTS.zoom)), () => settings.resetZoom())}</span>
-          <span class="hint">{HINT.zoom}</span>
           <div class="num">
             <button type="button" aria-label={t('commands.zoomOut')} onclick={() => settings.zoomOut()}>−</button>
             <span class="unit zoom">{zoomLabel(settings.zoom)}</span>
             <button type="button" aria-label={t('commands.zoomIn')} onclick={() => settings.zoomIn()}>+</button>
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.zoomKeys)}><span class="name">{t('settings.zoomKeys.name')}{@render back(settings.zoomKeys !== DEFAULTS.zoomKeys, resetTo(onOff(DEFAULTS.zoomKeys)), () => settings.setZoomKeys(DEFAULTS.zoomKeys))}</span><span class="hint">{HINT.zoomKeys}</span><input type="checkbox" id="zoom-keys-toggle" checked={settings.zoomKeys} onchange={(e) => settings.setZoomKeys(e.currentTarget.checked)}></label>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">{t('settings.tips.name')}{@render back(settings.tips !== DEFAULTS.tips, resetTo(onOff(DEFAULTS.tips)), () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.fill)}><span class="name">{t('settings.fill.name')}{@render back(settings.fillAll !== DEFAULTS.fillAll, resetTo(onOff(DEFAULTS.fillAll)), () => settings.setFillAll(DEFAULTS.fillAll))}</span><span class="hint">{HINT.fill}</span><input type="checkbox" checked={settings.fillAll} onchange={(e) => settings.setFillAll(e.currentTarget.checked)}></label>
       </Fold>
 
       <Fold id="Reading" name={t('settings.section.reading')} show={READING.some(hit)} force={!!q}>
@@ -219,7 +224,13 @@
             {/each}
           </div>
         </div>
-        <label class="row switch" hidden={!hit(ROWS.anim)}><span class="name">{t('settings.anim.name')}{@render back(settings.animations !== DEFAULTS.animations, resetTo(onOff(DEFAULTS.animations)), () => settings.setAnimations(DEFAULTS.animations))}</span><span class="hint">{HINT.anim}</span><input type="checkbox" id="anim-toggle" checked={settings.animations} onchange={(e) => settings.setAnimations(e.currentTarget.checked)}></label>
+        <div class="row" hidden={!hit(ROWS.anim)}>
+          <span class="name">{t('settings.anim.name')}{@render back(settings.animations !== DEFAULTS.animations, resetTo(t(DEFAULTS.animations ? 'settings.anim.playing' : 'settings.anim.paused')), () => settings.setAnimations(DEFAULTS.animations))}</span>
+          <div class="seg" role="radiogroup" aria-label={t('settings.anim.name')}>
+            <button type="button" id="figures-paused" class:on={!settings.animations} role="radio" aria-checked={!settings.animations} onclick={() => settings.setAnimations(false)}>{t('settings.anim.paused')}</button>
+            <button type="button" id="figures-playing" class:on={settings.animations} role="radio" aria-checked={settings.animations} onclick={() => settings.setAnimations(true)}>{t('settings.anim.playing')}</button>
+          </div>
+        </div>
         <label class="row switch" hidden={!hit(ROWS.voice)}><span class="name">{t('settings.voice.name')}{@render back(settings.voice !== DEFAULTS.voice, resetTo(onOff(DEFAULTS.voice)), () => settings.setVoice(DEFAULTS.voice))}</span><span class="hint">{reader.supported ? HINT.voice : t('settings.voice.unsupported')}</span><input type="checkbox" id="voice-toggle" disabled={!reader.supported} checked={settings.voice} onchange={(e) => settings.setVoice(e.currentTarget.checked)}></label>
       </Fold>
 
@@ -247,7 +258,7 @@
 
       <Fold id="Storage" name={t('settings.section.storage')} show={hit(ROWS.storage)} force={!!q}><Storage /></Fold>
 
-      <Fold id="Keyboard shortcuts" name={t('settings.section.shortcuts')} show={shortcutsShown} force={!!q}>
+      <Fold id="Keyboard shortcuts" name={t('settings.section.shortcuts')} show={shortcutsShown} force={!!q || openShortcuts}>
         <div class="toolbar">
           {#if byKeys}
             <input class="find keys-find" type="text" readonly placeholder={t('settings.shortcuts.press')} aria-label={t('settings.shortcuts.searchByKeys')} value={keyChord ? chordKeys(keyChord).join(' ') : ''} onkeydown={onKeyFilter} use:focus>
@@ -316,6 +327,8 @@
   .dialog :global(:is(.btn-sm,.font,.find,input):focus-visible){outline:2px solid var(--accent);outline-offset:-1px}
   .find{flex:1;min-width:0}
   .seg,.row>.num{display:inline-flex;align-items:center;overflow:hidden;padding:0}
+  /* a number group keeps to its own width at the right end of the row, hint or no hint */
+  .row>.num{flex:0 0 auto;margin-left:auto}
   .seg{grid-column:3}
   .seg button,.row>.num button{font:inherit;font-size:0.82rem;line-height:1.25;padding:4px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer;white-space:nowrap}
   .seg button+button,.row>.num button:last-child,.row>.num input,.row>.num .unit.zoom{border-left:1px solid var(--rule)}

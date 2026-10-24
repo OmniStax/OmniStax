@@ -44,3 +44,7 @@
 ^src/lib/colours/palettes\.ts:\d+: (Even hues|Hue families)$
 # The service the sync view connects to: a product name.
 ^src/components/views/Sync\.svelte:\d+: GitHub$
+# The exercise chip's brief (src/lib/practice/brief.ts): the text a chat hands the model about an exercise, not what the reader sees. The model is told in English.
+^src/lib/practice/brief\.ts:
+# The default note practice adds to the writer's prompt (it can be edited in the session plan): text for the model, in English.
+^src/lib/practice/model\.ts:\d+: Make exercises test what the other exercises for the same concept haven’t tested

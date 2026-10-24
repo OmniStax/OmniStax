@@ -68,13 +68,12 @@
   });
   const tex = (node: HTMLElement, v: { readonly book: string; readonly tex: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, x.tex); set(v); return { update: set }; };
   const sym = (node: HTMLElement, v: { readonly book: string; readonly sym: string }) => { const set = (x: typeof v) => figFor(x.book).tex(node, registry.manifest(bookId(x.book)).symbols[x.sym] ?? x.sym); set(v); return { update: set }; };
-  const KIND: Readonly<Record<Hit['kind'], MessageKey>> = { concept: 'views.search.kind.concept', definition: 'views.search.kind.definition', formula: 'views.search.kind.formula', text: 'views.search.kind.text' };
   const DAY = 86_400_000;
   const when = (t: number): string => {
     const days = Math.floor((Date.now() - t) / DAY);
     return days <= 0 ? i18n.t('views.search.today') : days === 1 ? i18n.t('views.search.yesterday') : days < 30 ? i18n.t('views.search.daysAgo', { n: days }) : new Date(t).toLocaleDateString(i18n.locale);
   };
-  const FILTER_KEY: Readonly<Record<Filter, MessageKey>> = { all: 'views.search.filter.all', concept: 'views.search.filter.concept', definition: 'views.search.filter.definition', formula: 'views.search.filter.formula', text: 'views.search.filter.text' };
+  const FILTER_KEY: Readonly<Record<Filter, MessageKey>> = { all: 'views.search.filter.all', concept: 'views.search.filter.concept', definition: 'views.search.filter.definition', formula: 'views.search.filter.formula', text: 'views.search.filter.text', chats: 'views.search.filter.chats' };
   const where = (h: Hit): string => h.kind === 'text' ? pageLabel(h.page) : h.kind === 'concept' ? h.concept.section : h.kind === 'formula' ? h.form.section : h.symbol.section;
 </script>
 
@@ -104,14 +103,14 @@
               <span class="where">{where(h)}{#if h.head} › {h.head}{/if}</span>
               <span class="line">{#each h.excerpt as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
             {:else if h.kind === 'concept'}
-              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t(KIND[h.kind])}</i>{/if}{where(h)} · {kindLabel(h.concept.kind, i18n.t).toLocaleLowerCase(i18n.locale)}</span>
+              <span class="where"><i class="kb k-{h.concept.kind}">{kindLabel(h.concept.kind, i18n.t)}</i>{where(h)}</span>
               <span class="line name" use:mathHtml={h.concept.name}></span>
               {#if h.concept.status === 'built' && h.concept.statement}<span class="line statement">{h.concept.statement}</span>{/if}
             {:else if h.kind === 'formula'}
-              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t(KIND[h.kind])}</i>{/if}{where(h)}{#if h.form.condition} · {h.form.condition}{/if}</span>
+              <span class="where">{where(h)}{#if h.form.condition} · {h.form.condition}{/if}</span>
               <span class="line eq" use:tex={{ book: h.book, tex: h.form.tex }}></span>
             {:else}
-              <span class="where">{#if filter === 'all'}<i class="kind">{i18n.t('views.search.kind.symbol')}</i>{/if}{where(h)}</span>
+              <span class="where">{where(h)}</span>
               <span class="line"><span class="sym" use:sym={{ book: h.book, sym: h.symbol.sym }}></span> {h.symbol.meaning}{#if h.symbol.unit} <span class="unit">{h.symbol.unit}</span>{/if}</span>
             {/if}
           </button>
@@ -167,7 +166,7 @@
   .hit:hover,.hit.sel{background:var(--soft)}
   .hit:focus-visible{outline:2px solid var(--accent)}
   .where{font-size:0.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .kind{display:inline-block;font-style:normal;text-transform:uppercase;letter-spacing:0.06em;font-size:0.62rem;padding:0 5px;margin-right:6px;border-radius:9px;background:var(--soft);color:var(--muted)}
+  .where .kb{margin-right:6px;vertical-align:1px}
   .line{font-size:0.8rem;line-height:1.4;overflow-wrap:anywhere}
   .line b{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--warm) 22%,transparent);border-radius:2px}
   .name{font-weight:600}

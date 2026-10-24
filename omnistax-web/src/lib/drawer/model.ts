@@ -182,6 +182,21 @@ const mapped = (i: DrawItem, from: Box, to: Box): DrawItem => {
   return { ...i, x, y, w: i.w * kx, h: i.h * ky };
 };
 
+/* The items named copied under new ids, a little down and to the right; a
+   connector between two copied items joins the copies. The copies go on top,
+   and their ids come back so the caller can select them. */
+export const cloneItems = (d: Drawing, ids: readonly DrawItemId[], dx = 5, dy = 5, now?: number): { readonly drawing: Drawing; readonly ids: readonly DrawItemId[] } => {
+  const chosen = d.items.filter((i) => ids.includes(i.id));
+  if (!chosen.length) return { drawing: d, ids: [] };
+  const fresh = new Map(chosen.map((i) => [i.id, newDrawItemId()] as const));
+  const end = (e: End): End => (isFree(e) || !fresh.has(e.item) ? e : { ...e, item: fresh.get(e.item)! });
+  const copies = chosen.map((i): DrawItem => {
+    const moved = shifted(i, dx, dy), id = fresh.get(i.id)!;
+    return moved.kind === 'link' ? { ...moved, id, from: end(moved.from), to: end(moved.to) } : { ...moved, id };
+  });
+  return { drawing: touched(d, [...d.items, ...copies], now), ids: copies.map((c) => c.id) };
+};
+
 export const scaleItems = (d: Drawing, ids: readonly DrawItemId[], from: Box, to: Box, now?: number): Drawing => {
   const scaling = new Set<string>(ids);
   if (!scaling.size || from.w <= 0 || from.h <= 0) return d;

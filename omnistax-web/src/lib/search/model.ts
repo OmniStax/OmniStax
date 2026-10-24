@@ -18,13 +18,15 @@ export type { Piece };
 
 export const SEARCH_KINDS = ['concept', 'definition', 'formula', 'text'] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
-/* What the reader asks for: one kind, or everything. */
-export type Filter = 'all' | SearchKind;
-export const FILTERS: readonly Filter[] = ['all', ...SEARCH_KINDS];
+/* What the reader asks for: everything, the concepts, the books' own text,
+   or the chats; a kind the index knows but the rail no longer offers can still
+   be asked for by code. */
+export type Filter = 'all' | SearchKind | 'chats';
+export const FILTERS: readonly Filter[] = ['all', 'concept', 'text', 'chats'];
 /* Getters: each read is in the current language. */
 export const FILTER_LABEL: Readonly<Record<Filter, string>> = {
   get all() { return t('views.search.filter.all'); }, get concept() { return t('views.search.filter.concept'); }, get definition() { return t('views.search.filter.definition'); },
-  get formula() { return t('views.search.filter.formula'); }, get text() { return t('views.search.filter.text'); },
+  get formula() { return t('views.search.filter.formula'); }, get text() { return t('views.search.filter.text'); }, get chats() { return t('views.search.filter.chats'); },
 };
 
 /* One book as the search reads it. The id is the book's, the title what to call it. */

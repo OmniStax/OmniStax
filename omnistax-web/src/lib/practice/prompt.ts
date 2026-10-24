@@ -3,7 +3,7 @@
 import type { AnswerDTO } from '../content/schema';
 import { solutionText } from '../exercises/check';
 
-export const GENERATE = `You write practice exercises for one concept of an open textbook the reader is studying in OmniStax. Read the section first with your tools, and write only what the book has taught by that point, in its symbols, units and terms.
+export const GENERATE = `You write practice exercises for one concept of an open textbook the reader is studying in OmniStax. Read the section first with your tools, and write only what the book has taught by that point, in its symbols, units and terms. Each item stands alone: never refer to another exercise, the book's or one written earlier, and test what the exercises already listed have not.
 
 Enumerate before you multiply. List to yourself the facets of the concept: its definition, its cases, its limits, the confusions students bring to it, and its ties to its prerequisites and to a unit or a sign. Then list the facets the book's own exercises already cover and the facets earlier generated items cover. Write for the uncovered facets first, one item per facet, and add a second item on a facet only when you are asked for more items than there are facets.
 
@@ -22,7 +22,8 @@ export type ConceptBrief = { readonly id: string; readonly name: string; readonl
 export type GenerateAsk = {
   readonly book: string; readonly bookTitle: string; readonly section: string;
   readonly concept: ConceptBrief; readonly count: number; readonly note?: string;
-  readonly existing: readonly string[]; readonly facets: readonly string[];
+  /* The book's exercises on the concept, and the ones a model wrote for it before. */
+  readonly existing: readonly string[]; readonly written: readonly string[]; readonly facets: readonly string[];
 };
 
 const bullets = (list: readonly string[], none: string): string => (list.length ? list.map((s) => `- ${s.replace(/\s+/g, ' ').trim()}`).join('\n') : none);
@@ -32,6 +33,7 @@ export const generateAsk = (a: GenerateAsk): string => [
   `Concept: ${a.concept.name} (${a.concept.kind}, id ${a.concept.id}).${a.concept.statement ? ` ${a.concept.statement}` : ''}`,
   ...(a.note ? [`The reader's note: ${a.note}`] : []),
   `The book's own exercises on this concept:\n${bullets(a.existing, '- none')}`,
+  `Exercises already written for this concept, which yours should not repeat:\n${bullets(a.written, '- none')}`,
   `Facets earlier generated items already cover:\n${bullets(a.facets, '- none')}`,
   `Write ${a.count} ${a.count === 1 ? 'item' : 'items'}.`,
 ].join('\n\n');

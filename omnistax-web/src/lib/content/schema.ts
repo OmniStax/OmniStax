@@ -178,7 +178,7 @@ export const BookHighlightsSchema = z.object({
 }).strict();
 export type BookHighlightsDTO = z.infer<typeof BookHighlightsSchema>;
 /* What a book that declares nothing highlights: everything, as the first books did before the field existed; the content check says so. */
-export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: true, symbols: true, underlines: true };
+export const BOOK_HIGHLIGHTS_DEFAULT: BookHighlightsDTO = { facts: true, refs: true, concepts: true, words: false, symbols: true, underlines: true };
 
 /* How a translated book was made (RULES item 30): what it was translated from,
    by whom, after which authority, and the glossary its terms are fixed in. */

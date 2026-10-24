@@ -6,13 +6,14 @@
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { openingOf } from '../../lib/sections/nav.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
+  import { ICON } from '../../lib/icons';
 
   let { ex, at, ongraded, onfail }: { ex: ExerciseDTO; at: ScratchAt; ongraded: (g: Graded, answer: string) => void; onfail: (why: string) => void } = $props();
 
   let text = $state('');
   let attached = $state(false);
   let waiting = $state(false);
-  const attach = (e: MouseEvent): void => { attached = true; openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  const attach = (e: MouseEvent): void => { attached = true; void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
   const canSend = $derived(!waiting && (text.trim() !== '' || (attached && hasScratch(at))));
 
   const submit = async (): Promise<void> => {
@@ -30,7 +31,7 @@
     {#if attached}
       <span class="attached">{i18n.t('practice.grade.attached')} <button type="button" class="x" aria-label={i18n.t('practice.grade.detach')} onclick={() => (attached = false)}>×</button></span>
     {:else}
-      <button type="button" class="btn ghost sm" onclick={attach}>{i18n.t('practice.grade.attach')}</button>
+      <button type="button" class="btn ghost sm" onclick={attach}>{@html ICON.drawing}{i18n.t('practice.grade.attach')}</button>
     {/if}
     <button type="button" class="btn primary" disabled={!canSend} aria-busy={waiting} onclick={submit}>{#if waiting}<span class="spin" aria-hidden="true"></span>{i18n.t('practice.grade.grading')}{:else}{i18n.t('practice.grade.submit')}{/if}</button>
   </div>

@@ -60,8 +60,8 @@ test('the key is the node set and the kind, whatever order the nodes come in', (
   assert.equal(hashOf(['x', 'y']), hashOf(['y', 'x']));
 });
 
-test('another section costs a line, and a longer name a wider box', () => {
-  assert.ok(boxOf({ name: 'Force', ext: true }).h > boxOf({ name: 'Force', ext: false }).h);
+test('every node carries its section line, and a longer name makes a wider box', () => {
+  assert.equal(boxOf({ name: 'Force', ext: true }).h, boxOf({ name: 'Force', ext: false }).h);
   assert.ok(boxOf({ name: 'Conservation of momentum', ext: false }).w > boxOf({ name: 'Force', ext: false }).w);
 });
 

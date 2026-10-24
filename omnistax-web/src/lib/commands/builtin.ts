@@ -11,6 +11,7 @@ import { VIEW_KINDS, isSidebarKind, isPaletteOnlyKind, type ViewKind } from '../
 import type { ItemKey } from '../layout/model';
 import type { Level } from '../sections/scope';
 import { viewTitle } from '../icons';
+import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, type HighlightKey } from '../settings/highlights';
 import { LOCALES, LOCALE_NAMES, type Locale, type MessageKey, type TFn } from '../i18n/index';
 import type { LocaleChoice } from '../i18n/store.svelte';
 
@@ -22,7 +23,7 @@ export type BuiltinDeps = {
      searches the text the reader sees. */
   readonly t: TFn;
   readonly settings: {
-    readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly zoom: ZoomStep;
+    readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly zoom: ZoomStep; readonly fillAll: boolean; setFillAll(on: boolean): void;
     readonly figureFont: FontId; readonly bodyFont: FontId;
     setFigureFont(id: FontId): void; setBodyFont(id: FontId): void;
     setPreview(p: { figureFont?: FontId; bodyFont?: FontId; theme?: Theme }): void; clearPreview(): void;
@@ -69,6 +70,11 @@ export type BuiltinDeps = {
     current(): { readonly from: string; readonly to: readonly { readonly id: string; readonly label: string; readonly detail?: string }[] } | null;
     switchTo(from: string, to: string): void;
   };
+  /* The colour code switches of the book being read: each is on or off there, and
+     there is no book to switch while nothing of one is open. */
+  readonly highlights: { readonly here: string | null; on(k: HighlightKey): boolean; set(k: HighlightKey, on: boolean): void };
+  /* A practice session seeded with the place being read, at the level asked for. */
+  readonly practice: { canPractise(): boolean; practise(level: Level): void };
 };
 
 /* Where a view is asked for: a tab of the group in hand, the sidebar it calls
@@ -105,12 +111,17 @@ export const BUILTIN = {
   findTextbook: commandId('explorer-find-textbook'),
   coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
   language: commandId('language'), switchLanguage: commandId('book-switch-language'),
+  figuresStart: commandId('figures-start'), fill: commandId('fill-width'),
+  practiseSection: commandId('practise-section'), practiseChapter: commandId('practise-chapter'), practiseBook: commandId('practise-book'),
 } as const;
+/* One id per colour code switch of the book being read. */
+export const colourCodeId = (k: HighlightKey): CommandId => commandId(`colour-code-${k}`);
 /* One id per view for opening it, and a second for the two that a sidebar holds. */
 export const openViewId = (kind: ViewKind): CommandId => commandId(`open-view-${kind}`);
 export const showViewId = (kind: ViewKind): CommandId => commandId(`show-view-${kind}`);
 
 const onOff = (d: BuiltinDeps, v: boolean): string => d.t(v ? 'commands.detail.on' : 'commands.detail.off');
+const playState = (d: BuiltinDeps, playing: boolean): string => d.t(playing ? 'commands.detail.playing' : 'commands.detail.paused');
 /* A setting chosen from a list: moving through it previews, Enter keeps, Escape puts back. */
 const settingChoices = <T extends string>(d: BuiltinDeps, options: readonly { value: T; label: string }[], current: T, preview: (v: T) => void, save: (v: T) => void): ChoiceList => ({
   options, current,
@@ -153,6 +164,14 @@ const viewCommands = (d: BuiltinDeps): readonly Command[] => VIEW_KINDS.flatMap(
   : isPaletteOnlyKind(kind)
     ? [{ id: openViewId(kind), label: d.t('commands.view.open', { view }), group, run: () => d.docs.openView(kind, 'group') }]
     : [{ id: openViewId(kind), label: d.t('commands.view.openInSplit', { view }), group, run: () => d.docs.openView(kind, 'split') }]; });
+/* The book's colour code switches, one command each, toggled for the book being read. */
+const colourCodeCommands = (d: BuiltinDeps): readonly Command[] => HIGHLIGHT_KEYS.map((k): Command => ({
+  id: colourCodeId(k), label: d.t('commands.colourCode', { name: HIGHLIGHT_LABELS[k] }), group: d.t('commands.group.appearance'),
+  run: () => d.highlights.set(k, !d.highlights.on(k)), when: () => d.highlights.here !== null, detail: () => onOff(d, d.highlights.on(k)),
+}));
+const PRACTISE_KEY: Readonly<Record<Level, MessageKey>> = { book: 'commands.practise.book', chapter: 'commands.practise.chapter', section: 'commands.practise.section' };
+const practiseCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
+  ({ id, label: d.t(PRACTISE_KEY[level]), group: d.t('commands.group.exercises'), run: () => d.practice.practise(level), when: () => d.practice.canPractise() });
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g = { app: d.t('commands.group.app'), appearance: d.t('commands.group.appearance'), reading: d.t('commands.group.reading'), layout: d.t('commands.group.layout'), view: d.t('commands.group.view') }; return [
   { id: BUILTIN.palette, label: d.t('commands.palette'), group: g.app, run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: d.t('commands.settings'), group: g.app, run: () => d.ui.openSettings() },
@@ -171,11 +190,15 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
   { id: BUILTIN.bodyFont, label: d.t('commands.bodyFont'), group: g.appearance, run: () => {}, detail: () => fontLabel(d.settings.bodyFont),
     choices: () => settingChoices(d, FONT_OPTIONS, d.settings.bodyFont, (bodyFont) => d.settings.setPreview({ bodyFont }), (f) => d.settings.setBodyFont(f)) },
   /* The app's own text size, a step at a time. The chords are the browser's
-     zoom chords, which the shell takes for itself while "Zoom keys" is on. */
+     zoom chords, which the shell takes for itself. */
   { id: BUILTIN.zoomIn, label: d.t('commands.zoomIn'), group: g.appearance, run: () => d.settings.zoomIn(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomOut, label: d.t('commands.zoomOut'), group: g.appearance, run: () => d.settings.zoomOut(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomReset, label: d.t('commands.zoomReset'), group: g.appearance, run: () => d.settings.resetZoom(), detail: () => zoomLabel(d.settings.zoom) },
-  { id: BUILTIN.animations, label: d.t('commands.animations'), group: g.reading, run: () => d.settings.setAnimations(!d.settings.animations), detail: () => onOff(d, d.settings.animations) },
+  { id: BUILTIN.fill, label: d.t('commands.fill'), group: g.appearance, run: () => d.settings.setFillAll(!d.settings.fillAll), detail: () => onOff(d, d.settings.fillAll) },
+  { id: BUILTIN.animations, label: d.t('commands.animations'), group: g.reading, run: () => d.settings.setAnimations(!d.settings.animations), detail: () => playState(d, d.settings.animations) },
+  /* The setting by name, as the Settings dialog puts it. */
+  { id: BUILTIN.figuresStart, label: d.t('commands.figuresStart'), group: g.reading, run: () => {}, detail: () => playState(d, d.settings.animations),
+    choices: () => ({ options: [{ value: 'paused', label: playState(d, false) }, { value: 'playing', label: playState(d, true) }], current: d.settings.animations ? 'playing' : 'paused', commit: (v) => d.settings.setAnimations(v === 'playing') }) },
   { id: BUILTIN.voice, label: d.t('commands.voice'), group: g.reading, run: () => d.settings.setVoice(!d.settings.voice), detail: () => (d.reader.supported ? onOff(d, d.settings.voice) : d.t('commands.voice.unsupported')) },
   { id: BUILTIN.readAloud, label: d.t('commands.readAloud'), group: g.reading, run: () => d.reader.readFocused(), when: () => d.settings.voice && d.reader.supported && !d.reader.speaking },
   { id: BUILTIN.stopReading, label: d.t('commands.stopReading'), group: g.reading, run: () => d.reader.stop(), when: () => d.reader.speaking },
@@ -231,4 +254,6 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
      the detail says which colour would come back. */
   { id: BUILTIN.coloursUndo, label: d.t('commands.coloursUndo'), group: g.appearance, run: () => d.colours.undo(), when: () => d.colours.canUndo, detail: () => d.colours.undoLabel },
   { id: BUILTIN.coloursRedo, label: d.t('commands.coloursRedo'), group: g.appearance, run: () => d.colours.redo(), when: () => d.colours.canRedo, detail: () => d.colours.redoLabel },
+  ...colourCodeCommands(d),
+  practiseCommand(d, BUILTIN.practiseSection, 'section'), practiseCommand(d, BUILTIN.practiseChapter, 'chapter'), practiseCommand(d, BUILTIN.practiseBook, 'book'),
 ]; };

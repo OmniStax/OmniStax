@@ -1,5 +1,7 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
+  import { books } from '../../lib/practice/books.svelte';
+  import { cart } from '../../lib/practice/cart.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { heatWeeks, standingOf, streakOf, workByDay } from '../../lib/practice/model';
   import PageHead from './PageHead.svelte';
@@ -19,6 +21,8 @@
   let heat = $state<HTMLElement | null>(null);
   $effect(() => { if (heat) heat.scrollLeft = heat.scrollWidth; });
 
+  /* The shelf's books are read for the standing, so it never says "no concepts" for want of a load. */
+  $effect(() => { for (const b of shelf) if ((books.status[b] ?? 'idle') === 'idle') void books.load(b); });
   const standing = $derived(standingOf(practice.catalog().concepts, practice.mastery));
   const due = $derived(practice.due());
   const figures = $derived([
@@ -32,7 +36,7 @@
 
 <div class="dashboard">
   <PageHead title={i18n.t('practice.dashboard.title')}>
-    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, [])}>{i18n.t('practice.dashboard.newSession')}</button>{/snippet}
+    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, cart.take())}>{i18n.t('practice.dashboard.makeSession', { n: cart.count })}</button>{/snippet}
   </PageHead>
 
   <section aria-label={i18n.t('practice.dashboard.activity')}>

@@ -21,6 +21,8 @@ such element too, plus a fresh copy for every further group it is open
 in:
 
 - **Documents** (`[data-doc]`): the text of every section that has been opened.
+  A tab new to a group opens just right of the group's active tab, so closing
+  it lands the reader back on what they were reading; a drop names its place.
 - **Views** (`.view`): concept map, contents, formulas, definitions, and
   notes. Comments and search are planned as further views.
 
@@ -38,7 +40,9 @@ The chrome:
 - **Activity rails** on both edges, 44px. Left rail: the views that live
   on the left, then the bottom group in order: voice (when it is on),
   Sync (a sidebar view: GitHub sync and the backup file; a changed
-  file's diff opens as a tab), the command palette, the gear. Right rail: the views that live on the
+  file's diff opens as a tab; "Sync every" runs a pass on a timer, this
+  device's changes up and the other side's down, a file changed on both
+  left for the view to settle), the command palette, the gear. Right rail: the views that live on the
   right. Documents have no rail icon; the page opens with its text, and
   the "+" on a tab strip brings any section text back.
   There is no top bar; the tab strip is the top of the page. A view's
@@ -52,15 +56,14 @@ The chrome:
   opens the chosen text as a tab in that group. The focused group has the underlined tab, and the companion
   views follow its scroll position.
 - **Settings** is a popover from the gear, not a view: colour coding, dark
-  mode, text size, a "Play animations" switch that pauses every figure in every
-  loaded section, reset layout.
+  mode, text size, a "Figures start" choice (paused or playing) that pauses or
+  runs every figure in every loaded section, reset layout.
 - **Text size** is the app's own zoom: one root font size, which every rem in
   the book and in the chrome is measured against, so the reading column, the
   rails and the views grow together and the window keeps its width. Ctrl+=,
   Ctrl+− and Ctrl+0 walk a ladder of sizes and are remembered in this browser;
-  the "Zoom keys" switch hands the three chords back to the browser, which
-  zooms the whole page with them as it always did. The three commands stay in
-  the palette either way.
+  the shell always takes the three chords, so the browser never zooms the page
+  with them.
 - **Exercises** in the end-of-section list show all at once or one at a
   time with previous/next; the choice is remembered per browser, and a
   link into a hidden card switches to that card.
@@ -99,7 +102,10 @@ Unpinned, the view follows the focused document, so switching tabs from
 notes to 2.5. Pinned, the view holds its section and shows a picker of
 the built sections, so 2.1's concept map can stay up while 2.5 is read.
 The pin is per view and remembered in this browser (`omnistax-scope`). The
-same header appears whether the view sits in a sidebar box or in a tab.
+same header appears whether the view sits in a sidebar box or in a tab,
+with the full names in both, cut short with an ellipsis where the bar is
+narrow; the menu a crumb opens lists the places alone, and nothing marks the
+place the open page is in.
 The design chosen over the alternatives: a global freeze would hold every
 view at once, which is rarely wanted; turning following off altogether
 would make the companion views stale by default. A pin on the one view

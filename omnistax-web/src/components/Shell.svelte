@@ -11,6 +11,7 @@
   import { highlights } from '../lib/settings/highlights.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { focus } from '../lib/sections/focus.svelte';
+  import { history, scopeOfItem } from '../lib/history/store.svelte';
   import { pin } from '../lib/sections/concepts.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
@@ -42,6 +43,8 @@
   import SpotCurve from './SpotCurve.svelte';
   import DragToast from './ui/DragToast.svelte';
   import TipToast from './ui/TipToast.svelte';
+  import AlertToast from './ui/AlertToast.svelte';
+  import { startAutoPush } from '../lib/sync/auto.svelte';
   import UpdateToast from './ui/UpdateToast.svelte';
   import LockOverlay from './pomodoro/LockOverlay.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
@@ -140,6 +143,7 @@
     drawings.init();
     explorer.init();
     sync.init();
+    const stopAutoPush = startAutoPush();
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
     void sweepBlobs().catch(() => {});
@@ -187,16 +191,6 @@
       const id = c ? keys.commandFor(c) : undefined;
       return id === BUILTIN.undo || id === BUILTIN.redo;
     };
-    /* Ctrl+= , Ctrl+− and Ctrl+0 are the browser's zoom chords, and the shell
-       takes them to size its own text instead — a root font size, which leaves
-       the window the width it had. Turned off, the press is never dispatched
-       and the browser zooms the page with it as it always did; the three
-       commands stay in the palette either way. */
-    const ZOOM = [BUILTIN.zoomIn, BUILTIN.zoomOut, BUILTIN.zoomReset] as const;
-    const browserZoom = (c: Chord | null): boolean => {
-      const id = c ? keys.commandFor(c) : undefined;
-      return !settings.zoomKeys && id !== undefined && (ZOOM as readonly string[]).includes(id);
-    };
     /* Escape closes whatever is open; anything else may be a chord. Dialogs stop their own keydowns.
        Ctrl+P and Ctrl+S are the shell's whether anything is bound to them or not: nothing here
        prints a page or saves one, so the browser is not given the chance to offer either. */
@@ -204,7 +198,6 @@
       if (e.key === 'Escape') { ui.closeAll(); if (pin.pinned) pin.clear(); return; }
       const c = chordOf(e);
       if (!keys.pending && ownUndo(c) && typingIn(e.target)) return;
-      if (browserZoom(c)) return;
       if (keys.dispatch(e)) return;
       if (c === 'Ctrl+P' || c === 'Ctrl+S') e.preventDefault();
     };
@@ -294,7 +287,7 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('auxclick', onAux); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
+    return () => { stopAutoPush(); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
   });
 
   /* settings → document */
@@ -303,6 +296,10 @@
   $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
   $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
+  $effect(() => { document.documentElement.classList.toggle('fill-all', settings.fillAll); FIG.redrawAll(); });
+  /* The timeline the next undo walks is the pane focus last went into: a view the pointer
+     went into, else the focused group's tab; the annotations view edits the section being read. */
+  $effect(() => { const s = focus.section; history.scope = scopeOfItem(focus.view, s) ?? scopeOfItem(focusedGroup(layoutStore.layout).active ?? null, s); });
   /* The app's own text size: one root font size, which every rem in the book and
      in the chrome is measured against, so the reading column, the rails and the
      views grow together. Figures are drawn in their own logical space and are
@@ -375,6 +372,7 @@
   <SpotCurve />
   <DragToast />
   <TipToast />
+  <AlertToast />
   <UpdateToast />
   <LockOverlay />
 {/if}

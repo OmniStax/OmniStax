@@ -14,7 +14,7 @@
   import { groupLabel } from '../../lib/sync/layout';
   import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
-  import { sync } from '../../lib/sync/store.svelte';
+  import { sync, PUSH_EVERY, PUSH_EVERY_KEY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
 
@@ -142,6 +142,11 @@
         <button type="button" class="icon" title={i18n.t('views.sync.edit')} aria-label={i18n.t('views.sync.edit')} onclick={() => (editing = true)}>{@html ICON.pen}</button>
       </div>
       <p class="meta"><span class="branch">{remote.branch}</span>{#if phase === 'ready' && !changes.length}<span>{lastSynced}</span>{/if}</p>
+      <label class="every"><span>{i18n.t('views.sync.every')}</span>
+        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label={i18n.t('views.sync.every')}>
+          {#each PUSH_EVERY as m (m)}<option value={String(m)}>{i18n.t(PUSH_EVERY_KEY[m])}</option>{/each}
+        </select>
+      </label>
       <p class="status" class:calm={!changes.length} role="status">{summary}</p>
 
       {#if changes.length}
@@ -218,6 +223,11 @@
   .icon:disabled{opacity:.45;cursor:default}
   .icon :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .meta{display:flex;flex-wrap:wrap;gap:2px 8px;margin:-6px 0 0;font-size:.76rem;color:var(--muted)}
+  /* the push clock: a small select dressed like the app's own controls, with its own chevron */
+  .every{display:flex;align-items:center;gap:8px;margin:2px 0 0;font-size:.78rem;color:var(--muted)}
+  .every select{appearance:none;-webkit-appearance:none;font:inherit;font-size:.78rem;line-height:1.3;padding:3px 24px 3px 9px;border:1px solid var(--rule);border-radius:6px;color:var(--ink);cursor:pointer;background:var(--panel) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' fill='none' stroke='%235d6470' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 7px center/12px 12px}
+  .every select:hover{border-color:var(--muted)}
+  .every select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .branch{font-family:var(--mono);font-size:.72rem}
   .status{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
   .status.calm{font-weight:400;color:var(--muted)}

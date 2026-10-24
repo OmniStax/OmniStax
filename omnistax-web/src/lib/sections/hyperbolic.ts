@@ -48,8 +48,39 @@ export const centring = (m: Mobius, w: C, u: number): Mobius => {
   return compose(translation(scale(w, -s)), m);
 };
 
-/* How far out a child stands from its parent, as a radius in the parent's own frame. */
+/* How far out a child stands from its parent, as a radius in the parent's own
+   frame, when there is room for it there. */
 export const STEP = 0.42;
+/* The room a node needs: about a box's width at the middle of the disk, in the
+   disk's units, which the quadratic fall-off of a node's scale (1 − |z|²) then
+   shrinks with the node. Siblings stand far enough out along their wedge that
+   neighbours are at least this far apart at that scale; a crowd that would have
+   to stand past RING_MAX for it splits into two rings instead, alternate
+   children a step further out, each ring needing only half the angle. */
+export const SEP = 0.5;
+const RING_MAX = 0.75, RING_STEP = 0.18, RING_CAP = 0.92;
+/* The radius at which two neighbours an angle `gap` apart stand SEP·(1 − r²) apart: 2r·sin(gap/2) = SEP·(1 − r²). */
+export const radiusFor = (gap: number): number => { const s = Math.sin(Math.min(Math.PI, Math.max(0, gap)) / 2); return (-s + Math.sqrt(s * s + SEP * SEP)) / SEP; };
+/* The radius of every child in a wedge, by the angle each pair of neighbours
+   is apart; `full` says the wedge is the whole circle, so the last and the
+   first are neighbours too. One radius for all, or two for the two rings. */
+export const ringRadii = (spans: readonly number[], full: boolean): readonly number[] => {
+  const n = spans.length;
+  if (n < 2) return spans.map(() => STEP);
+  const widest = (stride: number): number => {
+    let r = STEP;
+    for (let i = 0; i < n; i++) {
+      const j = i + stride; if (j >= n && !full) break;
+      const between = Array.from({ length: stride - 1 }, (_, k) => spans[(i + 1 + k) % n]).reduce((a, b) => a + b, 0);
+      r = Math.max(r, radiusFor(spans[i] / 2 + between + spans[j % n] / 2));
+    }
+    return r;
+  };
+  const one = widest(1);
+  if (one <= RING_MAX || n < 4) return spans.map(() => Math.min(one, RING_CAP));
+  const inner = Math.min(widest(2), RING_CAP - RING_STEP), outer = inner + RING_STEP;
+  return spans.map((_, i) => (i % 2 ? outer : inner));
+};
 /* The widest wedge a child hands on, so its children never fold back past it. */
 const MAX_WEDGE = Math.PI;
 
@@ -80,10 +111,12 @@ export const hyperTree = (ids: readonly string[], edges: readonly Edge[]): Laid 
   /* a node at the origin of its own frame shares the wedge a0..a1 among its children */
   const lay = (id: string, a0: number, a1: number): void => {
     const ks = kids.get(id) ?? [], total = ks.reduce((n, k) => n + leafCount(k), 0);
+    const spans = ks.map((k) => ((a1 - a0) * leafCount(k)) / total);
+    const radii = ringRadii(spans, a1 - a0 >= 2 * Math.PI - 1e-9);
     let a = a0;
-    ks.forEach((k) => {
-      const span = ((a1 - a0) * leafCount(k)) / total;
-      const l = polar(STEP, a + span / 2);
+    ks.forEach((k, i) => {
+      const span = spans[i];
+      const l = polar(radii[i], a + span / 2);
       steps.set(k, [id, r(l.x), r(l.y)]);
       const seen = translation(scale(l, -1));
       const e0 = apply(seen, polar(1, a)), e1 = apply(seen, polar(1, a + span));

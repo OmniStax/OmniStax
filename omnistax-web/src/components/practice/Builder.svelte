@@ -1,8 +1,8 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
+  import { cart } from '../../lib/practice/cart.svelte';
   import PageHead from './PageHead.svelte';
-  import UpNext from './UpNext.svelte';
   import ReadyToLearn from './ReadyToLearn.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
   import SessionPlan from './SessionPlan.svelte';
@@ -14,6 +14,8 @@
     for (const b of shelf) if ((books.status[b] ?? 'idle') === 'idle') void books.load(b);
   });
   const loading = $derived(shelf.some((b) => books.status[b] === 'loading'));
+  /* While the session is being built, the cart follows its picks, so the rail's count is the plan's; starting the session empties both. */
+  $effect(() => { cart.set(practice.page(item).curriculum); });
 </script>
 
 <div class="builder">
@@ -21,8 +23,6 @@
   {#if loading}<p class="loading" role="status">{i18n.t('practice.builder.loading')}</p>{/if}
   <div class="cols">
     <section class="choose">
-      <h3 class="section-title">{i18n.t('practice.builder.choose')}</h3>
-      <UpNext {item} mode="add" label={i18n.t('practice.builder.quickPicks')} />
       <ReadyToLearn {item} selectable folded />
       <div class="tree"><CurriculumTree {item} {shelf} open={shelf[0] ?? null} /></div>
     </section>
@@ -37,7 +37,6 @@
   .loading{margin:0 0 12px;color:var(--muted);font-size:0.78rem}
   .cols{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
   .choose{display:flex;flex-direction:column;gap:12px;min-width:0}
-  .choose h3{margin:0}
   .tree{max-height:55vh;overflow:auto;border-bottom:1px solid var(--rule)}
   @container (min-width:760px){
     .cols{grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:32px}

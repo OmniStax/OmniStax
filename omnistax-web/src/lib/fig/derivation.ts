@@ -118,7 +118,10 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
 
   const d = sim(root, 'drv-' + D.id); d.fig.classList.add('dv', 'writing');
   const { N, lines: L, facts, nodes, thenFrom, last, order, label } = model(D);
-  const opt = { dir: 'v', reveal: true, write: true };
+  /* A still (a preview in the @ picker) shows the derivation as it ends: every
+     fact and result shown, the view held on the whole, nothing to click. */
+  const still = root.closest('[data-still]') !== null;
+  const opt = { dir: 'v', reveal: !still, write: !still };
   const own = new Set(N.map((n) => n.num || n.src).filter((s): s is string => !!s));
 
   /* ---------- the timeline ---------- */
@@ -196,7 +199,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const dirPick = choice(ctl, { options: [{ value: 'h', label: '→' }, { value: 'v', label: '↓' }], value: opt.dir, aria: msg('fig.derivation.direction'), onInput: (v) => { opt.dir = v; picked = true; poke(); } });
   tips(ctl, { h: msg('fig.derivation.across'), v: msg('fig.derivation.down') });
   toggle(ctl, 'eye', (v) => (v ? ['reveal', msg('fig.derivation.revealing')] : ['all', msg('fig.derivation.showingAll')]), true, (v) => { opt.reveal = v; poke(); });
-  let locked = false, held: Cam | null = null;
+  let locked = still, held: Cam | null = still ? { s: 1, x: 0, y: 0 } : null;
   toggle(ctl, 'lock', (v) => (v ? ['lock', msg('fig.derivation.held')] : ['unlock', msg('fig.derivation.follows')]), false, (v) => { locked = v; held = v ? { ...wantNow } : null; poke(); });
   const view = el('div', 'dv-view'), world = view.appendChild(el('div', 'dv-world')); d.stage.appendChild(view);
   const svg = world.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));

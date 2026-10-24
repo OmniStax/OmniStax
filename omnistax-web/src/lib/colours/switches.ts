@@ -19,7 +19,7 @@ export const COLOUR_LABELS: Readonly<Record<ColourSwitch, string>> = {
 export const COLOUR_TIPS: Readonly<Partial<Record<ColourSwitch, string>>> = { get words() { return t('views.colours.switch.wordsTip'); }, get symbols() { return t('views.colours.switch.symbolsTip'); } };
 /* The switch a sub-switch sits under, which must be on for it to do anything. */
 export const COLOUR_PARENT: Readonly<Partial<Record<ColourSwitch, ColourSwitch>>> = { words: 'concepts', symbols: 'concepts' };
-export const COLOURS_ON: ColourSwitches = { facts: true, refs: true, concepts: true, words: true, symbols: true };
+export const COLOURS_ON: ColourSwitches = { facts: true, refs: true, concepts: true, words: false, symbols: true };
 
 export const shownOf = (s: ColourSwitches): ColourShown => ({ facts: s.facts, refs: s.refs, concepts: s.concepts });
 

@@ -11,7 +11,7 @@ export const tips = {
   'tips.drawing.action': 'New drawing',
   'tips.import': 'Import your own PDFs, annotate them, and link their highlights into your notes.',
   'tips.import.action': 'Import files',
-  'tips.newGroup': 'Ctrl-click or middle-click a section, note, drawing or link to open it in a new group beside this one.',
+  'tips.newGroup': 'Hold Ctrl as you open most things, or middle-click them, to open them in a new group beside this one.',
   'tips.theme': 'Each book has a theme, behind the palette button on its row in the Explorer: the color of every quantity, the palette, and what it color codes.',
   'tips.toast.close': 'Close tip',
   'tips.toast.label': 'Tip',

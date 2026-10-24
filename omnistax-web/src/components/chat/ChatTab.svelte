@@ -14,8 +14,9 @@
   import { sectionTextOf } from '../../lib/picker/sources';
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { registerFigBlend } from '../../lib/fig/figlib';
   import { label as sectionLabel } from '../../lib/sections/grouping';
-  import { secKey, type ChatId, type SectionRef } from '../../lib/types/ids';
+  import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
 
   let { chatId }: { chatId: ChatId } = $props();
 
@@ -46,13 +47,21 @@
     });
   });
 
-  const offer = $derived.by((): Chip | null => {
-    const here = focus.section; if (!here) return null; const key = secKey(here);
-    if (key === pinnedSection || chips.some((c) => c.kind === 'section' && c.key === key)) return null;
-    return chipFor(here);
-  });
-  const takeOffer = (): void => { const c = offer; if (!c) return; chips = withChip(chips, c); pinnedSection = c.key; };
 
+  /* The books the chat's maths is set under: every book its chips come from, in
+     the order they came, then the book being read; one book is named as itself,
+     more are blended under the chat's own name, the earliest chip's book keeping
+     a macro both define. */
+  const mathBooks = $derived.by((): readonly string[] => {
+    const out: string[] = [];
+    chips.forEach((c) => { const b = c.key.replace(/^[a-z]+:/, '').split(/[/:]/)[0]; if (b && registry.hasBook(bookId(b)) && !out.includes(b)) out.push(b); });
+    if (focus.book && !out.includes(focus.book)) out.push(focus.book);
+    return out;
+  });
+  const mathBook = $derived.by((): string | null => {
+    if (mathBooks.length <= 1) return mathBooks[0] ?? null;
+    const name = `blend:${chatId}`; registerFigBlend(name, mathBooks); return name;
+  });
   let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
   $effect(() => {
     const words = pending.words[chatId];
@@ -119,7 +128,8 @@
   };
 </script>
 
-<article class="chat-tab" data-chat={chatId}>
+<!-- the book the maths is rendered under: the one the chips come from, else the one being read, so a book's macros read -->
+<article class="chat-tab" data-chat={chatId} data-book={mathBook}>
   <header class="chat-head">
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label={i18n.t('chat.tab.name')} />
@@ -149,7 +159,7 @@
       <Transcript bind:this={list} {chat} bind:collapsed />
     {/if}
     <Composer bind:this={composer} {chatId} {chips} onchips={(c) => (chips = c)} onsend={send} onstop={() => chats.stop(chatId)}
-      {streaming} {offer} onoffer={takeOffer} {blocked} />
+      {streaming} {blocked} />
   {:else}
     <div class="messages"><p class="empty">{i18n.t('chat.tab.opening')}</p></div>
   {/if}

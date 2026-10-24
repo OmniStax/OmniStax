@@ -49,6 +49,11 @@
   const downloaded = (id: string): boolean => { const r = offlineBooks.records[id]; return !!r?.installedRelease && r.status === 'ready'; };
   const anyInstalled = (g: EditionGroup<LibraryBookDTO>): boolean => editionsIn(g).some((b) => !!offlineBooks.records[b.id]?.installedRelease);
   const familyIds = (g: EditionGroup<LibraryBookDTO>): readonly string[] => editionsIn(g).map((b) => b.id);
+  /* The words typed match against the whole of a book's entry, in any of its editions: title, publisher, authors and id. */
+  let q = $state('');
+  const matches = (b: LibraryBookDTO): boolean => { const needle = q.trim().toLowerCase(); return !needle || `${b.title} ${b.publisher} ${b.authors.join(' ')} ${b.id}`.toLowerCase().includes(needle); };
+  const listed = $derived(groups.filter((g) => editionsIn(g).some(matches)));
+  const takeFocus = (node: HTMLInputElement) => { node.focus(); };
   const lastCheck = $derived(offlineBooks.lastCheck ?? Math.max(0, ...Object.values(offlineBooks.records).map((record) => record.lastCheck ?? 0)));
 </script>
 
@@ -102,10 +107,10 @@
 {#if ui.findTextbook}
   <div class="finder" role="dialog" aria-label={i18n.t('explorer.findTextbook.title')} tabindex="-1"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); ui.closeFindTextbook(); } }}>
+    onkeydown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ui.closeFindTextbook(); } }}>
     <header>
       <span class="ico">{@html ICON.search}</span>
-      <span class="title">{i18n.t('explorer.findTextbook.title')}</span>
+      <input class="find" type="text" placeholder={i18n.t('explorer.findTextbook.title')} aria-label={i18n.t('explorer.findTextbook.title')} spellcheck="false" autocomplete="off" bind:value={q} use:takeFocus>
       <button type="button" class="x" aria-label={i18n.t('explorer.close')} onclick={() => ui.closeFindTextbook()}>×</button>
     </header>
     <div class="list">
@@ -115,7 +120,7 @@
       {:else if library.status === 'failed'}
         <div class="none bad">{i18n.t('explorer.findTextbook.failed')}</div>
       {:else}
-        {#each groups as g (g.root.id)}
+        {#each listed as g (g.root.id)}
           {@render card(g)}
         {:else}
           <div class="none">{i18n.t('explorer.findTextbook.empty')}</div>
@@ -128,6 +133,8 @@
 <style>
   .finder{position:fixed;top:12vh;left:50%;transform:translateX(-50%);width:min(560px,92vw);z-index:50;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.22);font-family:var(--sans);font-size:0.9rem;display:flex;flex-direction:column;overflow:hidden}
   header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--rule)}
+  header .find{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:1rem;color:var(--ink);outline:none}
+  header .find::placeholder{color:var(--muted)}
   header .title{flex:1;font-weight:600;color:var(--ink)}
   header .ico{display:grid;place-items:center;color:var(--muted)}
   header .ico :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}

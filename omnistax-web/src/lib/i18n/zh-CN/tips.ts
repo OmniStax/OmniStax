@@ -9,7 +9,7 @@ export const tips: Readonly<Record<keyof typeof source, string>> = {
   'tips.drawing.action': '新建手绘',
   'tips.import': '导入你自己的 PDF，为其添加批注，并把其中的高亮链接到你的笔记中。',
   'tips.import.action': '导入文件',
-  'tips.newGroup': '按住 Ctrl 单击或用中键单击一节、笔记、手绘或链接，即可在当前编组旁的新编组中打开它。',
+  'tips.newGroup': '打开大多数内容时按住 Ctrl，或用中键单击，即可在当前编组旁的新编组中打开。',
   'tips.theme': '每本教材都有一个主题，位于资源管理器中该书所在行的调色板按钮后：每个量的颜色、调色板，以及它进行颜色编码的内容。',
   'tips.toast.close': '关闭小贴士',
   'tips.toast.label': '小贴士',

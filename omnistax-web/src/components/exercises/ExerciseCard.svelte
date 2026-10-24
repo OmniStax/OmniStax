@@ -1,6 +1,5 @@
 <script lang="ts">
   import { registry } from '../../lib/sections/registry.svelte';
-  import { pin } from '../../lib/sections/concepts.svelte';
   import { conceptId, exerciseDomId, type SectionId } from '../../lib/types/ids';
   import type { ExerciseDTO } from '../../lib/content/schema';
   import { hintText, solutionText, type Verdict } from '../../lib/exercises/check';
@@ -11,7 +10,6 @@
   import AiTag from '../practice/AiTag.svelte';
   import { exerciseName } from '../../lib/practice/labels';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
-  import { detachScratch } from '../../lib/drawer/edits';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { openFromView, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
@@ -21,9 +19,6 @@
   import { isGenerated } from '../../lib/practice/generated';
   import type { Graded } from '../../lib/practice/grade';
   import AiGrade from '../practice/AiGrade.svelte';
-  import AtPicker from '../ui/AtPicker.svelte';
-  import { pickerRoot } from '../../lib/picker/sources';
-  import type { PickerRow } from '../../lib/picker/model';
   import { links, entryOfKey } from '../../lib/practice/links.svelte';
   import { discussExercise } from '../../lib/practice/discuss.svelte';
   import { createNote } from '../../lib/explorer/edits';
@@ -40,7 +35,6 @@
     number?: string; review?: boolean;
   } = $props();
 
-  const hot = $derived(pin.pinned !== null && ex.concepts.includes(pin.pinned));
   const concept = (id: string) => practice.conceptOf(id, book);
   const a = $derived(ex.answer);
   const domId = $derived(exerciseDomId(section, ex.id));
@@ -96,7 +90,7 @@
   const scratched = $derived(hasScratch(at));
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? i18n.t('exercises.card.drawing') : null);
-  const scratch = (e?: MouseEvent): void => openScratch(at, layoutStore.layout.focus, openingOf(e));
+  const scratch = (e?: MouseEvent): void => { void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
   let gradeFailed = $state<string | null>(null);
   let graded = $state<Graded | null>(null);
   const aiGrading = $derived(!inline && !review && !!session && practice.settings.grading === 'ai' && a.type !== 'choice' && !!sol && gradeFailed === null);
@@ -104,47 +98,34 @@
   const onGraded = (g: Graded, answer: string): void => { graded = g; answered = answer; solutionOpen = true; record(g.verdict === 'right', false); };
   const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed && !aiGrading);
   const hintable = $derived(!review && !!hint && !hintShown && !completed);
-  const openLinked = (e: MouseEvent): void => { if (linked) void openItem(itemKey(drawingItem(linked)), undefined, openingOf(e)); };
-
+  /* The files beside this exercise, under _practice: its scratch drawing, and its notes and chats. */
   const KIND_ICON: Readonly<Record<string, string>> = { note: ICON.note, drawing: ICON.drawing, chat: ICON.chat };
   const linkedItems = $derived(links.of(at).flatMap((key) => {
     const e = entryOfKey(key); const row = e ? explorer.entry(e) : undefined;
     return row && key !== (linked ? itemKey(drawingItem(linked)) : '') ? [{ key, name: row.name, icon: KIND_ICON[row.kind] ?? '' }] : [];
   }));
   const openLink = (key: string, e: MouseEvent): void => { void openFromView(key, openingInView(e)); };
-  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), recorded, answered); };
+  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), recorded, answered, graded !== null); };
+  /* One note per exercise: made under _practice/notes the first time, opened after. */
+  const noteKey = $derived(links.of(at).find((k) => k.startsWith('note:')) ?? null);
   const addNote = (e: MouseEvent): void => {
-    const doc = createNote(links.folder(), links.fileName(at, ex));
+    if (noteKey) { openLink(noteKey, e); return; }
+    const doc = createNote(links.folder('notes'), links.fileName(at, 'notes', ex));
     const key = itemKey(noteItem(doc.id));
     links.add(at, key);
     openLink(key, e);
   };
-  let linking = $state(false);
-  let linkQuery = $state('');
-  let linkField = $state<HTMLInputElement | null>(null);
-  let linkPicker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
-  const filesRoot = $derived(linking ? pickerRoot().find((n) => n.key === 'files')?.children?.() ?? [] : []);
-  const LINK_PREFIX: Readonly<Partial<Record<PickerRow['category'], string>>> = { notes: 'note', drawings: 'drawing', chats: 'chat' };
-  const closeLink = (): void => { linking = false; linkQuery = ''; };
-  const chooseLink = (row: PickerRow): void => {
-    const prefix = LINK_PREFIX[row.category];
-    if (prefix) links.add(at, `${prefix}:${row.key}`);
-    closeLink();
-  };
-  const linkKey = (e: KeyboardEvent): void => { if (linkPicker?.handleKey(e)) e.preventDefault(); };
-  const focusField = (node: HTMLInputElement) => { node.focus(); };
   const GRADED = $derived<Readonly<Record<Graded['verdict'], string>>>({ right: `✓ ${i18n.t('exercises.check.correct')}`, partial: `~ ${i18n.t('exercises.card.partlyRight')}`, wrong: `✗ ${i18n.t('exercises.check.incorrect')}` });
 </script>
 
 {#snippet scratchpad()}
   <span class="tools">
     <button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>
-      {@html ICON.drawing}{i18n.t('exercises.card.scratchpad')}{#if scratched && !linked}<span class="mark" aria-label={i18n.t('exercises.card.hasScratch')}>•</span>{/if}
+      {@html ICON.drawing}{i18n.t('exercises.card.scratchpad')}{#if scratched || linked}<span class="mark" aria-label={i18n.t('exercises.card.hasScratch')}>•</span>{/if}
     </button>
-    {#if linked && linkedName}
-      <button type="button" class="btn ghost sm link" onclick={openLinked} onauxclick={onMiddle(openLinked)}>{linkedName}</button>
-      <button type="button" class="btn ghost sm" onclick={() => detachScratch(book, section, ex.id)} title={i18n.t('exercises.card.backToScratch')}>{i18n.t('exercises.card.detach')}</button>
-    {/if}
+    <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>
+      {@html ICON.note}{i18n.t('exercises.card.note')}{#if noteKey}<span class="mark" aria-label={i18n.t('exercises.card.hasNote')}>•</span>{/if}
+    </button>
   </span>
 {/snippet}
 
@@ -171,13 +152,10 @@
   {:else}<p class="verdict" class:ok class:bad={!ok}><span aria-hidden="true">{ok ? '✓' : '✗'}</span><span>{ok ? i18n.t('exercises.check.correct') : i18n.t('exercises.check.incorrect')}</span></p>{/if}
 {/snippet}
 
-<div class="exercise" class:inline class:hot id={domId} data-book={book} {hidden}>
-  <div class="eyebrow head" title={creditLine}>
+<div class="exercise" class:inline id={domId} data-book={book} {hidden}>
+  <div class="eyebrow head">
     {#if number}<span>{number}</span>{/if}
     <span>{exerciseName(ex, kindName, i18n.t)}</span>
-    <span>§ {sourceSection}</span>
-    <span class="bloom" title={bloomHelp}>{bloomName}</span>
-    {#if gen}<span><AiTag model={gen.model} text /></span>{/if}
   </div>
 
   <div class="prompt"><p use:mathHtml={ex.prompt}></p></div>
@@ -228,27 +206,15 @@
   {#if !inline && !review && completed}
     <div class="follow">
       <button type="button" class="btn sm" onclick={discuss} onauxclick={onMiddle(discuss)}>{@html ICON.chat}{i18n.t('exercises.card.discuss')}</button>
-      <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>{@html ICON.note}{i18n.t('exercises.card.addNote')}</button>
     </div>
   {/if}
-  {#if !inline && (linkedItems.length || (!review && completed))}
+  {#if !inline && linkedItems.length}
     <div class="linked">
       {#each linkedItems as l (l.key)}
         <span class="chip link-chip">
           <button type="button" class="open" onclick={(e) => openLink(l.key, e)} onauxclick={onMiddle((e) => openLink(l.key, e))}>{@html l.icon}<span>{l.name}</span></button>
-          {#if !review}<button type="button" class="x" aria-label={i18n.t('exercises.card.unlink', { name: l.name })} onclick={() => links.remove(at, l.key)}>×</button>{/if}
         </span>
       {/each}
-      {#if !review}
-        {#if linking}
-          <span class="link-pick">
-            <AtPicker bind:this={linkPicker} root={filesRoot} query={linkQuery} field={linkField} needsTarget onchoose={chooseLink} onclose={closeLink} />
-            <input class="input" bind:this={linkField} bind:value={linkQuery} use:focusField onkeydown={linkKey} onblur={closeLink} aria-label={i18n.t('exercises.card.findLink')} />
-          </span>
-        {:else}
-          <button type="button" class="btn ghost sm" onclick={() => (linking = true)}>{i18n.t('exercises.card.link')}</button>
-        {/if}
-      {/if}
     </div>
   {/if}
 
@@ -256,22 +222,28 @@
     <ol class="corrections" aria-label={i18n.t('exercises.card.corrections')}>{#each ex.corrections as c, i}{#if noteShown(c)}<li><span class="n">[{i + 1}]</span><span use:mathHtml={c.html}></span></li>{/if}{/each}</ol>
   {/if}
 
-  {#if ex.concepts.length}
-    <details class="concepts" open={completed || solutionOpen}>
-      <summary>{i18n.t('exercises.card.concepts')}</summary>
+  <details class="concepts" open={completed || solutionOpen}>
+    <summary>{i18n.t('exercises.card.meta')}</summary>
+    <!-- the concepts first, as bubbles in their kind's colour that open their card on hover; then where the exercise is from and what it asks for -->
+    {#if ex.concepts.length}
       <div class="pills">
         {#each ex.concepts as c (c)}
           {@const k = concept(c)}
-          <button type="button" class="pill k-{k?.kind ?? 'idea'}" class:hot={pin.pinned === c} data-book={book} data-concept={c} onclick={() => pin.toggle(conceptId(c))}><span class="dot" aria-hidden="true"></span><span use:mathHtml={k?.name ?? c}></span></button>
+          <span class="pill kb k-{k?.kind ?? 'idea'}" data-book={book} data-concept={c}><span use:mathHtml={k?.name ?? c}></span></span>
         {/each}
       </div>
+    {/if}
+    <div class="meta eyebrow" title={creditLine}>
+      <span>§ {sourceSection}</span>
+      <span class="bloom" title={bloomHelp}>{bloomName}</span>
+      {#if gen}<span><AiTag model={gen.model} text /></span>{:else}<span>{i18n.t('exercises.card.fromTheBook')}</span>{/if}
+    </div>
     </details>
-  {/if}
 
   {#if review}
     {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>{i18n.t('exercises.card.solution')}</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
     {#if scratched || linked}
-      <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}{i18n.t('exercises.card.scratchWork')}</button></div>
+      <div class="actions"><button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>{@html ICON.drawing}{i18n.t('exercises.card.scratchWork')}</button></div>
     {/if}
   {/if}
 </div>
@@ -279,8 +251,6 @@
 <style>
   .exercise{margin:0 0 12px;font-family:var(--sans);font-size:0.84rem;transition:box-shadow 120ms,padding-left 120ms}
   .exercise.inline{border:1px solid var(--rule);border-radius:6px;background:var(--panel);padding:14px 18px}
-  .exercise.hot:not(.inline){border-left:2px solid var(--ink);padding-left:12px}
-  .exercise.inline.hot{box-shadow:inset 2px 0 0 var(--ink)}
   .exercise[hidden]{display:none}
   .head{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin-bottom:8px}
   .head>span+span::before{content:'·';margin-right:8px}
@@ -297,7 +267,9 @@
   .tools{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
   .follow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
   .linked{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
-  .link-chip{gap:2px;padding:0 4px 0 8px;color:var(--ink)}
+  /* a linked file is a bordered pill with a blue dot, so the link reads at a glance */
+  .link-chip{gap:4px;padding:0 8px 0 7px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:7px}
+  .link-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
   .link-chip button{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0}
   .link-chip .x{width:18px;justify-content:center;color:var(--muted);border-radius:999px;transition:color 120ms}
   .link-chip .x:hover{color:var(--ink)}
@@ -330,11 +302,10 @@
   summary:hover{color:var(--ink)}
   summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-  .pill{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border:0;border-radius:999px;background:var(--soft);color:var(--ink);font:inherit;font-size:0.74rem;cursor:pointer;transition:box-shadow 120ms,background 120ms}
-  .pill:hover{background:var(--soft2)}
-  .pill.hot{box-shadow:inset 0 0 0 1px var(--ink)}
-  .pill:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .dot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--dot,var(--cm-idea))}
+  /* a concept as a bubble in its kind's colour, in the words' own case; it opens its card on hover */
+  .pill.kb{text-transform:none;letter-spacing:0;font-size:0.74rem;font-weight:500;line-height:1.5;padding:2px 10px;border-radius:999px;cursor:default}
+  .pill :global(.katex){font-size:1em}
+  .meta{display:flex;flex-wrap:wrap;gap:0 8px;margin-top:8px}
   .k-definition{--dot:var(--cm-definition)} .k-axiom{--dot:var(--cm-axiom)} .k-idea{--dot:var(--cm-idea)}
   .k-result{--dot:var(--cm-result)} .k-skill{--dot:var(--cm-skill)}
   .solution-fold>summary{font-weight:600}

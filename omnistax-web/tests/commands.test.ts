@@ -115,7 +115,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   return {
     log,
     t: tIn.bind(null, 'en'),
-    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), theme: 'system', animations: true, voice: false, setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
+    settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), theme: 'system', animations: true, voice: false, fillAll: false, setFillAll: (v) => log.push(`fill ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
       moveRight: () => log.push('move right'), moveDown: () => log.push('move down'),
@@ -149,6 +149,8 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
     },
     language: { choice: 'system', system: 'en', setChoice: (c) => log.push(`language ${c}`) },
     editions: { current: () => null, switchTo: (from, to) => log.push(`edition ${from} ${to}`) },
+    highlights: { here: 'physics', on: () => true, set: (k, on) => log.push(`colour ${k} ${on}`) },
+    practice: { canPractise: () => true, practise: (l) => log.push(`practise ${l}`) },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {
@@ -234,7 +236,7 @@ test('the sidebar views open in a group or in the sidebar, the rest only in a sp
     if (isPaletteOnlyKind(k)) assert.equal(by(openViewId(k)).group, 'View', k);
   });
   assert.deepEqual([...SIDEBAR_KINDS], ['explorer', 'search', 'sync', 'annotations', 'pomodoro']);
-  assert.equal(by(openViewId('reference')).label, 'Open Reference in a split');
+  assert.equal(by(openViewId('reference')).label, 'Open Reference');
   assert.equal(by(openViewId('explorer')).label, 'Open Explorer in a group');
   assert.equal(by(showViewId('annotations')).label, 'Show Annotations in the sidebar');
   by(openViewId('annotations')).run(); by(showViewId('annotations')).run(); by(openViewId('concepts')).run();

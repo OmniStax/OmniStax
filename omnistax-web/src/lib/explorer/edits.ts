@@ -16,7 +16,7 @@ import { files } from '../files/store.svelte';
 import { fileMarks } from '../files/marks.svelte';
 import type { FileDoc } from '../files/model';
 import type { FileMark } from '../files/marks';
-import { history, type Edit } from '../history/store.svelte';
+import { history, EXPLORER_SCOPE, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
 import { chatId, chatItem, fileId, fileItem, itemKey, noteId, noteItem, type ChatId, type FileId, type NoteId } from '../types/ids';
@@ -57,7 +57,7 @@ const commit = (label: string, before: Shot, sides: Sides = {}, into: Edit | nul
     undo: () => { put(before); closeTabs(sides.onUndo ?? []); },
     redo: () => { put(after); closeTabs(sides.onRedo ?? []); },
   };
-  return into ? history.amend(step, into) : history.push(step);
+  return into ? history.amend(step, into, EXPLORER_SCOPE) : history.push(step, EXPLORER_SCOPE);
 };
 
 /* A row is made with a name of the shell's choosing and named by the reader a

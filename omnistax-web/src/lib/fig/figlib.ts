@@ -594,6 +594,9 @@ function sim(root: HTMLElement, id: string, H?: Logical) {
    view, or a global redraw was asked for. A paused figure costs nothing. */
 let paused = false;
 const sims: Sim[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
+/* A figure whose box changes size is drawn again, so its labels stand where its
+   canvas now is: a pane resized, a tab shown that was laid out at no size. */
+const rio = typeof ResizeObserver === 'function' ? new ResizeObserver((es) => es.forEach((e) => { const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true; })) : null;
 const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => {
   if (!e.isIntersecting) { onScreen.delete(e.target); return; }
   onScreen.add(e.target); const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true;
@@ -629,9 +632,11 @@ function transport(d: Sim): void {
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void; arrive?: boolean }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
-  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED };
+  /* a figure standing in a still (the @ picker's preview) is drawn once, at rest, and plays nothing */
+  const frozen = fig.closest('[data-still]') !== null;
+  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still && !frozen, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED && !frozen };
   if (!still && storied.has(fig)) console.error('F.register: this figure is a story; a figure has one timeline');
-  sims.push(full); vio?.observe(fig); if (!still) transport(full);
+  sims.push(full); vio?.observe(fig); rio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */
   fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
@@ -646,7 +651,7 @@ function release(root: HTMLElement): void {
   views3d.forEach((v) => { if (root.contains(v.wrap)) v.dispose(); });
   for (let i = sims.length - 1; i >= 0; i -= 1) {
     const d = sims[i]; if (!root.contains(d.fig)) continue;
-    vio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
+    vio?.unobserve(d.fig); rio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
   }
   tourTicks.forEach((fig, t) => { if (root.contains(fig)) { tickers.delete(t); tourTicks.delete(t); } });
 }
@@ -3785,6 +3790,25 @@ export type Fig = typeof FIG;
 export function registerFigBook(book: FigBook): void {
   figBooks.set(book.id, { macros: book.macros, symbols: book.symbols, colorKeys: book.colorKeys, pages: book.pages });
   bookPal.delete(book.id);
+}
+
+/* A blend of several books' tables under one name, for a chat whose chips come
+   from more than one book: the books in the order given, the first to name a
+   macro or a symbol keeping it, since every book keys its macros by the same
+   scheme and `\\kF` is force in one and something else in another. The name is
+   what an element wears as `data-book`; blending again under the same name
+   replaces the table, so a chat keeps one as its chips come and go. */
+export function registerFigBlend(name: string, books: readonly string[]): void {
+  const parts = books.map(configOf).filter((c) => c !== NO_BOOK);
+  if (parts.length === 1) { figBooks.set(name, parts[0]!); bookPal.delete(name); return; }
+  const macros: Record<string, string> = {}, symbols: Record<string, string> = {}, colorKeys: string[] = [];
+  parts.forEach((c) => {
+    Object.entries(c.macros).forEach(([k, v]) => { if (!(k in macros)) macros[k] = v; });
+    Object.entries(c.symbols).forEach(([k, v]) => { if (!(k in symbols)) symbols[k] = v; });
+    c.colorKeys.forEach((k) => { if (!colorKeys.includes(k)) colorKeys.push(k); });
+  });
+  figBooks.set(name, { macros, symbols, colorKeys });
+  bookPal.delete(name);
 }
 
 /* The Fig a book's figure scripts and TeX go through: the same surface as FIG, with every call run

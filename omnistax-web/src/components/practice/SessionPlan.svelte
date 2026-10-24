@@ -3,14 +3,15 @@
   import { fillLive, practicePick } from '../../lib/practice/ai.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
   import { keyOf, MAX_WANTED, type Drawn } from '../../lib/practice/model';
-  import { generatedIdOf, isGenerated } from '../../lib/practice/generated';
+  import { generatedIdOf, isGenerated, pickStored } from '../../lib/practice/generated';
+  import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import { generated } from '../../lib/practice/generated.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import { exerciseName, excerpt, plain } from '../../lib/practice/labels';
   import { i18n } from '../../lib/i18n/store.svelte';
   import ModelMenu from '../chat/ModelMenu.svelte';
   import { mathHtml } from '../actions/math';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
   import AiTag from './AiTag.svelte';
 
   let { item }: { item: string } = $props();
@@ -26,6 +27,17 @@
   const gaps = $derived(rows.filter((r) => (r.q?.gap ?? 0) > 0));
   const gapTotal = $derived(Object.values(plan.quotas).reduce((n, q) => n + q.gap, 0));
   const total = $derived(plan.drawn.length + gapTotal);
+  /* What the AI side of the round is: how many stored items each concept's gap
+     would reuse unless the reader asked for fresh ones, and how many are written. */
+  const reuseOf = (id: string): number => (s.fresh ? 0 : pickStored(generated.forConcept(id), id, plan.quotas[id]?.gap ?? 0, practice.attempts).length);
+  const reused = $derived(gaps.reduce((n, r) => n + reuseOf(r.id), 0));
+  const written = $derived(gapTotal - reused);
+  const bookCount = $derived(plan.drawn.filter((d) => !isGenerated(d.ex.id)).length);
+  const aiCount = $derived(plan.drawn.length - bookCount + gapTotal);
+  const startLabel = $derived([
+    bookCount > 0 ? i18n.t('practice.plan.startBook', { n: bookCount }) : '',
+    aiCount > 0 ? i18n.t(written > 0 && written < aiCount ? 'practice.plan.startAiSome' : written === aiCount ? 'practice.plan.startAiNew' : 'practice.plan.startAi', { n: aiCount, written }) : '',
+  ].filter(Boolean).join(i18n.t('practice.plan.startJoin')));
   const excluded = $derived(page.round?.excluded?.length ?? 0);
   const perConcept = $derived(page.round?.perConcept ?? s.masteryTarget);
   const aiNeeded = $derived(gapTotal > 0 || s.grading === 'ai');
@@ -53,6 +65,7 @@
     if (!id) { note = i18n.t('practice.plan.nothingLeft'); return; }
     note = '';
     if (gapTotal > 0) void fillLive(id);
+    if (s.stopwatch) { pomodoro.setMode('stopwatch'); pomodoro.start(); }
   };
 </script>
 
@@ -91,7 +104,7 @@
           <tbody>
             {#each rows as r (r.id)}
               <tr>
-                <td class="cname"><span class="cell"><KindDot kind={r.c?.kind ?? 'idea'} /><span class="nm" use:mathHtml={r.c?.name ?? r.id}></span></span></td>
+                <td class="cname"><span class="cell"><KindTag kind={r.c?.kind ?? 'idea'} /><span class="nm" use:mathHtml={r.c?.name ?? r.id}></span></span></td>
                 <td class="n">{practice.bookAvailable(r.id)}</td>
                 <td class="n">{@render stepper(r.q?.wanted ?? 0, setWanted(r.id), i18n.t('practice.plan.thisSessionFor', { name: plain(r.c?.name ?? r.id) }), true)}</td>
                 <td class="n">{#if (r.q?.gap ?? 0) > 0}+{r.q?.gap}{:else}<span class="muted">–</span>{/if}</td>
@@ -119,7 +132,9 @@
           </li>
         {/each}
         {#each gaps as r (r.id)}
-          <li class="ex gaprow muted">{i18n.t('practice.plan.gapBefore', { n: r.q?.gap ?? 0 })} <span use:mathHtml={r.c?.name ?? r.id}></span>{i18n.t('practice.plan.gapAfter')}</li>
+          {@const reuse = reuseOf(r.id)}
+          {@const fresh = (r.q?.gap ?? 0) - reuse}
+          <li class="ex gaprow muted">{i18n.t('practice.plan.gapBefore', { n: r.q?.gap ?? 0 })} <span use:mathHtml={r.c?.name ?? r.id}></span>{i18n.t(reuse > 0 && fresh > 0 ? 'practice.plan.gapBoth' : reuse > 0 ? 'practice.plan.gapReuse' : 'practice.plan.gapWrite', { reuse, fresh })}</li>
         {/each}
       </ul>
       {#if excluded}
@@ -149,6 +164,10 @@
       </div>
     </div>
     <div class="opt">
+      {@render option(i18n.t('practice.plan.stopwatch'), i18n.t('practice.plan.stopwatchHint'))}
+      <button class="toggle" type="button" class:on={s.stopwatch} aria-pressed={s.stopwatch} aria-label={i18n.t('practice.plan.stopwatchLabel')} onclick={() => practice.setSetting('stopwatch', !s.stopwatch)}></button>
+    </div>
+    <div class="opt">
       {@render option(i18n.t('practice.plan.mastered'), i18n.t('practice.plan.masteredHint'))}
       <button class="toggle" type="button" class:on={s.includeFresh} aria-pressed={s.includeFresh} aria-label={i18n.t('practice.plan.includeMastered')} onclick={() => practice.setSetting('includeFresh', !s.includeFresh)}></button>
     </div>
@@ -161,7 +180,7 @@
     {#if gapTotal > 0}
       <div class="opt wide">
         {@render option(i18n.t('practice.plan.prompt'), i18n.t('practice.plan.promptHint'))}
-        <input class="input" type="text" aria-label={i18n.t('practice.plan.prompt')} value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}>
+        <textarea class="input" rows="3" aria-label={i18n.t('practice.plan.prompt')} value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}></textarea>
       </div>
       <div class="opt">
         {@render option(i18n.t('practice.plan.reuse'), i18n.t('practice.plan.reuseHint'))}
@@ -172,7 +191,7 @@
 
   <div class="group start">
     <button class="btn primary lg" type="button" disabled={total === 0 || (aiNeeded && !aiReady)} onclick={begin}>
-      {i18n.t('practice.plan.start', { n: total })}
+      {startLabel ? i18n.t('practice.plan.startWith', { label: startLabel }) : i18n.t('practice.plan.start')}
     </button>
     {#if why}<p class="muted">{why}</p>{/if}
     <p class="muted" role="status">{note}</p>

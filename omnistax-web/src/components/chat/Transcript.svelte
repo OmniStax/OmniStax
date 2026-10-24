@@ -21,6 +21,16 @@
   const path = $derived(transcript(chat));
   const asked = $derived(compact ? null : lastAsked(path));
   const now = Date.now();
+  /* The pinned question stands only once its own bubble has scrolled out of
+     sight; while the bubble is on screen the pin would just repeat it. */
+  let askedSeen = $state(true);
+  $effect(() => {
+    const id = asked?.id, host = list; if (!id || !host) return;
+    const el = host.querySelector(`[data-message="${id}"]`); if (!el) { askedSeen = false; return; }
+    const io = new IntersectionObserver(([e]) => { askedSeen = !!e?.isIntersecting; }, { root: host, threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  });
 
   let list = $state<HTMLElement | null>(null);
   export const scrollTo = (id: MessageId, block: ScrollLogicalPosition = 'center'): void => {
@@ -43,7 +53,7 @@
 </script>
 
 <div class="messages" class:compact bind:this={list}>
-  {#if asked}
+  {#if asked && !askedSeen}
     <button type="button" class="asked" onclick={() => scrollTo(asked.id, 'start')}>
       <span class="you">{i18n.t('chat.speaker.you')}</span><span class="words">{opening(asked.text, 200).replace(/\s+/g, ' ')}</span>
     </button>

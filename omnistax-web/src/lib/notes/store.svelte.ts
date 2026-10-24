@@ -3,7 +3,7 @@
    in this browser each book's notes are kept under that book's id. */
 import type { Anchor } from './anchor';
 import { sameSection, type BookId, type SectionRef, type DocKind } from '../types/ids';
-import { history } from '../history/store.svelte';
+import { history, sectionScope, type Scope } from '../history/store.svelte';
 import { t } from '../i18n';
 import { readerWritesAllowed } from '../backup/guard';
 import { bookOfNotesKey, notesKey, notesOfBook, parseNotes, type HlColor, type Note } from './stored';
@@ -30,17 +30,19 @@ class Notes {
   }
   add(ref: SectionRef, doc: DocKind, anchor: Anchor, color: HlColor): Note {
     const now = Date.now(); const n: Note = { id: newId(), book: ref.book, section: ref.section, doc, anchor, color, text: '', created: now, updated: now };
-    this.record(t('notes.undo.highlight', { color }), () => { this.list = [...this.list, n]; this.save(); this.paintVersion++; });
+    this.record(t('notes.undo.highlight', { color }), () => { this.list = [...this.list, n]; this.save(); this.paintVersion++; }, undefined, sectionScope(n.book, n.section));
     return n;
   }
   get(id: string): Note | undefined { return this.list.find((n) => n.id === id); }
-  setColor(id: string, color: HlColor): void { this.record(t('notes.undo.recolour'), () => { this.patch(id, { color }); this.paintVersion++; }); }
+  /* The stack an edit of a note goes on is its section's. */
+  private scopeOf(id: string): Scope { const n = this.list.find((x) => x.id === id); return n ? sectionScope(n.book, n.section) : 'notes'; }
+  setColor(id: string, color: HlColor): void { this.record(t('notes.undo.recolour'), () => { this.patch(id, { color }); this.paintVersion++; }, undefined, this.scopeOf(id)); }
   /* Typing an annotation is one edit however many keystrokes it took, so long
      as they follow one another and stay with the same highlight. */
-  setText(id: string, text: string): void { this.record(t('notes.undo.annotation'), () => this.patch(id, { text }), `annotation:${id}`); }
+  setText(id: string, text: string): void { this.record(t('notes.undo.annotation'), () => this.patch(id, { text }), `annotation:${id}`, this.scopeOf(id)); }
   remove(id: string): void {
     if (!this.get(id)) return;
-    this.record(t('notes.undo.removeHighlight'), () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; });
+    this.record(t('notes.undo.removeHighlight'), () => { this.list = this.list.filter((n) => n.id !== id); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; }, undefined, this.scopeOf(id));
   }
   forSection(ref: SectionRef): readonly Note[] { return this.list.filter((n) => sameSection(n, ref)); }
   setUnresolved(ref: SectionRef, ids: readonly string[]): void {
@@ -52,13 +54,13 @@ class Notes {
      two sides of an edit are simply the list before and the list after: undoing
      an added highlight drops it, and undoing a removed one puts the very same
      note back, under the id its links are written with. */
-  private record(label: string, change: () => void, coalesceKey?: string): void {
+  private record(label: string, change: () => void, coalesceKey: string | undefined, scope: Scope): void {
     const before = this.list;
     change();
     const after = this.list;
     if (after === before) return;
     const edit = { label, undo: () => this.restore(before), redo: () => this.restore(after) };
-    if (coalesceKey) history.coalesce(coalesceKey, edit); else history.push(edit);
+    if (coalesceKey) history.coalesce(coalesceKey, edit, scope); else history.push(edit, scope);
   }
   /* Put a whole list back without recording it: what undo and redo apply. */
   private restore(list: readonly Note[]): void {

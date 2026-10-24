@@ -22,6 +22,7 @@ export type Note = { readonly label: string; readonly text: string };
 export type Card = {
   readonly kind: Kind;
   readonly eyebrow: string;          /* the kind line above the title: "Definition", "Term", "Formula · Result" */
+  readonly conceptKind?: string;     /* the concept kind named in the eyebrow, which is drawn as a coloured bubble */
   readonly unit?: string;            /* after the eyebrow, in its own case */
   readonly title: string;            /* plain text, or text with $…$ for the math action */
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
@@ -50,6 +51,7 @@ export type Nav = {
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
   readonly showGraph: (expr: string, split?: boolean) => void;   /* opens the book's grapher with that function among its rows */
+  readonly addToSession: (concept: string) => void;   /* the concept into the exercise session being gathered */
 };
 
 /* Getters, so a card composed after a change of language speaks the new one. */
@@ -113,7 +115,7 @@ export const definitionCard = (f: DefinitionFacts, nav: Nav): Card => {
   ];
   return {
     kind: 'definition',
-    eyebrow: CONCEPT_KIND[c.kind], ...(f.unit ? { unit: f.unit } : {}),
+    eyebrow: CONCEPT_KIND[c.kind], conceptKind: c.kind, ...(f.unit ? { unit: f.unit } : {}),
     title: [c.name, f.tex ? `$${f.tex}$` : ''].filter((s) => s !== '').join(' · '), ...(c.type ? { type: c.type } : {}),
     body: statement ? sentence(statement) : undefined,
     ...(notes.length ? { notes } : {}),
@@ -154,7 +156,7 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
   const statement = statementOf(f.concept);
   const body = statement ? sentence(statement) : f.introducedIn ? tr('views.hover.introducedInTitle', { title: f.introducedIn }) : undefined;
   return {
-    kind: 'equation', eyebrow: `${KIND_LABEL.equation} · ${CONCEPT_KIND[f.concept.kind]}`, title: f.concept.name, body,
+    kind: 'equation', eyebrow: `${KIND_LABEL.equation} · ${CONCEPT_KIND[f.concept.kind]}`, conceptKind: f.concept.kind, title: f.concept.name, body,
     ...(e.condition ? { notes: [{ label: tr('views.hover.holdsUnder'), text: sentence(e.condition) }] } : {}),
     actions: [
       ...(anchor ? [{ label: tr('views.hover.goToIntroduced'), run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: tr('views.hover.goToSection'), run: (s?: boolean) => nav.openSection(e.section, s) }]),
@@ -202,10 +204,10 @@ export type ConceptFacts = {
   readonly onMap: boolean;               /* the card opened from the concept map itself, so it need not offer the map */
 };
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
-  const c = f.concept, sec = secIdOf(c.section), first = f.intro[0];
-  const eyebrow = tr('views.hover.conceptEyebrow', { kind: CONCEPT_KIND[c.kind], section: c.section });
+  const c = f.concept, sec = secIdOf(c.section);
+  const eyebrow = CONCEPT_KIND[c.kind];
   if (c.status === 'placeholder') return {
-    kind: 'concept', eyebrow, title: c.name, ...(c.type ? { type: c.type } : {}), body: tr('views.hover.notBuilt', { section: c.section }),
+    kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: tr('views.hover.notBuilt', { section: c.section }),
     actions: [f.built ? { label: tr('views.hover.goToSection'), run: (s?: boolean) => nav.openSection(sec, s) } : { label: tr('views.hover.openInOpenStax'), run: () => nav.openExternal(sec) }],
   };
   const uses = f.uses.slice(0, USES_SHOWN);
@@ -213,9 +215,9 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   if (f.intro.length) refs.push({ label: tr('views.hover.introducedIn'), links: f.intro.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })) });
   if (uses.length) refs.push({ label: tr('views.hover.usedIn'), links: uses.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })), ...(f.uses.length > uses.length ? { more: { label: tr('views.hover.andMore', { n: f.uses.length - uses.length }), run: (s?: boolean) => nav.openSection(sec, s) } } : {}) });
   return {
-    kind: 'concept', eyebrow, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
+    kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
-      { label: tr('views.hover.goToDefinition'), run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
+      { label: tr('views.hover.addToSession'), run: () => nav.addToSession(c.id) },
       { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', s) },
       ...(f.onMap ? [] : [{ label: tr('views.hover.showInConceptMap'), run: (s?: boolean) => nav.showView('concepts', s) }]),
     ],

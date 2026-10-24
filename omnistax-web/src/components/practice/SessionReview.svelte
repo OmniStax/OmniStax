@@ -10,7 +10,7 @@
   import RowMenu from '../explorer/RowMenu.svelte';
   import PageHead from './PageHead.svelte';
   import MasteryBox from './MasteryBox.svelte';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
 
   let { item }: { item: ItemKey } = $props();
@@ -80,7 +80,7 @@
               <MasteryBox state={m.from} share={m.fromShare} />
               <span class="arrow" aria-hidden="true">→</span>
               <MasteryBox state={m.to} share={m.toShare} />
-              <KindDot kind={m.concept.kind} />
+              <KindTag kind={m.concept.kind} />
               <span class="name" use:mathHtml={m.concept.name}></span>
             </li>
           {/each}
@@ -89,7 +89,7 @@
         <ul class="list">
           {#each tallies as t (t.id)}
             <li class="concept">
-              <KindDot kind={t.concept.kind} />
+              <KindTag kind={t.concept.kind} />
               <span class="name" use:mathHtml={t.concept.name}></span>
               <span class="quiet">{i18n.t('practice.rows.correct', { n: t.correct, total: t.answered })}</span>
             </li>

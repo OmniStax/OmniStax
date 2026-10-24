@@ -3,6 +3,7 @@
    only file in the hover layer that reads the registry or the document. Every
    card is of the book its target stands in, read off the nearest `data-book`. */
 import { registry } from '../sections/registry.svelte';
+import { cart } from '../practice/cart.svelte';
 import { focus } from '../sections/focus.svelte';
 import { goSpan, findEl, openDoc, reveal, bookOfEl, openItem } from '../sections/nav.svelte';
 import { spansOf } from '../sections/concepts.svelte';
@@ -72,6 +73,7 @@ const showView = (view: 'reference' | 'concepts', split = false): void => {
 };
 /* What a card of one book can do, every place it names being in that book. */
 export const navFor = (book: BookId): Nav => {
+  const addToSession = (concept: string): void => { cart.add([{ concept: conceptId(concept) }]); };
   const go = (id: SpanId, split?: boolean): void => goSpan(spanRef(book, id), split);
   const openExternal = (sec: SectionId): void => { window.open(registry.entry(sectionRef(book, sec))?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener'); };
   /* The elements sheet, standing on one element: the page of it, opened wherever
@@ -87,7 +89,7 @@ export const navFor = (book: BookId): Nav => {
     sheets.ask(book, entry.id, [expr]);
     void openItem(itemKey(sheetItem(book, sheetId(entry.id))), split ? 'new' : undefined);
   };
-  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement, showGraph };
+  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement, showGraph, addToSession };
 };
 
 /* ---------- the definition card's facts ----------
