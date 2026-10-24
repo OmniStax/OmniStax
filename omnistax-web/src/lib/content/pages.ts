@@ -31,10 +31,10 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
         <span class="name">BlastWind/OmniStax</span>
       </a>
     </div>
-    <p class="intro">${esc(t('about.intro.platform'))}</p>
-    <p class="intro">${esc(t('about.intro.books'))}</p>
-    <p class="intro">${t('about.intro.features', { notes: feature('notes'), pomodoro: feature('pomodoro'), drawer: feature('drawer'), ai: feature('ai') })}</p>
-  </header>
+    <p class="intro">OmniStax/万象 is the first Integrated Learning Environment (ILE) as it mimics the user experience of programming IDEs to reduce cognitive friction: color-coded text, concept gotos, and a powerful list of builtin tools—<span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and a <span class="feature" data-feature="exercises">exercise view</span> to practice and track concept progress.</p>
+    <p class="intro">The main contribution of OmniStax is our OmniBooks. We transform open-source textbooks using AI, replacing diagrams with beautiful widgets while maintaing the original tone and text. We currently boast five textbooks.</p>
+    <p class="intro">OmniStax is forever free and open-source! Make suggestions, spend tokens to help transform or translate a book, all is welcome!
+    </header>
 
   <div class="coda">
     <button type="button" class="btn primary try" data-find-textbook>${esc(t('about.try'))}</button>

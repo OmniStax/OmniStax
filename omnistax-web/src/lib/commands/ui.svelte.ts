@@ -13,7 +13,7 @@ const PALETTE_CLOSED: PaletteState = { open: false, query: '', group: null };
 const BROWSER_CLOSED: BrowserState = { open: false, group: null, mode: 'open', onPick: null };
 
 /* What a feature named on the about page lights in the shell while it is hovered. */
-export type Spot = 'notes' | 'drawer' | 'pomodoro' | 'ai' | 'explorer';
+export type Spot = 'notes' | 'drawer' | 'pomodoro' | 'ai' | 'exercises' | 'explorer';
 
 class Ui {
   palette = $state.raw<PaletteState>(PALETTE_CLOSED);
