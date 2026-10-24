@@ -20,13 +20,15 @@ export type PracticeSettings = {
   readonly grading: Grading;
   readonly promptNote: string;
   readonly fresh: boolean;
+  /* Whether a round starts a stopwatch in the Pomodoro view and ends it with the round. */
+  readonly stopwatch: boolean;
   /* The one model that writes generated exercises and grades answers. */
   readonly model: ModelPick | null;
 };
 export const DEFAULT_SETTINGS: PracticeSettings = {
   masteryTarget: 3, freshnessDecay: true, startingHalfLife: 3,
   maxHalfLife: 240, order: 'mixed', includeFresh: false,
-  generated: 'include', grading: 'reveal', promptNote: '', fresh: false, model: null,
+  generated: 'include', grading: 'reveal', promptNote: 'Make exercises test what the other exercises for the same concept haven’t tested, if possible. They can be multiple-choice or free-response exercises.', fresh: false, stopwatch: false, model: null,
 };
 
 export type Attempt = {

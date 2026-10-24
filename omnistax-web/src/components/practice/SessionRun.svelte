@@ -5,7 +5,9 @@
   import { bookId, type SectionId } from '../../lib/types/ids';
   import type { ItemKey } from '../../lib/layout/model';
   import ExerciseCard from '../exercises/ExerciseCard.svelte';
-  import { fillLive, generation, isGenerating, removeExercise } from '../../lib/practice/ai.svelte';
+  import { deleteExercise, fillLive, generation, isGenerating, regenerateExercise, removeExercise } from '../../lib/practice/ai.svelte';
+  import { pomodoro } from '../../lib/pomodoro/store.svelte';
+  import { untrack } from 'svelte';
   import { isPending, type SessionId } from '../../lib/practice/model';
   import { isGenerated } from '../../lib/practice/generated';
   import { generated } from '../../lib/practice/generated.svelte';
@@ -44,6 +46,27 @@
 
   let ending = $state(false);
   $effect(() => { at; page.face; page.showAll; ending = false; });
+  /* Open slots are written as soon as the session shows, and again after a
+     reload: every concept with a slot that no request is writing for and no
+     failure has been recorded for is asked for. */
+  $effect(() => {
+    if (!session) return;
+    const id = session.id, job = generation[id];
+    const want = [...new Set(session.drawn.flatMap((d) => (isPending(d.ex) && d.concept && !job?.writing[d.concept] && !job?.failed[d.concept] ? [d.concept] : [])))];
+    if (want.length) untrack(() => { void fillLive(id, want); });
+  });
+  /* A generated exercise is written again or deleted from inside the session, after a yes. */
+  let confirming = $state<{ readonly i: number; readonly act: 'regenerate' | 'delete' } | null>(null);
+  const confirmed = (): void => {
+    const c = confirming; if (!c || !session) return;
+    if (c.act === 'regenerate') regenerateExercise(session.id, c.i); else deleteExercise(session.id, c.i);
+    confirming = null;
+  };
+  /* Ending the round ends the stopwatch it started, and the sitting is kept under the round's name. */
+  const endSession = (): void => {
+    if (practice.settings.stopwatch && pomodoro.mode === 'stopwatch' && pomodoro.session.phase !== 'idle') { pomodoro.finish(); pomodoro.keep('Practice session'); }
+    practice.end(item);
+  };
 
   const next = (): void => {
     if (at < n - 1) practice.go(item, at + 1);
@@ -79,10 +102,22 @@
       {#key `${row.book}/${row.section}/${row.ex.id}`}
         <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
           <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i] ?? null} session={id}
-            number={page.showAll ? `Exercise ${i + 1}` : `Exercise ${i + 1} of ${n}`}
+            number={page.showAll ? `Exercise ${i + 1}` : undefined}
             onanswer={undefined} />
         </div>
       {/key}
+      {#if isGenerated(row.ex.id)}
+        <div class="gen-acts">
+          {#if confirming?.i === i}
+            <span class="ask">{confirming.act === 'regenerate' ? 'Write this exercise again?' : 'Delete this exercise?'}</span>
+            <button type="button" class="btn primary sm" onclick={confirmed}>Yes</button>
+            <button type="button" class="btn ghost sm" onclick={() => (confirming = null)}>No</button>
+          {:else}
+            <button type="button" class="btn ghost sm" onclick={() => (confirming = { i, act: 'regenerate' })}>Regenerate</button>
+            <button type="button" class="btn ghost sm danger" onclick={() => (confirming = { i, act: 'delete' })}>Delete</button>
+          {/if}
+        </div>
+      {/if}
       <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => removeExercise(id, i)}>×</button>
     </div>
   {:else if isPending(d.ex)}
@@ -120,7 +155,7 @@
         {@const incomplete = practice.incompleteReviews(item)}
         <div class="confirm">
           <span class="ask">{incomplete ? `Review incomplete. ${incomplete} mastered ${incomplete === 1 ? 'concept still has' : 'concepts still have'} unanswered freshness exercises. Ending now will leave their freshness unchanged, although incorrect answers already submitted may shorten it.` : allDone ? 'End this session? You have answered all of the questions.' : 'End this session? Your completed exercises are kept.'}</span>
-          <button type="button" class="btn primary sm" onclick={() => practice.end(item)}>End session</button>
+          <button type="button" class="btn primary sm" onclick={endSession}>End session</button>
           <button type="button" class="btn ghost sm" onclick={() => (ending = false)}>Keep practicing</button>
         </div>
       {:else}
@@ -190,6 +225,8 @@
   .slot:hover .rm,.rm:focus-visible{opacity:1}
   @media (hover: none){ .rm{opacity:.55} }
   .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .gen-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:0.78rem}
+  .gen-acts .ask{color:var(--muted)}
   .spin{display:inline-block;width:.8em;height:.8em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.1em;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion: reduce){ .spin{animation-duration:2.4s} }

@@ -119,9 +119,9 @@ export const saveScratchAsDrawing = (book: string, section: string, ex: string, 
   const work = drawings.getScratch(key);
   if (!work) return null;
   const ref = { book, section: sectionId(section), ex };
-  const folder = links.folder();
+  const folder = links.folder('scratch');
   const before = shot();
-  const made = drawings.create(links.fileName(ref));
+  const made = drawings.create(links.fileName(ref, 'scratch'));
   drawings.put({ ...made, items: work.items, view: work.view, updated: Date.now() });
   explorer.addDrawing(folder, entryId(made.id), made.name);
   drawings.linkScratch(key, made.id);

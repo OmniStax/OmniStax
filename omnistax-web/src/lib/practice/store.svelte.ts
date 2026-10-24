@@ -74,8 +74,9 @@ const parseSettings = (raw: unknown): PracticeSettings => {
     includeFresh: bool(o.includeFresh, DEFAULT_SETTINGS.includeFresh),
     generated: o.generated === 'book-only' ? 'book-only' : 'include',
     grading: o.grading === 'ai' ? 'ai' : 'reveal',
-    promptNote: str(o.promptNote),
+    promptNote: str(o.promptNote) || DEFAULT_SETTINGS.promptNote,
     fresh: bool(o.fresh, DEFAULT_SETTINGS.fresh),
+    stopwatch: bool(o.stopwatch, DEFAULT_SETTINGS.stopwatch),
     model: parsePick(o.model),
   };
 };
@@ -329,6 +330,13 @@ class Practice {
     if (!placed) return;
     generated.use(exercises.slice(0, placed).filter((e) => isGenerated(e.ex.id)).map((e) => generatedIdOf(e.ex.id)));
     this.put({ ...s, drawn });
+  }
+  /* One exercise of a live session opened again as a slot for its concept, to be written afresh. */
+  reopen(id: SessionId, at: number, concept: string): void {
+    const s = this.sessions[id], d = s?.drawn[at]; if (!s || !d) return;
+    if (s.outcomes[at] !== null) { this.attempts = this.attempts.filter((a) => a.round !== id || a.book !== d.book || a.section !== d.section || a.ex !== d.ex); this.save(); }
+    const slot = { book: d.book, section: d.section, ex: `${PENDING}r${at}-${Date.now().toString(36)}`, why: 'new' as const, concept };
+    this.put({ ...s, drawn: s.drawn.map((x, i) => (i === at ? slot : x)), outcomes: s.outcomes.map((o, i) => (i === at ? null : o)) });
   }
   dropPending(id: SessionId, concept?: string): void {
     const s = this.sessions[id]; if (!s?.drawn.some((d) => isPending(d.ex))) return;

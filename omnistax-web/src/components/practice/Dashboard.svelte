@@ -1,5 +1,6 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
+  import { books } from '../../lib/practice/books.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { heatWeeks, standingOf, streakOf, workByDay } from '../../lib/practice/model';
   import PageHead from './PageHead.svelte';
@@ -18,6 +19,8 @@
   let heat = $state<HTMLElement | null>(null);
   $effect(() => { if (heat) heat.scrollLeft = heat.scrollWidth; });
 
+  /* The shelf's books are read for the standing, so it never says "no concepts" for want of a load. */
+  $effect(() => { for (const b of shelf) if ((books.status[b] ?? 'idle') === 'idle') void books.load(b); });
   const standing = $derived(standingOf(practice.catalog().concepts, practice.mastery));
   const due = $derived(practice.due());
   const figures = $derived([

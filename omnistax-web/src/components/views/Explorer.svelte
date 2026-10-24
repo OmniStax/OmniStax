@@ -40,6 +40,7 @@
   import { offlineBooks } from '../../lib/offline/store.svelte';
   import { scope } from '../../lib/sections/scope.svelte';
   import { practice } from '../../lib/practice/store.svelte';
+  import { links } from '../../lib/practice/links.svelte';
   import { chapterId, newViewItem, type ViewKind } from '../../lib/types/ids';
   import type { Target } from '../../lib/sections/scope';
   import { sizeLabel } from '../../lib/files/model';
@@ -465,8 +466,10 @@
      move below only listens for the rows this tree knows. */
   let dragged = $state.raw<EntryId | null>(null);
   let over = $state.raw<string | null>(null);
+  /* The practice folder and what stands under it stay where they are: no row of it is dragged, and nothing is dropped into it. */
+  const held = (r: Row): boolean => !!r.entry && links.isPractice(r.entry.id);
   const canDrop = (r: Row): boolean =>
-    dragged !== null && (r.root === 'notes' || r.kind === 'folder') && r.entry?.id !== dragged;
+    dragged !== null && (r.root === 'notes' || r.kind === 'folder') && r.entry?.id !== dragged && !held(r);
   const dropInto = (r: Row): void => {
     const id = dragged;
     if (id !== null) moveEntry(id, r.kind === 'root' ? null : r.entry?.id ?? null);
@@ -532,7 +535,7 @@
           onclick={(ev) => activate(r, ev)}
           onauxclick={onMiddle((ev) => activate(r, ev))}
           oncontextmenu={(e) => { if (r.entry || tabOf(r) || placeOf(r)) openMenu(e, r); }}
-          ondragstart={(e) => { if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
+          ondragstart={(e) => { if (held(r)) { if (e.dataTransfer) e.dataTransfer.effectAllowed = 'none'; return; } if (r.entry && r.kind !== 'book') { dragged = r.entry.id; e.dataTransfer?.setData('text/plain', r.entry.id); } }}
           ondragend={() => { dragged = null; over = null; }}
           ondragover={(e) => {
             if (hasFiles(e) && canImport(r)) { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; over = r.key; return; }

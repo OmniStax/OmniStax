@@ -9,6 +9,9 @@
    has scrolled. */
 import { statedOf } from '../sections/reference';
 import { registry } from '../sections/registry.svelte';
+import { generated } from '../practice/generated.svelte';
+import { exerciseOf, isGenerated } from '../practice/generated';
+import { exerciseBrief } from '../practice/brief';
 import { label as sectionLabel } from '../sections/grouping';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
@@ -108,10 +111,12 @@ const definitionsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly Pi
     })),
   ];
 };
+/* The book's exercises of a section and the ones a model wrote for it; the
+   text a chat is handed carries the whole of one: solution, concepts, attempts. */
 const exercisesOf = (book: BookId, sec: string): readonly PickerRow[] =>
-  (books.exercises(book, sectionId(sec)) ?? []).map((ex): PickerRow => ({
-    category: 'exercises', key: `${book}/${sec}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind,
-    target: { kind: 'exercise', book, section: sec, id: ex.id }, embed: true, text: plain(ex.prompt),
+  [...(books.exercises(book, sectionId(sec)) ?? []), ...generated.list.filter((g) => g.book === book && g.section === sec).map(exerciseOf)].map((ex): PickerRow => ({
+    category: 'exercises', key: `${book}/${sec}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: isGenerated(ex.id) ? 'AI-generated' : registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind,
+    target: { kind: 'exercise', book, section: sec, id: ex.id }, embed: true, text: exerciseBrief({ book, section: sectionId(sec), ex: ex.id }, ex),
   }));
 
 const leaf = (row: PickerRow): PickerNode => ({ key: row.key, label: row.label, detail: row.detail, row });

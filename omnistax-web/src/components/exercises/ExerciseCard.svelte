@@ -10,7 +10,6 @@
   import AiTag from '../practice/AiTag.svelte';
   import { exerciseName } from '../../lib/practice/labels';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
-  import { detachScratch } from '../../lib/drawer/edits';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { openFromView, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
@@ -20,9 +19,6 @@
   import { isGenerated } from '../../lib/practice/generated';
   import type { Graded } from '../../lib/practice/grade';
   import AiGrade from '../practice/AiGrade.svelte';
-  import AtPicker from '../ui/AtPicker.svelte';
-  import { pickerRoot } from '../../lib/picker/sources';
-  import type { PickerRow } from '../../lib/picker/model';
   import { links, entryOfKey } from '../../lib/practice/links.svelte';
   import { discussExercise } from '../../lib/practice/discuss.svelte';
   import { createNote } from '../../lib/explorer/edits';
@@ -89,7 +85,7 @@
   const scratched = $derived(hasScratch(at));
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? 'drawing' : null);
-  const scratch = (e?: MouseEvent): void => openScratch(at, layoutStore.layout.focus, openingOf(e));
+  const scratch = (e?: MouseEvent): void => { void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
   let gradeFailed = $state<string | null>(null);
   let graded = $state<Graded | null>(null);
   const aiGrading = $derived(!inline && !review && !!session && practice.settings.grading === 'ai' && a.type !== 'choice' && !!sol && gradeFailed === null);
@@ -97,47 +93,34 @@
   const onGraded = (g: Graded, answer: string): void => { graded = g; answered = answer; solutionOpen = true; record(g.verdict === 'right', false); };
   const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed && !aiGrading);
   const hintable = $derived(!review && !!hint && !hintShown && !completed);
-  const openLinked = (e: MouseEvent): void => { if (linked) void openItem(itemKey(drawingItem(linked)), undefined, openingOf(e)); };
-
+  /* The files beside this exercise, under _practice: its scratch drawing, and its notes and chats. */
   const KIND_ICON: Readonly<Record<string, string>> = { note: ICON.note, drawing: ICON.drawing, chat: ICON.chat };
   const linkedItems = $derived(links.of(at).flatMap((key) => {
     const e = entryOfKey(key); const row = e ? explorer.entry(e) : undefined;
     return row && key !== (linked ? itemKey(drawingItem(linked)) : '') ? [{ key, name: row.name, icon: KIND_ICON[row.kind] ?? '' }] : [];
   }));
   const openLink = (key: string, e: MouseEvent): void => { void openFromView(key, openingInView(e)); };
-  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), recorded, answered); };
+  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), recorded, answered, graded !== null); };
+  /* One note per exercise: made under _practice/notes the first time, opened after. */
+  const noteKey = $derived(links.of(at).find((k) => k.startsWith('note:')) ?? null);
   const addNote = (e: MouseEvent): void => {
-    const doc = createNote(links.folder(), links.fileName(at, ex));
+    if (noteKey) { openLink(noteKey, e); return; }
+    const doc = createNote(links.folder('notes'), links.fileName(at, 'notes', ex));
     const key = itemKey(noteItem(doc.id));
     links.add(at, key);
     openLink(key, e);
   };
-  let linking = $state(false);
-  let linkQuery = $state('');
-  let linkField = $state<HTMLInputElement | null>(null);
-  let linkPicker = $state<{ handleKey(e: KeyboardEvent): boolean } | null>(null);
-  const filesRoot = $derived(linking ? pickerRoot().find((n) => n.key === 'files')?.children?.() ?? [] : []);
-  const LINK_PREFIX: Readonly<Partial<Record<PickerRow['category'], string>>> = { notes: 'note', drawings: 'drawing', chats: 'chat' };
-  const closeLink = (): void => { linking = false; linkQuery = ''; };
-  const chooseLink = (row: PickerRow): void => {
-    const prefix = LINK_PREFIX[row.category];
-    if (prefix) links.add(at, `${prefix}:${row.key}`);
-    closeLink();
-  };
-  const linkKey = (e: KeyboardEvent): void => { if (linkPicker?.handleKey(e)) e.preventDefault(); };
-  const focusField = (node: HTMLInputElement) => { node.focus(); };
   const GRADED: Readonly<Record<Graded['verdict'], string>> = { right: '✓ Correct', partial: '~ Partly right', wrong: '✗ Incorrect' };
 </script>
 
 {#snippet scratchpad()}
   <span class="tools">
     <button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>
-      {@html ICON.drawing}Scratchpad{#if scratched && !linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
+      {@html ICON.drawing}Scratchpad{#if scratched || linked}<span class="mark" aria-label="You have scratch work here">•</span>{/if}
     </button>
-    {#if linked && linkedName}
-      <button type="button" class="btn ghost sm link" onclick={openLinked} onauxclick={onMiddle(openLinked)}>{linkedName}</button>
-      <button type="button" class="btn ghost sm" onclick={() => detachScratch(book, section, ex.id)} title="Back to scratch work">Detach</button>
-    {/if}
+    <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>
+      {@html ICON.note}Note{#if noteKey}<span class="mark" aria-label="You have a note here">•</span>{/if}
+    </button>
   </span>
 {/snippet}
 
@@ -218,27 +201,15 @@
   {#if !inline && !review && completed}
     <div class="follow">
       <button type="button" class="btn sm" onclick={discuss} onauxclick={onMiddle(discuss)}>{@html ICON.chat}Discuss with AI</button>
-      <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>{@html ICON.note}Add a note</button>
     </div>
   {/if}
-  {#if !inline && (linkedItems.length || (!review && completed))}
+  {#if !inline && linkedItems.length}
     <div class="linked">
       {#each linkedItems as l (l.key)}
         <span class="chip link-chip">
           <button type="button" class="open" onclick={(e) => openLink(l.key, e)} onauxclick={onMiddle((e) => openLink(l.key, e))}>{@html l.icon}<span>{l.name}</span></button>
-          {#if !review}<button type="button" class="x" aria-label="Unlink {l.name}" onclick={() => links.remove(at, l.key)}>×</button>{/if}
         </span>
       {/each}
-      {#if !review}
-        {#if linking}
-          <span class="link-pick">
-            <AtPicker bind:this={linkPicker} root={filesRoot} query={linkQuery} field={linkField} needsTarget onchoose={chooseLink} onclose={closeLink} />
-            <input class="input" bind:this={linkField} bind:value={linkQuery} use:focusField onkeydown={linkKey} onblur={closeLink} aria-label="Find a note, drawing or chat" />
-          </span>
-        {:else}
-          <button type="button" class="btn ghost sm" onclick={() => (linking = true)}>Link…</button>
-        {/if}
-      {/if}
     </div>
   {/if}
 
@@ -268,7 +239,7 @@
   {#if review}
     {#if sol}<details class="solution-fold" ontoggle={(e) => (foldOpen = e.currentTarget.open)}><summary>Solution</summary>{#if hint}{@render hintBlock()}{/if}{@render solution()}</details>{/if}
     {#if scratched || linked}
-      <div class="actions"><button type="button" class="btn ghost sm" onclick={(e) => (linked ? openLinked(e) : scratch(e))} onauxclick={onMiddle((e) => (linked ? openLinked(e) : scratch(e)))}>{@html ICON.drawing}Scratch work</button></div>
+      <div class="actions"><button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>{@html ICON.drawing}Scratch work</button></div>
     {/if}
   {/if}
 </div>

@@ -3,7 +3,8 @@
   import { fillLive, practicePick } from '../../lib/practice/ai.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
   import { keyOf, MAX_WANTED, type Drawn } from '../../lib/practice/model';
-  import { generatedIdOf, isGenerated } from '../../lib/practice/generated';
+  import { generatedIdOf, isGenerated, pickStored } from '../../lib/practice/generated';
+  import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import { generated } from '../../lib/practice/generated.svelte';
   import { books } from '../../lib/practice/books.svelte';
   import { count, exerciseName, excerpt, plain } from '../../lib/practice/labels';
@@ -26,6 +27,17 @@
   const gaps = $derived(rows.filter((r) => (r.q?.gap ?? 0) > 0));
   const gapTotal = $derived(Object.values(plan.quotas).reduce((n, q) => n + q.gap, 0));
   const total = $derived(plan.drawn.length + gapTotal);
+  /* What the AI side of the round is: how many stored items each concept's gap
+     would reuse unless the reader asked for fresh ones, and how many are written. */
+  const reuseOf = (id: string): number => (s.fresh ? 0 : pickStored(generated.forConcept(id), id, plan.quotas[id]?.gap ?? 0, practice.attempts).length);
+  const reused = $derived(gaps.reduce((n, r) => n + reuseOf(r.id), 0));
+  const written = $derived(gapTotal - reused);
+  const bookCount = $derived(plan.drawn.filter((d) => !isGenerated(d.ex.id)).length);
+  const aiCount = $derived(plan.drawn.length - bookCount + gapTotal);
+  const startLabel = $derived([
+    bookCount > 0 ? `${count(bookCount, 'book exercise')}` : '',
+    aiCount > 0 ? `${count(aiCount, 'AI exercise')}${written > 0 && written < aiCount ? ` (${written} newly written)` : written === aiCount ? ' (newly written)' : ''}` : '',
+  ].filter(Boolean).join(', '));
   const excluded = $derived(page.round?.excluded?.length ?? 0);
   const perConcept = $derived(page.round?.perConcept ?? s.masteryTarget);
   const aiNeeded = $derived(gapTotal > 0 || s.grading === 'ai');
@@ -53,6 +65,7 @@
     if (!id) { note = NOTHING; return; }
     note = '';
     if (gapTotal > 0) void fillLive(id);
+    if (s.stopwatch) { pomodoro.setMode('stopwatch'); pomodoro.start(); }
   };
 </script>
 
@@ -119,7 +132,9 @@
           </li>
         {/each}
         {#each gaps as r (r.id)}
-          <li class="ex gaprow muted">+{r.q?.gap} AI-generated for <span use:mathHtml={r.c?.name ?? r.id}></span>, written when you start</li>
+          {@const reuse = reuseOf(r.id)}
+          {@const fresh = (r.q?.gap ?? 0) - reuse}
+          <li class="ex gaprow muted">+{r.q?.gap} AI-generated for <span use:mathHtml={r.c?.name ?? r.id}></span>: {[reuse > 0 ? `reusing ${reuse}` : '', fresh > 0 ? `writing ${fresh} new` : ''].filter(Boolean).join(', ')}</li>
         {/each}
       </ul>
       {#if excluded}
@@ -149,6 +164,10 @@
       </div>
     </div>
     <div class="opt">
+      {@render option('Start stopwatch', 'Attach a time-tracked session on start.')}
+      <button class="toggle" type="button" class:on={s.stopwatch} aria-pressed={s.stopwatch} aria-label="Start a stopwatch with the session" onclick={() => practice.setSetting('stopwatch', !s.stopwatch)}></button>
+    </div>
+    <div class="opt">
       {@render option('Mastered concepts', 'Include ones not yet due for review.')}
       <button class="toggle" type="button" class:on={s.includeFresh} aria-pressed={s.includeFresh} aria-label="Include mastered concepts" onclick={() => practice.setSetting('includeFresh', !s.includeFresh)}></button>
     </div>
@@ -160,8 +179,8 @@
     {/if}
     {#if gapTotal > 0}
       <div class="opt wide">
-        {@render option('Prompt', 'Say what the new exercises should be like.')}
-        <input class="input" type="text" aria-label="Prompt" value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}>
+        {@render option('Prompt', 'Describe the difficulty and nature of the exercises.')}
+        <textarea class="input" rows="3" aria-label="Prompt" value={s.promptNote} oninput={(e) => practice.setSetting('promptNote', e.currentTarget.value)}></textarea>
       </div>
       <div class="opt">
         {@render option('Reuse', 'Use AI exercises already written before writing new ones.')}
@@ -172,7 +191,7 @@
 
   <div class="group start">
     <button class="btn primary lg" type="button" disabled={total === 0 || (aiNeeded && !aiReady)} onclick={begin}>
-      Start {count(total, 'exercise')}
+      {startLabel ? `Start: ${startLabel}` : 'Start'}
     </button>
     {#if why}<p class="muted">{why}</p>{/if}
     <p class="muted" role="status">{note}</p>
