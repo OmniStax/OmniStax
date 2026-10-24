@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VERSION } from '../releases/version';
 import { t } from '../i18n/index';
 import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
@@ -55,7 +56,7 @@ const jsonKeys = new Set([
      should ever hold. */
   'omnistax-drawings-v1', 'omnistax-scratch-v1',
   'omnistax-pomodoros', 'omnistax-pomodoro-categories',
-  'omnistax-chat-tree-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1',
+  'omnistax-chat-tree-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1',
 ]);
 const JSON_KEY_LIST = [...jsonKeys];
 
@@ -79,7 +80,7 @@ export const categoryOf = (key: string): ReaderCategory | null => {
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
-  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1'].includes(key)) return 'reading';
+  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1'].includes(key)) return 'reading';
   if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
   return null;
 };
@@ -227,6 +228,7 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-scratch-v1': scratchIndex,
   'omnistax-chats-v1': chatIndex,
   'omnistax-keys-v2': changes,
+  'omnistax-seen-notes-v1': z.string().regex(VERSION),
   'omnistax-keys': binding,
   'omnistax-practice-v2': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
   'omnistax-practice-v1': object,

@@ -116,7 +116,7 @@ export type ItemId =
   | { readonly kind: 'doc'; readonly book: BookId; readonly section: SectionId; readonly doc: DocKind }
   | { readonly kind: 'view'; readonly view: ViewKind; readonly instance?: ViewInstance }   /* instance: one page of that view; none is the singleton a sidebar holds */
   | { readonly kind: 'fig'; readonly book: BookId; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
-  | { readonly kind: 'page'; readonly page: 'about' }
+  | { readonly kind: 'page'; readonly page: 'about' | 'whatsnew' }
   | { readonly kind: 'note'; readonly note: NoteId }
   | { readonly kind: 'sheet'; readonly book: BookId; readonly sheet: SheetId }   /* one of the book's reference sheets, drawn by the app from the sheet's data */
   | { readonly kind: 'file'; readonly file: FileId }      /* a file the reader imported: a PDF read in the tab, or an image shown in it */
@@ -135,6 +135,7 @@ export const viewItem = (view: ViewKind, instance?: ViewInstance): ItemId => (in
 export const newViewItem = (view: ViewKind): ItemId => viewItem(view, newViewInstance());
 export const figItem = (ref: SectionRef, fig: string): ItemId => ({ kind: 'fig', book: ref.book, section: ref.section, fig });
 export const aboutItem = (): ItemId => ({ kind: 'page', page: 'about' });
+export const whatsNewItem = (): ItemId => ({ kind: 'page', page: 'whatsnew' });
 export const noteItem = (note: NoteId): ItemId => ({ kind: 'note', note });
 export const sheetItem = (book: BookId, sheet: SheetId): ItemId => ({ kind: 'sheet', book, sheet });
 export const fileItem = (file: FileId): ItemId => ({ kind: 'file', file });
@@ -158,7 +159,7 @@ export const itemKey = (id: ItemId): string => {
     case 'fig': return `fig:${id.book}/${id.section}/${id.fig}`;
     case 'ex': return `ex:${id.book}/${id.section}/${id.ex}`;
     case 'scratch': return `scratch:${id.book}/${id.section}/${id.ex}`;
-    case 'page': return 'page:about';
+    case 'page': return `page:${id.page}`;
     case 'note': return `note:${id.note}`;
     case 'sheet': return `sheet:${id.book}/${id.sheet}`;
     case 'file': return `file:${id.file}`;
@@ -171,6 +172,7 @@ export const parseItemKey = (s: string): ItemId | null => {
   const view = /^view:([\w-]+)(?:@([a-z0-9]{6}))?$/.exec(s);
   if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind, view[2] ? viewInstance(view[2]) : undefined) : null;
   if (s === 'page:about') return aboutItem();
+  if (s === 'page:whatsnew') return whatsNewItem();
   const note = /^note:([a-z0-9]{8})$/.exec(s);
   if (note) return noteItem(noteId(note[1]));
   const sheet = /^sheet:([a-z0-9-]+)\/([\w.-]+)$/.exec(s);

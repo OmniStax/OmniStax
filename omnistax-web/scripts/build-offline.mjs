@@ -75,7 +75,7 @@ const writeImmutable = async (dest, body) => {
 
 export async function buildOfflineArtifacts(out, bookIds, archive) {
   await mergeArchive(archive, out);
-  const rootRels = ['index.html', 'about.html', 'library.json', 'manifest.webmanifest', 'sw.js'];
+  const rootRels = ['index.html', 'about.html', 'whatsnew.html', 'whatsnew.zh-CN.html', 'whatsnew.json', 'library.json', 'manifest.webmanifest', 'sw.js'];
   const runtimeRels = [
     ...(await walk(path.join(out, 'assets'))).map((file) => path.join('assets', file)),
     ...(await walk(path.join(out, 'icons'))).map((file) => path.join('icons', file)),

@@ -1,4 +1,6 @@
 <script lang="ts">
+  /* First, so it reads whether the reader is new before any store writes. */
+  import '../lib/releases/start';
   import { onMount, mount } from 'svelte';
   import type { ItemId } from '../lib/types/ids';
   import { loadBoot, type BootUrls } from '../lib/sections/boot';

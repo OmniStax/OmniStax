@@ -248,6 +248,7 @@ export const views = {
   'views.registry.note': 'Note',
   'views.registry.openFigureInTab': 'Open {figure} in a tab',
   'views.registry.openInTab': 'Open in a tab',
+  'views.registry.whatsNew': 'What’s new',
   'views.scope.book': 'Book',
   'views.scope.chapterShort': 'Ch {id}',
   'views.search.ai': 'AI',

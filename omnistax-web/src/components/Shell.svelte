@@ -68,6 +68,7 @@
   import { offlineBooks } from '../lib/offline/store.svelte';
   import { registerOfflineWorker } from '../lib/offline/register';
   import { i18n } from '../lib/i18n/store.svelte';
+  import { openAtStart } from '../lib/releases/start';
 
   /* own: the item the page was built for; the 404 page has none, and reads its address instead. */
   type Props = { own?: ItemId; threeUrl?: string; boot: BootDTO };
@@ -165,6 +166,7 @@
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
+    void openAtStart(addressed && page !== carried ? docItem(addressed, 'text') : page, (k) => openItem(k));
     /* A page opened at a span — a search hit in another book links here with the span in
        the hash — lands on it once the document stands in its pane, since the browser's own
        landing came while it still stood in the pool; a hash that changes under the shell

@@ -7,6 +7,11 @@
    needs a value in zh-CN/about.ts too, or npm run check fails. */
 export const about = {
   'about.description': 'OmniStax/万象 is a next-gen, self-hostable STEM learning platform built from open source textbooks.',
+  'about.download.browser': 'Open OmniStax in the browser',
+  'about.download.description': 'OmniStax for Windows, macOS and Linux.',
+  'about.download.for': 'Download for {os}',
+  'about.download.older': 'Older versions',
+  'about.download.title': 'Download OmniStax',
   'about.feature.ai': 'Ask AI plugin',
   'about.feature.drawer': 'free-hand drawer',
   'about.feature.notes': 'markdown notetaker',
@@ -18,4 +23,6 @@ export const about = {
   'about.notFound.title': 'Not found · OmniStax',
   'about.title': 'OmniStax',
   'about.try': 'Try an OmniBook',
+  'about.whatsNew.empty': 'Nothing yet.',
+  'about.whatsNew.title': 'What’s new in OmniStax',
 } as const;

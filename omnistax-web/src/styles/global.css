@@ -364,6 +364,7 @@ article.page .repo svg{width:16px;height:16px;fill:currentColor;flex:none}
 article.page .repo .name{font-weight:600;font-size:0.9rem;line-height:1.3}
 article.page .feature{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-color:var(--spot);cursor:default}
 article.page .feature:hover{color:var(--spot)}
+article.page .note .version{margin-top:-0.6rem;color:var(--muted);font-family:var(--sans);font-size:0.85rem}
 article.page[data-page="about"]{padding-bottom:24px}
 article.page[data-page="about"] .intro{margin-top:1rem}
 article.page[data-page="about"] .intro + .intro{margin-top:0.8rem}

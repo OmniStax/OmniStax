@@ -7,7 +7,7 @@
    chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry, DerivationDTO } from '../content/schema';
-import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem } from '../types/ids';
+import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem, whatsNewItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { entryId } from '../explorer/model';
@@ -22,7 +22,7 @@ import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { chapterConceptsOf } from '../content/bookdata';
 import { parseBookConcepts } from '../practice/books';
 import { HIGHLIGHTS_ON } from '../settings/highlights';
-import { t } from '../i18n/index';
+import { t, currentLocale } from '../i18n/index';
 
 /* When the book's own concepts.json is worth fetching over the chapters' own
    files: a chapter file is about a tenth of the book file, so it pays for
@@ -139,7 +139,7 @@ class Registry {
   }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
-    if (id.kind === 'page') return t('views.registry.about');
+    if (id.kind === 'page') return t(id.page === 'whatsnew' ? 'views.registry.whatsNew' : 'views.registry.about');
     if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? t('views.registry.note');
     /* A file, a drawing and a chat are the reader's own, and the name they
        know one by is the one on its row of the explorer; a tab opened for
@@ -231,6 +231,7 @@ class Registry {
     const next: Record<SecKey, SectionState> = { ...this.sections };
     container.querySelectorAll<HTMLElement>('article[data-page]').forEach((a) => {
       if (a.dataset.page === 'about') this.pages = { ...this.pages, [itemKey(aboutItem())]: a };
+      if (a.dataset.page === 'whatsnew') this.pages = { ...this.pages, [itemKey(whatsNewItem())]: a };
     });
     container.querySelectorAll<HTMLScriptElement>('script[data-section]').forEach((s) => {
       const ref = sectionRef(bookOf(s), sectionId(s.dataset.section ?? '')); const k = secKey(ref); const d = sectionDataOf(s);
@@ -329,7 +330,7 @@ class Registry {
     const have = this.pages[k];
     if (have) return have;
     if (!this.loadingPages[k]) {
-      this.loadingPages[k] = getText('/about.html')
+      this.loadingPages[k] = getText(page.page === 'whatsnew' ? (currentLocale() === 'zh-CN' ? '/whatsnew.zh-CN.html' : '/whatsnew.html') : '/about.html')
         .then((text) => { this.adopt(templateOf(text)); })
         .catch(() => { /* the page stays empty; the pane says it is loading */ });
     }

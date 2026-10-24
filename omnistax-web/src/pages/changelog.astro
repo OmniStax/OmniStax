@@ -1,0 +1,14 @@
+---
+/* Every release note, as the shell with the What's new page open in it. */
+import ShellPage from '../layouts/ShellPage.astro';
+import { readNotes, whatsNewHtml } from '../lib/content/releases';
+import { whatsNewItem } from '../lib/types/ids';
+import { tIn } from '../lib/i18n/index';
+const locale = 'en';
+---
+<ShellPage
+  own={whatsNewItem()}
+  pool={whatsNewHtml(readNotes(), locale)}
+  title={tIn(locale, 'about.whatsNew.title')}
+  description={tIn(locale, 'about.whatsNew.title')}
+/>
