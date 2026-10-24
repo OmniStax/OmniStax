@@ -10,7 +10,7 @@
    put the row and the value this session was holding back in place. */
 import { entryId, type Entry, type EntryId, type Tree } from '../explorer/model';
 import { explorer } from '../explorer/store.svelte';
-import { history, type Edit } from '../history/store.svelte';
+import { history, EXPLORER_SCOPE, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
 import { drawingId, drawingItem, itemKey, sectionId, type DrawingId } from '../types/ids';
@@ -50,7 +50,7 @@ const commit = (label: string, before: Shot, sides: Sides = {}): Edit | null => 
     label,
     undo: () => { put(before); closeTabs(sides.onUndo ?? []); },
     redo: () => { put(after); closeTabs(sides.onRedo ?? []); },
-  });
+  }, EXPLORER_SCOPE);
 };
 
 /* Every drawing under a row, the row itself included, so that deleting a

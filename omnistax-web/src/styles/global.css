@@ -136,6 +136,10 @@ figure > sup.fn{display:none}
 .loading{padding:40px;color:var(--muted);font-family:var(--sans)}
 .loading.bad{color:var(--bad)}
 @media (max-width:900px){ article{padding:20px 18px 80px} }
+/* the Fill horizontal space settings: the column, the paragraphs and the figures each let go of their cap, the padding stays */
+html.fill-all article{max-width:none}
+html.fill-paragraphs article > p,html.fill-paragraphs article li,html.fill-paragraphs .example p,html.fill-paragraphs .example li,html.fill-paragraphs .summary li,html.fill-paragraphs .notes li{max-width:none}
+html.fill-figures article figure.photo[id]:not([data-figure]) img,html.fill-figures .photo img[data-width],html.fill-figures .sim .original img[data-width]{max-width:100%}
 
 /* the reader's highlights: a mark per text node, coloured; a dotted underline when it carries a note */
 mark.hl{background:var(--hl-yellow);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;box-decoration-break:clone;-webkit-box-decoration-break:clone}

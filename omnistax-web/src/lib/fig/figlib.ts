@@ -593,6 +593,9 @@ function sim(root: HTMLElement, id: string, H?: Logical) {
    view, or a global redraw was asked for. A paused figure costs nothing. */
 let paused = false;
 const sims: Sim[] = [], onScreen = new Set<Element>(), pendingCycles: Cycle[] = [];
+/* A figure whose box changes size is drawn again, so its labels stand where its
+   canvas now is: a pane resized, a tab shown that was laid out at no size. */
+const rio = typeof ResizeObserver === 'function' ? new ResizeObserver((es) => es.forEach((e) => { const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true; })) : null;
 const vio = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => es.forEach((e) => {
   if (!e.isIntersecting) { onScreen.delete(e.target); return; }
   onScreen.add(e.target); const d = sims.find((x) => x.fig === e.target); if (d) d.dirty = true;
@@ -630,7 +633,7 @@ function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () 
   const cycles = pendingCycles.splice(0), still = !cycles.length;
   const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED };
   if (!still && storied.has(fig)) console.error('F.register: this figure is a story; a figure has one timeline');
-  sims.push(full); vio?.observe(fig); if (!still) transport(full);
+  sims.push(full); vio?.observe(fig); rio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */
   fig.addEventListener('change', () => { full.dirty = true; });                                  /* a thumb settling on a detent */
   fig.addEventListener('pointermove', (e) => { if (e.buttons) full.dirty = true; });              /* orbit drags in a 3D view */
@@ -645,7 +648,7 @@ function release(root: HTMLElement): void {
   views3d.forEach((v) => { if (root.contains(v.wrap)) v.dispose(); });
   for (let i = sims.length - 1; i >= 0; i -= 1) {
     const d = sims[i]; if (!root.contains(d.fig)) continue;
-    vio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
+    vio?.unobserve(d.fig); rio?.unobserve(d.fig); onScreen.delete(d.fig); sims.splice(i, 1);
   }
   tourTicks.forEach((fig, t) => { if (root.contains(fig)) { tickers.delete(t); tourTicks.delete(t); } });
 }

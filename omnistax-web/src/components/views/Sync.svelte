@@ -14,7 +14,7 @@
   import { GROUP_LABEL } from '../../lib/sync/layout';
   import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
-  import { sync } from '../../lib/sync/store.svelte';
+  import { sync, PUSH_EVERY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
 
   const remote = $derived(sync.remote);
@@ -143,6 +143,11 @@
         <button type="button" class="icon" title="Edit repo, branch and token" aria-label="Edit repo, branch and token" onclick={() => (editing = true)}>{@html ICON.pen}</button>
       </div>
       <p class="meta"><span class="branch">{remote.branch}</span>{#if phase === 'ready' && !changes.length}<span>{lastSynced}</span>{/if}</p>
+      <label class="every"><span>Push every</span>
+        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label="Push every">
+          {#each PUSH_EVERY as m (m)}<option value={String(m)}>{m === 0 ? 'never' : m < 60 ? `${m} minutes` : 'hour'}</option>{/each}
+        </select>
+      </label>
       <p class="status" class:calm={!changes.length} role="status">{summary}</p>
 
       {#if changes.length}

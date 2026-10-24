@@ -349,7 +349,13 @@
     if (r.kind === 'chapter') { const c = m.chapters.find((x) => x.id === r.chapter); return c ? pagesOf(c).map((s) => sectionKey(b, s.id)) : []; }
     return [];
   };
-  const fold = (r: Row): void => { if (r.open) explorer.collapse([r.key, ...under(r)]); else explorer.toggle(r.key); };
+  /* A root row is open unless its key is in the expanded set (so a fresh tree
+     stands open), the opposite of every other row; folding one flips its key
+     and forgets what stood open under it. */
+  const fold = (r: Row): void => {
+    if (r.kind === 'root') { explorer.toggle(r.key); if (r.open) explorer.collapse(under(r)); return; }
+    if (r.open) explorer.collapse([r.key, ...under(r)]); else explorer.toggle(r.key);
+  };
 
   /* A book, chapter or section as a place a view can be pinned to. */
   const placeOf = (r: Row): Target | null => {
@@ -580,6 +586,10 @@
           {#if r.kind === 'book' && r.entry?.bookId}
             {@const id = r.entry.bookId}
             {@const marks = offlineBooks.marks(id)}
+            {#if offlineBooks.downloading(id)}
+              {@const p = offlineBooks.progress[id]}
+              <span class="dl" aria-label="Downloading{percent(id)}"><progress value={p?.bytes ?? 0} max={p?.totalBytes || 1}></progress><span class="pc">{percent(id).trim() || '…'}</span></span>
+            {/if}
             {#if marks.update}
               <button type="button" class="pill" tabindex="-1" disabled={offlineBooks.downloading(id)} title={offlineBooks.message || undefined}
                 onclick={(e) => { e.stopPropagation(); void offlineBooks.install(id); }}>{offlineBooks.downloading(id) ? `Updating${percent(id)}` : 'Update'}<span class="dot warm"></span></button>
@@ -664,7 +674,10 @@
   .row.r-find{color:var(--muted)}
   .row.r-find:hover{color:var(--accent)}
   .row.r-heading .lbl{font-size:0.78rem}
-  .twist{flex:none;width:14px;height:14px;border:0;background:transparent;color:var(--muted);font-size:9px;line-height:1;padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
+  .twist{flex:none;width:18px;height:18px;border:0;background:transparent;color:var(--muted);font-size:12px;line-height:1;padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
+  .dl{display:inline-flex;align-items:center;gap:6px;margin-left:6px;flex:none}
+  .dl progress{width:56px;height:4px}
+  .dl .pc{font-size:0.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
   .twist.open{transform:none}
   .twist.gap{cursor:default}
   .ico{flex:none;display:grid;place-items:center;color:var(--muted)}
