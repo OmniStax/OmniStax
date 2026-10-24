@@ -151,6 +151,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
     editions: { current: () => null, switchTo: (from, to) => log.push(`edition ${from} ${to}`) },
     highlights: { here: 'physics', on: () => true, set: (k, on) => log.push(`colour ${k} ${on}`) },
     practice: { canPractise: () => true, practise: (l) => log.push(`practise ${l}`) },
+    app: { desktop: false, canInstall: false, install: () => {}, download: () => {} },
   };
 };
 test('builtin command ids are unique and every fixed id is present', () => {

@@ -20,6 +20,7 @@
   import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, PUBLIC_LIST, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
   import { providerOf } from '../../lib/chat/providers/all';
   import { i18n } from '../../lib/i18n/store.svelte';
+  import { host } from '../../lib/commands/host.svelte';
   const t = i18n.t;
 
   let busy = $state.raw<Readonly<Record<string, boolean>>>({});
@@ -66,6 +67,7 @@
 
   /* The Local AI help, cut where its code samples stand: {api}, {origins}, {localhost}. */
   const localHelp = $derived(t('settings.ai.localHelp').split(/\{(?:api|origins|localhost)\}/));
+  const localHelpDesktop = $derived(t('settings.ai.localHelpDesktop').split('{api}'));
   const onEnter = (f: (v: string) => void) => (e: KeyboardEvent): void => {
     if (e.key !== 'Enter') return;
     const input = e.currentTarget as HTMLInputElement;
@@ -121,7 +123,11 @@
 
   <div class="card" data-ai-card="local">
     <div class="head"><span class="name">{t('settings.ai.local')}</span></div>
-    <p class="hint">{localHelp[0]}<code>POST /v1/chat/completions</code>{localHelp[1]}<code>OLLAMA_ORIGINS</code>{localHelp[2]}<code>http://localhost</code>{localHelp[3]}</p>
+    {#if host.surface === 'desktop'}
+      <p class="hint">{localHelpDesktop[0]}<code>POST /v1/chat/completions</code>{localHelpDesktop[1]}</p>
+    {:else}
+      <p class="hint">{localHelp[0]}<code>POST /v1/chat/completions</code>{localHelp[1]}<code>OLLAMA_ORIGINS</code>{localHelp[2]}<code>http://localhost</code>{localHelp[3]}</p>
+    {/if}
     {#each ai.value.endpoints as e (e.id)}
       <div class="endpoint">
         <div class="tail">

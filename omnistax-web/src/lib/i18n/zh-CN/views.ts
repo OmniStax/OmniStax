@@ -345,7 +345,7 @@ export const views: Readonly<Record<keyof typeof source, string>> = {
   'views.sync.pushN': '推送{n}个',
   'views.sync.pushNote': '发送此设备的改动。仓库的改动保留。',
   'views.sync.repo': '仓库',
-  'views.sync.repoHint': '一个你自己的仓库，私有仓库也可以。请求直接从此浏览器发往 GitHub。',
+  'views.sync.repoHint': '一个你自己的仓库，私有仓库也可以。请求从此设备上的 OmniStax 直接发往 GitHub。',
   'views.sync.openView': '打开同步视图',
   'views.sync.showChanges': '显示改动 · {path}',
   'views.sync.syncing': '正在同步…',

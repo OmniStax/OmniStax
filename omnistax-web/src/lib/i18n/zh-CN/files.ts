@@ -49,7 +49,7 @@ export const files: Readonly<Record<keyof typeof source, string>> = {
   'files.sync.group.scratch': '草稿页',
   'files.tab.deleted': '此文件已删除。',
   'files.tab.fetching': '正在获取 {name}…',
-  'files.tab.missing': '此浏览器已不再保存该文件。请重新导入，或恢复备份。',
+  'files.tab.missing': 'OmniStax 已不再保存该文件。请重新导入，或恢复备份。',
   'files.tab.opening': '正在打开 {name}…',
   'files.undo.importFiles': '导入 {files, plural, other {# 个文件}}',
   'files.undo.importFolders': '导入 {folders, plural, other {# 个文件夹}}、{files, plural, other {# 个文件}}',

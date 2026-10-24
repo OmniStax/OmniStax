@@ -8,6 +8,7 @@ export const language: Readonly<Record<keyof typeof source, string>> = {
   'language.openIn': '以{language}打开',
   'language.searchWords': '语言 Language English 中文 locale 界面语言',
   'language.setting.hint': '跟随浏览器：{language}',
+  'language.setting.hintDesktop': '跟随系统：{language}',
   'language.setting.name': '语言',
   'language.setting.system': '跟随系统',
   'language.switchBook': '教材：切换语言',

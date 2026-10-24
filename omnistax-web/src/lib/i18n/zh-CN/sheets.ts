@@ -76,7 +76,7 @@ export const sheets: Readonly<Record<keyof typeof source, string>> = {
   'fig.gate.z': '相位翻转 Z',
   'fig.story.label': '讲解',
   'fig.three.autoRotate': '自动旋转',
-  'fig.three.noWebgl': '此图需要 WebGL，而此浏览器不支持。',
+  'fig.three.noWebgl': '此图需要 WebGL，而此处不支持。',
   'fig.three.view': '视角：{name}',
   'fig.three.zoomIn': '放大',
   'fig.three.zoomOut': '缩小',

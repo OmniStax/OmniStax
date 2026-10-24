@@ -12,6 +12,7 @@ const inBrowser = typeof window !== 'undefined';
 
 const surfaceNow = (): Surface => {
   if (!inBrowser) return 'tab';
+  if ('omnistaxDesktop' in window) return 'desktop';
   if (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches) return 'app';
   if (document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches) return 'fullscreen';
   return 'tab';

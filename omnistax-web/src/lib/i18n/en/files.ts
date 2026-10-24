@@ -52,7 +52,7 @@ export const files = {
   'files.sync.group.scratch': 'Scratch pages',
   'files.tab.deleted': 'This file was deleted.',
   'files.tab.fetching': 'Fetching {name}…',
-  'files.tab.missing': 'This browser no longer holds the file. Import it again or restore a backup.',
+  'files.tab.missing': 'OmniStax no longer holds the file. Import it again or restore a backup.',
   'files.tab.opening': 'Opening {name}…',
   'files.undo.importFiles': 'import {files, plural, one {# file} other {# files}}',
   'files.undo.importFolders': 'import {folders, plural, one {# folder} other {# folders}}, {files, plural, one {# file} other {# files}}',

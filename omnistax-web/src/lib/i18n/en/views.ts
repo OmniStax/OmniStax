@@ -347,7 +347,7 @@ export const views = {
   'views.sync.pushN': 'Push {n}',
   'views.sync.pushNote': 'Send this device’s changes. The repo’s stay.',
   'views.sync.repo': 'Repo',
-  'views.sync.repoHint': 'A repo of your own, private is fine. Requests go straight from this browser to GitHub.',
+  'views.sync.repoHint': 'A repo of your own, private is fine. Requests go straight from OmniStax on this device to GitHub.',
   'views.sync.openView': 'Open Sync view',
   'views.sync.showChanges': 'Show changes · {path}',
   'views.sync.syncing': 'Syncing…',

@@ -13,6 +13,7 @@ export const language = {
   /* What the settings filter answers to, in both languages, so a reader lost in the other one finds the row. */
   'language.searchWords': 'Language 语言 English 中文 locale',
   'language.setting.hint': 'Follows your browser: {language}',
+  'language.setting.hintDesktop': 'Follows your system: {language}',
   'language.setting.name': 'Language',
   'language.setting.system': 'System',
   'language.switchBook': 'Book: switch language',

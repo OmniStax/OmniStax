@@ -144,6 +144,7 @@
   /* The line under the toolbar, cut where its mark and its install button stand. */
   const reserved = $derived(cut(t('settings.shortcuts.reserved', { browser: browserName, n: held }), 'mark'));
   const installLine = $derived(cut(t('settings.shortcuts.install', { n: held }), 'install'));
+  const desktopLine = $derived(cut(t('settings.shortcuts.desktop'), 'desktop'));
 </script>
 
 {#snippet back(on: boolean, title: string, fn: () => void)}
@@ -185,7 +186,7 @@
       <Fold id="Appearance" name={t('settings.section.appearance')} show={APPEARANCE.some(hit)} force={!!q}>
         <div class="row" hidden={!hit(ROWS.language)}>
           <span class="name">{t('language.setting.name')}{@render back(i18n.choice !== 'system', resetTo(t('language.setting.system')), () => i18n.setChoice('system'))}</span>
-          <span class="hint">{t('language.setting.hint', { language: LOCALE_NAMES[i18n.system] })}</span>
+          <span class="hint">{t(host.surface === 'desktop' ? 'language.setting.hintDesktop' : 'language.setting.hint', { language: LOCALE_NAMES[i18n.system] })}</span>
           <div class="seg" role="radiogroup" aria-label={t('language.setting.name')} id="language-setting">
             {#each LANGUAGE_CHOICES as c (c)}
               <button type="button" class:on={i18n.choice === c} role="radio" aria-checked={i18n.choice === c} lang={c === 'system' ? undefined : c} onclick={() => i18n.setChoice(c)}>{languageLabel(c)}</button>
@@ -269,7 +270,7 @@
           <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>{t('settings.shortcuts.resetAll')}</button>
         </div>
         {#if held}
-          <p class="hint">{reserved[0]}<span class="kept" aria-hidden="true">⊘</span>{reserved[1]}{#if host.canInstall} {installLine[0]}<button class="link" type="button" onclick={() => host.install()}>{t('settings.shortcuts.installButton')}</button>{installLine[1]}{/if}</p>
+          <p class="hint">{reserved[0]}<span class="kept" aria-hidden="true">⊘</span>{reserved[1]}{#if host.canInstall} {installLine[0]}<button class="link" type="button" onclick={() => host.install()}>{t('settings.shortcuts.installButton')}</button>{installLine[1]}{/if} {desktopLine[0]}<a href="/download" target="_blank" rel="noopener">{t('settings.shortcuts.desktopLink')}</a>{desktopLine[1]}</p>
         {/if}
         <table>
           <tbody>

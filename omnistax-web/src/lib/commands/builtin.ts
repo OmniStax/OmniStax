@@ -75,6 +75,7 @@ export type BuiltinDeps = {
   readonly highlights: { readonly here: string | null; on(k: HighlightKey): boolean; set(k: HighlightKey, on: boolean): void };
   /* A practice session seeded with the place being read, at the level asked for. */
   readonly practice: { canPractise(): boolean; practise(level: Level): void };
+  readonly app: { readonly desktop: boolean; readonly canInstall: boolean; install(): void; download(): void };
 };
 
 /* Where a view is asked for: a tab of the group in hand, the sidebar it calls
@@ -105,6 +106,7 @@ export const BUILTIN = {
   scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
   scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
   reopenAbout: commandId('reopen-about'),
+  downloadDesktop: commandId('download-desktop'), installApp: commandId('install-app'),
   noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
   drawingNew: commandId('drawing-new'),
   chatNew: commandId('chat-new'),
@@ -245,6 +247,8 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
      closed its tab has nothing in the book's own tree that leads back to it.
      This is that way back, and it opens the page wherever a tab opens. */
   { id: BUILTIN.reopenAbout, label: d.t('commands.about'), group: g.app, run: () => d.docs.openAbout() },
+  { id: BUILTIN.downloadDesktop, label: d.t('commands.downloadDesktop'), group: g.app, run: () => d.app.download(), when: () => !d.app.desktop },
+  { id: BUILTIN.installApp, label: d.t('commands.installApp'), group: g.app, run: () => d.app.install(), when: () => d.app.canInstall },
   { id: BUILTIN.noteNew, label: d.t('commands.noteNew'), group: g.app, run: () => d.notes.newNote() },
   { id: BUILTIN.noteToggleMode, label: d.t('commands.noteToggleMode'), group: g.app, run: () => d.notes.toggleMode(), when: () => d.notes.canToggle() },
   { id: BUILTIN.drawingNew, label: d.t('commands.drawingNew'), group: g.app, run: () => d.drawings.newDrawing() },

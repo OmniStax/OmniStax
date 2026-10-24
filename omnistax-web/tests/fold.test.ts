@@ -55,6 +55,7 @@ const deps = (): BuiltinDeps => ({
   editions: { current: () => null, switchTo: () => {} },
   highlights: { here: null, on: () => true, set: () => {} },
   practice: { canPractise: () => false, practise: () => {} },
+  app: { desktop: false, canInstall: false, install: () => {}, download: () => {} },
 });
 test('every default chord parses, is unique, and names a builtin command', () => {
   const chords = DEFAULT_PAIRS.map(([c]) => c);

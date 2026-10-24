@@ -12,6 +12,7 @@
   import { files } from '../../lib/files/store.svelte';
   import { PERSIST_WORDS_KEY, quotaWords, readHealth, requestPersist, SAFARI_WORDS_KEY, type Health } from '../../lib/storage/health';
   import { i18n } from '../../lib/i18n/store.svelte';
+  import { host } from '../../lib/commands/host.svelte';
 
   let health = $state.raw<Health | null>(null);
 
@@ -45,11 +46,13 @@
     <div class="bar"><div class="fill" style:width="{Math.round(health.fraction * 100)}%"></div></div>
   </div>
 {/if}
-<div class="row">
-  <span class="name">{i18n.t('settings.storage.retention')}</span>
-  <span class="hint">{health ? i18n.t(PERSIST_WORDS_KEY[health.persistence]) : i18n.t('settings.storage.checking')}{#if health?.safari} {i18n.t(SAFARI_WORDS_KEY)}{/if}</span>
-  {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>{i18n.t('settings.storage.keep')}</button>{:else}<span></span>{/if}
-</div>
+{#if host.surface !== 'desktop'}
+  <div class="row">
+    <span class="name">{i18n.t('settings.storage.retention')}</span>
+    <span class="hint">{health ? i18n.t(PERSIST_WORDS_KEY[health.persistence]) : i18n.t('settings.storage.checking')}{#if health?.safari} {i18n.t(SAFARI_WORDS_KEY)}{/if}{#if health && health.persistence !== 'granted'} <a href="/download" target="_blank" rel="noopener">{i18n.t('settings.storage.desktop')}</a>{/if}</span>
+    {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>{i18n.t('settings.storage.keep')}</button>{:else}<span></span>{/if}
+  </div>
+{/if}
 
 <style>
   .bar-row{margin:0 0 8px 162px}

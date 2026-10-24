@@ -79,7 +79,7 @@ export const sheets = {
   'fig.gate.z': 'the phase flip Z',
   'fig.story.label': 'Story',
   'fig.three.autoRotate': 'Auto-rotate',
-  'fig.three.noWebgl': 'This figure needs WebGL, which this browser does not provide.',
+  'fig.three.noWebgl': 'This figure needs WebGL, which isn’t available here.',
   'fig.three.view': 'View: {name}',
   'fig.three.zoomIn': 'Zoom in',
   'fig.three.zoomOut': 'Zoom out',

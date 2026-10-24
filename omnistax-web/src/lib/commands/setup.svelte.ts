@@ -3,6 +3,7 @@
    replaces the command, so every label and group is said anew and the palette
    searches the words the reader sees. Later modules add their own through
    commands.register(). */
+import { host } from './host.svelte';
 import { commands } from './registry.svelte';
 import { builtinCommands, type FocusDir, type ViewWhere } from './builtin';
 import { commandId } from './command';
@@ -204,8 +205,16 @@ export const installCommands = (): void => {
     },
     switchTo: (from: string, to: string) => { void switchEdition(bookId(from), bookId(to)); },
   };
+  /* The window the app runs in: the desktop app has no install to offer and no
+     download to point at; a Chromium browser may offer to install the site. */
+  const appDeps = {
+    get desktop() { return host.surface === 'desktop'; },
+    get canInstall() { return host.canInstall; },
+    install: () => { void host.install(); },
+    download: () => { window.open('/download', '_blank', 'noopener'); },
+  };
   /* The catalogue the editions are read from; fetched once, outside any derivation. */
   void library.load();
-  commands.register([...builtinCommands({ t: i18n.t, settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, language: languageDeps, editions: editionsDeps, highlights: highlightDeps, practice: practiceDeps }), ...groupCommands()]);
+  commands.register([...builtinCommands({ t: i18n.t, settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, language: languageDeps, editions: editionsDeps, highlights: highlightDeps, practice: practiceDeps, app: appDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };
