@@ -1,6 +1,7 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
+  import { cart } from '../../lib/practice/cart.svelte';
   import PageHead from './PageHead.svelte';
   import ReadyToLearn from './ReadyToLearn.svelte';
   import CurriculumTree from './CurriculumTree.svelte';
@@ -12,6 +13,8 @@
     for (const b of shelf) if ((books.status[b] ?? 'idle') === 'idle') void books.load(b);
   });
   const loading = $derived(shelf.some((b) => books.status[b] === 'loading'));
+  /* While the session is being built, the cart follows its picks, so the rail's count is the plan's; starting the session empties both. */
+  $effect(() => { cart.set(practice.page(item).curriculum); });
 </script>
 
 <div class="builder">

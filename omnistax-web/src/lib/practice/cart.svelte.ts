@@ -52,6 +52,9 @@ class Cart {
     this.put(next);
     fly(from ?? pointer);
   }
+  /* The builder's picks, as they stand: the cart is the session being built, so
+     adding and removing there moves the rail's count too, with no dots. */
+  set(picks: readonly Pick[]): void { if (JSON.stringify(picks) !== JSON.stringify(this.picks)) this.put([...picks]); }
   remove(pick: Pick): void { this.put(this.picks.filter((q) => JSON.stringify(q) !== JSON.stringify(pick))); }
   /* The picks handed over to a session, and the cart emptied. */
   take(): Curriculum { const out = this.picks; this.put([]); return out; }
