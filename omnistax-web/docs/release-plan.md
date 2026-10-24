@@ -95,7 +95,7 @@ read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.
      and Linux runners, attach them, and mark the release Latest;
    - every other release is created with `--latest=false`.
 
-   So `github.com/BlastWind/OmniStax/releases/latest/download/<file>` always
+   So `github.com/OmniStax/OmniStax/releases/latest/download/<file>` always
    names a release with installers, and the download page links there with
    stable file names: `OmniStax-Setup.exe`, `OmniStax.dmg`, `OmniStax.AppImage`.
    No secrets beyond `GITHUB_TOKEN`.
@@ -203,7 +203,7 @@ read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.
 ### One repo per book, before beta
 
 Built 2026-10-24: `omnistax-content/books.json` lists five repos
-`BlastWind/omnistax-book-<id>`; `scripts/books.mjs` clones what is missing,
+`OmniStax/<book-id>`; `scripts/books.mjs` clones what is missing,
 run as `postinstall` so the Cloudflare build command is unchanged; each book
 repo's `deploy.yml` POSTs its `DEPLOY_HOOK_URL` secret. The deleted
 `College Physics 2e (zh-CN)` history went with no book; the backup bundle of

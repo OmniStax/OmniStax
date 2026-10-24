@@ -28,7 +28,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://github.com/BlastWind/OmniStax/releases/latest/download"
+        "url": "https://github.com/OmniStax/OmniStax/releases/latest/download"
       }
     ],
     "win": {

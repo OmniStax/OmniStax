@@ -8,7 +8,7 @@ const allowCors = require('./cors');
 
 const SITE = process.env.OMNISTAX_URL || 'https://omnistax.org';
 const ORIGIN = new URL(SITE).origin;
-const LATEST = 'https://github.com/BlastWind/OmniStax/releases/latest/download';
+const LATEST = 'https://github.com/OmniStax/OmniStax/releases/latest/download';
 
 /* No menu keys on Windows and Linux, so Ctrl+W, Ctrl+R and the rest reach the
    app. A Mac keeps Quit and Hide, and the clipboard roles its text fields need. */

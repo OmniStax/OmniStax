@@ -17,7 +17,7 @@
 # A bare unit beside a number.
 \.svelte:\d+: (ms|px|s|kg|nm|Hz)$
 # src/lib/content/pages.ts: the masthead is the product's name and its repository's, never translated.
-^src/lib/content/pages\.ts:\d+: (OmniStax/万象|BlastWind/OmniStax)$
+^src/lib/content/pages\.ts:\d+: (OmniStax/万象|OmniStax/OmniStax)$
 # src/lib/content/check.ts: the content check's messages go to a book's author (npm run check:content), not to a reader; some quote the markup they want.
 ^src/lib/content/check\.ts:
 # The Local AI help's code samples (an API path, an environment variable, an address) and the endpoint field's example URL: code, never translated.
