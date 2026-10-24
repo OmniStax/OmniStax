@@ -3786,6 +3786,25 @@ export function registerFigBook(book: FigBook): void {
   bookPal.delete(book.id);
 }
 
+/* A blend of several books' tables under one name, for a chat whose chips come
+   from more than one book: the books in the order given, the first to name a
+   macro or a symbol keeping it, since every book keys its macros by the same
+   scheme and `\\kF` is force in one and something else in another. The name is
+   what an element wears as `data-book`; blending again under the same name
+   replaces the table, so a chat keeps one as its chips come and go. */
+export function registerFigBlend(name: string, books: readonly string[]): void {
+  const parts = books.map(configOf).filter((c) => c !== NO_BOOK);
+  if (parts.length === 1) { figBooks.set(name, parts[0]!); bookPal.delete(name); return; }
+  const macros: Record<string, string> = {}, symbols: Record<string, string> = {}, colorKeys: string[] = [];
+  parts.forEach((c) => {
+    Object.entries(c.macros).forEach(([k, v]) => { if (!(k in macros)) macros[k] = v; });
+    Object.entries(c.symbols).forEach(([k, v]) => { if (!(k in symbols)) symbols[k] = v; });
+    c.colorKeys.forEach((k) => { if (!colorKeys.includes(k)) colorKeys.push(k); });
+  });
+  figBooks.set(name, { macros, symbols, colorKeys });
+  bookPal.delete(name);
+}
+
 /* The Fig a book's figure scripts and TeX go through: the same surface as FIG, with every call run
    under that book's table, so `F.tex`, `F.ctl` and `F.SYM` read its macros and symbols. */
 const withBook = (book: string) => <A extends unknown[], R>(f: (...a: A) => R) => (...a: A): R => {

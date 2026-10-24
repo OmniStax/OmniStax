@@ -51,8 +51,11 @@ its condition, a definition, an exercise's statement, a message's text).
 A tab dragged from the explorer onto the composer (a section's text, a
 note, a drawing, a file, a chat) becomes the same chip; an image dropped
 from the desktop becomes a picture. The chat's maths is rendered under the
-book its chips come from, else the book being read, so a book's macros
-read in an answer.
+books its chips come from, then the book being read, so a book's macros
+read in an answer; with chips from more than one book the tables are
+blended under the chat's own name (`registerFigBlend` in `fig/figlib.ts`),
+the earliest chip's book keeping a macro both define, since every book keys
+its macros by the same scheme and `\kF` need not mean the same thing twice.
 The picker is built once and **also replaces the `[[` completion in the note
 editor** (`notes/md/complete.ts` becomes a consumer of the same model, its
 choice writing `[[…]]` instead of a chip). Left, Right, Up, Down, Enter and

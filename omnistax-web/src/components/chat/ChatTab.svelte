@@ -13,6 +13,7 @@
   import { sectionTextOf } from '../../lib/picker/sources';
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { registerFigBlend } from '../../lib/fig/figlib';
   import { label as sectionLabel } from '../../lib/sections/grouping';
   import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
 
@@ -46,9 +47,19 @@
   });
 
 
+  /* The books the chat's maths is set under: every book its chips come from, in
+     the order they came, then the book being read; one book is named as itself,
+     more are blended under the chat's own name, the earliest chip's book keeping
+     a macro both define. */
+  const mathBooks = $derived.by((): readonly string[] => {
+    const out: string[] = [];
+    chips.forEach((c) => { const b = c.key.replace(/^[a-z]+:/, '').split(/[/:]/)[0]; if (b && registry.hasBook(bookId(b)) && !out.includes(b)) out.push(b); });
+    if (focus.book && !out.includes(focus.book)) out.push(focus.book);
+    return out;
+  });
   const mathBook = $derived.by((): string | null => {
-    for (const c of chips) { const b = c.key.replace(/^[a-z]+:/, '').split(/[/:]/)[0]; if (b && registry.hasBook(bookId(b))) return b; }
-    return focus.book;
+    if (mathBooks.length <= 1) return mathBooks[0] ?? null;
+    const name = `blend:${chatId}`; registerFigBlend(name, mathBooks); return name;
   });
   let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
   $effect(() => {
