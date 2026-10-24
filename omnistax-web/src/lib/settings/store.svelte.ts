@@ -9,6 +9,7 @@ import { type FontId, DEFAULT_FIGURE_FONT, DEFAULT_BODY_FONT, parseFont, effecti
 import type { ColourShown } from '../colours/switches';
 import { type PageHighlights, pageHighlights } from './highlights';
 import { highlights } from './highlights.svelte';
+import { LANG_KEY } from '../i18n/store.svelte';
 export type { FontId } from './fonts';
 export type { ZoomStep } from './zoom';
 export { ZOOM_STEPS, ZOOM_DEFAULT, zoomLabel, zoomPx } from './zoom';
@@ -92,6 +93,7 @@ class Settings {
   setFillAll(on: boolean): void { this.fillAll = on; write(KEYS.fillAll, on ? '1' : '0'); }
   setCardOpen(m: CardOpen): void { this.cardOpen = m; write(KEYS.cardOpen, m); }
   setLockGrace(s: number): void { if (!Number.isFinite(s)) return; this.lockGrace = clampGrace(s); write(KEYS.lockGrace, String(this.lockGrace)); }
-  reset(): void { Object.values(KEYS).forEach(remove); remove('omnistax-zoom-keys'); remove('omnistax-fill-paragraphs'); remove('omnistax-fill-figures'); }
+  /* Every setting back to its default, the reader's language (which i18n keeps) with them. */
+  reset(): void { [...Object.values(KEYS), LANG_KEY, 'omnistax-zoom-keys', 'omnistax-fill-paragraphs', 'omnistax-fill-figures'].forEach(remove); }
 }
 export const settings = new Settings();

@@ -8,6 +8,7 @@
   import { mathHtml } from '../actions/math';
   import MasteryBox from './MasteryBox.svelte';
   import KindTag from './KindTag.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { item, selectable = false, folded = false }: { item?: string; selectable?: boolean; folded?: boolean } = $props();
 
@@ -48,21 +49,21 @@
 
 {#snippet list()}
 {#if loading}
-  <p class="meta" role="status">Loading…</p>
+  <p class="meta" role="status">{i18n.t('practice.loading')}</p>
 {:else if groups.length === 0}
-  <p class="meta">Master a concept, or set its progress in the tree below, and what builds on it appears here.</p>
+  <p class="meta">{i18n.t('practice.ready.empty')}</p>
 {:else}
   {#each shown as g (g.key)}
     <div class="group">
       <div class="headrow">
         <p class="meta head">{g.heading}</p>
-        {#if selectable && item}<button type="button" class="btn ghost sm" onclick={() => { for (const c of g.concepts) practice.setNode(item, node(c.id), true); }}>Add all</button>{/if}
+        {#if selectable && item}<button type="button" class="btn ghost sm" onclick={() => { for (const c of g.concepts) practice.setNode(item, node(c.id), true); }}>{i18n.t('practice.ready.addAll')}</button>{/if}
       </div>
       {#each g.concepts as c (c.id)}
         <div class="row">
           {#if selectable && item}
             {@const on = practice.check(item, node(c.id))}
-            <input type="checkbox" class="pick" aria-label="Select {plain(c.name)}" checked={on === 'on'} use:mixed={on === 'some'} onchange={() => practice.toggleNode(item, node(c.id))} />
+            <input type="checkbox" class="pick" aria-label={i18n.t('practice.select', { name: plain(c.name) })} checked={on === 'on'} use:mixed={on === 'some'} onchange={() => practice.toggleNode(item, node(c.id))} />
           {/if}
           <MasteryBox id={c.id} />
           <KindTag kind={c.kind} />
@@ -73,14 +74,14 @@
     </div>
   {/each}
   {#if groups.length > SHOWN}
-    <button type="button" class="btn ghost sm more" onclick={() => (all = !all)}>{all ? 'Show fewer' : `Show all ${groups.length}`}</button>
+    <button type="button" class="btn ghost sm more" onclick={() => (all = !all)}>{all ? i18n.t('practice.showFewer') : i18n.t('practice.showAll', { n: groups.length })}</button>
   {/if}
 {/if}
 {/snippet}
 
 {#if folded}
   <details class="ready">
-    <summary>Ready to learn · {count} {count === 1 ? 'concept' : 'concepts'}</summary>
+    <summary>{i18n.t('practice.ready.summary', { n: count })}</summary>
     {@render list()}
   </details>
 {:else}

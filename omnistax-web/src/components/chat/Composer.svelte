@@ -1,6 +1,7 @@
 <script lang="ts">
   import AtPicker from '../ui/AtPicker.svelte';
   import ModelMenu from './ModelMenu.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { chipOf, chipForItem, pickerRoot } from '../../lib/picker/sources';
   import { dragging as layoutDrag } from '../../lib/layout/drag.svelte';
   import { chipOfRow } from '../../lib/chat/library';
@@ -102,7 +103,7 @@
       void snapshotImage(file).then((shot) => {
         if (!shot) return;
         const ref = assetEmbed(shot.asset);
-        add(chip('image', ref, file.name && file.name !== 'image.png' ? file.name : 'Image', '', false, ref));
+        add(chip('image', ref, file.name && file.name !== 'image.png' ? file.name : i18n.t('chat.composer.image'), '', false, ref));
       });
     }
   };
@@ -143,12 +144,12 @@
 <div class="composer" bind:this={box}>
 
   {#if chips.length}
-    <ul class="chips" aria-label="What the model is shown">
+    <ul class="chips" aria-label={i18n.t('chat.composer.chips')}>
       {#each chips as c (c.kind + c.key)}
         <li title={c.text.slice(0, 400)} class:pic={!!c.image}>
           {#if c.image && thumbs[c.image]}<img class="thumb" src={thumbs[c.image]} alt="" />{/if}
           <span class="chip-label">{c.label}</span>
-          <button type="button" aria-label="Remove {c.label}" onclick={() => onchips(withoutChip(chips, c))}>×</button>
+          <button type="button" aria-label={i18n.t('chat.composer.remove', { label: c.label })} onclick={() => onchips(withoutChip(chips, c))}>×</button>
         </li>
       {/each}
     </ul>
@@ -159,15 +160,15 @@
       <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read} onfocus={read}
-      placeholder={ready ? 'Ask anything · @ to add context' : 'Choose a model with a key to ask'}
-      aria-label="Message" rows="2"></textarea>
+      placeholder={ready ? i18n.t('chat.composer.placeholder') : i18n.t('chat.composer.noModel')}
+      aria-label={i18n.t('chat.composer.message')} rows="2"></textarea>
     <div class="acts">
       <span class="spacer"></span>
       <ModelMenu {chatId} />
       {#if streaming}
-        <button type="button" class="btn sm" onclick={onstop}>Stop</button>
+        <button type="button" class="btn sm" onclick={onstop}>{i18n.t('chat.composer.stop')}</button>
       {:else}
-        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked || !ready} title={blocked ?? (ready ? '' : 'Configure a model under Settings → AI first.')} onclick={send}>Send <kbd>↵</kbd></button>
+        <button type="button" class="btn primary sm" disabled={text.trim() === '' || !!blocked || !ready} title={blocked ?? (ready ? '' : i18n.t('chat.composer.configure'))} onclick={send}>{i18n.t('chat.bubble.send')} <kbd>↵</kbd></button>
       {/if}
     </div>
   </div>

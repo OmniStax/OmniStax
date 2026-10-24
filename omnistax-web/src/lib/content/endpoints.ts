@@ -3,13 +3,13 @@
    They are the same for a section and for an introduction or summary page,
    under a chapter or the book's own, so the route files only name their paths. */
 import type { APIRoute } from 'astro';
-import { fragment } from './fragment';
+import { bookLocale, fragment } from './fragment';
 import { pageNav } from './load';
 import type { PageProps } from './paths';
 
 export const docHtml: APIRoute = ({ props }) => {
   const { tree, chapter, section } = props as PageProps;
-  return new Response(fragment(tree.dto, chapter?.dto ?? null, section, pageNav(tree, section)), { headers: { 'content-type': 'text/html; charset=utf-8' } });
+  return new Response(fragment(tree.dto, chapter?.dto ?? null, section, pageNav(tree, section), bookLocale(tree.dto)), { headers: { 'content-type': 'text/html; charset=utf-8' } });
 };
 
 /* A figure script registers under its section's bare number; the build qualifies the key with the book, so two books' scripts never overwrite each other. */

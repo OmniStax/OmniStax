@@ -8,6 +8,7 @@
      so renaming here renames there, as a note's name does — one step of the
      shell's timeline for both. */
   import DrawingTab from './DrawingTab.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { renameDrawing } from '../../lib/drawer/edits';
   import { entryId } from '../../lib/explorer/model';
@@ -43,15 +44,15 @@
 <div class="drawing-pane">
   <header class="head">
     {#if renaming}
-      <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label="Drawing name" />
+      <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label={i18n.t('drawer.pane.name')} />
     {:else}
-      <button type="button" class="name" title="Rename" onclick={startRename}>{drawing?.name ?? row?.name ?? 'Drawing'}</button>
+      <button type="button" class="name" title={i18n.t('drawer.pane.rename')} onclick={startRename}>{drawing?.name ?? row?.name ?? i18n.t('drawer.pane.drawing')}</button>
     {/if}
   </header>
   {#if drawing}
     <div class="body"><DrawingTab {drawing} {onchange} {groupKey} /></div>
   {:else}
-    <div class="waiting">Opening the drawing…</div>
+    <div class="waiting">{i18n.t('drawer.pane.opening')}</div>
   {/if}
 </div>
 

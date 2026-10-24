@@ -1,7 +1,10 @@
 <script lang="ts" module>
+  import type { TFn } from '../../lib/i18n/index';
   /* A public list is fetched once a page, however often the settings open. */
   const fetchedPublic = new Set<string>();
-  export const AI_WORDS = 'AI assistant chat provider Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Local AI Ollama LM Studio endpoint base URL key model API inline HTML widget backup';
+  /* The words the settings filter finds this block by: the product names as
+     they are, and the rest in the reader's language. */
+  export const aiWords = (t: TFn): string => `${t('settings.ai.keywords')} Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Ollama LM Studio API HTML`;
 </script>
 
 <script lang="ts">
@@ -16,6 +19,8 @@
   import { MODEL_CAP, cardModels, isShown, visibleModels } from '../../lib/chat/settings';
   import { CLOUD_IDS, DEFAULT_BASE, KEY_URL, PROVIDER_LABEL, PUBLIC_LIST, failureOf, localPick, trimBase, type CloudId } from '../../lib/chat/providers/index';
   import { providerOf } from '../../lib/chat/providers/all';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  const t = i18n.t;
 
   let busy = $state.raw<Readonly<Record<string, boolean>>>({});
   let trouble = $state.raw<Readonly<Record<string, string>>>({});
@@ -59,6 +64,8 @@
     void listLocal(id);
   };
 
+  /* The Local AI help, cut where its code samples stand: {api}, {origins}, {localhost}. */
+  const localHelp = $derived(t('settings.ai.localHelp').split(/\{(?:api|origins|localhost)\}/));
   const onEnter = (f: (v: string) => void) => (e: KeyboardEvent): void => {
     if (e.key !== 'Enter') return;
     const input = e.currentTarget as HTMLInputElement;
@@ -66,11 +73,11 @@
   };
 </script>
 
-<p class="hint">Use your own API keys. Requests go straight from this browser to the provider. OmniStax never sees your keys, and backups leave them out. Tick the models to offer in chat.</p>
+<p class="hint">{t('settings.ai.intro')}</p>
 
   <label class="row switch">
-    <span class="name">Inline HTML rendering</span>
-    <span class="hint">Answers can include a small interactive page, run in a sandbox.</span>
+    <span class="name">{t('settings.ai.inlineHtml')}</span>
+    <span class="hint">{t('settings.ai.inlineHtml.hint')}</span>
     <input type="checkbox" checked={ai.inlineHtml} onchange={(e) => ai.setInlineHtml(e.currentTarget.checked)}>
   </label>
 
@@ -83,12 +90,12 @@
     <div class="card" data-ai-card={id}>
       <div class="head">
         <span class="name">{PROVIDER_LABEL[id]}</span>
-        <a href={KEY_URL[id]} target="_blank" rel="noopener noreferrer">Get a key</a>
+        <a href={KEY_URL[id]} target="_blank" rel="noopener noreferrer">{t('settings.ai.getKey')}</a>
       </div>
-      <input type="password" autocomplete="off" aria-label="{PROVIDER_LABEL[id]} key" placeholder="Paste your key"
+      <input type="password" autocomplete="off" aria-label={t('settings.ai.key', { provider: PROVIDER_LABEL[id] })} placeholder={t('settings.ai.pasteKey')}
         value={ai.value.keys[id]} onchange={(e) => setKey(id, e.currentTarget.value.trim())}>
       {#if models.length > MODEL_CAP}
-        <input type="search" class="filter" aria-label="Filter {PROVIDER_LABEL[id]} models" placeholder="Filter models"
+        <input type="search" class="filter" aria-label={t('settings.ai.filterProvider', { provider: PROVIDER_LABEL[id] })} placeholder={t('settings.ai.filter')}
           value={filters[id] ?? ''} oninput={(e) => (filters = { ...filters, [id]: e.currentTarget.value })}>
       {/if}
       <ul class="models">
@@ -97,45 +104,45 @@
         {/each}
         {#if capped.rows.length < capped.found}
           <li>
-            {#if all}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded].filter((x) => x !== id)))}>Show fewer</button>
-            {:else}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded, id]))}>Show all {shown.found}</button>{/if}
+            {#if all}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded].filter((x) => x !== id)))}>{t('settings.ai.showFewer')}</button>
+            {:else}<button type="button" class="all" onclick={() => (expanded = new Set([...expanded, id]))}>{t('settings.ai.showAll', { n: shown.found })}</button>{/if}
           </li>
         {/if}
       </ul>
       <div class="tail">
-        <input type="text" aria-label="Add a {PROVIDER_LABEL[id]} model" placeholder="Add a model" onkeydown={onEnter((v) => ai.addModel(id, v))}>
+        <input type="text" aria-label={t('settings.ai.addProviderModel', { provider: PROVIDER_LABEL[id] })} placeholder={t('settings.ai.addModel')} onkeydown={onEnter((v) => ai.addModel(id, v))}>
         {#if ai.value.keys[id] || PUBLIC_LIST.has(id)}
-          <button type="button" class="btn-sm" disabled={busy[id]} onclick={() => void listCloud(id)}>{busy[id] ? 'Loading…' : 'Refresh list'}</button>
+          <button type="button" class="btn-sm" disabled={busy[id]} onclick={() => void listCloud(id)}>{busy[id] ? t('settings.ai.loading') : t('settings.ai.refresh')}</button>
         {/if}
       </div>
-      {#if trouble[id]}<p class="bad" role="alert">Couldn’t list models: {trouble[id]}.</p>{/if}
+      {#if trouble[id]}<p class="bad" role="alert">{t('settings.ai.listFailed', { why: trouble[id] })}</p>{/if}
     </div>
   {/each}
 
   <div class="card" data-ai-card="local">
-    <div class="head"><span class="name">Local AI</span></div>
-    <p class="hint">Any server that answers <code>POST /v1/chat/completions</code> with streamed events and allows browser requests: Ollama with <code>OLLAMA_ORIGINS</code>, LM Studio with CORS on, llama.cpp or vLLM with their CORS flags. Chrome and Firefox reach <code>http://localhost</code> from this site; Safari does not.</p>
+    <div class="head"><span class="name">{t('settings.ai.local')}</span></div>
+    <p class="hint">{localHelp[0]}<code>POST /v1/chat/completions</code>{localHelp[1]}<code>OLLAMA_ORIGINS</code>{localHelp[2]}<code>http://localhost</code>{localHelp[3]}</p>
     {#each ai.value.endpoints as e (e.id)}
       <div class="endpoint">
         <div class="tail">
-          <input type="text" aria-label="Endpoint name" value={e.name} onchange={(v) => ai.editEndpoint(e.id, { name: v.currentTarget.value.trim() || 'Local' })}>
-          <input type="url" aria-label="Endpoint URL" value={e.baseUrl} onchange={(v) => ai.editEndpoint(e.id, { baseUrl: v.currentTarget.value.trim() })}>
-          <button type="button" class="btn-sm" disabled={busy[e.id]} onclick={() => void listLocal(e.id)}>{busy[e.id] ? 'Loading…' : 'Fetch models'}</button>
-          <button type="button" class="btn-sm" onclick={() => ai.removeEndpoint(e.id)}>Remove</button>
+          <input type="text" aria-label={t('settings.ai.endpointName')} value={e.name} onchange={(v) => ai.editEndpoint(e.id, { name: v.currentTarget.value.trim() || t('settings.ai.localName') })}>
+          <input type="url" aria-label={t('settings.ai.endpointUrl')} value={e.baseUrl} onchange={(v) => ai.editEndpoint(e.id, { baseUrl: v.currentTarget.value.trim() })}>
+          <button type="button" class="btn-sm" disabled={busy[e.id]} onclick={() => void listLocal(e.id)}>{busy[e.id] ? t('settings.ai.loading') : t('settings.ai.fetch')}</button>
+          <button type="button" class="btn-sm" onclick={() => ai.removeEndpoint(e.id)}>{t('settings.ai.remove')}</button>
         </div>
         <ul class="models">
           {#each e.models as m (m)}
             <li><label><input type="checkbox" checked={isShown(ai.value, { provider: 'local', model: localPick(e.id, m) })} onchange={() => ai.toggle({ provider: 'local', model: localPick(e.id, m) })}> {m}</label></li>
           {/each}
         </ul>
-        <input type="text" aria-label="Add a model to {e.name}" placeholder="Add a model" onkeydown={onEnter((v) => addLocalModel(e.id, v))}>
-        {#if trouble[e.id]}<p class="bad" role="alert">Couldn’t list models: {trouble[e.id]}.</p>{/if}
+        <input type="text" aria-label={t('settings.ai.addModelTo', { name: e.name })} placeholder={t('settings.ai.addModel')} onkeydown={onEnter((v) => addLocalModel(e.id, v))}>
+        {#if trouble[e.id]}<p class="bad" role="alert">{t('settings.ai.listFailed', { why: trouble[e.id] })}</p>{/if}
       </div>
     {/each}
     <div class="tail">
-      <input type="text" aria-label="New endpoint name" placeholder="Name" bind:value={newName}>
-      <input type="url" aria-label="New endpoint URL" placeholder="http://localhost:11434" bind:value={newUrl}>
-      <button type="button" class="btn-sm" disabled={!newUrl.trim()} onclick={addEndpoint}>Add endpoint</button>
+      <input type="text" aria-label={t('settings.ai.newEndpointName')} placeholder={t('settings.ai.name')} bind:value={newName}>
+      <input type="url" aria-label={t('settings.ai.newEndpointUrl')} placeholder="http://localhost:11434" bind:value={newUrl}>
+      <button type="button" class="btn-sm" disabled={!newUrl.trim()} onclick={addEndpoint}>{t('settings.ai.addEndpoint')}</button>
     </div>
   </div>
 

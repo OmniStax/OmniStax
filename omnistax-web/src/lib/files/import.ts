@@ -21,6 +21,7 @@ import { baseName, dirOf, foldersOf, importLabel, isHidden, refusedLine, takeOf,
 import { files } from './store.svelte';
 import { indexPdf } from './text';
 import { askToPersist } from '../storage/health';
+import { t } from '../i18n';
 
 /* What the reader is told while it runs and when it is done: the line the drag
    toast shows. The caller lends it, so nothing here knows about the toast. */
@@ -57,7 +58,7 @@ const readFile = async (file: File, type: 'pdf' | 'image', parent: EntryId | nul
   void askToPersist();
   const now = Date.now();
   const pages = type === 'pdf'
-    ? await indexPdf(id, bytes, file.size >= CHATTY_BYTES ? (done, total) => say(`Reading ${file.name} — page ${done} of ${total}`) : undefined)
+    ? await indexPdf(id, bytes, file.size >= CHATTY_BYTES ? (done, total) => say(t('files.import.readingPage', { name: file.name, page: done, pages: total })) : undefined)
     : 0;
   return {
     id, name: explorer.uniqueName(parent, baseName(file.name)), type,
@@ -70,9 +71,9 @@ const readFile = async (file: File, type: 'pdf' | 'image', parent: EntryId | nul
 export const importSummary = (r: Imported): string => {
   const parts: string[] = [];
   const n = r.files.length + r.notes.length;
-  if (n) parts.push(`${n} ${n === 1 ? 'file' : 'files'} imported`);
-  if (r.refused.length) parts.push(`not taken: ${refusedLine(r.refused)}`);
-  return parts.join(' · ') || 'Nothing to import';
+  if (n) parts.push(t('files.import.imported', { n }));
+  if (r.refused.length) parts.push(t('files.import.notTaken', { names: refusedLine(r.refused) }));
+  return parts.join(' · ') || t('files.import.nothing');
 };
 
 /* Files into one folder. Without a batch of its own it is a whole import, one
@@ -86,7 +87,7 @@ export const importFiles = async (list: FileList | readonly File[], parent: Entr
   let done = 0;
   for (const file of all) {
     done += 1;
-    say(all.length > 1 ? `Importing ${file.name} (${done} of ${all.length})` : `Importing ${file.name}`);
+    say(all.length > 1 ? t('files.import.importingOf', { name: file.name, done, all: all.length }) : t('files.import.importing', { name: file.name }));
     const take = takeOf(file.name, file.type);
     if (take.kind === 'refused') { refused.push(file.name); continue; }
     try {

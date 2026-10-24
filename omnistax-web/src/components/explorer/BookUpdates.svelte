@@ -9,6 +9,7 @@
   import { openItem, openingOf } from '../../lib/sections/nav.svelte';
   import { bookId, docItem, itemKey, sectionId, sectionRef } from '../../lib/types/ids';
   import LineDiff from '../ui/LineDiff.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { book, label, onclose }: { book: string; label: (section: string) => string; onclose: () => void } = $props();
   let dialog = $state<HTMLDialogElement | null>(null);
@@ -39,19 +40,19 @@
         <li>
           {#if added || u.before}
             <details ontoggle={(e) => expand(u, id, added, e.currentTarget.open)}>
-              <summary><span class="name">{label(id)}</span><button type="button" class="link" onclick={(e) => { e.preventDefault(); open(id, e); }}>Open</button></summary>
+              <summary><span class="name">{label(id)}</span><button type="button" class="link" onclick={(e) => { e.preventDefault(); open(id, e); }}>{i18n.t('offline.updates.open')}</button></summary>
               {#if diffs[id]}
                 {#await diffs[id]}
-                  <p class="quiet">Reading…</p>
+                  <p class="quiet">{i18n.t('offline.updates.reading')}</p>
                 {:then d}
-                  {#if d.hunks.length}<LineDiff hunks={d.hunks} tail={d.tail} />{:else}<p class="quiet">The text reads the same.</p>{/if}
+                  {#if d.hunks.length}<LineDiff hunks={d.hunks} tail={d.tail} />{:else}<p class="quiet">{i18n.t('offline.updates.same')}</p>{/if}
                 {:catch e}
-                  <p class="quiet bad">{e instanceof Error ? e.message : 'The text could not be read.'}</p>
+                  <p class="quiet bad">{e instanceof Error ? e.message : i18n.t('offline.updates.textFailed')}</p>
                 {/await}
               {/if}
             </details>
           {:else}
-            <div class="row"><span class="name">{label(id)}</span><button type="button" class="link" onclick={(e) => open(id, e)}>Open</button></div>
+            <div class="row"><span class="name">{label(id)}</span><button type="button" class="link" onclick={(e) => open(id, e)}>{i18n.t('offline.updates.open')}</button></div>
           {/if}
         </li>
       {/each}
@@ -61,24 +62,24 @@
 
 <dialog class="changes" bind:this={dialog} {onclose} aria-labelledby="book-updates-title">
   <header>
-    <h3 id="book-updates-title">What changed</h3>
-    <button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button>
+    <h3 id="book-updates-title">{i18n.t('offline.updates.title')}</h3>
+    <button type="button" class="x" aria-label={i18n.t('explorer.close')} onclick={() => dialog?.close()}>×</button>
   </header>
   {#await update}
-    <p class="quiet">Reading the release…</p>
+    <p class="quiet">{i18n.t('offline.updates.readingRelease')}</p>
   {:then u}
-    <p class="quiet">{u.to.book.title} · released {new Date(u.to.publishedAt).toLocaleDateString()}</p>
-    {#if !u.before}<p class="quiet">The earlier text is no longer available.</p>{/if}
-    {#if !u.sections.added.length && !u.sections.changed.length && !u.sections.removed.length}<p class="quiet">No section changed.</p>{/if}
-    {@render sections(u, 'Added', u.sections.added, true)}
-    {@render sections(u, 'Changed', u.sections.changed, false)}
+    <p class="quiet">{i18n.t('offline.updates.released', { book: u.to.book.title, when: new Date(u.to.publishedAt).toLocaleDateString(i18n.locale) })}</p>
+    {#if !u.before}<p class="quiet">{i18n.t('offline.updates.noEarlier')}</p>{/if}
+    {#if !u.sections.added.length && !u.sections.changed.length && !u.sections.removed.length}<p class="quiet">{i18n.t('offline.updates.noChange')}</p>{/if}
+    {@render sections(u, i18n.t('offline.updates.added'), u.sections.added, true)}
+    {@render sections(u, i18n.t('offline.updates.changed'), u.sections.changed, false)}
     {#if u.sections.removed.length}
-      <h4>Removed</h4>
+      <h4>{i18n.t('offline.updates.removed')}</h4>
       <ul>{#each u.sections.removed as id (id)}<li><div class="row"><span class="name">{id}</span></div></li>{/each}</ul>
     {/if}
-    {#if fileNames(u)}<p class="quiet files">Data files changed: {fileNames(u)}</p>{/if}
+    {#if fileNames(u)}<p class="quiet files">{i18n.t('offline.updates.files', { files: fileNames(u) })}</p>{/if}
   {:catch e}
-    <p class="quiet bad">{e instanceof Error ? e.message : 'The changes could not be read.'}</p>
+    <p class="quiet bad">{e instanceof Error ? e.message : i18n.t('offline.updates.failed')}</p>
   {/await}
 </dialog>
 

@@ -16,6 +16,7 @@ import { bookId, secKey, sectionRef } from '../types/ids';
 import { exerciseName } from './labels';
 import { links } from './links.svelte';
 import type { ExerciseRef } from './model';
+import { t } from '../i18n/index';
 
 export type Outcome = boolean | null;
 
@@ -25,10 +26,8 @@ export type Outcome = boolean | null;
    to write. */
 export const firstLine = (outcome: Outcome, answer = '', aiGraded = false): string => {
   if (aiGraded) return '';
-  const ask = outcome === true ? 'I got this right. What else should I check my understanding against?'
-    : outcome === false ? 'I got this wrong, where does my reasoning go off. I was thinking that [replace with your reasoning]'
-      : 'Walk me through this one.';
-  return answer.trim() ? `${ask}\n\nMy answer: ${answer.trim()}` : ask;
+  const ask = outcome === true ? t('practice.discuss.right') : outcome === false ? t('practice.discuss.wrong') : t('practice.discuss.walk');
+  return answer.trim() ? t('practice.discuss.withAnswer', { ask, answer: answer.trim() }) : ask;
 };
 
 const exerciseChip = (ref: ExerciseRef, ex: ExerciseDTO): Chip =>

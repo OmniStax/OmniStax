@@ -67,3 +67,9 @@ export const releaseForBook = (
   installed: Readonly<Record<string, string | undefined>>,
   available: Readonly<Record<string, string | undefined>>,
 ): string | undefined => clientPins[bookId] ?? installed[bookId] ?? available[bookId];
+
+/* Whether a family of editions updates itself: the setting is one for the
+   family (the finder shows one box for a book and its translations), kept per
+   book id, on unless some edition of the family was turned off. Reading it
+   over the family is what keeps a translation downloaded later in step. */
+export const sharedAutoUpdate = (auto: Readonly<Record<string, boolean>>, ids: readonly string[]): boolean => ids.every((id) => auto[id] !== false);

@@ -4,6 +4,7 @@
 
 ```
 omnistax-content/<Book Title>/   one folder per book, named by the title in its book.json
+omnistax-content/<Book Title>/translations/<tag>/   a translation of that book into the language <tag>, a book of its own (item 30)
   book.json                      the book: identity, licence, types, symbols, concepts
   RULES.md                       the book's own rules (item 18)
   LOG.md                         the running log of passes over this book
@@ -231,3 +232,7 @@ A derivation is a chain of equations the book works from stated facts to a resul
 4. **Reasons are written only where they earn their place.** A move beyond grade-school algebra (an identity, a limit law, a log rule, operator algebra) and a non-obvious reason a fact applies get a sentence in the book's voice; add, subtract, cancel, swap sides and substitute a fact get none. The derivation says which facts and results a move uses; the sentence says why, not what.
 5. **Label.** The eyebrow reads **Derivation · what is derived**, in one phrase; a derivation carries no number of its own. Where the graph ends in more than one result (the three integrated rate laws, the properties of a theorem) it reads **Derivations ·**, and where the record replaces a worked example's solution it reads the book's own **Example N.M ·**; the app reads both off the record, from its end results and its `source`. Where it replaces something the book numbers and refers to (a figure that was only a derivation laid out, a numbered box), the phrase is that reference instead, *Derivation · Figure 3.4*, and every citation of the number links to it; this is rare. The result keeps the book's equation number where it has one. A fact that is itself the result of an earlier derivation in the book links to that derivation, in this section or another, and the link opens it as any link to an item of a page does (item 23: a tab, never a split).
 6. **Every derivation is a function of its transport's time** (manim-style item 6): play, scrub and the step dots all reach exact states in either direction. It carries the standard transport and its own three controls (direction, reveal, show all work) and no other option.
+
+## 30. Translating a book
+
+A translation is a book of its own, in `omnistax-content/<Source folder>/translations/<tag>/`, where `<tag>` is the BCP 47 tag of its language, with its own id `<source id>-<tag lowercased>` and its title in that language. Its `book.json` declares `language`, `translation_of` (the source's id) and `translation` (who translated it, at what effort, on what date, after which authority, with which glossary). Every id is the source's, so the same place opens in either edition, and the content check compares them. The folder is made by `omnistax-content/tools/scaffold_translation.py`. The rules of the translation are `docs/prompts/translate.md`: the field's standard terms, looked up and never coined, fixed in the book's glossary; the source's tone, sentences and content kept, with nothing added or removed except a forced scenario, which is written down where the owner will see it. The humanizer review is the owner's, after the translation is built.

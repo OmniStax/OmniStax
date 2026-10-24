@@ -20,6 +20,7 @@ import { MAX_ROUNDS, TOOL_SPECS, runTool } from './tools';
 import { liveLibrary } from './library';
 import * as M from './model';
 import type { Chat, MessageId, ToolStep } from './model';
+import { t } from '../i18n';
 
 export const INDEX_KEY = 'omnistax-chats-v1';
 const SAVE_DELAY = 250;
@@ -61,7 +62,7 @@ class Chats {
 
   get(id: ChatId): Chat | null { return this.open[id] ?? null; }
   entry(id: ChatId): ChatEntry | null { return this.index.find((e) => e.id === id) ?? null; }
-  nameOf(id: ChatId): string { return this.get(id)?.name || this.entry(id)?.name || 'Chat'; }
+  nameOf(id: ChatId): string { return this.get(id)?.name || this.entry(id)?.name || t('chat.untitled'); }
   streaming(id: ChatId): boolean { return this.flights.has(id); }
 
   /* A chat the rail has just opened: it is in the index at once, so that a
@@ -164,7 +165,7 @@ class Chats {
     const start = this.get(id); if (!start) return;
     const pick = this.pickOf(id);
     const access = pick ? ai.access(pick) : null;
-    if (!pick || !access) { this.put(M.fail(start, answer, 'Choose a model and add its key under Settings → AI first.')); return; }
+    if (!pick || !access) { this.put(M.fail(start, answer, t('chat.error.noModel'))); return; }
     if (!start.pick) this.put(M.setPick(start, pick));
     this.abort(id);
     const flight = new AbortController();

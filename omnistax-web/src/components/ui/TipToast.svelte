@@ -3,7 +3,8 @@
      foot of the window. It stays until it is closed. */
   import { onMount, tick } from 'svelte';
   import { tips } from '../../lib/tips/store.svelte';
-  import { TIPS, type TipAction } from '../../lib/tips/model';
+  import { TIP_COUNT, type TipAction } from '../../lib/tips/model';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { settings } from '../../lib/settings/store.svelte';
   import { commands } from '../../lib/commands/registry.svelte';
   import { BUILTIN, showViewId } from '../../lib/commands/builtin';
@@ -23,19 +24,19 @@
 
 {#if tips.current}
   {@const tip = tips.current}
-  <aside class="tip-toast" aria-label="Tip">
+  <aside class="tip-toast" aria-label={i18n.t('tips.toast.label')}>
     <div class="head">
-      <span class="eyebrow">Tip</span>
+      <span class="eyebrow">{i18n.t('tips.toast.label')}</span>
       <span class="walk">
-        <button type="button" class="btn ghost icon sm" title="Previous tip" aria-label="Previous tip" onclick={() => tips.step(-1)}>‹</button>
-        <span class="at">{(tips.at ?? 0) + 1} / {TIPS.length}</span>
-        <button type="button" class="btn ghost icon sm" title="Next tip" aria-label="Next tip" onclick={() => tips.step(1)}>›</button>
-        <button type="button" class="btn ghost icon sm" title="Close" aria-label="Close tip" onclick={() => tips.close()}>×</button>
+        <button type="button" class="btn ghost icon sm" title={i18n.t('tips.toast.previous')} aria-label={i18n.t('tips.toast.previous')} onclick={() => tips.step(-1)}>‹</button>
+        <span class="at">{(tips.at ?? 0) + 1} / {TIP_COUNT}</span>
+        <button type="button" class="btn ghost icon sm" title={i18n.t('tips.toast.next')} aria-label={i18n.t('tips.toast.next')} onclick={() => tips.step(1)}>›</button>
+        <button type="button" class="btn ghost icon sm" title={i18n.t('shell.close')} aria-label={i18n.t('tips.toast.close')} onclick={() => tips.close()}>×</button>
       </span>
     </div>
     <p>{tip.text}</p>
     <div class="foot">
-      <button type="button" class="btn ghost sm stop" onclick={stop}>Stop showing tips</button>
+      <button type="button" class="btn ghost sm stop" onclick={stop}>{i18n.t('tips.toast.stop')}</button>
       {#if tip.action}{@const a = tip.action}<button type="button" class="btn sm" onclick={() => void act(a.kind)}>{a.label}</button>{/if}
     </div>
   </aside>

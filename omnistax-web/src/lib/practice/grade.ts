@@ -6,6 +6,7 @@ import type { Access, ImagePart, ModelPick, Provider } from '../chat/providers/i
 import { fencedJson } from './generated';
 import { GRADE, gradeAsk } from './prompt';
 import { requestFor } from './generate';
+import { t } from '../i18n/index';
 
 export type GradeVerdict = 'right' | 'partial' | 'wrong';
 export type Graded = { readonly verdict: GradeVerdict; readonly feedback: string };
@@ -15,15 +16,15 @@ const VERDICTS: readonly GradeVerdict[] = ['right', 'partial', 'wrong'];
 /* The verdict a reply carries, or why it carries none. A bare object without a fence is read too. */
 export const parseGrade = (text: string): Graded | { readonly error: string } => {
   const body = fencedJson(text) ?? (/^\s*\{[\s\S]*\}\s*$/.test(text) ? text.trim() : null);
-  if (body === null) return { error: 'The grader wrote no json block.' };
+  if (body === null) return { error: t('practice.grade.noJson') };
   try {
     const o: unknown = JSON.parse(body);
     const r = (typeof o === 'object' && o !== null ? o : {}) as Record<string, unknown>;
     const said = typeof r.verdict === 'string' ? r.verdict.trim().toLowerCase() : '';
     const verdict = VERDICTS.find((v) => v === said);
-    if (!verdict) return { error: 'The grader gave no verdict of right, partial or wrong.' };
+    if (!verdict) return { error: t('practice.grade.noVerdict') };
     return { verdict, feedback: typeof r.feedback === 'string' ? r.feedback.trim() : '' };
-  } catch { return { error: 'The grader’s json does not parse.' }; }
+  } catch { return { error: t('practice.grade.badJson') }; }
 };
 
 export type GradeAsk = { readonly prompt: string; readonly answer: AnswerDTO; readonly text: string; readonly image: ImagePart | null };

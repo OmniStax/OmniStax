@@ -2,6 +2,7 @@
    with the reader's own token: the branch head, its tree, a blob each way,
    and one commit built from blobs, a tree and a ref, so a push is one commit. */
 import { base64OfBytes, type RepoPath } from './layout';
+import { t } from '../i18n';
 
 export type GitSha = string & { readonly __brand: 'GitSha' };
 export const gitSha = (s: string): GitSha => s as GitSha;
@@ -30,14 +31,14 @@ export class GitHubError extends Error {
 const API = 'https://api.github.com';
 
 const why = (status: number, body: string): string => {
-  if (status === 401) return 'GitHub refused the token.';
-  if (status === 403) return /rate limit/i.test(body) ? 'GitHub’s rate limit was reached. Try again later.' : 'The token can’t write to this repo. It needs Contents read and write.';
-  if (status === 404) return 'Repo not found, or the token can’t see it.';
-  if (status === 409) return 'The repo is empty.';
-  if (status === 413) return 'Too large for GitHub.';
-  if (status === 422) return 'The branch moved on while pushing. Try again.';
+  if (status === 401) return t('files.sync.github.token');
+  if (status === 403) return /rate limit/i.test(body) ? t('files.sync.github.rateLimit') : t('files.sync.github.cantWrite');
+  if (status === 404) return t('files.sync.github.notFound');
+  if (status === 409) return t('files.sync.github.empty');
+  if (status === 413) return t('files.sync.github.tooLarge');
+  if (status === 422) return t('files.sync.github.moved');
   const message = (() => { try { return String((JSON.parse(body) as { message?: unknown }).message ?? ''); } catch { return ''; } })();
-  return message ? `GitHub said: ${message}` : `GitHub answered ${status}.`;
+  return message ? t('files.sync.github.said', { message }) : t('files.sync.github.answered', { status });
 };
 
 const call = async (remote: Remote, f: Fetch, method: string, path: string, body?: unknown, accept = 'application/vnd.github+json'): Promise<Response> => {
@@ -71,7 +72,7 @@ export const readHead = async (remote: Remote, f: Fetch): Promise<Head> => {
 
 export const readTree = async (remote: Remote, f: Fetch, tree: GitSha): Promise<readonly RemoteEntry[]> => {
   const out = await json<{ tree: { path: string; type: string; sha: string; size?: number }[]; truncated: boolean }>(remote, f, 'GET', `/git/trees/${tree}?recursive=1`);
-  if (out.truncated) throw new Error('The repo has too many files for GitHub to list at once.');
+  if (out.truncated) throw new Error(t('files.sync.github.truncated'));
   return out.tree.filter((e) => e.type === 'blob').map((e) => ({ path: e.path, sha: gitSha(e.sha), size: e.size ?? 0 }));
 };
 
@@ -79,7 +80,7 @@ export const readBlob = async (remote: Remote, f: Fetch, sha: GitSha): Promise<U
   new Uint8Array(await (await call(remote, f, 'GET', `/git/blobs/${sha}`, undefined, 'application/vnd.github.raw+json')).arrayBuffer());
 
 export const writeBlob = async (remote: Remote, f: Fetch, bytes: Uint8Array): Promise<GitSha> => {
-  if (bytes.length > GITHUB_MAX_BYTES) throw new GitHubError(413, 'Over GitHub’s 100 MB limit.');
+  if (bytes.length > GITHUB_MAX_BYTES) throw new GitHubError(413, t('files.sync.github.overLimit'));
   return gitSha((await json<{ sha: string }>(remote, f, 'POST', '/git/blobs', { content: base64OfBytes(bytes), encoding: 'base64' })).sha);
 };
 

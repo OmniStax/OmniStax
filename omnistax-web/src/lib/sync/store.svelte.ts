@@ -11,7 +11,8 @@ const TOKEN_KEY = 'omnistax-github-token';
 
 /* How often this device pushes on its own, in minutes; 0 is never. */
 export const PUSH_EVERY = [0, 5, 60, 1440] as const;
-export const PUSH_EVERY_LABEL: Readonly<Record<number, string>> = { 0: 'never', 5: '5 minutes', 60: '1 hour', 1440: '1 day' };
+/* The catalog key of each interval's name (views.sync.every.*). */
+export const PUSH_EVERY_KEY = { 0: 'views.sync.every.never', 5: 'views.sync.every.minutes', 60: 'views.sync.every.hour', 1440: 'views.sync.every.day' } as const satisfies Readonly<Record<typeof PUSH_EVERY[number], string>>;
 const SavedSchema = z.object({
   repo: z.string(), branch: z.string(), every: z.number().default(0),
   last: z.object({ repo: z.string(), branch: z.string(), at: z.number().nullable(), base: z.record(z.string()).default({}) }).nullable(),

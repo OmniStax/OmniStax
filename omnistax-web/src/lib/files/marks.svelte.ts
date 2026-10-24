@@ -3,6 +3,7 @@
    take back is a step of the shell's timeline, as a book highlight is, so
    Ctrl+Z walks back through marks on a PDF and marks on the book alike. */
 import { history, fileScope, type Scope } from '../history/store.svelte';
+import { t } from '../i18n';
 import { readerWritesAllowed } from '../backup/guard';
 import type { Anchor } from '../notes/anchor';
 import type { HlColor } from '../notes/store.svelte';
@@ -30,28 +31,28 @@ class FileMarks {
 
   addHighlight(file: FileId, page: PageNumber, anchor: Anchor, color: HlColor): FileMark {
     const mark = newHighlight(file, page, anchor, color, Date.now());
-    this.record(`highlight in ${color}`, () => { this.list = addMark(this.list, mark); this.save(); this.paintVersion++; }, undefined, fileScope(file));
+    this.record(t('notes.undo.highlight', { color }), () => { this.list = addMark(this.list, mark); this.save(); this.paintVersion++; }, undefined, fileScope(file));
     return mark;
   }
   addBox(file: FileId, page: PageNumber, x: number, y: number): FileMark {
     const mark = newBox(file, page, x, y, Date.now());
-    this.record('text box', () => { this.list = addMark(this.list, mark); this.save(); this.paintVersion++; }, undefined, fileScope(file));
+    this.record(t('files.undo.textBox'), () => { this.list = addMark(this.list, mark); this.save(); this.paintVersion++; }, undefined, fileScope(file));
     return mark;
   }
   /* The stack an edit of a mark goes on is its file's. */
   private scopeOf(id: string): Scope { const m = this.get(id); return m ? fileScope(m.file) : 'files'; }
-  setColor(id: string, color: HlColor): void { this.record('recolour highlight', () => { this.patch(id, { color }); this.paintVersion++; }, undefined, this.scopeOf(id)); }
+  setColor(id: string, color: HlColor): void { this.record(t('notes.undo.recolour'), () => { this.patch(id, { color }); this.paintVersion++; }, undefined, this.scopeOf(id)); }
   /* Typing is one step however many keystrokes it took, so long as they follow
      one another and stay with the same mark. */
-  setText(id: string, text: string): void { this.record('annotation', () => this.patch(id, { text }), `filemark:${id}`, this.scopeOf(id)); }
-  setBody(id: string, body: string): void { this.record('text box', () => this.patch(id, { body }), `filemark:${id}`, this.scopeOf(id)); }
+  setText(id: string, text: string): void { this.record(t('notes.undo.annotation'), () => this.patch(id, { text }), `filemark:${id}`, this.scopeOf(id)); }
+  setBody(id: string, body: string): void { this.record(t('files.undo.textBox'), () => this.patch(id, { body }), `filemark:${id}`, this.scopeOf(id)); }
   /* A box moved or resized: one gesture, one step. */
   place(id: string, box: { readonly x: number; readonly y: number; readonly w: number; readonly h: number }): void {
-    this.record('move text box', () => this.patch(id, box), `filebox:${id}`, this.scopeOf(id));
+    this.record(t('files.undo.moveTextBox'), () => this.patch(id, box), `filebox:${id}`, this.scopeOf(id));
   }
   remove(id: string): void {
     if (!this.get(id)) return;
-    this.record('remove mark', () => { this.list = removeMarks(this.list, [id]); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; }, undefined, this.scopeOf(id));
+    this.record(t('files.undo.removeMark'), () => { this.list = removeMarks(this.list, [id]); this.save(); this.paintVersion++; if (this.editing === id) this.editing = null; }, undefined, this.scopeOf(id));
   }
   /* Everything written on files that have gone, taken away with them. Not a
      step of its own: the deletion of the file records it as one compound edit. */

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { chats, type ChatEntry } from '../../lib/chat/store.svelte';
   import { newChatTab, showChat, chatTabKey } from '../../lib/chat/open.svelte';
   import { ageOf } from '../../lib/chat/tree';
@@ -21,7 +22,7 @@
   const remove = (e: ChatEntry): void => {
     settle();
     layoutStore.apply((l) => closeItem(l, chatTabKey(e.id)));
-    gone = { id: e.id, name: e.name || 'New chat' };
+    gone = { id: e.id, name: e.name || i18n.t('chat.newChat') };
     timer = setTimeout(settle, UNDO_FOR);
   };
   const undo = (): void => { clearTimeout(timer); gone = null; };
@@ -30,7 +31,7 @@
   const rows = $derived.by(() => {
     const q = filter.trim().toLowerCase();
     return [...chats.index]
-      .filter((e) => e.id !== gone?.id && (q === '' || (e.name || 'New chat').toLowerCase().includes(q)))
+      .filter((e) => e.id !== gone?.id && (q === '' || (e.name || i18n.t('chat.newChat')).toLowerCase().includes(q)))
       .sort((a, b) => b.updated - a.updated);
   });
 
@@ -51,33 +52,33 @@
   const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
 </script>
 
-<section class="conversations" aria-label="Conversations">
+<section class="conversations" aria-label={i18n.t('chat.conversations.label')}>
   <div class="bar">
-    <input class="filter" type="search" placeholder="Filter" bind:value={filter} aria-label="Filter conversations" />
-    <button type="button" class="btn sm" onclick={() => newChatTab()}>New chat</button>
+    <input class="filter" type="search" placeholder={i18n.t('chat.conversations.filter')} bind:value={filter} aria-label={i18n.t('chat.conversations.filterLabel')} />
+    <button type="button" class="btn sm" onclick={() => newChatTab()}>{i18n.t('chat.newChat')}</button>
   </div>
 
   {#if gone}
-    <div class="undo" role="status">Deleted “{gone.name}” <button type="button" class="btn ghost sm" onclick={undo}>Undo</button></div>
+    <div class="undo" role="status">{i18n.t('chat.conversations.deleted', { name: gone.name })} <button type="button" class="btn ghost sm" onclick={undo}>{i18n.t('chat.conversations.undo')}</button></div>
   {/if}
 
   {#if rows.length === 0}
-    <p class="empty">{filter.trim() ? 'No chat matches.' : 'No chats yet.'}</p>
+    <p class="empty">{filter.trim() ? i18n.t('chat.conversations.noMatch') : i18n.t('chat.conversations.none')}</p>
   {:else}
     <ul>
       {#each rows as e (e.id)}
         <li class="row" data-chat={e.id}>
           {#if renaming === e.id}
-            <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={() => void commit()} use:takeFocus aria-label="Chat name" />
+            <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={() => void commit()} use:takeFocus aria-label={i18n.t('chat.tab.name')} />
           {:else}
             <button type="button" class="open" onclick={() => showChat(e.id)} ondblclick={() => startRename(e)}>
-              <span class="name">{e.name || 'New chat'}</span>
-              <span class="age">{ageOf(e.updated, now)}</span>
+              <span class="name">{e.name || i18n.t('chat.newChat')}</span>
+              <span class="age">{void i18n.locale, ageOf(e.updated, now)}</span>
             </button>
           {/if}
           <span class="acts">
-            <button type="button" class="btn ghost sm" onclick={() => startRename(e)}>Rename</button>
-            <button type="button" class="btn ghost sm" onclick={() => remove(e)}>Delete</button>
+            <button type="button" class="btn ghost sm" onclick={() => startRename(e)}>{i18n.t('chat.tab.rename')}</button>
+            <button type="button" class="btn ghost sm" onclick={() => remove(e)}>{i18n.t('chat.conversations.delete')}</button>
           </span>
         </li>
       {/each}

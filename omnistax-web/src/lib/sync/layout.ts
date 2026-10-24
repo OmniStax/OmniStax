@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
 import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, isScalarKey, parseBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
+import { type Locale, type MessageKey, currentLocale, t, tIn } from '../i18n';
 
 export type RepoPath = string;
 export type SyncGroup = 'records' | 'chats' | 'drawings' | 'scratch' | 'generated' | 'files' | 'images';
@@ -12,9 +13,12 @@ export type RepoFile = { readonly path: RepoPath; readonly group: SyncGroup; rea
 
 export const MANIFEST: RepoPath = 'omnistax.json';
 export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'scratch', 'generated', 'files', 'images'];
-export const GROUP_LABEL: Readonly<Record<SyncGroup, string>> = {
-  records: 'Settings and records', chats: 'Chats', drawings: 'Drawings', scratch: 'Scratch pages', generated: 'Generated exercises', files: 'Imported files', images: 'Note images',
+const GROUP_KEY: Readonly<Record<SyncGroup, MessageKey>> = {
+  records: 'files.sync.group.records', chats: 'files.sync.group.chats', drawings: 'files.sync.group.drawings', scratch: 'files.sync.group.scratch', generated: 'files.sync.group.generated', files: 'files.sync.group.files', images: 'files.sync.group.images',
 };
+/* A group's name in the given language, the current one by default; a
+   component passes i18n.locale so that the name follows a change of it. */
+export const groupLabel = (g: SyncGroup, locale: Locale = currentLocale()): string => tIn(locale, GROUP_KEY[g]);
 
 export const groupOf = (path: RepoPath): SyncGroup | null =>
   path === MANIFEST ? 'records' : GROUPS.find((g) => path.startsWith(`${g}/`)) ?? null;
@@ -92,7 +96,7 @@ export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
 
 export const parseManifest = (bytes: Uint8Array): Manifest => {
   const parsed = ManifestSchema.safeParse((() => { try { return jsonOf(bytes); } catch { return null; } })());
-  if (!parsed.success) throw new Error('The repo’s omnistax.json isn’t one this version can read.');
+  if (!parsed.success) throw new Error(t('files.sync.error.manifest'));
   return parsed.data;
 };
 
@@ -103,7 +107,7 @@ export const labelOf = (path: RepoPath, manifest: Manifest | null): string =>
    lists but the files leave out is left out too. */
 export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ReaderBackup => {
   const head = files.get(MANIFEST);
-  if (!head) throw new Error('The repo holds no OmniStax data.');
+  if (!head) throw new Error(t('files.sync.error.noData'));
   const manifest = parseManifest(head);
   const under = (dir: string): unknown[] => [...files.entries()].filter(([p]) => p.startsWith(`${dir}/`)).sort(([a], [b]) => a.localeCompare(b)).map(([, b]) => jsonOf(b));
   return parseBackup({

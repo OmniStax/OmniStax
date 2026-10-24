@@ -7,6 +7,7 @@
   import { dropzone } from '../lib/layout/drag.svelte';
   import TabStrip from './TabStrip.svelte';
   import Pane from './Pane.svelte';
+  import { i18n } from '../lib/i18n/store.svelte';
   let { index, group, onPick }: { index: number; group: Group; onPick: (index: number, anchor: HTMLElement) => void } = $props();
   const l = $derived(layoutStore.layout);
   const focused = $derived(l.focus === index && l.groups.length > 1);
@@ -38,7 +39,7 @@
     {#each group.tabs as tab (group.key + '|' + tab)}
       <Pane groupKey={group.key} groupIndex={index} itemKey={tab} active={tab === group.active} />
     {/each}
-    {#if !group.tabs.length}<div class="empty">Nothing open. Press + to open a section.</div>{/if}
+    {#if !group.tabs.length}<div class="empty">{i18n.t('shell.docGroup.empty')}</div>{/if}
   </div>
 </div>
 

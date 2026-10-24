@@ -48,12 +48,90 @@ book it finds, alphabetically by id. `OMNISTAX_BOOK` is the one-book form of
 the same setting. The books share one `/media/` address space, merged in the
 order they are built.
 
+A book may be a translation of another: its `book.json` declares `language`
+(a BCP 47 tag; absent, `en`, and `npm run check:content` warns),
+`translation_of` (the source's id) and `translation` (how it was made). A
+translation lives in a folder of its own under its source's `translations/`,
+named by the tag (`College Physics 2e/translations/zh-CN`), keeps every id
+of its source, and keeps **no `media/` folder**: its text names the source's
+`/media/…` paths as they are. So a translation's images are sized from its own
+`media/` and then its source's, and a build serves and copies the source's
+`media/` with it even when the source is not among `OMNISTAX_BOOKS`
+(`mediaDirsOf` in `load.ts`, passed by `astro.config.mjs` to `content.mjs`). A
+`translation_of` that names no book under the content root stops the build.
+`npm run check:content` compares a translation with its source, id for id, and
+reads the source even where `--books` does not name it.
+
 Production publication must set `OMNISTAX_RELEASE_ARCHIVE_DIR` to the previous
 deployed static output (or an equivalent retained artifact directory). The
 offline build copies its immutable release tree before adding current releases;
 retain at least each catalogued current release and the previous installed
 release. Deploy the generated `_headers` file with `dist/` so release artifacts
 are immutable while the catalog, entry HTML, and service worker revalidate.
+
+## Languages
+
+The app's own words (labels, menus, messages, and what the build writes
+around a book's text) are a catalog in `src/lib/i18n/`, never written into a
+component. `en/` is the source of truth, one file per area of the app
+(`en/settings.ts`, `en/content.ts`, …) merged into one flat table of dotted
+keys; `zh-CN/` holds the same files with the same keys, and `npm run check`
+fails on a key missing from either. A message is a template: `{name}` takes a
+parameter and `{count, plural, one {# chapter} other {# chapters}}` picks the
+form the language's plural rules ask for. A component writes
+`i18n.t('settings.title')` (`store.svelte.ts`: the reader's choice, else the
+browser's languages); a plain module calls `t(…)` or `tIn(locale, …)` from
+`index.ts`. A new text is a key in its area's `en/` file and its twin in
+`zh-CN/`.
+
+```
+npm run lint:i18n                         # UI text written outside the catalog, file:line: text; exit 1 when any is left
+npm run lint:i18n -- src/components/views # only what it names
+npm run lint:i18n -- --summary            # how many per directory
+npm run lint:i18n -- --unused             # catalog keys nothing under src/ names
+```
+
+What the linter must never report (a product name, a unit, the content
+check's messages to a book's author) is a line of `scripts/i18n-allow.txt`,
+with the reason above it.
+
+The reader's language is chosen once, as the shell boots
+(`i18n.boot()` in `store.svelte.ts`, called from `Shell.svelte` before the
+commands are registered), in this order: `?lang=zh-CN` in the address (an
+exact catalog tag, any case; it becomes the reader's choice and is taken off
+the address, so a link can open the app in a language once), else the choice
+remembered in this browser under `omnistax-lang`, else the first of the
+browser's languages the app has a catalog for (`zh`, `zh-Hans`, `zh-TW` all
+pick `zh-CN` while it is the only Chinese one), else English. The reader
+changes it in Settings → Appearance → Language (System, English, 中文（简体）;
+the ↺ goes back to System, which follows the browser and changes with it) or
+with the palette's "Change language". Each language is named in itself
+(`LOCALE_NAMES`), never translated. The shell root carries the reader's
+language as its `lang`; on a page of no book (the front page, 404) so does
+`<html>`, while a page of a book keeps the book's. `omnistax-lang` travels in
+a backup with the appearance settings.
+
+A book's editions (a source and its translations, `translation_of` in
+`book.json`) are listed together in Find a textbook, each translation under
+its source. The reader switches the book they are reading to another edition
+from the book row's menu in the Explorer ("Open in Chinese (China)", the language named in the
+reader's language) or with the palette's "Book: switch language"; the same
+page opens in the other edition, or its first built page where that edition
+has not built it yet (`src/lib/explorer/editions.ts` and
+`editions.svelte.ts`). Mastery, highlights and notes stay with each book.
+
+A book's pages are in the book's language, not the reader's. `book.json`
+declares `language` (a BCP 47 tag, `en` where absent); `bookLocale` in
+`fragment.ts` turns it into a catalog, and everything the build writes into
+static HTML beside the book's text (the eyebrow, Notes and Corrections, the
+section summary's heading, the practice button, Previous and Next, the credit,
+the page title and its metadata) is rendered with `tIn` in that locale, from
+the `content` area. A page therefore reads the same with or without the shell
+and whatever language the reader has chosen; a language the app has no
+catalog for is written in English. The shell around the page speaks the
+reader's language. The front page and the 404 page are one English page for
+the whole site for now (the `about` area, rendered in `en`); a front page per
+language is a route that passes its locale to `aboutHtml`.
 
 ## Layout of the source
 
@@ -74,6 +152,7 @@ src/lib/exercises   check.ts: pure answer checking
 src/lib/sheets      elements.ts (where a cell stands, what fills it, what a filter lets through; pure), formula.ts (the chemical formulas of the prose, found and read; pure), mark.ts (the one pass over a document), store.svelte.ts (the sheets fetched, and the element the page stands on)
 src/lib/fig         figlib.ts: math, palette, animation loop with per-figure transport and time scrubber, drawing primitives (window.FIG for section scripts); three.ts: whether a section's script draws in three dimensions and the one on-demand fetch of the vendor three.js
 src/lib/math        prerender.ts: KaTeX at build time
+src/lib/i18n        index.ts (the catalogs, templates and tIn/t; pure), store.svelte.ts (the reader's language, live), en/ and zh-CN/ (one file of keys per area)
 src/components      Shell, Rail (left), Sidebar (left), ViewBox, DocGroup, TabStrip, Pane, Palette (commands), Browser (the book as a tree), Settings, HighlightBar, Tooltip (one for the whole shell)
 src/components/views      View dispatcher (with the scope header, which the explorer does without), Explorer, ConceptMap, Formulas, Definitions, Annotations, Search (every book of the library: its text, concepts, definitions and formulas, under a filter; a hit opens the page and lands on the thing, or links out to another book)
 src/components/notes      NoteTab (one note in a tab of its own)

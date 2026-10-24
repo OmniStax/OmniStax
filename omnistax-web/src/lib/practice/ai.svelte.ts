@@ -18,6 +18,7 @@ import { generate, MAX_PER_REQUEST } from './generate';
 import { grade, type Graded } from './grade';
 import { keyOf, type ScratchAt } from './scratch.svelte';
 import { isPending, type SessionId } from './model';
+import { t } from '../i18n/index';
 
 export const PARALLEL = 3;
 export const GRADE_WIDTH = 1000;
@@ -48,7 +49,7 @@ const mark = (id: SessionId, part: keyof Job, concept: string, value: string | n
 };
 const controllers = new Map<string, AbortController>();
 const jobKey = (id: SessionId, concept: string): string => `${id}/${concept}`;
-const NO_MODEL = 'Configure a model under Settings → AI.';
+const noModel = (): string => t('practice.ai.noModel');
 
 /* A live session's open slots filled, or only those of the concepts named:
    stored items first, least used, unless the reader asked for fresh ones; the
@@ -65,9 +66,9 @@ export const fillLive = async (sessionId: SessionId, only?: readonly string[]): 
   });
   if (!toWrite.length) return;
   const model = ready();
-  if (!model) { toWrite.forEach((id) => mark(sessionId, 'failed', id, NO_MODEL)); return; }
+  if (!model) { toWrite.forEach((id) => mark(sessionId, 'failed', id, noModel())); return; }
   const nameOf = (id: string): string => { const c = practice.conceptOf(id); return c ? plain(c.name) : id; };
-  toWrite.forEach((id) => mark(sessionId, 'writing', id, `Waiting to write for ${nameOf(id)}…`));
+  toWrite.forEach((id) => mark(sessionId, 'writing', id, t('practice.ai.waiting', { concept: nameOf(id) })));
   const cat = practice.catalog();
   await pool(toWrite, PARALLEL, async (id) => {
     const c = practice.conceptOf(id), book = books.bookOf(id), control = new AbortController();

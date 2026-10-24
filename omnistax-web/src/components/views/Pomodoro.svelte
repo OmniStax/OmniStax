@@ -8,6 +8,7 @@
   import CategoryPicker from '../pomodoro/CategoryPicker.svelte';
   import SessionEditor from '../pomodoro/SessionEditor.svelte';
   import SessionRow from '../pomodoro/SessionRow.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   const s = $derived(pomodoro.session);
   const stopwatch = $derived(s.mode === 'stopwatch');
   let summary = $state('');
@@ -37,7 +38,7 @@
   const focusSelect = (el: HTMLInputElement): void => { el.focus(); el.select(); };
 
   const endsAt = $derived(!stopwatch && s.phase === 'running'
-    ? new Date(Date.now() + pomodoro.left).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    ? new Date(Date.now() + pomodoro.left).toLocaleTimeString(i18n.locale, { hour: 'numeric', minute: '2-digit' })
     : '');
 
   const midnight = (): number => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -47,13 +48,13 @@
 
 <div class="pom" bind:this={root} data-phase={s.phase}>
   <div class="head">
-    <div class="seg modes" role="group" aria-label="Timing mode">
-      <button type="button" class:on={!stopwatch} disabled={s.phase !== 'idle'} onclick={() => pomodoro.setMode('pomodoro')}>Pomodoro</button>
-      <button type="button" class:on={stopwatch} disabled={s.phase !== 'idle'} onclick={() => pomodoro.setMode('stopwatch')}>Stopwatch</button>
+    <div class="seg modes" role="group" aria-label={i18n.t('views.pomodoro.mode')}>
+      <button type="button" class:on={!stopwatch} disabled={s.phase !== 'idle'} onclick={() => pomodoro.setMode('pomodoro')}>{i18n.t('views.pomodoro.pomodoro')}</button>
+      <button type="button" class:on={stopwatch} disabled={s.phase !== 'idle'} onclick={() => pomodoro.setMode('stopwatch')}>{i18n.t('views.pomodoro.stopwatch')}</button>
     </div>
     {#if pomodoro.lockable}
-      <button type="button" class="lock" class:on={pomodoro.screenLock} aria-pressed={pomodoro.screenLock} aria-label="Screen lock"
-        title="Session fails if the cursor leaves the window for {settings.lockGrace}s"
+      <button type="button" class="lock" class:on={pomodoro.screenLock} aria-pressed={pomodoro.screenLock} aria-label={i18n.t('views.pomodoro.screenLock')}
+        title={i18n.t('views.pomodoro.screenLockTitle', { s: settings.lockGrace })}
         onclick={() => pomodoro.setScreenLock(!pomodoro.screenLock)}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="shackle" d="M8 11V7.5a4 4 0 0 1 8 0V11" />
@@ -67,52 +68,52 @@
     <Vectors running={s.phase === 'running'} />
     <div class="dial">
       {#if draft !== null}
-        <input class="digits edit" type="text" inputmode="numeric" aria-label={stopwatch ? 'Start from' : 'Length'} bind:value={draft} use:focusSelect
+        <input class="digits edit" type="text" inputmode="numeric" aria-label={stopwatch ? i18n.t('views.pomodoro.startFrom') : i18n.t('views.pomodoro.length')} bind:value={draft} use:focusSelect
           onkeydown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') draft = null; }} onblur={commit} />
       {:else if s.phase === 'idle'}
-        <button type="button" class="digits" aria-label={stopwatch ? 'Start from' : 'Length'} onclick={edit}>{pomodoro.clock}</button>
+        <button type="button" class="digits" aria-label={stopwatch ? i18n.t('views.pomodoro.startFrom') : i18n.t('views.pomodoro.length')} onclick={edit}>{pomodoro.clock}</button>
       {:else}
         <span class="digits" aria-live="off">{pomodoro.clock}</span>
       {/if}
-      {#if endsAt}<span class="sub">ends {endsAt}</span>{/if}
+      {#if endsAt}<span class="sub">{i18n.t('views.pomodoro.ends', { time: endsAt })}</span>{/if}
     </div>
   </div>
 
   <div class="controls">
     {#if s.phase === 'idle' || s.phase === 'done'}
-      <button type="button" class="btn primary lg" onclick={() => pomodoro.start()}>Start</button>
+      <button type="button" class="btn primary lg" onclick={() => pomodoro.start()}>{i18n.t('views.pomodoro.start')}</button>
     {:else}
       {#if s.phase === 'running'}
-        <button type="button" class="btn primary lg" onclick={() => pomodoro.pause()}>Pause</button>
+        <button type="button" class="btn primary lg" onclick={() => pomodoro.pause()}>{i18n.t('views.pomodoro.pause')}</button>
       {:else}
-        <button type="button" class="btn primary lg" onclick={() => pomodoro.resume()}>Resume</button>
+        <button type="button" class="btn primary lg" onclick={() => pomodoro.resume()}>{i18n.t('views.pomodoro.resume')}</button>
       {/if}
       {#if stopwatch}
-        <button type="button" class="btn lg" onclick={() => pomodoro.finish()}>Finish</button>
+        <button type="button" class="btn lg" onclick={() => pomodoro.finish()}>{i18n.t('views.pomodoro.finish')}</button>
       {:else}
-        <button type="button" class="btn ghost lg" onclick={() => pomodoro.stop()}>Stop</button>
+        <button type="button" class="btn ghost lg" onclick={() => pomodoro.stop()}>{i18n.t('views.pomodoro.stop')}</button>
       {/if}
     {/if}
   </div>
 
-  {#if pomodoro.lost}<p class="lost">You left the window too long.</p>{/if}
+  {#if pomodoro.lost}<p class="lost">{i18n.t('views.pomodoro.lost')}</p>{/if}
 
   {#if s.phase === 'done'}
     <form class="summary" onsubmit={(e) => { e.preventDefault(); keep(); }}>
-      <label class="eyebrow" for="pomodoro-summary">What did you work on?</label>
+      <label class="eyebrow" for="pomodoro-summary">{i18n.t('views.pomodoro.workedOn')}</label>
       <input id="pomodoro-summary" class="input" bind:this={box} bind:value={summary} type="text" autocomplete="off" />
       <CategoryPicker picked={picked} onpick={(ids) => (picked = ids)} />
       <div class="acts">
-        <button type="submit" class="btn primary">Record</button>
-        <button type="button" class="btn ghost" onclick={() => pomodoro.discard()}>Discard</button>
+        <button type="submit" class="btn primary">{i18n.t('views.pomodoro.record')}</button>
+        <button type="button" class="btn ghost" onclick={() => pomodoro.discard()}>{i18n.t('views.pomodoro.discard')}</button>
       </div>
     </form>
   {/if}
 
   <div class="today">
-    <div><span class="eyebrow">Today</span><strong>{todayMs ? spanText(todayMs) : '0m'}</strong></div>
-    <div><span class="eyebrow">Sessions</span><strong>{today.length}</strong></div>
-    <button type="button" class="btn ghost sm" onclick={openStats} onauxclick={onMiddle(openStats)}>More Stats →</button>
+    <div><span class="eyebrow">{i18n.t('views.pomodoro.today')}</span><strong>{todayMs ? spanText(todayMs) : '0m'}</strong></div>
+    <div><span class="eyebrow">{i18n.t('views.pomodoro.sessions')}</span><strong>{today.length}</strong></div>
+    <button type="button" class="btn ghost sm" onclick={openStats} onauxclick={onMiddle(openStats)}>{i18n.t('views.pomodoro.moreStats')}</button>
   </div>
   <ul class="sessions">
     {#each today as p (p.id)}<SessionRow {p} compact />{/each}
@@ -120,7 +121,7 @@
   {#if adding}
     <SessionEditor ondone={() => (adding = false)} />
   {:else}
-    <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>+ Add session</button>
+    <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>{i18n.t('views.pomodoro.addSession')}</button>
   {/if}
 </div>
 

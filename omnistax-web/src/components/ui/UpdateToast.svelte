@@ -3,13 +3,14 @@
      window, the same manners as the drag and import toasts, but it waits to be
      answered. */
   import { offlineBooks } from '../../lib/offline/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 </script>
 
 {#if offlineBooks.appUpdated}
   <div class="update-toast" role="status">
-    <span>OmniStax was updated.</span>
-    <button type="button" class="btn sm" onclick={() => location.reload()}>Reload</button>
-    <button type="button" class="btn ghost icon sm" title="Close" aria-label="Close" onclick={() => offlineBooks.dismissUpdate()}>×</button>
+    <span>{i18n.t('shell.update.done')}</span>
+    <button type="button" class="btn sm" onclick={() => location.reload()}>{i18n.t('shell.update.reload')}</button>
+    <button type="button" class="btn ghost icon sm" title={i18n.t('shell.close')} aria-label={i18n.t('shell.close')} onclick={() => offlineBooks.dismissUpdate()}>×</button>
   </div>
 {/if}
 

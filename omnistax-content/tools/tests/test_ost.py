@@ -71,6 +71,18 @@ class TestReading(Fixture):
         self.assertEqual(code, 0)
         self.assertIn("chemistry-2e · Chemistry 2e", text)
 
+    def test_books_finds_a_translation_under_its_source(self):
+        nested = os.path.join(self.book, "translations", "zh-CN")
+        os.makedirs(nested)
+        with open(os.path.join(self.book, "book.json"), encoding="utf-8") as f:
+            book = json.load(f)
+        with open(os.path.join(nested, "book.json"), "w", encoding="utf-8") as f:
+            json.dump({**book, "id": "chemistry-2e-zh-cn", "title": "化学", "language": "zh-CN", "translation_of": "chemistry-2e"}, f)
+        found = {b.id: b.dir for b in ost.books()}
+        self.assertEqual(found["chemistry-2e-zh-cn"], nested)
+        self.assertEqual(found["chemistry-2e"], self.book)
+        self.assertEqual(ost.chapter_dirs(ost.book_of("chemistry-2e")), ["ch01"], "the translations folder is no chapter")
+
     def test_rows_filters_a_book_table_by_section(self):
         text, code = run("rows", "chemistry-2e", "concepts", "--where", "section=1.4")
         self.assertEqual(code, 0)

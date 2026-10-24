@@ -5,6 +5,7 @@
   import { hasScratch, openScratch, type ScratchAt } from '../../lib/practice/scratch.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { openingOf } from '../../lib/sections/nav.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { ICON } from '../../lib/icons';
 
   let { ex, at, ongraded, onfail }: { ex: ExerciseDTO; at: ScratchAt; ongraded: (g: Graded, answer: string) => void; onfail: (why: string) => void } = $props();
@@ -25,14 +26,14 @@
 </script>
 
 <div class="ai-grade">
-  <textarea class="input" rows="3" placeholder="Your answer or working" aria-label="Your answer or working" bind:value={text} disabled={waiting}></textarea>
+  <textarea class="input" rows="3" placeholder={i18n.t('practice.grade.placeholder')} aria-label={i18n.t('practice.grade.placeholder')} bind:value={text} disabled={waiting}></textarea>
   <div class="row">
     {#if attached}
-      <span class="attached">Scratchpad attached <button type="button" class="x" aria-label="Detach scratchpad" onclick={() => (attached = false)}>×</button></span>
+      <span class="attached">{i18n.t('practice.grade.attached')} <button type="button" class="x" aria-label={i18n.t('practice.grade.detach')} onclick={() => (attached = false)}>×</button></span>
     {:else}
-      <button type="button" class="btn ghost sm" onclick={attach}>{@html ICON.drawing}Attach scratchpad</button>
+      <button type="button" class="btn ghost sm" onclick={attach}>{@html ICON.drawing}{i18n.t('practice.grade.attach')}</button>
     {/if}
-    <button type="button" class="btn primary" disabled={!canSend} aria-busy={waiting} onclick={submit}>{#if waiting}<span class="spin" aria-hidden="true"></span>Grading…{:else}Submit{/if}</button>
+    <button type="button" class="btn primary" disabled={!canSend} aria-busy={waiting} onclick={submit}>{#if waiting}<span class="spin" aria-hidden="true"></span>{i18n.t('practice.grade.grading')}{:else}{i18n.t('practice.grade.submit')}{/if}</button>
   </div>
 </div>
 

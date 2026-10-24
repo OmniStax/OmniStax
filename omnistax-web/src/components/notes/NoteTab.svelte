@@ -10,6 +10,7 @@
      other notes, the sections the book has built, and every highlight they have
      annotated — so that a link is chosen from a list rather than remembered. */
   import { tick } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import type MarkdownEditorType from './MarkdownEditor.svelte';
   import NoteView from './NoteView.svelte';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -110,10 +111,10 @@
     const concepts = registry.concepts(book);
     return [
       ...concepts.flatMap((c) => c.forms.slice(0, 1)).map((e) =>
-        candidate({ kind: 'equation', book, section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), inBook(book, ['equation', e.section, e.condition].filter((s): s is string => !!s).join(' · ')), true)),
-      ...concepts.flatMap((c) => c.terms.map((term) => candidate({ kind: 'term', book, section: c.section, term }, term, inBook(book, `term · ${c.section}`), true))),
-      ...registry.variables(book).map((v) => candidate({ kind: 'symbol', book, section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), inBook(book, `symbol · ${v.section}`), true)),
-      ...concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', book, section: c.section, id: c.id }, plain(c.name), inBook(book, `concept · ${c.section}`), true)),
+        candidate({ kind: 'equation', book, section: e.section, id: e.id }, cut(plainTex(e.tex, byMacro), QUOTE), inBook(book, [i18n.t('notes.picker.equation'), e.section, e.condition].filter((s): s is string => !!s).join(' · ')), true)),
+      ...concepts.flatMap((c) => c.terms.map((term) => candidate({ kind: 'term', book, section: c.section, term }, term, inBook(book, `${i18n.t('notes.picker.term')} · ${c.section}`), true))),
+      ...registry.variables(book).map((v) => candidate({ kind: 'symbol', book, section: v.section, sym: v.sym }, cut(`${v.sym} · ${v.meaning}`, 56), inBook(book, `${i18n.t('notes.picker.symbol')} · ${v.section}`), true)),
+      ...concepts.filter((c) => c.status === 'built').map((c) => candidate({ kind: 'concept', book, section: c.section, id: c.id }, plain(c.name), inBook(book, `${i18n.t('notes.picker.concept')} · ${c.section}`), true)),
     ];
   };
   const sectionRows = (book: BookId): readonly Candidate[] =>
@@ -122,10 +123,10 @@
   const candidates = (): readonly Candidate[] => [
     ...noteDocs.list.filter((d) => d.id !== noteId).map((d) => candidate({ kind: 'note', name: d.name }, d.name, folderOf(d.id))),
     ...loadedBooks().flatMap(sectionRows),
-    ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `highlight · ${n.section}`)),
+    ...notes.list.filter((n) => n.text.trim()).map((n) => candidate({ kind: 'highlight', id: n.id }, n.anchor.quote.slice(0, QUOTE), `${i18n.t('notes.picker.highlight')} · ${n.section}`)),
     /* The files the reader imported, listed under their names beside the
        notes: a link to one opens its tab. */
-    ...files.list.map((f) => candidate({ kind: 'file', file: f.id }, f.name, f.type === 'pdf' ? `file · PDF${f.pages ? ` · ${f.pages} pages` : ''}` : 'file · image')),
+    ...files.list.map((f) => candidate({ kind: 'file', file: f.id }, f.name, f.type === 'pdf' ? `${i18n.t('notes.picker.file')} · PDF${f.pages ? ` · ${i18n.t('notes.card.pages', { n: f.pages })}` : ''}` : `${i18n.t('notes.picker.file')} · ${i18n.t('notes.card.image')}`)),
     ...loadedBooks().flatMap(bookRows),
   ];
 
@@ -137,11 +138,11 @@
   {#if doc}
     <header class="note-head">
       {#if renaming}
-        <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label="Note name" />
+        <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commit} use:takeFocus aria-label={i18n.t('notes.tab.name')} />
       {:else}
-        <button type="button" class="name" title="Rename" onclick={startRename}>{doc.name}</button>
+        <button type="button" class="name" title={i18n.t('notes.tab.rename')} onclick={startRename}>{doc.name}</button>
       {/if}
-      <button type="button" class="mode-toggle" title="Ctrl+E" onclick={toggle}>{mode === 'view' ? 'Edit' : 'View'}</button>
+      <button type="button" class="mode-toggle" title="Ctrl+E" onclick={toggle}>{mode === 'view' ? i18n.t('notes.tab.edit') : i18n.t('notes.tab.view')}</button>
     </header>
     <div class="note-body" class:writing={mode === 'edit'}>
       {#if mode === 'edit' && Editor}
@@ -152,7 +153,7 @@
       {/if}
     </div>
   {:else}
-    <div class="gone">This note was deleted.</div>
+    <div class="gone">{i18n.t('notes.tab.deleted')}</div>
   {/if}
 </article>
 

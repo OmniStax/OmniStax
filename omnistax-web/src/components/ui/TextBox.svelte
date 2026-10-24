@@ -16,12 +16,13 @@
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { openingAs, openingOf } from '../../lib/sections/nav.svelte';
   import type { Resolver } from '../../lib/notes/md/render';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import '../../lib/notes/md/cards.css';
 
   type Rect = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
 
   let {
-    x, y, w, h, body, resolver, selected = false, placeholder = 'Double-click to write…',
+    x, y, w, h, body, resolver, selected = false, placeholder,
     onchange, onmove, onresize, onselect, onremove, onlink, autowrite = false,
   }: {
     x: number; y: number; w: number; h: number; body: string;
@@ -117,20 +118,20 @@
   ondblclick={(e) => { e.stopPropagation(); startWriting(); }}
   onclick={(e) => { e.stopPropagation(); onselect?.(); follow(e); }} onauxclick={(e) => { if (e.button === 1) follow(e); }}>
   {#if writing}
-    <textarea class="text" value={body} spellcheck="false" aria-label="Text box"
+    <textarea class="text" value={body} spellcheck="false" aria-label={i18n.t('shell.textBox.label')}
       oninput={(e) => onchange((e.currentTarget as HTMLTextAreaElement).value)}
       onkeydown={onKey} onblur={stopWriting} use:takeFocus></textarea>
   {:else if html}
     <div class="text read">{@html html}</div>
   {:else}
-    <div class="text blank">{placeholder}</div>
+    <div class="text blank">{placeholder ?? i18n.t('shell.textBox.placeholder')}</div>
   {/if}
   {#if !writing}
     {#each ['top', 'right', 'bottom', 'left'] as side (side)}<span class="edge {side}" use:grip={'move'} aria-hidden="true"></span>{/each}
   {/if}
   <span class="grip" use:grip={'move'} aria-hidden="true">⠿</span>
   {#if selected && onremove && !writing}
-    <button type="button" class="remove" aria-label="Remove box"
+    <button type="button" class="remove" aria-label={i18n.t('shell.textBox.remove')}
       onpointerdown={(e) => e.stopPropagation()} onclick={(e) => { e.stopPropagation(); onremove(); }}>×</button>
   {/if}
   {#if selected}

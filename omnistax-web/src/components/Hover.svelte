@@ -18,6 +18,7 @@
   import { figFor } from '../lib/fig/figlib';
   import { elementColor } from '../lib/fig/elements';
   import { settings } from '../lib/settings/store.svelte';
+  import { i18n } from '../lib/i18n/store.svelte';
   import { sketch, pathOf, type Win } from '../lib/grapher/plot';
 
   const CLOSE_GRACE = 200;
@@ -169,7 +170,7 @@
     </svg>{/if}{/if}
     {#if card.body}<p class="body" use:math={card.body}>{card.body}</p>{/if}
     {#each card.notes ?? [] as n (n.label)}<p class="aside" use:math={n.text}><span class="lead">{n.label}</span> {n.text}</p>{/each}
-    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {c.count === 1 ? 'one atom' : `${c.count} atoms`}" onclick={(e) => run(c, e)} onauxclick={onMiddle((e) => run(c, e))}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
+    {#if card.chips?.length}<div class="chips">{#each card.chips as c (c.symbol)}<button type="button" class="chip" style:--el={settings.shown.facts ? elementColor(c.symbol, settings.dark) : 'var(--ink)'} title="{c.name} · {i18n.t('shell.hover.atoms', { n: c.count })}" onclick={(e) => run(c, e)} onauxclick={onMiddle((e) => run(c, e))}><span class="sym">{c.symbol}</span>{#if c.count > 1}<span class="n">{c.count}</span>{/if}</button>{/each}</div>{/if}
     {#if card.refs?.length}<dl class="refs">{#each card.refs as g (g.label)}<dt>{g.label}</dt><dd>{#each g.links as l, i}{#if i}<span class="sep">·</span>{/if}<button type="button" class="ref" onclick={(e) => run(l, e)} onauxclick={onMiddle((e) => run(l, e))} use:math={l.label}>{@html l.label}</button>{/each}{#if g.more}{@const m = g.more}<span class="sep">·</span><button type="button" class="ref more" onclick={(e) => run(m, e)} onauxclick={onMiddle((e) => run(m, e))}>{m.label}</button>{/if}</dd>{/each}</dl>{/if}
     {#if card.swatch}<div class="swatch"><span class="box" style:background="var(--c-{card.swatch.type})"></span>{card.swatch.label}</div>{/if}
     {#if card.actions.length}<div class="actions">{#each card.actions as a (a.label)}<button type="button" onclick={(e) => run(a, e)} onauxclick={onMiddle((e) => run(a, e))}>{a.label}</button>{/each}</div>{/if}

@@ -15,6 +15,7 @@ import katex from 'katex';
 import type { BookId } from '../../types/ids';
 import type { ConceptKind } from '../../content/schema';
 import { splitAlt } from './width';
+import { t as msg, type MessageKey } from '../../i18n';
 export { setImageWidth } from './width';
 import { isBook, linkInner, linkKey, parseLink, type BookTarget, type ChatRef, type MessageRef, type ConceptRef, type DrawingRef, type EquationRef, type ExerciseRef, type FigureRef, type FileRef, type HighlightRef, type Link, type NoteName, type SectionRef, type SymbolRef, type TermRef } from './links';
 
@@ -174,19 +175,19 @@ const cardHtml = (t: BookTarget, c: Card): string =>
 const bookCard = (t: BookTarget, r: Resolver): Card | null => {
   if (t.kind === 'equation') {
     const e = r.equation(t.section, t.id, t.book); if (!e) return null;
-    return { eyebrow: meta('Equation', e.section, e.condition), lines: [{ tex: e.tex }, { cls: 'embed-body', text: e.conceptName ?? '' }] };
+    return { eyebrow: meta(msg('notes.card.equation'), e.section, e.condition), lines: [{ tex: e.tex }, { cls: 'embed-body', text: e.conceptName ?? '' }] };
   }
   if (t.kind === 'term') {
     const g = r.term(t.section, t.term, t.book); if (!g) return null;
-    return { eyebrow: meta('Term', g.section), lines: [{ cls: 'embed-title', text: g.term }, { cls: 'embed-body', text: sentence(g.definition) }] };
+    return { eyebrow: meta(msg('notes.card.term'), g.section), lines: [{ cls: 'embed-title', text: g.term }, { cls: 'embed-body', text: sentence(g.definition) }] };
   }
   if (t.kind === 'symbol') {
     const v = r.symbol(t.section, t.sym, t.book); if (!v) return null;
-    return { eyebrow: meta('Symbol', v.typeLabel, v.unit), lines: [{ tex: v.tex }, { cls: 'embed-body', text: sentence(v.meaning) }] };
+    return { eyebrow: meta(msg('notes.card.symbol'), v.typeLabel, v.unit), lines: [{ tex: v.tex }, { cls: 'embed-body', text: sentence(v.meaning) }] };
   }
   const c = r.concept(t.section, t.id, t.book); if (!c) return null;
-  const body = c.placeholder ? `Section ${c.section} is not built yet.` : sentence(c.statement ?? '');
-  return { eyebrow: meta('Concept', c.kind, `section ${c.section}`), lines: [{ cls: 'embed-title', text: c.name }, { cls: 'embed-body', text: body }, { tex: c.eqTex ?? '' }] };
+  const body = c.placeholder ? msg('notes.card.notBuilt', { section: c.section }) : sentence(c.statement ?? '');
+  return { eyebrow: meta(msg('notes.card.concept'), c.kind, msg('notes.card.section', { section: c.section })), lines: [{ cls: 'embed-title', text: c.name }, { cls: 'embed-body', text: body }, { tex: c.eqTex ?? '' }] };
 };
 
 const bookEmbed = (t: BookTarget & { readonly alias?: string }, r: Resolver): string => {
@@ -232,8 +233,8 @@ const bookWord = (t: BookTarget & { readonly alias?: string }, r: Resolver): str
    rather than leaving a note half drawn. A link is the words and an anchor the
    shell can follow once it knows how; an embed is a card saying what kind of
    thing is meant, which the feature replaces with the thing itself. */
-const STUB_EYEBROW: Readonly<Record<'file' | 'drawing' | 'chat' | 'exercise', string>> =
-  { file: 'File', drawing: 'Drawing', chat: 'Chat', exercise: 'Exercise' };
+const STUB_EYEBROW: Readonly<Record<'file' | 'drawing' | 'chat' | 'exercise', MessageKey>> =
+  { file: 'notes.card.file', drawing: 'notes.card.drawing', chat: 'notes.card.chat', exercise: 'notes.card.exercise' };
 type StubLink = Extract<Link, { readonly kind: 'file' | 'drawing' | 'chat' | 'exercise' }>;
 const isStub = (t: Link): t is StubLink => t.kind in STUB_EYEBROW;
 
@@ -248,7 +249,7 @@ const stubLink = (t: StubLink, r: Resolver, embed: boolean): string => {
   const name = stubInfo(t, r)?.name;
   if (!embed) return anchor(inner, t.alias ?? name ?? inner);
   return `<div class="stub-embed kind-${t.kind}" data-embed="${esc(inner)}">` +
-    `<div class="embed-eyebrow">${esc(STUB_EYEBROW[t.kind])}</div>` +
+    `<div class="embed-eyebrow">${esc(msg(STUB_EYEBROW[t.kind]))}</div>` +
     `<div class="embed-body">${esc(t.alias ?? name ?? inner)}</div></div>`;
 };
 
@@ -260,7 +261,7 @@ const stubLink = (t: StubLink, r: Resolver, embed: boolean): string => {
    card is the link that opens the drawing. */
 const drawingEmbed = (inner: string, info: DrawingInfo, alias?: string): string =>
   `<div class="drawing-embed" data-embed="${esc(inner)}" data-drawing="${esc(inner.replace(/^drawing:/, ''))}">` +
-  `<div class="embed-eyebrow">${esc(meta('Drawing', alias ?? info.name))}</div>` +
+  `<div class="embed-eyebrow">${esc(meta(msg('notes.card.drawing'), alias ?? info.name))}</div>` +
   (info.thumb ? `<img class="drawing-thumb" src="${esc(info.thumb)}" alt="${esc(info.name)}">` : '<div class="drawing-waiting"></div>') +
   '</div>';
 
@@ -270,7 +271,7 @@ const drawingEmbed = (inner: string, info: DrawingInfo, alias?: string): string 
 const chatMessageEmbed = (t: Extract<Link, { readonly kind: 'chat' }>, info: ChatMessageInfo): string => {
   const inner = linkInner(t);
   return `<div class="chat-embed role-${esc(info.role)}" data-embed="${esc(inner)}">` +
-    `<div class="embed-eyebrow">${esc(meta('Chat', info.role === 'user' ? 'you' : 'the model', info.name))}</div>` +
+    `<div class="embed-eyebrow">${esc(meta(msg('notes.card.chat'), info.role === 'user' ? msg('notes.card.you') : msg('notes.card.theModel'), info.name))}</div>` +
     `<div class="embed-body">${esc(t.alias ?? info.line)}</div></div>`;
 };
 
@@ -281,8 +282,8 @@ const chatMessageEmbed = (t: Extract<Link, { readonly kind: 'chat' }>, info: Cha
    page it names where it names one. */
 const fileEmbed = (t: Extract<Link, { readonly kind: 'file' }>, info: FileInfo): string => {
   const inner = linkInner(t);
-  const eyebrow = meta('File', info.type === 'pdf' ? 'PDF' : info.type === 'image' ? 'image' : undefined,
-    t.page !== undefined ? `page ${t.page}` : info.pages ? `${info.pages} pages` : undefined);
+  const eyebrow = meta(msg('notes.card.file'), info.type === 'pdf' ? 'PDF' : info.type === 'image' ? msg('notes.card.image') : undefined,
+    t.page !== undefined ? msg('notes.card.page', { page: t.page }) : info.pages ? msg('notes.card.pages', { n: info.pages }) : undefined);
   const picture = info.src !== undefined && SAFE_SRC.test(info.src) ? `<img class="file-still" src="${esc(info.src)}" alt="${esc(info.name)}">` : '';
   return `<div class="file-embed kind-${esc(info.type ?? 'file')}" data-embed="${esc(inner)}">` +
     `<div class="embed-eyebrow">${esc(eyebrow)}</div>` +
@@ -294,12 +295,12 @@ const renderLink = (link: Link, r: Resolver, embed = false): string => {
   if (link.kind === 'file') {
     const f = r.file?.(link.file) ?? null;
     if (f && embed) return fileEmbed(link, f);
-    if (f) return anchor(linkInner(link), link.alias ?? (link.page === undefined ? f.name : `${f.name} · page ${link.page}`));
+    if (f) return anchor(linkInner(link), link.alias ?? (link.page === undefined ? f.name : msg('notes.card.fileAtPage', { name: f.name, page: link.page })));
   }
   /* A whole chat held in a note is its tree, which the view mounts live. */
   if (link.kind === 'chat' && link.message === undefined && embed) {
     const info = r.chat?.(link.chat) ?? null;
-    if (info) return `<div class="chat-tree-embed" data-embed="${esc(linkInner(link))}" data-chat-tree="${esc(link.chat)}"><div class="embed-eyebrow">${esc(meta('Chat', link.alias ?? info.name))}</div></div>`;
+    if (info) return `<div class="chat-tree-embed" data-embed="${esc(linkInner(link))}" data-chat-tree="${esc(link.chat)}"><div class="embed-eyebrow">${esc(meta(msg('notes.card.chat'), link.alias ?? info.name))}</div></div>`;
   }
   if (link.kind === 'chat' && link.message !== undefined) {
     const info = r.chatMessage?.(link.chat, link.message) ?? null;

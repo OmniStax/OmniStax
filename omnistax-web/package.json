@@ -11,7 +11,8 @@
     "check:content": "tsx scripts/check-content.ts",
     "docs:content": "tsx scripts/docs-content.ts",
     "colours:default": "tsx scripts/colours-default.ts",
-    "test": "node --test --import tsx tests/*.test.ts"
+    "test": "node --test --import tsx tests/*.test.ts",
+    "lint:i18n": "node scripts/i18n-lint.mjs"
   },
   "dependencies": {
     "@astrojs/svelte": "^7.0.0",

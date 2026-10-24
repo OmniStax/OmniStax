@@ -10,6 +10,7 @@ const entry = (m: BookManifest): LibraryBookDTO => ({
   chapters: m.chapters.length,
   sections: m.chapters.reduce((n, c) => n + c.sections.length, 0),
   url: `/${m.id}/`,
+  language: m.language, ...(m.translationOf ? { translationOf: m.translationOf } : {}),
 });
 
 export const GET: APIRoute = async () => json((await trees()).map((t) => entry(t.manifest)));

@@ -22,6 +22,7 @@ import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { chapterConceptsOf } from '../content/bookdata';
 import { parseBookConcepts } from '../practice/books';
 import { HIGHLIGHTS_ON } from '../settings/highlights';
+import { t } from '../i18n/index';
 
 /* When the book's own concepts.json is worth fetching over the chapters' own
    files: a chapter file is about a tenth of the book file, so it pays for
@@ -62,7 +63,7 @@ export type RegistryInit = {
 type FigureScript = (root: HTMLElement, F: Fig) => void;
 
 const EMPTY_STATE: Omit<SectionState, 'status'> = { meta: null, exercises: [], docs: {}, src: {} };
-const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, highlights: HIGHLIGHTS_ON, chapters: [], sheets: [], exercises: '', concepts: '' };
+const EMPTY_MANIFEST: BookManifest = { id: bookId(''), title: '', publisher: '', authors: [], license: '', language: 'en', types: {}, macros: {}, symbols: {}, exerciseKinds: {}, highlights: HIGHLIGHTS_ON, chapters: [], sheets: [], exercises: '', concepts: '' };
 const BOOK_ID = /^[a-z0-9-]+$/;
 
 const sectionDataOf = (s: HTMLScriptElement): { meta: SectionMetaDTO; exercises: ExerciseDTO[] } => JSON.parse(s.textContent ?? '{}');
@@ -121,7 +122,7 @@ class Registry {
   /* What a pane says for a section that is 'missing'. */
   missingLine(ref: SectionRef): string {
     const m = this.books[ref.book];
-    return m ? `${m.title} has no section ${ref.section}.` : `There is no book called ${ref.book}.`;
+    return m ? t('views.registry.noSection', { book: m.title, section: ref.section }) : t('views.registry.noBook', { book: ref.book });
   }
 
   /* Any page of a book by its id: a section, or an introduction or summary of a chapter or of the book itself. */
@@ -138,14 +139,14 @@ class Registry {
   }
   title(id: ItemId): string {
     if (id.kind === 'view') return id.view;
-    if (id.kind === 'page') return 'About OmniStax';
-    if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? 'Note';
+    if (id.kind === 'page') return t('views.registry.about');
+    if (id.kind === 'note') return noteDocs.get(id.note)?.name ?? t('views.registry.note');
     /* A file, a drawing and a chat are the reader's own, and the name they
        know one by is the one on its row of the explorer; a tab opened for
        something the tree has no row for falls back to its key. */
     if (id.kind === 'file') return entryName(id.file) ?? itemKey(id);
     if (id.kind === 'drawing') return entryName(id.drawing) ?? itemKey(id);
-    if (id.kind === 'chat') return entryName(id.chat) ?? 'New chat';
+    if (id.kind === 'chat') return entryName(id.chat) ?? t('views.registry.newChat');
     if (id.kind === 'ex') return `${id.section} ${id.ex}`;
     if (id.kind === 'sheet') return this.books[id.book]?.sheets.find((s) => s.id === id.sheet)?.title ?? id.sheet;
     if (id.kind === 'fig') return `${id.section} ${figName(id.fig)}`;
@@ -262,7 +263,7 @@ class Registry {
       if (head.querySelector('.fig-split')) return;
       const local = (head.closest('figure')!.id).replace(`${ref.section}-`, '');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'fig-split'; b.dataset.splitKey = itemKey(figItem(ref, local));
-      b.title = 'Open in a tab'; b.setAttribute('aria-label', `Open ${figName(local)} in a tab`); b.innerHTML = ICON.split;
+      b.title = t('views.registry.openInTab'); b.setAttribute('aria-label', t('views.registry.openFigureInTab', { figure: figName(local) })); b.innerHTML = ICON.split;
       head.appendChild(b);
     });
   }

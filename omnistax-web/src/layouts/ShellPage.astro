@@ -20,8 +20,9 @@ export type Props = {
   title: string;
   description: string;
   chapterDir?: string;
+  lang?: string;                /* the language of the page's content, a BCP 47 tag: the book's language on a page of a book */
 };
-const { tree, own, pool, title, description, chapterDir } = Astro.props as Props;
+const { tree, own, pool, title, description, chapterDir, lang = 'en' } = Astro.props as Props;
 /* Colour is a function of type. The book declares its quantities and the app
    dresses them from its scheme: the book's colours.css carries the scheme's
    tokens and which classes wear them, scoped to the book, one file for every
@@ -38,7 +39,7 @@ const boot: BootUrls = tree ? { manifest: `/${tree.manifest.id}/book.json`, ...(
 const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

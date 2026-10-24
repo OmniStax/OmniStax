@@ -59,6 +59,7 @@ export const parseManifest = (raw: unknown): BookManifest | null => {
   const fallback = bookFiles(bookBase(id));   /* a manifest written before the book carried its own file urls */
   return {
     id: bookId(id), title: str(o.title), publisher: '', authors: [], license: '',
+    language: str(o.language) || 'en', ...(str(o.translationOf) ? { translationOf: str(o.translationOf) } : {}),
     types: {}, macros: {}, symbols: {}, exerciseKinds: {}, sheets: [], highlights: { ...HIGHLIGHTS_ON, ...parseOverrides(o.highlights) },
     exercises: str(o.exercises) || fallback.exercises, concepts: str(o.concepts) || fallback.concepts,
     chapters: o.chapters.flatMap(parseChapter),

@@ -21,6 +21,7 @@ import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
 import { chatId, chatItem, fileId, fileItem, itemKey, noteId, noteItem, type ChatId, type FileId, type NoteId } from '../types/ids';
 import { chats } from '../chat/store.svelte';
+import { t } from '../i18n/index';
 
 /* Every store a row stands for, as they stand, and putting them back exactly
    so. A note is a row and a document; a file is a row, a record, the marks
@@ -85,7 +86,7 @@ export const notesUnder = (id: EntryId): NoteId[] => {
 export const createFolder = (parent: EntryId | null): EntryId => {
   const before = shot();
   const id = explorer.addFolder(parent);
-  madeRow(id, commit('new folder', before));
+  madeRow(id, commit(t('explorer.edit.newFolder'), before));
   return id;
 };
 
@@ -93,11 +94,11 @@ export const createFolder = (parent: EntryId | null): EntryId => {
    one thing. The caller opens the note in a tab; taking the step back closes
    it again, since there would be nothing left for it to show. */
 export const createNote = (parent: EntryId | null, name?: string): NoteDoc => {
-  const label = name ?? explorer.uniqueName(parent, 'Untitled note');
+  const label = name ?? explorer.uniqueName(parent, t('explorer.untitledNote'));
   const before = shot();
   const doc = noteDocs.create(label);
   explorer.addNote(parent, entryId(doc.id), label);
-  madeRow(entryId(doc.id), commit('new note', before, { onUndo: noteKeys([doc.id]) }));
+  madeRow(entryId(doc.id), commit(t('explorer.edit.newNote'), before, { onUndo: noteKeys([doc.id]) }));
   return doc;
 };
 
@@ -105,7 +106,7 @@ export const createNote = (parent: EntryId | null, name?: string): NoteDoc => {
 export const createChatEntry = (parent: EntryId | null, chat: ChatId, name: string): EntryId => {
   const before = shot();
   explorer.addChat(parent, entryId(chat), name);
-  commit('new chat', before);
+  commit(t('explorer.edit.newChat'), before);
   return entryId(chat);
 };
 
@@ -152,7 +153,7 @@ export const renameEntry = (id: EntryId, name: string): void => {
   if (file) files.rename(file.id, next);
   if (e?.kind === 'chat') { const c = chatId(e.chatId ?? id); void chats.load(c).then(() => chats.rename(c, next)); }
   const kindWord = e && e.kind !== 'note' ? e.kind : 'note';
-  const label = naming ? (e && e.kind === 'folder' ? 'new folder' : 'new note') : `rename ${kindWord}`;
+  const label = naming ? t(e && e.kind === 'folder' ? 'explorer.edit.newFolder' : 'explorer.edit.newNote') : t('explorer.edit.rename', { kind: kindWord });
   commit(label, before, {}, naming?.step ?? null);
   /* A row is named as it is made only once; every later name is its own step. */
   fresh = null;
@@ -163,7 +164,7 @@ export const moveEntry = (id: EntryId, parent: EntryId | null): void => {
   if (explorer.entry(id)?.parent === parent) return;
   const before = shot();
   explorer.move(id, parent);
-  commit('move', before);
+  commit(t('explorer.edit.move'), before);
 };
 
 /* Every file under a row, the row itself included, the way notesUnder gathers
@@ -206,7 +207,7 @@ export const deleteEntry = (e: Entry): void => {
   if (goneFiles.length) { files.removeMany(goneFiles); fileMarks.dropFiles(goneFiles); }
   goneChats.forEach((c) => chats.remove(c));
   const keys = [...noteKeys(notes), ...fileKeys(goneFiles), ...goneChats.map((c) => itemKey(chatItem(c)))];
-  commit(`delete ${e.kind === 'folder' || e.kind === 'file' || e.kind === 'chat' ? e.kind : 'note'}`, before, { onRedo: keys });
+  commit(t('explorer.edit.delete', { kind: e.kind === 'folder' || e.kind === 'file' || e.kind === 'chat' ? e.kind : 'note' }), before, { onRedo: keys });
   closeTabs(keys);
 };
 

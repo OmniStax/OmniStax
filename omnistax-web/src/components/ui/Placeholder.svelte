@@ -4,12 +4,13 @@
      features do, so a key that parses opens a pane rather than an empty one,
      and the pane says plainly what it is standing in for. Each feature
      replaces this mount with its own component as it arrives. */
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { kind, id }: { kind: string; id: string } = $props();
 </script>
 
 <article class="stand-in" data-kind={kind} data-id={id}>
   <div class="eyebrow">{kind}</div>
-  <p>This is a {kind}. Nothing draws one yet, so its tab stands empty until the feature that shows it arrives.</p>
+  <p>{i18n.t('shell.placeholder.body', { kind })}</p>
   <p class="id">{id}</p>
 </article>
 

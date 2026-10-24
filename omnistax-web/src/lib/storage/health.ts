@@ -8,6 +8,7 @@
    asked again on every write, and `persisted()` corrects it when the block is
    drawn, since installing or bookmarking the site can change it.
    `navigator.storage.estimate()` says how much is used and how much there is. */
+import { t, type MessageKey, type TFn } from '../i18n/index';
 
 /* The answer is deliberately not in the backup's whitelist: it is a fact about
    this browser and not about the reader, and carrying "granted" into a browser
@@ -57,8 +58,8 @@ export const requestPersist = async (): Promise<Persistence> => {
 
 /* The one line on the allowance. The quota is the browser's per-origin share of
    the disk, not a limit this app sets or can raise (docs/storage.md). */
-export const quotaWords = (e: Estimate, size: (bytes: number) => string): string | null =>
-  e.quota === null ? null : `Your browser allows this site about ${size(e.quota)}.`;
+export const quotaWords = (e: Estimate, size: (bytes: number) => string, tr: TFn = t): string | null =>
+  e.quota === null ? null : tr('shell.storage.quota', { size: size(e.quota) });
 
 /* How much of the browser's allowance this origin is using. Both numbers may
    be missing, and a browser that rounds them is telling the truth as far as it
@@ -88,15 +89,23 @@ export const usedFraction = (e: Estimate): number | null =>
 export const isWebkit = (ua: string, vendor = ''): boolean =>
   /iP(?:hone|ad|od)/.test(ua) || (/Safari/.test(ua) && !/Chrom|Chromium|Edg|OPR|Android/.test(ua)) || /Apple/.test(vendor) && !/Chrom/.test(ua);
 
-const AT_RISK = 'Your browser may clear this data when storage runs low. Install OmniStax as an app or bookmark it, then reload. Keep a backup either way.';
+/* The catalog key of what the block says about each answer; the component
+   reads it through i18n.t so the words follow a change of language. */
+export const PERSIST_WORDS_KEY: Readonly<Record<Persistence, MessageKey>> = {
+  granted: 'shell.storage.granted',
+  denied: 'shell.storage.atRisk',
+  unsupported: 'shell.storage.atRisk',
+  unasked: 'shell.storage.unasked',
+};
+/* The same words in the current language of i18n/index.ts, read when asked for. */
 export const PERSIST_WORDS: Readonly<Record<Persistence, string>> = {
-  granted: 'Your browser won’t clear this data on its own.',
-  denied: AT_RISK,
-  unsupported: AT_RISK,
-  unasked: 'OmniStax asks your browser to keep this data once you import a file or write a note.',
+  get granted() { return t(PERSIST_WORDS_KEY.granted); },
+  get denied() { return t(PERSIST_WORDS_KEY.denied); },
+  get unsupported() { return t(PERSIST_WORDS_KEY.unsupported); },
+  get unasked() { return t(PERSIST_WORDS_KEY.unasked); },
 };
 
-export const SAFARI_WORDS = 'Safari clears site data after 7 days without a visit, unless OmniStax is on your Home Screen.';
+export const SAFARI_WORDS_KEY: MessageKey = 'shell.storage.safari';
 
 /* The whole of what the block draws, worked out in one place so the component
    only lays it out. */

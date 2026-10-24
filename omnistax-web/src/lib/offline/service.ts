@@ -2,6 +2,7 @@ import { BookReleaseManifestSchema, OfflineCatalogSchema, type BookReleaseManife
 import { cacheName, deleteInstallation, getInstallation, listInstallations, putInstallation, type InstallationRecord } from './storage';
 import { readableLines, releaseChanges, savedSessionReleaseReferences, sectionChanges, type ReleaseChanges, type SeenRelease } from './model';
 import { liveWorkerPins } from './register';
+import { t } from '../i18n/index';
 
 export type InstallProgress = { readonly files: number; readonly totalFiles: number; readonly bytes: number; readonly totalBytes: number };
 export type InstallOptions = { readonly signal?: AbortSignal; readonly progress?: (progress: InstallProgress) => void };
@@ -17,14 +18,14 @@ const digest = async (body: ArrayBuffer): Promise<string> => [...new Uint8Array(
 const verified = async (resource: OfflineResource, response: Response): Promise<Response> => {
   if (!response.ok) throw new Error(`${resource.logicalUrl} returned ${response.status}.`);
   const body = await response.arrayBuffer();
-  if (body.byteLength !== resource.bytes || await digest(body) !== resource.sha256) throw new Error(`${resource.logicalUrl} failed integrity verification.`);
+  if (body.byteLength !== resource.bytes || await digest(body) !== resource.sha256) throw new Error(t('offline.error.integrity', { url: resource.logicalUrl }));
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 };
 export const fetchManifest = async (url: string, signal?: AbortSignal): Promise<BookReleaseManifest> => {
   const response = await fetch(url, { cache: 'no-store', signal });
-  if (!response.ok) throw new Error(`Release manifest returned ${response.status}.`);
+  if (!response.ok) throw new Error(t('offline.error.manifestStatus', { status: response.status }));
   const parsed = BookReleaseManifestSchema.safeParse(await response.json());
-  if (!parsed.success) throw new Error('The release manifest is invalid.');
+  if (!parsed.success) throw new Error(t('offline.error.manifestInvalid'));
   return parsed.data;
 };
 /* The dev server has no offline build, so it has no releases to offer. */
@@ -32,15 +33,15 @@ const DEV_CATALOG: OfflineCatalog = { schemaVersion: 1, generatedAt: new Date(0)
 export const fetchCatalog = async (signal?: AbortSignal): Promise<OfflineCatalog> => {
   if (import.meta.env.DEV) return DEV_CATALOG;
   const response = await fetch('/offline-catalog.json', { cache: 'no-store', signal });
-  if (!response.ok) throw new Error(`Update catalogue returned ${response.status}.`);
+  if (!response.ok) throw new Error(t('offline.error.catalogStatus', { status: response.status }));
   const parsed = OfflineCatalogSchema.safeParse(await response.json());
-  if (!parsed.success) throw new Error('The update catalogue is invalid.');
+  if (!parsed.success) throw new Error(t('offline.error.catalogInvalid'));
   return parsed.data;
 };
 
 const enoughSpace = async (bytes: number): Promise<void> => {
   const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
-  if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < bytes) throw new Error('Not enough storage for this download.');
+  if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < bytes) throw new Error(t('offline.error.noSpace'));
 };
 
 const savedReferences = () => {
@@ -66,7 +67,7 @@ export const reclaimPreviousRelease = async (bookId: string): Promise<Installati
 });
 
 export const installRelease = async (manifest: BookReleaseManifest, options: InstallOptions = {}): Promise<InstallationRecord> => lock(manifest.book.id, async () => {
-  if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error('This browser cannot store textbooks offline.');
+  if (!('caches' in globalThis) || typeof indexedDB === 'undefined') throw new Error(t('offline.error.unsupported'));
   let existing = await getInstallation(manifest.book.id);
   if (existing?.status === 'ready' && existing.installedRelease === manifest.releaseId && (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) === manifest.runtime.artifactId) return existing;
   await enoughSpace(manifest.totalBytes);
@@ -74,7 +75,7 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
   if (existing?.previousRelease) {
     existing = await clearPreviousIfUnused(existing);
     const changingActive = existing.installedRelease !== manifest.releaseId || (existing.installedArtifact ?? existing.manifest?.runtime.artifactId) !== manifest.runtime.artifactId;
-    if (changingActive && existing.previousRelease) throw new Error('An open tab or saved practice session still uses an older release. Close the tab or finish the session, then update.');
+    if (changingActive && existing.previousRelease) throw new Error(t('offline.error.releaseInUse'));
   }
   const completed = existing?.stagingRelease === manifest.releaseId && existing.stagingArtifact === manifest.runtime.artifactId ? new Set(existing.completed ?? []) : new Set<string>();
   const cache = await caches.open(cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId));
@@ -110,7 +111,7 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
   };
   await Promise.all(Array.from({ length: Math.min(4, pending.length) }, worker));
   if (failure) {
-    const message = failure instanceof DOMException && failure.name === 'AbortError' ? 'Download cancelled.' : failure instanceof Error ? failure.message : 'Download failed.';
+    const message = failure instanceof DOMException && failure.name === 'AbortError' ? t('offline.error.cancelled') : failure instanceof Error ? failure.message : t('offline.error.downloadFailed');
     const failed: InstallationRecord = { ...base, status: existing?.installedRelease ? 'ready' : 'failed', completed: [...completed], error: message, updatedAt: Date.now() };
     await putInstallation(failed); throw new Error(message);
   }
@@ -128,9 +129,9 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
 
 export const installFromCatalog = async (bookId: string, options?: InstallOptions): Promise<InstallationRecord> => {
   const catalog = await fetchCatalog(options?.signal); const entry = catalog.books.find((book) => book.id === bookId);
-  if (!entry) throw new Error('This book is not in the offline catalogue.');
+  if (!entry) throw new Error(t('offline.error.notInOfflineCatalog'));
   const manifest = await fetchManifest(entry.manifestUrl, options?.signal);
-  if (manifest.book.id !== entry.id || manifest.releaseId !== entry.releaseId || manifest.runtime.artifactId !== entry.artifactId || manifest.totalBytes !== entry.totalBytes) throw new Error('The release manifest does not match the catalogue entry.');
+  if (manifest.book.id !== entry.id || manifest.releaseId !== entry.releaseId || manifest.runtime.artifactId !== entry.artifactId || manifest.totalBytes !== entry.totalBytes) throw new Error(t('offline.error.manifestMismatch'));
   return installRelease(manifest, options);
 };
 
@@ -141,7 +142,7 @@ export const inspectInstallation = async (bookId: string): Promise<InstallationR
   const presence = await Promise.all(record.manifest.resources.map(async (resource) => ({ logicalUrl: resource.logicalUrl, present: !!await cache.match(resource.logicalUrl) })));
   const missing = presence.filter((item) => !item.present).map((item) => item.logicalUrl);
   if (!missing.length) return record;
-  const failed = { ...record, status: 'failed' as const, stagingRelease: record.installedRelease, stagingArtifact: artifact, completed: presence.filter((item) => item.present).map((item) => item.logicalUrl), error: `${missing.length} downloaded resource${missing.length === 1 ? ' is' : 's are'} missing. Repair the download.`, updatedAt: Date.now() };
+  const failed = { ...record, status: 'failed' as const, stagingRelease: record.installedRelease, stagingArtifact: artifact, completed: presence.filter((item) => item.present).map((item) => item.logicalUrl), error: t('offline.error.missing', { n: missing.length }), updatedAt: Date.now() };
   await putInstallation(failed); return failed;
 });
 
@@ -170,9 +171,9 @@ export const checkForUpdates = async (): Promise<{ catalog: OfflineCatalog; reco
 };
 
 export const changesForAvailable = async (bookId: string): Promise<{ readonly changes: ReleaseChanges; readonly notes?: string; readonly publishedAt: string }> => {
-  const record = await getInstallation(bookId); if (!record?.manifest) throw new Error('No installed release is available to compare.');
+  const record = await getInstallation(bookId); if (!record?.manifest) throw new Error(t('offline.error.nothingToCompare'));
   const catalog = await fetchCatalog(); const entry = catalog.books.find((book) => book.id === bookId);
-  if (!entry) throw new Error('This book is not in the update catalogue.');
+  if (!entry) throw new Error(t('offline.error.notInUpdateCatalog'));
   const available = await fetchManifest(entry.manifestUrl);
   return { changes: releaseChanges(record.manifest, available), notes: available.releaseNotes, publishedAt: available.publishedAt };
 };

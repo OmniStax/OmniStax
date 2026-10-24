@@ -7,6 +7,7 @@ import { blobSha, commitChanges, readBlob, readHead, readTree, seedEmpty, writeB
 import { MANIFEST, fromRepo, groupOf, jsonBytes, parseManifest, type Manifest, type RepoFile, type RepoPath } from './layout';
 import { manifestOf, originsAfter, rebase, type Base, type Change, type Plan, type Status } from './plan';
 import type { ReaderBackup } from '../backup/schema';
+import { t } from '../i18n';
 
 export type Survey = { readonly head: Head; readonly remote: readonly RemoteEntry[]; readonly manifest: Manifest | null };
 export type Report = (path: RepoPath, status: Status) => void;
@@ -16,7 +17,7 @@ export type HashedFile = RepoFile & { readonly sha: GitSha };
 export type Outcome = { readonly commit: GitSha | null; readonly backup: ReaderBackup | null; readonly base: Base };
 
 const AT_ONCE = 3;
-const failure = (e: unknown): string => e instanceof Error ? e.message : 'Failed.';
+const failure = (e: unknown): string => e instanceof Error ? e.message : t('files.sync.error.failed');
 
 const pool = async <T>(items: readonly T[], n: number, f: (item: T) => Promise<void>): Promise<void> => {
   const queue = [...items];
@@ -47,11 +48,11 @@ const each = async (items: readonly Change[], report: Report, move: (c: Change) 
   });
   if (failed) throw new Error(why(failed));
 };
-const files = (n: number): string => (n === 1 ? 'A file' : `${n} files`);
+
 
 export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: readonly HashedFile[], plan: Plan, base: Base, report: Report): Promise<Outcome> => {
   const top = local.find((x) => x.path === MANIFEST);
-  if (!top) throw new Error('Nothing to sync.');
+  if (!top) throw new Error(t('files.sync.error.nothing'));
   const ownManifest = parseManifest(top.bytes);
   const mine = new Map(local.filter((x) => x.path !== MANIFEST).map((x) => [x.path, x] as const));
   const theirs = new Map(seen.remote.filter((e) => e.path !== MANIFEST && groupOf(e.path) !== null).map((e) => [e.path, e.sha] as const));
@@ -61,7 +62,7 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
   const fetched = new Map<RepoPath, Uint8Array>();
   await each(plan.down.filter((c) => c.remote !== null), report,
     async (c) => { fetched.set(c.path, await readBlob(remote, f, c.remote as GitSha)); },
-    (n) => `${files(n)} didn’t arrive. Nothing was changed.`);
+    (n) => t('files.sync.error.notArrived', { n }));
 
   let commit = seen.head.kind === 'at' ? seen.head.commit : null;
   const remoteAfter = new Map(theirs);
@@ -71,7 +72,7 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
     const sent = new Map<RepoPath, GitSha | null>(plan.up.map((c) => [c.path, null] as const));
     await each(plan.up.filter((c) => c.local !== null), report,
       async (c) => { sent.set(c.path, await writeBlob(remote, f, mine.get(c.path)?.bytes ?? new Uint8Array())); },
-      (n) => `${files(n)} didn’t reach GitHub. Nothing was committed.`);
+      (n) => t('files.sync.error.notSent', { n }));
     const manifestSha = await writeBlob(remote, f, manifest);
     commit = await commitChanges(remote, f, head, [...[...sent].map(([path, sha]) => ({ path, sha })), { path: MANIFEST, sha: manifestSha }], 'Sync from OmniStax');
     plan.up.forEach((c) => (c.local ? remoteAfter.set(c.path, c.local) : remoteAfter.delete(c.path)));

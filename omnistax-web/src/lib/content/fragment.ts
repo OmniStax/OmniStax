@@ -1,6 +1,10 @@
 /* The static HTML of one section: the text article and the exercises host.
    The same markup goes into the full page and into doc.html, so the two
-   cannot drift. Ids are qualified by section so two sections share a DOM. */
+   cannot drift. Ids are qualified by section so two sections share a DOM.
+   The words the build adds — "Figure", "Notes", the way on, the credit — are
+   in the book's language, not the reader's: the page is the book's, and a
+   static page cannot follow a reader's choice. bookLocale reads it off
+   book.json's language, and every function here that writes a word takes it. */
 import type { SectionSource } from './load';
 import type { BookDTO, ChapterDTO, ExerciseDTO, FigureEntry, FigureRowDTO, FootnoteRowDTO } from './schema';
 import { aiByline, aiPartsByline, attributionOf, footerHtml } from './attribution';
@@ -10,6 +14,10 @@ import { ICON } from '../icons';
 import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
 import { plainText } from './plain';
+import { type Locale, matchLocale, tIn } from '../i18n/index';
+
+/* The catalog a book's pages are written in: its language's, else English (a book in a language the app has no catalog for). */
+export const bookLocale = (book: { readonly language: string }): Locale => matchLocale([book.language]);
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -150,8 +158,8 @@ export const linkExerciseRefs = (e: ExerciseDTO, figs: ReadonlyMap<FigureNumber,
 const SIM_EYEBROW = /(<div\b[^>]*\bclass="[^"]*\bsim-head\b[^"]*"[^>]*>\s*<span\b[^>]*\bclass="[^"]*\beyebrow\b[^"]*"[^>]*>[\s\S]*?)<\/span>/g;
 /* The mark goes inside the eyebrow, not after it: the head lays its children out in a
    row of its own, and a mark of its own would drop to a line below the word. */
-export const markAiFigures = (html: string, byline: string | undefined, figures: readonly FigureRowDTO[]): string => {
-  const own = new Map(figures.flatMap((f) => (f.ai ? [[f.id, aiPartsByline(f.ai)] as const] : [])));
+export const markAiFigures = (html: string, byline: string | undefined, figures: readonly FigureRowDTO[], locale: Locale): string => {
+  const own = new Map(figures.flatMap((f) => (f.ai ? [[f.id, aiPartsByline(f.ai, locale)] as const] : [])));
   return html.replace(/<figure\b([^>]*)>[\s\S]*?<\/figure>/g, (figure, attrs: string) => {
     const title = own.get(/\bid="([^"]+)"/.exec(attrs)?.[1] ?? '') ?? byline;
     return title === undefined ? figure : figure.replace(SIM_EYEBROW, (_, eyebrow: string) => `${eyebrow}${aiMarkHtml(title)}</span>`);
@@ -160,28 +168,28 @@ export const markAiFigures = (html: string, byline: string | undefined, figures:
 
 /* Both articles end with the attribution: each is a tab of its own and may be the only thing on screen. */
 /* A figure whose book image is withheld says why under the attribution, after what the section left out. */
-const footer = (book: BookDTO, s: SectionSource): string => {
+const footer = (book: BookDTO, s: SectionSource, locale: Locale): string => {
   const notes = [s.meta.notes, ...s.figures.flatMap((f) => (f.withheld ? [f.withheld] : []))].filter(Boolean).join(' ');
-  return footerHtml(attributionOf(book, { ...s.meta, notes }));
+  return footerHtml(attributionOf(book, { ...s.meta, notes }), locale);
 };
 
 /* The line above the title: the chapter and the section's number, or for a page of the chapter's own only the
    chapter, and for a page of the book's own the book. The chapter is null for the book's own pages. */
-const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource): string => {
+const eyebrow = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, locale: Locale): string => {
   if (chapter === null) return esc(book.title);
-  const where = `Chapter ${esc(chapter.id)} · ${esc(chapter.title)}`;
+  const where = tIn(locale, 'content.chapter.eyebrow', { id: esc(chapter.id), title: esc(chapter.title) });
   return s.role === 'section' ? `${where} · ${s.meta.id}` : where;
 };
 /* The attributes every article of a page carries: what book, page and chapter it belongs to, and the name its tab takes. */
 const articleAttrs = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, doc: 'text', title: string): string =>
-  `data-book="${book.id}" data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
-const textTitle = (s: SectionSource): string => (s.role === 'section' ? `${s.meta.id} Text` : s.meta.title);
+  `lang="${book.language}" data-book="${book.id}" data-doc="${s.meta.id}/${doc}" data-sec="${s.meta.id}"${chapter === null ? '' : ` data-chapter="${chapter.dir}"`} data-title="${esc(title)}"`;
+const textTitle = (s: SectionSource, locale: Locale): string => (s.role === 'section' ? tIn(locale, 'content.textTitle', { id: s.meta.id }) : s.meta.title);
 
 /* The section's own summary, where the book prints one, stands at the end of the text as the book stands it (rule 21).
    Its id is the one local id the build keeps for itself, and the validator keeps the text off it. */
 export const SUMMARY_ID = 'section-summary';
-const summaryBlock = (s: SectionSource): string =>
-  (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>Section summary</h2>${s.summaryHtml}</section>`);
+const summaryBlock = (s: SectionSource, locale: Locale): string =>
+  (s.summaryHtml === '' ? '' : `<section class="summary" id="${qualifiedId(sectionId(s.meta.id), SUMMARY_ID)}"><h2>${tIn(locale, 'content.summary.heading')}</h2>${s.summaryHtml}</section>`);
 
 /* The section's notes. The text marks the place a note belongs to with an empty
    <sup class="fn" data-note="…"></sup>, which the build fills with the note's number,
@@ -203,7 +211,7 @@ const atFigureEnd = (html: string, figure: SpanId, marker: string): string => {
   return end < 0 ? html : `${html.slice(0, end)}${marker}${html.slice(end)}`;
 };
 type Noted = { readonly html: string; readonly notes: string };
-export const placeNotes = (html: string, raw: readonly FootnoteRowDTO[], section: string, byline?: string, figures: readonly FigureRowDTO[] = []): Noted => {
+export const placeNotes = (html: string, raw: readonly FootnoteRowDTO[], section: string, locale: Locale, byline?: string, figures: readonly FigureRowDTO[] = []): Noted => {
   const rows = raw.map((r) => ({ ...r, html: qualifyIds(r.html, section) }));
   const sec = sectionId(section), byId = new Map(rows.map((r) => [r.id, r]));
   const rowsOf = (ids: readonly string[]): readonly FootnoteRowDTO[] => [...new Set(ids)].flatMap((id) => { const r = byId.get(id); return r ? [r] : []; });
@@ -221,13 +229,13 @@ export const placeNotes = (html: string, raw: readonly FootnoteRowDTO[], section
   const headed = (r: FootnoteRowDTO): string => {
     const f = r.figure === undefined ? undefined : figures.find((g) => g.id === r.figure);
     const numbers = f && printedNumbers(f);
-    return f === undefined ? r.html : r.html.replace(/^(<p\b[^>]*>)?/, (p) => `${p}<span class="eyebrow fn-figure">${numbers === undefined ? 'Figure' : `Figure ${numbers}`}</span> `);
+    return f === undefined ? r.html : r.html.replace(/^(<p\b[^>]*>)?/, (p) => `${p}<span class="eyebrow fn-figure">${numbers === undefined ? tIn(locale, 'content.figure') : tIn(locale, 'content.figure.numbered', { numbers })}</span> `);
   };
   const list = (rs: readonly FootnoteRowDTO[], local: string, head: string): string => (rs.length === 0 ? '' : [
     `<section class="notes" id="${qualifiedId(sec, local)}"><h2>${head}</h2><ol>`,
-    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${back(r)}">${label(r)}</a><div class="fn-body">${numbered(r.kind === 'correction' ? aiMarked(headed(r), byline) : r.html)}</div></li>`),
+    ...rs.map((r) => `<li class="${r.kind}" id="${note(r.id)}"><a class="fn-back" href="#${back(r)}">${label(r)}</a><div class="fn-body">${numbered(r.kind === 'correction' ? aiMarked(headed(r), byline ?? tIn(locale, 'content.ai.mark')) : r.html)}</div></li>`),
     `</ol></section>`].join(''));
-  return { html: body, notes: list(placed.filter((r) => r.kind === 'book'), NOTES_ID, 'Notes') + list(corrections, CORRECTIONS_ID, 'Corrections') };
+  return { html: body, notes: list(placed.filter((r) => r.kind === 'book'), NOTES_ID, tIn(locale, 'content.notes')) + list(corrections, CORRECTIONS_ID, tIn(locale, 'content.corrections')) };
 };
 
 /* A correction of an exercise travels with its card, which may be set far from its section: the markers of the
@@ -270,28 +278,28 @@ export type PageNav = Neighbours<PageLink>;
    turns the page here as they would in the book. A link's href is the page's own address, so the built page
    needs no script for it, and inside the shell such a link opens the page as a tab. A first page has only a
    way on and a last page only a way back; a page with neither prints no row. */
-const pageNav = (nav: PageNav): string => {
+const pageNav = (nav: PageNav, locale: Locale): string => {
   const link = (rel: 'prev' | 'next', page: PageLink, word: string): string =>
-    `<a class="${rel}" rel="${rel}" href="${esc(page.url)}"><span class="eyebrow">${word}</span><span class="name">${esc(page.label)}</span></a>`;
-  const prev = nav.prev ? link('prev', nav.prev, 'Previous') : '', next = nav.next ? link('next', nav.next, 'Next') : '';
-  return prev === '' && next === '' ? '' : `<nav class="page-nav" aria-label="The pages before and after this one">${prev}${next}</nav>`;
+    `<a class="${rel}" rel="${rel}" href="${esc(page.url)}"><span class="eyebrow">${esc(word)}</span><span class="name">${esc(page.label)}</span></a>`;
+  const prev = nav.prev ? link('prev', nav.prev, tIn(locale, 'content.previous')) : '', next = nav.next ? link('next', nav.next, tIn(locale, 'content.next')) : '';
+  return prev === '' && next === '' ? '' : `<nav class="page-nav" aria-label="${esc(tIn(locale, 'content.pageNav.label'))}">${prev}${next}</nav>`;
 };
 
-export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string => {
-  const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures), s.figures);
-  const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text) : undefined;
-  const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s)}`, s.footnotes, s.meta.id, byline, s.figures);
+export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav, locale: Locale): string => {
+  const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures, locale), s.figures, locale);
+  const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text, locale) : undefined;
+  const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s, locale)}`, s.footnotes, s.meta.id, locale, byline, s.figures);
   const lead = byline === undefined ? s.meta.lead : `${s.meta.lead}${aiMarkHtml(byline)}`;
   return [
-  `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s))} data-math="rendered">`,
-  `<div class="eyebrow">${eyebrow(book, chapter, s)}</div>`,
+  `<article ${articleAttrs(book, chapter, s, 'text', textTitle(s, locale))} data-math="rendered">`,
+  `<div class="eyebrow">${eyebrow(book, chapter, s, locale)}</div>`,
   `<h1>${esc(s.meta.title)}</h1>`,
   ...(s.meta.lead === '' ? [] : [`<p class="lead">${lead}</p>`]),
   noted.html,
   noted.notes,
-  sectionEnd(s),
-  pageNav(nav),
-  footer(book, s),
+  sectionEnd(s, locale),
+  pageNav(nav, locale),
+  footer(book, s, locale),
   `</article>`,
   ].filter((line) => line !== '').join('\n');
 };
@@ -303,10 +311,11 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
    catches, so the built page needs no script of its own to be sent somewhere,
    and the icon is inlined here rather than fetched. A section with no problems
    ends at its text. */
-const sectionEnd = (s: SectionSource): string => {
+const sectionEnd = (s: SectionSource, locale: Locale): string => {
   if (s.meta.role !== 'section') return '';
   const available = s.exercises.some((e) => e.place.at === 'end');
-  return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${available ? 'Open a practice session on this section' : 'This section has no exercises'}"${available ? '' : ' disabled'}>Practice this section${ICON.exercises}</button></div>`;
+  const title = tIn(locale, available ? 'content.practice.open' : 'content.practice.none');
+  return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${esc(title)}"${available ? '' : ' disabled'}>${esc(tIn(locale, 'content.practice.button'))}${ICON.exercises}</button></div>`;
 };
 
 /* The fragment carries its own data so a tab can be opened from it alone. */
@@ -315,6 +324,7 @@ export const sectionData = (book: BookDTO, s: SectionSource): string =>
 
 /* A section's fragment is its two documents and its data; an introduction or
    summary page sets no exercises and so has no problem set to open. The text
-   carries the way to its neighbours, which the caller reads off the book. */
-export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav): string =>
-  [textArticle(book, chapter, s, nav), sectionData(book, s)].join('\n');
+   carries the way to its neighbours, which the caller reads off the book, and
+   its words are in the book's language (bookLocale). */
+export const fragment = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav, locale: Locale): string =>
+  [textArticle(book, chapter, s, nav, locale), sectionData(book, s)].join('\n');

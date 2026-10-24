@@ -11,11 +11,12 @@
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { openInFocus } from '../../lib/layout/model';
   import { repoName } from '../../lib/sync/github';
-  import { GROUP_LABEL } from '../../lib/sync/layout';
+  import { groupLabel } from '../../lib/sync/layout';
   import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
-  import { sync, PUSH_EVERY, PUSH_EVERY_LABEL } from '../../lib/sync/store.svelte';
+  import { sync, PUSH_EVERY, PUSH_EVERY_KEY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   const remote = $derived(sync.remote);
   const key = $derived(remote ? `${remote.repo}\n${remote.branch}\n${remote.token}` : '');
@@ -32,18 +33,16 @@
   const plan = $derived(session.plan);
   const unchosen = $derived(session.unchosen);
   const stuck = (c: Change): boolean => c.local !== null && tooLarge(c.size) && (c.side === 'up' || session.picks.get(c.path) === 'mine');
-  const count = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
-
-  const action = $derived(plan.down.length && plan.up.length ? `Pull ${plan.down.length} and push ${plan.up.length}` : plan.down.length ? `Pull ${plan.down.length}` : plan.up.length ? `Push ${plan.up.length}` : '');
+  const action = $derived(plan.down.length && plan.up.length ? i18n.t('views.sync.pullPush', { down: plan.down.length, up: plan.up.length }) : plan.down.length ? i18n.t('views.sync.pullN', { n: plan.down.length }) : plan.up.length ? i18n.t('views.sync.pushN', { n: plan.up.length }) : '');
   const summary = $derived.by(() => {
-    if (phase === 'reading') return 'Checking…';
-    if (phase === 'moving') return 'Syncing…';
+    if (phase === 'reading') return i18n.t('views.sync.checking');
+    if (phase === 'moving') return i18n.t('views.sync.syncing');
     if (!session.seen) return '';
-    if (session.seen.head.kind !== 'at' && !changes.length) return 'The branch is empty.';
-    if (!changes.length) return 'Up to date';
-    return [up.length && `${up.length} to push`, down.length && `${down.length} to pull`, both.length && `${both.length} changed in both`].filter(Boolean).join(' · ');
+    if (session.seen.head.kind !== 'at' && !changes.length) return i18n.t('views.sync.emptyBranch');
+    if (!changes.length) return i18n.t('views.sync.upToDate');
+    return [up.length && i18n.t('views.sync.toPush', { n: up.length }), down.length && i18n.t('views.sync.toPull', { n: down.length }), both.length && i18n.t('views.sync.inBoth', { n: both.length })].filter(Boolean).join(' · ');
   });
-  const lastSynced = $derived(sync.last?.at ? `Last synced ${new Date(sync.last.at).toLocaleString()}` : 'Not synced yet');
+  const lastSynced = $derived(sync.last?.at ? i18n.t('views.sync.lastSynced', { when: new Date(sync.last.at).toLocaleString(i18n.locale) }) : i18n.t('views.sync.notSynced'));
   const busy = $derived(phase === 'reading' || phase === 'moving');
 
   let menu = $state(false);
@@ -64,10 +63,10 @@
     layoutStore.overlay = null;
   };
 
-  const LETTER: Readonly<Record<Letter, string>> = { A: 'Added', M: 'Modified', D: 'Deleted', '!': 'Changed in both' };
+  const LETTER = $derived<Readonly<Record<Letter, string>>>({ A: i18n.t('views.sync.letter.added'), M: i18n.t('views.sync.letter.modified'), D: i18n.t('views.sync.letter.deleted'), '!': i18n.t('views.sync.changedInBoth') });
   const stateText = (s: Status | undefined, c: Change): string => {
-    if (!s) return stuck(c) ? 'over 100 MB' : c.letter === 'D' ? '' : sizeLabel(c.size);
-    return s.kind === 'waiting' ? 'waiting' : s.kind === 'moving' ? 'moving…' : s.kind === 'done' ? '✓' : s.why;
+    if (!s) return stuck(c) ? i18n.t('views.sync.tooLarge') : c.letter === 'D' ? '' : sizeLabel(c.size);
+    return s.kind === 'waiting' ? i18n.t('views.sync.waiting') : s.kind === 'moving' ? i18n.t('views.sync.moving') : s.kind === 'done' ? '✓' : s.why;
   };
 </script>
 
@@ -86,25 +85,25 @@
       <summary><span class="sec-name">{title}</span><span class="badge">{rows.length}</span></summary>
       {#if choosing}
         <div class="bulk">
-          <span class="hint">Keep one version of each.</span>
-          <button type="button" class="link" disabled={phase !== 'ready'} onclick={() => session.pickAll('mine')}>All this device’s</button>
-          <button type="button" class="link" disabled={phase !== 'ready'} onclick={() => session.pickAll('theirs')}>All the repo’s</button>
+          <span class="hint">{i18n.t('views.sync.keepOne')}</span>
+          <button type="button" class="link" disabled={phase !== 'ready'} onclick={() => session.pickAll('mine')}>{i18n.t('views.sync.allMine')}</button>
+          <button type="button" class="link" disabled={phase !== 'ready'} onclick={() => session.pickAll('theirs')}>{i18n.t('views.sync.allTheirs')}</button>
         </div>
       {/if}
       <ul>
         {#each rows as c (c.path)}
           {@const s = session.status.get(c.path)}
           <li class:selected={session.selected === c.path}>
-            <button type="button" class="file" title="Show changes · {c.path}" onclick={() => show(c)}>
+            <button type="button" class="file" title={i18n.t('views.sync.showChanges', { path: c.path })} onclick={() => show(c)}>
               <span class="label">{c.label}</span>
               <span class="state" class:bad={s?.kind === 'failed' || (!s && stuck(c))} class:ok={s?.kind === 'done'}>{stateText(s, c)}</span>
               <span class="letter l{c.letter === '!' ? 'C' : c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
-              <span class="group">{GROUP_LABEL[c.group]}</span>
+              <span class="group">{groupLabel(c.group, i18n.locale)}</span>
             </button>
             {#if choosing}
-              <span class="choose" role="group" aria-label="Keep which version of {c.label}">
-                <button type="button" aria-pressed={session.picks.get(c.path) === 'mine'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'mine')}>This device’s</button>
-                <button type="button" aria-pressed={session.picks.get(c.path) === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'theirs')}>The repo’s</button>
+              <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
+                <button type="button" aria-pressed={session.picks.get(c.path) === 'mine'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'mine')}>{i18n.t('views.sync.mine')}</button>
+                <button type="button" aria-pressed={session.picks.get(c.path) === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'theirs')}>{i18n.t('views.sync.theirs')}</button>
               </span>
             {/if}
           </li>
@@ -122,30 +121,30 @@
 {/snippet}
 
 <div class="sync">
-  <p class="lede">Sync carries your notes and pasted images, imported files, drawings, chats, colors, practice, focus sessions, library, layout, shortcuts and preferences. AI keys, the sync token and textbooks stay on each device.</p>
+  <p class="lede">{i18n.t('views.sync.lede')}</p>
 
   <section>
     <h4 class="eyebrow">GitHub</h4>
     {#if !remote || editing}
       <div class="setup">
-        {#if !remote}<p class="hint">A repo of your own, private is fine. Requests go straight from this browser to GitHub.</p>{/if}
-        {@render field('Repo', sync.saved.repo, (v) => sync.setRepo(v), 'owner/name')}
-        {#if badRepo}<p class="hint bad">Write it as owner/name.</p>{/if}
-        {@render field('Branch', sync.saved.branch, (v) => sync.setBranch(v), 'main')}
-        {@render field('Token', sync.token, (v) => sync.setToken(v), 'github_pat_…', 'password')}
-        <p class="hint">A fine-grained token for this repo only, with Contents read and write. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Make one</a>.</p>
-        {#if remote}<button type="button" class="btn" onclick={() => (editing = false)}>Done</button>{/if}
+        {#if !remote}<p class="hint">{i18n.t('views.sync.repoHint')}</p>{/if}
+        {@render field(i18n.t('views.sync.repo'), sync.saved.repo, (v) => sync.setRepo(v), 'owner/name')}
+        {#if badRepo}<p class="hint bad">{i18n.t('views.sync.badRepo')}</p>{/if}
+        {@render field(i18n.t('views.sync.branch'), sync.saved.branch, (v) => sync.setBranch(v), 'main')}
+        {@render field(i18n.t('views.sync.token'), sync.token, (v) => sync.setToken(v), 'github_pat_…', 'password')}
+        <p class="hint">{i18n.t('views.sync.tokenHint')} <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">{i18n.t('views.sync.makeOne')}</a>.</p>
+        {#if remote}<button type="button" class="btn" onclick={() => (editing = false)}>{i18n.t('views.stats.done')}</button>{/if}
       </div>
     {:else}
       <div class="where">
         <span class="repo" title="{remote.repo} · {remote.branch}">{remote.repo}</span>
-        <button type="button" class="icon" title="Check for changes" aria-label="Check for changes" disabled={busy} onclick={() => void session.read()}>{@html ICON.refresh}</button>
-        <button type="button" class="icon" title="Edit repo, branch and token" aria-label="Edit repo, branch and token" onclick={() => (editing = true)}>{@html ICON.pen}</button>
+        <button type="button" class="icon" title={i18n.t('views.sync.check')} aria-label={i18n.t('views.sync.check')} disabled={busy} onclick={() => void session.read()}>{@html ICON.refresh}</button>
+        <button type="button" class="icon" title={i18n.t('views.sync.edit')} aria-label={i18n.t('views.sync.edit')} onclick={() => (editing = true)}>{@html ICON.pen}</button>
       </div>
       <p class="meta"><span class="branch">{remote.branch}</span>{#if phase === 'ready' && !changes.length}<span>{lastSynced}</span>{/if}</p>
-      <label class="every"><span>Sync every</span>
-        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label="Sync every">
-          {#each PUSH_EVERY as m (m)}<option value={String(m)}>{PUSH_EVERY_LABEL[m]}</option>{/each}
+      <label class="every"><span>{i18n.t('views.sync.every')}</span>
+        <select value={String(sync.every)} onchange={(e) => sync.setEvery(Number(e.currentTarget.value))} aria-label={i18n.t('views.sync.every')}>
+          {#each PUSH_EVERY as m (m)}<option value={String(m)}>{i18n.t(PUSH_EVERY_KEY[m])}</option>{/each}
         </select>
       </label>
       <p class="status" class:calm={!changes.length} role="status">{summary}</p>
@@ -153,26 +152,26 @@
       {#if changes.length}
         <div class="act">
           <button type="button" class="go" disabled={phase !== 'ready' || unchosen > 0 || !action} onclick={() => void session.go(plan)}>
-            {unchosen ? `Choose a version for ${count(unchosen, 'file')}` : phase === 'moving' ? 'Syncing…' : action}
+            {unchosen ? i18n.t('views.sync.chooseFor', { n: unchosen }) : phase === 'moving' ? i18n.t('views.sync.syncing') : action}
           </button>
-          <button type="button" class="go more" aria-label="More sync actions" aria-haspopup="menu" aria-expanded={menu} disabled={phase !== 'ready'} onclick={(e) => { e.stopPropagation(); menu = !menu; }}>▾</button>
+          <button type="button" class="go more" aria-label={i18n.t('views.sync.moreActions')} aria-haspopup="menu" aria-expanded={menu} disabled={phase !== 'ready'} onclick={(e) => { e.stopPropagation(); menu = !menu; }}>▾</button>
           {#if menu}
             <div class="menu" role="menu">
-              {@render item(`Pull ${plan.down.length}`, 'Bring the repo’s changes here. Yours stay.', () => void session.go({ up: [], down: plan.down }), !plan.down.length)}
-              {@render item(`Push ${plan.up.length}`, 'Send this device’s changes. The repo’s stay.', () => void session.go({ up: plan.up, down: [] }), !plan.up.length)}
+              {@render item(i18n.t('views.sync.pullN', { n: plan.down.length }), i18n.t('views.sync.pullNote'), () => void session.go({ up: [], down: plan.down }), !plan.down.length)}
+              {@render item(i18n.t('views.sync.pushN', { n: plan.up.length }), i18n.t('views.sync.pushNote'), () => void session.go({ up: plan.up, down: [] }), !plan.up.length)}
               <hr>
-              {@render item('Force pull…', 'Make this device an exact copy of the repo.', () => ask('device'), !session.seen?.manifest, true)}
-              {@render item('Force push…', 'Make the repo an exact copy of this device.', () => ask('repo'), false, true)}
+              {@render item(i18n.t('views.sync.forcePullMenu'), i18n.t('views.sync.forcePullNote'), () => ask('device'), !session.seen?.manifest, true)}
+              {@render item(i18n.t('views.sync.forcePushMenu'), i18n.t('views.sync.forcePushNote'), () => ask('repo'), false, true)}
             </div>
           {/if}
         </div>
-        {#if plan.down.length && !unchosen}<p class="hint">Pulling reloads OmniStax.</p>{/if}
+        {#if plan.down.length && !unchosen}<p class="hint">{i18n.t('views.sync.pullReloads')}</p>{/if}
       {/if}
       {#if session.problem}<p class="hint bad" role="alert">{session.problem}</p>{/if}
 
-      {@render list('Changed in both', both, true)}
-      {@render list('Push', up)}
-      {@render list('Pull', down)}
+      {@render list(i18n.t('views.sync.changedInBoth'), both, true)}
+      {@render list(i18n.t('views.sync.push'), up)}
+      {@render list(i18n.t('views.sync.pull'), down)}
     {/if}
   </section>
 
@@ -182,24 +181,22 @@
 <dialog bind:this={dialog} onclose={() => (forcing = null)} aria-labelledby="force-title">
   {#if forcing}
     {@const pull = forcing === 'device'}
-    <h3 id="force-title">{pull ? 'Force pull' : 'Force push'}?</h3>
-    <p>{pull
-      ? `This device becomes an exact copy of ${remote?.repo}. Nothing is merged, and OmniStax reloads.`
-      : `${remote?.repo} becomes an exact copy of this device. Nothing is merged.`}</p>
+    <h3 id="force-title">{pull ? i18n.t('views.sync.forcePullAsk') : i18n.t('views.sync.forcePushAsk')}</h3>
+    <p>{pull ? i18n.t('views.sync.forcePullBody', { repo: remote?.repo ?? '' }) : i18n.t('views.sync.forcePushBody', { repo: remote?.repo ?? '' })}</p>
     {#if lost.length}
-      <p class="loss">{count(lost.length, 'change')} made {pull ? 'on this device' : 'in the repo'} will be discarded:</p>
+      <p class="loss">{pull ? i18n.t('views.sync.lossDevice', { n: lost.length }) : i18n.t('views.sync.lossRepo', { n: lost.length })}</p>
       <ul class="lost">
-        {#each lost.slice(0, 8) as c (c.path)}<li>{c.label} <span>{GROUP_LABEL[c.group]}</span></li>{/each}
-        {#if lost.length > 8}<li class="rest">and {lost.length - 8} more</li>{/if}
+        {#each lost.slice(0, 8) as c (c.path)}<li>{c.label} <span>{groupLabel(c.group, i18n.locale)}</span></li>{/each}
+        {#if lost.length > 8}<li class="rest">{i18n.t('views.hover.andMore', { n: lost.length - 8 })}</li>{/if}
       </ul>
     {:else}
-      <p>Nothing {pull ? 'on this device' : 'in the repo'} would be lost: this does what a plain {pull ? 'pull' : 'push'} does.</p>
+      <p>{pull ? i18n.t('views.sync.nothingLostDevice') : i18n.t('views.sync.nothingLostRepo')}</p>
     {/if}
-    {#if !pull}<p class="hint">The repo’s history keeps the old versions; other devices see these as changes to pull.</p>{/if}
+    {#if !pull}<p class="hint">{i18n.t('views.sync.historyKeeps')}</p>{/if}
     <div class="dlg-acts">
       <!-- svelte-ignore a11y_autofocus -->
-      <button type="button" class="btn" autofocus onclick={() => dialog?.close()}>Cancel</button>
-      <button type="button" class="btn danger" onclick={confirmForce}>{pull ? 'Force pull' : 'Force push'}</button>
+      <button type="button" class="btn" autofocus onclick={() => dialog?.close()}>{i18n.t('views.sync.cancel')}</button>
+      <button type="button" class="btn danger" onclick={confirmForce}>{pull ? i18n.t('views.sync.forcePull') : i18n.t('views.sync.forcePush')}</button>
     </div>
   {/if}
 </dialog>

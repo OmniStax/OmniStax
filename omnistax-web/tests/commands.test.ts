@@ -8,6 +8,7 @@ import { commandId, available } from '../src/lib/commands/command';
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
 import { PALETTE_ONLY_KINDS, SIDEBAR_KINDS, VIEW_KINDS, isPaletteOnlyKind, isSidebarKind, itemKey, newViewItem } from '../src/lib/types/ids';
 import type { Level } from '../src/lib/sections/scope';
+import { tIn } from '../src/lib/i18n/index';
 
 /* chords */
 test('chord parse/format round trip, any modifier order and spelling', () => {
@@ -113,6 +114,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
   const active = view.view === undefined ? itemKey(newViewItem('concepts')) : view.view;
   return {
     log,
+    t: tIn.bind(null, 'en'),
     settings: { zoom: ZOOM_DEFAULT, zoomIn: () => log.push('zoom in'), zoomOut: () => log.push('zoom out'), resetZoom: () => log.push('zoom reset'), theme: 'system', animations: true, voice: false, fillAll: false, setFillAll: (v) => log.push(`fill ${v}`), setTheme: (t) => log.push(`theme ${t}`), cycleTheme: () => log.push('cycle'), setAnimations: (v) => log.push(`anim ${v}`), setVoice: (v) => log.push(`voice ${v}`), figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: (f) => log.push(`figure ${f}`), setBodyFont: (f) => log.push(`body ${f}`), setPreview: (p) => log.push(`preview ${JSON.stringify(p)}`), clearPreview: () => log.push('clear') },
     layout: {
       reset: () => log.push('reset'), splitRight: () => log.push('split right'), splitDown: () => log.push('split down'),
@@ -145,6 +147,8 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
       canUndo: colourTimeline.undoLabel !== undefined, canRedo: colourTimeline.redoLabel !== undefined,
       undoLabel: colourTimeline.undoLabel ?? '', redoLabel: colourTimeline.redoLabel ?? '',
     },
+    language: { choice: 'system', system: 'en', setChoice: (c) => log.push(`language ${c}`) },
+    editions: { current: () => null, switchTo: (from, to) => log.push(`edition ${from} ${to}`) },
     highlights: { here: 'physics', on: () => true, set: (k, on) => log.push(`colour ${k} ${on}`) },
     practice: { canPractise: () => true, practise: (l) => log.push(`practise ${l}`) },
   };
@@ -304,4 +308,28 @@ test('rebind takes the other chords of a command away unless told to keep them',
   const b = { 'Ctrl+A': commandId('x'), 'Ctrl+B': commandId('x'), 'Ctrl+C': commandId('y') } as Bindings;
   assert.deepEqual(Object.keys(rebind(b, commandId('x'), 'Ctrl+C' as Chord)).sort(), ['Ctrl+C']);
   assert.deepEqual(rebind(b, commandId('x'), 'Ctrl+C' as Chord, true), { 'Ctrl+A': 'x', 'Ctrl+B': 'x', 'Ctrl+C': 'x' });
+});
+
+test('the language command lists System and every catalog by its own name, and commits the choice', () => {
+  const d = deps(); const c = builtinCommands(d).find((x) => x.id === BUILTIN.language)!;
+  assert.equal(c.label, 'Change language');
+  assert.equal(c.detail?.(), 'System (English)');
+  const list = c.choices!();
+  assert.deepEqual(list.options.map((o) => [o.value, o.label]), [['system', 'System'], ['en', 'English'], ['zh-CN', '中文（简体）']]);
+  assert.equal(list.current, 'system');
+  list.commit('zh-CN'); list.commit('fr');
+  assert.deepEqual(d.log, ['language zh-CN']);
+  const chosen = builtinCommands({ ...d, language: { ...d.language, choice: 'zh-CN' } }).find((x) => x.id === BUILTIN.language)!;
+  assert.equal(chosen.detail?.(), '中文（简体）');
+});
+
+test('Book: switch language is offered only where the focused book has another edition', () => {
+  const d = deps(); const by = (x: BuiltinDeps) => builtinCommands(x).find((c) => c.id === BUILTIN.switchLanguage)!;
+  assert.equal(available(by(d)), false);
+  const two = { ...d, editions: { ...d.editions, current: () => ({ from: 'college-physics-2e', to: [{ id: 'college-physics-2e-zh-cn', label: 'Chinese (China)', detail: '大学物理' }] }) } };
+  assert.equal(available(by(two)), true);
+  const list = by(two).choices!();
+  assert.deepEqual(list.options, [{ value: 'college-physics-2e-zh-cn', label: 'Chinese (China)', detail: '大学物理' }]);
+  list.commit('college-physics-2e-zh-cn'); by(two).run();
+  assert.deepEqual(d.log, ['edition college-physics-2e college-physics-2e-zh-cn', 'edition college-physics-2e college-physics-2e-zh-cn']);
 });

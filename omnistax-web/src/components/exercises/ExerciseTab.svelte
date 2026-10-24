@@ -12,6 +12,7 @@
   import { registry } from '../../lib/sections/registry.svelte';
   import { openDoc, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { label } from '../../lib/sections/grouping';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { sectionRef, type BookId, type GroupKey, type SectionId } from '../../lib/types/ids';
 
   let { book, section, ex, groupKey }: { book: BookId; section: SectionId; ex: string; groupKey: GroupKey } = $props();
@@ -26,7 +27,7 @@
 
 <div class="ex-tab" data-book={book} data-section={section} data-ex={ex} data-group={groupKey}>
   <header class="head">
-    <span class="what">Exercise</span>
+    <span class="what">{i18n.t('exercises.tab.exercise')}</span>
     <button type="button" class="where"
       onclick={(e) => void openDoc(ref, 'text', undefined, openingOf(e))} onauxclick={onMiddle((e) => void openDoc(ref, 'text', undefined, openingOf(e)))}>{title}</button>
   </header>
@@ -36,11 +37,11 @@
     {:else if state?.status === 'missing'}
       <p class="gone">{registry.missingLine(ref)}</p>
     {:else if state?.status === 'failed'}
-      <p class="gone">Section {section} could not be loaded, so this exercise cannot be shown.</p>
+      <p class="gone">{i18n.t('exercises.tab.failed', { section })}</p>
     {:else if state}
-      <p class="gone">There is no exercise “{ex}” in section {section} any more.</p>
+      <p class="gone">{i18n.t('exercises.tab.gone', { ex, section })}</p>
     {:else}
-      <p class="gone">Loading section {section}…</p>
+      <p class="gone">{i18n.t('exercises.tab.loading', { section })}</p>
     {/if}
   </div>
 </div>

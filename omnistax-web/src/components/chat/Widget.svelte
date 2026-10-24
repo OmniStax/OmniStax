@@ -3,6 +3,7 @@
      from this frame's own window, posted by the script `sized` adds each time the page
      changes size; a still-open fence is not mounted, so no half script runs. */
   import { heightOf, sized, WIDGET_HEIGHT } from '../../lib/chat/widget';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { html, open }: { html: string; open: boolean } = $props();
 
@@ -21,10 +22,10 @@
 </script>
 
 {#if open}
-  <div class="widget waiting">Building widget…</div>
+  <div class="widget waiting">{i18n.t('chat.widget.building')}</div>
 {:else}
   <div class="widget">
-    <iframe bind:this={frame} use:listen title="A widget written by the model" sandbox="allow-scripts" srcdoc={sized(html)} style:height="{height}px"></iframe>
+    <iframe bind:this={frame} use:listen title={i18n.t('chat.widget.title')} sandbox="allow-scripts" srcdoc={sized(html)} style:height="{height}px"></iframe>
   </div>
 {/if}
 

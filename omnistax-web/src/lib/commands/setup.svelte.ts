@@ -1,5 +1,8 @@
 /* Registers the builtin commands against the real stores. The shell calls this
-   once on mount; later modules add their own through commands.register(). */
+   on mount and again whenever the language changes: registering an id again
+   replaces the command, so every label and group is said anew and the palette
+   searches the words the reader sees. Later modules add their own through
+   commands.register(). */
 import { commands } from './registry.svelte';
 import { builtinCommands, type FocusDir, type ViewWhere } from './builtin';
 import { commandId } from './command';
@@ -26,6 +29,11 @@ import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
+import { i18n, type LocaleChoice } from '../i18n/store.svelte';
+import { library } from '../explorer/library.svelte';
+import { languageName } from '../explorer/editions';
+import { switchEdition, switchableFrom } from '../explorer/editions.svelte';
+import { bookId } from '../types/ids';
 import { cart } from '../practice/cart.svelte';
 import { highlights } from '../settings/highlights.svelte';
 import { registry } from '../sections/registry.svelte';
@@ -52,8 +60,8 @@ const focusToward = (dir: FocusDir): void => {
 const groupCommands = (): readonly Command[] =>
   Array.from({ length: GROUP_COMMANDS }, (_, n): Command => ({
     id: commandId(`focus-group-${n + 1}`),
-    label: `Focus group ${n + 1}`,
-    group: 'Layout',
+    label: i18n.t('commands.focusGroupNumber', { n: n + 1 }),
+    group: i18n.t('commands.group.layout'),
     run: () => layoutStore.apply((x) => setFocus(x, n)),
     when: () => layoutStore.layout.groups.length > 1 && n < layoutStore.layout.groups.length,
     detail: () => { const active = layoutStore.layout.groups[n]?.active; return active ? tabTitle(active) : ''; },
@@ -102,7 +110,7 @@ const activeNote = (): { readonly group: GroupKey; readonly note: NoteId } | nul
    standing, under the cursor: there is nothing yet to read. */
 const notesDeps = {
   newNote: (): void => {
-    const doc = createNote(null, explorer.uniqueName(null, 'Untitled'));
+    const doc = createNote(null, explorer.uniqueName(null, i18n.t('commands.untitledNote')));
     const at = ui.palette.group ?? layoutStore.layout.focus;
     const group = layoutStore.layout.groups[at] ?? focusedGroup(layoutStore.layout);
     if (group) noteModes.setMode(group.key, doc.id, 'edit');
@@ -118,7 +126,7 @@ const notesDeps = {
    calling by a name. */
 const drawingDeps = {
   newDrawing: (): void => {
-    const made = createDrawing(null, explorer.uniqueName(null, 'Untitled drawing'));
+    const made = createDrawing(null, explorer.uniqueName(null, i18n.t('commands.untitledDrawing')));
     void openItem(itemKey(drawingItem(made.id)), ui.palette.group ?? layoutStore.layout.focus);
   },
 };
@@ -182,6 +190,22 @@ export const installCommands = (): void => {
       cart.add([level === 'book' || (level === 'chapter' && !chapter) ? { book: s.book } : level === 'chapter' ? { book: s.book, chapter: chapter! } : { book: s.book, section: s.section }]);
     },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, highlights: highlightDeps, practice: practiceDeps }), ...groupCommands()]);
+  /* The reader's language, read when the palette draws. */
+  const languageDeps = {
+    get choice(): LocaleChoice { return i18n.choice; },
+    get system() { return i18n.system; },
+    setChoice: (c: LocaleChoice) => i18n.setChoice(c),
+  };
+  /* The other editions of the book being read, each named by its language in the reader's own. */
+  const editionsDeps = {
+    current: () => {
+      const s = switchableFrom(); if (!s) return null;
+      return { from: s.from, to: s.to.map((b) => ({ id: b.id, label: languageName(b.language, i18n.locale), detail: b.title })) };
+    },
+    switchTo: (from: string, to: string) => { void switchEdition(bookId(from), bookId(to)); },
+  };
+  /* The catalogue the editions are read from; fetched once, outside any derivation. */
+  void library.load();
+  commands.register([...builtinCommands({ t: i18n.t, settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, language: languageDeps, editions: editionsDeps, highlights: highlightDeps, practice: practiceDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

@@ -10,6 +10,7 @@
 import { askText, type Chip } from '../context';
 import { systemPrompt } from '../prompt';
 import { transcript, type Chat, type Step, type ToolStep } from '../model';
+import { t } from '../../i18n';
 
 export const PROVIDER_IDS = ['anthropic', 'openai', 'gemini', 'deepseek', 'openrouter', 'mistral', 'local'] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -141,7 +142,9 @@ export type Provider = {
 };
 
 /* A host that answers no browser fails the fetch itself rather than answering
-   with a status, so a TypeError from fetch is that and is said in these words. */
+   with a status, so a TypeError from fetch is that and is said in these words.
+   The words are kept with the message as its marker, in English, and a bubble
+   shows them in the reader's language (chat.error.cors). */
 export const CORS_MESSAGE = 'this host does not allow requests from a browser; run a local proxy or choose another';
 
 export const failureOf = (e: unknown): string => {
@@ -165,7 +168,7 @@ export const errorOf = async (r: Response): Promise<string> => {
       return typeof e?.message === 'string' ? e.message : '';
     } catch { return ''; }
   })();
-  return message || `${r.status} ${r.statusText}`.trim() || 'the request was refused';
+  return message || `${r.status} ${r.statusText}`.trim() || t('chat.error.refused');
 };
 
 /* Every `data:` line of an SSE body, in order. A line of `[DONE]` ends it,

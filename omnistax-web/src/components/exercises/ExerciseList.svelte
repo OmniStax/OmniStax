@@ -12,6 +12,7 @@
   import { placeKey } from '../../lib/content/schema';
   import { ICON } from '../../lib/icons';
   import ExerciseCard from './ExerciseCard.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { book, section, place }: { book: BookId; section: SectionId; place: string } = $props();
   const all = $derived(registry.state(sectionRef(book, section))?.exercises ?? []);
   const items = $derived(all.filter((e) => placeKey(e.place) === place));
@@ -22,10 +23,10 @@
   <div class="list">
     {#if isEnd}
       <div class="practice-row">
-        <button type="button" class="practise" data-practise-section={section}>Practice this section{@html ICON.exercises}</button>
+        <button type="button" class="practise" data-practise-section={section}>{i18n.t('exercises.list.practiceSection')}{@html ICON.exercises}</button>
       </div>
     {:else}
-      <div class="eyebrow">Try it</div>
+      <div class="eyebrow">{i18n.t('exercises.list.tryIt')}</div>
       {#each items as ex (ex.id)}
         <ExerciseCard {book} {section} {ex} inline />
       {/each}

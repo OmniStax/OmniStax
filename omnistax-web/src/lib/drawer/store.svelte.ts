@@ -14,6 +14,7 @@
    its index says whether it has since been saved as a drawing of its own. */
 import { drawingId, type DrawingId } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
+import { t } from '../i18n';
 import { emptyDrawing, rowByName, rowOf, parseRows, type Drawing, type DrawingRow } from './model';
 import { deleteDrawingRecord, deleteScratchRecord, getDrawing, getScratchRecord, putDrawing, putScratchRecord } from './db';
 
@@ -93,7 +94,7 @@ class Drawings {
   async load(id: DrawingId): Promise<void> {
     if (this.open[id] || this.asked.has(id)) return;
     this.asked.add(id);
-    const name = this.row(id)?.name ?? 'Untitled drawing';
+    const name = this.row(id)?.name ?? t('drawer.untitled');
     const drawing = (await getDrawing(id)) ?? emptyDrawing(name, id);
     this.open = { ...this.open, [id]: drawing };
   }

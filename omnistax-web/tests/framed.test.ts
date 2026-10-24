@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import { loadBook, pageNav } from '../src/lib/content/load';
-import { fragment, qualifyIds, spanHeads } from '../src/lib/content/fragment';
+import { bookLocale, fragment, qualifyIds, spanHeads } from '../src/lib/content/fragment';
+import { CATALOGS, setCurrentLocale, type MessageKey } from '../src/lib/i18n/index';
 import { sectionOfUrl } from '../src/lib/content/urls';
 import { checkContent, checkPages, checkAnchors, contentOf, errorsOf } from '../src/lib/content/check';
 import type { Content } from '../src/lib/content/check';
@@ -80,23 +81,23 @@ test('a figure the introduction keeps is linked from a section that cites it, ac
 });
 test('the front page’s article has the book’s words and nothing invented, and no problem set beside it', () => {
   const ch = TREE.chapters[0];
-  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!));
-  assert.match(html, /<article data-book="framed" data-doc="2\.intro\/text" data-sec="2\.intro" data-chapter="ch02" data-title="Introduction to Kinematics"/);
+  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!), 'en');
+  assert.match(html, /<article lang="en" data-book="framed" data-doc="2\.intro\/text" data-sec="2\.intro" data-chapter="ch02" data-title="Introduction to Kinematics"/);
   assert.match(html, /<div class="eyebrow">Chapter 2 · Kinematics<\/div>/);
   assert.doesNotMatch(html, /<p class="lead">/, 'an empty lead prints no line');
   assert.doesNotMatch(html, /data-doc="2\.intro\/exercises"/);
   assert.doesNotMatch(html, /class="section-end"/);
   assert.match(html, /Access for free at <a href="https:\/\/example.org\/pages\/2-introduction-to-kinematics">/);
   assert.match(html, /<p>The trailer is left out.<\/p><\/footer>/);
-  const preface = fragment(TREE.dto, null, TREE.intro!, pageNav(TREE, TREE.intro!));
-  assert.match(preface, /<article data-book="framed" data-doc="intro\/text" data-sec="intro" data-title="Preface"/);
+  const preface = fragment(TREE.dto, null, TREE.intro!, pageNav(TREE, TREE.intro!), 'en');
+  assert.match(preface, /<article lang="en" data-book="framed" data-doc="intro\/text" data-sec="intro" data-title="Preface"/);
   assert.doesNotMatch(preface, /data-chapter=/, 'the book’s own page belongs to no chapter');
   assert.match(preface, /<div class="eyebrow">A Framed Book<\/div>/);
   assert.match(preface, /<script type="application\/json" data-book="framed" data-section="intro">/, 'the data travels with its book');
 });
 test('a section’s summary stands at the end of its text, math rendered, before the way on to practice', () => {
   const ch = TREE.chapters[0];
-  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
+  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]), 'en');
   const summary = html.indexOf('<section class="summary" id="2.1-section-summary"><h2>Section summary</h2>');
   assert.ok(summary > html.indexOf('</section>'), 'after the last span');
   assert.ok(summary < html.indexOf('class="section-end"'), 'before the practise row');
@@ -105,7 +106,7 @@ test('a section’s summary stands at the end of its text, math rendered, before
 });
 test('a text ends on one centred button: practice this section, with the pencil on it', () => {
   const ch = TREE.chapters[0];
-  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
+  const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]), 'en');
   const row = /<div class="section-end">([\s\S]*?)<\/div>/.exec(html);
   assert.ok(row, 'the row stands at the end of the text');
   assert.equal(row![1], `<button type="button" class="practise" data-practise-section="2.1" title="Open a practice session on this section">Practice this section${ICON.exercises}</button>`);
@@ -119,16 +120,40 @@ test('every text ends on the way to the page before and the page after, across t
   assert.deepEqual(pageNav(TREE, TREE.intro!), { next: { url: '/framed/ch02/intro/', label: 'Introduction to Kinematics' } }, 'the preface has nothing before it');
   assert.deepEqual(pageNav(TREE, ch.intro!), { prev: { url: '/framed/intro/', label: 'Preface' }, next: { url: '/framed/ch02/2.1/', label: '2.1 Displacement' } }, 'a chapter’s introduction goes back to the book’s own page');
   assert.deepEqual(pageNav(TREE, ch.sections[0]), { prev: { url: '/framed/ch02/intro/', label: 'Introduction to Kinematics' } }, '2.2 is not built, so 2.1 has no way on');
-  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!));
+  const html = fragment(TREE.dto, ch.dto, ch.intro!, pageNav(TREE, ch.intro!), 'en');
   const nav = /<nav class="page-nav" aria-label="[^"]+">([\s\S]*?)<\/nav>/.exec(html);
   assert.ok(nav, 'the row stands in the text');
   assert.equal(nav![1], '<a class="prev" rel="prev" href="/framed/intro/"><span class="eyebrow">Previous</span><span class="name">Preface</span></a><a class="next" rel="next" href="/framed/ch02/2.1/"><span class="eyebrow">Next</span><span class="name">2.1 Displacement</span></a>');
   assert.ok(html.indexOf('<nav class="page-nav"') < html.indexOf('<footer class="footer">'), 'above the credit');
-  const section = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]));
+  const section = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]), 'en');
   assert.ok(section.indexOf('class="section-end"') < section.indexOf('<nav class="page-nav"'), 'after the practise row');
   assert.doesNotMatch(section, /class="next"/);
   assert.doesNotMatch(section, /data-doc="2\.1\/exercises"/, 'the old problem-set document is absent');
-  assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.sections[0], {}), /page-nav/, 'a page with no neighbour prints no row');
+  assert.doesNotMatch(fragment(TREE.dto, ch.dto, ch.sections[0], {}, 'en'), /page-nav/, 'a page with no neighbour prints no row');
+});
+test('the words the build adds are in the book’s language, not the reader’s', () => {
+  assert.equal(bookLocale({ language: 'en' }), 'en');
+  assert.equal(bookLocale({ language: 'zh-CN' }), 'zh-CN');
+  assert.equal(bookLocale({ language: 'zh-Hans' }), 'zh-CN', 'the one Chinese catalog');
+  assert.equal(bookLocale({ language: 'fr' }), 'en', 'a language with no catalog is written in English');
+  const ch = TREE.chapters[0];
+  const zh = CATALOGS['zh-CN'] as Record<MessageKey, string>;
+  const keys = ['content.previous', 'content.practice.button', 'content.practice.open', 'content.summary.heading', 'content.chapter.eyebrow', 'content.credit.footer', 'content.pageLabel'] as const;
+  const saved = keys.map((k) => zh[k]);
+  Object.assign(zh, { 'content.previous': '上一页', 'content.practice.button': '练习本节', 'content.practice.open': '为本节开始练习', 'content.summary.heading': '本节小结',
+    'content.chapter.eyebrow': '第 {id} 章 · {title}', 'content.credit.footer': '文本来自 {works}{by}（{publisher}{holder}），{license}。', 'content.pageLabel': '{id}　{title}' });
+  setCurrentLocale('en');   /* the reader reads English; the book is Chinese */
+  try {
+    const html = fragment(TREE.dto, ch.dto, ch.sections[0], pageNav(TREE, ch.sections[0]), 'zh-CN');
+    assert.match(html, /<span class="eyebrow">上一页<\/span>/);
+    assert.match(html, /title="为本节开始练习">练习本节/);
+    assert.match(html, /<h2>本节小结<\/h2>/);
+    assert.match(html, /<div class="eyebrow">第 2 章 · /);
+    assert.match(html, /<footer class="footer"><p>文本来自 <cite>/);
+    assert.doesNotMatch(html, /Previous|Practice this section|Section summary|Text from/);
+    assert.equal(pageLabel({ id: '2.1', title: '位移' }, 'zh-CN'), '2.1　位移');
+    assert.equal(pageLabel({ id: '2.1', title: 'Displacement' }), '2.1 Displacement', 'in the shell, the reader’s language');
+  } finally { keys.forEach((k, i) => { zh[k] = saved[i]; }); }
 });
 test('a link to a front page opens as a tab like a link to a section', () => {
   assert.equal(sectionOfUrl(M, '/framed/ch02/intro/'), '2.intro');

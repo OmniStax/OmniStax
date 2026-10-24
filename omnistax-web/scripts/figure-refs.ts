@@ -7,9 +7,10 @@ import { figureRefs } from '../src/lib/content/figrefs';
 
 type SectionRowsDTO = { readonly id: string | number; readonly figures?: readonly { readonly id: string }[]; readonly referents?: readonly { readonly id: string }[] };
 
+/* The pages of one book: a book's `translations/` folder holds other books (load.ts findBooks) and is passed over. */
 const sectionFiles = async (dir: string): Promise<readonly string[]> => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
-  const nested = await Promise.all(entries.filter((e) => e.isDirectory()).map((e) => sectionFiles(path.join(dir, e.name))));
+  const nested = await Promise.all(entries.filter((e) => e.isDirectory() && e.name !== 'translations').map((e) => sectionFiles(path.join(dir, e.name))));
   return [...entries.filter((e) => e.isFile() && e.name === 'section.json').map((e) => path.join(dir, e.name)), ...nested.flat()];
 };
 const readIf = (p: string): Promise<string> => fs.readFile(p, 'utf8').catch(() => '');

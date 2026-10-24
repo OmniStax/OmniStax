@@ -7,13 +7,12 @@
   import { onMount } from 'svelte';
   import { onDragToast } from '../../lib/notes/md/dragout';
   import { settings } from '../../lib/settings/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   /* How long the line stays after the card lands. */
   const LINGER_MS = 500;
   let shown = $state(false);
-  const text = $derived(settings.swapDragButtons
-    ? 'Drop in a note/drawing. Left-click + drag to select text instead'
-    : 'Drop in a note/drawing. Right-click + drag to select text instead');
+  const text = $derived(i18n.t(settings.swapDragButtons ? 'shell.dragToast.leftSelects' : 'shell.dragToast.rightSelects'));
 
   onMount(() => {
     let timer = 0;

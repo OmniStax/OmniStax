@@ -8,6 +8,7 @@
    with the way to the Sync view, unless that view is already open; the next
    try waits a whole interval. */
 import { sync } from './store.svelte';
+import { t } from '../i18n/index';
 import { session } from './session.svelte';
 import { alerts } from '../alerts.svelte';
 import { layoutStore } from '../layout/store.svelte';
@@ -37,7 +38,7 @@ export const tick = async (now = Date.now()): Promise<void> => {
     await session.go({ up, down });
     if (session.problem) throw new Error(session.problem);
   } catch (e) {
-    if (!syncOpen()) alerts.show({ text: `Error syncing: ${e instanceof Error ? e.message : String(e)}`, action: { label: 'Open Sync view', run: () => { commands.run(showViewId('sync')); } } });
+    if (!syncOpen()) alerts.show({ text: t('views.sync.autoError', { error: e instanceof Error ? e.message : String(e) }), action: { label: t('views.sync.openView'), run: () => { commands.run(showViewId('sync')); } } });
   } finally { running = false; }
 };
 

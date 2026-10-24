@@ -13,6 +13,7 @@
      The component owns no nodes of its own: whoever opens it hands the root
      over, so the same picker serves a chat, a note, and whatever asks next. */
   import { untrack } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { atCursor, faceOf, into, nextIndex, open as openState, pickable, queryIn, trailOf, up, type Listed, type PickerNode, type PickerRow, type PickerState } from '../../lib/picker/model';
   import { linkInner } from '../../lib/notes/md/links';
   import { FigureMounts } from '../../lib/notes/md/figlive';
@@ -146,7 +147,7 @@
     {#key linkInner(figure)}<div class="fig-embed" data-embed={linkInner(figure)}></div>{/key}
   </div>
 {/if}
-<div class="picker" role="listbox" aria-label="Insert something" bind:this={box} onmouseleave={() => (hovered = null)}>
+<div class="picker" role="listbox" aria-label={i18n.t('shell.atPicker.label')} bind:this={box} onmouseleave={() => (hovered = null)}>
   {#if trail.length}
     <nav class="crumb">
       <button type="button" onmousedown={(e) => press(e, () => back(0))}>@</button>
@@ -158,7 +159,7 @@
     </nav>
   {/if}
   {#if count === 0}
-    <p class="empty">Nothing here yet.</p>
+    <p class="empty">{i18n.t('shell.atPicker.empty')}</p>
   {:else}
     <ul>
       {#each face as l, i (l.path.join('/'))}

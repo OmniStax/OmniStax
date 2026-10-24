@@ -6,6 +6,7 @@
    key they never touched. Pure: the store reads and writes, and the shell turns
    what this answers into classes on the root. */
 import { type ColourSwitches, type ColourShown, COLOUR_LABELS, rootClasses, shownOf } from '../colours/switches';
+import { t } from '../i18n/index';
 
 export type HighlightKey = 'facts' | 'refs' | 'concepts' | 'words' | 'symbols' | 'underlines';
 export type BookHighlights = Readonly<Record<HighlightKey, boolean>>;
@@ -15,7 +16,11 @@ export type HighlightOverrides = Readonly<Partial<Record<HighlightKey, boolean>>
 export const HIGHLIGHT_KEYS: readonly HighlightKey[] = ['facts', 'refs', 'concepts', 'words', 'symbols', 'underlines'];
 /* The book layer where there is no book (the about page): nothing held back. */
 export const HIGHLIGHTS_ON: BookHighlights = { facts: true, refs: true, concepts: true, words: false, symbols: true, underlines: true };
-export const HIGHLIGHT_LABELS: Readonly<Record<HighlightKey, string>> = { facts: COLOUR_LABELS.facts, refs: COLOUR_LABELS.refs, concepts: COLOUR_LABELS.concepts, words: COLOUR_LABELS.words, symbols: COLOUR_LABELS.symbols, underlines: 'Underlines' };
+/* Read in the current language each time a label is asked for (getters, not stored strings). */
+export const HIGHLIGHT_LABELS: Readonly<Record<HighlightKey, string>> = {
+  get facts() { return COLOUR_LABELS.facts; }, get refs() { return COLOUR_LABELS.refs; }, get concepts() { return COLOUR_LABELS.concepts; },
+  get words() { return COLOUR_LABELS.words; }, get symbols() { return COLOUR_LABELS.symbols; }, get underlines() { return t('settings.highlights.underlines'); },
+};
 /* The book key a key sits under, as Words and Symbols sit under Concepts globally. */
 export const HIGHLIGHT_PARENT: Readonly<Partial<Record<HighlightKey, HighlightKey>>> = { words: 'concepts', symbols: 'concepts' };
 const isKey = (k: string): k is HighlightKey => (HIGHLIGHT_KEYS as readonly string[]).includes(k);
@@ -50,5 +55,5 @@ export const highlightClasses = (book: BookHighlights): Readonly<Record<string, 
 /* Why a book key can do nothing just now: the parent that holds it off; null when it is free. */
 export const heldOffBy = (book: BookHighlights, k: HighlightKey): string | null => {
   const parent = HIGHLIGHT_PARENT[k];
-  return parent && !book[parent] ? `${HIGHLIGHT_LABELS[parent]} is off for this book.` : null;
+  return parent && !book[parent] ? t('settings.highlights.heldOff', { name: HIGHLIGHT_LABELS[parent] }) : null;
 };

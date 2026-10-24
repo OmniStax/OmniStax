@@ -12,6 +12,7 @@
   import { ui } from '../lib/commands/ui.svelte';
   import { rank } from '../lib/commands/fuzzy';
   import { pieces } from '../lib/commands/pieces';
+  import { i18n } from '../lib/i18n/store.svelte';
   import { openChoice, filter, key, perform, shown, type ChoiceStage, type ChoiceKey, type ChoiceOption } from '../lib/commands/choice';
   import { recent } from '../lib/commands/recent.svelte';
   import { ICON } from '../lib/icons';
@@ -82,12 +83,12 @@
 </script>
 
 {#if ui.palette.open}
-  <div class="palette" role="dialog" aria-label="Command palette" onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
+  <div class="palette" role="dialog" lang={i18n.locale} aria-label={i18n.t('shell.rail.palette')} onclick={(e) => e.stopPropagation()} onkeydown={onKey}>
     {#if choice}
       <div class="crumb">{choice.title}</div>
       <input bind:this={input} value={choice.query} oninput={(e) => { if (choice) choice = filter(choice, e.currentTarget.value); }} type="text" spellcheck="false" autocomplete="off" aria-label={choice.title} />
     {:else}
-      <input bind:this={input} bind:value={query} type="text" spellcheck="false" autocomplete="off" aria-label="Command" placeholder="Type a command…" />
+      <input bind:this={input} bind:value={query} type="text" spellcheck="false" autocomplete="off" aria-label={i18n.t('shell.palette.command')} placeholder={i18n.t('shell.palette.placeholder')} />
     {/if}
     <div class="list" bind:this={list} role="listbox">
     {#if choice}
@@ -95,27 +96,27 @@
         <div class="row" class:sel={i === choice.sel} role="option" aria-selected={i === choice.sel} onclick={() => commit(item)}>
           <span class="lbl">{#each pieces(item.label, 0, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           {#if item.detail}<span class="detail">{item.detail}</span>{/if}
-          {#if item.value === choice.list.current}<span class="detail">current</span>{/if}
+          {#if item.value === choice.list.current}<span class="detail">{i18n.t('commands.detail.current')}</span>{/if}
         </div>
       {:else}
-        <div class="none">No matches</div>
+        <div class="none">{i18n.t('shell.palette.noMatches')}</div>
       {/each}
     {:else}
       {#each items as { item, match, recent: used }, i (item.id)}
         {@const detail = item.detail?.() ?? ''}
-        {#if !query.trim() && (i === 0 && used || i === firstAll)}<div class="head">{used ? 'Recently used' : 'All commands'}</div>{/if}
+        {#if !query.trim() && (i === 0 && used || i === firstAll)}<div class="head">{i18n.t(used ? 'shell.palette.recent' : 'shell.palette.all')}</div>{/if}
         <div class="row" class:sel={i === sel} role="option" aria-selected={i === sel} onmousemove={() => (sel = i)} onclick={() => run(item)}>
           <span class="grp">{#each pieces(item.group, 0, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           <span class="lbl">{#each pieces(item.label, item.group.length + 1, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           {#if detail}<span class="detail">{detail}</span>{/if}
           <span class="keys">{#each keys.chordsFor(item.id) as c (c)}<span class="chord">{#each chordKeys(c) as k}<kbd class="kbd">{k}</kbd>{/each}</span>{/each}</span>
           <span class="acts">
-            <button type="button" class="act" title="Configure keybind" aria-label="Configure the keybind of {item.label}" onclick={(e) => { e.stopPropagation(); configure(item); }}>{@html ICON.gear}</button>
-            {#if used}<button type="button" class="act" title="Remove from recently used" aria-label="Remove {item.label} from recently used" onclick={(e) => { e.stopPropagation(); forget(item); }}>×</button>{/if}
+            <button type="button" class="act" title={i18n.t('shell.palette.configureKeybind')} aria-label={i18n.t('shell.palette.configureKeybindOf', { label: item.label })} onclick={(e) => { e.stopPropagation(); configure(item); }}>{@html ICON.gear}</button>
+            {#if used}<button type="button" class="act" title={i18n.t('shell.palette.forget')} aria-label={i18n.t('shell.palette.forgetItem', { label: item.label })} onclick={(e) => { e.stopPropagation(); forget(item); }}>×</button>{/if}
           </span>
         </div>
       {:else}
-        <div class="none">No matching commands</div>
+        <div class="none">{i18n.t('shell.palette.noCommands')}</div>
       {/each}
     {/if}
     </div>

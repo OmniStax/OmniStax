@@ -15,11 +15,12 @@
   import { settings } from '../../lib/settings/store.svelte';
   import { colours } from '../../lib/colours/store.svelte';
   import { symbolsOf, isEmpty, isHex, normHex, type Hue, type Source, type TypeKey } from '../../lib/colours/model';
-  import { SWATCHES, palettesFor, type Palette, type PaletteId } from '../../lib/colours/palettes';
+  import { SWATCHES, palettesFor, paletteName, swatchName, type Palette, type PaletteId } from '../../lib/colours/palettes';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { VISIONS, type Vision } from '../../lib/colours/oklab';
   import type { DealtMode, RefMode } from '../../lib/colours/referents';
   import { ICON } from '../../lib/icons';
-  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy } from '../../lib/settings/highlights';
+  import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy, type HighlightKey } from '../../lib/settings/highlights';
   import { highlights } from '../../lib/settings/highlights.svelte';
   import SymbolList from './SymbolList.svelte';
 
@@ -28,16 +29,20 @@
   $effect.pre(() => { if (book) colours.select(book); });
   const manifest = $derived(book ? registry.manifest(book) : null);
   const types = $derived(colours.order);
+  /* The switches' names and reasons are read in the current language; reading
+     i18n.locale here makes the row say them anew when the reader changes it. */
+  const hlLabel = (k: HighlightKey): string => { void i18n.locale; return HIGHLIGHT_LABELS[k]; };
+  const heldOf = (v: Parameters<typeof heldOffBy>[0], k: HighlightKey): string | null => { void i18n.locale; return heldOffBy(v, k); };
   const labelOf = (k: TypeKey): string => manifest?.types[k]?.label ?? k;
   const hlBook = $derived(book ? highlights.bookOf(book) : null);
   const hlValues = $derived(book ? highlights.valuesOf(book) : null);
 
   /* The reader edits the ground they are looking at; the other one is derived for them. */
-  const themeNote = $derived(settings.dark ? 'Dark theme colors' : 'Light theme colors');
+  const themeNote = $derived(settings.dark ? i18n.t('views.colours.darkColors') : i18n.t('views.colours.lightColors'));
   const shown = (h: Hue | null): string | null => (h ? (settings.dark ? h.dark : h.light) : null);
   const spare = (h: Hue | null): string | null => (h ? (settings.dark ? h.light : h.dark) : null);
   const nothingSet = $derived(isEmpty(colours.choices));
-  const source = (from: Source): string => (from.kind === 'own' ? 'yours' : from.kind === 'scheme' ? 'default' : '');
+  const source = (from: Source): string => (from.kind === 'own' ? i18n.t('views.colours.yours') : from.kind === 'scheme' ? i18n.t('views.colours.default') : '');
 
   /* One picker stands open at a time, under the row it belongs to. */
   let open = $state<TypeKey | null>(null);
@@ -133,7 +138,7 @@
 
   /* The palettes are worked out for the vision the reader states here, and the page
      takes that vision on only when one of them is applied. */
-  const VISION_NAMES: Readonly<Record<Vision, string>> = { normal: 'Normal', protan: 'Protanopia', deutan: 'Deuteranopia', tritan: 'Tritanopia' };
+  const VISION_NAMES = $derived<Readonly<Record<Vision, string>>>({ normal: i18n.t('views.colours.vision.normal'), protan: i18n.t('views.colours.vision.protan'), deutan: i18n.t('views.colours.vision.deutan'), tritan: i18n.t('views.colours.vision.tritan') });
   const vision = $derived(colours.statedVision);
   const visionPending = $derived(vision !== colours.vision);
   /* Only the palettes that can dress every quantity of the book, each already cut
@@ -147,13 +152,13 @@
   const catsInUse = (p: PaletteId, mode: RefMode): boolean => !visionPending && cats.palette === p && cats.mode === mode;
   const refsInUse = (p: PaletteId, mode: RefMode): boolean => !visionPending && refNow.palette === p && refNow.mode === mode;
   const apply = (p: Palette, mode: RefMode): void => { colours.applyCategories(p, mode, vision); };
-  const TIPS = {
-    categoryOrder: 'Give the first color to the first quantity in your order, the second to the second, and so on.',
-    categorySmart: 'Assign colors with an algorithm that maximizes the color distance on each page, judged over the whole book.',
-    referentOrder: 'Give each referent the color at its own position in this set.',
-    referentSmart: 'Assign referent colors the same way: on each page, every referent gets a color far from the other colors there, judged over the whole book.',
-  } as const;
-  const MODE_NAMES: Readonly<Record<DealtMode, string>> = { order: 'in order', smart: 'smart', farthest: 'farthest apart' };
+  const TIPS = $derived({
+    categoryOrder: i18n.t('views.colours.tip.categoryOrder'),
+    categorySmart: i18n.t('views.colours.tip.categorySmart'),
+    referentOrder: i18n.t('views.colours.tip.referentOrder'),
+    referentSmart: i18n.t('views.colours.tip.referentSmart'),
+  });
+  const MODE_NAMES = $derived<Readonly<Record<DealtMode, string>>>({ order: i18n.t('views.colours.mode.order'), smart: i18n.t('views.colours.mode.smart'), farthest: i18n.t('views.colours.mode.farthest') });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -161,30 +166,30 @@
   {#if manifest && hlBook && hlValues}
     <h2 class="title">{manifest.title || manifest.id}</h2>
 
-    <div class="eyebrow">Color code</div>
+    <div class="eyebrow">{i18n.t('views.colours.colorCode')}</div>
     <ul class="rows hl">
       {#each HIGHLIGHT_KEYS as k (k)}
-        {@const held = heldOffBy(hlValues, k)}
+        {@const held = heldOf(hlValues, k)}
         {@const value = hlValues[k]}
         {@const def = hlBook.defaults[k]}
         <li class="row" class:sub={HIGHLIGHT_PARENT[k] !== undefined} class:held={held !== null} title={held}>
-          <span class="name">{HIGHLIGHT_LABELS[k]}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} aria-label={HIGHLIGHT_LABELS[k]} onclick={() => highlights.set(k, !value, book)}></button>
+          <span class="name">{hlLabel(k)}</span><button type="button" class="toggle hl-{k}" class:on={value} aria-pressed={value} disabled={held !== null} aria-label={hlLabel(k)} onclick={() => highlights.set(k, !value, book)}></button>
           {#if value !== def}
-            <button type="button" class="clear" title={`Back to the book's default (${def ? 'on' : 'off'})`} aria-label={`Reset ${HIGHLIGHT_LABELS[k]} to the book's default (${def ? 'on' : 'off'})`} onclick={() => highlights.reset(k, book)}>×</button>
+            <button type="button" class="clear" title={i18n.t(def ? 'views.colours.backToDefaultOn' : 'views.colours.backToDefaultOff')} aria-label={i18n.t(def ? 'views.colours.resetToDefaultOn' : 'views.colours.resetToDefaultOff', { name: hlLabel(k) })} onclick={() => highlights.reset(k, book)}>×</button>
           {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
         </li>
       {/each}
     </ul>
 
-    <div class="eyebrow">Quantities</div>
-    <p class="note explain">Each kind of quantity, like force or velocity, keeps one color everywhere in the book: in words, in symbols and in figures.</p>
+    <div class="eyebrow">{i18n.t('views.colours.quantities')}</div>
+    <p class="note explain">{i18n.t('views.colours.quantitiesExplain')}</p>
     {#if !hlValues.concepts}
-      <p class="note explain">Concepts is off for this book, so these colors do not show on its pages.</p>
+      <p class="note explain">{i18n.t('views.colours.conceptsOff')}</p>
     {/if}
     <div class="bar">
-      <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>Undo</button>
-      <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>Redo</button>
-      <button type="button" disabled={nothingSet} onclick={() => colours.resetAll()}>Back to the book's colors</button>
+      <button type="button" disabled={!colours.canUndo} title={colours.canUndo ? colours.undoLabel : ''} onclick={() => colours.undo()}>{i18n.t('views.colours.undo')}</button>
+      <button type="button" disabled={!colours.canRedo} title={colours.canRedo ? colours.redoLabel : ''} onclick={() => colours.redo()}>{i18n.t('views.colours.redo')}</button>
+      <button type="button" disabled={nothingSet} onclick={() => colours.resetAll()}>{i18n.t('views.colours.resetAll')}</button>
       <span class="theme">{themeNote}</span>
     </div>
     {#if types.length > 8}
@@ -213,33 +218,33 @@
             ondragover={(e) => onDragOver(e, k)}
             ondragleave={() => { if (over?.type === k) over = null; }}
             ondrop={(e) => onDrop(e, k)}>
-            <button type="button" class="grip" aria-label={`Move ${name}; press the arrow keys to move it up or down`}
-              title="Reorder" onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
+            <button type="button" class="grip" aria-label={i18n.t('views.colours.move', { name })}
+              title={i18n.t('views.colours.reorder')} onkeydown={(e) => onGripKey(e, k)}>{@html ICON.grip}</button>
             <button type="button" class="swatch" class:none={hex === null} style:background-color={hex ?? 'transparent'} aria-expanded={open === k}
-              aria-label={`Color of ${name}`}
+              aria-label={i18n.t('views.colours.colorOf', { name })}
               onclick={() => openPicker(k)}></button>
-            {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? 'Light theme color' : 'Dark theme color'}></i>{/if}
+            {#if alt}<i class="chip" style:background-color={alt} title={settings.dark ? i18n.t('views.colours.lightColor') : i18n.t('views.colours.darkColor')}></i>{/if}
             <span class="name">{name}{#if dim}<small>{dim}</small>{/if}</span>
             <SymbolList macros={symbolsOf(manifest, k)} label={name} />
             <span class="from" class:own={own !== null}>{source(eff.from)}</span>
             {#if own}
-              <button type="button" class="clear" title="Back to the book's color" aria-label={`Back to the book's color for ${name}`} onclick={() => colours.clear(k)}>×</button>
+              <button type="button" class="clear" title={i18n.t('views.colours.backToBook')} aria-label={i18n.t('views.colours.backToBookFor', { name })} onclick={() => colours.clear(k)}>×</button>
             {:else}<span class="clear-room" aria-hidden="true"></span>{/if}
           </div>
           {#if open === k}
             <div class="picker">
               <div class="grid">
                 {#each SWATCHES as s (s.hex)}
-                  <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={s.name}
+                  <button type="button" class="cell" class:on={sameHex(hex, s.hex)} style:background-color={s.hex} aria-label={swatchName(s, i18n.t)}
                     onclick={() => { colours.breakCoalescing(); colours.pick(k, s.hex); draft = s.hex; }}></button>
                 {/each}
               </div>
               <div class="fine">
-                <input type="color" value={hex ?? '#000000'} aria-label={`The ${settings.dark ? 'dark' : 'light'} colour of ${name}`}
+                <input type="color" value={hex ?? '#000000'} aria-label={i18n.t(settings.dark ? 'views.colours.darkColorOf' : 'views.colours.lightColorOf', { name })}
                   oninput={(e) => { draft = e.currentTarget.value; drag(k, e.currentTarget.value); }} onchange={settle} />
-                <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label="Hex code"
+                <input type="text" class="hex" spellcheck="false" bind:value={draft} aria-label={i18n.t('views.colours.hex')}
                   onkeydown={(e) => { if (e.key === 'Enter') { commitHex(k); e.preventDefault(); } }} onblur={() => commitHex(k)} />
-                <span class="hint">Type a hex code or drag to pick.</span>
+                <span class="hint">{i18n.t('views.colours.hexHint')}</span>
               </div>
             </div>
           {/if}
@@ -247,28 +252,28 @@
       {/each}
     </ul>
 
-    <div class="eyebrow">Palettes</div>
+    <div class="eyebrow">{i18n.t('views.colours.palettes')}</div>
     <div class="vision">
-      <span class="vlabel">Color vision</span>
-      <div class="seg" role="radiogroup" aria-label="Color vision">
+      <span class="vlabel">{i18n.t('views.colours.vision')}</span>
+      <div class="seg" role="radiogroup" aria-label={i18n.t('views.colours.vision')}>
         {#each VISIONS as v (v)}
           <button type="button" class:on={vision === v} role="radio" aria-checked={vision === v} onclick={() => colours.stateVision(v)}>{VISION_NAMES[v]}</button>
         {/each}
       </div>
     </div>
     {#if visionPending}
-      <p class="note explain">The palettes below are made for {VISION_NAMES[vision].toLowerCase()} vision. Apply one to use it.</p>
+      <p class="note explain">{i18n.t('views.colours.visionPending', { vision: VISION_NAMES[vision].toLowerCase() })}</p>
     {/if}
     {#if shownPalettes.length === 0}
-      <p class="note">Nothing to color here.</p>
+      <p class="note">{i18n.t('views.colours.nothing')}</p>
     {/if}
     <ul class="pals">
       {#each shownPalettes as { palette: p, hues } (p.id)}
         <li>
-          <div class="phead"><span class="pname">{p.name}</span>
+          <div class="phead"><span class="pname">{paletteName(p, i18n.t)}</span>
             {#each ['order', 'smart'] as const as mode (mode)}
               {@const now = catsInUse(p.id, mode)}
-              <button type="button" class:on={now} disabled={now} title={now ? 'In use' : mode === 'order' ? TIPS.categoryOrder : TIPS.categorySmart} onclick={() => apply(p, mode)}>{now ? 'In use' : mode === 'order' ? 'Apply in order' : 'Apply smart'}</button>
+              <button type="button" class:on={now} disabled={now} title={now ? i18n.t('views.colours.inUse') : mode === 'order' ? TIPS.categoryOrder : TIPS.categorySmart} onclick={() => apply(p, mode)}>{now ? i18n.t('views.colours.inUse') : mode === 'order' ? i18n.t('views.colours.applyOrder') : i18n.t('views.colours.applySmart')}</button>
             {/each}
           </div>
           <div class="strip pstrip" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>
@@ -276,15 +281,15 @@
       {/each}
     </ul>
 
-    <div class="eyebrow refs">Referent palettes</div>
-    <p class="note explain">Referents are things both a figure and the text point to, so they get the same color in both. They take colors from a set of 36, kept clear of the other colors near them.</p>
+    <div class="eyebrow refs">{i18n.t('views.colours.referentPalettes')}</div>
+    <p class="note explain">{i18n.t('views.colours.referentsExplain')}</p>
     <ul class="pals">
       {#each referentOffers as { palette: p, hues } (p.id)}
         <li>
-          <div class="phead"><span class="pname">{p.name}</span>
+          <div class="phead"><span class="pname">{paletteName(p, i18n.t)}</span>
             {#each ['order', 'smart'] as const as mode (mode)}
               {@const now = refsInUse(p.id, mode)}
-              <button type="button" class:on={now} disabled={now} title={now ? `In use, ${MODE_NAMES[mode]}` : mode === 'order' ? TIPS.referentOrder : TIPS.referentSmart} onclick={() => colours.applyReferents(p.id, mode, vision)}>{now ? 'In use' : mode === 'order' ? 'Apply in order' : 'Apply smart'}</button>
+              <button type="button" class:on={now} disabled={now} title={now ? i18n.t('views.colours.inUseMode', { mode: MODE_NAMES[mode] }) : mode === 'order' ? TIPS.referentOrder : TIPS.referentSmart} onclick={() => colours.applyReferents(p.id, mode, vision)}>{now ? i18n.t('views.colours.inUse') : mode === 'order' ? i18n.t('views.colours.applyOrder') : i18n.t('views.colours.applySmart')}</button>
             {/each}
           </div>
           <div class="refgrid" aria-hidden="true">{#each hues as h, i (i)}<i style:background-color={settings.dark ? h.dark : h.light}></i>{/each}</div>

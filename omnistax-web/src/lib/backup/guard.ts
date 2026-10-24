@@ -1,3 +1,5 @@
+import { t } from '../i18n/index';
+
 const FLAG = '__omnistaxReaderWritesAllowed';
 const LOCK = 'omnistax-reader-profile';
 type GuardedGlobal = typeof globalThis & { [FLAG]?: boolean };
@@ -25,7 +27,7 @@ export const startReaderLifetimeLock = async (): Promise<() => Promise<void>> =>
 };
 
 export const withExclusiveReaderLock = async <T>(operation: () => Promise<T>, releaseThisTab: boolean): Promise<T> => {
-  if (!navigator.locks) throw new Error('Safe restore needs the Web Locks API, which this browser does not provide. Export still works; use a current browser to import.');
+  if (!navigator.locks) throw new Error(t('shell.backup.noLocks'));
   if (releaseThisTab) {
     /* No store may write in the interval between dropping this tab's shared
        lifetime lock and either obtaining exclusivity or forcing a reload. */
@@ -34,7 +36,7 @@ export const withExclusiveReaderLock = async <T>(operation: () => Promise<T>, re
     await sharedRequest; sharedRequest = null;
   }
   return navigator.locks.request(LOCK, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
-    if (!lock) throw new Error('Close OmniStax in other tabs or windows, then try the import again.');
+    if (!lock) throw new Error(t('shell.backup.otherTabs'));
     setReaderWritesAllowed(false);
     return operation();
   });

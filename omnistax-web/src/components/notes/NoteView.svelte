@@ -16,6 +16,8 @@
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
   import { setImageWidth } from '../../lib/notes/md/width';
   import { untrack } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n';
   import { findLinks, isBook, linkInner, linkKey, parseLink, withEmbedWidth, withFigureParams, withoutFigureParams, type BookKind } from '../../lib/notes/md/links';
   import { addEmbedGrips } from '../../lib/notes/md/grips';
   import { fetchMissing } from '../../lib/notes/md/fetch';
@@ -75,7 +77,8 @@
      from under the reader's hand. The values reach the cards below instead. */
   const skeleton = $derived(withoutFigureParams(body));
   const shown = $derived.by(() => { void skeleton; return untrack(() => body); });
-  const html = $derived(render !== null && shown.trim() ? render(shown, resolver()) : '');
+  /* The cards' own words are the app's, so a change of language draws them again. */
+  const html = $derived.by(() => { void i18n.locale; return render !== null && shown.trim() ? render(shown, resolver()) : ''; });
 
   /* ── what the rendered HTML still needs ────────────────────────────────── */
 
@@ -88,7 +91,7 @@
   /* A control moved by hand is written into the figure's link, one undo step per drag. */
   const mounts = new FigureMounts(focusedBook, (fig, n, values, gesture) => {
     const doc = noteDocs.get(noteId);
-    if (doc) noteDocs.setBodyRecorded(noteId, withFigureParams(doc.body, fig, n, values), 'set figure', gesture);
+    if (doc) noteDocs.setBodyRecorded(noteId, withFigureParams(doc.body, fig, n, values), i18n.t('notes.undo.setFigure'), gesture);
   });
   const chatMounts = new ChatMounts();
   $effect(() => { void noteId; return () => { mounts.releaseAll(); chatMounts.releaseAll(); }; });
@@ -105,7 +108,7 @@
          typing in the editor — which CodeMirror remembers for itself — this is
          an edit of the shell's own, so Ctrl+Z can put the old width back. */
       const src = img.dataset.src, doc = noteDocs.get(noteId);
-      if (src && doc) noteDocs.setBodyRecorded(noteId, setImageWidth(doc.body, src, width), 'resize image');
+      if (src && doc) noteDocs.setBodyRecorded(noteId, setImageWidth(doc.body, src, width), i18n.t('notes.undo.resizeImage'));
     };
     bar.addEventListener('pointermove', move); bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
   };
@@ -127,24 +130,24 @@
   /* A link that points at nothing says so when the pointer rests on it. A thing
      of the book is a third case: it may be gone from the book, or the chapter
      holding it may still be on its way, and the two read differently. */
-  const MISSING: Readonly<Record<BookKind, string>> = {
-    equation: 'That equation is not in the book.',
-    term: 'That term is not in the book.',
-    symbol: 'That symbol is not in the book.',
-    concept: 'That concept is not in the book.',
+  const MISSING: Readonly<Record<BookKind, MessageKey>> = {
+    equation: 'notes.view.missingEquation',
+    term: 'notes.view.missingTerm',
+    symbol: 'notes.view.missingSymbol',
+    concept: 'notes.view.missingConcept',
   };
   const deadTitle = (el: HTMLElement): string => {
     const embed = el.dataset.embed;
     const t = embed ? parseLink(embed) : null;
     if (t && isBook(t)) {
       const dir = books.chapterDir(t.section, t.book);
-      return dir && registry.chapterStatusOf(books.ref(t.section, t.book).book, dir) === 'loading' ? `Section ${t.section} is loading…` : MISSING[t.kind];
+      return dir && registry.chapterStatusOf(books.ref(t.section, t.book).book, dir) === 'loading' ? i18n.t('notes.view.sectionLoading', { section: t.section }) : i18n.t(MISSING[t.kind]);
     }
-    if (t?.kind === 'figure') return registry.state(books.ref(t.section, t.book)) ? 'That figure is not in the section.' : `Section ${t.section} is loading…`;
+    if (t?.kind === 'figure') return registry.state(books.ref(t.section, t.book)) ? i18n.t('notes.view.missingFigure') : i18n.t('notes.view.sectionLoading', { section: t.section });
     const words = el.textContent ?? '';
-    return words.startsWith('hl:') ? 'That highlight is gone.'
-      : /^\d+\.\d+/.test(words) ? `Section ${words.split(/\s/)[0]} is not in the book yet.`
-        : `No note named “${words}”.`;
+    return words.startsWith('hl:') ? i18n.t('notes.view.missingHighlight')
+      : /^\d+\.\d+/.test(words) ? i18n.t('notes.view.sectionNotYet', { section: words.split(/\s/)[0] })
+        : i18n.t('notes.view.missingNote', { name: words });
   };
 
   const decorate = (el: HTMLElement): void => {
@@ -194,7 +197,7 @@
      of the shell's timeline. */
   const sizeEmbed = (inner: string, n: number, width: number): void => {
     const doc = noteDocs.get(noteId);
-    if (doc) noteDocs.setBodyRecorded(noteId, withEmbedWidth(doc.body, inner, n, width), 'resize card');
+    if (doc) noteDocs.setBodyRecorded(noteId, withEmbedWidth(doc.body, inner, n, width), i18n.t('notes.undo.resizeCard'));
   };
 
   /* ── following a link ──────────────────────────────────────────────────── */
@@ -272,14 +275,14 @@
     /* Whoever hands the words over says whether they are a card or a link — a
        panel row drags out an embed, a tab strip drags out nothing of the sort —
        and the note keeps what they wrote. */
-    noteDocs.setBodyRecorded(noteId, appended(doc.body, text), 'drop into note');
+    noteDocs.setBodyRecorded(noteId, appended(doc.body, text), i18n.t('notes.undo.dropIntoNote'));
   };
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="note-view" class:dropping bind:this={host} {onclick} {onauxclick} {ondragover} {ondragleave} {ondrop}>
-  {#if html}{@html html}{:else}<p class="blank">Nothing here yet — press Ctrl+E to write.</p>{/if}
+  {#if html}{@html html}{:else}<p class="blank">{i18n.t('notes.view.blank')}</p>{/if}
 </div>
 
 <style>

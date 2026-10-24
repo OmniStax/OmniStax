@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { buildOfflineArtifacts } from '../scripts/build-offline.mjs';
 import { BookReleaseManifestSchema } from '../src/lib/offline/schema';
-import { beginInstall, bookMarks, commitInstall, failInstall, readableLines, releaseChanges, releaseForBook, savedSessionReleaseReferences, sectionChanges } from '../src/lib/offline/model';
+import { beginInstall, bookMarks, commitInstall, failInstall, readableLines, releaseChanges, releaseForBook, savedSessionReleaseReferences, sectionChanges, sharedAutoUpdate } from '../src/lib/offline/model';
 
 const put = async (root: string, rel: string, body: string) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
 const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string) => {
@@ -113,4 +113,12 @@ test('a section reads as one line per block, maths as TeX', () => {
 <!-- marker --><figure><img src="/a.jpg" alt="jet"><figcaption><span class="eyebrow">Figure 2.6</span><span>The <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="mord">x</span></span></span>-axis &amp; more.</span></figcaption></figure>
 <ul><li>One</li><li>Two</li></ul><script>var a = 1;</script><button>Try</button></article>`;
   assert.deepEqual(readableLines(html), ['Chapter 2', 'Vectors', 'A vector has direction.', 'Figure 2.6', 'The $x$-axis & more.', 'One', 'Two']);
+});
+
+test('sharedAutoUpdate: one setting over a book and its translations, on unless an edition was turned off', () => {
+  assert.equal(sharedAutoUpdate({}, ['cp', 'cp-zh']), true, 'nothing recorded is on');
+  assert.equal(sharedAutoUpdate({ cp: true }, ['cp', 'cp-zh']), true);
+  assert.equal(sharedAutoUpdate({ 'cp-zh': false }, ['cp', 'cp-zh']), false, 'one edition off turns the family off');
+  assert.equal(sharedAutoUpdate({ 'cp-zh': false }, ['cp']), true, 'another family is not touched');
+  assert.equal(sharedAutoUpdate({}, []), true);
 });

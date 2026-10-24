@@ -278,6 +278,27 @@ python3 omnistax-content/tools/terms_pass.py apply ch01-decisions.jsonl
 python3 omnistax-content/tools/terms_pass.py stats college-physics-2e
 ```
 
+## A translated book
+
+`scaffold_translation.py new` makes the folder of a translation once
+(root RULES item 30, `docs/prompts/translate.md`): the source's `book.json`
+with its id, title and chapters replaced and `language`, `translation_of` and
+`translation` set, the listed chapters' `chapter.json` and pages, the book's
+`COLOR.md`, its `RULES.md` with a Translation section, the two files of its
+`tools/` that `ost` needs, and an empty glossary, `translation-notes.md`,
+`LOG.md` and a `config.md` per chapter. It copies no `media/`, `source.md`,
+`plan.md`, `exploration.md` or staged rows. `labels` writes the rows no chapter
+stages and `ost` refuses — the title, `types` and `exercise_kinds` labels,
+`sheets` titles and each chapter's title — from one JSON file.
+
+```
+python3 -I omnistax-content/tools/scaffold_translation.py new --source "omnistax-content/College Physics 2e" \
+  --target "omnistax-content/College Physics 2e/translations/zh-CN" --tag zh-CN --id college-physics-2e-zh-cn \
+  --title "大学物理（第2版）" --translator claude-opus-5-5 --effort medium --date 2026-10-22 \
+  --glossary glossary.zh-CN.json --chapters ch01
+python3 -I omnistax-content/tools/scaffold_translation.py labels college-physics-2e-zh-cn labels.json
+```
+
 ## The checker
 
 `check` and every write shell out to `npm run check:content` in `omnistax-web/`

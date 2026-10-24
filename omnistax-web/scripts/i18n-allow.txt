@@ -1,0 +1,50 @@
+# What scripts/i18n-lint.mjs should never report. One JavaScript regular
+# expression per line, tested against the whole finding as it prints:
+#   path/to/file.ts:12: the text
+# so a line can name a file, a file and a text, or a text anywhere. Each line
+# says why on the comment above it. An extraction agent adds lines only for the
+# files it owns.
+
+# The content format: zod schemas, the TABLES notes the docs generator prints
+# and the parse errors check:content reports to a book's author, not UI.
+^src/lib/content/schema\.ts:
+# Font family names and CSS font stacks (product names, never translated).
+^src/lib/settings/fonts\.ts:
+# The product's own name.
+: (aria-label|title|alt)="OmniStax"$
+# A keyboard chord shown as a tooltip.
+: title="(Ctrl|Shift|Alt|Meta|Cmd)\+[^"]*"$
+# A bare unit beside a number.
+\.svelte:\d+: (ms|px|s|kg|nm|Hz)$
+# src/lib/content/pages.ts: the masthead is the product's name and its repository's, never translated.
+^src/lib/content/pages\.ts:\d+: (OmniStax/万象|BlastWind/OmniStax)$
+# src/lib/content/check.ts: the content check's messages go to a book's author (npm run check:content), not to a reader; some quote the markup they want.
+^src/lib/content/check\.ts:
+# The Local AI help's code samples (an API path, an environment variable, an address) and the endpoint field's example URL: code, never translated.
+^src/components/settings/Ai\.svelte:\d+: (POST /v1/chat/completions|OLLAMA_ORIGINS|http://localhost)$
+^src/components/settings/Ai\.svelte:\d+: placeholder="http://localhost:11434"$
+# The unit circle's graph names sin θ and cos θ: mathematical notation, the same in every language.
+^src/components/sheets/UnitCircle\.svelte:\d+: (sin|cos) θ$
+# What the chat sends the model, not what the reader sees: the system prompt, the headings a context chip wears in the request, the tool descriptions and every tool's output, a figure's alt text and parameters, a tool error as the model is shown it. The model is told in English and answers in the reader's language.
+^src/lib/chat/prompt\.ts:
+^src/lib/chat/context\.ts:
+^src/lib/chat/tools\.ts:
+^src/lib/chat/library\.ts:\d+: Alt text: \{\}$
+^src/lib/chat/providers/index\.ts:\d+: Error: \{\}$
+# The text a picker row hands the model as its chip (an equation's condition), not the row the reader sees.
+^src/lib/picker/sources\.ts:\d+: Holds under: \{\}$
+# The commit messages sync writes into the reader's GitHub repo: the repository's history, not UI.
+^src/lib/sync/github\.ts:\d+: Start OmniStax sync$
+^src/lib/sync/run\.ts:\d+: Sync from OmniStax$
+# What practice sends the model, not what the reader sees: the writer's and the grader's prompts, the parse errors sent back to the model for a retry, and the exercise chip's reference text. The model is told in English.
+^src/lib/practice/prompt\.ts:
+^src/lib/practice/generated\.ts:\d+: (No fenced ```json block was found\.|The json block does not parse: \{\}|The json block must hold an array\.)$
+^src/lib/practice/discuss\.svelte\.ts:\d+: (Reference solution: \{\}|The answer has already been checked; do not grade it again\.)$
+# The palette registry's own English names, the fallback paletteName() reads past for the app's generated palettes (whose shown names are views.colours.palette.*); the published palettes keep their published names.
+^src/lib/colours/palettes\.ts:\d+: (Even hues|Hue families)$
+# The service the sync view connects to: a product name.
+^src/components/views/Sync\.svelte:\d+: GitHub$
+# The exercise chip's brief (src/lib/practice/brief.ts): the text a chat hands the model about an exercise, not what the reader sees. The model is told in English.
+^src/lib/practice/brief\.ts:
+# The default note practice adds to the writer's prompt (it can be edited in the session plan): text for the model, in English.
+^src/lib/practice/model\.ts:\d+: Make exercises test what the other exercises for the same concept haven’t tested

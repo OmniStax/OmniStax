@@ -11,6 +11,7 @@
 import { entryId, type Entry, type EntryId, type Tree } from '../explorer/model';
 import { explorer } from '../explorer/store.svelte';
 import { history, EXPLORER_SCOPE, type Edit } from '../history/store.svelte';
+import { t } from '../i18n';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
 import { drawingId, drawingItem, itemKey, sectionId, type DrawingId } from '../types/ids';
@@ -72,12 +73,12 @@ export const drawingsUnder = (id: EntryId): DrawingId[] => {
    one thing, as a note's are. The caller opens the tab; taking the step back
    closes it, since there would be nothing left for it to show. */
 export const createDrawing = (parent: EntryId | null, name?: string, ink?: Drawing): Drawing => {
-  const label = name ?? explorer.uniqueName(parent, 'Untitled drawing');
+  const label = name ?? explorer.uniqueName(parent, t('drawer.untitled'));
   const before = shot();
   const drawing = drawings.create(label);
   if (ink) drawings.put({ ...drawing, items: ink.items, view: ink.view });
   explorer.addDrawing(parent, entryId(drawing.id), label);
-  commit('new drawing', before, { onUndo: [drawing.id] });
+  commit(t('drawer.undo.new'), before, { onUndo: [drawing.id] });
   return drawing;
 };
 
@@ -92,7 +93,7 @@ export const renameDrawing = (id: EntryId, name: string): void => {
   const before = shot();
   explorer.rename(id, next);
   drawings.rename(drawingId(e.drawingId ?? e.id), next);
-  commit('rename drawing', before);
+  commit(t('drawer.undo.rename'), before);
 };
 
 /* Deleting takes the row, the ink it stood for and the tab it was open in. The
@@ -104,7 +105,7 @@ export const deleteDrawing = (e: Entry): void => {
   const before = { ...shot(), ink };
   explorer.remove(e.id);
   drawings.removeMany(gone);
-  commit('delete drawing', before, { onRedo: gone });
+  commit(t('drawer.undo.delete'), before, { onRedo: gone });
   closeTabs(gone);
 };
 
@@ -126,7 +127,7 @@ export const saveScratchAsDrawing = (book: string, section: string, ex: string, 
   explorer.addDrawing(folder, entryId(made.id), made.name);
   drawings.linkScratch(key, made.id);
   links.add(ref, itemKey(drawingItem(made.id)));
-  commit('save scratch as drawing', before, { onUndo: [made.id] });
+  commit(t('drawer.undo.saveScratch'), before, { onUndo: [made.id] });
   return drawings.get(made.id) ?? made;
 };
 
@@ -144,6 +145,6 @@ export const detachScratch = (book: string, section: string, ex: string): void =
   if (row) explorer.remove(row.id);
   drawings.removeMany([linked]);
   drawings.unlinkScratch(key);
-  commit('detach scratch drawing', before, { onRedo: [linked] });
+  commit(t('drawer.undo.detachScratch'), before, { onRedo: [linked] });
   closeTabs([linked]);
 };

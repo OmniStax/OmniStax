@@ -30,3 +30,11 @@ test('a later row that says redefines is not reported', () => {
   assert.equal(unmarkedRedefinitions([otto, pump]).length, 1);
   assert.equal(unmarkedRedefinitions([otto, { ...pump, redefines: true }]).length, 0);
 });
+
+test('a translated book compares its rows by CJK morphemes, as the source compares words', () => {
+  const position = row('2.1', 'x', '位置，相对于所选参考系', { unit: 'm', type: 'position' as VariableDTO['type'] });
+  const final = row('2.5', 'x', '末位置', { unit: 'm', type: 'position' as VariableDTO['type'] });
+  const range = row('3.4', 'x', '射程，抛体落地点的水平距离', { unit: 'm', type: 'position' as VariableDTO['type'] });
+  assert.equal(differentMeaning(position, final), false);
+  assert.equal(differentMeaning(position, range), true);
+});

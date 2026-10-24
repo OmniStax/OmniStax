@@ -1,12 +1,16 @@
 # Offline textbook contract
 
-Offline textbooks are explicit, verified browser downloads. Adding a textbook
-to the reader tree and downloading its files are separate actions. The Find a
-textbook panel shows download size, progress, repair/remove actions, update
-availability, release dates, and deterministic release changes. A downloaded
-book updates itself unless the reader turns off "Update automatically" for it,
-in that panel or in the book row's menu (default on, kept per book in
-`omnistax-auto-update-v1`).
+Offline textbooks are explicit, verified browser downloads. A textbook can be
+added to the reader tree without downloading it; a download the reader asks
+for adds the book to the tree as well, so what is kept offline is always on
+the shelf. The Find a textbook panel lists one card per book with a language
+button group for its editions (only the languages this build carries; a green
+check marks an edition that is downloaded), and shows the chosen edition's
+download size, progress, repair/remove actions, update availability, release
+dates, and deterministic release changes. A downloaded book updates itself
+unless the reader turns off "Update automatically", in that panel or in the
+book row's menu; the setting is one for a book and its translations (kept per
+book id in `omnistax-auto-update-v1`, on unless an edition was turned off).
 
 ## Publication
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   /* An alert, where the tip of the day stands and above it when both show. */
   import { alerts } from '../../lib/alerts.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 </script>
 
 {#if alerts.current}
@@ -9,7 +10,7 @@
     <p>{a.text}</p>
     <div class="foot">
       {#if a.action}{@const act = a.action}<button type="button" class="btn sm" onclick={() => { act.run(); alerts.close(); }}>{act.label}</button>{/if}
-      <button type="button" class="btn ghost sm" onclick={() => alerts.close()}>Close</button>
+      <button type="button" class="btn ghost sm" onclick={() => alerts.close()}>{i18n.t('shell.close')}</button>
     </div>
   </aside>
 {/if}

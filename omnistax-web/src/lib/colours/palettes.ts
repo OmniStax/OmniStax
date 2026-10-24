@@ -10,6 +10,7 @@
    The book's own scheme is the hue-families palette, which never runs out. */
 import { type Hex, type Hue, d3Rainbow, darkOf, normHex, oklchRing } from './model';
 import type { Vision } from './oklab';
+import { t, type MessageKey, type TFn } from '../i18n/index';
 import { familyHues, oklabHues } from './sample';
 
 export type PaletteId = string & { readonly __brand: 'PaletteId' };
@@ -204,12 +205,20 @@ export const PALETTES: readonly Palette[] = [
 
 export const paletteById = (id: PaletteId): Palette | null => PALETTES.find((p) => p.id === id) ?? null;
 
+/* What the reader calls a palette in their language: the app's own generated
+   ones are named in the catalog, the published ones keep their published name. */
+const NAME_KEYS: Readonly<Record<string, MessageKey>> = { oklch: 'views.colours.palette.evenHues', families: 'views.colours.palette.hueFamilies', rainbow: 'views.colours.palette.rainbow' };
+export const paletteName = (p: Palette, tr: TFn = t): string => { const k = NAME_KEYS[p.id]; return k ? tr(k) : p.name; };
+
 /* The palettes that can dress n quantities, each with its colours for them. */
 export type Offer = { readonly palette: Palette; readonly hues: readonly Hue[] };
 export const palettesFor = (n: number, vision: Vision = DEFAULT_VISION): readonly Offer[] =>
   PALETTES.flatMap((palette) => { const hues = pairsOf(palette, n, vision); return hues ? [{ palette, hues }] : []; });
 
 export type Swatch = { readonly name: string; readonly hex: Hex };
+const SWATCH_KEYS: Readonly<Record<string, MessageKey>> = { red: 'views.colours.swatch.red', orange: 'views.colours.swatch.orange', amber: 'views.colours.swatch.amber', olive: 'views.colours.swatch.olive', green: 'views.colours.swatch.green', teal: 'views.colours.swatch.teal', cyan: 'views.colours.swatch.cyan', sky: 'views.colours.swatch.sky', blue: 'views.colours.swatch.blue', indigo: 'views.colours.swatch.indigo', violet: 'views.colours.swatch.violet', purple: 'views.colours.swatch.purple', magenta: 'views.colours.swatch.magenta', pink: 'views.colours.swatch.pink', brown: 'views.colours.swatch.brown', slate: 'views.colours.swatch.slate', rose: 'views.colours.swatch.rose', emerald: 'views.colours.swatch.emerald' };
+/* A swatch's name in the reader's language, for the button that holds it. */
+export const swatchName = (s: Swatch, tr: TFn = t): string => { const k = SWATCH_KEYS[s.name]; return k ? tr(k) : s.name; };
 
 /* Single colours to change one quantity with, deep enough to read as text on a
    white page and each with a name a reader would use aloud. */

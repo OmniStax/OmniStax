@@ -2,12 +2,13 @@
    reference in each. The rules live in src/lib/content/check.ts, where they are
    pure and the tests call them; this file is only the command — where the
    content is, how the findings are printed, and what the shell is told. */
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseBooks, parseConfig } from '../omnistax.config';
 import type { BookSelection, OmniStaxConfig } from '../omnistax.config';
-import { loadBooks, withInheritedTypes } from '../src/lib/content/load';
-import { type ContentRoot, contentRoot } from '../src/lib/types/ids';
-import { CHECKS, checkContent, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
+import { findBooks, loadBooks, withInheritedTypes } from '../src/lib/content/load';
+import { type ContentRoot, bookId, contentRoot } from '../src/lib/types/ids';
+import { CHECKS, checkContent, checkParity, contentOf, errorsOf, warningsOf } from '../src/lib/content/check';
 import type { Content, Finding } from '../src/lib/content/check';
 import { defaultColours, isFreshDefault } from '../src/lib/colours/defaults';
 import type { BookTree } from '../src/lib/content/load';
@@ -64,10 +65,31 @@ export const staleDefault = (book: BookTree): readonly Finding[] =>
 /* One book's heading and report, with a blank line between books so that a run over several reads as several. */
 const bookReport = (content: Content, findings: readonly Finding[]): string => `${content.book.title} (${content.book.id})\n\n${report(findings, content)}`;
 
+/* A translation against its source, which is read even where the run does not
+   name it, and its glossary looked for on disk, since only the command reads the
+   disk. A translation_of that names no book has already stopped the load. */
+const translationFindings = async (root: ContentRoot, content: Content, loaded: readonly Content[]): Promise<readonly Finding[]> => {
+  const of = content.book.translationOf;
+  if (of === undefined || of === content.book.id) return [];
+  const folders = await findBooks(root);
+  const source = loaded.find((c) => c.book.id === of) ?? await contentOf((await loadBooks(root, { kind: 'named', ids: [bookId(of)] }))[0]);
+  const own = folders.find((f) => f.id === content.book.id);
+  const glossary = content.book.translation?.glossary;
+  const missing = own && glossary !== undefined && !(await fs.access(path.join(own.dir, glossary)).then(() => true, () => false));
+  return [
+    ...checkParity(content, source),
+    ...(missing ? [{ level: 'warning' as const, where: 'book.json translation.glossary', what: `names ${glossary}, which is not in the book's folder` }] : []),
+  ];
+};
+
 const main = async (): Promise<number> => {
   const args = parseArgs(process.argv.slice(2), parseConfig(process.env));
   const books = await loadBooks(args.root, args.books);
-  const checked = await Promise.all(books.map(async (book) => { const content = await contentOf(book); return { content, findings: [...checkContent(content), ...redefinitions(content), ...staleDefault(book)] }; }));
+  const contents = await Promise.all(books.map(contentOf));
+  const checked = await Promise.all(books.map(async (book, i) => {
+    const content = contents[i];
+    return { content, findings: [...checkContent(content), ...redefinitions(content), ...(book.dto.translationOf === undefined ? staleDefault(book) : []), ...await translationFindings(args.root, content, contents)] };
+  }));
   console.log(checked.map((c) => bookReport(c.content, c.findings)).join('\n\n'));
   return checked.every((c) => errorsOf(c.findings).length === 0) ? 0 : 1;
 };

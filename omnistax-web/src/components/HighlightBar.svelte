@@ -20,6 +20,9 @@
   import { fileMarks } from '../lib/files/marks.svelte';
   import { isMarkId } from '../lib/files/marks';
   import { askAi } from '../lib/chat/open.svelte';
+  import { i18n } from '../lib/i18n/store.svelte';
+  import type { MessageKey } from '../lib/i18n/index';
+  const COLOR_NAME: Readonly<Record<HlColor, MessageKey>> = { yellow: 'shell.highlight.yellow', green: 'shell.highlight.green', blue: 'shell.highlight.blue', pink: 'shell.highlight.pink' };
   /* The two surfaces a highlight can be made on: a document of the book, and a
      page of a file the reader imported. They anchor the same way — the same
      quote, the same context — and differ only in which store keeps the mark,
@@ -119,14 +122,14 @@
 </script>
 
 {#if open}
-  <div class="hl-bar" role="toolbar" aria-label="Highlight" style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
+  <div class="hl-bar" role="toolbar" aria-label={i18n.t('shell.highlight.bar')} style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
     {#if markable}
-      {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} aria-label="Highlight in {c}" onclick={() => choose(c)}></button>{/each}
+      {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} aria-label={i18n.t('shell.highlight.in', { color: i18n.t(COLOR_NAME[c]) })} onclick={() => choose(c)}></button>{/each}
       <span class="sep"></span>
     {/if}
-    <button type="button" class="act ask" onclick={askAI}>Ask AI</button>
-    {#if markable}<button type="button" class="act" aria-label={noted ? 'Edit note' : 'Add note'} onclick={annotate}>{@html ICON.highlighter}</button>{/if}
-    {#if mode === 'edit'}<button type="button" class="act" aria-label="Remove highlight" onclick={remove}>{@html ICON.trash}</button>{/if}
+    <button type="button" class="act ask" onclick={askAI}>{i18n.t('shell.rail.askAi')}</button>
+    {#if markable}<button type="button" class="act" aria-label={i18n.t(noted ? 'shell.highlight.editNote' : 'shell.highlight.addNote')} onclick={annotate}>{@html ICON.highlighter}</button>{/if}
+    {#if mode === 'edit'}<button type="button" class="act" aria-label={i18n.t('shell.highlight.remove')} onclick={remove}>{@html ICON.trash}</button>{/if}
   </div>
 {/if}
 

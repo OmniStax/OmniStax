@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ai, openSettingsAt } from '../../lib/chat/settings.svelte';
   import { chats } from '../../lib/chat/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { modelName, samePick, type ModelPick } from '../../lib/chat/providers/index';
   import type { MenuEntry } from '../../lib/chat/settings';
   import type { ChatId } from '../../lib/types/ids';
@@ -36,19 +37,19 @@
 
 <div class="menu" bind:this={host} role="presentation" {onkeydown}>
   <button type="button" class="current" aria-haspopup="menu" aria-expanded={open} onclick={() => (open = !open)}>
-    {#if live}{modelName(live)}{:else}<span class="unset">Configure a model…</span>{/if} <span class="caret" aria-hidden="true">▾</span>
+    {#if live}{modelName(live)}{:else}<span class="unset">{i18n.t('chat.model.configure')}</span>{/if} <span class="caret" aria-hidden="true">▾</span>
   </button>
   {#if open}
-    <div class="pop" role="menu" aria-label="Model">
+    <div class="pop" role="menu" aria-label={i18n.t('chat.model.label')}>
       {#each groups as g (g.provider)}
-        <div class="group">{g.label}{#if !g.ready}<span class="need">Needs key</span>{/if}</div>
+        <div class="group">{g.label}{#if !g.ready}<span class="need">{i18n.t('chat.model.needsKey')}</span>{/if}</div>
         {#each g.entries as e (e.pick.model)}
           <button type="button" role="menuitemradio" aria-checked={!!live && samePick(e.pick, live)} class:on={!!live && samePick(e.pick, live)} class:off={!g.ready} onclick={(ev) => choose(ev, e)}>
             <span class="name">{e.name}</span>
           </button>
         {/each}
       {/each}
-      <button type="button" role="menuitem" class="more" onclick={(ev) => { ev.stopPropagation(); open = false; openSettingsAt(pick?.provider ?? 'anthropic'); }}>Manage models…</button>
+      <button type="button" role="menuitem" class="more" onclick={(ev) => { ev.stopPropagation(); open = false; openSettingsAt(pick?.provider ?? 'anthropic'); }}>{i18n.t('chat.model.manage')}</button>
     </div>
   {/if}
 </div>

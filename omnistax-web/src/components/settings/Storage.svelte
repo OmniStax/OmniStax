@@ -10,7 +10,8 @@
      nothing here changes while the reader is looking at it. */
   import { sizeLabel } from '../../lib/files/model';
   import { files } from '../../lib/files/store.svelte';
-  import { quotaWords, readHealth, requestPersist, SAFARI_WORDS, type Health } from '../../lib/storage/health';
+  import { PERSIST_WORDS_KEY, quotaWords, readHealth, requestPersist, SAFARI_WORDS_KEY, type Health } from '../../lib/storage/health';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let health = $state.raw<Health | null>(null);
 
@@ -19,8 +20,8 @@
 
   const used = $derived.by(() => {
     const e = health?.estimate;
-    if (!e || e.usage === null) return 'Your browser doesn’t report how much space is used.';
-    return [`${sizeLabel(e.usage)} used.`, quotaWords(e, sizeLabel)].filter(Boolean).join(' ');
+    if (!e || e.usage === null) return i18n.t('settings.storage.unknown');
+    return [i18n.t('settings.storage.used', { size: sizeLabel(e.usage) }), quotaWords(e, sizeLabel, i18n.t)].filter(Boolean).join(' ');
   });
   const askable = $derived(health !== null && (health.persistence === 'denied' || health.persistence === 'unasked'));
   let asking = $state(false);
@@ -35,8 +36,8 @@
 </script>
 
 <div class="row">
-  <span class="name">Space used</span>
-  <span class="hint">{used}{#if mine} Imported files: {sizeLabel(mine)}.{/if}</span>
+  <span class="name">{i18n.t('settings.storage.space')}</span>
+  <span class="hint">{used}{#if mine} {i18n.t('settings.storage.imported', { size: sizeLabel(mine) })}{/if}</span>
   <span></span>
 </div>
 {#if health?.fraction !== null && health?.fraction !== undefined}
@@ -45,9 +46,9 @@
   </div>
 {/if}
 <div class="row">
-  <span class="name">Data retention</span>
-  <span class="hint">{health ? health.words : 'Checking…'}{#if health?.safari} {SAFARI_WORDS}{/if}</span>
-  {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>Keep my data</button>{:else}<span></span>{/if}
+  <span class="name">{i18n.t('settings.storage.retention')}</span>
+  <span class="hint">{health ? i18n.t(PERSIST_WORDS_KEY[health.persistence]) : i18n.t('settings.storage.checking')}{#if health?.safari} {i18n.t(SAFARI_WORDS_KEY)}{/if}</span>
+  {#if askable}<button class="btn-sm" type="button" id="storage-persist" disabled={asking} onclick={() => void ask()}>{i18n.t('settings.storage.keep')}</button>{:else}<span></span>{/if}
 </div>
 
 <style>

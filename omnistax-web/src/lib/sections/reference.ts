@@ -4,8 +4,18 @@
    cards, the notes — so that a term, a symbol and an
    equation of one concept are found the same way wherever they are hovered. */
 import type { ConceptDTO, ConceptKind, CoverageDTO, FormDTO, VariableDTO } from '../content/schema';
+import { t, type MessageKey, type TFn } from '../i18n/index';
 
-export const KIND_LABEL: Readonly<Record<ConceptKind, string>> = { definition: 'Definition', axiom: 'Axiom', result: 'Result', idea: 'Idea', skill: 'Skill' };
+/* Getters: each read is in the current language. */
+export const KIND_LABEL: Readonly<Record<ConceptKind, string>> = {
+  get definition() { return t('views.reference.kind.definition'); }, get axiom() { return t('views.reference.kind.axiom'); }, get result() { return t('views.reference.kind.result'); },
+  get idea() { return t('views.reference.kind.idea'); }, get skill() { return t('views.reference.kind.skill'); },
+};
+const KIND_KEY: Readonly<Record<ConceptKind, MessageKey>> = {
+  definition: 'views.reference.kind.definition', axiom: 'views.reference.kind.axiom', result: 'views.reference.kind.result', idea: 'views.reference.kind.idea', skill: 'views.reference.kind.skill',
+};
+/* A kind's name through a given t (a component passes the live one, so it re-renders on a change of language). */
+export const kindLabel = (k: ConceptKind, tr: TFn = t): string => tr(KIND_KEY[k]);
 /* The five kinds in the order the legends teach them. */
 export const KINDS = Object.keys(KIND_LABEL) as readonly ConceptKind[];
 

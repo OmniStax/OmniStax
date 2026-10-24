@@ -67,6 +67,7 @@
   import { sync } from '../lib/sync/store.svelte';
   import { offlineBooks } from '../lib/offline/store.svelte';
   import { registerOfflineWorker } from '../lib/offline/register';
+  import { i18n } from '../lib/i18n/store.svelte';
 
   /* own: the item the page was built for; the 404 page has none, and reads its address instead. */
   type Props = { own?: ItemId; threeUrl?: string; boot: BootDTO };
@@ -128,6 +129,10 @@
   };
 
   onMount(() => {
+    /* The reader's language first, so that everything said from here on, the
+       commands included, is said in it: ?lang= in the address, else the
+       remembered choice, else the browser's (store.svelte.ts). */
+    const stopLang = i18n.boot({ book: home !== undefined });
     initFig(home ? figBookOf(home) : { id: '', macros: {}, symbols: {}, colorKeys: [] });
     notes.init();
     noteDocs.init();
@@ -146,7 +151,7 @@
     const pageBook = bookOfItem(page);
     library.init(pageBook ?? '', home && pageBook === home.id ? home.title : undefined);
     void (async () => { await registerOfflineWorker(); await offlineBooks.refreshClientPin(); await offlineBooks.init(); await offlineBooks.reclaim(); })()
-      .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : 'Offline storage failed to start.'; });
+      .catch((error) => { offlineBooks.message = error instanceof Error ? error.message : i18n.t('shell.offline.failed'); });
     practice.init();
     registry.init({ figFor, mounter: mountExercises, decorate: paintDoc, threeUrl });
     registry.onBook((m) => { registerFigBook(figBookOf(m)); colours.ensureBook(m); highlights.ensureBook(m); });
@@ -158,7 +163,6 @@
     const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
     const restored = layoutStore.init(page, known, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
-    installCommands();
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
     /* A page opened at a span — a search hit in another book links here with the span in
@@ -283,7 +287,7 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('auxclick', onAux); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { stopAutoPush(); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); };
+    return () => { stopAutoPush(); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
   });
 
   /* settings → document */
@@ -339,12 +343,16 @@
       document.title = at.label === title ? title : `${at.label} · ${title}`;
     });
   });
+  /* The commands are said in the reader's language: registered once the shell
+     is up and again on every change of language, which replaces each by its id.
+     Untracked, so the registry the registering reads is no dependency. */
+  $effect(() => { if (!ready) return; void i18n.locale; untrack(installCommands); });
   /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */
   const onPick = (group: number) => { ui.openBrowser({ group }); };
 </script>
 
 {#if ready}
-  <div class="shell" role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
+  <div class="shell" lang={i18n.locale} role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
     <Rail {narrow} />
     <Sidebar {narrow} />
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>

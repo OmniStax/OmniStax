@@ -12,6 +12,7 @@
   import { isGenerated } from '../../lib/practice/generated';
   import { generated } from '../../lib/practice/generated.svelte';
   import { plain } from '../../lib/practice/labels';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { item }: { item: ItemKey } = $props();
 
@@ -65,11 +66,11 @@
   /* Taking the last exercise out leaves nothing to practise, so it is asked
      about, and a yes takes the reader back to the dashboard. */
   let removingLast = $state(false);
-  const remove = (i: number): void => { if (n <= 1) { removingLast = true; return; } removeExercise(id, i); };
+  const remove = (i: number): void => { if (n <= 1) { removingLast = true; return; } if (session) removeExercise(session.id, i); };
   const removeLastAndLeave = (): void => { if (session) removeExercise(session.id, 0); removingLast = false; endSession(); };
   /* Ending the round ends the stopwatch it started, and the sitting is kept under the round's name. */
   const endSession = (): void => {
-    if (practice.settings.stopwatch && pomodoro.mode === 'stopwatch' && pomodoro.session.phase !== 'idle') { pomodoro.finish(); pomodoro.keep('Practice session'); }
+    if (practice.settings.stopwatch && pomodoro.mode === 'stopwatch' && pomodoro.session.phase !== 'idle') { pomodoro.finish(); pomodoro.keep(i18n.t('practice.run.sessionName')); }
     practice.end(item);
   };
 
@@ -77,7 +78,12 @@
     if (at < n - 1) practice.go(item, at + 1);
     else practice.afterAnswer(item, at);
   };
-  const conceptName = (id?: string): string => { const c = id ? practice.conceptOf(id) : undefined; return c ? plain(c.name) : 'this concept'; };
+  const conceptName = (id?: string): string => { const c = id ? practice.conceptOf(id) : undefined; return c ? plain(c.name) : i18n.t('practice.run.thisConcept'); };
+  /* The name a grid button reads out: its number and how it stands. */
+  const slotLabel = (i: number, busy: boolean, wait: boolean, result: boolean | null | undefined): string =>
+    i18n.t(busy ? 'practice.run.slotBusy' : wait ? 'practice.run.slotNotWritten' : result === true ? 'practice.run.slotCorrect' : result === false ? 'practice.run.slotIncorrect' : i === at ? 'practice.run.slotCurrent' : 'practice.run.slot', { n: i + 1 });
+  const endAsk = (incomplete: number): string =>
+    incomplete ? i18n.t('practice.run.endIncomplete', { n: incomplete }) : allDone ? i18n.t('practice.run.endAllDone') : i18n.t('practice.run.endKept');
   const writingFor = (id: SessionId, concept?: string): boolean => concept ? isGenerating(id, concept) : isGenerating(id);
 </script>
 
@@ -85,15 +91,15 @@
   <div class="writing">
     <div class="quiet" role="status">
       {#if writingFor(id, concept)}
-        <p><span class="spin" aria-hidden="true"></span> Writing an exercise for {conceptName(concept)}…</p>
+        <p><span class="spin" aria-hidden="true"></span> {i18n.t('practice.run.writing', { concept: conceptName(concept) })}</p>
         {#if concept && generation[id]?.writing[concept]}<p class="line">{generation[id].writing[concept]}</p>{/if}
       {:else}
-        <p>This exercise for {conceptName(concept)} was not written.</p>
+        <p>{i18n.t('practice.run.notWritten', { concept: conceptName(concept) })}</p>
         {#if concept && generation[id]?.failed[concept]}<p class="line bad">{generation[id].failed[concept]}</p>{/if}
       {/if}
       <div class="acts">
-        {#if !writingFor(id, concept)}<button type="button" class="btn sm" onclick={() => void fillLive(id, concept ? [concept] : undefined)}>Regenerate</button>{/if}
-        <button type="button" class="btn ghost sm" onclick={() => removeExercise(id, i)}>Remove</button>
+        {#if !writingFor(id, concept)}<button type="button" class="btn sm" onclick={() => void fillLive(id, concept ? [concept] : undefined)}>{i18n.t('practice.run.regenerate')}</button>{/if}
+        <button type="button" class="btn ghost sm" onclick={() => removeExercise(id, i)}>{i18n.t('practice.run.remove')}</button>
       </div>
     </div>
   </div>
@@ -107,34 +113,34 @@
       {#key `${row.book}/${row.section}/${row.ex.id}`}
         <div class="card-root" data-book={row.book} data-sec={row.section} data-chapter={chapterDir(row.book, row.section)} data-one="1">
           <ExerciseCard book={row.book} section={row.section} ex={row.ex} outcome={outcomes[i] ?? null} session={id}
-            number={page.showAll ? `Exercise ${i + 1}` : undefined}
+            number={page.showAll ? i18n.t('practice.run.number', { i: i + 1 }) : undefined}
             onanswer={undefined} />
         </div>
       {/key}
       {#if isGenerated(row.ex.id)}
         <div class="gen-acts">
           {#if confirming?.i === i}
-            <span class="ask">{confirming.act === 'regenerate' ? 'Write this exercise again?' : 'Delete this exercise?'}</span>
-            <button type="button" class="btn primary sm" onclick={confirmed}>Yes</button>
-            <button type="button" class="btn ghost sm" onclick={() => (confirming = null)}>No</button>
+            <span class="ask">{i18n.t(confirming.act === 'regenerate' ? 'practice.run.askRegenerate' : 'practice.run.askDelete')}</span>
+            <button type="button" class="btn primary sm" onclick={confirmed}>{i18n.t('practice.yes')}</button>
+            <button type="button" class="btn ghost sm" onclick={() => (confirming = null)}>{i18n.t('practice.no')}</button>
           {:else}
-            <button type="button" class="btn ghost sm" onclick={() => (confirming = { i, act: 'regenerate' })}>Regenerate</button>
-            <button type="button" class="btn ghost sm danger" onclick={() => (confirming = { i, act: 'delete' })}>Delete</button>
+            <button type="button" class="btn ghost sm" onclick={() => (confirming = { i, act: 'regenerate' })}>{i18n.t('practice.run.regenerate')}</button>
+            <button type="button" class="btn ghost sm danger" onclick={() => (confirming = { i, act: 'delete' })}>{i18n.t('practice.rows.delete')}</button>
           {/if}
         </div>
       {/if}
-      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => remove(i)}>×</button>
+      <button type="button" class="btn ghost icon sm rm" aria-label={i18n.t('practice.run.removeN', { n: i + 1 })} title={i18n.t('practice.run.remove')} onclick={() => remove(i)}>×</button>
     </div>
   {:else if isPending(d.ex)}
     {@render writing(id, d.concept, i)}
   {:else}
     <div class="slot">
       <p class="quiet" role="status">
-        {#if isGenerated(d.ex) && generated.ready}This AI-generated exercise was deleted.
-        {:else if statusOf(d.book) === 'failed'}This exercise comes from {practice.bookTitle(d.book)}, and that book could not be loaded.
-        {:else}Loading this exercise…{/if}
+        {#if isGenerated(d.ex) && generated.ready}{i18n.t('practice.run.deleted')}
+        {:else if statusOf(d.book) === 'failed'}{i18n.t('practice.run.bookFailed', { book: practice.bookTitle(d.book) })}
+        {:else}{i18n.t('practice.run.loading')}{/if}
       </p>
-      <button type="button" class="btn ghost icon sm rm" aria-label="Remove exercise {i + 1}" title="Remove" onclick={() => remove(i)}>×</button>
+      <button type="button" class="btn ghost icon sm rm" aria-label={i18n.t('practice.run.removeN', { n: i + 1 })} title={i18n.t('practice.run.remove')} onclick={() => remove(i)}>×</button>
     </div>
   {/if}
 {/snippet}
@@ -142,40 +148,40 @@
 {#if session}
   <div class="run">
     <div class="bar">
-      <button type="button" class="btn ghost sm back" title="Pause and return; the session stays open" onclick={() => practice.pause(item)}>‹ Practice</button>
-      <span class="where">{page.showAll ? `${n} exercises` : `${at + 1} of ${n}`}</span>
+      <button type="button" class="btn ghost sm back" title={i18n.t('practice.run.pauseTitle')} onclick={() => practice.pause(item)}>{i18n.t('practice.run.back')}</button>
+      <span class="where">{page.showAll ? i18n.t('practice.run.count', { n }) : i18n.t('practice.run.of', { i: at + 1, n })}</span>
       {#if !page.showAll}
-        <nav class="grid" aria-label="Exercises in this session">
+        <nav class="grid" aria-label={i18n.t('practice.run.grid')}>
           {#each drawn as _, i (i)}
             {@const result = outcomes[i]}
             {@const wait = isPending(drawn[i].ex)}
             {@const busy = wait && writingFor(session.id, drawn[i].concept)}
             <button type="button" class:wait class:now={i === at} class:right={result === true} class:wrong={result === false}
-              aria-label="Exercise {i + 1}{busy ? ', being written' : wait ? ', not written' : result === true ? ', correct' : result === false ? ', incorrect' : i === at ? ', current' : ''}"
+              aria-label={slotLabel(i, busy, wait, result)}
               aria-current={i === at ? 'step' : undefined} onclick={() => practice.go(item, i)}>{busy ? '…' : wait ? '!' : result === true ? '✓' : result === false ? '✗' : i + 1}</button>
           {/each}
         </nav>
       {/if}
       {#if removingLast}
         <div class="confirm">
-          <span class="ask">This is the only problem. Deleting it returns you to the dashboard.</span>
-          <button type="button" class="btn primary sm" onclick={removeLastAndLeave}>Yes</button>
-          <button type="button" class="btn ghost sm" onclick={() => (removingLast = false)}>No</button>
+          <span class="ask">{i18n.t('practice.run.onlyOne')}</span>
+          <button type="button" class="btn primary sm" onclick={removeLastAndLeave}>{i18n.t('practice.yes')}</button>
+          <button type="button" class="btn ghost sm" onclick={() => (removingLast = false)}>{i18n.t('practice.no')}</button>
         </div>
       {:else if ending}
         {@const incomplete = practice.incompleteReviews(item)}
         <div class="confirm">
-          <span class="ask">{incomplete ? `Review incomplete. ${incomplete} mastered ${incomplete === 1 ? 'concept still has' : 'concepts still have'} unanswered freshness exercises. Ending now will leave their freshness unchanged, although incorrect answers already submitted may shorten it.` : allDone ? 'End this session? You have answered all of the questions.' : 'End this session? Your completed exercises are kept.'}</span>
-          <button type="button" class="btn primary sm" onclick={endSession}>End session</button>
-          <button type="button" class="btn ghost sm" onclick={() => (ending = false)}>Keep practicing</button>
+          <span class="ask">{endAsk(incomplete)}</span>
+          <button type="button" class="btn primary sm" onclick={endSession}>{i18n.t('practice.run.end')}</button>
+          <button type="button" class="btn ghost sm" onclick={() => (ending = false)}>{i18n.t('practice.run.keep')}</button>
         </div>
       {:else}
         <div class="right-side">
-          <div class="seg show" role="radiogroup" aria-label="Show">
-            <button type="button" role="radio" aria-checked={!page.showAll} class:on={!page.showAll} onclick={() => practice.setShowAll(item, false)}>One at a time</button>
-            <button type="button" role="radio" aria-checked={page.showAll} class:on={page.showAll} onclick={() => practice.setShowAll(item, true)}>All</button>
+          <div class="seg show" role="radiogroup" aria-label={i18n.t('practice.run.show')}>
+            <button type="button" role="radio" aria-checked={!page.showAll} class:on={!page.showAll} onclick={() => practice.setShowAll(item, false)}>{i18n.t('practice.run.oneAtATime')}</button>
+            <button type="button" role="radio" aria-checked={page.showAll} class:on={page.showAll} onclick={() => practice.setShowAll(item, true)}>{i18n.t('practice.run.all')}</button>
           </div>
-          <button type="button" class="btn sm" onclick={() => (ending = true)}>End session</button>
+          <button type="button" class="btn sm" onclick={() => (ending = true)}>{i18n.t('practice.run.end')}</button>
         </div>
       {/if}
     </div>
@@ -183,7 +189,7 @@
     {#if page.showAll}
       <div class="all-list" bind:this={allRoot}>
         {#each drawn as d, i (`${d.book}/${d.section}/${d.ex}`)}
-          <section class="all-exercise" aria-label="Exercise {i + 1} of {n}">{@render slot(session.id, i)}</section>
+          <section class="all-exercise" aria-label={i18n.t('practice.run.numberOf', { i: i + 1, n })}>{@render slot(session.id, i)}</section>
         {/each}
       </div>
     {:else}
@@ -191,11 +197,11 @@
         {#if pending}{@render slot(session.id, at)}{/if}
       </div>
       <div class="foot">
-        <button type="button" class="btn ghost" disabled={at === 0} onclick={() => practice.go(item, at - 1)}>‹ Previous</button>
+        <button type="button" class="btn ghost" disabled={at === 0} onclick={() => practice.go(item, at - 1)}>{i18n.t('practice.run.previous')}</button>
         {#if allDone}
-          <button type="button" class="btn primary" onclick={() => practice.end(item)}>Finish session</button>
+          <button type="button" class="btn primary" onclick={() => practice.end(item)}>{i18n.t('practice.run.finish')}</button>
         {:else}
-          <button type="button" class="btn" class:primary={answered} disabled={at >= n - 1 && !othersOpen} onclick={next}>Next ›</button>
+          <button type="button" class="btn" class:primary={answered} disabled={at >= n - 1 && !othersOpen} onclick={next}>{i18n.t('practice.run.next')}</button>
         {/if}
       </div>
     {/if}

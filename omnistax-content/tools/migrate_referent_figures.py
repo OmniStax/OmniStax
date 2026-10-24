@@ -124,7 +124,14 @@ def write_text(path: str, text: str) -> None:
 
 
 def section_files(book_dir: str) -> list[str]:
-    return sorted(os.path.join(d, "section.json") for d, _, files in os.walk(book_dir) if "section.json" in files)
+    """The pages of one book; its translations/ folder holds other books and is passed over."""
+    found = []
+    for d, dirs, files in os.walk(book_dir):
+        if d == book_dir and "translations" in dirs:
+            dirs.remove("translations")
+        if "section.json" in files:
+            found.append(os.path.join(d, "section.json"))
+    return sorted(found)
 
 
 def migrate_book(book_dir: str, drawn: Mapping[SectionId, Drawn], dry_run: bool) -> list[Change]:

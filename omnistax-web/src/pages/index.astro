@@ -6,13 +6,16 @@ import ShellPage from '../layouts/ShellPage.astro';
 import { trees } from '../lib/content/paths';
 import { aboutHtml } from '../lib/content/pages';
 import { aboutItem } from '../lib/types/ids';
+import { tIn } from '../lib/i18n/index';
 const books = await trees();
 if (books.length === 0) throw new Error('this build carries no books: check OMNISTAX_CONTENT_DIR and OMNISTAX_BOOKS');
-const description = 'OmniStax/万象 is a next-gen, self-hostable STEM learning platform built from open source textbooks.';
+/* One English front page for now: a page per language passes its own locale here and to aboutHtml. */
+const locale = 'en';
+const description = tIn(locale, 'about.description');
 ---
 <ShellPage
   own={aboutItem()}
-  pool={aboutHtml()}
-  title="OmniStax"
+  pool={aboutHtml(locale)}
+  title={tIn(locale, 'about.title')}
   description={description}
 />

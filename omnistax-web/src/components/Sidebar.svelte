@@ -4,6 +4,7 @@
   import { dropzone } from '../lib/layout/drag.svelte';
   import ViewBox from './ViewBox.svelte';
   import { FIG } from '../lib/fig/figlib';
+  import { i18n } from '../lib/i18n/store.svelte';
   let { narrow }: { narrow: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const items = $derived(l.sides.left.items);
@@ -23,7 +24,7 @@
   <div class="stack">
     {#each items as k (k)}<ViewBox itemKey={k} />{/each}
   </div>
-  <div class="grip" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onpointerdown={resize}></div>
+  <div class="grip" role="separator" aria-orientation="vertical" aria-label={i18n.t('shell.sidebar.resize')} onpointerdown={resize}></div>
 </aside>
 
 <style>

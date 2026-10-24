@@ -8,6 +8,7 @@ import {
   migrateTree, move, newEntryId, pathOf, remove, rename, toggleExpanded, uniqueName,
 } from './model';
 import { readerWritesAllowed } from '../backup/guard';
+import { t } from '../i18n/index';
 
 const KEY = 'omnistax-explorer-v1';
 const load = (): Tree => {
@@ -28,7 +29,7 @@ class Explorer {
      row hand back its id so the caller can select it or start renaming it. */
   addFolder(parent: EntryId | null, name?: string): EntryId {
     const id = newEntryId();
-    this.apply((t) => addFolder(t, parent, name ?? uniqueName(t, parent, 'Untitled'), id));
+    this.apply((tree) => addFolder(tree, parent, name ?? uniqueName(tree, parent, t('explorer.untitled')), id));
     return id;
   }
   /* The note document is written by noteDocs under this very id. */
@@ -69,7 +70,7 @@ class Explorer {
   entry(id: EntryId): Entry | undefined { return entryById(this.tree, id); }
   children(parent: EntryId | null): Entry[] { return childrenOf(this.tree, parent); }
   path(id: EntryId | null): string { return pathOf(this.tree, id); }
-  uniqueName(parent: EntryId | null, base = 'Untitled'): string { return uniqueName(this.tree, parent, base); }
+  uniqueName(parent: EntryId | null, base = t('explorer.untitled')): string { return uniqueName(this.tree, parent, base); }
   /* The entries of one kind, in reading order, for the pickers that list them. */
   ofKind(kind: Entry['kind']): Entry[] { return this.tree.entries.filter((e) => e.kind === kind); }
 

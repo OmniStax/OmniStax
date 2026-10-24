@@ -5,6 +5,7 @@
   import type { SessionId } from '../../lib/practice/model';
   import { pageCount, pageOf } from '../../lib/pomodoro/model';
   import RowMenu from '../explorer/RowMenu.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   let { item, limit }: { item: string; limit?: number } = $props();
 
   const running = $derived(practice.liveSessions());
@@ -18,15 +19,15 @@
     books.manifest(book)?.chapters.flatMap((c) => c.sections).find((s) => s.id === id)?.title ?? '';
   const names: PickNames = {
     book: (id) => practice.bookTitle(id),
-    chapter: (book, id) => `Chapter ${id}${chapterOf(book, id) ? ` ${chapterOf(book, id)?.title}` : ''}`,
+    chapter: (book, id) => `${i18n.t('practice.rows.chapter', { id })}${chapterOf(book, id) ? ` ${chapterOf(book, id)?.title}` : ''}`,
     section: (book, id) => `${id} ${sectionTitle(book, id)}`.trim(),
     concept: (id) => practice.conceptOf(id)?.name ?? id,
-    exercise: (ref) => { const ex = practice.exerciseOf(ref); return ex ? `${exerciseName(ex)} in ${ref.section}` : `Exercise in ${ref.section}`; },
+    exercise: (ref) => { const ex = practice.exerciseOf(ref); return ex ? i18n.t('practice.rows.exerciseIn', { name: exerciseName(ex, undefined, i18n.t), section: ref.section }) : i18n.t('practice.rows.anExerciseIn', { section: ref.section }); },
   };
   const covers = (s: Session): string => {
     const words = s.curriculum.map((p) => pickLabel(p, names));
     if (!words.length) return '—';
-    return words.length > 3 ? `${words.slice(0, 3).join(', ')} and ${words.length - 3} more` : words.join(', ');
+    return words.length > 3 ? i18n.t('practice.rows.andMore', { words: words.slice(0, 3).join(', '), n: words.length - 3 }) : words.join(', ');
   };
   const bookOfPick = (p: Session['curriculum'][number]): string | null => ('concept' in p ? null : 'exercise' in p ? p.exercise.book : p.book);
   $effect(() => {
@@ -34,7 +35,7 @@
     wanted.forEach((b) => { if (!books.manifest(b) && !books.status[b]) books.load(b).catch(() => {}); });
   });
 
-  const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const when = $derived(new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeStyle: 'short' }));
   const answered = (s: Session): number => s.outcomes.filter((o) => o !== null).length;
   const correct = (s: Session): number => s.outcomes.filter((o) => o === true).length;
 
@@ -45,7 +46,7 @@
     const required = practice.releaseFor(id);
     if (required) reopenRelease(required.release); else practice.take(item, id);
   };
-  const needs = (id: SessionId): string => { const r = practice.releaseFor(id); return r ? `Needs textbook release ${r.release.slice(0, 10)}` : ''; };
+  const needs = (id: SessionId): string => { const r = practice.releaseFor(id); return r ? i18n.t('practice.rows.needsRelease', { release: r.release.slice(0, 10) }) : ''; };
 
   type Menu = { readonly id: SessionId; readonly label: string; readonly x: number; readonly y: number };
   let menu = $state<Menu | null>(null);
@@ -61,46 +62,46 @@
 {#snippet more(id: SessionId, label: string)}
   {#if asking?.id === id}
     <span class="ask">
-      {asking.label}?
-      <button type="button" class="btn sm danger" onclick={() => { practice.discard(id); asking = null; }}>Yes</button>
-      <button type="button" class="btn ghost sm" onclick={() => (asking = null)}>No</button>
+      {i18n.t('practice.rows.confirm', { label: asking.label })}
+      <button type="button" class="btn sm danger" onclick={() => { practice.discard(id); asking = null; }}>{i18n.t('practice.yes')}</button>
+      <button type="button" class="btn ghost sm" onclick={() => (asking = null)}>{i18n.t('practice.no')}</button>
     </span>
   {:else}
-    <button type="button" class="btn ghost icon sm more" aria-label="Actions for this session" onclick={openAt(id, label)}>⋯</button>
+    <button type="button" class="btn ghost icon sm more" aria-label={i18n.t('practice.rows.actions')} onclick={openAt(id, label)}>⋯</button>
   {/if}
 {/snippet}
 
 {#if !running.length && !past.length}
-  <p class="meta">Finished sessions appear here.</p>
+  <p class="meta">{i18n.t('practice.rows.empty')}</p>
 {:else}
   <ul class="rows">
     {#each running as { session: s, key } (s.id)}
-      <li class="row" class:open={menu?.id === s.id} oncontextmenu={openAt(s.id, 'Discard')}>
-        <button type="button" class="btn sm primary" title={needs(s.id)} onclick={() => takeUp(s.id)}>Continue</button>
+      <li class="row" class:open={menu?.id === s.id} oncontextmenu={openAt(s.id, i18n.t('practice.rows.discard'))}>
+        <button type="button" class="btn sm primary" title={needs(s.id)} onclick={() => takeUp(s.id)}>{i18n.t('practice.rows.continue')}</button>
         <span class="when">{when.format(s.started)}</span>
         <span class="what">{covers(s)}</span>
-        <span class="num">{answered(s)} of {s.outcomes.length} answered</span>
-        {#if key !== null && key !== item}<span class="held meta">open in another tab</span>{/if}
-        {@render more(s.id, 'Discard')}
+        <span class="num">{i18n.t('practice.rows.answered', { n: answered(s), total: s.outcomes.length })}</span>
+        {#if key !== null && key !== item}<span class="held meta">{i18n.t('practice.rows.elsewhere')}</span>{/if}
+        {@render more(s.id, i18n.t('practice.rows.discard'))}
       </li>
     {/each}
     {#each shown as s (s.id)}
-      <li class="row past" class:open={menu?.id === s.id} oncontextmenu={openAt(s.id, 'Delete')}>
+      <li class="row past" class:open={menu?.id === s.id} oncontextmenu={openAt(s.id, i18n.t('practice.rows.delete'))}>
         <button type="button" class="line" onclick={() => practice.review(item, s.id)}>
           <span class="when">{when.format(s.started)}</span>
-          <span class="dur meta">{durationText((s.ended ?? s.started) - s.started)}</span>
+          <span class="dur meta">{durationText((s.ended ?? s.started) - s.started, i18n.t)}</span>
           <span class="what">{covers(s)}</span>
-          <span class="num">{correct(s)}/{s.outcomes.length} correct</span>
+          <span class="num">{i18n.t('practice.rows.correct', { n: correct(s), total: s.outcomes.length })}</span>
         </button>
-        {@render more(s.id, 'Delete')}
+        {@render more(s.id, i18n.t('practice.rows.delete'))}
       </li>
     {/each}
   </ul>
   {#if pages > 1}
-    <nav class="pager" aria-label="Pages">
-      <button type="button" class="btn ghost sm" disabled={page <= 0} onclick={() => (page = Math.max(0, page - 1))}>← Newer</button>
-      <span>Page {Math.min(page, pages - 1) + 1} of {pages}</span>
-      <button type="button" class="btn ghost sm" disabled={page >= pages - 1} onclick={() => (page = Math.min(pages - 1, page + 1))}>Older →</button>
+    <nav class="pager" aria-label={i18n.t('practice.pages')}>
+      <button type="button" class="btn ghost sm" disabled={page <= 0} onclick={() => (page = Math.max(0, page - 1))}>{i18n.t('practice.newer')}</button>
+      <span>{i18n.t('practice.page', { n: Math.min(page, pages - 1) + 1, total: pages })}</span>
+      <button type="button" class="btn ghost sm" disabled={page >= pages - 1} onclick={() => (page = Math.min(pages - 1, page + 1))}>{i18n.t('practice.older')}</button>
     </nav>
   {/if}
 {/if}

@@ -68,6 +68,8 @@
   import { dragout } from '../../lib/notes/md/dragout';
   import type { LinkTarget } from '../../lib/notes/md/links';
   import { select } from 'd3-selection';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import { kindLabel } from '../../lib/sections/reference';
   import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
   let { item }: { item: string } = $props();
   const scoped = getCtx<() => Target>('scope');
@@ -623,11 +625,11 @@
   const choose = (id: string) => { query = ''; hover = id; goTo(id); };
 
   const count = $derived(focusing && focus ? focus.ids.size : shown.length);
-  const LAYOUTS: readonly { readonly kind: MapKind; readonly label: string; readonly icon: string }[] = [
-    { kind: 'down', label: 'Top-down layers', icon: ICON.layoutDown },
-    { kind: 'right', label: 'Left-to-right layers', icon: ICON.layoutRight },
-    { kind: 'disk', label: 'Hyperbolic disk', icon: ICON.hyperbolic },
-  ];
+  const LAYOUTS = $derived<readonly { readonly kind: MapKind; readonly label: string; readonly icon: string }[]>([
+    { kind: 'down', label: i18n.t('views.map.layout.down'), icon: ICON.layoutDown },
+    { kind: 'right', label: i18n.t('views.map.layout.right'), icon: ICON.layoutRight },
+    { kind: 'disk', label: i18n.t('views.map.layout.disk'), icon: ICON.hyperbolic },
+  ]);
   const RX: Record<ConceptKind, number> = { definition: 5, axiom: 2, result: 5, idea: 10, skill: 5 } as Record<ConceptKind, number>;
   const WRENCH = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
 </script>
@@ -675,26 +677,26 @@
 
   <!-- the toolbar and the legend stand over the map rather than above it -->
   <div class="hud" data-nodrag>
-    <div class="tools" role="toolbar" aria-label="Concept map">
+    <div class="tools" role="toolbar" aria-label={i18n.t('views.map.label')}>
       {#each LAYOUTS as o (o.kind)}
         <button type="button" class="tool" title={o.label} aria-label={o.label} aria-pressed={kind === o.kind} onclick={() => setKind(o.kind)}>{@html o.icon}</button>
       {/each}
       <span class="sep" aria-hidden="true"></span>
-      <button type="button" class="tool" title="Lasso (or Shift-drag)" aria-label="Lasso" aria-pressed={lassoMode} onclick={() => (lassoMode = !lassoMode)}>{@html ICON.lasso}</button>
-      <button type="button" class="tool wide" title="Select concepts you have mastered the prerequisites of" disabled={!ready.length} onclick={() => (selected = new Set(ready))}><span>Ready {ready.length}</span></button>
-      <button type="button" class="tool wide" title={focusing ? 'Unfocus' : 'Focus on the selection'} aria-pressed={focusing} disabled={!focusing && !selected.size} onclick={toggleFocus}>{@html ICON.focus}<span>{focusing ? 'Unfocus' : selected.size ? `Focus ${selected.size}` : 'Focus'}</span></button>
+      <button type="button" class="tool" title={i18n.t('views.map.lassoTitle')} aria-label={i18n.t('views.map.lasso')} aria-pressed={lassoMode} onclick={() => (lassoMode = !lassoMode)}>{@html ICON.lasso}</button>
+      <button type="button" class="tool wide" title={i18n.t('views.map.readyTitle')} disabled={!ready.length} onclick={() => (selected = new Set(ready))}><span>{i18n.t('views.map.ready', { n: ready.length })}</span></button>
+      <button type="button" class="tool wide" title={focusing ? i18n.t('views.map.unfocus') : i18n.t('views.map.focusTitle')} aria-pressed={focusing} disabled={!focusing && !selected.size} onclick={toggleFocus}>{@html ICON.focus}<span>{focusing ? i18n.t('views.map.unfocus') : selected.size ? i18n.t('views.map.focusN', { n: selected.size }) : i18n.t('views.map.focus')}</span></button>
       <span class="sep" aria-hidden="true"></span>
-      <button type="button" class="tool" title="Progress" aria-label="Progress" aria-pressed={showProgress} onclick={() => (showProgress = !showProgress)}>{@html ICON.progress}</button>
+      <button type="button" class="tool" title={i18n.t('views.map.progress')} aria-label={i18n.t('views.map.progress')} aria-pressed={showProgress} onclick={() => (showProgress = !showProgress)}>{@html ICON.progress}</button>
     </div>
     <div class="legend">
       {#each KINDS as k (k)}
-        <button type="button" class="kind k-{k}" class:off={hidden.has(k)} aria-pressed={!hidden.has(k)} onclick={() => toggleKind(k)}><i class="sw">{#if k === 'skill'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d={WRENCH} /></svg>{/if}</i>{k}</button>
+        <button type="button" class="kind k-{k}" class:off={hidden.has(k)} aria-pressed={!hidden.has(k)} onclick={() => toggleKind(k)}><i class="sw">{#if k === 'skill'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d={WRENCH} /></svg>{/if}</i>{kindLabel(k, i18n.t).toLocaleLowerCase(i18n.locale)}</button>
       {/each}
-      <span class="kind ext"><i class="sw"></i>other section</span>
+      <span class="kind ext"><i class="sw"></i>{i18n.t('views.map.otherSection')}</span>
     </div>
   </div>
   <div class="find" data-nodrag>
-    <input type="search" placeholder="Find a concept" bind:value={query} aria-label="Find a concept on the map" data-find>
+    <input type="search" placeholder={i18n.t('views.map.findPlaceholder')} bind:value={query} aria-label={i18n.t('views.map.find')} data-find>
     {#if hits.length}
       <ul class="hits">
         {#each hits as h (h.id)}<li><button type="button" data-hit={h.id} onclick={() => choose(h.id)}><span use:mathHtml={h.name}></span><small>{h.section}</small></button></li>{/each}
@@ -702,8 +704,8 @@
     {/if}
   </div>
   <div class="readout" data-count={count} data-source={home?.source}>
-    <button type="button" class="fit" title={selected.size ? 'Fit the selected concepts in the pane' : 'Fit the concepts in the pane'} disabled={laying || !shown.length} onclick={fitSelection}>{@html ICON.focus}Fit</button>
-    {#if laying}laying out {list.length} concepts…{:else}{count} concepts{#if home?.ms}{' · laid out in '}{home.ms} ms{/if}{/if}
+    <button type="button" class="fit" title={selected.size ? i18n.t('views.map.fitSelectedTitle') : i18n.t('views.map.fitTitle')} disabled={laying || !shown.length} onclick={fitSelection}>{@html ICON.focus}{i18n.t('views.map.fit')}</button>
+    {#if laying}{i18n.t('views.map.laying', { n: list.length })}{:else}{i18n.t('views.map.count', { n: count })}{#if home?.ms}{i18n.t('views.map.laidOut', { ms: home.ms })}{/if}{/if}
   </div>
 </div>
 

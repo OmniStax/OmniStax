@@ -2,7 +2,8 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { closeItem } from '../lib/layout/model';
   import { draggable } from '../lib/layout/drag.svelte';
-  import { VIEW_TITLE } from '../lib/icons';
+  import { viewTitle } from '../lib/icons';
+  import { i18n } from '../lib/i18n/store.svelte';
   import { viewKindOf } from '../lib/types/ids';
   import View from './views/View.svelte';
   let { itemKey }: { itemKey: string } = $props();
@@ -11,8 +12,8 @@
 
 <div class="vbox" data-item={itemKey}>
   <header use:draggable={{ key: itemKey, from: null }}>
-    <span class="eyebrow">{VIEW_TITLE[kind]}</span>
-    <button type="button" class="x" aria-label="Close" onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
+    <span class="eyebrow">{viewTitle(kind, i18n.t)}</span>
+    <button type="button" class="x" aria-label={i18n.t('shell.close')} onclick={() => layoutStore.apply((x) => closeItem(x, itemKey))}>×</button>
   </header>
   <div class="body"><View item={itemKey} /></div>
 </div>

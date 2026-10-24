@@ -6,6 +6,7 @@
      gives it a row under Your Files, names it after the exercise, and leaves
      the exercise wearing a chip that opens it. */
   import DrawingTab from './DrawingTab.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { drawings } from '../../lib/drawer/store.svelte';
   import { saveScratchAsDrawing } from '../../lib/drawer/edits';
   import { keyOf, scratchName } from '../../lib/practice/scratch.svelte';
@@ -35,9 +36,9 @@
 
 <div class="scratch-pane">
   <header class="head">
-    <span class="what">Scratch · {section} {ex}</span>
+    <span class="what">{i18n.t('drawer.scratch.title', { section, ex })}</span>
     {#if linked}
-      <span class="saved">Saved to Your Files</span>
+      <span class="saved">{i18n.t('drawer.scratch.saved')}</span>
     {/if}
   </header>
   {#if drawing}
@@ -45,7 +46,7 @@
       <DrawingTab {drawing} {onchange} {groupKey} scratch={!linked} busy={saving} onsave={save} />
     </div>
   {:else}
-    <div class="waiting">Opening your scratch work…</div>
+    <div class="waiting">{i18n.t('drawer.scratch.opening')}</div>
   {/if}
 </div>
 

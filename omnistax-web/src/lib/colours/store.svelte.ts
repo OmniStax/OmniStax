@@ -9,7 +9,7 @@ import { settings } from '../settings/store.svelte';
 import { type Edit, type Stack, breakCoalescing, canRedo, canUndo, coalesce, emptyStack, push, redo, redoLabel, undo, undoLabel } from '../history/model';
 import type { BookManifest } from '../content/schema';
 import { type BookId, bookId } from '../types/ids';
-import { DEFAULT_VISION, FAMILIES, type Offer, type Palette, type PaletteId, pairsOf } from './palettes';
+import { DEFAULT_VISION, FAMILIES, type Offer, type Palette, type PaletteId, pairsOf, paletteName } from './palettes';
 import { DEFAULT_SEED } from './defaults';
 import { assignInOrder, assignSmart } from './assign';
 import { fixedOf, pagesOfBook } from './counts';
@@ -21,6 +21,7 @@ import {
 import { type RefMode, type RefSettings, referentPalettes } from './referents';
 import type { Vision } from './oklab';
 import { readerWritesAllowed } from '../backup/guard';
+import { t } from '../i18n/index';
 import { bookColoursHref } from './rules';
 
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
@@ -124,15 +125,15 @@ class Colours {
     this.record(nameOf(this.manifest, type), setHue(this.choices, type, hue), coalesceKey);
   }
   clear(type: TypeKey): void {
-    this.record(`${nameOf(this.manifest, type)} cleared`, clearHue(this.choices, type));
+    this.record(t('views.colours.edit.cleared', { name: nameOf(this.manifest, type) }), clearHue(this.choices, type));
   }
   /* One quantity moved in the order the whole book follows. Every palette lays
      its hues along that order, so this recolours whatever still follows the
      scheme and leaves a colour the reader set where it is. */
   move(type: TypeKey, before: TypeKey | null): void {
     if (!this.manifest) return;
-    const where = before === null ? 'to the end' : `before ${nameOf(this.manifest, before)}`;
-    this.record(`${nameOf(this.manifest, type)} moved ${where}`, moveType(this.manifest, this.choices, type, before));
+    const name = nameOf(this.manifest, type);
+    this.record(before === null ? t('views.colours.edit.movedToEnd', { name }) : t('views.colours.edit.movedBefore', { name, before: nameOf(this.manifest, before) }), moveType(this.manifest, this.choices, type, before));
   }
   /* A palette laid over every quantity of the book under a stated vision, along the
      reader's order or smartly by what each page shows, written with the vision and
@@ -147,15 +148,15 @@ class Colours {
     const types = order.filter((k) => got.has(k));
     const next = applyHues(setCategories(setVision(this.choices, vision), { palette: palette.id, mode }), types, types.map((k) => got.get(k) as Hue));
     if (!next) return false;
-    this.record(`the palette ${palette.name} ${mode === 'smart' ? 'smart' : 'in order'}`, next);
+    this.record(t(mode === 'smart' ? 'views.colours.edit.paletteSmart' : 'views.colours.edit.paletteInOrder', { name: paletteName(palette) }), next);
     return true;
   }
   /* The colour vision the reader reads with, which the palettes are generated for. */
   get vision(): Vision { return this.manifest ? visionOf(this.manifest, this.choices) : this.choices.vision ?? DEFAULT_VISION; }
   get statedVision(): Vision { return this.stated[this.book] ?? this.vision; }
   stateVision(vision: Vision): void { this.stated = { ...this.stated, [this.book]: vision }; }
-  setVision(vision: Vision | undefined): void { this.record(`color vision ${vision ?? 'reset'}`, setVision(this.choices, vision)); }
-  resetAll(): void { this.record('every color reset', NO_CHOICES); }
+  setVision(vision: Vision | undefined): void { this.record(vision ? t('views.colours.edit.vision', { vision }) : t('views.colours.edit.visionReset'), setVision(this.choices, vision)); }
+  resetAll(): void { this.record(t('views.colours.edit.resetAll'), NO_CHOICES); }
 
   /* The referent palette and how groups deal it out. */
   get referents(): RefSettings { return referentsOf(this.choices); }
@@ -165,7 +166,7 @@ class Colours {
     const m = this.manifest;
     const seen = setVision(this.choices, vision);
     const order = m && mode === 'smart' ? { order: referentOrder(m, seen, palette) } : {};
-    this.record(`referents ${mode === 'smart' ? 'smart' : 'in order'}`, setReferents(seen, { palette, mode, ...order }));
+    this.record(t(mode === 'smart' ? 'views.colours.edit.referentsSmart' : 'views.colours.edit.referentsInOrder'), setReferents(seen, { palette, mode, ...order }));
   }
   /* The palettes that can give the referents their thirty-six under the reader's vision. */
   referentPalettes(vision: Vision = this.vision): readonly Offer[] { return referentPalettes(vision); }

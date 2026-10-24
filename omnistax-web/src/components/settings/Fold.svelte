@@ -11,11 +11,14 @@
 
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  /* A search unfolds everything without touching what the reader folded. */
-  let { name, show = true, force = false, children }: { name: string; show?: boolean; force?: boolean; children: Snippet } = $props();
+  /* A search unfolds everything without touching what the reader folded. The
+     fold is remembered by its id, which stays put whatever language the name
+     is shown in (the English name, so what was folded before is folded still). */
+  let { id, name, show = true, force = false, children }: { id?: string; name: string; show?: boolean; force?: boolean; children: Snippet } = $props();
+  const key = $derived(id ?? name);
 </script>
 
-<details hidden={!show} open={force || !folded.has(name)} ontoggle={(e) => { if (!force) setFolded(name, !e.currentTarget.open); }}>
+<details hidden={!show} open={force || !folded.has(key)} ontoggle={(e) => { if (!force) setFolded(key, !e.currentTarget.open); }}>
   <summary><h3>{name}</h3></summary>
   <div class="body">{@render children()}</div>
 </details>

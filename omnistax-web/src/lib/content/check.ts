@@ -62,6 +62,11 @@ const ref = (where: string, what: string, rows: ReadonlySet<string>, id: string 
 const idsOf = <T,>(rows: readonly T[], key: (row: T) => string): ReadonlySet<string> => new Set(rows.map(key));
 /* A section id carries its chapter: "16.1" is read in chapter "16". */
 const chapterOfSection = (section: string): string => section.split('.')[0];
+/* Whether a section lies in a chapter the book does not list: a book may list only some chapters of the concept
+   table it carries (a translation in progress lists the chapters translated so far), and what the table says about
+   a chapter that is not there waits on it, as a concept's section does. */
+const waitsOn = (content: Content, section: string): boolean => !content.chapters.some((ch) => ch.dto.id === chapterOfSection(section));
+const waiting = (where: string, section: string): Finding => info(where, `waits on section "${section}", in a chapter the book has not added yet`);
 /* Every id the section's text carries, which is what a span, an anchor, a cite and an inline exercise's place must name. */
 export const localIds = (html: string): ReadonlySet<string> => new Set(Array.from(html.matchAll(/\sid="([^"]+)"/g), (m) => m[1]));
 /* Every <figure> of the text by its id, with the number the browser reads off it. */
@@ -124,7 +129,10 @@ export const checkRefs: Check = (content) => {
     return [
       ...conceptSection(where, c.section),
       ...ref(where, 'symbol', symbols, c.symbol),
-      ...c.forms.flatMap((f) => ref(`${where} forms[${f.id}]`, 'section', sections, f.section)),
+      /* a form in a chapter not listed waits on it; said once, on the concept, when the concept waits too */
+      ...c.forms.flatMap((f) => (f.section !== undefined && waitsOn(content, f.section)
+        ? (waitsOn(content, c.section) ? [] : [waiting(`${where} forms[${f.id}]`, f.section)])
+        : ref(`${where} forms[${f.id}]`, 'section', sections, f.section))),
     ];
   }).concat(content.book.conceptPrereqs.flatMap((e) => {
     const where = `book.json concept_prereqs[${e.concept} ← ${e.prereq}]`;
@@ -324,18 +332,19 @@ export const checkVariableRefs: Check = (content) => {
    about several sections. It must be an id the built section carries. */
 export const checkAnchors: Check = (content) => {
   const ids = new Map(sectionsOf(content).map((s) => [String(s.dto.id), localIds(s.textHtml)] as const));
-  const anchor = (where: string, value: string | undefined): readonly Finding[] => {
+  const anchor = (where: string, value: string | undefined, quiet = false): readonly Finding[] => {
     if (value === undefined) return [];
     const cut = value.indexOf('-');
     const [section, local] = cut < 0 ? [value, ''] : [value.slice(0, cut), value.slice(cut + 1)];
     const built = ids.get(section);
     if (pageRoleOf(section) !== 'section') return [error(where, `anchors "${value}", but an introduction or summary page carries no anchors`)];
+    if (!built && waitsOn(content, section)) return quiet ? [] : [waiting(where, section)];
     if (!built) return [error(where, `anchors "${value}", but section ${section} is not built`)];
     return built.has(local) ? [] : [error(where, `anchors "${value}", but section ${section} has no id "${local}"`)];
   };
   return [
     ...content.chapters.flatMap((ch) => ch.dto.variables.flatMap((v) => anchor(inChapter(ch, 'variables', v.sym), v.anchor))),
-    ...content.book.concepts.flatMap((c) => c.forms.flatMap((f) => anchor(`book.json concepts[${c.id}] forms[${f.id}]`, f.anchor))),
+    ...content.book.concepts.flatMap((c) => c.forms.flatMap((f) => anchor(`book.json concepts[${c.id}] forms[${f.id}]`, f.anchor, waitsOn(content, c.section) || (f.section !== undefined && waitsOn(content, f.section))))),
   ];
 };
 
@@ -541,7 +550,10 @@ export const checkFigureRefs: Check = (content) => {
    id is nowhere the finding says which source does hold it, because an id in the
    wrong place reads very differently from one that is nowhere. An exercise with an
    origin comes from outside the book, so no section's source holds it. */
+/* A translation keeps no source.md (RULES item 30): its exercises are its source's, id for id (checkParity), and
+   the source's are checked against the source's own source.md. */
 export const checkSources: Check = (content) => {
+  if (content.book.translationOf !== undefined) return [];
   const sources = new Map(sectionsOf(content).map((s) => [String(s.dto.id), s.sourceMd] as const));
   const elsewhere = (id: string, from: string): string =>
     [...sources].filter(([of, source]) => of !== from && (source?.includes(id) ?? false)).map(([of]) => of).join(', ');
@@ -586,8 +598,11 @@ export const checkConceptLinks: Check = (content) => {
     if (v.concept === undefined) return;
     linked.set(v.concept, new Set([...(linked.get(v.concept) ?? []), v.sym]));
   }));
+  /* A concept that waits on a chapter not listed has its rows there; and a translation may list only some of its
+     source's chapters, whose rows link as the source's do (checkParity compares them), so its symbols are the source's to carry. */
+  const partial = content.book.translationOf !== undefined;
   return content.book.concepts.flatMap((c) =>
-    (c.symbol === undefined || linked.get(c.id)?.has(c.symbol) ? [] : [error(`book.json concepts[${c.id}]`, `has the symbol "${c.symbol}", which no variables row linked to it carries`)]));
+    (c.symbol === undefined || partial || waitsOn(content, c.section) || linked.get(c.id)?.has(c.symbol) ? [] : [error(`book.json concepts[${c.id}]`, `has the symbol "${c.symbol}", which no variables row linked to it carries`)]));
 };
 
 /* A form is named by its id wherever the text, an answer or a note names it,
@@ -765,7 +780,95 @@ export const checkDerivations: Check = (content) =>
       }),
     ];
   });
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets];
+/* ---------- the language a book is written in, and the book a translation translates ---------- */
+
+/* A book says what language it is written in: it is the lang of every page and what the library lists the edition under. */
+export const checkLanguage: Check = (content) =>
+  (content.book.languageDeclared ? [] : [warning('book.json language', 'is not declared; the book is read as en')]);
+
+/* A translation names a book other than itself, and says how it was made; its glossary is a file of its own folder.
+   Whether that file is there is for the command, which reads the disk (scripts/check-content.ts). */
+export const checkTranslationMeta: Check = (content) => {
+  const { id, translationOf, translation } = content.book;
+  if (translationOf === undefined) return [];
+  const glossary = translation?.glossary;
+  return [
+    ...(translationOf === id ? [error('book.json translation_of', `names the book itself ("${id}")`)] : []),
+    ...(translation === undefined ? [warning('book.json translation', 'is not declared: a translation says who made it, when, from which source and after which glossary')] : []),
+    ...(glossary !== undefined && (path.isAbsolute(glossary) || path.normalize(glossary).split(/[\\/]/)[0] === '..')
+      ? [warning('book.json translation.glossary', `"${glossary}" is no file of the book's own folder`)] : []),
+  ];
+};
+
+/* Two sets of ids that must be the same, as one finding at most: what the translation lacks and what it has that the source does not. */
+const sample = (ids: readonly string[]): string => `${ids.slice(0, 6).map((i) => `"${i}"`).join(', ')}${ids.length > 6 ? ` and ${ids.length - 6} more` : ''}`;
+const sameIds = (where: string, what: string, own: Iterable<string>, source: Iterable<string>): readonly Finding[] => {
+  const a = new Set(own), b = new Set(source);
+  const missing = [...b].filter((x) => !a.has(x)), extra = [...a].filter((x) => !b.has(x));
+  if (missing.length === 0 && extra.length === 0) return [];
+  return [error(where, `${what} differ from the source's: ${[...(missing.length ? [`lacks ${sample(missing)}`] : []), ...(extra.length ? [`has ${sample(extra)}, which the source does not`] : [])].join('; ')}`)];
+};
+/* One page of a translation against the same page of its source: every id a reader, a link or a record of the reader's names. */
+const pageParity = (where: string, own: SectionContent, source: SectionContent): readonly Finding[] => [
+  ...sameIds(`${where}/section.json figures`, 'figure ids', own.dto.figures.map((f) => f.id), source.dto.figures.map((f) => f.id)),
+  ...sameIds(`${where}/section.json exercises`, 'exercise ids', own.dto.exercises.map((e) => e.id), source.dto.exercises.map((e) => e.id)),
+  ...sameIds(`${where}/section.json exercise_concepts`, 'exercise × concept rows', own.dto.exerciseConcepts.map((r) => `${r.exercise}|${r.concept}`), source.dto.exerciseConcepts.map((r) => `${r.exercise}|${r.concept}`)),
+  ...sameIds(`${where}/section.json coverage`, 'coverage rows (span|concept|verb)', own.dto.coverage.map((r) => `${r.span}|${r.concept}|${r.verb}`), source.dto.coverage.map((r) => `${r.span}|${r.concept}|${r.verb}`)),
+  ...sameIds(`${where}/section.json referents`, 'referent ids', own.dto.referents.map((r) => r.id), source.dto.referents.map((r) => r.id)),
+  ...sameIds(`${where}/section.json footnotes`, 'footnote ids', own.dto.footnotes.map((f) => f.id), source.dto.footnotes.map((f) => f.id)),
+  ...sameIds(`${where}/section.json derivations`, 'derivation ids', own.dto.derivations.map((d) => d.id), source.dto.derivations.map((d) => d.id)),
+  ...sameIds(`${where}/text.html`, 'span ids', localIds(own.textHtml), localIds(source.textHtml)),
+];
+/* Where a chapter's page is: its directory beside the chapter's, since an introduction's id ("intro") is the same in every chapter. */
+const pageWhere = (ch: ChapterContent, s: SectionContent): string => `${ch.dto.dir}/${s.dto.id}`;
+/* Is `own` the source's list with some entries left out, in the source's order? A prefix is the pilot's case. */
+const inSourceOrder = (own: readonly string[], source: readonly string[]): boolean => {
+  const at = own.map((d) => source.indexOf(d));
+  return at.every((i, k) => i >= 0 && (k === 0 || i > at[k - 1]));
+};
+
+/* A translation keeps every id of its source (RULES item 30), so that the same place opens in either edition and
+   the reader's records of one name places of the other: the chapters it lists are the source's, in the source's
+   order, and every chapter, page, table and span it carries matches the source's id for id. It is not a Check,
+   since it reads two books; the command and the tests resolve the source and call it. */
+export const checkParity = (content: Content, source: Content): readonly Finding[] => {
+  const book = content.book, src = source.book;
+  const sourceChapters = new Map(source.chapters.map((ch) => [ch.dto.dir, ch]));
+  const front = (role: 'intro' | 'summary'): readonly Finding[] => {
+    const own = content[role], theirs = source[role];
+    if (!own) return [];
+    return theirs ? pageParity(role, own, theirs) : [error(`${role}/section.json`, `is built, and the source builds no ${role} of its own`)];
+  };
+  return [
+    ...(book.translationOf === src.id ? [] : [error('book.json translation_of', `is "${book.translationOf ?? ''}", and the book compared with is "${src.id}"`)]),
+    ...(book.language === src.language ? [error('book.json language', `is "${book.language}", the language of the source; a translation is written in another`)] : []),
+    ...(inSourceOrder(book.chapterDirs, src.chapterDirs) ? [] : [error('book.json chapters', `must be chapters of the source in the source's order (${src.chapterDirs.join(', ')}); has ${book.chapterDirs.join(', ')}`)]),
+    ...sameIds('book.json concepts', 'concept ids', book.concepts.map((c) => c.id), src.concepts.map((c) => c.id)),
+    ...sameIds('book.json concepts[].forms', 'form ids', book.concepts.flatMap((c) => c.forms.map((f) => `${c.id}/${f.id}`)), src.concepts.flatMap((c) => c.forms.map((f) => `${c.id}/${f.id}`))),
+    ...sameIds('book.json symbols', 'symbol keys', book.symbols.map((s) => s.sym), src.symbols.map((s) => s.sym)),
+    ...sameIds('book.json types', 'type ids', book.types.map((t) => t.id), src.types.map((t) => t.id)),
+    ...sameIds('book.json exercise_kinds', 'exercise kind ids', book.exerciseKinds.map((k) => k.id), src.exerciseKinds.map((k) => k.id)),
+    ...sameIds('book.json sheets', 'sheet ids', book.sheets.map((s) => s.id), src.sheets.map((s) => s.id)),
+    ...front('intro'),
+    ...content.chapters.flatMap((ch) => {
+      const theirs = sourceChapters.get(ch.dto.dir);
+      if (!theirs) return [];   /* said above, on the chapter list */
+      const theirPages = new Map(framedPagesOf(theirs).map((s) => [s.dto.id, s]));
+      return [
+        ...(ch.dto.id === theirs.dto.id ? [] : [error(`${ch.dto.dir}/chapter.json id`, `is "${ch.dto.id}", and the source's is "${theirs.dto.id}"`)]),
+        ...sameIds(`${ch.dto.dir}/chapter.json sections`, 'section ids', ch.dto.sections.map((s) => s.id), theirs.dto.sections.map((s) => s.id)),
+        ...sameIds(`${ch.dto.dir}/chapter.json variables`, 'variables rows (sym|section|concept)', ch.dto.variables.map((v) => `${v.sym}|${v.section}|${v.concept ?? ''}`), theirs.dto.variables.map((v) => `${v.sym}|${v.section}|${v.concept ?? ''}`)),
+        ...framedPagesOf(ch).flatMap((s) => {
+          const other = theirPages.get(s.dto.id);
+          return other ? pageParity(pageWhere(ch, s), s, other) : [error(`${pageWhere(ch, s)}/section.json`, 'is built, and the source does not build it')];
+        }),
+      ];
+    }),
+    ...front('summary'),
+  ];
+};
+
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

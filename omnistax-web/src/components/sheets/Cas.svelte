@@ -6,6 +6,7 @@
      may hand it an expression (?expr=…), which is worked out on arrival, and ?op=derivative for a derivative. */
   import katex from 'katex';
   import { onMount } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { sheets } from '../../lib/sheets/store.svelte';
   import { ask, exprOf, graphHref, pieces, type CasAnswer, type CasOp, type CasRequest, type CasStep } from '../../lib/cas/client';
   import type { CasSheetDTO } from '../../lib/content/sheets';
@@ -78,19 +79,19 @@
   <header><h1>{sheet.title}</h1></header>
 
   <form onsubmit={solve}>
-    <div class="ops" role="group" aria-label="Operation">
-      <button type="button" aria-pressed={op === 'integral'} onclick={() => (op = 'integral')}>Integral</button>
-      <button type="button" aria-pressed={op === 'derivative'} onclick={() => (op = 'derivative')}>Derivative</button>
+    <div class="ops" role="group" aria-label={i18n.t('sheets.cas.operation')}>
+      <button type="button" aria-pressed={op === 'integral'} onclick={() => (op = 'integral')}>{i18n.t('sheets.cas.integral')}</button>
+      <button type="button" aria-pressed={op === 'derivative'} onclick={() => (op = 'derivative')}>{i18n.t('sheets.cas.derivative')}</button>
     </div>
     <div class="row">
-      <label class="field expr"><span class="vh">{op === 'integral' ? 'Integrand' : 'Function'}</span>
+      <label class="field expr"><span class="vh">{op === 'integral' ? i18n.t('sheets.cas.integrand') : i18n.t('sheets.cas.function')}</span>
         <input type="text" bind:value={text} placeholder="x e^x" autocomplete="off" spellcheck="false" autocapitalize="off" />
       </label>
       {#if op === 'integral'}
-        <label class="field bound"><span>From</span><input type="text" bind:value={lower} autocomplete="off" spellcheck="false" /></label>
-        <label class="field bound"><span>To</span><input type="text" bind:value={upper} autocomplete="off" spellcheck="false" /></label>
+        <label class="field bound"><span>{i18n.t('sheets.cas.from')}</span><input type="text" bind:value={lower} autocomplete="off" spellcheck="false" /></label>
+        <label class="field bound"><span>{i18n.t('sheets.cas.to')}</span><input type="text" bind:value={upper} autocomplete="off" spellcheck="false" /></label>
       {/if}
-      <button type="submit" class="go" disabled={working || engine === 'failed' || text.trim() === ''}>{op === 'integral' ? 'Integrate' : 'Differentiate'}</button>
+      <button type="submit" class="go" disabled={working || engine === 'failed' || text.trim() === ''}>{op === 'integral' ? i18n.t('sheets.cas.integrate') : i18n.t('sheets.cas.differentiate')}</button>
     </div>
     <div class="preview" aria-live="polite">
       {#if unread}<p class="note bad">{unread}</p>
@@ -99,10 +100,10 @@
     </div>
   </form>
 
-  {#if engine === 'loading'}<p class="note">Loading SymPy…</p>
-  {:else if engine === 'failed'}<p class="note bad">Could not load SymPy.</p>
+  {#if engine === 'loading'}<p class="note">{i18n.t('sheets.cas.loading')}</p>
+  {:else if engine === 'failed'}<p class="note bad">{i18n.t('sheets.cas.loadFailed')}</p>
   {/if}
-  {#if working && engine === 'ready'}<p class="note">Working…</p>{/if}
+  {#if working && engine === 'ready'}<p class="note">{i18n.t('sheets.cas.working')}</p>{/if}
   {#if failure}<p class="note bad">{failure}</p>{/if}
 
   {#if answer && !working}
@@ -110,14 +111,14 @@
       {#if answer.result}
         <div class="math result">{@html tex(answer.result, true)}</div>
       {:else}
-        <p class="note">No closed form found.</p>
+        <p class="note">{i18n.t('sheets.cas.noClosedForm')}</p>
       {/if}
-      {#if grapher && answer.graph.length}<p class="graph"><a href={graphHref(grapher.url, answer.graph)}>Graph</a></p>{/if}
+      {#if grapher && answer.graph.length}<p class="graph"><a href={graphHref(grapher.url, answer.graph)}>{i18n.t('sheets.cas.graph')}</a></p>{/if}
       {#if answer.steps}
-        <h2>Steps</h2>
+        <h2>{i18n.t('sheets.cas.steps')}</h2>
         {@render steps(answer.steps)}
       {:else if answer.result}
-        <p class="note">No step-by-step working available.</p>
+        <p class="note">{i18n.t('sheets.cas.noSteps')}</p>
       {/if}
     </section>
   {/if}

@@ -4,9 +4,12 @@
    is missing; anything else lands on the about page. Like the front of the
    site, it boots on no book. */
 import ShellPage from '../layouts/ShellPage.astro';
+import { tIn } from '../lib/i18n/index';
+/* English static HTML for now, like the front page: the address names no book to take a language from. */
+const locale = 'en';
 ---
 <ShellPage
   pool=""
-  title="Not found · OmniStax"
-  description="There is no page at this address."
+  title={tIn(locale, 'about.notFound.title')}
+  description={tIn(locale, 'about.notFound.description')}
 />

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
 
   let { title, back, backLabel, actions, sub }: { title: string; back?: () => void; backLabel?: string; actions?: Snippet; sub?: Snippet } = $props();
 </script>
@@ -8,7 +9,7 @@
   {#if back}
     <button type="button" class="back" onclick={back}>
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-      <span>{backLabel ?? 'Practice'}</span>
+      <span>{backLabel ?? i18n.t('practice.dashboard.title')}</span>
     </button>
   {/if}
   <div class="row">

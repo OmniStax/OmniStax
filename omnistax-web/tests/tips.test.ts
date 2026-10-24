@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RETURNING_AFTER, TIPS, dayOf, stepTip, visit } from '../src/lib/tips/model';
+import { RETURNING_AFTER, tipsOf, dayOf, stepTip, visit } from '../src/lib/tips/model';
+
+const TIPS = tipsOf((k) => k);
 
 const DAY = RETURNING_AFTER;
 const t0 = new Date(2026, 8, 1, 9, 0).getTime();
@@ -45,4 +47,9 @@ test('the card walks every tip in turn, wrapping at either end', () => {
   assert.equal(stepTip(0, 1), 1);
   assert.equal(stepTip(TIPS.length - 1, 1), 0);
   assert.equal(stepTip(0, -1), TIPS.length - 1);
+});
+
+test('every tip is said by its key, and an action carries a label of its own', () => {
+  assert.deepEqual(TIPS.map((x) => x.text), ['tips.drawing', 'tips.theme', 'tips.drag', 'tips.import', 'tips.newGroup']);
+  assert.deepEqual(TIPS.flatMap((x) => (x.action ? [x.action.label] : [])), ['tips.drawing.action', 'tips.import.action']);
 });

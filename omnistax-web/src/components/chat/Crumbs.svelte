@@ -2,6 +2,7 @@
   import { crumbsOf, type Chat, type MessageId } from '../../lib/chat/model';
   import { siblingsOf, firstWords } from '../../lib/chat/model';
   import { chats } from '../../lib/chat/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import type { ChatId } from '../../lib/types/ids';
 
   let { chatId, chat }: { chatId: ChatId; chat: Chat } = $props();
@@ -10,16 +11,16 @@
 </script>
 
 {#if crumbs.length}
-  <nav class="crumbs" aria-label="Where this branch forked">
+  <nav class="crumbs" aria-label={i18n.t('chat.crumbs.label')}>
     {#each crumbs as c (c.id)}
       <span class="crumb">
         <button type="button" class="jump" onclick={() => chats.goTo(chatId, c.id)}>{c.words}</button>
-        <button type="button" class="chev" aria-label="The other {c.count - 1} at this fork"
+        <button type="button" class="chev" aria-label={i18n.t('chat.crumbs.others', { n: c.count - 1 })}
           onclick={() => (open = open === c.id ? null : c.id)}>{c.index + 1}/{c.count} ▾</button>
         {#if open === c.id}
           <ul class="siblings">
             {#each siblingsOf(chat, c.id) as s, i (s.id)}
-              <li><button type="button" class:on={i === c.index} onclick={() => { chats.choose(chatId, c.id, i); open = null; }}>{firstWords(s.text, 8) || '(empty)'}</button></li>
+              <li><button type="button" class:on={i === c.index} onclick={() => { chats.choose(chatId, c.id, i); open = null; }}>{firstWords(s.text, 8) || i18n.t('chat.crumbs.empty')}</button></li>
             {/each}
           </ul>
         {/if}

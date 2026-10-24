@@ -1,6 +1,7 @@
 <script lang="ts">
   import type PdfReaderType from './PdfReader.svelte';
   import { files } from '../../lib/files/store.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
   import { getBlob } from '../../lib/files/blobs';
   import type { FileId, GroupKey } from '../../lib/types/ids';
 
@@ -36,18 +37,18 @@
 
 <article class="file-tab" data-file={fileId} data-group={groupKey}>
   {#if !doc}
-    <div class="gone">This file was deleted.</div>
+    <div class="gone">{i18n.t('files.tab.deleted')}</div>
   {:else}
     <div class="file-body">
       {#if failed}
-        <div class="gone">This browser no longer holds the file. Import it again or restore a backup.</div>
+        <div class="gone">{i18n.t('files.tab.missing')}</div>
       {:else if doc.type === 'image'}
-        {#if src}<img class="whole" {src} alt={doc.name} />{:else}<div class="loading">Fetching {doc.name}…</div>{/if}
+        {#if src}<img class="whole" {src} alt={doc.name} />{:else}<div class="loading">{i18n.t('files.tab.fetching', { name: doc.name })}</div>{/if}
       {:else if bytes && Reader}
         {@const R = Reader}
         <R {fileId} {bytes} startPage={page} />
       {:else}
-        <div class="loading">Opening {doc.name}…</div>
+        <div class="loading">{i18n.t('files.tab.opening', { name: doc.name })}</div>
       {/if}
     </div>
   {/if}

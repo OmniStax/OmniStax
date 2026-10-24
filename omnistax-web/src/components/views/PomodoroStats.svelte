@@ -4,6 +4,9 @@
   import RowMenu from '../explorer/RowMenu.svelte';
   import SessionEditor from '../pomodoro/SessionEditor.svelte';
   import SessionRow from '../pomodoro/SessionRow.svelte';
+  import { i18n } from '../../lib/i18n/store.svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
+  const TOTAL_KEY: Readonly<Record<'day' | 'week' | 'month' | 'year', MessageKey>> = { day: 'views.stats.totalDay', week: 'views.stats.totalWeek', month: 'views.stats.totalMonth', year: 'views.stats.totalYear' };
 
   type Face = 'list' | 'category';
   /* The empty id is "uncategorized", so it filters like any category. */
@@ -38,13 +41,13 @@
   const barLabel = (start: number): string => {
     const d = new Date(start);
     if (chart.unit === 'year') return String(d.getFullYear());
-    if (chart.unit === 'month') return d.toLocaleDateString(undefined, { month: 'short' });
-    if (chart.unit === 'day') return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    if (chart.unit === 'month') return d.toLocaleDateString(i18n.locale, { month: 'short' });
+    if (chart.unit === 'day') return d.toLocaleDateString(i18n.locale, { weekday: 'short', day: 'numeric' });
+    return d.toLocaleDateString(i18n.locale, { month: 'short', day: 'numeric' });
   };
   const axisText = (ms: number): string => (ms % 3_600_000 === 0 ? `${ms / 3_600_000}h` : spanText(ms).replace(' ', ''));
   const hue = (id: string): string => (id === NONE ? 'color-mix(in srgb,var(--muted) 45%,transparent)' : colorOf(cats, id));
-  const label = (id: string): string => (id === NONE ? 'Uncategorized' : nameOf(cats, id));
+  const label = (id: string): string => (id === NONE ? i18n.t('views.stats.uncategorized') : nameOf(cats, id));
 
   let editCat = $state<string | null>(null);
   let catName = $state('');
@@ -54,42 +57,42 @@
 
 <div class="stats">
   <div class="seg tabs" role="tablist">
-    <button type="button" role="tab" aria-selected={face === 'list'} class:on={face === 'list'} onclick={() => (face = 'list')}>List</button>
-    <button type="button" role="tab" aria-selected={face === 'category'} class:on={face === 'category'} onclick={() => (face = 'category')}>Category</button>
+    <button type="button" role="tab" aria-selected={face === 'list'} class:on={face === 'list'} onclick={() => (face = 'list')}>{i18n.t('views.stats.list')}</button>
+    <button type="button" role="tab" aria-selected={face === 'category'} class:on={face === 'category'} onclick={() => (face = 'category')}>{i18n.t('views.stats.category')}</button>
   </div>
 
   {#if face === 'list'}
     {#if adding}
       <SessionEditor ondone={() => { adding = false; page = 0; }} />
     {:else}
-      <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>+ Add session</button>
+      <button type="button" class="btn ghost sm add" onclick={() => (adding = true)}>{i18n.t('views.pomodoro.addSession')}</button>
     {/if}
     {#if !log.length}
-      <p class="empty">No sessions yet.</p>
+      <p class="empty">{i18n.t('views.stats.noSessions')}</p>
     {:else}
       <ul class="rows">
         {#each shown as p (p.id)}<SessionRow {p} />{/each}
       </ul>
       {#if pages > 1}
-        <nav class="pager" aria-label="Pages">
-          <button type="button" class="btn ghost sm" disabled={page <= 0} onclick={() => (page = Math.max(0, page - 1))}>← Newer</button>
-          <span>Page {Math.min(page, pages - 1) + 1} of {pages}</span>
-          <button type="button" class="btn ghost sm" disabled={page >= pages - 1} onclick={() => (page = Math.min(pages - 1, page + 1))}>Older →</button>
+        <nav class="pager" aria-label={i18n.t('practice.pages')}>
+          <button type="button" class="btn ghost sm" disabled={page <= 0} onclick={() => (page = Math.max(0, page - 1))}>{i18n.t('practice.newer')}</button>
+          <span>{i18n.t('practice.page', { n: Math.min(page, pages - 1) + 1, total: pages })}</span>
+          <button type="button" class="btn ghost sm" disabled={page >= pages - 1} onclick={() => (page = Math.min(pages - 1, page + 1))}>{i18n.t('practice.older')}</button>
         </nav>
       {/if}
     {/if}
   {:else}
     <div class="range">
-      <label>From<input class="input date" type="date" bind:value={from} max={to} /></label>
-      <label>To<input class="input date" type="date" bind:value={to} min={from} /></label>
+      <label>{i18n.t('views.stats.from')}<input class="input date" type="date" bind:value={from} max={to} /></label>
+      <label>{i18n.t('views.stats.to')}<input class="input date" type="date" bind:value={to} min={from} /></label>
       <div class="helpers">
-        <button type="button" class="chip" onclick={() => last((d) => dayBefore(d, 7))}>Last week</button>
-        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 1))}>Last month</button>
-        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 12))}>Last year</button>
+        <button type="button" class="chip" onclick={() => last((d) => dayBefore(d, 7))}>{i18n.t('views.stats.lastWeek')}</button>
+        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 1))}>{i18n.t('views.stats.lastMonth')}</button>
+        <button type="button" class="chip" onclick={() => last((d) => monthBefore(d, 12))}>{i18n.t('views.stats.lastYear')}</button>
       </div>
     </div>
 
-    <p class="total"><strong>{spanText(inRange)}</strong> in all, by {chart.unit}</p>
+    <p class="total"><strong>{spanText(inRange)}</strong> {i18n.t(TOTAL_KEY[chart.unit])}</p>
 
     <div class="vchart" style="--n:{chart.bars.length}">
       <div class="axis" aria-hidden="true">
@@ -113,14 +116,14 @@
     </div>
 
     {#if !totals.length}
-      <p class="empty">No categories yet.</p>
+      <p class="empty">{i18n.t('views.stats.noCategories')}</p>
     {:else}
       <ul class="cat-list">
         {#each totals as t (t.id)}
           <li>
             <span class="dot" style="--hue:{hue(t.id)}"></span>
             {#if editCat === t.id}
-              <input class="input rename" bind:value={catName} type="text" aria-label="Category name"
+              <input class="input rename" bind:value={catName} type="text" aria-label={i18n.t('views.stats.categoryName')}
                 onkeydown={(e) => { if (e.key === 'Enter') { pomodoro.renameCategory(t.id, catName); editCat = null; } if (e.key === 'Escape') editCat = null; }} />
             {:else}
               <span class="cat-name">{label(t.id)}</span>
@@ -129,11 +132,11 @@
             {#if t.id !== NONE}
               <div class="cat-acts">
                 {#if askCat === t.id}
-                  <span class="ask">Delete?</span>
-                  <button type="button" class="btn sm danger" onclick={() => { pomodoro.removeCategory(t.id); askCat = null; editCat = null; }}>Yes</button>
-                  <button type="button" class="btn ghost sm" onclick={() => (askCat = null)}>No</button>
+                  <span class="ask">{i18n.t('views.stats.deleteAsk')}</span>
+                  <button type="button" class="btn sm danger" onclick={() => { pomodoro.removeCategory(t.id); askCat = null; editCat = null; }}>{i18n.t('practice.yes')}</button>
+                  <button type="button" class="btn ghost sm" onclick={() => (askCat = null)}>{i18n.t('practice.no')}</button>
                 {:else}
-                  <button type="button" class="btn ghost icon sm" aria-label="Actions for {label(t.id)}"
+                  <button type="button" class="btn ghost icon sm" aria-label={i18n.t('practice.tree.actionsFor', { name: label(t.id) })}
                     onclick={(e) => { e.stopPropagation(); catMenu = catMenu?.id === t.id ? null : { id: t.id, x: e.clientX, y: e.clientY }; }}>⋯</button>
                 {/if}
               </div>
@@ -141,10 +144,10 @@
             {#if editCat === t.id}
               <div class="grid">
                 {#each CATEGORY_COLORS as c (c)}
-                  <button type="button" class="swatch" class:on={hue(t.id) === c} style="--hue:{c}" aria-label="Color {c}" onclick={() => pomodoro.recolourCategory(t.id, c)}></button>
+                  <button type="button" class="swatch" class:on={hue(t.id) === c} style="--hue:{c}" aria-label={i18n.t('views.annotations.color', { color: c })} onclick={() => pomodoro.recolourCategory(t.id, c)}></button>
                 {/each}
               </div>
-              <button type="button" class="btn primary sm" onclick={() => { pomodoro.renameCategory(t.id, catName); editCat = null; }}>Done</button>
+              <button type="button" class="btn primary sm" onclick={() => { pomodoro.renameCategory(t.id, catName); editCat = null; }}>{i18n.t('views.stats.done')}</button>
             {/if}
           </li>
         {/each}
@@ -155,8 +158,8 @@
 
 {#if catMenu}
   <RowMenu x={catMenu.x} y={catMenu.y} onclose={() => (catMenu = null)} items={[
-    { label: 'Edit', run: () => { const id = catMenu?.id ?? ''; editCat = id; catName = label(id); askCat = null; } },
-    { label: 'Delete category', run: () => { askCat = catMenu?.id ?? null; editCat = null; }, danger: true },
+    { label: i18n.t('views.stats.edit'), run: () => { const id = catMenu?.id ?? ''; editCat = id; catName = label(id); askCat = null; } },
+    { label: i18n.t('views.stats.deleteCategory'), run: () => { askCat = catMenu?.id ?? null; editCat = null; }, danger: true },
   ]} />
 {/if}
 

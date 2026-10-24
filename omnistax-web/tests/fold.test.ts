@@ -5,6 +5,7 @@ import { toggleId, addIds, removeIds, parseIds, FOLDABLE, HIDEABLE } from '../sr
 import { DEFAULT_BINDINGS, DEFAULT_PAIRS } from '../src/lib/commands/defaults';
 import { builtinCommands, BUILTIN, type BuiltinDeps } from '../src/lib/commands/builtin';
 import { chord, chordsFor } from '../src/lib/commands/chord';
+import { tIn } from '../src/lib/i18n/index';
 
 /* the set arithmetic on remembered ids: pure, order-keeping, never mutating */
 test('toggleId adds an absent id and drops a present one', () => {
@@ -33,6 +34,7 @@ test('the foldable and hideable selectors name only spans and figures that carry
 
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
+  t: tIn.bind(null, 'en'),
   settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, theme: 'system', animations: true, voice: false, fillAll: false, setFillAll: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: () => {}, setBodyFont: () => {}, setPreview: () => {}, clearPreview: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
@@ -49,6 +51,8 @@ const deps = (): BuiltinDeps => ({
   history: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'highlight in yellow', redoLabel: '' },
   chat: { newChat: () => {} },
   colours: { undo: () => {}, redo: () => {}, canUndo: true, canRedo: true, undoLabel: 'velocity in section 16.3', redoLabel: '' },
+  language: { choice: 'system', system: 'en', setChoice: () => {} },
+  editions: { current: () => null, switchTo: () => {} },
   highlights: { here: null, on: () => true, set: () => {} },
   practice: { canPractise: () => false, practise: () => {} },
 });
