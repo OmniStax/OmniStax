@@ -677,7 +677,7 @@
   .row.r-find:hover{color:var(--accent)}
   .row.r-heading .lbl{font-size:0.78rem}
   /* the chevron is VS Code's: a 16px glyph on a 16px box, turned when open, with a tight 8px step per level */
-  .twist{flex:none;width:16px;height:16px;border:0;background:transparent;color:var(--ink);padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
+  .twist{flex:none;width:16px;height:16px;border:0;background:transparent;color:var(--muted);opacity:.8;padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
   .twist :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   .dl{display:inline-flex;align-items:center;gap:6px;margin-left:6px;flex:none}
   .dl progress{width:56px;height:4px}
