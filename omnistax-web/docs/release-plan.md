@@ -250,7 +250,10 @@ the whole pre-split repository holds it.
 ## Chen does
 
 - Add `omnistax.org` as the Worker's custom domain; point the README at it.
-- Set the Cloudflare build command (decision 4).
+- Set the Cloudflare build (decision 4): root directory `omnistax-web`, build
+  command `npm run books && npm run check && npm test && npm run build`, deploy
+  command `npx wrangler deploy`. Reconnecting the Worker's repository resets
+  these.
 
 ## Build order
 
