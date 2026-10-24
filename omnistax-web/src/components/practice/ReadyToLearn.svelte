@@ -5,13 +5,9 @@
   import { plain } from '../../lib/practice/labels';
   import type { ConceptDTO } from '../../lib/content/schema';
   import type { Node } from '../../lib/practice/select';
-  import { bookId, conceptId } from '../../lib/types/ids';
-  import { goConceptFromView } from '../../lib/sections/concepts.svelte';
-  import { openingInView, onMiddle } from '../../lib/sections/nav.svelte';
-  import { settings } from '../../lib/settings/store.svelte';
   import { mathHtml } from '../actions/math';
   import MasteryBox from './MasteryBox.svelte';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
 
   let { item, selectable = false, folded = false }: { item?: string; selectable?: boolean; folded?: boolean } = $props();
 
@@ -48,16 +44,6 @@
     return { update: (v: boolean) => { el.indeterminate = v; } };
   };
 
-  const buildsOn = (c: ConceptDTO): string => {
-    const names = c.prereqs.map((p) => plain(practice.conceptOf(p)?.name ?? p));
-    const rest = names.length - 3;
-    return `builds on ${names.slice(0, 3).join(', ')}${rest > 0 ? ` and ${rest} more` : ''}`;
-  };
-  const goConcept = (e: MouseEvent | KeyboardEvent, b: string, id: string): void => {
-    const how = openingInView(e);
-    if (how === 'tab' && settings.cardOpen === 'click') return;
-    void goConceptFromView(bookId(b), conceptId(id), how);
-  };
 </script>
 
 {#snippet list()}
@@ -79,9 +65,9 @@
             <input type="checkbox" class="pick" aria-label="Select {plain(c.name)}" checked={on === 'on'} use:mixed={on === 'some'} onchange={() => practice.toggleNode(item, node(c.id))} />
           {/if}
           <MasteryBox id={c.id} />
-          <KindDot kind={c.kind} />
-          <span class="go" role="button" tabindex="0" onclick={(e) => goConcept(e, g.book, c.id)} onauxclick={onMiddle((e) => goConcept(e, g.book, c.id))} onkeydown={(e) => { if (e.key === 'Enter') goConcept(e, g.book, c.id); }} use:mathHtml={c.name}></span>
-          <span class="meta on">{buildsOn(c)}</span>
+          <KindTag kind={c.kind} />
+          <!-- the name opens its card on hover, as it does in the tree, and goes nowhere on a click -->
+          <span class="go" data-book={g.book} data-concept={c.id} use:mathHtml={c.name}></span>
         </div>
       {/each}
     </div>
@@ -110,7 +96,7 @@
   details[open] > summary{margin-bottom:6px}
   .row{display:flex;align-items:center;gap:6px;min-height:28px;padding:0 4px;border-radius:6px;transition:background-color 120ms}
   .row:hover{background:var(--soft)}
-  .go{cursor:pointer;text-decoration:underline dotted var(--muted);text-underline-offset:3px}
+  .go{cursor:default;text-decoration:underline dotted var(--muted);text-underline-offset:3px}
   :global(html.no-underlines) .go{text-decoration:none}
   .go:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .on{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -17,10 +17,12 @@ export type { Piece };
 
 export const SEARCH_KINDS = ['concept', 'definition', 'formula', 'text'] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
-/* What the reader asks for: one kind, or everything. */
-export type Filter = 'all' | SearchKind;
-export const FILTERS: readonly Filter[] = ['all', ...SEARCH_KINDS];
-export const FILTER_LABEL: Readonly<Record<Filter, string>> = { all: 'All', concept: 'Concepts', definition: 'Definitions', formula: 'Formulas', text: 'Text' };
+/* What the reader asks for: everything, the concepts, the books' own text,
+   or the chats; a kind the index knows but the rail no longer offers can still
+   be asked for by code. */
+export type Filter = 'all' | SearchKind | 'chats';
+export const FILTERS: readonly Filter[] = ['all', 'concept', 'text', 'chats'];
+export const FILTER_LABEL: Readonly<Record<Filter, string>> = { all: 'All', concept: 'Concepts', definition: 'Definitions', formula: 'Formulas', text: 'Book text', chats: 'Chats' };
 
 /* One book as the search reads it. The id is the book's, the title what to call it. */
 export type Corpus = {

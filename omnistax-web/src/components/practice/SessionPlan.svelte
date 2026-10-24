@@ -10,7 +10,7 @@
   import { count, exerciseName, excerpt, plain } from '../../lib/practice/labels';
   import ModelMenu from '../chat/ModelMenu.svelte';
   import { mathHtml } from '../actions/math';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
   import AiTag from './AiTag.svelte';
 
   let { item }: { item: string } = $props();
@@ -104,7 +104,7 @@
           <tbody>
             {#each rows as r (r.id)}
               <tr>
-                <td class="cname"><span class="cell"><KindDot kind={r.c?.kind ?? 'idea'} /><span class="nm" use:mathHtml={r.c?.name ?? r.id}></span></span></td>
+                <td class="cname"><span class="cell"><KindTag kind={r.c?.kind ?? 'idea'} /><span class="nm" use:mathHtml={r.c?.name ?? r.id}></span></span></td>
                 <td class="n">{practice.bookAvailable(r.id)}</td>
                 <td class="n">{@render stepper(r.q?.wanted ?? 0, setWanted(r.id), `This session: ${plain(r.c?.name ?? r.id)}`, true)}</td>
                 <td class="n">{#if (r.q?.gap ?? 0) > 0}+{r.q?.gap}{:else}<span class="muted">–</span>{/if}</td>

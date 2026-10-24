@@ -14,7 +14,7 @@
   import RowMenu from '../explorer/RowMenu.svelte';
   import MasteryBox from './MasteryBox.svelte';
   import StandingMeter from './StandingMeter.svelte';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
   import AiTag from './AiTag.svelte';
 
   type Props = { item: string; shelf: readonly string[]; open?: string | null; selectable?: boolean };
@@ -257,7 +257,7 @@
                         <span class="tw-gap"></span>
                       {/if}
                       <MasteryBox id={k.id} />
-                      <KindDot kind={k.kind} />
+                      <KindTag kind={k.kind} />
                       <span class="lab"><span class="go" data-book={b} data-concept={k.id} use:mathHtml={k.name}></span></span>
                       <span class="end">
                         <span class="muted num">{count(tests.length, 'exercise')}</span>

@@ -27,7 +27,8 @@
   let at = $state<number | null>(null);
   let query = $state('');
   let dragging = $state(false);
-  const root = pickerRoot();
+  /* A chat is handed figures, concepts and exercises; the rest of the tree is the note editor's. */
+  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises'], files: false });
 
   const ready = $derived.by(() => { const p = chats.pickOf(chatId); return p !== null && ai.access(p) !== null; });
 
@@ -150,7 +151,7 @@
 
   <div class="field" class:dragging role="presentation" {ondragover} ondragleave={() => (dragging = false)} {ondrop}>
     {#if at !== null}
-      <AtPicker bind:this={picker} {root} {query} {field} onchoose={choose} onclose={close} />
+      <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read} onfocus={read}
       placeholder={ready ? 'Ask anything · @ to add context' : 'Choose a model with a key to ask'}

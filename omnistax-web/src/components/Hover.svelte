@@ -77,7 +77,10 @@
     const b = { width: box.getBoundingClientRect().width, height: box.scrollHeight + box.offsetHeight - box.clientHeight };
     const room = { below: vh - EDGE - r.bottom - GAP, above: r.top - GAP - EDGE, right: vw - EDGE - r.right - GAP, left: r.left - GAP - EDGE };
     const across = clamp(r.left, EDGE, Math.max(EDGE, vw - b.width - EDGE)), down = clamp(r.top, EDGE, Math.max(EDGE, vh - b.height - EDGE));
-    pos = b.height <= room.below ? { top: r.bottom + GAP, left: across, ready: true }
+    /* An anchor that asks for its card at its right, rising from its own line, gets that while it fits. */
+    const side = anchor.dataset.cardSide === 'right' ? (b.width <= room.right ? 'right' : b.width <= room.left ? 'left' : null) : null;
+    pos = side ? { top: clamp(r.bottom - b.height, EDGE, Math.max(EDGE, vh - b.height - EDGE)), left: side === 'right' ? r.right + GAP : r.left - GAP - b.width, ready: true }
+      : b.height <= room.below ? { top: r.bottom + GAP, left: across, ready: true }
       : b.height <= room.above ? { top: r.top - GAP - b.height, left: across, ready: true }
       : b.width <= room.right ? { top: down, left: r.right + GAP, ready: true }
       : b.width <= room.left ? { top: down, left: r.left - GAP - b.width, ready: true }

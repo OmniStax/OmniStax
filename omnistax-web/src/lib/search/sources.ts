@@ -35,13 +35,12 @@ export const sourceOfKind = <K extends Source['kind']>(sources: readonly Source[
 export const findAll = (query: string, sources: readonly Source[], index: Index, filter: Filter): Results => {
   const files = sourceOfKind(sources, 'files');
   const chats = sourceOfKind(sources, 'chats');
-  /* What the reader was told in a chat is prose as much as a page of a PDF is,
-     so the two stand aside for the same filters. */
-  const prose = filter === 'all' || filter === 'text';
+  /* Book text is the books' own: the reader's files come only with everything,
+     and the chats with everything or when asked for by name. */
   return {
-    books: find(query, index, filter),
-    files: files && prose ? findInFiles(files.rows, query) : [],
-    chats: chats && prose ? findInChats(chats.rows, query) : [],
+    books: filter === 'chats' ? { hits: [], cut: 0 } : find(query, index, filter),
+    files: files && filter === 'all' ? findInFiles(files.rows, query) : [],
+    chats: chats && (filter === 'all' || filter === 'chats') ? findInChats(chats.rows, query) : [],
   };
 };
 
