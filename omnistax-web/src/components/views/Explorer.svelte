@@ -41,6 +41,7 @@
   import { scope } from '../../lib/sections/scope.svelte';
   import { practice } from '../../lib/practice/store.svelte';
   import { links } from '../../lib/practice/links.svelte';
+  import { cart } from '../../lib/practice/cart.svelte';
   import { chapterId, newViewItem, type ViewKind } from '../../lib/types/ids';
   import type { Target } from '../../lib/sections/scope';
   import { sizeLabel } from '../../lib/files/model';
@@ -302,9 +303,10 @@
     if (e) commit(e, value);
   };
 
-  /* A note row is draggable into a document group, which is the layout's own
-     action; every other row is only ever dragged inside the tree, so the action
-     is only attached where a note stands. */
+  /* A note row, and a section's text, is draggable into a document group or a
+     chat, which is the layout's own action; a folder is only ever dragged
+     inside the tree, so the action is only attached where a tab stands. A
+     section never moves in the tree: the book's order is the book's. */
   const noteDrag = (node: HTMLElement, key: string | null) => {
     if (!key) return { update: () => {}, destroy: () => {} };
     const d = draggable(node, { key, from: null });
@@ -365,16 +367,15 @@
     return null;
   };
   const openPinned = (kind: ViewKind, t: Target): void => { const k = itemKey(newViewItem(kind)); scope.pin(k, t); void openItem(k, undefined, 'tab'); };
+  /* The place goes into the exercise session being gathered; the dashboard makes the session. */
   const practiseAt = (t: Target): void => {
-    const k = itemKey(newViewItem('exercises'));
-    practice.seed(k, [t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);
-    void openItem(k, undefined, 'tab');
+    cart.add([t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);
   };
   /* The theme is the book's, so only a book's row offers it. */
   const placeItems = (t: Target) => [
     { label: 'Open concept map', run: () => openPinned('concepts', t) },
     { label: 'Open reference', run: () => openPinned('reference', t) },
-    { label: 'Practice this ' + t.level, run: () => practiseAt(t) },
+    { label: 'Add to Exercise Session', run: () => practiseAt(t) },
     ...(t.level === 'book' ? [{ label: 'Theme', run: () => openPinned('colours', { level: 'book', book: t.book }) }] : []),
   ];
   /* The offline copy: one of the pair, by whether a copy is kept, and whether a kept one updates itself. */
@@ -532,12 +533,12 @@
   <div class="tree" role="tree" aria-label="Explorer" tabindex="0" onkeydown={onKey}>
     {#each rows as r (r.key)}
       {#if r.kind === 'hint'}
-        <div class="row hint" style:padding-left="{6 + r.depth * 13}px">{r.label}</div>
+        <div class="row hint" style:padding-left="{4 + r.depth * 8}px">{r.label}</div>
       {:else}
         <div class="row r-{r.kind}" data-key={r.key} data-kind={r.kind}
           class:sel={explorer.selected === r.key} class:active={r.active} class:dim={r.dim} class:drop={over === r.key}
           role="treeitem" tabindex="-1" aria-selected={explorer.selected === r.key} aria-expanded={r.expandable ? r.open : undefined}
-          style:padding-left="{6 + r.depth * 13}px"
+          style:padding-left="{4 + r.depth * 8}px"
           onclick={(ev) => activate(r, ev)}
           onauxclick={onMiddle((ev) => activate(r, ev))}
           oncontextmenu={(e) => { if (r.entry || tabOf(r) || placeOf(r)) openMenu(e, r); }}
@@ -560,15 +561,16 @@
             }
             if (canDrop(r)) { e.preventDefault(); e.stopPropagation(); dropInto(r); }
           }}
-          draggable={r.kind === 'folder' || r.kind === 'note' || r.kind === 'file' || r.kind === 'drawing' || r.kind === 'chat'}
+          draggable={r.kind === 'folder' || r.kind === 'note' || r.kind === 'file' || r.kind === 'drawing' || r.kind === 'chat' || (r.kind === 'section' && !r.dim)}
           use:noteDrag={r.kind === 'note' && r.entry ? itemKey(noteItem(noteId(r.entry.id)))
             : r.kind === 'file' && r.entry ? itemKey(fileItem(fileId(r.entry.fileId ?? r.entry.id)))
               : r.kind === 'drawing' && r.entry ? itemKey(drawingItem(drawingId(r.entry.drawingId ?? r.entry.id)))
-                : r.kind === 'chat' && r.entry ? itemKey(chatItem(chatId(r.entry.chatId ?? r.entry.id))) : null}>
+                : r.kind === 'chat' && r.entry ? itemKey(chatItem(chatId(r.entry.chatId ?? r.entry.id)))
+                  : r.kind === 'section' ? tabOf(r) : null}>
           {#if r.expandable}
             <button type="button" class="twist" class:open={r.open} tabindex="-1"
               aria-label={r.open ? 'Collapse' : 'Expand'}
-              onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; fold(r); }}>▾</button>
+              onclick={(e) => { e.stopPropagation(); explorer.selected = r.key; fold(r); }}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
           {:else}
             <span class="twist gap"></span>
           {/if}
@@ -674,7 +676,9 @@
   .row.r-find{color:var(--muted)}
   .row.r-find:hover{color:var(--accent)}
   .row.r-heading .lbl{font-size:0.78rem}
-  .twist{flex:none;width:18px;height:18px;border:0;background:transparent;color:var(--muted);font-size:12px;line-height:1;padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
+  /* the chevron is VS Code's: a 16px glyph on a 16px box, turned when open, with a tight 8px step per level */
+  .twist{flex:none;width:16px;height:16px;border:0;background:transparent;color:var(--ink);padding:0;cursor:pointer;display:grid;place-items:center;transform:rotate(-90deg);transition:transform .12s}
+  .twist :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   .dl{display:inline-flex;align-items:center;gap:6px;margin-left:6px;flex:none}
   .dl progress{width:56px;height:4px}
   .dl .pc{font-size:0.68rem;color:var(--muted);font-variant-numeric:tabular-nums}

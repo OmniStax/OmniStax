@@ -31,10 +31,10 @@
     voice: 'Add a Read aloud button to the rail and a Read section aloud command.',
     decay: 'Mastered concepts come due for review as they fade. Turn off to keep them fresh.',
     lockGrace: 'Seconds before a focus lock starts.',
-    fill: 'Text takes up all the horizontal space it is given.',
+    fill: 'Book text takes up all the horizontal space it can.',
   } as const;
   const ROWS = {
-    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: 'Text size zoom larger smaller Ctrl + Ctrl − Ctrl 0', tips: `Tips tip of the day ${HINT.tips}`, fill: `Fill all horizontal space width wide column paragraph figure ${HINT.fill}`,
+    theme: 'Theme system light dark', figureFont: `Figure font typeface ${FONTS.map((f) => f.label).join(' ')}`, bodyFont: `Body font typeface text prose ${FONTS.map((f) => f.label).join(' ')}`, zoom: 'Text size zoom larger smaller Ctrl + Ctrl − Ctrl 0', tips: `Tips tip of the day ${HINT.tips}`, fill: `Fill horizontal space width wide column paragraph figure ${HINT.fill}`,
     anim: 'Figures start paused playing play pause animations sim', voice: `Voice speech ${HINT.voice}`, cardOpen: `Cards open on hover click concept glossary symbol equation ${HINT.cardOpen}`,
     lockGrace: `Focus pomodoro lock grace ${HINT.lockGrace}`,
     masteryTarget: 'Mastery target correct answers exercises concept mastered', decay: `Freshness decay review half-life ${HINT.decay}`,
@@ -173,10 +173,7 @@
           </div>
         </div>
         <label class="row switch" hidden={!hit(ROWS.tips)}><span class="name">Tips{@render back(settings.tips !== DEFAULTS.tips, 'Reset to on', () => settings.setTips(DEFAULTS.tips))}</span><span class="hint">{HINT.tips}</span><input type="checkbox" id="tips-toggle" checked={settings.tips} onchange={(e) => settings.setTips(e.currentTarget.checked)}></label>
-        <!-- the column's width, and under it the two caps inside the column -->
-        <label class="row switch" hidden={!hit(ROWS.fill)}><span class="name">Fill all horizontal space{@render back(settings.fillAll || settings.fillParagraphs || settings.fillFigures, 'Reset to off', () => { settings.setFillAll(false); settings.setFillParagraphs(false); settings.setFillFigures(false); })}</span><span class="hint">{HINT.fill}</span><input type="checkbox" checked={settings.fillAll} onchange={(e) => { settings.setFillAll(e.currentTarget.checked); settings.setFillParagraphs(e.currentTarget.checked); settings.setFillFigures(e.currentTarget.checked); }}></label>
-        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Paragraphs fill horizontal space</span><span class="hint"></span><input type="checkbox" checked={settings.fillParagraphs} onchange={(e) => settings.setFillParagraphs(e.currentTarget.checked)}></label>
-        <label class="row switch sub" hidden={!hit(ROWS.fill)}><span class="name">Figures fill horizontal space</span><span class="hint"></span><input type="checkbox" checked={settings.fillFigures} onchange={(e) => settings.setFillFigures(e.currentTarget.checked)}></label>
+        <label class="row switch" hidden={!hit(ROWS.fill)}><span class="name">Fill horizontal space{@render back(settings.fillAll !== DEFAULTS.fillAll, 'Reset to off', () => settings.setFillAll(DEFAULTS.fillAll))}</span><span class="hint">{HINT.fill}</span><input type="checkbox" checked={settings.fillAll} onchange={(e) => settings.setFillAll(e.currentTarget.checked)}></label>
       </Fold>
 
       <Fold name="Reading" show={READING.some(hit)} force={!!q}>

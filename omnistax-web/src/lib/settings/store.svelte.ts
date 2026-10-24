@@ -18,9 +18,9 @@ export type CardOpen = 'hover' | 'click';
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
 export type Preview = { figureFont?: FontId; bodyFont?: FontId; theme?: Theme };
 export const LOCK_GRACE = { min: 3, max: 120 } as const;
-export const DEFAULTS = { theme: 'system' as Theme, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, fillAll: false, fillParagraphs: false, fillFigures: false, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
+export const DEFAULTS = { theme: 'system' as Theme, animations: true, exerciseMode: 'all' as ExerciseMode, voice: false, mapProgress: true, zoom: ZOOM_DEFAULT, swapDragButtons: false, tips: true, cardOpen: 'hover' as CardOpen, lockGrace: 10, fillAll: false, figureFont: DEFAULT_FIGURE_FONT, bodyFont: DEFAULT_BODY_FONT } as const;
 
-const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', fillAll: 'omnistax-fill-all', fillParagraphs: 'omnistax-fill-paragraphs', fillFigures: 'omnistax-fill-figures', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
+const KEYS = { theme: 'omnistax-theme', anim: 'omnistax-anim', exmode: 'omnistax-exmode', voice: 'omnistax-voice', mapProgress: 'omnistax-map-progress', zoom: 'omnistax-zoom', swapDrag: 'omnistax-swap-drag', tips: 'omnistax-tips', cardOpen: 'omnistax-card-open', fillAll: 'omnistax-fill-all', lockGrace: 'omnistax-lock-grace', figureFont: 'omnistax-figure-font', bodyFont: 'omnistax-body-font' } as const;
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 const remove = (key: string): void => { if (!readerWritesAllowed()) return; try { localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -51,11 +51,8 @@ class Settings {
      the left button on the text. */
   swapDragButtons = $state(read(KEYS.swapDrag) === '1');
   tips = $state(read(KEYS.tips) !== '0');
-  /* How wide the text runs: the article column, the paragraphs in it and the
-     figures each let go of their own cap, all off the way the book comes. */
+  /* Whether the text and the figures take all the width they are given, off the way the book comes. */
   fillAll = $state(read(KEYS.fillAll) === '1');
-  fillParagraphs = $state(read(KEYS.fillParagraphs) === '1');
-  fillFigures = $state(read(KEYS.fillFigures) === '1');
   /* Whether a card opens on hover or waits for a click and stays until the
      next click elsewhere. */
   cardOpen = $state<CardOpen>(read(KEYS.cardOpen) === 'click' ? 'click' : 'hover');
@@ -93,10 +90,8 @@ class Settings {
   setSwapDragButtons(on: boolean): void { this.swapDragButtons = on; write(KEYS.swapDrag, on ? '1' : '0'); }
   setTips(on: boolean): void { this.tips = on; write(KEYS.tips, on ? '1' : '0'); }
   setFillAll(on: boolean): void { this.fillAll = on; write(KEYS.fillAll, on ? '1' : '0'); }
-  setFillParagraphs(on: boolean): void { this.fillParagraphs = on; write(KEYS.fillParagraphs, on ? '1' : '0'); }
-  setFillFigures(on: boolean): void { this.fillFigures = on; write(KEYS.fillFigures, on ? '1' : '0'); }
   setCardOpen(m: CardOpen): void { this.cardOpen = m; write(KEYS.cardOpen, m); }
   setLockGrace(s: number): void { if (!Number.isFinite(s)) return; this.lockGrace = clampGrace(s); write(KEYS.lockGrace, String(this.lockGrace)); }
-  reset(): void { Object.values(KEYS).forEach(remove); remove('omnistax-zoom-keys'); }
+  reset(): void { Object.values(KEYS).forEach(remove); remove('omnistax-zoom-keys'); remove('omnistax-fill-paragraphs'); remove('omnistax-fill-figures'); }
 }
 export const settings = new Settings();

@@ -33,7 +33,7 @@ test('the foldable and hideable selectors name only spans and figures that carry
 
 /* the default chords: each parses, none is claimed twice, each names a builtin command */
 const deps = (): BuiltinDeps => ({
-  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, theme: 'system', animations: true, voice: false, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: () => {}, setBodyFont: () => {}, setPreview: () => {}, clearPreview: () => {} },
+  settings: { zoom: ZOOM_DEFAULT, zoomIn: () => {}, zoomOut: () => {}, resetZoom: () => {}, theme: 'system', animations: true, voice: false, fillAll: false, setFillAll: () => {}, setTheme: () => {}, cycleTheme: () => {}, setAnimations: () => {}, setVoice: () => {}, figureFont: 'ncm', bodyFont: 'sourceSerif', setFigureFont: () => {}, setBodyFont: () => {}, setPreview: () => {}, clearPreview: () => {} },
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeTab: () => {}, closeGroup: () => {}, newGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},

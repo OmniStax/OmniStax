@@ -26,6 +26,7 @@ import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
+import { cart } from '../practice/cart.svelte';
 import { highlights } from '../settings/highlights.svelte';
 import { registry } from '../sections/registry.svelte';
 import type { HighlightKey } from '../settings/highlights';
@@ -177,9 +178,8 @@ export const installCommands = (): void => {
     canPractise: (): boolean => focus.section !== null,
     practise: (level: Level): void => {
       const s = focus.section; if (!s) return;
-      const k = itemKey(newViewItem('exercises')), chapter = registry.chapterOf(s)?.id;
-      practice.seed(k, [level === 'book' || (level === 'chapter' && !chapter) ? { book: s.book } : level === 'chapter' ? { book: s.book, chapter: chapter! } : { book: s.book, section: s.section }]);
-      void openItem(k, ui.palette.group ?? layoutStore.layout.focus);
+      const chapter = registry.chapterOf(s)?.id;
+      cart.add([level === 'book' || (level === 'chapter' && !chapter) ? { book: s.book } : level === 'chapter' ? { book: s.book, chapter: chapter! } : { book: s.book, section: s.section }]);
     },
   };
   commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, highlights: highlightDeps, practice: practiceDeps }), ...groupCommands()]);

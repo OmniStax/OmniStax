@@ -14,7 +14,7 @@
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
   import { label as sectionLabel } from '../../lib/sections/grouping';
-  import { secKey, type ChatId, type SectionRef } from '../../lib/types/ids';
+  import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
 
   let { chatId }: { chatId: ChatId } = $props();
 
@@ -46,6 +46,10 @@
   });
 
 
+  const mathBook = $derived.by((): string | null => {
+    for (const c of chips) { const b = c.key.replace(/^[a-z]+:/, '').split(/[/:]/)[0]; if (b && registry.hasBook(bookId(b))) return b; }
+    return focus.book;
+  });
   let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
   $effect(() => {
     const words = pending.words[chatId];
@@ -112,7 +116,8 @@
   };
 </script>
 
-<article class="chat-tab" data-chat={chatId}>
+<!-- the book the maths is rendered under: the one the chips come from, else the one being read, so a book's macros read -->
+<article class="chat-tab" data-chat={chatId} data-book={mathBook}>
   <header class="chat-head">
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label="Chat name" />

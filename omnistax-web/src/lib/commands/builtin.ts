@@ -17,7 +17,7 @@ export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export type BuiltinDeps = {
   readonly settings: {
-    readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly zoom: ZoomStep;
+    readonly theme: Theme; readonly animations: boolean; readonly voice: boolean; readonly zoom: ZoomStep; readonly fillAll: boolean; setFillAll(on: boolean): void;
     readonly figureFont: FontId; readonly bodyFont: FontId;
     setFigureFont(id: FontId): void; setBodyFont(id: FontId): void;
     setPreview(p: { figureFont?: FontId; bodyFont?: FontId; theme?: Theme }): void; clearPreview(): void;
@@ -97,7 +97,7 @@ export const BUILTIN = {
   chatNew: commandId('chat-new'),
   findTextbook: commandId('explorer-find-textbook'),
   coloursUndo: commandId('colours-undo'), coloursRedo: commandId('colours-redo'),
-  figuresStart: commandId('figures-start'),
+  figuresStart: commandId('figures-start'), fill: commandId('fill-width'),
   practiseSection: commandId('practise-section'), practiseChapter: commandId('practise-chapter'), practiseBook: commandId('practise-book'),
 } as const;
 /* One id per colour code switch of the book being read. */
@@ -142,7 +142,7 @@ const colourCodeCommands = (d: BuiltinDeps): readonly Command[] => HIGHLIGHT_KEY
   run: () => d.highlights.set(k, !d.highlights.on(k)), when: () => d.highlights.here !== null, detail: () => onOff(d.highlights.on(k)),
 }));
 const practiseCommand = (d: BuiltinDeps, id: CommandId, level: Level): Command =>
-  ({ id, label: `Practice this ${level}`, group: 'Exercises', run: () => d.practice.practise(level), when: () => d.practice.canPractise() });
+  ({ id, label: `Add this ${level} to Exercise Session`, group: 'Exercises', run: () => d.practice.practise(level), when: () => d.practice.canPractise() });
 export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.palette, label: 'Open command palette', group: 'App', run: () => d.ui.openPalette(), when: () => !d.ui.palette.open },
   { id: BUILTIN.settings, label: 'Open settings', group: 'App', run: () => d.ui.openSettings() },
@@ -163,6 +163,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => [
   { id: BUILTIN.zoomIn, label: 'Larger text', group: 'Appearance', run: () => d.settings.zoomIn(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomOut, label: 'Smaller text', group: 'Appearance', run: () => d.settings.zoomOut(), detail: () => zoomLabel(d.settings.zoom) },
   { id: BUILTIN.zoomReset, label: 'Text size back to normal', group: 'Appearance', run: () => d.settings.resetZoom(), detail: () => zoomLabel(d.settings.zoom) },
+  { id: BUILTIN.fill, label: 'Appearance: Fill horizontal space', group: 'Appearance', run: () => d.settings.setFillAll(!d.settings.fillAll), detail: () => onOff(d.settings.fillAll) },
   { id: BUILTIN.animations, label: 'Figures: play or pause all', group: 'Reading', run: () => d.settings.setAnimations(!d.settings.animations), detail: () => (d.settings.animations ? 'playing' : 'paused') },
   /* The setting by name, as the Settings dialog puts it. */
   { id: BUILTIN.figuresStart, label: 'Figures start: paused or playing', group: 'Reading', run: () => {}, detail: () => (d.settings.animations ? 'playing' : 'paused'),

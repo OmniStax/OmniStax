@@ -17,7 +17,7 @@ const ROOT = await bookRoot(PHYSICS);
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`), showGraph: (e) => calls.push(`graph:${e}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`), showGraph: (e) => calls.push(`graph:${e}`), addToSession: (c) => calls.push(`session:${c}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- prose ---------- */
@@ -157,20 +157,20 @@ test('a concept card gives its statement, then where the text introduces and use
     uses: [place('16.1-energy', 'Energy in a Spring'), place('16.2-period', 'Period and Frequency')],
     built: true, onMap: false,
   }, nav);
-  assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Result · section 16.1'); assert.equal(c.title, hooke.name);
+  assert.equal(c.kind, 'concept'); assert.equal(c.eyebrow, 'Result'); assert.equal(c.title, hooke.name);
   assert.equal(c.body, 'The restoring force is proportional to the displacement.');
   assert.deepEqual(c.refs?.map((g) => g.label), ['Introduced in', 'Used in']);
   assert.deepEqual(refOf(c, 'Introduced in')?.links.map((l) => l.label), ['Hooke’s Law']);
   assert.deepEqual(refOf(c, 'Used in')?.links.map((l) => l.label), ['Energy in a Spring', 'Period and Frequency']);
   assert.equal(refOf(c, 'Used in')?.more, undefined);
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference', 'Show in Concept map']);
-  assert.equal(run('Go to definition', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference'); assert.equal(run('Show in Concept map', c), 'view:concepts');
+  assert.deepEqual(c.actions.map((a) => a.label), ['Add to Exercise Session', 'Show in Reference', 'Show in Concept map']);
+  assert.equal(run('Add to Exercise Session', c), 'session:hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference'); assert.equal(run('Show in Concept map', c), 'view:concepts');
 });
 test('a card opened on the map itself does not offer the map', () => {
   const c = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], built: true, onMap: true }, nav);
-  assert.deepEqual(c.actions.map((a) => a.label), ['Go to definition', 'Show in Reference']);
+  assert.deepEqual(c.actions.map((a) => a.label), ['Add to Exercise Session', 'Show in Reference']);
   const off = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], built: true, onMap: false }, nav);
-  assert.deepEqual(off.actions.map((a) => a.label), ['Go to definition', 'Show in Reference', 'Show in Concept map']);
+  assert.deepEqual(off.actions.map((a) => a.label), ['Add to Exercise Session', 'Show in Reference', 'Show in Concept map']);
 });
 test('long use lists are cut short and the rest stand behind one trailing action', () => {
   const wide = conceptCard({
@@ -185,7 +185,7 @@ test('long use lists are cut short and the rest stand behind one trailing action
 test('a concept the text neither introduces nor uses has no places, and no statement leaves no body', () => {
   const c = conceptCard({ concept: { ...hooke, statement: undefined }, intro: [], uses: [], built: true, onMap: false }, nav);
   assert.equal(c.body, undefined); assert.deepEqual(c.refs, []);
-  assert.equal(run('Go to definition', c), 'sec:16.1');
+  assert.equal(run('Add to Exercise Session', c), 'session:hookes-law');
 });
 test('a placeholder concept says its section is not built and offers the page it can reach', () => {
   const ph: ConceptDTO = { status: 'placeholder', id: conceptId('newtons-laws'), kind: 'idea', section: sectionId('4.3'), name: 'Newton’s second law', terms: [], forms: [], prereqs: [] };

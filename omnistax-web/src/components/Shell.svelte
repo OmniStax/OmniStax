@@ -292,7 +292,7 @@
   $effect(() => { const t = settings.effectiveTheme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); FIG.redrawAll(); });
   $effect(() => { const figure = settings.effectiveFigureFont, body = settings.effectiveBodyFont; FIG.redrawAll(); applyFonts(figure, body).then(() => { if (settings.effectiveFigureFont === figure && settings.effectiveBodyFont === body) FIG.redrawAll(); }); });
   $effect(() => { FIG.setPaused(!settings.animations); document.documentElement.classList.toggle('anim-off', !settings.animations); });
-  $effect(() => { const r = document.documentElement.classList; r.toggle('fill-all', settings.fillAll); r.toggle('fill-paragraphs', settings.fillParagraphs); r.toggle('fill-figures', settings.fillFigures); FIG.redrawAll(); });
+  $effect(() => { document.documentElement.classList.toggle('fill-all', settings.fillAll); FIG.redrawAll(); });
   /* The timeline the next undo walks is the pane focus last went into: a view the pointer
      went into, else the focused group's tab; the annotations view edits the section being read. */
   $effect(() => { const s = focus.section; history.scope = scopeOfItem(focus.view, s) ?? scopeOfItem(focusedGroup(layoutStore.layout).active ?? null, s); });

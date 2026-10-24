@@ -1,6 +1,7 @@
 <script lang="ts">
   import { practice } from '../../lib/practice/store.svelte';
   import { books } from '../../lib/practice/books.svelte';
+  import { cart } from '../../lib/practice/cart.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { heatWeeks, standingOf, streakOf, workByDay } from '../../lib/practice/model';
   import PageHead from './PageHead.svelte';
@@ -34,7 +35,7 @@
 
 <div class="dashboard">
   <PageHead title="Practice">
-    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, [])}>New practice session</button>{/snippet}
+    {#snippet actions()}<button type="button" class="btn primary" onclick={() => practice.seed(item, cart.take())}>Make practice session ({cart.count}) →</button>{/snippet}
   </PageHead>
 
   <section aria-label="Activity">

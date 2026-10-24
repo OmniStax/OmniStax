@@ -18,6 +18,7 @@
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
   import { pomodoro } from '../lib/pomodoro/store.svelte';
+  import { cart } from '../lib/practice/cart.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
   const iconOf = (kind: ViewKind): string => ICON[kind as keyof typeof ICON] ?? '';
@@ -60,8 +61,8 @@
     {#if i}<div class="gap"></div>{/if}
     <div class="section">
       {#each kinds as kind (kind)}
-        {@const count = kind === 'pomodoro' ? pomodoro.railText : ''}
-        <button type="button" id={kind === 'sync' ? 'sync-btn' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Ask AI' : titleOf(kind)}
+        {@const count = kind === 'pomodoro' ? pomodoro.railText : kind === 'exercises' && cart.count > 0 ? String(cart.count) : ''}
+        <button type="button" id={kind === 'sync' ? 'sync-btn' : kind === 'exercises' ? 'rail-exercises' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? 'Ask AI' : titleOf(kind)}
           use:draggable={{ key: keyOf(kind), from: null }} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
       {/each}
     </div>

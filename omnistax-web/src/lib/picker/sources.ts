@@ -16,16 +16,17 @@ import { label as sectionLabel } from '../sections/grouping';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
 import { library } from '../explorer/library.svelte';
-import { childrenOf, pathOf, type Entry, type EntryId } from '../explorer/model';
+import { childrenOf, pathOf, entryId, type Entry, type EntryId } from '../explorer/model';
+import { notes } from '../notes/store.svelte';
 import { books } from '../practice/books.svelte';
 import { figureInfo } from '../notes/md/figinfo';
 import { chats } from '../chat/store.svelte';
 import { firstWords, spokenIn } from '../chat/model';
 import { chip, type Chip } from '../chat/context';
-import { bookId, noteId, sectionId, sectionRef, type BookId, type ChatId, type SectionRef } from '../types/ids';
+import { bookId, noteId, sectionId, sectionRef, secKey, parseItemKey, type BookId, type ChatId, type SectionRef } from '../types/ids';
 import { focus } from '../sections/focus.svelte';
 import { linkInner } from '../notes/md/links';
-import type { ChapterEntry, SectionEntry } from '../content/schema';
+import type { ChapterEntry, DerivationDTO, SectionEntry } from '../content/schema';
 import { CATEGORY_CHIP, type PickerCategory, type PickerNode, type PickerRow } from './model';
 
 const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -69,13 +70,19 @@ export const inBook = (book: BookId, detail: string): string => (book === focus.
    still the section's?", and a map that holds its keys weakly lets a section
    that is dropped take its rows with it. */
 const figureCache = new WeakMap<HTMLElement, readonly PickerRow[]>();
+const derivationOf = (book: BookId, sec: string, local: string): DerivationDTO | null => {
+  const all = (window as unknown as { OMNISTAX_DERIVATIONS?: Record<string, readonly DerivationDTO[]> }).OMNISTAX_DERIVATIONS;
+  return all?.[`${book}/${sec}`]?.find((d) => `drv-${d.id}` === local) ?? null;
+};
 const readFigures = (book: BookId, id: string, doc: HTMLElement): readonly PickerRow[] =>
   [...doc.querySelectorAll<HTMLElement>('figure[id]')].flatMap((fig): readonly PickerRow[] => {
     const local = fig.id.startsWith(`${id}-`) ? fig.id.slice(id.length + 1) : fig.id;
-    const info = figureInfo(doc, sectionId(id), local);
+    /* a derivation's host is empty until the library draws it; its name is in the section's data */
+    const drv = fig.classList.contains('dv') ? derivationOf(book, id, local) : null;
+    const info = drv ? { eyebrow: 'Derivation', title: drv.what, caption: drv.source ?? '' } : figureInfo(doc, sectionId(id), local);
     if (!info) return [];
     return [{
-      category: 'figures', key: `${book}/${id}:${local}`, label: cut(plain(`${info.eyebrow} ${info.title}`), 60), detail: '',
+      category: 'figures', key: `${book}/${id}:${local}`, label: cut(plain(`${info.eyebrow} ${drv ? '· ' : ''}${info.title}`), 60), detail: '',
       target: { kind: 'figure', book, section: id, id: local }, embed: true,
       text: [info.eyebrow, info.title, info.caption].filter((s) => s !== '').join('\n'),
     }];
@@ -116,7 +123,7 @@ const definitionsOf = (book: BookId, ch: ChapterEntry, sec: string): readonly Pi
 const exercisesOf = (book: BookId, sec: string): readonly PickerRow[] =>
   [...(books.exercises(book, sectionId(sec)) ?? []), ...generated.list.filter((g) => g.book === book && g.section === sec).map(exerciseOf)].map((ex): PickerRow => ({
     category: 'exercises', key: `${book}/${sec}:${ex.id}`, label: cut(plain(ex.prompt), 70), detail: isGenerated(ex.id) ? 'AI-generated' : registry.manifest(book).exerciseKinds[ex.kind] ?? ex.kind,
-    target: { kind: 'exercise', book, section: sec, id: ex.id }, embed: true, text: exerciseBrief({ book, section: sectionId(sec), ex: ex.id }, ex),
+    target: { kind: 'exercise', book, section: sec, id: ex.id }, embed: true, textOf: () => exerciseBrief({ book, section: sectionId(sec), ex: ex.id }, ex),
   }));
 
 const leaf = (row: PickerRow): PickerNode => ({ key: row.key, label: row.label, detail: row.detail, row });
@@ -133,15 +140,25 @@ const ALL_KINDS: readonly PickerCategory[] = ['figures', 'concepts', 'equations'
 const sectionNode = (book: BookId, ch: ChapterEntry, s: SectionEntry, scope: PickerScope): PickerNode => {
   const row: PickerRow = { category: 'sections', key: `${book}/${s.id}`, label: sectionLabel(s.id, s.title), detail: '', target: { kind: 'section', book, section: s.id } };
   const kinds = scope.kinds ?? ALL_KINDS;
+  /* The kinds are gathered once per state of the section's data, since the
+     picker walks every section of the shelf on each keystroke. */
+  let held: { readonly stamp: string; readonly nodes: readonly PickerNode[] } | null = null;
+  const stamp = (): string => `${registry.state(sectionRef(book, sectionId(s.id)))?.docs.text ? 1 : 0}|${registry.chapter(book, ch.dir) ? 1 : 0}|${books.status[book] ?? ''}|${generated.list.length}`;
   return {
     key: s.id, label: row.label, detail: '', row,
-    children: () => [
-      ...(kinds.includes('figures') ? kind('figures', 'Figures', figuresOf(book, s.id)) : []),
-      ...(kinds.includes('concepts') ? kind('concepts', 'Concepts', conceptsOf(book, ch, s.id)) : []),
-      ...(kinds.includes('equations') ? kind('equations', 'Equations', equationsOf(book, ch, s.id)) : []),
-      ...(kinds.includes('definitions') ? kind('definitions', 'Definitions', definitionsOf(book, ch, s.id)) : []),
-      ...(kinds.includes('exercises') ? kind('exercises', 'Exercises', exercisesOf(book, s.id)) : []),
-    ],
+    children: () => {
+      const now = stamp();
+      if (held?.stamp === now) return held.nodes;
+      const nodes = [
+        ...(kinds.includes('figures') ? kind('figures', 'Figures', figuresOf(book, s.id)) : []),
+        ...(kinds.includes('concepts') ? kind('concepts', 'Concepts', conceptsOf(book, ch, s.id)) : []),
+        ...(kinds.includes('equations') ? kind('equations', 'Equations', equationsOf(book, ch, s.id)) : []),
+        ...(kinds.includes('definitions') ? kind('definitions', 'Definitions', definitionsOf(book, ch, s.id)) : []),
+        ...(kinds.includes('exercises') ? kind('exercises', 'Exercises', exercisesOf(book, s.id)) : []),
+      ];
+      held = { stamp: now, nodes };
+      return nodes;
+    },
     load: () => registry.load(sectionRef(book, sectionId(s.id))),
   };
 };
@@ -204,6 +221,7 @@ const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
    top, fetches the focused book's tables, so its things are found at once. */
 export const pickerRoot = (scope: PickerScope = {}): readonly PickerNode[] => [
   { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map((b) => bookNode(b, scope)), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
+  ...(scope.kinds?.includes('annotations') ? [{ key: 'annotations', label: 'Annotations', detail: '', children: () => annotationRows().map(leaf) }] : []),
   ...(scope.files === false ? [] : [{ key: 'files', label: 'Files', detail: '', children: () => entryNodes(null) }]),
 ];
 
@@ -215,7 +233,28 @@ export const chipOf = (row: PickerRow): Chip => {
   const key = row.target ? linkInner(row.target) : `${kind}:${row.key}`;
   const book = row.target?.kind === 'section' ? row.target.book ?? focus.book : null;
   if (row.target?.kind === 'section' && book) return chip(kind, key, row.label, sectionTextOf(sectionRef(book, sectionId(row.target.section))));
-  return chip(kind, key, row.label, row.text ?? row.label);
+  return chip(kind, key, row.label, row.text ?? row.textOf?.() ?? row.label);
+};
+
+/* The reader's annotations: every highlight they wrote on, as a row a chat can
+   be handed, the quote and the words beside it. */
+const annotationRows = (): readonly PickerRow[] => notes.list.filter((n) => n.text.trim() !== '').map((n): PickerRow => ({
+  category: 'annotations', key: n.id, label: cut(n.anchor.quote, 60), detail: `${books.title(n.book) || n.book} · ${n.section}`,
+  text: `Highlighted in ${books.title(n.book) || n.book}, section ${n.section}:\n“${n.anchor.quote}”\n\nThe reader's note: ${n.text}`,
+}));
+
+/* The chip for something dragged into a chat by its tab key: a section's text,
+   or one of the reader's own rows. */
+export const chipForItem = (key: string): Chip | null => {
+  const id = parseItemKey(key); if (!id) return null;
+  if (id.kind === 'doc') {
+    const ref = sectionRef(id.book, id.section), entry = registry.entry(ref);
+    return entry?.built ? chip('section', secKey(ref), sectionLabel(ref.section, entry.title), sectionTextOf(ref), true) : null;
+  }
+  const own = id.kind === 'note' ? id.note : id.kind === 'drawing' ? id.drawing : id.kind === 'file' ? id.file : id.kind === 'chat' ? id.chat : null;
+  if (own === null) return null;
+  const e = explorer.entry(entryId(own)); const row = e ? entryRow(e, e.kind) : undefined;
+  return row ? chipOf(row) : null;
 };
 
 /* A chat's own opening, for the row that names a whole chat. */

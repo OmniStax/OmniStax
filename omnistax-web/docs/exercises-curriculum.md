@@ -41,6 +41,18 @@ the concept mastered at the end of that round. Mastery is sticky: raising the
 target or adding exercises does not unmaster it. Lowering the target may master
 a concept immediately when its existing evidence meets the new target.
 
+## The session being gathered
+
+A session is gathered before it is made. "Add to Exercise Session" on a
+concept's hover card, on a book, chapter or section in the explorer's menu,
+and in the palette ("Add this section to Exercise Session") puts that place
+or concept in the cart (`src/lib/practice/cart.svelte.ts`, kept in this
+browser under `omnistax-practice-cart-v1`). The adding is instant: a few
+dots fly from the click to the rail's Exercises button, whose badge then
+shows how many exercises the picks come to, recounted off the main thread's
+way once the picks' books have loaded. The dashboard's "Make practice
+session (n) →" seeds the builder from the cart and empties it.
+
 ## Preparing a round
 
 A round is prepared and frozen at Start, and Start begins the session at once:

@@ -631,7 +631,9 @@ function transport(d: Sim): void {
 }
 function register(fig: HTMLElement, d: { update: (dt: number) => void; draw: () => void; arrive?: boolean }): void {
   const cycles = pendingCycles.splice(0), still = !cycles.length;
-  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED };
+  /* a figure standing in a still (the @ picker's preview) is drawn once, at rest, and plays nothing */
+  const frozen = fig.closest('[data-still]') !== null;
+  const full: Sim = { ...d, fig, cycles, playing: !REDUCED && !still && !frozen, speed: 1, dirty: true, arrive: d.arrive !== false && !REDUCED && !frozen };
   if (!still && storied.has(fig)) console.error('F.register: this figure is a story; a figure has one timeline');
   sims.push(full); vio?.observe(fig); rio?.observe(fig); if (!still) transport(full);
   fig.addEventListener('input', () => { full.dirty = true; });                                   /* sliders, scrubber, segmented controls */

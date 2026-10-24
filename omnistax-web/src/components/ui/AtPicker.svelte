@@ -57,7 +57,16 @@
   const key = $derived(keyFor(where));
   const here = $derived<PickerState>({ path: where.path, index: where.key === key ? where.index : 0 });
   const trail = $derived(trailOf(root, here.path.map((p) => p.key)));
-  const face = $derived<readonly Listed[]>(faceOf(here, root, query));
+  /* The list is gathered again only when the level or the words change: the
+     cursor moving down the list is not a reason to walk the shelf once more. */
+  let lastFace: { readonly path: PickerState['path']; readonly query: string; readonly face: readonly Listed[] } | null = null;
+  const face = $derived.by((): readonly Listed[] => {
+    const path = here.path, q = queryIn(here, query);
+    if (lastFace && lastFace.path === path && lastFace.query === q) return lastFace.face;
+    const next = faceOf(here, root, query);
+    lastFace = { path, query: q, face: next };
+    return next;
+  });
   const count = $derived(face.length);
   const cursor = $derived(atCursor(here, face));
   const searching = $derived(queryIn(here, query).trim() !== '');
@@ -133,7 +142,7 @@
 <div class="at">
 {#if figure}
   <!-- the figure itself, booted from its section, in a panel beside the list -->
-  <div class="preview" bind:this={panel} onpointerdown={(e) => e.preventDefault()}>
+  <div class="preview" data-still bind:this={panel} onpointerdown={(e) => e.preventDefault()}>
     {#key linkInner(figure)}<div class="fig-embed" data-embed={linkInner(figure)}></div>{/key}
   </div>
 {/if}
@@ -172,6 +181,8 @@
   .at > *{pointer-events:auto}
   .preview{position:absolute;left:min(100%, 26rem);bottom:0;margin-left:8px;width:min(380px,40vw);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.22)}
   .preview :global(.fig-embed){margin:0;max-width:none;width:100%}
+  /* the preview is a still of the figure as it ends: no head, controls, readouts, transport or caption text */
+  .preview :global(.sim-head),.preview :global(.controls),.preview :global(.readout),.preview :global(.transport),.preview :global(.fig-original),.preview :global(.dv-bar),.preview :global(figcaption),.preview :global(.fig-head),.preview :global(.caption){display:none}
   .picker{position:relative;width:max-content;min-width:min(100%,22rem);max-width:min(100%,26rem);max-height:16rem;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.22);font-family:var(--sans);z-index:30}
   ul{list-style:none;margin:0;padding:4px}
   .crumb{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;padding:6px 8px 4px;border-bottom:1px solid var(--rule);font-size:0.76rem;color:var(--muted)}

@@ -1,7 +1,8 @@
 <script lang="ts">
   import AtPicker from '../ui/AtPicker.svelte';
   import ModelMenu from './ModelMenu.svelte';
-  import { chipOf, pickerRoot } from '../../lib/picker/sources';
+  import { chipOf, chipForItem, pickerRoot } from '../../lib/picker/sources';
+  import { dragging as layoutDrag } from '../../lib/layout/drag.svelte';
   import { chipOfRow } from '../../lib/chat/library';
   import { chip, sameChip, withChip, withoutChip, type Chip } from '../../lib/chat/context';
   import { chats } from '../../lib/chat/store.svelte';
@@ -28,7 +29,7 @@
   let query = $state('');
   let dragging = $state(false);
   /* A chat is handed figures, concepts and exercises; the rest of the tree is the note editor's. */
-  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises'], files: false });
+  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises', 'annotations'], files: false });
 
   const ready = $derived.by(() => { const p = chats.pickOf(chatId); return p !== null && ai.access(p) !== null; });
 
@@ -111,12 +112,16 @@
     e.preventDefault();
     takeImages(files);
   };
+  /* Images from the desktop become pictures; a tab dragged from the explorer (a
+     section's text, a note, a drawing, a file, a chat) becomes a reference. */
   const ondragover = (e: DragEvent): void => {
-    if (![...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) return;
-    e.preventDefault(); dragging = true;
+    if (!layoutDrag() && ![...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) return;
+    e.preventDefault(); e.stopPropagation(); dragging = true;
   };
   const ondrop = (e: DragEvent): void => {
     dragging = false;
+    const d = layoutDrag();
+    if (d) { e.preventDefault(); e.stopPropagation(); const c = chipForItem(d.key); if (c) add(c); return; }
     const files = [...(e.dataTransfer?.files ?? [])];
     if (!files.some((f) => f.type.startsWith('image/'))) return;
     e.preventDefault();

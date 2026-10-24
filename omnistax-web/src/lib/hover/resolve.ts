@@ -50,6 +50,7 @@ export type Nav = {
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
   readonly showGraph: (expr: string, split?: boolean) => void;   /* opens the book's grapher with that function among its rows */
+  readonly addToSession: (concept: string) => void;   /* the concept into the exercise session being gathered */
 };
 
 const KIND_LABEL: Readonly<Record<Kind, string>> = { definition: 'Definition', variable: 'Symbol', reference: 'Reference', equation: 'Formula', concept: 'Concept', formula: 'Formula', function: 'Function' };
@@ -199,7 +200,7 @@ export type ConceptFacts = {
 };
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   const c = f.concept, sec = secIdOf(c.section), first = f.intro[0];
-  const eyebrow = `${CONCEPT_KIND[c.kind]} · section ${c.section}`;
+  const eyebrow = CONCEPT_KIND[c.kind];
   if (c.status === 'placeholder') return {
     kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: `Section ${c.section} is not built yet.`,
     actions: [f.built ? { label: 'Go to section', run: (s?: boolean) => nav.openSection(sec, s) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
@@ -211,7 +212,7 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   return {
     kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
-      { label: 'Go to definition', run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
+      { label: 'Add to Exercise Session', run: () => nav.addToSession(c.id) },
       { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
       ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: (s?: boolean) => nav.showView('concepts', s) }]),
     ],
