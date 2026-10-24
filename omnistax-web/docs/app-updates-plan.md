@@ -1,6 +1,8 @@
 # App updates apart from installed books
 
-Implementation handoff. Status: built 2026-10-06. Builds on
+Implementation handoff. Status: built 2026-10-06. Decision 2 and the app
+inside each download were superseded on 2026-10-24 by `release-plan.md`,
+decisions 19 to 22: a download holds only its book and runs the current app. Builds on
 `offline-books.md` and `offline-books-plan.md`; read both first.
 
 ## The problem

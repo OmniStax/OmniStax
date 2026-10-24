@@ -1,8 +1,23 @@
 # Releases, desktop and installs
 
 Implementation handoff for issues #47 (release) and #48 (desktop OmniStax).
-Status: planned 2026-10-24, to be built in one session. Settled with Chen over
-one conversation; anything he did not object to is agreed.
+Status: built 2026-10-24 (steps 1 to 6 below); the repo split (24) is later.
+Settled with Chen over one conversation; anything he did not object to is
+agreed.
+
+Where the build differs from the decisions:
+
+- The What's new tab holds every note, newest first, not only the unseen ones;
+  the unseen are the ones at the top.
+- The preload exposes `{ platform }` only; nothing reads a version.
+- A Mac reads `latest.yml` for the version, since a dmg-only build may write no
+  `latest-mac.yml`; the Mac installer is universal (Intel and Apple silicon).
+- Strings that fit both hosts were reworded once ("on this device", "isn't
+  available here") rather than branched; only the language hint, the local AI
+  help and the retention row branch on the desktop surface.
+- The update notice compares the catalog's app artifact only. A page that
+  opened offline from the app's copy and then sees a newer catalog shows no
+  notice until the next deploy.
 
 Builds on `offline-books.md`, `offline-books-plan.md` and `app-updates-plan.md`;
 read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.

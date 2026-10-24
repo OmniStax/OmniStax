@@ -168,6 +168,10 @@ src/styles/global.css     tokens, typography, styles for adopted content (articl
 
 ## Conventions
 
+- Never change the format of a localStorage key the app has shipped; add a
+  `-vN` key and read the old one. A tab left open on an older build shares the
+  storage and must neither misread nor overwrite the new format.
+
 - Types at boundaries: `…DTO` for what is parsed from content files, branded ids
   (`BookId`, `SectionId`, `GroupKey`, `SpanId`, `ConceptId`), ADTs with a `kind` or `type`
   discriminator (`ItemId`, `AnswerDTO`) and smart constructors beside them.

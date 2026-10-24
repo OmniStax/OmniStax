@@ -15,11 +15,17 @@ book id in `omnistax-auto-update-v1`, on unless an edition was turned off).
 ## Publication
 
 `npm run build` generates `/offline-catalog.json`, one immutable manifest per
-book/runtime snapshot, immutable copies of every inventoried resource, and a
-Cloudflare-compatible `_headers` file. A semantic book release ID hashes that
-book's canonical content inputs. A separate runtime artifact ID hashes the app
-assets needed to render it; changing app CSS or JavaScript therefore does not
-pretend the textbook changed and cannot overwrite an older snapshot.
+book release, immutable copies of every inventoried resource, and a
+Cloudflare-compatible `_headers` file. A download holds the book and never the
+app: its section fragments (`doc.html`), figure scripts, data, `colours.css`
+and media, no full page and no app file (`docs/release-plan.md`, decisions 19
+to 22). A semantic book release ID hashes that book's canonical content inputs.
+The second segment of a release's path, still called the artifact ID, hashes
+the content format (`contentFormat` in the manifest), so an app deploy leaves
+every download where it was. The catalog's own `artifactId` hashes the app
+build and drives the update notice. A download below `MIN_CONTENT_FORMAT`
+(`src/lib/offline/schema.ts`, mirrored in `public/sw.js`) is not served and is
+offered again as a repair.
 
 Fresh static output cannot preserve prior deployments by itself. For a release
 build, point `OMNISTAX_RELEASE_ARCHIVE_DIR` at the prior deployed output. The
@@ -42,13 +48,11 @@ The app checks the catalog on startup, when its window gains focus or comes
 back online, at most once per ten minutes after a successful check. Every
 downloaded book set to update automatically whose release or runtime artifact
 differs from the catalog is installed again in the background. A file whose SHA-256 the active snapshot
-already holds is copied from it, so a deploy that changes only the app
-downloads only the app. A background install that fails, or is refused because
-an older release is still in use, waits for the next check. The page keeps the
-artifact ID of its first catalog, or of the download it was answered from; a
-later check that names another (for a downloaded book's page, once its install
-of the new artifact completes) shows "OmniStax was updated." with a Reload
-button at the foot of the window.
+already holds is copied from it, so an update downloads only what changed. A
+background install that fails, or is refused because an older release is still
+in use, waits for the next check. The page keeps the app artifact ID of its
+first catalog; a later check that names another shows "OmniStax was updated."
+with a Reload button at the foot of the window.
 
 A book row in the explorer wears two marks. "Update" with a yellow dot shows
 while a downloaded book's installed release is older than the catalog's
@@ -68,16 +72,15 @@ server, the section list still comes from the kept fingerprints and the
 earlier text is said to be unavailable.
 
 The production service worker is registered only on HTTPS or localhost. A
-downloaded book reads from its download: a navigation under `/<book>/` and any
-file under that prefix are answered from the installed snapshot first, and the
-network only for what the snapshot does not hold. Everything else is the live
-site, network first. A navigation falls back to the installed snapshot when
-the network fails or takes longer than three seconds; a file of a live page
-falls back only when the network fails. A page the snapshot answered, or one
-opened on a release the reader chose, takes all its files from that snapshot,
-so its app and content come from one build; a downloaded book's page therefore
-runs the app of its download until the download updates. Offline, the front of OmniStax opens the front of a downloaded book.
-Each client is pinned at navigation to the book release and runtime artifact
+navigation into a downloaded book is answered with the app's `404.html`, live
+when the network answers within three seconds, else the app's copy; that shell
+reads the address and fetches the section, and the book's files come from the
+download at the installed release or the one the reader chose. Every book
+therefore runs the newest app the reader has loaded, and turning "Update
+automatically" off keeps the text, not the app. App files come from the
+network, else the app's copy. Everything else is the live site, network first,
+falling back to the app's copy when the network fails or takes longer than
+three seconds. Each client is pinned at navigation to the book release and runtime artifact
 it falls back to, and that pin names the release practice provenance records.
 A client holds one pin per book, so practising from a second downloaded
 textbook reads that book's own release. After an update the previous snapshot
@@ -85,16 +88,13 @@ stays cached until no open window pins it and no saved practice session names
 its release (a session is satisfied by the installed snapshot when only the app
 changed), then it is reclaimed at the next startup; a further update is refused
 while an older snapshot is still in use. The catalog always uses a network
-request. A release carries one page per book, the book's
-front page: any navigation into a downloaded book that is not a file of the
-release is answered with it, and the shell opens the section the address
-names. Section pages stay on the server for crawlers and cold loads. Figures
+request. Section pages stay on the server for crawlers and cold loads. Figures
 (JPEG) are re-encoded for the release at quality 80 and at most 1200 px on the
 long side, and only where that is smaller; the served site keeps the
 originals.
 
 The app itself opens offline with no book downloaded. The build writes
-`/offline-shell.json`: the runtime files the artifact ID hashes (less `sw.js`)
+`/offline-shell.json`: the runtime files the app artifact ID hashes (less `sw.js`, with `404.html`)
 and, for each book, its first built page, `book.json` and `colours.css`. The worker saves them into `omnistax-shell:<shellId>` when it
 installs and again after any navigation the network answers whose list names a
 new shell ID, verifying each file's size and SHA-256; the copy counts once the
