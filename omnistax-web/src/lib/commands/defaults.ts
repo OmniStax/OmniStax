@@ -9,8 +9,8 @@
    Ctrl+PageDown becomes Alt+PageDown — and the Ctrl chord goes on meaning what the
    browser means by it. Which chords a host keeps is host.ts's list, so the
    swap follows the browser the reader is in and the window they are in it. */
-import { type Bindings, type Chord, chord, parseChord, formatChord } from './chord';
-import { commandId } from './command';
+import { type Bindings, type Chord, chord, chordsFor, parseChord, formatChord, rebind, withoutCommand } from './chord';
+import { commandId, type CommandId } from './command';
 import { type Host, kept } from './host';
 
 const bind = (pairs: readonly (readonly [string, string])[]): Bindings =>
@@ -75,3 +75,51 @@ export const defaultBindings = (h: Host): Bindings => {
 /* The pairs as written, with nothing swapped: what a host that keeps no chord
    for itself gets, and what the tests read. */
 export const DEFAULT_BINDINGS: Bindings = bind(DEFAULT_PAIRS);
+
+/* What the reader changed: for each command they rebound, the chords they gave
+   it, none when they cleared it. Only this is stored, so each host keeps its own
+   defaults and an install pulling the changes gets the reader's intent. */
+export type Changes = Readonly<Record<CommandId, readonly Chord[]>>;
+const sameChords = (a: readonly Chord[], b: readonly Chord[]): boolean => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+const idsOf = (...all: Bindings[]): CommandId[] => [...new Set(all.flatMap((b) => Object.values(b)))];
+
+/* This host's bindings: its defaults with the changes on top. A changed chord
+   the host keeps takes its Alt twin when nobody else holds that, as the
+   defaults do; failing that the command keeps its default here. */
+export const applyChanges = (h: Host, changes: Changes): Bindings => {
+  const defaults = defaultBindings(h);
+  return (Object.entries(changes) as [CommandId, readonly Chord[]][]).reduce<Bindings>((b, [id, chords]) => {
+    const rest = withoutCommand(b, id);
+    const twin = (c: Chord): Chord | null => { const alt = altOf(c); return alt && !kept(h, alt) && !rest[alt] ? alt : null; };
+    const wanted = chords.map((c) => (kept(h, c) ? twin(c) : c));
+    const own = wanted.every((c) => c !== null) ? wanted as Chord[] : chordsFor(defaults, id).filter((c) => !rest[c]);
+    return own.reduce<Bindings>((acc, c) => rebind(acc, id, c, true), rest);
+  }, defaults);
+};
+
+/* The changes after an edit took the bindings from `before` to `after`: every
+   command the edit moved is recorded as it now stands, or dropped when that is
+   its default here; the rest are kept as they were, wherever they were made. */
+export const changesAfter = (h: Host, changes: Changes, before: Bindings, after: Bindings): Changes => {
+  const defaults = defaultBindings(h);
+  const out: Record<CommandId, readonly Chord[]> = { ...changes };
+  for (const id of idsOf(before, after, defaults)) {
+    const now = chordsFor(after, id);
+    if (sameChords(chordsFor(before, id), now)) continue;
+    if (sameChords(now, chordsFor(defaults, id))) delete out[id]; else out[id] = now;
+  }
+  return out;
+};
+
+/* A whole map saved before changes were kept apart, as its changes from this host's defaults. */
+export const changesFrom = (h: Host, saved: Bindings): Changes => {
+  const defaults = defaultBindings(h);
+  return Object.fromEntries(idsOf(saved, defaults).flatMap((id) => sameChords(chordsFor(saved, id), chordsFor(defaults, id)) ? [] : [[id, chordsFor(saved, id)]])) as Changes;
+};
+
+/* Changes as they are stored: command id -> chords, only valid chords kept. */
+export const parseChanges = (raw: unknown): Changes | null => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([id, list]) =>
+    id && Array.isArray(list) ? [[id, list.flatMap((s) => (typeof s === 'string' ? [chord(s)] : [])).filter((c): c is Chord => c !== null)]] : [])) as Changes;
+};

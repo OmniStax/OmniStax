@@ -45,6 +45,7 @@ export const commands: Readonly<Record<keyof typeof source, string>> = {
   'commands.group.view': '视图',
   'commands.hideFigures': '隐藏所有图',
   'commands.host.app': '已安装的应用',
+  'commands.host.desktop': 'OmniStax 桌面版',
   'commands.host.fullscreen': '全屏模式',
   'commands.host.name': '{browser}，在{surface}中',
   'commands.host.tab': '浏览器标签页',

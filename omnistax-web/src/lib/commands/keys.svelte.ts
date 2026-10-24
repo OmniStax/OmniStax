@@ -2,11 +2,13 @@
    own several chords, and a binding may be a sequence of two presses — Ctrl+K
    Ctrl+S — of which the first is held here for a moment while the second is
    waited for. The dispatcher runs from the document's keydown; chords without
-   Ctrl or Alt are left to inputs so typing keeps working. An installed app is
-   the same browser and profile in another window, so it reads the same bindings. */
+   Ctrl or Alt are left to inputs so typing keeps working. Only the reader's
+   changes are kept (omnistax-keys-v2), each host laying them over its own
+   defaults, so a change made on the desktop and pulled into a tab still leaves
+   the tab with chords it can use. */
 import { commands } from './registry.svelte';
 import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBindings, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
-import { defaultBindings } from './defaults';
+import { type Changes, applyChanges, changesAfter, changesFrom, defaultBindings, parseChanges } from './defaults';
 import { host } from './host.svelte';
 import type { CommandId } from './command';
 import { readerWritesAllowed } from '../backup/guard';
@@ -14,21 +16,25 @@ import { retiredViewKeys } from '../types/ids';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
-const KEY = 'omnistax-keys';
+const KEY = 'omnistax-keys-v2', OLD_KEY = 'omnistax-keys';
 const WAIT = 1500;   /* how long the first press of a sequence is held, in milliseconds */
 export { DEFAULT_BINDINGS } from './defaults';
 
-/* What this browser holds, or nothing at all when the reader has never changed
-   a chord — in which case the bindings are the host's own defaults, read live,
-   so installing the book as an app hands the Ctrl chords back on the spot. */
-const load = (): Bindings | null => {
-  try { return parseBindings(JSON.parse(retiredViewKeys(localStorage.getItem(KEY) ?? 'null'))); } catch { return null; }
+/* What the reader changed, or nothing at all when they never changed a chord.
+   A whole map saved before changes were kept apart is read as its changes from
+   this host's defaults and left where it is, for an older build still open. */
+const read = (key: string): unknown => JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null'));
+const load = (): Changes => {
+  try {
+    const changes = parseChanges(read(KEY)); if (changes) return changes;
+    const old = parseBindings(read(OLD_KEY)); return old ? changesFrom(host.info, old) : {};
+  } catch { return {}; }
 };
-const save = (b: Bindings): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* private mode */ } };
+const save = (c: Changes): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* private mode */ } };
 
 class Keys {
-  #edited = $state.raw<Bindings | null>(typeof localStorage === 'undefined' ? null : load());
-  bindings: Bindings = $derived(this.#edited ?? defaultBindings(host.info));
+  #changes = $state.raw<Changes>(typeof localStorage === 'undefined' ? {} : load());
+  bindings: Bindings = $derived(applyChanges(host.info, this.#changes));
   /* The chords the book ships with on this host, which a restore goes back to. */
   private get defaults(): Bindings { return defaultBindings(host.info); }
   /* The first press of a sequence, while the shell waits for the second. */
@@ -40,9 +46,10 @@ class Keys {
   /* Make `c` the one chord of `id`; whoever had `c` before loses it. */
   set(id: CommandId, c: Chord): void { this.edit(rebind(this.bindings, id, c)); }
   clear(id: CommandId): void { this.edit(withoutCommand(this.bindings, id)); }
-  private edit(b: Bindings): void { this.#edited = b; save(b); }
-  restoreDefaults(): void { this.#edited = null; if (!readerWritesAllowed()) return; try { localStorage.removeItem(KEY); } catch { /* private mode */ } }
-  get isDefault(): boolean { return this.#edited === null; }
+  private edit(b: Bindings): void { this.#changes = changesAfter(host.info, this.#changes, this.bindings, b); save(this.#changes); }
+  /* Saved as no changes rather than removed, so an old whole map is not read again. */
+  restoreDefaults(): void { this.#changes = {}; save({}); }
+  get isDefault(): boolean { return Object.keys(this.#changes).length === 0; }
   /* One command back to the chords it shipped with; whoever holds them now loses them. */
   restoreDefault(id: CommandId): void {
     this.edit(chordsFor(this.defaults, id).reduce((b, c) => rebind(b, id, c, true), withoutCommand(this.bindings, id)));

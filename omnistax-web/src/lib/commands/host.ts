@@ -10,7 +10,7 @@ import { chord, type Chord } from './chord';
 import { t } from '../i18n/index';
 
 export type Browser = 'chromium' | 'firefox' | 'safari' | 'other';
-export type Surface = 'tab' | 'app' | 'fullscreen';
+export type Surface = 'tab' | 'app' | 'fullscreen' | 'desktop';
 export type Host = { readonly browser: Browser; readonly surface: Surface };
 
 const chords = (list: readonly string[]): readonly Chord[] => list.map(chord).filter((c): c is Chord => c !== null);
@@ -29,7 +29,7 @@ export const browserOf = (ua: string): Browser =>
 /* Every chord this host keeps from the page: a Chromium tab its list, a Chromium
    app or full-screen window nothing, Firefox its list on every surface. */
 export const keptChords = (h: Host): readonly Chord[] =>
-  h.browser === 'chromium' && h.surface !== 'tab' ? [] : RESERVED[h.browser];
+  h.surface === 'desktop' || (h.browser === 'chromium' && h.surface !== 'tab') ? [] : RESERVED[h.browser];
 /* True when a press of `c` never reaches the page on this host. A sequence is
    kept when its first press is. */
 export const kept = (h: Host, c: Chord): boolean => {
@@ -40,6 +40,6 @@ export const kept = (h: Host, c: Chord): boolean => {
 /* Product names stay as they are; a browser the shell does not know is named
    in the current language of i18n/index.ts, read when asked for. */
 export const BROWSER_NAMES: Readonly<Record<Browser, string>> = { chromium: 'Chrome', firefox: 'Firefox', safari: 'Safari', get other() { return t('commands.host.thisBrowser'); } };
-export const SURFACE_NAMES: Readonly<Record<Surface, string>> = { get tab() { return t('commands.host.tab'); }, get app() { return t('commands.host.app'); }, get fullscreen() { return t('commands.host.fullscreen'); } };
+export const SURFACE_NAMES: Readonly<Record<Surface, string>> = { get tab() { return t('commands.host.tab'); }, get app() { return t('commands.host.app'); }, get fullscreen() { return t('commands.host.fullscreen'); }, get desktop() { return t('commands.host.desktop'); } };
 /* "Chrome, in a browser tab" */
-export const hostName = (h: Host): string => t('commands.host.name', { browser: BROWSER_NAMES[h.browser], surface: SURFACE_NAMES[h.surface] });
+export const hostName = (h: Host): string => h.surface === 'desktop' ? SURFACE_NAMES.desktop : t('commands.host.name', { browser: BROWSER_NAMES[h.browser], surface: SURFACE_NAMES[h.surface] });

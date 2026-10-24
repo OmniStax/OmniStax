@@ -34,7 +34,7 @@ const scalarKeys = new Map<string, (value: string) => boolean>([
 ]);
 
 const jsonKeys = new Set([
-  'omnistax-keys', 'omnistax-practice-v2', 'omnistax-practice-v1',
+  'omnistax-keys-v2', 'omnistax-keys', 'omnistax-practice-v2', 'omnistax-practice-v1',
   'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1',
   'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1',
   'omnistax-library-v1', 'omnistax-explorer-v1', 'omnistax-notedocs-v1',
@@ -72,7 +72,7 @@ export const isScalarKey = (key: string): boolean => scalarKeys.has(key);
 export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
   if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key)) return 'appearance';
-  if (key === 'omnistax-keys') return 'shortcuts';
+  if (key === 'omnistax-keys-v2' || key === 'omnistax-keys') return 'shortcuts';
   if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
   if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
   if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
@@ -113,6 +113,7 @@ const layout = z.object({ sides: z.object({ left: side, right: side }).strict(),
 const scope = z.union([z.object({ follow: z.literal(true), level: z.enum(['book', 'chapter', 'section']) }).strict(), z.object({ follow: z.literal(false), target: z.union([z.object({ level: z.literal('book'), book: z.string().optional() }).strict(), z.object({ level: z.literal('chapter'), book: z.string().optional(), chapter: z.string() }).strict(), z.object({ level: z.literal('section'), book: z.string().optional(), section: z.string() }).strict()]) }).strict()]);
 const scopes = z.record(scope);
 const binding = z.record(z.string().min(1)).superRefine((value, ctx) => { Object.keys(value).forEach((key) => { if (!chord(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${key}` }); }); });
+const changes = z.record(z.array(z.string().min(1)).superRefine((list, ctx) => { list.forEach((c) => { if (!chord(c)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${c}` }); }); }));
 const tree = z.object({ entries: z.array(z.object({ id: z.string().min(1), parent: z.string().nullable(), kind: z.enum(['folder', 'note', 'book', 'drawing', 'file', 'chat']), name: z.string(), bookId: z.string().optional(), fileId: z.string().optional(), drawingId: z.string().optional(), chatId: z.string().optional() }).strict()), expanded: z.array(z.string()) }).strict();
 /* A file the reader imported, and the two things they write on one. The ids
    are the shapes the stores generate: eight of base 36 for a file, as a note's
@@ -225,6 +226,7 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-drawings-v1': drawingRows,
   'omnistax-scratch-v1': scratchIndex,
   'omnistax-chats-v1': chatIndex,
+  'omnistax-keys-v2': changes,
   'omnistax-keys': binding,
   'omnistax-practice-v2': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
   'omnistax-practice-v1': object,

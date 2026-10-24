@@ -47,6 +47,7 @@ export const commands = {
   'commands.group.view': 'View',
   'commands.hideFigures': 'Hide all figures',
   'commands.host.app': 'an installed app',
+  'commands.host.desktop': 'OmniStax desktop',
   'commands.host.fullscreen': 'full screen',
   'commands.host.name': '{browser}, in {surface}',
   'commands.host.tab': 'a browser tab',
