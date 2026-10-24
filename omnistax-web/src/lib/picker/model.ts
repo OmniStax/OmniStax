@@ -12,12 +12,12 @@
 import type { LinkTarget } from '../notes/md/links';
 import type { ChipKind } from '../chat/context';
 
-export const CATEGORIES = ['books', 'chapters', 'sections', 'figures', 'concepts', 'equations', 'definitions', 'exercises', 'folders', 'notes', 'drawings', 'chats', 'files'] as const;
+export const CATEGORIES = ['books', 'chapters', 'sections', 'figures', 'concepts', 'equations', 'definitions', 'exercises', 'annotations', 'folders', 'notes', 'drawings', 'chats', 'files'] as const;
 export type PickerCategory = (typeof CATEGORIES)[number];
 /* What a row of each category becomes when it is added to a chat. */
 export const CATEGORY_CHIP: Readonly<Record<PickerCategory, ChipKind>> = {
   books: 'book', chapters: 'chapter', sections: 'section', figures: 'figure', concepts: 'concept', equations: 'equation',
-  definitions: 'definition', exercises: 'exercise', folders: 'folder', notes: 'note', drawings: 'drawing', chats: 'message', files: 'file',
+  definitions: 'definition', exercises: 'exercise', annotations: 'selection', folders: 'folder', notes: 'note', drawings: 'drawing', chats: 'message', files: 'file',
 };
 
 /* One thing that can be pointed at. `target` is the link it writes, which the
@@ -33,6 +33,7 @@ export type PickerRow = {
   readonly target?: LinkTarget;
   readonly embed?: boolean;   /* the note editor writes this row as a card rather than a link */
   readonly text?: string;
+  readonly textOf?: () => string;   /* the same, gathered only when the row is chosen, where it is heavy */
 };
 
 /* A place in the tree. `row` is what picking it gives, and a node without one

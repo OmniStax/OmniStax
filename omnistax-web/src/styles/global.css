@@ -136,6 +136,10 @@ figure > sup.fn{display:none}
 .loading{padding:40px;color:var(--muted);font-family:var(--sans)}
 .loading.bad{color:var(--bad)}
 @media (max-width:900px){ article{padding:20px 18px 80px} }
+/* the Fill horizontal space settings: the column, the paragraphs and the figures each let go of their cap, the padding stays */
+html.fill-all article{max-width:none}
+html.fill-all article > p,html.fill-all article li,html.fill-all .example p,html.fill-all .example li,html.fill-all .summary li,html.fill-all .notes li{max-width:none}
+html.fill-all article figure.photo[id]:not([data-figure]) img,html.fill-all .photo img[data-width],html.fill-all .sim .original img[data-width]{max-width:100%}
 
 /* the reader's highlights: a mark per text node, coloured; a dotted underline when it carries a note */
 mark.hl{background:var(--hl-yellow);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;box-decoration-break:clone;-webkit-box-decoration-break:clone}
@@ -325,6 +329,9 @@ html.anim-off .vbtn.spin{opacity:.45;pointer-events:none}
    never inside one, where a stacked or overlaid piece (a fraction, the slash of ∉) would wrap out of its box */
 .readout .katex .base{white-space:normal;width:auto}
 .readout .katex .base>:not(.text){white-space:nowrap}
+/* a tall piece, a matrix or a fraction, keeps a little air above and below it, so
+   that the rows a wrapped readout breaks into stand clear of each other */
+.readout .katex .minner,.readout .katex .mfrac,.dv-node .katex .minner,.dv-node .katex .mfrac{display:inline-block;padding:.2em 0}
 /* a morphing formula breaks between its parts; a part wider than the readout scales down to its width */
 .readout svg.tm-part{max-width:100%}
 .readout small{font-family:var(--figure);color:var(--muted);display:block;margin-top:6px;font-size:0.85rem}
@@ -370,6 +377,11 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem}
    (which the map keeps for pinned and active) and from the highlight colours.
    Shape carries the meaning; these only tint the fill and the rule behind it. */
 :root{ --cm-definition:#475569; --cm-axiom:#BE123C; --cm-idea:#6D28D9; --cm-result:#0D9488; --cm-skill:#C2410C; }
+/* the dots that fly from a click to the rail's exercises button as something is added to the session */
+.cart-dot{position:fixed;z-index:200;width:9px;height:9px;border-radius:50%;background:var(--accent);pointer-events:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+/* a concept's kind as a small bubble in its kind's colour: the reference's tag, a card's eyebrow, an exercise's concept pills */
+.kb{display:inline-block;padding:0 6px;border-radius:9px;font-style:normal;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-size:0.6rem;line-height:1.6;color:var(--kb,var(--muted));background:color-mix(in srgb,var(--kb,var(--muted)) 13%,transparent)}
+.kb.k-definition{--kb:var(--cm-definition)} .kb.k-axiom{--kb:var(--cm-axiom)} .kb.k-idea{--kb:var(--cm-idea)} .kb.k-result{--kb:var(--cm-result)} .kb.k-skill{--kb:var(--cm-skill)}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --cm-definition:#94A3B8; --cm-axiom:#FB7185; --cm-idea:#A78BFA; --cm-result:#2DD4BF; --cm-skill:#FB923C; }
 }

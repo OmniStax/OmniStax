@@ -20,13 +20,15 @@ export type PracticeSettings = {
   readonly grading: Grading;
   readonly promptNote: string;
   readonly fresh: boolean;
+  /* Whether a round starts a stopwatch in the Pomodoro view and ends it with the round. */
+  readonly stopwatch: boolean;
   /* The one model that writes generated exercises and grades answers. */
   readonly model: ModelPick | null;
 };
 export const DEFAULT_SETTINGS: PracticeSettings = {
   masteryTarget: 3, freshnessDecay: true, startingHalfLife: 3,
   maxHalfLife: 240, order: 'mixed', includeFresh: false,
-  generated: 'include', grading: 'reveal', promptNote: '', fresh: false, model: null,
+  generated: 'include', grading: 'reveal', promptNote: 'Make exercises test what the other exercises for the same concept haven’t tested, if possible. They can be multiple-choice or free-response exercises.', fresh: false, stopwatch: false, model: null,
 };
 
 export type Attempt = {
@@ -107,7 +109,10 @@ export const rebuild = (
   const roundsMastering = indexBy(rounds, (r) => r.newlyMastered);
   const roundsReviewing = indexBy(rounds, (r) => r.concepts.map((c) => c.id));
   ids.forEach((id) => {
-    const target = Math.min(Math.max(1, Math.round(s.masteryTarget)), Math.max(1, available[id] ?? s.masteryTarget));
+    /* The target is the setting for every concept, however few exercises the book
+       has for it: one short of exercises is mastered by the reader's own say-so
+       or by exercises the model writes, never by a lower bar. */
+    const target = Math.max(1, Math.round(s.masteryTarget));
     const own = self[id];
     const on = attemptsOn.get(id) ?? [];
     const relevant = on.filter((a) => (!a.round || ended.has(a.round)) && (!own || a.at > own.at)).sort((a, b) => a.at - b.at);

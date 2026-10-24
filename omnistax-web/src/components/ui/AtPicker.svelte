@@ -14,15 +14,39 @@
      over, so the same picker serves a chat, a note, and whatever asks next. */
   import { untrack } from 'svelte';
   import { atCursor, faceOf, into, nextIndex, open as openState, pickable, queryIn, trailOf, up, type Listed, type PickerNode, type PickerRow, type PickerState } from '../../lib/picker/model';
+  import { linkInner } from '../../lib/notes/md/links';
+  import { FigureMounts } from '../../lib/notes/md/figlive';
+  import { registry } from '../../lib/sections/registry.svelte';
+  import { focus } from '../../lib/sections/focus.svelte';
+  import { bookId, sectionId, sectionRef } from '../../lib/types/ids';
 
-  let { root, query, onchoose, onclose, needsTarget = false, field = null }: {
+  let { root, query, onchoose, onclose, needsTarget = false, field = null, previews = false }: {
     root: readonly PickerNode[];
     query: string;
     onchoose: (row: PickerRow) => void;
     onclose: () => void;
     needsTarget?: boolean;
     field?: HTMLElement | null;
+    /* Whether a row pointed at shows what it is, beside the list: a concept's card, a figure alive. */
+    previews?: boolean;
   } = $props();
+
+  /* The figure under the pointer, drawn live in a panel to the right of the list. */
+  let hovered = $state<PickerRow | null>(null);
+  const figure = $derived(previews && hovered?.target?.kind === 'figure' ? hovered.target : null);
+  let panel = $state<HTMLElement | null>(null);
+  const mounts = new FigureMounts(() => bookId(focus.book ?? ''));
+  $effect(() => {
+    const f = figure, el = panel;
+    if (!f || !el) { mounts.releaseAll(); return; }
+    const ref = sectionRef(bookId(f.book ?? focus.book ?? ''), sectionId(f.section));
+    let gone = false;
+    const fill = (): void => { if (!gone && el.isConnected) mounts.fill(el); };
+    fill();
+    void registry.load(ref).then(fill).catch(() => {});
+    return () => { gone = true; mounts.releaseAll(); };
+  });
+  $effect(() => () => mounts.releaseAll());
 
   /* What is typed after the `@` belongs to the field, so it is read from the
      prop wherever it is wanted and never copied into this component's state.
@@ -33,7 +57,16 @@
   const key = $derived(keyFor(where));
   const here = $derived<PickerState>({ path: where.path, index: where.key === key ? where.index : 0 });
   const trail = $derived(trailOf(root, here.path.map((p) => p.key)));
-  const face = $derived<readonly Listed[]>(faceOf(here, root, query));
+  /* The list is gathered again only when the level or the words change: the
+     cursor moving down the list is not a reason to walk the shelf once more. */
+  let lastFace: { readonly path: PickerState['path']; readonly query: string; readonly face: readonly Listed[] } | null = null;
+  const face = $derived.by((): readonly Listed[] => {
+    const path = here.path, q = queryIn(here, query);
+    if (lastFace && lastFace.path === path && lastFace.query === q) return lastFace.face;
+    const next = faceOf(here, root, query);
+    lastFace = { path, query: q, face: next };
+    return next;
+  });
   const count = $derived(face.length);
   const cursor = $derived(atCursor(here, face));
   const searching = $derived(queryIn(here, query).trim() !== '');
@@ -85,10 +118,14 @@
      pointer by the list scrolling or changing does not. */
   let pointer = { x: NaN, y: NaN };
   const hover = (e: MouseEvent, i: number): void => {
+    hovered = face[i]?.node.row ?? null;
     if (e.screenX === pointer.x && e.screenY === pointer.y) return;
     pointer = { x: e.screenX, y: e.screenY };
     put(i);
   };
+  /* The attributes a concept's row wears so the hover card opens on it, at its right. */
+  const cardAttrs = (row: PickerRow | undefined): Record<string, string> =>
+    previews && row?.target?.kind === 'concept' ? { 'data-book': row.target.book ?? focus.book ?? '', 'data-concept': row.target.id, 'data-card-side': 'right' } : {};
 
   let box = $state<HTMLElement | null>(null);
   $effect(() => {
@@ -102,7 +139,14 @@
   });
 </script>
 
-<div class="picker" role="listbox" aria-label="Insert something" bind:this={box}>
+<div class="at">
+{#if figure}
+  <!-- the figure itself, booted from its section, in a panel beside the list -->
+  <div class="preview" data-still bind:this={panel} onpointerdown={(e) => e.preventDefault()}>
+    {#key linkInner(figure)}<div class="fig-embed" data-embed={linkInner(figure)}></div>{/key}
+  </div>
+{/if}
+<div class="picker" role="listbox" aria-label="Insert something" bind:this={box} onmouseleave={() => (hovered = null)}>
   {#if trail.length}
     <nav class="crumb">
       <button type="button" onmousedown={(e) => press(e, () => back(0))}>@</button>
@@ -119,7 +163,7 @@
     <ul>
       {#each face as l, i (l.path.join('/'))}
         <li class:on={i === here.index}>
-          <button type="button" role="option" aria-selected={i === here.index} class="row" onmousemove={(e) => hover(e, i)}
+          <button type="button" role="option" aria-selected={i === here.index} class="row" onmousemove={(e) => hover(e, i)} {...cardAttrs(l.node.row)}
             onmousedown={(e) => press(e, () => (l.node.children ? descend(l) : pick(l.node)))}>
             <span class="label">{l.node.label}</span>{#if l.where}<span class="detail">{l.where}</span>{/if}
           </button>
@@ -129,9 +173,17 @@
     </ul>
   {/if}
 </div>
+</div>
 
 <style>
-  .picker{position:absolute;bottom:100%;left:0;right:0;margin-bottom:6px;max-height:16rem;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.22);font-family:var(--sans);z-index:30}
+  /* the list hugs its words, up to the field's width; the preview stands at its right, rising from its foot */
+  .at{position:absolute;bottom:100%;left:0;right:0;margin-bottom:6px;z-index:20;pointer-events:none}
+  .at > *{pointer-events:auto}
+  .preview{position:absolute;left:min(100%, 26rem);bottom:0;margin-left:8px;width:min(380px,40vw);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.22)}
+  .preview :global(.fig-embed){margin:0;max-width:none;width:100%}
+  /* the preview is a still of the figure as it ends: no head, controls, readouts, transport or caption text */
+  .preview :global(.sim-head),.preview :global(.controls),.preview :global(.readout),.preview :global(.transport),.preview :global(.fig-original),.preview :global(.dv-bar),.preview :global(figcaption),.preview :global(.fig-head),.preview :global(.caption){display:none}
+  .picker{position:relative;width:max-content;min-width:min(100%,22rem);max-width:min(100%,26rem);max-height:16rem;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.22);font-family:var(--sans);z-index:30}
   ul{list-style:none;margin:0;padding:4px}
   .crumb{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;padding:6px 8px 4px;border-bottom:1px solid var(--rule);font-size:0.76rem;color:var(--muted)}
   .crumb button{font:inherit;color:var(--muted);background:transparent;border:0;cursor:pointer;padding:0}

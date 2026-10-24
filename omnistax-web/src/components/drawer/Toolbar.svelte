@@ -4,21 +4,19 @@
      under the letter it answers to inside the tab, so a reader who has learnt
      P and E never comes back up here.
 
-     The colours are the app's ink tokens and, while a book is open, the
-     colours the focused book's quantities wear, so a force can be drawn in the
-     force colour and the drawing reads like the page beside it. A swatch is a
-     token, never the colour it stands for this moment, so turning the theme
-     cannot leave the bar pointing at a colour no swatch has. */
-  import { registry } from '../../lib/sections/registry.svelte';
-  import { focus } from '../../lib/sections/focus.svelte';
+     The colours are the one palette every drawing shares (lib/drawer/palette):
+     ink, which follows the theme, and fourteen the reader may change for good
+     by clicking the swatch already chosen, double-clicking any, or holding one
+     down; the change is immediate, and what was drawn before keeps its colour. */
   import { ICON } from '../../lib/icons';
+  import { palette } from '../../lib/drawer/palette.svelte';
   import { TOOL_KEY, type Tool } from '../../lib/drawer/tools';
   import { SHAPE_TOOLS, type ShapeTool } from '../../lib/drawer/model';
-import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
+  import { cssOf, type Colour } from '../../lib/drawer/colour';
 
   let {
     tool, color, size, fill, shape, canUndo, canRedo, canFit = false, scratch = false, busy = false, fingerDraws,
-    ontool, onfinger, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onreset, onsave, onimage,
+    ontool, onfinger, oncolor, onsize, onfill, onshape, onundo, onredo, onfit, onsave, onimage,
   }: {
     tool: Tool; color: Colour; size: number; fill: boolean; shape: ShapeTool;
     canUndo: boolean; canRedo: boolean;
@@ -31,8 +29,8 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
     ontool: (t: Tool) => void; oncolor: (c: Colour) => void; onsize: (n: number) => void;
     onfill: (on: boolean) => void; onshape: (s: ShapeTool) => void;
     onundo: () => void; onredo: () => void;
-    /* The two ways back to the ink on an unbounded plane. */
-    onfit: () => void; onreset: () => void;
+    /* The way back to the ink on an unbounded plane. */
+    onfit: () => void;
     onsave?: () => void; onimage?: (file: File) => void;
   } = $props();
 
@@ -57,21 +55,15 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   function FINGER_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M9 13V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5a1.5 1.5 0 0 1 3 0V12"/><path d="M15 11.5a1.5 1.5 0 0 1 3 0v3c0 3.3-2.4 6-5.5 6h-1c-2 0-3.4-1-4.5-2.6L4.6 14a1.4 1.4 0 0 1 2.2-1.7L9 14.5"/><path d="M14 5c1.2-1.2 2.4 1.2 3.6 0s2.4 1.2 3.6 0"/></svg>'; }
   function HAND_GLYPH(): string { return '<svg viewBox="0 0 24 24"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 11V9a1.5 1.5 0 0 0-3 0v5.5c0 3.6 2.6 6 6 6h1.5c3 0 5.5-2.4 5.5-5.5V13"/></svg>'; }
 
-  const INK: readonly { readonly name: string; readonly token: Colour }[] = [
-    { name: 'Ink', token: 'ink' },
-    { name: 'Accent', token: 'accent' },
-    { name: 'Warm', token: 'warm' },
-    { name: 'Correct', token: 'ok' },
-    { name: 'Wrong', token: 'bad' },
-    { name: 'Muted', token: 'muted' },
-  ];
-
-  /* The book's own quantities, in the order the book declares them, each in
-     the colour that quantity wears on this page. A book with no types — or no
-     book at all — leaves the row out. */
-  const book = $derived(focus.book);
-  const quantities = $derived.by(() =>
-    Object.entries(book ? registry.manifest(book).types ?? {} : {}).map(([id, t]) => ({ id, label: (t as { label?: string }).label ?? id, token: `c-${id}` })));
+  /* Editing a swatch: the hidden colour input under it opens, and every change
+     it reports goes straight into the palette and onto the pen. */
+  let pickers: (HTMLInputElement | null)[] = $state([]);
+  const edit = (i: number): void => { if (i > 0) pickers[i]?.click(); };
+  const pressed = new Map<number, ReturnType<typeof setTimeout>>();
+  const hold = (i: number): void => { pressed.set(i, setTimeout(() => { pressed.delete(i); edit(i); }, 500)); };
+  const release = (i: number): void => { const t = pressed.get(i); if (t !== undefined) { clearTimeout(t); pressed.delete(i); } };
+  const pick = (i: number, c: Colour): void => { if (color === c) edit(i); else oncolor(c); };
+  const changed = (i: number, hex: string): void => { palette.set(i, hex); oncolor(palette.colours[i]); };
 
   const SIZES: readonly number[] = [1, 2, 4, 8, 16];
 
@@ -109,23 +101,15 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   {/if}
 
   <div class="group swatches">
-    {#each INK as c (c.token)}
-      <button type="button" class="swatch" class:on={color === c.token} aria-label={c.name} data-token={c.token}
-        style:background={cssOf(c.token)} onclick={() => oncolor(c.token)}></button>
-    {/each}
-    {#if quantities.length}
-      <span class="rule"></span>
-      <span class="book-row" data-book={book}>
-        {#each quantities as q (q.id)}
-          <button type="button" class="swatch" class:on={color === q.token} aria-label={q.label} data-token={q.token}
-            style:background="var(--{q.token}, var(--muted))" onclick={() => oncolor(q.token)}></button>
-        {/each}
+    {#each palette.colours as c, i (i)}
+      <span class="swatch-cell">
+        <button type="button" class="swatch" class:on={color === c} aria-label={i === 0 ? 'Ink' : `Color ${i}`} data-token={c}
+          title={i === 0 ? 'Ink' : 'Click again, double-click or hold to change this color'}
+          style:background={cssOf(c)} onclick={() => pick(i, c)} ondblclick={() => edit(i)}
+          onpointerdown={() => hold(i)} onpointerup={() => release(i)} onpointerleave={() => release(i)} onpointercancel={() => release(i)}></button>
+        {#if i > 0}<input class="picker" type="color" tabindex="-1" aria-hidden="true" value={c} bind:this={pickers[i]} oninput={(e) => changed(i, (e.currentTarget as HTMLInputElement).value)} />{/if}
       </span>
-    {/if}
-    <label class="swatch custom" class:on={!isToken(color)} title="Custom color" style:background={isToken(color) ? null : color}>
-      <input type="color" value={isToken(color) ? '#888888' : color} aria-label="Custom color"
-        onchange={(e) => oncolor((e.currentTarget as HTMLInputElement).value.toLowerCase())} />
-    </label>
+    {/each}
   </div>
 
   <div class="group sizes">
@@ -138,7 +122,6 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 
   <div class="group view">
     <button type="button" class="chip" disabled={!canFit} onclick={onfit} title="0">Fit</button>
-    <button type="button" class="chip" onclick={onreset} title="Shift+0">Reset view</button>
   </div>
 
   <div class="group right">
@@ -151,7 +134,6 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
 </div>
 
 <style>
-  .book-row{display:contents}
   .toolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font-family:var(--sans);touch-action:none}
   .group{display:flex;align-items:center;flex-wrap:wrap;gap:3px;min-width:0}
   .group.swatches{gap:6px 3px}
@@ -167,9 +149,8 @@ import { cssOf, isToken, type Colour } from '../../lib/drawer/colour';
   @media (any-pointer: coarse){ .tool.finger{display:grid} }
   .swatch{width:18px;height:18px;border:1px solid var(--rule);border-radius:50%;cursor:pointer;padding:0}
   .swatch.on{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--accent)}
-  .swatch.custom{position:relative;display:inline-block;box-sizing:border-box;background:conic-gradient(#e11d48,#f59e0b,#16a34a,#2563eb,#9333ea,#e11d48)}
-  .swatch.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:0;padding:0}
-  .rule{width:1px;height:16px;background:var(--rule);margin:0 4px}
+  .swatch-cell{position:relative;display:inline-flex}
+  .picker{position:absolute;left:0;top:100%;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
   .size{display:grid;place-items:center;width:22px;height:22px;border:1px solid transparent;border-radius:5px;background:transparent;cursor:pointer;padding:0}
   .size.on{border-color:var(--accent);background:var(--soft2)}
   .size .dot{display:block;border-radius:50%;background:var(--ink)}

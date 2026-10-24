@@ -10,7 +10,7 @@
    put the row and the value this session was holding back in place. */
 import { entryId, type Entry, type EntryId, type Tree } from '../explorer/model';
 import { explorer } from '../explorer/store.svelte';
-import { history, type Edit } from '../history/store.svelte';
+import { history, EXPLORER_SCOPE, type Edit } from '../history/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
 import { closeItem } from '../layout/model';
 import { drawingId, drawingItem, itemKey, sectionId, type DrawingId } from '../types/ids';
@@ -50,7 +50,7 @@ const commit = (label: string, before: Shot, sides: Sides = {}): Edit | null => 
     label,
     undo: () => { put(before); closeTabs(sides.onUndo ?? []); },
     redo: () => { put(after); closeTabs(sides.onRedo ?? []); },
-  });
+  }, EXPLORER_SCOPE);
 };
 
 /* Every drawing under a row, the row itself included, so that deleting a
@@ -119,9 +119,9 @@ export const saveScratchAsDrawing = (book: string, section: string, ex: string, 
   const work = drawings.getScratch(key);
   if (!work) return null;
   const ref = { book, section: sectionId(section), ex };
-  const folder = links.folder();
+  const folder = links.folder('scratch');
   const before = shot();
-  const made = drawings.create(links.fileName(ref));
+  const made = drawings.create(links.fileName(ref, 'scratch'));
   drawings.put({ ...made, items: work.items, view: work.view, updated: Date.now() });
   explorer.addDrawing(folder, entryId(made.id), made.name);
   drawings.linkScratch(key, made.id);

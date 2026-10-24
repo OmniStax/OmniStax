@@ -5,13 +5,14 @@
   import { hasScratch, openScratch, type ScratchAt } from '../../lib/practice/scratch.svelte';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { openingOf } from '../../lib/sections/nav.svelte';
+  import { ICON } from '../../lib/icons';
 
   let { ex, at, ongraded, onfail }: { ex: ExerciseDTO; at: ScratchAt; ongraded: (g: Graded, answer: string) => void; onfail: (why: string) => void } = $props();
 
   let text = $state('');
   let attached = $state(false);
   let waiting = $state(false);
-  const attach = (e: MouseEvent): void => { attached = true; openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  const attach = (e: MouseEvent): void => { attached = true; void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
   const canSend = $derived(!waiting && (text.trim() !== '' || (attached && hasScratch(at))));
 
   const submit = async (): Promise<void> => {
@@ -29,7 +30,7 @@
     {#if attached}
       <span class="attached">Scratchpad attached <button type="button" class="x" aria-label="Detach scratchpad" onclick={() => (attached = false)}>×</button></span>
     {:else}
-      <button type="button" class="btn ghost sm" onclick={attach}>Attach scratchpad</button>
+      <button type="button" class="btn ghost sm" onclick={attach}>{@html ICON.drawing}Attach scratchpad</button>
     {/if}
     <button type="button" class="btn primary" disabled={!canSend} aria-busy={waiting} onclick={submit}>{#if waiting}<span class="spin" aria-hidden="true"></span>Grading…{:else}Submit{/if}</button>
   </div>

@@ -55,10 +55,9 @@
   /* A place chosen from a menu is a move elsewhere, not a step along the trail: the map lets go of where it stood. */
   const leave = (): void => { if (target) mapViews.forget(viewKeyOf(item, target)); };
   const choose = (place: Target): void => { leave(); scope.choose(item, place); closeMenu(); };
-  /* The places the open menu offers: the crumb's own place is the one the view stands on,
-     and the place the open page lies in is named, since choosing it is following again. */
+  /* The places the open menu offers: the crumb's own place is the one the view stands on. */
   const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
-  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book, page: b.id === focus.section?.book })));
+  const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book })));
   const chooseBook = (id: string): void => {
     closeMenu(); const book = bookId(id);
     void registry.ensureBook(book).then((m) => { if (m) { leave(); scope.choose(item, { level: 'book', book }); } });
@@ -67,8 +66,7 @@
     const level = menu;
     if (!level || level === 'book' || !deepest) return [];
     const mark = crumbs.find((c) => c.level === level)?.target ?? null;
-    const page = focus.section ? resolve({ follow: true, level }, focus.section, registry.manifest(focus.section.book)) : null;
-    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark), page: page !== null && sameTarget(s.target, page) }));
+    return siblingsOf(level, deepest, registry.manifest(deepest.book)).map((s) => ({ target: s.target, label: `${s.id} · ${s.title}`, enabled: s.built, here: mark !== null && sameTarget(s.target, mark) }));
   });
   /* The chapters a view reads from: the one it stands in, or every chapter its
      book has built something of. */
@@ -134,6 +132,7 @@
 </div>
 
 <style>
+  .view{position:relative}
   .scope{position:relative;display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:0.74rem;color:var(--muted);min-width:0}
   .crumbs{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden}
   .crumb{font:inherit;font-size:inherit;color:var(--muted);background:none;border:0;border-radius:4px;padding:1px 3px;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -147,7 +146,8 @@
   .chev[aria-expanded="true"]{color:var(--ink);background:var(--soft2)}
   .chev:focus-visible{outline:2px solid var(--accent)}
   .sep{flex:none;color:var(--muted);opacity:.45}
-  .long{display:none}
+  /* every bar carries the full names; a narrow one cuts them short with an ellipsis */
+  .short{display:none}
   /* the menu hangs under the crumb that opened it, and never past the edge of the bar */
   .menuhold{position:absolute;top:100%;left:0;right:0;z-index:20;display:flex}
   .pin{width:22px;height:22px;flex:none;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
@@ -155,11 +155,9 @@
   .pin.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
   .pin :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .pin:focus-visible{outline:2px solid var(--accent)}
-  .chapters{color:var(--muted);font-size:0.78rem;padding:0 0 8px}
+  /* the notice stands in the middle of the view's body, where the data it waits on will be */
+  .chapters{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:0.78rem;pointer-events:none;z-index:1}
   .chapters.bad{color:var(--bad)}
-  /* a tab has room for the full names, a sidebar only for the short ones */
-  :global(.view-pane) .short{display:none}
-  :global(.view-pane) .long{display:inline}
   :global(.view-pane) .scope{font-size:0.85rem}
   .view :global(details){margin:6px 0 10px}
   .view :global(details > summary){cursor:pointer;color:var(--muted);font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}

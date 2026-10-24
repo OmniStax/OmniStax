@@ -352,7 +352,8 @@ class Registry {
     const f = templateOf(src).querySelector<HTMLElement>(`[id="${ref.section}-${fig}"]`); if (!f) return null;
     const root = document.createElement('div'); root.className = 'fig-root';
     root.dataset.book = ref.book; root.dataset.sec = ref.section; root.dataset.chapter = this.chapterOf(ref)?.dir ?? ''; root.dataset.one = '1'; root.appendChild(f);
-    originalButtons(root); this.bootFigures(root, sectionRef(ref.book, ref.section));
+    const sec = sectionRef(ref.book, ref.section);
+    originalButtons(root); this.bootFigures(root, sec); this.bootDerivations(root, sec);
     return root;
   }
   /* One element per (group, document). */

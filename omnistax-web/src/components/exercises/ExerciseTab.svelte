@@ -52,6 +52,6 @@
   .where{font:inherit;font-size:0.86rem;color:var(--ink);background:none;border:0;padding:2px 5px;margin-left:-5px;border-radius:5px;cursor:pointer}
   .where:hover{background:var(--soft);color:var(--accent)}
   .body{flex:1;min-height:0;overflow:auto;padding:16px 28px 40vh;max-width:820px;width:100%;margin:0 auto;box-sizing:border-box}
-  .gone{color:var(--muted);font-size:0.9rem}
+  .gone{color:var(--muted);font-size:0.9rem;display:grid;place-items:center;min-height:50vh;text-align:center}
   @media (max-width:900px){ .head{padding:10px 18px 8px} .body{padding:14px 18px 30vh} }
 </style>

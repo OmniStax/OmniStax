@@ -9,12 +9,15 @@ import type { Base } from './plan';
 const KEY = 'omnistax-sync-v1';
 const TOKEN_KEY = 'omnistax-github-token';
 
+/* How often this device pushes on its own, in minutes; 0 is never. */
+export const PUSH_EVERY = [0, 5, 60, 1440] as const;
+export const PUSH_EVERY_LABEL: Readonly<Record<number, string>> = { 0: 'never', 5: '5 minutes', 60: '1 hour', 1440: '1 day' };
 const SavedSchema = z.object({
-  repo: z.string(), branch: z.string(),
+  repo: z.string(), branch: z.string(), every: z.number().default(0),
   last: z.object({ repo: z.string(), branch: z.string(), at: z.number().nullable(), base: z.record(z.string()).default({}) }).nullable(),
 });
 type Saved = z.infer<typeof SavedSchema>;
-const EMPTY: Saved = { repo: '', branch: 'main', last: null };
+const EMPTY: Saved = { repo: '', branch: 'main', every: 0, last: null };
 
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string): void => { try { if (v) localStorage.setItem(key, v); else localStorage.removeItem(key); } catch { /* private mode */ } };
@@ -30,6 +33,8 @@ class SyncStore {
   setRepo(repo: string): void { this.save({ ...this.saved, repo: repo.trim() }); }
   setBranch(branch: string): void { this.save({ ...this.saved, branch: branch.trim() || 'main' }); }
   setToken(token: string): void { this.token = token.trim(); write(TOKEN_KEY, this.token); }
+  setEvery(minutes: number): void { this.save({ ...this.saved, every: PUSH_EVERY.includes(minutes as (typeof PUSH_EVERY)[number]) ? minutes : 0 }); }
+  get every(): number { return this.saved.every; }
 
   get remote(): Remote | null {
     const repo = repoName(this.saved.repo);

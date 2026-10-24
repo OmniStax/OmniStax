@@ -4,7 +4,7 @@
   import { books } from '../../lib/practice/books.svelte';
   import { generated } from '../../lib/practice/generated.svelte';
   import { catalogOf, isGenerated, generatedIdOf } from '../../lib/practice/generated';
-  import { standingOf, exercisesIn, exercisesTesting, keyOf, type CatalogExercise, type Standing } from '../../lib/practice/model';
+  import { standingOf, keyOf, type CatalogExercise, type Standing } from '../../lib/practice/model';
   import type { Node } from '../../lib/practice/select';
   import { plain, count, exerciseName, excerpt, standingLine } from '../../lib/practice/labels';
   import type { ChapterEntry, SectionEntry, ConceptDTO } from '../../lib/content/schema';
@@ -14,16 +14,16 @@
   import RowMenu from '../explorer/RowMenu.svelte';
   import MasteryBox from './MasteryBox.svelte';
   import StandingMeter from './StandingMeter.svelte';
-  import KindDot from './KindDot.svelte';
+  import KindTag from './KindTag.svelte';
   import AiTag from './AiTag.svelte';
 
   type Props = { item: string; shelf: readonly string[]; open?: string | null; selectable?: boolean };
   let { item, shelf, open = null, selectable = true }: Props = $props();
 
   type Lens = 'concepts' | 'exercises';
-  type MenuItem = { readonly label: string; readonly run: () => void; readonly danger?: boolean };
+  type MenuItem = { readonly label: string; readonly run: () => void; readonly danger?: boolean; readonly disabled?: boolean };
   type Menu = { readonly x: number; readonly y: number; readonly items: readonly MenuItem[] };
-  type Bulk = 'mastered' | 'unpracticed' | 'history';
+  type Bulk = 'mastered' | 'unpracticed' | 'override';
 
   let lens = $state<Lens>('concepts');
   let query = $state('');
@@ -52,12 +52,34 @@
 
   const chaptersOf = (b: string): readonly ChapterEntry[] => books.manifest(b)?.chapters ?? [];
   const sectionsOf = (c: ChapterEntry): readonly SectionEntry[] => c.sections.filter((s) => s.built);
-  const builtIn = (b: string): readonly ConceptDTO[] => practice.conceptsIn(b).filter((c) => c.status === 'built');
-  const conceptsAt = (b: string, sec: SectionId): readonly ConceptDTO[] => builtIn(b).filter((c) => c.section === sec);
-  const exercisesAt = (b: string, sec: SectionId): readonly CatalogExercise[] =>
-    [...exercisesIn(cat, b, sec), ...generated.list.filter((g) => g.book === b && g.section === sec).map(catalogOf)];
-  const testing = (id: string): readonly CatalogExercise[] => [...exercisesTesting(cat, id), ...generated.forConcept(id).map(catalogOf)];
+  /* The tree's rows, gathered once per change of the books rather than on every
+     row and every keystroke: the built concepts of each book and section, the
+     exercises of each section and of each concept, and the words each is found
+     by, already lowered. */
+  const builtByBook = $derived(new Map(shelf.map((b) => [b, practice.conceptsIn(b).filter((c) => c.status === 'built')] as const)));
+  const conceptsBySection = $derived.by(() => {
+    const out = new Map<string, ConceptDTO[]>();
+    builtByBook.forEach((cs, b) => cs.forEach((c) => { const k = `${b}/${c.section}`; (out.get(k) ?? out.set(k, []).get(k)!).push(c); }));
+    return out;
+  });
+  const allExercises = $derived([...cat.exercises.filter((e) => e.ex.place.at === 'end'), ...generated.list.map(catalogOf)]);
+  const exercisesBySection = $derived.by(() => {
+    const out = new Map<string, CatalogExercise[]>();
+    allExercises.forEach((e) => { const k = `${e.book}/${e.section}`; (out.get(k) ?? out.set(k, []).get(k)!).push(e); });
+    return out;
+  });
+  const exercisesByConcept = $derived.by(() => {
+    const out = new Map<string, CatalogExercise[]>();
+    allExercises.forEach((e) => e.ex.concepts.forEach((id) => (out.get(id) ?? out.set(id, []).get(id)!).push(e)));
+    return out;
+  });
+  const builtIn = (b: string): readonly ConceptDTO[] => builtByBook.get(b) ?? [];
+  const conceptsAt = (b: string, sec: SectionId): readonly ConceptDTO[] => conceptsBySection.get(`${b}/${sec}`) ?? [];
+  const exercisesAt = (b: string, sec: SectionId): readonly CatalogExercise[] => exercisesBySection.get(`${b}/${sec}`) ?? [];
+  const testing = (id: string): readonly CatalogExercise[] => exercisesByConcept.get(id) ?? [];
   const nameOf = (e: CatalogExercise): string => exerciseName(e.ex, books.manifest(e.book)?.exerciseKinds?.[e.ex.kind]);
+  const conceptWords = $derived(new Map([...builtByBook.values()].flat().map((c) => [c.id, `${plain(c.name)} ${c.id}`.toLowerCase()] as const)));
+  const exerciseWords = $derived(new Map(allExercises.map((e) => [keyOf(e), nameOf(e).toLowerCase()] as const)));
 
   const standingIn = (concepts: readonly ConceptDTO[]): Standing => standingOf(concepts, practice.mastery);
   const chapterConcepts = (b: string, c: ChapterEntry): readonly ConceptDTO[] => {
@@ -66,8 +88,8 @@
   };
   const short = (s: Standing): string => standingLine(s).split(' · ')[0];
 
-  const conceptHit = (c: ConceptDTO): boolean => has(plain(c.name)) || has(c.id);
-  const exerciseHit = (e: CatalogExercise): boolean => has(nameOf(e));
+  const conceptHit = (c: ConceptDTO): boolean => (conceptWords.get(c.id) ?? `${plain(c.name)} ${c.id}`.toLowerCase()).includes(needle);
+  const exerciseHit = (e: CatalogExercise): boolean => (exerciseWords.get(keyOf(e)) ?? nameOf(e).toLowerCase()).includes(needle);
   const sectionSelfHit = (s: SectionEntry): boolean => has(s.title) || has(s.id);
   const sectionHit = (b: string, s: SectionEntry): boolean => {
     if (!needle || sectionSelfHit(s)) return true;
@@ -100,7 +122,8 @@
     const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
     menu = ev.type === 'contextmenu' ? { x: ev.clientX, y: ev.clientY, items } : { x: r.left, y: r.bottom, items };
   };
-  const placeMenu = (key: string, book?: string): readonly MenuItem[] => {
+  /* Removing an override is offered only where there is one to remove. */
+  const placeMenu = (key: string, concepts: readonly ConceptDTO[], book?: string): readonly MenuItem[] => {
     const ask = (act: Bulk) => () => {
       asking = { key, act };
       if (book && (books.status[book] ?? 'idle') === 'idle') books.load(book).catch(() => {});
@@ -108,11 +131,11 @@
     return [
       { label: 'Mark all mastered', run: ask('mastered') },
       { label: 'Mark all unpracticed', run: ask('unpracticed') },
-      { label: 'Calculate mastery from exercise history', run: ask('history') },
+      { label: 'Remove overrides', run: ask('override'), disabled: !concepts.some((c) => practice.self[c.id]) },
     ];
   };
   const question = (act: Bulk, n: number): string =>
-    act === 'history' ? `Calculate mastery from exercise history for ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
+    act === 'override' ? `Remove the overrides on ${count(n, 'concept')}?` : `Mark ${count(n, 'concept')} ${act}?`;
   const apply = (act: Bulk, concepts: readonly ConceptDTO[]): void => {
     const ids = concepts.map((c) => c.id);
     if (act === 'mastered') practice.setSelfMany(ids, practice.settings.masteryTarget, true, false);
@@ -127,7 +150,7 @@
   const conceptMenu = (id: string): readonly MenuItem[] => [
     { label: 'Mark mastered', run: () => practice.setSelf(id, practice.settings.masteryTarget, true, false) },
     { label: 'Mark unpracticed', run: () => practice.setSelf(id, 0, false, false) },
-    { label: 'Calculate mastery from exercise history', run: () => practice.clearSelf(id) },
+    { label: 'Remove override', run: () => practice.clearSelf(id), disabled: !practice.self[id] },
     ...(generated.forConcept(id).length ? [{ label: 'Delete AI-generated exercises', danger: true, run: () => deleteAll(id) }] : []),
   ];
   const exerciseMenu = (e: CatalogExercise): readonly MenuItem[] => [
@@ -148,7 +171,7 @@
 {#snippet place(key: string, name: string, node: Node, concepts: readonly ConceptDTO[], book?: string)}
   {@const standing = standingIn(concepts)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="row" style:--d={node.level === 'book' ? 0 : node.level === 'chapter' ? 1 : 2} oncontextmenu={(ev) => showMenu(ev, placeMenu(key, book))}>
+  <div class="row" style:--d={node.level === 'book' ? 0 : node.level === 'chapter' ? 1 : 2} oncontextmenu={(ev) => showMenu(ev, placeMenu(key, concepts, book))}>
     {@render twisty(key, name, book)}
     {#if selectable}{@render box(node, name)}{/if}
     <button type="button" class="lab" tabindex="-1" onclick={() => flip(key, book)}>{name}</button>
@@ -164,7 +187,7 @@
         {#if concepts.length && concepts.every((k) => practice.self[k.id])}<span class="muted tag">overridden</span>{/if}
         <span class="muted num">{short(standing)}</span>
         <span class="meter"><StandingMeter {standing} /></span>
-        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, placeMenu(key, book))}>⋯</button>
+        <button type="button" class="btn ghost icon sm" aria-label={`Actions for ${name}`} onclick={(ev) => showMenu(ev, placeMenu(key, concepts, book))}>⋯</button>
       </span>
     {/if}
   </div>
@@ -234,7 +257,7 @@
                         <span class="tw-gap"></span>
                       {/if}
                       <MasteryBox id={k.id} />
-                      <KindDot kind={k.kind} />
+                      <KindTag kind={k.kind} />
                       <span class="lab"><span class="go" data-book={b} data-concept={k.id} use:mathHtml={k.name}></span></span>
                       <span class="end">
                         <span class="muted num">{count(tests.length, 'exercise')}</span>

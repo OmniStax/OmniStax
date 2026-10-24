@@ -13,7 +13,7 @@ import { thumbnailOf } from '../drawer/thumb';
 import { books } from './books.svelte';
 import { practice } from './store.svelte';
 import { generated } from './generated.svelte';
-import { catalogOf, pickStored, recordOf } from './generated';
+import { catalogOf, generatedIdOf, isGenerated, pickStored, recordOf } from './generated';
 import { generate, MAX_PER_REQUEST } from './generate';
 import { grade, type Graded } from './grade';
 import { keyOf, type ScratchAt } from './scratch.svelte';
@@ -80,7 +80,7 @@ export const fillLive = async (sessionId: SessionId, only?: readonly string[]): 
         const items = await generate({ provider: providerOf(model.pick.provider), library: liveLibrary }, {
           book, bookTitle: books.title(book), section: c.section, count: Math.min(MAX_PER_REQUEST, left),
           concept: { id: c.id, name: c.name, kind: c.kind, statement: c.statement ?? '' },
-          note: s.promptNote.trim() || undefined, existing, facets: generated.forConcept(id).map((g) => g.facet),
+          note: s.promptNote.trim() || undefined, existing, written: generated.forConcept(id).map((g) => g.prompt), facets: generated.forConcept(id).map((g) => g.facet),
         }, model.pick, model.access, control.signal);
         if (!items.length) throw new Error('The model wrote none.');
         const records = items.map((item) => recordOf(item, { book, section: c.section, concept: c.id, model: model.pick, note: s.promptNote.trim() || undefined }));
@@ -90,6 +90,23 @@ export const fillLive = async (sessionId: SessionId, only?: readonly string[]): 
       if (!control.signal.aborted) mark(sessionId, 'failed', id, e instanceof Error ? e.message : String(e));
     } finally { controllers.delete(jobKey(sessionId, id)); mark(sessionId, 'writing', id, null); }
   });
+};
+
+/* A generated exercise of a live session written again: the item is deleted,
+   so it is neither reused nor repeated, its slot opens for the same concept, and
+   the model is asked for one more. */
+export const regenerateExercise = (sessionId: SessionId, at: number): void => {
+  const d = practice.sessions[sessionId]?.drawn[at]; if (!d || !isGenerated(d.ex)) return;
+  const g = generated.get(d.ex), concept = d.concept ?? g?.concepts[0]; if (!concept) return;
+  generated.remove(generatedIdOf(d.ex));
+  practice.reopen(sessionId, at, concept);
+  void fillLive(sessionId, [concept]);
+};
+/* A generated exercise deleted for good during a session: out of the store and out of the round. */
+export const deleteExercise = (sessionId: SessionId, at: number): void => {
+  const d = practice.sessions[sessionId]?.drawn[at]; if (!d || !isGenerated(d.ex)) return;
+  generated.remove(generatedIdOf(d.ex));
+  practice.remove(sessionId, at);
 };
 
 /* An exercise out of a live session. The last open slot of a concept takes

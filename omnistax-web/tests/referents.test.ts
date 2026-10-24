@@ -282,7 +282,7 @@ test('each family shows by its own switch, and the root wears a class for each',
   const some = { facts: false, refs: true, concepts: false, words: true, symbols: true };
   assert.deepEqual(shownOf(some), { facts: false, refs: true, concepts: false });
   assert.deepEqual(shownOf(COLOURS_ON), { facts: true, refs: true, concepts: true });
-  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': true, 'cc-symbols': true });
+  assert.deepEqual(rootClasses({ ...COLOURS_ON, refs: false }), { 'cc-facts': true, 'cc-refs': false, 'cc-concepts': true, 'cc-words': false, 'cc-symbols': true });
 });
 
 test('Words and phrases sits under Concepts: off, words read in ink while symbols and figures keep their colours', () => {
@@ -298,7 +298,7 @@ test('Words and phrases sits under Concepts: off, words read in ink while symbol
 
 test('Symbols sits under Concepts: off, symbols and slider values read in ink while words, thumbs and figures keep their colours', () => {
   assert.equal(rootClasses({ ...COLOURS_ON, symbols: false })['cc-symbols'], false);
-  assert.equal(rootClasses({ ...COLOURS_ON, symbols: false })['cc-words'], true);
+  assert.equal(rootClasses({ ...COLOURS_ON, symbols: false, words: true })['cc-words'], true);
   assert.deepEqual(shownOf({ ...COLOURS_ON, symbols: false }), { facts: true, refs: true, concepts: true });
   assert.equal(rootClasses({ ...COLOURS_ON, concepts: false })['cc-symbols'], false, 'nothing to show under Concepts off');
   const css = bookRulesCss(MANIFEST);

@@ -95,7 +95,7 @@ const library: Library = {
   books: async () => [], chapters: async () => null, corpus: async () => null, figure: async () => null,
   section: async (book, s) => (book === 'cp' && s === '1.1' ? { title: 'Ohm', text: 'V = IR.' } : null),
 };
-const ask = { book: 'cp', bookTitle: 'College Physics', section: '1.1', concept: { id: 'ohm', name: 'Ohm’s law', kind: 'axiom', statement: 'V = IR' }, count: 2, existing: ['o1'], facets: ['units'] };
+const ask = { book: 'cp', bookTitle: 'College Physics', section: '1.1', concept: { id: 'ohm', name: 'Ohm’s law', kind: 'axiom', statement: 'V = IR' }, count: 2, existing: ['o1'], written: [], facets: ['units'] };
 const access = { key: 'k', baseUrl: 'https://api.anthropic.com' };
 
 test('generation reads the section through a tool, retries once on an unreadable answer, and returns the items', async () => {

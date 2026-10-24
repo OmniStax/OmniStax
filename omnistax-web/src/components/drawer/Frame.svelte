@@ -188,7 +188,9 @@
     <button type="button" class="open" aria-label="Open"
       onclick={(e) => openOwn(e, key)} onauxclick={onMiddle((e) => openOwn(e, key))}>↗</button>
   {/if}
-  <span class="grab" onpointerdown={onGrab}></span>
+  <!-- the grip and a band round the border move the frame, as they move a text box -->
+  <span class="grip" onpointerdown={onGrab} aria-hidden="true">⠿</span>
+  {#each ['top', 'right', 'bottom', 'left'] as side (side)}<span class="edge {side}" onpointerdown={onGrab} aria-hidden="true"></span>{/each}
   <span class="corner" onpointerdown={onCorner}></span>
 </div>
 
@@ -212,8 +214,13 @@
   .open{position:absolute;right:4px;top:4px;width:22px;height:22px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0}
   .frame:hover .open,.frame.selected .open{opacity:1}
   .open:hover{color:var(--accent);border-color:var(--accent)}
-  .grab{position:absolute;left:0;top:0;right:30px;height:10px;cursor:move;opacity:0}
+  .edge{position:absolute;cursor:move;touch-action:none}
+  .edge.top,.edge.bottom{left:0;right:30px;height:7px}
+  .edge.left,.edge.right{top:0;bottom:16px;width:7px}
+  .edge.top{top:0} .edge.bottom{bottom:0} .edge.left{left:0} .edge.right{right:0}
+  .grip{position:absolute;left:-1px;top:-1px;transform:translate(-100%,0);padding:2px 3px;border-radius:5px;background:var(--panel);border:1px solid var(--rule);color:var(--muted);font-size:0.7rem;line-height:1;cursor:grab;touch-action:none;user-select:none;opacity:0;transition:opacity .12s}
+  .grip:active{cursor:grabbing}
+  .frame:hover .grip,.frame.selected .grip{opacity:1}
   .corner{position:absolute;right:0;bottom:0;width:13px;height:13px;cursor:nwse-resize;opacity:0;background:var(--accent);border-radius:3px 0 6px 0}
-  .frame:hover .grab,.frame.selected .grab{opacity:1;background:color-mix(in srgb,var(--accent) 22%,transparent)}
   .frame:hover .corner,.frame.selected .corner{opacity:.85}
 </style>

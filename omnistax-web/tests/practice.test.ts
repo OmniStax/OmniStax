@@ -67,11 +67,13 @@ test('an unmastered concept uses a discrete fraction and a lower target can mast
   assert.equal(lower.mastered, true); assert.equal(lower.level, 2);
 });
 
-test('concepts with one or two exercises use their available count as the denominator', () => {
+test('a concept with fewer exercises than the target still needs the whole target', () => {
   const available = availabilityOf(cat);
   assert.deepEqual(available, { a: 3, b: 3, c: 1 });
   const c = rebuild([attempt('c1', D1, true, ['c'])], [], {}, DEFAULT_SETTINGS, available).c;
-  assert.equal(c.target, 1); assert.equal(c.mastered, true);
+  assert.equal(c.target, 3); assert.equal(c.mastered, false); assert.equal(c.level, 1);
+  const none = rebuild([attempt('z1', D1, true, ['z'])], [], {}, DEFAULT_SETTINGS, available).z;
+  assert.equal(none.target, 3); assert.equal(none.mastered, false);
 });
 
 test('earned mastery survives a later increase in available exercises', () => {

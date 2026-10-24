@@ -12,7 +12,8 @@
    under Your Files and the exercise remembers the drawing it became, and
    "Detach" hands it back. Both are one step of the shell's timeline, so either
    direction can be taken back whole. */
-import { bookId, scratchOf, type SectionId } from '../types/ids';
+import { bookId, drawingItem, itemKey, scratchOf, type SectionId } from '../types/ids';
+import { saveScratchAsDrawing } from '../drawer/edits';
 import { split, openTab } from '../layout/model';
 import { layoutStore } from '../layout/store.svelte';
 import { drawings, scratchKey, type ScratchKey } from '../drawer/store.svelte';
@@ -30,12 +31,17 @@ export const hasScratch = (at: ScratchAt): boolean => drawings.hasScratch(keyOf(
 export const linkedDrawing = (at: ScratchAt) => drawings.scratchNote(keyOf(at))?.linked;
 
 /* The page of scratch work for one exercise, as a tab of the group the reader
-   asked from or in a split to the right of it. A scratch page that has already been saved as a
-   drawing opens that drawing instead: there is one piece of work, and the chip
-   on the card says which it is. */
-export const openScratch = (at: ScratchAt, group: number, how: Opening = 'tab'): void => {
-  const key = keyOf(at); const id = scratchOf(bookId(at.book), at.section, at.ex);
-  void drawings.loadScratch(key, scratchName(at));
+   asked from or in a split to the right of it. The work is a drawing of the
+   reader's own from the first opening, filed under _practice/scratch and named
+   by the exercise, so there is nothing to save later and nothing to lose. */
+export const openScratch = async (at: ScratchAt, group: number, how: Opening = 'tab'): Promise<void> => {
+  const key = keyOf(at);
+  let linked = drawings.scratchNote(key)?.linked;
+  if (!linked) {
+    await drawings.loadScratch(key, scratchName(at));
+    linked = saveScratchAsDrawing(at.book, at.section, at.ex)?.id;
+  }
+  const id = linked ? itemKey(drawingItem(linked)) : scratchOf(bookId(at.book), at.section, at.ex);
   layoutStore.apply((l) => (how === 'new' ? split(l, group, 'right', id) : openTab(l, id, group)));
 };
 

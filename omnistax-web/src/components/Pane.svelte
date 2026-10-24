@@ -69,6 +69,6 @@
   .page-host{max-width:760px;margin:0 auto;padding:28px 40px 120px}
   /* a sheet is a table before it is prose, so it is given the width of the pane rather than a column of text */
   .sheet-pane{max-width:1180px;margin:0 auto;padding:28px 28px 120px}
-  .placeholder{max-width:820px;margin:0 auto}
+  .placeholder{display:grid;place-items:center;min-height:60vh;max-width:820px;margin:0 auto;text-align:center}
   @media (max-width:900px){ .view-pane,.page-host,.sheet-pane{padding:20px 18px 80px} }
 </style>

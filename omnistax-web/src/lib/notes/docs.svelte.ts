@@ -3,7 +3,7 @@
    Every change is kept in this browser, the body after a short pause so that
    typing does not write on every keystroke. */
 import { newNoteId, noteId, type NoteId } from '../types/ids';
-import { history } from '../history/store.svelte';
+import { history, noteScope } from '../history/store.svelte';
 import { readerWritesAllowed } from '../backup/guard';
 
 export type NoteDoc = { readonly id: NoteId; readonly name: string; readonly body: string; readonly created: number; readonly updated: number };
@@ -52,7 +52,7 @@ class NoteDocs {
     if (this.list === before) return;
     const after = this.list;
     const edit = { label, undo: () => this.restore(before), redo: () => this.restore(after) };
-    if (coalesceKey) history.coalesce(coalesceKey, edit); else history.push(edit);
+    if (coalesceKey) history.coalesce(coalesceKey, edit, noteScope(id)); else history.push(edit, noteScope(id));
   }
   /* Put a whole list back without recording it: what undo and redo apply, here
      and from the explorer's compound edits. */

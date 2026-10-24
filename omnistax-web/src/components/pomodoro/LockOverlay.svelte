@@ -13,7 +13,7 @@
 
 {#if until !== null}
   <div class="wash" role="alert">
-    <p>Session failing in <strong>{secs}</strong> {secs === 1 ? 'second' : 'seconds'}</p>
+    <p>Pomodoro failing in <strong>{secs}</strong> {secs === 1 ? 'second' : 'seconds'}</p>
   </div>
 {/if}
 

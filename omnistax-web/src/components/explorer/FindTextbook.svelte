@@ -31,16 +31,20 @@
   };
   const when = (value: string | number | undefined): string => value ? new Date(value).toLocaleString() : 'never';
   const releaseWhen = (value: string | undefined): string => !value || value.startsWith('1970-01-01') ? 'date not provided' : new Date(value).toLocaleDateString();
+  /* The words typed match against the whole of a book's entry: title, publisher, authors and id. */
+  let q = $state('');
+  const matches = (b: LibraryBookDTO): boolean => { const needle = q.trim().toLowerCase(); return !needle || `${b.title} ${b.publisher} ${b.authors.join(' ')} ${b.id}`.toLowerCase().includes(needle); };
+  const takeFocus = (node: HTMLInputElement) => { node.focus(); };
   const lastCheck = $derived(offlineBooks.lastCheck ?? Math.max(0, ...Object.values(offlineBooks.records).map((record) => record.lastCheck ?? 0)));
 </script>
 
 {#if ui.findTextbook}
   <div class="finder" role="dialog" aria-label="Find a textbook" tabindex="-1"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); ui.closeFindTextbook(); } }}>
+    onkeydown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ui.closeFindTextbook(); } }}>
     <header>
       <span class="ico">{@html ICON.search}</span>
-      <span class="title">Find a textbook</span>
+      <input class="find" type="text" placeholder="Find a textbook" aria-label="Find a textbook" spellcheck="false" autocomplete="off" bind:value={q} use:takeFocus>
       <button type="button" class="x" aria-label="Close" onclick={() => ui.closeFindTextbook()}>×</button>
     </header>
     <div class="list">
@@ -50,7 +54,7 @@
       {:else if library.status === 'failed'}
         <div class="none bad">Could not load the catalog.</div>
       {:else}
-        {#each library.books as b (b.id)}
+        {#each library.books.filter(matches) as b (b.id)}
           {@const installed = offlineBooks.records[b.id]}
           {@const available = offlineBooks.catalog?.books.find((book) => book.id === b.id)}
           {@const progress = offlineBooks.progress[b.id]}
@@ -95,6 +99,8 @@
 <style>
   .finder{position:fixed;top:12vh;left:50%;transform:translateX(-50%);width:min(560px,92vw);z-index:50;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.22);font-family:var(--sans);font-size:0.9rem;display:flex;flex-direction:column;overflow:hidden}
   header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--rule)}
+  header .find{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:1rem;color:var(--ink);outline:none}
+  header .find::placeholder{color:var(--muted)}
   header .title{flex:1;font-weight:600;color:var(--ink)}
   header .ico{display:grid;place-items:center;color:var(--muted)}
   header .ico :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}

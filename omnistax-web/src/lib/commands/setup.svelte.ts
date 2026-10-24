@@ -26,6 +26,10 @@ import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
+import { cart } from '../practice/cart.svelte';
+import { highlights } from '../settings/highlights.svelte';
+import { registry } from '../sections/registry.svelte';
+import type { HighlightKey } from '../settings/highlights';
 
 const GROUP_COMMANDS = 9;   /* the palette lists this many groups by number */
 
@@ -163,6 +167,21 @@ export const installCommands = (): void => {
     get undoLabel(): string { return colours.undoLabel; },
     get redoLabel(): string { return colours.redoLabel; },
   };
-  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps }), ...groupCommands()]);
+  /* The colour code switches of the book being read, the one the shell draws its highlights for. */
+  const highlightDeps = {
+    get here(): string | null { return focus.book ?? null; },
+    on: (k: HighlightKey): boolean => highlights.values[k],
+    set: (k: HighlightKey, on: boolean): void => { const b = focus.book; if (b) highlights.set(k, on, b); },
+  };
+  /* A session seeded with the section being read, its chapter or its book, opened as a tab where the palette was opened. */
+  const practiceDeps = {
+    canPractise: (): boolean => focus.section !== null,
+    practise: (level: Level): void => {
+      const s = focus.section; if (!s) return;
+      const chapter = registry.chapterOf(s)?.id;
+      cart.add([level === 'book' || (level === 'chapter' && !chapter) ? { book: s.book } : level === 'chapter' ? { book: s.book, chapter: chapter! } : { book: s.book, section: s.section }]);
+    },
+  };
+  commands.register([...builtinCommands({ settings, layout, fold, ui, reader, scope: scopeDeps, docs, notes: notesDeps, drawings: drawingDeps, chat: chatDeps, history: historyDeps, colours: coloursDeps, highlights: highlightDeps, practice: practiceDeps }), ...groupCommands()]);
 };
 export { commands, ui, keys };

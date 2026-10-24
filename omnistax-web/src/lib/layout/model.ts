@@ -190,7 +190,10 @@ export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout =>
 };
 
 export type OpenOpts = { readonly before?: ItemKey | null; readonly from?: GroupKey | null };
-/* One page of a view lives in one place; a document may be open in several groups. `from` moves a tab instead of copying it. */
+/* One page of a view lives in one place; a document may be open in several
+   groups. `from` moves a tab instead of copying it. A tab new to the group
+   goes in just right of the group's active tab, so closing it lands the
+   reader back where they were; `before` puts it where a drop asked. */
 export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: OpenOpts = {}): Layout => {
   const k = keyOf(id); const g = Math.max(0, Math.min(index, l.groups.length - 1)); const target = l.groups[g];
   const base = viewKey(k) ? detach(l, k) : opts.from && opts.from !== target.key ? withGroups(l, l.groups.map((x) => (x.key === opts.from ? removeFromGroup(x, k) : x))) : l;
@@ -198,7 +201,8 @@ export const openTab = (l: Layout, id: ItemId | ItemKey, index: number, opts: Op
     if (x.key !== target.key) return x;
     const without = x.tabs.filter((t) => t !== k);
     const at = opts.before && opts.before !== k ? without.indexOf(opts.before) : -1;
-    const tabs = x.tabs.includes(k) && at < 0 ? x.tabs : at >= 0 ? [...without.slice(0, at), k, ...without.slice(at)] : [...without, k];
+    const after = x.active && x.active !== k ? without.indexOf(x.active) + 1 : without.length;
+    const tabs = x.tabs.includes(k) && at < 0 ? x.tabs : at >= 0 ? [...without.slice(0, at), k, ...without.slice(at)] : [...without.slice(0, after), k, ...without.slice(after)];
     return { ...x, tabs, active: k };
   });
   return focusOn(dropEmptied(l, withGroups(base, groups)), target.key);

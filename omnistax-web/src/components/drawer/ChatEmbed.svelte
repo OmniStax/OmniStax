@@ -26,7 +26,7 @@
   <div class="head">
     <span class="name">{chats.nameOf(cid)}</span>
     <button type="button" class="act" class:on={tree} aria-pressed={tree} onclick={() => (tree = !tree)}>Tree</button>
-    {#if tree}<button type="button" class="act" onclick={() => (fitted += 1)}>Fit</button>{/if}
+    {#if tree}<button type="button" class="act icon" title="Fit" aria-label="Fit the tree" onclick={() => (fitted += 1)}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>{/if}
     <button type="button" class="act" onclick={() => open()}>Open</button>
   </div>
   <div class="body">
@@ -48,5 +48,7 @@
   .act:hover{text-decoration:underline}
   .act[aria-pressed]{color:var(--muted)}
   .act.on{color:var(--accent);font-weight:600}
+  .act.icon{display:inline-flex;align-items:center}
+  .act.icon svg{width:13px;height:13px}
   .body{flex:1;min-height:0;position:relative}
 </style>

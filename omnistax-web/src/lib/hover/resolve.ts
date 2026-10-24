@@ -21,6 +21,7 @@ export type Note = { readonly label: string; readonly text: string };
 export type Card = {
   readonly kind: Kind;
   readonly eyebrow: string;          /* the kind line above the title: "Definition", "Term", "Formula · Result" */
+  readonly conceptKind?: string;     /* the concept kind named in the eyebrow, which is drawn as a coloured bubble */
   readonly unit?: string;            /* after the eyebrow, in its own case */
   readonly title: string;            /* plain text, or text with $…$ for the math action */
   readonly tex?: string;             /* set in place of a text title: the symbol or the equation */
@@ -49,6 +50,7 @@ export type Nav = {
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
   readonly showGraph: (expr: string, split?: boolean) => void;   /* opens the book's grapher with that function among its rows */
+  readonly addToSession: (concept: string) => void;   /* the concept into the exercise session being gathered */
 };
 
 const KIND_LABEL: Readonly<Record<Kind, string>> = { definition: 'Definition', variable: 'Symbol', reference: 'Reference', equation: 'Formula', concept: 'Concept', formula: 'Formula', function: 'Function' };
@@ -108,7 +110,7 @@ export const definitionCard = (f: DefinitionFacts, nav: Nav): Card => {
   ];
   return {
     kind: 'definition',
-    eyebrow: CONCEPT_KIND[c.kind], ...(f.unit ? { unit: f.unit } : {}),
+    eyebrow: CONCEPT_KIND[c.kind], conceptKind: c.kind, ...(f.unit ? { unit: f.unit } : {}),
     title: [c.name, f.tex ? `$${f.tex}$` : ''].filter((s) => s !== '').join(' · '), ...(c.type ? { type: c.type } : {}),
     body: statement ? sentence(statement) : undefined,
     ...(notes.length ? { notes } : {}),
@@ -149,7 +151,7 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
   const statement = statementOf(f.concept);
   const body = statement ? sentence(statement) : f.introducedIn ? `Introduced in “${f.introducedIn}”.` : undefined;
   return {
-    kind: 'equation', eyebrow: `${KIND_LABEL.equation} · ${CONCEPT_KIND[f.concept.kind]}`, title: f.concept.name, body,
+    kind: 'equation', eyebrow: `${KIND_LABEL.equation} · ${CONCEPT_KIND[f.concept.kind]}`, conceptKind: f.concept.kind, title: f.concept.name, body,
     ...(e.condition ? { notes: [{ label: 'Holds under', text: sentence(e.condition) }] } : {}),
     actions: [
       ...(anchor ? [{ label: 'Go to where it is introduced', run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: 'Go to section', run: (s?: boolean) => nav.openSection(e.section, s) }]),
@@ -198,9 +200,9 @@ export type ConceptFacts = {
 };
 export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   const c = f.concept, sec = secIdOf(c.section), first = f.intro[0];
-  const eyebrow = `${CONCEPT_KIND[c.kind]} · section ${c.section}`;
+  const eyebrow = CONCEPT_KIND[c.kind];
   if (c.status === 'placeholder') return {
-    kind: 'concept', eyebrow, title: c.name, ...(c.type ? { type: c.type } : {}), body: `Section ${c.section} is not built yet.`,
+    kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: `Section ${c.section} is not built yet.`,
     actions: [f.built ? { label: 'Go to section', run: (s?: boolean) => nav.openSection(sec, s) } : { label: 'Open in OpenStax', run: () => nav.openExternal(sec) }],
   };
   const uses = f.uses.slice(0, USES_SHOWN);
@@ -208,9 +210,9 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
   if (f.intro.length) refs.push({ label: 'Introduced in', links: f.intro.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })) });
   if (uses.length) refs.push({ label: 'Used in', links: uses.map((p) => ({ label: p.title, run: (s?: boolean) => nav.goSpan(p.id, s) })), ...(f.uses.length > uses.length ? { more: { label: `and ${f.uses.length - uses.length} more`, run: (s?: boolean) => nav.openSection(sec, s) } } : {}) });
   return {
-    kind: 'concept', eyebrow, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
+    kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
-      { label: 'Go to definition', run: (s?: boolean) => (first ? nav.goSpan(first.id, s) : nav.openSection(sec, s)) },
+      { label: 'Add to Exercise Session', run: () => nav.addToSession(c.id) },
       { label: 'Show in Reference', run: (s?: boolean) => nav.showView('reference', s) },
       ...(f.onMap ? [] : [{ label: 'Show in Concept map', run: (s?: boolean) => nav.showView('concepts', s) }]),
     ],

@@ -1,7 +1,8 @@
 <script lang="ts">
   import AtPicker from '../ui/AtPicker.svelte';
   import ModelMenu from './ModelMenu.svelte';
-  import { chipOf, pickerRoot } from '../../lib/picker/sources';
+  import { chipOf, chipForItem, pickerRoot } from '../../lib/picker/sources';
+  import { dragging as layoutDrag } from '../../lib/layout/drag.svelte';
   import { chipOfRow } from '../../lib/chat/library';
   import { chip, sameChip, withChip, withoutChip, type Chip } from '../../lib/chat/context';
   import { chats } from '../../lib/chat/store.svelte';
@@ -11,7 +12,7 @@
   import type { PickerRow } from '../../lib/picker/model';
   import type { ChatId } from '../../lib/types/ids';
 
-  let { chatId, chips, onchips, onsend, onstop, streaming, offer, onoffer, blocked }: {
+  let { chatId, chips, onchips, onsend, onstop, streaming, blocked }: {
     chatId: ChatId;
     chips: readonly Chip[];
     onchips: (c: readonly Chip[]) => void;
@@ -19,8 +20,6 @@
     onstop: () => void;
     streaming: boolean;
     blocked?: string;
-    offer: Chip | null;
-    onoffer: () => void;
   } = $props();
 
   let text = $state('');
@@ -29,7 +28,8 @@
   let at = $state<number | null>(null);
   let query = $state('');
   let dragging = $state(false);
-  const root = pickerRoot();
+  /* A chat is handed figures, concepts and exercises; the rest of the tree is the note editor's. */
+  const root = pickerRoot({ kinds: ['figures', 'concepts', 'exercises', 'annotations'] });
 
   const ready = $derived.by(() => { const p = chats.pickOf(chatId); return p !== null && ai.access(p) !== null; });
 
@@ -112,12 +112,16 @@
     e.preventDefault();
     takeImages(files);
   };
+  /* Images from the desktop become pictures; a tab dragged from the explorer (a
+     section's text, a note, a drawing, a file, a chat) becomes a reference. */
   const ondragover = (e: DragEvent): void => {
-    if (![...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) return;
-    e.preventDefault(); dragging = true;
+    if (!layoutDrag() && ![...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) return;
+    e.preventDefault(); e.stopPropagation(); dragging = true;
   };
   const ondrop = (e: DragEvent): void => {
     dragging = false;
+    const d = layoutDrag();
+    if (d) { e.preventDefault(); e.stopPropagation(); const c = chipForItem(d.key); if (c) add(c); return; }
     const files = [...(e.dataTransfer?.files ?? [])];
     if (!files.some((f) => f.type.startsWith('image/'))) return;
     e.preventDefault();
@@ -137,12 +141,6 @@
 </script>
 
 <div class="composer" bind:this={box}>
-  {#if offer}
-    <div class="offer">
-      <span>Now reading {offer.label}</span>
-      <button type="button" class="btn ghost sm" onclick={onoffer}>Add</button>
-    </div>
-  {/if}
 
   {#if chips.length}
     <ul class="chips" aria-label="What the model is shown">
@@ -158,7 +156,7 @@
 
   <div class="field" class:dragging role="presentation" {ondragover} ondragleave={() => (dragging = false)} {ondrop}>
     {#if at !== null}
-      <AtPicker bind:this={picker} {root} {query} {field} onchoose={choose} onclose={close} />
+      <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
     <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read} onfocus={read}
       placeholder={ready ? 'Ask anything · @ to add context' : 'Choose a model with a key to ask'}
@@ -192,6 +190,5 @@
   .chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .chips button{font:inherit;line-height:1;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .chips button:hover{color:var(--ink);background:var(--soft2)}
-  .offer{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.78rem;color:var(--muted)}
   @media (max-width:900px){ .composer{padding:8px 18px 12px} }
 </style>

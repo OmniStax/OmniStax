@@ -33,12 +33,30 @@ carries no other meaning.
 Typing `@` in the composer opens the **picker**, `components/ui/AtPicker.svelte`
 over `src/lib/picker/model.ts` (pure): first a list of categories, then a
 tree or list within the category, filtered by what is typed after the `@`.
-Categories, in this order: notes, drawings, files, sections (the book's
-tree), figures and sims, concepts, equations, definitions, exercises, chat
-messages. Choosing one adds a chip; the chip's text is what the model sees
+In a chat the tree offers, under each section, the books' figures, sims
+and derivations, concepts, exercises and the reader's own annotations on
+that section (every highlight they wrote on, as its quote and their words),
+and beside the books the reader's files; the note editor's `[[` picker
+offers every category (notes, drawings, sections, equations, definitions,
+chats as well). A figure's row pointed
+at shows the figure in a panel beside the list as a still: no head,
+controls, readouts or transport, a sim at rest, a derivation with every
+fact and result shown and its view held on the whole (`[data-still]` on
+the panel is what the library reads). A concept's row shows its card, at
+the list's right. The list is walked again only when the level or the words
+change, not as the cursor moves, and an exercise's text is gathered only
+when its row is chosen. Choosing one adds a chip; the chip's text is what the model sees
 (a note's markdown, a file's extracted text or page, a section's text, a
 figure's caption and alt text, a concept with its why, an equation with
 its condition, a definition, an exercise's statement, a message's text).
+A tab dragged from the explorer onto the composer (a section's text, a
+note, a drawing, a file, a chat) becomes the same chip; an image dropped
+from the desktop becomes a picture. The chat's maths is rendered under the
+books its chips come from, then the book being read, so a book's macros
+read in an answer; with chips from more than one book the tables are
+blended under the chat's own name (`registerFigBlend` in `fig/figlib.ts`),
+the earliest chip's book keeping a macro both define, since every book keys
+its macros by the same scheme and `\kF` need not mean the same thing twice.
 The picker is built once and **also replaces the `[[` completion in the note
 editor** (`notes/md/complete.ts` becomes a consumer of the same model, its
 choice writing `[[…]]` instead of a chip). Left, Right, Up, Down, Enter and
