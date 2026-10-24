@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const OFFLINE_MANIFEST_VERSION = 1 as const;
+/* The oldest book format this app still reads; scripts/build-offline.mjs writes the current one. Keep public/sw.js in step. */
+export const MIN_CONTENT_FORMAT = 1;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const bookId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
 const safeUrl = z.string().startsWith('/').refine((value) => {
@@ -24,7 +26,7 @@ export const OfflineResourceSchema = z.object({
 }).strict();
 
 export const BookReleaseManifestSchema = z.object({
-  schemaVersion: z.literal(OFFLINE_MANIFEST_VERSION), contentFormat: z.literal(1),
+  schemaVersion: z.literal(OFFLINE_MANIFEST_VERSION), contentFormat: z.number().int().positive(),
   book: z.object({ id: bookId, title: z.string().min(1) }).strict(),
   releaseId: digest, publishedAt: z.string().datetime(), releaseNotes: z.string().optional(),
   runtime: z.object({ artifactId: digest, compatibleReaderFormat: z.literal(1) }).strict(),

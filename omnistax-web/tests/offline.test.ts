@@ -38,13 +38,16 @@ test('release ids are deterministic per book and section changes are explicit', 
   for (const resource of one.a.resources) assert.match(resource.downloadUrl, new RegExp(`/offline/releases/a/${one.a.releaseId}/${one.a.runtime.artifactId}/`));
 });
 
-test('runtime changes keep semantic release ids but publish a distinct immutable artifact', async () => {
+test('an app change leaves every book download where it was', async () => {
   const firstRoot = await mkdtemp(path.join(os.tmpdir(), 'omnistax-runtime-a-'));
   const secondRoot = await mkdtemp(path.join(os.tmpdir(), 'omnistax-runtime-b-'));
   const first = await fixture(firstRoot, false, 'body{color:black}');
   const second = await fixture(secondRoot, false, 'body{color:blue}');
   assert.equal(first.a.releaseId, second.a.releaseId);
-  assert.notEqual(first.a.runtime.artifactId, second.a.runtime.artifactId);
+  assert.equal(first.a.runtime.artifactId, second.a.runtime.artifactId);
+  assert.deepEqual(first.a.resources.map((r) => r.downloadUrl), second.a.resources.map((r) => r.downloadUrl));
+  const apps = await Promise.all([firstRoot, secondRoot].map(async (root) => JSON.parse(await readFile(path.join(root, 'dist', 'offline-catalog.json'), 'utf8')).artifactId));
+  assert.notEqual(apps[0], apps[1], 'the catalog still names the app build, for the update notice');
   for (const [root, manifest] of [[firstRoot, first.a], [secondRoot, second.a]] as const) {
     for (const resource of manifest.resources) {
       const body = await readFile(path.join(root, 'dist', resource.downloadUrl.slice(1)));
@@ -67,7 +70,8 @@ test('a release archive retains the prior immutable snapshot', async () => {
 test('the shell list carries the runtime and the first page of each book, not book content', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'omnistax-shell-'));
   const books = await fixture(root);
-  assert.ok(books.a.resources.some((r) => r.logicalUrl === '/a/ch01/1.1/index.html'), 'a download keeps the page its book opens on');
+  assert.ok(!books.a.resources.some((r) => r.logicalUrl.endsWith('/index.html') || r.logicalUrl.startsWith('/assets/')), 'a download holds no page and no app file');
+  assert.ok(books.a.resources.some((r) => r.logicalUrl === '/a/ch01/1.1/doc.html'), 'a download holds the section fragments');
   const shell = JSON.parse(await readFile(path.join(root, 'dist', 'offline-shell.json'), 'utf8'));
   const urls = shell.resources.map((row: { url: string }) => row.url).sort();
   assert.deepEqual(urls, ['/a/book.json', '/a/ch01/1.1/index.html', '/about.html', '/assets/app.css', '/b/book.json', '/b/ch01/1.1/index.html', '/index.html', '/library.json', '/manifest.webmanifest']);

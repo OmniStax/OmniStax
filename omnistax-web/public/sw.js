@@ -2,12 +2,15 @@
    active pointer is committed; this worker never treats ordinary HTTP cache
    entries as a complete book. */
 const DB = 'omnistax-offline', STORE = 'installations', PINS = 'clientPins';
+/* The oldest book format the app reads (MIN_CONTENT_FORMAT in src/lib/offline/schema.ts); an older download is not served. */
+const MIN_CONTENT_FORMAT = 1;
+const usable = (record) => !!record.installedRelease && (record.manifest?.contentFormat ?? 1) >= MIN_CONTENT_FORMAT;
 const pins = new Map();
 const openDb = () => new Promise((resolve, reject) => { const r = indexedDB.open(DB, 2); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE, { keyPath: 'bookId' }); if (!r.result.objectStoreNames.contains(PINS)) r.result.createObjectStore(PINS, { keyPath: 'clientId' }); }; r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
 const records = async () => { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(STORE); const r = tx.objectStore(STORE).getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); tx.oncomplete = () => db.close(); }); };
 /* Requests that arrive while the installations are being read share the read. */
 let reading = null;
-const installed = () => reading ??= records().catch(() => []).then((all) => all.filter((record) => record.installedRelease)).finally(() => { reading = null; });
+const installed = () => reading ??= records().catch(() => []).then((all) => all.filter(usable)).finally(() => { reading = null; });
 const normalizePins = (record) => {
   if (!record) return null;
   if (record.pins && typeof record.pins === 'object') return { clientId: record.clientId, primaryBook: record.primaryBook, pins: record.pins, snapshot: record.snapshot };
@@ -69,17 +72,13 @@ const fromPins = async (held, request, installs) => {
   }
   return miss;
 };
-/* A downloaded book carries one page, its first built page, named by the
-   book.json beside it, and the shell on it opens whichever section the address
-   names. Offline, the front of OmniStax is that page of a downloaded book: its
-   own page needs the first library book's data. A download made before carries
-   the book's old front instead. */
+/* The app's copy keeps each book's first built page, named by the book.json
+   beside it, and the shell on it opens whichever section the address names. */
 const bookPage = async (cache, book) => {
   const listed = await cache.match(`/${book}/book.json`); const manifest = listed ? await listed.json().catch(() => null) : null;
   const page = manifest ? [manifest.intro, ...(manifest.chapters ?? []).flatMap((c) => [c.intro, ...(c.sections ?? []), c.summary]), manifest.summary].find((p) => p?.built) : null;
   return (page ? await cache.match(`${page.url}index.html`) : undefined) ?? await cache.match(`/${book}/index.html`);
 };
-const shellOf = async (pin) => bookPage(await caches.open(cacheName(pin.bookId, pin.release, pin.artifact)), pin.bookId);
 /* The app opens offline with no book downloaded. The build lists its shell in
    /offline-shell.json; the worker keeps one complete copy, and a copy is
    complete once the list itself is in it, after every verified file. A newer
@@ -136,12 +135,11 @@ self.addEventListener('message', (event) => {
     }
   })());
 });
-/* A downloaded book reads from its download: its pages and files come from the
-   installed snapshot, and the network only gives what the snapshot does not
-   hold. Anything else is the live site, which answers whenever it can. A
-   snapshot stands in when the network fails, or when a page is slow and the
-   snapshot holds it. A file of a live page is not cut off for being slow: the
-   snapshot's copy may be another build's. */
+/* A downloaded book's files come from its download, and the network only gives
+   what the download does not hold: the app's files. Anything else is the live
+   site, which answers whenever it can; the app's copy stands in when the
+   network fails, or when a page is slow. A file of a live page is not cut off
+   for being slow: the copy may be another build's. */
 const SLOW_MS = 3000;
 const liveFirst = async (request, snapshot, slowMs) => {
   const live = fetch(request).catch(() => null);
@@ -151,36 +149,37 @@ const liveFirst = async (request, snapshot, slowMs) => {
   return standIn?.ok || first === null ? standIn : await live ?? standIn;
 };
 /* snapshot: 'chosen' when the reader asked for a release, 'downloaded' for a
-   page of a downloaded book, 'fallback' when the network failed; each way the
-   page and its files come from one snapshot. */
+   page of a downloaded book; either way the book's files come from that release. */
 const remember = async (clientId, pin, snapshot) => {
   const held = await pinsFor(clientId); const next = { ...held, primaryBook: pin.bookId, pins: { ...held.pins, [pin.bookId]: pin }, snapshot };
   pins.set(clientId, next); await pinWrite(clientId, next).catch(() => undefined);
 };
+/* A page of a downloaded book is the app's own 404.html, which reads the address
+   and fetches the section from the download: the newest app the reader has
+   loaded, over the text they kept. Live when the network answers in time, else
+   the app's copy. */
+const appPage = async () => {
+  const live = await Promise.race([fetch('/404.html', { cache: 'no-cache' }).then((r) => (r.ok ? r : null)).catch(() => null), new Promise((resolve) => setTimeout(() => resolve(null), SLOW_MS))]);
+  const page = live ?? await (await shellCache())?.match('/404.html');
+  return page ? { live: !!live, response: new Response(page.body, { status: 200, headers: page.headers }) } : null;
+};
 const navigation = async (event, url) => {
-  const installs = (await records().catch(() => [])).filter((record) => record.installedRelease);
+  const installs = (await records().catch(() => [])).filter(usable);
   const record = bookOf(url.pathname, installs);
   const requested = url.searchParams.get('_omnistax_release');
   const chosen = !!record && !!requested && (requested === record.installedRelease || requested === record.previousRelease);
   const release = chosen ? requested : record?.installedRelease;
   const artifact = record && artifactFor(record, release);
-  const own = artifact ? { bookId: record.bookId, release, artifact } : null;
-  const roots = url.pathname === '/' || url.pathname === '/index.html'
-    ? installs.map((item) => ({ bookId: item.bookId, release: item.installedRelease, artifact: artifactFor(item, item.installedRelease) })).filter((pin) => pin.artifact) : [];
-  let pin = own, snapshot;
-  const fromSnapshot = async () => {
-    let miss = null;
-    for (const candidate of own ? [own] : roots) {
-      const response = (own && await cached(candidate, event.request, installs)) ?? await shellOf(candidate);
-      if (response?.ok) { pin = candidate; snapshot = chosen ? 'chosen' : own ? 'downloaded' : 'fallback'; return response; }
-      miss ??= response;
+  if (artifact) {
+    const page = await appPage();
+    if (page) {
+      if (event.resultingClientId) await remember(event.resultingClientId, { bookId: record.bookId, release, artifact }, chosen ? 'chosen' : 'downloaded');
+      if (page.live) event.waitUntil(refreshShell());
+      return page.response;
     }
-    return miss;
-  };
-  const first = own ? await fromSnapshot() : null;
-  const response = first?.ok || (chosen && first) ? first : await liveFirst(event.request, fromSnapshot, SLOW_MS);
-  if (pin && event.resultingClientId) await remember(event.resultingClientId, pin, snapshot);
-  if (!pin && response?.ok) event.waitUntil(refreshShell());
+  }
+  const response = await liveFirst(event.request, () => fromShell(url.pathname, true), SLOW_MS);
+  if (response?.ok) event.waitUntil(refreshShell());
   return response ?? await fromShell(url.pathname, true) ?? offlinePage();
 };
 const resource = async (event, url) => {

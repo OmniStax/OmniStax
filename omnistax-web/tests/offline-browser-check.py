@@ -6,16 +6,23 @@ import tempfile
 import threading
 from playwright.sync_api import sync_playwright
 
-DIST = pathlib.Path(__file__).resolve().parents[1] / "dist"
+import os
+DIST = pathlib.Path(os.environ.get("OMNISTAX_DIST") or pathlib.Path(__file__).resolve().parents[1] / "dist")
 BOOK = "sandbox"
 PATH = f"/{BOOK}/ch01/1.1/"
 
 # Chromium exempts service-worker fetches from Playwright's offline emulation,
 # so the origin itself goes down: a request it drops fails in the worker too.
+# newer: the live app's 404.html carries a mark, standing for a deploy made
+# after the book was downloaded.
 class Handler(http.server.SimpleHTTPRequestHandler):
   down = False
+  newer = False
   def do_GET(self):
     if Handler.down: self.close_connection = True; return
+    if Handler.newer and self.path.split('?')[0] == '/404.html':
+      body = (DIST / '404.html').read_bytes().replace(b'<head>', b'<head><meta name="omnistax-probe" content="newer">', 1)
+      self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8'); self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body); return
     return super().do_GET()
   def log_message(self, *_args):
     pass
@@ -82,6 +89,19 @@ with sync_playwright() as playwright:
     record = page.evaluate("""async id => { const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});return await new Promise((ok,no)=>{const tx=db.transaction('installations');const r=tx.objectStore('installations').get(id);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}) }""", BOOK)
     assert record['status'] == 'ready' and record['installedRelease']
     assert len(record['manifest']['resources']) > 5
+    # A download holds the book and never the app: no page, no app file.
+    urls = [r['logicalUrl'] for r in record['manifest']['resources']]
+    assert not any(u.endswith('/index.html') or u.startswith('/assets/') for u in urls), urls
+
+    # A downloaded book opens in the newest app: a later deploy's app, online.
+    Handler.newer = True
+    later = context.new_page()
+    later.goto(BASE + PATH)
+    later.wait_for_selector('.shell')
+    assert later.locator('meta[name="omnistax-probe"]').count() == 1, 'the downloaded book opened in the live app'
+    assert later.locator('article[data-sec="1.1"]').count() >= 1
+    later.close()
+    Handler.newer = False
 
     # A client already navigated on release A stays there after B becomes the
     # active pointer; a new client selects B. Probe entries make the cache

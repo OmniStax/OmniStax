@@ -1,4 +1,4 @@
-import { BookReleaseManifestSchema, OfflineCatalogSchema, type BookReleaseManifest, type OfflineCatalog, type OfflineResource } from './schema';
+import { BookReleaseManifestSchema, MIN_CONTENT_FORMAT, OfflineCatalogSchema, type BookReleaseManifest, type OfflineCatalog, type OfflineResource } from './schema';
 import { cacheName, deleteInstallation, getInstallation, listInstallations, putInstallation, type InstallationRecord } from './storage';
 import { readableLines, releaseChanges, savedSessionReleaseReferences, sectionChanges, type ReleaseChanges, type SeenRelease } from './model';
 import { liveWorkerPins } from './register';
@@ -138,6 +138,11 @@ export const installFromCatalog = async (bookId: string, options?: InstallOption
 export const inspectInstallation = async (bookId: string): Promise<InstallationRecord | undefined> => lock(bookId, async () => {
   const record = await getInstallation(bookId); if (!record?.manifest || !record.installedRelease) return record;
   const artifact = record.installedArtifact ?? record.manifest.runtime.artifactId;
+  /* A download older than this app reads is offered again, as a repair. */
+  if (record.manifest.contentFormat < MIN_CONTENT_FORMAT) {
+    const stale = { ...record, status: 'failed' as const, error: t('offline.error.tooOld'), updatedAt: Date.now() };
+    await putInstallation(stale); return stale;
+  }
   const cache = await caches.open(cacheName(bookId, record.installedRelease, artifact));
   const presence = await Promise.all(record.manifest.resources.map(async (resource) => ({ logicalUrl: resource.logicalUrl, present: !!await cache.match(resource.logicalUrl) })));
   const missing = presence.filter((item) => !item.present).map((item) => item.logicalUrl);

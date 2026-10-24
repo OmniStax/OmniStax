@@ -35,6 +35,7 @@ export const offline = {
   'offline.error.storageFailed': 'Offline storage failed.',
   'offline.error.storageInterrupted': 'Offline storage was interrupted.',
   'offline.error.storageOpen': 'Offline storage could not be opened.',
+  'offline.error.tooOld': 'This saved copy is too old for this version of OmniStax. Download it again.',
   'offline.error.unsupported': 'This browser cannot store textbooks offline.',
   'offline.installedRelease': 'Installed release: {when}',
   'offline.lastCheck': 'Last successful check: {when}',

@@ -37,6 +37,14 @@ const mergeArchive = async (archive, out) => {
 
 /* A figure goes into a download re-encoded, never larger than the file it came
    from and no wider than a figure is shown; the served site keeps the original. */
+/* A download holds a book's text, data and media, never the app: every book runs
+   the newest app the reader has loaded (docs/release-plan.md, decisions 19-22).
+   The format is what the app reads of a book; raise it, and MIN_CONTENT_FORMAT in
+   src/lib/offline/schema.ts and public/sw.js, when an older download could not be
+   read by the new app. Its hash stands where the app's artifact stood in a
+   release's path, so downloads move only when the text or the format does. */
+const CONTENT_FORMAT = 1;
+const BOOK_ARTIFACT = sha(Buffer.from(`content-format:${CONTENT_FORMAT}`));
 const FIGURE_EDGE = 1200, FIGURE_QUALITY = 80;
 const FIGURE_ENCODING = `jpeg:q${FIGURE_QUALITY}:${FIGURE_EDGE}`;
 const shrinkFigure = async (rel, body) => {
@@ -75,7 +83,7 @@ const writeImmutable = async (dest, body) => {
 
 export async function buildOfflineArtifacts(out, bookIds, archive) {
   await mergeArchive(archive, out);
-  const rootRels = ['index.html', 'about.html', 'whatsnew.html', 'whatsnew.zh-CN.html', 'whatsnew.json', 'library.json', 'manifest.webmanifest', 'sw.js'];
+  const rootRels = ['index.html', '404.html', 'about.html', 'whatsnew.html', 'whatsnew.zh-CN.html', 'whatsnew.json', 'library.json', 'manifest.webmanifest', 'sw.js'];
   const runtimeRels = [
     ...(await walk(path.join(out, 'assets'))).map((file) => path.join('assets', file)),
     ...(await walk(path.join(out, 'icons'))).map((file) => path.join('icons', file)),
@@ -120,17 +128,16 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
        existing release directory without changing its semantic identity. */
     const resolvedMediaRows = await Promise.all(mediaRels.map(async (rel) => [`@resolved/${rel.split(path.sep).join('/')}`, sha(await fs.readFile(path.join(out, rel)))]));
     const releaseId = canonicalHash([...inputRows, ...resolvedMediaRows, ['@figures', FIGURE_ENCODING]]);
-    /* A page of the book is opened offline by the shell on the book's first
-       built page, which fetches its fragment; every other page stays on the
-       server for crawlers and cold loads. */
-    const shellPage = shellPageOf(bookJson);
-    const pageFiles = new Set(pagesOf(bookJson).map((page) => `${page.url}index.html`).filter((url) => url !== shellPage));
-    const allRels = [...new Set([...semanticRels, ...runtimeRels])].filter((rel) => !pageFiles.has(logicalOf(rel)));
+    /* A page of a downloaded book is the app's own 404.html, which reads the
+       address and fetches the section's fragment from the download; the full
+       pages stay on the server for crawlers and cold loads. */
+    const pageFiles = new Set(pagesOf(bookJson).map((page) => `${page.url}index.html`));
+    const allRels = semanticRels.filter((rel) => !pageFiles.has(logicalOf(rel)));
     const media = new Set(mediaRels);
     const resources = [];
     for (const rel of allRels) {
       const source = path.join(out, rel); const logicalUrl = logicalOf(rel);
-      const downloadUrl = `/offline/releases/${encodeURIComponent(id)}/${releaseId}/${artifactId}/${rel.split(path.sep).join('/')}`;
+      const downloadUrl = `/offline/releases/${encodeURIComponent(id)}/${releaseId}/${BOOK_ARTIFACT}/${rel.split(path.sep).join('/')}`;
       const original = await fs.readFile(source);
       const body = media.has(rel) ? await shrinkFigure(rel, original) : original;
       if (body === original) await materialize(source, path.join(out, downloadUrl.slice(1)));
@@ -147,10 +154,10 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     const authoredDate = sourceBook.release_date ?? sourceBook.releaseDate;
     const authoredNotes = sourceBook.release_notes ?? sourceBook.releaseNotes;
     const releasePublishedAt = authoredDate ? new Date(authoredDate).toISOString() : await archivedPublishedAt(archive, id, releaseId) ?? publishedAt();
-    const manifest = { schemaVersion: 1, contentFormat: 1, book: { id, title: bookJson.title }, releaseId, publishedAt: releasePublishedAt, ...(typeof authoredNotes === 'string' && authoredNotes.trim() ? { releaseNotes: authoredNotes.trim() } : {}), runtime: { artifactId, compatibleReaderFormat: 1 }, resources, sections, totalBytes: resources.reduce((sum, item) => sum + item.bytes, 0) };
-    const manifestRel = `offline/releases/${id}/${releaseId}/${artifactId}/manifest.json`;
+    const manifest = { schemaVersion: 1, contentFormat: CONTENT_FORMAT, book: { id, title: bookJson.title }, releaseId, publishedAt: releasePublishedAt, ...(typeof authoredNotes === 'string' && authoredNotes.trim() ? { releaseNotes: authoredNotes.trim() } : {}), runtime: { artifactId: BOOK_ARTIFACT, compatibleReaderFormat: 1 }, resources, sections, totalBytes: resources.reduce((sum, item) => sum + item.bytes, 0) };
+    const manifestRel = `offline/releases/${id}/${releaseId}/${BOOK_ARTIFACT}/manifest.json`;
     await writeImmutable(path.join(out, manifestRel), Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
-    catalog.push({ id, title: bookJson.title, releaseId, artifactId, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
+    catalog.push({ id, title: bookJson.title, releaseId, artifactId: BOOK_ARTIFACT, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
   }
   await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), artifactId, books: catalog }, null, 2)}\n`);
   await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);

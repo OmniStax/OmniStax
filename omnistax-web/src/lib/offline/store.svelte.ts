@@ -29,7 +29,6 @@ class OfflineBooks {
   /* The app this page runs: its snapshot's when the worker answered from one, else the first catalog's. */
   private knownArtifact: string | undefined;
   /* The downloaded book this page was answered from, whose install alone changes its app. */
-  private pinnedBook: string | undefined;
   private tracked: readonly string[] = [];
   private recording = new Set<string>();
   private abort = new SvelteMap<string, AbortController>();
@@ -47,8 +46,6 @@ class OfflineBooks {
   async refreshClientPin(): Promise<void> {
     const pin = await currentWorkerPin();
     this.clientReleases = pin ? { [pin.bookId]: pin.release } : {};
-    if (pin?.snapshot === 'fallback' || pin?.snapshot === 'downloaded') this.knownArtifact ??= pin.artifact;
-    if (pin?.snapshot === 'downloaded') this.pinnedBook = pin.bookId;
   }
   async reclaim(): Promise<void> {
     const records = await Promise.all(Object.keys(this.records).map((bookId) => reclaimPreviousRelease(bookId)));
@@ -99,11 +96,8 @@ class OfflineBooks {
     try { this.changes = { ...this.changes, [bookId]: await changesForAvailable(bookId) }; }
     catch (error) { this.message = error instanceof Error ? error.message : t('offline.error.changesFailed'); }
   }
-  /* A page answered from a download runs that download's app; any other runs the catalog's. */
-  private appArtifact(): string | undefined {
-    const record = this.pinnedBook ? this.records[this.pinnedBook] : undefined;
-    return record?.installedRelease ? artifactOf(record) : this.catalog?.artifactId;
-  }
+  /* Every page runs the catalog's app; a download holds only its book. */
+  private appArtifact(): string | undefined { return this.catalog?.artifactId; }
   private noteApp(): void {
     const artifact = this.appArtifact();
     if (artifact) { this.knownArtifact ??= artifact; this.appUpdated = artifact !== this.knownArtifact; }

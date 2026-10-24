@@ -33,6 +33,7 @@ export const offline: Readonly<Record<keyof typeof source, string>> = {
   'offline.error.storageFailed': '离线存储失败。',
   'offline.error.storageInterrupted': '离线存储被中断。',
   'offline.error.storageOpen': '无法打开离线存储。',
+  'offline.error.tooOld': '此离线副本对当前版本的 OmniStax 来说过旧。请重新下载。',
   'offline.error.unsupported': '此浏览器无法离线存储教材。',
   'offline.installedRelease': '已安装发行版：{when}',
   'offline.lastCheck': '上次成功检查：{when}',
