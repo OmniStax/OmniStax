@@ -3,7 +3,7 @@ OmniStax/万象 is a next-gen, local STEM learning platform, which I call an *In
 
 
 ## Installation
-Browser: https://omnistax.andrewchen14250.workers.dev/
+Browser: https://omnistax.org/
 
 I recommend installing the website as a Progressive Web App since browser-reserved keybindings become available. `Ctrl + W` is how you close a tab in VSCode, and it so should be how you close it in OmniStax.
 
@@ -13,7 +13,7 @@ OmniStax is totally local. This means there's no account syncing. But there is e
 
 
 ## Contributors: Read This
-I strongly welcome PRs - whether it is changes to the OmniStax platform in `omnistax-web` or adding new content to the collection in `omnistax-content`. Each book is its own repository (`omnistax-content/books.json` lists them, and `npm install` in `omnistax-web` clones them into `omnistax-content/`), so a book PR goes to that book's repository. If you are contributing to a book's `main` branch, you are adding content to the publicly available https://omnistax.andrewchen14250.workers.dev/, so please ensure you are transforming an open-source text or have the appropriate rights to enhance the text. You are probably using an agent to do the transformation. Read `docs/` for instructions and rules that an agent tasked with making new content will use.
+I strongly welcome PRs - whether it is changes to the OmniStax platform in `omnistax-web` or adding new content to the collection in `omnistax-content`. Each book is its own repository (`omnistax-content/books.json` lists them, and `npm install` in `omnistax-web` clones them into `omnistax-content/`), so a book PR goes to that book's repository. If you are contributing to a book's `main` branch, you are adding content to the publicly available https://omnistax.org/, so please ensure you are transforming an open-source text or have the appropriate rights to enhance the text. You are probably using an agent to do the transformation. Read `docs/` for instructions and rules that an agent tasked with making new content will use.
 
 The books can use human reviews! If you catch incoherencies, please report them! Likely, they will be in *AI-written* content, e.g., interactive diagrams, proposed solutions for problems without a key (each chapter's `config.md` records whether these problems were left out or given AI solutions). They are less likely to be in *AI-extracted* contents like concept map, definition and formula sheet. However, as the books can get large, AI could miss key extraction. Incoherencies are least likely to be found in the text itself, which the book-enhancing agent is asked to keep the original words of.
 
