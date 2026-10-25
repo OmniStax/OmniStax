@@ -4,7 +4,7 @@
 import type { tips as source } from '../en/tips';
 
 export const tips: Readonly<Record<keyof typeof source, string>> = {
-  'tips.drag': '把概念、图和批注直接拖进 Markdown 笔记或问 AI 对话。',
+  'tips.drag': '概念、图和批注可直接拖进 Markdown 笔记或问 AI 对话。',
   'tips.drawing': '在手绘页面中可用数位板和笔写笔记、做练习。',
   'tips.drawing.action': '新建手绘',
   'tips.import': '可以把你自己的文件上传到 OmniStax，PDF 可以直接批注。',
