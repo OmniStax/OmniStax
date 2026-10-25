@@ -339,7 +339,7 @@
       registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc], .pane .fig-root'))));
       FIG.redrawAll(); spy.read(activePane(l.focus));
       if (!at || at.key === urlKey) return; urlKey = at.key;
-      try { history.replaceState(null, '', at.url); } catch { /* file:// */ }
+      try { window.history.replaceState(null, '', at.url); } catch { /* file:// */ }
       const title = registry.manifest(at.book).title;
       rememberPage(at.book, at.url);
       document.title = at.label === title ? title : `${at.label} · ${title}`;
