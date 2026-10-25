@@ -117,12 +117,12 @@ test('tIn falls back to English and then to the key; t follows the current local
 
 /* ---------- build-time words: the book's language ---------- */
 
-test('the about page reads its words from the about area, in English for now', () => {
+test('the about page has an introduction per locale, in English for now', () => {
   const html = aboutHtml();
   assert.equal(aboutHtml('en'), html, 'no locale is English');
-  for (const k of ['about.intro.platform', 'about.intro.books', 'about.try'] as const) assert.ok(html.includes(tIn('en', k).replace(/&/g, '&amp;')), k);
-  assert.match(html, /It has a <span class="feature" data-feature="notes">markdown notetaker<\/span>, <span class="feature" data-feature="pomodoro">pomodoro<\/span>, /);
-  assert.match(html, /data-feature="ai">Ask AI plugin<\/span>, and even an annotator/);
+  assert.match(html, /<p class="intro">OmniStax\/万象/);
+  assert.match(aboutHtml('zh-CN'), /<p class="intro">用过 IDE/);
+  assert.ok(html.includes(tIn('en', 'about.try')));
 });
 
 test('a page title and a credit read the same in English as they did before the catalog', () => {
