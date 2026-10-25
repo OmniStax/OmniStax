@@ -33,7 +33,7 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
   return `<article class="page" data-page="about" lang="${locale}">
   <header>
     <div class="masthead">
-      <img class="logo light" src="/logos/wanxiang-primary-cinnabar.svg" alt="" width="56" height="56">
+      <img class="logo light" src="/logos/wanxiang-primary-vermilion.svg" alt="" width="56" height="56">
       <img class="logo dark" src="/logos/wanxiang-dark-mode.svg" alt="" width="56" height="56">
       <h1>OmniStax/万象</h1>
       <a class="repo" href="${esc(REPO)}" target="_blank" rel="noopener noreferrer">
