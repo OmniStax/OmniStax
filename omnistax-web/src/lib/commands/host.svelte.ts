@@ -25,6 +25,7 @@ class Host {
 
   constructor() {
     if (!inBrowser) return;
+    if (this.surface === 'desktop') document.documentElement.dataset.desktop = '';
     const refresh = () => { this.surface = surfaceNow(); };
     ['(display-mode: standalone)', '(display-mode: fullscreen)', '(display-mode: window-controls-overlay)'].forEach((q) => matchMedia(q).addEventListener('change', refresh));
     document.addEventListener('fullscreenchange', refresh);

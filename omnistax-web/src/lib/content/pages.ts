@@ -45,6 +45,7 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
 
   <div class="coda">
     <button type="button" class="btn primary try" data-find-textbook>${esc(t('about.try'))}</button>
+    <a class="btn try" href="/download" target="_blank" rel="noopener" data-download>${esc(t('about.download.title'))}</a>
   </div>
 </article>`;
 };
