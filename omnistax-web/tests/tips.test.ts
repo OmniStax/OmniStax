@@ -50,6 +50,6 @@ test('the card walks every tip in turn, wrapping at either end', () => {
 });
 
 test('every tip is said by its key, and an action carries a label of its own', () => {
-  assert.deepEqual(TIPS.map((x) => x.text), ['tips.drawing', 'tips.theme', 'tips.drag', 'tips.import', 'tips.newGroup']);
+  assert.deepEqual(TIPS.map((x) => x.text), ['tips.drawing', 'tips.theme', 'tips.drag', 'tips.import']);
   assert.deepEqual(TIPS.flatMap((x) => (x.action ? [x.action.label] : [])), ['tips.drawing.action', 'tips.import.action']);
 });

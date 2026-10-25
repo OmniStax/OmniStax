@@ -22,7 +22,6 @@ export const tipsOf = (t: TFn): readonly Tip[] => [
   { text: t('tips.theme') },
   { text: t('tips.drag') },
   { text: t('tips.import'), action: { kind: 'import', label: t('tips.import.action') } },
-  { text: t('tips.newGroup') },
 ];
 /* How many there are, whatever language they are said in. */
 export const TIP_COUNT = tipsOf((k) => k).length;
