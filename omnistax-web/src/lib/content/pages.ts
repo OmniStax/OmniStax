@@ -17,7 +17,7 @@ const INTRO: Readonly<Record<Locale, string>> = {
     <p class="intro">The main contribution of OmniStax is our OmniBooks. We transform open-source textbooks using AI, replacing diagrams with beautiful widgets while maintaining the original tone and text. We currently boast five textbooks.</p>
     <p class="intro">OmniStax is forever free and open-source! Make suggestions, spend tokens to help transform or translate a book, all is welcome!</p>`,
   'zh-CN': `
-    <p class="intro">万象/OmniStax 把IDE（集成开发环境）的顺手感带到学习里。于此，我称它为第一个 ILE（Integrated Learning Environment，“集成学习环境”）。文字按颜色标好，概念一点就跳，自配一套学习工具：<span class="feature" data-feature="notes">Markdown 笔记</span>、<span class="feature" data-feature="pomodoro">番茄钟</span>、<span class="feature" data-feature="drawer">手绘板</span>、<span class="feature" data-feature="ai">问 AI </span>，<span class="feature" data-feature="exercises">做题库</span>。</p>
+    <p class="intro">万象/OmniStax 把IDE（集成开发环境）的顺手感带到学习里。因此，我称它为第一个 ILE（Integrated Learning Environment，“集成学习环境”）。文字按颜色标好，概念一点就跳，自配一套学习工具：<span class="feature" data-feature="notes">Markdown 笔记</span>、<span class="feature" data-feature="pomodoro">番茄钟</span>、<span class="feature" data-feature="drawer">手绘板</span>、<span class="feature" data-feature="ai">问 AI</span>，<span class="feature" data-feature="exercises">做题库</span>。</p>
     <p class="intro">OmniStax使用AI改编开源教科书，使静态插图换成了漂亮的动态演示，可以直接拖动、调参数，而原书的文字则完全保留。我们目前提供五本OmniBooks，请开源者们一起开发！</p>`,
 };
 
