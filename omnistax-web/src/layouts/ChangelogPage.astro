@@ -1,0 +1,13 @@
+---
+/* Every release note in one language, as the shell with the What's new page open in it. */
+import ShellPage from './ShellPage.astro';
+import Alternates from './Alternates.astro';
+import { readNotes, whatsNewHtml } from '../lib/content/releases';
+import { whatsNewItem } from '../lib/types/ids';
+import { tIn, type Locale } from '../lib/i18n/index';
+type Props = { locale: Locale };
+const { locale } = Astro.props as Props;
+---
+<ShellPage own={whatsNewItem()} pool={whatsNewHtml(readNotes(), locale)} title={tIn(locale, 'about.whatsNew.title')} description={tIn(locale, 'about.whatsNew.title')} lang={locale}>
+  <Alternates slot="head" path="/changelog/" locale={locale} />
+</ShellPage>

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { BookConceptsSchema, ServedConceptsSchema, ServedExerciseSchema } from '../content/schema';
 import type { BookConceptsDTO, BookFileUrls, BookManifest, ChapterEntry, ConceptDTO, CoverageDTO, ExerciseDTO, SectionEntry } from '../content/schema';
 import { bookId, sectionId } from '../types/ids';
+import { bookBase } from '../content/urls';
 import { HIGHLIGHTS_ON, parseOverrides } from '../settings/highlights';
 import type { Catalog } from './model';
 
@@ -87,7 +88,7 @@ export type BookFiles = { readonly book: string; readonly exercises: string; rea
 export const bookFiles = (base: string): BookFiles =>
   ({ book: `${base}book.json`, exercises: `${base}exercises.json`, concepts: `${base}concepts.json` });
 /* The address a book's pages stand under, where the catalogue has not said. */
-export const bookBase = (book: string): string => `/${book}/`;
+export { bookBase };
 
 /* The book's problem sets in one file. One bad row fails its own section only,
    for the same reason a bad row fails one section's file: a section the app

@@ -23,6 +23,7 @@ import { chapterConceptsOf } from '../content/bookdata';
 import { parseBookConcepts } from '../practice/books';
 import { HIGHLIGHTS_ON } from '../settings/highlights';
 import { t, currentLocale, fragmentUrl } from '../i18n/index';
+import { bookBase } from '../content/urls';
 
 /* When the book's own concepts.json is worth fetching over the chapters' own
    files: a chapter file is about a tenth of the book file, so it pays for
@@ -108,7 +109,7 @@ class Registry {
     const have = this.books[book]; if (have) return Promise.resolve(have);
     if (this.absent.has(book) || !BOOK_ID.test(book)) { this.markAbsent(book); return Promise.resolve(null); }
     const pending = this.loadingBooks[book]; if (pending) return pending;
-    const run = fetch(`/${book}/book.json`)
+    const run = fetch(`${bookBase(book)}book.json`)
       .then((r) => (r.ok ? (r.json() as Promise<BookManifest>) : null))
       .catch(() => null)
       .then((m) => { if (m) this.addBook(m); else this.markAbsent(book); return m; })

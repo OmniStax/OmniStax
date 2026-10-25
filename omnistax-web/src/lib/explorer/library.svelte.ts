@@ -4,6 +4,7 @@
    also puts its row under User, so the two never drift apart. */
 import { explorer } from './store.svelte';
 import { readerWritesAllowed } from '../backup/guard';
+import { bookBase } from '../content/urls';
 
 export type LibraryStatus = 'idle' | 'loading' | 'loaded' | 'failed';
 export type LibraryBookDTO = {
@@ -24,7 +25,7 @@ const parseBook = (raw: unknown): LibraryBookDTO | null => {
     publisher: typeof o.publisher === 'string' ? o.publisher : '',
     authors: Array.isArray(o.authors) ? o.authors.filter((a): a is string => typeof a === 'string') : [],
     chapters: Number(o.chapters) || 0, sections: Number(o.sections) || 0,
-    url: typeof o.url === 'string' ? o.url : `/${o.id}/`,
+    url: typeof o.url === 'string' ? o.url : bookBase(o.id),
     language: typeof o.language === 'string' && o.language !== '' ? o.language : 'en',
     ...(typeof o.translationOf === 'string' && o.translationOf !== '' && o.translationOf !== o.id ? { translationOf: o.translationOf } : {}),
   };

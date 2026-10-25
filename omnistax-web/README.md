@@ -36,7 +36,7 @@ concern and read from the environment with defaults:
 |---|---|---|---|
 | content | root | `OMNISTAX_CONTENT_DIR` | `../omnistax-content` (the directory holding the books) |
 | content | books | `OMNISTAX_BOOKS` | every book under the root |
-| site | baseUrl | `OMNISTAX_BASE_URL` | `https://omnistax.local` |
+| site | baseUrl | `OMNISTAX_BASE_URL` | `https://omnistax.org` |
 | build | threeUrl | `OMNISTAX_THREE_URL` | `/vendor/three.min.js` |
 | publishing | release archive | `OMNISTAX_RELEASE_ARCHIVE_DIR` | none (fresh build contains current releases only) |
 
@@ -104,12 +104,22 @@ with the reason above it.
 
 The reader's language is chosen once, as the shell boots
 (`i18n.boot()` in `store.svelte.ts`, called from `Shell.svelte` before the
-commands are registered), in this order: `?lang=zh-CN` in the address (an
-exact catalog tag, any case; it becomes the reader's choice and is taken off
-the address, so a link can open the app in a language once), else the choice
-remembered in this browser under `omnistax-lang`, else the first of the
+commands are registered), by `readerLocale` in `src/lib/i18n/locale.ts`: the
+choice remembered in this browser under `omnistax-lang`, else the language of
+the address the page was opened at (`/zh-CN/…`), else the first of the
 browser's languages the app has a catalog for (`zh`, `zh-Hans`, `zh-TW` all
-pick `zh-CN` while it is the only Chinese one), else English. The reader
+pick `zh-CN` while it is the only Chinese one), else English. Every text held
+per language is picked by the same rule, the reader's language else English
+(`pick`).
+
+An address names a language only when its content is in it: `/zh-CN/`,
+`/zh-CN/download` and `/zh-CN/changelog` are those pages of the site in
+Chinese, and a translated book stands at `/<language>/<source>/`
+(`college-physics-2e-zh-cn` at `/zh-CN/college-physics-2e/`), its id held by
+the content check to `<source>-<language lowercased>` so the address follows
+from it (`bookBase`, `bookOfPath` in `src/lib/content/urls.ts`). English books
+have no `/zh-CN/` copy. The build writes `_redirects` from a translation's old
+`/<id>/` address, and hreflang links between a page's languages and editions. The reader
 changes it in Settings → Appearance → Language (System, English, 中文（简体）;
 the ↺ goes back to System, which follows the browser and changes with it) or
 with the palette's "Change language". Each language is named in itself

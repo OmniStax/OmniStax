@@ -10,6 +10,7 @@
   import { bookId, docItem, itemKey, sectionId, sectionRef } from '../../lib/types/ids';
   import LineDiff from '../ui/LineDiff.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
+  import { bookBase } from '../../lib/content/urls';
 
   let { book, label, onclose }: { book: string; label: (section: string) => string; onclose: () => void } = $props();
   let dialog = $state<HTMLDialogElement | null>(null);
@@ -29,7 +30,7 @@
     dialog?.close();
   };
   const fileNames = (u: BookUpdate): string =>
-    u.files ? [...new Set([...u.files.added, ...u.files.changed, ...u.files.removed])].map((url) => url.replace(`/${book}/`, '')).join(', ') : '';
+    u.files ? [...new Set([...u.files.added, ...u.files.changed, ...u.files.removed])].map((url) => url.replace(bookBase(book), '')).join(', ') : '';
 </script>
 
 {#snippet sections(u: BookUpdate, heading: string, ids: readonly string[], added: boolean)}

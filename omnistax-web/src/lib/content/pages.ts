@@ -8,7 +8,7 @@
    place in the shell marked as <span class="feature" data-feature="…">. The
    fragment is built once per language (about.html, about.zh-CN.html); a
    language with no introduction of its own falls back to English. */
-import { type ByLocale, type Locale, pick, tIn } from '../i18n/index';
+import { type ByLocale, type Locale, localePath, pick, tIn } from '../i18n/index';
 
 const INTRO: ByLocale<string> = {
   en: `
@@ -44,7 +44,7 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
 
   <div class="coda">
     <button type="button" class="btn primary try" data-find-textbook>${esc(t('about.try'))}</button>
-    <a class="btn try" href="/download" target="_blank" rel="noopener" data-download>${esc(t('about.download.title'))}</a>
+    <a class="btn try" href="${localePath('/download/', locale)}" target="_blank" rel="noopener" data-download>${esc(t('about.download.title'))}</a>
   </div>
 </article>`;
 };

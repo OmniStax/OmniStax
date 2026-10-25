@@ -25,7 +25,8 @@ the content format (`contentFormat` in the manifest), so an app deploy leaves
 every download where it was. The catalog's own `artifactId` hashes the app
 build and drives the update notice. A download below `MIN_CONTENT_FORMAT`
 (`src/lib/offline/schema.ts`, mirrored in `public/sw.js`) is not served and is
-offered again as a repair.
+offered again as a repair. Format 2 put a translation's files under
+`/<language>/<source>/`.
 
 Fresh static output cannot preserve prior deployments by itself. For a release
 build, point `OMNISTAX_RELEASE_ARCHIVE_DIR` at the prior deployed output. The

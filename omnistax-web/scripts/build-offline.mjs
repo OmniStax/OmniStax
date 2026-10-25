@@ -3,6 +3,7 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { bookBase } from '../src/lib/content/urls.ts';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
 const mime = (file) => TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
@@ -43,7 +44,7 @@ const mergeArchive = async (archive, out) => {
    src/lib/offline/schema.ts and public/sw.js, when an older download could not be
    read by the new app. Its hash stands where the app's artifact stood in a
    release's path, so downloads move only when the text or the format does. */
-const CONTENT_FORMAT = 1;
+const CONTENT_FORMAT = 2;   /* 2: a translation under /<language>/<source>/ */
 const BOOK_ARTIFACT = sha(Buffer.from(`content-format:${CONTENT_FORMAT}`));
 const FIGURE_EDGE = 1200, FIGURE_QUALITY = 80;
 const FIGURE_ENCODING = `jpeg:q${FIGURE_QUALITY}:${FIGURE_EDGE}`;
@@ -57,7 +58,9 @@ const shrinkFigure = async (rel, body) => {
 const pagesOf = (book) => [book.intro, ...(book.chapters ?? []).flatMap((c) => [c.intro, ...(c.sections ?? []), c.summary]), book.summary].filter(Boolean);
 /* The page a book is opened on offline: its first built page, whose shell reads the address. */
 const shellPageOf = (book) => { const page = pagesOf(book).find((p) => p.built); return page ? `${page.url}index.html` : null; };
-const readBook = async (out, id) => JSON.parse(await fs.readFile(path.join(out, id, 'book.json'), 'utf8'));
+/* A book's folder in the output: its base without slashes, zh-CN/college-physics-2e for a translation. */
+const dirOf = (id) => bookBase(id).slice(1, -1);
+const readBook = async (out, id) => JSON.parse(await fs.readFile(path.join(out, dirOf(id), 'book.json'), 'utf8'));
 
 const materialize = async (source, dest) => {
   await fs.mkdir(path.dirname(dest), { recursive: true });
@@ -99,16 +102,16 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
      runtime and, for each book, the page it opens on and the files it boots on. */
   const bookShellRels = (await Promise.all(bookIds.map(async ({ id }) => {
     const page = shellPageOf(await readBook(out, id));
-    return [...(page ? [page.slice(1)] : []), ...['book.json', 'colours.css'].map((file) => path.join(id, file))];
+    return [...(page ? [page.slice(1)] : []), ...['book.json', 'colours.css'].map((file) => path.join(dirOf(id), file))];
   }))).flat();
   const shellRels = (await Promise.all([...runtimeRels.filter((rel) => rel !== 'sw.js'), ...bookShellRels].map(async (rel) => await fs.stat(path.join(out, rel)).then(() => rel).catch(() => null)))).filter(Boolean);
   const shell = await Promise.all(shellRels.map(async (rel) => { const body = await fs.readFile(path.join(out, rel)); return { url: logicalOf(rel), sha256: sha(body), bytes: body.byteLength }; }));
   await fs.writeFile(path.join(out, 'offline-shell.json'), `${JSON.stringify({ schemaVersion: 1, shellId: canonicalHash(shell.map((row) => [row.url, row.sha256])), resources: shell, totalBytes: shell.reduce((sum, row) => sum + row.bytes, 0) })}\n`);
   const catalog = [];
   for (const { id, dir } of bookIds) {
-    const bookRoot = path.join(out, id); const bookJson = await readBook(out, id);
+    const bookRoot = path.join(out, dirOf(id)); const bookJson = await readBook(out, id);
     const sourceBook = JSON.parse(await fs.readFile(path.join(dir, 'book.json'), 'utf8'));
-    const bookRels = (await walk(bookRoot)).map((file) => path.join(id, file));
+    const bookRels = (await walk(bookRoot)).map((file) => path.join(dirOf(id), file));
     const text = (await Promise.all(bookRels.filter((file) => /\.(?:html|js|json|css)$/.test(file)).map((file) => fs.readFile(path.join(out, file), 'utf8')))).join('\n');
     const mediaMatches = [...text.matchAll(/(\/media\/[^"',\]\s?#\\]+?\.(?:png|jpe?g|gif|svg|webp|avif|mp4|webm))/gi)];
     const mediaUrls = [...new Set(mediaMatches.map((match) => decodeURI(match[1])))];
@@ -162,5 +165,8 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     catalog.push({ id, title: bookJson.title, releaseId, artifactId: BOOK_ARTIFACT, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
   }
   await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), artifactId, books: catalog }, null, 2)}\n`);
+  /* A book whose address is not /<id>/ (a translation) answers its old address with its new one. */
+  const moved = bookIds.map(({ id }) => [id, bookBase(id)]).filter(([id, base]) => base !== `/${id}/`);
+  await fs.writeFile(path.join(out, '_redirects'), moved.map(([id, base]) => `/${id}/* ${base}:splat 301\n/${id} ${base} 301\n`).join(''));
   await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
 }

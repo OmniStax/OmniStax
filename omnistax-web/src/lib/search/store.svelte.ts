@@ -11,6 +11,7 @@ import { parseBookConcepts } from '../practice/books';
 import { bookPagesOf } from '../content/roles';
 import type { BookManifest } from '../content/schema';
 import { bookId } from '../types/ids';
+import { bookBase } from '../content/urls';
 import { parseIndex } from './books';
 import { type Corpus, emptyCorpus } from './model';
 
@@ -53,7 +54,7 @@ class Search {
     this.setStatus(corpus.book, failed ? 'failed' : 'loaded');
   }
   private titleOf(book: string): string { return library.book(book)?.title || book; }
-  private base(book: string): string { return library.book(book)?.url || `/${book}/`; }
+  private base(book: string): string { return library.book(book)?.url || bookBase(book); }
 
   /* Everything off the build beside its pages — the manifest, its text, and its
      concepts with their symbols. A file that failed leaves the rest standing. */

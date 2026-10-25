@@ -18,18 +18,15 @@ export const parseLocale = (s: string | null | undefined): Locale | null => {
   return LOCALES.find((l) => l.toLowerCase() === want) ?? null;
 };
 
-/* The language an address asks for, ?lang=zh-CN, and the query without it, so
-   the address the reader keeps names no language: a link can open the app in
-   one once, and the choice is the reader's from then on. An unknown tag is
-   ignored and left where it is. */
-export const localeOfQuery = (search: string): { readonly locale: Locale | null; readonly rest: string } => {
-  const q = new URLSearchParams(search);
-  const locale = parseLocale(q.get('lang'));
-  if (!locale) return { locale: null, rest: search };
-  q.delete('lang');
-  const rest = q.toString();
-  return { locale, rest: rest ? `?${rest}` : '' };
+/* The language an address is in: /zh-CN/… is Chinese content (a page of the
+   site in Chinese, or a Chinese edition of a book); any other address names
+   none. Its tag is written exactly, as the site writes it. */
+export const localeOfPath = (pathname: string): Locale | null => {
+  const first = pathname.split('/').filter(Boolean)[0];
+  return LOCALES.find((l) => l !== DEFAULT_LOCALE && l === first) ?? null;
 };
+/* An address of the site in a language: /download in English, /zh-CN/download in Chinese. */
+export const localePath = (path: string, locale: Locale): string => (locale === DEFAULT_LOCALE ? path : `/${locale}${path}`);
 
 const languageOf = (tag: string): string => tag.trim().replace(/_/g, '-').split('-')[0].toLowerCase();
 
@@ -47,11 +44,11 @@ export const matchLocale = (languages: readonly string[]): Locale => {
   return DEFAULT_LOCALE;
 };
 
-/* The reader's language at a page with no app running (download.astro): the
-   address's ?lang=, the choice the app remembered (omnistax-lang), the
-   browser's languages, English; the app's store resolves it in the same order. */
-export const readerLocale = (search: string, stored: string | null, languages: readonly string[]): Locale =>
-  localeOfQuery(search).locale ?? parseLocale(stored) ?? matchLocale(languages);
+/* The reader's language: the choice they made in the app (omnistax-lang), else
+   the language of the address they came in by, else their browser's, else
+   English. The app's store (store.svelte.ts) and download.astro both read it so. */
+export const readerLocale = (pathname: string, stored: string | null, languages: readonly string[]): Locale =>
+  parseLocale(stored) ?? localeOfPath(pathname) ?? matchLocale(languages);
 
 /* A text held per language, English always among them. */
 export type ByLocale<T> = { readonly en: T } & Partial<Readonly<Record<Locale, T>>>;

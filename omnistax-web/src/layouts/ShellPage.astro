@@ -10,6 +10,7 @@ import ShellLoader from '../components/ShellLoader.svelte';
 import { config } from '../../omnistax.config';
 import type { BookTree } from '../lib/content/load';
 import type { ItemId } from '../lib/types/ids';
+import { bookBase } from '../lib/content/urls';
 import type { BootUrls } from '../lib/sections/boot';
 import { bookColoursHref } from '../lib/colours/rules';
 
@@ -35,7 +36,7 @@ const colourBook = tree?.manifest.id;
    Every page of a book names the same files, so a reader, and an offline copy,
    holds one of each rather than one inside every page. */
 const ch = chapterDir ? tree?.manifest.chapters.find((c) => c.dir === chapterDir) : undefined;
-const boot: BootUrls = tree ? { manifest: `/${tree.manifest.id}/book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts } } : {}) } : {};
+const boot: BootUrls = tree ? { manifest: `${bookBase(tree.manifest.id)}book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts } } : {}) } : {};
 const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>

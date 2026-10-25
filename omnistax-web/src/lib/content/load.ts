@@ -15,6 +15,7 @@ import type {
 } from './schema';
 import { prerenderMath } from '../math/prerender';
 import { aiByline, frontPageSourceUrl, sectionSourceUrl } from './attribution';
+import { bookBase } from './urls';
 import { type PageLink, type PageNav, bookLocale, figureIds, figureList, linkExerciseRefs, linkFigureRefs, noteExercise, sizedImages } from './fragment';
 import type { Locale } from '../i18n/index';
 import { type MediaRoot, imageSizes } from './mediasize';
@@ -64,16 +65,17 @@ const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unkn
 const readText = (file: string): Promise<string> => fs.readFile(file, 'utf8');
 const exists = (file: string): Promise<boolean> => fs.access(file).then(() => true, () => false);
 
-/* URL conventions: /<book>/<chapterDir>/<section>/ with a fragment, a figure module and chapter data beside it;
-   a chapter's introduction or summary at /<book>/<chapterDir>/intro/, and the book's own at /<book>/intro/. */
-export const sectionUrl = (bookId: string, chapterDir: string, sectionId: string): string => `/${bookId}/${chapterDir}/${sectionId}/`;
-const chapterUrl = (bookId: string, chapterDir: string): string => `/${bookId}/${chapterDir}/`;
+/* URL conventions, under the book's base (bookBase: /<book>/, a translation /<language>/<source>/):
+   <base><chapterDir>/<section>/ with a fragment, a figure module and chapter data beside it;
+   a chapter's introduction or summary at <base><chapterDir>/intro/, and the book's own at <base>intro/. */
+export const sectionUrl = (bookId: string, chapterDir: string, sectionId: string): string => `${bookBase(bookId)}${chapterDir}/${sectionId}/`;
+const chapterUrl = (bookId: string, chapterDir: string): string => `${bookBase(bookId)}${chapterDir}/`;
 /* The address a book's own pages and files stand under. */
-const bookUrl = (bookId: string): string => `/${bookId}/`;
+const bookUrl = (bookId: string): string => bookBase(bookId);
 export const frontPageUrl = (bookId: string, chapterDir: string | null, role: FrontRole): string =>
-  (chapterDir === null ? `/${bookId}/${role}/` : `/${bookId}/${chapterDir}/${role}/`);
+  (chapterDir === null ? `${bookBase(bookId)}${role}/` : `${bookBase(bookId)}${chapterDir}/${role}/`);
 /* A sheet stands at the book's root, beside the chapters rather than inside one. */
-export const sheetUrl = (bookId: string, sheetId: string): string => `/${bookId}/sheets/${sheetId}/`;
+export const sheetUrl = (bookId: string, sheetId: string): string => `${bookBase(bookId)}sheets/${sheetId}/`;
 
 /* ---------- the book's symbols ---------- */
 

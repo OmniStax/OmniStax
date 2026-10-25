@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const OFFLINE_MANIFEST_VERSION = 1 as const;
 /* The oldest book format this app still reads; scripts/build-offline.mjs writes the current one. Keep public/sw.js in step. */
-export const MIN_CONTENT_FORMAT = 1;
+export const MIN_CONTENT_FORMAT = 2;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const bookId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
 const safeUrl = z.string().startsWith('/').refine((value) => {

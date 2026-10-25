@@ -131,8 +131,8 @@
 
   onMount(() => {
     /* The reader's language first, so that everything said from here on, the
-       commands included, is said in it: ?lang= in the address, else the
-       remembered choice, else the browser's (store.svelte.ts). */
+       commands included, is said in it: the remembered choice, else the
+       address's language, else the browser's (store.svelte.ts). */
     const stopLang = i18n.boot({ book: home !== undefined });
     initFig(home ? figBookOf(home) : { id: '', macros: {}, symbols: {}, colorKeys: [] });
     notes.init();
@@ -247,10 +247,18 @@
         }
         const sec = m ? sectionOfUrl(m, pathname) : null;
         if (!sec) { location.assign(href); return; }
+        pushAddress = true;
         await openDoc(sectionRef(at.book, sec), 'text', group, how);
         landAt(at.book, hash);
       });
     };
+    /* Back or Forward: the section the address now names, opened where tabs open. */
+    const onPop = () => {
+      const at = refOfPath(location.pathname); if (!at) return;
+      const pathname = location.pathname;
+      void registry.ensureBook(at.book).then((m) => { const sec = m ? sectionOfUrl(m, pathname) : null; if (sec) void openDoc(sectionRef(at.book, sec), 'text'); });
+    };
+    window.addEventListener('popstate', onPop);
     const onClick = (e: MouseEvent) => {
       clearView(e);
       ui.closeAll();
@@ -289,7 +297,7 @@
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('auxclick', onAux); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { stopAutoPush(); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
+    return () => { stopAutoPush(); window.removeEventListener('popstate', onPop); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
   });
 
   /* settings → document */
@@ -333,13 +341,17 @@
   const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; return addressOf(a ? parseItemKey(a) : null); });
   /* layout → address bar, title, released copies, spy, redraw */
   let urlKey: SecKey | string | null = null;
+  /* A link followed in the text adds a step the browser's Back returns to; a
+     tab chosen only moves the address, so Back never walks the tabs. */
+  let pushAddress = false;
   $effect(() => {
     const l = layoutStore.layout; const at = reading;
     tick().then(() => {
+      const push = pushAddress; pushAddress = false;
       registry.release(new Set(Array.from(document.querySelectorAll<HTMLElement>('.pane article[data-doc], .pane .fig-root'))));
       FIG.redrawAll(); spy.read(activePane(l.focus));
       if (!at || at.key === urlKey) return; urlKey = at.key;
-      try { window.history.replaceState(null, '', at.url); } catch { /* file:// */ }
+      try { if (push) window.history.pushState(null, '', at.url); else window.history.replaceState(null, '', at.url); } catch { /* file:// */ }
       const title = registry.manifest(at.book).title;
       rememberPage(at.book, at.url);
       document.title = at.label === title ? title : `${at.label} · ${title}`;

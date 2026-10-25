@@ -14,6 +14,9 @@ import { attributionOf, citation } from '../lib/content/attribution';
 import { pageLabel } from '../lib/content/roles';
 import { bookId, docItem, sectionId, sectionRef } from '../lib/types/ids';
 import { tIn } from '../lib/i18n/index';
+import { trees } from '../lib/content/paths';
+import { bookBase } from '../lib/content/urls';
+import { bookPagesOf } from '../lib/content/roles';
 
 type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
 const { tree, chapter, section } = Astro.props as Props;
@@ -29,6 +32,10 @@ const description = sec.objectives.join(' ') || plainText(sec.lead) || sec.title
 /* The pages before and after this one among the built pages of the book, in its reading order: the head names them and the text ends on them. */
 const nav = pageNav(tree, section);
 const credit = attributionOf(book, sec);
+/* The same page in every edition of the book that built it, for hreflang: the source and its translations stand at the same place under their own bases. */
+const family = tree.manifest.translationOf ?? tree.manifest.id;
+const editions = (await trees()).filter((t) => (t.manifest.translationOf ?? t.manifest.id) === family && bookPagesOf(t.manifest).some((p) => p.id === sec.id && p.built))
+  .map((t) => ({ lang: t.manifest.language, href: new URL(section.url.replace(bookBase(book.id), bookBase(t.manifest.id)), config.site.baseUrl).href }));
 const ld = {
   '@context': 'https://schema.org', '@type': 'LearningResource', name: label, description, url: canonical,
   isPartOf: { '@type': 'Book', name: book.title, url: book.sourceUrl, author: book.authors.map((name) => ({ '@type': 'Person', name })), publisher: { '@type': 'Organization', name: book.publisher } },
@@ -48,6 +55,7 @@ const ld = {
 >
   <Fragment slot="head">
     <link rel="canonical" href={canonical}>
+    {editions.length > 1 && editions.map((e) => <link rel="alternate" hreflang={e.lang} href={e.href} />)}
     {nav.prev && <link rel="prev" href={nav.prev.url} />}
     {nav.next && <link rel="next" href={nav.next.url} />}
     {book.licenseUrl && <link rel="license" href={book.licenseUrl} />}

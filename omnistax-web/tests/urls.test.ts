@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { refOfPath, resolvePath, sectionOfUrl } from '../src/lib/content/urls';
+import { bookBase, bookOfPath, refOfPath, resolvePath, sectionOfUrl } from '../src/lib/content/urls';
 import {
   chatId, chatItem, drawingId, drawingItem, exItem, fileId, fileItem, itemKey, newChatId, newDrawingId, newFileId,
   bookId, parseItemKey, sectionId, sectionOfItem, sectionRef,
@@ -92,4 +92,15 @@ test('an exercise belongs to its section and the reader’s own things belong to
   assert.equal(sectionOfItem(fileItem(fileId('abcd1234'))), null);
   assert.equal(sectionOfItem(drawingItem(drawingId('abcd1234'))), null);
   assert.equal(sectionOfItem(chatItem(chatId('abcd1234'))), null);
+});
+
+test('a translation stands at /<language>/<source>/, and its address names it back', () => {
+  assert.equal(bookBase('college-physics-2e'), '/college-physics-2e/');
+  assert.equal(bookBase('college-physics-2e-zh-cn'), '/zh-CN/college-physics-2e/');
+  assert.deepEqual(bookOfPath('/zh-CN/college-physics-2e/ch01/1.1/'), { book: 'college-physics-2e-zh-cn', rest: ['ch01', '1.1'] });
+  assert.deepEqual(bookOfPath('/college-physics-2e/ch01/1.1/'), { book: 'college-physics-2e', rest: ['ch01', '1.1'] });
+  assert.equal(bookOfPath('/zh-CN/'), null);
+  assert.equal(bookOfPath('/'), null);
+  assert.deepEqual(refOfPath('/zh-CN/college-physics-2e/ch01/1.1/'), { book: 'college-physics-2e-zh-cn', chapterDir: 'ch01', section: '1.1' });
+  assert.equal(refOfPath('/zh-CN/download/'), null, 'a page of the site in a language is no book');
 });

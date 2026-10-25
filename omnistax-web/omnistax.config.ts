@@ -30,7 +30,7 @@ export const parseConfig = (env: NodeJS.ProcessEnv): OmniStaxConfig => ({
     root: contentRoot(path.resolve(here, str(env, 'OMNISTAX_CONTENT_DIR', '../omnistax-content'))),
     books: parseBooks(str(env, 'OMNISTAX_BOOKS', str(env, 'OMNISTAX_BOOK', ''))),
   },
-  site: { baseUrl: str(env, 'OMNISTAX_BASE_URL', 'https://omnistax.local') },
+  site: { baseUrl: str(env, 'OMNISTAX_BASE_URL', 'https://omnistax.org') },
   build: { threeUrl: str(env, 'OMNISTAX_THREE_URL', '/vendor/three.min.js') },
 });
 

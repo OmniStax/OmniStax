@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CATALOGS, LOCALES, LOCALE_NAMES, currentLocale, localeOfQuery, en, format, matchLocale, onLocaleChange, parseLocale, setCurrentLocale, t, tIn, templateShape, type MessageKey } from '../src/lib/i18n/index';
+import { CATALOGS, LOCALES, LOCALE_NAMES, currentLocale, localeOfPath, localePath, readerLocale, en, format, matchLocale, onLocaleChange, parseLocale, setCurrentLocale, t, tIn, templateShape, type MessageKey } from '../src/lib/i18n/index';
 import { AREAS } from '../src/lib/i18n/en/index';
 import { aboutHtml } from '../src/lib/content/pages';
 import fs from 'node:fs';
@@ -183,9 +183,19 @@ test('the linter counts findings per directory with --summary', () => {
   assert.match(rows.at(-1)!, /^total\s+2$/);
 });
 
-test('an address may ask for a language once: ?lang= is read and taken off the query', () => {
-  assert.deepEqual(localeOfQuery('?lang=zh-CN'), { locale: 'zh-CN', rest: '' });
-  assert.deepEqual(localeOfQuery('?expr=x%5E2&lang=zh-cn'), { locale: 'zh-CN', rest: '?expr=x%5E2' });
-  assert.deepEqual(localeOfQuery('?lang=fr&expr=1'), { locale: null, rest: '?lang=fr&expr=1' });
-  assert.deepEqual(localeOfQuery(''), { locale: null, rest: '' });
+test('an address is in a language by its first segment, written exactly', () => {
+  assert.equal(localeOfPath('/zh-CN/'), 'zh-CN');
+  assert.equal(localeOfPath('/zh-CN/college-physics-2e/ch01/1.1/'), 'zh-CN');
+  assert.equal(localeOfPath('/zh-cn/download'), null);
+  assert.equal(localeOfPath('/college-physics-2e/ch01/1.1/'), null);
+  assert.equal(localeOfPath('/en/'), null, 'English is every address without a language');
+  assert.equal(localePath('/download', 'zh-CN'), '/zh-CN/download');
+  assert.equal(localePath('/download', 'en'), '/download');
+});
+
+test('the reader\'s language: their choice, else the address, else the browser, else English', () => {
+  assert.equal(readerLocale('/zh-CN/', 'en', ['zh-CN']), 'en');
+  assert.equal(readerLocale('/zh-CN/', null, ['en-US']), 'zh-CN');
+  assert.equal(readerLocale('/download', null, ['zh-TW']), 'zh-CN');
+  assert.equal(readerLocale('/download', null, ['fr']), 'en');
 });

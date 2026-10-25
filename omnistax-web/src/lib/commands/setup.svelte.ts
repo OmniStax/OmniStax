@@ -31,6 +31,7 @@ import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
 import { i18n, type LocaleChoice } from '../i18n/store.svelte';
+import { localePath } from '../i18n/index';
 import { library } from '../explorer/library.svelte';
 import { languageName } from '../explorer/editions';
 import { switchEdition, switchableFrom } from '../explorer/editions.svelte';
@@ -211,7 +212,7 @@ export const installCommands = (): void => {
     get desktop() { return host.surface === 'desktop'; },
     get canInstall() { return host.canInstall; },
     install: () => { void host.install(); },
-    download: () => { window.open('/download', '_blank', 'noopener'); },
+    download: () => { window.open(localePath('/download/', i18n.locale), '_blank', 'noopener'); },
   };
   /* The catalogue the editions are read from; fetched once, outside any derivation. */
   void library.load();

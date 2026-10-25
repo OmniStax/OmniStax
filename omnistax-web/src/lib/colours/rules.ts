@@ -2,6 +2,7 @@
    the book's own attribute. A category is coloured on every page. They go into
    the book's colours.css at build time, one link per book in use. */
 import type { BookManifest } from '../content/schema';
+import { bookBase } from '../content/urls';
 
 /* Types follow the reader's Concepts switch: with it off every quantity reads in
    ink, and the sliders that stand for a quantity wear its hue only while it is on.
@@ -16,4 +17,4 @@ const typeRules = (m: BookManifest, book: string): string =>
 const bookScope = (m: BookManifest): string => `[data-book="${m.id}"]`;
 export const bookRulesCss = (m: BookManifest): string => typeRules(m, bookScope(m));
 /* The book's stylesheet: its scheme's tokens and these rules together. */
-export const bookColoursHref = (book: string): string => `/${book}/colours.css`;
+export const bookColoursHref = (book: string): string => `${bookBase(book)}colours.css`;

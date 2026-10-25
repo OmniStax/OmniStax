@@ -1,0 +1,13 @@
+---
+/* A page of the site that stands in every language (the front, /download,
+   /changelog): its own address as canonical, and each language's for hreflang,
+   English the default. */
+import { config } from '../../omnistax.config';
+import { DEFAULT_LOCALE, LOCALES, localePath, type Locale } from '../lib/i18n/index';
+type Props = { path: string; locale: Locale };
+const { path, locale } = Astro.props as Props;
+const at = (l: Locale): string => new URL(localePath(path, l), config.site.baseUrl).href;
+---
+<link rel="canonical" href={at(locale)}>
+{LOCALES.map((l) => <link rel="alternate" hreflang={l} href={at(l)} />)}
+<link rel="alternate" hreflang="x-default" href={at(DEFAULT_LOCALE)} />

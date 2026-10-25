@@ -141,7 +141,7 @@ with sync_playwright() as playwright:
     # reads sandbox. Cross-book practice/search fetches must use that book pin.
     page.evaluate("""async () => {
       const release='c'.repeat(64), artifact='d'.repeat(64), logical='/other/book.json';
-      const manifest={schemaVersion:1,contentFormat:1,book:{id:'other',title:'Other'},releaseId:release,publishedAt:new Date(0).toISOString(),runtime:{artifactId:artifact,compatibleReaderFormat:1},resources:[{logicalUrl:logical,downloadUrl:`/offline/releases/other/${release}/${artifact}/other/book.json`,sha256:'e'.repeat(64),bytes:16,mime:'application/json',role:'data'}],sections:[],totalBytes:16};
+      const manifest={schemaVersion:1,contentFormat:2,book:{id:'other',title:'Other'},releaseId:release,publishedAt:new Date(0).toISOString(),runtime:{artifactId:artifact,compatibleReaderFormat:1},resources:[{logicalUrl:logical,downloadUrl:`/offline/releases/other/${release}/${artifact}/other/book.json`,sha256:'e'.repeat(64),bytes:16,mime:'application/json',role:'data'}],sections:[],totalBytes:16};
       await (await caches.open(`omnistax-book:other:${release}:${artifact}`)).put(logical,new Response('{"offline":true}',{headers:{'Content-Type':'application/json'}}));
       const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-offline');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
       await new Promise((ok,no)=>{const tx=db.transaction('installations','readwrite');tx.objectStore('installations').put({bookId:'other',title:'Other',status:'ready',installedRelease:release,installedArtifact:artifact,manifest,updatedAt:Date.now()});tx.oncomplete=ok;tx.onerror=()=>no(tx.error)});

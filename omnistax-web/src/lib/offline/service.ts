@@ -3,6 +3,7 @@ import { cacheName, deleteInstallation, getInstallation, listInstallations, putI
 import { readableLines, releaseChanges, savedSessionReleaseReferences, sectionChanges, type ReleaseChanges, type SeenRelease } from './model';
 import { liveWorkerPins } from './register';
 import { t } from '../i18n/index';
+import { bookBase } from '../content/urls';
 
 export type InstallProgress = { readonly files: number; readonly totalFiles: number; readonly bytes: number; readonly totalBytes: number };
 export type InstallOptions = { readonly signal?: AbortSignal; readonly progress?: (progress: InstallProgress) => void };
@@ -201,7 +202,7 @@ export const bookUpdate = async (from: SeenRelease, to: BookReleaseManifest): Pr
 };
 /* A section's readable text in one release, from its download when there is one. */
 export const sectionLines = async (manifest: BookReleaseManifest | undefined, section: string): Promise<string[]> => {
-  const doc = manifest?.resources.find((resource) => resource.logicalUrl.startsWith(`/${manifest.book.id}/`) && resource.logicalUrl.endsWith(`/${section}/doc.html`));
+  const doc = manifest?.resources.find((resource) => resource.logicalUrl.startsWith(bookBase(manifest.book.id)) && resource.logicalUrl.endsWith(`/${section}/doc.html`));
   if (!manifest || !doc) return [];
   const saved = 'caches' in globalThis ? await caches.match(doc.logicalUrl, { cacheName: cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId) }) : undefined;
   const response = saved ?? await fetch(doc.downloadUrl);

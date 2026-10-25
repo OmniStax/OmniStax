@@ -13,7 +13,7 @@ import { zhCN } from './zh-CN';
 export type { Catalog, MessageKey } from './en';
 export { en } from './en';
 
-export { LOCALES, LOCALE_NAMES, DEFAULT_LOCALE, parseLocale, localeOfQuery, matchLocale, readerLocale, pick, fragmentUrl, type Locale, type ByLocale } from './locale';
+export { LOCALES, LOCALE_NAMES, DEFAULT_LOCALE, parseLocale, localeOfPath, localePath, matchLocale, readerLocale, pick, fragmentUrl, type Locale, type ByLocale } from './locale';
 import { type Locale, DEFAULT_LOCALE } from './locale';
 export const CATALOGS: Readonly<Record<Locale, Catalog>> = { en, 'zh-CN': zhCN };
 

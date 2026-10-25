@@ -789,11 +789,14 @@ export const checkLanguage: Check = (content) =>
 /* A translation names a book other than itself, and says how it was made; its glossary is a file of its own folder.
    Whether that file is there is for the command, which reads the disk (scripts/check-content.ts). */
 export const checkTranslationMeta: Check = (content) => {
-  const { id, translationOf, translation } = content.book;
+  const { id, translationOf, translation, language } = content.book;
   if (translationOf === undefined) return [];
   const glossary = translation?.glossary;
+  /* The address of a translation follows from its id (bookBase, src/lib/content/urls.ts). */
+  const wanted = language ? `${translationOf}-${language.toLowerCase()}` : null;
   return [
     ...(translationOf === id ? [error('book.json translation_of', `names the book itself ("${id}")`)] : []),
+    ...(wanted && translationOf !== id && id !== wanted ? [error('book.json id', `is "${id}"; a translation's id is its source's with its language after it, "${wanted}", so its pages stand at /${language}/${translationOf}/`)] : []),
     ...(translation === undefined ? [warning('book.json translation', 'is not declared: a translation says who made it, when, from which source and after which glossary')] : []),
     ...(glossary !== undefined && (path.isAbsolute(glossary) || path.normalize(glossary).split(/[\\/]/)[0] === '..')
       ? [warning('book.json translation.glossary', `"${glossary}" is no file of the book's own folder`)] : []),

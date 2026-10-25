@@ -1,0 +1,17 @@
+---
+/* The front of OmniStax in one language, which is the shell with the about
+   page open in it: the same rail, explorer and groups as anywhere else, and
+   the introduction as the one tab the page carries. */
+import ShellPage from './ShellPage.astro';
+import Alternates from './Alternates.astro';
+import { trees } from '../lib/content/paths';
+import { aboutHtml } from '../lib/content/pages';
+import { aboutItem } from '../lib/types/ids';
+import { tIn, type Locale } from '../lib/i18n/index';
+type Props = { locale: Locale };
+const { locale } = Astro.props as Props;
+if ((await trees()).length === 0) throw new Error('this build carries no books: check OMNISTAX_CONTENT_DIR and OMNISTAX_BOOKS');
+---
+<ShellPage own={aboutItem()} pool={aboutHtml(locale)} title={tIn(locale, 'about.title')} description={tIn(locale, 'about.description')} lang={locale}>
+  <Alternates slot="head" path="/" locale={locale} />
+</ShellPage>
