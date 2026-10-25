@@ -57,6 +57,7 @@ export const explorer = {
   'explorer.newDrawing': 'New drawing',
   'explorer.newFolder': 'New folder',
   'explorer.newNote': 'New note',
+  'explorer.row.books': 'OmniBooks',
   'explorer.row.find': 'Find new OmniBooks',
   'explorer.row.reference': 'Reference',
   'explorer.row.yourFiles': 'Your Files',

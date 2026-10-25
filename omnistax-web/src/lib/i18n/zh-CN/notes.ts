@@ -22,6 +22,7 @@ export const notes: Readonly<Record<keyof typeof source, string>> = {
   'notes.card.theModel': '模型',
   'notes.card.you': '你',
   'notes.picker.annotations': '批注',
+  'notes.picker.books': '万象书',
   'notes.picker.chapters': '{n, plural, other {# 章}}',
   'notes.picker.chat': '对话',
   'notes.picker.concept': '概念',

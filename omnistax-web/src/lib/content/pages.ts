@@ -18,7 +18,7 @@ const INTRO: Readonly<Record<Locale, string>> = {
     <p class="intro">OmniStax is forever free and open-source! Make suggestions, spend tokens to help transform or translate a book, all is welcome!</p>`,
   'zh-CN': `
     <p class="intro">万象/OmniStax 把IDE（集成开发环境）的顺手感带到学习里。因此，我称它为第一个 ILE（Integrated Learning Environment，“集成学习环境”）。文字按颜色标好，概念一点就跳，自配一套学习工具：<span class="feature" data-feature="notes">Markdown 笔记</span>、<span class="feature" data-feature="pomodoro">番茄钟</span>、<span class="feature" data-feature="drawer">手绘板</span>、<span class="feature" data-feature="ai">问 AI</span>，<span class="feature" data-feature="exercises">做题库</span>。</p>
-    <p class="intro">OmniStax使用AI改编开源教科书，使静态插图换成了漂亮的动态演示，可以直接拖动、调参数，而原书的文字则完全保留。我们目前提供五本OmniBooks，请开源者们一起开发！</p>`,
+    <p class="intro">OmniStax使用AI改编开源教科书，使静态插图换成了漂亮的动态演示，可以直接拖动、调参数，而原书的文字则完全保留。我们目前提供五本万象书，请开源者们一起开发！</p>`,
 };
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -31,7 +31,7 @@ const GITHUB_MARK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden
    introduction in the author's own words, and a way into the books. */
 export const aboutHtml = (locale: Locale = 'en'): string => {
   const t = (key: Parameters<typeof tIn>[1], params?: Parameters<typeof tIn>[2]): string => tIn(locale, key, params);
-  return `<article class="page" data-page="about">
+  return `<article class="page" data-page="about" lang="${locale}">
   <header>
     <div class="masthead">
       <h1>OmniStax/万象</h1>

@@ -57,12 +57,12 @@ export const whatsNewHtml = (notes: readonly Note[], locale: Locale = 'en'): str
   const own = (n: Note) => (locale === 'zh-CN' && n.zh ? n.zh : n);
   const body = notes.length === 0
     ? `<p>${esc(tIn(locale, 'about.whatsNew.empty'))}</p>`
-    : notes.map((n) => `<section class="note" id="v${esc(n.version)}">
+    : notes.map((n) => `<section class="release" id="v${esc(n.version)}">
     <h2>${esc(own(n).title)}</h2>
     <p class="version">${esc(n.version)}</p>
     ${own(n).html}
   </section>`).join('\n  ');
-  return `<article class="page" data-page="whatsnew">
+  return `<article class="page" data-page="whatsnew" lang="${locale}">
   <header><h1>${esc(tIn(locale, 'about.whatsNew.title'))}</h1></header>
   ${body}
 </article>`;

@@ -25,6 +25,7 @@ export const notes = {
   'notes.card.theModel': 'the model',
   'notes.card.you': 'you',
   'notes.picker.annotations': 'Annotations',
+  'notes.picker.books': 'OmniBooks',
   'notes.picker.chapters': '{n, plural, one {# chapter} other {# chapters}}',
   'notes.picker.chat': 'chat',
   'notes.picker.concept': 'concept',

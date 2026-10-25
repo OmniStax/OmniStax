@@ -230,6 +230,8 @@ class Registry {
     const seen = new Map<SecKey, SectionRef>();
     const next: Record<SecKey, SectionState> = { ...this.sections };
     container.querySelectorAll<HTMLElement>('article[data-page]').forEach((a) => {
+      /* A standing page says its language; one in another than the reader's is passed over, and pageFor fetches theirs. */
+      if ((a.lang || 'en') !== currentLocale()) return;
       if (a.dataset.page === 'about') this.pages = { ...this.pages, [itemKey(aboutItem())]: a };
       if (a.dataset.page === 'whatsnew') this.pages = { ...this.pages, [itemKey(whatsNewItem())]: a };
     });
@@ -330,7 +332,7 @@ class Registry {
     const have = this.pages[k];
     if (have) return have;
     if (!this.loadingPages[k]) {
-      this.loadingPages[k] = getText(page.page === 'whatsnew' ? (currentLocale() === 'zh-CN' ? '/whatsnew.zh-CN.html' : '/whatsnew.html') : '/about.html')
+      this.loadingPages[k] = getText(`/${page.page}${currentLocale() === 'zh-CN' ? '.zh-CN' : ''}.html`)
         .then((text) => { this.adopt(templateOf(text)); })
         .catch(() => { /* the page stays empty; the pane says it is loading */ });
     }

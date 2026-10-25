@@ -13,7 +13,7 @@ export const about: Readonly<Record<keyof typeof source, string>> = {
   'about.notFound.description': '此地址没有页面。',
   'about.notFound.title': '未找到 · OmniStax',
   'about.title': 'OmniStax',
-  'about.try': '试读一本 OmniBook',
+  'about.try': '试读一本万象书',
   'about.whatsNew.empty': '暂无内容。',
   'about.whatsNew.title': 'OmniStax 新功能',
 } as const;

@@ -226,7 +226,7 @@ const entryNodes = (parent: EntryId | null): readonly PickerNode[] =>
 /* The two places the picker opens on. Opening OmniBooks, or searching from the
    top, fetches the focused book's tables, so its things are found at once. */
 export const pickerRoot = (scope: PickerScope = {}): readonly PickerNode[] => [
-  { key: 'books', label: 'OmniBooks', detail: '', children: () => readerBooks().map((b) => bookNode(b, scope)), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
+  { key: 'books', label: t('notes.picker.books'), detail: '', children: () => readerBooks().map((b) => bookNode(b, scope)), load: () => Promise.all(readerBooks().map((b) => registry.ensureBook(b).catch(() => null))).then(() => (focus.book ? loadBook(focus.book) : undefined)) },
   ...(scope.files === false ? [] : [{ key: 'files', label: t('notes.picker.files'), detail: '', children: () => entryNodes(null) }]),
 ];
 

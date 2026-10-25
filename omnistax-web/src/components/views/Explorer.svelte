@@ -199,7 +199,7 @@
     /* A root is open by default, so its key in the expanded set means shut. */
     const booksOpen = !explorer.expanded(ROOT_KEY.books);
     const notesOpen = !explorer.expanded(ROOT_KEY.notes);
-    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: 'OmniBooks', icon: ICON.book, expandable: true, open: booksOpen, dim: false, active: false });
+    out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: i18n.t('explorer.row.books'), icon: ICON.book, expandable: true, open: booksOpen, dim: false, active: false });
     if (booksOpen) explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
       const bookId = e.bookId ?? '';
       const key = bookKey(bookId);
