@@ -10,6 +10,27 @@ const SITE = process.env.OMNISTAX_URL || 'https://omnistax.org';
 const ORIGIN = new URL(SITE).origin;
 const LATEST = 'https://github.com/OmniStax/OmniStax/releases/latest/download';
 
+/* The shell's few words, per language, English the fallback: the rule of
+   omnistax-web/src/lib/i18n/locale.ts. The language is the reader's choice in
+   the app (omnistax-lang), else the system's, matched as matchLocale does: an
+   exact tag, else the same language, else English. */
+const WORDS = {
+  en: { available: 'A new desktop version is available.', download: 'Download', later: 'Later' },
+  'zh-CN': { available: '有新的桌面版可用。', download: '下载', later: '稍后' },
+};
+const localeOf = (tags) => {
+  for (const tag of tags.filter(Boolean)) {
+    const want = tag.replace(/_/g, '-').toLowerCase();
+    const found = Object.keys(WORDS).find((l) => l.toLowerCase() === want) ?? Object.keys(WORDS).find((l) => l.split('-')[0] === want.split('-')[0]);
+    if (found) return found;
+  }
+  return 'en';
+};
+const wordsFor = async (win) => {
+  const chosen = await win?.webContents.executeJavaScript("localStorage.getItem('omnistax-lang')").catch(() => null);
+  return WORDS[localeOf([chosen, ...app.getPreferredSystemLanguages()])];
+};
+
 /* No menu keys on Windows and Linux, so Ctrl+W, Ctrl+R and the rest reach the
    app. A Mac keeps Quit and Hide, and the clipboard roles its text fields need. */
 const menu = () => Menu.setApplicationMenu(process.platform !== 'darwin' ? null : Menu.buildFromTemplate([
@@ -40,7 +61,8 @@ const update = async () => {
   const text = await net.fetch(`${LATEST}/latest.yml`).then((r) => (r.ok ? r.text() : ''));
   const latest = /^version:\s*(\S+)/m.exec(text)?.[1];
   if (!latest || !newer(latest, app.getVersion())) return;
-  const { response } = await dialog.showMessageBox({ message: 'A new desktop version is available.', buttons: ['Download', 'Later'], defaultId: 0, cancelId: 1 });
+  const words = await wordsFor(BrowserWindow.getAllWindows()[0]);
+  const { response } = await dialog.showMessageBox({ message: words.available, buttons: [words.download, words.later], defaultId: 0, cancelId: 1 });
   if (response === 0) void shell.openExternal(`${ORIGIN}/download`);
 };
 

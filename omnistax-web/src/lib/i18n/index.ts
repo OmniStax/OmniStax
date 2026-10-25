@@ -13,51 +13,12 @@ import { zhCN } from './zh-CN';
 export type { Catalog, MessageKey } from './en';
 export { en } from './en';
 
-export const LOCALES = ['en', 'zh-CN'] as const;
-export type Locale = typeof LOCALES[number];
-/* Each name in its own language, never translated. */
-export const LOCALE_NAMES: Readonly<Record<Locale, string>> = { en: 'English', 'zh-CN': '中文（简体）' };
-export const DEFAULT_LOCALE: Locale = 'en';
+export { LOCALES, LOCALE_NAMES, DEFAULT_LOCALE, parseLocale, localeOfQuery, matchLocale, readerLocale, pick, fragmentUrl, type Locale, type ByLocale } from './locale';
+import { type Locale, DEFAULT_LOCALE } from './locale';
 export const CATALOGS: Readonly<Record<Locale, Catalog>> = { en, 'zh-CN': zhCN };
 
 export type Params = Readonly<Record<string, string | number>>;
 export type TFn = (key: MessageKey, params?: Params) => string;
-
-/* A locale of the catalog, by its exact tag, ignoring case (ZH-cn is zh-CN). */
-export const parseLocale = (s: string | null | undefined): Locale | null => {
-  if (!s) return null;
-  const want = s.trim().replace(/_/g, '-').toLowerCase();
-  return LOCALES.find((l) => l.toLowerCase() === want) ?? null;
-};
-
-/* The language an address asks for, ?lang=zh-CN, and the query without it, so
-   the address the reader keeps names no language: a link can open the app in
-   one once, and the choice is the reader's from then on. An unknown tag is
-   ignored and left where it is. */
-export const localeOfQuery = (search: string): { readonly locale: Locale | null; readonly rest: string } => {
-  const q = new URLSearchParams(search);
-  const locale = parseLocale(q.get('lang'));
-  if (!locale) return { locale: null, rest: search };
-  q.delete('lang');
-  const rest = q.toString();
-  return { locale, rest: rest ? `?${rest}` : '' };
-};
-
-const languageOf = (tag: string): string => tag.trim().replace(/_/g, '-').split('-')[0].toLowerCase();
-
-/* The first of the reader's languages the app has a catalog for: an exact tag,
-   else the first catalog of the same language (zh, zh-Hans, zh-TW → zh-CN
-   while it is the only Chinese one); else en. */
-export const matchLocale = (languages: readonly string[]): Locale => {
-  for (const tag of languages) {
-    const exact = parseLocale(tag);
-    if (exact) return exact;
-    const lang = languageOf(tag);
-    const same = LOCALES.find((l) => languageOf(l) === lang);
-    if (same) return same;
-  }
-  return DEFAULT_LOCALE;
-};
 
 /* ---------- templates ---------- */
 

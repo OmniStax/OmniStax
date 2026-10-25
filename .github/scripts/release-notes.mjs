@@ -13,7 +13,7 @@ const DIR = 'omnistax-web/releases/';
 const parent = (() => { try { return git('rev-parse', '--verify', '--quiet', `${after}^`); } catch { return git('hash-object', '-t', 'tree', '/dev/null'); } })();
 const range = /^0+$/.test(before ?? '') || !before ? [parent, after] : [before, after];
 const changed = git('diff', '--name-status', '--diff-filter=AM', ...range, '--', DIR).split('\n').filter(Boolean)
-  .map((line) => line.split('\t')).filter(([, f]) => /^omnistax-web\/releases\/[^/]+\.md$/.test(f) && !f.endsWith('.zh-CN.md'));
+  .map((line) => line.split('\t')).filter(([, f]) => /^omnistax-web\/releases\/[^/]+\.md$/.test(f) && !/\.[a-z]{2,3}(?:-[A-Za-z0-9]+)*\.md$/.test(f));
 
 const read = (file) => {
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(fs.readFileSync(file, 'utf8'));

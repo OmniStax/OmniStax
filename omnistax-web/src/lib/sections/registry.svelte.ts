@@ -22,7 +22,7 @@ import { bookPagesOf, pageLabel, pageRoleOf, pagesOf } from '../content/roles';
 import { chapterConceptsOf } from '../content/bookdata';
 import { parseBookConcepts } from '../practice/books';
 import { HIGHLIGHTS_ON } from '../settings/highlights';
-import { t, currentLocale } from '../i18n/index';
+import { t, currentLocale, fragmentUrl } from '../i18n/index';
 
 /* When the book's own concepts.json is worth fetching over the chapters' own
    files: a chapter file is about a tenth of the book file, so it pays for
@@ -332,7 +332,7 @@ class Registry {
     const have = this.pages[k];
     if (have) return have;
     if (!this.loadingPages[k]) {
-      this.loadingPages[k] = getText(`/${page.page}${currentLocale() === 'zh-CN' ? '.zh-CN' : ''}.html`)
+      this.loadingPages[k] = getText(fragmentUrl(page.page, currentLocale()))
         .then((text) => { this.adopt(templateOf(text)); })
         .catch(() => { /* the page stays empty; the pane says it is loading */ });
     }

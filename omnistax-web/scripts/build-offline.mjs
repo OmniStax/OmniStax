@@ -83,7 +83,9 @@ const writeImmutable = async (dest, body) => {
 
 export async function buildOfflineArtifacts(out, bookIds, archive) {
   await mergeArchive(archive, out);
-  const rootRels = ['index.html', '404.html', 'about.html', 'about.zh-CN.html', 'whatsnew.html', 'whatsnew.zh-CN.html', 'whatsnew.json', 'library.json', 'manifest.webmanifest', 'sw.js'];
+  /* The standing pages' fragments in every language the build wrote (fragmentUrl in src/lib/i18n/locale.ts). */
+  const fragments = (await fs.readdir(out)).filter((file) => /^(?:about|whatsnew)(?:\.[A-Za-z-]+)?\.html$/.test(file));
+  const rootRels = ['index.html', '404.html', ...fragments, 'whatsnew.json', 'library.json', 'manifest.webmanifest', 'sw.js'];
   const runtimeRels = [
     ...(await walk(path.join(out, 'assets'))).map((file) => path.join('assets', file)),
     ...(await walk(path.join(out, 'icons'))).map((file) => path.join('icons', file)),

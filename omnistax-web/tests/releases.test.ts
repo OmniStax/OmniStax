@@ -45,7 +45,7 @@ test('notes read newest first, a Chinese sibling beside its note, a version used
   fs.writeFileSync(path.join(dir, 'two.zh-CN.md'), '---\nversion: 2026.11.7.1\ntitle: 二\n---\n第二');
   const notes = readNotes(dir);
   assert.deepEqual(notes.map((n) => n.version), ['2026.11.7.1', '2026.11.7.0']);
-  assert.equal(notes[0].zh?.title, '二'); assert.equal(notes[1].zh, undefined);
+  assert.equal(notes[0].text['zh-CN']?.title, '二'); assert.equal(notes[1].text['zh-CN'], undefined);
   fs.writeFileSync(path.join(dir, 'three.md'), '---\nversion: 2026.11.7.1\ntitle: Again\n---\n');
   assert.throws(() => readNotes(dir), /2026\.11\.7\.1/);
   assert.deepEqual(readNotes(path.join(dir, 'missing')), []);

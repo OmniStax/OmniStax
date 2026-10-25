@@ -6,12 +6,11 @@
    data-page="about"> that the shell adopts as it adopts a section's article.
    Its introduction is written here per locale, a feature that lights its
    place in the shell marked as <span class="feature" data-feature="…">. The
-   page is static and one for the whole site, so it is English for now (every
-   caller passes no locale); a front page per language is a page that passes
-   its own. */
-import { type Locale, tIn } from '../i18n/index';
+   fragment is built once per language (about.html, about.zh-CN.html); a
+   language with no introduction of its own falls back to English. */
+import { type ByLocale, type Locale, pick, tIn } from '../i18n/index';
 
-const INTRO: Readonly<Record<Locale, string>> = {
+const INTRO: ByLocale<string> = {
   en: `
     <p class="intro">OmniStax/万象 is the first Integrated Learning Environment (ILE). It mimics the user experience of programming IDEs to reduce cognitive friction: color-coded text, concept gotos, and a powerful list of builtin tools—<span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and an <span class="feature" data-feature="exercises">exercise view</span> to practice and track concept progress.</p>
     <p class="intro">The main contribution of OmniStax is our OmniBooks. We transform open-source textbooks using AI, replacing diagrams with beautiful widgets while maintaining the original tone and text. We currently boast five textbooks.</p>
@@ -40,7 +39,7 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
         <span class="name">OmniStax/OmniStax</span>
       </a>
     </div>
-    ${INTRO[locale].trim()}
+    ${pick(INTRO, locale).trim()}
   </header>
 
   <div class="coda">

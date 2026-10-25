@@ -79,7 +79,7 @@ export const shell: Readonly<Record<keyof typeof source, string>> = {
   'shell.update.reload': '重新加载',
   'shell.view.annotations': '批注',
   'shell.view.chats': '对话',
-  'shell.view.colours': '主题',
+  'shell.view.colours': '配色',
   'shell.view.concepts': '概念图',
   'shell.view.exercises': '练习',
   'shell.view.explorer': '资源管理器',

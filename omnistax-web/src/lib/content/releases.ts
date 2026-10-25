@@ -1,15 +1,18 @@
 /* The release notes, read at build time from omnistax-web/releases/: one
    Markdown file per release, its version and title in the front matter, a
    Chinese note optionally beside it as <name>.zh-CN.md. A note that fails the
-   check fails the build (docs/release-plan.md, decisions 6 to 8). */
+   check fails the build (docs/release-plan.md, decisions 6 to 8). A note in
+   another language sits beside its English one as <name>.<locale>.md, e.g.
+   beta.zh-CN.md, and a language without one shows the English note. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { marked } from 'marked';
-import { type Locale, tIn } from '../i18n/index';
+import { type ByLocale, type Locale, LOCALES, DEFAULT_LOCALE, parseLocale, pick, tIn } from '../i18n/index';
 import { compareVersions, VERSION, type Version } from '../releases/version';
 
-export type Note = { readonly version: Version; readonly title: string; readonly desktop: boolean; readonly html: string; readonly zh?: { readonly title: string; readonly html: string } };
+export type NoteText = { readonly title: string; readonly html: string };
+export type Note = { readonly version: Version; readonly title: string; readonly desktop: boolean; readonly html: string; readonly text: ByLocale<NoteText> };
 
 const Front = z.object({ version: z.string().regex(VERSION), title: z.string().min(1), desktop: z.boolean().optional() }).strict();
 const scalar = (raw: string): string | boolean => {
@@ -28,7 +31,7 @@ export const parseNote = (name: string, text: string): Note => {
   const front = Front.safeParse(fields);
   if (!front.success) throw new Error(`releases/${name}: ${front.error.issues.map((i) => `${i.path.join('.') || 'front matter'} ${i.message}`).join('; ')}`);
   const html = (marked.parse(m[2], { async: false }) as string).replace(/(src|href)="(?:\.\/)?images\//g, '$1="/releases/images/');
-  return { version: front.data.version as Version, title: front.data.title, desktop: front.data.desktop ?? false, html };
+  return { version: front.data.version as Version, title: front.data.title, desktop: front.data.desktop ?? false, html, text: { en: { title: front.data.title, html } } };
 };
 
 export const NOTES_DIR = path.resolve(process.cwd(), 'releases');
@@ -38,12 +41,16 @@ export const readNotes = (dir: string = NOTES_DIR): readonly Note[] => {
   if (!fs.existsSync(dir)) return [];
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
   const read = (f: string): Note => parseNote(f, fs.readFileSync(path.join(dir, f), 'utf8'));
-  const notes = files.filter((f) => !f.endsWith('.zh-CN.md')).map((f) => {
-    const note = read(f); const zhFile = f.replace(/\.md$/, '.zh-CN.md');
-    if (!files.includes(zhFile)) return note;
-    const zh = read(zhFile);
-    if (zh.version !== note.version) throw new Error(`releases/${zhFile}: version ${zh.version} is not ${note.version}`);
-    return { ...note, zh: { title: zh.title, html: zh.html } };
+  const localeOf = (f: string) => parseLocale(/\.([^.]+)\.md$/.exec(f)?.[1]);
+  const notes = files.filter((f) => !localeOf(f)).map((f) => {
+    const note = read(f);
+    const others = LOCALES.filter((l) => l !== DEFAULT_LOCALE).flatMap((l) => {
+      const file = f.replace(/\.md$/, `.${l}.md`); if (!files.includes(file)) return [];
+      const other = read(file);
+      if (other.version !== note.version) throw new Error(`releases/${file}: version ${other.version} is not ${note.version}`);
+      return [[l, { title: other.title, html: other.html }] as const];
+    });
+    return { ...note, text: { ...Object.fromEntries(others), en: note.text.en } };
   });
   const seen = new Set<string>();
   for (const n of notes) { if (seen.has(n.version)) throw new Error(`releases: version ${n.version} is used twice`); seen.add(n.version); }
@@ -54,7 +61,7 @@ const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 
 /* The What's new page as a fragment the shell adopts, like the about page. */
 export const whatsNewHtml = (notes: readonly Note[], locale: Locale = 'en'): string => {
-  const own = (n: Note) => (locale === 'zh-CN' && n.zh ? n.zh : n);
+  const own = (n: Note) => pick(n.text, locale);
   const body = notes.length === 0
     ? `<p>${esc(tIn(locale, 'about.whatsNew.empty'))}</p>`
     : notes.map((n) => `<section class="release" id="v${esc(n.version)}">

@@ -1,8 +1,10 @@
 ---
 /* The desktop installers, the visitor's own system first. The files are the
    newest GitHub release that has installers (docs/release-plan.md, decision 9),
-   at names that never change, so the page never does either. */
-import { tIn } from '../lib/i18n/index';
+   at names that never change, so the page never does either. It is built in
+   English and carries its words in every language; the script below puts them
+   in the reader's, chosen as the app chooses (readerLocale). */
+import { LOCALES, tIn } from '../lib/i18n/index';
 const locale = 'en';
 const t = (key: Parameters<typeof tIn>[1], params?: Parameters<typeof tIn>[2]): string => tIn(locale, key, params);
 const RELEASES = 'https://github.com/OmniStax/OmniStax/releases';
@@ -11,6 +13,10 @@ const systems = [
   { id: 'mac', name: 'macOS', file: 'OmniStax.dmg' },
   { id: 'linux', name: 'Linux', file: 'OmniStax.AppImage' },
 ];
+const words = Object.fromEntries(LOCALES.map((l) => [l, {
+  title: tIn(l, 'about.download.title'), older: tIn(l, 'about.download.older'), browser: tIn(l, 'about.download.browser'),
+  ...Object.fromEntries(systems.map((s) => [s.id, tIn(l, 'about.download.for', { os: s.name })])),
+}]));
 ---
 <!doctype html>
 <html lang={locale}>
@@ -37,18 +43,25 @@ const systems = [
 </head>
 <body>
   <main>
-    <h1>{t('about.download.title')}</h1>
+    <h1 data-word="title">{t('about.download.title')}</h1>
     <ul id="systems">
-      {systems.map((s) => <li data-os={s.id}><a class="get" href={`${RELEASES}/latest/download/${s.file}`}>{t('about.download.for', { os: s.name })}</a></li>)}
+      {systems.map((s) => <li data-os={s.id}><a class="get" data-word={s.id} href={`${RELEASES}/latest/download/${s.file}`}>{t('about.download.for', { os: s.name })}</a></li>)}
     </ul>
-    <p class="more"><a href={RELEASES}>{t('about.download.older')}</a><a href="/">{t('about.download.browser')}</a></p>
+    <p class="more"><a data-word="older" href={RELEASES}>{t('about.download.older')}</a><a data-word="browser" href="/">{t('about.download.browser')}</a></p>
   </main>
-  <script is:inline>
-    (function () {
-      var ua = navigator.userAgent, os = /Windows/.test(ua) ? 'windows' : /Mac/.test(ua) ? 'mac' : /Linux|X11/.test(ua) && !/Android/.test(ua) ? 'linux' : null;
-      var li = os && document.querySelector('[data-os="' + os + '"]');
-      if (li) li.parentNode.prepend(li);
-    })();
+  <script type="application/json" id="words" set:html={JSON.stringify(words)}></script>
+  <script>
+    import { readerLocale, type Locale } from '../lib/i18n/locale';
+    const stored = (() => { try { return localStorage.getItem('omnistax-lang'); } catch { return null; } })();
+    const locale: Locale = readerLocale(location.search, stored, navigator.languages ?? [navigator.language]);
+    const words = JSON.parse(document.getElementById('words')?.textContent ?? '{}') as Record<string, Record<string, string>>;
+    document.documentElement.lang = locale;
+    document.querySelectorAll<HTMLElement>('[data-word]').forEach((el) => { el.textContent = words[locale]?.[el.dataset.word ?? ''] ?? el.textContent; });
+    if (words[locale]?.title) document.title = words[locale].title;
+    const ua = navigator.userAgent;
+    const os = /Windows/.test(ua) ? 'windows' : /Mac/.test(ua) ? 'mac' : /Linux|X11/.test(ua) && !/Android/.test(ua) ? 'linux' : null;
+    const li = os ? document.querySelector(`[data-os="${os}"]`) : null;
+    if (li) li.parentElement?.prepend(li);
   </script>
 </body>
 </html>
