@@ -28,7 +28,9 @@ const words = Object.fromEntries(LOCALES.map((l) => [l, {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{t('about.download.title')}</title>
   <meta name="description" content={t('about.download.description')}>
-  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <Alternates path="/download/" locale={locale} />
   <style>
     :root{--ink:#1c1b19;--muted:#6b6862;--rule:#e2dfd8;--panel:#fbfaf7;--bg:#f4f2ed;--accent:#1d4ed8;--on-accent:#fff}
