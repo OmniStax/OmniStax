@@ -13,13 +13,12 @@ import { type Locale, tIn } from '../i18n/index';
 
 const INTRO: Readonly<Record<Locale, string>> = {
   en: `
-    <p class="intro">OmniStax/万象 is the first Integrated Learning Environment (ILE) as it mimics the user experience of programming IDEs to reduce cognitive friction: color-coded text, concept gotos, and a powerful list of builtin tools—<span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and an <span class="feature" data-feature="exercises">exercise view</span> to practice and track concept progress.</p>
+    <p class="intro">OmniStax/万象 is the first Integrated Learning Environment (ILE). It mimics the user experience of programming IDEs to reduce cognitive friction: color-coded text, concept gotos, and a powerful list of builtin tools—<span class="feature" data-feature="notes">markdown notetaker</span>, <span class="feature" data-feature="pomodoro">pomodoro</span>, <span class="feature" data-feature="drawer">free-hand drawer</span>, <span class="feature" data-feature="ai">Ask AI plugin</span>, and an <span class="feature" data-feature="exercises">exercise view</span> to practice and track concept progress.</p>
     <p class="intro">The main contribution of OmniStax is our OmniBooks. We transform open-source textbooks using AI, replacing diagrams with beautiful widgets while maintaining the original tone and text. We currently boast five textbooks.</p>
     <p class="intro">OmniStax is forever free and open-source! Make suggestions, spend tokens to help transform or translate a book, all is welcome!</p>`,
   'zh-CN': `
-    <p class="intro">用过 IDE（集成开发环境）写代码的人都知道，工具顺手了，心思就能全放在问题上。万象/OmniStax 想把这种感觉带到学习里，所以我们管它叫第一个 ILE（Integrated Learning Environment，“集成学习环境”）。文字按颜色标好了，概念点一下就能跳过去，还自带一堆好用的工具：<span class="feature" data-feature="notes">Markdown 笔记</span>、<span class="feature" data-feature="pomodoro">番茄钟</span>、<span class="feature" data-feature="drawer">手绘板</span>、<span class="feature" data-feature="ai">问 AI 插件</span>，还能<span class="feature" data-feature="exercises">做题升级打概念</span>。</p>
-    <p class="intro">万象目前提供五本 OmniBooks。OmniBook 是 AI 改编的开源教科书：静态插图换成了漂亮的动态演示，可以直接拖动、调参数；原书的文字和语气则完全保留。</p>
-    <p class="intro">万象永远免费，永远开源！欢迎帮忙！愿意花点 token 改造或翻译一本书，那就更好了！</p>`,
+    <p class="intro">万象/OmniStax 把IDE（集成开发环境）的顺手感带到学习里。于此，我称它为第一个 ILE（Integrated Learning Environment，“集成学习环境”）。文字按颜色标好，概念一点就跳，自配一套学习工具：<span class="feature" data-feature="notes">Markdown 笔记</span>、<span class="feature" data-feature="pomodoro">番茄钟</span>、<span class="feature" data-feature="drawer">手绘板</span>、<span class="feature" data-feature="ai">问 AI </span>，<span class="feature" data-feature="exercises">做题库</span>。</p>
+    <p class="intro">OmniStax使用AI改编开源教科书，使静态插图换成了漂亮的动态演示，可以直接拖动、调参数，而原书的文字则完全保留。我们目前提供五本OmniBooks，请开源者们一起开发！</p>`,
 };
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

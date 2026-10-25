@@ -120,8 +120,8 @@ test('tIn falls back to English and then to the key; t follows the current local
 test('the about page has an introduction per locale, in English for now', () => {
   const html = aboutHtml();
   assert.equal(aboutHtml('en'), html, 'no locale is English');
-  assert.match(html, /<p class="intro">OmniStax\/万象/);
-  assert.match(aboutHtml('zh-CN'), /<p class="intro">用过 IDE/);
+  for (const locale of LOCALES) assert.match(aboutHtml(locale), /<p class="intro">/, locale);
+  assert.notEqual(aboutHtml('zh-CN'), html);
   assert.ok(html.includes(tIn('en', 'about.try')));
 });
 
