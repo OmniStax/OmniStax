@@ -6,11 +6,13 @@
    language changes. Astro prerenders the shell, so localStorage and navigator
    may be missing here; each read falls back.
 
-   The language in force is readerLocale's (locale.ts): the reader's
-   remembered choice, else the language of the address the page was opened at
-   (/zh-CN/…), else the first of the browser's languages the app has a catalog
-   for, else English. */
+   The language in force is the reader's remembered choice, else the first of
+   the browser's languages the app has a catalog for, else English. The
+   address names a language (/zh-CN/…) only on the reader's first visit ever:
+   then it becomes their choice, so they keep the language they came in by,
+   and later addresses never change it (only Settings does). */
 import { readerWritesAllowed } from '../backup/guard';
+import { firstVisit } from '../firstvisit';
 import { type Locale, type MessageKey, type Params, localeOfPath, matchLocale, parseLocale, setCurrentLocale, tIn } from './index';
 
 export type LocaleChoice = Locale | 'system';
@@ -27,8 +29,8 @@ export const browserLanguages = (): readonly string[] => {
   return navigator.language ? [navigator.language] : [];
 };
 
-/* What the reader gets with no choice of their own: the address's language, else the browser's. */
-const systemLocale = (): Locale => (typeof location === 'undefined' ? null : localeOfPath(location.pathname)) ?? matchLocale(browserLanguages());
+/* What the reader gets with no choice of their own: the browser's language. */
+const systemLocale = (): Locale => matchLocale(browserLanguages());
 
 class I18n {
   choice = $state<LocaleChoice>(readChoice());
@@ -40,7 +42,7 @@ class I18n {
     if (c === 'system') remove(); else write(c);
     setCurrentLocale(this.locale);
   }
-  /* The address's language, else the browser's languages, again after a languagechange. */
+  /* The browser's languages again, after a languagechange. */
   refreshSystem(): void { this.system = systemLocale(); setCurrentLocale(this.locale); }
   /* Called once by the shell as it mounts, before the commands are said. The
      order is what the fields above were read with. A page that carries no book (the front
@@ -48,6 +50,8 @@ class I18n {
      lang> is the reader's; a page of a book keeps the book's. Returns the way
      to stop listening. */
   boot(opts: { readonly book: boolean }): () => void {
+    const arrived = firstVisit && typeof location !== 'undefined' ? localeOfPath(location.pathname) : null;
+    if (arrived && this.choice === 'system') this.setChoice(arrived);
     this.refreshSystem();
     const onChange = (): void => this.refreshSystem();
     if (typeof window !== 'undefined') window.addEventListener('languagechange', onChange);

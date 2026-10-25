@@ -44,9 +44,10 @@ export const matchLocale = (languages: readonly string[]): Locale => {
   return DEFAULT_LOCALE;
 };
 
-/* The reader's language: the choice they made in the app (omnistax-lang), else
-   the language of the address they came in by, else their browser's, else
-   English. The app's store (store.svelte.ts) and download.astro both read it so. */
+/* The language of a page that runs no app (download.astro): the reader's choice
+   in the app (omnistax-lang), else the page's own language, else the browser's,
+   else English. The app itself takes the address's language only on a first
+   visit, as the reader's choice (store.svelte.ts). */
 export const readerLocale = (pathname: string, stored: string | null, languages: readonly string[]): Locale =>
   parseLocale(stored) ?? localeOfPath(pathname) ?? matchLocale(languages);
 

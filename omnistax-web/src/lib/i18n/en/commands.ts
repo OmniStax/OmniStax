@@ -46,6 +46,7 @@ export const commands = {
   'commands.group.layout': 'Layout',
   'commands.group.reading': 'Reading',
   'commands.group.view': 'View',
+  'commands.groupSeparator': ':',
   'commands.hideFigures': 'Hide all figures',
   'commands.host.app': 'an installed app',
   'commands.host.desktop': 'OmniStax desktop',

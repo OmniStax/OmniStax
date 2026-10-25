@@ -106,7 +106,7 @@
         {@const detail = item.detail?.() ?? ''}
         {#if !query.trim() && (i === 0 && used || i === firstAll)}<div class="head">{i18n.t(used ? 'shell.palette.recent' : 'shell.palette.all')}</div>{/if}
         <div class="row" class:sel={i === sel} role="option" aria-selected={i === sel} onmousemove={() => (sel = i)} onclick={() => run(item)}>
-          <span class="grp">{#each pieces(item.group, 0, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
+          <span class="grp">{#each pieces(item.group, 0, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}{i18n.t('commands.groupSeparator')}</span>
           <span class="lbl">{#each pieces(item.label, item.group.length + 1, match.indices) as p}{#if p.hit}<b>{p.t}</b>{:else}{p.t}{/if}{/each}</span>
           {#if detail}<span class="detail">{detail}</span>{/if}
           <span class="keys">{#each keys.chordsFor(item.id) as c (c)}<span class="chord">{#each chordKeys(c) as k}<kbd class="kbd">{k}</kbd>{/each}</span>{/each}</span>
@@ -132,7 +132,6 @@
   .row{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;line-height:1.4}
   .row.sel{background:var(--soft)}
   .grp{color:var(--muted);white-space:nowrap}
-  .grp::after{content:":"}
   .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   b{font-weight:600;color:var(--accent)}
   .detail{color:var(--muted);font-size:0.78rem;white-space:nowrap}

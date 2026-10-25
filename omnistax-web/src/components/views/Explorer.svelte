@@ -376,11 +376,19 @@
   const practiseAt = (t: Target): void => {
     cart.add([t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);
   };
+  /* The address of a place, whole, onto the clipboard: a section's page, else the first built page of the chapter or book. */
+  const copyUrl = async (t: Target): Promise<void> => {
+    const m = await registry.ensureBook(t.book); if (!m) return;
+    const pages = t.level === 'book' ? bookPagesOf(m) : t.level === 'chapter' ? pagesOf(m.chapters.find((c) => c.id === t.chapter) ?? { sections: [] }) : bookPagesOf(m).filter((p) => p.id === t.section);
+    const url = pages.find((p) => p.built)?.url; if (!url) return;
+    await navigator.clipboard.writeText(new URL(url, location.origin).href).catch(() => {});
+  };
   /* The theme is the book's, so only a book's row offers it. */
   const placeItems = (t: Target) => [
     { label: i18n.t('explorer.menu.openConceptMap'), run: () => openPinned('concepts', t) },
     { label: i18n.t('explorer.menu.openReference'), run: () => openPinned('reference', t) },
     { label: i18n.t('explorer.menu.addToSession'), run: () => practiseAt(t) },
+    { label: i18n.t('explorer.menu.copyUrl'), run: () => void copyUrl(t) },
     ...(t.level === 'book' ? [{ label: i18n.t('explorer.menu.theme'), run: () => openPinned('colours', { level: 'book', book: t.book }) }] : []),
   ];
   /* The book's other editions, one item each: the same page opens in the other language. */

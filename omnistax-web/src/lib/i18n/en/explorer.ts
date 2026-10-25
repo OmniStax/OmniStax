@@ -33,6 +33,7 @@ export const explorer = {
   'explorer.importTitle': 'Import {types}',
   'explorer.menu.addToSession': 'Add to Exercise Session',
   'explorer.menu.archiveBook': 'Archive',
+  'explorer.menu.copyUrl': 'Copy URL',
   'explorer.menu.delete': 'Delete',
   'explorer.menu.download': 'Download for offline',
   'explorer.menu.importFiles': 'Import files',

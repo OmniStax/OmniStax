@@ -44,6 +44,7 @@ export const commands: Readonly<Record<keyof typeof source, string>> = {
   'commands.group.layout': '布局',
   'commands.group.reading': '阅读',
   'commands.group.view': '视图',
+  'commands.groupSeparator': '：',
   'commands.hideFigures': '隐藏所有图',
   'commands.host.app': '已安装的应用',
   'commands.host.desktop': 'OmniStax 桌面版',

@@ -31,6 +31,7 @@ export const explorer: Readonly<Record<keyof typeof source, string>> = {
   'explorer.importTitle': '导入 {types}',
   'explorer.menu.addToSession': '加入练习轮',
   'explorer.menu.archiveBook': '归档',
+  'explorer.menu.copyUrl': '复制链接',
   'explorer.menu.delete': '删除',
   'explorer.menu.download': '下载以供离线使用',
   'explorer.menu.importFiles': '导入文件',
