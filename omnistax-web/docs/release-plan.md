@@ -233,6 +233,37 @@ the whole pre-split repository holds it.
       using it) is two pushes, app first, under decision 22's format rule.
     - Images move to object storage only for a book whose repo nears 1 GB.
 
+### A deploy builds only what changed, before beta
+
+Measured 2026-10-25, one local build of five books: `astro check` 29 s,
+`npm test` 152 s (110 s of it the tests that load and check every book on
+disk), the bundle 30 s, the pages 98 s (58 s of it loading the books), the
+offline step 312 s (240 s of it re-encoding all 4,058 JPEGs). Every push,
+of a book or of the app, paid all of it.
+
+25. **A book is built once per (book commit, book builder) and kept.** Its
+    output — the files under its base but the page shells, the media of its
+    folder, its offline release and catalog row, and the record each page
+    shell is rendered from — is stored under
+    `node_modules/.astro/omnistax-books/<key>/`, which Cloudflare's build
+    cache keeps for Astro (7 days from the last read, 10 GB). The key is the
+    commit of the book's repo, the book's folder, and a hash of every app file
+    the book's output is made by, found by following imports from the book's
+    routes, the offline step and the checker, plus `package-lock.json`. Nothing
+    is bumped by hand: change the loader, the maths or the checker and every
+    book is rebuilt once; change the shell, a component or a style and none is.
+    - A book with uncommitted changes is built and never stored.
+    - The page shells (`index.html` of every page and sheet) are the app's:
+      every build renders them from the stored records and the books'
+      `book.json`, so the shell never carries an old bundle's names.
+    - A book is checked when it is built: the on-disk content tests run in the
+      build for the books it builds, and leave `npm test`.
+    - Not GitHub Releases from each book's CI, as first proposed: a change to
+      the builder needs every book rebuilt with no book pushed, so the app build
+      had to build books itself anyway, and the cache is that alone.
+    - A cold cache (a week without a deploy, or the cache cleared) is a full
+      build, about 11 minutes, and correct.
+
 ### Parked
 
 - iOS, Android and tablets.
@@ -254,6 +285,8 @@ the whole pre-split repository holds it.
   command `npm run books && npm run check && npm test && npm run build`, deploy
   command `npx wrangler deploy`. Reconnecting the Worker's repository resets
   these.
+- Keep Build cache on in the Worker's build settings (decision 25); the build
+  log's `content: N book(s) from the store` line says whether it is working.
 
 ## Build order
 

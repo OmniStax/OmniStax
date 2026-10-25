@@ -2,66 +2,36 @@
 /* One page of the book as a static page: metadata for crawlers, the article in
    the document, and the shell mounted on top with that page's text as the item
    the page is. The page is a section, or the introduction or summary a chapter
-   or the book opens or closes on, which share a section's machinery (rule 21);
-   the chapter is null for the book's own pages. Everything the pages of the
-   site share — fonts, colour tokens, the pool, the island — is in ShellPage
+   or the book opens or closes on, which share a section's machinery (rule 21).
+   It is rendered from the page's record (shells.ts) and its doc.html, so a book
+   taken from the store needs no reading of its folder. Everything the pages of
+   the site share — fonts, colour tokens, the pool, the island — is in ShellPage
    beneath this. */
 import ShellPage from './ShellPage.astro';
-import { config } from '../../omnistax.config';
-import { type BookTree, type ChapterTree, type SectionSource, pageNav } from '../lib/content/load';
-import { bookLocale, fragment, plainText } from '../lib/content/fragment';
-import { attributionOf, citation } from '../lib/content/attribution';
-import { pageLabel } from '../lib/content/roles';
-import { bookId, docItem, sectionId, sectionRef } from '../lib/types/ids';
-import { tIn } from '../lib/i18n/index';
-import { trees } from '../lib/content/paths';
-import { bookBase } from '../lib/content/urls';
-import { bookPagesOf } from '../lib/content/roles';
+import type { BookManifest } from '../lib/content/schema';
+import type { Edition, PageShell } from '../lib/content/shells';
 
-type Props = { tree: BookTree; chapter: ChapterTree | null; section: SectionSource };
-const { tree, chapter, section } = Astro.props as Props;
-const book = tree.dto;
-const sec = section.meta;
-/* What the build writes beside the book's words is in the book's language, not the reader's. */
-const locale = bookLocale(book);
-const canonical = new URL(section.url, config.site.baseUrl).href;
-const label = pageLabel(sec, locale);
-const title = tIn(locale, 'content.pageTitle', { page: label, book: book.title });
-/* The lead is swept for math on the way in, so the head's description takes it back to plain text. */
-const description = sec.objectives.join(' ') || plainText(sec.lead) || sec.title;
-/* The pages before and after this one among the built pages of the book, in its reading order: the head names them and the text ends on them. */
-const nav = pageNav(tree, section);
-const credit = attributionOf(book, sec);
-/* The same page in every edition of the book that built it, for hreflang: the source and its translations stand at the same place under their own bases. */
-const family = tree.manifest.translationOf ?? tree.manifest.id;
-const editions = (await trees()).filter((t) => (t.manifest.translationOf ?? t.manifest.id) === family && bookPagesOf(t.manifest).some((p) => p.id === sec.id && p.built))
-  .map((t) => ({ lang: t.manifest.language, href: new URL(section.url.replace(bookBase(book.id), bookBase(t.manifest.id)), config.site.baseUrl).href }));
-const ld = {
-  '@context': 'https://schema.org', '@type': 'LearningResource', name: label, description, url: canonical,
-  isPartOf: { '@type': 'Book', name: book.title, url: book.sourceUrl, author: book.authors.map((name) => ({ '@type': 'Person', name })), publisher: { '@type': 'Organization', name: book.publisher } },
-  isBasedOn: credit.sourceUrl, license: book.licenseUrl ?? book.license, creditText: citation(credit, locale),
-  educationalLevel: 'Undergraduate', learningResourceType: tIn(locale, 'content.ld.resourceType'),
-  teaches: chapter ? chapter.concepts.concepts.filter((c) => c.section === sec.id && c.status === 'built').map((c) => c.name) : [],
-};
+type Props = { manifest: BookManifest; shell: PageShell; pool: string; editions: readonly Edition[] };
+const { manifest, shell, pool, editions } = Astro.props as Props;
 ---
 <ShellPage
-  tree={tree}
-  own={docItem(sectionRef(bookId(book.id), sectionId(sec.id)), 'text')}
-  pool={fragment(book, chapter?.dto ?? null, section, nav, locale)}
-  title={title}
-  description={description}
-  chapterDir={chapter?.dto.dir}
-  lang={tree.manifest.language}
+  manifest={manifest}
+  own={shell.own}
+  pool={pool}
+  title={shell.title}
+  description={shell.description}
+  chapterDir={shell.chapterDir}
+  lang={shell.lang}
 >
   <Fragment slot="head">
-    <link rel="canonical" href={canonical}>
+    <link rel="canonical" href={shell.canonical}>
     {editions.length > 1 && editions.map((e) => <link rel="alternate" hreflang={e.lang} href={e.href} />)}
-    {nav.prev && <link rel="prev" href={nav.prev.url} />}
-    {nav.next && <link rel="next" href={nav.next.url} />}
-    {book.licenseUrl && <link rel="license" href={book.licenseUrl} />}
-    <script type="application/ld+json" set:html={JSON.stringify(ld)}></script>
+    {shell.prev && <link rel="prev" href={shell.prev} />}
+    {shell.next && <link rel="next" href={shell.next} />}
+    {shell.license && <link rel="license" href={shell.license} />}
+    <script type="application/ld+json" set:html={JSON.stringify(shell.ld)}></script>
   </Fragment>
   <Fragment slot="scripts">
-    <script is:inline src={`${section.url}figures.js`}></script>
+    <script is:inline src={`${shell.url}figures.js`}></script>
   </Fragment>
 </ShellPage>

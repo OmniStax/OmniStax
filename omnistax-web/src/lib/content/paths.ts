@@ -2,14 +2,17 @@
    build carries every book the configuration names, so each helper walks all
    of them and the `book` parameter of every route says which one a page is
    from. */
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { config } from '../../../omnistax.config';
-import { bookTrees } from './load';
+import type { BookSelection } from '../../../omnistax.config';
+import { bookTrees, pageNav } from './load';
 import type { BookTree, ChapterTree, SectionSource, SheetSource } from './load';
+import type { BookManifest } from './schema';
 import { type FrontRole, pageDir, pagesOf } from './roles';
-import { bookBase } from './urls';
-
-/* The [...book] route segment: the book's base without its slashes, zh-CN/college-physics-2e for a translation. */
-const segment = (id: string): string => bookBase(id).slice(1, -1);
+import { bookLocale, fragment } from './fragment';
+import { type Edition, type Shell, type ShellRoute, bookPages, bookShells, editionsOf, segment } from './shells';
+import { STORED_OUT, STORED_SHELLS, buildPlan } from './stored';
 
 /* One page of the book as a route: a section or a chapter's own introduction
    or summary, whose chapter is beside it, or one of the book's own pages,
@@ -24,8 +27,52 @@ export type ChapterRoute = { params: { book: string; chapter: string }; props: {
 export type SheetProps = { tree: BookTree; sheet: SheetSource };
 export type SheetRoute = { params: { book: string; sheet: string }; props: SheetProps };
 
-/* Every book of this build, in the order the configuration puts them in. */
-export const trees = (): Promise<readonly BookTree[]> => bookTrees(config.content.root, config.content.books);
+/* The books this build makes from their folders: all it carries but those it takes from the store (stored.ts). */
+const builtBooks = (): BookSelection => {
+  const plan = buildPlan();
+  return plan ? { kind: 'named', ids: plan.books.filter((b) => b.stored === null).map((b) => b.id) } : config.content.books;
+};
+/* Every book this build makes, in the order the configuration puts them in. */
+export const trees = (): Promise<readonly BookTree[]> => bookTrees(config.content.root, builtBooks());
+
+/* A stored book as the build reads it back: its manifest and its shells, and the folder its files stand in. */
+type StoredBook = { readonly manifest: BookManifest; readonly shells: readonly Shell[]; readonly out: string };
+const readStored = async (entry: string, id: string): Promise<StoredBook> => ({
+  manifest: JSON.parse(await fs.readFile(path.join(entry, STORED_OUT, segment(id), 'book.json'), 'utf8')) as BookManifest,
+  shells: JSON.parse(await fs.readFile(path.join(entry, STORED_SHELLS), 'utf8')) as Shell[],
+  out: path.join(entry, STORED_OUT),
+});
+let storedRead: Promise<ReadonlyMap<string, StoredBook>> | null = null;
+const storedBooks = (): Promise<ReadonlyMap<string, StoredBook>> => (storedRead ??= Promise.all((buildPlan()?.books ?? [])
+  .flatMap((b) => (b.stored === null ? [] : [readStored(b.stored, b.id).then((s) => [b.id as string, s] as const)]))).then((rows) => new Map(rows)));
+
+/* Every book this build carries, made or stored, in the configuration's order: what the catalogue and the editions of a page read. */
+export const manifests = async (): Promise<readonly BookManifest[]> => {
+  const made = new Map((await trees()).map((t) => [t.manifest.id as string, t.manifest]));
+  const stored = await storedBooks();
+  const order = buildPlan()?.books.map((b) => b.id as string) ?? [...made.keys()];
+  return order.flatMap((id) => { const m = made.get(id) ?? stored.get(id)?.manifest; return m ? [m] : []; });
+};
+
+/* Every page shell of one kind across the books this build carries: a made
+   book's from its tree, a stored book's from its records, its text read back
+   from the doc.html the store keeps beside them. */
+export type ShellProps = { manifest: BookManifest; shell: Shell; pool: string; editions: readonly Edition[] };
+export type ShellRouteOf = { params: Readonly<Record<string, string>>; props: ShellProps };
+export const shellRoutes = (route: ShellRoute) => async (): Promise<ShellRouteOf[]> => {
+  const all = await manifests();
+  const editions = (manifest: BookManifest, shell: Shell): readonly Edition[] => (shell.route === 'sheet' ? [] : editionsOf(all, manifest, shell));
+  const made = (await trees()).flatMap((tree) => {
+    const texts = new Map(bookPages(tree).map(({ chapter, section }) => [section.url, () => fragment(tree.dto, chapter?.dto ?? null, section, pageNav(tree, section), bookLocale(tree.dto))]));
+    return bookShells(tree).filter((s) => s.route === route)
+      .map((shell) => ({ params: shell.params, props: { manifest: tree.manifest, shell, pool: shell.route === 'sheet' ? shell.pool : texts.get(shell.url)!(), editions: editions(tree.manifest, shell) } }));
+  });
+  const stored = await Promise.all([...(await storedBooks()).values()].flatMap((b) => b.shells.filter((s) => s.route === route).map(async (shell) => ({
+    params: shell.params,
+    props: { manifest: b.manifest, shell, pool: shell.route === 'sheet' ? shell.pool : await fs.readFile(path.join(b.out, shell.url, 'doc.html'), 'utf8'), editions: editions(b.manifest, shell) },
+  }))));
+  return [...made, ...stored];
+};
 
 /* One route per book: the book's own page and the files served beside it. */
 export const bookRoutes = async (): Promise<BookRoute[]> =>

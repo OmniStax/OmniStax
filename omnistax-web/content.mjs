@@ -7,9 +7,12 @@
    several merges their media folders and says so if two books name one file.
    `public/` keeps only what belongs to the app itself: icons, the manifest and
    the vendored three.js. */
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bumpContent } from './src/lib/content/version.ts';
+import { bookBase } from './src/lib/content/urls.ts';
+import { STORED_OUT, STORED_ROW, pruneStore, storeBook } from './src/lib/content/stored.ts';
 import { buildOfflineArtifacts } from './scripts/build-offline.mjs';
 
 const TYPES = {
@@ -60,11 +63,21 @@ const copyMedia = async (mediaRoots, out) => {
   }
 };
 
-/* `books` are the folders of the books this build carries, under `root`, and
-   `mediaRoots` the media folders it serves and copies, first wins: each book's
-   own and, for a translation, its source's, which the translation's pages name
-   (mediaDirsOf in load.ts). Left out, each book's own folder. */
-export default function content(root, books, mediaRoots = books.map((dir) => path.join(dir, 'media'))) {
+/* The books' own files of a build, without the page shells every build renders:
+   what the store keeps of a book (decision 25 of docs/release-plan.md). */
+const bookFiles = async (out, id, shells) => {
+  const base = bookBase(id).slice(1, -1);
+  const pages = new Set(shells.map((s) => path.join(s.url.slice(1), 'index.html')));
+  return (await filesUnder(path.join(out, base))).map((f) => path.join(base, f)).filter((f) => !pages.has(f));
+};
+
+/* `plan` is the books this build carries, under `root`, and which of them it
+   takes from the store (stored.ts); `mediaRoots` the media folders it serves
+   and copies, first wins: each book's own and, for a translation, its
+   source's, which the translation's pages name (mediaDirsOf in load.ts).
+   `cacheDir` is Astro's, which Cloudflare's build cache keeps. */
+export default function content(root, plan, mediaRoots, cacheDir) {
+  const made = plan.books.filter((b) => b.stored === null);
   return {
     name: 'omnistax-content',
     hooks: {
@@ -85,10 +98,35 @@ export default function content(root, books, mediaRoots = books.map((dir) => pat
           res.end(found.body);
         });
       },
+      /* A book is checked when it is built to be stored, so the store holds no
+         book that failed; a book with uncommitted changes is work in progress,
+         checked by whoever is writing it. */
+      'astro:build:start': () => {
+        const checked = made.filter((b) => b.key !== null).map((b) => b.id);
+        if (checked.length === 0) return;
+        console.log(`content: checking ${checked.join(', ')}`);
+        execFileSync(process.execPath, ['--test', '--import', 'tsx', 'tests/books/on-disk.test.ts'], { stdio: 'inherit', env: { ...process.env, OMNISTAX_BOOKS: checked.join(',') } });
+      },
       'astro:build:done': async ({ dir }) => {
-        await copyMedia(mediaRoots, path.join(dir.pathname, 'media'));
-        const indexed = await Promise.all(books.map(async (book) => ({ id: JSON.parse(await fs.readFile(path.join(book, 'book.json'), 'utf8')).id, dir: book })));
-        await buildOfflineArtifacts(dir.pathname, indexed, process.env.OMNISTAX_RELEASE_ARCHIVE_DIR);
+        const out = dir.pathname;
+        for (const b of plan.books) if (b.stored !== null) await fs.cp(path.join(b.stored, STORED_OUT), out, { recursive: true });
+        await copyMedia(mediaRoots, path.join(out, 'media'));
+        const shells = new Map(await Promise.all(made.map(async (b) => {
+          const file = path.join(out, bookBase(b.id).slice(1, -1), 'shells.json');
+          const held = JSON.parse(await fs.readFile(file, 'utf8'));
+          await fs.rm(file);
+          return [b.id, held];
+        })));
+        const books = await Promise.all(plan.books.map(async (b) => ({ id: b.id, dir: b.dir, row: b.stored === null ? null : JSON.parse(await fs.readFile(path.join(b.stored, STORED_ROW), 'utf8')) })));
+        const rows = await buildOfflineArtifacts(out, books, process.env.OMNISTAX_RELEASE_ARCHIVE_DIR, { figureCache: path.join(cacheDir, 'omnistax-figures') });
+        for (const b of made.filter((m) => m.key !== null)) {
+          const row = rows.get(b.id);
+          const release = path.dirname(row.manifestUrl.slice(1));
+          const offline = (await filesUnder(path.join(out, release))).map((f) => path.join(release, f));
+          await storeBook(path.join(plan.store, b.key), out, [...await bookFiles(out, b.id, shells.get(b.id)), ...offline], shells.get(b.id), row);
+        }
+        await pruneStore(plan);
+        console.log(`content: ${plan.books.length - made.length} book(s) from the store, ${made.length} built: ${made.map((b) => b.id).join(', ') || 'none'}`);
       },
     },
   };

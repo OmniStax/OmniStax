@@ -8,14 +8,14 @@ import 'katex/dist/katex.min.css';
 import '../styles/global.css';
 import ShellLoader from '../components/ShellLoader.svelte';
 import { config } from '../../omnistax.config';
-import type { BookTree } from '../lib/content/load';
+import type { BookManifest } from '../lib/content/schema';
 import type { ItemId } from '../lib/types/ids';
 import { bookBase } from '../lib/content/urls';
 import type { BootUrls } from '../lib/sections/boot';
 import { bookColoursHref } from '../lib/colours/rules';
 
 export type Props = {
-  tree?: BookTree;              /* the book the shell boots on; the front of OmniStax and the 404 page stand in none */
+  manifest?: BookManifest;      /* the book the shell boots on; the front of OmniStax and the 404 page stand in none */
   own?: ItemId;                 /* what this page is: the item the shell opens and keeps open; the 404 page has none */
   pool: string;                 /* the static HTML the registry adopts on mount */
   title: string;
@@ -23,20 +23,20 @@ export type Props = {
   chapterDir?: string;
   lang?: string;                /* the language of the page's content, a BCP 47 tag: the book's language on a page of a book */
 };
-const { tree, own, pool, title, description, chapterDir, lang = 'en' } = Astro.props as Props;
+const { manifest, own, pool, title, description, chapterDir, lang = 'en' } = Astro.props as Props;
 /* Colour is a function of type. The book declares its quantities and the app
    dresses them from its scheme: the book's colours.css carries the scheme's
    tokens and which classes wear them, scoped to the book, one file for every
    page of it; another book's file is linked beside it when the reader opens
    one of its pages. The shell's own style element comes after it in the head,
    so the colours the reader has chosen win over it. */
-const colourBook = tree?.manifest.id;
+const colourBook = manifest?.id;
 /* The island gets only what is small: where the manifest and the chapter's
    concepts live, which the loader fetches (src/lib/sections/boot.ts).
    Every page of a book names the same files, so a reader, and an offline copy,
    holds one of each rather than one inside every page. */
-const ch = chapterDir ? tree?.manifest.chapters.find((c) => c.dir === chapterDir) : undefined;
-const boot: BootUrls = tree ? { manifest: `${bookBase(tree.manifest.id)}book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts } } : {}) } : {};
+const ch = chapterDir ? manifest?.chapters.find((c) => c.dir === chapterDir) : undefined;
+const boot: BootUrls = manifest ? { manifest: `${bookBase(manifest.id)}book.json`, ...(ch ? { chapter: { dir: ch.dir, concepts: ch.concepts } } : {}) } : {};
 const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 ---
 <!doctype html>
@@ -60,7 +60,7 @@ const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 {boot.chapter && <link rel="preload" href={boot.chapter.concepts} as="fetch" crossorigin="anonymous">}
 <script is:inline>document.documentElement.classList.add('js');try{var t=localStorage.getItem('omnistax-theme');if(t==="dark"||t==="light")document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <!-- The book's underlines (highlights.ts), before the first paint as the theme is. -->
-{tree && <script is:inline define:vars={{ hlKey: `omnistax-highlights-${tree.manifest.id}`, hlOn: tree.manifest.highlights.underlines }}>try{var h=JSON.parse(localStorage.getItem(hlKey)||'{}');if((typeof h.underlines==='boolean'?h.underlines:hlOn)===false)document.documentElement.classList.add('no-underlines')}catch(e){}</script>}
+{manifest && <script is:inline define:vars={{ hlKey: `omnistax-highlights-${manifest.id}`, hlOn: manifest.highlights.underlines }}>try{var h=JSON.parse(localStorage.getItem(hlKey)||'{}');if((typeof h.underlines==='boolean'?h.underlines:hlOn)===false)document.documentElement.classList.add('no-underlines')}catch(e){}</script>}
 <slot name="head" />
 </head>
 <body>

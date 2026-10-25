@@ -6,8 +6,9 @@ top and composes sections, views and exercises into a VS Code-like layout.
 ```
 npm install
 npm run dev          # http://localhost:4321, hot reload for components and for content edits
-npm run build        # dist/, one directory per section
+npm run build        # dist/, one directory per section; a book unchanged since the last build comes from node_modules/.astro/omnistax-books
 npm test             # pure modules: layout model, answer checking
+npm run test:books   # every rule over the books on disk (OMNISTAX_BOOKS=<id>,… for some); the build runs it for each book it stores
 npm run check        # astro check (TypeScript + Svelte)
 python3 tests/e2e.py # browser scenarios against a served dist/ (Playwright for Python; a base URL may follow)
 ```

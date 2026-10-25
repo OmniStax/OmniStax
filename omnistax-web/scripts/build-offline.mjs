@@ -48,10 +48,16 @@ const CONTENT_FORMAT = 2;   /* 2: a translation under /<language>/<source>/ */
 const BOOK_ARTIFACT = sha(Buffer.from(`content-format:${CONTENT_FORMAT}`));
 const FIGURE_EDGE = 1200, FIGURE_QUALITY = 80;
 const FIGURE_ENCODING = `jpeg:q${FIGURE_QUALITY}:${FIGURE_EDGE}`;
-const shrinkFigure = async (rel, body) => {
+/* Re-encoding is the slow part of the step, so a figure once shrunk is kept
+   under `cache` by the hash of the file it came from and the encoding.
+   ponytail: the cache is never pruned; a figure replaced leaves its old copy. */
+const shrinkFigure = async (rel, body, cache) => {
   if (!/\.jpe?g$/i.test(rel)) return body;
-  const sharp = createRequire(import.meta.url)('sharp');
-  const smaller = await sharp(body).rotate().resize({ width: FIGURE_EDGE, height: FIGURE_EDGE, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: FIGURE_QUALITY, mozjpeg: true }).toBuffer().catch(() => body);
+  const kept = cache ? path.join(cache, `${sha(body)}-${FIGURE_ENCODING.replaceAll(':', '-')}.jpg`) : null;
+  const held = kept ? await fs.readFile(kept).catch(() => null) : null;
+  const sharp = held ? null : createRequire(import.meta.url)('sharp');
+  const smaller = held ?? await sharp(body).rotate().resize({ width: FIGURE_EDGE, height: FIGURE_EDGE, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: FIGURE_QUALITY, mozjpeg: true }).toBuffer().catch(() => body);
+  if (kept && !held) { await fs.mkdir(cache, { recursive: true }); await fs.writeFile(kept, smaller); }
   return smaller.byteLength < body.byteLength ? smaller : body;
 };
 /* Every page of the book in reading order, as book.json lists them. */
@@ -84,7 +90,11 @@ const writeImmutable = async (dest, body) => {
   await fs.writeFile(dest, body, { flag: 'wx' });
 };
 
-export async function buildOfflineArtifacts(out, bookIds, archive) {
+/* `bookIds` are the books the build carries, each with the catalog row the
+   store kept for it where it was taken from there (decision 25): its release is
+   already in `out`, so only the books made here are released. Returns the rows
+   it made, by book. */
+export async function buildOfflineArtifacts(out, bookIds, archive, { figureCache } = {}) {
   await mergeArchive(archive, out);
   /* The standing pages' fragments in every language the build wrote (fragmentUrl in src/lib/i18n/locale.ts). */
   const fragments = (await fs.readdir(out)).filter((file) => /^(?:about|whatsnew)(?:\.[A-Za-z-]+)?\.html$/.test(file));
@@ -108,7 +118,9 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
   const shell = await Promise.all(shellRels.map(async (rel) => { const body = await fs.readFile(path.join(out, rel)); return { url: logicalOf(rel), sha256: sha(body), bytes: body.byteLength }; }));
   await fs.writeFile(path.join(out, 'offline-shell.json'), `${JSON.stringify({ schemaVersion: 1, shellId: canonicalHash(shell.map((row) => [row.url, row.sha256])), resources: shell, totalBytes: shell.reduce((sum, row) => sum + row.bytes, 0) })}\n`);
   const catalog = [];
-  for (const { id, dir } of bookIds) {
+  const made = new Map();
+  for (const { id, dir, row } of bookIds) {
+    if (row) { catalog.push(row); continue; }
     const bookRoot = path.join(out, dirOf(id)); const bookJson = await readBook(out, id);
     const sourceBook = JSON.parse(await fs.readFile(path.join(dir, 'book.json'), 'utf8'));
     const bookRels = (await walk(bookRoot)).map((file) => path.join(dirOf(id), file));
@@ -144,7 +156,7 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
       const source = path.join(out, rel); const logicalUrl = logicalOf(rel);
       const downloadUrl = `/offline/releases/${encodeURIComponent(id)}/${releaseId}/${BOOK_ARTIFACT}/${rel.split(path.sep).join('/')}`;
       const original = await fs.readFile(source);
-      const body = media.has(rel) ? await shrinkFigure(rel, original) : original;
+      const body = media.has(rel) ? await shrinkFigure(rel, original, figureCache) : original;
       if (body === original) await materialize(source, path.join(out, downloadUrl.slice(1)));
       else await writeImmutable(path.join(out, downloadUrl.slice(1)), body);
       resources.push({ logicalUrl, downloadUrl, sha256: sha(body), bytes: body.byteLength, mime: mime(rel), role: role(logicalUrl) });
@@ -162,11 +174,13 @@ export async function buildOfflineArtifacts(out, bookIds, archive) {
     const manifest = { schemaVersion: 1, contentFormat: CONTENT_FORMAT, book: { id, title: bookJson.title }, releaseId, publishedAt: releasePublishedAt, ...(typeof authoredNotes === 'string' && authoredNotes.trim() ? { releaseNotes: authoredNotes.trim() } : {}), runtime: { artifactId: BOOK_ARTIFACT, compatibleReaderFormat: 1 }, resources, sections, totalBytes: resources.reduce((sum, item) => sum + item.bytes, 0) };
     const manifestRel = `offline/releases/${id}/${releaseId}/${BOOK_ARTIFACT}/manifest.json`;
     await writeImmutable(path.join(out, manifestRel), Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
-    catalog.push({ id, title: bookJson.title, releaseId, artifactId: BOOK_ARTIFACT, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes });
+    const madeRow = { id, title: bookJson.title, releaseId, artifactId: BOOK_ARTIFACT, publishedAt: manifest.publishedAt, manifestUrl: `/${manifestRel}`, totalBytes: manifest.totalBytes };
+    catalog.push(madeRow); made.set(id, madeRow);
   }
   await fs.writeFile(path.join(out, 'offline-catalog.json'), `${JSON.stringify({ schemaVersion: 1, generatedAt: publishedAt(), artifactId, books: catalog }, null, 2)}\n`);
   /* A book whose address is not /<id>/ (a translation) answers its old address with its new one. */
   const moved = bookIds.map(({ id }) => [id, bookBase(id)]).filter(([id, base]) => base !== `/${id}/`);
   await fs.writeFile(path.join(out, '_redirects'), moved.map(([id, base]) => `/${id}/* ${base}:splat 301\n/${id} ${base} 301\n`).join(''));
   await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
+  return made;
 }

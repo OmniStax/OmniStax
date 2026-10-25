@@ -12,6 +12,7 @@
     "docs:content": "tsx scripts/docs-content.ts",
     "colours:default": "tsx scripts/colours-default.ts",
     "test": "node --test --import tsx tests/*.test.ts",
+    "test:books": "node --test --import tsx tests/books/*.test.ts",
     "lint:i18n": "node scripts/i18n-lint.mjs",
     "books": "node scripts/books.mjs",
     "postinstall": "node scripts/books.mjs"

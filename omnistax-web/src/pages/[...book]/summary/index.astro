@@ -4,9 +4,10 @@
    section is. A literal route wins over [chapter], so /<book>/summary/ is this
    page and never a chapter called summary. */
 import Page from '../../../layouts/Page.astro';
-import { frontRoutes } from '../../../lib/content/paths';
-import type { PageProps } from '../../../lib/content/paths';
-export const getStaticPaths = frontRoutes('summary');
-const { tree, chapter, section } = Astro.props as PageProps;
+import { shellRoutes } from '../../../lib/content/paths';
+import type { ShellProps } from '../../../lib/content/paths';
+import type { PageShell } from '../../../lib/content/shells';
+export const getStaticPaths = shellRoutes('summary');
+const { manifest, shell, pool, editions } = Astro.props as ShellProps;
 ---
-<Page tree={tree} chapter={chapter} section={section} />
+<Page manifest={manifest} shell={shell as PageShell} pool={pool} editions={editions} />

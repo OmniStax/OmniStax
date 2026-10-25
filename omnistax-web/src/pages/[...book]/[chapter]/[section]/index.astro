@@ -1,8 +1,9 @@
 ---
 import Page from '../../../../layouts/Page.astro';
-import { sectionRoutes } from '../../../../lib/content/paths';
-import type { PageProps } from '../../../../lib/content/paths';
-export const getStaticPaths = sectionRoutes;
-const { tree, chapter, section } = Astro.props as PageProps;
+import { shellRoutes } from '../../../../lib/content/paths';
+import type { ShellProps } from '../../../../lib/content/paths';
+import type { PageShell } from '../../../../lib/content/shells';
+export const getStaticPaths = shellRoutes('section');
+const { manifest, shell, pool, editions } = Astro.props as ShellProps;
 ---
-<Page tree={tree} chapter={chapter} section={section} />
+<Page manifest={manifest} shell={shell as PageShell} pool={pool} editions={editions} />
