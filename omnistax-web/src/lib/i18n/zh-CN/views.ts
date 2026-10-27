@@ -32,6 +32,7 @@ export const views: Readonly<Record<keyof typeof source, string>> = {
   'views.backup.readFailed': '无法读取此备份。',
   'views.backup.replace': '替换并重新加载',
   'views.backup.replaceAsk': '替换此设备上的数据？',
+  'views.backup.skipped': '有{n, plural, other {#条记录}}此版本无法读取，将保留此设备上的原样：',
   'views.backup.summary': '导出于 {when} · {records}条记录 · {assets}张笔记图片',
   'views.backup.title': '手动同步',
   'views.chapters.failed': '无法加载本章数据。',

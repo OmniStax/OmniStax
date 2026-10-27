@@ -91,18 +91,25 @@ const note = z.object({ id: z.string().min(1), book: z.string().min(1).optional(
 const noteDoc = z.object({ id: z.string().min(1), name: z.string(), body: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict();
 const attempt = z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), at: finite, ok: z.boolean(), concepts: z.array(z.string()), round: z.string().optional(), release: z.string().optional(), mastered: z.array(z.string()).optional() }).strict();
 const shown = z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), round: z.string().min(1), at: finite, release: z.string().optional() }).strict();
-const pick = z.union([z.object({ concept: z.string().min(1) }).strict(), z.object({ book: z.string().min(1), chapter: z.string().optional(), section: z.string().optional() }).strict()]);
+/* What a round is drawn from: a concept, a place in a book, or one exercise
+   the reader picked by hand. */
+const pick = z.union([
+  z.object({ concept: z.string().min(1) }).strict(),
+  z.object({ exercise: z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1) }).strict() }).strict(),
+  z.object({ book: z.string().min(1), chapter: z.string().optional(), section: z.string().optional() }).strict(),
+]);
 const mastery = z.record(z.object({ level: finite, target: finite, mastered: z.boolean(), masteredAt: finite, lastAt: finite, halfLife: finite, reviewedAt: finite, dueAt: finite, selfAssessed: z.boolean(), noDecay: z.boolean() }).strict());
 const round = z.object({ id: z.string().min(1), started: finite, at: finite, concepts: z.array(z.object({ id: z.string().min(1), expected: finite, answered: finite, correct: finite, wasMastered: z.boolean(), wasDue: z.boolean() }).strict()), newlyMastered: z.array(z.string()) }).strict();
 const practiceSettings = z.object({
   masteryTarget: finite, freshnessDecay: z.boolean(), startingHalfLife: finite, maxHalfLife: finite, order: z.enum(['mixed', 'grouped']), includeFresh: z.boolean(),
   generated: z.enum(['include', 'book-only']).optional(), grading: z.enum(['reveal', 'ai']).optional(), promptNote: z.string().optional(), fresh: z.boolean().optional(),
   model: z.object({ provider: z.string().min(1), model: z.string().min(1) }).strict().nullable().optional(),
+  stopwatch: z.boolean().optional(),
 }).strict();
 const self = z.record(z.object({ level: finite, mastered: z.boolean(), at: finite, noDecay: z.boolean() }).strict());
-const roundChoice = z.object({ perConcept: finite.optional(), wanted: z.record(finite) }).strict();
-const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'progress']), showAll: z.boolean(), round: roundChoice.optional() }).strict();
-const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional() }).strict();
+const roundChoice = z.object({ perConcept: finite.optional(), wanted: z.record(finite).optional(), excluded: z.array(z.string()).optional() }).strict();
+const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'review', 'sessions', 'progress', 'summary']), showAll: z.boolean(), round: roundChoice.optional() }).strict();
+const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional(), concept: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional(), after: mastery.optional() }).strict();
 const hue = z.object({ light: z.string().regex(/^#[0-9A-Fa-f]{6}$/), dark: z.string().regex(/^#[0-9A-Fa-f]{6}$/) }).strict();
 const hues = z.record(hue);
 /* The reader's colours for a book sit under `book`; files written before colours were per book only carry chapter and section tables beside it. */
@@ -251,34 +258,55 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
 };
 /* The reader's highlights for one book: only the switches they set apart from its default. */
 const bookHighlights = z.object({ facts: z.boolean(), refs: z.boolean(), concepts: z.boolean(), words: z.boolean(), symbols: z.boolean(), underlines: z.boolean() }).partial().strict();
-const typedJson = (key: string, raw: string): boolean => {
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (HIGHLIGHTS_KEY.test(key)) return bookHighlights.safeParse(value).success;
-    if (/^omnistax-notes-[^/]+$/.test(key)) return z.array(note).safeParse(value).success;
-    if (/^omnistax-colours-[^/]+$/.test(key)) {
-      const parsed = z.object({
-        format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides,
-        vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).optional(), categories: paletteChoice.optional(), referents: paletteChoice.optional(),
-      }).strict().safeParse(value);
-      return parsed.success && key === `omnistax-colours-${parsed.data.book}`;
-    }
-    return validators[key]?.safeParse(value).success === true;
-  } catch { return false; }
+const NOTES_KEY = /^omnistax-notes-[^/]+$/;
+const COLOURS_KEY = /^omnistax-colours-[^/]+$/;
+const colourFile = z.object({
+  format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides,
+  vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).optional(), categories: paletteChoice.optional(), referents: paletteChoice.optional(),
+}).strict();
+/* The shape a JSON record's value must have, by its key. */
+const shapeOf = (key: string): z.ZodTypeAny | null => {
+  if (HIGHLIGHTS_KEY.test(key)) return bookHighlights;
+  if (NOTES_KEY.test(key)) return z.array(note);
+  if (COLOURS_KEY.test(key)) return colourFile.refine((v) => key === `omnistax-colours-${v.book}`, () => ({ message: t('shell.backup.record.otherBook') }));
+  return JSON_KEY_LIST.includes(key) ? validators[key] ?? null : null;
 };
 
-export const validReaderRecord = (record: ReaderRecord): boolean => {
-  if (record.key.length > 300 || record.value.length > MAX_BACKUP_BYTES) return false;
-  const category = categoryOf(record.key);
-  if (category === null || category !== record.category) return false;
+/* What a zod failure says, and where in the value it stands, so a refusal
+   names the field rather than only the record: "settings: Unrecognized
+   key(s) in object: 'stopwatch'". */
+export const issueOf = (error: z.ZodError): string => {
+  const first = error.issues[0];
+  if (!first) return t('shell.backup.invalidData');
+  return first.path.length ? `${first.path.join('.')}: ${first.message}` : first.message;
+};
+
+/* Why this version cannot take a record back, or null when it can. A record
+   the app does not know, a value that is not the JSON its key holds, and a
+   value of the wrong shape each say so in their own words. */
+export const recordProblem = (record: { readonly key: string; readonly value: string }): string | null => {
+  if (record.key.length > 300) return t('shell.backup.record.longKey');
+  if (record.value.length > MAX_BACKUP_BYTES) return t('shell.backup.record.tooLarge');
+  if (categoryOf(record.key) === null) return t('shell.backup.record.unknown');
   const scalar = scalarKeys.get(record.key);
-  if (scalar) return scalar(record.value);
-  if (JSON_KEY_LIST.includes(record.key) || /^omnistax-(?:notes|colours)-[^/]+$/.test(record.key) || HIGHLIGHTS_KEY.test(record.key)) return typedJson(record.key, record.value);
-  return false;
+  if (scalar) return scalar(record.value) ? null : t('shell.backup.record.value', { value: record.value.length > 40 ? `${record.value.slice(0, 40)}…` : record.value });
+  const shape = shapeOf(record.key);
+  if (!shape) return t('shell.backup.record.unknown');
+  let value: unknown;
+  try { value = JSON.parse(record.value); } catch { return t('shell.backup.record.notJson'); }
+  const parsed = shape.safeParse(value);
+  return parsed.success ? null : issueOf(parsed.error);
 };
 
-const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(CATEGORIES) }).strict()
-  .refine(validReaderRecord, 'invalid reader record');
+/* A record as this version would write it: a key it knows, under that key's
+   category, holding a value of the key's shape. */
+export const validReaderRecord = (record: ReaderRecord): boolean =>
+  recordProblem(record) === null && categoryOf(record.key) === record.category;
+
+/* A record's category is derived from its key, so it is read past rather than
+   checked: a file written when a key stood in another category (the focus
+   keys once stood with the appearance) still restores, under today's. */
+const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.string().optional() }).strict();
 export type BackupChat = z.infer<typeof ChatSchema>;
 /* One imported file's bytes on their way through a backup. The text pulled out
    of a PDF is not carried: it is derived from these bytes and is pulled out
@@ -309,28 +337,56 @@ const BackupSchema = z.object({
   /* The practice exercises a model wrote. A backup written before them carries none. */
   generated: z.array(GeneratedSchema).default([]),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
+  /* What an earlier read of this same profile set aside: a profile read once
+     and read again keeps the list rather than refusing its own field. */
+  skipped: z.array(z.object({ key: z.string(), why: z.string() }).strict()).optional(),
 }).strict().superRefine((value, ctx) => {
   const keys = new Set<string>();
   value.records.forEach((record, index) => {
-    if (keys.has(record.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['records', index, 'key'], message: 'duplicate reader key' });
+    if (keys.has(record.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['records', index, 'key'], message: t('shell.backup.duplicate', { key: record.key }) });
     keys.add(record.key);
   });
 });
 
-export type ReaderBackup = z.infer<typeof BackupSchema>;
+export type ReaderBackup = Omit<z.infer<typeof BackupSchema>, 'records' | 'skipped'> & { readonly records: readonly ReaderRecord[] };
+/* A record a backup carried that this version left out, and why. */
+export type SkippedRecord = { readonly key: string; readonly why: string };
+/* A backup as read: the records this version can restore, and the ones it
+   could not, which a restore leaves as they stand on this device. */
+export type ParsedBackup = ReaderBackup & { readonly skipped: readonly SkippedRecord[] };
 
-export const parseBackupText = (text: string): ReaderBackup => {
+export const parseBackupText = (text: string): ParsedBackup => {
   if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.tooLarge', { limit: MAX_BACKUP_LABEL }));
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { throw new Error(t('shell.backup.notJson')); }
   return parseBackup(raw);
 };
 
-export const parseBackup = (raw: unknown): ReaderBackup => {
+/* The whole file is refused when it is not a backup at all, or when a chat,
+   a drawing or an imported file in it is malformed: those are replaced whole
+   on a restore, so one left out would be one deleted. A reader record is
+   different. A restore replaces records key by key, so one this version
+   cannot read is set aside and named, with the reason, and the restore keeps
+   this device's own value for that key: nothing is written over with what
+   could not be read, and nothing the device holds is dropped for it. That is
+   also what lets a device on an older version take a profile from a newer
+   one, whose records may carry what the older does not know yet. */
+export const parseBackup = (raw: unknown): ParsedBackup => {
   const parsed = BackupSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: parsed.error.issues[0]?.message ?? t('shell.backup.invalidData') }));
-  return parsed.data;
+  if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: issueOf(parsed.error) }));
+  const { skipped: before = [], ...rest } = parsed.data;
+  const records: ReaderRecord[] = [], skipped: SkippedRecord[] = [...before];
+  for (const r of rest.records) {
+    const why = recordProblem(r), category = categoryOf(r.key);
+    if (why === null && category) records.push({ key: r.key, value: r.value, category });
+    else skipped.push({ key: r.key, why: why ?? t('shell.backup.record.unknown') });
+  }
+  return { ...rest, records, skipped };
 };
+
+/* One line per record set aside, for the reader: "omnistax-practice-v2:
+   settings: Unrecognized key(s) in object: 'stopwatch'". */
+export const skippedLine = (s: SkippedRecord): string => t('shell.backup.skippedLine', { key: s.key, why: s.why });
 
 export const summarizeBackup = (backup: ReaderBackup): { readonly exportedAt: string; readonly categories: Readonly<Record<string, number>>; readonly records: number; readonly assets: number; readonly files: number } => ({
   exportedAt: backup.exportedAt,

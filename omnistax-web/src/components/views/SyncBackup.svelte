@@ -1,13 +1,15 @@
 <script lang="ts">
   /* Manual sync: everything the reader owns saved to one file, or put back
      from one, carried between devices by hand. Putting one back replaces this device's data, so the file is
-     read and summed up first and replaced only on a second click. */
+     read and summed up first and replaced only on a second click. A record
+     this version cannot read is named there, with the reason, and stays as
+     this device has it. */
   import { downloadBackup, importBackup, readBackupFile } from '../../lib/backup/adapters';
-  import { summarizeBackup, type ReaderBackup } from '../../lib/backup/schema';
+  import { skippedLine, summarizeBackup, type ParsedBackup } from '../../lib/backup/schema';
   import { i18n } from '../../lib/i18n/store.svelte';
 
   // IndexedDB journals require cloneable plain records, not reactive proxies.
-  let backup = $state.raw<ReaderBackup | null>(null);
+  let backup = $state.raw<ParsedBackup | null>(null);
   let message = $state('');
   let exporting = $state(false);
   let importing = $state(false);
@@ -47,6 +49,10 @@
       <strong>{i18n.t('views.backup.replaceAsk')}</strong>
       <span>{i18n.t('views.backup.summary', { when: new Date(s.exportedAt).toLocaleString(i18n.locale), records: s.records, assets: s.assets })}</span>
       <span>{i18n.t('views.backup.noMerge')}</span>
+      {#if backup.skipped.length}
+        <span class="skipped">{i18n.t('views.backup.skipped', { n: backup.skipped.length })}</span>
+        <ul class="skipped">{#each backup.skipped as r (r.key)}<li>{skippedLine(r)}</li>{/each}</ul>
+      {/if}
       <span class="acts">
         <button class="btn danger" type="button" disabled={importing} onclick={() => void restore()}>{importing ? i18n.t('views.backup.importing') : i18n.t('views.backup.replace')}</button>
         <button class="btn" type="button" disabled={importing} onclick={() => (backup = null)}>{i18n.t('views.sync.cancel')}</button>
@@ -71,4 +77,6 @@
   .danger{color:var(--bad)}
   .review{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--soft);color:var(--muted);font-size:.76rem}
   .review strong{color:var(--ink)}
+  .review .skipped{color:var(--bad)}
+  ul.skipped{margin:0;padding-left:16px;font-family:var(--mono);font-size:.72rem;overflow-wrap:anywhere}
 </style>

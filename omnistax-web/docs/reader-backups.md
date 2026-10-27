@@ -35,6 +35,34 @@ rolls back an interrupted restore before importing the modules that initialize
 reader stores. Browsers without IndexedDB/Web Locks can still read and export,
 but refuse unsafe import.
 
+### A record that cannot be read
+
+The whole file is refused only when it is not a backup at all (not JSON, wrong
+format or version, a duplicated key) or when a chat, drawing, scratch page,
+generated exercise or imported file in it is malformed: those are replaced
+whole, so leaving one out would delete it. The refusal names where the problem
+is (`chats.0.messages.m1.state: Invalid enum value…`).
+
+A reader record is validated on its own (`recordProblem` in
+`src/lib/backup/schema.ts`). One this version cannot read — a key it does not
+know, a JSON key whose value is not JSON, a value of the wrong shape — is set
+aside with its key and the reason, the preview lists it, and the restore
+writes this device's own value for that key back with the rest
+(`keptRecords`), so nothing is overwritten with what could not be read and
+nothing the device holds is dropped for it. A record's `category` is derived
+from its key and is not checked, so a file written when a key stood in another
+category still restores.
+
+This replaces a rule that refused the whole profile for one bad record, with
+the message "This is not a valid OmniStax backup: invalid reader record." The
+schema had fallen behind the practice store (`settings.stopwatch`, exercise
+picks, a round's exclusions, the review and sessions faces, a slot's concept,
+a finished round's `after`), so every profile that had practised once was
+refused, on import and on every sync pull, since a pull reads this device's own
+records too. The practice store's readers now live in the pure
+`src/lib/practice/stored.ts`, and `tests/backup.test.ts` checks that what they
+write passes the backup's schema.
+
 Backups are limited to 50 MB. Oversized files are rejected before reading their
 contents. Browser regression tests cover a fresh-profile import, pasted images,
 cross-tab refusal, a quota failure during replacement, and interrupted-restore

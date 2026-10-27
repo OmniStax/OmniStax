@@ -34,6 +34,7 @@ export const views = {
   'views.backup.readFailed': 'Couldn’t read this backup.',
   'views.backup.replace': 'Replace and reload',
   'views.backup.replaceAsk': 'Replace this device’s data?',
+  'views.backup.skipped': '{n, plural, one {# record} other {# records}} can’t be read by this version and will stay as they are on this device:',
   'views.backup.summary': 'Exported {when} · {records} records · {assets} note images',
   'views.backup.title': 'Manual sync',
   'views.chapters.failed': 'Could not load chapter data.',
