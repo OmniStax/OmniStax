@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, categoryOf, parseBackupText, summarizeBackup, validReaderRecord } from '../src/lib/backup/schema';
-import { readBackupFile, readerRecords } from '../src/lib/backup/adapters';
+import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, categoryOf, parseBackupText, recordProblem, skippedLine, summarizeBackup, validReaderRecord } from '../src/lib/backup/schema';
+import { keptRecords, readBackupFile, readerRecords } from '../src/lib/backup/adapters';
+import { KEY, PAGES, SESSIONS, parsePages, parseSessions, parseSettings } from '../src/lib/practice/stored';
 
 const backup = (records: unknown[] = []) => JSON.stringify({
   format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: '2026-09-18T12:00:00.000Z',
@@ -29,8 +30,55 @@ test('backup parser validates typed records before writes', () => {
   assert.deepEqual(summarizeBackup(good).categories, { appearance: 1, library: 1 });
 
   assert.equal(validReaderRecord({ key: 'omnistax-library-v1', value: '{}', category: 'library' }), false);
-  assert.throws(() => parseBackupText(backup([{ key: 'omnistax-theme', value: 'purple', category: 'appearance' }])));
-  assert.throws(() => parseBackupText(backup([{ key: 'omnistax-practice-v2', value: '{"attempts":"lost"}', category: 'practice' }])));
+  const bad = parseBackupText(backup([
+    { key: 'omnistax-theme', value: 'purple', category: 'appearance' },
+    { key: 'omnistax-practice-v2', value: '{"attempts":"lost"}', category: 'practice' },
+    { key: 'omnistax-library-v1', value: '["physics"]', category: 'library' },
+  ]));
+  assert.deepEqual(bad.records.map((r) => r.key), ['omnistax-library-v1'], 'what can be read is restored');
+  assert.deepEqual(bad.skipped.map((r) => r.key), ['omnistax-theme', 'omnistax-practice-v2'], 'what cannot is set aside, by name');
+});
+
+/* The report behind "This is not a valid OmniStax backup: invalid reader
+   record.": the practice store writes settings.stopwatch (and exercise picks,
+   a round's exclusions, the review and sessions faces, a slot's concept, a
+   finished round's after) which the backup's schema did not know. Every
+   profile that had practised once was refused whole, on import and on every
+   sync pull alike, since a pull reads this device's own records too. */
+test('a practice record as the store writes it passes the backup check', () => {
+  const settings = parseSettings({ stopwatch: true, model: { provider: 'anthropic', model: 'claude' }, grading: 'ai' });
+  const v2 = JSON.stringify({ attempts: [], shown: [], rounds: [], self: {}, settings });
+  assert.equal(recordProblem({ key: KEY, value: v2 }), null);
+  const mastery = { c1: { level: 1, target: 3, mastered: false, masteredAt: 0, lastAt: 1, halfLife: 3, reviewedAt: 1, dueAt: 2, selfAssessed: false, noDecay: false } };
+  const sessions = parseSessions({ s1: {
+    curriculum: [{ concept: 'c1' }, { exercise: { book: 'b', section: '1.1', ex: 'e1' } }, { book: 'b', chapter: '1' }],
+    concepts: ['c1'], drawn: [{ book: 'b', section: '1.1', ex: 'pending:1', why: 'new', concept: 'c1' }], at: 0, outcomes: [null], started: 1, before: mastery,
+    status: 'done', ended: 2, after: mastery,
+  } });
+  assert.equal(recordProblem({ key: SESSIONS, value: JSON.stringify(sessions) }), null);
+  const pages = parsePages({
+    'view:practice@1': { curriculum: [{ exercise: { book: 'b', section: '1.1', ex: 'e1' } }], session: 's1', face: 'review', showAll: false, round: { perConcept: 2, excluded: ['b|1.1|e2'] } },
+    'view:practice@2': { face: 'sessions' }, 'view:practice@3': { face: 'summary' },
+  });
+  assert.equal(recordProblem({ key: PAGES, value: JSON.stringify(pages) }), null);
+});
+
+test('a record that cannot be read says which it is and why, and the device keeps its own value for it', () => {
+  const settings = { ...parseSettings({}), zzz: 1 };
+  assert.match(recordProblem({ key: 'omnistax-practice-v2', value: JSON.stringify({ attempts: [], shown: [], rounds: [], self: {}, settings }) }) ?? '', /^settings: Unrecognized key\(s\) in object: 'zzz'/);
+  assert.match(recordProblem({ key: 'omnistax-library-v1', value: '[nope' }) ?? '', /isn’t valid JSON/);
+  assert.match(recordProblem({ key: 'omnistax-theme', value: 'purple' }) ?? '', /“purple”/);
+  assert.match(recordProblem({ key: 'omnistax-practice-v99', value: '{}' }) ?? '', /doesn’t know/);
+  const parsed = parseBackupText(backup([{ key: 'omnistax-practice-v99', value: '{}', category: 'practice' }, { key: 'omnistax-theme', value: 'purple', category: 'appearance' }]));
+  assert.equal(skippedLine(parsed.skipped[1]), 'omnistax-theme: “purple” isn’t a value this setting takes');
+  const here = new Map([['omnistax-theme', 'dark']]);
+  assert.deepEqual(keptRecords(parsed.skipped, (k) => here.get(k) ?? null), [{ key: 'omnistax-theme', value: 'dark', category: 'appearance' }], 'an unknown key is not this version’s to keep');
+});
+
+test('a record filed under the category it once had restores under today’s', () => {
+  const parsed = parseBackupText(backup([{ key: 'omnistax-pomodoro-len', value: '25', category: 'appearance' }, { key: 'omnistax-folded', value: '[]' }]));
+  assert.deepEqual(parsed.records, [{ key: 'omnistax-pomodoro-len', value: '25', category: 'focus' }, { key: 'omnistax-folded', value: '[]', category: 'reading' }]);
+  assert.equal(parsed.skipped.length, 0);
 });
 
 test('an exported tree may carry a drawing, a file and a chat, and a row naming no record is refused', () => {
@@ -47,7 +95,7 @@ test('an exported tree may carry a drawing, a file and a chat, and a row naming 
 test('backup parser rejects future versions, duplicates, and malformed assets', () => {
   assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), version: 2 })));
   const row = { key: 'omnistax-folded', value: '[]', category: 'reading' };
-  assert.throws(() => parseBackupText(backup([row, row])));
+  assert.throws(() => parseBackupText(backup([row, row])), /omnistax-folded appears twice/);
   assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), assets: [{ id: 'x', type: 'image/png', dataUrl: 'https://example.test/x.png', created: 1 }] })));
 });
 
@@ -65,6 +113,7 @@ test('a book’s highlights travel with the appearance, and a malformed one is r
   assert.equal(categoryOf(key), 'appearance');
   const parsed = parseBackupText(backup([{ key, value, category: 'appearance' }]));
   assert.deepEqual(parsed.records, [{ key, value, category: 'appearance' }], 'exported and read back as it was written');
+  assert.deepEqual(parsed.skipped, []);
   assert.deepEqual(JSON.parse(parsed.records[0].value), { words: true, underlines: false });
   assert.equal(validReaderRecord({ key, value: '{}', category: 'appearance' }), true, 'a book whose every switch follows its default');
   assert.equal(validReaderRecord({ key, value, category: 'notes' }), false);
@@ -91,7 +140,8 @@ test('the reader’s language travels with the appearance records, and only a la
   assert.deepEqual(exported, [{ key: 'omnistax-lang', value: 'zh-CN', category: 'appearance' }]);
   const back = parseBackupText(backup(exported));
   assert.deepEqual(back.records, exported);
+  assert.deepEqual(back.skipped, []);
   assert.equal(validReaderRecord({ key: 'omnistax-lang', value: 'en', category: 'appearance' }), true);
-  assert.throws(() => parseBackupText(backup([{ key: 'omnistax-lang', value: 'fr', category: 'appearance' }])));
+  assert.deepEqual(parseBackupText(backup([{ key: 'omnistax-lang', value: 'fr', category: 'appearance' }])).skipped.map((r) => r.key), ['omnistax-lang']);
   assert.equal(validReaderRecord({ key: 'omnistax-lang', value: 'zh-CN', category: 'reading' }), false);
 });

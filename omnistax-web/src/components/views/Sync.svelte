@@ -3,8 +3,11 @@
      set up once, and only what differs between it and this device, in three
      lists — changed in both, to push, to pull. One button moves them; the menu
      beside it pulls or pushes alone, or forces either way after a dialog that
-     names what would be lost. A file's row opens its changes as a tab. Below,
-     the manual way: a file. */
+     names what would be lost. A file's row opens its changes as a tab. A file
+     changed in both that merged on its own says so and goes both ways; one
+     whose changes met says how many conflicts it holds, which its tab settles
+     one by one, or keeps one side whole from here. Below, the manual way: a
+     file. */
   import { untrack } from 'svelte';
   import { sizeLabel } from '../../lib/files/model';
   import { ICON } from '../../lib/icons';
@@ -12,7 +15,8 @@
   import { openInFocus } from '../../lib/layout/model';
   import { repoName } from '../../lib/sync/github';
   import { groupLabel } from '../../lib/sync/layout';
-  import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
+  import { isMerged, oneWay, tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
+  import { blocksOf, conflictCount } from '../../lib/sync/conflict';
   import { session } from '../../lib/sync/session.svelte';
   import { sync, PUSH_EVERY, PUSH_EVERY_KEY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
@@ -65,6 +69,11 @@
 
   const LETTER = $derived<Readonly<Record<Letter, string>>>({ A: i18n.t('views.sync.letter.added'), M: i18n.t('views.sync.letter.modified'), D: i18n.t('views.sync.letter.deleted'), '!': i18n.t('views.sync.changedInBoth') });
   const stateText = (s: Status | undefined, c: Change): string => {
+    if (!s && c.side === 'both') {
+      const p = session.picks.get(c.path), m = session.merges.get(c.path);
+      if (isMerged(p) && session.chosen(c)) return p.auto ? i18n.t('views.sync.merged') : i18n.t('views.sync.resolved');
+      if (m && !p) return i18n.t('views.sync.conflicts', { n: conflictCount(blocksOf(m.mine, m.theirs)) });
+    }
     if (!s) return stuck(c) ? i18n.t('views.sync.tooLarge') : c.letter === 'D' ? '' : sizeLabel(c.size);
     return s.kind === 'waiting' ? i18n.t('views.sync.waiting') : s.kind === 'moving' ? i18n.t('views.sync.moving') : s.kind === 'done' ? '✓' : s.why;
   };
@@ -104,6 +113,11 @@
               <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
                 <button type="button" aria-pressed={session.picks.get(c.path) === 'mine'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'mine')}>{i18n.t('views.sync.mine')}</button>
                 <button type="button" aria-pressed={session.picks.get(c.path) === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'theirs')}>{i18n.t('views.sync.theirs')}</button>
+                {#if session.merges.get(c.path)?.merged || isMerged(session.picks.get(c.path))}
+                  <button type="button" aria-pressed={isMerged(session.picks.get(c.path))} disabled={phase !== 'ready'} onclick={() => (isMerged(session.picks.get(c.path)) ? show(c) : session.pick(c.path, 'merged'))}>{i18n.t('views.sync.mergedPick')}</button>
+                {:else}
+                  <button type="button" disabled={phase !== 'ready'} onclick={() => show(c)}>{i18n.t('views.sync.settle')}</button>
+                {/if}
               </span>
             {/if}
           </li>
@@ -157,8 +171,8 @@
           <button type="button" class="go more" aria-label={i18n.t('views.sync.moreActions')} aria-haspopup="menu" aria-expanded={menu} disabled={phase !== 'ready'} onclick={(e) => { e.stopPropagation(); menu = !menu; }}>▾</button>
           {#if menu}
             <div class="menu" role="menu">
-              {@render item(i18n.t('views.sync.pullN', { n: plan.down.length }), i18n.t('views.sync.pullNote'), () => void session.go({ up: [], down: plan.down }), !plan.down.length)}
-              {@render item(i18n.t('views.sync.pushN', { n: plan.up.length }), i18n.t('views.sync.pushNote'), () => void session.go({ up: plan.up, down: [] }), !plan.up.length)}
+              {@render item(i18n.t('views.sync.pullN', { n: oneWay(plan, 'down').down.length }), i18n.t('views.sync.pullNote'), () => void session.go(oneWay(plan, 'down')), !oneWay(plan, 'down').down.length)}
+              {@render item(i18n.t('views.sync.pushN', { n: oneWay(plan, 'up').up.length }), i18n.t('views.sync.pushNote'), () => void session.go(oneWay(plan, 'up')), !oneWay(plan, 'up').up.length)}
               <hr>
               {@render item(i18n.t('views.sync.forcePullMenu'), i18n.t('views.sync.forcePullNote'), () => ask('device'), !session.seen?.manifest, true)}
               {@render item(i18n.t('views.sync.forcePushMenu'), i18n.t('views.sync.forcePushNote'), () => ask('repo'), false, true)}

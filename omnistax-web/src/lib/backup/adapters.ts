@@ -7,7 +7,7 @@ import type { Drawing } from '../drawer/model';
 import { base64Of, blobOfBase64, exportBlobs, replaceBlobs } from '../files/blobs';
 import { FILES_KEY, parseFiles } from '../files/model';
 import type { FileId } from '../types/ids';
-import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ReaderBackup, type ReaderRecord } from './schema';
+import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ParsedBackup, type ReaderBackup, type ReaderRecord, type SkippedRecord } from './schema';
 import { restoreWithJournal } from './journal';
 import { t } from '../i18n/index';
 import { exportGenerated, replaceGenerated } from '../practice/generated-db';
@@ -72,13 +72,23 @@ export const downloadBackup = async (): Promise<void> => {
   a.click(); URL.revokeObjectURL(url);
 };
 
-export const readBackupFile = async (file: File): Promise<ReaderBackup> => {
+export const readBackupFile = async (file: File): Promise<ParsedBackup> => {
   if (file.size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.importTooLarge', { limit: MAX_BACKUP_LABEL }));
   return parseBackupText(await file.text());
 };
 
-export const importBackup = async (backup: ReaderBackup): Promise<void> => {
-  await restoreWithJournal(backup.records, backup.assets.map((asset) => ({ ...asset, id: assetId(asset.id) })));
+/* This device's own value for each record the backup carried but this
+   version could not read: a restore replaces every record, so what is kept
+   must be written back with the rest or it would go. */
+export const keptRecords = (skipped: readonly SkippedRecord[], read: (key: string) => string | null = (key) => localStorage.getItem(key)): ReaderRecord[] =>
+  skipped.flatMap(({ key }) => {
+    const category = categoryOf(key), value = category ? read(key) : null;
+    return category && value !== null ? [{ key, value, category }] : [];
+  });
+
+export const importBackup = async (backup: ReaderBackup & { readonly skipped?: readonly SkippedRecord[] }): Promise<void> => {
+  const kept = keptRecords(backup.skipped ?? []);
+  await restoreWithJournal([...backup.records.filter((r) => !kept.some((k) => k.key === r.key)), ...kept], backup.assets.map((asset) => ({ ...asset, id: assetId(asset.id) })));
   /* The chats follow the journalled records rather than standing in them: the
      index they are listed under has already been restored, so a chat that
      cannot be written leaves a row whose record is gone, which a tab opens
