@@ -11,6 +11,7 @@ export const tips = {
   'tips.drawing.action': 'New drawing',
   'tips.import': 'Upload your own files into OmniStax. PDFs can be annotated.',
   'tips.import.action': 'Import files',
+  'tips.newGroup': '{mod}-click a link to open its page in a new group.',
   'tips.theme': 'Each book has a theme editor, behind the palette button on its row in the Explorer. Color coding for words is off by default.',
   'tips.toast.close': 'Close tip',
   'tips.toast.label': 'Tip',

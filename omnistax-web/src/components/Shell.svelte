@@ -230,7 +230,13 @@
          inline SVG (a chapter diagram whose names are links) has an animated `target`
          and no `origin`, and it should open a page the way the prose's links do. */
       const link = (e.target as Element).closest<HTMLAnchorElement | SVGAElement>('a[href]');
-      if (!link || link.getAttribute('target')) return;
+      /* A link to a place on the page (`#…`) is no page of its own: read
+         against the address it would name whichever page the address bar last
+         showed, not the one it stands in. The in-page jump below finds its
+         target by the document that holds it, and a wiki link in a note, a
+         chat or a text box, whose `href="#"` only makes it focusable, is
+         followed by its own view, Ctrl and all. */
+      if (!link || link.getAttribute('target') || (link.getAttribute('href') ?? '').startsWith('#')) return;
       const url = new URL(link.getAttribute('href') ?? '', location.href);
       if (url.origin !== location.origin) return;
       const at = refOfPath(url.pathname);
