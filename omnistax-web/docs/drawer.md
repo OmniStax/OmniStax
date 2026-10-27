@@ -288,15 +288,16 @@ read back as that token.
   - **Referenced**: a `chat` item holding the chat id and an optional root
     message; it renders the live tree (`TreeView` in compact mode inside the
     item), grows as the chat grows, and a node click opens the chat at that
-    message. Dragging a chat's header onto a drawing drops the same item.
+    message. "Copy as embed" in the chat's Copy menu, pasted on a drawing,
+    places the same item; a whole chat is never dragged out.
   - **Plain**: the tree is laid out once by `lib/tree/layout.ts` and written as
     text cards (the message markdown) joined by connectors, then belongs to
     the drawing.
 - In a note, `![[chat:<id>]]` renders the tree inline at a fixed height of
   about 260 px on the pan/zoom `Plane.svelte`, with Fit and an "Open" link;
-  `![[chat:<id>:<msg>]]` stays the single-message card. "Copy to note" in the
-  chat puts the referenced embed on the clipboard; plain copy writes the
-  transcript as an outline of quoted messages.
+  `![[chat:<id>:<msg>]]` stays the single-message card. "Copy as embed" in the
+  chat puts the referenced embed on the clipboard; "Copy as text" writes the
+  branch as Markdown, which a drawing lays out as the plain cards above.
 
 ### Model
 

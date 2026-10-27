@@ -14,8 +14,12 @@ export const exerciseBrief = (ref: ExerciseRef, ex: ExerciseDTO, extra: readonly
   const sol = solutionText(ex.answer);
   const tries = practice.attempts.filter((a) => a.book === ref.book && a.section === ref.section && a.ex === ref.ex).sort((a, b) => a.at - b.at);
   const history = tries.length ? tries.map((a) => `- ${when(a.at)}: ${a.ok ? 'correct' : 'incorrect'}`).join('\n') : '- none yet';
+  /* a choice is nothing without its options, and the right one is its answer */
+  const a = ex.answer;
+  const options = a.type === 'choice' ? a.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}${i === a.correct ? ' (the right answer)' : ''}`).join('\n') : '';
   return [
     ex.prompt,
+    ...(options ? [`Options:\n${options}`] : []),
     concepts.length ? `Concepts tested: ${concepts.join(', ')}. Level: ${ex.bloom}.` : `Level: ${ex.bloom}.`,
     sol ? `Reference solution:\n${sol}` : 'No reference solution.',
     `The reader's attempts:\n${history}`,

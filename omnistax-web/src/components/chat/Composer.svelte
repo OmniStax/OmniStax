@@ -5,6 +5,7 @@
   import { chipOf, chipForItem, pickerRoot } from '../../lib/picker/sources';
   import { dragging as layoutDrag } from '../../lib/layout/drag.svelte';
   import { chipOfRow } from '../../lib/chat/library';
+  import { chipOfLink, linkOfDrop } from '../../lib/chat/drop';
   import { chip, sameChip, withChip, withoutChip, type Chip } from '../../lib/chat/context';
   import { chats } from '../../lib/chat/store.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
@@ -114,20 +115,43 @@
     takeImages(files);
   };
   /* Images from the desktop become pictures; a tab dragged from the explorer (a
-     section's text, a note, a drawing, a file, a chat) becomes a reference. */
-  const ondragover = (e: DragEvent): void => {
-    if (!layoutDrag() && ![...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) return;
-    e.preventDefault(); e.stopPropagation(); dragging = true;
+     section's text, a note, a drawing, a file, a chat) becomes a reference; and
+     anything dragged out as the words that embed it (a concept off the map or a
+     panel, an equation, a figure's head, a highlight, a bubble) becomes the chip
+     the picker would make for it. Only words no chip can stand for are typed
+     in, where the field is. The chat tab hands on what is dropped on its
+     transcript, so the whole of the chat takes a drop. */
+  const carries = (e: DragEvent): boolean => {
+    const types = e.dataTransfer?.types ?? [];
+    return !!layoutDrag() || types.includes('Files') || types.includes('text/plain');
   };
-  const ondrop = (e: DragEvent): void => {
+  export function over(e: DragEvent, wide = false): void {
+    if (wide && layoutDrag()) return;
+    if (!carries(e)) return;
+    e.preventDefault(); e.stopPropagation(); dragging = true;
+    if (e.dataTransfer) e.dataTransfer.dropEffect = layoutDrag() ? 'move' : 'copy';
+  }
+  export function leave(e: DragEvent): void {
+    const into = e.relatedTarget as Node | null;
+    if (!(e.currentTarget as HTMLElement).contains(into)) dragging = false;
+  }
+  export function drop(e: DragEvent, wide = false): void {
+    if (wide && layoutDrag()) return;
     dragging = false;
     const d = layoutDrag();
     if (d) { e.preventDefault(); e.stopPropagation(); const c = chipForItem(d.key); if (c) add(c); return; }
     const files = [...(e.dataTransfer?.files ?? [])];
-    if (!files.some((f) => f.type.startsWith('image/'))) return;
-    e.preventDefault();
-    takeImages(files);
-  };
+    if (files.some((f) => f.type.startsWith('image/'))) { e.preventDefault(); e.stopPropagation(); takeImages(files); return; }
+    const words = e.dataTransfer?.getData('text/plain') ?? '';
+    const link = linkOfDrop(words);
+    /* plain words let go on the field are the field's own to place, where the pointer is */
+    if (words.trim() === '' || (!link && e.target === field)) return;
+    /* a bubble of this chat let go over its own transcript was not meant for it */
+    if (wide && link?.kind === 'chat' && link.chat === chatId) return;
+    e.preventDefault(); e.stopPropagation();
+    if (!link) { insert(words); return; }
+    void chipOfLink(link).then((c) => { if (c) add(c); else insert(words); }, () => insert(words));
+  }
 
   let thumbs = $state.raw<Readonly<Record<string, string>>>({});
   const asked = new Set<string>();
@@ -155,7 +179,7 @@
     </ul>
   {/if}
 
-  <div class="field" class:dragging role="presentation" {ondragover} ondragleave={() => (dragging = false)} {ondrop}>
+  <div class="field" class:dragging role="presentation" ondragover={over} ondragleave={leave} ondrop={drop}>
     {#if at !== null}
       <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
@@ -175,13 +199,13 @@
 </div>
 
 <style>
-  .composer{flex:none;border-top:1px solid var(--rule);padding:8px 40px 12px;background:var(--bg);font-family:var(--sans)}
+  .composer{flex:none;border-top:1px solid var(--rule);padding:6px 40px 6px;background:var(--bg);font-family:var(--sans)}
   .field{position:relative;border-radius:12px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow 120ms}
   .field:focus-within,.field.dragging{box-shadow:inset 0 0 0 1px var(--accent),0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
-  textarea{display:block;width:100%;font:inherit;font-size:0.92rem;line-height:1.5;padding:11px 14px 4px;border:0;background:transparent;color:var(--ink);resize:none;max-height:40vh}
+  textarea{display:block;width:100%;font:inherit;font-size:0.92rem;line-height:1.5;padding:9px 14px 2px;border:0;background:transparent;color:var(--ink);resize:none;max-height:40vh}
   textarea::placeholder{color:var(--muted);opacity:0.8}
   textarea:focus{outline:none}
-  .acts{display:flex;align-items:center;gap:6px;padding:4px 8px 8px}
+  .acts{display:flex;align-items:center;gap:6px;padding:2px 8px 6px}
   .spacer{flex:1}
   kbd{font:inherit;font-weight:500;opacity:0.6}
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 6px;padding:0;list-style:none}
@@ -191,5 +215,5 @@
   .chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .chips button{font:inherit;line-height:1;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;padding:0}
   .chips button:hover{color:var(--ink);background:var(--soft2)}
-  @media (max-width:900px){ .composer{padding:8px 18px 12px} }
+  @media (max-width:900px){ .composer{padding:6px 18px 6px} }
 </style>

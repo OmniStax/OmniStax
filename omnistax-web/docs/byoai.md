@@ -103,15 +103,26 @@ error text on the message with a Retry.
 
 ## Messages elsewhere
 
-- A bubble drags out as `![[chat:<chatId>:<messageId>]]` and drops into
-  notes and drawings as a card with the role, the first line, and a link to
-  the chat at that message; `[[chat:<id>]]` opens the chat.
+- A bubble drags out by its head line (who said it, when) as
+  `![[chat:<chatId>:<messageId>]]` and drops into notes and drawings as a card
+  with the role, the first line, and a link to the chat at that message;
+  `[[chat:<id>]]` opens the chat. The words of a bubble do not drag, and a
+  chat held compact in a note or a drawing drags nothing out. A whole chat
+  leaves only by the Copy menu in the chat's head: "Copy as embed" (the live
+  `![[chat:<id>]]`) or "Copy as text" (the branch as Markdown, which a drawing
+  lays out as linked cards).
 - Search has a corpus per chat over its messages; a hit opens the chat at
   that message's branch.
 - Chats live in IndexedDB database `omnistax-chats`, store `chats`, with a
-  localStorage index `omnistax-chats-v1` of `{ id, name, created, updated }`
-  for the explorer-free places that list them (the picker, search, links).
-  Both are in the backup, the store exported as `chats: Chat[]`.
+  localStorage index `omnistax-chats-v2` of `{ id, name, created, updated,
+  book? }` for the explorer-free places that list them (the picker, search,
+  links, the Conversations page). `book` is the book the chat is filed under:
+  the one being read when it was started, else the first book its chips name
+  (`lib/chat/entries.ts`), `''` for none, absent on a row not filed yet. The
+  first index, `omnistax-chats-v1`, is still read (merged row by row) and
+  written in its own shape for a tab open on an older build; a row it brings
+  without a book is filed from the chat's chips when the Conversations page
+  is opened. Both are in the backup, the store exported as `chats: Chat[]`.
 
 ## Files
 
@@ -345,3 +356,33 @@ Images live in `omnistax-assets`; messages hold `asset:<id>`.
 - [x] 6. Tools and the loop, the new prompt, figure and image context.
 - [x] 7. Conversations page, times, rendering fixes, `Plane.svelte`,
   `lib/tree/layout.ts` and the tree view.
+
+## Conversations page and context, round three
+
+**2026-10-27.** The Conversations page (`view:chats`, "Ask AI" on the rail)
+is the list and one chat at a time, as a practice page is the dashboard and
+one session: New chat and a row open the chat inside the page under a
+"‹ Conversations" way back (`components/ui/BackLink.svelte`, which the
+practice `PageHead` now uses too), and a Ctrl or middle click opens it as a
+tab of its own beside. Which chat a page shows is kept per page in
+`omnistax-chat-pages-v1` and forgotten when the page's tab closes. The list
+is filed by book (`byBook` in `lib/chat/entries.ts`): a row of books to
+filter by once there is more than one, and a heading per book, the book
+talked about last first, newest chat first in each, "No book" last.
+
+A new chat pins the focused section (`focus.section`: the active tab's
+section, else the last section any tab showed, else the page served), and
+only while the chat has said nothing: a chat reopened on a conversation it
+already holds pins nothing. Chips handed to a chat from outside
+(`pending.give` in `lib/chat/open.svelte.ts`) are reactive and taken
+whenever they come, so "Discuss with AI" opens the chat at once with the
+exercise (its brief, a choice's options and the right one, a generated
+exercise's prompt and solution) and the section joins when it has been
+fetched.
+
+Anything dropped on a chat, its transcript or its composer, that drags out
+as one embed (`![[concept:…]]` off the map or a panel, an equation, a
+definition, a figure's head, a highlight, another chat's bubble, a note, a
+drawing, a file) becomes the chip the picker makes for the same thing
+(`rowOfLink` in `picker/sources.ts`, `chipOfLink` in `lib/chat/drop.ts`);
+only words no chip can stand for are typed into the composer.

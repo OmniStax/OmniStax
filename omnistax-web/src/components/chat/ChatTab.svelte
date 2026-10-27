@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
+  import CopyMenu from './CopyMenu.svelte';
   import Transcript from './Transcript.svelte';
   import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { pending, takeChips } from '../../lib/chat/open.svelte';
-  import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
+  import { spokenIn, transcript, type Chat, type MessageId } from '../../lib/chat/model';
   import { replyParent, withLeaf } from '../../lib/chat/tree';
-  import { copyChatPlain, copyChatReference } from '../../lib/drawer/chatdrop';
   import { chip, withChip, type Chip } from '../../lib/chat/context';
   import { sectionTextOf } from '../../lib/picker/sources';
   import { focus } from '../../lib/sections/focus.svelte';
@@ -18,7 +18,9 @@
   import { label as sectionLabel } from '../../lib/sections/grouping';
   import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
 
-  let { chatId }: { chatId: ChatId } = $props();
+  /* `inline` is the chat standing inside the Conversations page rather than
+     filling a tab of its own: it takes the room the page gives it. */
+  let { chatId, inline = false }: { chatId: ChatId; inline?: boolean } = $props();
 
   const chat = $derived<Chat | null>(chats.get(chatId));
   const path = $derived(chat ? transcript(chat) : []);
@@ -32,21 +34,32 @@
     return chip('section', secKey(ref), sectionLabel(ref.section, entry.title), sectionTextOf(ref), true);
   };
 
+  /* The chips the chat opens with. Chips handed to it from outside — a
+     discussion's exercise, and its section once fetched — are taken whenever
+     they come and stand in place of the pin; otherwise a chat that has said
+     nothing yet pins the section focused when it opened. A chat reopened on
+     a conversation already held is left as it was asked, with nothing pinned. */
   let chips = $state.raw<readonly Chip[]>([]);
-  let pinnedSection = $state<string | null>(null);
+  let handed = false;
+  $effect(() => {
+    if (!pending.chips[chatId]) return;
+    const given = takeChips(chatId) ?? [];
+    handed = true;
+    chips = untrack(() => given.reduce(withChip, chips));
+  });
   let started = false;
   $effect(() => {
     if (started) return;
     started = true;
-    const given = takeChips(chatId);
-    if (given) { chips = given; pinnedSection = given.find((c) => c.kind === 'section')?.key ?? null; return; }
-    const ref = focus.section;
-    if (ref) void registry.load(ref).then(() => {
-      const c = chipFor(ref);
-      if (c) { chips = withChip(chips, c); pinnedSection = c.key; }
+    const ref = untrack(() => focus.section);
+    if (!ref) return;
+    void chats.load(chatId).then(async (c) => {
+      if (handed || spokenIn(c).length) return;
+      await registry.load(ref).catch(() => undefined);
+      const pin = handed ? null : chipFor(ref);
+      if (pin) chips = withChip(chips, pin);
     });
   });
-
 
   /* The books the chat's maths is set under: every book its chips come from, in
      the order they came, then the book being read; one book is named as itself,
@@ -62,7 +75,7 @@
     if (mathBooks.length <= 1) return mathBooks[0] ?? null;
     const name = `blend:${chatId}`; registerFigBlend(name, mathBooks); return name;
   });
-  let composer = $state<{ focus(): void; insert(words: string): void } | null>(null);
+  let composer = $state<{ focus(): void; insert(words: string): void; over(e: DragEvent, wide?: boolean): void; leave(e: DragEvent): void; drop(e: DragEvent, wide?: boolean): void } | null>(null);
   $effect(() => {
     const words = pending.words[chatId];
     if (!words || !composer) return;
@@ -102,18 +115,6 @@
   const anyOpen = $derived(path.some((m) => !collapsed.has(m.id)));
   const foldAll = (): void => { collapsed = anyOpen ? new Set(path.map((m) => m.id)) : new Set(); };
 
-  let copying = $state(false);
-  let copied = $state<string | null>(null);
-  const copy = (how: () => Promise<boolean>): void => {
-    copying = false;
-    void how().then((ok) => { copied = ok ? i18n.t('chat.bubble.copied') : i18n.t('chat.bubble.copyFailed'); setTimeout(() => (copied = null), 1200); });
-  };
-  const onCopyBlur = (e: FocusEvent): void => {
-    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) copying = false;
-  };
-  const onCopyKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { e.stopPropagation(); copying = false; } };
-  const focusFirst = (node: HTMLElement) => { node.querySelector('button')?.focus(); };
-
   /* In the tree the reply goes under the one selected node, or on from the
      leaf when none is: the chat stands on it for the asking, and the new
      branch becomes the leaf. */
@@ -129,7 +130,9 @@
 </script>
 
 <!-- the book the maths is rendered under: the one the chips come from, else the one being read, so a book's macros read -->
-<article class="chat-tab" data-chat={chatId} data-book={mathBook}>
+<!-- what is dropped anywhere on the chat goes to its composer -->
+<article class="chat-tab" class:inline data-chat={chatId} data-book={mathBook}
+  ondragover={(e) => composer?.over(e, true)} ondragleave={(e) => composer?.leave(e)} ondrop={(e) => composer?.drop(e, true)}>
   <header class="chat-head">
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label={i18n.t('chat.tab.name')} />
@@ -139,15 +142,7 @@
     {#if chat && !tree}
       <button type="button" class="btn ghost sm" disabled={path.length === 0} onclick={foldAll}>{anyOpen ? i18n.t('chat.collapseAll') : i18n.t('chat.expandAll')}</button>
     {/if}
-    {#if copying}
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <span class="split" role="group" aria-label={i18n.t('chat.bubble.copy')} onfocusout={onCopyBlur} onkeydown={onCopyKey} use:focusFirst>
-        <button type="button" class="btn ghost sm" onclick={() => copy(() => copyChatReference(chatId))}>{i18n.t('chat.tab.copyReference')}</button>
-        <button type="button" class="btn ghost sm" onclick={() => { const c = chat; if (c) copy(() => copyChatPlain(c)); }}>{i18n.t('chat.tab.copyPlain')}</button>
-      </span>
-    {:else}
-      <button type="button" class="btn ghost sm" disabled={!chat} onclick={() => (copying = true)}>{copied ?? i18n.t('chat.bubble.copy')}</button>
-    {/if}
+    <CopyMenu {chatId} {chat} />
     <button type="button" class="toggle" class:on={tree} aria-pressed={tree} onclick={() => setTree(!tree)}>{i18n.t('drawer.chat.tree')}</button>
   </header>
 
@@ -166,9 +161,10 @@
 </article>
 
 <style>
-  .chat-tab{position:absolute;inset:0;display:flex;flex-direction:column;max-width:920px;padding-bottom:64px;font-family:var(--sans)}
-  .split{display:inline-flex;gap:2px}
-  .chat-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 40px 8px;border-bottom:1px solid var(--rule);background:var(--bg)}
+  /* an article of the shell wears the page's padding; a chat keeps its sides and gives up most of the top and the foot */
+  .chat-tab{position:absolute;inset:0;display:flex;flex-direction:column;max-width:920px;padding-top:4px;padding-bottom:20px;font-family:var(--sans)}
+  .chat-tab.inline{position:relative;inset:auto;flex:1;min-height:0;width:100%;max-width:none;margin:0;padding:0 0 8px}
+  .chat-head{flex:none;display:flex;align-items:center;gap:6px;padding:6px 40px 5px;border-bottom:1px solid var(--rule);background:var(--bg)}
   .name{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);text-align:left;background:none;border:0;padding:3px 6px;margin-left:-6px;border-radius:5px;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .name:hover{background:var(--soft)}
   .name-input{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:5px;padding:2px 5px;margin-left:-6px}
@@ -176,5 +172,5 @@
   .messages{flex:1;min-height:0;overflow:auto;padding:4px 40px 20px}
   .tree-host{flex:1;min-height:0;border-bottom:1px solid var(--rule)}
   .empty{color:var(--muted);font-size:0.86rem;margin:18px 0}
-  @media (max-width:900px){ .chat-head{padding:10px 18px 8px} .messages{padding:4px 18px 20px} }
+  @media (max-width:900px){ .chat-head{padding:6px 18px 5px} .messages{padding:4px 18px 20px} }
 </style>
