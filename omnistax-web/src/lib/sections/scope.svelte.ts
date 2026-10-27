@@ -5,7 +5,13 @@
    keyed by the item key of the tab it is — so a second concept map may stand on a
    chapter of its own — and a page with nothing saved follows the section being read.
    Pins written by the older shell, one per kind of view, are read once and carried
-   forward onto that kind's singleton. */
+   forward onto that kind's singleton.
+
+   A page may also be held where it stands for a while without being pinned: the
+   concept map holds itself on the place a focus was made, so reading another
+   page beside it does not walk the map away from what the reader is studying.
+   A hold reads as a pin to everyone, is never saved, and is let go by the view
+   that took it or by any move the reader makes, which is a choice of its own. */
 import { focus } from './focus.svelte';
 import { registry } from './registry.svelte';
 import { atLevel, bookOfScope, choose, levelOf, narrow, parseScopes, resolve, scopeAt, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
@@ -27,13 +33,16 @@ const load = (): Scopes => {
 
 class Scope {
   scopes = $state.raw<Scopes>(load());
-  of(key: ItemKey): ViewScope { return scopeAt(this.scopes, key); }
+  held = $state.raw<Readonly<Record<ItemKey, Target>>>({});
+  of(key: ItemKey): ViewScope { const h = this.held[key]; return h ? { follow: false, target: h } : scopeAt(this.scopes, key); }
+  hold(key: ItemKey, target: Target): void { this.held = { ...this.held, [key]: target }; }
+  release(key: ItemKey): void { if (!(key in this.held)) return; const { [key]: _gone, ...rest } = this.held; this.held = rest; }
   /* The tree of the book a view stands in. */
   treeOf(key: ItemKey): BookTree | null { const b = bookOfScope(this.of(key), focus.section); return b ? registry.manifest(b) : null; }
   targetFor(key: ItemKey): Target | null { return resolve(this.of(key), focus.section, this.treeOf(key)); }
   levelFor(key: ItemKey): Level { return levelOf(this.of(key)); }
   isPinned(key: ItemKey): boolean { return !this.of(key).follow; }
-  set(key: ItemKey, scope: ViewScope): void { this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
+  set(key: ItemKey, scope: ViewScope): void { this.release(key); this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
   widen(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, widen(this.of(key), t)); }
   narrow(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, narrow(this.of(key), focus.section, t)); }
   atLevel(key: ItemKey, level: Level): void { const t = this.treeOf(key); if (t) this.set(key, atLevel(this.of(key), level, focus.section, t)); }

@@ -4,6 +4,7 @@
    reader focuses on it, and where each level was left standing. */
 import type { Edge, Laid, Positions, Pt } from './sugiyama';
 import type { Target } from './scope';
+import type { MapKind } from './layouts';
 
 /* ---------- the opening view ---------- */
 
@@ -61,12 +62,28 @@ export type ViewKey = string;
 export const viewKeyOf = (item: string, t: Target): ViewKey =>
   [item, t.book, t.level, t.level === 'chapter' ? t.chapter : t.level === 'section' ? t.section : ''].join('|');
 
-/* Where the reader left each level they walked, for as long as the page is
-   open. A level they have not walked has no entry and opens fresh; one they
-   leave by the trail's menu, rather than by its crumbs, is let go. */
+/* Where the reader left each level they walked, and what they had picked
+   there, for as long as the page is open. A level they have not walked has no
+   entry and opens fresh; one they leave by the trail's menu, rather than by
+   its crumbs, is let go. The pick outlives the map itself: a tab put away, a
+   group opened beside it or the page it follows read elsewhere for a while,
+   and the map that comes back finds the concepts it was focused on. */
 const held = new Map<ViewKey, Held>();
+/* The selection on a level, and the concepts its focus keeps while one is on. */
+export type Picked = { readonly selected: readonly string[]; readonly focus: readonly string[] | null };
+const picked = new Map<ViewKey, Picked>();
 export const mapViews = {
   get: (k: ViewKey): Held | undefined => held.get(k),
   keep: (k: ViewKey, v: Held): void => { held.set(k, { x: v.x, y: v.y, k: v.k }); },
-  forget: (k: ViewKey): void => { held.delete(k); },
+  picked: (k: ViewKey): Picked | undefined => picked.get(k),
+  /* nothing picked is no entry, so a level let go and a level never touched read alike */
+  pick: (k: ViewKey, p: Picked): void => { if (p.selected.length || p.focus) picked.set(k, { selected: [...p.selected], focus: p.focus && [...p.focus] }); else picked.delete(k); },
+  forget: (k: ViewKey): void => { held.delete(k); picked.delete(k); },
+};
+
+/* The layout each map tab was showing, so a map put away and drawn again comes back in it. */
+const kinds = new Map<string, MapKind>();
+export const mapKinds = {
+  get: (item: string): MapKind | undefined => kinds.get(item),
+  set: (item: string, k: MapKind): void => { kinds.set(item, k); },
 };

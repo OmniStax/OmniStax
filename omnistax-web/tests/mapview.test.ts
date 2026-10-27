@@ -2,7 +2,7 @@
    focus keeps, where it is placed, and where a level is remembered. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alignedTo, connectedOf, crowdScale, mapViews, viewKeyOf, OPENING_MOST } from '../src/lib/sections/mapview';
+import { alignedTo, connectedOf, crowdScale, mapKinds, mapViews, viewKeyOf, OPENING_MOST } from '../src/lib/sections/mapview';
 import type { Edge, Pt } from '../src/lib/sections/sugiyama';
 import { bookId, chapterId, sectionId } from '../src/lib/types/ids';
 
@@ -57,4 +57,33 @@ test('each map tab remembers each level apart, until it is let go', () => {
   assert.equal(mapViews.get(sec), undefined);
   mapViews.forget(ch);
   assert.equal(mapViews.get(ch), undefined);
+});
+
+test('each level keeps its own selection and focus, until it is let go', () => {
+  const book = bookId('b');
+  const a = viewKeyOf('view:concepts@abc123', { level: 'section', book, section: sectionId('1.2') });
+  const b = viewKeyOf('view:concepts@abc123', { level: 'section', book, section: sectionId('1.1') });
+  const picked = ['x', 'y'];
+  mapViews.pick(a, { selected: picked, focus: ['w', 'x', 'y'] });
+  picked.push('z');   /* what was handed in is copied, not held */
+  assert.deepEqual(mapViews.picked(a), { selected: ['x', 'y'], focus: ['w', 'x', 'y'] });
+  assert.equal(mapViews.picked(b), undefined);
+  /* a selection without a focus is kept; nothing picked is no entry */
+  mapViews.pick(a, { selected: ['x'], focus: null });
+  assert.deepEqual(mapViews.picked(a), { selected: ['x'], focus: null });
+  mapViews.pick(a, { selected: [], focus: null });
+  assert.equal(mapViews.picked(a), undefined);
+  /* letting a level go drops its pick with its view */
+  mapViews.pick(a, { selected: ['x'], focus: ['x'] });
+  mapViews.keep(a, { x: 1, y: 2, k: 1 });
+  mapViews.forget(a);
+  assert.equal(mapViews.picked(a), undefined);
+  assert.equal(mapViews.get(a), undefined);
+});
+
+test('each map tab remembers the layout it was showing', () => {
+  assert.equal(mapKinds.get('view:concepts@zzz999'), undefined);
+  mapKinds.set('view:concepts@zzz999', 'disk');
+  assert.equal(mapKinds.get('view:concepts@zzz999'), 'disk');
+  assert.equal(mapKinds.get('view:concepts@yyy888'), undefined);
 });
