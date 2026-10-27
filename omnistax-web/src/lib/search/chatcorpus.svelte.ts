@@ -7,7 +7,9 @@ import { chatEntries, currentChats, type ChatEntry } from './chats';
 class ChatCorpus {
   private stored = $state.raw<readonly Chat[]>([]);
   private asked = false;
-  readonly entries: readonly ChatEntry[] = $derived(chatEntries(currentChats(this.stored, chats.open, new Set(chats.index.map((e) => e.id)))));
+  /* Every chat as it stands now, whole: what the mentions of a section read, chips and all. */
+  readonly current: readonly Chat[] = $derived(currentChats(this.stored, chats.open, new Set(chats.index.map((e) => e.id))));
+  readonly entries: readonly ChatEntry[] = $derived(chatEntries(this.current));
 
   async load(): Promise<void> {
     if (this.asked) return;

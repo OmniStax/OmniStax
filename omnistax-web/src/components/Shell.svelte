@@ -47,6 +47,7 @@
   import { startAutoPush } from '../lib/sync/auto.svelte';
   import UpdateToast from './ui/UpdateToast.svelte';
   import LockOverlay from './pomodoro/LockOverlay.svelte';
+  import SectionMentions from './notes/SectionMentions.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { sheets } from '../lib/sheets/store.svelte';
@@ -119,6 +120,8 @@
   };
   const mountExercises = (root: HTMLElement, ref: SectionRef) => {
     root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { book: ref.book, section: ref.section, place: host.dataset.place ?? 'end' } }); });
+    /* where the reader has mentioned the section, beside its practice button */
+    root.querySelectorAll<HTMLElement>('.section-end').forEach((host) => { if (host.dataset.mentions) return; host.dataset.mentions = '1'; mount(SectionMentions, { target: host, props: { book: ref.book, section: ref.section } }); });
   };
 
   /* highlights: paint a document from the notes that belong to it */
