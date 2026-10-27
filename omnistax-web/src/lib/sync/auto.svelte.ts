@@ -3,8 +3,9 @@
    nothing is being synced, and the reader has been quiet for a while (the
    strokes of a drawing and the keys of a note come too fast to push on), the
    repo is read, this device's changes go up and the other devices' changes
-   come down, all in one pass. A file changed on both sides is a conflict,
-   which is left for the Sync view to settle. A sync that fails raises an alert once,
+   come down, all in one pass. A file changed on both sides goes both ways as
+   the merge where the two sides' changes did not meet; where they did, it is a
+   conflict, which is left for the Sync view to settle. A sync that fails raises an alert once,
    with the way to the Sync view, unless that view is already open; the next
    try waits a whole interval. */
 import { sync } from './store.svelte';
@@ -33,9 +34,9 @@ export const tick = async (now = Date.now()): Promise<void> => {
   try {
     await session.read();
     if (session.phase !== 'ready') throw new Error(session.problem || 'Could not read the repo.');
-    const { up, down } = session.plan;   /* with nothing picked, down holds only the files changed on the other side alone */
-    if (!up.length && !down.length) return;
-    await session.go({ up, down });
+    const plan = session.plan;   /* with nothing picked, down holds the files changed on the other side alone, and the clean merges */
+    if (!plan.up.length && !plan.down.length) return;
+    await session.go(plan);
     if (session.problem) throw new Error(session.problem);
   } catch (e) {
     if (!syncOpen()) alerts.show({ text: t('views.sync.autoError', { error: e instanceof Error ? e.message : String(e) }), action: { label: t('views.sync.openView'), run: () => { commands.run(showViewId('sync')); } } });

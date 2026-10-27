@@ -1,10 +1,12 @@
 /* What differs between this device and the repo, and which way each file
    moves. Each side is compared with the base: the blob both last agreed on,
    per file. A file only this device changed goes up, one only the repo changed
-   comes down, and one changed on both waits for the reader to choose. Files
-   both sides hold the same never show. Pure. */
+   comes down, and one changed on both is merged (merge.ts) or, where the two
+   changed the same thing, waits for the reader: to keep one side whole, or to
+   settle each conflict and send the merge both ways. Files both sides hold
+   the same never show. Pure. */
 import { GITHUB_MAX_BYTES, type GitSha, type RemoteEntry } from './github';
-import { GROUPS, MANIFEST, filePath, groupOf, imagePath, labelOf, type Manifest, type RepoFile, type RepoPath, type SyncGroup } from './layout';
+import { GROUPS, MANIFEST, SYNC_VERSION, filePath, foreignRecord, groupOf, imagePath, labelOf, type Manifest, type RepoFile, type RepoPath, type SyncGroup } from './layout';
 
 export type Base = Readonly<Record<RepoPath, GitSha>>;
 export type Side = 'up' | 'down' | 'both';
@@ -13,10 +15,20 @@ export type Change = {
   readonly path: RepoPath; readonly group: SyncGroup; readonly label: string; readonly side: Side; readonly letter: Letter;
   readonly local: GitSha | null; readonly remote: GitSha | null; readonly size: number;
 };
-export type Pick = 'mine' | 'theirs';
+/* A file changed on both sides settled as a third version: the merge, made
+   by the app where nothing conflicted (`auto`) or by the reader conflict by
+   conflict, from the two versions named by `local` and `remote`. It goes up
+   and comes down both, so that both sides end holding it. */
+export type Merged = { readonly kind: 'merged'; readonly bytes: Uint8Array; readonly sha: GitSha; readonly local: GitSha | null; readonly remote: GitSha | null; readonly auto: boolean };
+export type Pick = 'mine' | 'theirs' | Merged;
 export type Picks = ReadonlyMap<RepoPath, Pick>;
-/* The files to send and to fetch. Whatever is in neither keeps its place. */
-export type Plan = { readonly up: readonly Change[]; readonly down: readonly Change[] };
+export const isMerged = (p: Pick | undefined): p is Merged => typeof p === 'object';
+/* A merge counts only for the two versions it was made from. */
+export const mergedFor = (p: Pick | undefined, c: Change): boolean => isMerged(p) && p.local === c.local && p.remote === c.remote;
+/* The files to send and to fetch, and the bytes of each merge, which no
+   side holds yet and so travel with the plan. Whatever is in neither keeps
+   its place. */
+export type Plan = { readonly up: readonly Change[]; readonly down: readonly Change[]; readonly held?: ReadonlyMap<RepoPath, Uint8Array> };
 export type Origin = 'local' | 'remote';
 
 export type Status =
@@ -34,7 +46,7 @@ export const changesOf = (local: readonly (RepoFile & { readonly sha: GitSha })[
   const there = new Map(remote.map((e) => [e.path, e] as const));
   return [...new Set([...here.keys(), ...there.keys()])].flatMap((path): Change[] => {
     const group = groupOf(path);
-    if (group === null || path === MANIFEST) return [];
+    if (group === null || path === MANIFEST || foreignRecord(path)) return [];
     const l = here.get(path), r = there.get(path);
     const ls = l?.sha ?? null, rs = r?.sha ?? null, bs = base[path] ?? null;
     if (ls === rs) return [];
@@ -46,10 +58,26 @@ export const changesOf = (local: readonly (RepoFile & { readonly sha: GitSha })[
 
 const sendable = (c: Change): boolean => c.local === null || !tooLarge(c.size);
 
-export const planOf = (changes: readonly Change[], picks: Picks): Plan => ({
-  up: changes.filter((c) => (c.side === 'up' || (c.side === 'both' && picks.get(c.path) === 'mine')) && sendable(c)),
-  down: changes.filter((c) => c.side === 'down' || (c.side === 'both' && picks.get(c.path) === 'theirs')),
-});
+export const planOf = (changes: readonly Change[], picks: Picks): Plan => {
+  const up: Change[] = [], down: Change[] = [], held = new Map<RepoPath, Uint8Array>();
+  for (const c of changes) {
+    const p = c.side === 'both' ? picks.get(c.path) : undefined;
+    if (c.side === 'up' || p === 'mine') { if (sendable(c)) up.push(c); }
+    else if (c.side === 'down' || p === 'theirs') down.push(c);
+    else if (isMerged(p) && mergedFor(p, c)) {
+      held.set(c.path, p.bytes);
+      up.push({ ...c, local: p.sha, size: p.bytes.length });
+      down.push({ ...c, remote: p.sha });
+    }
+  }
+  return { up, down, held };
+};
+/* A plan without the merges, which only make sense going both ways: what a
+   pull alone or a push alone carries. */
+export const oneWay = (plan: Plan, way: 'up' | 'down'): Plan => {
+  const merged = (c: Change): boolean => plan.held?.has(c.path) === true;
+  return way === 'up' ? { up: plan.up.filter((c) => !merged(c)), down: [] } : { up: [], down: plan.down.filter((c) => !merged(c)) };
+};
 /* Every difference settled one way: the repo made this device, or this device made the repo. */
 export const overwrite = (changes: readonly Change[], to: 'device' | 'repo'): Plan =>
   to === 'device' ? { up: [], down: changes } : { up: changes.filter(sendable), down: [] };
@@ -71,7 +99,7 @@ export const manifestOf = (origins: ReadonlyMap<RepoPath, Origin>, local: Manife
     return hit ? [hit] : [];
   };
   return {
-    format: 'omnistax-sync', version: 1, exportedAt,
+    format: 'omnistax-sync', version: SYNC_VERSION, exportedAt,
     books: [...new Map([...(remote?.books ?? []), ...local.books].map((b) => [b.id, b] as const)).values()],
     files: paths.filter((p) => p.startsWith('files/')).flatMap(entry((m) => m.files, (f) => filePath(f.id, f.mime))),
     images: paths.filter((p) => p.startsWith('images/')).flatMap(entry((m) => m.images, (i) => imagePath(i.id, i.type))),

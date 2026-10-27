@@ -16,6 +16,7 @@ MANIFEST = {"format": "omnistax-sync", "version": 1, "exportedAt": "2026-10-05T1
             "labels": {"chats/abcd1234.json": "Springs from the laptop"}}
 TREE = [
     {"path": "omnistax.json", "type": "blob", "sha": "m" * 40, "size": 200},
+    # A category file of the first layout, which the survey takes apart into a file per record.
     {"path": "records/appearance.json", "type": "blob", "sha": "a" * 40, "size": 40},
     {"path": "chats/abcd1234.json", "type": "blob", "sha": "c" * 40, "size": 900},
     {"path": "README.md", "type": "blob", "sha": "r" * 40, "size": 10},
@@ -73,10 +74,10 @@ with sync_playwright() as playwright:
     assert go.is_disabled() and go.inner_text().startswith("Choose a version"), go.inner_text()
 
     # A row opens the file's changes as a tab, where the version can be chosen too.
-    view.locator(".file", has_text="appearance").click()
+    view.locator(".file", has_text="omnistax-theme").click()
     diff = page.locator(".diff")
-    diff.locator(".line.add", has_text="omnistax-theme").wait_for(timeout=20000)
-    assert diff.locator(".line.del", has_text="sepia").count() == 1
+    diff.locator(".conflict .side.theirs", has_text="sepia").wait_for(timeout=20000)
+    assert diff.locator(".conflict .side.mine", has_text="dark").count() == 1
     if SHOT:
         page.screenshot(path=SHOT.replace(".png", "-diff.png"))
     diff.get_by_role("button", name="Keep this device’s").click()
