@@ -6,7 +6,7 @@
    settle each conflict and send the merge both ways. Files both sides hold
    the same never show. Pure. */
 import { GITHUB_MAX_BYTES, type GitSha, type RemoteEntry } from './github';
-import { GROUPS, MANIFEST, SYNC_VERSION, filePath, foreignRecord, groupOf, imagePath, labelOf, type Manifest, type RepoFile, type RepoPath, type SyncGroup } from './layout';
+import { GROUPS, MANIFEST, SYNC_VERSION, deviceRecord, filePath, foreignRecord, groupOf, imagePath, labelOf, type Manifest, type RepoFile, type RepoPath, type SyncGroup } from './layout';
 
 export type Base = Readonly<Record<RepoPath, GitSha>>;
 export type Side = 'up' | 'down' | 'both';
@@ -46,7 +46,7 @@ export const changesOf = (local: readonly (RepoFile & { readonly sha: GitSha })[
   const there = new Map(remote.map((e) => [e.path, e] as const));
   return [...new Set([...here.keys(), ...there.keys()])].flatMap((path): Change[] => {
     const group = groupOf(path);
-    if (group === null || path === MANIFEST || foreignRecord(path)) return [];
+    if (group === null || path === MANIFEST || foreignRecord(path) || deviceRecord(path)) return [];
     const l = here.get(path), r = there.get(path);
     const ls = l?.sha ?? null, rs = r?.sha ?? null, bs = base[path] ?? null;
     if (ls === rs) return [];

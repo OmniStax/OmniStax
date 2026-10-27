@@ -7,6 +7,14 @@
    merge without asking. The settled file goes up in one commit and comes down
    here.
 
+   Two files the repo alone changed are held back rather than pulled: the
+   notes, whose repo copy is older than this device's (an old copy pushed
+   again), and the folded sections, which this version cannot read. The notes
+   are kept this device's way and go up with the sync; the folded sections
+   stay held, this device keeping its own. The repo also holds a layout an
+   earlier version pushed, which is neither pulled nor deleted, and this
+   device's layout never goes up.
+
    Run against a served site (Playwright for Node):
        node tests/sync-merge-browser-check.cjs http://127.0.0.1:4321 [screenshot.png] */
 const { chromium } = require('playwright');
@@ -25,10 +33,12 @@ const practice = (attempts, target, note) => ({
   settings: { masteryTarget: target, freshnessDecay: true, startingHalfLife: 3, maxHalfLife: 240, order: 'mixed', includeFresh: false, generated: 'include', grading: 'reveal', promptNote: note, fresh: false, stopwatch: false, model: null },
 });
 
+const note = (text, updated) => ({ id: 'n1', section: '1.1', doc: 'text', anchor: { quote: 'zzz', prefix: '', suffix: '' }, color: 'yellow', text, created: 1, updated });
 const P = 'records/omnistax-practice-v2.json', L = 'records/omnistax-library-v1.json', T = 'records/omnistax-theme.json';
-const base = { [P]: practice([1], 3, 'base note'), [L]: ['college-physics-2e'], [T]: 'dark' };
-const mine = { [P]: practice([1, 2], 4, 'my note'), [L]: ['college-physics-2e', 'chemistry-2e'], [T]: 'dark' };
-const theirs = { [P]: practice([1, 3], 5, 'their note'), [L]: ['college-physics-2e', 'calculus-1'], [T]: 'dark' };
+const N = 'records/omnistax-notes-college-physics-2e.json', F = 'records/omnistax-folded.json', W = 'records/omnistax-layout-v6.json';
+const base = { [P]: practice([1], 3, 'base note'), [L]: ['college-physics-2e'], [T]: 'dark', [N]: [note('agreed', 20)], [F]: ['1.1'] };
+const mine = { [P]: practice([1, 2], 4, 'my note'), [L]: ['college-physics-2e', 'chemistry-2e'], [T]: 'dark', [N]: [note('agreed', 20)], [F]: ['1.1'] };
+const theirs = { [P]: practice([1, 3], 5, 'their note'), [L]: ['college-physics-2e', 'calculus-1'], [T]: 'dark', [N]: [note('an old copy', 10)], [F]: { sections: ['1.1'] }, [W]: { from: 'an earlier version' } };
 const MANIFEST = { format: 'omnistax-sync', version: 2, exportedAt: '2026-10-20T12:00:00.000Z', books: [], files: [], images: [], labels: {} };
 
 const blobs = new Map(), posted = new Map(), committed = [];
@@ -42,7 +52,17 @@ const github = async (route) => {
   if (method === 'GET' && url.includes('/git/trees/')) return route.fulfill({ json: { truncated: false, tree } });
   if (method === 'GET' && url.includes('/git/blobs/')) { const b = blobs.get(url.split('/').pop()); return b ? route.fulfill({ body: b }) : route.fulfill({ status: 404, body: '{}' }); }
   if (method === 'POST' && url.endsWith('/git/blobs')) { const b = Buffer.from(JSON.parse(req.postData()).content, 'base64'); blobs.set(sha(b), b); posted.set(sha(b), b); return route.fulfill({ json: { sha: sha(b) } }); }
-  if (method === 'POST' && url.endsWith('/git/trees')) { committed.push(...JSON.parse(req.postData()).tree); return route.fulfill({ json: { sha: '3'.repeat(40) } }); }
+  if (method === 'POST' && url.endsWith('/git/trees')) {
+    const entries = JSON.parse(req.postData()).tree;
+    committed.push(...entries);
+    /* The branch moves to the commit, so a later look sees what was pushed. */
+    for (const e of entries) {
+      const i = tree.findIndex((t) => t.path === e.path);
+      if (i >= 0) tree.splice(i, 1);
+      if (e.sha) tree.push({ path: e.path, type: 'blob', sha: e.sha, size: blobs.get(e.sha)?.length ?? 0 });
+    }
+    return route.fulfill({ json: { sha: '3'.repeat(40) } });
+  }
   if (method === 'POST' && url.endsWith('/git/commits')) return route.fulfill({ json: { sha: '4'.repeat(40) } });
   if (method === 'PATCH' && url.includes('/git/refs/')) return route.fulfill({ json: {} });
   return route.fulfill({ status: 500, body: '{}' });
@@ -59,14 +79,17 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   await page.goto(BASE + PAGE);
   await page.waitForSelector('.shell');
   await page.evaluate(([m, agreedBase]) => {
+    localStorage.setItem('omnistax-notes-college-physics-2e', JSON.stringify(m.notes));
+    localStorage.setItem('omnistax-folded', JSON.stringify(m.folded));
     localStorage.setItem('omnistax-theme', m.theme);
     localStorage.setItem('omnistax-practice-v2', JSON.stringify(m.practice));
     localStorage.setItem('omnistax-library-v1', JSON.stringify(m.library));
     localStorage.setItem('omnistax-sync-v1', JSON.stringify({ repo: 'chen/notes', branch: 'main', every: 0, last: { repo: 'chen/notes', branch: 'main', at: 1, base: agreedBase } }));
     localStorage.setItem('omnistax-github-token', 'github_pat_test');
-  }, [{ theme: mine[T], practice: mine[P], library: mine[L] }, agreed]);
+  }, [{ theme: mine[T], practice: mine[P], library: mine[L], notes: mine[N], folded: mine[F] }, agreed]);
   await page.reload();
   await page.waitForSelector('.shell');
+  const layoutBefore = await page.evaluate(() => localStorage.getItem('omnistax-layout-v6'));
   await page.locator('#sync-btn').click();
   const view = page.locator('.sync');
   await view.locator('.status').filter({ hasText: 'changed in both' }).waitFor({ timeout: 30000 });
@@ -76,6 +99,24 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   assert(rows['omnistax-library-v1'] === 'merged', `library merged: ${JSON.stringify(rows)}`);
   assert(rows['omnistax-practice-v2'] === '2 conflicts', `practice has two conflicts: ${JSON.stringify(rows)}`);
   assert(!('omnistax-theme' in rows), 'an agreeing record never shows');
+  assert(await view.locator('summary .sec-name', { hasText: /^pull$/i }).count() === 0, 'the held files are not in a pull list');
+
+  /* The queue: both held files, each with why, and only the readable one takeable. */
+  const queue = view.locator('ul.held > li');
+  assert(await queue.count() === 2, `two held: ${await queue.count()}`);
+  assert((await view.locator('.status').innerText()).includes('2 held back'), `status: ${await view.locator('.status').innerText()}`);
+  const notesRow = queue.filter({ hasText: 'omnistax-notes-college-physics-2e' }), foldedRow = queue.filter({ hasText: 'omnistax-folded' });
+  assert((await notesRow.locator('.why').innerText()).startsWith('Older than this device’s copy'), 'why the notes wait');
+  assert((await foldedRow.locator('.why').innerText()).startsWith('This version can’t read it.'), 'why the folded sections wait');
+  assert(await foldedRow.getByRole('button', { name: 'The repo’s' }).count() === 0, 'a copy this version cannot read is not offered');
+  if (SHOT) await page.screenshot({ path: SHOT.replace('.png', '-queue.png') });
+  await notesRow.getByRole('button', { name: 'This device’s' }).click();
+  await notesRow.locator('.outcome').filter({ hasText: 'Replaces the repo’s copy at the next sync.' }).waitFor();
+  await notesRow.locator('.file').click();
+  await page.locator('.diff .why').filter({ hasText: 'Older than this device’s copy' }).waitFor();
+  assert(await page.locator('.diff').getByRole('button', { name: 'Keep this device’s' }).getAttribute('aria-pressed') === 'true', 'the diff tab shows the same choice');
+  if (SHOT) await page.screenshot({ path: SHOT.replace('.png', '-held-diff.png') });
+
   const go = view.locator('.go').first();
   assert(await go.isDisabled() && (await go.innerText()).startsWith('Choose a version for 1 file'), `go waits: ${await go.innerText()}`);
 
@@ -110,7 +151,7 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   if (SHOT) await page.screenshot({ path: SHOT.replace('.png', '-refused.png') });
   await second.getByRole('button', { name: 'Undo' }).click();
   await second.getByRole('button', { name: 'Accept the repo’s' }).click();
-  await status.filter({ hasText: 'Reads as this file should' }).waitFor();
+  await status.filter({ hasText: 'Valid.' }).waitFor();
   assert(await bar.getByText('2 of 2 resolved').isVisible(), 'all settled');
 
   await bar.getByRole('button', { name: 'Edit the result' }).click();
@@ -119,7 +160,7 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   await editor.fill(text.replace('"promptNote"', 'promptNote'));
   await status.filter({ hasText: 'isn’t valid JSON' }).waitFor();
   await editor.fill(text);
-  await status.filter({ hasText: 'Reads as this file should' }).waitFor();
+  await status.filter({ hasText: 'Valid.' }).waitFor();
   await bar.getByRole('button', { name: 'Back to the conflicts' }).click();
   await use.click();
   await status.filter({ hasText: 'goes to the repo and to this device' }).waitFor();
@@ -141,6 +182,26 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   assert(JSON.stringify(lib) === JSON.stringify(['college-physics-2e', 'chemistry-2e', 'calculus-1']), `library here: ${JSON.stringify(lib)}`);
   const last = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-sync-v1')).last.base);
   assert(last[P] === sent[P] && last[L] === sent[L], 'both sides agree on the merges');
+
+  /* The held notes went up as this device has them; the folded sections stayed held. */
+  const notesHere = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-notes-college-physics-2e')));
+  assert(notesHere[0].text === 'agreed' && JSON.parse(posted.get(sent[N]))[0].text === 'agreed', 'this device’s notes replaced the repo’s');
+  assert(last[N] === sent[N], 'and both agree on them');
+  assert(!(F in sent) && last[F] === agreed[F], 'the folded sections were neither pulled nor pushed over, and their base stayed');
+  assert(JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-folded')))) === '["1.1"]', 'this device keeps its own');
+  const stillHeld = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-sync-held-v1')).items.map((h) => h.path));
+  assert(JSON.stringify(stillHeld) === JSON.stringify([F]), `still held: ${stillHeld}`);
+
+  /* The layout: none went up, the repo's was not deleted, and this device's is its own. */
+  assert(!Object.keys(sent).some((p) => p.includes('layout') || p.includes('scope') || p.includes('-pages-')), `no workspace sent: ${Object.keys(sent)}`);
+  const layoutAfter = await page.evaluate(() => localStorage.getItem('omnistax-layout-v6'));
+  assert(!(layoutAfter ?? '').includes('an earlier version'), 'the repo’s layout never came down');
+  assert(layoutBefore === null || layoutAfter !== null, 'and this device’s stayed');
+
+  /* Back in Sync after the reload: the held file still waits. */
+  if (!(await view.isVisible())) await page.locator('#sync-btn').click();
+  await view.locator('ul.held > li').filter({ hasText: 'omnistax-folded' }).waitFor({ timeout: 30000 });
+  if (SHOT) await page.screenshot({ path: SHOT.replace('.png', '-after.png') });
 
   assert(!errors.length, errors.join('\n'));
   console.log('sync-merge-browser-check: ok');

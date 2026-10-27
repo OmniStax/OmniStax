@@ -45,6 +45,7 @@
   import TipToast from './ui/TipToast.svelte';
   import AlertToast from './ui/AlertToast.svelte';
   import { startAutoPush } from '../lib/sync/auto.svelte';
+  import { heldQueue } from '../lib/sync/queue.svelte';
   import UpdateToast from './ui/UpdateToast.svelte';
   import LockOverlay from './pomodoro/LockOverlay.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
@@ -146,6 +147,7 @@
     drawings.init();
     explorer.init();
     sync.init();
+    heldQueue.init();
     const stopAutoPush = startAutoPush();
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */

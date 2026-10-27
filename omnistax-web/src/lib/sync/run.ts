@@ -7,6 +7,7 @@ import { blobSha, commitChanges, readBlob, readHead, readTree, seedEmpty, writeB
 import { MANIFEST, explode, fileProblem, fromRepo, groupOf, isLegacyRecords, jsonBytes, parseManifest, type Manifest, type RepoFile, type RepoPath } from './layout';
 import { manifestOf, originsAfter, rebase, type Base, type Change, type Merged, type Plan, type Status } from './plan';
 import { duplicateKey, mergeTexts } from './conflict';
+import { holdOf, type Found } from './held';
 import type { ParsedBackup } from '../backup/schema';
 import { t } from '../i18n';
 
@@ -24,8 +25,9 @@ export type Survey = {
 export type Report = (path: RepoPath, status: Status) => void;
 export type HashedFile = RepoFile & { readonly sha: GitSha };
 /* What a plan left behind: the branch's commit, the profile to import when
-   anything came down, and the base to remember once that import has landed. */
-export type Outcome = { readonly commit: GitSha | null; readonly backup: ParsedBackup | null; readonly base: Base };
+   anything came down, the base to remember once that import has landed, and
+   the files that came down but could not be taken, for the queue. */
+export type Outcome = { readonly commit: GitSha | null; readonly backup: ParsedBackup | null; readonly base: Base; readonly held: readonly Found[] };
 
 const AT_ONCE = 3;
 const failure = (e: unknown): string => e instanceof Error ? e.message : t('files.sync.error.failed');
@@ -104,11 +106,18 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
     (n) => t('files.sync.error.notArrived', { n }));
   /* A file this version cannot read is not taken: it stays as this device
      has it, its row says why, and since the base does not move for it, it is
-     offered again (and never pushed over) until a version that reads it does. */
-  const refused = new Set<RepoPath>();
-  for (const [path, bytes] of fetched) {
-    const why = fileProblem(path, bytes);
-    if (why) { refused.add(path); fetched.delete(path); report(path, { kind: 'failed', why: t('files.sync.error.unreadable', { why }) }); }
+     offered again (and never pushed over) until a version that reads it does.
+     A plain pull has held such a file back already (screen); a forced one, or
+     the repo's side of a file changed in both, meets it here, and one the
+     repo alone changed joins the queue. */
+  const refused = new Set<RepoPath>(), held: Found[] = [];
+  for (const c of plan.down) {
+    const bytes = fetched.get(c.path);
+    const hold = bytes && c.remote ? holdOf(c.path, null, bytes) : null;
+    if (!hold || !c.remote) continue;
+    refused.add(c.path); fetched.delete(c.path);
+    report(c.path, { kind: 'failed', why: t('files.sync.error.unreadable', { why: hold.why }) });
+    if (c.side === 'down') held.push({ ...hold, path: c.path, local: c.local, remote: c.remote });
   }
   const down = plan.down.filter((c) => !refused.has(c.path));
 
@@ -133,7 +142,7 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
   }
 
   const localAfter = new Map([...mine].map(([p, x]) => [p, x.sha] as const));
-  if (!down.length) return { commit, backup: null, base: rebase(base, localAfter, remoteAfter) };
+  if (!down.length) return { commit, backup: null, base: rebase(base, localAfter, remoteAfter), held };
   const origins = originsAfter(mine.keys(), 'local', down, 'remote');
   const profile = new Map([...origins].flatMap(([p, o]): [RepoPath, Uint8Array][] => {
     const bytes = o === 'local' ? mine.get(p)?.bytes : fetched.get(p);
@@ -141,7 +150,24 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
   }));
   profile.set(MANIFEST, jsonBytes(manifestOf(origins, ownManifest, seen.manifest, now)));
   down.forEach((c) => (c.remote ? localAfter.set(c.path, c.remote) : localAfter.delete(c.path)));
-  return { commit, backup: fromRepo(profile), base: rebase(base, localAfter, remoteAfter) };
+  return { commit, backup: fromRepo(profile), base: rebase(base, localAfter, remoteAfter), held };
+};
+
+/* Each file only the repo changed, checked before it comes down (held.ts):
+   the ones to hold, and the bytes fetched to check them, which the sync then
+   carries rather than fetching again. A file that cannot be fetched is not
+   held here; the sync fails on it as before. */
+export const screen = async (changes: readonly Change[], local: readonly HashedFile[], blob: (sha: GitSha) => Promise<Uint8Array>): Promise<{ readonly found: readonly Found[]; readonly bytes: ReadonlyMap<GitSha, Uint8Array> }> => {
+  const found: Found[] = [], bytes = new Map<GitSha, Uint8Array>();
+  await pool(changes.filter((c) => c.side === 'down' && c.remote !== null && c.path.endsWith('.json')), AT_ONCE, async (c) => {
+    const sha = c.remote as GitSha;
+    const theirs = await blob(sha).catch(() => null);
+    if (!theirs) return;
+    bytes.set(sha, theirs);
+    const hold = holdOf(c.path, local.find((f) => f.path === c.path)?.bytes ?? null, theirs);
+    if (hold) found.push({ ...hold, path: c.path, local: c.local, remote: sha });
+  });
+  return { found: found.sort((a, b) => a.path.localeCompare(b.path)), bytes };
 };
 
 /* What a file changed on both sides comes to: the two texts the reader

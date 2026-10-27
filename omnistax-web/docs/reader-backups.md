@@ -15,11 +15,11 @@ excluded.
 | --- | --- |
 | Appearance and reading | `omnistax-theme`, `omnistax-lang` (the reader's language, `en` or `zh-CN`; absent, the browser's), `omnistax-anim`, `omnistax-exmode`, `omnistax-voice`, every `omnistax-highlights-<book>` record, `omnistax-map-progress`, `omnistax-zoom`, `omnistax-zoom-keys`, `omnistax-folded`, `omnistax-hidden-figs`, `omnistax-seen-releases-v2` (and the older `-v1`) |
 | Keyboard | `omnistax-keys` |
-| Practice | `omnistax-practice-v1`, `omnistax-practice-v2`, the corresponding `pages` and `sessions` v1/v2 records |
+| Practice | `omnistax-practice-v1`, `omnistax-practice-v2`, the `sessions` v1/v2 records, `omnistax-practice-links-v1` |
 | Library | `omnistax-library-v1`, `omnistax-explorer-v1`, `omnistax-auto-update-v1` |
 | Notes | `omnistax-notedocs-v1`, every `omnistax-notes-<book>` record, and pasted note images from the `omnistax-assets` IndexedDB |
 | Colours | every `omnistax-colours-<book>` record |
-| Workspace | `omnistax-layout-v5`, `omnistax-scope`, `omnistax-scope-v2` |
+| Workspace | `omnistax-layout-v6`, `omnistax-layout-v5`, `omnistax-scope`, `omnistax-scope-v2`, the practice `pages` v1/v2 records, `omnistax-chat-pages-v1` (the `layout` category; a file backup carries it, GitHub sync does not) |
 
 The exporter scans all matching per-book records, not only the currently open
 book. Legacy records are preserved so an older profile can round-trip. Runtime
@@ -46,7 +46,8 @@ is (`chats.0.messages.m1.state: Invalid enum value…`).
 A reader record is validated on its own (`recordProblem` in
 `src/lib/backup/schema.ts`). One this version cannot read — a key it does not
 know, a JSON key whose value is not JSON, a value of the wrong shape — is set
-aside with its key and the reason, the preview lists it, and the restore
+aside with its key and the reason, the preview lists it under "held back" in
+the words the Sync view's queue uses (see below), and the restore
 writes this device's own value for that key back with the rest
 (`keptRecords`), so nothing is overwritten with what could not be read and
 nothing the device holds is dropped for it. A record's `category` is derived
@@ -87,6 +88,23 @@ A record's category is not in its path, so a key a later version files under
 another category keeps its file. A record file whose key this version does not
 know (a newer version's) is never pulled, never deleted and never shown: it
 stays in the repo for the version that knows it.
+
+### The workspace stays on each device
+
+The `layout` category (`omnistax-layout-v6`/`-v5`, `omnistax-scope-v2`/
+`omnistax-scope`, and what each practice and Conversations page shows,
+`omnistax-practice-pages-v2`/`-v1` and `omnistax-chat-pages-v1`, which are kept
+by the page's tab) is in the file backup and out of GitHub sync
+(`staysOnDevice` in `backup/schema.ts`, `deviceRecord` in `sync/layout.ts`): a
+phone and a wide screen each keep their own tabs and splits. It is never
+pushed and never pulled, and a pull never replaces it: the profile a pull
+imports carries none, so the import writes this device's own back
+(`recordsToRestore` with `keepWorkspace`, beside the records it set aside).
+
+A repo that already holds workspace files from an earlier version keeps them.
+They are not read and not deleted: a device still on that version syncs them
+as before, and would take their deletion as its own layout gone, since an
+import removes the records a profile leaves out.
 
 Version 1 kept every record of a category in one file
 (`records/<category>.json`), so two devices that touched any two records of a
@@ -152,9 +170,61 @@ bytes travel with the plan, go up in the sync's commit and are imported here.
 Keeping one side whole stays one click away, in the tab and in the list. A
 pull alone or a push alone leaves merges out, since they go both ways.
 
-### A file this version cannot read
+### Files held back
 
-Every file that comes down is checked first (`fileProblem`). One that fails is
-not taken: its row says why, this device keeps its own, and since the base does
-not move for it, it is offered again — and never pushed over — until a version
-that reads it syncs.
+Every file only the repo changed is checked before it comes down (`held.ts`,
+called as `screen` when the Sync view reads the repo). A file that passes
+comes down with the rest, and files changed on both sides merge as above. A
+file that fails is neither taken nor dropped: it waits in the Sync view under
+**Held back**, with why, and the rest of the sync goes ahead without it. It
+fails for one of three reasons:
+
+| Reason | When | Choices |
+| --- | --- | --- |
+| newer | it fails this version's check the way a newer version's file would: a field, a kind or a choice it does not know (zod `unrecognized_keys`, an enum or literal value, a union's tag), or a setting's value it does not offer | this device's only |
+| unreadable | not JSON, or a value of the wrong type | this device's only |
+| older | something in it (the file, a key, an item by id) carries an `updated` stamp earlier than this device's copy of the same thing, so taking it would undo an edit made here | the repo's or this device's |
+
+Taking the repo's copy pulls it at the next sync. Keeping this device's copy
+of an older file pushes it at the next sync, so the repo stops offering the
+older one. Keeping this device's copy of a file this version cannot use leaves
+both as they are: it is never pushed over, and stays in the repo for a
+version that reads it. The diff tab shows a held file's changes with the same
+reason and choice. A forced pull still refuses a file this version cannot
+read, and a file the repo alone changed that it refuses joins the queue.
+
+The base does not move for a held file, so it is offered again rather than
+overwritten. The queue is kept in `omnistax-sync-held-v1` (repo, branch, and
+for each file its path, reason, the two blob shas it was held between, and the
+reader's choice), across the reload a pull makes. Like `omnistax-sync-v1` it is
+this device's account with one repo and stays out of backups and pushes. An
+entry counts only for the two versions it was held between: once either side
+changes the file again it is checked afresh. A timed sync holds files the same
+way and raises an alert naming how many, again after the reload, until the
+Sync view has shown them.
+
+#### Nothing is held for a number that falls on its own
+
+Only `updated` stamps are compared, and they only go forward. Mastery and
+freshness decay, a streak breaks, a timer runs down: no check compares any of
+them, nor `level`, `lastAt`, `dueAt`, `halfLife`, `reviewedAt` or a
+self-assessment's `at`. Mastery, freshness and the streak are worked out from
+the practice record's logs (attempts, presentations, finished rounds,
+self-assessments) when practice opens (`rebuild` in `practice/model.ts`), and
+only the logs are stored. When the practice record merges, the logs merge and
+what is worked out from them follows: a log both sides appended to is one log,
+and a log one side also took an entry out of (an attempt is taken back when its
+exercise is answered again) merges entry by entry, each entry named by what it
+holds, so the removal is honoured and the other side's additions kept. Without
+a base, both sides' entries are kept. The mastery snapshots a session keeps
+(`before`, `after`) and a finished round's summary are written once and merge
+by id. No check in the schema, the merge or the plan treats a decrease as
+suspicious.
+
+### Backups say it the same way
+
+A file restore lists the records it set aside the way the queue lists held
+files (newer, or unreadable, with the check's own words beneath), and since
+this version can use neither, this device keeps its own for each. Everything
+else is taken as the file has it: a restore is a replace, and the older check
+does not apply.

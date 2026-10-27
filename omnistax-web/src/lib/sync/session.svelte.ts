@@ -1,13 +1,15 @@
 /* One look at the repo beside this device: what differs, which version the
    reader has chosen where both changed (or the merge the app made, or the one
-   the reader settled conflict by conflict), the file whose changes they are
-   reading, and each file's progress while a sync runs. The sidebar and the
-   changes tab both read it. */
+   the reader settled conflict by conflict), the files a pull holds back
+   (queue.svelte.ts), the file whose changes they are reading, and each file's
+   progress while a sync runs. The sidebar and the changes tab both read it. */
 import { createBackup, importBackup } from '../backup/adapters';
 import { readBlob, type GitSha } from './github';
 import { toRepo, type RepoPath } from './layout';
 import { changesOf, isMerged, mergedFor, overwrite, planOf, rebase, type Change, type Pick, type Plan, type Status } from './plan';
-import { bothWays, carry, hashed, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
+import { bothWays, carry, hashed, screen, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
+import { reconcile, withHeld, type Held } from './held';
+import { heldQueue } from './queue.svelte';
 import type { Choices } from './conflict';
 import { sync } from './store.svelte';
 import { t } from '../i18n';
@@ -33,7 +35,9 @@ class SyncSession {
   #ticket = 0;
   #blobs = new Map<GitSha, Promise<Uint8Array>>();
 
-  get plan(): Plan { return planOf(this.changes, this.picks); }
+  get plan(): Plan { return withHeld(planOf(this.changes, this.picks), this.changes, heldQueue.items); }
+  /* The hold on a file the repo changed, while it still holds. */
+  heldFor(c: Change): Held | null { const h = heldQueue.items.find((x) => x.path === c.path); return h && c.side === 'down' && h.local === c.local && h.remote === c.remote ? h : null; }
   get unchosen(): number { return this.changes.filter((c) => c.side === 'both' && !this.chosen(c)).length; }
   chosen(c: Change): boolean { const p = this.picks.get(c.path); return p === 'mine' || p === 'theirs' || mergedFor(p, c); }
 
@@ -51,7 +55,10 @@ class SyncSession {
       const base = rebase({ ...s.base, ...last }, new Map(files.map((f) => [f.path, f.sha] as const)), new Map(s.remote.map((e) => [e.path, e.sha] as const)));
       const changes = changesOf(files, s.remote, base, s.manifest);
       const merges = await bothWays(changes, files, base, (sha) => this.remoteBytes(sha));
+      const checked = await screen(changes, files, (sha) => this.remoteBytes(sha));
       if (mine !== this.#ticket) return;
+      this.seen = { ...s, held: new Map([...s.held, ...checked.bytes]) };
+      heldQueue.set(reconcile(heldQueue.items, checked.found, changes));
       sync.agreed(base, false);
       this.local = files; this.changes = changes; this.merges = merges;
       /* A choice stands while the file it was made for still differs the same
@@ -72,8 +79,13 @@ class SyncSession {
     this.phase = 'moving'; this.problem = ''; this.status = new Map();
     try {
       const out = await carry(remote, fetch.bind(globalThis), this.seen, this.local, plan, sync.last?.base ?? {}, (path, s) => { this.status = new Map(this.status).set(path, s); });
+      /* A held file the sync moved, the reader's way, leaves the queue; one the
+         check let through and this version still could not take joins it. */
+      const moved = new Set([...plan.up, ...plan.down].map((c) => c.path));
+      const stays = heldQueue.items.filter((h) => !moved.has(h.path) && !out.held.some((x) => x.path === h.path));
+      heldQueue.set(out.held.length ? [...stays, ...reconcile(heldQueue.items, out.held, this.changes)] : stays);
       if (out.backup) {
-        try { await importBackup(out.backup); sync.agreed(out.base, true); }
+        try { await importBackup(out.backup, { keepWorkspace: true }); sync.agreed(out.base, true); }
         catch (e) { alert(e instanceof Error ? e.message : t('files.sync.error.restored')); }
         location.reload();
         return;
@@ -94,6 +106,8 @@ class SyncSession {
     else next.set(path, p);
     this.picks = next;
   }
+  /* For a held file: the repo's copy, or this device's. */
+  hold(path: RepoPath, p: 'mine' | 'theirs'): void { heldQueue.pick(path, p); }
   pickAll(p: 'mine' | 'theirs'): void { this.picks = new Map(this.changes.filter((c) => c.side === 'both').map((c) => [c.path, p] as const)); }
 
   draft(path: RepoPath, d: Draft): void { this.drafts = new Map(this.drafts).set(path, d); }

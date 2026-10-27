@@ -6,8 +6,10 @@
      names what would be lost. A file's row opens its changes as a tab. A file
      changed in both that merged on its own says so and goes both ways; one
      whose changes met says how many conflicts it holds, which its tab settles
-     one by one, or keeps one side whole from here. Below, the manual way: a
-     file. */
+     one by one, or keeps one side whole from here. Above the lists, what a
+     pull held back (held.ts): each file with why, and the repo's copy (where
+     this version can use it) or this device's to choose. Below, the manual
+     way: a file. */
   import { untrack } from 'svelte';
   import { sizeLabel } from '../../lib/files/model';
   import { ICON } from '../../lib/icons';
@@ -18,6 +20,9 @@
   import { isMerged, oneWay, tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { blocksOf, conflictCount } from '../../lib/sync/conflict';
   import { session } from '../../lib/sync/session.svelte';
+  import { heldQueue } from '../../lib/sync/queue.svelte';
+  import { takeable, waiting, type Held } from '../../lib/sync/held';
+  import HeldWhy from './HeldWhy.svelte';
   import { sync, PUSH_EVERY, PUSH_EVERY_KEY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
@@ -33,7 +38,11 @@
   const bySide = (side: Side): readonly Change[] => changes.filter((c) => c.side === side);
   const both = $derived(bySide('both'));
   const up = $derived(bySide('up'));
-  const down = $derived(bySide('down'));
+  const down = $derived(bySide('down').filter((c) => !session.heldFor(c)));
+  /* What a pull held back, each with the change it stands for. */
+  const held = $derived(bySide('down').flatMap((c) => { const h = session.heldFor(c); return h ? [{ h, c }] : []; }));
+  const open = $derived(waiting(held.map((x) => x.h)).length);
+  $effect(() => { if (held.length && heldQueue.unseen) untrack(() => heldQueue.markSeen()); });
   const plan = $derived(session.plan);
   const unchosen = $derived(session.unchosen);
   const stuck = (c: Change): boolean => c.local !== null && tooLarge(c.size) && (c.side === 'up' || session.picks.get(c.path) === 'mine');
@@ -44,7 +53,7 @@
     if (!session.seen) return '';
     if (session.seen.head.kind !== 'at' && !changes.length) return i18n.t('views.sync.emptyBranch');
     if (!changes.length) return i18n.t('views.sync.upToDate');
-    return [up.length && i18n.t('views.sync.toPush', { n: up.length }), down.length && i18n.t('views.sync.toPull', { n: down.length }), both.length && i18n.t('views.sync.inBoth', { n: both.length })].filter(Boolean).join(' · ');
+    return [up.length && i18n.t('views.sync.toPush', { n: up.length }), down.length && i18n.t('views.sync.toPull', { n: down.length }), both.length && i18n.t('views.sync.inBoth', { n: both.length }), open && i18n.t('views.sync.heldN', { n: open })].filter(Boolean).join(' · ');
   });
   const lastSynced = $derived(sync.last?.at ? i18n.t('views.sync.lastSynced', { when: new Date(sync.last.at).toLocaleString(i18n.locale) }) : i18n.t('views.sync.notSynced'));
   const busy = $derived(phase === 'reading' || phase === 'moving');
@@ -127,6 +136,22 @@
   {/if}
 {/snippet}
 
+{#snippet heldRow(h: Held, c: Change)}
+  <li class:selected={session.selected === c.path}>
+    <button type="button" class="file" title={i18n.t('views.sync.showChanges', { path: c.path })} onclick={() => show(c)}>
+      <span class="label">{c.label}</span>
+      <span class="state"></span>
+      <span class="letter l{c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
+      <span class="group">{groupLabel(c.group, i18n.locale)}</span>
+    </button>
+    <HeldWhy {h} />
+    <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
+      <button type="button" aria-pressed={h.pick === 'mine'} disabled={phase !== 'ready'} onclick={() => session.hold(c.path, 'mine')}>{i18n.t('views.sync.mine')}</button>
+      {#if takeable(h)}<button type="button" aria-pressed={h.pick === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.hold(c.path, 'theirs')}>{i18n.t('views.sync.theirs')}</button>{/if}
+    </span>
+  </li>
+{/snippet}
+
 {#snippet item(label: string, note: string, run: () => void, disabled = false, danger = false)}
   <button type="button" role="menuitem" class:danger {disabled} onclick={() => choose(run)}>
     <span class="mi-label">{label}</span>
@@ -163,7 +188,7 @@
       </label>
       <p class="status" class:calm={!changes.length} role="status">{summary}</p>
 
-      {#if changes.length}
+      {#if changes.length > held.length}
         <div class="act">
           <button type="button" class="go" disabled={phase !== 'ready' || unchosen > 0 || !action} onclick={() => void session.go(plan)}>
             {unchosen ? i18n.t('views.sync.chooseFor', { n: unchosen }) : phase === 'moving' ? i18n.t('views.sync.syncing') : action}
@@ -183,6 +208,13 @@
       {/if}
       {#if session.problem}<p class="hint bad" role="alert">{session.problem}</p>{/if}
 
+      {#if held.length}
+        <details open class="sec">
+          <summary><span class="sec-name">{i18n.t('views.sync.held')}</span><span class="badge">{held.length}</span></summary>
+          <p class="hint">{i18n.t('views.sync.heldHint')}</p>
+          <ul class="held">{#each held as x (x.c.path)}{@render heldRow(x.h, x.c)}{/each}</ul>
+        </details>
+      {/if}
       {@render list(i18n.t('views.sync.changedInBoth'), both, true)}
       {@render list(i18n.t('views.sync.push'), up)}
       {@render list(i18n.t('views.sync.pull'), down)}

@@ -64,6 +64,7 @@ const JSON_KEY_LIST = [...jsonKeys];
 const HIGHLIGHTS_KEY = /^omnistax-highlights-[^/]+$/;
 const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
 export type ReaderCategory = typeof CATEGORIES[number];
+const LAYOUT_KEYS = ['omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-chat-pages-v1'];
 const FOCUS_KEYS = ['omnistax-pomodoros', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-len', 'omnistax-pomodoro-lock', 'omnistax-lock-grace'];
 export type ReaderRecord = { readonly key: string; readonly value: string; readonly category: ReaderCategory };
 export type BackupAsset = { readonly id: string; readonly type: string; readonly dataUrl: string; readonly created: number };
@@ -74,16 +75,23 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
   if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key)) return 'appearance';
   if (key === 'omnistax-keys-v2' || key === 'omnistax-keys') return 'shortcuts';
-  if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
+  if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
   if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
   if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
-  if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
+  /* The workspace: the tabs and splits, where each view stands, and what each
+     practice and Conversations page shows, which is kept by the page's tab. */
+  if (LAYOUT_KEYS.includes(key)) return 'layout';
   if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1'].includes(key)) return 'reading';
-  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v2' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-pages-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
+  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v2' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
   return null;
 };
+
+/* A record of this device's own workspace. A file backup carries it, so a
+   restore puts the tabs back as they were; GitHub sync never does, since two
+   devices of different sizes each want their own (sync/layout.ts). */
+export const staysOnDevice = (key: string): boolean => LAYOUT_KEYS.includes(key);
 
 const object = z.record(z.unknown());
 const finite = z.number().finite();
@@ -285,22 +293,36 @@ export const issueOf = (error: z.ZodError): string => {
   return first.path.length ? `${first.path.join('.')}: ${first.message}` : first.message;
 };
 
-/* Why this version cannot take a record back, or null when it can. A record
-   the app does not know, a value that is not the JSON its key holds, and a
-   value of the wrong shape each say so in their own words. */
-export const recordProblem = (record: { readonly key: string; readonly value: string }): string | null => {
-  if (record.key.length > 300) return t('shell.backup.record.longKey');
-  if (record.value.length > MAX_BACKUP_BYTES) return t('shell.backup.record.tooLarge');
-  if (categoryOf(record.key) === null) return t('shell.backup.record.unknown');
-  const scalar = scalarKeys.get(record.key);
-  if (scalar) return scalar(record.value) ? null : t('shell.backup.record.value', { value: record.value.length > 40 ? `${record.value.slice(0, 40)}…` : record.value });
-  const shape = shapeOf(record.key);
-  if (!shape) return t('shell.backup.record.unknown');
-  let value: unknown;
-  try { value = JSON.parse(record.value); } catch { return t('shell.backup.record.notJson'); }
-  const parsed = shape.safeParse(value);
-  return parsed.success ? null : issueOf(parsed.error);
+/* Whether a zod failure looks like a newer version's value rather than a
+   damaged one: a field, a kind or a choice this version does not know, where
+   everything it does know is the right type. */
+export const newerIssue = (error: z.ZodError): boolean => {
+  const first = error.issues[0];
+  if (!first) return false;
+  if (first.code === 'invalid_union') return first.unionErrors.some(newerIssue);
+  return first.code === 'unrecognized_keys' || first.code === 'invalid_enum_value' || first.code === 'invalid_literal' || first.code === 'invalid_union_discriminator';
 };
+
+/* Why this version cannot take a record back, and whether a newer version
+   probably wrote it, or null when it can. A record the app does not know, a
+   value that is not the JSON its key holds, and a value of the wrong shape
+   each say so in their own words. A setting's value this version does not
+   offer counts as a newer version's. */
+export type RecordIssue = { readonly why: string; readonly newer: boolean };
+export const recordIssue = (record: { readonly key: string; readonly value: string }): RecordIssue | null => {
+  if (record.key.length > 300) return { why: t('shell.backup.record.longKey'), newer: false };
+  if (record.value.length > MAX_BACKUP_BYTES) return { why: t('shell.backup.record.tooLarge'), newer: false };
+  if (categoryOf(record.key) === null) return { why: t('shell.backup.record.unknown'), newer: true };
+  const scalar = scalarKeys.get(record.key);
+  if (scalar) return scalar(record.value) ? null : { why: t('shell.backup.record.value', { value: record.value.length > 40 ? `${record.value.slice(0, 40)}…` : record.value }), newer: true };
+  const shape = shapeOf(record.key);
+  if (!shape) return { why: t('shell.backup.record.unknown'), newer: true };
+  let value: unknown;
+  try { value = JSON.parse(record.value); } catch { return { why: t('shell.backup.record.notJson'), newer: false }; }
+  const parsed = shape.safeParse(value);
+  return parsed.success ? null : { why: issueOf(parsed.error), newer: newerIssue(parsed.error) };
+};
+export const recordProblem = (record: { readonly key: string; readonly value: string }): string | null => recordIssue(record)?.why ?? null;
 
 /* A record as this version would write it: a key it knows, under that key's
    category, holding a value of the key's shape. */
@@ -343,7 +365,7 @@ const BackupSchema = z.object({
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
   /* What an earlier read of this same profile set aside: a profile read once
      and read again keeps the list rather than refusing its own field. */
-  skipped: z.array(z.object({ key: z.string(), why: z.string() }).strict()).optional(),
+  skipped: z.array(z.object({ key: z.string(), why: z.string(), newer: z.boolean().optional() }).strict()).optional(),
 }).strict().superRefine((value, ctx) => {
   const keys = new Set<string>();
   value.records.forEach((record, index) => {
@@ -353,8 +375,9 @@ const BackupSchema = z.object({
 });
 
 export type ReaderBackup = Omit<z.infer<typeof BackupSchema>, 'records' | 'skipped'> & { readonly records: readonly ReaderRecord[] };
-/* A record a backup carried that this version left out, and why. */
-export type SkippedRecord = { readonly key: string; readonly why: string };
+/* A record a backup carried that this version left out, why, and whether a
+   newer version probably wrote it. */
+export type SkippedRecord = { readonly key: string; readonly why: string; readonly newer?: boolean };
 /* A backup as read: the records this version can restore, and the ones it
    could not, which a restore leaves as they stand on this device. */
 export type ParsedBackup = ReaderBackup & { readonly skipped: readonly SkippedRecord[] };
@@ -381,9 +404,9 @@ export const parseBackup = (raw: unknown): ParsedBackup => {
   const { skipped: before = [], ...rest } = parsed.data;
   const records: ReaderRecord[] = [], skipped: SkippedRecord[] = [...before];
   for (const r of rest.records) {
-    const why = recordProblem(r), category = categoryOf(r.key);
-    if (why === null && category) records.push({ key: r.key, value: r.value, category });
-    else skipped.push({ key: r.key, why: why ?? t('shell.backup.record.unknown') });
+    const issue = recordIssue(r), category = categoryOf(r.key);
+    if (issue === null && category) records.push({ key: r.key, value: r.value, category });
+    else skipped.push({ key: r.key, why: issue?.why ?? t('shell.backup.record.unknown'), newer: issue?.newer ?? true });
   }
   return { ...rest, records, skipped };
 };
