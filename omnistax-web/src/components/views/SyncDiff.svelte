@@ -9,6 +9,11 @@
   import type { Change } from '../../lib/sync/plan';
   import { session } from '../../lib/sync/session.svelte';
   import LineDiff from '../ui/LineDiff.svelte';
+  import { glossOf, type OwnKind } from '../../lib/sync/gloss';
+  import { explorer } from '../../lib/explorer/store.svelte';
+  import { noteDocs } from '../../lib/notes/docs.svelte';
+  import { entryId } from '../../lib/explorer/model';
+  import { noteId } from '../../lib/types/ids';
   import { i18n } from '../../lib/i18n/store.svelte';
 
   const change = $derived(session.changes.find((c) => c.path === session.selected) ?? null);
@@ -28,6 +33,13 @@
     theirs: c.remote ? await session.remoteBytes(c.remote) : null,
   });
   const loading = $derived(change ? versions(change) : null);
+
+  /* A record keeps the reader's things by key — a note filed beside an exercise
+     is `note:5f2y0vbb` in the practice record — so a line holding one is glossed
+     with the name it goes by now, read live, so a rename shows at once. */
+  const nameOf = (kind: OwnKind, id: string): string | undefined =>
+    (kind === 'note' ? noteDocs.get(noteId(id))?.name : undefined) ?? explorer.entry(entryId(id))?.name;
+  const gloss = (line: string): string | null => glossOf(line, nameOf);
 
   const MAX_LINES = 3000;
   const textOf = (b: Uint8Array | null): string[] => (b ? new TextDecoder().decode(b).replace(/\n$/, '').split('\n') : []);
@@ -81,7 +93,7 @@
         {:else if total > MAX_LINES}
           <p class="empty">{i18n.t('views.diff.tooMany', { n: total })}</p>
         {:else}
-          <LineDiff hunks={d.hunks} tail={d.tail} />
+          <LineDiff hunks={d.hunks} tail={d.tail} {gloss} />
         {/if}
       {:else if v}
         {@const image = kind(change.path) === 'image'}

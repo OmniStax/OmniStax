@@ -1,8 +1,10 @@
 <script lang="ts">
-  /* A line diff drawn as its changed stretches, each with a few unchanged lines around it. */
+  /* A line diff drawn as its changed stretches, each with a few unchanged lines
+     around it. `gloss` may say in words what a line holds by key: it is drawn
+     after the line, muted, and is no part of the file. */
   import type { Hunk } from '../../lib/sync/diff';
   import { i18n } from '../../lib/i18n/store.svelte';
-  let { hunks, tail }: { hunks: readonly Hunk[]; tail: number } = $props();
+  let { hunks, tail, gloss }: { hunks: readonly Hunk[]; tail: number; gloss?: (line: string) => string | null } = $props();
   const SIGN = { same: ' ', del: '−', add: '+' } as const;
 </script>
 
@@ -14,7 +16,7 @@
   {#each hunks as h, i (i)}
     {@render skipped(h.skipped)}
     {#each h.lines as l, j (j)}
-      <div class="line {l.kind}" role="row"><span class="no">{l.a ?? ''}</span><span class="no">{l.b ?? ''}</span><span class="sign">{SIGN[l.kind]}</span><span class="text">{l.text}</span></div>
+      <div class="line {l.kind}" role="row"><span class="no">{l.a ?? ''}</span><span class="no">{l.b ?? ''}</span><span class="sign">{SIGN[l.kind]}</span><span class="text">{l.text}{#if gloss?.(l.text)}<span class="gloss">{gloss(l.text)}</span>{/if}</span></div>
     {/each}
   {/each}
   {@render skipped(tail)}
@@ -26,6 +28,8 @@
   .no{text-align:right;padding-right:8px;color:var(--muted);font-variant-numeric:tabular-nums;user-select:none}
   .sign{text-align:center;user-select:none}
   .text{white-space:pre-wrap;overflow-wrap:anywhere;padding-right:8px}
+  .gloss{margin-left:1.5em;color:var(--muted);font-family:var(--sans);font-style:italic;user-select:none}
+  .gloss::before{content:'← '}
   .line.del{background:color-mix(in srgb,var(--bad) 12%,transparent)}
   .line.add{background:color-mix(in srgb,var(--ok) 14%,transparent)}
   .line.del .sign{color:var(--bad)} .line.add .sign{color:var(--ok)}
