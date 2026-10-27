@@ -128,7 +128,7 @@ export const sheets: Readonly<Record<keyof typeof source, string>> = {
   'sheets.elements.ionization': '第一电离能',
   'sheets.elements.ionizationEnergy': '第一电离能',
   'sheets.elements.keepOpen': '点击以保持打开。',
-  'sheets.elements.lead': '将指针悬停在元素上即可查看。点击可固定，再点一次关闭。',
+  'sheets.elements.lead': '点击元素可固定其卡片，再点一次即关闭。',
   'sheets.elements.namedIn': '提及于',
   'sheets.elements.namedNowhere': '本教材没有哪一节提及它。',
   'sheets.elements.period': '周期',
