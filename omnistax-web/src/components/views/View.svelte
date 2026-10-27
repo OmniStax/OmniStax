@@ -131,7 +131,7 @@
   {:else if kind === 'colours'}<Colours />
   {:else if kind === 'pomodoro'}<Pomodoro />
   {:else if kind === 'pomodoro-stats'}<PomodoroStats />
-  {:else if kind === 'chats'}<Conversations />
+  {:else if kind === 'chats'}<Conversations {item} />
   {:else}<Annotations />{/if}
 </div>
 

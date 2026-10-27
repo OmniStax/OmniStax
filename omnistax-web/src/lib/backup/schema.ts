@@ -49,7 +49,7 @@ const jsonKeys = new Set([
      chats they have held. The keys they pasted are not here: the adapter
      strips them on the way out, and the validator below refuses a record
      that still carries one. */
-  'omnistax-ai-v1', 'omnistax-chats-v1',
+  'omnistax-ai-v1', 'omnistax-chats-v2', 'omnistax-chats-v1', 'omnistax-chat-pages-v1',
   /* The drawings the reader has made and the scratch pages of their exercises.
      Only the names and the index are here; the ink travels as `drawings` and
      `scratch` below, since a page of strokes is far heavier than localStorage
@@ -81,7 +81,7 @@ export const categoryOf = (key: string): ReaderCategory | null => {
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
   if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1'].includes(key)) return 'reading';
-  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
+  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v2' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-pages-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
   return null;
 };
 
@@ -163,7 +163,10 @@ const aiSettings = z.object({
 }).strict());
 /* The index of the chats: one row per chat, the records themselves being far
    too heavy for localStorage and carried by `chats` below. */
-const chatIndex = z.array(z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict());
+const chatRow = z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict();
+const chatIndex = z.array(chatRow);
+/* The same, each row with the book its chat is filed under, `''` for none. */
+const chatIndexFiled = z.array(chatRow.extend({ book: z.string().optional() }).strict());
 const chatMessage = z.object({
   id: z.string().min(1), parent: z.string().min(1).nullable(), role: z.enum(['user', 'assistant']), text: z.string(),
   chips: z.array(z.object({ kind: z.string().min(1), key: z.string(), label: z.string(), text: z.string(), pinned: z.boolean().optional(), image: z.string().optional() }).strict()),
@@ -226,7 +229,8 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-ai-v1': aiSettings,
   'omnistax-drawings-v1': drawingRows,
   'omnistax-scratch-v1': scratchIndex,
-  'omnistax-chats-v1': chatIndex,
+  'omnistax-chats-v2': chatIndexFiled, 'omnistax-chats-v1': chatIndex,
+  'omnistax-chat-pages-v1': z.record(z.string().regex(/^[a-z0-9]{8}$/)),
   'omnistax-keys-v2': changes,
   'omnistax-seen-notes-v1': z.string().regex(VERSION),
   'omnistax-keys': binding,

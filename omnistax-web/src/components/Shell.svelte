@@ -55,6 +55,7 @@
   import { noteDocs } from '../lib/notes/docs.svelte';
   import { ai } from '../lib/chat/settings.svelte';
   import { chats } from '../lib/chat/store.svelte';
+  import { chatPages } from '../lib/chat/pages.svelte';
   import { explorer } from '../lib/explorer/store.svelte';
   import { files } from '../lib/files/store.svelte';
   import { drawings } from '../lib/drawer/store.svelte';
@@ -139,6 +140,7 @@
     noteDocs.init();
     ai.init();
     chats.init();
+    chatPages.init();
     files.init();
     fileMarks.init();
     drawings.init();
@@ -164,6 +166,7 @@
     const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
     const restored = layoutStore.init(page, known, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
+    chatPages.prune(instancesOf(layoutStore.layout, 'chats'));
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
     void openAtStart(addressed && page !== carried ? docItem(addressed, 'text') : page, (k) => openItem(k));
@@ -327,7 +330,7 @@
   /* layout → practice: what a practice tab stands on belongs to that tab, so a
      page whose tab the layout no longer holds is dropped as the layout settles. */
   $effect(() => { focus.track(); });
-  $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
+  $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); chatPages.prune(instancesOf(layoutStore.layout, 'chats')); });
 
 
   /* The page of a book the focused tab is showing, whatever its book. A tab of

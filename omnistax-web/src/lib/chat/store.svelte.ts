@@ -21,23 +21,17 @@ import { liveLibrary } from './library';
 import * as M from './model';
 import type { Chat, MessageId, ToolStep } from './model';
 import { t } from '../i18n';
+import { bookOfChat, bookOfChips, mergeIndex, parseIndex, unfiled, NO_BOOK, type ChatEntry } from './entries';
 
-export const INDEX_KEY = 'omnistax-chats-v1';
+/* The index of the chats. The first one held no book; a row of this one may,
+   so it is a key of its own, and the first is read where this one is not yet
+   written and kept written in its own shape for a tab still open on a build
+   that knows only it. */
+export const INDEX_KEY = 'omnistax-chats-v2';
+export const OLD_INDEX_KEY = 'omnistax-chats-v1';
 const SAVE_DELAY = 250;
 
-/* What the index holds: enough to name a chat without reading it. */
-export type ChatEntry = { readonly id: ChatId; readonly name: string; readonly created: number; readonly updated: number };
-
-export const parseIndex = (raw: unknown): ChatEntry[] => {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((e) => {
-    if (typeof e !== 'object' || e === null) return [];
-    const o = e as Record<string, unknown>;
-    if (typeof o.id !== 'string' || !/^[a-z0-9]{8}$/.test(o.id)) return [];
-    const now = Date.now();
-    return [{ id: o.id as ChatId, name: typeof o.name === 'string' ? o.name : '', created: Number(o.created) || now, updated: Number(o.updated) || now }];
-  });
-};
+export { parseIndex, type ChatEntry } from './entries';
 
 const entryOf = (c: Chat): ChatEntry => ({ id: c.id, name: c.name, created: c.created, updated: c.updated });
 
@@ -58,7 +52,10 @@ class Chats {
   /* Models that refused tools this session. */
   private toolless = new Set<string>();
 
-  init(): void { try { this.index = parseIndex(JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]')); } catch { this.index = []; } }
+  init(): void {
+    const read = (key: string): ChatEntry[] => { try { return parseIndex(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { return []; } };
+    this.index = mergeIndex(read(INDEX_KEY), read(OLD_INDEX_KEY));
+  }
 
   get(id: ChatId): Chat | null { return this.open[id] ?? null; }
   entry(id: ChatId): ChatEntry | null { return this.index.find((e) => e.id === id) ?? null; }
@@ -67,10 +64,29 @@ class Chats {
 
   /* A chat the rail has just opened: it is in the index at once, so that a
      link or the picker can name it before a word is said. */
-  create(): Chat {
+  create(book?: string | null): Chat {
     const chat = M.newChat(newChatId());
-    this.put(chat);
+    this.put(chat, false, book ?? undefined);
     return chat;
+  }
+
+  /* Rows written before chats were filed are given the book their chips name,
+     read out of the store once; a chat with no such chip is of no book. */
+  private filing = false;
+  async fileBooks(): Promise<void> {
+    if (this.filing) return;
+    this.filing = true;
+    try {
+      for (const e of this.index.filter((x) => x.book === undefined)) {
+        const chat = this.get(e.id) ?? await getChat(e.id).catch(() => null);
+        this.file(e.id, (chat && bookOfChat(chat)) ?? NO_BOOK);
+      }
+    } finally { this.filing = false; }
+  }
+  private file(id: ChatId, book: string): void {
+    if (!this.index.some((e) => e.id === id && e.book !== book)) return;
+    this.index = this.index.map((e) => (e.id === id ? { ...e, book } : e));
+    this.saveIndex();
   }
 
   /* A tab mounting on a chat it has not read yet. The index row stands while
@@ -115,6 +131,8 @@ class Chats {
     const asked = M.ask(chat, text.trim(), chips);
     const answered = M.answer(asked.chat, asked.id, this.modelOf(id));
     this.put(answered.chat);
+    /* a chat started where no book was being read is filed under the first its chips name */
+    if (!this.entry(id)?.book) { const b = bookOfChips(chips); if (b) this.file(id, b); }
     await this.run(id, answered.id);
   }
 
@@ -225,9 +243,10 @@ class Chats {
 
   /* The chat is right at once and the writing waits, because a stream writes
      on every delta and IndexedDB should not. */
-  private put(chat: Chat, defer = false): void {
+  private put(chat: Chat, defer = false, book?: string): void {
     this.open = { ...this.open, [chat.id]: chat };
-    const row = entryOf(chat);
+    const had = book ?? this.entry(chat.id)?.book;
+    const row = { ...entryOf(chat), ...(had !== undefined ? { book: had } : {}) };
     this.index = this.index.some((e) => e.id === chat.id) ? this.index.map((e) => (e.id === chat.id ? row : e)) : [...this.index, row];
     if (defer) this.later(chat.id); else this.save(chat.id);
   }
@@ -247,7 +266,10 @@ class Chats {
 
   private saveIndex(): void {
     if (!readerWritesAllowed()) return;
-    try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.index)); } catch { /* private mode */ }
+    try {
+      localStorage.setItem(INDEX_KEY, JSON.stringify(this.index));
+      localStorage.setItem(OLD_INDEX_KEY, JSON.stringify(unfiled(this.index)));
+    } catch { /* private mode */ }
   }
 }
 export const chats = new Chats();

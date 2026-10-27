@@ -51,7 +51,7 @@ const sectionChip = async (ref: ExerciseRef): Promise<Chip | null> => {
    on screen, and a second click made a second chat. */
 export const discussExercise = async (ref: ExerciseRef, ex: ExerciseDTO, how: Opening, outcome: Outcome, answer?: string, aiGraded = false): Promise<void> => {
   const name = links.fileName(ref, 'chats', ex);
-  const chat = chats.create();
+  const chat = chats.create(ref.book);
   chats.rename(chat.id, name);
   createChatEntry(links.folder('chats'), chat.id, name);
   links.add(ref, chatTabKey(chat.id));
