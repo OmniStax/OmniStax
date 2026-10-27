@@ -1,5 +1,5 @@
 import { readerWritesAllowed } from '../backup/guard';
-import { tipsOf, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
+import { modKeyOf, tipsOf, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
 import { i18n } from '../i18n/store.svelte';
 
 const KEY = 'omnistax-tips-v1';
@@ -11,12 +11,17 @@ const load = (): TipState | null => {
     return parsed?.success ? parsed.data : null;
   } catch { return null; }
 };
+const platform = (): string => {
+  if (typeof navigator === 'undefined') return '';
+  const n = navigator as Navigator & { readonly userAgentData?: { readonly platform?: string } };
+  return n.userAgentData?.platform || n.platform || '';
+};
 const save = (s: TipState): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
 class Tips {
   at = $state<number | null>(null);
   /* In the reader's language: i18n.t reads the locale, so the card follows a change of it. */
-  get current(): Tip | null { return this.at === null ? null : tipsOf(i18n.t)[this.at] ?? null; }
+  get current(): Tip | null { return this.at === null ? null : tipsOf(i18n.t, modKeyOf(platform()))[this.at] ?? null; }
   /* Called once per page load. */
   arrive(enabled: boolean, now: number = Date.now()): void {
     const { state, tip } = visit(load(), now, enabled);

@@ -15,13 +15,18 @@ export type TipState = z.infer<typeof TipStateSchema>;
 
 export const RETURNING_AFTER: Millis = 24 * 60 * 60 * 1000;
 
+/* The key a Mac reader holds where everyone else holds Ctrl, named the way
+   their keyboard prints it. The platform string is the browser's. */
+export const modKeyOf = (platform: string): string => (/mac|iphone|ipad|ipod/i.test(platform) ? '⌘' : 'Ctrl');
+
 /* Every tip, in the words t gives them: asked for when one is shown, so a
    change of language says the tip on screen anew. */
-export const tipsOf = (t: TFn): readonly Tip[] => [
+export const tipsOf = (t: TFn, mod = 'Ctrl'): readonly Tip[] => [
   { text: t('tips.drawing'), action: { kind: 'new-drawing', label: t('tips.drawing.action') } },
   { text: t('tips.theme') },
   { text: t('tips.drag') },
   { text: t('tips.import'), action: { kind: 'import', label: t('tips.import.action') } },
+  { text: t('tips.newGroup', { mod }) },
 ];
 /* How many there are, whatever language they are said in. */
 export const TIP_COUNT = tipsOf((k) => k).length;

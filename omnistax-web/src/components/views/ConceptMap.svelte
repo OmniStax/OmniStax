@@ -13,7 +13,8 @@
      fitted and centred, or, when it holds more than a hundred concepts, centred
      at the scale that shows a hundred; it is refitted while the reader has not
      yet walked it. Each level keeps where the reader left it while they step
-     between levels along the trail.
+     between levels along the trail, and what they had selected and focused on
+     there, through the tab being put away and drawn again.
 
      Hovering a node lights its edges and neighbours and steps the rest back. A
      click selects a node, Ctrl- or Cmd-click adds it or takes it out, a
@@ -50,6 +51,7 @@
   import { settings } from '../../lib/settings/store.svelte';
   import { flushSync, getContext as getCtx, onDestroy, tick, untrack } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
+  import { scope } from '../../lib/sections/scope.svelte';
   import { pin, goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { openSectionFromView, openingInView } from '../../lib/sections/nav.svelte';
@@ -57,7 +59,7 @@
   import { edgeKey, wireOf, type Box, type Laid, type Pt } from '../../lib/sections/sugiyama';
   import { abs2, apply, centring, dragged, geodesic, IDENTITY, positionsFrom, reanchored, ROOT, type Mobius } from '../../lib/sections/hyperbolic';
   import { boxOf, extentOf, keyOf, laidOf, laidOut, loadLayouts, sessionLayouts, wiresOf, MAXW, MINW, NODE_FONT, NODE_LINE, PAD_X, PAD_Y, SEC_LINE, type LayoutFileDTO, type LayoutKey, type MapKind } from '../../lib/sections/layouts';
-  import { alignedTo, connectedOf, crowdScale, mapViews, viewKeyOf } from '../../lib/sections/mapview';
+  import { alignedTo, connectedOf, crowdScale, mapKinds, mapViews, viewKeyOf, type ViewKey } from '../../lib/sections/mapview';
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
   import { inPolygon, type Vec } from '../../lib/drawer/geometry';
   import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
@@ -128,7 +130,7 @@
   type Got = { readonly laid: Laid; readonly ms: number; readonly source: Source };
   type Home = Got & { readonly key: LayoutKey; readonly kind: MapKind };
   const MAIN_THREAD_MAX = 150;
-  let kind = $state<MapKind>('down');
+  let kind = $state<MapKind>(untrack(() => mapKinds.get(item)) ?? 'down');
   let table = $state<LayoutFileDTO | null>(null);
   /* How long the map holds still for the build's file before laying out its own. */
   const FILE_GRACE_MS = 1200;
@@ -226,7 +228,8 @@
      at home, to 1, the focus in its own places; the rest fade while the focus is
      on and come back as soon as it is let go. */
   let selected = $state<ReadonlySet<string>>(new Set());
-  type Focus = { readonly ids: ReadonlySet<string>; readonly anchors: ReadonlySet<string>; readonly kind: MapKind | null; readonly to: Laid | null };
+  /* `snap` is a focus brought back rather than asked for: it stands in its places at once instead of gliding there. */
+  type Focus = { readonly ids: ReadonlySet<string>; readonly anchors: ReadonlySet<string>; readonly kind: MapKind | null; readonly to: Laid | null; readonly snap?: boolean };
   let focus = $state.raw<Focus | null>(null);
   let focusing = $state(false);
   let mix = $state(0);
@@ -255,6 +258,8 @@
     if (!f || !focusing || !h || h.kind !== k || f.kind === k) return;
     let live = true;
     const nodes = untrack(() => list.filter((c) => f.ids.has(c.id)));
+    /* a focus brought back before its chapters have landed waits for them: the home layout arriving runs this again */
+    if (!nodes.length) return;
     void obtain(k, nodes, null).then((g) => {
       if (!live || focus !== f) return;
       if (k === 'disk') {
@@ -262,7 +267,7 @@
         focusDisk = { anchor: a, pos: g.laid.steps ? positionsFrom(g.laid.steps, a) : g.laid.pos, view: IDENTITY };
         focus = { ...f, kind: k, to: g.laid };
       } else focus = { ...f, kind: k, to: alignedTo(h.laid.pos, g.laid, f.anchors) };
-      mix = 0; run(1);
+      if (f.snap) { cancelAnimationFrame(glide); mix = 1; } else { mix = 0; run(1); }
     });
     return () => { live = false; };
   });
@@ -311,11 +316,36 @@
     ro.observe(el);
     return () => { ro.disconnect(); select(el).on('.zoom', null); zoomer = null; };
   });
-  /* Arriving at a level: where the reader left it, else as it opens. The selection and any focus belong to the level left behind. */
+  /* Arriving at a level: where the reader left it, else as it opens. The
+     selection and any focus belong to the level they were made on, so each
+     level is handed back its own: a map that follows the page and is taken to
+     another chapter for a while finds its focus again when it comes back, and
+     so does a map drawn again after its tab was put away. */
+  let standing: ViewKey | null = null;
+  $effect(() => {
+    const s = selected, f = focusing ? focus?.ids : null;
+    if (standing) mapViews.pick(standing, { selected: [...s], focus: f ? [...f] : null });
+  });
+  /* A focus holds a map that follows the page on the place it was made: the
+     reader opening another page beside it, or reading on in another tab, does
+     not take the map away from what they are studying. The bar shows the hold
+     as a pin, and Unfocus, the pin or any step along the trail lets it go. A
+     map drawn again starts with no focus until its level hands it back, so only
+     a focus that ends lets go, never one that has not yet arrived. */
+  let wasFocusing = false;
+  $effect(() => {
+    const on = focusing, at = scoped();
+    untrack(() => { if (on && at && !scope.isPinned(item)) scope.hold(item, at); else if (!on && wasFocusing) scope.release(item); });
+    wasFocusing = on;
+  });
   $effect(() => {
     const k = viewKey; if (!svgEl || !zoomer) return;
     untrack(() => {
-      cancelAnimationFrame(glide); selected = new Set(); focus = null; focusDisk = null; focusing = false; mix = 0;
+      cancelAnimationFrame(glide); focusDisk = null; mix = 0; standing = k;
+      const p = mapViews.picked(k);
+      selected = new Set(p?.selected ?? []);
+      focus = p?.focus ? { ids: new Set(p.focus), anchors: selected, kind: null, to: null, snap: true } : null;
+      focusing = !!focus;
       const had = mapViews.get(k);
       walked = !!had;
       if (!had) { opening(); return; }
@@ -327,8 +357,8 @@
   const setKind = (k: MapKind): void => {
     if (k === kind) return;
     cancelAnimationFrame(glide); cancelAnimationFrame(disking); mix = 0; hover = null;
-    if (focus && !focusing) focus = null; else if (focus) focus = { ...focus, kind: null, to: null };
-    focusDisk = null; walked = false; kind = k;
+    if (focus && !focusing) focus = null; else if (focus) focus = { ...focus, kind: null, to: null, snap: false };
+    focusDisk = null; walked = false; kind = k; mapKinds.set(item, k);
   };
 
   /* ---------- the disk ---------- */
@@ -619,10 +649,26 @@
     setTimeout(() => ghost.remove());
   };
 
-  /* The find box: the concepts of this map whose names carry what was typed. */
+  /* The find box: the concepts of this map whose names carry what was typed.
+     The list scrolls inside the map rather than running off its foot, and the
+     arrows walk it with the row they stand on kept in sight; Enter goes there
+     and Escape empties the box without letting the selection go. */
+  const FIND_MOST = 60;
   let query = $state('');
-  const hits = $derived(query.trim().length < 2 ? [] : shown.filter((c) => !faded(c.id) && plain(c.name).toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8));
+  let atHit = $state(0);
+  let hitsEl = $state<HTMLUListElement | null>(null);
+  const hits = $derived(query.trim().length < 2 ? [] : shown.filter((c) => !faded(c.id) && plain(c.name).toLowerCase().includes(query.trim().toLowerCase())).slice(0, FIND_MOST));
+  $effect(() => { void hits; atHit = 0; });
   const choose = (id: string) => { query = ''; hover = id; goTo(id); };
+  const findKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape' && query) { e.preventDefault(); e.stopPropagation(); query = ''; return; }
+    if (!hits.length) return;
+    if (e.key === 'Enter') { e.preventDefault(); choose(hits[Math.min(atHit, hits.length - 1)].id); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    atHit = (atHit + (e.key === 'ArrowDown' ? 1 : -1) + hits.length) % hits.length;
+    void tick().then(() => hitsEl?.querySelector('.on')?.scrollIntoView({ block: 'nearest' }));
+  };
 
   const count = $derived(focusing && focus ? focus.ids.size : shown.length);
   const LAYOUTS = $derived<readonly { readonly kind: MapKind; readonly label: string; readonly icon: string }[]>([
@@ -696,10 +742,10 @@
     </div>
   </div>
   <div class="find" data-nodrag>
-    <input type="search" placeholder={i18n.t('views.map.findPlaceholder')} bind:value={query} aria-label={i18n.t('views.map.find')} data-find>
+    <input type="search" placeholder={i18n.t('views.map.findPlaceholder')} bind:value={query} aria-label={i18n.t('views.map.find')} data-find onkeydown={findKey}>
     {#if hits.length}
-      <ul class="hits">
-        {#each hits as h (h.id)}<li><button type="button" data-hit={h.id} onclick={() => choose(h.id)}><span use:mathHtml={h.name}></span><small>{h.section}</small></button></li>{/each}
+      <ul class="hits" bind:this={hitsEl} style:max-height="{Math.max(96, Math.min(320, pane.h - 80))}px">
+        {#each hits as h, i (h.id)}<li><button type="button" class:on={i === atHit} data-hit={h.id} onclick={() => choose(h.id)} onpointerenter={() => (atHit = i)}><span use:mathHtml={h.name}></span><small>{h.section}</small></button></li>{/each}
       </ul>
     {/if}
   </div>
@@ -808,9 +854,9 @@
   /* the find box walks the view to a concept by name; its hits hang under it */
   .find{position:absolute;top:8px;right:10px;z-index:2}
   .find input{font:inherit;font-size:0.7rem;padding:2px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);width:140px}
-  .find .hits{position:absolute;z-index:3;top:100%;right:0;margin:2px 0 0;padding:2px;list-style:none;min-width:180px;max-width:260px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);box-shadow:0 4px 14px rgb(0 0 0 / 0.18)}
+  .find .hits{position:absolute;z-index:3;top:100%;right:0;margin:2px 0 0;padding:2px;list-style:none;min-width:180px;max-width:260px;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--rule);border-radius:5px;background:var(--panel);box-shadow:0 4px 14px rgb(0 0 0 / 0.18)}
   .find .hits button{display:block;width:100%;text-align:left;font:inherit;font-size:0.72rem;padding:3px 6px;border:0;border-radius:3px;background:transparent;color:var(--ink);cursor:pointer}
-  .find .hits button:hover,.find .hits button:focus-visible{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .find .hits button.on,.find .hits button:focus-visible{background:color-mix(in srgb,var(--accent) 14%,transparent)}
   .find .hits small{display:block;color:var(--muted);font-size:0.62rem}
   /* the picture a node carries while it is dragged out to a note */
   :global(.map-ghost){position:fixed;top:-100px;left:0;padding:3px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--panel);color:var(--ink);font-size:12px}
