@@ -28,17 +28,21 @@ export const showChat = (id: ChatId): void => {
 export const openChatTabs = (): readonly ChatId[] =>
   layoutStore.layout.groups.flatMap((g) => g.tabs.flatMap((t) => { const m = /^chat:([a-z0-9]{8})$/.exec(t); return m ? [m[1] as ChatId] : []; }));
 
-/* The words waiting for a chat: one message per chat, taken by the tab and
-   cleared as it takes them. */
+/* What waits for a chat from outside it: words for its composer, one message
+   per chat, and chips for above it, taken by the tab as they arrive — a chip
+   that is slow to gather, a section still being fetched, comes after the tab
+   is already standing, and joins the ones it took first. */
 class Pending {
   words = $state.raw<Readonly<Record<string, string>>>({});
-  chips: Readonly<Record<string, readonly Chip[]>> = {};
+  chips = $state.raw<Readonly<Record<string, readonly Chip[]>>>({});
 
   put(id: ChatId, text: string): void { this.words = { ...this.words, [id]: text }; }
   take(id: ChatId): string { const text = this.words[id] ?? ''; if (text) { const { [id]: _gone, ...rest } = this.words; this.words = rest; } return text; }
+  give(id: ChatId, chips: readonly Chip[]): void { if (chips.length) this.chips = { ...this.chips, [id]: [...(this.chips[id] ?? []), ...chips] }; }
 }
 export const pending = new Pending();
-/* The chips a chat opens with in place of the focused section, taken once by its tab. */
+/* The chips handed to a chat and not yet taken, taken now: the tab puts them
+   up in place of the focused section. */
 export const takeChips = (id: ChatId): readonly Chip[] | null => {
   const c = pending.chips[id]; if (!c) return null;
   const { [id]: _gone, ...rest } = pending.chips; pending.chips = rest;

@@ -25,7 +25,7 @@ import { firstWords, spokenIn } from '../chat/model';
 import { chip, type Chip } from '../chat/context';
 import { bookId, noteId, sectionId, sectionRef, secKey, parseItemKey, type BookId, type ChatId, type SectionRef } from '../types/ids';
 import { focus } from '../sections/focus.svelte';
-import { linkInner } from '../notes/md/links';
+import { linkInner, type Link } from '../notes/md/links';
 import type { ChapterEntry, DerivationDTO, SectionEntry } from '../content/schema';
 import { CATEGORY_CHIP, type PickerCategory, type PickerNode, type PickerRow } from './model';
 import { t, type MessageKey } from '../i18n';
@@ -260,6 +260,38 @@ export const chipForItem = (key: string): Chip | null => {
   if (own === null) return null;
   const e = explorer.entry(entryId(own)); const row = e ? entryRow(e, e.kind) : undefined;
   return row ? chipOf(row) : null;
+};
+
+/* The picker's row for what a link names, read off the stores as they stand,
+   so a thing dragged in as the words that embed it becomes the chip choosing
+   it from the picker would have made. The caller fetches what the row needs
+   first (`chipOfLink` in `chat/library.ts`); a thing nothing holds has no row. */
+export const rowOfLink = (link: Link): PickerRow | null => {
+  if (link.kind === 'highlight') {
+    const n = notes.list.find((x) => x.id === link.id); if (!n) return null;
+    return { category: 'annotations', key: n.id, label: cut(n.anchor.quote, 60), detail: '',
+      text: n.text.trim() ? t('notes.picker.highlightedIn', { book: books.title(n.book) || n.book, section: n.section, quote: n.anchor.quote, note: n.text }) : n.anchor.quote };
+  }
+  if (link.kind === 'note') {
+    const d = noteDocs.byName(link.name); const e = d ? explorer.entry(entryId(d.id)) : undefined;
+    return e ? entryRow(e, e.kind) ?? null : null;
+  }
+  if (link.kind === 'drawing' || link.kind === 'file' || link.kind === 'chat') {
+    const e = explorer.entry(entryId(link.kind === 'drawing' ? link.id : link.kind === 'file' ? link.file : link.chat));
+    return e ? entryRow(e, e.kind) ?? null : null;
+  }
+  const book = bookId(link.book ?? focus.book ?? ''); if (!book || !registry.hasBook(book)) return null;
+  const ch = registry.chapterOf(sectionRef(book, sectionId(link.section)));
+  if (link.kind === 'section') return ch ? { category: 'sections', key: `${book}/${link.section}`, label: sectionLabel(link.section, registry.entry(sectionRef(book, sectionId(link.section)))?.title ?? ''), detail: '', target: { kind: 'section', book, section: link.section } } : null;
+  const rows = link.kind === 'figure' ? figuresOf(book, link.section)
+    : link.kind === 'exercise' ? exercisesOf(book, link.section)
+      : !ch ? [] : link.kind === 'concept' ? conceptsOf(book, ch, link.section)
+        : link.kind === 'equation' ? equationsOf(book, ch, link.section) : definitionsOf(book, ch, link.section);
+  const same = (r: PickerRow): boolean => {
+    const to = r.target; if (!to || to.kind !== link.kind) return false;
+    return to.kind === 'term' ? link.kind === 'term' && to.term === link.term : to.kind === 'symbol' ? link.kind === 'symbol' && to.sym === link.sym : 'id' in to && 'id' in link && to.id === link.id;
+  };
+  return rows.find(same) ?? null;
 };
 
 /* A chat's own opening, for the row that names a whole chat. */
