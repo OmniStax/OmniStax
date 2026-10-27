@@ -827,7 +827,7 @@
   /* ---------- the toolbar ---------- */
   .hud{position:absolute;top:8px;left:10px;z-index:2;display:flex;flex-direction:column;gap:4px;align-items:flex-start;max-width:calc(100% - 200px)}
   .hud > *{background:color-mix(in srgb,var(--panel) 82%,transparent);border-radius:6px}
-  .tools{display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--rule)}
+  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:2px;border:1px solid var(--rule)}
   .tool{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:28px;height:28px;padding:0;border:0;border-radius:4px;background:none;color:var(--muted);font:inherit;font-size:0.72rem;cursor:pointer}
   .tool.wide{padding:0 7px 0 5px}
   .tool :global(svg){width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

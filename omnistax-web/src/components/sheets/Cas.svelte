@@ -125,7 +125,8 @@
 </div>
 
 <style>
-  .cas{font-family:var(--sans);max-width:52rem}
+  /* the narrow rule below follows the width of the pane the sheet stands in, not the window's */
+  .cas{font-family:var(--sans);max-width:52rem;container-type:inline-size}
   h1{margin:0 0 10px;font-size:1.35rem}
   h2{margin:1.2rem 0 4px;font-size:1rem;font-weight:600}
   .ops{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-bottom:8px}
@@ -155,7 +156,7 @@
   .say{margin:0;font-size:0.9rem}
   .math :global(.katex-display){margin:0.4em 0}
   .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-  @media (max-width:520px){
+  @container (max-width:520px){
     .field.bound input{width:4.5rem}
   }
 </style>
