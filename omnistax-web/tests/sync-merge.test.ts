@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_FORMAT, BACKUP_VERSION, parseBackup, type ReaderBackup } from '../src/lib/backup/schema';
 import { MANIFEST, explode, fileProblem, foreignRecord, fromRepo, isLegacyRecords, jsonBytes, recordKeyOf, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
-import { blobSha, gitSha, type Fetch, type GitSha, type Remote } from '../src/lib/sync/github';
+import { gitSha } from '../src/lib/sync/github';
 import { changesOf, oneWay, planOf, rebase, type Base, type Change, type Merged, type Status } from '../src/lib/sync/plan';
 import { bothWays, carry, hashed, settle, survey } from '../src/lib/sync/run';
 import { ABSENT, merge3 } from '../src/lib/sync/merge';
 import { blocksOf, conflictCount, duplicateKey, mergeTexts, resolvedText } from '../src/lib/sync/conflict';
+import { blobFrom, github, remote, shaOf } from './fake-github';
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 
@@ -179,45 +180,6 @@ test('changesOf leaves a newer version’s records where they are', () => {
   const got = changesOf([], [{ path: 'records/omnistax-hologram-v1.json', sha: sha('h'), size: 1 }, { path: recordPath('omnistax-theme'), sha: sha('t'), size: 1 }], {}, null);
   assert.deepEqual(got.map((c) => c.path), [recordPath('omnistax-theme')]);
 });
-
-/* ── a fake GitHub with history ──────────────────────────────────────── */
-
-type Call = { readonly method: string; readonly path: string; readonly body: unknown };
-const github = (tree: Record<string, Uint8Array>, history: readonly Uint8Array[] = []) => {
-  const calls: Call[] = [];
-  const blobs = new Map<string, Uint8Array>();
-  const ready = (async () => {
-    for (const b of [...Object.values(tree), ...history]) blobs.set(await blobSha(b), b);
-    return Object.fromEntries(await Promise.all(Object.entries(tree).map(async ([p, b]) => [p, await blobSha(b)] as const)));
-  })();
-  const written: Uint8Array[] = [];
-  const f: Fetch = async (input, init) => {
-    const shas = await ready;
-    const path = new URL(String(input)).pathname.replace(/^\/repos\/chen\/notes/, '');
-    const method = init?.method ?? 'GET';
-    const body: unknown = init?.body ? JSON.parse(String(init.body)) : undefined;
-    calls.push({ method, path, body });
-    const ok = (v: unknown) => new Response(JSON.stringify(v), { status: 200 });
-    if (method === 'GET' && path.startsWith('/git/ref/heads/')) return ok({ object: { sha: 'c0' } });
-    if (method === 'GET' && path.startsWith('/git/commits/')) return ok({ tree: { sha: 'tree0' } });
-    if (method === 'GET' && path.startsWith('/git/trees/')) return ok({ truncated: false, tree: Object.entries(shas).map(([p, s]) => ({ path: p, type: 'blob', sha: s, size: tree[p].length })) });
-    if (method === 'GET' && path.startsWith('/git/blobs/')) { const b = blobs.get(path.slice('/git/blobs/'.length)); return b ? new Response(new Blob([b as BlobPart])) : new Response('{}', { status: 404 }); }
-    if (method === 'POST' && path === '/git/blobs') {
-      const bytes = Uint8Array.from(atob((body as { content: string }).content), (c) => c.charCodeAt(0));
-      written.push(bytes);
-      const s = await blobSha(bytes); blobs.set(s, bytes); return ok({ sha: s });
-    }
-    if (method === 'POST' && path === '/git/trees') return ok({ sha: 'tree1' });
-    if (method === 'POST' && path === '/git/commits') return ok({ sha: 'commit1' });
-    if (path.startsWith('/git/refs')) return ok({});
-    return new Response('{}', { status: 500 });
-  };
-  const committed = (): { path: string; sha: string | null }[] => (calls.find((c) => c.path === '/git/trees' && c.method === 'POST')?.body as { tree: { path: string; sha: string | null }[] } | undefined)?.tree ?? [];
-  return { f, calls, committed, blobs, written };
-};
-const remote: Remote = { repo: 'chen/notes' as Remote['repo'], branch: 'main', token: 't' };
-const shaOf = async (b: Uint8Array): Promise<GitSha> => blobSha(b);
-const blobFrom = (gh: ReturnType<typeof github>) => async (s: GitSha): Promise<Uint8Array> => { await gh.f('https://api.github.com/repos/chen/notes/git/ref/heads/main'); const b = gh.blobs.get(s); if (!b) throw new Error('no blob'); return b; };
 
 test('on a repo of the first layout, a record changed there and another changed here are no conflict, and the push moves the repo to a file per record', async () => {
   /* Both devices last agreed on this appearance file. */

@@ -29,7 +29,7 @@ export const files: Readonly<Record<keyof typeof source, string>> = {
   'files.sync.error.notSent': '{n, plural, other {# 个文件}}未送达 GitHub。未提交任何内容。',
   'files.sync.error.nothing': '没有可同步的内容。',
   'files.sync.error.restored': '无法更新你的数据。已恢复你之前的数据。',
-  'files.sync.error.twice': '键“{key}”出现了两次，请只保留其中一个值。',
+  'files.sync.error.twice': '键“{key}”出现了两次；请只保留其中一个值。',
   'files.sync.error.unreachable': '无法连接 GitHub。',
   'files.sync.error.unreadable': '未采用：{why}',
   'files.sync.github.answered': 'GitHub 返回了 {status}。',

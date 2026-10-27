@@ -1,7 +1,7 @@
 /* Two versions of a JSON file merged against the one they both came from, as
    git merges lines but by the shape of the value: an object key by key, a list
    of things with ids item by item, a list of names as a set, a log by what each
-   side appended. A change only one side made is taken; the same change made on
+   side appended or took out. A change only one side made is taken; the same change made on
    both is taken once; a key or an item one side deleted and the other left
    alone is deleted. Only a leaf that both sides changed, differently, is a
    conflict, and only those are left for the reader.
@@ -114,8 +114,25 @@ const mergeLists = (b: readonly Value[] | null, m: readonly Value[], t: readonly
     const ours = m.slice(b.length);
     return settled([...m, ...t.slice(b.length).filter((v) => !ours.some((o) => same(o, v)))]);
   }
+  /* A log one side also took entries out of: an attempt is taken back when its
+     exercise is answered again. Each entry is named by what it holds, so an
+     entry is there or not and never changed; one side's removals are honoured
+     and both sides' additions kept. What practice shows (mastery, freshness,
+     the streak) is worked out from these entries, never compared. Without a
+     base, both sides' entries are kept. */
+  if ([m, t].every((l) => l.every(isObject))) {
+    const byValue = keyed(lists, (v) => (isObject(v) ? canonical(v) : null));
+    if (byValue) return mergeKeyed(byValue);
+  }
   return conflict(m, t);
 };
+
+/* A JSON value as text, an object's keys in order, so that two copies of one
+   entry read alike whatever order their keys were written in. */
+const canonical = (v: Value): string =>
+  Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
+    : isObject(v) ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`
+      : JSON.stringify(v) ?? 'null';
 
 export const merge3 = (b: Slot, m: Slot, t: Slot): Merged => {
   if (same(m, t)) return settled(m);

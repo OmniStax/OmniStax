@@ -13,7 +13,10 @@
      by hand. It is used only once every conflict is settled and it reads as
      the file should (JSON, and the record or chat it holds), and then it is
      what goes up to the repo and what this device takes. Keeping one side
-     whole stays a click away. */
+     whole stays a click away.
+
+     A file a pull held back says why above its diff, with the same choice the
+     Sync view's queue offers. */
   import { sizeLabel } from '../../lib/files/model';
   import { hunksOf, lineDiff } from '../../lib/sync/diff';
   import { groupLabel } from '../../lib/sync/layout';
@@ -22,6 +25,8 @@
   import { blocksOf, chosenLines, conflictCount, resolvedText, type Choice } from '../../lib/sync/conflict';
   import { session } from '../../lib/sync/session.svelte';
   import LineDiff from '../ui/LineDiff.svelte';
+  import HeldWhy from './HeldWhy.svelte';
+  import { takeable } from '../../lib/sync/held';
   import { glossOf, type OwnKind } from '../../lib/sync/gloss';
   import { explorer } from '../../lib/explorer/store.svelte';
   import { noteDocs } from '../../lib/notes/docs.svelte';
@@ -30,6 +35,7 @@
   import { i18n } from '../../lib/i18n/store.svelte';
 
   const change = $derived(session.changes.find((c) => c.path === session.selected) ?? null);
+  const held = $derived(change ? session.heldFor(change) : null);
   const kind = (path: string): 'text' | 'image' | 'binary' => (path.endsWith('.json') ? 'text' : /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/.test(path) ? 'image' : 'binary');
   const MIME: Readonly<Record<string, string>> = { svg: 'image/svg+xml', jpg: 'image/jpeg' };
 
@@ -132,7 +138,6 @@
 
 {#snippet keep(c: Change)}
   <span class="choose" role="group" aria-label={i18n.t('views.diff.keepWhich')}>
-    <span class="ql">{i18n.t('views.diff.wholeFile')}</span>
     <button type="button" aria-pressed={pick === 'mine'} disabled={session.phase !== 'ready'} onclick={() => session.pick(c.path, 'mine')}>{i18n.t('views.diff.keepMine')}</button>
     <button type="button" aria-pressed={pick === 'theirs'} disabled={session.phase !== 'ready'} onclick={() => session.pick(c.path, 'theirs')}>{i18n.t('views.diff.keepTheirs')}</button>
     {#if merge?.merged}
@@ -149,7 +154,15 @@
     <header>
       <h2>{change.label}</h2>
       <p class="path">{groupLabel(change.group, i18n.locale)} · {change.path}</p>
-      <p class="about">{merge?.merged ? i18n.t('views.diff.aboutMerged') : about(change)}</p>
+      {#if held}
+        <div class="held"><HeldWhy h={held} /></div>
+        <span class="choose" role="group" aria-label={i18n.t('views.diff.keepWhich')}>
+          <button type="button" aria-pressed={held.pick === 'mine'} disabled={session.phase !== 'ready'} onclick={() => session.hold(change.path, 'mine')}>{i18n.t('views.diff.keepMine')}</button>
+          {#if takeable(held)}<button type="button" aria-pressed={held.pick === 'theirs'} disabled={session.phase !== 'ready'} onclick={() => session.hold(change.path, 'theirs')}>{i18n.t('views.diff.keepTheirs')}</button>{/if}
+        </span>
+      {:else}
+        <p class="about">{merge?.merged ? i18n.t('views.diff.aboutMerged') : about(change)}</p>
+      {/if}
       {#if change.side === 'both'}{@render keep(change)}{/if}
     </header>
     {#if merge && merge.merged}
@@ -255,7 +268,7 @@
   .empty{color:var(--muted);margin:0}
   .bad{color:var(--bad)}
   .choose{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
-  .ql{font-size:.76rem;color:var(--muted)}
+  .held{margin:8px -6px 0;font-size:.88rem}
   .choose button{font:inherit;font-size:.82rem;padding:4px 12px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:999px;cursor:pointer}
   .choose button:hover:not(:disabled){background:var(--soft)}
   .choose button:disabled{opacity:.55;cursor:default}

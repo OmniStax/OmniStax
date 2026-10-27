@@ -32,7 +32,7 @@ export const files = {
   'files.sync.error.notSent': '{n, plural, one {A file} other {# files}} didn’t reach GitHub. Nothing was committed.',
   'files.sync.error.nothing': 'Nothing to sync.',
   'files.sync.error.restored': 'Couldn’t update your data. Your previous data was restored.',
-  'files.sync.error.twice': 'The key “{key}” appears twice. Keep one of its values.',
+  'files.sync.error.twice': 'The key “{key}” appears twice; keep one of its values.',
   'files.sync.error.unreachable': 'Couldn’t reach GitHub.',
   'files.sync.error.unreadable': 'Not taken: {why}',
   'files.sync.github.answered': 'GitHub answered {status}.',

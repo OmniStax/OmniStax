@@ -12,10 +12,11 @@
    taken apart into the records they hold (explode, which the survey uses), and
    the next push writes them as files of their own and drops the old ones. A
    record's category is not in its path, so a key a later version files under
-   another category keeps its file. Pure. */
+   another category keeps its file. The workspace stays on each device and
+   is never laid out here (deviceRecord). Pure. */
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
-import { BACKUP_FORMAT, BACKUP_VERSION, ChatSchema, DrawingSchema, GeneratedSchema, ScratchSchema, categoryOf, isScalarKey, issueOf, parseBackup, recordProblem, type ParsedBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
+import { BACKUP_FORMAT, BACKUP_VERSION, ChatSchema, DrawingSchema, GeneratedSchema, ScratchSchema, categoryOf, isScalarKey, issueOf, newerIssue, parseBackup, recordIssue, staysOnDevice, type ParsedBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
 import { type Locale, type MessageKey, currentLocale, t, tIn } from '../i18n';
 
 export type RepoPath = string;
@@ -59,6 +60,12 @@ export const isLegacyRecords = (path: RepoPath): boolean => { const s = stemOf(p
    which a sync leaves where it is rather than pulling it, or deleting it for
    not having it. */
 export const foreignRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && categoryOf(k) === null; };
+/* A record of this device's workspace (the tabs, splits and where each view
+   stands), which a sync neither sends nor takes: a phone and a wide screen
+   each keep their own. A repo that already holds one from an earlier version
+   keeps it as it is; it is never read and never deleted, since a device still
+   on that version takes a deletion as its own layout gone. */
+export const deviceRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && staysOnDevice(k); };
 
 const finite = z.number().finite();
 /* 2 since a record is a file of its own; a manifest of 1 is still read, and
@@ -123,7 +130,7 @@ const fileNames = (records: readonly ReaderRecord[]): ReadonlyMap<string, string
 
 export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
   const names = fileNames(backup.records);
-  const records = [...backup.records].sort((a, b) => a.key.localeCompare(b.key)).map((r): RepoFile => ({ path: recordPath(r.key), group: 'records', label: r.key, bytes: recordBytes(r) }));
+  const records = backup.records.filter((r) => !staysOnDevice(r.key)).sort((a, b) => a.key.localeCompare(b.key)).map((r): RepoFile => ({ path: recordPath(r.key), group: 'records', label: r.key, bytes: recordBytes(r) }));
   const chats = backup.chats.map((c): RepoFile => ({ path: `chats/${c.id}.json`, group: 'chats', label: c.name || c.id, bytes: jsonBytes(c) }));
   const drawings = backup.drawings.map((d): RepoFile => ({ path: `drawings/${d.id}.json`, group: 'drawings', label: d.name || d.id, bytes: jsonBytes(d) }));
   const scratch = backup.scratch.map((s): RepoFile => ({ path: scratchPath(s.key), group: 'scratch', label: s.key, bytes: jsonBytes(s) }));
@@ -177,25 +184,28 @@ export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ParsedBackup
   });
 };
 
-/* Why this version could not take a file of the repo in, or null when it can:
-   the check a file is held to before it comes down, and that a merge the
-   reader settled is held to before it is sent anywhere. */
-export const fileProblem = (path: RepoPath, bytes: Uint8Array): string | null => {
+/* Why this version could not take a file of the repo in, and whether a newer
+   version probably wrote it, or null when it can: the check a file is held to
+   before it comes down, and that a merge the reader settled is held to before
+   it is sent anywhere. */
+export type FileIssue = { readonly why: string; readonly newer: boolean };
+export const fileIssue = (path: RepoPath, bytes: Uint8Array): FileIssue | null => {
   const group = groupOf(path);
   if (group === 'files' || group === 'images' || group === null) return null;
   let v: unknown;
-  try { v = jsonOf(bytes); } catch (e) { return t('files.sync.error.notJson', { why: e instanceof Error ? e.message : '' }); }
-  if (path === MANIFEST) return ManifestSchema.safeParse(v).success ? null : t('files.sync.error.manifest');
+  try { v = jsonOf(bytes); } catch (e) { return { why: t('files.sync.error.notJson', { why: e instanceof Error ? e.message : '' }), newer: false }; }
+  if (path === MANIFEST) return ManifestSchema.safeParse(v).success ? null : { why: t('files.sync.error.manifest'), newer: false };
   const key = recordKeyOf(path);
-  if (key !== null) return recordProblem(recordOf(key, v));
+  if (key !== null) return recordIssue(recordOf(key, v));
   if (isLegacyRecords(path)) {
     let records: ReturnType<typeof legacyRecords>;
-    try { records = legacyRecords(v); } catch (e) { return e instanceof z.ZodError ? issueOf(e) : t('shell.backup.invalidData'); }
-    for (const r of records) { const why = recordProblem(r); if (why) return t('shell.backup.skippedLine', { key: r.key, why }); }
+    try { records = legacyRecords(v); } catch (e) { return { why: e instanceof z.ZodError ? issueOf(e) : t('shell.backup.invalidData'), newer: false }; }
+    for (const r of records) { const issue = recordIssue(r); if (issue) return { why: t('shell.backup.skippedLine', { key: r.key, why: issue.why }), newer: issue.newer }; }
     return null;
   }
   const schema = { chats: ChatSchema, drawings: DrawingSchema, scratch: ScratchSchema, generated: GeneratedSchema, records: null }[group];
   if (!schema) return null;
   const parsed = schema.safeParse(v);
-  return parsed.success ? null : issueOf(parsed.error);
+  return parsed.success ? null : { why: issueOf(parsed.error), newer: newerIssue(parsed.error) };
 };
+export const fileProblem = (path: RepoPath, bytes: Uint8Array): string | null => fileIssue(path, bytes)?.why ?? null;

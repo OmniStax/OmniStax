@@ -7,7 +7,7 @@ import type { Drawing } from '../drawer/model';
 import { base64Of, blobOfBase64, exportBlobs, replaceBlobs } from '../files/blobs';
 import { FILES_KEY, parseFiles } from '../files/model';
 import type { FileId } from '../types/ids';
-import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, type BackupFile, type ParsedBackup, type ReaderBackup, type ReaderRecord, type SkippedRecord } from './schema';
+import { BACKUP_FORMAT, BACKUP_VERSION, MAX_BACKUP_BYTES, MAX_BACKUP_LABEL, categoryOf, parseBackupText, staysOnDevice, type BackupFile, type ParsedBackup, type ReaderBackup, type ReaderRecord, type SkippedRecord } from './schema';
 import { restoreWithJournal } from './journal';
 import { t } from '../i18n/index';
 import { exportGenerated, replaceGenerated } from '../practice/generated-db';
@@ -86,9 +86,21 @@ export const keptRecords = (skipped: readonly SkippedRecord[], read: (key: strin
     return category && value !== null ? [{ key, value, category }] : [];
   });
 
-export const importBackup = async (backup: ReaderBackup & { readonly skipped?: readonly SkippedRecord[] }): Promise<void> => {
-  const kept = keptRecords(backup.skipped ?? []);
-  await restoreWithJournal([...backup.records.filter((r) => !kept.some((k) => k.key === r.key)), ...kept], backup.assets.map((asset) => ({ ...asset, id: assetId(asset.id) })));
+/* The records a restore writes: the backup's, with this device's own value in
+   place of each one it set aside and, when the profile came from a sync, of
+   the workspace, which a sync never carries: a pull leaves this device's tabs
+   and splits as they are. `keys` are the keys this device holds. */
+export const recordsToRestore = (backup: { readonly records: readonly ReaderRecord[]; readonly skipped?: readonly SkippedRecord[] }, keepWorkspace: boolean, keys: readonly string[], read: (key: string) => string | null): ReaderRecord[] => {
+  const own = keepWorkspace ? keys.filter(staysOnDevice).map((key) => ({ key, why: '' })) : [];
+  const kept = keptRecords([...(backup.skipped ?? []), ...own], read);
+  return [...backup.records.filter((r) => !kept.some((k) => k.key === r.key) && !(keepWorkspace && staysOnDevice(r.key))), ...kept];
+};
+
+const storedKeys = (): string[] => Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((k): k is string => k !== null);
+
+export const importBackup = async (backup: ReaderBackup & { readonly skipped?: readonly SkippedRecord[] }, opts: { readonly keepWorkspace?: boolean } = {}): Promise<void> => {
+  const records = recordsToRestore(backup, opts.keepWorkspace === true, storedKeys(), (key) => localStorage.getItem(key));
+  await restoreWithJournal(records, backup.assets.map((asset) => ({ ...asset, id: assetId(asset.id) })));
   /* The chats follow the journalled records rather than standing in them: the
      index they are listed under has already been restored, so a chat that
      cannot be written leaves a row whose record is gone, which a tab opens
