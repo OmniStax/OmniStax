@@ -20,6 +20,7 @@
   import { embedText, linkInner } from '../../lib/notes/md/links';
   import type { PickerRow } from '../../lib/picker/model';
   import { drawCardsWhenReady, embedCards } from '../../lib/notes/md/cardwidget';
+  import { dragging } from '../../lib/layout/drag.svelte';
 
   /* `complete` is the list the note tab gathered before the picker existed. The
      picker reads the same stores and more, so the rows come from there now and
@@ -163,7 +164,12 @@
       void insertImages(v, files, v.state.selection.main.from);
       return true;
     },
+    /* A tab carried over the note is on its way to a group: its key rides as
+       plain text, which the editor would otherwise write into the note, so the
+       drop is left to the group underneath. */
+    dragover: () => dragging() !== null,
     drop: (e, v) => {
+      if (dragging()) return true;
       const files = imagesIn(e.dataTransfer);
       if (!files.length) return false;
       e.preventDefault();

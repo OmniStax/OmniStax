@@ -115,7 +115,7 @@ figure > sup.fn{display:none}
 .notes .fn-body > :last-child{margin-bottom:0}
 /* The one way on from a text: the practice button, centred under the last words
    of the section, with the pencil on the right of them. */
-.section-end{display:flex;justify-content:center;align-items:center;margin-top:40px;font-family:var(--sans);font-size:0.82rem}
+.section-end{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:40px;font-family:var(--sans);font-size:0.82rem}
 .section-end .practise{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:0.8rem;font-weight:600;padding:5px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
 .section-end .practise svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .section-end .practise:hover:not(:disabled){background:var(--soft)}
