@@ -1,5 +1,5 @@
 /* The book's sheets as the shell holds them: what has been fetched, which
-   element the elements page is pinned on, and the roots still waiting for the
+   element the elements page is asked to pin, and the roots still waiting for the
    table before their formulas can be marked.
 
    A sheet is data rather than a document, so nothing here adopts any DOM: the
@@ -26,7 +26,7 @@ export const sheetKey = (book: BookId, id: string): SheetKey => `${book}/${id}` 
 class Sheets {
   data = $state.raw<Readonly<Record<SheetKey, SheetDataDTO>>>({});
   status = $state.raw<Readonly<Record<SheetKey, SheetStatus>>>({});
-  /* The element the elements page stands on, which a formula card's "Go to" sets before the page opens. */
+  /* An element a formula card's "Go to" asks the elements page to pin, kept until the page adds it to the cards it has open. */
   pinned = $state.raw<ElementSymbol | null>(null);
   /* Rows a link or a function card asked a grapher to show, kept until that grapher takes them. */
   asked = $state.raw<{ readonly key: SheetKey; readonly exprs: readonly string[] } | null>(null);
