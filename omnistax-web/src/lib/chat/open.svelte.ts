@@ -7,14 +7,13 @@ import { layoutStore } from '../layout/store.svelte';
 import { openInFocus, openTab } from '../layout/model';
 import { chatItem, itemKey, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
-import { focus } from '../sections/focus.svelte';
 import type { MessageId } from './model';
 import type { Chip } from './context';
 
 /* A chat of its own, opened as a tab of the focused group,
    like a page of one of the middle four views: every asking opens another. */
 export const newChatTab = (): ChatId => {
-  const chat = chats.create(focus.book);
+  const chat = chats.create();
   layoutStore.apply((l) => openTab(l, chatItem(chat.id), l.focus));
   return chat.id;
 };

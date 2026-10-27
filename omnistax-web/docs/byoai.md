@@ -114,15 +114,19 @@ error text on the message with a Retry.
 - Search has a corpus per chat over its messages; a hit opens the chat at
   that message's branch.
 - Chats live in IndexedDB database `omnistax-chats`, store `chats`, with a
-  localStorage index `omnistax-chats-v2` of `{ id, name, created, updated,
-  book? }` for the explorer-free places that list them (the picker, search,
-  links, the Conversations page). `book` is the book the chat is filed under:
-  the one being read when it was started, else the first book its chips name
-  (`lib/chat/entries.ts`), `''` for none, absent on a row not filed yet. The
-  first index, `omnistax-chats-v1`, is still read (merged row by row) and
-  written in its own shape for a tab open on an older build; a row it brings
-  without a book is filed from the chat's chips when the Conversations page
-  is opened. Both are in the backup, the store exported as `chats: Chat[]`.
+  localStorage index `omnistax-chats-v3` of `{ id, name, created, updated,
+  said?, answered?, places? }` for the explorer-free places that list them
+  (the picker, search, links, the Conversations page). `said` is when the
+  chat's last message was sent (a rename moves `updated`, not `said`),
+  `answered` when its last answer finished, stopped or failed, and `places`
+  where it is filed (`lib/chat/entries.ts`, below), absent on a row not filed
+  yet. The first index, `omnistax-chats-v1`, is still read (merged row by
+  row) and written in its own shape for a tab open on an older build; a row
+  an older build touched since is filed again from the chat's messages when
+  the Conversations page is opened. The second, `omnistax-chats-v2` (one
+  `book` per row), never shipped: it is read only where the third has not been
+  written and no longer kept. All three are in the backup, the store exported
+  as `chats: Chat[]`.
 
 ## Files
 
@@ -386,3 +390,33 @@ definition, a figure's head, a highlight, another chat's bubble, a note, a
 drawing, a file) becomes the chip the picker makes for the same thing
 (`rowOfLink` in `picker/sources.ts`, `chipOfLink` in `lib/chat/drop.ts`);
 only words no chip can stand for are typed into the composer.
+
+## Conversations page, round four
+
+**2026-10-27.** The list is every chat, the one that last said something
+first (`recent`). "By book", a toggle in the page's bar remembered in
+`omnistax-chats-by-book-v1`, files it instead (`filed`): a heading per book,
+the book talked about last first, its chapters a step in and their sections a
+step further, in the book's order from its manifest, only the places that
+hold a chat, each folding away; "No book" last.
+
+A chat is filed by the chips of every message the reader sent, on every
+branch, and never by what an answer reached for. Each chip stands at a place
+(`placeOfChip`): a book chip at the book, a chapter chip at the chapter, a
+section at its section, and an exercise, a figure, a concept, an equation, a
+definition or a highlight at the section that holds it (a concept's key names
+its section; a highlight's is looked up in the reader's notes). The reader's
+own things stand nowhere. The places of one book are joined to the least place
+holding them all (`joinPlaces`): two concepts of 2.3 file the chat at 2.3, one
+of 2.3 and one of 2.7 at chapter 2, one of 1.8 and one of 5.3 at the book. A
+chat that names two books is filed once under each. The places are kept on
+the chat's row, so the list reads no chat to draw.
+
+A row says, on its right, "…" while an answer is on its way
+(`chats.streaming`, now reactive) and "Unread" when the last answer finished
+after the reader last saw the chat (`lib/chat/seen.ts`). A chat is seen while
+it is the active tab of a group, or the chat shown in a Conversations page
+that is, and the browser tab is in front; the shell marks it whenever the
+layout or the index moves, so an answer that finishes while the reader
+watches is never unread. When each chat was last seen is kept in
+`omnistax-chat-seen-v1`, which travels in the backup with the chats.

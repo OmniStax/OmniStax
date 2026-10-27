@@ -56,6 +56,8 @@
   import { ai } from '../lib/chat/settings.svelte';
   import { chats } from '../lib/chat/store.svelte';
   import { chatPages } from '../lib/chat/pages.svelte';
+  import { chatSeen } from '../lib/chat/seen.svelte';
+  import { visibleChats } from '../lib/chat/seen';
   import { explorer } from '../lib/explorer/store.svelte';
   import { files } from '../lib/files/store.svelte';
   import { drawings } from '../lib/drawer/store.svelte';
@@ -141,6 +143,7 @@
     ai.init();
     chats.init();
     chatPages.init();
+    chatSeen.init();
     files.init();
     fileMarks.init();
     drawings.init();
@@ -337,6 +340,8 @@
      page whose tab the layout no longer holds is dropped as the layout settles. */
   $effect(() => { focus.track(); });
   $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); chatPages.prune(instancesOf(layoutStore.layout, 'chats')); });
+  /* layout → chats: a chat in front of the reader has its last answer read */
+  $effect(() => { chatSeen.look(visibleChats(layoutStore.layout.groups, (k) => chatPages.of(k)), chats.index); });
 
 
   /* The page of a book the focused tab is showing, whatever its book. A tab of
