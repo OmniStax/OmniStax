@@ -8,8 +8,10 @@
      listens. Hovering a cell opens a compact card just below it; clicking pins
      the full card there with every field the sheet carries, the element's own
      colour from the drawing palette, and a link to each section of the book
-     that names it. In a narrow pane the card is a sheet along the bottom. The
-     arrows walk the table and Enter pins. */
+     that names it. In a pane too narrow for eighteen columns the table scrolls
+     sideways inside itself and the card still hangs from its cell, kept inside
+     the table's own box, so it never leaves the pane for the foot of the window.
+     The arrows walk the table and Enter pins. */
   import { tick } from 'svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   import type { MessageKey } from '../../lib/i18n';
@@ -60,7 +62,6 @@
   const element = (symbol: string | null) => (symbol === null ? null : sheet.elements.find((e) => e.symbol === symbol) ?? null);
   const card = $derived(element(pinned));
   const peek = $derived(pinned === null ? element(hovered) : null);
-  const narrow = $derived(boardW > 0 && boardW < 520);
 
   type Place = { readonly left: number; readonly top: number };
   const GAP = 4;
@@ -69,7 +70,7 @@
     symbol === null ? null : grid?.querySelector<HTMLElement>(`[data-el="${symbol}"]`) ?? null;
   const place = $derived.by((): Place | null => {
     const at = cellOf(pinned ?? (peek ? hovered : null));
-    if (!at || narrow) return null;
+    if (!at) return null;
     const x = at.offsetLeft - scrollX + at.offsetWidth / 2 - popW / 2;
     const left = Math.max(EDGE, Math.min(x, boardW - popW - EDGE));
     const below = at.offsetTop + at.offsetHeight + GAP;
@@ -205,7 +206,7 @@
 
     {#if card || peek}
       <div
-        class="pop" class:sheet={narrow} bind:this={pop} bind:offsetWidth={popW} bind:offsetHeight={popH}
+        class="pop" bind:this={pop} bind:offsetWidth={popW} bind:offsetHeight={popH}
         role={card ? 'dialog' : 'tooltip'} aria-label={(card ?? peek)?.name}
         style:left={place ? `${place.left}px` : null} style:top={place ? `${place.top}px` : null}
         onmouseenter={hold} onmouseleave={leave}>
@@ -286,7 +287,6 @@
   .cell.strip .sym{font-size:0.6rem;font-weight:500}
 
   .pop{position:absolute;z-index:2;width:300px;max-width:calc(100% - 16px);border:1px solid var(--rule);border-radius:8px;background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.08)}
-  .pop.sheet{position:fixed;left:8px;right:8px;bottom:8px;top:auto;width:auto;max-width:none;max-height:70vh;overflow-y:auto}
   .full,.peekcard{padding:10px 12px}
   .peekcard h2,.full h2{margin:1px 0 4px;font-size:1rem}
   .peekcard p{margin:0;font-size:0.8rem;color:var(--muted)}
