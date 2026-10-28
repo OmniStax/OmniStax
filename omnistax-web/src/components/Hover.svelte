@@ -69,15 +69,23 @@
      no side holds the whole card, on the roomier of above and below, cut to
      that room and scrolled. Sliding it along the target's edge to keep it on
      screen never brings it back over the target, and a card that grows once
-     its maths is set is placed again. */
-  const GAP = 6, EDGE = 8;
+     its maths is set is placed again. Sideways the card keeps to the pane or
+     sidebar its target stands in, narrowing to fit it, so a card from a narrow
+     group never lies over the group beside it; only a pane too narrow to read
+     a card in lends it the window. */
+  const GAP = 6, EDGE = 8, LEAST = 240;
+  let widest = $state<number | null>(null);   /* how wide the card may be in the pane it stands in, handed to the style as --room */
   const place = () => {
     if (!anchor || !box) return;
     const r = anchor.getBoundingClientRect(); const vw = innerWidth, vh = innerHeight;
     if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) { close(); return; }
-    const b = { width: box.getBoundingClientRect().width, height: box.scrollHeight + box.offsetHeight - box.clientHeight };
-    const room = { below: vh - EDGE - r.bottom - GAP, above: r.top - GAP - EDGE, right: vw - EDGE - r.right - GAP, left: r.left - GAP - EDGE };
-    const across = clamp(r.left, EDGE, Math.max(EDGE, vw - b.width - EDGE)), down = clamp(r.top, EDGE, Math.max(EDGE, vh - b.height - EDGE));
+    const frame = anchor.closest('.pane, .sidebar')?.getBoundingClientRect();
+    const own = !!frame && frame.width - 2 * EDGE >= LEAST;
+    const x0 = own ? Math.max(0, frame.left) : 0, x1 = own ? Math.min(vw, frame.right) : vw;
+    widest = own ? x1 - x0 - 2 * EDGE : null;
+    const b = { width: Math.min(box.getBoundingClientRect().width, widest ?? Infinity), height: box.scrollHeight + box.offsetHeight - box.clientHeight };
+    const room = { below: vh - EDGE - r.bottom - GAP, above: r.top - GAP - EDGE, right: x1 - EDGE - r.right - GAP, left: r.left - GAP - EDGE - x0 };
+    const across = clamp(r.left, x0 + EDGE, Math.max(x0 + EDGE, x1 - b.width - EDGE)), down = clamp(r.top, EDGE, Math.max(EDGE, vh - b.height - EDGE));
     /* An anchor that asks for its card at its right, rising from its own line, gets that while it fits. */
     const side = anchor.dataset.cardSide === 'right' ? (b.width <= room.right ? 'right' : b.width <= room.left ? 'left' : null) : null;
     pos = side ? { top: clamp(r.bottom - b.height, EDGE, Math.max(EDGE, vh - b.height - EDGE)), left: side === 'right' ? r.right + GAP : r.left - GAP - b.width, ready: true }
@@ -159,7 +167,7 @@
 </script>
 
 {#if card}{#key card}
-  <div class="hover-card" class:ready={pos.ready} style:top="{pos.top}px" style:left="{pos.left}px" style:max-height={pos.most ? `${pos.most}px` : null} style:overflow-y={pos.most ? 'auto' : null} data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
+  <div class="hover-card" class:ready={pos.ready} style:--room={widest === null ? null : `${widest}px`} style:top="{pos.top}px" style:left="{pos.left}px" style:max-height={pos.most ? `${pos.most}px` : null} style:overflow-y={pos.most ? 'auto' : null} data-book={book || null} data-chapter={chapter} data-kind={card.kind} bind:this={box} role="dialog" aria-label={card.title}>
     <div class="eyebrow">{#each card.eyebrow.split(' · ') as piece, i (i)}{#if i}{' · '}{/if}{#if card.conceptKind && piece === KIND_LABEL[card.conceptKind as ConceptKind]}<span class="kb k-{card.conceptKind}">{piece}</span>{:else}{piece}{/if}{/each}{#if card.unit}{' · '}<span class="unit">{card.unit}</span>{/if}</div>
     {#if card.tex}<div class="sym" style:color={symColor || null} use:tex={card.tex}></div>{:else}<div class="title" data-type={card.type ?? null} use:math={card.title}>{@html card.title}</div>{/if}
     {#if card.plot}{@const sk = sketch(card.plot, PLOT_W)}{#if sk}{@const w = sk.win}<svg class="plot" viewBox="0 0 {PLOT_W} {PLOT_H}" data-type={card.type ?? null} aria-hidden="true">
@@ -178,7 +186,7 @@
 {/key}{/if}
 
 <style>
-  .hover-card{position:fixed;z-index:60;max-width:min(340px,calc(100vw - 16px));padding:10px 12px 9px;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,0.14),0 1px 3px rgba(0,0,0,0.08);font-family:var(--sans);font-size:0.82rem;line-height:1.45;visibility:hidden}
+  .hover-card{position:fixed;z-index:60;max-width:min(340px,var(--room,calc(100vw - 16px)));padding:10px 12px 9px;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,0.14),0 1px 3px rgba(0,0,0,0.08);font-family:var(--sans);font-size:0.82rem;line-height:1.45;visibility:hidden}
   .hover-card.ready{visibility:visible}
   .eyebrow{margin-bottom:3px}
   .sym{font-size:1.25rem;line-height:1.2;margin:2px 0 4px}
@@ -191,7 +199,7 @@
   .aside :global(.katex){font-size:1em}
   /* a unit keeps its case: m is not M */
   .eyebrow .unit{text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:400}
-  .hover-card[data-kind="definition"]{max-width:min(380px,calc(100vw - 16px))}
+  .hover-card[data-kind="definition"]{max-width:min(380px,var(--room,calc(100vw - 16px)))}
   /* a concept's places: the lead in the eyebrow's voice, the places beside it as quiet links */
   /* a formula's composition: one chip per element, on the element's own colour, which is a convention and not a signal the app adds */
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 0}
@@ -209,7 +217,7 @@
   .ref.more{color:var(--muted);text-decoration:none;font-style:italic}
   .refs .sep{color:var(--muted);font-size:0.78rem}
   .ref :global(.katex){font-size:1em}
-  .hover-card[data-kind="concept"]{max-width:min(400px,calc(100vw - 16px))}
+  .hover-card[data-kind="concept"]{max-width:min(400px,var(--room,calc(100vw - 16px)))}
   .plot{display:block;width:260px;max-width:100%;height:auto;margin:4px 0 2px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);overflow:hidden}
   .plot .axis{stroke:var(--muted);stroke-width:1}
   .plot .curve{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}

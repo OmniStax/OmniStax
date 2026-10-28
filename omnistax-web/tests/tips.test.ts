@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RETURNING_AFTER, tipsOf, dayOf, stepTip, visit } from '../src/lib/tips/model';
+import { RETURNING_AFTER, modKeyOf, tipsOf, dayOf, stepTip, visit } from '../src/lib/tips/model';
+import { tIn } from '../src/lib/i18n/index';
 
 const TIPS = tipsOf((k) => k);
 
@@ -50,6 +51,18 @@ test('the card walks every tip in turn, wrapping at either end', () => {
 });
 
 test('every tip is said by its key, and an action carries a label of its own', () => {
-  assert.deepEqual(TIPS.map((x) => x.text), ['tips.drawing', 'tips.theme', 'tips.drag', 'tips.import']);
+  assert.deepEqual(TIPS.map((x) => x.text), ['tips.drawing', 'tips.theme', 'tips.drag', 'tips.import', 'tips.newGroup']);
   assert.deepEqual(TIPS.flatMap((x) => (x.action ? [x.action.label] : [])), ['tips.drawing.action', 'tips.import.action']);
+});
+
+test('the new-group tip names the key the reader holds: ⌘ on a Mac, Ctrl elsewhere', () => {
+  assert.equal(modKeyOf('MacIntel'), '⌘');
+  assert.equal(modKeyOf('macOS'), '⌘');
+  assert.equal(modKeyOf('iPad'), '⌘');
+  assert.equal(modKeyOf('Win32'), 'Ctrl');
+  assert.equal(modKeyOf('Linux x86_64'), 'Ctrl');
+  assert.equal(modKeyOf(''), 'Ctrl');
+  const said = (mod: string) => tipsOf((k, p) => tIn('en', k, p), mod).map((x) => x.text).find((x) => x.includes('new group'));
+  assert.equal(said('⌘'), '⌘-click a link to open its page in a new group.');
+  assert.equal(said('Ctrl'), 'Ctrl-click a link to open its page in a new group.');
 });

@@ -1,10 +1,22 @@
 /* How a reader's profile is laid out in a GitHub repo: one JSON file per
-   category of settings and records, one per chat, drawing, scratch page and
-   generated exercise, and each imported file and pasted image as its own bytes. Small files keep
-   diffs small; large ones travel alone. Pure. */
+   record (records/<key>.json), one per chat, drawing, scratch page and
+   generated exercise, and each imported file and pasted image as its own
+   bytes. Small files keep diffs small; large ones travel alone. A file is what
+   two devices can each change without the other: the practice log changed on
+   the laptop and the theme changed on the phone are two files, and neither
+   waits on the other.
+
+   Version 1 of the layout kept every record of a category in one file
+   (records/<category>.json), so any two records of a category edited on two
+   devices were one conflict. Such a repo is still read: its category files are
+   taken apart into the records they hold (explode, which the survey uses), and
+   the next push writes them as files of their own and drops the old ones. A
+   record's category is not in its path, so a key a later version files under
+   another category keeps its file. The workspace stays on each device and
+   is never laid out here (deviceRecord). Pure. */
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
-import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, isScalarKey, parseBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
+import { BACKUP_FORMAT, BACKUP_VERSION, ChatSchema, DrawingSchema, GeneratedSchema, ScratchSchema, categoryOf, isScalarKey, issueOf, newerIssue, parseBackup, recordIssue, staysOnDevice, type ParsedBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
 import { type Locale, type MessageKey, currentLocale, t, tIn } from '../i18n';
 
 export type RepoPath = string;
@@ -31,9 +43,37 @@ export const filePath = (id: string, mime: string): RepoPath => `files/${id}${EX
 export const imagePath = (id: string, mime: string): RepoPath => `images/${id}${EXT[mime] ?? ''}`;
 const scratchPath = (key: string): RepoPath => `scratch/${encodeURIComponent(key)}.json`;
 
+/* Every key the app writes begins so, and no category's name does, which is
+   what tells a record's own file from a category file of the first layout. */
+const KEY_PREFIX = 'omnistax-';
+export const recordPath = (key: string): RepoPath => `records/${encodeURIComponent(key)}.json`;
+const stemOf = (path: RepoPath): string | null => {
+  const m = /^records\/([^/]+)\.json$/.exec(path);
+  if (!m) return null;
+  try { return decodeURIComponent(m[1]); } catch { return null; }
+};
+/* The key a record's file holds, or null for any other path. */
+export const recordKeyOf = (path: RepoPath): string | null => { const s = stemOf(path); return s?.startsWith(KEY_PREFIX) ? s : null; };
+/* A category file of the first layout. */
+export const isLegacyRecords = (path: RepoPath): boolean => { const s = stemOf(path); return s !== null && !s.startsWith(KEY_PREFIX); };
+/* A record this version would not know what to do with: a newer version's,
+   which a sync leaves where it is rather than pulling it, or deleting it for
+   not having it. */
+export const foreignRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && categoryOf(k) === null; };
+/* A record of this device's workspace (the tabs, splits and where each view
+   stands), which a sync neither sends nor takes: a phone and a wide screen
+   each keep their own. A repo that already holds one from an earlier version
+   keeps it as it is; it is never read and never deleted, since a device still
+   on that version takes a deletion as its own layout gone. */
+export const deviceRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && staysOnDevice(k); };
+
 const finite = z.number().finite();
+/* 2 since a record is a file of its own; a manifest of 1 is still read, and
+   whichever is read, the next push writes 2. A version that knows only 1
+   refuses a manifest of 2 rather than misreading the repo. */
+export const SYNC_VERSION = 2 as const;
 const ManifestSchema = z.object({
-  format: z.literal('omnistax-sync'), version: z.literal(1), exportedAt: z.string().datetime(),
+  format: z.literal('omnistax-sync'), version: z.union([z.literal(1), z.literal(SYNC_VERSION)]), exportedAt: z.string().datetime(),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
   files: z.array(z.object({ id: z.string().min(1), type: z.enum(['pdf', 'image']), mime: z.string().min(1), created: finite }).strict()),
   images: z.array(z.object({ id: z.string().min(1), type: z.string().min(1), created: finite }).strict()),
@@ -59,15 +99,29 @@ const bytesOfDataUrl = (url: string): Uint8Array => {
   return m[1] ? bytesOfBase64(m[2]) : encoder.encode(decodeURIComponent(m[2]));
 };
 
-/* A category's records as one object, each value as the JSON it holds so the
-   file reads and diffs as JSON rather than as escaped strings. */
-const recordsFile = (records: readonly ReaderRecord[]): Record<string, unknown> =>
-  Object.fromEntries(records.map((r) => [r.key, isScalarKey(r.key) ? r.value : JSON.parse(r.value) as unknown]));
-const recordsOf = (file: unknown): ReaderRecord[] =>
-  Object.entries(z.record(z.unknown()).parse(file)).flatMap(([key, v]) => {
-    const category = categoryOf(key);
-    return category ? [{ key, value: isScalarKey(key) ? String(v) : JSON.stringify(v), category }] : [];
-  });
+/* A record's value as its file holds it: the JSON it is, so the file reads and
+   diffs as JSON rather than as an escaped string, and a setting's plain string
+   as a JSON string. A value that should be JSON and is not travels as the
+   string it is, so a push never fails on it and the other side names it
+   rather than taking it. */
+const valueOf = (r: { readonly key: string; readonly value: string }): unknown => {
+  if (isScalarKey(r.key)) return r.value;
+  try { return JSON.parse(r.value) as unknown; } catch { return r.value; }
+};
+/* And back. A setting holds a string; anything else a file holds for it is
+   written out as JSON, so that it fails the setting's check by name rather
+   than turning into something it never was (String(null) is "null"). */
+const textOf = (key: string, v: unknown): string => (isScalarKey(key) && typeof v === 'string' ? v : JSON.stringify(v));
+export const recordBytes = (r: { readonly key: string; readonly value: string }): Uint8Array => jsonBytes(valueOf(r));
+const recordOf = (key: string, v: unknown): { key: string; value: string; category: string } => ({ key, value: textOf(key, v), category: categoryOf(key) ?? '' });
+/* A category file of the first layout: one object of key to value. */
+const legacyRecords = (file: unknown): { key: string; value: string; category: string }[] =>
+  Object.entries(z.record(z.unknown()).parse(file)).map(([key, v]) => recordOf(key, v));
+
+/* A category file of the first layout as the records' own files it stands
+   for, each laid out as toRepo would lay it out. */
+export const explode = (bytes: Uint8Array): ReadonlyMap<RepoPath, Uint8Array> =>
+  new Map(legacyRecords(jsonOf(bytes)).map((r) => [recordPath(r.key), recordBytes(r)] as const));
 
 const fileNames = (records: readonly ReaderRecord[]): ReadonlyMap<string, string> => {
   const listed = records.find((r) => r.key === FILES_KEY);
@@ -76,8 +130,7 @@ const fileNames = (records: readonly ReaderRecord[]): ReadonlyMap<string, string
 
 export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
   const names = fileNames(backup.records);
-  const categories = [...new Set(backup.records.map((r) => r.category))].sort();
-  const records = categories.map((c): RepoFile => ({ path: `records/${c}.json`, group: 'records', label: c, bytes: jsonBytes(recordsFile(backup.records.filter((r) => r.category === c))) }));
+  const records = backup.records.filter((r) => !staysOnDevice(r.key)).sort((a, b) => a.key.localeCompare(b.key)).map((r): RepoFile => ({ path: recordPath(r.key), group: 'records', label: r.key, bytes: recordBytes(r) }));
   const chats = backup.chats.map((c): RepoFile => ({ path: `chats/${c.id}.json`, group: 'chats', label: c.name || c.id, bytes: jsonBytes(c) }));
   const drawings = backup.drawings.map((d): RepoFile => ({ path: `drawings/${d.id}.json`, group: 'drawings', label: d.name || d.id, bytes: jsonBytes(d) }));
   const scratch = backup.scratch.map((s): RepoFile => ({ path: scratchPath(s.key), group: 'scratch', label: s.key, bytes: jsonBytes(s) }));
@@ -86,7 +139,7 @@ export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
   const images = backup.assets.map((a): RepoFile => ({ path: imagePath(a.id, a.type), group: 'images', label: a.id, bytes: bytesOfDataUrl(a.dataUrl) }));
   const body = [...records, ...chats, ...drawings, ...scratch, ...generated, ...files, ...images];
   const manifest: Manifest = {
-    format: 'omnistax-sync', version: 1, exportedAt: backup.exportedAt, books: backup.books,
+    format: 'omnistax-sync', version: SYNC_VERSION, exportedAt: backup.exportedAt, books: backup.books,
     files: backup.files.map(({ id, type, mime, created }) => ({ id, type, mime, created })),
     images: backup.assets.map(({ id, type, created }) => ({ id, type, created })),
     labels: Object.fromEntries(body.filter((f) => f.group !== 'records' && f.label !== f.path).map((f) => [f.path, f.label])),
@@ -101,18 +154,23 @@ export const parseManifest = (bytes: Uint8Array): Manifest => {
 };
 
 export const labelOf = (path: RepoPath, manifest: Manifest | null): string =>
-  manifest?.labels[path] ?? (path.startsWith('records/') ? path.slice(8, -5) : path);
+  manifest?.labels[path] ?? (path.startsWith('records/') ? stemOf(path) ?? path : path);
 
 /* The profile a repo's files describe. An imported file or image the manifest
-   lists but the files leave out is left out too. */
-export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ReaderBackup => {
+   lists but the files leave out is left out too. A record may stand in a file
+   of its own and in a category file of the first layout both, while a repo is
+   between the two; its own file is the later and wins. */
+export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ParsedBackup => {
   const head = files.get(MANIFEST);
   if (!head) throw new Error(t('files.sync.error.noData'));
   const manifest = parseManifest(head);
-  const under = (dir: string): unknown[] => [...files.entries()].filter(([p]) => p.startsWith(`${dir}/`)).sort(([a], [b]) => a.localeCompare(b)).map(([, b]) => jsonOf(b));
+  const sorted = [...files.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const under = (dir: string): unknown[] => sorted.filter(([p]) => p.startsWith(`${dir}/`)).map(([, b]) => jsonOf(b));
+  const own = new Map(sorted.flatMap(([p, b]) => { const key = recordKeyOf(p); return key ? [[key, recordOf(key, jsonOf(b))] as const] : []; }));
+  const legacy = sorted.filter(([p]) => isLegacyRecords(p)).flatMap(([, b]) => legacyRecords(jsonOf(b))).filter((r) => !own.has(r.key));
   return parseBackup({
     format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: manifest.exportedAt, app: { readerFormat: 1 },
-    records: under('records').flatMap(recordsOf),
+    records: [...legacy, ...own.values()],
     assets: manifest.images.flatMap(({ id, type, created }) => {
       const bytes = files.get(imagePath(id, type));
       return bytes ? [{ id, type, created, dataUrl: `data:${type};base64,${base64OfBytes(bytes)}` }] : [];
@@ -125,3 +183,29 @@ export const fromRepo = (files: ReadonlyMap<RepoPath, Uint8Array>): ReaderBackup
     books: manifest.books,
   });
 };
+
+/* Why this version could not take a file of the repo in, and whether a newer
+   version probably wrote it, or null when it can: the check a file is held to
+   before it comes down, and that a merge the reader settled is held to before
+   it is sent anywhere. */
+export type FileIssue = { readonly why: string; readonly newer: boolean };
+export const fileIssue = (path: RepoPath, bytes: Uint8Array): FileIssue | null => {
+  const group = groupOf(path);
+  if (group === 'files' || group === 'images' || group === null) return null;
+  let v: unknown;
+  try { v = jsonOf(bytes); } catch (e) { return { why: t('files.sync.error.notJson', { why: e instanceof Error ? e.message : '' }), newer: false }; }
+  if (path === MANIFEST) return ManifestSchema.safeParse(v).success ? null : { why: t('files.sync.error.manifest'), newer: false };
+  const key = recordKeyOf(path);
+  if (key !== null) return recordIssue(recordOf(key, v));
+  if (isLegacyRecords(path)) {
+    let records: ReturnType<typeof legacyRecords>;
+    try { records = legacyRecords(v); } catch (e) { return { why: e instanceof z.ZodError ? issueOf(e) : t('shell.backup.invalidData'), newer: false }; }
+    for (const r of records) { const issue = recordIssue(r); if (issue) return { why: t('shell.backup.skippedLine', { key: r.key, why: issue.why }), newer: issue.newer }; }
+    return null;
+  }
+  const schema = { chats: ChatSchema, drawings: DrawingSchema, scratch: ScratchSchema, generated: GeneratedSchema, records: null }[group];
+  if (!schema) return null;
+  const parsed = schema.safeParse(v);
+  return parsed.success ? null : { why: issueOf(parsed.error), newer: newerIssue(parsed.error) };
+};
+export const fileProblem = (path: RepoPath, bytes: Uint8Array): string | null => fileIssue(path, bytes)?.why ?? null;

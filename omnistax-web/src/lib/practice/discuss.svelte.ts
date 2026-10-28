@@ -13,7 +13,7 @@ import { registry } from '../sections/registry.svelte';
 import { label as sectionLabel } from '../sections/grouping';
 import { openFromView, type Opening } from '../sections/nav.svelte';
 import { bookId, secKey, sectionRef } from '../types/ids';
-import { exerciseName } from './labels';
+import { excerpt, exerciseName } from './labels';
 import { links } from './links.svelte';
 import type { ExerciseRef } from './model';
 import { t } from '../i18n/index';
@@ -30,8 +30,13 @@ export const firstLine = (outcome: Outcome, answer = '', aiGraded = false): stri
   return answer.trim() ? t('practice.discuss.withAnswer', { ask, answer: answer.trim() }) : ask;
 };
 
+/* The exercise as a chip that says which one it is, its name and the opening
+   of its prompt, so the reader can see it is there; what the model is given
+   is the whole brief. A model's own exercise is read off the exercise itself
+   the same way, prompt, options and solution. */
 const exerciseChip = (ref: ExerciseRef, ex: ExerciseDTO): Chip =>
-  chip('exercise', linkInner({ kind: 'exercise', book: bookId(ref.book), section: ref.section, id: ref.ex }), exerciseName(ex), exerciseBrief(ref, ex, ['The answer has already been checked; do not grade it again.']), true);
+  chip('exercise', linkInner({ kind: 'exercise', book: bookId(ref.book), section: ref.section, id: ref.ex }), `${exerciseName(ex)} · ${excerpt(ex.prompt.replace(/\$\$?[^$]*\$\$?/g, '…'), 48)}`,
+    exerciseBrief(ref, ex, ['The answer has already been checked; do not grade it again.']), true);
 
 const sectionChip = async (ref: ExerciseRef): Promise<Chip | null> => {
   const at = sectionRef(bookId(ref.book), ref.section);
@@ -40,14 +45,19 @@ const sectionChip = async (ref: ExerciseRef): Promise<Chip | null> => {
   return entry?.built ? chip('section', secKey(at), sectionLabel(at.section, entry.title), sectionTextOf(at), true) : null;
 };
 
+/* The chat opens at once, holding the exercise and the first line. The
+   section's text follows when it has been fetched, which for a section no tab
+   holds is a request away; the chat stood waiting on it before, with nothing
+   on screen, and a second click made a second chat. */
 export const discussExercise = async (ref: ExerciseRef, ex: ExerciseDTO, how: Opening, outcome: Outcome, answer?: string, aiGraded = false): Promise<void> => {
   const name = links.fileName(ref, 'chats', ex);
   const chat = chats.create();
   chats.rename(chat.id, name);
   createChatEntry(links.folder('chats'), chat.id, name);
   links.add(ref, chatTabKey(chat.id));
-  const section = await sectionChip(ref);
-  pending.chips = { ...pending.chips, [chat.id]: [exerciseChip(ref, ex), ...(section ? [section] : [])] };
+  pending.give(chat.id, [exerciseChip(ref, ex)]);
   const line = firstLine(outcome, answer, aiGraded); if (line) pending.put(chat.id, line);
-  await openFromView(chatTabKey(chat.id), how);
+  const opened = openFromView(chatTabKey(chat.id), how);
+  void sectionChip(ref).then((section) => { if (section) pending.give(chat.id, [section]); });
+  await opened;
 };

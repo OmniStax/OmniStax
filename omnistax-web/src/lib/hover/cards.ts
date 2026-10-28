@@ -77,7 +77,7 @@ export const navFor = (book: BookId): Nav => {
   const go = (id: SpanId, split?: boolean): void => goSpan(spanRef(book, id), split);
   const openExternal = (sec: SectionId): void => { window.open(registry.entry(sectionRef(book, sec))?.openstax ?? registry.manifest(book).openstax, '_blank', 'noopener'); };
   /* The elements sheet, standing on one element: the page of it, opened wherever
-     a tab opens, with the element pinned before it draws. */
+     a tab opens, with the element pinned beside any already open. */
   const showElement = (symbol: string, split?: boolean): void => {
     const entry = sheets.elementsEntry(book); if (!entry) return;
     sheets.pin(symbol);

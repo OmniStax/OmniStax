@@ -3,8 +3,13 @@
      set up once, and only what differs between it and this device, in three
      lists — changed in both, to push, to pull. One button moves them; the menu
      beside it pulls or pushes alone, or forces either way after a dialog that
-     names what would be lost. A file's row opens its changes as a tab. Below,
-     the manual way: a file. */
+     names what would be lost. A file's row opens its changes as a tab. A file
+     changed in both that merged on its own says so and goes both ways; one
+     whose changes met says how many conflicts it holds, which its tab settles
+     one by one, or keeps one side whole from here. Above the lists, what a
+     pull held back (held.ts): each file with why, and the repo's copy (where
+     this version can use it) or this device's to choose. Below, the manual
+     way: a file. */
   import { untrack } from 'svelte';
   import { sizeLabel } from '../../lib/files/model';
   import { ICON } from '../../lib/icons';
@@ -12,8 +17,12 @@
   import { openInFocus } from '../../lib/layout/model';
   import { repoName } from '../../lib/sync/github';
   import { groupLabel } from '../../lib/sync/layout';
-  import { tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
+  import { isMerged, oneWay, tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
+  import { blocksOf, conflictCount } from '../../lib/sync/conflict';
   import { session } from '../../lib/sync/session.svelte';
+  import { heldQueue } from '../../lib/sync/queue.svelte';
+  import { takeable, waiting, type Held } from '../../lib/sync/held';
+  import HeldWhy from './HeldWhy.svelte';
   import { sync, PUSH_EVERY, PUSH_EVERY_KEY } from '../../lib/sync/store.svelte';
   import SyncBackup from './SyncBackup.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
@@ -29,7 +38,11 @@
   const bySide = (side: Side): readonly Change[] => changes.filter((c) => c.side === side);
   const both = $derived(bySide('both'));
   const up = $derived(bySide('up'));
-  const down = $derived(bySide('down'));
+  const down = $derived(bySide('down').filter((c) => !session.heldFor(c)));
+  /* What a pull held back, each with the change it stands for. */
+  const held = $derived(bySide('down').flatMap((c) => { const h = session.heldFor(c); return h ? [{ h, c }] : []; }));
+  const open = $derived(waiting(held.map((x) => x.h)).length);
+  $effect(() => { if (held.length && heldQueue.unseen) untrack(() => heldQueue.markSeen()); });
   const plan = $derived(session.plan);
   const unchosen = $derived(session.unchosen);
   const stuck = (c: Change): boolean => c.local !== null && tooLarge(c.size) && (c.side === 'up' || session.picks.get(c.path) === 'mine');
@@ -40,7 +53,7 @@
     if (!session.seen) return '';
     if (session.seen.head.kind !== 'at' && !changes.length) return i18n.t('views.sync.emptyBranch');
     if (!changes.length) return i18n.t('views.sync.upToDate');
-    return [up.length && i18n.t('views.sync.toPush', { n: up.length }), down.length && i18n.t('views.sync.toPull', { n: down.length }), both.length && i18n.t('views.sync.inBoth', { n: both.length })].filter(Boolean).join(' · ');
+    return [up.length && i18n.t('views.sync.toPush', { n: up.length }), down.length && i18n.t('views.sync.toPull', { n: down.length }), both.length && i18n.t('views.sync.inBoth', { n: both.length }), open && i18n.t('views.sync.heldN', { n: open })].filter(Boolean).join(' · ');
   });
   const lastSynced = $derived(sync.last?.at ? i18n.t('views.sync.lastSynced', { when: new Date(sync.last.at).toLocaleString(i18n.locale) }) : i18n.t('views.sync.notSynced'));
   const busy = $derived(phase === 'reading' || phase === 'moving');
@@ -65,6 +78,11 @@
 
   const LETTER = $derived<Readonly<Record<Letter, string>>>({ A: i18n.t('views.sync.letter.added'), M: i18n.t('views.sync.letter.modified'), D: i18n.t('views.sync.letter.deleted'), '!': i18n.t('views.sync.changedInBoth') });
   const stateText = (s: Status | undefined, c: Change): string => {
+    if (!s && c.side === 'both') {
+      const p = session.picks.get(c.path), m = session.merges.get(c.path);
+      if (isMerged(p) && session.chosen(c)) return p.auto ? i18n.t('views.sync.merged') : i18n.t('views.sync.resolved');
+      if (m && !p) return i18n.t('views.sync.conflicts', { n: conflictCount(blocksOf(m.mine, m.theirs)) });
+    }
     if (!s) return stuck(c) ? i18n.t('views.sync.tooLarge') : c.letter === 'D' ? '' : sizeLabel(c.size);
     return s.kind === 'waiting' ? i18n.t('views.sync.waiting') : s.kind === 'moving' ? i18n.t('views.sync.moving') : s.kind === 'done' ? '✓' : s.why;
   };
@@ -104,6 +122,11 @@
               <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
                 <button type="button" aria-pressed={session.picks.get(c.path) === 'mine'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'mine')}>{i18n.t('views.sync.mine')}</button>
                 <button type="button" aria-pressed={session.picks.get(c.path) === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.pick(c.path, 'theirs')}>{i18n.t('views.sync.theirs')}</button>
+                {#if session.merges.get(c.path)?.merged || isMerged(session.picks.get(c.path))}
+                  <button type="button" aria-pressed={isMerged(session.picks.get(c.path))} disabled={phase !== 'ready'} onclick={() => (isMerged(session.picks.get(c.path)) ? show(c) : session.pick(c.path, 'merged'))}>{i18n.t('views.sync.mergedPick')}</button>
+                {:else}
+                  <button type="button" disabled={phase !== 'ready'} onclick={() => show(c)}>{i18n.t('views.sync.settle')}</button>
+                {/if}
               </span>
             {/if}
           </li>
@@ -111,6 +134,22 @@
       </ul>
     </details>
   {/if}
+{/snippet}
+
+{#snippet heldRow(h: Held, c: Change)}
+  <li class:selected={session.selected === c.path}>
+    <button type="button" class="file" title={i18n.t('views.sync.showChanges', { path: c.path })} onclick={() => show(c)}>
+      <span class="label">{c.label}</span>
+      <span class="state"></span>
+      <span class="letter l{c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
+      <span class="group">{groupLabel(c.group, i18n.locale)}</span>
+    </button>
+    <HeldWhy {h} />
+    <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
+      <button type="button" aria-pressed={h.pick === 'mine'} disabled={phase !== 'ready'} onclick={() => session.hold(c.path, 'mine')}>{i18n.t('views.sync.mine')}</button>
+      {#if takeable(h)}<button type="button" aria-pressed={h.pick === 'theirs'} disabled={phase !== 'ready'} onclick={() => session.hold(c.path, 'theirs')}>{i18n.t('views.sync.theirs')}</button>{/if}
+    </span>
+  </li>
 {/snippet}
 
 {#snippet item(label: string, note: string, run: () => void, disabled = false, danger = false)}
@@ -149,7 +188,7 @@
       </label>
       <p class="status" class:calm={!changes.length} role="status">{summary}</p>
 
-      {#if changes.length}
+      {#if changes.length > held.length}
         <div class="act">
           <button type="button" class="go" disabled={phase !== 'ready' || unchosen > 0 || !action} onclick={() => void session.go(plan)}>
             {unchosen ? i18n.t('views.sync.chooseFor', { n: unchosen }) : phase === 'moving' ? i18n.t('views.sync.syncing') : action}
@@ -157,8 +196,8 @@
           <button type="button" class="go more" aria-label={i18n.t('views.sync.moreActions')} aria-haspopup="menu" aria-expanded={menu} disabled={phase !== 'ready'} onclick={(e) => { e.stopPropagation(); menu = !menu; }}>▾</button>
           {#if menu}
             <div class="menu" role="menu">
-              {@render item(i18n.t('views.sync.pullN', { n: plan.down.length }), i18n.t('views.sync.pullNote'), () => void session.go({ up: [], down: plan.down }), !plan.down.length)}
-              {@render item(i18n.t('views.sync.pushN', { n: plan.up.length }), i18n.t('views.sync.pushNote'), () => void session.go({ up: plan.up, down: [] }), !plan.up.length)}
+              {@render item(i18n.t('views.sync.pullN', { n: oneWay(plan, 'down').down.length }), i18n.t('views.sync.pullNote'), () => void session.go(oneWay(plan, 'down')), !oneWay(plan, 'down').down.length)}
+              {@render item(i18n.t('views.sync.pushN', { n: oneWay(plan, 'up').up.length }), i18n.t('views.sync.pushNote'), () => void session.go(oneWay(plan, 'up')), !oneWay(plan, 'up').up.length)}
               <hr>
               {@render item(i18n.t('views.sync.forcePullMenu'), i18n.t('views.sync.forcePullNote'), () => ask('device'), !session.seen?.manifest, true)}
               {@render item(i18n.t('views.sync.forcePushMenu'), i18n.t('views.sync.forcePushNote'), () => ask('repo'), false, true)}
@@ -169,6 +208,13 @@
       {/if}
       {#if session.problem}<p class="hint bad" role="alert">{session.problem}</p>{/if}
 
+      {#if held.length}
+        <details open class="sec">
+          <summary><span class="sec-name">{i18n.t('views.sync.held')}</span><span class="badge">{held.length}</span></summary>
+          <p class="hint">{i18n.t('views.sync.heldHint')}</p>
+          <ul class="held">{#each held as x (x.c.path)}{@render heldRow(x.h, x.c)}{/each}</ul>
+        </details>
+      {/if}
       {@render list(i18n.t('views.sync.changedInBoth'), both, true)}
       {@render list(i18n.t('views.sync.push'), up)}
       {@render list(i18n.t('views.sync.pull'), down)}

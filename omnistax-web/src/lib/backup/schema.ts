@@ -49,7 +49,8 @@ const jsonKeys = new Set([
      chats they have held. The keys they pasted are not here: the adapter
      strips them on the way out, and the validator below refuses a record
      that still carries one. */
-  'omnistax-ai-v1', 'omnistax-chats-v1',
+  'omnistax-ai-v1', 'omnistax-chats-v3', 'omnistax-chats-v2', 'omnistax-chats-v1', 'omnistax-chat-pages-v1',
+  'omnistax-chats-by-book-v1', 'omnistax-chat-seen-v1',
   /* The drawings the reader has made and the scratch pages of their exercises.
      Only the names and the index are here; the ink travels as `drawings` and
      `scratch` below, since a page of strokes is far heavier than localStorage
@@ -64,6 +65,7 @@ const JSON_KEY_LIST = [...jsonKeys];
 const HIGHLIGHTS_KEY = /^omnistax-highlights-[^/]+$/;
 const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
 export type ReaderCategory = typeof CATEGORIES[number];
+const LAYOUT_KEYS = ['omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-chat-pages-v1'];
 const FOCUS_KEYS = ['omnistax-pomodoros', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-len', 'omnistax-pomodoro-lock', 'omnistax-lock-grace'];
 export type ReaderRecord = { readonly key: string; readonly value: string; readonly category: ReaderCategory };
 export type BackupAsset = { readonly id: string; readonly type: string; readonly dataUrl: string; readonly created: number };
@@ -74,16 +76,23 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
   if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key)) return 'appearance';
   if (key === 'omnistax-keys-v2' || key === 'omnistax-keys') return 'shortcuts';
-  if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
+  if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
   if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
   if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
     || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
-  if (key === 'omnistax-layout-v6' || key === 'omnistax-layout-v5' || key === 'omnistax-scope-v2' || key === 'omnistax-scope') return 'layout';
+  /* The workspace: the tabs and splits, where each view stands, and what each
+     practice and Conversations page shows, which is kept by the page's tab. */
+  if (LAYOUT_KEYS.includes(key)) return 'layout';
   if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1'].includes(key)) return 'reading';
-  if (key === 'omnistax-ai-v1' || key === 'omnistax-chats-v1' || key === 'omnistax-chat-tree-v1') return 'chats';
+  if (['omnistax-ai-v1', 'omnistax-chats-v3', 'omnistax-chats-v2', 'omnistax-chats-v1', 'omnistax-chats-by-book-v1', 'omnistax-chat-seen-v1', 'omnistax-chat-tree-v1'].includes(key)) return 'chats';
   return null;
 };
+
+/* A record of this device's own workspace. A file backup carries it, so a
+   restore puts the tabs back as they were; GitHub sync never does, since two
+   devices of different sizes each want their own (sync/layout.ts). */
+export const staysOnDevice = (key: string): boolean => LAYOUT_KEYS.includes(key);
 
 const object = z.record(z.unknown());
 const finite = z.number().finite();
@@ -91,18 +100,25 @@ const note = z.object({ id: z.string().min(1), book: z.string().min(1).optional(
 const noteDoc = z.object({ id: z.string().min(1), name: z.string(), body: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict();
 const attempt = z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), at: finite, ok: z.boolean(), concepts: z.array(z.string()), round: z.string().optional(), release: z.string().optional(), mastered: z.array(z.string()).optional() }).strict();
 const shown = z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), round: z.string().min(1), at: finite, release: z.string().optional() }).strict();
-const pick = z.union([z.object({ concept: z.string().min(1) }).strict(), z.object({ book: z.string().min(1), chapter: z.string().optional(), section: z.string().optional() }).strict()]);
+/* What a round is drawn from: a concept, a place in a book, or one exercise
+   the reader picked by hand. */
+const pick = z.union([
+  z.object({ concept: z.string().min(1) }).strict(),
+  z.object({ exercise: z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1) }).strict() }).strict(),
+  z.object({ book: z.string().min(1), chapter: z.string().optional(), section: z.string().optional() }).strict(),
+]);
 const mastery = z.record(z.object({ level: finite, target: finite, mastered: z.boolean(), masteredAt: finite, lastAt: finite, halfLife: finite, reviewedAt: finite, dueAt: finite, selfAssessed: z.boolean(), noDecay: z.boolean() }).strict());
 const round = z.object({ id: z.string().min(1), started: finite, at: finite, concepts: z.array(z.object({ id: z.string().min(1), expected: finite, answered: finite, correct: finite, wasMastered: z.boolean(), wasDue: z.boolean() }).strict()), newlyMastered: z.array(z.string()) }).strict();
 const practiceSettings = z.object({
   masteryTarget: finite, freshnessDecay: z.boolean(), startingHalfLife: finite, maxHalfLife: finite, order: z.enum(['mixed', 'grouped']), includeFresh: z.boolean(),
   generated: z.enum(['include', 'book-only']).optional(), grading: z.enum(['reveal', 'ai']).optional(), promptNote: z.string().optional(), fresh: z.boolean().optional(),
   model: z.object({ provider: z.string().min(1), model: z.string().min(1) }).strict().nullable().optional(),
+  stopwatch: z.boolean().optional(),
 }).strict();
 const self = z.record(z.object({ level: finite, mastered: z.boolean(), at: finite, noDecay: z.boolean() }).strict());
-const roundChoice = z.object({ perConcept: finite.optional(), wanted: z.record(finite) }).strict();
-const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'progress']), showAll: z.boolean(), round: roundChoice.optional() }).strict();
-const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional() }).strict();
+const roundChoice = z.object({ perConcept: finite.optional(), wanted: z.record(finite).optional(), excluded: z.array(z.string()).optional() }).strict();
+const page = z.object({ curriculum: z.array(pick), session: z.string().nullable(), face: z.enum(['dashboard', 'choose', 'practise', 'review', 'sessions', 'progress', 'summary']), showAll: z.boolean(), round: roundChoice.optional() }).strict();
+const session = z.object({ id: z.string().min(1), curriculum: z.array(pick), concepts: z.array(z.string()), drawn: z.array(z.object({ book: z.string().min(1), section: z.string().min(1), ex: z.string().min(1), why: z.enum(['new', 'unanswered', 'review']), release: z.string().optional(), concept: z.string().optional() }).strict()), at: finite, outcomes: z.array(z.boolean().nullable()), started: finite, before: mastery, status: z.literal('done').optional(), ended: finite.optional(), after: mastery.optional() }).strict();
 const hue = z.object({ light: z.string().regex(/^#[0-9A-Fa-f]{6}$/), dark: z.string().regex(/^#[0-9A-Fa-f]{6}$/) }).strict();
 const hues = z.record(hue);
 /* The reader's colours for a book sit under `book`; files written before colours were per book only carry chapter and section tables beside it. */
@@ -163,7 +179,14 @@ const aiSettings = z.object({
 }).strict());
 /* The index of the chats: one row per chat, the records themselves being far
    too heavy for localStorage and carried by `chats` below. */
-const chatIndex = z.array(z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict());
+const chatRow = z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict();
+const chatIndex = z.array(chatRow);
+/* The same, each row with the book its chat is filed under, `''` for none. */
+const chatIndexFiled = z.array(chatRow.extend({ book: z.string().optional() }).strict());
+/* The same, each row with when its chat last said something and last
+   answered, and the places of the books it is filed at. */
+const chatPlace = z.object({ book: z.string().min(1), chapter: z.string().min(1).optional(), section: z.string().min(1).optional() }).strict();
+const chatIndexPlaced = z.array(chatRow.extend({ said: finite.nonnegative().optional(), answered: finite.nonnegative().optional(), places: z.array(chatPlace).optional() }).strict());
 const chatMessage = z.object({
   id: z.string().min(1), parent: z.string().min(1).nullable(), role: z.enum(['user', 'assistant']), text: z.string(),
   chips: z.array(z.object({ kind: z.string().min(1), key: z.string(), label: z.string(), text: z.string(), pinned: z.boolean().optional(), image: z.string().optional() }).strict()),
@@ -226,7 +249,10 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-ai-v1': aiSettings,
   'omnistax-drawings-v1': drawingRows,
   'omnistax-scratch-v1': scratchIndex,
-  'omnistax-chats-v1': chatIndex,
+  'omnistax-chats-v3': chatIndexPlaced, 'omnistax-chats-v2': chatIndexFiled, 'omnistax-chats-v1': chatIndex,
+  'omnistax-chat-pages-v1': z.record(z.string().regex(/^[a-z0-9]{8}$/)),
+  'omnistax-chats-by-book-v1': z.boolean(),
+  'omnistax-chat-seen-v1': z.record(z.string().regex(/^[a-z0-9]{8}$/), finite.nonnegative()),
   'omnistax-keys-v2': changes,
   'omnistax-seen-notes-v1': z.string().regex(VERSION),
   'omnistax-keys': binding,
@@ -251,34 +277,69 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
 };
 /* The reader's highlights for one book: only the switches they set apart from its default. */
 const bookHighlights = z.object({ facts: z.boolean(), refs: z.boolean(), concepts: z.boolean(), words: z.boolean(), symbols: z.boolean(), underlines: z.boolean() }).partial().strict();
-const typedJson = (key: string, raw: string): boolean => {
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (HIGHLIGHTS_KEY.test(key)) return bookHighlights.safeParse(value).success;
-    if (/^omnistax-notes-[^/]+$/.test(key)) return z.array(note).safeParse(value).success;
-    if (/^omnistax-colours-[^/]+$/.test(key)) {
-      const parsed = z.object({
-        format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides,
-        vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).optional(), categories: paletteChoice.optional(), referents: paletteChoice.optional(),
-      }).strict().safeParse(value);
-      return parsed.success && key === `omnistax-colours-${parsed.data.book}`;
-    }
-    return validators[key]?.safeParse(value).success === true;
-  } catch { return false; }
+const NOTES_KEY = /^omnistax-notes-[^/]+$/;
+const COLOURS_KEY = /^omnistax-colours-[^/]+$/;
+const colourFile = z.object({
+  format: z.literal('omnistax-colours'), version: z.literal(1), book: z.string().min(1), order: z.array(z.string()), overrides,
+  vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).optional(), categories: paletteChoice.optional(), referents: paletteChoice.optional(),
+}).strict();
+/* The shape a JSON record's value must have, by its key. */
+const shapeOf = (key: string): z.ZodTypeAny | null => {
+  if (HIGHLIGHTS_KEY.test(key)) return bookHighlights;
+  if (NOTES_KEY.test(key)) return z.array(note);
+  if (COLOURS_KEY.test(key)) return colourFile.refine((v) => key === `omnistax-colours-${v.book}`, () => ({ message: t('shell.backup.record.otherBook') }));
+  return JSON_KEY_LIST.includes(key) ? validators[key] ?? null : null;
 };
 
-export const validReaderRecord = (record: ReaderRecord): boolean => {
-  if (record.key.length > 300 || record.value.length > MAX_BACKUP_BYTES) return false;
-  const category = categoryOf(record.key);
-  if (category === null || category !== record.category) return false;
+/* What a zod failure says, and where in the value it stands, so a refusal
+   names the field rather than only the record: "settings: Unrecognized
+   key(s) in object: 'stopwatch'". */
+export const issueOf = (error: z.ZodError): string => {
+  const first = error.issues[0];
+  if (!first) return t('shell.backup.invalidData');
+  return first.path.length ? `${first.path.join('.')}: ${first.message}` : first.message;
+};
+
+/* Whether a zod failure looks like a newer version's value rather than a
+   damaged one: a field, a kind or a choice this version does not know, where
+   everything it does know is the right type. */
+export const newerIssue = (error: z.ZodError): boolean => {
+  const first = error.issues[0];
+  if (!first) return false;
+  if (first.code === 'invalid_union') return first.unionErrors.some(newerIssue);
+  return first.code === 'unrecognized_keys' || first.code === 'invalid_enum_value' || first.code === 'invalid_literal' || first.code === 'invalid_union_discriminator';
+};
+
+/* Why this version cannot take a record back, and whether a newer version
+   probably wrote it, or null when it can. A record the app does not know, a
+   value that is not the JSON its key holds, and a value of the wrong shape
+   each say so in their own words. A setting's value this version does not
+   offer counts as a newer version's. */
+export type RecordIssue = { readonly why: string; readonly newer: boolean };
+export const recordIssue = (record: { readonly key: string; readonly value: string }): RecordIssue | null => {
+  if (record.key.length > 300) return { why: t('shell.backup.record.longKey'), newer: false };
+  if (record.value.length > MAX_BACKUP_BYTES) return { why: t('shell.backup.record.tooLarge'), newer: false };
+  if (categoryOf(record.key) === null) return { why: t('shell.backup.record.unknown'), newer: true };
   const scalar = scalarKeys.get(record.key);
-  if (scalar) return scalar(record.value);
-  if (JSON_KEY_LIST.includes(record.key) || /^omnistax-(?:notes|colours)-[^/]+$/.test(record.key) || HIGHLIGHTS_KEY.test(record.key)) return typedJson(record.key, record.value);
-  return false;
+  if (scalar) return scalar(record.value) ? null : { why: t('shell.backup.record.value', { value: record.value.length > 40 ? `${record.value.slice(0, 40)}…` : record.value }), newer: true };
+  const shape = shapeOf(record.key);
+  if (!shape) return { why: t('shell.backup.record.unknown'), newer: true };
+  let value: unknown;
+  try { value = JSON.parse(record.value); } catch { return { why: t('shell.backup.record.notJson'), newer: false }; }
+  const parsed = shape.safeParse(value);
+  return parsed.success ? null : { why: issueOf(parsed.error), newer: newerIssue(parsed.error) };
 };
+export const recordProblem = (record: { readonly key: string; readonly value: string }): string | null => recordIssue(record)?.why ?? null;
 
-const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.enum(CATEGORIES) }).strict()
-  .refine(validReaderRecord, 'invalid reader record');
+/* A record as this version would write it: a key it knows, under that key's
+   category, holding a value of the key's shape. */
+export const validReaderRecord = (record: ReaderRecord): boolean =>
+  recordProblem(record) === null && categoryOf(record.key) === record.category;
+
+/* A record's category is derived from its key, so it is read past rather than
+   checked: a file written when a key stood in another category (the focus
+   keys once stood with the appearance) still restores, under today's. */
+const RecordSchema = z.object({ key: z.string(), value: z.string(), category: z.string().optional() }).strict();
 export type BackupChat = z.infer<typeof ChatSchema>;
 /* One imported file's bytes on their way through a backup. The text pulled out
    of a PDF is not carried: it is derived from these bytes and is pulled out
@@ -309,28 +370,57 @@ const BackupSchema = z.object({
   /* The practice exercises a model wrote. A backup written before them carries none. */
   generated: z.array(GeneratedSchema).default([]),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
+  /* What an earlier read of this same profile set aside: a profile read once
+     and read again keeps the list rather than refusing its own field. */
+  skipped: z.array(z.object({ key: z.string(), why: z.string(), newer: z.boolean().optional() }).strict()).optional(),
 }).strict().superRefine((value, ctx) => {
   const keys = new Set<string>();
   value.records.forEach((record, index) => {
-    if (keys.has(record.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['records', index, 'key'], message: 'duplicate reader key' });
+    if (keys.has(record.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['records', index, 'key'], message: t('shell.backup.duplicate', { key: record.key }) });
     keys.add(record.key);
   });
 });
 
-export type ReaderBackup = z.infer<typeof BackupSchema>;
+export type ReaderBackup = Omit<z.infer<typeof BackupSchema>, 'records' | 'skipped'> & { readonly records: readonly ReaderRecord[] };
+/* A record a backup carried that this version left out, why, and whether a
+   newer version probably wrote it. */
+export type SkippedRecord = { readonly key: string; readonly why: string; readonly newer?: boolean };
+/* A backup as read: the records this version can restore, and the ones it
+   could not, which a restore leaves as they stand on this device. */
+export type ParsedBackup = ReaderBackup & { readonly skipped: readonly SkippedRecord[] };
 
-export const parseBackupText = (text: string): ReaderBackup => {
+export const parseBackupText = (text: string): ParsedBackup => {
   if (new Blob([text]).size > MAX_BACKUP_BYTES) throw new Error(t('shell.backup.tooLarge', { limit: MAX_BACKUP_LABEL }));
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { throw new Error(t('shell.backup.notJson')); }
   return parseBackup(raw);
 };
 
-export const parseBackup = (raw: unknown): ReaderBackup => {
+/* The whole file is refused when it is not a backup at all, or when a chat,
+   a drawing or an imported file in it is malformed: those are replaced whole
+   on a restore, so one left out would be one deleted. A reader record is
+   different. A restore replaces records key by key, so one this version
+   cannot read is set aside and named, with the reason, and the restore keeps
+   this device's own value for that key: nothing is written over with what
+   could not be read, and nothing the device holds is dropped for it. That is
+   also what lets a device on an older version take a profile from a newer
+   one, whose records may carry what the older does not know yet. */
+export const parseBackup = (raw: unknown): ParsedBackup => {
   const parsed = BackupSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: parsed.error.issues[0]?.message ?? t('shell.backup.invalidData') }));
-  return parsed.data;
+  if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: issueOf(parsed.error) }));
+  const { skipped: before = [], ...rest } = parsed.data;
+  const records: ReaderRecord[] = [], skipped: SkippedRecord[] = [...before];
+  for (const r of rest.records) {
+    const issue = recordIssue(r), category = categoryOf(r.key);
+    if (issue === null && category) records.push({ key: r.key, value: r.value, category });
+    else skipped.push({ key: r.key, why: issue?.why ?? t('shell.backup.record.unknown'), newer: issue?.newer ?? true });
+  }
+  return { ...rest, records, skipped };
 };
+
+/* One line per record set aside, for the reader: "omnistax-practice-v2:
+   settings: Unrecognized key(s) in object: 'stopwatch'". */
+export const skippedLine = (s: SkippedRecord): string => t('shell.backup.skippedLine', { key: s.key, why: s.why });
 
 export const summarizeBackup = (backup: ReaderBackup): { readonly exportedAt: string; readonly categories: Readonly<Record<string, number>>; readonly records: number; readonly assets: number; readonly files: number } => ({
   exportedAt: backup.exportedAt,

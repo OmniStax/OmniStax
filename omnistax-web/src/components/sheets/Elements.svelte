@@ -8,9 +8,14 @@
      listens. Hovering a cell opens a compact card just below it; clicking pins
      the full card there with every field the sheet carries, the element's own
      colour from the drawing palette, and a link to each section of the book
-     that names it. In a narrow pane the card is a sheet along the bottom. The
-     arrows walk the table and Enter pins. */
-  import { tick } from 'svelte';
+     that names it. Clicking the cell again, or the card's ×, unpins it, and
+     clicking another cell pins that one too, so several cards may stand open,
+     each hanging from its own cell; Escape closes the one pinned last. In a
+     pane too narrow for eighteen columns the table scrolls sideways inside
+     itself and the cards still hang from their cells, kept inside the table's
+     own box, so none leaves the pane for the foot of the window. The arrows
+     walk the table and Enter pins. */
+  import { tick, untrack } from 'svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   import type { MessageKey } from '../../lib/i18n';
   import { settings } from '../../lib/settings/store.svelte';
@@ -41,15 +46,21 @@
 
   let choice = $state('classification');
   let filters = $state<Filters>(NO_FILTERS);
-  let pinned = $state<string | null>(null);
+  /* The pinned elements in the order they were pinned, and the one the reader
+     last touched, which is drawn over the others. */
+  let pinned = $state<readonly string[]>([]);
+  let front = $state<string | null>(null);
   let hovered = $state<string | null>(null);
+  let root = $state<HTMLElement | null>(null);
   let grid = $state<HTMLElement | null>(null);
-  let pop = $state<HTMLElement | null>(null);
   let boardW = $state(0);
   let boardH = $state(0);
-  let popW = $state(0);
-  let popH = $state(0);
   let scrollX = $state(0);
+  /* Each card's drawn size: a pinned card's under its symbol, the hover card's under PEEK. */
+  const PEEK = '';
+  let sizes = $state<Readonly<Record<string, Size>>>({});
+  /* Where the reader has dragged a pinned card by its head, in the table's box; forgotten when the card closes. */
+  let dragged = $state<Readonly<Record<string, Place>>>({});
 
   const colouring = $derived(CHOICES.find((c) => c.key === choice)?.colouring ?? CHOICES[0].colouring);
   const cells = $derived(cellsOf(sheet.elements));
@@ -58,46 +69,106 @@
   const trend = $derived<Trend | null>(colouring.by === 'trend' ? colouring.trend : null);
   const shown = $derived(new Set(sheet.elements.filter((e) => passes(e, filters)).map((e) => e.symbol)));
   const element = (symbol: string | null) => (symbol === null ? null : sheet.elements.find((e) => e.symbol === symbol) ?? null);
-  const card = $derived(element(pinned));
-  const peek = $derived(pinned === null ? element(hovered) : null);
-  const narrow = $derived(boardW > 0 && boardW < 520);
+  const cards = $derived(pinned.map(element).filter((e) => e !== null));
+  const peek = $derived(hovered !== null && !pinned.includes(hovered) ? element(hovered) : null);
 
   type Place = { readonly left: number; readonly top: number };
+  type Size = { readonly w: number; readonly h: number };
   const GAP = 4;
   const EDGE = 8;
+  /* How far a card sits below an earlier one it would cover, so the earlier card's name and × stay in sight. */
+  const STEP = 44;
   const cellOf = (symbol: string | null): HTMLElement | null =>
     symbol === null ? null : grid?.querySelector<HTMLElement>(`[data-el="${symbol}"]`) ?? null;
-  const place = $derived.by((): Place | null => {
-    const at = cellOf(pinned ?? (peek ? hovered : null));
-    if (!at || narrow) return null;
-    const x = at.offsetLeft - scrollX + at.offsetWidth / 2 - popW / 2;
-    const left = Math.max(EDGE, Math.min(x, boardW - popW - EDGE));
+  /* A card hangs from its cell: under it, or over it where the table ends
+     first, and never past the sides of the table's box. */
+  const hang = (symbol: string, size: Size): Place | null => {
+    const at = cellOf(symbol);
+    if (!at) return null;
+    const x = at.offsetLeft - scrollX + at.offsetWidth / 2 - size.w / 2;
+    const left = Math.max(EDGE, Math.min(x, boardW - size.w - EDGE));
     const below = at.offsetTop + at.offsetHeight + GAP;
-    const above = at.offsetTop - popH - GAP;
-    return { left, top: below + popH > boardH && above >= 0 ? above : below };
+    const above = at.offsetTop - size.h - GAP;
+    return { left, top: below + size.h > boardH && above >= 0 ? above : below };
+  };
+  const meets = (a: Place, aw: Size, b: Place, bw: Size): boolean =>
+    a.left < b.left + bw.w && b.left < a.left + aw.w && a.top < b.top + bw.h && b.top < a.top + aw.h;
+  /* The pinned cards placed in the order they were pinned: one that would lie
+     over an earlier card without clearing its head is let down to STEP below
+     that card's top, so a stack of them reads like index cards fanned down. A
+     card the reader has dragged stays where it was put and moves no other. */
+  const places = $derived.by((): Readonly<Record<string, Place>> => {
+    const out: Record<string, Place> = {};
+    const laid: { readonly at: Place; readonly size: Size }[] = [];
+    for (const symbol of pinned) {
+      if (dragged[symbol]) { out[symbol] = dragged[symbol]; continue; }
+      const size = sizes[symbol] ?? { w: 300, h: 0 };
+      let at = hang(symbol, size); if (!at) continue;
+      for (let moved = true, n = 0; moved && n < pinned.length; n++) {
+        moved = false;
+        for (const l of laid) {
+          if (meets(at, size, l.at, l.size) && at.top < l.at.top + STEP) { at = { left: at.left, top: l.at.top + STEP }; moved = true; }
+        }
+      }
+      out[symbol] = at; laid.push({ at, size });
+    }
+    return out;
   });
+  const peekAt = $derived(hovered !== null && peek ? hang(hovered, sizes[PEEK] ?? { w: 300, h: 0 }) : null);
+  /* Measures a card as it is drawn and as it changes. */
+  const measure = (node: HTMLElement, key: string) => {
+    const read = (): void => { sizes = { ...sizes, [key]: { w: node.offsetWidth, h: node.offsetHeight } }; };
+    const seen = new ResizeObserver(read); seen.observe(node); read();
+    return { destroy: () => { seen.disconnect(); sizes = Object.fromEntries(Object.entries(sizes).filter(([k]) => k !== key)); } };
+  };
 
   let grace: ReturnType<typeof setTimeout> | undefined;
+  /* The cell whose card was just closed: it shows no hover card until the pointer or the focus has left it, so a closed card does not come straight back as a small one. */
+  let quiet: string | null = null;
   const hold = (): void => clearTimeout(grace);
-  const enter = (symbol: string): void => { hold(); hovered = symbol; };
-  const leave = (): void => { hold(); grace = setTimeout(() => (hovered = null), 120); };
-  const close = (): void => { const at = cellOf(pinned); pinned = null; at?.focus(); };
+  const enter = (symbol: string): void => { hold(); if (symbol !== quiet) hovered = symbol; };
+  const leave = (symbol?: string): void => { hold(); if (symbol === quiet) quiet = null; grace = setTimeout(() => (hovered = null), 120); };
+  const open = (symbol: string): void => { if (!pinned.includes(symbol)) pinned = [...pinned, symbol]; front = symbol; };
+  const close = (symbol: string): void => {
+    pinned = pinned.filter((s) => s !== symbol);
+    dragged = Object.fromEntries(Object.entries(dragged).filter(([s]) => s !== symbol));
+    if (front === symbol) front = pinned.at(-1) ?? null;
+    quiet = symbol; if (hovered === symbol) hovered = null;
+    cellOf(symbol)?.focus();
+  };
 
-  $effect(() => {
-    if (pinned === null) return;
-    const down = (e: PointerEvent): void => {
-      const t = e.target as Element | null;
-      if (pop?.contains(t) || t?.closest('[data-el]')) return;
-      pinned = null;
+  /* A pinned card's head carries it: the card follows the pointer, kept within
+     the sides of the table's box and below its top, and stays where it is let go. */
+  const drag = (e: PointerEvent, symbol: string): void => {
+    const from = places[symbol]; const size = sizes[symbol];
+    if (e.button !== 0 || !from || !size || (e.target as Element).closest('button')) return;
+    e.preventDefault();
+    const head = e.currentTarget as HTMLElement; head.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, y0 = e.clientY;
+    const move = (m: PointerEvent): void => {
+      const left = Math.max(EDGE, Math.min(from.left + m.clientX - x0, boardW - size.w - EDGE));
+      dragged = { ...dragged, [symbol]: { left, top: Math.max(0, from.top + m.clientY - y0) } };
     };
-    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') close(); };
-    document.addEventListener('pointerdown', down);
+    const done = (): void => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', done); head.removeEventListener('pointercancel', done); };
+    head.addEventListener('pointermove', move); head.addEventListener('pointerup', done); head.addEventListener('pointercancel', done);
+  };
+
+  /* Escape closes the card pinned last, when the key is pressed in this page or
+     with nothing in particular focused. */
+  $effect(() => {
+    if (!pinned.length) return;
+    const key = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape' || e.defaultPrevented || !root?.checkVisibility()) return;
+      const t = e.target as Node | null;
+      if (t !== document.body && !root.contains(t)) return;
+      const last = pinned.at(-1); if (last) close(last);
+    };
     document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('pointerdown', down); document.removeEventListener('keydown', key); };
+    return () => document.removeEventListener('keydown', key);
   });
 
-  /* A card's "Go to" sets the element before the page opens, so the page reads it once and lets go. */
-  $effect(() => { const s = sheets.pinned; if (s) { pinned = s; sheets.pin(null); void reveal(s); } });
+  /* A card's "Go to" names the element before the page opens; the page adds it to what is pinned and lets go. */
+  $effect(() => { const s = sheets.pinned; if (s) { untrack(() => open(s)); sheets.pin(null); void reveal(s); } });
   const reveal = async (symbol: string): Promise<void> => {
     await tick();
     grid?.querySelector<HTMLElement>(`[data-el="${symbol}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -117,15 +188,14 @@
   const configParts = (config: string): { readonly text: string; readonly sup: string }[] =>
     config.split(' ').map((part) => { const m = /^(.*?)(\d+)$/.exec(part); return m ? { text: m[1], sup: m[2] } : { text: part, sup: '' }; });
 
-  const pick = (symbol: string): void => { pinned = pinned === symbol ? null : symbol; };
+  const pick = (symbol: string): void => { if (pinned.includes(symbol)) close(symbol); else open(symbol); };
   const goSection = (id: string, how: Opening): void => { void openDoc(sectionRef(book, sectionId(id)), 'text', undefined, how); };
   const titleOf = (id: string): string => registry.entry(sectionRef(book, sectionId(id)))?.title ?? '';
 
-  /* The arrows walk the grid, Enter pins what they stand on, Escape lets it go. */
+  /* The arrows walk the grid and Enter pins or unpins what they stand on; Escape is the page's, above. */
   const onKey = (e: KeyboardEvent, cell: Cell): void => {
     const step: Readonly<Record<string, readonly [number, number]>> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(cell.element.symbol); return; }
-    if (e.key === 'Escape') { pinned = null; return; }
     const move = step[e.key]; if (!move) return;
     e.preventDefault();
     const next = neighbour(cells, cell, move[0], move[1]); if (!next) return;
@@ -133,7 +203,7 @@
   };
 </script>
 
-<div class="elements" data-sheet="elements">
+<div class="elements" data-sheet="elements" bind:this={root}>
   <header>
     <h1>{sheet.title}</h1>
     <p class="lead">{i18n.t('sheets.elements.lead')}</p>
@@ -189,12 +259,12 @@
       {/each}
       {#each cells as c (c.element.symbol)}
         <button
-          type="button" class="cell" class:out={!shown.has(c.element.symbol)} class:on={pinned === c.element.symbol} class:below={c.row > 7}
+          type="button" class="cell" class:out={!shown.has(c.element.symbol)} class:on={pinned.includes(c.element.symbol)} class:below={c.row > 7}
           data-el={c.element.symbol} style:grid-column={c.column} style:grid-row={c.row}
           style:background={fillOf(colouring, c.element, range, settings.dark, settings.shown.concepts)}
-          aria-label={i18n.t('sheets.elements.cell', { name: c.element.name, number: c.element.number })} aria-pressed={pinned === c.element.symbol}
-          onmouseenter={() => enter(c.element.symbol)} onmouseleave={leave}
-          onfocus={() => enter(c.element.symbol)} onblur={leave}
+          aria-label={i18n.t('sheets.elements.cell', { name: c.element.name, number: c.element.number })} aria-pressed={pinned.includes(c.element.symbol)}
+          onmouseenter={() => enter(c.element.symbol)} onmouseleave={() => leave(c.element.symbol)}
+          onfocus={() => enter(c.element.symbol)} onblur={() => leave(c.element.symbol)}
           onclick={() => pick(c.element.symbol)} onkeydown={(e) => onKey(e, c)}>
           <span class="z">{c.element.number}</span>
           <span class="sym">{c.element.symbol}</span>
@@ -203,22 +273,21 @@
       {/each}
     </div>
 
-    {#if card || peek}
+    {#each cards as e (e.symbol)}
+      {@const at = places[e.symbol]}
       <div
-        class="pop" class:sheet={narrow} bind:this={pop} bind:offsetWidth={popW} bind:offsetHeight={popH}
-        role={card ? 'dialog' : 'tooltip'} aria-label={(card ?? peek)?.name}
-        style:left={place ? `${place.left}px` : null} style:top={place ? `${place.top}px` : null}
-        onmouseenter={hold} onmouseleave={leave}>
-      {#if card}
-        {@const e = card}
+        class="pop" class:front={front === e.symbol} use:measure={e.symbol}
+        role="dialog" tabindex="-1" aria-label={e.name}
+        style:left={at ? `${at.left}px` : null} style:top={at ? `${at.top}px` : null}
+        onpointerdown={() => (front = e.symbol)} onfocusin={() => (front = e.symbol)}>
         <div class="full">
-          <div class="head">
+          <div class="head" role="presentation" onpointerdown={(ev) => drag(ev, e.symbol)}>
             <span class="swatch big" style:background={settings.shown.facts ? elementColor(e.symbol, settings.dark) : 'var(--ink)'}></span>
             <div>
               <div class="eyebrow">{e.number} · {e.category}</div>
               <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
             </div>
-            <button type="button" class="x" aria-label={i18n.t('sheets.elements.close')} onclick={close}>×</button>
+            <button type="button" class="x" aria-label={i18n.t('sheets.elements.close')} onclick={() => close(e.symbol)}>×</button>
           </div>
           <dl class="fields">
             <dt>{i18n.t('sheets.elements.weight')}</dt><dd>{e.weight_label}</dd>
@@ -241,15 +310,20 @@
             <p class="none">{i18n.t('sheets.elements.namedNowhere')}</p>
           {/if}
         </div>
-      {:else if peek}
-        {@const e = peek}
+      </div>
+    {/each}
+    {#if peek}
+      {@const e = peek}
+      <div
+        class="pop peek" use:measure={PEEK} role="tooltip" aria-label={e.name}
+        style:left={peekAt ? `${peekAt.left}px` : null} style:top={peekAt ? `${peekAt.top}px` : null}
+        onmouseenter={hold} onmouseleave={() => leave()}>
         <div class="peekcard">
           <div class="eyebrow">{e.number} · {e.category}</div>
           <h2>{e.name} <span class="symbol">{e.symbol}</span></h2>
           <p>{e.weight_label} · {e.state} · {i18n.t('sheets.elements.blockOf', { block: e.block })}{#if trend}<br />{i18n.t(TREND_META[trend].label)}: {valueOf(e.symbol)}{/if}</p>
           <p class="hint">{i18n.t('sheets.elements.keepOpen')}</p>
         </div>
-      {/if}
       </div>
     {/if}
   </div>
@@ -286,13 +360,14 @@
   .cell.strip .sym{font-size:0.6rem;font-weight:500}
 
   .pop{position:absolute;z-index:2;width:300px;max-width:calc(100% - 16px);border:1px solid var(--rule);border-radius:8px;background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.08)}
-  .pop.sheet{position:fixed;left:8px;right:8px;bottom:8px;top:auto;width:auto;max-width:none;max-height:70vh;overflow-y:auto}
+  .pop.front{z-index:3}
+  .pop.peek{z-index:4}
   .full,.peekcard{padding:10px 12px}
   .peekcard h2,.full h2{margin:1px 0 4px;font-size:1rem}
   .peekcard p{margin:0;font-size:0.8rem;color:var(--muted)}
   .peekcard .hint{margin-top:6px;font-style:italic;opacity:.8}
   .symbol{color:var(--muted);font-weight:500}
-  .head{display:flex;gap:9px;align-items:flex-start}
+  .head{display:flex;gap:9px;align-items:flex-start;cursor:grab;touch-action:none;user-select:none}
   .head h2{flex:1}
   .swatch.big{width:22px;height:22px;border-radius:50%;border:1px solid var(--rule);flex:none;margin-top:4px}
   .x{width:22px;height:22px;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1}

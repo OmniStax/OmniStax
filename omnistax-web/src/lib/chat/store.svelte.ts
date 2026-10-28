@@ -21,25 +21,25 @@ import { liveLibrary } from './library';
 import * as M from './model';
 import type { Chat, MessageId, ToolStep } from './model';
 import { t } from '../i18n';
+import { entryOfChat, mergeIndex, parseIndex, unfiled, type ChatEntry, type HighlightAt } from './entries';
+import { notes } from '../notes/store.svelte';
+import { chatSeen } from './seen.svelte';
 
-export const INDEX_KEY = 'omnistax-chats-v1';
+/* The index of the chats. The first held a chat's name and dates; the second
+   added the one book a chat was filed under, and never shipped; this one
+   keeps when the chat last said something, when it last answered and every
+   place of the books it is filed at. The second is read only where this one
+   has not been written yet, and the first is read beside this one and kept
+   written in its own shape for a tab still open on a build that knows only it. */
+export const INDEX_KEY = 'omnistax-chats-v3';
+const FILED_KEY = 'omnistax-chats-v2';
+export const OLD_INDEX_KEY = 'omnistax-chats-v1';
 const SAVE_DELAY = 250;
 
-/* What the index holds: enough to name a chat without reading it. */
-export type ChatEntry = { readonly id: ChatId; readonly name: string; readonly created: number; readonly updated: number };
+export { parseIndex, type ChatEntry } from './entries';
 
-export const parseIndex = (raw: unknown): ChatEntry[] => {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((e) => {
-    if (typeof e !== 'object' || e === null) return [];
-    const o = e as Record<string, unknown>;
-    if (typeof o.id !== 'string' || !/^[a-z0-9]{8}$/.test(o.id)) return [];
-    const now = Date.now();
-    return [{ id: o.id as ChatId, name: typeof o.name === 'string' ? o.name : '', created: Number(o.created) || now, updated: Number(o.updated) || now }];
-  });
-};
-
-const entryOf = (c: Chat): ChatEntry => ({ id: c.id, name: c.name, created: c.created, updated: c.updated });
+/* A highlight handed to a chat is filed at the section it marks. */
+const highlightAt: HighlightAt = (id) => { const n = notes.get(id); return n ? { book: n.book, section: n.section } : null; };
 
 /* The pictures the chips of a chat hold, read out of the asset store. */
 const imagesOf = async (chat: Chat): Promise<Images> => {
@@ -54,16 +54,22 @@ class Chats {
   index = $state.raw<readonly ChatEntry[]>([]);
   open = $state.raw<Readonly<Record<string, Chat>>>({});
   private flights = new Map<string, AbortController>();
+  /* The chats with an answer on its way, for the places that show it. */
+  private running = $state.raw<ReadonlySet<string>>(new Set());
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   /* Models that refused tools this session. */
   private toolless = new Set<string>();
 
-  init(): void { try { this.index = parseIndex(JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]')); } catch { this.index = []; } }
+  init(): void {
+    const read = (key: string): ChatEntry[] => { try { return parseIndex(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { return []; } };
+    const own = (() => { try { return localStorage.getItem(INDEX_KEY) !== null; } catch { return false; } })();
+    this.index = mergeIndex(read(own ? INDEX_KEY : FILED_KEY), read(OLD_INDEX_KEY));
+  }
 
   get(id: ChatId): Chat | null { return this.open[id] ?? null; }
   entry(id: ChatId): ChatEntry | null { return this.index.find((e) => e.id === id) ?? null; }
   nameOf(id: ChatId): string { return this.get(id)?.name || this.entry(id)?.name || t('chat.untitled'); }
-  streaming(id: ChatId): boolean { return this.flights.has(id); }
+  streaming(id: ChatId): boolean { return this.running.has(id); }
 
   /* A chat the rail has just opened: it is in the index at once, so that a
      link or the picker can name it before a word is said. */
@@ -71,6 +77,24 @@ class Chats {
     const chat = M.newChat(newChatId());
     this.put(chat);
     return chat;
+  }
+
+  /* A row written before chats were filed, or one an older build touched,
+     is filed from its messages, read out of the store once; a chat whose
+     record has gone is of no book. */
+  private filing = false;
+  async file(): Promise<void> {
+    if (this.filing) return;
+    this.filing = true;
+    try {
+      for (const e of this.index.filter((x) => x.places === undefined || x.said === undefined)) {
+        const chat = this.get(e.id) ?? await getChat(e.id).catch(() => null);
+        const row = this.entry(e.id); if (!row) continue;
+        const now: ChatEntry = chat ? { ...entryOfChat(chat, highlightAt), ...(row.answered !== undefined ? { answered: row.answered } : {}) } : { ...row, said: row.said ?? row.updated, places: [] };
+        this.index = this.index.map((x) => (x.id === e.id ? now : x));
+      }
+      this.saveIndex();
+    } finally { this.filing = false; }
   }
 
   /* A tab mounting on a chat it has not read yet. The index row stands while
@@ -91,6 +115,7 @@ class Chats {
   remove(id: ChatId): void {
     this.abort(id);
     this.index = this.index.filter((e) => e.id !== id);
+    chatSeen.forget(id);
     const { [id]: _gone, ...rest } = this.open;
     this.open = rest;
     this.saveIndex();
@@ -165,11 +190,12 @@ class Chats {
     const start = this.get(id); if (!start) return;
     const pick = this.pickOf(id);
     const access = pick ? ai.access(pick) : null;
-    if (!pick || !access) { this.put(M.fail(start, answer, t('chat.error.noModel'))); return; }
+    if (!pick || !access) { this.put(M.fail(start, answer, t('chat.error.noModel'))); this.answered(id); return; }
     if (!start.pick) this.put(M.setPick(start, pick));
     this.abort(id);
     const flight = new AbortController();
     this.flights.set(id, flight);
+    this.running = new Set([...this.running, id]);
     try {
       for (let round = 0; round < MAX_ROUNDS; round++) {
         const calls = await this.round(id, answer, pick, access, flight.signal);
@@ -187,8 +213,19 @@ class Chats {
       if (e instanceof DOMException && e.name === 'AbortError') { this.put(M.stop(chat, answer)); return; }
       this.put(M.fail(chat, answer, failureOf(e)));
     } finally {
-      if (this.flights.get(id) === flight) this.flights.delete(id);
+      if (this.flights.get(id) === flight) { this.flights.delete(id); this.ran(id); this.answered(id); }
     }
+  }
+
+  private ran(id: ChatId): void { if (this.running.has(id)) this.running = new Set([...this.running].filter((x) => x !== id)); }
+
+  /* When the answer ended, finished, stopped or failed, which is what Unread
+     is measured against. */
+  private answered(id: ChatId): void {
+    if (!this.entry(id)) return;
+    const at = Date.now();
+    this.index = this.index.map((e) => (e.id === id ? { ...e, answered: at } : e));
+    this.saveIndex();
   }
 
   /* One round: the request is built from the chat as it stands, the answer
@@ -219,7 +256,7 @@ class Chats {
     }
   }
 
-  private abort(id: ChatId): void { const flight = this.flights.get(id); if (flight) { this.flights.delete(id); flight.abort(); } }
+  private abort(id: ChatId): void { const flight = this.flights.get(id); if (flight) { this.flights.delete(id); this.ran(id); flight.abort(); } }
 
   /* ── keeping ───────────────────────────────────────────────────────────── */
 
@@ -227,7 +264,8 @@ class Chats {
      on every delta and IndexedDB should not. */
   private put(chat: Chat, defer = false): void {
     this.open = { ...this.open, [chat.id]: chat };
-    const row = entryOf(chat);
+    const had = this.entry(chat.id)?.answered;
+    const row = { ...entryOfChat(chat, highlightAt), ...(had !== undefined ? { answered: had } : {}) };
     this.index = this.index.some((e) => e.id === chat.id) ? this.index.map((e) => (e.id === chat.id ? row : e)) : [...this.index, row];
     if (defer) this.later(chat.id); else this.save(chat.id);
   }
@@ -247,7 +285,10 @@ class Chats {
 
   private saveIndex(): void {
     if (!readerWritesAllowed()) return;
-    try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.index)); } catch { /* private mode */ }
+    try {
+      localStorage.setItem(INDEX_KEY, JSON.stringify(this.index));
+      localStorage.setItem(OLD_INDEX_KEY, JSON.stringify(unfiled(this.index)));
+    } catch { /* private mode */ }
   }
 }
 export const chats = new Chats();

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, parseBackup, validReaderRecord, type ReaderBackup } from '../src/lib/backup/schema';
-import { MANIFEST, filePath, fromRepo, imagePath, parseManifest, toRepo, type RepoPath } from '../src/lib/sync/layout';
+import { MANIFEST, filePath, fromRepo, imagePath, parseManifest, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
 import { blobSha, gitSha, readHead, repoName, type Fetch, type Remote, type RemoteEntry } from '../src/lib/sync/github';
 import { changesOf, manifestOf, overwrite, planOf, rebase, type Base, type Status } from '../src/lib/sync/plan';
 import { carry, hashed, survey, type HashedFile } from '../src/lib/sync/run';
@@ -41,18 +41,20 @@ test('every key the reader owns is backed up, and the sync token and repo never 
   assert.equal(validReaderRecord({ key: 'omnistax-chat-tree-v1', value: '["abcd1234"]', category: 'chats' }), true);
 });
 
-test('a profile lays out as one file per category, chat, drawing, scratch page and blob, and reads back whole', () => {
+test('a profile lays out as one file per record, chat, drawing, scratch page and blob, and reads back whole', () => {
   const backup = sample();
   const files = toRepo(backup);
   assert.deepEqual(files.map((f) => f.path).sort(), [
     'chats/abcd1234.json', 'drawings/dddd1111.json', 'files/ffff0000.pdf', 'images/img000000001.png', MANIFEST,
-    'records/appearance.json', 'records/focus.json', 'records/library.json', 'records/notes.json',
+    'records/omnistax-body-font.json', 'records/omnistax-files-v1.json', 'records/omnistax-library-v1.json', 'records/omnistax-pomodoros.json', 'records/omnistax-theme.json',
     `scratch/${encodeURIComponent('college-physics-2e|1.1|ex 3')}.json`,
   ].sort());
   assert.equal(new TextDecoder().decode(files.find((f) => f.path === filePath('ffff0000', 'application/pdf'))?.bytes), '%PD');
   assert.equal(files.find((f) => f.group === 'files')?.label, 'Handout.pdf');
-  const appearance = JSON.parse(new TextDecoder().decode(files.find((f) => f.path === 'records/appearance.json')?.bytes));
-  assert.deepEqual(appearance, { 'omnistax-theme': 'dark', 'omnistax-body-font': 'libertinus' });
+  const text = (path: string): string => new TextDecoder().decode(files.find((f) => f.path === path)?.bytes);
+  assert.equal(text(recordPath('omnistax-theme')), '"dark"\n', 'a setting is its string');
+  assert.deepEqual(JSON.parse(text(recordPath('omnistax-library-v1'))), ['college-physics-2e'], 'a JSON record is the JSON it holds');
+  assert.equal(parseManifest(files.find((f) => f.path === MANIFEST)!.bytes).version, 2);
 
   const back = fromRepo(mapOf(files));
   const norm = (b: ReaderBackup) => ({ ...b, records: b.records.map((r) => ({ ...r, value: r.category === 'appearance' ? r.value : JSON.stringify(JSON.parse(r.value)) })).sort((x, y) => x.key.localeCompare(y.key)) });
@@ -170,27 +172,28 @@ const treeOf = async (files: readonly { path: string; bytes: Uint8Array }[]) =>
 
 test('a sync pushes only what changed here, as one commit on the head with a manifest of the merged tree', async () => {
   const local = await hashed(toRepo(sample()));
-  const theme = local.find((f) => f.path === 'records/appearance.json')!;
-  const gh = github({ head: 'c0', tree: { 'records/appearance.json': { sha: theme.sha, bytes: theme.bytes }, 'chats/gone.json': { sha: 'g', bytes: new Uint8Array(1) } } });
+  const THEME = recordPath('omnistax-theme');
+  const theme = local.find((f) => f.path === THEME)!;
+  const gh = github({ head: 'c0', tree: { [THEME]: { sha: theme.sha, bytes: theme.bytes }, 'chats/gone.json': { sha: 'g', bytes: new Uint8Array(1) } } });
   const seen = await survey(remote, gh.f);
   const base: Base = { 'chats/gone.json': sha('g') };
   const changes = changesOf(local, seen.remote, base, seen.manifest);
-  assert.equal(changes.some((c) => c.path === 'records/appearance.json'), false);
+  assert.equal(changes.some((c) => c.path === THEME), false);
   const statuses = new Map<string, Status>();
   const out = await carry(remote, gh.f, seen, local, planOf(changes, new Map()), base, (p, s) => statuses.set(p, s));
   assert.equal(out.commit, 'commit1');
   assert.equal(out.backup, null);
   assert.equal(statuses.get('chats/abcd1234.json')?.kind, 'done');
-  assert.equal(statuses.has('records/appearance.json'), false);
+  assert.equal(statuses.has(THEME), false);
   const tree = gh.calls.find((c) => c.path === '/git/trees' && c.method === 'POST')?.body as { base_tree: string; tree: { path: string; sha: string | null }[] };
   assert.equal(tree.base_tree, 'tree0');
   assert.deepEqual(tree.tree.filter((e) => e.sha === null).map((e) => e.path), ['chats/gone.json']);
   assert.ok(tree.tree.some((e) => e.path === MANIFEST));
-  assert.equal(tree.tree.some((e) => e.path === 'records/appearance.json'), false);
+  assert.equal(tree.tree.some((e) => e.path === THEME), false);
   assert.deepEqual((gh.calls.find((c) => c.path === '/git/commits' && c.method === 'POST')?.body as { parents: string[] }).parents, ['c0']);
   assert.deepEqual(gh.calls.find((c) => c.method === 'PATCH')?.body, { sha: 'commit1', force: false });
   assert.equal(out.base['chats/gone.json'], undefined);
-  assert.equal(out.base['records/appearance.json'], theme.sha);
+  assert.equal(out.base[THEME], theme.sha);
 });
 
 test('a sync pulls what changed in the repo and keeps what changed here', async () => {

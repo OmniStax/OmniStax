@@ -58,7 +58,26 @@
   /* The words under the bar, kept because asking the model clears the
      selection and a highlight reopened later has only its quote. */
   let selectedWords = $state('');
-  const place = (r: DOMRect) => { x = Math.max(120, Math.min(window.innerWidth - 120, r.left + r.width / 2)); y = Math.max(44, Math.min(window.innerHeight - 8, r.top - 8)); };
+  /* The bar stands centred over the words, kept within the sides of the pane
+     they are in, so in a narrow group it never reaches over the group beside
+     it; it is pulled in once it is drawn, since its width depends on what it holds. */
+  let bar = $state<HTMLElement | null>(null);
+  let frame = { left: 0, right: 0 };
+  const place = (r: DOMRect, at: Element) => {
+    const f = at.closest('.pane, .sidebar')?.getBoundingClientRect();
+    frame = { left: Math.max(0, f?.left ?? 0), right: Math.min(window.innerWidth, f?.right ?? window.innerWidth) };
+    x = r.left + r.width / 2; y = Math.max(44, Math.min(window.innerHeight - 8, r.top - 8));
+  };
+  $effect(() => {
+    if (!open || !bar) return;
+    const el = bar, at = x;
+    const keep = (): void => {
+      const half = el.offsetWidth / 2 + 8, lo = frame.left + half, hi = frame.right - half;
+      x = lo > hi ? (frame.left + frame.right) / 2 : Math.max(lo, Math.min(hi, at));
+    };
+    const seen = new ResizeObserver(keep); seen.observe(el);
+    return () => seen.disconnect();
+  });
   const pendingAt = (art: HTMLElement, anchor: Anchor): Pending => {
     const sheet = art.closest<HTMLElement>('.pdf-page[data-file]');
     if (sheet) return { kind: 'file', file: fileId(sheet.dataset.file ?? ''), page: Number(sheet.dataset.page), anchor };
@@ -79,14 +98,14 @@
     selectedWords = words;
     const ix = textIndex(art); const span = rangeSpan(ix, range);
     pending = span && ix.full.slice(span.start, span.end).trim() ? pendingAt(art, makeAnchor(ix.full, span)) : null;
-    mode = 'new'; noteId = null; place(range.getBoundingClientRect()); open = true;
+    mode = 'new'; noteId = null; place(range.getBoundingClientRect(), art); open = true;
   };
   let timer = 0;
   const onSel = () => { clearTimeout(timer); timer = window.setTimeout(fromSelection, 160); };
   const onClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement; if (t.closest('.hl-bar')) return;
     const m = t.closest<HTMLElement>('mark.hl');
-    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; selectedWords = quoteOf(m.dataset.note); place(m.getBoundingClientRect()); open = true; return; }
+    if (m?.dataset.note) { noteId = m.dataset.note; mode = 'edit'; pending = null; selectedWords = quoteOf(m.dataset.note); place(m.getBoundingClientRect(), m); open = true; return; }
     if (mode === 'edit') open = false;
   };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') open = false; };
@@ -122,7 +141,7 @@
 </script>
 
 {#if open}
-  <div class="hl-bar" role="toolbar" aria-label={i18n.t('shell.highlight.bar')} style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
+  <div class="hl-bar" bind:this={bar} role="toolbar" aria-label={i18n.t('shell.highlight.bar')} style:left="{x}px" style:top="{y}px" onmousedown={(e) => e.preventDefault()}>
     {#if markable}
       {#each HL_COLORS as c (c)}<button type="button" class="dot {c}" class:on={current === c} aria-label={i18n.t('shell.highlight.in', { color: i18n.t(COLOR_NAME[c]) })} onclick={() => choose(c)}></button>{/each}
       <span class="sep"></span>

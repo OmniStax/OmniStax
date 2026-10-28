@@ -102,7 +102,8 @@
 </div>
 
 <style>
-  .table-sheet{font-family:var(--sans);max-width:100%}
+  /* the narrow rules below follow the width of the pane the sheet stands in, not the window's */
+  .table-sheet{font-family:var(--sans);max-width:100%;container-type:inline-size}
   h1{margin:0 0 2px;font-size:1.35rem}
   h2{margin:0 0 6px;font-size:1rem;font-weight:600}
   .lead,.count{color:var(--muted);font-size:0.8rem;margin:0}
@@ -124,7 +125,7 @@
   .book-table td.num:first-child{width:1%;white-space:nowrap}
   tr.group th{background:var(--soft);font-weight:600;text-transform:none}
   .notes{margin:8px 0 0;padding-left:1.2rem;color:var(--muted);font-size:0.78rem;line-height:1.5}
-  @media (max-width:520px){
+  @container (max-width:520px){
     .book-table table{font-size:0.78rem}
     .book-table :global(th),.book-table :global(td){padding:5px 8px}
   }

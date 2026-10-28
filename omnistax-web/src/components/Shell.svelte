@@ -45,8 +45,10 @@
   import TipToast from './ui/TipToast.svelte';
   import AlertToast from './ui/AlertToast.svelte';
   import { startAutoPush } from '../lib/sync/auto.svelte';
+  import { heldQueue } from '../lib/sync/queue.svelte';
   import UpdateToast from './ui/UpdateToast.svelte';
   import LockOverlay from './pomodoro/LockOverlay.svelte';
+  import SectionMentions from './notes/SectionMentions.svelte';
   import ExerciseList from './exercises/ExerciseList.svelte';
   import HighlightBar from './HighlightBar.svelte';
   import { sheets } from '../lib/sheets/store.svelte';
@@ -55,6 +57,9 @@
   import { noteDocs } from '../lib/notes/docs.svelte';
   import { ai } from '../lib/chat/settings.svelte';
   import { chats } from '../lib/chat/store.svelte';
+  import { chatPages } from '../lib/chat/pages.svelte';
+  import { chatSeen } from '../lib/chat/seen.svelte';
+  import { visibleChats } from '../lib/chat/seen';
   import { explorer } from '../lib/explorer/store.svelte';
   import { files } from '../lib/files/store.svelte';
   import { drawings } from '../lib/drawer/store.svelte';
@@ -118,6 +123,8 @@
   };
   const mountExercises = (root: HTMLElement, ref: SectionRef) => {
     root.querySelectorAll<HTMLElement>('.exercises[data-place]').forEach((host) => { if (host.dataset.mounted) return; host.dataset.mounted = '1'; mount(ExerciseList, { target: host, props: { book: ref.book, section: ref.section, place: host.dataset.place ?? 'end' } }); });
+    /* where the reader has mentioned the section, beside its practice button */
+    root.querySelectorAll<HTMLElement>('.section-end').forEach((host) => { if (host.dataset.mentions) return; host.dataset.mentions = '1'; mount(SectionMentions, { target: host, props: { book: ref.book, section: ref.section } }); });
   };
 
   /* highlights: paint a document from the notes that belong to it */
@@ -139,11 +146,14 @@
     noteDocs.init();
     ai.init();
     chats.init();
+    chatPages.init();
+    chatSeen.init();
     files.init();
     fileMarks.init();
     drawings.init();
     explorer.init();
     sync.init();
+    heldQueue.init();
     const stopAutoPush = startAutoPush();
     /* The bytes of a file deleted are kept until now, so that an undo in that
        session had something to come back to; this session is not that one. */
@@ -164,6 +174,7 @@
     const reload = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
     const restored = layoutStore.init(page, known, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
+    chatPages.prune(instancesOf(layoutStore.layout, 'chats'));
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
     void openAtStart(addressed && page !== carried ? docItem(addressed, 'text') : page, (k) => openItem(k));
@@ -230,7 +241,13 @@
          inline SVG (a chapter diagram whose names are links) has an animated `target`
          and no `origin`, and it should open a page the way the prose's links do. */
       const link = (e.target as Element).closest<HTMLAnchorElement | SVGAElement>('a[href]');
-      if (!link || link.getAttribute('target')) return;
+      /* A link to a place on the page (`#…`) is no page of its own: read
+         against the address it would name whichever page the address bar last
+         showed, not the one it stands in. The in-page jump below finds its
+         target by the document that holds it, and a wiki link in a note, a
+         chat or a text box, whose `href="#"` only makes it focusable, is
+         followed by its own view, Ctrl and all. */
+      if (!link || link.getAttribute('target') || (link.getAttribute('href') ?? '').startsWith('#')) return;
       const url = new URL(link.getAttribute('href') ?? '', location.href);
       if (url.origin !== location.origin) return;
       const at = refOfPath(url.pathname);
@@ -327,7 +344,9 @@
   /* layout → practice: what a practice tab stands on belongs to that tab, so a
      page whose tab the layout no longer holds is dropped as the layout settles. */
   $effect(() => { focus.track(); });
-  $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); });
+  $effect(() => { practice.prune(instancesOf(layoutStore.layout, 'exercises')); chatPages.prune(instancesOf(layoutStore.layout, 'chats')); });
+  /* layout → chats: a chat in front of the reader has its last answer read */
+  $effect(() => { chatSeen.look(visibleChats(layoutStore.layout.groups, (k) => chatPages.of(k)), chats.index); });
 
 
   /* The page of a book the focused tab is showing, whatever its book. A tab of

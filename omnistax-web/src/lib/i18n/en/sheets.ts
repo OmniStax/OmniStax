@@ -131,7 +131,7 @@ export const sheets = {
   'sheets.elements.ionization': 'First ionization',
   'sheets.elements.ionizationEnergy': 'First ionization energy',
   'sheets.elements.keepOpen': 'Click to keep it open.',
-  'sheets.elements.lead': 'Hover an element to see it. Click to keep it open.',
+  'sheets.elements.lead': 'Click an element to keep its card open; click again to close it.',
   'sheets.elements.namedIn': 'Named in',
   'sheets.elements.namedNowhere': 'No section of this book names it.',
   'sheets.elements.period': 'Period',
