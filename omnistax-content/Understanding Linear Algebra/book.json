@@ -1986,7 +1986,8 @@
       "forms": [
         {
           "id": "eq-invertible-matrix",
-          "latex": "AB = I_n"
+          "latex": "AB = I_n",
+          "anchor": "3.1-definition-3-1-1"
         }
       ]
     },
@@ -2005,7 +2006,8 @@
         {
           "id": "eq-matrix-inverse",
           "latex": "A^{-1} = B",
-          "condition": "AB = I_n"
+          "condition": "AB = I_n",
+          "anchor": "3.1-definition-3-1-1"
         }
       ]
     },
@@ -2018,11 +2020,13 @@
       "forms": [
         {
           "id": "eq-solution-by-the-inverse",
-          "latex": "\\mathbf{x} = A^{-1}\\mathbf{b}"
+          "latex": "\\mathbf{x} = A^{-1}\\mathbf{b}",
+          "anchor": "3.1-proposition-inverse-solve"
         },
         {
           "id": "eq-inverse-solution-check",
-          "latex": "A(B\\mathbf{b}) = (AB)\\mathbf{b} = I\\mathbf{b} = \\mathbf{b}"
+          "latex": "A(B\\mathbf{b}) = (AB)\\mathbf{b} = I\\mathbf{b} = \\mathbf{b}",
+          "anchor": "3.1-always-works"
         }
       ]
     },
@@ -2036,7 +2040,8 @@
         {
           "id": "eq-invertible-iff-identity",
           "latex": "A \\sim I",
-          "condition": "A invertible"
+          "condition": "A invertible",
+          "anchor": "3.1-proposition-invertible-rref"
         }
       ]
     },
@@ -2049,12 +2054,14 @@
       "forms": [
         {
           "id": "eq-inverse-by-row-reduction",
-          "latex": "\\left[ \\begin{array}{r|r} A & I \\end{array} \\right] \\sim \\left[ \\begin{array}{r|r} I & A^{-1} \\end{array} \\right]"
+          "latex": "\\left[ \\begin{array}{r|r} A & I \\end{array} \\right] \\sim \\left[ \\begin{array}{r|r} I & A^{-1} \\end{array} \\right]",
+          "anchor": "3.1-example-inverse-augment-I"
         },
         {
           "id": "eq-inverse-column-equations",
           "latex": "A\\mathbf{b}_1 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right],~~~ A\\mathbf{b}_2 = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]",
-          "condition": "B = [b₁ b₂] the inverse of a 2 × 2 matrix A"
+          "condition": "B = [b₁ b₂] the inverse of a 2 × 2 matrix A",
+          "anchor": "3.1-example-inverse-augment-I"
         }
       ]
     },
@@ -2067,12 +2074,14 @@
       "forms": [
         {
           "id": "eq-inverse-of-an-inverse",
-          "latex": "(A^{-1})^{-1} = A"
+          "latex": "(A^{-1})^{-1} = A",
+          "anchor": "3.1-proposition-inverse-inverse"
         },
         {
           "id": "eq-inverse-commutes",
           "latex": "BA = I",
-          "condition": "AB = I"
+          "condition": "AB = I",
+          "anchor": "3.1-proposition-inverse-inverse"
         }
       ]
     },
@@ -2085,7 +2094,8 @@
       "forms": [
         {
           "id": "eq-inverse-of-a-product",
-          "latex": "(AB)^{-1} = B^{-1}A^{-1}"
+          "latex": "(AB)^{-1} = B^{-1}A^{-1}",
+          "anchor": "3.1-proposition-invertible-properties"
         }
       ]
     },
@@ -2106,7 +2116,8 @@
         {
           "id": "eq-inverse-2x2",
           "latex": "\\left[\\begin{array}{rr} a & b \\\\ c & d \\end{array}\\right]^{-1} = \\frac{1}{ad-bc} \\left[\\begin{array}{rr} d & -b \\\\ -c & a \\end{array}\\right]",
-          "condition": "ad − bc ≠ 0"
+          "condition": "ad − bc ≠ 0",
+          "anchor": "3.1-two-by-two-formula"
         }
       ]
     },
@@ -2124,7 +2135,8 @@
       "forms": [
         {
           "id": "eq-triangular-shapes",
-          "latex": "L = \\left[\\begin{array}{rrrr} * & 0 & 0 & 0 \\\\ * & * & 0 & 0 \\\\ * & * & * & 0 \\\\ * & * & * & * \\end{array}\\right], \\hspace{24pt} U = \\left[\\begin{array}{rrrr} * & * & * & * \\\\ 0 & * & * & * \\\\ 0 & 0 & * & * \\\\ 0 & 0 & 0 & * \\end{array}\\right]"
+          "latex": "L = \\left[\\begin{array}{rrrr} * & 0 & 0 & 0 \\\\ * & * & 0 & 0 \\\\ * & * & * & 0 \\\\ * & * & * & * \\end{array}\\right], \\hspace{24pt} U = \\left[\\begin{array}{rrrr} * & * & * & * \\\\ 0 & * & * & * \\\\ 0 & 0 & * & * \\\\ 0 & 0 & 0 & * \\end{array}\\right]",
+          "anchor": "3.1-triangular-examples"
         }
       ]
     },
@@ -2149,17 +2161,20 @@
         {
           "id": "eq-elementary-replacement",
           "latex": "L = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 3 & 1 \\end{bmatrix}",
-          "condition": "multiplying the second row by 3 and adding it to the third"
+          "condition": "multiplying the second row by 3 and adding it to the third",
+          "anchor": "3.1-replacement"
         },
         {
           "id": "eq-elementary-scaling",
           "latex": "S = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 2 \\end{bmatrix}",
-          "condition": "multiplying the third row by 2"
+          "condition": "multiplying the third row by 2",
+          "anchor": "3.1-scaling"
         },
         {
           "id": "eq-elementary-interchange",
           "latex": "P = \\begin{bmatrix} 0 & 1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}",
-          "condition": "interchanging the first two rows"
+          "condition": "interchanging the first two rows",
+          "anchor": "3.1-interchange"
         }
       ]
     },
@@ -2183,7 +2198,8 @@
       "forms": [
         {
           "id": "eq-row-operations-as-a-product",
-          "latex": "L_3L_2L_1A = U"
+          "latex": "L_3L_2L_1A = U",
+          "anchor": "3.1-example-3-1-10"
         }
       ]
     },
@@ -2199,11 +2215,13 @@
       "forms": [
         {
           "id": "eq-lu-factorization",
-          "latex": "A = LU"
+          "latex": "A = LU",
+          "anchor": "3.1-example-3-1-10"
         },
         {
           "id": "eq-lu-lower-factor",
-          "latex": "L = (L_3L_2L_1)^{-1} = L_1^{-1}L_2^{-1}L_3^{-1}"
+          "latex": "L = (L_3L_2L_1)^{-1} = L_1^{-1}L_2^{-1}L_3^{-1}",
+          "anchor": "3.1-example-3-1-10"
         }
       ]
     },
@@ -2220,7 +2238,8 @@
       "forms": [
         {
           "id": "eq-basis-as-a-set",
-          "latex": "{\\mathcal B} = \\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_m\\}"
+          "latex": "{\\mathcal B} = \\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_m\\}",
+          "anchor": "3.2-coordinate-system"
         }
       ]
     },
@@ -2234,7 +2253,8 @@
         {
           "id": "eq-basis-iff-row-equivalent-to-identity",
           "latex": "A = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array}\\right] \\sim I",
-          "condition": "v₁, v₂, …, vₙ a basis for ℝᵐ"
+          "condition": "v₁, v₂, …, vₙ a basis for ℝᵐ",
+          "anchor": "3.2-proposition-3-2-4"
         }
       ]
     },
@@ -2258,7 +2278,8 @@
       "forms": [
         {
           "id": "eq-standard-basis",
-          "latex": "{\\mathcal E} = \\{\\mathbf{e}_1,\\mathbf{e}_2,\\ldots,\\mathbf{e}_m\\}"
+          "latex": "{\\mathcal E} = \\{\\mathbf{e}_1,\\mathbf{e}_2,\\ldots,\\mathbf{e}_m\\}",
+          "anchor": "3.2-example-3-2-5"
         }
       ]
     },
@@ -2288,11 +2309,13 @@
         {
           "id": "eq-coordinates-in-a-basis",
           "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c}c_1 \\\\ c_2 \\\\ \\vdots \\\\ c_m \\end{array}\\right]",
-          "condition": "x = c₁v₁ + c₂v₂ + … + cₘvₘ"
+          "condition": "x = c₁v₁ + c₂v₂ + … + cₘvₘ",
+          "anchor": "3.2-unique-representation"
         },
         {
           "id": "eq-vector-from-its-coordinates",
-          "latex": "\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_m\\mathbf{v}_m"
+          "latex": "\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_m\\mathbf{v}_m",
+          "anchor": "3.2-unique-representation"
         }
       ]
     },
@@ -2305,7 +2328,8 @@
       "forms": [
         {
           "id": "eq-coordinates-as-a-linear-system",
-          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 = \\mathbf{x}"
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 = \\mathbf{x}",
+          "anchor": "3.2-finding-coordinates"
         }
       ]
     },
@@ -2320,7 +2344,8 @@
       "forms": [
         {
           "id": "eq-change-of-basis-matrix",
-          "latex": "P_{{\\mathcal B}} = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_m \\end{array}\\right]"
+          "latex": "P_{{\\mathcal B}} = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_m \\end{array}\\right]",
+          "anchor": "3.2-change-of-basis-matrix"
         }
       ]
     },
@@ -2333,15 +2358,18 @@
       "forms": [
         {
           "id": "eq-coordinates-to-standard",
-          "latex": "\\mathbf{x} = P_{{\\mathcal B}}\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}}"
+          "latex": "\\mathbf{x} = P_{{\\mathcal B}}\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}}",
+          "anchor": "3.2-proposition-coordinate-transform"
         },
         {
           "id": "eq-standard-to-coordinates",
-          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}\\mathbf{x}"
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}\\mathbf{x}",
+          "anchor": "3.2-proposition-coordinate-transform"
         },
         {
           "id": "eq-conversion-between-two-bases",
-          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}P_{{\\mathcal C}} \\left\\{\\mathbf{x}\\right\\}_{{\\mathcal C}}"
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}P_{{\\mathcal C}} \\left\\{\\mathbf{x}\\right\\}_{{\\mathcal C}}",
+          "anchor": "3.2-two-bases"
         }
       ]
     },
@@ -2358,11 +2386,13 @@
       "forms": [
         {
           "id": "eq-haar-wavelet-basis",
-          "latex": "\\mathbf{v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\\\ -1 \\end{array}\\right],~~~ \\mathbf{v}_3=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 0 \\\\ 0 \\end{array}\\right],~~~ \\mathbf{v}_4=\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\\\ -1 \\end{array}\\right]"
+          "latex": "\\mathbf{v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\\\ -1 \\end{array}\\right],~~~ \\mathbf{v}_3=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 0 \\\\ 0 \\end{array}\\right],~~~ \\mathbf{v}_4=\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\\\ -1 \\end{array}\\right]",
+          "anchor": "3.2-example-wavelet-basis"
         },
         {
           "id": "eq-haar-wavelet-coordinates",
-          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c}\\frac14 x_1 + \\frac14 x_2 + \\frac14 x_3 + \\frac14 x_4 \\\\ \\frac14 x_1 + \\frac14 x_2 - \\frac14 x_3 - \\frac14 x_4 \\\\ \\frac12 x_1 - \\frac12 x_2 \\\\ \\frac12 x_3 - \\frac12 x_4 \\end{array}\\right]"
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c}\\frac14 x_1 + \\frac14 x_2 + \\frac14 x_3 + \\frac14 x_4 \\\\ \\frac14 x_1 + \\frac14 x_2 - \\frac14 x_3 - \\frac14 x_4 \\\\ \\frac12 x_1 - \\frac12 x_2 \\\\ \\frac12 x_3 - \\frac12 x_4 \\end{array}\\right]",
+          "anchor": "3.2-example-wavelet-basis"
         }
       ]
     },
@@ -2388,7 +2418,8 @@
       "forms": [
         {
           "id": "eq-rgb-vector",
-          "latex": "\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]"
+          "latex": "\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]",
+          "anchor": "3.3-rgb"
         }
       ]
     },
@@ -2404,11 +2435,13 @@
       "forms": [
         {
           "id": "eq-ycbcr-coordinates",
-          "latex": "\\left\\{\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{r}Y \\\\ C_b \\\\ C_r \\end{array}\\right]"
+          "latex": "\\left\\{\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{r}Y \\\\ C_b \\\\ C_r \\end{array}\\right]",
+          "anchor": "3.3-ycbcr-basis"
         },
         {
           "id": "eq-ycbcr-basis",
-          "latex": "\\mathbf{v}_1 =\\left[\\begin{array}{c} 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2 =\\left[\\begin{array}{c} 0 \\\\ -0.34413 \\\\ 1.77200 \\end{array}\\right],~~~ \\mathbf{v}_3 =\\left[\\begin{array}{c} 1.40200 \\\\ -0.71414 \\\\ 0 \\end{array}\\right]"
+          "latex": "\\mathbf{v}_1 =\\left[\\begin{array}{c} 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2 =\\left[\\begin{array}{c} 0 \\\\ -0.34413 \\\\ 1.77200 \\end{array}\\right],~~~ \\mathbf{v}_3 =\\left[\\begin{array}{c} 1.40200 \\\\ -0.71414 \\\\ 0 \\end{array}\\right]",
+          "anchor": "3.3-ycbcr-basis"
         }
       ]
     },
@@ -2447,7 +2480,8 @@
         {
           "id": "eq-fourier-basis-vector",
           "latex": "\\mathbf{v}_j = \\left[\\begin{array}{c} \\cos\\left(\\frac{(2\\cdot0+1)\\cdot j\\pi}{16}\\right) \\\\ \\cos\\left(\\frac{(2\\cdot1+1)\\cdot j\\pi}{16}\\right) \\\\ \\vdots \\\\ \\cos\\left(\\frac{(2\\cdot7+1)\\cdot j\\pi}{16}\\right) \\end{array}\\right]",
-          "condition": "j = 0, 1, …, 7"
+          "condition": "j = 0, 1, …, 7",
+          "anchor": "3.3-discrete-fourier-transform"
         },
         {
           "id": "eq-fourier-average",
@@ -2468,7 +2502,8 @@
       "forms": [
         {
           "id": "eq-fourier-coefficients",
-          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c} F_0 \\\\ F_1 \\\\ F_2 \\\\ \\vdots \\\\ F_7 \\end{array}\\right]"
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c} F_0 \\\\ F_1 \\\\ F_2 \\\\ \\vdots \\\\ F_7 \\end{array}\\right]",
+          "anchor": "3.3-fourier-coefficients"
         }
       ]
     },
@@ -2495,7 +2530,8 @@
       "forms": [
         {
           "id": "eq-area-of-a-parallelogram",
-          "latex": "bh"
+          "latex": "bh",
+          "anchor": "3.4-area-formula"
         }
       ]
     },
@@ -2523,11 +2559,13 @@
       "forms": [
         {
           "id": "eq-determinant-2x2",
-          "latex": "\\det\\left[\\begin{array}{rr} a & b \\\\ c & d \\end{array}\\right] = ad-bc"
+          "latex": "\\det\\left[\\begin{array}{rr} a & b \\\\ c & d \\end{array}\\right] = ad-bc",
+          "anchor": "3.4-det-2x2-formula"
         },
         {
           "id": "eq-determinant-of-the-identity",
-          "latex": "\\det(I) = 1"
+          "latex": "\\det(I) = 1",
+          "anchor": "3.4-example-det-identity"
         }
       ]
     },
@@ -2547,7 +2585,8 @@
       "forms": [
         {
           "id": "eq-determinant-of-a-triangular-matrix",
-          "latex": "\\det\\left[\\begin{array}{rr} 2 & 2 \\\\ 0 & 3 \\end{array}\\right] = 2\\cdot 3 = 6"
+          "latex": "\\det\\left[\\begin{array}{rr} 2 & 2 \\\\ 0 & 3 \\end{array}\\right] = 2\\cdot 3 = 6",
+          "anchor": "3.4-triangular-property"
         }
       ]
     },
@@ -2567,7 +2606,8 @@
       "forms": [
         {
           "id": "eq-determinant-of-a-product",
-          "latex": "\\det(AB) = \\det(A)\\det(B)"
+          "latex": "\\det(AB) = \\det(A)\\det(B)",
+          "anchor": "3.4-multiplicative-property"
         }
       ]
     },
@@ -2581,7 +2621,8 @@
         {
           "id": "eq-determinant-of-an-interchange",
           "latex": "\\det(P) = -1",
-          "condition": "P obtained by interchanging two rows of the identity"
+          "condition": "P obtained by interchanging two rows of the identity",
+          "anchor": "3.4-proposition-det-properties"
         }
       ]
     },
@@ -2606,17 +2647,20 @@
         {
           "id": "eq-determinant-after-scaling",
           "latex": "\\det(A') = k\\det(A)",
-          "condition": "A′ obtained from A by scaling a row by k"
+          "condition": "A′ obtained from A by scaling a row by k",
+          "anchor": "3.4-proposition-det-row-operations"
         },
         {
           "id": "eq-determinant-after-interchange",
           "latex": "\\det(A') = -\\det(A)",
-          "condition": "A′ obtained from A by interchanging two rows"
+          "condition": "A′ obtained from A by interchanging two rows",
+          "anchor": "3.4-proposition-det-row-operations"
         },
         {
           "id": "eq-determinant-after-replacement",
           "latex": "\\det(A') = \\det(A)",
-          "condition": "A′ obtained from A by a row replacement"
+          "condition": "A′ obtained from A by a row replacement",
+          "anchor": "3.4-proposition-det-row-operations"
         }
       ]
     },
@@ -2636,12 +2680,14 @@
       "forms": [
         {
           "id": "eq-invertible-iff-det",
-          "latex": "A \\text{ is invertible} \\iff \\det(A) \\neq 0"
+          "latex": "A \\text{ is invertible} \\iff \\det(A) \\neq 0",
+          "anchor": "3.4-prop-invertible-det"
         },
         {
           "id": "eq-determinant-of-dependent-columns",
           "latex": "\\det(A) = 0",
-          "condition": "the columns of A linearly dependent"
+          "condition": "the columns of A linearly dependent",
+          "anchor": "3.4-dependent-columns"
         }
       ]
     },
@@ -2654,11 +2700,13 @@
       "forms": [
         {
           "id": "eq-determinant-of-an-inverse",
-          "latex": "\\det(A^{-1}) = 1/\\det(A)"
+          "latex": "\\det(A^{-1}) = 1/\\det(A)",
+          "anchor": "3.4-prop-det-inverse-reciprocal"
         },
         {
           "id": "eq-determinant-of-inverse-times-matrix",
-          "latex": "\\det(A^{-1}A) = \\det(A^{-1})\\det(A) = 1"
+          "latex": "\\det(A^{-1}A) = \\det(A^{-1})\\det(A) = 1",
+          "anchor": "3.4-inverse-determinant"
         }
       ]
     },
@@ -2675,7 +2723,8 @@
         {
           "id": "eq-cofactor-expansion-example",
           "latex": "\\det\\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ -2 & 2 & -6 \\\\ 3 & -1 & 10 \\end{array}\\right] = (-1)^{2+1}(-2)\\det\\left[\\begin{array}{rr} -1 & 2 \\\\ -1 & 10 \\end{array}\\right] + (-1)^{2+2}(2)\\det\\left[\\begin{array}{rr} 1 & 2 \\\\ 3 & 10 \\end{array}\\right] + (-1)^{2+3}(-6)\\det\\left[\\begin{array}{rr} 1 & -1 \\\\ 3 & -1 \\end{array}\\right]",
-          "condition": "expanding along the second row"
+          "condition": "expanding along the second row",
+          "anchor": "3.4-example-3-4-13"
         }
       ]
     },
@@ -2693,7 +2742,8 @@
       "forms": [
         {
           "id": "eq-subspace-as-a-span",
-          "latex": "S = \\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}"
+          "latex": "S = \\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}",
+          "anchor": "3.5-definition-3-5-1"
         }
       ]
     },
@@ -2727,7 +2777,8 @@
       "forms": [
         {
           "id": "eq-dimension-of-a-subspace",
-          "latex": "\\dim S"
+          "latex": "\\dim S",
+          "anchor": "3.5-definition-3-5-4"
         }
       ]
     },
@@ -2760,7 +2811,8 @@
         {
           "id": "eq-column-space",
           "latex": "\\text{Col}(A) = \\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}",
-          "condition": "A = [v₁ v₂ … vₙ]"
+          "condition": "A = [v₁ v₂ … vₙ]",
+          "anchor": "3.5-definition-3-5-6"
         }
       ]
     },
@@ -2777,7 +2829,8 @@
       "forms": [
         {
           "id": "eq-rank",
-          "latex": "\\operatorname{rank}(A)"
+          "latex": "\\operatorname{rank}(A)",
+          "anchor": "3.5-definition-3-5-8"
         }
       ]
     },
@@ -2790,7 +2843,8 @@
       "forms": [
         {
           "id": "eq-dimension-of-the-column-space",
-          "latex": "\\dim~\\text{Col}(A) = \\operatorname{rank}(A)"
+          "latex": "\\dim~\\text{Col}(A) = \\operatorname{rank}(A)",
+          "anchor": "3.5-proposition-col-dim"
         }
       ]
     },
@@ -2809,7 +2863,8 @@
         {
           "id": "eq-null-space-condition",
           "latex": "A\\mathbf{x} = \\mathbf{0}",
-          "condition": "x in Nul(A)"
+          "condition": "x in Nul(A)",
+          "anchor": "3.5-definition-3-5-10"
         }
       ]
     },
@@ -2829,7 +2884,8 @@
       "forms": [
         {
           "id": "eq-dimension-of-the-null-space",
-          "latex": "\\dim~\\text{Nul}(A) = n - \\operatorname{rank}(A)"
+          "latex": "\\dim~\\text{Nul}(A) = n - \\operatorname{rank}(A)",
+          "anchor": "3.5-proposition-nul-dim"
         }
       ]
     },
@@ -2842,7 +2898,8 @@
       "forms": [
         {
           "id": "eq-rank-nullity",
-          "latex": "\\dim~\\text{Col}(A) + \\dim~\\text{Nul}(A) = n"
+          "latex": "\\dim~\\text{Col}(A) + \\dim~\\text{Nul}(A) = n",
+          "anchor": "3.5-proposition-3-5-13"
         }
       ]
     },
