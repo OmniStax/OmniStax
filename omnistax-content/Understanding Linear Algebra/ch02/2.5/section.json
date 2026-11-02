@@ -1,0 +1,980 @@
+{
+ "id": "2.5",
+ "module": "sec-linear-trans",
+ "chapter": "2",
+ "title": "Matrix transformations",
+ "lead": "A matrix turns <span data-concept=\"matrix-product-as-linear-combination\">matrix-vector multiplication</span> into a function, a <span data-concept=\"linear-mapping\">matrix transformation</span> that takes a vector to the vector it multiplies it into. This section asks what such a function looks like, how to read its matrix off a few of its outputs, what performing one after another does to their matrices, and how a matrix can describe a system changing step by step.",
+ "objectives": [],
+ "summary_html": "<p>This section introduced matrix transformations, functions that are defined by matrix-vector multiplication, such as $T(\\mathbf{x}) = A\\mathbf{x}$ for some matrix $A$.</p><ul><li>If $A$ is an $m\\times n$ matrix, then $T:{\\mathbb R}^n\\to{\\mathbb R}^m$.</li><li>The columns of the matrix $A$ are given by evaluating the transformation $T$ on the vectors $\\mathbf{e}_j$; that is,$$ A=\\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right] $$.</li><li>The composition of matrix transformations corresponds to matrix multiplication.</li><li>A discrete dynamical system consists of a state vector $\\mathbf{x}$ along with a transition function $T(\\mathbf{x}) = A\\mathbf{x}$ that describes how the state vector evolves from one time to the next. Powers of the matrix $A$ determine the long-term behavior of the state vector.</li></ul>",
+ "notes": "The five Sage cells (in Activities 2.5.3, 2.5.4 and 2.5.5 and Exercises 2.5.9 and 2.5.10), all empty, are not live and are left out, each part keeping the book’s words; the empty worksheet grids of Figures 2.5.1 and 2.5.2 are left out and the author’s answer drawings stay in the preview activity’s solution.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the four activities stand in the text as cards, and Exercise 2.5.4’s card shows the book’s Figure 2.5.10. Five printed slips are kept as printed and corrected in notes under their cards (Activity 2.5.2’s solution lists parts 4 and 5 in the other order; Activity 2.5.4 b.3 prints 16430 cups of flour for 16420; Exercise 2.5.1 c multiplies by A where B is meant; Exercise 2.5.5 a.1 prints 50x₁ + 20x₂ doughnuts for 50x₁ + 30x₂; Exercise 2.5.10 a and b print T([1000, 0]) = [950, 0] and T([1, 0]) for T([0, 1])). Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-rotated-vectors",
+   "kind": "sim",
+   "number": "2.5.7",
+   "folds": [
+    "2.5.9"
+   ],
+   "originals": [
+    "/media/ch02/two-dim-basis.svg",
+    "/media/ch02/two-dim-basis-rotate.svg",
+    "/media/ch02/two-dim-basis-180.svg"
+   ],
+   "original_caption": "(Figure 2.5.7) The matrix transformation T takes two-dimensional vectors on the left and rotates them by 90° counterclockwise into the vectors on the right. (Figure 2.5.9) The matrix transformation R takes two-dimensional vectors on the left and rotates them by 180° into the vectors on the right.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-composition",
+   "kind": "sim",
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-truck-fleet",
+   "kind": "sim",
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "fundamental-questions-recalled",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "fundamental-questions-recalled",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "fundamental-questions-recalled",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "fundamental-questions-recalled",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "fundamental-questions-recalled",
+   "concept": "existence-and-uniqueness-questions",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformation-defined",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformation-defined",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformation-defined",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformation-defined",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-5-3",
+   "concept": "linear-mapping",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-2-5-3",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-5-3",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-matrix-to-mt",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-matrix-to-mt",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-matrix-to-mt",
+   "concept": "euclidean-space",
+   "verb": "uses"
+  },
+  {
+   "span": "example-mt-to-matrix",
+   "concept": "finding-the-matrix-of-a-transformation",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-mt-to-matrix",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-mt-to-matrix",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "compatible-shapes",
+   "concept": "matrix-shape",
+   "verb": "uses"
+  },
+  {
+   "span": "compatible-shapes",
+   "concept": "euclidean-space",
+   "verb": "uses"
+  },
+  {
+   "span": "compatible-shapes",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "compatible-shapes",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "compatible-shapes",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "reconstruct",
+   "concept": "finding-the-matrix-of-a-transformation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "reconstruct",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "reconstruct",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "reconstruct",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "standard-vectors",
+   "concept": "standard-unit-vectors",
+   "verb": "introduces"
+  },
+  {
+   "span": "standard-vectors",
+   "concept": "identity-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-linear-trans-columns",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-linear-trans-columns",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-linear-trans-columns",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-rotated-vectors",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-rotated-vectors",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-rotated-vectors",
+   "concept": "standard-unit-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-rotated-vectors",
+   "concept": "finding-the-matrix-of-a-transformation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "glided-over",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "one-then-another",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "one-then-another",
+   "concept": "euclidean-space",
+   "verb": "uses"
+  },
+  {
+   "span": "one-then-another",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "composition-named",
+   "concept": "matrix-product-as-composition",
+   "verb": "uses"
+  },
+  {
+   "span": "composing-matrix-transformations",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "composing-matrix-transformations",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "composing-matrix-transformations",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "composing-matrix-transformations",
+   "concept": "matrix-product-as-composition",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-5-8",
+   "concept": "matrix-product-as-composition",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-2-5-8",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-2-5-8",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "compatibility",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compatibility",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "compatibility",
+   "concept": "matrix-product",
+   "verb": "uses"
+  },
+  {
+   "span": "compatibility",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-composition",
+   "concept": "matrix-product-as-composition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-composition",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-composition",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-composition",
+   "concept": "matrix-product",
+   "verb": "uses"
+  },
+  {
+   "span": "chapter-4-preview",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "state-and-transition",
+   "concept": "state-vector",
+   "verb": "introduces"
+  },
+  {
+   "span": "state-and-transition",
+   "concept": "transition-function",
+   "verb": "introduces"
+  },
+  {
+   "span": "state-and-transition",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "state-and-transition",
+   "concept": "linear-mapping",
+   "verb": "reinforces"
+  },
+  {
+   "span": "state-evolution",
+   "concept": "state-vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "state-evolution",
+   "concept": "transition-function",
+   "verb": "reinforces"
+  },
+  {
+   "span": "state-evolution",
+   "concept": "matrix-product-as-composition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "discrete-dynamical-system",
+   "concept": "discrete-dynamical-system",
+   "verb": "introduces"
+  },
+  {
+   "span": "discrete-dynamical-system",
+   "concept": "state-vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-truck-fleet",
+   "concept": "discrete-dynamical-system",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-truck-fleet",
+   "concept": "state-vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-truck-fleet",
+   "concept": "transition-function",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-truck-fleet",
+   "concept": "matrix-product-as-composition",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.5.1",
+   "source_number": "2.5.1",
+   "kind": "preview",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "this-section"
+   },
+   "cite": "this-section",
+   "prompt": "<p>We will begin by considering a more familiar situation; namely, the function $f(x) = x^2$, which takes a real number $x$ as an input and produces its square $x^2$ as its output.</p><ol type=\"a\"><li>What is the value of $f(3)$?</li><li>Can we solve the equation $f(x) = 4$? If so, is the solution unique?</li><li>Can we solve the equation $f(x) = -10$? If so, is the solution unique?</li><li>Sketch a graph of the function $f(x)=x^2$ in Figure 2.5.1.</li><li>We will now consider functions having the form $g(x)=mx$. Draw a graph of the function $g(x) = 2x$ on the left in Figure 2.5.2.</li><li>Draw a graph of the function $h(x) = -\\frac13 x$ on the right of Figure 2.5.2.</li><li>Remember that composing two functions means we use the output from one function as the input into the other; that is, $(g\\circ h)(x) = g(h(x))$. What function results from composing $(g\\circ h)(x)$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$f(3) = 3^2 = 9$.</li><li>There is not a unique solution.</li><li>There are no solutions.</li><li><img src=\"/media/ch02/ex-graph-x-squared.svg\" alt=\"The graph of f(x) = x squared on a coordinate grid.\" width=\"200\"></li><li><p>The graph is shown on the left below.</p><p><img src=\"/media/ch02/ex-graph-2x.svg\" alt=\"The graph of g(x) = 2x, a line of slope 2 through the origin.\" width=\"200\"> <img src=\"/media/ch02/ex-graph-fracx.svg\" alt=\"The graph of h(x) = minus one third x, a line of slope minus one third through the origin.\" width=\"200\"></p></li><li>The graph is shown on the right above.</li><li>$g(h(x)) = g(-\\frac13x)= -\\frac23 x$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We find $f(3) = 3^2 = 9$.</li><li>If $f(x)=x^2 = 4$, then $x = \\pm2$ so there is not a unique solution.</li><li>There are no solutions to the equation $f(x)=x^2=-10$.</li><li><img src=\"/media/ch02/ex-graph-x-squared.svg\" alt=\"The graph of f(x) = x squared on a coordinate grid.\" width=\"200\"></li><li><p>The graph is shown on the left below.</p><p><img src=\"/media/ch02/ex-graph-2x.svg\" alt=\"The graph of g(x) = 2x, a line of slope 2 through the origin.\" width=\"200\"> <img src=\"/media/ch02/ex-graph-fracx.svg\" alt=\"The graph of h(x) = minus one third x, a line of slope minus one third through the origin.\" width=\"200\"></p></li><li>The graph is shown on the right above.</li><li>Composing the functions, we find that $g(h(x)) = g(-\\frac13x)= -\\frac23 x$. We see that the composition is a new linear function whose slope is obtained by multiplying the slopes of $g$ and $h$.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.5.2",
+   "source_number": "2.5.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-mt-to-matrix"
+   },
+   "cite": "definition-2-5-3",
+   "prompt": "<p>In this activity, we will look at some examples of matrix transformations.</p><ol type=\"a\"><li><p>To begin, suppose that $A$ is the matrix</p>$$ A = \\left[\\begin{array}{rr} 2 & 1 \\\\ 1 & 2 \\end{array}\\right]. $$<p>with associated matrix transformation $T(\\mathbf{x}) = A\\mathbf{x}$.</p><ol><li>What is $T\\left(\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]\\right)$?</li><li>What is $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$?</li><li>What is $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$?</li><li>Is there a vector $\\mathbf{x}$ such that $T(\\mathbf{x}) = \\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$?</li><li>Write $T\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right)$ as a two-dimensional vector.</li></ol></li><li><p>Suppose that $T(\\mathbf{x}) = A\\mathbf{x}$ where</p>$$ A=\\left[\\begin{array}{rrrr} 3 & 3 & -2 & 1 \\\\ 0 & 2 & 1 & -3 \\\\ -2 & 1 & 4 & -4 \\end{array}\\right] $$<p>.</p><ol><li>What is the dimension of the vectors $\\mathbf{x}$ that are inputs for $T$?</li><li>What is the dimension of the vectors $T(\\mathbf{x})=A\\mathbf{x}$ that are outputs?</li><li>If we describe this transformation as $T:{\\mathbb R}^n\\to{\\mathbb R}^m$, what are the values of $n$ and $m$ and how do they relate to the shape of $A$?</li><li>Describe the vectors $\\mathbf{x}$ for which $T(\\mathbf{x}) = {\\mathbf 0}$.</li></ol></li><li>If $A$ is the matrix $A=\\left[\\begin{array}{rr} {\\mathbf v}_1 & {\\mathbf v}_2 \\end{array}\\right]$, what is $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$ in terms of the vectors ${\\mathbf v}_1$ and ${\\mathbf v}_2$? What about $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$?</li><li><p>Suppose that $A$ is a $3\\times 2$ matrix and that $T(\\mathbf{x})=A\\mathbf{x}$. If</p>$$ T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}3 \\\\ -1 \\\\ 1 \\end{array}\\right], T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}2 \\\\ 2 \\\\ -1 \\end{array}\\right] $$<p>, what is the matrix $A$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If $A = \\left[\\begin{array}{rr} 2 & 1 \\\\ 1 & 2 \\end{array}\\right]$, then</p><ol><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ -3 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] = \\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right) = \\left[\\begin{array}{r}2x+y \\\\ x+2y \\end{array}\\right]$.<sup class=\"fn\" data-note=\"fn-act-2-5-2\"></sup></li><li>We seek a vector $\\mathbf{x}$ such that $T(\\mathbf{x}) = A\\mathbf{x}=\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$. We can solve this equation to find the unique solution $\\mathbf{x}=\\left[\\begin{array}{r}2 \\\\ -1 \\end{array}\\right]$.</li></ol></li><li><p>Now if</p>$$ A=\\left[\\begin{array}{rrrr} 3 & 3 & -2 & 1 \\\\ 0 & 2 & 1 & -3 \\\\ -2 & 1 & 4 & -4 \\end{array}\\right]\\text{,} $$<p>the matrix has dimensions $3\\times4$.</p><ol><li>$\\mathbf{x}$ must be a four-dimensional vector.</li><li>$A\\mathbf{x}$ must be a three-dimensional vector.</li><li>For this matrix, we have $T:{\\mathbb R}^4\\to{\\mathbb R}^3$. In general, if $A$ is an $m\\times n$ matrix, $T:{\\mathbb R}^n\\to{\\mathbb R}^m$.</li><li>If we solve the homogeneous equation $A\\mathbf{x}={\\mathbf 0}$, we find that $\\mathbf{x}=x_4\\left[\\begin{array}{r}-3 \\\\ 2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li></ol></li><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = {\\mathbf v}_1$, the first column of the matrix. Similarly, $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$ gives the second column of the matrix.</li><li>The matrix is $A=\\left[ \\begin{array}{rr} 3 & 2 \\\\ -1 & 2 \\\\ 1 & -1 \\\\ \\end{array}\\right]\\text{.}$</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.5.3",
+   "source_number": "2.5.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sim-rotated-vectors"
+   },
+   "cite": "prop-linear-trans-columns",
+   "prompt": "<p>Let’s look at some examples and apply these observations.</p><ol type=\"a\"><li><p>To begin, suppose that $T$ is the matrix transformation that takes a two-dimensional vector $\\mathbf{x}$ as an input and outputs $T(\\mathbf{x})$, the two-dimensional vector obtained by rotating $\\mathbf{x}$ counterclockwise by $90^\\circ$, as shown in Figure 2.5.7.</p><p>We will see in the next section that many geometric operations like this one can be performed by matrix transformations.</p><ol><li>If we write $T:{\\mathbb R}^n\\to{\\mathbb R}^m$, what are the values of $m$ and $n$, and what is the shape of the associated matrix $A$?</li><li>Determine the matrix $A$ by applying <a href=\"#prop-linear-trans-columns\">Proposition 2.5.6</a>.</li><li>If $\\mathbf{v}=\\left[\\begin{array}{r}-2 \\\\ -1 \\end{array}\\right]$ as shown on the left in Figure 2.5.7, use your matrix to determine $T(\\mathbf{v})$ and verify that it agrees with that shown on the right of Figure 2.5.7.</li><li>If $\\mathbf{x}=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, determine the vector $T(\\mathbf{x})$ obtained by rotating $\\mathbf{x}$ counterclockwise by $90^\\circ$.</li></ol></li><li><p>Suppose that we work for a company that makes baked goods, including cakes, doughnuts, and eclairs. The company operates two bakeries, Bakery 1 and Bakery 2. In one hour of operation,</p><ul><li>Bakery 1 produces 10 cakes, 50 doughnuts, and 30 eclairs.</li><li>Bakery 2 produces 20 cakes, 30 doughnuts, and 30 eclairs.</li></ul><p>If Bakery 1 operates for $x_1$ hours and Bakery 2 for $x_2$ hours, we will use the vector $\\mathbf{x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]$ to describe the operation of the two bakeries.</p><p>We would like to describe a matrix transformation $T$ where $\\mathbf{x}$ describes the number of hours the bakeries operate and $T(\\mathbf{x})$ describes the total number of cakes, doughnuts, and eclairs produced. That is, $T(\\mathbf{x}) = \\left[\\begin{array}{r}y_1 \\\\ y_2 \\\\ y_3 \\end{array}\\right]$ where $y_1$ is the number of cakes, $y_2$ is the number of doughnuts, and $y_3$ is the number of eclairs produced.</p><ol><li>If $T:{\\mathbb R}^n\\to{\\mathbb R}^m$, what are the values of $m$ and $n$, and what is the shape of the associated matrix $A$?</li><li>We can determine the matrix $A$ using <a href=\"#prop-linear-trans-columns\">Proposition 2.5.6</a>. For instance, $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$ will describe the number of cakes, doughnuts, and eclairs produced when Bakery 1 operates for one hour and Bakery 2 sits idle. What is this vector?</li><li>In the same way, determine $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$. What is the matrix $A$?</li><li>If Bakery 1 operates for 120 hours and Bakery 2 for 180 hours, what is the total number of cakes, doughnuts, and eclairs produced?</li><li>Suppose that in one period of time, the company produces 5060 cakes, 14310 doughnuts, and 10470 eclairs. How long did each bakery operate?</li><li>Suppose that the company receives an order for a certain number of cakes, doughnuts, and eclairs. Can you guarantee that you can fill the order without having leftovers?</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li>Since both the inputs and the outputs of $T$ are two-dimensional, it follows that $T:{\\mathbb R}^2\\to{\\mathbb R}^2$ and that $A$ is a $2\\times2$ matrix.</li><li><p>Since</p>$$ T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right],~~~ T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}-1 \\\\ 0 \\end{array}\\right], $$<p>we have $A=\\begin{bmatrix} 0 & -1 \\\\ 1 & 0 \\end{bmatrix}$.</p></li><li>Multiplying $T(\\mathbf{v}) = A\\mathbf{v} = \\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]$, which agrees with the vector shown in the figure.</li><li>$T\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right) = \\left[\\begin{array}{r}-y \\\\ x \\end{array}\\right]$.</li></ol></li><li><ol><li>The shape of matrix $A$ is $3\\times 2$, and $T:{\\mathbb R}^2\\to{\\mathbb R}^3$.</li><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}10 \\\\ 50 \\\\ 30 \\end{array}\\right]$.</li><li>$A = \\begin{bmatrix} 10 & 20 \\\\ 50 & 30 \\\\ 30 & 30 \\end{bmatrix}$.</li><li>$T\\left(\\left[\\begin{array}{r}120 \\\\ 180 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}4800 \\\\ 11400 \\\\ 9000 \\end{array}\\right]$.</li><li>We solve the equation $T(\\mathbf{x}) = A\\mathbf{x} = \\left[\\begin{array}{r}5060 \\\\ 14310 \\\\ 10470 \\end{array}\\right]$ to obtain $\\mathbf{x} = \\left[\\begin{array}{r}192 \\\\ 157 \\end{array}\\right].$</li><li>No, you cannot guarantee this because the two columns of $A$ cannot span ${\\mathbb R}^3$. If we view an order received as a three-dimensional vector $\\mathbf{b}$, then a solution to the equation $A\\mathbf{x} = \\mathbf{b}$ tells us how long to operate the two bakeries to produce this order. However, since $A$ is a $3\\times 2$ matrix, it must have a row without a pivot position, which means that the equation $A\\mathbf{x} = \\mathbf{b}$ will be inconsistent for some vectors $\\mathbf{b}$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "2.5.4",
+   "source_number": "2.5.4",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sim-composition"
+   },
+   "cite": "proposition-2-5-8",
+   "prompt": "<p>We will explore the composition of matrix transformations by revisiting the matrix transformations from <a href=\"#2.5-ex-a3\">Activity 2.5.3</a>.</p><ol type=\"a\"><li><p>Let’s begin with the matrix transformation $T:{\\mathbb R}^2\\to{\\mathbb R}^2$ that rotates a two-dimensional vector $\\mathbf{x}$ by $90^\\circ$ to produce $T(\\mathbf{x})$. We saw in the earlier activity that the associated matrix is $A = \\begin{bmatrix} 0 & -1 \\\\ 1 & 0 \\end{bmatrix}$. Suppose that we compose this matrix transformation with itself to obtain $(T\\circ T)(\\mathbf{x}) = T(T(\\mathbf{x}))$, which is the result of rotating $\\mathbf{x}$ by $90^\\circ$ twice.</p><ol><li>What is the matrix associated to the composition $(T\\circ T)$?</li><li>What is the result of rotating $\\mathbf{v}=\\left[\\begin{array}{r}-2 \\\\ -1 \\end{array}\\right]$ twice?</li><li>Suppose that $R:{\\mathbb R}^2\\to{\\mathbb R}^2$ is the matrix transformation that rotates vectors by $180^\\circ$, as shown in Figure 2.5.9. Use <a href=\"#prop-linear-trans-columns\">Proposition 2.5.6</a> to find the matrix associated to $R$ and explain why it is the same matrix associated to $(T\\circ T)$.</li><li>Write the two-dimensional vector $(T\\circ T)\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right)$. How might this vector be expressed in terms of scalar multiplication and why does this make sense geometrically?</li></ol></li><li><p>In the previous activity, we imagined a company that operates two bakeries. We found the matrix transformation $T:{\\mathbb R}^2\\to{\\mathbb R}^3$ where $T\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]\\right)$ describes the number of cakes, doughnuts, and eclairs when Bakery1 runs for $x_1$ hours and Bakery 2 runs for $x_2$ hours. The associated matrix is $A = \\begin{bmatrix} 10 & 20 \\\\ 50 & 30 \\\\ 30 & 30 \\end{bmatrix}$.</p><p>Suppose now that</p><ul><li>Each cake requires 4 cups of flour and and 2 cups of sugar.</li><li>Each doughnut requires 1 cup of flour and 1 cup of sugar.</li><li>Each eclair requires 1 cup of flour and 2 cups of sugar.</li></ul><p>We will describe a matrix transformation $S:{\\mathbb R}^3\\to{\\mathbb R}^2$ where $S\\left(\\left[\\begin{array}{r}y_1 \\\\ y_2 \\\\ y_3 \\end{array}\\right]\\right)$ is a two-dimensional vector describing the number of cups of flour and sugar required to make $y_1$ cakes, $y_2$ doughnuts, and $y_3$ eclairs.</p><ol><li>Use <a href=\"#prop-linear-trans-columns\">Proposition 2.5.6</a> to write the matrix $B$ associated to the transformation $S$.</li><li>If we make 1200 cakes, 2850 doughnuts, and 2250 eclairs, how many cups of flour and sugar are required?</li><li>Suppose that Bakery 1 operates for 75 hours and Bakery 2 operates for 53 hours. How many cakes, doughnuts, and eclairs are produced? How many cups of flour and sugar are required?</li><li>What is the meaning of the composition $(S\\circ T)$ and what is its associated matrix?</li><li>In a certain time interval, both bakeries use a total of 5800 cups of flour and 5980 cups of sugar. How long have the two bakeries been operating?</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li>The matrix is $B=AA=A^2 = \\begin{bmatrix} -1 & 0 \\\\ 0 & -1 \\end{bmatrix}$.</li><li>$(T\\circ T)(\\mathbf{v}) = A^2\\mathbf{v} = \\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$.</li><li>The matrix associated to $R$ is also $A^2$ since rotating by $90^\\circ$ twice is the same as rotating once by $180^\\circ$.</li><li>$(T\\circ T)(\\mathbf{x}) = R(\\mathbf{x}) = -\\mathbf{x}$, which makes sense because multiplying a vector by $-1$ simply changes its direction.</li></ol></li><li><ol><li>$B = \\begin{bmatrix} 4 & 1 & 1 \\\\ 2 & 1 & 2 \\end{bmatrix}$.</li><li>$S\\left(\\left[\\begin{array}{r}1200 \\\\ 2850 \\\\ 2250 \\end{array}\\right]\\right) = B\\left[\\begin{array}{r}1200 \\\\ 2850 \\\\ 2250 \\end{array}\\right] = \\left[\\begin{array}{r}9900 \\\\ 9750 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}75 \\\\ 53 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1810 \\\\ 5340 \\\\ 3840 \\end{array}\\right]$ and $S\\left(\\left[\\begin{array}{r}1810 \\\\ 5340 \\\\ 3840 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}16430 \\\\ 16640 \\end{array}\\right]$.<sup class=\"fn\" data-note=\"fn-act-2-5-4-b3\"></sup></li><li>$(S\\circ T)$ takes as input a vector $\\mathbf{x}$ that records the number of hours both bakeries operate and outputs a vector $(S\\circ T)(\\mathbf{x})$ that tells us the total number of cups of flour and sugar used. The associated matrix is $BA=\\begin{bmatrix} 120 & 140 \\\\ 130 & 130 \\end{bmatrix}$.</li><li>We want to find the vector $\\mathbf{x}$ for which $(S\\circ T)(\\mathbf{x}) = BA\\mathbf{x} = \\left[\\begin{array}{r}5800 \\\\ 5980 \\end{array}\\right]$. Solving this equation gives $\\mathbf{x}=\\left[\\begin{array}{r}32 \\\\ 14 \\end{array}\\right]$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "2.5.5",
+   "source_number": "2.5.5",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "chapter-4-preview"
+   },
+   "cite": "state-and-transition",
+   "prompt": "<p>Suppose we run a company that has two warehouses, which we will call $P$ and $Q$, and a fleet of 1000 delivery trucks. Every morning, a delivery truck goes out from one of the warehouses and returns in the evening to one of the warehouses. It is observed that</p><ul><li>70% of the trucks that leave $P$ return to $P$. The other 30% return to $Q$.</li><li>50% of the trucks that leave $Q$ return to $Q$ and 50% return to $P$.</li></ul><p>The distribution of trucks is represented by the vector $\\mathbf{x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]$ when there are $x_1$ trucks at location $P$ and $x_2$ trucks at $Q$. If $\\mathbf{x}$ describes the distribution of trucks in the morning, then the matrix transformation $T(\\mathbf{x})$ will describe the distribution in the evening.</p><ol type=\"a\"><li><p>Suppose that all 1000 trucks begin the day at location $P$ and none at $Q$. How many trucks are at each location that evening? Using our vector representation, what is $T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right)$?</p><p>So that we can find the matrix $A$ associated to $T$, what does this tell us about $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$?</p></li><li>In the same way, suppose that all 1000 trucks begin the day at location $Q$ and none at $P$. How many trucks are at each location that evening? What is the result $T\\left(\\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]\\right)$ and what is $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$?</li><li>Find the matrix $A$ such that $T(\\mathbf{x}) = A\\mathbf{x}$.</li><li>Suppose that there are 100 trucks at $P$ and 900 at $Q$ in the morning. How many are there at the two locations in the evening?</li><li>Suppose that there are 550 trucks at $P$ and 450 at $Q$ in the evening. How many trucks were there at the two locations that morning?</li><li><p>Suppose that all of the trucks are at location $Q$ on Monday morning.</p><ol><li>How many trucks are at each location Monday evening?</li><li>How many trucks are at each location Tuesday evening?</li><li>How many trucks are at each location Wednesday evening?</li></ol></li><li>Suppose that $S$ is the matrix transformation that transforms the distribution of trucks $\\mathbf{x}$ one morning into the distribution of trucks in the morning one week (seven days) later. What is the matrix that defines the transformation $S$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>If 1000 trucks begin at $P$, that evening we find that 70% of them are at $P$ with the remaining 30% at $Q$. Therefore, $T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}700 \\\\ 300 \\end{array}\\right]$. Since $T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right) = 1000A\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$, we see that $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0.7 \\\\ 0.3 \\end{array}\\right]$.</li><li>In the same way, we see that $T\\left(\\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}500 \\\\ 500 \\end{array}\\right]$ so that $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0.5 \\\\ 0.5 \\end{array}\\right]$.</li><li>The columns of $A$ are $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$ and $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$ so that $A=\\left[\\begin{array}{rr} 0.7 & 0.5 \\\\ 0.3 & 0.5 \\end{array}\\right]$.</li><li>Evaluate $T\\left(\\left[\\begin{array}{r}100 \\\\ 900 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}100 \\\\ 900 \\end{array}\\right] = \\left[\\begin{array}{r}520 \\\\ 480 \\end{array}\\right]$.</li><li>We solve $T(\\mathbf{x}) = A\\mathbf{x} = \\left[\\begin{array}{r}550 \\\\ 450 \\end{array}\\right]$ to find $\\mathbf{x}=\\left[\\begin{array}{r}250 \\\\ 750 \\end{array}\\right]$.</li><li><p>We denote the distribution of trucks Monday morning by $\\mathbf{x}_0 = \\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]$.</p><ol type=\"i\"><li>Monday evening, we have $\\mathbf{x}_1=A\\mathbf{x}_0 = \\left[\\begin{array}{r}500 \\\\ 500 \\end{array}\\right]$.</li><li>Tuesday evening, we have $\\mathbf{x}_2=A\\mathbf{x}_1 = \\left[\\begin{array}{r}600 \\\\ 400 \\end{array}\\right]$.</li><li>Wednesday evening, we have $\\mathbf{x}_3=A\\mathbf{x}_2 = \\left[\\begin{array}{r}620 \\\\ 380 \\end{array}\\right]$.</li></ol></li><li>The matrix is $A^7 = \\left[\\begin{array}{rr} 0.625 & 0.625 \\\\ 0.375 & 0.375 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.5.1",
+   "source_number": "2.5.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-5-8",
+   "prompt": "<p>Suppose that $T$ is the matrix transformation defined by the matrix $A$ and $S$ is the matrix transformation defined by $B$ where</p>$$ A = \\left[\\begin{array}{rrr} 3 & -1 & 0 \\\\ 1 & 2 & 2 \\\\ -1 & 3 & 2 \\end{array}\\right], \\qquad B = \\left[\\begin{array}{rrr} 1 & -1 & 0 \\\\ 2 & 1 & 2 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>If $T:{\\mathbb R}^n\\to{\\mathbb R}^m$, what are the values of $m$ and $n$? What values of $m$ and $n$ are appropriate for the transformation $S$?</li><li>Evaluate $T\\left(\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right]\\right)$.</li><li>Evaluate $S\\left(\\left[\\begin{array}{r}-2 \\\\ 2 \\\\ 1 \\end{array}\\right]\\right)$.</li><li>Evaluate $S\\circ T\\left(\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right]\\right)$.</li><li>Find the matrix $C$ that defines the matrix transformation $S\\circ T$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$T:{\\mathbb R}^3\\to{\\mathbb R}^3$ and $S:{\\mathbb R}^3\\to{\\mathbb R}^2$.</li><li>$\\left[\\begin{array}{r}6 \\\\ -1 \\\\ -6 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}-4 \\\\ 0 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}7 \\\\ -1 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 2 & -3 & -2 \\\\ 5 & 6 & 6 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since $A$ is a $3\\times3$ matrix, we have $T:{\\mathbb R}^3\\to{\\mathbb R}^3$. Since $B$ is a $2\\times3$ matrix, we have $S:{\\mathbb R}^3\\to{\\mathbb R}^2$.</li><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right] = \\left[\\begin{array}{r}6 \\\\ -1 \\\\ -6 \\end{array}\\right]$.</li><li>$S\\left(\\left[\\begin{array}{r}-2 \\\\ 2 \\\\ 1 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}-2 \\\\ 2 \\\\ 1 \\end{array}\\right]= \\left[\\begin{array}{r}-4 \\\\ 0 \\end{array}\\right]$.<sup class=\"fn\" data-note=\"fn-ex-2-5-1-c\"></sup></li><li>$S\\circ T\\left(\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right]\\right) = BA\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 2 \\end{array}\\right] = \\left[\\begin{array}{r}7 \\\\ -1 \\end{array}\\right]$.</li><li>$C = BA = \\left[\\begin{array}{rrr} 2 & -3 & -2 \\\\ 5 & 6 & 6 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.5.2",
+   "source_number": "2.5.2",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-mt-to-matrix",
+   "prompt": "<p>This problem concerns the identification of matrix transformations, about which more will be said in the next section.</p><ol type=\"a\"><li><p>Check that the following function $T:{\\mathbb R}^3\\to{\\mathbb R}^2$ is a matrix transformation by finding a matrix $A$ such that $T(\\mathbf{x}) = A\\mathbf{x}$.</p>$$ T\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right]\\right) = \\left[\\begin{array}{c} 3x_1 - x_2 + 4x_3 \\\\ 5x_2 - x_3 \\\\ \\end{array}\\right] $$<p>.</p></li><li><p>Explain why</p>$$ T\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right]\\right) = \\left[\\begin{array}{c} 3x_1^4 - x_2 + 4x_3 \\\\ 5x_2 - x_3 \\\\ \\end{array}\\right] $$<p>is not a matrix transformation.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$A=\\left[\\begin{array}{rrr} 3 & -1 & 4 \\\\ 0 & 5 & -1 \\end{array}\\right]$.</li><li>Because the first component has the term $3x_1^4$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The matrix $A=\\left[\\begin{array}{rrr} 3 & -1 & 4 \\\\ 0 & 5 & -1 \\end{array}\\right]$.</li><li>Because the first component has the term $3x_1^4$, there is no matrix such that $T(\\mathbf{x}) = A\\mathbf{x}$.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.5.3",
+   "source_number": "2.5.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-5-3",
+   "prompt": "<p>Suppose that the matrix</p>$$ A = \\left[\\begin{array}{rrr} 1 & 3 & 1 \\\\ -2 & 1 & 5 \\\\ 0 & 2 & 2 \\end{array}\\right] $$<p>defines the matrix transformation $T:{\\mathbb R}^3\\to{\\mathbb R}^3$.</p><ol type=\"a\"><li>Describe the vectors $\\mathbf{x}$ that satisfy $T(\\mathbf{x}) = {\\mathbf 0}$.</li><li>Describe the vectors $\\mathbf{x}$ that satisfy $T(\\mathbf{x}) = \\left[\\begin{array}{r}-8 \\\\ 9 \\\\ 2 \\end{array}\\right]$.</li><li>Describe the vectors $\\mathbf{x}$ that satisfy $T(\\mathbf{x}) = \\left[\\begin{array}{r}-8 \\\\ 2 \\\\ -4 \\end{array}\\right]$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\mathbf{x}= x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li>There are no such vectors.</li><li>$\\mathbf{x}=\\left[\\begin{array}{r}-2 \\\\ -2 \\\\ 0 \\end{array}\\right] + x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We have $T(\\mathbf{x}) = A\\mathbf{x} = {\\mathbf 0}$. The reduced row echelon form of $A$ is $A \\sim \\left[\\begin{array}{rrr} 1 & 0 & -2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right]$. Therefore, the solutions have the form $\\mathbf{x}=x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li><p>We see that</p>$$ \\left[\\begin{array}{rrr|r} 1 & 3 & 1 & -8 \\\\ -2 & 1 & 5 & 9 \\\\ 0 & 2 & 2 & 2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & -2 & 0 \\\\ 0 & 1 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>Since this is an inconsistent system, there are no vectors $\\mathbf{x}$ satisfying the equation.</p></li><li><p>In the same way, we have</p>$$ \\left[\\begin{array}{rrr|r} 1 & 3 & 1 & -8 \\\\ -2 & 1 & 5 & 2 \\\\ 0 & 2 & 2 & -4 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & -2 & -2 \\\\ 0 & 1 & 1 & -2 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>This shows that $\\mathbf{x}=\\left[\\begin{array}{r}-2 \\\\ -2 \\\\ 0 \\end{array}\\right] + x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.5.4",
+   "source_number": "2.5.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-linear-trans-columns",
+   "figure": {
+    "src": "/media/ch02/ex-linear-trans-2-5.svg",
+    "alt": "Three two-dimensional vectors v1 = (2, 1), v2 = (−1, 1) and v3 = (−1, −2) drawn from the origin on a grid.",
+    "caption": "Figure 2.5.10 The vectors T(eⱼ) = vⱼ."
+   },
+   "prompt": "<p>Suppose $T:{\\mathbb R}^3\\to{\\mathbb R}^2$ is a matrix transformation with $T(\\mathbf{e}_j) = \\mathbf{v}_j$ where $\\mathbf{v}_1$, $\\mathbf{v}_2$, and $\\mathbf{v}_3$ are as shown in Figure 2.5.10.</p><ol type=\"a\"><li>Sketch the vector $T\\left(\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 2 \\end{array}\\right]\\right)$.</li><li>What is the vector $T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right]\\right)$?</li><li>Find all the vectors $\\mathbf{x}$ such that $T(\\mathbf{x}) = {\\mathbf 0}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r}1 \\\\ -1 \\end{array}\\right]$.</li><li>$\\mathbf{v}_2$.</li><li>$\\mathbf{x}=x_3\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$T\\left(\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 2 \\end{array}\\right]\\right) = 2\\mathbf{v}_1+\\mathbf{v}_2+2\\mathbf{v}_3 = \\left[\\begin{array}{r}1 \\\\ -1 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right]\\right) = \\mathbf{v}_2$.</li><li><p>The matrix that defines $T$ is</p>$$ A = \\left[\\begin{array}{rrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\mathbf{v}_3 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rrr} 2 & -1 & -1 \\\\ 1 & 1 & -2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & -1 \\\\ 0 & 1 & -1 \\end{array}\\right]\\text{.} $$<p>This shows that the solutions to $T(\\mathbf{x}) = A\\mathbf{x} = {\\mathbf 0}$ are $\\mathbf{x}=x_3\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.5.5",
+   "source_number": "2.5.5",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-mt-to-matrix",
+   "prompt": "<p>In <a href=\"#example-mt-to-matrix\">Example 2.5.5</a> and <a href=\"#example-matrix-to-mt\">Example 2.5.4</a>, we wrote matrix transformations in terms of the components of $T(\\mathbf{x})$. This exercise makes use of that form.</p><ol type=\"a\"><li><p>Let’s return to the example in <a href=\"#2.5-ex-a3\">Activity 2.5.3</a> concerning the company that operates two bakeries. We used a matrix transformation with input $\\mathbf{x}$, which recorded the amount of time the two bakeries operated, and output $T(\\mathbf{x})$, the number of cakes, doughnuts, and eclairs produced. The associated matrix is $A=\\begin{bmatrix} 10 & 20 \\\\ 50 & 30 \\\\ 30 & 30 \\end{bmatrix}$.</p><ol><li>If $\\mathbf{x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]$, write the output $T(\\mathbf{x})$ as a three-dimensional vector in terms of $x_1$ and $x_2$.</li><li>If Bakery 1 operates for $x_1$ hours and Bakery 2 for $x_2$ hours, how many cakes are produced?</li><li>Explain how you may have discovered this expression by considering the rates at which the two locations make cakes.</li></ol></li><li><p>Suppose that a bicycle sharing program has two locations $P$ and $Q$. Bicycles are rented from some location in the morning and returned to a location in the evening. Suppose that</p><ul><li>60% of bicycles that begin at $P$ in the morning are returned to $P$ in the evening while the other 40% are returned to $Q$.</li><li>30% of bicycles that begin at $Q$ are returned to $Q$ and the other 70% are returned to $P$.</li></ul><ol><li>If $x_1$ is the number of bicycles at location $P$ and $x_2$ the number at $Q$ in the morning, write an expression for the number of bicycles at $P$ in the evening.</li><li>Write an expression for the number of bicycles at $Q$ in the evening.</li><li>Write an expression for $T\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]\\right)$, the vector that describs the distribution of bicycles in the evening.</li><li>Use this expression to identify the matrix $A$ associated to the matrix transformation $T$.</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><ol><li>We have $T(\\mathbf{x}) = \\left[\\begin{array}{r}10x_1+20x_2 \\\\ 50x_1+20x_2 \\\\ 30x_1+30x_2 \\end{array}\\right]$.</li><li>$10x_1 + 20x_2$.</li><li>Bakery 1 makes 10 cakes per hour and Bakery 2 makes 20.</li></ol></li><li><ol><li>$0.6x_1 + 0.7x_2$.</li><li>$0.4x_1 + 0.3x_2$</li><li>$T(\\mathbf{x}) = \\left[\\begin{array}{r}0.6x_1+0.7x_2 \\\\ 0.4x_1+0.3x_2 \\end{array}\\right]$.</li><li>$A = \\begin{bmatrix} 0.6 & 0.7 \\\\ 0.4 & 0.3 \\end{bmatrix}$.</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li><p>We have</p>$$ T(\\mathbf{x}) = \\begin{bmatrix} 10 & 20 \\\\ 50 & 30 \\\\ 30 & 30 \\end{bmatrix} \\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right] = \\left[\\begin{array}{r}10x_1+20x_2 \\\\ 50x_1+20x_2 \\\\ 30x_1+30x_2 \\end{array}\\right]. $$<p><sup class=\"fn\" data-note=\"fn-ex-2-5-5-a1\"></sup></p></li><li>The number of cakes produced is $10x_1 + 20x_2$.</li><li>This is consistent with the given information because Bakery 1 produces cakes at the rate of 10 cakes per hour so the number of cakes it produces is $10x_1$. In the same way, the number of cakes produced by Bakery 2 is $20x_2$ giving a total of $10x_1 + 20x_2$.</li></ol></li><li><ol><li><p>Of the bicycles that begin at $P$, 60% of them end up at $P$. Therefore $0.6x_1$ is the number of bicycles that begin at $P$ and end at $P$. Similarly, 70% of the bicycles that begin at $Q$ end up at $P$ so this number is $0.7x_2$. Therefore, the total number of bicycles that end up at $P$ is</p>$$ 0.6x_1 + 0.7x_2. $$</li><li><p>In the same way, the number of bicycles that end up at $Q$ is</p>$$ 0.4x_1 + 0.3x_2. $$</li><li><p>This gives the matrix</p>$$ T(\\mathbf{x}) = \\left[\\begin{array}{r}0.6x_1+0.7x_2 \\\\ 0.4x_1+0.3x_2 \\end{array}\\right] = \\begin{bmatrix} 0.6 & 0.7 \\\\ 0.4 & 0.3 \\end{bmatrix} \\mathbf{x}. $$</li><li>This expression leads to $A = \\begin{bmatrix} 0.6 & 0.7 \\\\ 0.4 & 0.3 \\end{bmatrix}$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.5.6",
+   "source_number": "2.5.6",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "compatible-shapes",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response.</p><ol type=\"a\"><li>A matrix transformation $T:{\\mathbb R}^4\\to{\\mathbb R}^5$ is defined by $T(\\mathbf{x}) = A\\mathbf{x}$ where $A$ is a $4\\times5$ matrix.</li><li>If $T:{\\mathbb R}^3\\to{\\mathbb R}^2$ is a matrix transformation, then there are infinitely many vectors $\\mathbf{x}$ such that $T(\\mathbf{x}) = {\\mathbf 0}$.</li><li>If $T:{\\mathbb R}^2\\to{\\mathbb R}^3$ is a matrix transformation, then it is possible that every equation $T(\\mathbf{x}) = \\mathbf{b}$ has a solution for every vector $\\mathbf{b}$.</li><li>If $T:{\\mathbb R}^n\\to{\\mathbb R}^m$ is a matrix transformation, then the equation $T(\\mathbf{x}) = {\\mathbf 0}$ always has a solution.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>False</li><li>True</li><li>False</li><li>True</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>False. The dimensions of $A$ are $5\\times4$.</li><li>True. The dimensions of $A$ are $2\\times3$ so there must be a column without a pivot position.</li><li>False. The dimensions of $A$ are $3\\times2$ so there must be a row without a pivot position.</li><li>True. The vector $\\mathbf{x}={\\mathbf 0}$ is always a solution.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.5.7",
+   "source_number": "2.5.7",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-5-8",
+   "prompt": "<p>Suppose that a company has three plants, called Plants 1, 2, and 3, that produce milk $M$ and yogurt $Y$. For every hour of operation,</p><ul><li>Plant $1$ produces 20 units of milk and 15 units of yogurt.</li><li>Plant $2$ produces 30 units of milk and 5 units of yogurt.</li><li>Plant $3$ produces 0 units of milk and 40 units of yogurt.</li></ul><ol type=\"a\"><li>Suppose that $x_1$, $x_2$, and $x_3$ record the amounts of time that the three plants are operated and that $M$ and $Y$ record the amount of milk and yogurt produced. If we write $\\mathbf{x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right]$ and $\\mathbf{y} = \\left[\\begin{array}{r}M \\\\ Y \\end{array}\\right]$, find the matrix $A$ that defines the matrix transformation $T(\\mathbf{x}) = \\mathbf{y}$.</li><li><p>Furthermore, suppose that producing each unit of</p><ul><li>milk requires 5 units of electricity and 8 units of labor.</li><li>yogurt requires 6 units of electricity and 10 units of labor.</li></ul><p>If we write the vector $\\mathbf{z} = \\left[\\begin{array}{r}E \\\\ L \\end{array}\\right]$ to record the required amounts of electricity $E$ and labor $L$, find the matrix $B$ that defines the matrix transformation $S(\\mathbf{y}) = \\mathbf{z}$.</p></li><li>If $\\mathbf{x} = \\left[\\begin{array}{r}30 \\\\ 20 \\\\ 10 \\end{array}\\right]$ describes the amounts of time that the three plants are operated, how much milk and yogurt is produced? How much electricity and labor are required?</li><li>Find the matrix $C$ that describes the matrix transformation $R(\\mathbf{x})=\\mathbf{z}$ that gives the required amounts of electricity and labor when the each plants is operated an amount of time given by the vector $\\mathbf{x}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$A = \\left[\\begin{array}{rrr} 20 & 30 & 0 \\\\ 15 & 5 & 40 \\end{array}\\right]$.</li><li>$B = \\left[\\begin{array}{rr} 5 & 6 \\\\ 8 & 10 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}M \\\\ Y \\end{array}\\right]=T\\left(\\left[\\begin{array}{r}30 \\\\ 20 \\\\ 10 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1200 \\\\ 950 \\end{array}\\right]$ and $\\left[\\begin{array}{r}E \\\\ L \\end{array}\\right]=S\\left(T\\left(\\left[\\begin{array}{r}30 \\\\ 20 \\\\ 10 \\end{array}\\right]\\right)\\right) = \\left[\\begin{array}{r}11700 \\\\ 19100 \\end{array}\\right]$.</li><li>$C=BA = \\left[\\begin{array}{rrr} 190 & 180 & 240 \\\\ 310 & 290 & 400 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The first column of the matrix is $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\\\ 0 \\end{array}\\right]\\right)=\\left[\\begin{array}{r}20 \\\\ 15 \\end{array}\\right]$. This shows us that the matrix is $A = \\left[\\begin{array}{rrr} 20 & 30 & 0 \\\\ 15 & 5 & 40 \\end{array}\\right]$.</li><li>In the same way, the matrix is $B = \\left[\\begin{array}{rr} 5 & 6 \\\\ 8 & 10 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}M \\\\ Y \\end{array}\\right]=T\\left(\\left[\\begin{array}{r}30 \\\\ 20 \\\\ 10 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1200 \\\\ 950 \\end{array}\\right]$ and $\\left[\\begin{array}{r}E \\\\ L \\end{array}\\right]=S\\left(T\\left(\\left[\\begin{array}{r}30 \\\\ 20 \\\\ 10 \\end{array}\\right]\\right)\\right) = \\left[\\begin{array}{r}11700 \\\\ 19100 \\end{array}\\right]$.</li><li>$C=BA = \\left[\\begin{array}{rrr} 190 & 180 & 240 \\\\ 310 & 290 & 400 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.5.8",
+   "source_number": "2.5.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-linear-trans-columns",
+   "prompt": "<p>Suppose that $T:{\\mathbb R}^2\\to{\\mathbb R}^2$ is a matrix transformation and that</p>$$ T\\left(\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}3 \\\\ -2 \\end{array}\\right], \\qquad T\\left(\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Find the vector $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$.</li><li>Find the matrix $A$ that defines $T$.</li><li>Find the vector $T\\left(\\left[\\begin{array}{r}4 \\\\ -5 \\end{array}\\right]\\right)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]$.</li><li>$A=\\left[\\begin{array}{rr} 1 & 2 \\\\ -2 & 0 \\end{array}\\right]$.</li><li>$T\\left(\\left[\\begin{array}{r}4 \\\\ -5 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}-6 \\\\ -8 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We first find weights $c$ and $d$ such that $\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] = c\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right] + d\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$ by constructing the augmented matrix</p>$$ \\left[\\begin{array}{rrr} 1 & -1 & 1 \\\\ 1 & 1 & 0 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & \\frac{1}{2} \\\\ 0 & 1 & -\\frac{1}{2} \\end{array}\\right]\\text{.} $$<p>This shows that $\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] = \\frac12\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right] - \\frac12\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$. Therefore,</p>$$ T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] = \\frac12 A\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right] - \\frac12A\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]= \\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]\\text{.} $$</li><li><p>In the same way, we find that</p>$$ T\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\frac12A\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right] + \\frac12A\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{r}2 \\\\ 0 \\end{array}\\right]\\text{.} $$<p>This gives the matrix $A=\\left[\\begin{array}{rr} 1 & 2 \\\\ -2 & 0 \\end{array}\\right]$.</p></li><li>Then $T\\left(\\left[\\begin{array}{r}4 \\\\ -5 \\end{array}\\right]\\right) = A\\left[\\begin{array}{r}4 \\\\ -5 \\end{array}\\right] = \\left[\\begin{array}{r}-6 \\\\ -8 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "2.5.9",
+   "source_number": "2.5.9",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "discrete-dynamical-system",
+   "prompt": "<p>Suppose that two species $P$ and $Q$ interact with one another and that we measure their populations every month. We record their populations in a state vector $\\mathbf{x} = \\left[\\begin{array}{r}p \\\\ q \\end{array}\\right]$, where $p$ and $q$ are the populations of $P$ and $Q$, respectively. We observe that there is a matrix</p>$$ A = \\left[\\begin{array}{rr} 0.8 & 0.3 \\\\ 0.7 & 1.2 \\end{array}\\right] $$<p>such that the matrix transformation $T(\\mathbf{x})=A\\mathbf{x}$ is the transition function describing how the state vector evolves from month to month. We also observe that, at the beginning of July, the populations are described by the state vector $\\mathbf{x}=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$.</p><ol type=\"a\"><li>What will the populations be at the beginning of August?</li><li>What were the populations at the beginning of June?</li><li>What will the populations be at the beginning of December?</li><li>What will the populations be at the beginning of July in the following year?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r}1.4 \\\\ 3.1 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}0.8 \\\\ 1.2 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}6.8 \\\\ 15.9 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}116.8 \\\\ 272.5 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><p>The initial state is the vector $\\mathbf{x}_0=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$.</p><ol type=\"a\"><li>At the beginning of August, we have $\\mathbf{x}_1 = A\\mathbf{x}_0 = \\left[\\begin{array}{r}1.4 \\\\ 3.1 \\end{array}\\right]$.</li><li>At the beginning of June, we have $A\\mathbf{x}_{-1} = \\mathbf{x}_0$. Solving this equation gives $\\mathbf{x}_{-1}=\\left[\\begin{array}{r}0.8 \\\\ 1.2 \\end{array}\\right]$.</li><li>At the beginning of December, we have $\\mathbf{x}_5=A^5\\mathbf{x}_0 = \\left[\\begin{array}{r}6.8 \\\\ 15.9 \\end{array}\\right]$.</li><li>At the beginning of July in the following year, we have $\\mathbf{x}_{12} = A^{12}\\mathbf{x}_0 = \\left[\\begin{array}{r}116.8 \\\\ 272.5 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "2.5.10",
+   "source_number": "2.5.10",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "discrete-dynamical-system",
+   "prompt": "<p>Students in a school are sometimes absent due to an illness. Suppose that</p><ul><li>95% of the students who attend school will attend school the next day.</li><li>50% of the students who are absent one day will be absent the next day.</li></ul><p>We will record the number of present students $p$ and the number of absent students $a$ in a state vector $\\mathbf{x}=\\left[\\begin{array}{r}p \\\\ a \\end{array}\\right]$ and note that that state vector evolves from one day to the next according to the transition function $T:{\\mathbb R}^2\\to{\\mathbb R}^2$. On Tuesday, the state vector is $\\mathbf{x}=\\left[\\begin{array}{r}1700 \\\\ 100 \\end{array}\\right]$.</p><ol type=\"a\"><li>Suppose we initially have 1000 students who are present and none absent. Find $T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right)$.</li><li>Suppose we initially have 1000 students who are absent and none present. Find $T\\left(\\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]\\right)$.</li><li>Use the results of parts a and b to find the matrix $A$ that defines the matrix transformation $T$.</li><li>If $\\mathbf{x}=\\left[\\begin{array}{r}1700 \\\\ 100 \\end{array}\\right]$ on Tuesday, how are the students distributed on Wednesday?</li><li>How many students were present on Monday?</li><li>How many students are present on the following Tuesday?</li><li>What happens to the number of students who are present after a very long time?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}950 \\\\ 0 \\end{array}\\right]$</li><li>$T\\left(\\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}500 \\\\ 500 \\end{array}\\right]$</li><li>$A=\\left[\\begin{array}{rr} 0.95 & 0.50 \\\\ 0.05 & 0.50 \\end{array}\\right]$.</li><li>There are 1665 students present and 135 absent.</li><li>1778</li><li>1636</li><li>It stabilizes around 1636 students present.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$T\\left(\\left[\\begin{array}{r}1000 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}950 \\\\ 0 \\end{array}\\right]$ so that $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0.95 \\\\ 0 \\end{array}\\right]$.<sup class=\"fn\" data-note=\"fn-ex-2-5-10-ab\"></sup></li><li>$T\\left(\\left[\\begin{array}{r}0 \\\\ 1000 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}500 \\\\ 500 \\end{array}\\right]$ so that $T\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0.5 \\\\ 0.5 \\end{array}\\right]$.</li><li>The matrix $A=\\left[\\begin{array}{rr} 0.95 & 0.50 \\\\ 0.05 & 0.50 \\end{array}\\right]$.</li><li>$T(\\mathbf{x}) = A\\mathbf{x} = \\left[\\begin{array}{r}1665 \\\\ 135 \\end{array}\\right]$ meaning that 1665 students are present and 135 are absent.</li><li>We want to solve the equation $T(\\mathbf{x}) = A\\mathbf{x}=\\left[\\begin{array}{r}1700 \\\\ 100 \\end{array}\\right]$, which gives $\\mathbf{x} = \\left[\\begin{array}{r}1778 \\\\ 22 \\end{array}\\right]$. There were 1778 students present on Monday.</li><li>The following Tuesday, the state will be described by the vector $A^7\\left[\\begin{array}{r}1700 \\\\ 100 \\end{array}\\right] = \\left[\\begin{array}{r}1636 \\\\ 163 \\end{array}\\right]$. This means that there were 1636 students present the following Tuesday.</li><li>If we compute $A^k\\left[\\begin{array}{r}1700 \\\\ 100 \\end{array}\\right]$ for some large powers $k$, we find that there are about 1636 students present every day after a very long time.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a2",
+   "concept": "finding-the-matrix-of-a-transformation"
+  },
+  {
+   "exercise": "a2",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-shape"
+  },
+  {
+   "exercise": "a3",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a3",
+   "concept": "finding-the-matrix-of-a-transformation"
+  },
+  {
+   "exercise": "a3",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "a3",
+   "concept": "span"
+  },
+  {
+   "exercise": "a3",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "a4",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "a5",
+   "concept": "discrete-dynamical-system"
+  },
+  {
+   "exercise": "a5",
+   "concept": "state-vector"
+  },
+  {
+   "exercise": "a5",
+   "concept": "transition-function"
+  },
+  {
+   "exercise": "a5",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a5",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "e1",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "e1",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "e1",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e2",
+   "concept": "finding-the-matrix-of-a-transformation"
+  },
+  {
+   "exercise": "e2",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "e3",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "e3",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e3",
+   "concept": "vector-form-of-the-solution-space"
+  },
+  {
+   "exercise": "e3",
+   "concept": "solution-space-from-reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e4",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "e4",
+   "concept": "standard-unit-vectors"
+  },
+  {
+   "exercise": "e4",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e4",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e5",
+   "concept": "finding-the-matrix-of-a-transformation"
+  },
+  {
+   "exercise": "e5",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "e5",
+   "concept": "transition-function"
+  },
+  {
+   "exercise": "e5",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e6",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "e6",
+   "concept": "matrix-shape"
+  },
+  {
+   "exercise": "e6",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e6",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "e6",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "e7",
+   "concept": "finding-the-matrix-of-a-transformation"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e8",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "e8",
+   "concept": "linearity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e8",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e8",
+   "concept": "standard-unit-vectors"
+  },
+  {
+   "exercise": "e9",
+   "concept": "discrete-dynamical-system"
+  },
+  {
+   "exercise": "e9",
+   "concept": "state-vector"
+  },
+  {
+   "exercise": "e9",
+   "concept": "transition-function"
+  },
+  {
+   "exercise": "e9",
+   "concept": "matrix-product-as-composition"
+  },
+  {
+   "exercise": "e10",
+   "concept": "discrete-dynamical-system"
+  },
+  {
+   "exercise": "e10",
+   "concept": "transition-function"
+  },
+  {
+   "exercise": "e10",
+   "concept": "state-vector"
+  },
+  {
+   "exercise": "e10",
+   "concept": "matrix-of-a-linear-mapping"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "fn-act-2-5-2",
+   "kind": "correction",
+   "html": "The book’s solution answers the activity’s parts 4 and 5 in the other order: its item 4, $T([x, y]) = [2x + y, x + 2y]$, answers part 5, and its item 5, the unique $\\mathbf{x} = [2, -1]$ with $T(\\mathbf{x}) = [3, 0]$, answers part 4."
+  },
+  {
+   "id": "fn-act-2-5-4-b3",
+   "kind": "correction",
+   "html": "The book prints $16430$ cups of flour. The first row of $B$ gives $4 \\cdot 1810 + 5340 + 3840 = 16420$, so $S$ of the vector is $[16420, 16640]$; the sugar, $16640$, is right as printed."
+  },
+  {
+   "id": "fn-ex-2-5-1-c",
+   "kind": "correction",
+   "html": "The book writes $A$ for the matrix multiplied here; $S$ is defined by $B$, and the product $B[-2, 2, 1] = [-4, 0]$ is the one printed."
+  },
+  {
+   "id": "fn-ex-2-5-5-a1",
+   "kind": "correction",
+   "html": "The book prints the second component, the doughnuts, as $50x_1 + 20x_2$ in the answer and the solution. The second row of $A$ is $50, 30$, so the number of doughnuts is $50x_1 + 30x_2$."
+  },
+  {
+   "id": "fn-ex-2-5-10-ab",
+   "kind": "correction",
+   "html": "The book prints $T([1000, 0]) = [950, 0]$ and $T([1, 0]) = [0.95, 0]$ in part a; the 50 students who fall absent make these $[950, 50]$ and $[0.95, 0.05]$, the first column of the matrix in part c. In part b the vector $[0.5, 0.5]$ is $T([0, 1])$, the second column, not $T([1, 0])$."
+  }
+ ]
+}
