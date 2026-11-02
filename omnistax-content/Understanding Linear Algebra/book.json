@@ -20,7 +20,8 @@
   },
   "chapters": [
     "ch01",
-    "ch02"
+    "ch02",
+    "ch03"
   ],
   "intro": {
     "module": "preface"
@@ -265,6 +266,202 @@
     {
       "sym": "theta",
       "latex": "\\theta"
+    },
+    {
+      "sym": "s_i",
+      "latex": "s_i"
+    },
+    {
+      "sym": "A_inv",
+      "latex": "A^{-1}",
+      "macro": "\\kAinv"
+    },
+    {
+      "sym": "B_inv",
+      "latex": "B^{-1}",
+      "macro": "\\kBinv"
+    },
+    {
+      "sym": "L",
+      "latex": "L",
+      "macro": "\\kL"
+    },
+    {
+      "sym": "U",
+      "latex": "U",
+      "macro": "\\kU"
+    },
+    {
+      "sym": "P",
+      "latex": "P",
+      "macro": "\\kP"
+    },
+    {
+      "sym": "L_i",
+      "latex": "L_i",
+      "macro": "\\kLi"
+    },
+    {
+      "sym": "D",
+      "latex": "D",
+      "macro": "\\kD"
+    },
+    {
+      "sym": "E_j",
+      "latex": "E_j",
+      "macro": "\\kEj"
+    },
+    {
+      "sym": "A_prime",
+      "latex": "A'",
+      "macro": "\\kAprime"
+    },
+    {
+      "sym": "I_m",
+      "latex": "I_m",
+      "macro": "\\kIm"
+    },
+    {
+      "sym": "b_1_vec",
+      "latex": "\\mathbf{b}_1",
+      "macro": "\\kvecbone"
+    },
+    {
+      "sym": "b_2_vec",
+      "latex": "\\mathbf{b}_2",
+      "macro": "\\kvecbtwo"
+    },
+    {
+      "sym": "v_0_vec",
+      "latex": "\\mathbf{v}_0",
+      "macro": "\\kvecvzero"
+    },
+    {
+      "sym": "v_4_vec",
+      "latex": "\\mathbf{v}_4",
+      "macro": "\\kvecvfour"
+    },
+    {
+      "sym": "v_5_vec",
+      "latex": "\\mathbf{v}_5",
+      "macro": "\\kvecvfive"
+    },
+    {
+      "sym": "v_6_vec",
+      "latex": "\\mathbf{v}_6",
+      "macro": "\\kvecvsix"
+    },
+    {
+      "sym": "v_7_vec",
+      "latex": "\\mathbf{v}_7",
+      "macro": "\\kvecvseven"
+    },
+    {
+      "sym": "P_B",
+      "latex": "P_{\\mathcal{B}}",
+      "macro": "\\kPB"
+    },
+    {
+      "sym": "P_B_inv",
+      "latex": "P_{\\mathcal{B}}^{-1}",
+      "macro": "\\kPBinv"
+    },
+    {
+      "sym": "P_C",
+      "latex": "P_{\\mathcal{C}}",
+      "macro": "\\kPC"
+    },
+    {
+      "sym": "x_B",
+      "latex": "\\left\\{\\mathbf{x}\\right\\}_{\\mathcal{B}}",
+      "macro": "\\kvecxB"
+    },
+    {
+      "sym": "x_C",
+      "latex": "\\left\\{\\mathbf{x}\\right\\}_{\\mathcal{C}}",
+      "macro": "\\kvecxC"
+    },
+    {
+      "sym": "Col",
+      "latex": "\\text{Col}",
+      "macro": "\\kCol"
+    },
+    {
+      "sym": "Nul",
+      "latex": "\\text{Nul}",
+      "macro": "\\kNul"
+    },
+    {
+      "sym": "B_cal",
+      "latex": "\\mathcal{B}"
+    },
+    {
+      "sym": "C_cal",
+      "latex": "\\mathcal{C}"
+    },
+    {
+      "sym": "E_cal",
+      "latex": "\\mathcal{E}"
+    },
+    {
+      "sym": "R_n",
+      "latex": "{\\mathbb R}^n"
+    },
+    {
+      "sym": "R_p",
+      "latex": "{\\mathbb R}^p"
+    },
+    {
+      "sym": "det",
+      "latex": "\\det"
+    },
+    {
+      "sym": "dim",
+      "latex": "\\dim"
+    },
+    {
+      "sym": "rank",
+      "latex": "\\operatorname{rank}"
+    },
+    {
+      "sym": "a",
+      "latex": "a"
+    },
+    {
+      "sym": "h",
+      "latex": "h"
+    },
+    {
+      "sym": "i",
+      "latex": "i"
+    },
+    {
+      "sym": "j",
+      "latex": "j"
+    },
+    {
+      "sym": "G",
+      "latex": "G"
+    },
+    {
+      "sym": "Y",
+      "latex": "Y"
+    },
+    {
+      "sym": "C_b",
+      "latex": "C_b"
+    },
+    {
+      "sym": "C_r",
+      "latex": "C_r"
+    },
+    {
+      "sym": "F_j",
+      "latex": "F_j"
+    },
+    {
+      "sym": "F_0",
+      "latex": "F_0"
     }
   ],
   "exercise_kinds": [
@@ -301,12 +498,14 @@
       "forms": [
         {
           "id": "eq-linear-equation",
-          "latex": "a_1x_1 + a_2x_2 + \\ldots + a_nx_n = b"
+          "latex": "a_1x_1 + a_2x_2 + \\ldots + a_nx_n = b",
+          "anchor": "1.1-eq-linear-equation"
         },
         {
           "id": "eq-line-general-form",
           "latex": "ax + by = c",
-          "condition": "the equation of a line, two unknowns"
+          "condition": "the equation of a line, two unknowns",
+          "anchor": "1.1-eq-line-general-form"
         }
       ]
     },
@@ -333,7 +532,8 @@
       "forms": [
         {
           "id": "eq-solution-of-a-linear-system",
-          "latex": "x_1 = s_1,\\ x_2 = s_2,\\ \\ldots,\\ x_n = s_n"
+          "latex": "x_1 = s_1,\\ x_2 = s_2,\\ \\ldots,\\ x_n = s_n",
+          "anchor": "1.1-definition-1-1-12"
         }
       ]
     },
@@ -601,12 +801,14 @@
         {
           "id": "eq-row-reduction-operations",
           "latex": "2n^3 + n^2",
-          "condition": "an n × n matrix, roughly"
+          "condition": "an n × n matrix, roughly",
+          "anchor": "1.3-eq-row-reduction-operations"
         },
         {
           "id": "eq-row-reduction-operations-careful",
           "latex": "\\frac{2}{3}n^3",
-          "condition": "a more careful accounting"
+          "condition": "a more careful accounting",
+          "anchor": "1.3-careful-accounting"
         }
       ]
     },
@@ -1494,6 +1696,890 @@
           "condition": "translation by two units horizontally and one unit vertically"
         }
       ]
+    },
+    {
+      "id": "square-matrix",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Square matrix",
+      "terms": [
+        "square"
+      ],
+      "type": "matrix",
+      "statement": "We only define invertibility for matrices that have the same number of rows and columns, in which case we say that the matrix is square."
+    },
+    {
+      "id": "invertible-matrix",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Invertible matrix",
+      "terms": [
+        "invertible"
+      ],
+      "type": "matrix",
+      "statement": "An n × n matrix A is called invertible if there is a matrix B such that AB = I_n, where I_n is the n × n identity matrix. Just as the real number 0 has no multiplicative inverse, we should not expect every matrix to have one; the matrix [−2 1; 4 −2], for instance, is not invertible, since the equation for the first column of its inverse is inconsistent.",
+      "forms": [
+        {
+          "id": "eq-invertible-matrix",
+          "latex": "AB = I_n"
+        }
+      ]
+    },
+    {
+      "id": "matrix-inverse",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Inverse of a matrix",
+      "terms": [
+        "inverse"
+      ],
+      "symbol": "A_inv",
+      "type": "matrix",
+      "statement": "If A is invertible, the matrix B with AB = I_n is called the inverse of A and denoted A⁻¹. It plays the role that the multiplicative inverse 3⁻¹ = 1/3 plays for the number 3 in the equation 3x = 5.",
+      "forms": [
+        {
+          "id": "eq-matrix-inverse",
+          "latex": "A^{-1} = B",
+          "condition": "AB = I_n"
+        }
+      ]
+    },
+    {
+      "id": "solving-with-the-inverse",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Solving an equation with the inverse",
+      "statement": "If A is an invertible matrix with inverse B, then any equation Ax = b is consistent and x = Bb is a solution, since A(Bb) = (AB)b = Ib = b. In other words, the solution to Ax = b is x = A⁻¹b, just as the solution to 3x = 5 is x = (1/3)·5; it is the solution, since A has a pivot position in every column.",
+      "forms": [
+        {
+          "id": "eq-solution-by-the-inverse",
+          "latex": "\\mathbf{x} = A^{-1}\\mathbf{b}"
+        },
+        {
+          "id": "eq-inverse-solution-check",
+          "latex": "A(B\\mathbf{b}) = (AB)\\mathbf{b} = I\\mathbf{b} = \\mathbf{b}"
+        }
+      ]
+    },
+    {
+      "id": "invertible-iff-row-equivalent-to-identity",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Invertibility and the reduced row echelon form",
+      "statement": "The matrix A is invertible if and only if the reduced row echelon form of A is the identity matrix: A ∼ I. Since Ax = b is consistent for every vector b, the columns of A must span ℝⁿ, so there is a pivot position in every row; since A is also square, there is a pivot position in every column, and its reduced row echelon form is the identity.",
+      "forms": [
+        {
+          "id": "eq-invertible-iff-identity",
+          "latex": "A \\sim I",
+          "condition": "A invertible"
+        }
+      ]
+    },
+    {
+      "id": "computing-a-matrix-inverse",
+      "kind": "skill",
+      "section": "3.1",
+      "name": "Finding an inverse by row reduction",
+      "statement": "To find the inverse B = [b₁ b₂] of a 2 × 2 matrix A we require AB = [Ab₁ Ab₂] = I, so the columns of B solve Ab₁ = [1, 0] and Ab₂ = [0, 1]. Rather than solving these equations separately, we augment A by both vectors, that is, by the identity, and find the reduced row echelon form: [A | I] ∼ [I | A⁻¹]. This reformulation always works for an invertible n × n matrix.",
+      "forms": [
+        {
+          "id": "eq-inverse-by-row-reduction",
+          "latex": "\\left[ \\begin{array}{r|r} A & I \\end{array} \\right] \\sim \\left[ \\begin{array}{r|r} I & A^{-1} \\end{array} \\right]"
+        },
+        {
+          "id": "eq-inverse-column-equations",
+          "latex": "A\\mathbf{b}_1 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right],~~~ A\\mathbf{b}_2 = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]",
+          "condition": "B = [b₁ b₂] the inverse of a 2 × 2 matrix A"
+        }
+      ]
+    },
+    {
+      "id": "inverse-of-an-inverse",
+      "kind": "result",
+      "section": "3.1",
+      "name": "The inverse of an inverse",
+      "statement": "The product of two matrices depends on the order in which they are multiplied, but something fortunate happens for invertibility: if A is an n × n matrix and AB = I, then it is also true that BA = I, which tells us that B is invertible with inverse A. In other words, (A⁻¹)⁻¹ = A, and A and B are inverses of each other. Exercise 3.1.12 explains why it always happens.",
+      "forms": [
+        {
+          "id": "eq-inverse-of-an-inverse",
+          "latex": "(A^{-1})^{-1} = A"
+        },
+        {
+          "id": "eq-inverse-commutes",
+          "latex": "BA = I",
+          "condition": "AB = I"
+        }
+      ]
+    },
+    {
+      "id": "inverse-of-a-product",
+      "kind": "result",
+      "section": "3.1",
+      "name": "The inverse of a product",
+      "statement": "If A and B are two invertible n × n matrices, then their product AB is also invertible and (AB)⁻¹ = B⁻¹A⁻¹, since (AB)(B⁻¹A⁻¹) = A(BB⁻¹)A⁻¹ = AIA⁻¹ = AA⁻¹ = I by associativity.",
+      "forms": [
+        {
+          "id": "eq-inverse-of-a-product",
+          "latex": "(AB)^{-1} = B^{-1}A^{-1}"
+        }
+      ]
+    },
+    {
+      "id": "properties-of-invertible-matrices",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Properties of invertible matrices",
+      "statement": "An n × n matrix A is invertible if and only if A ∼ I. If A is invertible, then the solution to the equation Ax = b is given by x = A⁻¹b. We can find A⁻¹ by finding the reduced row echelon form of [A | I]; namely, [A | I] ∼ [I | A⁻¹]. If A and B are two invertible n × n matrices, then their product AB is also invertible and (AB)⁻¹ = B⁻¹A⁻¹."
+    },
+    {
+      "id": "inverse-of-a-2x2-matrix",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Inverse of a 2 × 2 matrix",
+      "statement": "There is a simple formula for finding the inverse of a 2 × 2 matrix: [a b; c d]⁻¹ = (1/(ad − bc))[d −b; −c a], which can be easily checked. The condition that A be invertible is, in this case, reduced to the condition that ad − bc ≠ 0, a condition understood better through determinants. There is a similar formula for a 3 × 3 matrix, but there is not a good reason to write it.",
+      "forms": [
+        {
+          "id": "eq-inverse-2x2",
+          "latex": "\\left[\\begin{array}{rr} a & b \\\\ c & d \\end{array}\\right]^{-1} = \\frac{1}{ad-bc} \\left[\\begin{array}{rr} d & -b \\\\ -c & a \\end{array}\\right]",
+          "condition": "ad − bc ≠ 0"
+        }
+      ]
+    },
+    {
+      "id": "triangular-matrix",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Triangular matrix",
+      "terms": [
+        "lower triangular",
+        "upper triangular"
+      ],
+      "type": "matrix",
+      "statement": "We say that a matrix A is lower triangular if all its entries above the diagonal are zero. Similarly, A is upper triangular if all the entries below the diagonal are zero.",
+      "forms": [
+        {
+          "id": "eq-triangular-shapes",
+          "latex": "L = \\left[\\begin{array}{rrrr} * & 0 & 0 & 0 \\\\ * & * & 0 & 0 \\\\ * & * & * & 0 \\\\ * & * & * & * \\end{array}\\right], \\hspace{24pt} U = \\left[\\begin{array}{rrrr} * & * & * & * \\\\ 0 & * & * & * \\\\ 0 & 0 & * & * \\\\ 0 & 0 & 0 & * \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "invertibility-of-a-triangular-matrix",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Invertibility of a triangular matrix",
+      "statement": "An n × n triangular matrix is invertible if and only if the entries on the diagonal are all nonzero. When the diagonal entries are nonzero, Gaussian elimination finds a pivot position in every row; a zero on the diagonal leads to a row without a pivot position."
+    },
+    {
+      "id": "elementary-matrix",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Elementary matrix",
+      "terms": [
+        "elementary matrices"
+      ],
+      "type": "matrix",
+      "statement": "An elementary matrix performs a row operation on a matrix by multiplication: it is constructed by applying the desired operation to the identity matrix. For a matrix having three rows, multiplying the second row by 3 and adding it to the third is performed by L = [1 0 0; 0 1 0; 0 3 1] (we often use L because these matrices are lower triangular), multiplying the third row by 2 by S = [1 0 0; 0 1 0; 0 0 2], and interchanging the first two rows by P = [0 1 0; 1 0 0; 0 0 1].",
+      "forms": [
+        {
+          "id": "eq-elementary-replacement",
+          "latex": "L = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 3 & 1 \\end{bmatrix}",
+          "condition": "multiplying the second row by 3 and adding it to the third"
+        },
+        {
+          "id": "eq-elementary-scaling",
+          "latex": "S = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 2 \\end{bmatrix}",
+          "condition": "multiplying the third row by 2"
+        },
+        {
+          "id": "eq-elementary-interchange",
+          "latex": "P = \\begin{bmatrix} 0 & 1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}",
+          "condition": "interchanging the first two rows"
+        }
+      ]
+    },
+    {
+      "id": "permutation-matrix",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "Permutation matrix",
+      "terms": [
+        "permutation matrix"
+      ],
+      "type": "matrix",
+      "statement": "A matrix P that interchanges two rows of a matrix, obtained by interchanging those rows of the identity matrix, is usually called a permutation matrix. It is its own inverse, P = P⁻¹, because we can undo the interchange operation by repeating it."
+    },
+    {
+      "id": "row-operations-as-matrix-multiplication",
+      "kind": "result",
+      "section": "3.1",
+      "name": "Row operations as matrix multiplication",
+      "statement": "The row operations of replacement, scaling and interchange can be performed by multiplying by elementary matrices: if R is obtained by applying an operation to the identity, then RA is the result of applying that operation to A. Each elementary matrix is invertible, its inverse performing the operation that undoes it: a replacement that adds −2 times the first row to the second is undone by adding 2 times the first row, a scaling by 4 by a scaling by 1/4, and an interchange by itself. The forward substitution phase of Gaussian elimination is a product of such matrices, L₃L₂L₁A = U.",
+      "forms": [
+        {
+          "id": "eq-row-operations-as-a-product",
+          "latex": "L_3L_2L_1A = U"
+        }
+      ]
+    },
+    {
+      "id": "lu-factorization",
+      "kind": "definition",
+      "section": "3.1",
+      "name": "LU factorization",
+      "terms": [
+        "LU factorization"
+      ],
+      "statement": "Since L₃L₂L₁A = U, we have A = (L₃L₂L₁)⁻¹U = LU, where L = (L₃L₂L₁)⁻¹ = L₁⁻¹L₂⁻¹L₃⁻¹ is lower triangular. This way of writing A = LU as the product of a lower and an upper triangular matrix is known as an LU factorization of A; its usefulness is explored in Section 5.1.",
+      "forms": [
+        {
+          "id": "eq-lu-factorization",
+          "latex": "A = LU"
+        },
+        {
+          "id": "eq-lu-lower-factor",
+          "latex": "L = (L_3L_2L_1)^{-1} = L_1^{-1}L_2^{-1}L_3^{-1}"
+        }
+      ]
+    },
+    {
+      "id": "basis",
+      "kind": "definition",
+      "section": "3.2",
+      "name": "Basis",
+      "terms": [
+        "basis"
+      ],
+      "symbol": "B_cal",
+      "statement": "A set of vectors v₁, v₂, …, vₙ in ℝᵐ is called a basis for ℝᵐ if the set of vectors spans ℝᵐ and is linearly independent. Rather than continuing to write a list of vectors, we denote a basis using a single symbol, such as 𝓑 = {v₁, v₂, …, vₘ}.",
+      "forms": [
+        {
+          "id": "eq-basis-as-a-set",
+          "latex": "{\\mathcal B} = \\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_m\\}"
+        }
+      ]
+    },
+    {
+      "id": "basis-test-by-row-reduction",
+      "kind": "result",
+      "section": "3.2",
+      "name": "Testing a set of vectors for a basis",
+      "statement": "A set of vectors forms a basis for ℝᵐ if and only if the matrix A = [v₁ v₂ ⋯ vₙ] ∼ I. The span of the vectors is ℝᵐ if and only if A has a pivot position in every row, and the vectors are linearly independent if and only if A has a pivot position in every column, so a basis requires a pivot in every row and every column.",
+      "forms": [
+        {
+          "id": "eq-basis-iff-row-equivalent-to-identity",
+          "latex": "A = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array}\\right] \\sim I",
+          "condition": "v₁, v₂, …, vₙ a basis for ℝᵐ"
+        }
+      ]
+    },
+    {
+      "id": "size-of-a-basis",
+      "kind": "result",
+      "section": "3.2",
+      "name": "Number of vectors in a basis",
+      "statement": "Since the matrix A = [v₁ v₂ ⋯ vₙ] has a pivot position in every row and every column, it must have the same number of rows as columns. Therefore, the number of vectors in a basis for ℝᵐ must be m: a basis for ℝ²³ must have exactly 23 vectors."
+    },
+    {
+      "id": "standard-basis",
+      "kind": "definition",
+      "section": "3.2",
+      "name": "Standard basis",
+      "terms": [
+        "standard basis"
+      ],
+      "symbol": "E_cal",
+      "statement": "The vectors e₁, e₂, e₃ form the columns of the 3 × 3 identity matrix, which implies that this set forms a basis for ℝ³. More generally, the set of vectors e₁, e₂, …, eₘ forms a basis for ℝᵐ, which we call the standard basis for ℝᵐ; in the standard basis 𝓔, the coordinates of a vector are the vector itself.",
+      "forms": [
+        {
+          "id": "eq-standard-basis",
+          "latex": "{\\mathcal E} = \\{\\mathbf{e}_1,\\mathbf{e}_2,\\ldots,\\mathbf{e}_m\\}"
+        }
+      ]
+    },
+    {
+      "id": "coordinate-system",
+      "kind": "idea",
+      "section": "3.2",
+      "name": "Coordinate system defined by a basis",
+      "statement": "A basis for ℝᵐ forms a coordinate system for ℝᵐ. In the standard coordinate system, the point (2, −3) is found by moving 2 units to the right and 3 units down; in the coordinate system defined by the basis 𝓑 = {v₁, v₂}, we interpret (2, −3) to mean we move two times along v₁ and 3 times along −v₂, which leaves us at the point (1, −4) in the usual coordinates. The grid of streets in a city gives a more natural coordinate system than north-south, east-west coordinates in the same way."
+    },
+    {
+      "id": "unique-representation-in-a-basis",
+      "kind": "result",
+      "section": "3.2",
+      "name": "Unique representation in a basis",
+      "statement": "Suppose that 𝓑 = {v₁, v₂, …, vₘ} is a basis for ℝᵐ. The span of the vectors is ℝᵐ, which implies that any vector x in ℝᵐ can be written as a linear combination of the vectors; the vectors are linearly independent, which means that we can write x as a linear combination in exactly one way. Therefore x = c₁v₁ + c₂v₂ + … + cₘvₘ where the weights c₁, c₂, …, cₘ are unique."
+    },
+    {
+      "id": "coordinates-in-a-basis",
+      "kind": "definition",
+      "section": "3.2",
+      "name": "Coordinates of a vector in a basis",
+      "symbol": "x_B",
+      "type": "vector",
+      "statement": "The coordinates of the vector x in the coordinate system defined by the basis 𝓑 are the weights that we use to create x as a linear combination of the basis vectors: {x}_𝓑 denotes the vector [c₁, c₂, …, cₘ] of weights such that x = c₁v₁ + c₂v₂ + … + cₘvₘ. For instance, since [1, −4] = 2v₁ − 3v₂ for v₁ = [2, 1], v₂ = [1, 2], we write {[1, −4]}_𝓑 = [2, −3].",
+      "forms": [
+        {
+          "id": "eq-coordinates-in-a-basis",
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c}c_1 \\\\ c_2 \\\\ \\vdots \\\\ c_m \\end{array}\\right]",
+          "condition": "x = c₁v₁ + c₂v₂ + … + cₘvₘ"
+        },
+        {
+          "id": "eq-vector-from-its-coordinates",
+          "latex": "\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_m\\mathbf{v}_m"
+        }
+      ]
+    },
+    {
+      "id": "finding-coordinates-in-a-basis",
+      "kind": "skill",
+      "section": "3.2",
+      "name": "Finding the coordinates of a vector in a basis",
+      "statement": "Knowing the coordinates {x}_𝓑 = [c₁, c₂], we find x as the linear combination c₁v₁ + c₂v₂. Knowing x in standard coordinates, we find its coordinates in the basis 𝓑 by solving the linear system c₁v₁ + c₂v₂ = x, whose augmented matrix [v₁ v₂ | x] we row reduce: for x = [−8, 2] and the basis v₁ = [2, 1], v₂ = [1, 2], [2 1 | −8; 1 2 | 2] ∼ [1 0 | −6; 0 1 | 4], so {x}_𝓑 = [−6, 4].",
+      "forms": [
+        {
+          "id": "eq-coordinates-as-a-linear-system",
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 = \\mathbf{x}"
+        }
+      ]
+    },
+    {
+      "id": "change-of-basis-matrix",
+      "kind": "definition",
+      "section": "3.2",
+      "name": "Change-of-basis matrix",
+      "symbol": "P_B",
+      "type": "matrix",
+      "statement": "We use P_𝓑 to denote the matrix whose columns are the basis vectors, P_𝓑 = [v₁ v₂ ⋯ vₘ]. Since x = c₁v₁ + c₂v₂ + … + cₘvₘ = [v₁ v₂ ⋯ vₘ]{x}_𝓑, the matrix P_𝓑 converts coordinates in the basis 𝓑 into standard coordinates. Since its columns are the basis vectors, P_𝓑 ∼ I_m, and P_𝓑 is therefore invertible.",
+      "forms": [
+        {
+          "id": "eq-change-of-basis-matrix",
+          "latex": "P_{{\\mathcal B}} = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_m \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "conversion-between-coordinate-systems",
+      "kind": "result",
+      "section": "3.2",
+      "name": "Converting between coordinate systems",
+      "statement": "If 𝓑 is a basis and P_𝓑 the matrix whose columns are the basis vectors, then x = P_𝓑{x}_𝓑 and {x}_𝓑 = P_𝓑⁻¹x. If we have another basis 𝓒, then x = P_𝓒{x}_𝓒 as well, so {x}_𝓑 = P_𝓑⁻¹x = P_𝓑⁻¹(P_𝓒{x}_𝓒) = (P_𝓑⁻¹P_𝓒){x}_𝓒: the matrix P_𝓑⁻¹P_𝓒 converts 𝓒-coordinates into 𝓑-coordinates.",
+      "forms": [
+        {
+          "id": "eq-coordinates-to-standard",
+          "latex": "\\mathbf{x} = P_{{\\mathcal B}}\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}}"
+        },
+        {
+          "id": "eq-standard-to-coordinates",
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}\\mathbf{x}"
+        },
+        {
+          "id": "eq-conversion-between-two-bases",
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = P_{{\\mathcal B}}^{-1}P_{{\\mathcal C}} \\left\\{\\mathbf{x}\\right\\}_{{\\mathcal C}}"
+        }
+      ]
+    },
+    {
+      "id": "haar-wavelet-basis",
+      "kind": "idea",
+      "section": "3.2",
+      "name": "Haar wavelet basis",
+      "terms": [
+        "Haar wavelet basis",
+        "Haar wavelet transform"
+      ],
+      "statement": "The basis 𝓑 of ℝ⁴ with v₁ = [1, 1, 1, 1], v₂ = [1, 1, −1, −1], v₃ = [1, −1, 0, 0], v₄ = [0, 0, 1, −1] is sometimes called a Haar wavelet basis, and the change of basis is known as a Haar wavelet transform. For a vector of quarterly revenue, the coefficient c₁ measures the average revenue over the year, c₂ the deviation from the annual average in the first and second halves of the year, and c₃ and c₄ how the quarters differ from the average of their half; the coefficients provide a view of the revenue over different time scales, from an annual summary to a finer view of quarterly behavior. This basis provides a useful way to store digital images.",
+      "forms": [
+        {
+          "id": "eq-haar-wavelet-basis",
+          "latex": "\\mathbf{v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\\\ -1 \\end{array}\\right],~~~ \\mathbf{v}_3=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 0 \\\\ 0 \\end{array}\\right],~~~ \\mathbf{v}_4=\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\\\ -1 \\end{array}\\right]"
+        },
+        {
+          "id": "eq-haar-wavelet-coordinates",
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c}\\frac14 x_1 + \\frac14 x_2 + \\frac14 x_3 + \\frac14 x_4 \\\\ \\frac14 x_1 + \\frac14 x_2 - \\frac14 x_3 - \\frac14 x_4 \\\\ \\frac12 x_1 - \\frac12 x_2 \\\\ \\frac12 x_3 - \\frac12 x_4 \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "color-model",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "Color model",
+      "terms": [
+        "color models"
+      ],
+      "statement": "A color is represented digitally by a vector in ℝ³. There are different ways in which we can represent colors, depending on whether a computer or a human will be processing the color; these representations are called color models, and the JPEG compression algorithm uses two of them."
+    },
+    {
+      "id": "rgb-color-model",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "RGB color model",
+      "terms": [
+        "RGB color model"
+      ],
+      "statement": "Digital displays create colors by blending together various amounts of red, green, and blue, so we can describe a color by putting its constituent amounts of red, green, and blue into a vector [R, G, B]. The quantities R, G, and B are each stored with one byte of information, so they are integers between 0 and 255. This is called the RGB color model; it is most relevant in digital applications.",
+      "forms": [
+        {
+          "id": "eq-rgb-vector",
+          "latex": "\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "ycbcr-color-model",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "YCbCr color model",
+      "terms": [
+        "YCbCr color model"
+      ],
+      "statement": "We define a basis 𝓑 = {v₁, v₂, v₃} of ℝ³ with v₁ = [1, 1, 1], v₂ = [0, −0.34413, 1.77200], v₃ = [1.40200, −0.71414, 0] to define a new coordinate system with coordinates Y, C_b and C_r: {[R, G, B]}_𝓑 = [Y, C_b, C_r]. The luminance Y varies from 0 to 255 while the chrominances vary between −127.5 and 127.5. This is known as the YC_bC_r color model; it was created from research into human vision and concentrates the most visually important data into a single coordinate, the luminance, to which our eyes are most sensitive, so that some of the chrominance data can be safely ignored.",
+      "forms": [
+        {
+          "id": "eq-ycbcr-coordinates",
+          "latex": "\\left\\{\\left[\\begin{array}{r}R \\\\ G \\\\ B \\end{array}\\right]\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{r}Y \\\\ C_b \\\\ C_r \\end{array}\\right]"
+        },
+        {
+          "id": "eq-ycbcr-basis",
+          "latex": "\\mathbf{v}_1 =\\left[\\begin{array}{c} 1 \\\\ 1 \\\\ 1 \\end{array}\\right],~~~ \\mathbf{v}_2 =\\left[\\begin{array}{c} 0 \\\\ -0.34413 \\\\ 1.77200 \\end{array}\\right],~~~ \\mathbf{v}_3 =\\left[\\begin{array}{c} 1.40200 \\\\ -0.71414 \\\\ 0 \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "luminance",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "Luminance",
+      "terms": [
+        "luminance"
+      ],
+      "symbol": "Y",
+      "statement": "The coordinate Y of a color in the YC_bC_r color model is called luminance. It is a weighted average of the R, G and B values that roughly represents the brightness of the color; an image rendered with only its luminance looks like a grayscale version of the original with all its visual detail, which is what a black-and-white television displayed."
+    },
+    {
+      "id": "chrominance",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "Chrominance",
+      "terms": [
+        "chrominance"
+      ],
+      "symbol": "C_b",
+      "statement": "The coordinates C_b and C_r of a color in the YC_bC_r color model are called blue and red chrominance, respectively. The blue chrominance roughly measures the amount of blue in the color and the red chrominance the amount of red; an image rendered with only one chrominance carries considerably less visual detail than the luminance, so more of its data can be discarded."
+    },
+    {
+      "id": "discrete-cosine-transform",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "Discrete Fourier Transform",
+      "terms": [
+        "Discrete Fourier Transform"
+      ],
+      "statement": "The JPEG compression algorithm uses the Discrete Fourier Transform, the change of basis defined by the basis 𝓑 = {v₀, v₁, …, v₇} of ℝ⁸ whose vector v_j has components cos((2i + 1)jπ/16) for i = 0, 1, …, 7. The basis vectors vary at different rates: v₀ is constantly 1, v₁ varies relatively slowly, v₂ a little more rapidly, and v₇ quite rapidly. In the resulting coordinate system the first coefficient is the average of the components of a vector, F₀ = (x₀ + x₁ + … + x₇)/8, and the other coefficients measure variations in the components away from the average.",
+      "forms": [
+        {
+          "id": "eq-fourier-basis-vector",
+          "latex": "\\mathbf{v}_j = \\left[\\begin{array}{c} \\cos\\left(\\frac{(2\\cdot0+1)\\cdot j\\pi}{16}\\right) \\\\ \\cos\\left(\\frac{(2\\cdot1+1)\\cdot j\\pi}{16}\\right) \\\\ \\vdots \\\\ \\cos\\left(\\frac{(2\\cdot7+1)\\cdot j\\pi}{16}\\right) \\end{array}\\right]",
+          "condition": "j = 0, 1, …, 7"
+        },
+        {
+          "id": "eq-fourier-average",
+          "latex": "F_0=\\frac18(x_0+x_1+\\ldots+x_7)"
+        }
+      ]
+    },
+    {
+      "id": "fourier-coefficients-of-a-vector",
+      "kind": "definition",
+      "section": "3.3",
+      "name": "Fourier coefficients",
+      "terms": [
+        "Fourier coefficients"
+      ],
+      "symbol": "F_j",
+      "statement": "Writing the vector x of luminance values in the coordinates of the Fourier basis, {x}_𝓑 = [F₀, F₁, …, F₇], the coordinates F_j are called the Fourier coefficients of the vector x. If the components of x vary relatively slowly, the coefficients F_j with larger values of j are small; for the first column of the block, F₀ = 151.6 is the largest and F₄ through F₇ are relatively small.",
+      "forms": [
+        {
+          "id": "eq-fourier-coefficients",
+          "latex": "\\left\\{\\mathbf{x}\\right\\}_{{\\mathcal B}} = \\left[\\begin{array}{c} F_0 \\\\ F_1 \\\\ F_2 \\\\ \\vdots \\\\ F_7 \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "approximating-with-fewer-fourier-coefficients",
+      "kind": "skill",
+      "section": "3.3",
+      "name": "Approximating a vector from fewer Fourier coefficients",
+      "statement": "To approximate a vector x, we round its Fourier coefficients to the nearest integer and set the coefficients of the rapidly varying basis vectors, or every coefficient whose absolute value is below a threshold, to zero; converting the approximate coefficients back into the standard coordinate system with P_𝓑 reconstructs a vector very close to the original. Setting F₆ and F₇ to zero changes the luminance values of the first column by at most one or two, a difference our eyes are not sensitive enough to detect."
+    },
+    {
+      "id": "jpeg-compression",
+      "kind": "idea",
+      "section": "3.3",
+      "name": "JPEG compression algorithm",
+      "statement": "The JPEG compression algorithm represents an image using a fraction of the data needed to display it by detecting redundancy with bases suited to the task. The image is broken into 8 × 8 blocks of pixels and the colors converted from the RGB to the YC_bC_r model. For each block, the Fourier coefficients of the columns of luminance values are formed and then the Fourier coefficients of the rows of that matrix; the result is rounded to integers, the coefficients whose absolute value falls below a threshold set by the quality parameter are set to zero, and only the nonzero coefficients are recorded, 12 of 64 at a high setting and 5 at a low one, with more of the chrominance coefficients discarded. The image is reconstructed by converting back; a lower quality setting saves more storage but reconstructs the image less accurately."
+    },
+    {
+      "id": "area-of-a-parallelogram",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Area of a parallelogram",
+      "statement": "The area of a parallelogram is found by multiplying the length of one side by the perpendicular distance to its parallel side: with base b and height h, the area is bh. Two parallelograms with the same base and the same height have the same area, even when one is sheared.",
+      "forms": [
+        {
+          "id": "eq-area-of-a-parallelogram",
+          "latex": "bh"
+        }
+      ]
+    },
+    {
+      "id": "orientation-of-a-pair-of-vectors",
+      "kind": "definition",
+      "section": "3.4",
+      "name": "Orientation of a pair of vectors",
+      "terms": [
+        "positively oriented",
+        "negatively oriented"
+      ],
+      "statement": "An ordered pair of vectors v₁ and v₂ is called positively oriented if the angle, measured in the counterclockwise direction, from v₁ to v₂ is less than 180°; we say the pair is negatively oriented if it is more than 180°."
+    },
+    {
+      "id": "determinant",
+      "kind": "definition",
+      "section": "3.4",
+      "name": "Determinant",
+      "terms": [
+        "determinant"
+      ],
+      "symbol": "det",
+      "statement": "Suppose a 2 × 2 matrix A has columns v₁ and v₂. If the pair of vectors is positively oriented, then the determinant of A, denoted det(A), is the area of the parallelogram formed by v₁ and v₂. If the pair is negatively oriented, then det(A) is −1 times the area of the parallelogram. For the identity, det(I) = 1; for A = [−2 0; 0 1], whose columns are negatively oriented and form a 2 × 1 rectangle, det(A) = −2. In terms of the entries, det [a b; c d] = ad − bc, which with a little bit of work can be shown to be the same signed area.",
+      "forms": [
+        {
+          "id": "eq-determinant-2x2",
+          "latex": "\\det\\left[\\begin{array}{rr} a & b \\\\ c & d \\end{array}\\right] = ad-bc"
+        },
+        {
+          "id": "eq-determinant-of-the-identity",
+          "latex": "\\det(I) = 1"
+        }
+      ]
+    },
+    {
+      "id": "determinant-as-volume",
+      "kind": "idea",
+      "section": "3.4",
+      "name": "Determinant as a signed volume",
+      "statement": "We can define determinants for n × n matrices by measuring the volume of a box defined by the columns of the matrix, even if this box resides in ℝⁿ for some very large n. The columns of a 3 × 3 matrix form a parallelepiped, and there is a means by which sets of such vectors are classified as positively or negatively oriented, so det(A) is defined in terms of the volume of the parallelepiped. If the columns are linearly dependent, the vectors cannot create a positive volume."
+    },
+    {
+      "id": "determinant-of-a-triangular-matrix",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Determinant of a triangular matrix",
+      "statement": "If A is a triangular matrix, then det(A) equals the product of the entries on the diagonal. For example, det [2 2; 0 3] = 2 · 3 = 6, since the parallelogram formed by its columns and the 2 × 3 rectangle have equal area; a cofactor expansion along the first row shows the same thing in general.",
+      "forms": [
+        {
+          "id": "eq-determinant-of-a-triangular-matrix",
+          "latex": "\\det\\left[\\begin{array}{rr} 2 & 2 \\\\ 0 & 3 \\end{array}\\right] = 2\\cdot 3 = 6"
+        }
+      ]
+    },
+    {
+      "id": "determinant-as-area-scale",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Determinant as a scaling of area",
+      "statement": "Rather than simply thinking of the determinant as the area of a parallelogram, we may also think of it as a factor by which areas are scaled under the matrix transformation defined by the matrix: applying the matrix transformation defined by B scales area by det(B)."
+    },
+    {
+      "id": "determinant-of-a-product",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Determinant of a product",
+      "statement": "The determinant satisfies a multiplicative property, det(AB) = det(A)det(B). Applying the matrix transformation defined by B scales area by det(B); composing with the transformation defined by A scales area a second time by det(A), so the transformation defined by AB scales area by det(A)det(B).",
+      "forms": [
+        {
+          "id": "eq-determinant-of-a-product",
+          "latex": "\\det(AB) = \\det(A)\\det(B)"
+        }
+      ]
+    },
+    {
+      "id": "properties-of-the-determinant",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Properties of the determinant",
+      "statement": "The determinant satisfies these properties: the determinant of a triangular matrix equals the product of its diagonal entries; if P is obtained by interchanging two rows of the identity matrix, then det(P) = −1, since its columns form a negatively oriented pair; and det(AB) = det(A)det(B).",
+      "forms": [
+        {
+          "id": "eq-determinant-of-an-interchange",
+          "latex": "\\det(P) = -1",
+          "condition": "P obtained by interchanging two rows of the identity"
+        }
+      ]
+    },
+    {
+      "id": "diagonal-matrix",
+      "kind": "definition",
+      "section": "3.4",
+      "name": "Diagonal matrix",
+      "terms": [
+        "diagonal"
+      ],
+      "type": "matrix",
+      "statement": "A matrix such as S = [1 0 0; 0 3 0; 0 0 1] is diagonal since its only nonzero entries are on the diagonal of the matrix. A diagonal matrix is triangular, so its determinant is the product of its diagonal entries, and scaling a row of a matrix A is performed by multiplying A by a diagonal matrix."
+    },
+    {
+      "id": "effect-of-row-operations-on-the-determinant",
+      "kind": "result",
+      "section": "3.4",
+      "name": "The effect of row operations on the determinant",
+      "statement": "If A′ is obtained from A by scaling a row by k, then det(A′) = k det(A), since A′ = SA with S diagonal and det(S) = k. If A′ is obtained from A by interchanging two rows, then det(A′) = −det(A), since A′ = PA and det(P) = −1. If A′ is obtained from A by performing a row replacement operation, then det(A′) = det(A), since A′ = RA with R lower triangular and det(R) = 1.",
+      "forms": [
+        {
+          "id": "eq-determinant-after-scaling",
+          "latex": "\\det(A') = k\\det(A)",
+          "condition": "A′ obtained from A by scaling a row by k"
+        },
+        {
+          "id": "eq-determinant-after-interchange",
+          "latex": "\\det(A') = -\\det(A)",
+          "condition": "A′ obtained from A by interchanging two rows"
+        },
+        {
+          "id": "eq-determinant-after-replacement",
+          "latex": "\\det(A') = \\det(A)",
+          "condition": "A′ obtained from A by a row replacement"
+        }
+      ]
+    },
+    {
+      "id": "determinant-by-row-reduction",
+      "kind": "skill",
+      "section": "3.4",
+      "name": "Computing a determinant with row operations",
+      "statement": "Applying the forward substitution phase of Gaussian elimination to the matrix A leads to an upper triangular matrix U with A ∼ U. Keeping track of the operations used, det(A) equals det(U), the product of U's diagonal entries, multiplied by the reciprocal of each scaling factor and by −1 for each interchange; for A = [1 −1 2; −2 2 −6; 3 −1 10], two replacements and one interchange give det(A) = −det(U) = 4. This is what most computer programs do when they compute a determinant."
+    },
+    {
+      "id": "invertibility-and-the-determinant",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Invertibility and the determinant",
+      "statement": "The matrix A is invertible if and only if det(A) ≠ 0. When the columns of A are linearly dependent, the parallelogram they form folds down onto a line and has zero area, so det(A) = 0, and linearly dependent columns is precisely the condition that A is not invertible. More fully: the forward substitution phase leads to an upper triangular U with A ∼ U; U is invertible when all of its diagonal entries are nonzero, which is also the condition that det(U) ≠ 0; row operations only multiply the determinant by a nonzero number, so det(A) ≠ 0 gives det(U) ≠ 0, U invertible, U ∼ I and A ∼ I.",
+      "forms": [
+        {
+          "id": "eq-invertible-iff-det",
+          "latex": "A \\text{ is invertible} \\iff \\det(A) \\neq 0"
+        },
+        {
+          "id": "eq-determinant-of-dependent-columns",
+          "latex": "\\det(A) = 0",
+          "condition": "the columns of A linearly dependent"
+        }
+      ]
+    },
+    {
+      "id": "determinant-of-an-inverse",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Determinant of an inverse",
+      "statement": "If A is an invertible matrix, then det(A⁻¹) = 1/det(A), since A⁻¹A = I tells us that det(A⁻¹A) = det(A⁻¹)det(A) = 1.",
+      "forms": [
+        {
+          "id": "eq-determinant-of-an-inverse",
+          "latex": "\\det(A^{-1}) = 1/\\det(A)"
+        },
+        {
+          "id": "eq-determinant-of-inverse-times-matrix",
+          "latex": "\\det(A^{-1}A) = \\det(A^{-1})\\det(A) = 1"
+        }
+      ]
+    },
+    {
+      "id": "cofactor-expansion",
+      "kind": "result",
+      "section": "3.4",
+      "name": "Cofactor expansion",
+      "terms": [
+        "cofactor expansions"
+      ],
+      "statement": "To find the determinant of an n × n matrix by a cofactor expansion, choose one row or column; the result is the same whichever is chosen. The determinant is a sum of terms, one for each entry in the row, each term the product of (−1)ⁱ⁺ʲ where i and j are the row and column numbers of the entry, the entry itself, and the determinant of the entries left over when the row and column containing the entry are crossed out. The choice of a row or column with zeros simplifies the computation. It is not a practical way to compute a determinant: a 10 × 10 matrix involves 10! = 3628800 terms, while Gaussian elimination takes about n³ = 1000 steps.",
+      "forms": [
+        {
+          "id": "eq-cofactor-expansion-example",
+          "latex": "\\det\\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ -2 & 2 & -6 \\\\ 3 & -1 & 10 \\end{array}\\right] = (-1)^{2+1}(-2)\\det\\left[\\begin{array}{rr} -1 & 2 \\\\ -1 & 10 \\end{array}\\right] + (-1)^{2+2}(2)\\det\\left[\\begin{array}{rr} 1 & 2 \\\\ 3 & 10 \\end{array}\\right] + (-1)^{2+3}(-6)\\det\\left[\\begin{array}{rr} 1 & -1 \\\\ 3 & -1 \\end{array}\\right]",
+          "condition": "expanding along the second row"
+        }
+      ]
+    },
+    {
+      "id": "subspace",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Subspace",
+      "terms": [
+        "subspace"
+      ],
+      "symbol": "S",
+      "type": "region",
+      "statement": "A subspace of ℝᵖ is a subset of ℝᵖ that is the span of a set of vectors. Since we have explored the concept of span in some detail, this definition just gives a new word to describe something familiar: the span of the columns of a matrix and the solution space of a homogeneous equation. The zero vector belongs to any subspace, since 0 is the linear combination with all weights zero, so a line that does not pass through the origin is not a subspace.",
+      "forms": [
+        {
+          "id": "eq-subspace-as-a-span",
+          "latex": "S = \\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}"
+        }
+      ]
+    },
+    {
+      "id": "subspaces-of-three-dimensional-space",
+      "kind": "result",
+      "section": "3.5",
+      "name": "Subspaces of three-dimensional space",
+      "statement": "The span of a single nonzero vector v is a line passing through the origin; the span of two linearly independent vectors v₁, v₂ is a plane passing through the origin; Span{e₁, e₂, e₃} = ℝ³; and Span{0} consists of the single vector 0. Any subspace of ℝ³ is one of these types: 0-dimensional, the origin; a 1-dimensional line; a 2-dimensional plane; or the 3-dimensional subspace ℝ³. There is no 4-dimensional subspace of ℝ³ because there is no linearly independent set of four vectors in ℝ³."
+    },
+    {
+      "id": "basis-of-a-subspace",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Basis of a subspace",
+      "terms": [
+        "basis"
+      ],
+      "statement": "A basis for a subspace S of ℝᵖ is a set of vectors in S that are linearly independent and whose span is S. It is possible to represent some subspaces as the span of more than one set of vectors; we are particularly interested in representing a subspace as the span of a linearly independent set."
+    },
+    {
+      "id": "dimension",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Dimension",
+      "terms": [
+        "dimension"
+      ],
+      "symbol": "dim",
+      "statement": "We say that the dimension of the subspace S, denoted dim S, is the number of vectors in any basis. A subspace of ℝ⁴ with a basis of two vectors is a two-dimensional subspace of ℝ⁴.",
+      "forms": [
+        {
+          "id": "eq-dimension-of-a-subspace",
+          "latex": "\\dim S"
+        }
+      ]
+    },
+    {
+      "id": "finding-a-basis-of-a-span",
+      "kind": "skill",
+      "section": "3.5",
+      "name": "Finding a basis of a span",
+      "statement": "To find a basis of S = Span{v₁, v₂, v₃}, row reduce the matrix [v₁ v₂ v₃]. Its reduced row echelon form shows which vectors are linear combinations of the others, such as v₂ = −v₁, so that any linear combination c₁v₁ + c₂v₂ + c₃v₃ = (c₁ − c₂)v₁ + c₃v₃ and S = Span{v₁, v₃}; it also shows that the remaining vectors are linearly independent, so they form a basis for S."
+    },
+    {
+      "id": "column-space-null-space-and-the-fundamental-questions",
+      "kind": "idea",
+      "section": "3.5",
+      "name": "Column space, null space, and the two fundamental questions",
+      "statement": "There are two important subspaces associated to any matrix, each of which springs from one of our two fundamental questions. The column space Col(A) contains all the vectors b for which the equation Ax = b is consistent, which is the question of existence; the null space Nul(A) is the solution space of Ax = 0, which reflects on the uniqueness of solutions to this and other equations."
+    },
+    {
+      "id": "column-space",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Column space",
+      "terms": [
+        "column space"
+      ],
+      "symbol": "Col",
+      "type": "region",
+      "statement": "If A is an m × n matrix, we call the span of its columns the column space of A and denote it as Col(A). The columns of A are vectors in ℝᵐ, so any linear combination of them is also in ℝᵐ, and Col(A) is a subspace of ℝᵐ. If A is invertible, Col(A) = ℝⁿ.",
+      "forms": [
+        {
+          "id": "eq-column-space",
+          "latex": "\\text{Col}(A) = \\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}",
+          "condition": "A = [v₁ v₂ … vₙ]"
+        }
+      ]
+    },
+    {
+      "id": "rank",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Rank",
+      "terms": [
+        "rank"
+      ],
+      "symbol": "rank",
+      "statement": "The rank of a matrix A is the number of pivot positions in A and is denoted by rank(A). For the matrix of Example 3.5.7, the rank is two because there are two pivot positions.",
+      "forms": [
+        {
+          "id": "eq-rank",
+          "latex": "\\operatorname{rank}(A)"
+        }
+      ]
+    },
+    {
+      "id": "basis-and-dimension-of-the-column-space",
+      "kind": "result",
+      "section": "3.5",
+      "name": "Basis and dimension of the column space",
+      "statement": "If A is an m × n matrix, then Col(A) is a subspace of ℝᵐ whose dimension equals rank(A). The columns of A that contain pivot positions form a basis for Col(A), since a column without a pivot position can be written as a linear combination of the columns that have pivot positions. We determine the pivot positions from the reduced row echelon form of A, but we form the basis from the columns of A rather than the columns of the reduced row echelon matrix.",
+      "forms": [
+        {
+          "id": "eq-dimension-of-the-column-space",
+          "latex": "\\dim~\\text{Col}(A) = \\operatorname{rank}(A)"
+        }
+      ]
+    },
+    {
+      "id": "kernel",
+      "kind": "definition",
+      "section": "3.5",
+      "name": "Null space",
+      "terms": [
+        "null space"
+      ],
+      "symbol": "Nul",
+      "type": "region",
+      "statement": "If A is an m × n matrix, we call the subset of vectors x in ℝⁿ satisfying Ax = 0 the null space of A and denote it by Nul(A). It is the solution space of the homogeneous equation, and the parametric description of that solution space shows that Nul(A) is the span of a set of vectors and therefore a subspace of ℝⁿ. If the columns of A are linearly independent, Nul(A) = {0}.",
+      "forms": [
+        {
+          "id": "eq-null-space-condition",
+          "latex": "A\\mathbf{x} = \\mathbf{0}",
+          "condition": "x in Nul(A)"
+        }
+      ]
+    },
+    {
+      "id": "basis-of-the-kernel",
+      "kind": "skill",
+      "section": "3.5",
+      "name": "Finding a basis of the null space",
+      "statement": "To find a basis for Nul(A), augment A and its reduced row echelon form by a column of zeroes, write the basic variables in terms of the free variables, and write the solution in vector form, x = x₃v₁ + x₄v₂ + x₅v₃. Any vector satisfying Ax = 0 is a linear combination of these vectors, which are linearly independent, so they form a basis for Nul(A)."
+    },
+    {
+      "id": "dimension-of-the-null-space",
+      "kind": "result",
+      "section": "3.5",
+      "name": "Dimension of the null space",
+      "statement": "If A is an m × n matrix, then Nul(A) is a subspace of ℝⁿ whose dimension is dim Nul(A) = n − rank(A): the dimension of Nul(A) equals the number of free variables in the equation Ax = 0, which is the number of columns of A without pivot positions.",
+      "forms": [
+        {
+          "id": "eq-dimension-of-the-null-space",
+          "latex": "\\dim~\\text{Nul}(A) = n - \\operatorname{rank}(A)"
+        }
+      ]
+    },
+    {
+      "id": "rank-nullity-theorem",
+      "kind": "result",
+      "section": "3.5",
+      "name": "Dimensions of the column space and null space",
+      "statement": "If A is an m × n matrix, then dim Col(A) + dim Nul(A) = n, which follows from combining dim Col(A) = rank(A) with dim Nul(A) = n − rank(A).",
+      "forms": [
+        {
+          "id": "eq-rank-nullity",
+          "latex": "\\dim~\\text{Col}(A) + \\dim~\\text{Nul}(A) = n"
+        }
+      ]
     }
   ],
   "concept_prereqs": [
@@ -2180,6 +3266,498 @@
     {
       "concept": "homogeneous-coordinates",
       "prereq": "translation"
+    },
+    {
+      "concept": "square-matrix",
+      "prereq": "matrix-shape"
+    },
+    {
+      "concept": "invertible-matrix",
+      "prereq": "square-matrix"
+    },
+    {
+      "concept": "invertible-matrix",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "invertible-matrix",
+      "prereq": "identity-matrix"
+    },
+    {
+      "concept": "matrix-inverse",
+      "prereq": "invertible-matrix"
+    },
+    {
+      "concept": "solving-with-the-inverse",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "solving-with-the-inverse",
+      "prereq": "matrix-equation"
+    },
+    {
+      "concept": "solving-with-the-inverse",
+      "prereq": "rules-of-matrix-algebra"
+    },
+    {
+      "concept": "solving-with-the-inverse",
+      "prereq": "pivot-columns-and-uniqueness"
+    },
+    {
+      "concept": "invertible-iff-row-equivalent-to-identity",
+      "prereq": "solving-with-the-inverse"
+    },
+    {
+      "concept": "invertible-iff-row-equivalent-to-identity",
+      "prereq": "pivot-rows-and-span"
+    },
+    {
+      "concept": "invertible-iff-row-equivalent-to-identity",
+      "prereq": "pivots-per-row-and-column"
+    },
+    {
+      "concept": "computing-a-matrix-inverse",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "computing-a-matrix-inverse",
+      "prereq": "augmentation"
+    },
+    {
+      "concept": "computing-a-matrix-inverse",
+      "prereq": "gauss-jordan-elimination"
+    },
+    {
+      "concept": "inverse-of-an-inverse",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "inverse-of-an-inverse",
+      "prereq": "noncommutativity-of-matrix-multiplication"
+    },
+    {
+      "concept": "inverse-of-a-product",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "inverse-of-a-product",
+      "prereq": "rules-of-matrix-algebra"
+    },
+    {
+      "concept": "properties-of-invertible-matrices",
+      "prereq": "invertible-iff-row-equivalent-to-identity"
+    },
+    {
+      "concept": "properties-of-invertible-matrices",
+      "prereq": "computing-a-matrix-inverse"
+    },
+    {
+      "concept": "properties-of-invertible-matrices",
+      "prereq": "inverse-of-a-product"
+    },
+    {
+      "concept": "inverse-of-a-2x2-matrix",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "triangular-matrix",
+      "prereq": "matrix"
+    },
+    {
+      "concept": "invertibility-of-a-triangular-matrix",
+      "prereq": "triangular-matrix"
+    },
+    {
+      "concept": "invertibility-of-a-triangular-matrix",
+      "prereq": "invertible-iff-row-equivalent-to-identity"
+    },
+    {
+      "concept": "elementary-matrix",
+      "prereq": "elementary-row-operations"
+    },
+    {
+      "concept": "elementary-matrix",
+      "prereq": "identity-matrix"
+    },
+    {
+      "concept": "permutation-matrix",
+      "prereq": "elementary-matrix"
+    },
+    {
+      "concept": "row-operations-as-matrix-multiplication",
+      "prereq": "elementary-matrix"
+    },
+    {
+      "concept": "row-operations-as-matrix-multiplication",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "lu-factorization",
+      "prereq": "row-operations-as-matrix-multiplication"
+    },
+    {
+      "concept": "lu-factorization",
+      "prereq": "triangular-matrix"
+    },
+    {
+      "concept": "lu-factorization",
+      "prereq": "inverse-of-a-product"
+    },
+    {
+      "concept": "basis",
+      "prereq": "span"
+    },
+    {
+      "concept": "basis",
+      "prereq": "linear-independence-of-vectors"
+    },
+    {
+      "concept": "basis",
+      "prereq": "euclidean-space"
+    },
+    {
+      "concept": "basis-test-by-row-reduction",
+      "prereq": "basis"
+    },
+    {
+      "concept": "basis-test-by-row-reduction",
+      "prereq": "pivot-rows-and-span"
+    },
+    {
+      "concept": "basis-test-by-row-reduction",
+      "prereq": "pivot-columns-and-linear-independence"
+    },
+    {
+      "concept": "size-of-a-basis",
+      "prereq": "basis-test-by-row-reduction"
+    },
+    {
+      "concept": "size-of-a-basis",
+      "prereq": "pivots-per-row-and-column"
+    },
+    {
+      "concept": "standard-basis",
+      "prereq": "basis"
+    },
+    {
+      "concept": "standard-basis",
+      "prereq": "standard-unit-vectors"
+    },
+    {
+      "concept": "coordinate-system",
+      "prereq": "basis"
+    },
+    {
+      "concept": "coordinate-system",
+      "prereq": "geometry-of-vector-operations"
+    },
+    {
+      "concept": "unique-representation-in-a-basis",
+      "prereq": "basis"
+    },
+    {
+      "concept": "coordinates-in-a-basis",
+      "prereq": "coordinate-system"
+    },
+    {
+      "concept": "coordinates-in-a-basis",
+      "prereq": "unique-representation-in-a-basis"
+    },
+    {
+      "concept": "finding-coordinates-in-a-basis",
+      "prereq": "coordinates-in-a-basis"
+    },
+    {
+      "concept": "finding-coordinates-in-a-basis",
+      "prereq": "gauss-jordan-elimination"
+    },
+    {
+      "concept": "change-of-basis-matrix",
+      "prereq": "basis"
+    },
+    {
+      "concept": "conversion-between-coordinate-systems",
+      "prereq": "change-of-basis-matrix"
+    },
+    {
+      "concept": "conversion-between-coordinate-systems",
+      "prereq": "coordinates-in-a-basis"
+    },
+    {
+      "concept": "conversion-between-coordinate-systems",
+      "prereq": "basis-test-by-row-reduction"
+    },
+    {
+      "concept": "conversion-between-coordinate-systems",
+      "prereq": "invertible-iff-row-equivalent-to-identity"
+    },
+    {
+      "concept": "haar-wavelet-basis",
+      "prereq": "conversion-between-coordinate-systems"
+    },
+    {
+      "concept": "color-model",
+      "prereq": "euclidean-space"
+    },
+    {
+      "concept": "rgb-color-model",
+      "prereq": "color-model"
+    },
+    {
+      "concept": "ycbcr-color-model",
+      "prereq": "rgb-color-model"
+    },
+    {
+      "concept": "ycbcr-color-model",
+      "prereq": "coordinates-in-a-basis"
+    },
+    {
+      "concept": "luminance",
+      "prereq": "ycbcr-color-model"
+    },
+    {
+      "concept": "chrominance",
+      "prereq": "ycbcr-color-model"
+    },
+    {
+      "concept": "discrete-cosine-transform",
+      "prereq": "conversion-between-coordinate-systems"
+    },
+    {
+      "concept": "fourier-coefficients-of-a-vector",
+      "prereq": "discrete-cosine-transform"
+    },
+    {
+      "concept": "approximating-with-fewer-fourier-coefficients",
+      "prereq": "fourier-coefficients-of-a-vector"
+    },
+    {
+      "concept": "jpeg-compression",
+      "prereq": "ycbcr-color-model"
+    },
+    {
+      "concept": "jpeg-compression",
+      "prereq": "approximating-with-fewer-fourier-coefficients"
+    },
+    {
+      "concept": "orientation-of-a-pair-of-vectors",
+      "prereq": "vector"
+    },
+    {
+      "concept": "determinant",
+      "prereq": "orientation-of-a-pair-of-vectors"
+    },
+    {
+      "concept": "determinant",
+      "prereq": "area-of-a-parallelogram"
+    },
+    {
+      "concept": "determinant",
+      "prereq": "matrix-as-columns"
+    },
+    {
+      "concept": "determinant-as-volume",
+      "prereq": "determinant"
+    },
+    {
+      "concept": "determinant-of-a-triangular-matrix",
+      "prereq": "determinant"
+    },
+    {
+      "concept": "determinant-of-a-triangular-matrix",
+      "prereq": "triangular-matrix"
+    },
+    {
+      "concept": "determinant-as-area-scale",
+      "prereq": "determinant"
+    },
+    {
+      "concept": "determinant-as-area-scale",
+      "prereq": "linear-mapping"
+    },
+    {
+      "concept": "determinant-of-a-product",
+      "prereq": "determinant-as-area-scale"
+    },
+    {
+      "concept": "determinant-of-a-product",
+      "prereq": "matrix-product-as-composition"
+    },
+    {
+      "concept": "properties-of-the-determinant",
+      "prereq": "determinant-of-a-triangular-matrix"
+    },
+    {
+      "concept": "properties-of-the-determinant",
+      "prereq": "determinant-of-a-product"
+    },
+    {
+      "concept": "properties-of-the-determinant",
+      "prereq": "permutation-matrix"
+    },
+    {
+      "concept": "diagonal-matrix",
+      "prereq": "triangular-matrix"
+    },
+    {
+      "concept": "effect-of-row-operations-on-the-determinant",
+      "prereq": "properties-of-the-determinant"
+    },
+    {
+      "concept": "effect-of-row-operations-on-the-determinant",
+      "prereq": "row-operations-as-matrix-multiplication"
+    },
+    {
+      "concept": "effect-of-row-operations-on-the-determinant",
+      "prereq": "diagonal-matrix"
+    },
+    {
+      "concept": "determinant-by-row-reduction",
+      "prereq": "effect-of-row-operations-on-the-determinant"
+    },
+    {
+      "concept": "determinant-by-row-reduction",
+      "prereq": "gauss-jordan-elimination"
+    },
+    {
+      "concept": "invertibility-and-the-determinant",
+      "prereq": "effect-of-row-operations-on-the-determinant"
+    },
+    {
+      "concept": "invertibility-and-the-determinant",
+      "prereq": "invertibility-of-a-triangular-matrix"
+    },
+    {
+      "concept": "invertibility-and-the-determinant",
+      "prereq": "pivot-columns-and-linear-independence"
+    },
+    {
+      "concept": "determinant-of-an-inverse",
+      "prereq": "determinant-of-a-product"
+    },
+    {
+      "concept": "determinant-of-an-inverse",
+      "prereq": "matrix-inverse"
+    },
+    {
+      "concept": "cofactor-expansion",
+      "prereq": "determinant"
+    },
+    {
+      "concept": "subspace",
+      "prereq": "span"
+    },
+    {
+      "concept": "subspace",
+      "prereq": "euclidean-space"
+    },
+    {
+      "concept": "subspaces-of-three-dimensional-space",
+      "prereq": "spans-in-three-dimensions"
+    },
+    {
+      "concept": "subspaces-of-three-dimensional-space",
+      "prereq": "dimension"
+    },
+    {
+      "concept": "subspaces-of-three-dimensional-space",
+      "prereq": "size-of-a-linearly-independent-set"
+    },
+    {
+      "concept": "basis-of-a-subspace",
+      "prereq": "subspace"
+    },
+    {
+      "concept": "basis-of-a-subspace",
+      "prereq": "basis"
+    },
+    {
+      "concept": "dimension",
+      "prereq": "basis-of-a-subspace"
+    },
+    {
+      "concept": "finding-a-basis-of-a-span",
+      "prereq": "basis-of-a-subspace"
+    },
+    {
+      "concept": "finding-a-basis-of-a-span",
+      "prereq": "dependent-vector-does-not-change-span"
+    },
+    {
+      "concept": "finding-a-basis-of-a-span",
+      "prereq": "pivot-columns-and-linear-independence"
+    },
+    {
+      "concept": "column-space-null-space-and-the-fundamental-questions",
+      "prereq": "column-space"
+    },
+    {
+      "concept": "column-space-null-space-and-the-fundamental-questions",
+      "prereq": "kernel"
+    },
+    {
+      "concept": "column-space",
+      "prereq": "subspace"
+    },
+    {
+      "concept": "rank",
+      "prereq": "pivot"
+    },
+    {
+      "concept": "basis-and-dimension-of-the-column-space",
+      "prereq": "column-space"
+    },
+    {
+      "concept": "basis-and-dimension-of-the-column-space",
+      "prereq": "rank"
+    },
+    {
+      "concept": "basis-and-dimension-of-the-column-space",
+      "prereq": "dimension"
+    },
+    {
+      "concept": "basis-and-dimension-of-the-column-space",
+      "prereq": "finding-a-basis-of-a-span"
+    },
+    {
+      "concept": "kernel",
+      "prereq": "homogeneous-matrix-equation"
+    },
+    {
+      "concept": "kernel",
+      "prereq": "subspace"
+    },
+    {
+      "concept": "basis-of-the-kernel",
+      "prereq": "kernel"
+    },
+    {
+      "concept": "basis-of-the-kernel",
+      "prereq": "vector-form-of-the-solution-space"
+    },
+    {
+      "concept": "basis-of-the-kernel",
+      "prereq": "basis-of-a-subspace"
+    },
+    {
+      "concept": "dimension-of-the-null-space",
+      "prereq": "basis-of-the-kernel"
+    },
+    {
+      "concept": "dimension-of-the-null-space",
+      "prereq": "rank"
+    },
+    {
+      "concept": "dimension-of-the-null-space",
+      "prereq": "dimension"
+    },
+    {
+      "concept": "rank-nullity-theorem",
+      "prereq": "basis-and-dimension-of-the-column-space"
+    },
+    {
+      "concept": "rank-nullity-theorem",
+      "prereq": "dimension-of-the-null-space"
     }
   ],
   "sheets": []

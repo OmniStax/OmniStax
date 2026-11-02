@@ -10,7 +10,8 @@
       "x_i",
       "a_i",
       "b",
-      "n"
+      "n",
+      "s_i"
     ],
     "types": []
   },
@@ -52,6 +53,53 @@
       "p",
       "k",
       "theta"
+    ],
+    "types": []
+  },
+  "ch03": {
+    "symbols": [
+      "A_inv",
+      "B_inv",
+      "L",
+      "U",
+      "P",
+      "L_i",
+      "D",
+      "E_j",
+      "A_prime",
+      "I_m",
+      "b_1_vec",
+      "b_2_vec",
+      "v_0_vec",
+      "v_4_vec",
+      "v_5_vec",
+      "v_6_vec",
+      "v_7_vec",
+      "P_B",
+      "P_B_inv",
+      "P_C",
+      "x_B",
+      "x_C",
+      "Col",
+      "Nul",
+      "B_cal",
+      "C_cal",
+      "E_cal",
+      "R_n",
+      "R_p",
+      "det",
+      "dim",
+      "rank",
+      "a",
+      "h",
+      "i",
+      "j",
+      "G",
+      "Y",
+      "C_b",
+      "C_r",
+      "F_j",
+      "F_0"
     ],
     "types": []
   }
