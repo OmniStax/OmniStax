@@ -1,0 +1,1200 @@
+{
+ "id": "2.2",
+ "module": "sec-matrices-lin-combs",
+ "chapter": "2",
+ "title": "Matrix multiplication and linear combinations",
+ "lead": "This section introduces <span data-concept=\"matrix-product-as-linear-combination\">matrix multiplication</span>: how a <span data-concept=\"matrix\">matrix</span> multiplies a <span data-concept=\"vector\">vector</span>, what that product has to do with <span data-concept=\"linear-combination\">linear combinations</span> and <span data-concept=\"linear-system-of-equations\">linear systems</span>, and how two <span data-concept=\"matrix\">matrices</span> multiply, with the rules of arithmetic that carry over from numbers and the ones that do not.",
+ "objectives": [],
+ "summary_html": "<p>In this section, we have found an especially simple way to express linear systems using matrix multiplication.</p><ul><li>If $\\kA$ is an $m\\times n$ matrix and $\\kvecx$ an $n$-dimensional vector, then $\\kA\\kvecx$ is the linear combination of the columns of $\\kA$ using the components of $\\kvecx$ as weights. The vector $\\kA\\kvecx$ is $m$-dimensional.</li><li>The solution space to the equation $\\kA\\kvecx = \\kvecb$ is the same as the solution space to the linear system corresponding to the augmented matrix $\\left[ \\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$.</li><li>If $\\kA$ is an $m\\times n$ matrix and $\\kB$ is an $n\\times p$ matrix, we can form the product $\\kA\\kB$, which is an $m\\times p$ matrix whose columns are the products of $\\kA$ and the columns of $\\kB$.</li></ul>",
+ "notes": "The section’s Sage cells are not live: the one that holds code stands as a code block, and the seventeen empty cells the activities and exercises offer for the reader’s own work are left out, each part keeping the book’s words.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the four activities stand in the text as cards, Activity 2.2.3’s opening sentence and Sage demonstration standing in the text just before its card. Figure 2.2.9 is kept in Exercise 2.2.4’s card with the book’s drawing of its answer. Every keyed number was checked by computation; two slips of the book’s key (Activity 2.2.2 a, Exercise 2.2.3 b) are kept as printed and marked. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-columns-combination",
+   "kind": "sim",
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "previous-section",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "previous-section",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "previous-section",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "previous-section",
+   "concept": "linear-combinations-and-linear-systems",
+   "verb": "uses"
+  },
+  {
+   "span": "previous-section",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "previous-section",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "goal",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "goal",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "goal",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "shape",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "shape",
+   "concept": "matrix-shape",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-as-vectors",
+   "concept": "matrix-as-columns",
+   "verb": "introduces"
+  },
+  {
+   "span": "columns-as-vectors",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-as-vectors",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-as-vectors",
+   "concept": "euclidean-space",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-operations",
+   "concept": "scalar-multiplication-of-a-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "matrix-operations",
+   "concept": "matrix-addition",
+   "verb": "introduces"
+  },
+  {
+   "span": "matrix-operations",
+   "concept": "scalar-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-operations",
+   "concept": "vector-addition",
+   "verb": "uses"
+  },
+  {
+   "span": "same-shape",
+   "concept": "identity-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "same-shape",
+   "concept": "scalar-multiplication-of-a-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "same-shape",
+   "concept": "matrix-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "same-shape",
+   "concept": "matrix-shape",
+   "verb": "uses"
+  },
+  {
+   "span": "same-shape",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "same-shape",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-vector-intro",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-vector-intro",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-1",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-2-1",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-1",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-1",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-2-2",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-2-2-2",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-2-2",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-2-2",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "matrix-vector-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "matrix-equation-as-a-linear-system",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-columns-combination",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "next-activity",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "shortcut",
+   "concept": "matrix-vector-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "shortcut",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "shortcut",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "shortcut",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "shortcut-rule",
+   "concept": "matrix-vector-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "shortcut-rule",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "shortcut-rule",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "shortcut-rule",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "encouraged",
+   "concept": "matrix-vector-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "encouraged",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-product",
+   "concept": "matrix-products-in-sage",
+   "verb": "introduces"
+  },
+  {
+   "span": "sage-product",
+   "concept": "matrix-in-sage",
+   "verb": "uses"
+  },
+  {
+   "span": "sage-product",
+   "concept": "vector-in-sage",
+   "verb": "uses"
+  },
+  {
+   "span": "properties-recorded",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-matrix-mult-prop",
+   "concept": "linearity-of-matrix-multiplication",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-matrix-mult-prop",
+   "concept": "zero-vector",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-matrix-mult-prop",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-mult-prop",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-mult-prop",
+   "concept": "scalar",
+   "verb": "uses"
+  },
+  {
+   "span": "turn-around",
+   "concept": "matrix-equation",
+   "verb": "introduces"
+  },
+  {
+   "span": "turn-around",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "turn-around",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "turn-around",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "turn-around",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "connection",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "connection",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "connection",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "compact-way",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compact-way",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compact-way",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "compact-way",
+   "concept": "linear-combinations-and-linear-systems",
+   "verb": "uses"
+  },
+  {
+   "span": "compact-way",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "three-ways",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "matrix-equation-as-a-linear-system",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-matrix-eq-solution",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-by",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "augmented-by",
+   "concept": "augmentation",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-by",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-by",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "compact-notation",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compact-notation",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "compact-notation",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "matrix-equation-as-a-linear-system",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "free-variable",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "parametric-description",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-5",
+   "concept": "vector-equation-of-a-line",
+   "verb": "uses"
+  },
+  {
+   "span": "vector-form",
+   "concept": "vector-form-of-the-solution-space",
+   "verb": "introduces"
+  },
+  {
+   "span": "vector-form",
+   "concept": "matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "final-operation",
+   "concept": "matrix-product",
+   "verb": "uses"
+  },
+  {
+   "span": "final-operation",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "final-operation",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "final-operation",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-2-6",
+   "concept": "matrix-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-2-2-6",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-2-7",
+   "concept": "matrix-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-2-7",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "observation-2-2-8",
+   "concept": "shape-of-a-matrix-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "observation-2-2-8",
+   "concept": "matrix-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "observation-2-2-8",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "mirror",
+   "concept": "matrix-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "properties-matrix-multiplication",
+   "concept": "rules-of-matrix-algebra",
+   "verb": "introduces"
+  },
+  {
+   "span": "properties-matrix-multiplication",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "not-hold",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "caution",
+   "concept": "noncommutativity-of-matrix-multiplication",
+   "verb": "introduces"
+  },
+  {
+   "span": "caution",
+   "concept": "matrix",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.2.1",
+   "source_number": "2.2.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "matrix-operations"
+   },
+   "cite": "matrix-operations",
+   "prompt": "<p><strong>Matrix operations.</strong></p><ol type=\"a\"><li><p>Compute the scalar multiple</p>$$ -3\\left[\\begin{array}{rrr} 3 & 1 & 0 \\\\ -4 & 3 & -1 \\end{array}\\right] $$<p>.</p></li><li><p>Find the sum</p>$$ \\left[\\begin{array}{rr} 0 & -3 \\\\ 1 & -2 \\\\ 3 & 4 \\end{array}\\right] + \\left[\\begin{array}{rr} 4 & -1 \\\\ -2 & 2 \\\\ 1 & 1 \\end{array}\\right] $$<p>.</p></li><li>Suppose that $\\kA$ and $\\kB$ are two matrices. What do we need to know about their shapes before we can form the sum $\\kA+\\kB$?</li><li><p>The matrix $\\kIn$, which we call the <em>identity</em> matrix, is the $n\\times n$ matrix whose entries are zero except for the diagonal entries, all of which are 1. For instance,</p>$$ I_3 = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] $$<p>. If we can form the sum $\\kA+\\kIn$, what must be true about the matrix $\\kA$?</p></li><li><p>Find the matrix $\\kA - 2I_3$ where</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & 2 & -2 \\\\ 2 & -3 & 3 \\\\ -2 & 3 & 4 \\end{array}\\right] $$<p>.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} -9 & -3 & 0 \\\\ 12 & -9 & 3 \\end{array}\\right]$</li><li>$\\left[\\begin{array}{rr} 4 & -4 \\\\ -1 & 0 \\\\ 4 & 5 \\end{array}\\right]$</li><li>The shapes must be the same.</li><li>The shape of $\\kA$ must be $n\\times n$.</li><li>$\\kA-2I_3 = \\left[\\begin{array}{rrr} -1 & 2 & -2 \\\\ 2 & -5 & 3 \\\\ -2 & 3 & 2 \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} -9 & -3 & 0 \\\\ 12 & -9 & 3 \\end{array}\\right]$</li><li>$\\left[\\begin{array}{rr} 4 & -4 \\\\ -1 & 0 \\\\ 4 & 5 \\end{array}\\right]$</li><li>The shapes must be the same.</li><li>The shape of $\\kA$ must be $n\\times n$.</li><li>$\\kA-2I_3 = \\left[\\begin{array}{rrr} -1 & 2 & -2 \\\\ 2 & -5 & 3 \\\\ -2 & 3 & 2 \\end{array}\\right]$</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.2.2",
+   "source_number": "2.2.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "next-activity"
+   },
+   "cite": "definition-2-2-2",
+   "prompt": "<p><strong>Matrix-vector multiplication.</strong></p><ol type=\"a\"><li><p>Find the matrix product</p>$$ \\left[\\begin{array}{rrrr} 1 & 2 & 0 & -1 \\\\ 2 & 4 & -3 & -2 \\\\ -1 & -2 & 6 & 1 \\end{array}\\right] \\left[\\begin{array}{r} 3 \\\\ 1 \\\\ -1 \\\\ 1 \\end{array}\\right] $$<p>.</p></li><li><p>Suppose that $\\kA$ is the matrix</p>$$ \\left[\\begin{array}{rrr} 3 & -1 & 0 \\\\ 0 & -2 & 4 \\\\ 2 & 1 & 5 \\\\ 1 & 0 & 3 \\end{array}\\right] $$<p>. If $\\kA\\kvecx$ is defined, what is the dimension of the vector $\\kvecx$ and what is the dimension of $\\kA\\kvecx$?</p></li><li>A vector whose entries are all zero is denoted by $\\kveczero$. If $\\kA$ is a matrix, what is the product $\\kA\\kveczero$?</li><li>Suppose that $\\kI = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right]$ is the identity matrix and $\\kvecx=\\left[\\begin{array}{r} x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right]$. Find the product $\\kI\\kvecx$ and explain why $\\kI$ is called the identity matrix.</li><li><p>Suppose we write the matrix $\\kA$ in terms of its columns as</p>$$ \\kA = \\left[ \\begin{array}{rrrr} \\kvecvone & \\kvecvtwo & \\cdots & \\htmlClass{kv-vector}{{\\mathbf v}_n} \\\\ \\end{array} \\right] $$<p>. If the vector ${\\mathbf e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right]$, what is the product $\\kA{\\mathbf e}_1$?</p></li><li><p>Suppose that</p>$$ \\kA = \\left[\\begin{array}{rr} 1 & 2 \\\\ -1 & 1 \\end{array}\\right], \\kvecb = \\left[\\begin{array}{r} 6 \\\\ 0 \\end{array}\\right] $$<p>. Is there a vector $\\kvecx$ such that $\\kA\\kvecx = \\kvecb$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r} 4 \\\\ 11 \\\\ -10 \\end{array}\\right]\\text{.}$</li><li>The dimension of $\\kvecx$ must three, and the dimension of $\\kA\\kvecx$ must be four.</li><li>$\\kA\\kveczero = \\kveczero$.</li><li>$\\kI\\kvecx = \\kvecx$.</li><li>$\\kA{\\mathbf e}_1 = 1\\kvecvone+0\\kvecvtwo+\\ldots+0\\htmlClass{kv-vector}{{\\mathbf v}_n} = \\kvecvone$.</li><li>$\\kvecx=\\left[\\begin{array}{r} 2 \\\\ 2 \\end{array}\\right]$ is the unique solution.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\begin{alignedat}{2} \\left[\\begin{array}{rrrr} 1 & 2 & 0 & -2 \\\\ 2 & 4 & -3 & -2 \\\\ -1 & -2 & 6 & 1 \\end{array}\\right] & \\left[\\begin{array}{r} 3 \\\\ 1 \\\\ -1 \\\\ 1 \\end{array}\\right] \\\\ & = \\left[\\begin{array}{r} 3(1)+1(2)-1(0)+1(-1) \\\\ 3(2)+1(4)-1(-3)+1(-2) \\\\ 3(-1)+1(-2)-1(6)+1(1) \\end{array}\\right] \\\\ & =\\left[\\begin{array}{r} 4 \\\\ 11 \\\\ -10 \\end{array}\\right]\\text{.} \\end{alignedat} $$<sup class=\"fn\" data-note=\"a2-row-entry\"></sup></li><li>The dimension of $\\kvecx$ must be the same as the number of columns of $\\kA$ so $\\kvecx$ is three-dimensional. The dimension of $\\kA\\kvecx$ equals the number of rows of $\\kA$ so $\\kA\\kvecx$ is four-dimensional.</li><li>We have $\\kA\\kveczero = \\kveczero$.</li><li>We have $\\kI\\kvecx=\\kvecx$; that is, multiplying a vector by $\\kI$ produces the same vector.</li><li>The product $\\kA{\\mathbf e}_1 = 1\\kvecvone+0\\kvecvtwo+\\ldots+0\\htmlClass{kv-vector}{{\\mathbf v}_n} = \\kvecvone$.</li><li><p>If $\\kA\\kvecx=\\kvecb$, then we have</p>$$ \\begin{alignedat}{3} x_1 & {}+{} & 2x_2 & {}={} & 6 \\\\ -x_1 & {}+{} & x_2 & {}={} & 0\\text{.} \\\\ \\end{alignedat} $$<p>with corresponding augmented matrix</p>$$ \\left[\\begin{array}{rr|r} 1 & 2 & 6 \\\\ -1 & 1 & 0 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 2 \\\\ 0 & 1 & 2 \\end{array}\\right]\\text{.} $$<p>This means that $\\kvecx=\\left[\\begin{array}{r} 2 \\\\ 2 \\end{array}\\right]$ is the unique solution to the equation $\\kA\\kvecx=\\kvecb$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.2.3",
+   "source_number": "2.2.3",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "sage-product-cell"
+   },
+   "cite": "sage-product",
+   "prompt": "<ol type=\"a\"><li><p>Use Sage to evaluate the product</p>$$ \\left[\\begin{array}{rrrr} 1 & 2 & 0 & -1 \\\\ 2 & 4 & -3 & -2 \\\\ -1 & -2 & 6 & 1 \\end{array}\\right] \\left[\\begin{array}{r} 3 \\\\ 1 \\\\ -1 \\\\ 1 \\end{array}\\right] $$<p>from <a href=\"#2.2-ex-a2\">Item a</a> of the previous activity.</p></li><li><p>In Sage, define the matrix and vectors</p>$$ \\kA = \\left[\\begin{array}{rr} -2 & 0 \\\\ 3 & 1 \\\\ 4 & 2 \\end{array}\\right], \\kveczero = \\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right], \\kvecv = \\left[\\begin{array}{r} -2 \\\\ 3 \\end{array}\\right], \\kvecw = \\left[\\begin{array}{r} 1 \\\\ 2 \\end{array}\\right] $$<p>.</p></li><li>What do you find when you evaluate $\\kA\\kveczero$?</li><li>What do you find when you evaluate $\\kA(3\\kvecv)$ and $3(\\kA\\kvecv)$ and compare your results?</li><li>What do you find when you evaluate $\\kA(\\kvecv+\\kvecw)$ and $\\kA\\kvecv + \\kA\\kvecw$ and compare your results?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>We define</p><pre class=\"sage\"><code>A = matrix(3, 4, [1, 2, 0, -1,\n                  2, 4, -3, -2,\n                  -1, -2, 6, 1])\nv = vector([3, 1, -1, 1])\nA*v</code></pre></li><li><p>We define</p><pre class=\"sage\"><code>A = matrix(3, 2, [-2, 0, 3, 1, 4, 2])\nzero = vector([0, 0])\nv = vector([-2, 3])\nw = vector([1, 2])</code></pre></li><li>$\\kA\\kveczero = \\kveczero$.</li><li>$\\kA(3\\kvecv) = 3(\\kA\\kvecv)$.</li><li>$\\kA(\\kvecv+\\kvecw) = \\kA\\kvecv + \\kA\\kvecw$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We define</p><pre class=\"sage\"><code>A = matrix(3, 4, [1, 2, 0, -1,\n                  2, 4, -3, -2,\n                  -1, -2, 6, 1])\nv = vector([3, 1, -1, 1])\nA*v</code></pre></li><li><p>We define</p><pre class=\"sage\"><code>A = matrix(3, 2, [-2, 0, 3, 1, 4, 2])\nzero = vector([0, 0])\nv = vector([-2, 3])\nw = vector([1, 2])</code></pre></li><li>$\\kA\\kveczero = \\kveczero$.</li><li>$\\kA(3\\kvecv) = 3(\\kA\\kvecv)$.</li><li>$\\kA(\\kvecv+\\kvecw) = \\kA\\kvecv + \\kA\\kvecw$</li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "2.2.4",
+   "source_number": "2.2.4",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-2-2-5"
+   },
+   "cite": "prop-matrix-eq-solution",
+   "prompt": "<p><strong>The equation $\\kA\\kvecx = \\kvecb$.</strong></p><ol type=\"a\"><li><p>Consider the linear system</p>$$ \\begin{alignedat}{4} 2x & {}+{} & y & {}-{} & 3z & {}={} & 4 \\\\ -x & {}+{} & 2y & {}+{} & z & {}={} & 3 \\\\ 3x & {}-{} & y & & & {}={} & -4. \\\\ \\end{alignedat} $$<p>Identify the matrix $\\kA$ and vector $\\kvecb$ to express this system in the form $\\kA\\kvecx = \\kvecb$.</p></li><li><p>If $\\kA$ and $\\kvecb$ are as below, write the linear system corresponding to the equation $\\kA\\kvecx=\\kvecb$ and describe its solution space, using a parametric description if appropriate:</p>$$ \\kA = \\left[\\begin{array}{rrr} 3 & -1 & 0 \\\\ -2 & 0 & 6 \\end{array}\\right],~~~ \\kvecb = \\left[\\begin{array}{r} -6 \\\\ 2 \\end{array}\\right] $$<p>.</p></li><li><p>Describe the solution space of the equation</p>$$ \\left[\\begin{array}{rrrr} 1 & 2 & 0 & -1 \\\\ 2 & 4 & -3 & -2 \\\\ -1 & -2 & 6 & 1 \\end{array}\\right] \\kvecx = \\left[\\begin{array}{r} -1 \\\\ 1 \\\\ 5 \\end{array}\\right] $$<p>.</p></li><li>Suppose $\\kA$ is an $m\\times n$ matrix. What can you guarantee about the solution space of the equation $\\kA\\kvecx = \\kveczero$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA = \\left[\\begin{array}{rrr} 2 & 1 & -3 \\\\ -1 & 2 & 1 \\\\ 3 & -1 & 0 \\end{array}\\right]$ and $\\kvecb=\\left[\\begin{array}{r} 4 \\\\ 3 \\\\ -4 \\end{array}\\right]$.</li><li>$\\kvecx = \\left[\\begin{array}{r} x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = \\left[\\begin{array}{r} -1 \\\\ 3 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r} 3 \\\\ 9 \\\\ 1 \\end{array}\\right]\\text{.}$</li><li>There are no solutions.</li><li>There is at least one solution, namely, $\\kvecx=\\kveczero$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA = \\left[\\begin{array}{rrr} 2 & 1 & -3 \\\\ -1 & 2 & 1 \\\\ 3 & -1 & 0 \\end{array}\\right]$ and $\\kvecb=\\left[\\begin{array}{r} 4 \\\\ 3 \\\\ -4 \\end{array}\\right]$.</li><li><p>Form the augmented matrix</p>$$ \\left[\\begin{array}{rrrr} 3 & -1 & 0 & -6 \\\\ -2 & 0 & 6 & 2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & -3 & -1 \\\\ 0 & 1 & -9 & 3 \\end{array}\\right] $$<p>so that</p>$$ \\kvecx = \\left[\\begin{array}{r} x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = \\left[\\begin{array}{r} -1+3x_3 \\\\ 3+9x_3 \\\\ x_3 \\end{array}\\right] = \\left[\\begin{array}{r} -1 \\\\ 3 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r} 3 \\\\ 9 \\\\ 1 \\end{array}\\right]\\text{.} $$</li><li><p>We have the augmented matrix</p>$$ \\left[\\begin{array}{rrrrr} 1 & 2 & 0 & -1 & -1 \\\\ 2 & 4 & -3 & -2 & 1 \\\\ -1 & -2 & 6 & 1 & 5 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrrr} 1 & 2 & 0 & -1 & 0 \\\\ 0 & 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>Since this system is inconsistent, there are no solutions to the matrix equation.</p></li><li>We know that there is at least one solution, namely, $\\kvecx=\\kveczero$.</li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "2.2.5",
+   "source_number": "2.2.5",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "observation-2-2-8"
+   },
+   "cite": "definition-2-2-6",
+   "prompt": "<p>Consider the matrices</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & 3 & 2 \\\\ -3 & 4 & -1 \\end{array}\\right],~~~ \\kB = \\left[\\begin{array}{rr} 3 & 0 \\\\ 1 & 2 \\\\ -2 & -1 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Before computing, first explain why the shapes of $\\kA$ and $\\kB$ enable us to form the product $\\kA\\kB$. Then describe the shape of $\\kA\\kB$.</li><li>Compute the product $\\kA\\kB$.</li><li>Sage can multiply matrices using the <code>*</code> operator. Define the matrices $\\kA$ and $\\kB$ in the Sage cell below and check your work by computing $\\kA\\kB$.</li><li>Are we able to form the matrix product $\\kB\\kA$? If so, use the Sage cell above to find $\\kB\\kA$. Is it generally true that $\\kA\\kB = \\kB\\kA$?</li><li><p>Suppose we form the three matrices.</p>$$ \\kA = \\left[\\begin{array}{rr} 1 & 2 \\\\ 3 & -2 \\end{array}\\right], \\kB = \\left[\\begin{array}{rr} 0 & 4 \\\\ 2 & -1 \\end{array}\\right], \\kC = \\left[\\begin{array}{rr} -1 & 3 \\\\ 4 & 3 \\end{array}\\right] $$<p>. Compare what happens when you compute $\\kA(\\kB+\\kC)$ and $\\kA\\kB + \\kA\\kC$. State your finding as a general principle.</p></li><li>Compare the results of evaluating $\\kA(\\kB\\kC)$ and $(\\kA\\kB)\\kC$ and state your finding as a general principle.</li><li><p>When we are dealing with real numbers, we know if $a\\neq 0$ and $ab = ac$, then $b=c$. Define matrices</p>$$ \\kA = \\left[\\begin{array}{rr} 1 & 2 \\\\ -2 & -4 \\end{array}\\right], \\kB = \\left[\\begin{array}{rr} 3 & 0 \\\\ 1 & 3 \\end{array}\\right], \\kC = \\left[\\begin{array}{rr} 1 & 2 \\\\ 2 & 2 \\end{array}\\right] $$<p>and compute $\\kA\\kB$ and $\\kA\\kC$.</p><p>If $\\kA\\kB = \\kA\\kC$, is it necessarily true that $\\kB = \\kC$?</p></li><li><p>Again, with real numbers, we know that if $ab = 0$, then either $a = 0$ or $b=0$. Define</p>$$ \\kA = \\left[\\begin{array}{rr} 1 & 2 \\\\ -2 & -4 \\end{array}\\right], \\kB = \\left[\\begin{array}{rr} 2 & -4 \\\\ -1 & 2 \\end{array}\\right] $$<p>and compute $\\kA\\kB$.</p><p>If $\\kA\\kB = 0$, is it necessarily true that either $\\kA=0$ or $\\kB=0$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>The product $\\kA\\kB$ exists because the number of columns of $\\kA$ equals the number of rows of $\\kB$. The dimensions of $\\kA\\kB$ are $2\\times 2$.</li><li>We have $\\kA\\kB = \\left[\\begin{array}{rr} 2 & 4 \\\\ -3 & 9 \\end{array}\\right]$.</li><li><p>Define</p><pre class=\"sage\"><code>A = matrix(2, 3, [1, 3, 2, -3, 4, -1])\nB = matrix(3, 2, [3, 0, 1, 2, -2, -1])\nA*B</code></pre></li><li>It is not generally true that $\\kA\\kB=\\kB\\kA$.</li><li>We find that $\\kA(\\kB+\\kC)=\\kA\\kB + \\kA\\kC$.</li><li>We find that $\\kA(\\kB\\kC) = (\\kA\\kB)\\kC$.</li><li>It is not generally true that $\\kB=\\kC$ if $\\kA\\kB=\\kA\\kC$.</li><li>It is not generally true that $\\kA=0$ or $\\kB=0$ if $\\kA\\kB=0$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The product $\\kA\\kB$ exists because the number of columns of $\\kA$ equals the number of rows of $\\kB$. The dimensions of $\\kA\\kB$ are $2\\times 2$.</li><li>We have $\\kA\\kB = \\left[\\begin{array}{rr} 2 & 4 \\\\ -3 & 9 \\end{array}\\right]$.</li><li><p>Define</p><pre class=\"sage\"><code>A = matrix(2, 3, [1, 3, 2, -3, 4, -1])\nB = matrix(3, 2, [3, 0, 1, 2, -2, -1])\nA*B</code></pre></li><li>Yes, we can form the product $\\kB\\kA$ because the number of columns of $\\kB$ equals the number of rows of $\\kA$. This product $\\kB\\kA$ will be $3\\times3$, however, so it must be true that $\\kA\\kB\\neq \\kB\\kA$.</li><li>We find that $\\kA(\\kB+\\kC)=\\kA\\kB + \\kA\\kC$.</li><li>We find that $\\kA(\\kB\\kC) = (\\kA\\kB)\\kC$.</li><li>It is not generally true that $\\kB=\\kC$ if $\\kA\\kB=\\kA\\kC$, as illustrated by this example.</li><li>It is not generally true that $\\kA=0$ or $\\kB=0$ if $\\kA\\kB=0$, as illustrated by this example.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.2.1",
+   "source_number": "2.2.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-eq-solution",
+   "prompt": "<p>Consider the system of linear equations</p>$$ \\begin{alignedat}{4} x & {}+{} & 2y & {}-{} & z & {}={} & 1 \\\\ 3x & {}+{} & 2y & {}+{} & 2z & {}={} & 7 \\\\ -x & & & {}+{} & 4z & {}={} & -3 \\\\ \\end{alignedat} $$<p>.</p><ol type=\"a\"><li>Find the matrix $\\kA$ and vector $\\kvecb$ that expresses this linear system in the form $\\kA\\kvecx=\\kvecb$.</li><li>Give a description of the solution space to the equation $\\kA\\kvecx = \\kvecb$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 3 & 2 & 2 \\\\ -1 & 0 & 4 \\end{array}\\right]$ and $\\kvecb=\\left[\\begin{array}{r} 1 \\\\ 7 \\\\ -3 \\end{array}\\right]$.</li><li>There is a unique solution $\\kvecx=\\left[\\begin{array}{r} 3 \\\\ -1 \\\\ 0 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 3 & 2 & 2 \\\\ -1 & 0 & 4 \\end{array}\\right]$ and $\\kvecb=\\left[\\begin{array}{r} 1 \\\\ 7 \\\\ -3 \\end{array}\\right]$.</li><li><p>We have</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & -1 & 1 \\\\ 3 & 2 & 2 & 7 \\\\ -1 & 0 & 4 & -3 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 0 & 3 \\\\ 0 & 1 & 0 & -1 \\\\ 0 & 0 & 1 & 0 \\end{array}\\right] $$<p>so there is a unique solution $\\kvecx=\\left[\\begin{array}{r} 3 \\\\ -1 \\\\ 0 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.2.2",
+   "source_number": "2.2.2",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-2",
+   "prompt": "<p>Suppose that $\\kA$ is a $135\\times2201$ matrix, and that $\\kvecx$ is a vector. If $\\kA\\kvecx$ is defined, what is the dimension of $\\kvecx$? What is the dimension of $\\kA\\kvecx$?</p>",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "the dimension of x",
+      "value": 2201
+     },
+     {
+      "part": "the dimension of Ax",
+      "value": 135
+     }
+    ],
+    "solution": "<p><strong>Answer.</strong> $\\kvecx\\in{\\mathbb R}^{2201}$ and $\\kA\\kvecx\\in{\\mathbb R}^{135}$.</p><p><strong>Solution.</strong> If $\\kA\\kvecx$ is defined, then $\\kvecx\\in{\\mathbb R}^{2201}$ and $\\kA\\kvecx\\in{\\mathbb R}^{135}$.</p>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.2.3",
+   "source_number": "2.2.3",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-2",
+   "prompt": "<p>Suppose that $\\kA$ is a $3\\times2$ matrix whose columns are $\\kvecvone$ and $\\kvecvtwo$; that is,</p>$$ \\kA = \\left[\\begin{array}{rr} \\kvecvone & \\kvecvtwo \\end{array} \\right] $$<p>.</p><ol type=\"a\"><li>What is the dimension of the vectors $\\kvecvone$ and $\\kvecvtwo$?</li><li>What is the product $\\kA\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right]$ in terms of $\\kvecvone$ and $\\kvecvtwo$? What is the product $\\kA\\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right]$? What is the product $\\kA\\left[\\begin{array}{r} 2 \\\\ 3 \\end{array}\\right]$?</li><li><p>If we know that</p>$$ \\kA\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right] = \\left[\\begin{array}{r} 3 \\\\ -2 \\\\ 1 \\end{array}\\right],~~~ \\kA\\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{r} 0 \\\\ 3 \\\\ 2 \\end{array}\\right], $$<p>what is the matrix $\\kA$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Both $\\kvecvone$ and $\\kvecvtwo$ are three-dimensional.</li><li>$\\kA\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right] = \\kvecvone$ and $\\kA\\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right] = \\kvecvtwo$. Also, $\\kA\\left[\\begin{array}{r} 2 \\\\ 3 \\end{array}\\right] = 2\\kvecvone+3\\kvecvthree$.<sup class=\"fn\" data-note=\"e3-column-index\"></sup></li><li>$\\kA = \\left[\\begin{array}{rr} 3 & 0 \\\\ -2 & 3 \\\\ 1 & 2 \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Both $\\kvecvone$ and $\\kvecvtwo$ are three-dimensional.</li><li>$\\kA\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right] = \\kvecvone$ and $\\kA\\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right] = \\kvecvtwo$. Also, $\\kA\\left[\\begin{array}{r} 2 \\\\ 3 \\end{array}\\right] = 2\\kvecvone+3\\kvecvthree$.</li><li>$\\kA = \\left[\\begin{array}{rr} 3 & 0 \\\\ -2 & 3 \\\\ 1 & 2 \\end{array}\\right]$</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.2.4",
+   "source_number": "2.2.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-2",
+   "prompt": "<p>Suppose that the matrix $\\kA = \\left[\\begin{array}{rr} \\kvecvone & \\kvecvtwo \\end{array}\\right]$ where $\\kvecvone$ and $\\kvecvtwo$ are shown in Figure 2.2.9.</p><ol type=\"a\"><li>What is the shape of the matrix $\\kA$?</li><li><p>On Figure 2.2.9, indicate the vectors</p>$$ \\kA\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right], ~~~\\kA\\left[\\begin{array}{r} 2 \\\\ 3 \\end{array}\\right], ~~~\\kA\\left[\\begin{array}{r} 0 \\\\ -3 \\end{array}\\right] $$<p>.</p></li><li>Find all vectors $\\kvecx$ such that $\\kA\\kvecx=\\kvecb$.</li><li>Find all vectors $\\kvecx$ such that $\\kA\\kvecx = \\kveczero$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA$ is a $2\\times2$ matrix.</li><li><p>We have</p><img src=\"/media/ch02/ex-matrix-cols-sol-2-2.svg\" alt=\"The vectors v one and v two with the three matrix-vector products A times (1, 0), A times (2, 3) and A times (0, minus 3) drawn on the grid of their linear combinations, beside b\" style=\"max-width: 50%\"></li><li>There is a unique vector $\\kvecx=\\left[\\begin{array}{r} -3 \\\\ -3 \\end{array}\\right]$.</li><li>There is a unique vector $\\kvecx=\\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA$ is a $2\\times2$ matrix.</li><li><p>We have</p><img src=\"/media/ch02/ex-matrix-cols-sol-2-2.svg\" alt=\"The vectors v one and v two with the three matrix-vector products A times (1, 0), A times (2, 3) and A times (0, minus 3) drawn on the grid of their linear combinations, beside b\" style=\"max-width: 50%\"></li><li>There is a unique vector $\\kvecx=\\left[\\begin{array}{r} -3 \\\\ -3 \\end{array}\\right]$.</li><li>There is a unique vector $\\kvecx=\\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$.</li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/ex-matrix-cols-2-2.svg",
+    "alt": "Two vectors v one and v two and their linear combinations",
+    "caption": "Figure 2.2.9 Two vectors $\\kvecvone$ and $\\kvecvtwo$ that form the columns of the matrix $\\kA$."
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.2.5",
+   "source_number": "2.2.5",
+   "kind": "exercise",
+   "bloom": "Create",
+   "place": {
+    "at": "end"
+   },
+   "cite": "caution",
+   "prompt": "<p>Suppose that</p>$$ \\kA=\\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 2 & 2 & 2 \\\\ -1 & -3 & 1 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Describe the solution space to the equation $\\kA\\kvecx = \\kveczero$.</li><li>Find a $3\\times2$ matrix $\\kB$ with no zero entries such that $\\kA\\kB = 0$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecx=\\left[\\begin{array}{r} -2x_3 \\\\ x_3 \\\\ x_3 \\end{array}\\right] = x_3\\left[\\begin{array}{r} -2 \\\\ 1 \\\\ 1 \\end{array}\\right]\\text{.}$</li><li>There are many possibilities. For instance, $\\kB = \\left[\\begin{array}{rr} -2 & 2 \\\\ 1 & -1 \\\\ 1 & -1 \\end{array}\\right]\\text{.}$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We construct the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 0 \\\\ 2 & 2 & 2 & 0 \\\\ -1 & -3 & 1 & 0 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 0 \\\\ 0 & 1 & -1 & 0 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]\\text{,} $$<p>which shows that</p>$$ \\kvecx=\\left[\\begin{array}{r} -2x_3 \\\\ x_3 \\\\ x_3 \\end{array}\\right] = x_3\\left[\\begin{array}{r} -2 \\\\ 1 \\\\ 1 \\end{array}\\right]\\text{.} $$</li><li>We form $\\kB$ by choosing two vectors in the solution space to $\\kA\\kvecx=\\kveczero$. For instance, $\\kB = \\left[\\begin{array}{rr} -2 & 2 \\\\ 1 & -1 \\\\ 1 & -1 \\end{array}\\right]\\text{.}$</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.2.6",
+   "source_number": "2.2.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-eq-solution",
+   "prompt": "<p>Consider the matrix</p>$$ \\kA=\\left[\\begin{array}{rrrr} 1 & 2 & -4 & -4 \\\\ 2 & 3 & 0 & 1 \\\\ 1 & 0 & 4 & 6 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li><p>Find the product $\\kA\\kvecx$ where</p>$$ \\kvecx = \\left[\\begin{array}{r} 1 \\\\ -2 \\\\ 0 \\\\ 2 \\end{array}\\right] $$<p>.</p></li><li><p>Give a description of the vectors $\\kvecx$ such that</p>$$ \\kA\\kvecx = \\left[\\begin{array}{r} -1 \\\\ 15 \\\\ 17 \\end{array}\\right] $$<p>.</p></li><li>Find the reduced row echelon form of $\\kA$ and identify the pivot positions.</li><li>Can you find a vector $\\kvecb$ such that $\\kA\\kvecx=\\kvecb$ is inconsistent?</li><li>For a general 3-dimensional vector $\\kvecb$, what can you say about the solution space of the equation $\\kA\\kvecx = \\kvecb$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA\\kvecx = \\left[\\begin{array}{r} -11 \\\\ -2 \\\\ 13 \\end{array}\\right]$.</li><li>$\\kvecx=\\left[\\begin{array}{r} 9-2x_4 \\\\ -1+x_4 \\\\ 2-x_4 \\\\ x_4 \\end{array}\\right] =\\left[\\begin{array}{r} 9 \\\\ -1 \\\\ 2 \\\\ 0 \\end{array}\\right]+x_4\\left[\\begin{array}{r} -2 \\\\ 1 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li>We see that $\\kA \\sim \\left[\\begin{array}{rrrr} {\\mathbf 1} & 0 & 0 & 2 \\\\ 0 & {\\mathbf 1} & 0 & -1 \\\\ 0 & 0 & {\\mathbf 1} & 1 \\end{array}\\right]\\text{.}$</li><li>No</li><li>The solution space will form a line in ${\\mathbb R}^4$, as in part b.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA\\kvecx = \\left[\\begin{array}{r} -11 \\\\ -2 \\\\ 13 \\end{array}\\right]$.</li><li><p>We consider the augmented matrix</p>$$ \\left[\\begin{array}{rrrr|r} 1 & 2 & -4 & -4 & -1 \\\\ 2 & 3 & 0 & 1 & 15 \\\\ 1 & 0 & 4 & 6 & 17 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr|r} 1 & 0 & 0 & 2 & 9 \\\\ 0 & 1 & 0 & -1 & -1 \\\\ 0 & 0 & 1 & 1 & 2 \\end{array}\\right] $$<p>so that $\\kvecx=\\left[\\begin{array}{r} 9-2x_4 \\\\ -1+x_4 \\\\ 2-x_4 \\\\ x_4 \\end{array}\\right] =\\left[\\begin{array}{r} 9 \\\\ -1 \\\\ 2 \\\\ 0 \\end{array}\\right]+x_4\\left[\\begin{array}{r} -2 \\\\ 1 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</p></li><li>We see that $\\kA \\sim \\left[\\begin{array}{rrrr} {\\mathbf 1} & 0 & 0 & 2 \\\\ 0 & {\\mathbf 1} & 0 & -1 \\\\ 0 & 0 & {\\mathbf 1} & 1 \\end{array}\\right]\\text{.}$</li><li>There is no vector $\\kvecb$ such that $\\kA\\kvecx=\\kvecb$ is inconsistent because the augmented matrix $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$ cannot have a pivot position in the rightmost column.</li><li>The coefficient matrix $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$ will have exactly one column without a pivot position. Therefore, the solution space will form a line in ${\\mathbb R}^4$, as in part b.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.2.7",
+   "source_number": "2.2.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-6",
+   "prompt": "<p>The operations that we perform in Gaussian elimination can be accomplished using matrix multiplication. This observation is the basis of an important technique that we will investigate in a subsequent chapter.</p><p>Let’s consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 2 & 0 & 2 \\\\ -3 & 2 & 3 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li><p>Suppose that</p>$$ S = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 7 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] $$<p>. Verify that $S\\kA$ is the matrix that results when the second row of $\\kA$ is scaled by a factor of 7. What matrix $S$ would scale the third row by -3?</p></li><li><p>Suppose that</p>$$ P = \\left[\\begin{array}{rrr} 0 & 1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] $$<p>. Verify that $P\\kA$ is the matrix that results from interchanging the first and second rows. What matrix $P$ would interchange the first and third rows?</p></li><li><p>Suppose that</p>$$ L_1 = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] $$<p>. Verify that $L_1\\kA$ is the matrix that results from multiplying the first row of $\\kA$ by $-2$ and adding it to the second row. What matrix $L_2$ would multiply the first row by 3 and add it to the third row?</p></li><li>When we performed Gaussian elimination, our first goal was to perform row operations that brought the matrix into a triangular form. For our matrix $\\kA$, find the row operations needed to find a row equivalent matrix $U$ in triangular form. By expressing these row operations in terms of matrix multiplication, find a matrix $L$ such that $L\\kA = U$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>To scale the third row by $-3$, we would use the matrix $S= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & -3 \\end{array}\\right]$.</li><li>To interchange the first and third rows, we would use $P= \\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ 1 & 0 & 0 \\end{array}\\right]$.</li><li>To multiply the first row by 3 and add to the third row, we would use $L_2= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 3 & 0 & 1 \\end{array}\\right]$.</li><li>$L= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ -1 & 2 & 1 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We compute that</p>$$ S\\kA = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 7 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 2 & 0 & 2 \\\\ -3 & 2 & 3 \\end{array}\\right] = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 14 & 0 & 14 \\\\ -3 & 2 & 3 \\end{array}\\right]\\text{.} $$<p>To scale the third row by $-3$, we would use the matrix $S= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & -3 \\end{array}\\right]$.</p></li><li><p>We compute that</p>$$ P\\kA = \\left[\\begin{array}{rrr} 0 & 1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 2 & 0 & 2 \\\\ -3 & 2 & 3 \\end{array}\\right] = \\left[\\begin{array}{rrr} 2 & 0 & 2 \\\\ 1 & 2 & -1 \\\\ -3 & 2 & 3 \\end{array}\\right]\\text{.} $$<p>To interchange the first and third rows, we would use $P= \\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ 1 & 0 & 0 \\end{array}\\right]$.</p></li><li><p>We compute that</p>$$ L_1\\kA = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 2 & 0 & 2 \\\\ -3 & 2 & 3 \\end{array}\\right] = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 0 & -4 & 4 \\\\ -3 & 2 & 3 \\end{array}\\right]\\text{.} $$<p>To multiply the first row by 3 and add to the third row, we would use $L_2= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 3 & 0 & 1 \\end{array}\\right]$.</p></li><li><p>Keeping track of the operations we perform in Gaussian elimination, we define</p>$$ \\begin{array}{cc} L_1= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right], & L_2= \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 3 & 0 & 1 \\end{array}\\right], \\\\ L_3 = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 2 & 1 \\end{array}\\right]\\text{.} \\end{array} $$<p>Then $L_3L_2L_1\\kA = \\left[\\begin{array}{rrr} 1 & 2 & -1 \\\\ 0 & -4 & 4 \\\\ 0 & 0 & 8 \\end{array}\\right]$. So $L=L_3L_2L_1 = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ -1 & 2 & 1 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.2.8",
+   "source_number": "2.2.8",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-6",
+   "prompt": "<p>In this exercise, you will construct the <em>inverse</em> of a matrix, a subject that we will investigate more fully in the next chapter. Suppose that $\\kA$ is the $2\\times2$ matrix:</p>$$ \\kA = \\left[\\begin{array}{rr} 3 & -2 \\\\ -2 & 1 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li><p>Find the vectors ${\\mathbf b}_1$ and ${\\mathbf b}_2$ such that the matrix $\\kB=\\left[\\begin{array}{rr} {\\mathbf b}_1 & {\\mathbf b}_2 \\end{array}\\right]$ satisfies</p>$$ \\kA\\kB = \\kI = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\end{array}\\right] $$<p>.</p></li><li>In general, it is not true that $\\kA\\kB = \\kB\\kA$. Check that it is true, however, for the specific $\\kA$ and $\\kB$ that appear in this problem.</li><li>Suppose that $\\kvecx = \\left[\\begin{array}{r} x_1 \\\\ x_2 \\end{array}\\right]$. What do you find when you evaluate $\\kI\\kvecx$?</li><li><p>Suppose that we want to solve the equation $\\kA\\kvecx = \\kvecb$. We know how to do this using Gaussian elimination; let’s use our matrix $\\kB$ to find a different way:</p>$$ \\begin{aligned} \\kA\\kvecx & {}={} \\kvecb \\\\ \\kB(\\kA\\kvecx) & {}={} \\kB\\kvecb \\\\ (\\kB\\kA)\\kvecx & {}={} \\kB\\kvecb \\\\ \\kI\\kvecx & {}={} \\kB\\kvecb \\\\ \\kvecx & {}={} \\kB\\kvecb \\\\ \\end{aligned} $$<p>. In other words, the solution to the equation $\\kA\\kvecx=\\kvecb$ is $\\kvecx = \\kB\\kvecb$.</p><p>Consider the equation $\\kA\\kvecx = \\left[\\begin{array}{r} 5 \\\\ -2 \\end{array}\\right]$. Find the solution in two different ways, first using Gaussian elimination and then as $\\kvecx = \\kB\\kvecb$, and verify that you have found the same result.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kB = \\left[\\begin{array}{rr} -1 & -2 \\\\ -2 & -3 \\end{array}\\right]\\text{.}$</li><li>It is true, in this case, that $\\kA\\kB=\\kB\\kA=\\kI$.</li><li>$\\kI\\kvecx = \\kvecx$.</li><li>$\\kvecx=\\kB\\kvecb=\\left[\\begin{array}{r} -1 \\\\ -4 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find ${\\mathbf b}_1$ and ${\\mathbf b}_2$ by solving the equations</p>$$ \\kA{\\mathbf b}_1=\\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right], \\kA{\\mathbf b}_2=\\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right]\\text{.} $$<p>This gives</p>$$ \\kB = \\left[\\begin{array}{rr} -1 & -2 \\\\ -2 & -3 \\end{array}\\right]\\text{.} $$</li><li>It is true, in this case, that $\\kA\\kB=\\kB\\kA=\\kI$.</li><li>We have seen that $\\kI\\kvecx = \\kvecx$.</li><li>If $\\kvecb=\\left[\\begin{array}{r} 5 \\\\ -2 \\end{array}\\right]$, then $\\kvecx=\\kB\\kvecb=\\left[\\begin{array}{r} -1 \\\\ -4 \\end{array}\\right]$ is the solution to the equation $\\kA\\kvecx=\\kvecb$.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "2.2.9",
+   "source_number": "2.2.9",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-eq-solution",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response.</p><ol type=\"a\"><li>If $\\kA\\kvecx$ is defined, then the number of components of $\\kvecx$ equals the number of rows of $\\kA$.</li><li>The solution space to the equation $\\kA\\kvecx = \\kvecb$ is equivalent to the solution space to the linear system whose augmented matrix is $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$.</li><li>If a linear system of equations has 8 equations and 5 unknowns, then the shape of the matrix $\\kA$ in the corresponding equation $\\kA\\kvecx = \\kvecb$ is $5\\times8$.</li><li>If $\\kA$ has a pivot position in every row, then every equation $\\kA\\kvecx = \\kvecb$ is consistent.</li><li>If $\\kA$ is a $9\\times5$ matrix, then $\\kA\\kvecx=\\kvecb$ is inconsistent for some vector $\\kvecb$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>False</li><li>True</li><li>False</li><li>True</li><li>True</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>False, the number of components of $\\kvecx$ equals the number of columns of $\\kA$.</li><li>True. This is a result of <a href=\"#prop-matrix-eq-solution\">Proposition 2.2.4</a>.</li><li>False. The shape of $\\kA$ is $8\\times5$.</li><li>True, because the augmented matrix $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$ cannot have a pivot position in the rightmost column.</li><li>True. Because there is not a pivot position in every row of $\\kA$, the augmented matrix $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$ will have a pivot position in the rightmost column for some vectors $\\kvecb$.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "2.2.10",
+   "source_number": "2.2.10",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-eq-solution",
+   "prompt": "<p>Suppose that $\\kA$ is a $4\\times4$ matrix and that the equation $\\kA\\kvecx = \\kvecb$ has a unique solution for some vector $\\kvecb$.</p><ol type=\"a\"><li>What does this say about the pivot positions of the matrix $\\kA$? Write the reduced row echelon form of $\\kA$.</li><li>Can you find another vector ${\\mathbf c}$ such that $\\kA\\kvecx = {\\mathbf c}$ is inconsistent?</li><li>What can you say about the solution space to the equation $\\kA\\kvecx = \\kveczero$?</li><li>Suppose $\\kA=\\left[\\begin{array}{rrrr} \\kvecvone & \\kvecvtwo & \\kvecvthree & \\htmlClass{kv-vector}{{\\mathbf v}_4} \\end{array}\\right]$. Explain why every four-dimensional vector can be written as a linear combination of the vectors $\\kvecvone$, $\\kvecvtwo$, $\\kvecvthree$, and $\\htmlClass{kv-vector}{{\\mathbf v}_4}$ in exactly one way.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA \\sim \\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]$.</li><li>No</li><li>$\\kvecx=\\kveczero$.</li><li>Every equation $\\kA\\kvecx=\\kvecb$ has exactly one solution.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since the solution is unique, there must be a pivot position in every column of $\\kA$. This means that there are four pivot positions so there is a pivot position in every row. In other words, $\\kA \\sim \\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]$.</li><li>No, because $\\kA$ has a pivot in every row.</li><li>There is only one solution, which is $\\kvecx=\\kveczero$.</li><li>If $\\kvecb$ is a four-dimensional vector, then $\\kA\\kvecx=\\kvecb$ has a unique solution since $\\kA$ has a pivot position in every row and every column. This means that $\\kvecb$ can be written as a linear combination of the columns of $\\kA$ in exactly one way.</li></ol>"
+   }
+  },
+  {
+   "id": "e11",
+   "source_id": "2.2.11",
+   "source_number": "2.2.11",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-mult-prop",
+   "prompt": "<p>Define the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & 2 & 4 \\\\ -2 & 1 & -3 \\\\ 3 & 1 & 7 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Describe the solution space to the homogeneous equation $\\kA\\kvecx = \\kveczero$ using a parametric description, if appropriate. What does this solution space represent geometrically?</li><li>Describe the solution space to the equation $\\kA\\kvecx=\\kvecb$ where $\\kvecb = \\left[\\begin{array}{r} -3 \\\\ -4 \\\\ 1 \\end{array}\\right]$. What does this solution space represent geometrically and how does it compare to the previous solution space?</li><li><p>We will now explain the relationship between the previous two solution spaces. Suppose that ${\\mathbf x}_h$ is a solution to the homogeneous equation; that is $\\kA{\\mathbf x}_h=\\kveczero$. Suppose also that ${\\mathbf x}_p$ is a solution to the equation $\\kA\\kvecx = \\kvecb$; that is, $\\kA{\\mathbf x}_p=\\kvecb$.</p><p>Use the Linearity Principle expressed in <a href=\"#prop-matrix-mult-prop\">Proposition 2.2.3</a> to explain why ${\\mathbf x}_h+{\\mathbf x}_p$ is a solution to the equation $\\kA\\kvecx = \\kvecb$. You may do this by evaluating $\\kA({\\mathbf x}_h+{\\mathbf x}_p)$.</p><p>That is, if we find one solution ${\\mathbf x}_p$ to an equation $\\kA\\kvecx = \\kvecb$, we may add any solution to the homogeneous equation to ${\\mathbf x}_p$ and still have a solution to the equation $\\kA\\kvecx = \\kvecb$. In other words, the solution space to the equation $\\kA\\kvecx = \\kvecb$ is given by translating the solution space to the homogeneous equation by the vector ${\\mathbf x}_p$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecx = x_3\\left[\\begin{array}{r} -2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li>$\\kvecx=\\left[\\begin{array}{r} 1 \\\\ -2 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r} -2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li>Notice that $\\kA({\\mathbf x}_h + {\\mathbf x}_p) = \\kA{\\mathbf x}_h + \\kA{\\mathbf x}_p = \\kveczero + \\kvecb = \\kvecb$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & 4 & 0 \\\\ -2 & 1 & -3 & 0 \\\\ 3 & 1 & 7 & 0 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 0 \\\\ 0 & 1 & 1 & 0 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right] $$<p>so that $\\kvecx = x_3\\left[\\begin{array}{r} -2 \\\\ -1 \\\\ 1 \\end{array}\\right]$. The solution space is a line that passes through the origin.</p></li><li><p>Now we have</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & 4 & -3 \\\\ -2 & 1 & -3 & -4 \\\\ 3 & 1 & 7 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 1 \\\\ 0 & 1 & 1 & -2 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right] $$<p>so that $\\kvecx=\\left[\\begin{array}{r} 1 \\\\ -2 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r} -2 \\\\ -1 \\\\ 1 \\end{array}\\right]$. This is a line through $\\left[\\begin{array}{r} 1 \\\\ -2 \\\\ 0 \\end{array}\\right]$ parallel to $\\left[\\begin{array}{r} -2 \\\\ -1 \\\\ 1 \\end{array}\\right]$. Notice that this line is parallel to the line in part a.</p></li><li>Notice that $\\kA({\\mathbf x}_h + {\\mathbf x}_p) = \\kA{\\mathbf x}_h + \\kA{\\mathbf x}_p = \\kveczero + \\kvecb = \\kvecb$. This shows that if we add a vector from the solution space to $\\kA\\kvecx=\\kveczero$ to a vector from the solution space to $\\kA\\kvecx=\\kvecb$, we obtain a vector in the solution space to $\\kA\\kvecx=\\kvecb$.</li></ol>"
+   }
+  },
+  {
+   "id": "e12",
+   "source_id": "2.2.12",
+   "source_number": "2.2.12",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-2-2",
+   "prompt": "<p>Suppose that a city is starting a bicycle sharing program with bicycles at locations $B$ and $C$. Bicycles that are rented at one location may be returned to either location at the end of the day. Over time, the city finds that 80% of bicycles rented at location $B$ are returned to $B$ with the other 20% returned to $C$. Similarly, 50% of bicycles rented at location $C$ are returned to $B$ and 50% to $C$.</p><p>To keep track of the bicycles, we form a vector</p>$$ \\kvecxk = \\left[\\begin{array}{r} B_k \\\\ C_k \\end{array}\\right] $$<p>where $B_k$ is the number of bicycles at location $B$ at the beginning of day $k$ and $C_k$ is the number of bicycles at $C$. The information above tells us how to determine the distribution of bicycles the following day:</p>$$ \\begin{alignedat}{3} B_{k+1} & {}={} 0.8B_k & {}+{} & 0.5 C_k \\\\ C_{k+1} & {}={} 0.2B_k & {}+{} & 0.5 C_k. \\\\ \\end{alignedat} $$<p>Expressed in matrix-vector form, these expressions give</p>$$ {\\mathbf x}_{k+1} = \\kA\\kvecxk $$<p>where</p>$$ \\kA = \\left[\\begin{array}{rr} 0.8 & 0.5 \\\\ 0.2 & 0.5 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li><p>Let’s check that this makes sense.</p><ol><li>Suppose that there are 1000 bicycles at location $B$ and none at $C$ on day 1. This means we have ${\\mathbf x}_1 = \\left[\\begin{array}{r} 1000 \\\\ 0 \\end{array}\\right]$. Find the number of bicycles at both locations on day 2 by evaluating ${\\mathbf x}_2 = \\kA{\\mathbf x}_1$.</li><li>Suppose that there are 1000 bicycles at location $C$ and none at $B$ on day 1. Form the vector ${\\mathbf x}_1$ and determine the number of bicycles at the two locations the next day by finding ${\\mathbf x}_2 = \\kA{\\mathbf x}_1$.</li></ol></li><li>Suppose that one day there are 1050 bicycles at location $B$ and 450 at location $C$. How many bicycles were there at each location the previous day?</li><li>Suppose that there are 500 bicycles at location $B$ and 500 at location $C$ on Monday. How many bicycles are there at the two locations on Tuesday? on Wednesday? on Thursday?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>We see that</p><ol><li>$x_2 = \\left[\\begin{array}{r} 800 \\\\ 200 \\end{array}\\right]$.</li><li>$x_2 = \\left[\\begin{array}{r} 500 \\\\ 500 \\end{array}\\right]$.</li></ol></li><li>$\\kvecx = \\left[\\begin{array}{r} 1000 \\\\ 500 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r} 650 \\\\ 350 \\end{array}\\right]$ represents the distribution of bicycles on Tuesday, $\\left[\\begin{array}{r} 695 \\\\ 305 \\end{array}\\right]$ represents the distribution of bicycles on Wednesday, and $\\left[\\begin{array}{r} 708.5 \\\\ 291.5 \\end{array}\\right]$ on Thursday.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We see that</p><ol><li>$x_2 = \\left[\\begin{array}{r} 800 \\\\ 200 \\end{array}\\right]$.</li><li>$x_2 = \\left[\\begin{array}{r} 500 \\\\ 500 \\end{array}\\right]$.</li></ol></li><li>We solve the equation $\\kA\\kvecx = \\left[\\begin{array}{r} 1050 \\\\ 450 \\end{array}\\right]$ to obtain $\\kvecx = \\left[\\begin{array}{r} 1000 \\\\ 500 \\end{array}\\right]$.</li><li>If ${\\mathbf x}_1 = \\left[\\begin{array}{r} 500 \\\\ 500 \\end{array}\\right]$ represents the distribution of bicycles on Monday, then ${\\mathbf x}_2=\\kA{\\mathbf x}_1 = \\left[\\begin{array}{r} 650 \\\\ 350 \\end{array}\\right]$ represents the distribution of bicycles on Tuesday, ${\\mathbf x}_3=\\kA{\\mathbf x}_2=\\left[\\begin{array}{r} 695 \\\\ 305 \\end{array}\\right]$ represents the distribution of bicycles on Wednesday, and ${\\mathbf x}_4=\\kA{\\mathbf x}_3=\\left[\\begin{array}{r} 708.5 \\\\ 291.5 \\end{array}\\right]$ on Thursday.</li></ol>"
+   }
+  },
+  {
+   "id": "e13",
+   "source_id": "2.2.13",
+   "source_number": "2.2.13",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-matrix-mult-prop",
+   "prompt": "<p>This problem is a continuation of the previous problem.</p><ol type=\"a\"><li><p>Let us define vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 5 \\\\ 2 \\end{array}\\right], ~~~ \\kvecvtwo = \\left[\\begin{array}{r} -1 \\\\ 1 \\end{array}\\right] $$<p>. Show that</p>$$ \\kA\\kvecvone = \\kvecvone, ~~~\\kA\\kvecvtwo = 0.3\\kvecvtwo $$<p>.</p></li><li><p>Suppose that ${\\mathbf x}_1 = c_1 \\kvecvone + c_2 \\kvecvtwo$ where $c_1$ and $c_2$ are scalars. Use the Linearity Principle expressed in <a href=\"#prop-matrix-mult-prop\">Proposition 2.2.3</a> to explain why</p>$$ {\\mathbf x}_{2} = \\kA{\\mathbf x}_1 = c_1\\kvecvone + 0.3c_2\\kvecvtwo $$<p>.</p></li><li><p>Continuing in this way, explain why</p>$$ \\begin{aligned} {\\mathbf x}_{3} = \\kA{\\mathbf x}_2 & {}={} c_1\\kvecvone +0.3^2c_2\\kvecvtwo \\\\ {\\mathbf x}_{4} = \\kA{\\mathbf x}_3 & {}={} c_1\\kvecvone +0.3^3c_2\\kvecvtwo \\\\ {\\mathbf x}_{5} = \\kA{\\mathbf x}_4 & {}={} c_1\\kvecvone +0.3^4c_2\\kvecvtwo \\\\ \\end{aligned} $$<p>.</p></li><li>Suppose that there are initially 500 bicycles at location $B$ and 500 at location $C$. Write the vector ${\\mathbf x}_1$ and find the scalars $c_1$ and $c_2$ such that ${\\mathbf x}_1=c_1\\kvecvone + c_2\\kvecvtwo$.</li><li>Use the previous part of this problem to determine ${\\mathbf x}_2$, ${\\mathbf x}_3$ and ${\\mathbf x}_4$.</li><li>After a very long time, how are all the bicycles distributed?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kA\\kvecvone = \\left[\\begin{array}{r} 5 \\\\ 2 \\end{array}\\right] = \\kvecvone$ and $\\kA\\kvecvtwo = \\left[\\begin{array}{r} -0.3 \\\\ 0.3 \\end{array}\\right] = 0.3\\kvecvtwo$.</li><li><p>We have</p>$$ \\begin{array}{rl} {\\mathbf x}_2=\\kA{\\mathbf x}_1 = & \\kA(c_1\\kvecvone+c_2\\kvecvtwo) \\\\ =& c_1\\kA\\kvecvone + c_2\\kA\\kvecvtwo = c_1\\kvecvone +0.3c_2\\kvecvtwo\\text{.} \\end{array} $$</li><li>$$ \\begin{array}{rl} {\\mathbf x}_3=\\kA{\\mathbf x}_2=& \\kA(c_1\\kvecvone+0.3c_2\\kvecvtwo) \\\\ = & c_1\\kA\\kvecvone +0.3c_2\\kA\\kvecvtwo = c_1\\kvecvone +0.3^2c_2\\kvecvtwo\\text{.} \\end{array} $$<p>and so on.</p></li><li><p>We find that</p>$$ {\\mathbf x}_1=\\left[\\begin{array}{r} 500 \\\\ 500 \\end{array}\\right] = \\frac{1000}{7}\\kvecvone + \\frac{1500}{7}\\kvecvtwo $$<p>.</p></li><li><p>Then</p>$$ \\begin{array}{l} {\\mathbf x}_2=\\frac{1000}{7}\\kvecvone + 0.3\\frac{1500}{7}{\\mathbf v}{2}, \\\\ {\\mathbf x}_3=\\frac{1000}{7}\\kvecvone + 0.3^2\\frac{1500}{7}{\\mathbf v}{2}, \\\\ {\\mathbf x}_4=\\frac{1000}{7}\\kvecvone + 0.3^3\\frac{1500}{7}{\\mathbf v}{2}\\text{.} \\end{array} $$</li><li><p>After a very long time, the second term becomes increasingly close to zero and so</p>$$ \\kvecx\\approx\\frac{1000}{7}\\kvecvone = \\left[\\begin{array}{r} 5000/7 \\\\ 2000/7 \\end{array}\\right] = \\left[\\begin{array}{r} 714.3 \\\\ 285.7 \\end{array}\\right]\\text{.} $$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA\\kvecvone = \\left[\\begin{array}{r} 5 \\\\ 2 \\end{array}\\right] = \\kvecvone$ and $\\kA\\kvecvtwo = \\left[\\begin{array}{r} -0.3 \\\\ 0.3 \\end{array}\\right] = 0.3\\kvecvtwo$.</li><li><p>We have</p>$$ \\begin{array}{rl} {\\mathbf x}_2=\\kA{\\mathbf x}_1 = & \\kA(c_1\\kvecvone+c_2\\kvecvtwo) \\\\ =& c_1\\kA\\kvecvone + c_2\\kA\\kvecvtwo = c_1\\kvecvone +0.3c_2\\kvecvtwo\\text{.} \\end{array} $$</li><li>$$ \\begin{array}{rl} {\\mathbf x}_3=\\kA{\\mathbf x}_2=& \\kA(c_1\\kvecvone+0.3c_2\\kvecvtwo) \\\\ = & c_1\\kA\\kvecvone -0.3c_2\\kA\\kvecvtwo = c_1\\kvecvone +0.3^2c_2\\kvecvtwo\\text{.} \\end{array} $$<p>and so on.</p></li><li><p>We find that</p>$$ {\\mathbf x}_1=\\left[\\begin{array}{r} 500 \\\\ 500 \\end{array}\\right] = \\frac{1000}{7}\\kvecvone + \\frac{1500}{7}\\kvecvtwo $$<p>.</p></li><li><p>Then</p>$$ \\begin{array}{l} {\\mathbf x}_2=\\frac{1000}{7}\\kvecvone + 0.3\\frac{1500}{7}{\\mathbf v}{2}, \\\\ {\\mathbf x}_3=\\frac{1000}{7}\\kvecvone + 0.3^2\\frac{1500}{7}{\\mathbf v}{2}, \\\\ {\\mathbf x}_4=\\frac{1000}{7}\\kvecvone + 0.3^3\\frac{1500}{7}{\\mathbf v}{2}\\text{.} \\end{array} $$</li><li><p>After a very long time, the second term becomes increasingly close to zero and so</p>$$ \\kvecx\\approx\\frac{1000}{7}\\kvecvone = \\left[\\begin{array}{r} 5000/7 \\\\ 2000/7 \\end{array}\\right] = \\left[\\begin{array}{r} 714.3 \\\\ 285.7 \\end{array}\\right]\\text{.} $$</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "scalar-multiplication-of-a-matrix"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-addition"
+  },
+  {
+   "exercise": "a1",
+   "concept": "identity-matrix"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-shape"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-vector-product"
+  },
+  {
+   "exercise": "a2",
+   "concept": "zero-vector"
+  },
+  {
+   "exercise": "a2",
+   "concept": "identity-matrix"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-equation"
+  },
+  {
+   "exercise": "a3",
+   "concept": "matrix-products-in-sage"
+  },
+  {
+   "exercise": "a3",
+   "concept": "linearity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "a3",
+   "concept": "zero-vector"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-equation"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "a4",
+   "concept": "vector-form-of-the-solution-space"
+  },
+  {
+   "exercise": "a4",
+   "concept": "parametric-description"
+  },
+  {
+   "exercise": "a5",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "a5",
+   "concept": "shape-of-a-matrix-product"
+  },
+  {
+   "exercise": "a5",
+   "concept": "rules-of-matrix-algebra"
+  },
+  {
+   "exercise": "a5",
+   "concept": "noncommutativity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e1",
+   "concept": "matrix-equation"
+  },
+  {
+   "exercise": "e1",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e2",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "matrix-as-columns"
+  },
+  {
+   "exercise": "e4",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e4",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e5",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e5",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e5",
+   "concept": "noncommutativity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e6",
+   "concept": "matrix-vector-product"
+  },
+  {
+   "exercise": "e6",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e6",
+   "concept": "vector-form-of-the-solution-space"
+  },
+  {
+   "exercise": "e6",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e7",
+   "concept": "elementary-row-operations"
+  },
+  {
+   "exercise": "e8",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e8",
+   "concept": "identity-matrix"
+  },
+  {
+   "exercise": "e8",
+   "concept": "rules-of-matrix-algebra"
+  },
+  {
+   "exercise": "e9",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e9",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "e10",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e10",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e10",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "e11",
+   "concept": "linearity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e11",
+   "concept": "vector-form-of-the-solution-space"
+  },
+  {
+   "exercise": "e11",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "e12",
+   "concept": "matrix-product-as-linear-combination"
+  },
+  {
+   "exercise": "e12",
+   "concept": "matrix-vector-product"
+  },
+  {
+   "exercise": "e12",
+   "concept": "matrix-equation"
+  },
+  {
+   "exercise": "e13",
+   "concept": "linearity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e13",
+   "concept": "linear-combination"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "a2-row-entry",
+   "kind": "correction",
+   "html": "The book’s solution prints the matrix’s first row as $1, 2, 0, -2$; the matrix of the statement, and the arithmetic of the line below it, have $-1$ as its last entry."
+  },
+  {
+   "id": "e3-column-index",
+   "kind": "correction",
+   "html": "The book prints $2\\kvecvone+3\\kvecvthree$; the matrix has two columns, and the product is $2\\kvecvone+3\\kvecvtwo$."
+  }
+ ]
+}
