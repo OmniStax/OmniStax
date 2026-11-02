@@ -1,0 +1,107 @@
+<section id="introduction">
+<h2>Introduction</h2>
+<p id="svd-insight">We’ve now seen what <span data-concept="singular-value-decomposition">singular value decompositions</span> are, how to construct them, and how they provide important information about a matrix such as <span data-concept="svd-and-the-four-fundamental-subspaces">orthonormal bases for the four fundamental subspaces</span>. This puts us in a good position to begin using <span data-concept="singular-value-decomposition">singular value decompositions</span> to solve a wide variety of problems.</p>
+<p id="familiar-issues">Given the fact that <span data-concept="singular-value-decomposition">singular value decompositions</span> so immediately convey fundamental data about a matrix, it seems natural that some of our previous work can be reinterpreted in terms of <span data-concept="singular-value-decomposition">singular value decompositions</span>. Therefore, we’ll take some time in this section to revisit some familiar issues, such as <span data-concept="least-squares-problem">least-squares problems</span> and <span data-concept="principal-component-analysis">principal component analysis</span>, while also looking at some new applications.</p>
+<div class="exercises" data-place="familiar-issues"></div>
+</section>
+
+<section id="least-squares-problems">
+<h2>Least-squares problems</h2>
+<p id="least-squares-recalled"><span data-concept="least-squares-problem">Least-squares problems</span>, which we explored in <a href="/understanding-linear-algebra/ch06/6.5/">Section 6.5</a>, arise when we are confronted with an <span data-concept="inconsistent-system">inconsistent linear system</span> $\kA\kvecx=\kvecb$. Since there is no solution to the system, we instead find the vector $\kvecx$ minimizing the distance between $\kvecb$ and $\kA\kvecx$. That is, we find the vector $\kvecxhat$, the <span data-concept="least-squares-solution">least-squares approximate solution</span>, by solving $\kA\kvecxhat=\kvecbhat$ where $\kvecbhat$ is the <span data-concept="orthogonal-projection">orthogonal projection</span> of $\kvecb$ onto the <span data-concept="column-space">column space</span> of $\kA$.</p>
+<p id="svd-basis-for-col">If we have a <span data-concept="singular-value-decomposition">singular value decomposition</span> $\kA=\kU\kSigma \kVT$, then <span data-concept="rank-from-singular-values">the number of nonzero singular values $r$ tells us the rank of $\kA$</span>, and <span data-concept="svd-and-the-four-fundamental-subspaces">the first $r$ columns of $\kU$ form an orthonormal basis for $\kCol(\kA)$</span>. This <span data-concept="orthonormal-basis">basis</span> may be used to <span data-concept="orthogonal-projection">project</span> vectors onto $\kCol(\kA)$ and hence to solve <span data-concept="least-squares-problem">least-squares problems</span>.</p>
+<p id="sage-svd">Before exploring this connection further, we will introduce Sage as a tool for automating the construction of <span data-concept="singular-value-decomposition">singular value decompositions</span>. One new feature is that we need to declare our matrix to consist of floating point entries. We do this by including <code>RDF</code> inside the matrix definition, as illustrated in the following cell.</p>
+<pre class="sage"><code>A = matrix(RDF, 3, 2, [1,0,-1,1,1,1])
+U, Sigma, V = A.SVD()
+print(U)
+print('---------')
+print(Sigma)
+print('---------')
+print(V)</code></pre>
+<div class="exercises" data-place="sage-svd"></div>
+<p id="svd-least-squares-power">This activity demonstrates the power of a <span data-concept="singular-value-decomposition">singular value decomposition</span> to find a <span data-concept="least-squares-by-svd">least-squares approximate solution</span> for an equation $\kA\kvecx = \kvecb$. Because it immediately provides an <span data-concept="orthonormal-basis">orthonormal basis</span> for $\kCol(\kA)$, something that we’ve had to construct using the <span data-concept="gram-schmidt-process">Gram-Schmidt process</span> in the past, we can easily <span data-concept="orthogonal-projection">project</span> $\kvecb$ onto $\kCol(\kA)$, which results in a simple expression for $\kvecxhat$.</p>
+<div class="note" id="prop-svd-ols">
+<div class="eyebrow">Proposition 7.5.1</div>
+<p><span data-concept="least-squares-by-svd">If $\kA=\kUr\kSigmar \kVr^T$ is a <span data-concept="reduced-svd">reduced singular value decomposition</span> of $\kA$, then a least-squares approximate solution to $\kA\kvecx=\kvecb$ is given by</span></p>
+$$ \kvecxhat = \kVr\kSigmarinv\kUr^T\kvecb. $$
+</div>
+<p id="shortest-solution">If the columns of $\kA$ are <span data-concept="linear-independence-of-vectors">linearly independent</span>, then the equation $\kA\kvecxhat = \kvecbhat$ has only one solution so there is a unique <span data-concept="least-squares-solution">least-squares approximate solution</span> $\kvecxhat$. Otherwise, the expression in <a href="#prop-svd-ols">Proposition 7.5.1</a> produces <span data-concept="least-squares-by-svd">the solution to $\kA\kvecxhat=\kvecbhat$ having the shortest length</span>.</p>
+<p id="pseudoinverse">The matrix $\kAplus = \kVr\kSigmarinv\kUr^T$ is known as the <em><span data-concept="pseudoinverse">Moore-Penrose psuedoinverse</span></em> of $\kA$. When $\kA$ is <span data-concept="invertible-matrix">invertible</span>, $\kAinv = \kAplus$.</p>
+</section>
+
+<section id="rank-k-approximations">
+<h2>Rank $k$ approximations</h2>
+<p id="approximating-sequence">If we have a <span data-concept="singular-value-decomposition">singular value decomposition</span> for a matrix $\kA$, we can form a sequence of matrices $\kAksub$ that <span data-concept="rank-k-approximation">approximate $\kA$ with increasing accuracy</span>. This may feel familiar to calculus students who have seen the way in which a function $f(x)$ can be approximated by a linear function, a quadratic function, and so forth with increasing accuracy.</p>
+<p id="rank-k-intro">We’ll begin with a <span data-concept="singular-value-decomposition">singular value decomposition</span> of a <span data-concept="rank">rank</span> $r$ matrix $\kA$ so that $\kA=\kU\kSigma \kVT$. <span data-concept="rank-k-approximation">To create the approximating matrix $\kAksub$, we keep the first $k$ singular values and set the others to zero.</span> For instance, if $\kSigma = \begin{bmatrix} 22 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; 14 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 3 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\ \end{bmatrix}$, we can form matrices</p>
+$$ \kSigma^{(1)} = \begin{bmatrix} 22 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 \\ \end{bmatrix}, \hspace{24pt} \kSigma^{(2)} = \begin{bmatrix} 22 & 0 & 0 & 0 & 0 \\ 0 & 14 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 \\ \end{bmatrix} $$
+<p id="closest-rank-k">and define $\kAone = \kU\kSigma^{(1)}\kVT$ and $\kAtwo = \kU\kSigma^{(2)}\kVT$. Because $\kAksub$ has $k$ nonzero <span data-concept="singular-value">singular values</span>, we know that <span data-concept="rank-from-singular-values">$\operatorname{rank}(\kAksub) = k$</span>. In fact, there is a sense in which <span data-concept="rank-k-approximation">$\kAksub$ is the closest matrix to $\kA$ among all rank $k$ matrices</span>.</p>
+<div class="exercises" data-place="closest-rank-k"></div>
+<p id="errors-decrease">In this activity, the <span data-concept="rank-k-approximation">approximating matrix $\kAksub$</span> has <span data-concept="rank">rank</span> $k$ because its <span data-concept="singular-value-decomposition">singular value decomposition</span> has $k$ nonzero <span data-concept="singular-value">singular values</span>. We then saw how the difference between $\kA$ and the approximations $\kAksub$ decreases as $k$ increases, which means that the sequence $\kAksub$ forms better approximations as $k$ increases.</p>
+<p id="reduced-ak">Another way to represent $\kAksub$ is with a <span data-concept="reduced-svd">reduced singular value decomposition</span> so that $\kAksub = \kUk\kSigmak\kVk^T$ where</p>
+$$ \kUk = \begin{bmatrix} \kvecuone & \ldots & \kvecuk \end{bmatrix},\hspace{10pt} \kSigmak = \begin{bmatrix} \ksigmaone & 0 & \ldots & 0 \\ 0 & \ksigmatwo & \ldots & 0 \\ \vdots & \vdots & \ddots & \vdots \\ 0 & 0 & \ldots & \ksigmak \end{bmatrix},\hspace{10pt} \kVk = \begin{bmatrix} \kvecvone & \ldots & \kvecvk \end{bmatrix}\text{.} $$
+<p id="sum-of-terms">Notice that the <span data-concept="rank">rank</span> $1$ matrix $\kAone$ then has the form $\kAone = \kvecuone\begin{bmatrix}\ksigmaone\end{bmatrix} \kvecvone^T = \ksigmaone\kvecuone\kvecvone^T$ and that we can similarly write:</p>
+$$ \begin{aligned} \kA \approx \kAone & = \ksigmaone\kvecuone\kvecvone^T \\ \kA \approx \kAtwo & = \ksigmaone\kvecuone\kvecvone^T + \ksigmatwo\kvecutwo\kvecvtwo^T \\ \kA \approx \kAthree & = \ksigmaone\kvecuone\kvecvone^T + \ksigmatwo\kvecutwo\kvecvtwo^T + \ksigmathree\kvecuthree\kvecvthree^T \\ \vdots & \\ \kA = \kAr & = \ksigmaone\kvecuone\kvecvone^T + \ksigmatwo\kvecutwo\kvecvtwo^T + \ksigmathree\kvecuthree\kvecvthree^T + \ldots + \ksigmar\kvecur\kvecvr^T\text{.} \end{aligned} $$
+<p id="outer-product">Given two vectors $\kvecu$ and $\kvecv$, the matrix $\kvecu~\kvecv^T$ is called the <em><span data-concept="outer-product">outer product</span></em> of $\kvecu$ and $\kvecv$. (The <span data-concept="dot-product">dot product</span> $\kvecu\cdot\kvecv=\kvecu^T\kvecv$ is sometimes called the <em><span data-concept="outer-product">inner product</span></em>.) An <span data-concept="outer-product">outer product</span> will always be a <span data-concept="rank">rank</span> $1$ matrix so we see above how <span data-concept="rank-k-approximation">$\kAksub$ is obtained by adding together $k$ rank $1$ matrices</span>, each of which gets us one step closer to the original matrix $\kA$.</p>
+</section>
+
+<section id="principal-component-analysis">
+<h2>Principal component analysis</h2>
+<p id="pca-recalled">In <a href="/understanding-linear-algebra/ch07/7.3/">Section 7.3</a>, we explored <span data-concept="principal-component-analysis">principal component analysis</span> as a technique to <span data-concept="dimensional-reduction">reduce the dimension of a dataset</span>. In particular, we constructed the <span data-concept="covariance-matrix">covariance matrix</span> $\kC$ from a <span data-concept="demeaned-vector">demeaned</span> data matrix and saw that the eigenvalues and eigenvectors of $\kC$ tell us about the <span data-concept="variance-in-a-direction">variance of the dataset in different directions</span>. We referred to the eigenvectors of $\kC$ as <em><span data-concept="principal-component">principal components</span></em> and found that projecting the data onto a subspace defined by the first few <span data-concept="principal-component">principal components</span> frequently gave us a way to visualize the dataset. As we added more <span data-concept="principal-component">principal components</span>, we retained more information about the original dataset. This feels similar to the <span data-concept="rank-k-approximation">rank $k$ approximations</span> we have just seen so let’s explore the connection.</p>
+<p id="pca-by-svd">Suppose that we have a dataset with $N$ points, that $\kA$ represents the <span data-concept="demeaned-vector">demeaned</span> data matrix, that $\kA = \kU\kSigma \kVT$ is a <span data-concept="singular-value-decomposition">singular value decomposition</span>, and that the <span data-concept="singular-value">singular values</span> are $\kA$ are denoted as $\ksigmai$. <span data-concept="pca-by-svd">It follows that the <span data-concept="covariance-matrix">covariance matrix</span></span></p>
+$$ \kC = \frac1N \kA\kAT = \frac1N (\kU\kSigma \kVT) (\kU\kSigma \kVT)^T = \kU\left(\frac1N \kSigma \kSigmaT\right) \kUT. $$
+<p id="pca-diagonal">Notice that $\frac1N \kSigma\kSigmaT$ is a <span data-concept="diagonal-matrix">diagonal matrix</span> whose diagonal entries are $\frac1N\ksigmai^2$. Therefore, it follows that</p>
+$$ \kC = \kU\left(\frac1N \kSigma \kSigmaT\right) \kUT $$
+<p id="pca-orthogonal-diagonalization">is an <span data-concept="orthogonally-diagonalizable-matrix">orthogonal diagonalization</span> of $\kC$ showing that</p>
+<ul id="pca-consequences">
+<li><p id="pca-components"><span data-concept="pca-by-svd">the <span data-concept="principal-component">principal components</span> of the dataset, which are the eigenvectors of $\kC$, are given by the columns of $\kU$. In other words, the left singular vectors of $\kA$ are the principal components of the dataset.</span></p></li>
+<li><p id="pca-variance"><span data-concept="pca-by-svd">the <span data-concept="variance-in-a-direction">variance in the direction of a principal component</span> is the associated eigenvalue of $\kC$ and therefore</span></p>
+$$ \kVui = \frac1N\ksigmai^2. $$
+</li>
+</ul>
+<div class="exercises" data-place="pca-variance"></div>
+<p id="pca-direct-route">In our first encounter with <span data-concept="principal-component-analysis">principal component analysis</span>, we began with a <span data-concept="demeaned-vector">demeaned</span> data matrix $\kA$, formed the <span data-concept="covariance-matrix">covariance matrix</span> $\kC$, and used the eigenvalues and eigenvectors of $\kC$ to project the <span data-concept="demeaned-vector">demeaned</span> data onto a smaller dimensional subspace. In this section, we have seen that a <span data-concept="singular-value-decomposition">singular value decomposition</span> of $\kA$ provides a more direct route: <span data-concept="pca-by-svd">the left singular vectors of $\kA$ form the principal components and the approximating matrix $\kAksub$ represents the data points projected onto the subspace spanned by the first $k$ principal components</span>. The <span data-concept="coordinates-of-projected-data">coordinates of a projected demeaned data point</span> are given by the columns of $\kGammak = \kSigmak\kVk^T$.</p>
+</section>
+
+<section id="image-compressing-and-denoising">
+<h2>Image compressing and denoising</h2>
+<p id="svd-images">In addition to <span data-concept="principal-component-analysis">principal component analysis</span>, the <span data-concept="rank-k-approximation">approximations $\kAksub$</span> of a matrix $\kA$ obtained from a <span data-concept="singular-value-decomposition">singular value decomposition</span> can be used in image processing. Remember that we studied the <span data-concept="jpeg-compression">JPEG compression algorithm</span>, whose foundation is the change of basis defined by the Discrete Cosine Transform, in <a href="/understanding-linear-algebra/ch03/3.3/">Section 3.3</a>. We will now see how a <span data-concept="singular-value-decomposition">singular value decomposition</span> provides another tool for both <span data-concept="image-compression-by-svd">compressing images</span> and <span data-concept="denoising-by-svd">removing noise in them</span>.</p>
+<figure class="sim" id="sim-image-rank-k">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>The photograph is a $316\times310$ matrix $\kA$ of grey values, and the <span data-concept="rank-k-approximation">approximation $\kAksub$</span> keeps only its first $k$ <span data-concept="singular-value">singular values</span> and the <span data-concept="outer-product">outer products</span> $\ksigmai\kvecui\kvecvi^T$ that go with them. One term gives blurred stripes; by $k = 50$ the picture is hard to tell from the original and is stored in a third of the numbers, and past $k = 156$ the terms take more numbers than the pixels do. The letter O has <span data-concept="rank">rank</span> 3, so three terms rebuild it exactly; its noisy copy has three large <span data-concept="singular-value">singular values</span> and many small ones, and keeping three leaves the noise behind in $\kA - \kAthree$.</span></div>
+</figure>
+<div class="exercises" data-place="sim-image-rank-k"></div>
+<p id="more-examples">Several examples illustrating how the <span data-concept="singular-value-decomposition">singular value decomposition</span> <span data-concept="image-compression-by-svd">compresses images</span> are available at this page from <a href="http://timbaumann.info/svd-image-compression-demo/">timbaumann.info/projects.html</a></p>
+</section>
+
+<section id="analyzing-supreme-court-cases">
+<h2>Analyzing Supreme Court cases</h2>
+<p id="svd-supreme">As we’ve seen, <span data-concept="svd-of-voting-records">a singular value decomposition concentrates the most important features of a matrix into the first singular values and singular vectors</span>. We will now use this observation to extract meaning from a large dataset giving the voting records of Supreme Court justices. A similar analysis appears in the paper <a href="https://www.pnas.org/content/100/13/7432">gvsu.edu/s/21F</a> by Lawrence Sirovich.</p>
+<p id="rehnquist-court">The makeup of the Supreme Court was unusually stable during a period from 1994-2005 when it was led by Chief Justice William Rehnquist. This is sometimes called the <em>second Rehnquist court</em>. The justices during this period were:</p>
+<ul id="justices">
+<li>William Rehnquist</li>
+<li>Antonin Scalia</li>
+<li>Clarence Thomas</li>
+<li>Anthony Kennedy</li>
+<li>Sandra Day O’Connor</li>
+<li>John Paul Stevens</li>
+<li>David Souter</li>
+<li>Ruth Bader Ginsburg</li>
+<li>Stephen Breyer</li>
+</ul>
+<p id="voting-patterns">During this time, there were 911 cases in which all nine judges voted. We would like to understand patterns in their voting.</p>
+<div class="book-table" id="table-supreme-cases">
+<span class="tcap"><span class="eyebrow">Table 7.5.2</span><span>Number of cases by vote count</span></span>
+<table>
+<thead><tr><th>Vote count</th><th># of cases</th></tr></thead>
+<tbody>
+<tr><td>9-0</td><td>405</td></tr>
+<tr><td>8-1</td><td>89</td></tr>
+<tr><td>7-2</td><td>111</td></tr>
+<tr><td>6-3</td><td>118</td></tr>
+<tr><td>5-4</td><td>188</td></tr>
+</tbody>
+</table>
+</div>
+<figure class="sim" id="sim-supreme-court">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>Each case is a column of nine votes, $+1$ with the majority and $-1$ against, and the <span data-concept="singular-vectors">left singular vectors</span> $\kvecuone$, $\kvecutwo$, $\kvecuthree$ are the patterns the 911 columns are built from. Across all cases $\kvecuone$ is the unanimous decision and $\kvecutwo$ the 5-4 split with the five conservative justices in the majority. Among the 5-4 cases $\kvecuone$ is that split, $\kvecutwo$ is almost all Sandra Day O’Connor and $\kvecuthree$ almost all Anthony Kennedy, the two votes that swing a close decision.</span></div>
+</figure>
+<div class="exercises" data-place="sim-supreme-court"></div>
+</section>

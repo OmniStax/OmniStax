@@ -1,0 +1,951 @@
+{
+ "id": "7.5",
+ "module": "sec-svd-uses",
+ "chapter": "7",
+ "title": "Using Singular Value Decompositions",
+ "lead": "With the <span data-concept=\"singular-value-decomposition\">singular value decomposition</span> in hand, this section puts it to work: on <span data-concept=\"least-squares-problem\">least-squares problems</span>, on approximating a matrix by matrices of lower <span data-concept=\"rank\">rank</span>, on <span data-concept=\"principal-component-analysis\">principal component analysis</span>, on compressing and cleaning up images, and on the voting records of the Supreme Court.",
+ "objectives": [],
+ "summary_html": "<p>This section has demonstrated some uses of the singular value decomposition. Because the singular values appear in decreasing order, the decomposition has the effect of concentrating the most important features of the matrix into the first singular values and singular vectors.</p><ul><li>Because the first left singular vectors form an orthonormal basis for $\\kCol(\\kA)$, a singular value decomposition provides a convenient way to project vectors onto $\\kCol(\\kA)$ and therefore to solve least-squares problems.</li><li>A singular value decomposition of a rank $r$ matrix $\\kA$ leads to a series of approximations $\\kAksub$ of $\\kA$ where$$ \\begin{aligned} \\kA \\approx \\kAone & = \\ksigmaone\\kvecuone\\kvecvone^T \\\\ \\kA \\approx \\kAtwo & = \\ksigmaone\\kvecuone\\kvecvone^T + \\ksigmatwo\\kvecutwo\\kvecvtwo^T \\\\ \\kA \\approx \\kAthree & = \\ksigmaone\\kvecuone\\kvecvone^T + \\ksigmatwo\\kvecutwo\\kvecvtwo^T + \\ksigmathree\\kvecuthree\\kvecvthree^T \\\\ \\vdots & \\\\ \\kA = \\kAr & = \\ksigmaone\\kvecuone\\kvecvone^T + \\ksigmatwo\\kvecutwo\\kvecvtwo^T + \\ksigmathree\\kvecuthree\\kvecvthree^T + \\ldots + \\ksigmar\\kvecur\\kvecvr^T \\end{aligned} $$In each case, $\\kAksub$ is the rank $k$ matrix that is closest to $\\kA$.</li><li>If $\\kA$ is a demeaned data matrix, the left singular vectors give the principal components of $\\kA$, and the variance in the direction of a principal component can be simply expressed in terms of the corresponding singular value.</li><li>The singular value decomposition has many applications. In this section, we looked at how the decomposition is used in image processing through the techniques of compression and denoising.</li><li>Because the first few left singular vectors contain the most important features of a matrix, we can use a singular value decomposition to extract meaning from a large dataset as we did when analyzing the voting patterns of the second Rehnquist court.</li></ul>",
+ "notes": "The section’s 45 Sage cells are not live: the 22 that hold code stand as static code blocks, one in the text and the rest in their cards, and the 23 empty cells, each inviting the reader to type, are left out with the task’s words kept.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity prints a solution only, which keys its card. The five activities stand in the text as cards, their Sage code kept as code; Activities 7.5.5 and 7.5.6 and Exercises 7.5.5 and 7.5.6 read from the section’s two Sims, and Table 7.5.2 stands in the text before Activity 7.5.6. Four printed slips are corrected in notes under their cards (Activities 7.5.2 f and 7.5.4 d, Exercises 7.5.7 d and 7.5.8 d) and a fifth, Exercise 7.5.8 b ii, whose second entry is 14142.1. The computed answers were checked by computation. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-image-rank-k",
+   "kind": "sim",
+   "draws": [
+    "matrix",
+    "vector",
+    "eigenvalue"
+   ],
+   "facts": [
+    "spectrum",
+    "#000000",
+    "#ffffff"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-supreme-court",
+   "kind": "sim",
+   "draws": [
+    "vector",
+    "eigenvalue"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "svd-insight",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-insight",
+   "concept": "svd-and-the-four-fundamental-subspaces",
+   "verb": "uses"
+  },
+  {
+   "span": "familiar-issues",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "familiar-issues",
+   "concept": "least-squares-problem",
+   "verb": "uses"
+  },
+  {
+   "span": "familiar-issues",
+   "concept": "principal-component-analysis",
+   "verb": "uses"
+  },
+  {
+   "span": "least-squares-recalled",
+   "concept": "least-squares-problem",
+   "verb": "uses"
+  },
+  {
+   "span": "least-squares-recalled",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "least-squares-recalled",
+   "concept": "least-squares-solution",
+   "verb": "uses"
+  },
+  {
+   "span": "least-squares-recalled",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "least-squares-recalled",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "rank-from-singular-values",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "svd-and-the-four-fundamental-subspaces",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-basis-for-col",
+   "concept": "least-squares-problem",
+   "verb": "uses"
+  },
+  {
+   "span": "sage-svd",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-least-squares-power",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-least-squares-power",
+   "concept": "least-squares-by-svd",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-least-squares-power",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-least-squares-power",
+   "concept": "gram-schmidt-process",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-least-squares-power",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-svd-ols",
+   "concept": "least-squares-by-svd",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-svd-ols",
+   "concept": "reduced-svd",
+   "verb": "uses"
+  },
+  {
+   "span": "shortest-solution",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "shortest-solution",
+   "concept": "least-squares-solution",
+   "verb": "uses"
+  },
+  {
+   "span": "shortest-solution",
+   "concept": "least-squares-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pseudoinverse",
+   "concept": "pseudoinverse",
+   "verb": "introduces"
+  },
+  {
+   "span": "pseudoinverse",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "approximating-sequence",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "approximating-sequence",
+   "concept": "rank-k-approximation",
+   "verb": "uses"
+  },
+  {
+   "span": "rank-k-intro",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "rank-k-intro",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "rank-k-intro",
+   "concept": "rank-k-approximation",
+   "verb": "introduces"
+  },
+  {
+   "span": "closest-rank-k",
+   "concept": "singular-value",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-rank-k",
+   "concept": "rank-from-singular-values",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-rank-k",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "errors-decrease",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "errors-decrease",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "errors-decrease",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "errors-decrease",
+   "concept": "singular-value",
+   "verb": "uses"
+  },
+  {
+   "span": "reduced-ak",
+   "concept": "reduced-svd",
+   "verb": "uses"
+  },
+  {
+   "span": "sum-of-terms",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "outer-product",
+   "concept": "outer-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "outer-product",
+   "concept": "dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "outer-product",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "outer-product",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "principal-component-analysis",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "dimensional-reduction",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "covariance-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "demeaned-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "variance-in-a-direction",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "principal-component",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-recalled",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pca-by-svd",
+   "concept": "demeaned-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-by-svd",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-by-svd",
+   "concept": "singular-value",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-by-svd",
+   "concept": "pca-by-svd",
+   "verb": "introduces"
+  },
+  {
+   "span": "pca-by-svd",
+   "concept": "covariance-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-diagonal",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-orthogonal-diagonalization",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-components",
+   "concept": "pca-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pca-components",
+   "concept": "principal-component",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-variance",
+   "concept": "pca-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pca-variance",
+   "concept": "variance-in-a-direction",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "principal-component-analysis",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "demeaned-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "covariance-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "pca-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pca-direct-route",
+   "concept": "coordinates-of-projected-data",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-images",
+   "concept": "principal-component-analysis",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-images",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-images",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-images",
+   "concept": "jpeg-compression",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-images",
+   "concept": "image-compression-by-svd",
+   "verb": "introduces"
+  },
+  {
+   "span": "svd-images",
+   "concept": "denoising-by-svd",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "rank-k-approximation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "singular-value",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "outer-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "more-examples",
+   "concept": "singular-value-decomposition",
+   "verb": "uses"
+  },
+  {
+   "span": "more-examples",
+   "concept": "image-compression-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-supreme",
+   "concept": "svd-of-voting-records",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-supreme-court",
+   "concept": "singular-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-supreme-court",
+   "concept": "svd-of-voting-records",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "image-compression-by-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-image-rank-k",
+   "concept": "denoising-by-svd",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "7.5.1",
+   "source_number": "7.5.1",
+   "kind": "preview",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "familiar-issues"
+   },
+   "cite": "svd-insight",
+   "prompt": "<p>Suppose that $\\kA = \\kU\\kSigma \\kVT$ where</p>$$ \\kSigma = \\begin{bmatrix} 13 & 0 & 0 & 0 \\\\ 0 & 8 & 0 & 0 \\\\ 0 & 0 & 2 & 0 \\\\ 0 &0 & 0 & 0 \\\\ 0 &0 & 0 & 0 \\end{bmatrix}, $$<p>vectors $\\kvecuj$ form the columns of $\\kU$, and vectors $\\kvecvj$ form the columns of $\\kV$.</p><ol type=\"a\"><li><p>What are the shapes of the matrices $\\kA$, $\\kU$, and $\\kV$?</p></li><li><p>What is the rank of $\\kA$?</p></li><li><p>Describe how to find an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>Describe how to find an orthonormal basis for $\\kNul(\\kA)$.</p></li><li><p>If the columns of $\\kQ$ form an orthonormal basis for $\\kCol(\\kA)$, what is $\\kQT\\kQ$?</p></li><li><p>How would you form a matrix that projects vectors orthogonally onto $\\kCol(\\kA)$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><p>$\\kA$ is $5\\times4$, $\\kU$ is $5\\times5$, and $\\kV$ is $4\\times4$.</p></li><li><p>$\\operatorname{rank}(\\kA)=3$ since there are three nonzero singular values.</p></li><li><p>The first three columns, $\\kvecuone$, $\\kvecutwo$, and $\\kvecuthree$, of $\\kU$ form an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>The last column $\\kvecvfour$ of $\\kV$ is a basis for $\\kNul(\\kA)$.</p></li><li><p>$\\kQT\\kQ=\\kI$ since each entry is a dot product of two vectors in an orthonormal set.</p></li><li><p>$\\kQ\\kQT$ projects vectors orthogonally onto $\\kCol(\\kA)$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "7.5.2",
+   "source_number": "7.5.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sage-svd"
+   },
+   "cite": "sage-svd",
+   "prompt": "<p>Consider the equation $\\kA\\kvecx=\\kvecb$ where</p>$$ \\begin{bmatrix} 1 & 0 \\\\ 1 & 1 \\\\ 1 & 2 \\end{bmatrix} \\kvecx = \\left[\\begin{array}{r}-1 \\\\ 3 \\\\ 6 \\end{array}\\right] $$<ol type=\"a\"><li><p>Find a singular value decomposition for $\\kA$ using the Sage cell below. What are singular values of $\\kA$?</p></li><li><p>What is $r$, the rank of $\\kA$? How can we identify an orthonormal basis for $\\kCol(\\kA)$?</p></li><li><p>Form the reduced singular value decomposition $\\kUr\\kSigmar\\kVr^T$ by constructing: the matrix $\\kUr$, consisting of the first $r$ columns of $\\kU$; the matrix $\\kVr$, consisting of the first $r$ columns of $\\kV$; and $\\kSigmar$, a square $r\\times r$ diagonal matrix. Verify that $\\kA=\\kUr\\kSigmar \\kVr^T$.</p><p>You may find it convenient to remember that if <code>B</code> is a matrix defined in Sage, then <code>B.matrix_from_columns( list )</code> and <code>B.matrix_from_rows( list )</code> can be used to extract columns or rows from <code>B</code>. For instance, <code>B.matrix_from_rows([0,1,2])</code> provides a matrix formed from the first three rows of <code>B</code>.</p></li><li><p>How does the reduced singular value decomposition provide a matrix whose columns are an orthonormal basis for $\\kCol(\\kA)$?</p></li><li><p>Explain why a least-squares approximate solution $\\kvecxhat$ satisfies</p>$$ \\kA\\kvecxhat = \\kUr\\kUr^T\\kvecb. $$</li><li><p>What is the product $\\kVr\\kVr^T$ and why does it have this form?</p></li><li><p>Explain why</p>$$ \\kvecxhat = \\kVr\\kSigmarinv\\kUr^T\\kvecb $$<p>is the least-squares approximate solution, and use this expression to find $\\kvecxhat$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\ksigmaone = 2.67$ and $\\ksigmatwo = 0.92$.</p></li><li><p>$\\operatorname{rank}(\\kA) = 2$ and the first two columns of $\\kU$ form an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>We have</p>$$ \\kUr = \\begin{bmatrix} -0.22 & 0.89 \\\\ -0.52 & 0.25 \\\\ -0.83 & -0.39 \\end{bmatrix},\\hspace{24pt} \\kSigmar = \\begin{bmatrix} 2.7 & 0.00 \\\\ 0.00 & 0.92 \\end{bmatrix},\\hspace{24pt} \\kVr = \\begin{bmatrix} -0.58 & 0.81 \\\\ -0.81 & -0.58 \\end{bmatrix}\\text{.} $$</li><li><p>The columns of $\\kUr$ form an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>$\\kvecbhat=\\kUr\\kUr^T\\kvecb$</p></li><li><p>$\\kVr^T\\kVr = \\kI$<sup class=\"fn\" data-note=\"c-vr-vrt\"></sup></p></li><li><p>$\\kvecxhat=\\left[\\begin{array}{r}-0.83 \\\\ 3.50 \\end{array}\\right]$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The singular values are $\\ksigmaone = 2.67$ and $\\ksigmatwo = 0.92$.</p></li><li><p>There are two nonzero singular values so $\\operatorname{rank}(\\kA) = 2$. The first two columns of $\\kU$ form an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>We have</p>$$ \\kUr = \\begin{bmatrix} -0.22 & 0.89 \\\\ -0.52 & 0.25 \\\\ -0.83 & -0.39 \\end{bmatrix},\\hspace{24pt} \\kSigmar = \\begin{bmatrix} 2.7 & 0.00 \\\\ 0.00 & 0.92 \\end{bmatrix},\\hspace{24pt} \\kVr = \\begin{bmatrix} -0.58 & 0.81 \\\\ -0.81 & -0.58 \\end{bmatrix}\\text{.} $$</li><li><p>The columns of $\\kUr$ form an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>Since $\\kvecbhat=\\kUr\\kUr^T\\kvecb$, we obtain the equation $\\kA\\kvecxhat = \\kUr\\kUr^T\\kvecb$.</p></li><li><p>Because the matrix has full rank, we know that $\\kNul(\\kA)=\\{\\kveczero\\}$. Therefore, $\\kVr=\\kV$ is a square matrix and $\\kVr\\kVr^T = \\kI$ it is orthogonal.</p></li><li><p>We have the equation $\\kA\\kvecxhat = \\kUr\\kUr^T\\kvecb$, which gives</p>$$ \\begin{aligned} \\kA\\kvecxhat & = \\kUr\\kUr^T\\kvecb \\\\ \\kUr\\kSigmar\\kVr^T\\kvecxhat & = \\kUr\\kUr^T\\kvecb \\\\ \\kSigmar\\kVr^T\\kvecxhat & = \\kUr^T\\kvecb \\\\ \\kVr^T\\kvecxhat & = \\kSigmarinv\\kUr^T\\kvecb \\\\ \\kvecxhat & = \\kVr\\kSigmarinv\\kUr^T\\kvecb \\\\ \\end{aligned} $$</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "7.5.3",
+   "source_number": "7.5.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "closest-rank-k"
+   },
+   "cite": "rank-k-intro",
+   "prompt": "<p>Let’s consider a matrix $\\kA=\\kU\\kSigma \\kVT$ where</p>$$ \\begin{aligned} & \\kU = \\begin{bmatrix} \\frac{1}{2} & \\frac{1}{2} & \\frac{1}{2} & \\frac{1}{2} \\\\ \\frac{1}{2} & \\frac{1}{2} & -\\frac{1}{2} & -\\frac{1}{2} \\\\ \\frac{1}{2} & -\\frac{1}{2} & \\frac{1}{2} & -\\frac{1}{2} \\\\ \\frac{1}{2} & -\\frac{1}{2} & -\\frac{1}{2} & \\frac{1}{2} \\\\ \\end{bmatrix},\\hspace{10pt} \\kSigma = \\begin{bmatrix} 500 & 0 & 0 & 0 \\\\ 0 & 100 & 0 & 0 \\\\ 0 & 0 & 20 & 0 \\\\ 0 & 0 & 0 & 4 \\end{bmatrix} \\\\ & \\kV = \\begin{bmatrix} \\frac{1}{2} & \\frac{1}{2} & \\frac{1}{2} & \\frac{1}{2} \\\\ \\frac{1}{2} & -\\frac{1}{2} & -\\frac{1}{2} & \\frac{1}{2} \\\\ -\\frac{1}{2} & -\\frac{1}{2} & \\frac{1}{2} & \\frac{1}{2} \\\\ -\\frac{1}{2} & \\frac{1}{2} & -\\frac{1}{2} & \\frac{1}{2} \\end{bmatrix} \\end{aligned} $$<p>Evaluating the following cell will create the matrices <code>U</code>, <code>V</code>, and <code>Sigma</code>. Notice how the <code>diagonal_matrix</code> command provides a convenient way to form the diagonal matrix $\\kSigma$.</p><pre class=\"sage\"><code>h = 1/2\nU = matrix(4,4,[h,h,h,h,  h,h,-h,-h,  h,-h,h,-h,  h,-h,-h,h])\nV = matrix(4,4,[h,h,h,h,  h,-h,-h,h,  -h,-h,h,h,  -h,h,-h,h])\nSigma = diagonal_matrix([500, 100, 20, 4])</code></pre><ol type=\"a\"><li><p>Form the matrix $\\kA=\\kU\\kSigma \\kVT$. What is $\\operatorname{rank}(\\kA)$?</p></li><li><p>Now form the approximating matrix $\\kAone=\\kU\\kSigma^{(1)} \\kVT$. What is $\\operatorname{rank}(\\kAone)$?</p></li><li><p>Find the error in the approximation $\\kA\\approx \\kAone$ by finding $\\kA-\\kAone$.</p></li><li><p>Now find $\\kAtwo = \\kU\\kSigma^{(2)} \\kVT$ and the error $\\kA-\\kAtwo$. What is $\\operatorname{rank}(\\kAtwo)$?</p></li><li><p>Find $\\kAthree = \\kU\\kSigma^{(3)} \\kVT$ and the error $\\kA-\\kAthree$. What is $\\operatorname{rank}(\\kAthree)$?</p></li><li><p>What would happen if we were to compute $\\kAfour$?</p></li><li><p>What do you notice about the error $\\kA-\\kAksub$ as $k$ increases?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kA = \\begin{bmatrix} 156 & 96 & -144 & -104 \\\\ 144 & 104 & -156 & -96 \\\\ 104 & 144 & -96 & -156 \\\\ 96 & 156 & -104 & -144 \\end{bmatrix}$.</p></li><li><p>$\\kAone=\\begin{bmatrix} 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\end{bmatrix}$.</p></li><li><p>$\\kA-\\kAone = \\begin{bmatrix} 31 & -29 & -19 & 21 \\\\ 19 & -21 & -31 & 29 \\\\ -21 & 19 & 29 & -31 \\\\ -29 & 31 & 21 & -19 \\end{bmatrix}$</p></li><li><p>$\\kAtwo = \\begin{bmatrix} 150 & 100 & -150 & -100 \\\\ 150 & 100 & -150 & -100 \\\\ 100 & 150 & -100 & -150 \\\\ 100 & 150 & -100 & -150 \\end{bmatrix}$ and $\\kA-\\kAtwo = \\begin{bmatrix} 6 & -4 & 6 & -4 \\\\ -6 & 4 & -6 & 4 \\\\ 4 & -6 & 4 & -6 \\\\ -4 & 6 & -4 & 6 \\end{bmatrix}$.</p></li><li><p>$\\kAthree = \\begin{bmatrix} 155 & 95 & -145 & -105 \\\\ 145 & 105 & -155 & -95 \\\\ 105 & 145 & -95 & -155 \\\\ 95 & 155 & -105 & -145 \\end{bmatrix}$ and $\\kA-\\kAthree = \\begin{bmatrix} 1 & 1 & 1 & 1 \\\\ -1 & -1 & -1 & -1 \\\\ -1 & -1 & -1 & -1 \\\\ 1 & 1 & 1 & 1 \\end{bmatrix}$.</p></li><li><p>$\\kAfour=\\kA$</p></li><li><p>The entries get closer to $0$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find that $\\kA$ is the rank $4$ matrix: $\\begin{bmatrix} 156 & 96 & -144 & -104 \\\\ 144 & 104 & -156 & -96 \\\\ 104 & 144 & -96 & -156 \\\\ 96 & 156 & -104 & -144 \\end{bmatrix}$.</p></li><li><p>Because it has one nonzero singular value, $\\kAone$ has rank $1$ and has the form: $\\kAone=\\begin{bmatrix} 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\\\ 125 & 125 & -125 & -125 \\end{bmatrix}$.</p></li><li><p>$\\kA-\\kAone = \\begin{bmatrix} 31 & -29 & -19 & 21 \\\\ 19 & -21 & -31 & 29 \\\\ -21 & 19 & 29 & -31 \\\\ -29 & 31 & 21 & -19 \\end{bmatrix}$</p></li><li><p>$\\kAtwo$ is the rank $2$ matrix $\\begin{bmatrix} 150 & 100 & -150 & -100 \\\\ 150 & 100 & -150 & -100 \\\\ 100 & 150 & -100 & -150 \\\\ 100 & 150 & -100 & -150 \\end{bmatrix}$ and $\\kA-\\kAtwo = \\begin{bmatrix} 6 & -4 & 6 & -4 \\\\ -6 & 4 & -6 & 4 \\\\ 4 & -6 & 4 & -6 \\\\ -4 & 6 & -4 & 6 \\end{bmatrix}$.</p></li><li><p>$\\kAthree$ is the rank $3$ matrix $\\begin{bmatrix} 155 & 95 & -145 & -105 \\\\ 145 & 105 & -155 & -95 \\\\ 105 & 145 & -95 & -155 \\\\ 95 & 155 & -105 & -145 \\end{bmatrix}$ with $\\kA-\\kAthree = \\begin{bmatrix} 1 & 1 & 1 & 1 \\\\ -1 & -1 & -1 & -1 \\\\ -1 & -1 & -1 & -1 \\\\ 1 & 1 & 1 & 1 \\end{bmatrix}$.</p></li><li><p>$\\kAfour=\\kA$ since $\\kA$ is a rank $4$ matrix.</p></li><li><p>As $k$ increases, the entries in the $\\kA-\\kAksub$ get closer to $0$. This means that our approximations $\\kA\\approx \\kAksub$ are improving.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "7.5.4",
+   "source_number": "7.5.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "pca-variance"
+   },
+   "cite": "pca-by-svd",
+   "prompt": "<p>Let’s revisit the iris dataset that we studied in <a href=\"/understanding-linear-algebra/ch07/7.3/\">Section 7.3</a>. Remember that there are four measurements given for each of 150 irises and that each iris belongs to one of three species. Evaluating the following cell will load the dataset and define the demeaned data matrix $\\kA$ whose shape is $4\\times150$.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/pca_iris.py', globals())\ndf.T</code></pre><ol type=\"a\"><li><p>Find the singular values of $\\kA$ using the command <code>A.singular_values()</code> and use them to determine the variance $\\kVuj$ in the direction of each of the four principal components. What is the fraction of variance retained by the first two principal components?</p></li><li><p>We will now write the matrix $\\kGamma = \\kSigma \\kVT$ so that $\\kA = \\kU\\kGamma$. Suppose that a demeaned data point, say, the 100th column of $\\kA$, is written as a linear combination of principal components:</p>$$ \\kvecx = c_1\\kvecuone+c_2\\kvecutwo+c_3\\kvecuthree+c_4\\kvecufour. $$<p>Explain why $\\left[\\begin{array}{r}c_1 \\\\ c_2 \\\\ c_3 \\\\ c_4 \\end{array}\\right]$, the vector of coordinates of $\\kvecx$ in the basis of principal components, appears as 100th column of $\\kGamma$.</p></li><li><p>Suppose that we now project this demeaned data point $\\kvecx$ orthogonally onto the subspace spanned by the first two principal components $\\kvecuone$ and $\\kvecutwo$. What are the coordinates of the projected point in this basis and how can we find them in the matrix $\\kGamma$?</p></li><li><p>Alternatively, consider the approximation $\\kAtwo=\\kUtwo\\kSigmatwo\\kVtwo^T$ of the demeaned data matrix $\\kA$. Explain why the 100th column of $\\kAtwo$ represents the projection of $\\kvecx$ onto the two-dimensional subspace spanned by the first two principal components, $\\kvecuone$ and $\\kvecutwo$. Then explain why the coefficients in that projection, $c_1\\kvecuone + c_2\\kvecutwo$, form the two-dimensional vector $\\left[\\begin{array}{r}c_1 \\\\ c_2 \\end{array}\\right]$ that is the 100th column of $\\kGammatwo=\\kSigmatwo \\kVtwo^T$.</p></li><li><p>Now we’ve seen that the columns of $\\kGammatwo = \\kSigmatwo \\kVtwo^T$ form the coordinates of the demeaned data points projected on to the two-dimensional subspace spanned by $\\kvecuone$ and $\\kvecutwo$. In the cell below, find a singular value decomposition of $\\kA$ and use it to form the matrix <code>Gamma2</code>. When you evaluate this cell, you will see a plot of the projected demeaned data plots, similar to the one we created in <a href=\"/understanding-linear-algebra/ch07/7.3/\">Section 7.3</a>.</p><pre class=\"sage\"><code># Form the SVD of A and use it to form Gamma2\n\nGamma2 =\n\n# The following will plot the projected demeaned data points\ndata = Gamma2.columns()\n(list_plot(data[:50], color='blue', aspect_ratio=1) +\n list_plot(data[50:100], color='orange') +\n list_plot(data[100:], color='green'))</code></pre></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The fraction of the total variance represented by the first two principal components is $97.8\\%$.</p></li><li><p>If $\\kvecx = c_1\\kvecuone+c_2\\kvecutwo+c_3\\kvecuthree+c_4\\kvecufour$, then $\\left[\\begin{array}{r}c_1 \\\\ c_2 \\\\ c_3 \\\\ c_4 \\end{array}\\right]$ is the corresponding column of $\\kUT\\kA$.</p></li><li><p>We just need the first two components of the corresponding column of $\\kGamma$.</p></li><li><p>$\\left[\\begin{array}{r}c_1 \\\\ c_2 \\end{array}\\right]$ is the corresponding column of $\\kUtwo^T\\kA$.</p></li><li><p>We can construct $\\kGammatwo=\\kSigmatwo \\kVtwo^T$ or just pull out the first two rows of $\\kGamma=\\kSigma \\kVT$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The singular values are $\\ksigmaone=25.1$, $\\ksigmatwo = 6.0$, $\\ksigmathree=3.4$ and $\\ksigma_4 = 1.9$. Since $\\kVui = \\frac{1}{150} \\ksigmai^2$, the variances are $4.20$, $0.24$, $0.08$, and $0.02$. The fraction of the total variance represented by the first two principal components is $97.8\\%$.</p></li><li><p>If $\\kvecx$ is the $100^{th}$ column of $\\kA$, then $\\left[\\begin{array}{r}c_1 \\\\ c_2 \\\\ c_3 \\\\ c_4 \\end{array}\\right]$ is the $100^{th}$ column of $\\kUT\\kA = \\kUT(\\kU\\kSigma \\kVT) = \\kSigma \\kVT = \\kGamma$.</p></li><li><p>The projected data point is $\\kvecxhat = c_1\\kvecuone + c_2\\kvecutwo$ since $c_3\\kvecuthree+c_4\\kvecufour$ is orthogonal to the subspace spanned by the first two principal components. Therefore, the coordinates of the projected data point are the first two components of the corresponding column of $\\kGamma$. The coordinates of all the projected data points are given by the first two rows of $\\kGamma$.</p></li><li><p>Once again, suppose that $\\kvecx=c_1\\kvecuone+c_2\\kvecutwo+c_3\\kvecuthree+c_4\\kvecufour$ is a column of $\\kA$ and that $\\kUtwo = \\begin{bmatrix}\\kvecuone & \\kvecutwo \\end{bmatrix}$. Then $\\left[\\begin{array}{r}c_1 \\\\ c_2 \\end{array}\\right]$ is the corresponding column of $\\kUtwo^T\\kA = \\kUtwo(\\kU\\kSigma \\kVT) = \\begin{bmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ \\end{bmatrix}\\kSigma \\kVT = \\kSigmatwo \\kVtwo^T=\\kGammatwo$<sup class=\"fn\" data-note=\"c-u2-transpose\"></sup>.</p></li><li><p>We can construct $\\kGammatwo=\\kSigmatwo \\kVtwo^T$ or just pull out the first two rows of $\\kGamma=\\kSigma \\kVT$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "7.5.5",
+   "source_number": "7.5.5",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "sim-image-rank-k"
+   },
+   "cite": "sim-image-rank-k",
+   "prompt": "<p>Evaluating the following cell loads some data that we’ll use in this activity. To begin, it defines and displays a $25\\times15$ matrix $\\kA$.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/svd_compress.py', globals())\nprint(A)</code></pre><ol type=\"a\"><li><p>If we interpret 0 as black and 1 as white, this matrix represents an image as shown below.</p><pre class=\"sage\"><code>display_matrix(A)</code></pre><p>We will explore how the singular value decomposition helps us to compress this image.</p><ol><li><p>By inspecting the image represented by $\\kA$, identify a basis for $\\kCol(\\kA)$ and determine $\\operatorname{rank}(\\kA)$.</p></li><li><p>The following cell plots the singular values of $\\kA$. Explain how this plot verifies that the rank is what you found in the previous part.</p><pre class=\"sage\"><code>plot_sv(A)</code></pre></li><li><p>There is a command <code>approximate(A, k)</code> that creates the approximation $\\kAksub$. Use the cell below to define $k$ and look at the images represented by the first few approximations. What is the smallest value of $k$ for which $\\kA=\\kAksub$?</p><pre class=\"sage\"><code>k =\ndisplay_matrix(approximate(A, k))</code></pre></li><li><p>Now we can see how the singular value decomposition allows us to compress images. Since this is a $25\\times15$ matrix, we need $25\\cdot15=375$ numbers to represent the image. However, we can also reconstruct the image using a small number of singular values and vectors:</p>$$ \\kA = \\kAksub = \\ksigmaone\\kvecuone\\kvecvone^T + \\ksigmatwo\\kvecutwo\\kvecvtwo^T + \\ldots + \\ksigmak\\kvecuk\\kvecvk^T. $$<p>What are the dimensions of the singular vectors $\\kvecui$ and $\\kvecvi$? Between the singular vectors and singular values, how many numbers do we need to reconstruct $\\kAksub$ for the smallest $k$ for which $\\kA=\\kAksub$? This is the compressed size of the image.</p></li><li><p>The <em>compression ratio</em> is the ratio of the uncompressed size to the compressed size. What compression ratio does this represent?</p></li></ol></li><li><p>Next we’ll explore an example based on a photograph.</p><ol><li><p>Consider the following image consisting of an array of $316\\times310$ pixels stored in the matrix $\\kA$.</p><pre class=\"sage\"><code>A = matrix(RDF, image)\ndisplay_image(A)</code></pre><p>Plot the singular values of $\\kA$.</p><pre class=\"sage\"><code>plot_sv(A)</code></pre></li><li><p>Use the cell below to study the approximations $\\kAksub$ for $k=1, 10, 20, 50, 100$.</p><pre class=\"sage\"><code>k = 1\ndisplay_image(approximate(A, k))</code></pre><p>Notice how the approximating image $\\kAksub$ more closely approximates the original image $\\kA$ as $k$ increases.</p><p>What is the compression ratio when $k=50$? What is the compression ratio when $k=100$? Notice how a higher compression ratio leads to a lower quality reconstruction of the image.</p></li></ol></li><li><p>A second, related application of the singular value decomposition to image processing is called <em>denoising</em>. For example, consider the image represented by the matrix $\\kA$ below.</p><pre class=\"sage\"><code>A = matrix(RDF, noise.values)\ndisplay_matrix(A)</code></pre><p>This image is similar to the image of the letter \"O\" we first studied in this activity, but there are splotchy regions in the background that result, perhaps, from scanning the image. We think of the splotchy regions as noise, and our goal is to improve the quality of the image by reducing the noise.</p><ol><li><p>Plot the singular values below. How are the singular values of this matrix similar to those represented by the clean image that we considered earlier and how are they different?</p><pre class=\"sage\"><code>plot_sv(A)</code></pre></li><li><p>There is a natural point where the singular values dramatically decrease so it makes sense to think of the noise as being formed by the small singular values. To denoise the image, we will therefore replace $\\kA$ by its approximation $\\kAksub$, where $k$ is the point at which the singular values drop off. This has the effect of setting the small singular values to zero and hence eliminating the noise. Choose an appropriate value of $k$ below and notice that the new image appears to be somewhat cleaned up as a result of removing the noise.</p><pre class=\"sage\"><code>k =\ndisplay_matrix(approximate(A, k))</code></pre></li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><ol><li><p>$\\operatorname{rank}(\\kA) = 3$</p></li><li><p>$\\operatorname{rank}(\\kA) = 3$</p></li><li><p>$k=3$</p></li><li><p>$123$</p></li><li><p>The compression ratio is $375/123=3.0$</p></li></ol></li><li><ol><li><p>The singular values fall off steeply but never reach $0$.</p></li><li><p>When $k=50$, the compression ratio is about $3.1$. When $k=100$, the compression ratio is about $1.6$.</p></li></ol></li><li><ol><li><p>The singular values are similar, but they never reach $0$.</p></li><li><p>$k=3$ seems like a natural approximation</p></li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li><p>$\\operatorname{rank}(\\kA) = 3$ because there are three distinct columns represented by the first, third, and sixth columns.</p></li><li><p>There are three nonzero singular values so $\\operatorname{rank}(\\kA) =3$ as we suspected.</p></li><li><p>The smallest value is $k=3$ since $\\operatorname{rank}(\\kA) = 3$.</p></li><li><p>The left singular vectors are $25$-dimensional and the right singular vectors are $15$-dimensional. If we keep three singular values, left singular vectors, and right singular vectors, we have $3(1+25+15) = 123$.</p></li><li><p>The compression ratio is $375/123=3.0$ so the data is compressed by a factor of $3$.</p></li></ol></li><li><ol><li><p>The singular values fall off steeply but never reach $0$.</p></li><li><p>When $k=50$, the compression ratio is about $3.1$. When $k=100$, the compression ratio is about $1.6$.</p></li></ol></li><li><ol><li><p>The singular values are similar, but they never reach $0$.</p></li><li><p>$k=3$ seems like a natural approximation since that’s the place where the singular values become almost $0$.</p></li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "a6",
+   "source_id": "7.5.6",
+   "source_number": "7.5.6",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "sim-supreme-court"
+   },
+   "cite": "sim-supreme-court",
+   "prompt": "<p>Evaluating the following cell loads and displays a dataset describing the votes of each justice in these 911 cases. More specifically, an entry of +1 means that the justice represented by the row voted with the majority in the case represented by the column. An entry of -1 means that justice was in the minority. This information is also stored in the $9\\times911$ matrix $\\kA$.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/svd_supreme.py', globals())\nA = matrix(RDF, cases.values)\ncases</code></pre><p>The justices are listed, very roughly, in order from more conservative to more progressive. In this activity, it will be helpful to visualize the entries in various matrices and vectors. The next cell displays the first 50 columns of the matrix $\\kA$ with white representing an entry of +1, red representing -1, and black representing 0.</p><pre class=\"sage\"><code>display_matrix(A.matrix_from_columns(range(50)))</code></pre><ol type=\"a\"><li><p>Plot the singular values of $\\kA$ below. Describe the significance of this plot, including the relative contributions from the singular values $\\ksigmak$ as $k$ increases.</p><pre class=\"sage\"><code>plot_sv(A)</code></pre></li><li><p>Form the singular value decomposition $\\kA=\\kU\\kSigma \\kVT$ and the matrix of coefficients $\\kGamma$ so that $\\kA=\\kU\\kGamma$.</p></li><li><p>We will now study a particular case, the second case which appears as the column of $\\kA$ indexed by <code>1</code>. There is a command <code>display_column(A, k)</code> that provides a visual display of the $k^{th}$ column of a matrix $\\kA$. Describe the justices’ votes in the second case.</p></li><li><p>Also, display the first left singular vector $\\kvecuone$, the column of $\\kU$ indexed by $0$, and the column of $\\kGamma$ holding the coefficients that express the second case as a linear combination of left singular vectors.</p><p>What does this tell us about how the second case is constructed as a linear combination of left singular vectors? What is the significance of the first left singular vector $\\kvecuone$?</p></li><li><p>Let’s now study the $48^{th}$ case, which is represented by the column of $\\kA$ indexed by <code>47</code>. Describe the voting pattern in this case.</p></li><li><p>Display the second left singular vector $\\kvecutwo$ and the vector of coefficients that express the $48^{th}$ case as a linear combination of left singular vectors.</p><p>Describe how this case is constructed as a linear combination of singular vectors. What is the significance of the second left singular vector $\\kvecutwo$?</p></li><li><p>The data in <a href=\"#table-supreme-cases\">Table 7.5.2</a> describes the number of cases decided by each possible vote count.</p><p>How do the singular vectors $\\kvecuone$ and $\\kvecutwo$ reflect this data? Would you characterize the court as leaning toward the conservatives or progressives? Use these singular vectors to explain your response.</p></li><li><p>Cases decided by a 5-4 vote are often the most impactful as they represent a sharp divide among the justices and, often, society at large. For that reason, we will now focus on the 5-4 decisions. Evaluating the next cell forms the $9\\times188$ matrix $\\kB$ consisting of 5-4 decisions.</p><pre class=\"sage\"><code>B = matrix(RDF, fivefour.values)\ndisplay_matrix(B.matrix_from_columns(range(50)))</code></pre><p>Form the singular value decomposition of $\\kB=\\kU\\kSigma \\kVT$ along with the matrix $\\kGamma$ of coefficients so that $\\kB=\\kU\\kGamma$ and display the first left singular vector $\\kvecuone$. Study how the $7^{th}$ case, indexed by <code>6</code>, is constructed as a linear combination of left singular vectors.</p><p>What does this singular vector tell us about the make up of the court and whether it leans towards the conservatives or progressives?</p></li><li><p>Display the second left singular vector $\\kvecutwo$ and study how the $6^{th}$ case, indexed by <code>5</code>, is constructed as a linear combination of left singular vectors.</p><p>What does $\\kvecutwo$ tell us about the relative importance of the justices’ voting records?</p></li><li><p>By a <em>swing vote</em>, we mean a justice who is less inclined to vote with a particular bloc of justices but instead swings from one bloc to another with the potential to sway close decisions. What do the singular vectors $\\kvecuone$ and $\\kvecutwo$ tell us about the presence of voting blocs on the court and the presence of a swing vote? Which justice represents the swing vote?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The first two singular values contribute most significantly.</p></li><li><p>$\\kGamma$ is a $9\\times911$ matrix that expresses the cases as linear combinations of the left singular vectors.</p></li><li><p>This is a unanimous decision.</p></li><li><p>$\\kvecuone$ represents a unanimous decision.</p></li><li><p>This is a 5-4 decision with the 5 conservative justices voting in the majority.</p></li><li><p>$\\kvecutwo$ represents a 5-4 decision.</p></li><li><p>The most frequently occurring decisions are unanimous and the second most frequently occurring are 5-4.</p></li><li><p>$\\kvecuone$ represents a case where the five conservative justices are voting together.</p></li><li><p>The second left singular vector $\\kvecutwo$ essentially records the vote of Sandra Day O’Connor.</p></li><li><p>Sandra Day O’Connor</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The first two singular values contribute most significantly.</p></li><li><p>$\\kGamma$ is a $9\\times911$ matrix that expresses the cases as linear combinations of the left singular vectors.</p></li><li><p>This is a unanimous decision.</p></li><li><p>The unanimous decision is essentially represented as $-\\kvecuone$ so $\\kvecuone$ represents a unanimous decision.</p></li><li><p>This is a 5-4 decision with the 5 conservative justices voting in the majority.</p></li><li><p>This 5-4 decision is essentially represented as $\\kvecutwo$, the second most important left singular vector.</p></li><li><p>We see that the most decisions are unanimous, which is why $\\kvecuone$ represents unanimous decisions. The second most frequently occurring decisions is a 5-4 decision, which is why $\\kvecutwo$ represents a 5-4 decision that leans to the conservative justices.</p></li><li><p>The first singular vector $\\kvecuone$ represents a case where the five conservative justices are voting together. From this we conclude that the court leans toward the conservatives.</p></li><li><p>The second left singular vector $\\kvecutwo$ essentially records the vote of Sandra Day O’Connor and shows how her vote has the power to swing a 5-4 decision from a conservative majority to a progressive majority.</p></li><li><p>Sandra Day O’Connor would be the swing vote.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "7.5.1",
+   "source_number": "7.5.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sum-of-terms",
+   "prompt": "<p>Suppose that</p>$$ \\kA = \\begin{bmatrix} 2.1 & -1.9 & 0.1 & 3.7 \\\\ -1.5 & 2.7 & 0.9 & -0.6 \\\\ -0.4 & 2.8 & -1.5 & 4.2 \\\\ -0.4 & 2.4 & 1.9 & -1.8 \\end{bmatrix}\\text{.} $$<ol type=\"a\"><li><p>Find the singular values of $\\kA$. What is $\\operatorname{rank}(\\kA)$?</p></li><li><p>Find the sequence of matrices $\\kAone$, $\\kAtwo$, $\\kAthree$, and $\\kAfour$ where $\\kAksub$ is the rank $k$ approximation of $\\kA$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\operatorname{rank}(\\kA) = 4$.</p></li><li><p>$\\kAone=\\begin{bmatrix} 1.3 & -1.2 & -1.2 & 3.8 \\\\ -0.58 & 0.56 & 0.56 & -1.7 \\\\ 0.92 & -0.90 & -0.89 & 2.7 \\\\ -0.84 & 0.83 & 0.82 & -2.5 \\end{bmatrix}$, $\\kAtwo=\\begin{bmatrix} 1.5 & -2.0 & -1.2 & 3.4 \\\\ -1.3 & 2.8 & 0.43 & -0.77 \\\\ -0.32 & 2.8 & -1.1 & 4.3 \\\\ -1.3 & 2.1 & 0.75 & -2.0 \\end{bmatrix}$,</p><p>$\\kAthree=\\begin{bmatrix} 2.2 & -1.9 & 0.048 & 3.7 \\\\ -1.2 & 2.9 & 0.72 & -0.72 \\\\ -0.51 & 2.8 & -1.4 & 4.2 \\\\ -0.60 & 2.3 & 2.0 & -1.7 \\end{bmatrix}$, $\\kAfour=\\kA$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The singular values are $6.4$, $5.2$, $2.1$, and $0.5$ so we have $\\operatorname{rank}(\\kA) = 4$.</p></li><li><p>$\\kAone=\\begin{bmatrix} 1.3 & -1.2 & -1.2 & 3.8 \\\\ -0.58 & 0.56 & 0.56 & -1.7 \\\\ 0.92 & -0.90 & -0.89 & 2.7 \\\\ -0.84 & 0.83 & 0.82 & -2.5 \\end{bmatrix}$, $\\kAtwo=\\begin{bmatrix} 1.5 & -2.0 & -1.2 & 3.4 \\\\ -1.3 & 2.8 & 0.43 & -0.77 \\\\ -0.32 & 2.8 & -1.1 & 4.3 \\\\ -1.3 & 2.1 & 0.75 & -2.0 \\end{bmatrix}$,</p><p>$\\kAthree=\\begin{bmatrix} 2.2 & -1.9 & 0.048 & 3.7 \\\\ -1.2 & 2.9 & 0.72 & -0.72 \\\\ -0.51 & 2.8 & -1.4 & 4.2 \\\\ -0.60 & 2.3 & 2.0 & -1.7 \\end{bmatrix}$, $\\kAfour=\\kA$</p></li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "7.5.2",
+   "source_number": "7.5.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-svd-ols",
+   "prompt": "<p>Suppose we would like to find the best quadratic function</p>$$ \\beta_0 + \\beta_1x + \\beta_2x^2=y $$<p>fitting the points</p>$$ (0,1), (1,0), (2,1.5), (3,4), (4,8)\\text{.} $$<ol type=\"a\"><li><p>Set up a linear system $\\kA\\kvecx = \\kvecb$ describing the coefficients $\\kvecx = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\\\ \\beta_2 \\end{array}\\right]$.</p></li><li><p>Find the singular value decomposition of $\\kA$.</p></li><li><p>Use the singular value decomposition to find the least-squares approximate solution $\\kvecxhat$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The linear system is</p>$$ \\begin{bmatrix} 1 & 0 & 0 \\\\ 1 & 1 & 1 \\\\ 1 & 2 & 4 \\\\ 1 & 3 & 9 \\\\ 1 & 4 & 16 \\\\ \\end{bmatrix} \\kvecx = \\left[\\begin{array}{r}1 \\\\ 0 \\\\ 1.5 \\\\ 4 \\\\ 8 \\\\ \\end{array}\\right] $$</li><li><p>$\\kU$ is a $5\\times5$ matrix, $\\kSigma$ is $5\\times3$, and $\\kV$ is $3\\times3$</p></li><li><p>$\\kvecxhat=\\left[\\begin{array}{r}0.87 \\\\ -1.34 \\\\ 0.79 \\end{array}\\right]$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The linear system is</p>$$ \\begin{bmatrix} 1 & 0 & 0 \\\\ 1 & 1 & 1 \\\\ 1 & 2 & 4 \\\\ 1 & 3 & 9 \\\\ 1 & 4 & 16 \\\\ \\end{bmatrix} \\kvecx = \\left[\\begin{array}{r}1 \\\\ 0 \\\\ 1.5 \\\\ 4 \\\\ 8 \\\\ \\end{array}\\right] $$</li><li><p>$\\kU$ is a $5\\times5$ matrix, $\\kSigma$ is $5\\times3$, and $\\kV$ is $3\\times3$</p></li><li><p>The rank of $\\kA$ is 3 so we’ll form the reduced singular value decomposition $\\kA=\\kU_3\\kSigma_3\\kV_3^T$. Then $\\kvecxhat = \\kV_3\\kSigma_3^{-1}\\kU_3^T\\kvecb = \\left[\\begin{array}{r}0.87 \\\\ -1.34 \\\\ 0.79 \\end{array}\\right]$</p></li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "7.5.3",
+   "source_number": "7.5.3",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "outer-product",
+   "prompt": "<p>Remember that the outer product of two vectors $\\kvecu$ and $\\kvecv$ is the matrix $\\kvecu~\\kvecv^T$.</p><ol type=\"a\"><li><p>Suppose that $\\kvecu = \\left[\\begin{array}{r}2 \\\\ -3 \\end{array}\\right]$ and $\\kvecv=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 1 \\end{array}\\right]$. Evaluate the outer product $\\kvecu~\\kvecv^T$. To get a clearer sense of how this works, perform this operation without using technology.</p><p>How is each of the columns of $\\kvecu~\\kvecv^T$ related to $\\kvecu$?</p></li><li><p>Suppose $\\kvecu$ and $\\kvecv$ are general vectors. What is $\\operatorname{rank}(\\kvecu~\\kvecv^T)$ and what is a basis for its column space $\\kCol(\\kvecu~\\kvecv^T)$?</p></li><li><p>Suppose that $\\kvecu$ is a unit vector. What is the effect of multiplying a vector by the matrix $\\kvecu~\\kvecu^T$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kvecu~\\kvecv^T = \\begin{bmatrix} 4 & 0 & 2 \\\\ -6 & 0 & -3 \\end{bmatrix}$</p></li><li><p>The rank is $1$ and $\\kvecu$ forms a basis.</p></li><li><p>This matrix projects vectors orthogonally onto the line defined by $\\kvecu$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\kvecu~\\kvecv^T = \\begin{bmatrix} 2\\kvecu & 0\\kvecu & \\kvecu \\end{bmatrix} = \\begin{bmatrix} 4 & 0 & 2 \\\\ -6 & 0 & -3 \\end{bmatrix}$</p></li><li><p>Since each column of $\\kvecu~\\kvecv^T$ is a scalar multiple of $\\kvecu$, the rank of the matrix is $1$ and $\\kvecu$ forms a basis.</p></li><li><p>This matrix projects vectors orthogonally onto the line defined by $\\kvecu$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "7.5.4",
+   "source_number": "7.5.4",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "pca-by-svd",
+   "prompt": "<p>Evaluating the following cell loads in a dataset recording some features of 1057 houses. Notice how the lot size varies over a relatively small range compared to the other features. For this reason, in addition to demeaning the data, we’ll scale each feature by dividing by its standard deviation so that the range of values is similar for each feature. The matrix $\\kA$ holds the result.</p><pre class=\"sage\"><code>import pandas as pd\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/housing.csv', index_col=0)\ndf = df.fillna(df.mean())\nstd = (df-df.mean())/df.std()\nA = matrix(std.values).T\ndf.T</code></pre><ol type=\"a\"><li><p>Find the singular values of $\\kA$ and use them to determine the variance in the direction of the principal components.</p></li><li><p>For what fraction of the variance do the first two principal components account?</p></li><li><p>Find a singular value decomposition of $\\kA$ and construct the $2\\times1057$ matrix $\\kB$ whose entries are the coordinates of the demeaned data points projected on to the two-dimensional subspace spanned by the first two principal components. You can plot the projected data points using <code>list_plot(B.columns())</code>.</p></li><li><p>Study the entries in the first two principal components $\\kvecuone$ and $\\kvecutwo$. Would a more expensive house lie on the left, right, top, or bottom of the plot you constructed?</p></li><li><p>In what ways does a house that lies on the far left of the plot you constructed differ from an average house? In what ways does a house that lies near the top of the plot you constructed differ from an average house?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The variances are $1.96$, $1.01$, $0.79$, and $0.24$.</p></li><li><p>$74\\%$</p></li><li><p>The matrix $\\kB$ is formed from the first two rows of the product $\\kSigma \\kVT$.</p></li><li><p>Left</p></li><li><p>Houses on the left have larger living area, lot sizes, and prices and are newer. Houses near the top have larger lot sizes and ages.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The singular values $\\ksigmai$ are $45.5$, $32.6$, $28.9$, and $15.9$. Therefore, the variances in the direction of the principal components are given by $\\frac{1}{1057}\\ksigmai^2$ and are $1.96$, $1.01$, $0.79$, and $0.24$.</p></li><li><p>The first two principal components retain $74\\%$ of the total variance.</p></li><li><p>The matrix $\\kB$ is formed from the first two rows of the product $\\kSigma \\kVT$.</p></li><li><p>The fourth components, the ones that correspond to house prices, of $\\kvecuone$ and $\\kvecutwo$ are $-0.65$ and $-0.03$ respectively. This shows us that $\\kvecutwo$ doesn’t contribute much to the house price. Moving in the negative $\\kvecuone$ direction causes the house price to go up so the more expensive homes are on the left.</p></li><li><p>The first principal component is $\\kvecuone = \\left[\\begin{array}{r}-0.64 \\\\ -0.20 \\\\ 0.36 \\\\ -0.65 \\end{array}\\right]$. If we move to the left, this vector is multiplied by a negative number so the living area, lot size, and price go up while the age of the house decreases.</p><p>The second principal component is $\\kvecutwo=\\left[\\begin{array}{r}0.05 \\\\ 0.86 \\\\ 0.51 \\\\ -0.03 \\end{array}\\right]$. If we move up, this is multiplied by a positive number so the lot size and the age of the house increase.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "7.5.5",
+   "source_number": "7.5.5",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-supreme-court",
+   "prompt": "<p>Let’s revisit the voting records of justices on the second Rehnquist court. Evaluating the following cell will load the voting records of the justices in the 188 cases decided by a 5-4 vote and store them in the matrix $\\kA$.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/svd_supreme.py', globals())\nA = matrix(RDF, fivefour.values)\nv = vector(188*[1])\nfivefour</code></pre><ol type=\"a\"><li><p>The cell above also defined the 188-dimensional vector $\\kvecv$ whose entries are all 1. What does the product $\\kA\\kvecv$ represent? Use the following cell to evaluate this product.</p></li><li><p>How does the product $\\kA\\kvecv$ tell us which justice voted in the majority most frequently? What does this say about the presence of a swing vote on the court?</p></li><li><p>How does this product tell us whether we should characterize this court as leaning conservative or progressive?</p></li><li><p>How does this product tell us about the presence of a second swing vote on the court?</p></li><li><p>Study the left singular vector $\\kvecuthree$ and describe how it reinforces the fact that there was a second swing vote. Who was this second swing vote?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>For each justice, it tells us the number of times that justice voted with the majority minus the number of times they voted in the minority.</p></li><li><p>The justice that most often votes with the majority could be a swing vote.</p></li><li><p>The first five justices usually vote in the majority.</p></li><li><p>A second justice voted with the majority 84 times more than with the minority.</p></li><li><p>Anthony Kennedy</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\kA\\kvecv$ is a 9-dimensional vector. For each justice, it tells us the number of times that justice voted with the majority minus the number of times they voted in the minority.</p></li><li><p>Out of 188 cases, the fifth justice Sandra Day O’Connor voted with the majority 94 more times than with the minority. Since a swing vote will often vote in the majority, this gives additional evidence that Sandra Day O’Connor is a swing vote.</p></li><li><p>The first five justices more often vote with the majority and the last four more often with the minority. This means the court leans toward the first five justices, who are the more conservative ones.</p></li><li><p>The fourth justice Anthony Kennedy voted with the majority 84 times more than with the minority. He is a potential swing vote.</p></li><li><p>The third singular vector $\\kvecuthree$ effectively records his vote and not the votes of the other justices. This lends support to the claim that Anthony Kennedy is a second, somewhat less influential, swing vote.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "7.5.6",
+   "source_number": "7.5.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-supreme-court",
+   "prompt": "<p>The following cell loads a dataset that describes the percentages with which justices on the second Rehnquist court agreed with one another. For instance, the entry in the first row and second column is 72.78, which means that Justices Rehnquist and Scalia agreed with each other in 72.78% of the cases.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/svd_supreme.py', globals())\nA = 1/100*matrix(RDF, agreement.values)\nagreement</code></pre><ol type=\"a\"><li><p>Examine the matrix $\\kA$. What special structure does this matrix have and why should we expect it to have this structure?</p></li><li><p>Plot the singular values of $\\kA$ below. For what value of $k$ would the approximation $\\kAksub$ be a reasonable approximation of $\\kA$?</p><pre class=\"sage\"><code>plot_sv(A)</code></pre></li><li><p>Find a singular value decomposition $\\kA=\\kU\\kSigma \\kVT$ and examine the matrices $\\kU$ and $\\kV$ using, for instance, <code>n(U, 3)</code>. What do you notice about the relationship between $\\kU$ and $\\kV$ and why should we expect this relationship to hold?</p></li><li><p>The command <code>approximate(A, k)</code> will form the approximating matrix $\\kAksub$. Study the matrix $\\kAone$ using the <code>display_matrix</code> command. Which justice or justices seem to be most agreeable, that is, most likely to agree with other justices? Which justice is least agreeable?</p></li><li><p>Examine the difference $\\kAtwo-\\kAone$ and describe how this tells us about the presence of voting blocs and swing votes on the court.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The matrix is symmetric.</p></li><li><p>$\\kAtwo$ should be a good approximation to $\\kA$.</p></li><li><p>$\\kU=\\kV$</p></li><li><p>John Paul Stevens, is the least agreeable.</p></li><li><p>The fourth and fifth justices, Anthony Kennedy and Sandra Day O’Connor are less inclined to agree with the others.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The matrix is symmetric because the number of times Justice A votes with Justice B is the same as the number of times Justice B votes with Justice A.</p></li><li><p>The first two singular values appear to be most important so $\\kAtwo$ should be a good approximation to $\\kA$.</p></li><li><p>$\\kU=\\kV$ since $\\kA$ is a positive definite, symmetric matrix.</p></li><li><p>The sixth justice, John Paul Stevens, is the least agreeable.</p></li><li><p>The fourth and fifth justices, Anthony Kennedy and Sandra Day O’Connor are less inclined to agree with the others so they form swing votes.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "7.5.7",
+   "source_number": "7.5.7",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "pseudoinverse",
+   "prompt": "<p>Suppose that $\\kA=\\kUr\\kSigmar\\kVr^T$ is a reduced singular value decomposition of the $m\\times n$ matrix $\\kA$. The matrix $\\kAplus = \\kVr\\kSigmarinv\\kUr^T$ is called the <em>Moore-Penrose inverse</em> of $\\kA$.</p><ol type=\"a\"><li><p>Explain why $\\kAplus$ is an $n\\times m$ matrix.</p></li><li><p>If $\\kA$ is an invertible, square matrix, explain why $\\kAplus=\\kAinv$.</p></li><li><p>Explain why $\\kA\\kAplus\\kvecb=\\kvecbhat$, the orthogonal projection of $\\kvecb$ onto $\\kCol(\\kA)$.</p></li><li><p>Explain why $\\kAplus\\kA\\kvecx=\\kvecxhat$, the orthogonal projection of $\\kvecx$ onto $\\kCol(\\kAT)$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>Find the number of columns of $\\kUr^T$ and the number of rows of $\\kVr$.</p></li><li><p>If $\\kA$ is invertible, then $\\kA$ is an $m\\times m$ matrix whose rank is $m$.</p></li><li><p>$\\kA\\kAplus = (\\kUr\\kSigmar\\kVr^T)(\\kVr\\kSigmainv\\kUr^T) = \\kUr\\kUr^T$</p></li><li><p>$\\kA\\kAplus = (\\kVr\\kSigmainv\\kUr^T)(\\kUr\\kSigmar\\kVr^T) \\kVr\\kVr^T$<sup class=\"fn\" data-note=\"c-pinv-a\"></sup></p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The number of columns of $\\kAplus$ is the number of columns of $\\kUr^T$, which is $m$, and the number of rows is the number of rows of $\\kVr$, which is $n$.</p></li><li><p>If $\\kA$ is invertible, then $\\kA$ is an $m\\times m$ matrix whose rank is $m$. The reduced singular value decomposition is therefore $\\kA=\\kU\\kSigma \\kVT$ so that $\\kAplus=\\kV\\kSigmainv\\kUT = (\\kU\\kSigma \\kVT)^{-1}=\\kAinv$.</p></li><li><p>$\\kA\\kAplus = (\\kUr\\kSigmar\\kVr^T)(\\kVr\\kSigmainv\\kUr^T) = \\kUr\\kUr^T$, which projects vectors orthogonal onto $\\kCol(\\kA)$ since the columns of $\\kUr$ are an orthonormal basis for $\\kCol(\\kA)$.</p></li><li><p>$\\kA\\kAplus = (\\kVr\\kSigmainv\\kUr^T)(\\kUr\\kSigmar\\kVr^T) \\kVr\\kVr^T$, which projects vectors orthogonal onto $\\kCol(\\kAT)$ since the columns of $\\kVr$ are an orthonormal basis for $\\kCol(\\kAT)$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "7.5.8",
+   "source_number": "7.5.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "svd-basis-for-col",
+   "prompt": "<p>In <a href=\"/understanding-linear-algebra/ch05/5.1/#partial-pivoting\">Subsection 5.1.2</a>, we saw how some linear algebraic computations are sensitive to round off error made by a computer. A singular value decomposition can help us understand when this situation can occur. For instance, consider the matrices</p>$$ \\kA = \\begin{bmatrix} 1.0001 & 1 \\\\ 1 & 1 \\\\ \\end{bmatrix},\\hspace{24pt} \\kB = \\begin{bmatrix} 1 & 1 \\\\ 1 & 1 \\\\ \\end{bmatrix}. $$<p>The entries in these matrices are quite close to one another, but $\\kA$ is invertible while $\\kB$ is not. It seems like $\\kA$ is <em>almost</em> singular. In fact, we can measure how close a matrix is to being singular by forming the <em>condition number</em>, $\\ksigmaone/\\ksigman$, the ratio of the largest to smallest singular value. If $\\kA$ were singular, the condition number would be undefined because the singular value $\\ksigman=0$. Therefore, we will think of matrices with large condition numbers as being close to singular.</p><ol type=\"a\"><li><p>Define the matrix $\\kA$ and find a singular value decomposition. What is the condition number of $\\kA$?</p></li><li><p>Define the left singular vectors $\\kvecuone$ and $\\kvecutwo$. Compare the results $\\kAinv\\kvecb$ when</p><ol><li><p>$\\kvecb=\\kvecuone+\\kvecutwo$.</p></li><li><p>$\\kvecb=2\\kvecuone+\\kvecutwo$.</p></li></ol><p>Notice how a small change in the vector $\\kvecb$ leads to a small change in $\\kAinv\\kvecb$.</p></li><li><p>Now compare the results $\\kAinv\\kvecb$ when</p><ol><li><p>$\\kvecb=\\kvecuone+\\kvecutwo$.</p></li><li><p>$\\kvecb=\\kvecuone+2\\kvecutwo$.</p></li></ol><p>Notice now how a small change in $\\kvecb$ leads to a large change in $\\kAinv\\kvecb$.</p></li><li><p>Previously, we saw that, if we write $\\kvecx$ in terms of left singular vectors<sup class=\"fn\" data-note=\"c-right-singular\"></sup> $\\kvecx=c_1\\kvecvone+c_2\\kvecvtwo$, then we have</p>$$ \\kvecb=\\kA\\kvecx = c_1\\ksigmaone\\kvecuone + c_2\\ksigmatwo\\kvecutwo. $$<p>If we write $\\kvecb=d_1\\kvecuone+d_2\\kvecutwo$, explain why $\\kAinv\\kvecb$ is sensitive to small changes in $d_2$.</p></li></ol><p>Generally speaking, a square matrix $\\kA$ with a large condition number will demonstrate this type of behavior so that the computation of $\\kAinv$ is likely to be affected by round off error. We call such a matrix <em>ill-conditioned</em>.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The condition number is $40,000$</p></li><li><ol><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.5 \\\\ 14142.5 \\end{array}\\right]$</p></li><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.8 \\\\ 14142.8 \\end{array}\\right]$<sup class=\"fn\" data-note=\"c-inverse-b\"></sup></p></li></ol></li><li><ol><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.5 \\\\ 14142.5 \\end{array}\\right]$</p></li><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-28284.6 \\\\ 28285.3 \\end{array}\\right]$</p></li></ol></li><li><p>$c_2=\\frac{d_2}{\\ksigmatwo}$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The singular values of $\\kA$ are $2$ and $5\\times10^{-5}$, which means the condition number is $40,000$.</p></li><li><ol><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.5 \\\\ 14142.5 \\end{array}\\right]$</p></li><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.8 \\\\ 14142.8 \\end{array}\\right]$</p></li></ol></li><li><ol><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.5 \\\\ 14142.5 \\end{array}\\right]$</p></li><li><p>$\\kAinv\\kvecb = \\left[\\begin{array}{r}-28284.6 \\\\ 28285.3 \\end{array}\\right]$</p></li></ol></li><li><p>We have $d_i = \\ksigmai c_i$ so $c_i=\\frac{d_i}{\\ksigmai}$. Since $\\ksigmatwo$ is so much smaller than $\\ksigmaone$, even small changes in $d_2$ can lead to relatively large changes in $c_2$.</p></li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "a1",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "a1",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "a1",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "a1",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "a2",
+   "concept": "least-squares-by-svd"
+  },
+  {
+   "exercise": "a2",
+   "concept": "reduced-svd"
+  },
+  {
+   "exercise": "a2",
+   "concept": "least-squares-solution"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "a3",
+   "concept": "rank-k-approximation"
+  },
+  {
+   "exercise": "a3",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "a4",
+   "concept": "pca-by-svd"
+  },
+  {
+   "exercise": "a4",
+   "concept": "variance-in-a-direction"
+  },
+  {
+   "exercise": "a4",
+   "concept": "coordinates-of-projected-data"
+  },
+  {
+   "exercise": "a4",
+   "concept": "rank-k-approximation"
+  },
+  {
+   "exercise": "a5",
+   "concept": "image-compression-by-svd"
+  },
+  {
+   "exercise": "a5",
+   "concept": "denoising-by-svd"
+  },
+  {
+   "exercise": "a5",
+   "concept": "rank-k-approximation"
+  },
+  {
+   "exercise": "a5",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "a6",
+   "concept": "svd-of-voting-records"
+  },
+  {
+   "exercise": "a6",
+   "concept": "singular-vectors"
+  },
+  {
+   "exercise": "a6",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e1",
+   "concept": "rank-k-approximation"
+  },
+  {
+   "exercise": "e1",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e2",
+   "concept": "least-squares-by-svd"
+  },
+  {
+   "exercise": "e2",
+   "concept": "reduced-svd"
+  },
+  {
+   "exercise": "e2",
+   "concept": "least-squares-problem"
+  },
+  {
+   "exercise": "e3",
+   "concept": "outer-product"
+  },
+  {
+   "exercise": "e3",
+   "concept": "vector-projection"
+  },
+  {
+   "exercise": "e4",
+   "concept": "pca-by-svd"
+  },
+  {
+   "exercise": "e4",
+   "concept": "variance-in-a-direction"
+  },
+  {
+   "exercise": "e4",
+   "concept": "coordinates-of-projected-data"
+  },
+  {
+   "exercise": "e5",
+   "concept": "svd-of-voting-records"
+  },
+  {
+   "exercise": "e5",
+   "concept": "singular-vectors"
+  },
+  {
+   "exercise": "e6",
+   "concept": "svd-of-voting-records"
+  },
+  {
+   "exercise": "e6",
+   "concept": "rank-k-approximation"
+  },
+  {
+   "exercise": "e6",
+   "concept": "symmetric-matrix"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pseudoinverse"
+  },
+  {
+   "exercise": "e7",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-inverse"
+  },
+  {
+   "exercise": "e8",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e8",
+   "concept": "round-off-error"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "c-vr-vrt",
+   "kind": "correction",
+   "html": "The answer to part f prints $\\kVr^T\\kVr = \\kI$; the part asks for the product $\\kVr\\kVr^T$, which is $\\kI$ too here, since $\\kVr = \\kV$ is square, as the solution says."
+  },
+  {
+   "id": "c-u2-transpose",
+   "kind": "correction",
+   "html": "The solution to part d prints $\\kUtwo(\\kU\\kSigma \\kVT)$; the product meant is $\\kUtwo^T\\kA = \\kUtwo^T(\\kU\\kSigma \\kVT)$, as the line begins."
+  },
+  {
+   "id": "c-pinv-a",
+   "kind": "correction",
+   "html": "The answer and the solution to part d print $\\kA\\kAplus = (\\kVr\\kSigmainv\\kUr^T)(\\kUr\\kSigmar\\kVr^T) \\kVr\\kVr^T$; the product meant is $\\kAplus\\kA = (\\kVr\\kSigmarinv\\kUr^T)(\\kUr\\kSigmar\\kVr^T) = \\kVr\\kVr^T$."
+  },
+  {
+   "id": "c-right-singular",
+   "kind": "correction",
+   "html": "The vectors $\\kvecvone$ and $\\kvecvtwo$ in $\\kvecx = c_1\\kvecvone + c_2\\kvecvtwo$ are the right singular vectors of $\\kA$, not the left ones."
+  },
+  {
+   "id": "c-inverse-b",
+   "kind": "correction",
+   "html": "The answer and the solution to part b ii print $\\kAinv\\kvecb = \\left[\\begin{array}{r}-14142.8 \\\\ 14142.8 \\end{array}\\right]$. Since $\\kAinv\\kvecuone = \\frac{1}{\\ksigmaone}\\kvecvone$ has both entries about $0.35$ in size and of one sign, adding $\\kvecuone$ to $\\kvecb$ moves both entries of $\\kAinv\\kvecb$ the same way, and with the signs of part c ii the result is $\\left[\\begin{array}{r}-14142.8 \\\\ 14142.1 \\end{array}\\right]$; the point of the part, a small change, stands."
+  }
+ ]
+}
