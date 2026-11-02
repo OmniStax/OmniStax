@@ -171,7 +171,8 @@
   },
   {
    "sym": "G",
-   "latex": "G"
+   "latex": "G",
+   "macro": "\\kG"
   },
   {
    "sym": "Y",

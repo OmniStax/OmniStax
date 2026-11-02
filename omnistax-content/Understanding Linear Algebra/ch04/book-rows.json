@@ -1,0 +1,1317 @@
+{
+ "types": [],
+ "symbols": [
+  {
+   "sym": "lambda",
+   "latex": "\\lambda",
+   "macro": "\\klambda"
+  },
+  {
+   "sym": "lambda_1",
+   "latex": "\\lambda_1",
+   "macro": "\\klambdaone"
+  },
+  {
+   "sym": "lambda_2",
+   "latex": "\\lambda_2",
+   "macro": "\\klambdatwo"
+  },
+  {
+   "sym": "lambda_3",
+   "latex": "\\lambda_3",
+   "macro": "\\klambdathree"
+  },
+  {
+   "sym": "lambda_j",
+   "latex": "\\lambda_j",
+   "macro": "\\klambdaj"
+  },
+  {
+   "sym": "E_lambda",
+   "latex": "E_\\lambda",
+   "macro": "\\kElambda"
+  },
+  {
+   "sym": "E_1",
+   "latex": "E_1",
+   "macro": "\\kEone"
+  },
+  {
+   "sym": "P_inv",
+   "latex": "P^{-1}",
+   "macro": "\\kPinv"
+  },
+  {
+   "sym": "P_prime",
+   "latex": "P'",
+   "macro": "\\kPprime"
+  },
+  {
+   "sym": "C_prime",
+   "latex": "C'",
+   "macro": "\\kCprime"
+  },
+  {
+   "sym": "D_k",
+   "latex": "D^k",
+   "macro": "\\kDk"
+  },
+  {
+   "sym": "E",
+   "latex": "E",
+   "macro": "\\kE"
+  },
+  {
+   "sym": "q_vec",
+   "latex": "\\mathbf{q}",
+   "macro": "\\kvecq"
+  },
+  {
+   "sym": "G_prime",
+   "latex": "G'",
+   "macro": "\\kGprime"
+  },
+  {
+   "sym": "H_n",
+   "latex": "H_n",
+   "macro": "\\kHn"
+  },
+  {
+   "sym": "m_j",
+   "latex": "m_j"
+  },
+  {
+   "sym": "r",
+   "latex": "r"
+  },
+  {
+   "sym": "alpha",
+   "latex": "\\alpha"
+  },
+  {
+   "sym": "Q",
+   "latex": "Q"
+  },
+  {
+   "sym": "P_k",
+   "latex": "P_k"
+  },
+  {
+   "sym": "Q_k",
+   "latex": "Q_k"
+  },
+  {
+   "sym": "R_k",
+   "latex": "R_k"
+  },
+  {
+   "sym": "S_k",
+   "latex": "S_k"
+  },
+  {
+   "sym": "J_k",
+   "latex": "J_k"
+  },
+  {
+   "sym": "Y_k",
+   "latex": "Y_k"
+  },
+  {
+   "sym": "A_k_count",
+   "latex": "A_k"
+  }
+ ],
+ "concepts": [
+  {
+   "id": "eigenvector",
+   "kind": "definition",
+   "section": "4.1",
+   "name": "Eigenvector",
+   "terms": [
+    "eigenvector",
+    "eigenvectors"
+   ],
+   "symbol": "v_vec",
+   "type": "vector",
+   "statement": "Given a square n × n matrix A, we say that a nonzero vector v is an eigenvector of A if there is a scalar λ such that Av = λv. For A = [7 6; 6 −2] and v = [2, 1], Av = [20, 10] = 10v, so v is an eigenvector of A; multiplying an eigenvector by A reduces to the much simpler operation of scalar multiplying by λ.",
+   "forms": [
+    {
+     "id": "eq-eigenvector-condition",
+     "latex": "A\\mathbf{v} = \\lambda \\mathbf{v}",
+     "condition": "v nonzero"
+    }
+   ]
+  },
+  {
+   "id": "eigenvalue",
+   "kind": "definition",
+   "section": "4.1",
+   "name": "Eigenvalue",
+   "terms": [
+    "eigenvalue",
+    "eigenvalues"
+   ],
+   "symbol": "lambda",
+   "type": "eigenvalue",
+   "statement": "The scalar λ in Av = λv is called the eigenvalue associated to the eigenvector v. In Example 4.1.2, Av = 10v says that v is an eigenvector of A with associated eigenvalue λ = 10, and Aw = −5w that w is an eigenvector with eigenvalue λ = −5."
+  },
+  {
+   "id": "geometric-interpretation-of-eigenvectors",
+   "kind": "idea",
+   "section": "4.1",
+   "name": "Geometric meaning of an eigenvector",
+   "statement": "To be an eigenvector of A, the vector v must satisfy Av = λv for some scalar λ. This means that v and Av are scalar multiples of each other so they must lie on the same line. Most of the time, the vectors v and Av appear visually unrelated; for certain vectors, however, v and Av line up with one another, and we call attention to these vectors by calling them eigenvectors. For A = [1 2; 2 1], v = [1, 0] is not an eigenvector, while v = [1, 1] is, since Av is obtained from v by stretching v by a factor of 3; the matrix [0 −1; 1 0] rotates vectors by 90°, so it is not possible for v and Av to lie on the same line and it has no eigenvectors."
+  },
+  {
+   "id": "scalar-multiples-of-eigenvectors",
+   "kind": "result",
+   "section": "4.1",
+   "name": "Scalar multiples of an eigenvector",
+   "statement": "Any multiple of the eigenvector [1, 1] of A = [1 2; 2 1] is also an eigenvector of A with eigenvalue λ = 3: scalar multiples of an eigenvector are also eigenvectors, with the same eigenvalue. In fact, all the eigenvectors associated to a given eigenvalue form a subspace of ℝⁿ."
+  },
+  {
+   "id": "matrix-times-eigenvector-combination",
+   "kind": "result",
+   "section": "4.1",
+   "name": "Multiplying a linear combination of eigenvectors",
+   "statement": "If v₁ is an eigenvector with eigenvalue 3 and v₂ an eigenvector with eigenvalue −1, so that Av₁ = 3v₁ and Av₂ = −v₂, then by the linearity of matrix multiplication A(c₁v₁ + c₂v₂) = 3c₁v₁ − c₂v₂: multiplying by A has the effect of stretching a vector x in the v₁ direction by a factor of 3 and flipping x in the v₂ direction. For x = v₁ − 2v₂ this gives Ax = 3v₁ + 2v₂.",
+   "forms": [
+    {
+     "id": "eq-matrix-times-eigenvector-combination",
+     "latex": "A(c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2) = 3c_1{\\mathbf v}_1 - c_2{\\mathbf v}_2",
+     "condition": "Av₁ = 3v₁ and Av₂ = −v₂"
+    },
+    {
+     "id": "eq-eigenvector-combination-example",
+     "latex": "A{\\mathbf x} = A({\\mathbf v}_1 - 2{\\mathbf v}_2) = 3{\\mathbf v}_1 + 2{\\mathbf v}_2"
+    }
+   ]
+  },
+  {
+   "id": "matrix-in-an-eigenvector-basis",
+   "kind": "idea",
+   "section": "4.1",
+   "name": "A matrix seen in a basis of eigenvectors",
+   "statement": "The diagonal matrix D = [3 0; 0 −1] combines a horizontal stretching by a factor of 3 with a reflection across the horizontal axis. The matrix A = [1 2; 2 1] has a similar effect when viewed in the basis defined by its eigenvectors v₁ and v₂: it stretches by 3 in the v₁ direction and flips in the v₂ direction, so A has the same geometric effect as D when expressed in the coordinate system defined by the basis of eigenvectors."
+  },
+  {
+   "id": "basis-of-eigenvectors",
+   "kind": "idea",
+   "section": "4.1",
+   "name": "Basis of eigenvectors",
+   "statement": "In a sense that will be made precise later, having a set of eigenvectors of A that forms a basis of ℝ² enables us to think of A as being equivalent to a diagonal matrix D. It may not always be possible to form a basis from the eigenvectors of a matrix: the only eigenvectors of the shear [2 1; 0 2] have the form [x, 0], and the 90° rotation [0 −1; 1 0] has none. Question 4.1.8 asks: if A is an n × n matrix, can we form a basis of ℝⁿ consisting of eigenvectors of A?"
+  },
+  {
+   "id": "long-term-behavior-from-eigenvectors",
+   "kind": "skill",
+   "section": "4.1",
+   "name": "Predicting long-term behavior with eigenvectors",
+   "statement": "For the rental cars, x_{k+1} = Ax_k with A = [0.8 0.6; 0.2 0.4], whose eigenvectors are v₁ = [3, 1] with λ₁ = 1 and v₂ = [−1, 1] with λ₂ = 0.2. Writing the initial vector as a linear combination of eigenvectors, x₀ = [1000, 0] = 250v₁ − 250v₂ by row reducing the augmented matrix [v₁ v₂ | x₀], and multiplying repeatedly by A gives x_k = 250v₁ − (0.2)ᵏ250v₂. As each day goes by the second term is multiplied by 0.2, so the distribution of cars stabilizes at x = 250v₁ = [750, 250]: our understanding of the eigenvectors lets us replace matrix multiplication by scalar multiplication and look far into the future.",
+   "forms": [
+    {
+     "id": "eq-rental-car-state",
+     "latex": "{\\mathbf x}_k = 250{\\mathbf v}_1 - (0.2)^k250{\\mathbf v}_2"
+    },
+    {
+     "id": "eq-rental-car-system",
+     "latex": "{\\mathbf x}_{k+1} = \\left[\\begin{array}{rr} 0.8 & 0.6 \\\\ 0.2 & 0.4 \\\\ \\end{array}\\right] {\\mathbf x}_k"
+    },
+    {
+     "id": "eq-rental-car-initial-combination",
+     "latex": "{\\mathbf x}_0 = 250{\\mathbf v}_1 -250{\\mathbf v}_2"
+    }
+   ]
+  },
+  {
+   "id": "characteristic-equation-of-a-matrix",
+   "kind": "result",
+   "section": "4.2",
+   "name": "Characteristic equation",
+   "terms": [
+    "characteristic equation"
+   ],
+   "statement": "An eigenvector v satisfies Av = λv, which we rewrite as Av − λIv = 0, that is, (A − λI)v = 0: an eigenvector is a nonzero solution of this homogeneous equation. Since an eigenvalue λ is a scalar for which (A − λI)v = 0 has a nonzero solution, A − λI is not invertible and its determinant is zero. This gives the equation det(A − λI) = 0, whose solutions are the eigenvalues of A; it is called the characteristic equation of A. For A = [−4 4; −12 10] it reads λ² − 6λ + 8 = (λ − 4)(λ − 2) = 0, so the eigenvalues are λ = 4 and λ = 2.",
+   "forms": [
+    {
+     "id": "eq-characteristic-equation",
+     "latex": "\\det(A-\\lambda I) = 0"
+    },
+    {
+     "id": "eq-eigenvector-homogeneous-equation",
+     "latex": "(A-\\lambda I){\\mathbf v} = {\\mathbf 0}"
+    }
+   ]
+  },
+  {
+   "id": "characteristic-polynomial",
+   "kind": "definition",
+   "section": "4.2",
+   "name": "Characteristic polynomial",
+   "terms": [
+    "characteristic polynomial"
+   ],
+   "statement": "The expression det(A − λI) is a polynomial in λ, called the characteristic polynomial of A. If A is an n × n matrix, its degree is n: a quadratic for a 2 × 2 matrix, a cubic for a 3 × 3. A degree n polynomial has n roots, so the characteristic equation can be written det(A − λI) = (λ₁ − λ)(λ₂ − λ)…(λₙ − λ) = 0, giving eigenvalues λ₁, λ₂, …, λₙ, some of which may be complex and some of which may appear more than once; its roots may be real and distinct, as for (4 − λ)(−2 − λ)(3 − λ) = 0, repeated, as for (2 − λ)² = 0, or complex, as for λ² + 1 = 0.",
+   "forms": [
+    {
+     "id": "eq-characteristic-polynomial-factored",
+     "latex": "\\det(A-\\lambda I) = (\\lambda_1 - \\lambda)(\\lambda_2-\\lambda)\\ldots(\\lambda_n-\\lambda) = 0"
+    }
+   ]
+  },
+  {
+   "id": "eigenvalues-of-a-triangular-matrix",
+   "kind": "result",
+   "section": "4.2",
+   "name": "Eigenvalues of a triangular matrix",
+   "statement": "To find the eigenvalues of a triangular matrix, we remember that the determinant of a triangular matrix is the product of the entries on the diagonal: the matrix [4 2 3; 0 −2 −1; 0 0 3] has the characteristic equation (4 − λ)(−2 − λ)(3 − λ) = 0, showing that the eigenvalues are the diagonal entries λ = 4, −2, 3.",
+   "forms": [
+    {
+     "id": "eq-characteristic-equation-triangular",
+     "latex": "\\det \\left[\\begin{array}{rrr} 4-\\lambda & 2 & 3 \\\\ 0 & -2-\\lambda & -1 \\\\ 0 & 0 & 3-\\lambda \\\\ \\end{array}\\right] = (4-\\lambda)(-2-\\lambda)(3-\\lambda) = 0"
+    }
+   ]
+  },
+  {
+   "id": "complex-eigenvalue",
+   "kind": "idea",
+   "section": "4.2",
+   "name": "Complex eigenvalues",
+   "type": "eigenvalue",
+   "statement": "Some of the roots of the characteristic polynomial, and so some of the eigenvalues, may be complex: the 90° rotation [0 −1; 1 0] has det(A − λI) = λ² + 1 = (i − λ)(−i − λ) = 0, so its eigenvalues are λ = i and λ = −i, and there is no real eigenvector. A matrix with complex eigenvalues has no basis of ℝⁿ consisting of eigenvectors, though it can still be related to a simpler matrix.",
+   "forms": [
+    {
+     "id": "eq-rotation-characteristic-equation",
+     "latex": "\\lambda^2 +1 = (i-\\lambda)(-i-\\lambda) = 0",
+     "condition": "A = [0 −1; 1 0]"
+    }
+   ]
+  },
+  {
+   "id": "eigenspace",
+   "kind": "definition",
+   "section": "4.2",
+   "name": "Eigenspace",
+   "terms": [
+    "eigenspace",
+    "eigenspaces"
+   ],
+   "symbol": "E_lambda",
+   "type": "region",
+   "statement": "The eigenvectors associated to an eigenvalue λ are the nonzero solutions of the homogeneous equation (A − λI)v = 0; in other words, they form the null space Nul(A − λI), which shows that the eigenvectors associated to an eigenvalue form a subspace of ℝⁿ. We denote the subspace of eigenvectors of A associated to the eigenvalue λ by E_λ = Nul(A − λI) and say that E_λ is the eigenspace of A associated to the eigenvalue λ. For A = [−4 4; −12 10], E₄ is one-dimensional with basis vector [1, 2] and E₂ has basis [2, 3]; for A = −I, every vector is an eigenvector and E₋₁ = ℝ².",
+   "forms": [
+    {
+     "id": "eq-eigenspace",
+     "latex": "E_\\lambda = \\text{Nul}(A-\\lambda I)"
+    }
+   ]
+  },
+  {
+   "id": "finding-an-eigenvector",
+   "kind": "skill",
+   "section": "4.2",
+   "name": "Finding the eigenvectors of an eigenvalue",
+   "statement": "Once we find an eigenvalue λ of a matrix A, describing the associated eigenspace E_λ amounts to the familiar task of describing the null space Nul(A − λI): form A − λI, row reduce it, and read off a basis of its null space from the parametric description of the solutions. For A = [−4 4; −12 10] and λ = 4, A − 4I = [−8 4; −12 6] ∼ [1 −1/2; 0 0], so the eigenvectors satisfy v₁ = ½v₂ and E₄ has basis vector [1/2, 1], or [1, 2].",
+   "forms": [
+    {
+     "id": "eq-eigenspace-row-reduction",
+     "latex": "A -4I = \\begin{bmatrix} -8 & 4 \\\\ -12 & 6 \\\\ \\end{bmatrix} \\sim \\begin{bmatrix} 1 & -1/2 \\\\ 0 & 0 \\\\ \\end{bmatrix}",
+     "condition": "A = [−4 4; −12 10], λ = 4"
+    }
+   ]
+  },
+  {
+   "id": "checking-eigenvalue-computations",
+   "kind": "skill",
+   "section": "4.2",
+   "name": "Checking eigenvalue computations",
+   "statement": "If λ is a solution to the characteristic equation, then A − λI is not invertible and, consequently, A − λI must contain a row without a pivot position. This serves as a check on our work: if we row reduce A − λI and find the identity matrix, then we have made an error either in solving the characteristic equation or in finding Nul(A − λI)."
+  },
+  {
+   "id": "algebraic-multiplicity",
+   "kind": "definition",
+   "section": "4.2",
+   "name": "Multiplicity of an eigenvalue",
+   "terms": [
+    "multiplicity"
+   ],
+   "symbol": "m",
+   "statement": "Some of the eigenvalues may appear in the list λ₁, λ₂, …, λₙ more than once, so we can always write the characteristic equation in the form (λ₁ − λ)^{m₁}(λ₂ − λ)^{m₂}…(λ_p − λ)^{m_p} = 0. The number of times that λ_j − λ appears as a factor in the characteristic polynomial is called the multiplicity of the eigenvalue λ_j. The matrix [1 1; −1 3] has characteristic equation (2 − λ)² = 0 and a single eigenvalue λ = 2 of multiplicity 2; a matrix with characteristic equation (4 − λ)²(−5 − λ)(1 − λ)⁷(3 − λ)² = 0 has four eigenvalues of multiplicities 2, 1, 7 and 2, and since the degree is the sum of the multiplicities, 12, it is a 12 × 12 matrix.",
+   "forms": [
+    {
+     "id": "eq-characteristic-equation-with-multiplicities",
+     "latex": "(\\lambda_1-\\lambda)^{m_1} (\\lambda_2-\\lambda)^{m_2} \\ldots (\\lambda_p-\\lambda)^{m_p} = 0"
+    }
+   ]
+  },
+  {
+   "id": "eigenspace-dimension-bound",
+   "kind": "result",
+   "section": "4.2",
+   "name": "Dimension of an eigenspace and multiplicity",
+   "statement": "Proposition 4.2.9. If λ is a real eigenvalue of the matrix A with multiplicity m, then 1 ≤ dim E_λ ≤ m. The multiplicities of the eigenvalues are important because they influence the dimension of the eigenspaces: the dimension of an eigenspace must be at least one, and it can be no larger than the multiplicity of its eigenvalue. For −I, λ = −1 has multiplicity 2 and dim E₋₁ = 2; for [1 1; −1 3], λ = 2 has multiplicity 2 but dim E₂ = 1; an eigenvalue of multiplicity 1 has a one-dimensional eigenspace.",
+   "forms": [
+    {
+     "id": "eq-eigenspace-dimension-bound",
+     "latex": "1 \\leq \\dim~E_\\lambda \\leq m",
+     "condition": "λ a real eigenvalue of multiplicity m"
+    }
+   ]
+  },
+  {
+   "id": "basis-from-distinct-eigenvalues",
+   "kind": "result",
+   "section": "4.2",
+   "name": "Distinct eigenvalues give a basis of eigenvectors",
+   "statement": "Proposition 4.2.14. If A is an n × n matrix having n distinct real eigenvalues, then there is a basis of ℝⁿ consisting of eigenvectors of A. It frequently happens that the characteristic equation has the form (λ₁ − λ)(λ₂ − λ)…(λₙ − λ) = 0 with n distinct real eigenvalues, each of multiplicity 1; then each eigenspace has dimension dim E_{λ_j} = 1, and choosing a basis vector v_j for each of them produces a basis for ℝⁿ. This provides one answer to Question 4.1.8.",
+   "forms": [
+    {
+     "id": "eq-distinct-eigenvalues",
+     "latex": "(\\lambda_1-\\lambda) (\\lambda_2-\\lambda) \\ldots (\\lambda_n-\\lambda) = 0",
+     "condition": "n distinct real eigenvalues"
+    }
+   ]
+  },
+  {
+   "id": "eigenvalues-in-sage",
+   "kind": "skill",
+   "section": "4.2",
+   "name": "Finding eigenvalues and eigenvectors in Sage",
+   "statement": "Sage finds the characteristic polynomial of A with A.charpoly('lambda') and its factored form with A.fcp('lambda'), which tells us the eigenvalues and their multiplicities; A.eigenvalues() lists the eigenvalues, an eigenvalue repeated as many times as its multiplicity; A.eigenvectors_right() returns, for each eigenvalue, a triple of the eigenvalue, a basis for E_λ and the multiplicity. Because computers perform only approximate arithmetic with decimal entries, Sage may report that A − I row reduces to the identity for A = [0.4 0.3; 0.6 0.7] even though λ = 1 is an eigenvalue; writing the entries as rational numbers, 4/10 and so on, gets around this."
+  },
+  {
+   "id": "diagonalization",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Diagonalization",
+   "terms": [
+    "diagonalization"
+   ],
+   "statement": "Suppose we have an n × n matrix A and a basis of ℝⁿ consisting of eigenvectors v₁, v₂, …, vₙ of A with associated eigenvalues λ₁, λ₂, …, λₙ. If we use the eigenvectors to form the matrix P = [v₁ v₂ … vₙ] and the eigenvalues to form the diagonal matrix D with the λ_j on its diagonal, then AP = [Av₁ … Avₙ] = [λ₁v₁ … λₙvₙ] = PD, P is invertible since its columns form a basis, and hence A = PDP⁻¹ (Proposition 4.3.2). The expression A = PDP⁻¹ says that A, expressed in the basis defined by the columns of P, has the same geometric effect as D, expressed in the standard basis; this is the sense in which A is equivalent to a diagonal matrix. There are many ways to diagonalize A: reordering the eigenvalues and eigenvectors, or choosing a different basis for an eigenspace, gives different P and D.",
+   "forms": [
+    {
+     "id": "eq-diagonalization",
+     "latex": "A=PDP^{-1}"
+    },
+    {
+     "id": "eq-diagonalization-ap-equals-pd",
+     "latex": "AP = PD"
+    },
+    {
+     "id": "eq-eigenvector-matrix",
+     "latex": "P = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 & \\cdots & {\\mathbf v}_n \\end{bmatrix}"
+    },
+    {
+     "id": "eq-eigenvalue-diagonal-matrix",
+     "latex": "D = \\left[\\begin{array}{cccc} \\lambda_1 & 0 & \\ldots & 0 \\\\ 0 & \\lambda_2 & \\ldots & 0 \\\\ \\vdots & \\vdots & \\ddots & 0 \\\\ 0 & 0 & \\ldots & \\lambda_n \\\\ \\end{array}\\right]"
+    }
+   ]
+  },
+  {
+   "id": "diagonalizable-matrix",
+   "kind": "definition",
+   "section": "4.3",
+   "name": "Diagonalizable matrix",
+   "terms": [
+    "diagonalizable"
+   ],
+   "type": "matrix",
+   "statement": "We say that the matrix A is diagonalizable if there is a diagonal matrix D and invertible matrix P such that A = PDP⁻¹. A = [−5 6; −3 4] is diagonalizable, with D = [−2 0; 0 1] and P = [2 1; 1 1]; A = [0 4; −1 4], whose only eigenspace E₂ is one-dimensional, is not.",
+   "forms": [
+    {
+     "id": "eq-diagonalizable-matrix",
+     "latex": "A = PDP^{-1}",
+     "condition": "D diagonal, P invertible"
+    }
+   ]
+  },
+  {
+   "id": "diagonalizable-iff-eigenvector-basis",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Diagonalizability and a basis of eigenvectors",
+   "statement": "Proposition 4.3.7. An n × n matrix A is diagonalizable if and only if there is a basis of ℝⁿ consisting of eigenvectors of A. In fact, if we only know that A = PDP⁻¹, we can say that the columns of P are eigenvectors of A and that the diagonal entries of D are the associated eigenvalues: if D = [2 0; 0 −2] and P = [1 1; 1 2], then [1, 1] is an eigenvector of A with eigenvalue 2 and [1, 2] one with eigenvalue −2."
+  },
+  {
+   "id": "diagonalizing-a-matrix",
+   "kind": "skill",
+   "section": "4.3",
+   "name": "Diagonalizing a matrix",
+   "statement": "To find a diagonalization of A, if one exists, solve the characteristic equation for the eigenvalues, find a basis of each eigenspace E_λ by constructing Nul(A − λI), and check whether these basis vectors together form a basis of ℝⁿ; if they do, form D from the eigenvalues and P from the eigenvectors in the same order and verify PDP⁻¹ = A. For A = [−5 6; −3 4], the eigenvalues are λ₁ = −2 and λ₂ = 1 with eigenvectors v₁ = [2, 1] and v₂ = [1, 1], and PDP⁻¹ = [2 1; 1 1][−2 0; 0 1][1 −1; −1 2] = A. For A = [0 4; −1 4], the single eigenvalue λ = 2 has a one-dimensional eigenspace, so there is no basis of eigenvectors and A is not diagonalizable."
+  },
+  {
+   "id": "powers-of-a-diagonalizable-matrix",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Powers of a diagonalizable matrix",
+   "statement": "Proposition 4.3.9. If A = PDP⁻¹, then Aᵏ = PDᵏP⁻¹; when A is invertible, we also have A⁻¹ = PD⁻¹P⁻¹. The powers of a diagonal matrix are found by raising its diagonal entries: for D = [2 0; 0 −1], Dᵏ = [2ᵏ 0; 0 (−1)ᵏ]. For the rental cars, A = PDP⁻¹ with P = [3 −1; 1 1] and D = [1 0; 0 0.2], so Dᵏ = [1 0; 0 0.2ᵏ] ≈ [1 0; 0 0] for large k and Aᵏ ≈ P[1 0; 0 0]P⁻¹ = [3/4 3/4; 1/4 1/4], which carries x₀ = [1000, 0] to about [750, 250].",
+   "forms": [
+    {
+     "id": "eq-powers-of-a-diagonalizable-matrix",
+     "latex": "A^k = PD^kP^{-1}",
+     "condition": "A = PDP⁻¹"
+    },
+    {
+     "id": "eq-inverse-of-a-diagonalizable-matrix",
+     "latex": "A^{-1} = PD^{-1}P^{-1}",
+     "condition": "A = PDP⁻¹ invertible"
+    },
+    {
+     "id": "eq-power-of-a-diagonal-matrix",
+     "latex": "D^k = \\begin{bmatrix} 1^k & 0 \\\\ 0 & 0.2^k \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 0.2^k \\end{bmatrix}",
+     "condition": "D = [1 0; 0 0.2]"
+    },
+    {
+     "id": "eq-limit-of-powers-rental-car",
+     "latex": "A^k = PD^kP^{-1} \\approx P\\begin{bmatrix} 1 & 0 \\\\ 0 & 0 \\\\ \\end{bmatrix}P^{-1} = \\begin{bmatrix} \\frac 34 & \\frac 34 \\\\ \\frac 14 & \\frac 14 \\end{bmatrix}",
+     "condition": "k very large"
+    }
+   ]
+  },
+  {
+   "id": "similarity",
+   "kind": "definition",
+   "section": "4.3",
+   "name": "Similar matrices",
+   "terms": [
+    "similar",
+    "similarity"
+   ],
+   "statement": "We say that A is similar to B if there is an invertible matrix P such that A = PBP⁻¹. A matrix is diagonalizable if and only if it is similar to a diagonal matrix. The effect of multiplying a vector by A = PBP⁻¹, viewed in the basis defined by the columns of P, is the same as the effect of multiplying by B in the standard basis, and in this case Aᵏ = PBᵏP⁻¹.",
+   "forms": [
+    {
+     "id": "eq-similar-matrices",
+     "latex": "A = PBP^{-1}",
+     "condition": "P invertible"
+    },
+    {
+     "id": "eq-powers-of-similar-matrices",
+     "latex": "A^k = PB^kP^{-1}",
+     "condition": "A = PBP⁻¹"
+    }
+   ]
+  },
+  {
+   "id": "rotation-scaling-matrix",
+   "kind": "idea",
+   "section": "4.3",
+   "name": "Rotation and scaling by a complex eigenvalue",
+   "symbol": "C",
+   "type": "matrix",
+   "statement": "Suppose a 2 × 2 matrix A has a complex eigenvalue λ = a + bi; then A is similar to C = [a −b; b a]. The point (a, b) defines r, the distance from the origin, and θ, the angle formed with the positive horizontal axis, so that a = r cos θ, b = r sin θ and r = √(a² + b²) by the Pythagorean theorem. Rewriting C = [r 0; 0 r][cos θ −sin θ; sin θ cos θ] shows that C has the geometric effect of rotating vectors by θ and scaling them by a factor of r: for λ = 1 + i, r = √2 and θ = 45°.",
+   "forms": [
+    {
+     "id": "eq-rotation-scaling-matrix",
+     "latex": "C=\\begin{bmatrix} a & -b \\\\ b & a \\\\ \\end{bmatrix}",
+     "condition": "λ = a + bi"
+    },
+    {
+     "id": "eq-rotation-scaling-factored",
+     "latex": "C = \\left[\\begin{array}{rr} r\\cos\\theta & -r\\sin\\theta \\\\ r\\sin\\theta & r\\cos\\theta \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right]"
+    },
+    {
+     "id": "eq-polar-form-of-a-complex-eigenvalue",
+     "latex": "a = r\\cos\\theta, \\qquad b = r\\sin\\theta"
+    },
+    {
+     "id": "eq-modulus-of-a-complex-eigenvalue",
+     "latex": "r=\\sqrt{a^2+b^2}"
+    }
+   ]
+  },
+  {
+   "id": "complex-eigenvalue-similarity",
+   "kind": "result",
+   "section": "4.3",
+   "name": "Similarity for a complex eigenvalue",
+   "statement": "Proposition 4.3.12. If A is a 2 × 2 matrix with a complex eigenvalue λ = a + bi, then A is similar to C = [a −b; b a]; that is, there is a matrix P such that A = PCP⁻¹. A has the same geometric effect as C, a rotation by θ and a scaling by r, when viewed in the basis provided by the columns of P, and Aᵏ = PCᵏP⁻¹. For A = [−2 2; −5 4] with λ₁ = 1 + i, C = [1 −1; 1 1] and P = [1 1; 2 1]; choosing λ₂ = 1 − i instead gives C′ = [1 1; −1 1] and P′ = [1 −1; 2 −1]. Exercise 4.3.8 finds P from a complex eigenvector v = v₁ − iv₂ as P = [v₁ v₂].",
+   "forms": [
+    {
+     "id": "eq-complex-eigenvalue-similarity",
+     "latex": "A= PCP^{-1}",
+     "condition": "A 2 × 2 with eigenvalue a + bi, C = [a −b; b a]"
+    }
+   ]
+  },
+  {
+   "id": "two-species-population-model",
+   "kind": "idea",
+   "section": "4.4",
+   "name": "Interacting species as a dynamical system",
+   "statement": "The populations of two interacting species form a dynamical system: wolves on Isle Royale prey on moose, a predator–prey relationship, while bees and flowering plants are mutually beneficial. Recording the populations in year k in a vector x_k = [R_k, S_k], the populations of the following year are x_{k+1} = Ax_k; for R_{k+1} = 0.9R_k + 0.8S_k and S_{k+1} = 0.2R_k + 0.9S_k, A = [0.9 0.8; 0.2 0.9], and each species, which would decline on its own, grows by a share of the other. In a predator–prey system such as A = [0.7 0.5; −0.4 1.6], the prey S helps the predator R to grow while R inhibits the growth of S.",
+   "forms": [
+    {
+     "id": "eq-two-species-system",
+     "latex": "{\\mathbf x}_{k+1} = A{\\mathbf x}_k = \\left[\\begin{array}{rr} 0.9 & 0.8 \\\\ 0.2 & 0.9 \\\\ \\end{array}\\right] {\\mathbf x}_k"
+    },
+    {
+     "id": "eq-two-species-equations",
+     "latex": "\\begin{aligned} R_{k+1} & {}={} 0.9 R_k + 0.8 S_k \\\\ S_{k+1} & {}={} 0.2 R_k + 0.9 S_k \\end{aligned}"
+    }
+   ]
+  },
+  {
+   "id": "dynamics-in-eigenvector-coordinates",
+   "kind": "result",
+   "section": "4.4",
+   "name": "A dynamical system in eigenvector coordinates",
+   "statement": "The eigenvectors v₁ and v₂ of A form a basis 𝓑 of ℝ², which says that A is diagonalizable, A = PDP⁻¹. The coordinate system defined by 𝓑 can be used to express the state vectors: {x₀}_𝓑 = [2, 1] for x₀ = 2v₁ + v₂, and {x₁}_𝓑 = D{x₀}_𝓑, so that {x_k}_𝓑 = [1.3ᵏ·2, 0.5ᵏ·1]. More generally {Ax}_𝓑 = D{x}_𝓑, which is a restatement of the fact that A is similar to D. In 𝓑-coordinates each step scales horizontally by λ₁ = 1.3 and vertically by λ₂ = 0.5, so the points move along a curve away from the origin, ever closer to the horizontal axis; changing coordinates back, they move ever closer to the line defined by v₁. The phase portrait of D is determined only by the two eigenvalues, and that of A has a similar appearance with the eigenvectors v_j replacing the standard basis vectors e_j.",
+   "forms": [
+    {
+     "id": "eq-dynamics-in-eigenvector-coordinates",
+     "latex": "\\left\\{A{\\mathbf x}\\right\\}_{{\\cal B}} = D\\left\\{{\\mathbf x}\\right\\}_{{\\cal B}}"
+    },
+    {
+     "id": "eq-state-in-eigenvector-coordinates",
+     "latex": "\\left\\{{\\mathbf x}_k\\right\\}_{{\\cal B}} = \\left[\\begin{array}{c}1.3^k\\cdot2 \\\\ 0.5^k\\cdot1 \\end{array}\\right]",
+     "condition": "x₀ = 2v₁ + v₂, λ₁ = 1.3, λ₂ = 0.5"
+    },
+    {
+     "id": "eq-state-as-eigenvector-combination",
+     "latex": "{\\mathbf x}_k = 1.3^k\\cdot2{\\mathbf v}_1 + 0.5^k\\cdot1{\\mathbf v}_2"
+    }
+   ]
+  },
+  {
+   "id": "trajectory",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Trajectory",
+   "terms": [
+    "trajectories",
+    "trajectory"
+   ],
+   "type": "curve",
+   "statement": "Regardless of x₀, the population vectors, in the coordinates defined by 𝓑, are scaled horizontally by a factor of 1.3 and vertically by a factor of 0.5. The sequence of points {x_k}_𝓑, called trajectories, move along the curves shown; in the standard coordinate system, the trajectories x_k = Aᵏx₀ converge to the eigenspace E_1.3. Eventually the vectors become practically indistinguishable from a scalar multiple of v₁, so the ratio R_k/S_k approaches 2 and both populations are multiplied by 1.3 every year, a growth rate of about 30%, independently of the initial populations.",
+   "forms": [
+    {
+     "id": "eq-trajectory",
+     "latex": "{\\mathbf x}_k=A^k{\\mathbf x}_0"
+    }
+   ]
+  },
+  {
+   "id": "phase-portrait",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Phase portrait",
+   "terms": [
+    "phase portraits",
+    "phase portrait"
+   ],
+   "statement": "Diagrams showing the trajectories of a dynamical system, like those of Figure 4.4.1, are called phase portraits: on the left the phase portrait of the diagonal matrix D = [1.3 0; 0 0.5], on the right that of A = [0.9 0.8; 0.2 0.9]. The phase portrait of D is relatively easy to understand because it is determined only by the two eigenvalues; once we have it, the phase portrait of A has a similar appearance with the eigenvectors v_j replacing the standard basis vectors e_j."
+  },
+  {
+   "id": "source",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Repellor",
+   "terms": [
+    "repellor"
+   ],
+   "statement": "Suppose that A has two real eigenvalues λ₁ and λ₂ and that both |λ₁|, |λ₂| > 1. In this case, any nonzero vector x₀ forms a trajectory that moves away from the origin so we say that the origin is a repellor, as for E = [1.3 0; 0 1.5]."
+  },
+  {
+   "id": "saddle-point",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Saddle",
+   "terms": [
+    "saddle"
+   ],
+   "statement": "Suppose that A has two real eigenvalues λ₁ and λ₂ and that |λ₁| > 1 > |λ₂|. In this case, most nonzero vectors x₀ form trajectories that converge to the eigenspace E_{λ₁}, pushed away from the origin in the direction of E_{λ₁}, and we say that the origin is a saddle, as for E = [0.7 0; 0 1.5] or the species of A = [0.9 0.8; 0.2 0.9]."
+  },
+  {
+   "id": "sink",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Attractor",
+   "terms": [
+    "attractor"
+   ],
+   "statement": "Suppose that A has two real eigenvalues λ₁ and λ₂ and that both |λ₁|, |λ₂| < 1. In this case, any nonzero vector x₀ forms a trajectory that moves into the origin so we say that the origin is an attractor, as for E = [0.3 0; 0 0.7]."
+  },
+  {
+   "id": "spiral-source",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Spiral repellor",
+   "terms": [
+    "spiral repellor"
+   ],
+   "statement": "Suppose that A has a complex eigenvalue λ = a + bi where |λ| > 1, that is, a² + b² > 1. In this case, a nonzero vector x₀ forms a trajectory that spirals away from the origin. We say that the origin is a spiral repellor, as for E = [1 −0.9; 0.9 1]."
+  },
+  {
+   "id": "center",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Center",
+   "terms": [
+    "center"
+   ],
+   "statement": "Suppose that A has a complex eigenvalue λ = a + bi where |λ| = 1, that is, a² + b² = 1. In this case, a nonzero vector x₀ forms a trajectory that moves on a closed curve around the origin. We say that the origin is a center, as for the rotation E = [0 −1; 1 0]."
+  },
+  {
+   "id": "spiral-sink",
+   "kind": "definition",
+   "section": "4.4",
+   "name": "Spiral attractor",
+   "terms": [
+    "spiral attractor"
+   ],
+   "statement": "Suppose that A has a complex eigenvalue λ = a + bi where |λ| < 1, that is, a² + b² < 1. In this case, a nonzero vector x₀ forms a trajectory that spirals into the origin. We say that the origin is a spiral attractor, as for E = [0.6 −0.2; 0.2 0.6]."
+  },
+  {
+   "id": "classification-of-discrete-dynamical-systems",
+   "kind": "result",
+   "section": "4.4",
+   "name": "Six types of dynamical systems",
+   "statement": "A 2 × 2 dynamical system x_{k+1} = Ax_k is one of six types, determined by the eigenvalues of A: with two real eigenvalues, a repellor when |λ₁|, |λ₂| > 1, a saddle when |λ₁| > 1 > |λ₂|, an attractor when |λ₁|, |λ₂| < 1; with a complex eigenvalue λ = a + bi, a spiral repellor when |λ| > 1, a center when |λ| = 1, a spiral attractor when |λ| < 1. Writing A = PEP⁻¹, the phase portrait of E is drawn in the eigenvector coordinates and that of A follows with the columns of P in place of e₁, e₂. There are other possibilities if, for instance, one of the eigenvalues is 0, and the next section explores the situation when one of the eigenvalues is 1."
+  },
+  {
+   "id": "higher-dimensional-dynamical-systems",
+   "kind": "idea",
+   "section": "4.4",
+   "name": "Dynamical systems in three or more dimensions",
+   "statement": "The general case is quite similar to the 2 × 2 one. For a 3 × 3 system whose matrix has eigenvalues λ₁ = 0.6, λ₂ = 0.8 and λ₃ = 1.1, real and distinct, there is a basis 𝓑 of eigenvectors, and in its coordinate system all the trajectories {x_k}_𝓑 converge into the eigenspace E_1.1. With complex eigenvalues λ = 0.8 ± 0.5i, |λ| < 1, and λ₃ = 1.1, there is a two-dimensional subspace in which the trajectories spiral in toward the origin while, once again, they all converge into E_1.1. The same kind of reasoning allows us to analyze n × n systems, such as the three age groups of a bison herd, whose growth rate is the real eigenvalue larger than 1."
+  },
+  {
+   "id": "probability-vector",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Probability vector",
+   "terms": [
+    "probability vector",
+    "probability vectors"
+   ],
+   "type": "vector",
+   "statement": "A vector whose entries are nonnegative and add to 1 is called a probability vector. The vector x₀ = [0.4, 0.3, 0.3] of the percentages of voters choosing three parties is a probability vector, since every voter votes for one of the three parties; the entries of the matrix of a Markov chain are probabilities, between 0 and 1."
+  },
+  {
+   "id": "stochastic-matrix",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Stochastic matrix",
+   "terms": [
+    "stochastic",
+    "stochastic matrix",
+    "stochastic matrices"
+   ],
+   "type": "matrix",
+   "statement": "A square matrix whose columns are probability vectors is called a stochastic matrix. The rental car matrix A = [0.8 0.4; 0.2 0.6] is stochastic: each entry is the probability that a car rented at one location is returned to another, and since a car rented at one location must be returned to one of the locations, the entries in each column add to 1.",
+   "forms": [
+    {
+     "id": "eq-rental-car-stochastic-matrix",
+     "latex": "A = \\left[\\begin{array}{rr} 0.8 & 0.4 \\\\ 0.2 & 0.6 \\\\ \\end{array}\\right]"
+    }
+   ]
+  },
+  {
+   "id": "markov-chain",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Markov chain",
+   "terms": [
+    "Markov chain",
+    "Markov chains"
+   ],
+   "statement": "If we have a stochastic matrix A and a probability vector x₀, we can form the sequence x_k where x_{k+1} = Ax_k. We call this sequence of vectors a Markov chain; the vectors x_k are all probability vectors (Exercise 4.5.6). We may think of the sequence as describing the evolution of some conserved quantity, such as the number of rental cars or voters, among a number of possible states over time: for the voters, x₁ = [0.300, 0.400, 0.300], x₂ = [0.240, 0.420, 0.340], …, x₁₀ = [0.200, 0.400, 0.400].",
+   "forms": [
+    {
+     "id": "eq-markov-chain",
+     "latex": "{\\mathbf x}_{k+1} = A {\\mathbf x}_k",
+     "condition": "A stochastic, x₀ a probability vector"
+    }
+   ]
+  },
+  {
+   "id": "steady-state-vector",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Steady-state vector",
+   "terms": [
+    "steady-state",
+    "stationary",
+    "steady-state vector",
+    "stationary vector"
+   ],
+   "symbol": "q_vec",
+   "type": "vector",
+   "statement": "If A is a stochastic matrix, we say that a probability vector q is a steady-state or stationary vector if Aq = q. The voting Markov chain converges to q = [0.2, 0.4, 0.4], a probability vector in the eigenspace E₁ that is unchanged under multiplication by A: after a long time, 20% of voters choose party P, 40% choose Q and 40% choose R.",
+   "forms": [
+    {
+     "id": "eq-steady-state-vector",
+     "latex": "A{\\mathbf q} = {\\mathbf q}",
+     "condition": "A stochastic, q a probability vector"
+    }
+   ]
+  },
+  {
+   "id": "finding-a-steady-state-vector",
+   "kind": "skill",
+   "section": "4.5",
+   "name": "Finding a steady-state vector",
+   "statement": "Since λ₁ = 1 is an eigenvalue, a steady-state vector is a probability vector in the eigenspace E₁ = Nul(A − I). We find it by finding the appropriate scalar multiple of a basis vector v of E₁: for the voting matrix, v = [1, 2, 2] and cv = [c, 2c, 2c] is a probability vector when c + 2c + 2c = 5c = 1, so c = 1/5 and q = [0.2, 0.4, 0.4] is the unique probability vector in E₁. For B = [0.4 0.3; 0.6 0.7], E₁ has basis [1, 2] and q = [1/3, 2/3].",
+   "forms": [
+    {
+     "id": "eq-steady-state-from-a-basis-vector",
+     "latex": "c{\\mathbf v} = \\left[\\begin{array}{r}c \\\\ 2c \\\\ 2c \\end{array}\\right]",
+     "condition": "v = [1, 2, 2] a basis of E₁, 5c = 1"
+    }
+   ]
+  },
+  {
+   "id": "eigenvalues-of-a-stochastic-matrix",
+   "kind": "result",
+   "section": "4.5",
+   "name": "Eigenvalues of a stochastic matrix",
+   "statement": "A few important facts about the eigenvalues of a stochastic matrix: λ = 1 is an eigenvalue of any stochastic matrix (Exercise 4.5.8), and we usually order the eigenvalues so that λ₁ = 1; all other eigenvalues satisfy |λ_j| ≤ 1; and any stochastic matrix has at least one steady-state vector q. For the voting matrix, λ₁ = 1 and λ₂, λ₃ = 0.4 ± 0.2i with |λ₂| = |λ₃| < 1, so the trajectories x_k spiral into the eigenspace E₁ and converge to the probability vector q there.",
+   "forms": [
+    {
+     "id": "eq-stochastic-first-eigenvalue",
+     "latex": "\\lambda_1=1",
+     "condition": "A stochastic"
+    },
+    {
+     "id": "eq-stochastic-other-eigenvalues",
+     "latex": "|\\lambda_j| \\leq 1",
+     "condition": "j > 1"
+    }
+   ]
+  },
+  {
+   "id": "convergence-of-a-markov-chain",
+   "kind": "result",
+   "section": "4.5",
+   "name": "Convergence of a Markov chain",
+   "statement": "The eigenvalues of a stochastic matrix tell us whether a Markov chain will converge to a steady-state vector (Question 4.5.3). A Markov chain could fail to converge if |λ₂| = 1: for A = [0 1; 1 0], with eigenvalues 1 and −1, the chain from x₀ = [1, 0] alternates [1, 0], [0, 1], [1, 0], … and converges to nothing. However, if all but the first eigenvalue satisfy |λ_j| < 1, then there is a unique steady-state vector q and any Markov chain will converge to q, as for B = [0.4 0.3; 0.6 0.7] with eigenvalues 1 and 0.1, whose chains converge to q = [1/3, 2/3].",
+   "forms": [
+    {
+     "id": "eq-markov-convergence-condition",
+     "latex": "|\\lambda_j|< 1",
+     "condition": "j > 1, λ₁ = 1 of multiplicity one"
+    }
+   ]
+  },
+  {
+   "id": "positive-matrix",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Positive matrix",
+   "terms": [
+    "positive",
+    "positive matrix"
+   ],
+   "type": "matrix",
+   "statement": "We say that a matrix A is positive if either A or some power Aᵏ has all positive entries. The matrix [0 1; 1 0] is not positive, since every power of it has some zero entries; B = [0.4 0.3; 0.6 0.7] is positive because every entry is positive; C = [0 0.5; 1 0.5] has a zero entry, but C² = [0.5 0.25; 0.5 0.75] has all positive entries, so C is a positive matrix."
+  },
+  {
+   "id": "perron-frobenius-theorem",
+   "kind": "result",
+   "section": "4.5",
+   "name": "Perron-Frobenius theorem",
+   "statement": "Theorem 4.5.6 (Perron-Frobenius). If A is a positive stochastic matrix, then the eigenvalues satisfy λ₁ = 1 and |λ_j| < 1 for j > 1. This means that A has a unique positive, steady-state vector q and that every Markov chain defined by A will converge to q. It is a simple condition on the matrix A that guarantees convergence without computing the eigenvalues; where A is not positive, as for D = [0 0.5 0; 1 0.5 0; 0 0 1], the theorem tells us nothing, and indeed D has two steady-state vectors and different Markov chains converge to different vectors.",
+   "forms": [
+    {
+     "id": "eq-perron-frobenius-eigenvalues",
+     "latex": "\\lambda_1=1,\\qquad |\\lambda_j| < 1 \\text{ for } j> 1",
+     "condition": "A a positive stochastic matrix"
+    }
+   ]
+  },
+  {
+   "id": "pagerank",
+   "kind": "idea",
+   "section": "4.5",
+   "name": "PageRank algorithm",
+   "terms": [
+    "PageRank",
+    "PageRank algorithm"
+   ],
+   "statement": "Google's idea is to use the structure of the Internet to assess the quality of web pages without any human intervention: if a web page has quality content, other web pages will link to it, and a page has even higher quality if those links come from pages that are themselves assessed to have high quality. Simply said, if many quality pages link to a page, that page must itself be of high quality. This is the essence of the PageRank algorithm, in which each page divides its PageRank into equal pieces, one for each outgoing link, and gives one piece to each of the pages it links to, a page's PageRank being the sum of all the PageRank it receives; Markov chains and the Perron-Frobenius theorem are its central ingredients."
+  },
+  {
+   "id": "google-matrix",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Google matrix",
+   "terms": [
+    "Google matrix"
+   ],
+   "type": "matrix",
+   "statement": "The PageRank x_j of page j is determined by the rule that each page divides its PageRank equally among its outgoing links: for the three-page Internet, x₁ = x₂ + ½x₃, x₂ = ½x₁ + ½x₃, x₃ = ½x₁. Forming the PageRank vector x, these expressions take the form Gx = x, where the matrix G is called the Google matrix; its entries are nonnegative and its columns add to 1, so G is a stochastic matrix. For that Internet, G = [0 1 1/2; 1/2 0 1/2; 1/2 0 0].",
+   "forms": [
+    {
+     "id": "eq-google-matrix-equation",
+     "latex": "G{\\mathbf x} = {\\mathbf x}"
+    },
+    {
+     "id": "eq-google-matrix-three-pages",
+     "latex": "G=\\left[\\begin{array}{rrr} 0 & 1 & \\frac12 \\\\ \\frac12 & 0 & \\frac12 \\\\ \\frac12 & 0 & 0 \\\\ \\end{array}\\right]",
+     "condition": "the three-page Internet of Figure 4.5.7"
+    },
+    {
+     "id": "eq-pagerank-rule-three-pages",
+     "latex": "x_1 = x_2 + \\frac12 x_3"
+    }
+   ]
+  },
+  {
+   "id": "pagerank-vector",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "PageRank vector",
+   "terms": [
+    "PageRank vector"
+   ],
+   "symbol": "x_vec",
+   "type": "vector",
+   "statement": "Since the PageRank vector x is defined by the equation Gx = x, any vector in the eigenspace E₁ satisfies this equation; so that we might work with a specific vector, we define the PageRank vector to be the steady-state vector of the stochastic matrix G. For the three-page Internet, E₁ is spanned by [4, 3, 2] and the PageRank vector is q = [4/9, 3/9, 2/9]: page 1, whose PageRank is largest, is assessed to have the highest quality.",
+   "forms": [
+    {
+     "id": "eq-pagerank-vector-three-pages",
+     "latex": "{\\mathbf q}=\\left[\\begin{array}{r}\\frac49 \\\\ \\frac39 \\\\ \\frac29 \\end{array}\\right]",
+     "condition": "the three-page Internet"
+    }
+   ]
+  },
+  {
+   "id": "pagerank-by-markov-chain",
+   "kind": "idea",
+   "section": "4.5",
+   "name": "Finding the PageRank vector by a Markov chain",
+   "statement": "There are two ways to find the PageRank vector. The first determines a steady-state vector directly by describing the eigenspace E₁, which means finding the null space Nul(G − I); the real Internet has 35 trillion pages, so this requires row reducing a matrix with 35 trillion rows and columns, which is not computationally feasible. The second uses a Markov chain x_{k+1} = Gx_k that converges to the PageRank vector: since multiplying a vector by a matrix is significantly less work than row reducing the matrix, this approach is feasible, and it is, in fact, how Google computes the PageRank vector."
+  },
+  {
+   "id": "modified-google-matrix",
+   "kind": "definition",
+   "section": "4.5",
+   "name": "Modified Google matrix",
+   "terms": [
+    "modified Google matrix"
+   ],
+   "symbol": "G_prime",
+   "type": "matrix",
+   "statement": "A Markov chain defined by G converges to a unique steady-state vector when G is positive, which fails for the cyclic five-page Internet, whose chain never settles, and for the eight-page Internet in which the pages outside a box give up all of their PageRank to the pages inside it. Google solves this problem by modifying G to obtain a positive matrix G′: thinking of the entries of G as the probability that a user follows a link, we allow the user to jump to any of the n pages with a small probability, through the positive stochastic matrix Hₙ all of whose entries are 1/n, and mix the two with a parameter α, G′ = αG + (1 − α)Hₙ. Google is thought to use α = 0.85, so G′ = 0.85G + 0.15Hₙ: a user follows a link 85% of the time and jumps to any page 15% of the time. Since G′ is positive, the Perron-Frobenius theorem tells us that any Markov chain converges to a unique steady-state vector, the PageRank vector.",
+   "forms": [
+    {
+     "id": "eq-modified-google-matrix",
+     "latex": "G' = \\alpha G +(1-\\alpha)H_n"
+    },
+    {
+     "id": "eq-modified-google-matrix-0-85",
+     "latex": "G' = 0.85 G + 0.15H_n"
+    },
+    {
+     "id": "eq-uniform-jump-matrix",
+     "latex": "H_n = \\left[\\begin{array}{rrrr} \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\end{array}\\right]"
+    }
+   ]
+  }
+ ],
+ "concept_prereqs": [
+  {
+   "concept": "eigenvector",
+   "prereq": "square-matrix"
+  },
+  {
+   "concept": "eigenvector",
+   "prereq": "matrix-product-as-linear-combination"
+  },
+  {
+   "concept": "eigenvalue",
+   "prereq": "eigenvector"
+  },
+  {
+   "concept": "geometric-interpretation-of-eigenvectors",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "geometric-interpretation-of-eigenvectors",
+   "prereq": "geometry-of-vector-operations"
+  },
+  {
+   "concept": "scalar-multiples-of-eigenvectors",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "scalar-multiples-of-eigenvectors",
+   "prereq": "linearity-of-matrix-multiplication"
+  },
+  {
+   "concept": "scalar-multiples-of-eigenvectors",
+   "prereq": "subspace"
+  },
+  {
+   "concept": "matrix-times-eigenvector-combination",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "matrix-times-eigenvector-combination",
+   "prereq": "linearity-of-matrix-multiplication"
+  },
+  {
+   "concept": "matrix-in-an-eigenvector-basis",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "matrix-in-an-eigenvector-basis",
+   "prereq": "coordinate-system"
+  },
+  {
+   "concept": "matrix-in-an-eigenvector-basis",
+   "prereq": "diagonal-matrix"
+  },
+  {
+   "concept": "basis-of-eigenvectors",
+   "prereq": "matrix-in-an-eigenvector-basis"
+  },
+  {
+   "concept": "long-term-behavior-from-eigenvectors",
+   "prereq": "matrix-times-eigenvector-combination"
+  },
+  {
+   "concept": "long-term-behavior-from-eigenvectors",
+   "prereq": "discrete-dynamical-system"
+  },
+  {
+   "concept": "long-term-behavior-from-eigenvectors",
+   "prereq": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "concept": "characteristic-equation-of-a-matrix",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "characteristic-equation-of-a-matrix",
+   "prereq": "homogeneous-matrix-equation"
+  },
+  {
+   "concept": "characteristic-equation-of-a-matrix",
+   "prereq": "invertibility-and-the-determinant"
+  },
+  {
+   "concept": "characteristic-polynomial",
+   "prereq": "characteristic-equation-of-a-matrix"
+  },
+  {
+   "concept": "eigenvalues-of-a-triangular-matrix",
+   "prereq": "characteristic-equation-of-a-matrix"
+  },
+  {
+   "concept": "complex-eigenvalue",
+   "prereq": "characteristic-polynomial"
+  },
+  {
+   "concept": "eigenspace",
+   "prereq": "characteristic-equation-of-a-matrix"
+  },
+  {
+   "concept": "eigenspace",
+   "prereq": "kernel"
+  },
+  {
+   "concept": "finding-an-eigenvector",
+   "prereq": "eigenspace"
+  },
+  {
+   "concept": "finding-an-eigenvector",
+   "prereq": "basis-of-the-kernel"
+  },
+  {
+   "concept": "checking-eigenvalue-computations",
+   "prereq": "finding-an-eigenvector"
+  },
+  {
+   "concept": "algebraic-multiplicity",
+   "prereq": "characteristic-polynomial"
+  },
+  {
+   "concept": "eigenspace-dimension-bound",
+   "prereq": "algebraic-multiplicity"
+  },
+  {
+   "concept": "eigenspace-dimension-bound",
+   "prereq": "eigenspace"
+  },
+  {
+   "concept": "eigenspace-dimension-bound",
+   "prereq": "dimension"
+  },
+  {
+   "concept": "basis-from-distinct-eigenvalues",
+   "prereq": "eigenspace-dimension-bound"
+  },
+  {
+   "concept": "basis-from-distinct-eigenvalues",
+   "prereq": "basis-of-eigenvectors"
+  },
+  {
+   "concept": "eigenvalues-in-sage",
+   "prereq": "characteristic-polynomial"
+  },
+  {
+   "concept": "eigenvalues-in-sage",
+   "prereq": "eigenspace"
+  },
+  {
+   "concept": "eigenvalues-in-sage",
+   "prereq": "matrix-in-sage"
+  },
+  {
+   "concept": "diagonalization",
+   "prereq": "basis-of-eigenvectors"
+  },
+  {
+   "concept": "diagonalization",
+   "prereq": "matrix-inverse"
+  },
+  {
+   "concept": "diagonalizable-matrix",
+   "prereq": "diagonalization"
+  },
+  {
+   "concept": "diagonalizable-iff-eigenvector-basis",
+   "prereq": "diagonalizable-matrix"
+  },
+  {
+   "concept": "diagonalizing-a-matrix",
+   "prereq": "diagonalizable-iff-eigenvector-basis"
+  },
+  {
+   "concept": "diagonalizing-a-matrix",
+   "prereq": "finding-an-eigenvector"
+  },
+  {
+   "concept": "powers-of-a-diagonalizable-matrix",
+   "prereq": "diagonalizable-matrix"
+  },
+  {
+   "concept": "powers-of-a-diagonalizable-matrix",
+   "prereq": "rules-of-matrix-algebra"
+  },
+  {
+   "concept": "similarity",
+   "prereq": "invertible-matrix"
+  },
+  {
+   "concept": "rotation-scaling-matrix",
+   "prereq": "complex-eigenvalue"
+  },
+  {
+   "concept": "rotation-scaling-matrix",
+   "prereq": "rotation-matrix"
+  },
+  {
+   "concept": "complex-eigenvalue-similarity",
+   "prereq": "similarity"
+  },
+  {
+   "concept": "complex-eigenvalue-similarity",
+   "prereq": "rotation-scaling-matrix"
+  },
+  {
+   "concept": "two-species-population-model",
+   "prereq": "discrete-dynamical-system"
+  },
+  {
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "prereq": "diagonalization"
+  },
+  {
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "prereq": "conversion-between-coordinate-systems"
+  },
+  {
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "prereq": "discrete-dynamical-system"
+  },
+  {
+   "concept": "trajectory",
+   "prereq": "dynamics-in-eigenvector-coordinates"
+  },
+  {
+   "concept": "trajectory",
+   "prereq": "vectors-as-points"
+  },
+  {
+   "concept": "phase-portrait",
+   "prereq": "trajectory"
+  },
+  {
+   "concept": "source",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "saddle-point",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "saddle-point",
+   "prereq": "eigenspace"
+  },
+  {
+   "concept": "sink",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "spiral-source",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "spiral-source",
+   "prereq": "complex-eigenvalue"
+  },
+  {
+   "concept": "center",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "center",
+   "prereq": "complex-eigenvalue"
+  },
+  {
+   "concept": "spiral-sink",
+   "prereq": "phase-portrait"
+  },
+  {
+   "concept": "spiral-sink",
+   "prereq": "complex-eigenvalue"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "source"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "saddle-point"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "sink"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "spiral-source"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "center"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "spiral-sink"
+  },
+  {
+   "concept": "classification-of-discrete-dynamical-systems",
+   "prereq": "complex-eigenvalue-similarity"
+  },
+  {
+   "concept": "higher-dimensional-dynamical-systems",
+   "prereq": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "concept": "higher-dimensional-dynamical-systems",
+   "prereq": "basis-from-distinct-eigenvalues"
+  },
+  {
+   "concept": "probability-vector",
+   "prereq": "vector"
+  },
+  {
+   "concept": "stochastic-matrix",
+   "prereq": "probability-vector"
+  },
+  {
+   "concept": "stochastic-matrix",
+   "prereq": "square-matrix"
+  },
+  {
+   "concept": "markov-chain",
+   "prereq": "stochastic-matrix"
+  },
+  {
+   "concept": "markov-chain",
+   "prereq": "discrete-dynamical-system"
+  },
+  {
+   "concept": "steady-state-vector",
+   "prereq": "stochastic-matrix"
+  },
+  {
+   "concept": "steady-state-vector",
+   "prereq": "eigenvector"
+  },
+  {
+   "concept": "finding-a-steady-state-vector",
+   "prereq": "steady-state-vector"
+  },
+  {
+   "concept": "finding-a-steady-state-vector",
+   "prereq": "finding-an-eigenvector"
+  },
+  {
+   "concept": "eigenvalues-of-a-stochastic-matrix",
+   "prereq": "steady-state-vector"
+  },
+  {
+   "concept": "eigenvalues-of-a-stochastic-matrix",
+   "prereq": "eigenvalue"
+  },
+  {
+   "concept": "convergence-of-a-markov-chain",
+   "prereq": "markov-chain"
+  },
+  {
+   "concept": "convergence-of-a-markov-chain",
+   "prereq": "eigenvalues-of-a-stochastic-matrix"
+  },
+  {
+   "concept": "convergence-of-a-markov-chain",
+   "prereq": "algebraic-multiplicity"
+  },
+  {
+   "concept": "positive-matrix",
+   "prereq": "square-matrix"
+  },
+  {
+   "concept": "positive-matrix",
+   "prereq": "matrix-product"
+  },
+  {
+   "concept": "perron-frobenius-theorem",
+   "prereq": "positive-matrix"
+  },
+  {
+   "concept": "perron-frobenius-theorem",
+   "prereq": "convergence-of-a-markov-chain"
+  },
+  {
+   "concept": "pagerank",
+   "prereq": "steady-state-vector"
+  },
+  {
+   "concept": "google-matrix",
+   "prereq": "pagerank"
+  },
+  {
+   "concept": "pagerank-vector",
+   "prereq": "google-matrix"
+  },
+  {
+   "concept": "pagerank-by-markov-chain",
+   "prereq": "pagerank-vector"
+  },
+  {
+   "concept": "pagerank-by-markov-chain",
+   "prereq": "perron-frobenius-theorem"
+  },
+  {
+   "concept": "pagerank-by-markov-chain",
+   "prereq": "computational-effort-of-row-reduction"
+  },
+  {
+   "concept": "modified-google-matrix",
+   "prereq": "pagerank-by-markov-chain"
+  }
+ ]
+}

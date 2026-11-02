@@ -102,5 +102,36 @@
       "F_0"
     ],
     "types": []
+  },
+  "ch04": {
+    "symbols": [
+      "lambda",
+      "lambda_1",
+      "lambda_2",
+      "lambda_3",
+      "lambda_j",
+      "E_lambda",
+      "E_1",
+      "P_inv",
+      "P_prime",
+      "C_prime",
+      "D_k",
+      "E",
+      "q_vec",
+      "G_prime",
+      "H_n",
+      "m_j",
+      "r",
+      "alpha",
+      "Q",
+      "P_k",
+      "Q_k",
+      "R_k",
+      "S_k",
+      "J_k",
+      "Y_k",
+      "A_k_count"
+    ],
+    "types": []
   }
 }
