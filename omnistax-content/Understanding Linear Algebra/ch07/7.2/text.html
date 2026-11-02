@@ -1,0 +1,154 @@
+<section id="opening">
+<h2>Variance and a new kind of function</h2>
+<p id="quadratic-form-preview">With our understanding of <span data-concept="symmetric-matrix">symmetric matrices</span> and <span data-concept="variance">variance</span> in hand, we’ll now explore how to determine the directions in which <span data-concept="variance-in-a-direction">the variance of a dataset</span> is as large as possible and where it is as small as possible. This is part of a much larger story involving a type of function, called a <em><span data-concept="quadratic-form">quadratic form</span></em>, that we’ll introduce here.</p>
+</section>
+
+<section id="introduction">
+<h2>Introduction</h2>
+<div class="exercises" data-place="introduction"></div>
+</section>
+
+<section id="quadratic-forms">
+<h2>Quadratic forms</h2>
+<p id="covariance-direction">Given a matrix $\kA$ of $N$ <span data-concept="demeaned-vector">demeaned data points</span>, the <span data-concept="symmetric-matrix">symmetric</span> <span data-concept="covariance-matrix">covariance matrix</span> $\kC=\frac1N \kA \kA^T$ determines <span data-concept="variance-in-a-direction">the variance in a particular direction</span></p>
+$$ \kVu = \kvecu\cdot(\kC\kvecu), $$
+<p>where $\kvecu$ is a <span data-concept="unit-vector">unit vector</span> defining the direction.</p>
+<p id="quadratic-form-defined">More generally, <span data-concept="quadratic-form">a symmetric $m\times m$ matrix $\kA$ defines a function $q:{\mathbb R}^m \to {\mathbb R}$</span> by</p>
+$$ q(\kvecx) = \kvecx\cdot(\kA\kvecx). $$
+<p>Notice that this expression is similar to the one we use to find <span data-concept="variance-from-the-covariance-matrix">the variance $\kVu$ in terms of the covariance matrix $\kC$</span>. The only difference is that we allow $\kvecx$ to be any vector rather than requiring it to be a <span data-concept="unit-vector">unit vector</span>.</p>
+<div class="example" id="example-7-2-2">
+<h3>Example 7.2.2</h3>
+<p>Suppose that $\kA=\begin{bmatrix} 1 &amp; 2\\ 2 &amp; 1 \end{bmatrix}$. If we write $\kvecx=\left[\begin{array}{r}x_1 \\ x_2 \end{array}\right]$, then we have</p>
+$$ \begin{aligned} q\left(\left[\begin{array}{r}x_1 \\ x_2 \end{array}\right]\right) &amp; = \left[\begin{array}{r}x_1 \\ x_2 \end{array}\right] \cdot \left( \begin{bmatrix} 1 &amp; 2 \\ 2 &amp; 1 \end{bmatrix} \left[\begin{array}{r}x_1 \\ x_2 \end{array}\right] \right) \\ &amp; = \left[\begin{array}{r}x_1 \\ x_2 \end{array}\right] \cdot \left[\begin{array}{r}x_1 + 2x_2 \\ 2x_1 + x_2 \end{array}\right] \\ &amp; = x_1^2 + 2x_1x_2 + 2x_1x_2 + x_2^2 \\ &amp; = x_1^2 + 4x_1x_2 + x_2^2. \end{aligned} $$
+<p>We may evaluate the quadratic form using some input vectors:</p>
+$$ q\left(\left[\begin{array}{r}1 \\ 0 \end{array}\right]\right) = 1, \hspace{24pt} q\left(\left[\begin{array}{r}1 \\ 1 \end{array}\right]\right) = 6, \hspace{24pt} q\left(\left[\begin{array}{r}2 \\ 4 \end{array}\right]\right) = 52. $$
+<p>Notice that the value of the quadratic form is a scalar.</p>
+</div>
+<div class="note" id="definition-7-2-3">
+<div class="eyebrow">Definition 7.2.3</div>
+<p>If $\kA$ is a <span data-concept="symmetric-matrix">symmetric</span> $m\times m$ matrix, the <em><span data-concept="quadratic-form">quadratic form</span></em> defined by $\kA$ is the function $q_A(\kvecx) = \kvecx\cdot(\kA\kvecx)$.</p>
+</div>
+<div class="exercises" data-place="definition-7-2-3"></div>
+<p id="nonlinear">Linear algebra is principally about things that are linear. However, <span data-concept="quadratic-form">quadratic forms</span>, as the name implies, have a distinctly non-linear character. First, if $\kA=\begin{bmatrix} a &amp; b \\ b &amp; c \end{bmatrix}$, is a <span data-concept="symmetric-matrix">symmetric matrix</span>, then <span data-concept="quadratic-form">the associated quadratic form</span> is</p>
+$$ q_A\left(\left[\begin{array}{r}x_1 \\ x_2 \end{array}\right]\right) = ax_1^2 + 2bx_1x_2 + cx_2^2. $$
+<p>Notice how the variables $x_1$ and $x_2$ are multiplied together, which tells us this isn’t a linear function.</p>
+<p id="diagonal-form">This expression assumes an especially simple form when $\kD$ is a <span data-concept="diagonal-matrix">diagonal matrix</span>. In particular, if $\kD = \begin{bmatrix} a &amp; 0 \\ 0 &amp; c \\ \end{bmatrix}$, then $q_D\left(\left[\begin{array}{r}x_1 \\ x_2 \end{array}\right]\right) = ax_1^2 + cx_2^2$. This is special because there is no cross-term involving $x_1x_2$.</p>
+<p id="scaling">Remember that <span data-concept="linearity-of-matrix-transformations">matrix transformations have the property that $\kT(s\kvecx) = sT(\kvecx)$</span>. <span data-concept="scaling-a-quadratic-form">Quadratic forms behave differently</span>:</p>
+$$ q_A(s\kvecx) = (s\kvecx)\cdot(\kA(s\kvecx)) = s^2\kvecx\cdot(\kA\kvecx)= s^2q_A(\kvecx). $$
+<p>For instance, when we multiply $\kvecx$ by the scalar 2, then $q_A(2\kvecx) = 4q_A(\kvecx)$. Also, notice that $q_A(-\kvecx) = q_A(\kvecx)$ since the scalar is squared.</p>
+<p id="on-eigenvector">Finally, <span data-concept="quadratic-form-on-an-eigenvector">evaluating a quadratic form on an eigenvector</span> has a particularly simple form. Suppose that $\kvecx$ is an <span data-concept="eigenvector">eigenvector</span> of $\kA$ with associated <span data-concept="eigenvalue">eigenvalue</span> $\klambda$. We then have</p>
+$$ q_A(\kvecx) = \kvecx\cdot(\kA\kvecx) = \klambda\kvecx\cdot\kvecx = \klambda \left|\kvecx\right|^2. $$
+<p id="motivating-question">Let’s now return to our motivating question: in which direction $\kvecu$ is <span data-concept="variance-in-a-direction">the variance $\kVu=\kvecu\cdot(\kC\kvecu)$</span> of a dataset as large as possible and in which is it as small as possible. Remembering that the vector $\kvecu$ is a <span data-concept="unit-vector">unit vector</span>, we can now state a more general form of this question: <em>If $q_A(\kvecx)$ is a <span data-concept="quadratic-form">quadratic form</span>, for which unit vectors $\kvecu$ is $q_A(\kvecu)=\kvecu\cdot(\kA\kvecu)$ as large as possible and for which is it as small as possible?</em> Since a unit vector specifies a direction, we will often ask for the directions in which the quadratic form $q(\kvecx)$ is at its maximum or minimum value.</p>
+<figure class="sim" id="sim-quadratic-form-graph">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>The graph of <span data-concept="quadratic-form">the quadratic form</span> $q_D(\kvecx) = 3x_1^2 - x_2^2$ of <a href="#7.2-ex-a3">Activity 7.2.3</a> over the plane, with the points above the <span data-concept="unit-vector">unit vectors</span> $\kvecu$ traced on it as a closed curve. The curve climbs highest, to $3$, above $\pm\left[\begin{array}{r}1 \\ 0 \end{array}\right]$ and sinks lowest, to $-1$, above $\pm\left[\begin{array}{r}0 \\ 1 \end{array}\right]$: the <span data-concept="eigenvalue">eigenvalues</span> of $\kD$, in the directions of its <span data-concept="eigenvector">eigenvectors</span>. Choose another matrix or set its entries $a$, $b$, $c$: the surface is a bowl when both eigenvalues are positive, a dome when both are negative, a saddle when their signs differ and a trough when one of them is zero, and the curve’s highest and lowest points stay at the largest and smallest eigenvalues, above the eigenvectors drawn in the floor.</span></div>
+</figure>
+<div class="exercises" data-place="motivating-question"></div>
+<p id="eigenvalues-determine">This activity demonstrates how <span data-concept="extreme-values-of-a-quadratic-form">the eigenvalues of $\kA$ determine the maximum and minimum values of the quadratic form $q_A(\kvecu)$</span> when evaluated on <span data-concept="unit-vector">unit vectors</span> and how the associated <span data-concept="eigenvector">eigenvectors</span> determine the directions in which the maximum and minimum values occur. Let’s look at another example so that this connection is clear.</p>
+<div class="example" id="example-7-2-4">
+<h3>Example 7.2.4</h3>
+<p>Consider the <span data-concept="symmetric-matrix">symmetric matrix</span> $\kA=\begin{bmatrix} -7 &amp; -6 \\ -6 &amp; 2 \\ \end{bmatrix}$. Because $\kA$ is symmetric, we know that it <span data-concept="orthogonally-diagonalizable-matrix">can be orthogonally diagonalized</span>. In fact, we have $\kA=\kQ \kD \kQT$ where</p>
+$$ \kD = \begin{bmatrix} 5 &amp; 0 \\ 0 &amp; -10 \\ \end{bmatrix},\hspace{24pt} \kQ = \begin{bmatrix} 1/\sqrt{5} &amp; 2/\sqrt{5} \\ -2/\sqrt{5} &amp; 1/\sqrt{5} \\ \end{bmatrix}\text{.} $$
+<p>From this diagonalization, we know that $\klambdaone=5$ is the largest <span data-concept="eigenvalue">eigenvalue</span> of $\kA$ with associated <span data-concept="eigenvector">eigenvector</span> $\kvecuone = \left[\begin{array}{r}1/\sqrt{5} \\ -2/\sqrt{5} \end{array}\right]$ and that $\klambdatwo = -10$ is the smallest eigenvalue with associated eigenvector $\kvecutwo = \left[\begin{array}{r}2/\sqrt{5} \\ 1/\sqrt{5} \end{array}\right]$.</p>
+<p>Let’s first study the quadratic form $q_D(\kvecu) = 5u_1^2 - 10u_2^2$ because the absence of the cross-term makes it comparatively simple. Remembering that $\kvecu$ is a <span data-concept="unit-vector">unit vector</span>, we have $u_1^2+u_2^2=1$, which means that $u_1^2 = 1-u_2^2$. Therefore,</p>
+$$ q_D(\kvecu) = 5u_1^2 - 10u_2^2 = 5(1-u_2^2)-10u_2^2 = 5 - 15u_2^2\text{.} $$
+<p>This tells us that $q_D(\kvecu)$ has a maximum value of $5$, which occurs when $u_2=0$ or in the direction $\left[\begin{array}{r}1 \\ 0 \end{array}\right]$.</p>
+<p>In the same way, rewriting $u_2^2 = 1-u_1^2$ allows us to conclude that the minimum value of $q_D(\kvecu)$ is $-10$, which occurs in the direction $\left[\begin{array}{r}0 \\ 1 \end{array}\right]$.</p>
+<p>Let’s now return to the matrix $\kA$ whose quadratic form $q_A$ is related to $q_D$ because $\kA = \kQ \kD \kQT$. In particular, we have</p>
+$$ q_A(\kvecu) = \kvecu\cdot(\kA\kvecu) = \kvecu\cdot(\kQ \kD \kQT\kvecu) = (\kQT\kvecu)\cdot(\kD \kQT\kvecu) = \kvecv\cdot(\kD\kvecv) = q_D(\kvecv)\text{.} $$
+<p>In other words, we have $q_A(\kvecu) = q_D(\kvecv)$ where $\kvecv=\kQT\kvecu$. This is quite useful because it allows us to relate the values of $q_A$ to those of $q_D$, which we already understand quite well.</p>
+<p>Now it turns out that $\kvecv$ is also a unit vector because</p>
+$$ |\kvecv|^2 = \kvecv\cdot\kvecv = (\kQT\kvecu)\cdot(\kQT\kvecu) = \kvecu\cdot(\kQ \kQT\kvecu) = \kvecu\cdot\kvecu = |\kvecu|^2 = 1\text. $$
+<p>Therefore, the maximum value of $q_A(\kvecu)$ is the same as $q_D(\kvecv)$, which we know to be $5$ and which occurs in the direction $\kvecv=\left[\begin{array}{r}1 \\ 0 \end{array}\right]$. This means that the maximum value of $q_A(\kvecu)$ is also $5$ and that this occurs in the direction $\kvecu = \kQ\kvecv = \kQ\left[\begin{array}{r}1 \\ 0 \end{array}\right] = \left[\begin{array}{r}1/\sqrt{5} \\ -2/\sqrt{5} \end{array}\right]$. We now know that <span data-concept="extreme-values-of-a-quadratic-form">the maximum value of $q_A(\kvecu)$ is the largest eigenvalue $\klambdaone=5$ and that this maximum value occurs in the direction of an associated eigenvector</span>.</p>
+<p>In the same way, we see that the minimum value of $q_A(\kvecu)$ is the smallest eigenvalue $\klambdatwo=-10$ and that this minimum occurs in the direction of $\kvecu=\kQ\left[\begin{array}{r}0 \\ 1 \end{array}\right] = \left[\begin{array}{r}2/\sqrt{5} \\ 1/\sqrt{5} \end{array}\right]$, an associated eigenvector.</p>
+</div>
+<p id="more-generally">More generally, we have</p>
+<div class="note" id="prop-quadform-extrema">
+<div class="eyebrow">Proposition 7.2.5</div>
+<p>Suppose that $\kA$ is a <span data-concept="symmetric-matrix">symmetric matrix</span>, that we list its <span data-concept="eigenvalue">eigenvalues</span> in decreasing order $\klambdaone \geq \klambdatwo \geq \ldots \geq \klambdam$, and that $\kvecuone,\kvecutwo,\ldots,\kvecum$ is a basis of associated <span data-concept="eigenvector">eigenvectors</span>. <span data-concept="extreme-values-of-a-quadratic-form">The maximum value of $q_A(\kvecu)$ among all unit vectors $\kvecu$ is $\klambdaone$, which occurs in the direction $\kvecuone$. Similarly, the minimum value of $q_A(\kvecu)$ is $\klambdam$, which occurs in the direction $\kvecum$</span>.</p>
+</div>
+<div class="example" id="example-7-2-6">
+<h3>Example 7.2.6</h3>
+<p>Suppose that $\kA$ is the <span data-concept="symmetric-matrix">symmetric matrix</span> $\kA=\begin{bmatrix} 0 &amp; 6 &amp; 3 \\ 6 &amp; 3 &amp; 6 \\ 0 &amp; 6 &amp; 6 \\ \end{bmatrix}$<sup class="fn" data-note="text-ex726-a"></sup>, which may be <span data-concept="orthogonally-diagonalizable-matrix">orthogonally diagonalized</span> as $\kA=\kQ \kD \kQT$ where</p>
+$$ \kD = \begin{bmatrix} 12 &amp; 0 &amp; 0 \\ 0 &amp; 3 &amp; 0 \\ 0 &amp; 0 &amp; -6 \\ \end{bmatrix}, \hspace{24pt} \kQ = \begin{bmatrix} 1/3 &amp; 2/3 &amp; 2/3 \\ 2/3 &amp; 1/3 &amp; -2/3 \\ 2/3 &amp; -2/3 &amp; 1/3 \\ \end{bmatrix}\text{.} $$
+<p>We see that <span data-concept="extreme-values-of-a-quadratic-form">the maximum value of $q_A(\kvecu)$ is 12, which occurs in the direction $\left[\begin{array}{r}1/3 \\ 2/3 \\ 2/3 \end{array}\right]$, and the minimum value is -6, which occurs in the direction $\left[\begin{array}{r}2/3 \\ -2/3 \\ 1/3 \end{array}\right]$</span>.</p>
+</div>
+<div class="example" id="example-7-2-7">
+<h3>Example 7.2.7</h3>
+<p>Suppose we have the matrix of <span data-concept="demeaned-vector">demeaned data points</span> $\kA = \begin{bmatrix} 2 &amp; 1 &amp; -3 \\ 1 &amp; 2 &amp; -3 \\ \end{bmatrix}$ that we considered in <a href="#7.2-ex-a1">Preview Activity 7.2.1</a>. The data points are shown in Figure 7.2.8.</p>
+<figure class="sim" id="sim-variance-three-points" data-figure="7.2.8 + 7.2.9" data-original="/media/ch07/quad-variance-data.svg,/media/ch07/quad-variance-a.svg,/media/ch07/quad-variance-b.svg" data-original-caption="(Figure 7.2.8) The set of demeaned data points from Preview Activity 7.2.1. (Figure 7.2.9) The demeaned data from Preview Activity 7.2.1 is shown projected onto the lines of maximal and minimal variance.">
+  <div class="sim-head"><span class="eyebrow">Figure 7.2.8 + 7.2.9</span><span>The three <span data-concept="demeaned-vector">demeaned data points</span> $(2, 1)$, $(1, 2)$ and $(-3, -3)$ and the line through the origin in the direction of a <span data-concept="unit-vector">unit vector</span> $\kvecu$, with each point projected onto the line. Turn the line: <span data-concept="variance-in-a-direction">the variance $\kVu$</span>, the mean of the squared projections, is the quadratic form $q_C(\kvecu) = \kvecu\cdot(\kC\kvecu)$ of <span data-concept="covariance-matrix">the covariance matrix</span>, and its graph beside the plane peaks at $9$ on the line at $45^\circ$ and bottoms out at $1/3$ on the line at $135^\circ$, the directions of the <span data-concept="eigenvector">eigenvectors</span> of $\kC$. Whatever the direction, the variance along the line and the variance along the line perpendicular to it <span data-concept="additivity-of-variance">add up to the total variance</span> $\kV = 28/3$.</span></div>
+</figure>
+<p>Constructing the <span data-concept="covariance-matrix">covariance matrix</span> $\kC=\frac13~\kA \kA^T$ gives $\kC=\begin{bmatrix} 14/3 &amp; 13/3 \\ 13/3 &amp; 14/3 \end{bmatrix}$, which has <span data-concept="eigenvalue">eigenvalues</span> $\klambdaone = 9$, with associated <span data-concept="eigenvector">eigenvector</span> $\left[\begin{array}{r}1/\sqrt{2} \\ 1/\sqrt{2} \end{array}\right]$, and $\klambdatwo=1/3$, with associated eigenvector $\left[\begin{array}{r}-1/\sqrt{2} \\ 1/\sqrt{2} \end{array}\right]$.</p>
+<p>Remember that <span data-concept="variance-from-the-covariance-matrix">the variance in a direction $\kvecu$ is $\kVu = \kvecu\cdot(\kC\kvecu) = q_C(\kvecu)$</span>. Therefore, <span data-concept="extreme-values-of-a-quadratic-form">the variance attains a maximum value of 9 in the direction $\left[\begin{array}{r}1/\sqrt{2} \\ 1/\sqrt{2} \end{array}\right]$ and a minimum value of 1/3 in the direction $\left[\begin{array}{r}-1/\sqrt{2} \\ 1/\sqrt{2} \end{array}\right]$</span>. Figure 7.2.9 shows the data projected onto the lines defined by these vectors.</p>
+<p>Remember that <span data-concept="additivity-of-variance">variance is additive</span>, as stated in <a href="/understanding-linear-algebra/ch07/7.1/#prop-variance-additivity">Proposition 7.1.16</a>, which tells us that the <span data-concept="variance">total variance</span> is $\kV = 9 + 1/3 = 28/3$.</p>
+</div>
+<p id="another-observation">We’ve been focused on finding the directions in which a <span data-concept="quadratic-form">quadratic form</span> attains its maximum and minimum values, but there’s another important observation to make after this activity. Recall how we used the fact that a <span data-concept="spectral-theorem">symmetric matrix is orthogonally diagonalizable</span>: if $\kA=\kQ \kD \kQT$, then $q_A(\kvecu) = q_D(\kvecv)$ where $\kvecv = \kQT\kvecu$.</p>
+<p id="change-of-coordinates">More generally, if we define $\kvecy = \kQT\kvecx$, we have</p>
+<figure class="dv" id="drv-principal-axes"></figure>
+<p id="principal-axes-named">In other words, after a change of coordinates, the quadratic form $q_A$ can be written without cross terms. This is known as the <span data-concept="principal-axes-theorem">Principal Axes Theorem</span>.</p>
+<div class="note" id="theorem-7-2-10">
+<div class="eyebrow">Theorem 7.2.10 · Principal Axes Theorem</div>
+<p><span data-concept="principal-axes-theorem">If $\kA$ is a symmetric $m\times m$ matrix with eigenvalues $\klambdaone,\klambdatwo,\ldots,\klambdam$, then the quadratic form $q_A$ can be written, after an orthogonal change of coordinates $\kvecy=\kQT\kvecx$, as</span></p>
+$$ q_A(\kvecx) = \klambdaone y_1^2 + \klambdatwo y_2^2 + \ldots + \klambdam y_m^2. $$
+</div>
+<figure class="sim" id="sim-quadratic-form">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>The level curves of $q_A$ for $\kA = \begin{bmatrix} 1 &amp; 2 \\ 2 &amp; 1 \end{bmatrix}$, on each of which $q_A(\kvecx)$ takes one value, and the unit circle with a <span data-concept="unit-vector">unit vector</span> $\kvecu$ on it. The <span data-concept="eigenvector">eigenvectors</span> $\kvecuone$ and $\kvecutwo$ are the curves’ axes of symmetry, the principal axes. <span data-concept="extreme-values-of-a-quadratic-form">The curve $q_A(\kvecx) = \klambdaone$ touches the unit circle at $\pm\kvecuone$ and the curve $q_A(\kvecx) = \klambdatwo$ at $\pm\kvecutwo$</span>, so as $\kvecu$ is dragged round the circle, $q_A(\kvecu)$, graphed beside it, runs between $\klambdatwo$ and $\klambdaone$. Switch to the coordinates $\kvecy = \kQT\kvecx$ and the plane turns until the principal axes lie along the coordinate axes, where <span data-concept="principal-axes-theorem">$q_A(\kvecx) = \klambdaone y_1^2 + \klambdatwo y_2^2$ has no cross term</span>. Change the entries of $\kA$: the level curves are ellipses when $\kA$ is <span data-concept="positive-definite-matrix">positive or negative definite</span>, hyperbolas when it is indefinite, and pairs of parallel lines when an eigenvalue is zero.</span></div>
+</figure>
+<p id="next-section">We will put this to use in the next section.</p>
+</section>
+
+<section id="definite-symmetric-matrices">
+<h2>Definite symmetric matrices</h2>
+<p id="other-contexts">While our questions about variance provide some motivation for exploring <span data-concept="quadratic-form">quadratic forms</span>, these functions appear in a variety of other contexts so it’s worth spending some more time with them. For example, quadratic forms appear in multivariable calculus when describing the behavior of a function of several variables near a <span data-concept="critical-point-of-a-function-of-two-variables">critical point</span> and in physics when describing the kinetic energy of a rigid body.</p>
+<p id="following-definition">The following definition will be important in this section.</p>
+<div class="note" id="definition-7-2-11">
+<div class="eyebrow">Definition 7.2.11</div>
+<p>A <span data-concept="symmetric-matrix">symmetric matrix</span> $\kA$ is called <em><span data-concept="positive-definite-matrix">positive definite</span></em> if its associated quadratic form satisfies $q_A(\kvecx) \gt 0$ for any nonzero vector $\kvecx$. If $q_A(\kvecx) \geq 0$ for all nonzero vectors $\kvecx$, we say that $\kA$ is <em><span data-concept="positive-definite-matrix">positive semidefinite</span></em>.</p>
+<p>Likewise, we say that $\kA$ is <em><span data-concept="positive-definite-matrix">negative definite</span></em> if $q_A(\kvecx) \lt 0$ for all nonzero vectors $\kvecx$.</p>
+<p>Finally, $\kA$ is called <em><span data-concept="positive-definite-matrix">indefinite</span></em> if $q_A(\kvecx) \gt 0$ for some $\kvecx$ and $q_A(\kvecx) \lt 0$ for others.</p>
+</div>
+<div class="exercises" data-place="definition-7-2-11"></div>
+<p id="diagonal-definiteness">As seen in this activity, it is straightforward to determine the definiteness of a <span data-concept="diagonal-matrix">diagonal matrix</span>. For instance, if $\kD=\begin{bmatrix} 7 &amp; 0 \\ 0 &amp; 5 \end{bmatrix}$, then</p>
+$$ q_D(\kvecx) = 7x_1^2 + 5x_2^2. $$
+<p>This shows that $q_D(\kvecx) \gt 0$ when either $x_1$ or $x_2$ is not zero so we conclude that $\kD$ is <span data-concept="positive-definite-matrix">positive definite</span>. In the same way, we see that $\kD$ is <span data-concept="positive-definite-matrix">positive semidefinite</span> if all the diagonal entries are nonnegative.</p>
+<p id="general-definiteness">Understanding this behavior for diagonal matrices enables us to understand more general <span data-concept="symmetric-matrix">symmetric matrices</span>. As we saw previously, <span data-concept="principal-axes-theorem">the quadratic form for a symmetric matrix $\kA=\kQ \kD \kQT$ agrees with the quadratic form for the diagonal matrix $\kD$ after a change of coordinates</span>. In particular,</p>
+$$ q_A(\kvecx) = q_D(\kvecy) $$
+<p>where $\kvecy=\kQT\kvecx$. Now the diagonal entries of $\kD$ are the <span data-concept="eigenvalue">eigenvalues</span> of $\kA$ from which we conclude that $q_A(\kvecx) \gt 0$ if all the eigenvalues of $\kA$ are positive. Likewise, $q_A(\kvecx)\geq 0$ if all the eigenvalues are nonnegative.</p>
+<div class="note" id="prop-definite-matrices">
+<div class="eyebrow">Proposition 7.2.12</div>
+<p><span data-concept="definiteness-from-eigenvalues">A symmetric matrix is positive definite if all its eigenvalues are positive. It is positive semidefinite if all its eigenvalues are nonnegative.</span></p>
+<p><span data-concept="definiteness-from-eigenvalues">Likewise, a symmetric matrix is indefinite if some eigenvalues are positive and some are negative.</span></p>
+</div>
+<p id="calculus-application">We will now apply what we’ve learned about <span data-concept="quadratic-form">quadratic forms</span> to study the nature of <span data-concept="critical-point-of-a-function-of-two-variables">critical points</span> in multivariable calculus. The rest of this section assumes that the reader is familiar with ideas from multivariable calculus and can be skipped by others.</p>
+<p id="partial-derivatives">First, suppose that $f(x,y)$ is a differentiable function. We will use $f_x$ and $f_y$ to denote the <a href="/calculus/ch14/14.3/">partial derivatives</a> of $f$ with respect to $x$ and $y$. Similarly, $f_{xx}$, $f_{xy}$, $f_{yx}$ and $f_{yy}$ denote the <a href="/calculus/ch14/14.3/#14.3-second-partials">second partial derivatives</a>. You may recall that the mixed partials, $f_{xy}$ and $f_{yx}$ are equal under a mild assumption on the function $f$. A typical question in calculus is to determine where this function has its maximum and minimum values.</p>
+<p id="critical-point">Any local maximum or minimum of $f$ appears at a <a href="/calculus/ch14/14.7/#14.7-critical-points"><span data-concept="critical-point-of-a-function-of-two-variables">critical point</span></a> $(x_0,y_0)$ where</p>
+$$ f_x(x_0,y_0) = 0,\hspace{24pt} f_y(x_0,y_0) = 0. $$
+<p id="quadratic-approximation">Near a <span data-concept="critical-point-of-a-function-of-two-variables">critical point</span>, <span data-concept="quadratic-approximation-near-a-critical-point">the quadratic approximation of $f$</span> tells us that</p>
+$$ \begin{aligned} f(x,y)\approx f(x_0,y_0) &amp; + \frac12 f_{xx}(x_0,y_0)(x-x_0)^2 \\ &amp; + f_{xy}(x_0,y_0)(x-x_0)(y-y_0) + \frac12 f_{yy}(x_0,y_0)(y-y_0)^2. \end{aligned} $$
+<div class="exercises" data-place="quadratic-approximation"></div>
+<p id="approximation-by-form">Near a <span data-concept="critical-point-of-a-function-of-two-variables">critical point</span> $(x_0,y_0)$ of a function $f(x,y)$, <span data-concept="quadratic-approximation-near-a-critical-point">we can write</span></p>
+$$ f(x,y) \approx f(x_0, y_0) + q_A(\kvecw) $$
+<p>where $\kvecw = \left[\begin{array}{r}x-x_0 \\ y-y_0 \end{array}\right]$ and $\kA = \frac12 \begin{bmatrix} f_{xx}(x_0,y_0) &amp; f_{xy}(x_0,y_0) \\ f_{yx}(x_0,y_0) &amp; f_{yy}(x_0,y_0) \end{bmatrix}$. If $\kA$ is <span data-concept="positive-definite-matrix">positive definite</span>, then $q_A(\kvecw) \gt 0$, which tells us that</p>
+$$ f(x,y) \approx f(x_0,y_0) + q_A(\kvecw) \gt f(x_0,y_0) $$
+<p>and that the critical point $(x_0,y_0)$ is therefore a local minimum.</p>
+<p id="hessian">The matrix</p>
+$$ \kH = \begin{bmatrix} f_{xx}(x_0,y_0) &amp; f_{xy}(x_0,y_0) \\ f_{yx}(x_0,y_0) &amp; f_{yy}(x_0,y_0) \end{bmatrix} $$
+<p>is called the <em><span data-concept="hessian-matrix">Hessian</span></em> of $f$, and we see now that the <span data-concept="eigenvalue">eigenvalues</span> of this <span data-concept="symmetric-matrix">symmetric matrix</span> determine the nature of the critical point $(x_0,y_0)$. In particular, if the eigenvalues are both positive, then $q_H$ is <span data-concept="positive-definite-matrix">positive definite</span>, and the critical point is a local minimum.</p>
+<p id="leads-to-test">This observation leads to the <span data-concept="second-derivative-test-by-eigenvalues">Second Derivative Test</span> for multivariable functions.</p>
+<div class="note" id="proposition-7-2-13">
+<div class="eyebrow">Proposition 7.2.13 · Second Derivative Test</div>
+<p><span data-concept="second-derivative-test-by-eigenvalues">The nature of a critical point of a multivariable function is determined by the Hessian $\kH$ of the function at the critical point</span>. If</p>
+<ul>
+<li>$\kH$ has all positive eigenvalues, the critical point is a local minimum.</li>
+<li>$\kH$ has all negative eigenvalues, the critical point is a local maximum.</li>
+<li>$\kH$ has both positive and negative eigenvalues, the critical point is neither a local maximum nor minimum.</li>
+</ul>
+</div>
+<p id="calculus-texts">Most multivariable calculus texts assume that the reader is not familiar with linear algebra and so write <a href="/calculus/ch14/14.7/#14.7-second-derivative-test"><span data-concept="second-derivative-test-for-functions-of-two-variables">the second derivative test for functions of two variables</span></a> in terms of $D=\det(\kH)$. If</p>
+<ul>
+<li>$D \gt 0$ and $f_{xx}(x_0,y_0) \gt 0$, then $(x_0, y_0)$ is a local minimum.</li>
+<li>$D \gt 0$ and $f_{xx}(x_0,y_0) \lt 0$, then $(x_0, y_0)$ is a local maximum.</li>
+<li>$D \lt 0$, then $(x_0,y_0)$ is neither a local maximum nor minimum.</li>
+</ul>
+<p id="algebraic-criteria">The conditions in this version of <span data-concept="second-derivative-test-for-functions-of-two-variables">the second derivative test</span> are simply algebraic criteria that tell us about <span data-concept="definiteness-from-eigenvalues">the definiteness of the Hessian matrix $\kH$</span>.</p>
+</section>
