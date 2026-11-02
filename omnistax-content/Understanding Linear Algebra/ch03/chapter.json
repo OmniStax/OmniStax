@@ -331,7 +331,8 @@
       "sym": "x_vec",
       "meaning": "a vector of data: a colour as the vector [R, G, B] in ℝ³, or the eight luminance values of one column of an 8 × 8 block of pixels as a vector in ℝ⁸, whose Fourier coefficients are {x}_𝓑",
       "section": "3.3",
-      "redefines": true
+      "redefines": true,
+      "type": "vector"
     },
     {
       "sym": "v_i_vec",
