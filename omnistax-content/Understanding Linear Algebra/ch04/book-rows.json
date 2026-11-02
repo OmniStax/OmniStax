@@ -138,7 +138,8 @@
     {
      "id": "eq-eigenvector-condition",
      "latex": "A\\mathbf{v} = \\lambda \\mathbf{v}",
-     "condition": "v nonzero"
+     "condition": "v nonzero",
+     "anchor": "4.1-definition-eigenvectors"
     }
    ]
   },
@@ -179,11 +180,13 @@
     {
      "id": "eq-matrix-times-eigenvector-combination",
      "latex": "A(c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2) = 3c_1{\\mathbf v}_1 - c_2{\\mathbf v}_2",
-     "condition": "Av₁ = 3v₁ and Av₂ = −v₂"
+     "condition": "Av₁ = 3v₁ and Av₂ = −v₂",
+     "anchor": "4.1-linear-combination-of-eigenvectors"
     },
     {
      "id": "eq-eigenvector-combination-example",
-     "latex": "A{\\mathbf x} = A({\\mathbf v}_1 - 2{\\mathbf v}_2) = 3{\\mathbf v}_1 + 2{\\mathbf v}_2"
+     "latex": "A{\\mathbf x} = A({\\mathbf v}_1 - 2{\\mathbf v}_2) = 3{\\mathbf v}_1 + 2{\\mathbf v}_2",
+     "anchor": "4.1-x-example"
     }
    ]
   },
@@ -210,15 +213,18 @@
    "forms": [
     {
      "id": "eq-rental-car-state",
-     "latex": "{\\mathbf x}_k = 250{\\mathbf v}_1 - (0.2)^k250{\\mathbf v}_2"
+     "latex": "{\\mathbf x}_k = 250{\\mathbf v}_1 - (0.2)^k250{\\mathbf v}_2",
+     "anchor": "4.1-pattern"
     },
     {
      "id": "eq-rental-car-system",
-     "latex": "{\\mathbf x}_{k+1} = \\left[\\begin{array}{rr} 0.8 & 0.6 \\\\ 0.2 & 0.4 \\\\ \\end{array}\\right] {\\mathbf x}_k"
+     "latex": "{\\mathbf x}_{k+1} = \\left[\\begin{array}{rr} 0.8 & 0.6 \\\\ 0.2 & 0.4 \\\\ \\end{array}\\right] {\\mathbf x}_k",
+     "anchor": "4.1-sim-rental-cars"
     },
     {
      "id": "eq-rental-car-initial-combination",
-     "latex": "{\\mathbf x}_0 = 250{\\mathbf v}_1 -250{\\mathbf v}_2"
+     "latex": "{\\mathbf x}_0 = 250{\\mathbf v}_1 -250{\\mathbf v}_2",
+     "anchor": "4.1-initial-combination"
     }
    ]
   },
@@ -234,11 +240,13 @@
    "forms": [
     {
      "id": "eq-characteristic-equation",
-     "latex": "\\det(A-\\lambda I) = 0"
+     "latex": "\\det(A-\\lambda I) = 0",
+     "anchor": "4.2-characteristic-equation"
     },
     {
      "id": "eq-eigenvector-homogeneous-equation",
-     "latex": "(A-\\lambda I){\\mathbf v} = {\\mathbf 0}"
+     "latex": "(A-\\lambda I){\\mathbf v} = {\\mathbf 0}",
+     "anchor": "4.2-homogeneous-territory"
     }
    ]
   },
@@ -254,7 +262,8 @@
    "forms": [
     {
      "id": "eq-characteristic-polynomial-factored",
-     "latex": "\\det(A-\\lambda I) = (\\lambda_1 - \\lambda)(\\lambda_2-\\lambda)\\ldots(\\lambda_n-\\lambda) = 0"
+     "latex": "\\det(A-\\lambda I) = (\\lambda_1 - \\lambda)(\\lambda_2-\\lambda)\\ldots(\\lambda_n-\\lambda) = 0",
+     "anchor": "4.2-degree-n-roots"
     }
    ]
   },
@@ -267,7 +276,8 @@
    "forms": [
     {
      "id": "eq-characteristic-equation-triangular",
-     "latex": "\\det \\left[\\begin{array}{rrr} 4-\\lambda & 2 & 3 \\\\ 0 & -2-\\lambda & -1 \\\\ 0 & 0 & 3-\\lambda \\\\ \\end{array}\\right] = (4-\\lambda)(-2-\\lambda)(3-\\lambda) = 0"
+     "latex": "\\det \\left[\\begin{array}{rrr} 4-\\lambda & 2 & 3 \\\\ 0 & -2-\\lambda & -1 \\\\ 0 & 0 & 3-\\lambda \\\\ \\end{array}\\right] = (4-\\lambda)(-2-\\lambda)(3-\\lambda) = 0",
+     "anchor": "4.2-example-4-2-3"
     }
    ]
   },
@@ -282,7 +292,8 @@
     {
      "id": "eq-rotation-characteristic-equation",
      "latex": "\\lambda^2 +1 = (i-\\lambda)(-i-\\lambda) = 0",
-     "condition": "A = [0 −1; 1 0]"
+     "condition": "A = [0 −1; 1 0]",
+     "anchor": "4.2-root-types"
     }
    ]
   },
@@ -301,7 +312,8 @@
    "forms": [
     {
      "id": "eq-eigenspace",
-     "latex": "E_\\lambda = \\text{Nul}(A-\\lambda I)"
+     "latex": "E_\\lambda = \\text{Nul}(A-\\lambda I)",
+     "anchor": "4.2-eigenspace-subspace"
     }
    ]
   },
@@ -315,7 +327,8 @@
     {
      "id": "eq-eigenspace-row-reduction",
      "latex": "A -4I = \\begin{bmatrix} -8 & 4 \\\\ -12 & 6 \\\\ \\end{bmatrix} \\sim \\begin{bmatrix} 1 & -1/2 \\\\ 0 & 0 \\\\ \\end{bmatrix}",
-     "condition": "A = [−4 4; −12 10], λ = 4"
+     "condition": "A = [−4 4; −12 10], λ = 4",
+     "anchor": "4.2-example-4-2-4"
     }
    ]
   },
@@ -339,7 +352,8 @@
    "forms": [
     {
      "id": "eq-characteristic-equation-with-multiplicities",
-     "latex": "(\\lambda_1-\\lambda)^{m_1} (\\lambda_2-\\lambda)^{m_2} \\ldots (\\lambda_p-\\lambda)^{m_p} = 0"
+     "latex": "(\\lambda_1-\\lambda)^{m_1} (\\lambda_2-\\lambda)^{m_2} \\ldots (\\lambda_p-\\lambda)^{m_p} = 0",
+     "anchor": "4.2-always-write"
     }
    ]
   },
@@ -353,7 +367,8 @@
     {
      "id": "eq-eigenspace-dimension-bound",
      "latex": "1 \\leq \\dim~E_\\lambda \\leq m",
-     "condition": "λ a real eigenvalue of multiplicity m"
+     "condition": "λ a real eigenvalue of multiplicity m",
+     "anchor": "4.2-prop-eigen-basis"
     }
    ]
   },
@@ -367,7 +382,8 @@
     {
      "id": "eq-distinct-eigenvalues",
      "latex": "(\\lambda_1-\\lambda) (\\lambda_2-\\lambda) \\ldots (\\lambda_n-\\lambda) = 0",
-     "condition": "n distinct real eigenvalues"
+     "condition": "n distinct real eigenvalues",
+     "anchor": "4.2-distinct-eigenvalues"
     }
    ]
   },
@@ -390,19 +406,23 @@
    "forms": [
     {
      "id": "eq-diagonalization",
-     "latex": "A=PDP^{-1}"
+     "latex": "A=PDP^{-1}",
+     "anchor": "4.3-diagonalization-general"
     },
     {
      "id": "eq-diagonalization-ap-equals-pd",
-     "latex": "AP = PD"
+     "latex": "AP = PD",
+     "anchor": "4.3-diagonalization-general"
     },
     {
      "id": "eq-eigenvector-matrix",
-     "latex": "P = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 & \\cdots & {\\mathbf v}_n \\end{bmatrix}"
+     "latex": "P = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 & \\cdots & {\\mathbf v}_n \\end{bmatrix}",
+     "anchor": "4.3-diagonalization-general"
     },
     {
      "id": "eq-eigenvalue-diagonal-matrix",
-     "latex": "D = \\left[\\begin{array}{cccc} \\lambda_1 & 0 & \\ldots & 0 \\\\ 0 & \\lambda_2 & \\ldots & 0 \\\\ \\vdots & \\vdots & \\ddots & 0 \\\\ 0 & 0 & \\ldots & \\lambda_n \\\\ \\end{array}\\right]"
+     "latex": "D = \\left[\\begin{array}{cccc} \\lambda_1 & 0 & \\ldots & 0 \\\\ 0 & \\lambda_2 & \\ldots & 0 \\\\ \\vdots & \\vdots & \\ddots & 0 \\\\ 0 & 0 & \\ldots & \\lambda_n \\\\ \\end{array}\\right]",
+     "anchor": "4.3-diagonalization-general"
     }
    ]
   },
@@ -420,7 +440,8 @@
     {
      "id": "eq-diagonalizable-matrix",
      "latex": "A = PDP^{-1}",
-     "condition": "D diagonal, P invertible"
+     "condition": "D diagonal, P invertible",
+     "anchor": "4.3-definition-4-3-4"
     }
    ]
   },
@@ -448,22 +469,26 @@
     {
      "id": "eq-powers-of-a-diagonalizable-matrix",
      "latex": "A^k = PD^kP^{-1}",
-     "condition": "A = PDP⁻¹"
+     "condition": "A = PDP⁻¹",
+     "anchor": "4.3-prop-powers-diag"
     },
     {
      "id": "eq-inverse-of-a-diagonalizable-matrix",
      "latex": "A^{-1} = PD^{-1}P^{-1}",
-     "condition": "A = PDP⁻¹ invertible"
+     "condition": "A = PDP⁻¹ invertible",
+     "anchor": "4.3-prop-powers-diag"
     },
     {
      "id": "eq-power-of-a-diagonal-matrix",
      "latex": "D^k = \\begin{bmatrix} 1^k & 0 \\\\ 0 & 0.2^k \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 0.2^k \\end{bmatrix}",
-     "condition": "D = [1 0; 0 0.2]"
+     "condition": "D = [1 0; 0 0.2]",
+     "anchor": "4.3-example-4-3-10"
     },
     {
      "id": "eq-limit-of-powers-rental-car",
      "latex": "A^k = PD^kP^{-1} \\approx P\\begin{bmatrix} 1 & 0 \\\\ 0 & 0 \\\\ \\end{bmatrix}P^{-1} = \\begin{bmatrix} \\frac 34 & \\frac 34 \\\\ \\frac 14 & \\frac 14 \\end{bmatrix}",
-     "condition": "k very large"
+     "condition": "k very large",
+     "anchor": "4.3-example-4-3-10"
     }
    ]
   },
@@ -481,7 +506,8 @@
     {
      "id": "eq-similar-matrices",
      "latex": "A = PBP^{-1}",
-     "condition": "P invertible"
+     "condition": "P invertible",
+     "anchor": "4.3-definition-4-3-11"
     },
     {
      "id": "eq-powers-of-similar-matrices",
@@ -502,7 +528,8 @@
     {
      "id": "eq-rotation-scaling-matrix",
      "latex": "C=\\begin{bmatrix} a & -b \\\\ b & a \\\\ \\end{bmatrix}",
-     "condition": "λ = a + bi"
+     "condition": "λ = a + bi",
+     "anchor": "4.3-similar-to-c"
     },
     {
      "id": "eq-rotation-scaling-factored",
@@ -510,11 +537,13 @@
     },
     {
      "id": "eq-polar-form-of-a-complex-eigenvalue",
-     "latex": "a = r\\cos\\theta, \\qquad b = r\\sin\\theta"
+     "latex": "a = r\\cos\\theta, \\qquad b = r\\sin\\theta",
+     "anchor": "4.3-polar-coordinates"
     },
     {
      "id": "eq-modulus-of-a-complex-eigenvalue",
-     "latex": "r=\\sqrt{a^2+b^2}"
+     "latex": "r=\\sqrt{a^2+b^2}",
+     "anchor": "4.3-polar-coordinates"
     }
    ]
   },
@@ -528,7 +557,8 @@
     {
      "id": "eq-complex-eigenvalue-similarity",
      "latex": "A= PCP^{-1}",
-     "condition": "A 2 × 2 with eigenvalue a + bi, C = [a −b; b a]"
+     "condition": "A 2 × 2 with eigenvalue a + bi, C = [a −b; b a]",
+     "anchor": "4.3-proposition-4-3-12"
     }
    ]
   },
@@ -541,7 +571,8 @@
    "forms": [
     {
      "id": "eq-two-species-system",
-     "latex": "{\\mathbf x}_{k+1} = A{\\mathbf x}_k = \\left[\\begin{array}{rr} 0.9 & 0.8 \\\\ 0.2 & 0.9 \\\\ \\end{array}\\right] {\\mathbf x}_k"
+     "latex": "{\\mathbf x}_{k+1} = A{\\mathbf x}_k = \\left[\\begin{array}{rr} 0.9 & 0.8 \\\\ 0.2 & 0.9 \\\\ \\end{array}\\right] {\\mathbf x}_k",
+     "anchor": "4.4-specific-example"
     },
     {
      "id": "eq-two-species-equations",
@@ -558,16 +589,19 @@
    "forms": [
     {
      "id": "eq-dynamics-in-eigenvector-coordinates",
-     "latex": "\\left\\{A{\\mathbf x}\\right\\}_{{\\cal B}} = D\\left\\{{\\mathbf x}\\right\\}_{{\\cal B}}"
+     "latex": "\\left\\{A{\\mathbf x}\\right\\}_{{\\cal B}} = D\\left\\{{\\mathbf x}\\right\\}_{{\\cal B}}",
+     "anchor": "4.4-more-generally"
     },
     {
      "id": "eq-state-in-eigenvector-coordinates",
      "latex": "\\left\\{{\\mathbf x}_k\\right\\}_{{\\cal B}} = \\left[\\begin{array}{c}1.3^k\\cdot2 \\\\ 0.5^k\\cdot1 \\end{array}\\right]",
-     "condition": "x₀ = 2v₁ + v₂, λ₁ = 1.3, λ₂ = 0.5"
+     "condition": "x₀ = 2v₁ + v₂, λ₁ = 1.3, λ₂ = 0.5",
+     "anchor": "4.4-in-the-same-way"
     },
     {
      "id": "eq-state-as-eigenvector-combination",
-     "latex": "{\\mathbf x}_k = 1.3^k\\cdot2{\\mathbf v}_1 + 0.5^k\\cdot1{\\mathbf v}_2"
+     "latex": "{\\mathbf x}_k = 1.3^k\\cdot2{\\mathbf v}_1 + 0.5^k\\cdot1{\\mathbf v}_2",
+     "anchor": "4.4-initial-populations"
     }
    ]
   },
@@ -585,7 +619,8 @@
    "forms": [
     {
      "id": "eq-trajectory",
-     "latex": "{\\mathbf x}_k=A^k{\\mathbf x}_0"
+     "latex": "{\\mathbf x}_k=A^k{\\mathbf x}_0",
+     "anchor": "4.4-classifying-intro"
     }
    ]
   },
@@ -701,7 +736,8 @@
    "forms": [
     {
      "id": "eq-rental-car-stochastic-matrix",
-     "latex": "A = \\left[\\begin{array}{rr} 0.8 & 0.4 \\\\ 0.2 & 0.6 \\\\ \\end{array}\\right]"
+     "latex": "A = \\left[\\begin{array}{rr} 0.8 & 0.4 \\\\ 0.2 & 0.6 \\\\ \\end{array}\\right]",
+     "anchor": "4.5-rental-car-system"
     }
    ]
   },
@@ -719,7 +755,8 @@
     {
      "id": "eq-markov-chain",
      "latex": "{\\mathbf x}_{k+1} = A {\\mathbf x}_k",
-     "condition": "A stochastic, x₀ a probability vector"
+     "condition": "A stochastic, x₀ a probability vector",
+     "anchor": "4.5-markov-chain"
     }
    ]
   },
@@ -741,7 +778,8 @@
     {
      "id": "eq-steady-state-vector",
      "latex": "A{\\mathbf q} = {\\mathbf q}",
-     "condition": "A stochastic, q a probability vector"
+     "condition": "A stochastic, q a probability vector",
+     "anchor": "4.5-definition-4-5-2"
     }
    ]
   },
@@ -755,7 +793,8 @@
     {
      "id": "eq-steady-state-from-a-basis-vector",
      "latex": "c{\\mathbf v} = \\left[\\begin{array}{r}c \\\\ 2c \\\\ 2c \\end{array}\\right]",
-     "condition": "v = [1, 2, 2] a basis of E₁, 5c = 1"
+     "condition": "v = [1, 2, 2] a basis of E₁, 5c = 1",
+     "anchor": "4.5-finding-q"
     }
    ]
   },
@@ -769,12 +808,14 @@
     {
      "id": "eq-stochastic-first-eigenvalue",
      "latex": "\\lambda_1=1",
-     "condition": "A stochastic"
+     "condition": "A stochastic",
+     "anchor": "4.5-eigenvalue-facts"
     },
     {
      "id": "eq-stochastic-other-eigenvalues",
      "latex": "|\\lambda_j| \\leq 1",
-     "condition": "j > 1"
+     "condition": "j > 1",
+     "anchor": "4.5-eigenvalue-facts"
     }
    ]
   },
@@ -788,7 +829,8 @@
     {
      "id": "eq-markov-convergence-condition",
      "latex": "|\\lambda_j|< 1",
-     "condition": "j > 1, λ₁ = 1 of multiplicity one"
+     "condition": "j > 1, λ₁ = 1 of multiplicity one",
+     "anchor": "4.5-convergence-condition"
     }
    ]
   },
@@ -814,7 +856,8 @@
     {
      "id": "eq-perron-frobenius-eigenvalues",
      "latex": "\\lambda_1=1,\\qquad |\\lambda_j| < 1 \\text{ for } j> 1",
-     "condition": "A a positive stochastic matrix"
+     "condition": "A a positive stochastic matrix",
+     "anchor": "4.5-theorem-perron"
     }
    ]
   },
@@ -895,15 +938,18 @@
    "forms": [
     {
      "id": "eq-modified-google-matrix",
-     "latex": "G' = \\alpha G +(1-\\alpha)H_n"
+     "latex": "G' = \\alpha G +(1-\\alpha)H_n",
+     "anchor": "4.5-uniform-jump"
     },
     {
      "id": "eq-modified-google-matrix-0-85",
-     "latex": "G' = 0.85 G + 0.15H_n"
+     "latex": "G' = 0.85 G + 0.15H_n",
+     "anchor": "4.5-alpha-value"
     },
     {
      "id": "eq-uniform-jump-matrix",
-     "latex": "H_n = \\left[\\begin{array}{rrrr} \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\end{array}\\right]"
+     "latex": "H_n = \\left[\\begin{array}{rrrr} \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\end{array}\\right]",
+     "anchor": "4.5-uniform-jump"
     }
    ]
   }

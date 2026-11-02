@@ -37,80 +37,93 @@
    "sym": "A",
    "concept": "matrix",
    "meaning": "a square n × n matrix whose eigenvectors and eigenvalues are sought, such as [1 2; 2 1]; the matrix of the rental-car system x_{k+1} = Ax_k",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-definition-eigenvectors"
   },
   {
    "sym": "v_vec",
    "concept": "eigenvector",
    "meaning": "an eigenvector of A, a nonzero vector with Av = λv for some scalar λ, so that v and Av lie on the same line",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-definition-eigenvectors"
   },
   {
    "sym": "w_vec",
    "concept": "eigenvector",
    "meaning": "a second eigenvector of A = [7 6; 6 −2], w = [−1, 2], with Aw = −5w",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-example-4-1-2"
   },
   {
    "sym": "lambda",
    "concept": "eigenvalue",
    "meaning": "the eigenvalue associated to an eigenvector v, the scalar λ with Av = λv; the scalar of a multiple λv of a vector",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-definition-eigenvectors"
   },
   {
    "sym": "lambda_1",
    "concept": "eigenvalue",
    "meaning": "the eigenvalue associated to the eigenvector v₁",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-eigenvalues-found"
   },
   {
    "sym": "lambda_2",
    "concept": "eigenvalue",
    "meaning": "the eigenvalue associated to the eigenvector v₂",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-eigenvalues-found"
   },
   {
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the first of two eigenvectors v₁, v₂ of a 2 × 2 matrix A, which form a basis of ℝ²; [1, 1] for A = [1 2; 2 1], [3, 1] for the rental-car matrix",
    "section": "4.1",
-   "ref": "v-1"
+   "ref": "v-1",
+   "anchor": "4.1-linear-combination-of-eigenvectors"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the second of two eigenvectors v₁, v₂ of a 2 × 2 matrix A; [−1, 1] for both A = [1 2; 2 1] and the rental-car matrix",
    "section": "4.1",
-   "ref": "v-2"
+   "ref": "v-2",
+   "anchor": "4.1-linear-combination-of-eigenvectors"
   },
   {
    "sym": "x_vec",
    "concept": "vector",
    "meaning": "a vector written as a linear combination of eigenvectors, x = v₁ − 2v₂, so that Ax = 3v₁ + 2v₂ is found by scaling each term",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-x-example"
   },
   {
    "sym": "x_k_vec",
    "concept": "state-vector",
    "meaning": "the state vector of a discrete dynamical system at time k; the vector x_k = [P_k, Q_k] of the number of cars at the two locations at the end of day k, carried to the next day by x_{k+1} = Ax_k",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-subsequent-days"
   },
   {
    "sym": "x_0_vec",
    "concept": "state-vector",
    "meaning": "the initial state of a discrete dynamical system; the vector x₀ = [1000, 0] of cars on Monday morning, written as the linear combination 250v₁ − 250v₂ of eigenvectors",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-initial-combination"
   },
   {
    "sym": "c_i",
    "meaning": "the weights c₁, c₂ of a linear combination c₁v₁ + c₂v₂ of eigenvectors, which A multiplies by the eigenvalues",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-linear-combination-of-eigenvectors"
   },
   {
    "sym": "D",
    "concept": "diagonal-matrix",
    "meaning": "the diagonal matrix [3 0; 0 −1], which stretches vectors horizontally by a factor of 3 and flips them vertically; the matrix A is equivalent to it when viewed in a basis of eigenvectors",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-diagonal-analogy"
   },
   {
    "sym": "A_k",
@@ -121,86 +134,101 @@
   {
    "sym": "k",
    "meaning": "the number of days elapsed, the index of the state vector x_k and the exponent of (0.2)ᵏ",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-pattern"
   },
   {
    "sym": "n",
    "meaning": "the number of rows and of columns of a square matrix, the measure of its size in counting the effort of row reduction",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-definition-eigenvectors"
   },
   {
    "sym": "P",
    "meaning": "the first of the two locations, P and Q, of the car rental company",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-sim-rental-cars"
   },
   {
    "sym": "Q",
    "meaning": "the second of the two locations, P and Q, of the car rental company",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-sim-rental-cars"
   },
   {
    "sym": "P_k",
    "meaning": "the number of cars at location P at the end of day k, the first component of x_k",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-sim-rental-cars"
   },
   {
    "sym": "Q_k",
    "meaning": "the number of cars at location Q at the end of day k, the second component of x_k",
-   "section": "4.1"
+   "section": "4.1",
+   "anchor": "4.1-sim-rental-cars"
   },
   {
    "sym": "A",
    "concept": "matrix",
    "meaning": "a square n × n matrix whose eigenvalues are the roots of its characteristic polynomial det(A − λI) and whose eigenvectors are the null space of A − λI",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-rewrite-intro"
   },
   {
    "sym": "v_vec",
    "concept": "eigenvector",
    "meaning": "an eigenvector of A, a nonzero solution of the homogeneous equation (A − λI)v = 0",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-rewrite-intro"
   },
   {
    "sym": "lambda",
    "concept": "eigenvalue",
    "meaning": "an eigenvalue of A, a solution of the characteristic equation det(A − λI) = 0; the variable of the characteristic polynomial",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-rewrite-intro"
   },
   {
    "sym": "lambda_j",
    "concept": "eigenvalue",
    "meaning": "the eigenvalues λ₁, λ₂, …, λₙ of an n × n matrix, the n roots of its characteristic polynomial, some possibly complex and some repeated; λ_j is the jth of them, with multiplicity m_j",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-degree-n-roots"
   },
   {
    "sym": "E_lambda",
    "concept": "eigenspace",
    "meaning": "the eigenspace of A associated to the eigenvalue λ, the subspace Nul(A − λI) formed by the eigenvectors associated to λ",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-eigenspace-subspace"
   },
   {
    "sym": "I",
    "concept": "identity-matrix",
    "meaning": "the identity matrix, whose product with any vector x is Ix = x",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-rewrite-intro"
   },
   {
    "sym": "det",
    "concept": "determinant",
    "meaning": "the determinant of the matrix A − λI, which is zero exactly when λ is an eigenvalue; as a function of λ, the characteristic polynomial",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-this-activity"
   },
   {
    "sym": "Nul",
    "concept": "kernel",
    "meaning": "the null space of a matrix; Nul(A − λI) is the eigenspace E_λ",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-eigenvectors-as-null-space"
   },
   {
    "sym": "dim",
    "concept": "dimension",
    "meaning": "the dimension of an eigenspace E_λ, at least 1 and at most the multiplicity of λ",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-prop-eigen-basis"
   },
   {
    "sym": "rank",
@@ -213,162 +241,188 @@
    "concept": "algebraic-multiplicity",
    "meaning": "the multiplicity of an eigenvalue λ, the number of times λ − λ′ appears as a factor of the characteristic polynomial; 1 ≤ dim E_λ ≤ m",
    "section": "4.2",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.2-prop-eigen-basis"
   },
   {
    "sym": "m_j",
    "concept": "algebraic-multiplicity",
    "meaning": "the multiplicities m₁, m₂, …, m_p of the eigenvalues λ₁, λ₂, …, λ_p in the characteristic equation (λ₁ − λ)^{m₁}(λ₂ − λ)^{m₂}…(λ_p − λ)^{m_p} = 0",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-always-write"
   },
   {
    "sym": "p",
    "meaning": "the number of distinct eigenvalues λ₁, λ₂, …, λ_p of a matrix",
    "section": "4.2",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.2-always-write"
   },
   {
    "sym": "n",
    "meaning": "the number of rows and of columns of a square matrix, which is the degree of its characteristic polynomial and the number of its eigenvalues counted with multiplicity",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-characteristic-polynomial"
   },
   {
    "sym": "i",
    "meaning": "the imaginary unit, i² = −1, in the complex eigenvalues λ = i and λ = −i of the 90° rotation",
    "section": "4.2",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.2-root-types"
   },
   {
    "sym": "B_cal",
    "concept": "basis",
    "meaning": "a basis of ℝⁿ consisting of eigenvectors of A, such as 𝓑 = {[1, 2], [2, 3]} for A = [−4 4; −12 10]",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-example-4-2-4"
   },
   {
    "sym": "x_vec",
    "concept": "vector",
    "meaning": "the vector multiplied by the matrix A, whose components are the weights of the linear combination Ax of the columns of A; a nonzero solution of the homogeneous equation Ax = 0",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-example-4-2-6"
   },
   {
    "sym": "v_i_vec",
    "concept": "eigenvector",
    "meaning": "a basis vector v_j chosen for each eigenspace E_{λ_j}; together, when the eigenvalues are real and distinct, a basis of ℝⁿ",
-   "section": "4.2"
+   "section": "4.2",
+   "anchor": "4.2-distinct-eigenvalues"
   },
   {
    "sym": "A",
    "concept": "matrix",
    "meaning": "a square n × n matrix diagonalized as A = PDP⁻¹ when it has a basis of eigenvectors, or similar to a rotation and scaling C when it has a complex eigenvalue",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-rental-car-powers"
   },
   {
    "sym": "P",
    "concept": "matrix",
    "meaning": "the invertible matrix P = [v₁ v₂ … vₙ] whose columns are a basis of eigenvectors of A, so that AP = PD and A = PDP⁻¹; expressed in the basis defined by its columns, A has the same effect as D",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-diagonalization-general"
   },
   {
    "sym": "P_inv",
    "concept": "matrix-inverse",
    "meaning": "the inverse of the matrix P of eigenvectors, the last factor of A = PDP⁻¹",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-diagonalization-general"
   },
   {
    "sym": "D",
    "concept": "diagonal-matrix",
    "meaning": "the diagonal matrix whose diagonal entries are the eigenvalues λ₁, λ₂, …, λₙ of A, with A = PDP⁻¹; its powers Dᵏ are found by raising the diagonal entries",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-first-example"
   },
   {
    "sym": "D_k",
    "concept": "diagonal-matrix",
    "meaning": "the kth power of the diagonal matrix D, whose diagonal entries are λ₁ᵏ, λ₂ᵏ, …, λₙᵏ, so that Aᵏ = PDᵏP⁻¹",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-prop-powers-diag"
   },
   {
    "sym": "A_k",
    "concept": "matrix",
    "meaning": "the kth power of the matrix A, which carries the initial state x₀ to the state after k steps; Aᵏ = PDᵏP⁻¹ when A = PDP⁻¹",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-rental-car-powers"
   },
   {
    "sym": "A_inv",
    "concept": "matrix-inverse",
    "meaning": "the inverse of the square matrix A; A⁻¹ = PD⁻¹P⁻¹ when A = PDP⁻¹ is invertible",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-prop-powers-diag"
   },
   {
    "sym": "lambda",
    "concept": "eigenvalue",
    "meaning": "an eigenvalue of A; a complex eigenvalue λ = a + bi of a 2 × 2 matrix",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-similar-to-c"
   },
   {
    "sym": "lambda_1",
    "concept": "eigenvalue",
    "meaning": "the first eigenvalue of A, the first diagonal entry of D and the eigenvalue of the first column of P; the complex eigenvalue 1 + i chosen to form C",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-first-example"
   },
   {
    "sym": "lambda_2",
    "concept": "eigenvalue",
    "meaning": "the second eigenvalue of A, the second diagonal entry of D; the conjugate eigenvalue 1 − i",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-first-example"
   },
   {
    "sym": "lambda_j",
    "concept": "eigenvalue",
    "meaning": "the eigenvalues λ₁, λ₂, …, λₙ of A, the diagonal entries of D",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-diagonalization-general"
   },
   {
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the first vector of a basis of eigenvectors of A, the first column of P, with eigenvalue λ₁",
    "section": "4.3",
-   "ref": "v-1"
+   "ref": "v-1",
+   "anchor": "4.3-first-example"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the second vector of a basis of eigenvectors of A, the second column of P, with eigenvalue λ₂",
    "section": "4.3",
-   "ref": "v-2"
+   "ref": "v-2",
+   "anchor": "4.3-first-example"
   },
   {
    "sym": "v_i_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvectors v₁, v₂, …, vₙ that form a basis of ℝⁿ, the columns of P",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-diagonalization-general"
   },
   {
    "sym": "x_k_vec",
    "concept": "state-vector",
    "meaning": "the state vector of the rental-car system at the end of day k, x_k = Aᵏx₀",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-rental-car-powers"
   },
   {
    "sym": "x_0_vec",
    "concept": "state-vector",
    "meaning": "the initial state [1000, 0] of the rental-car system",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-rental-car-powers"
   },
   {
    "sym": "B",
    "concept": "matrix",
    "meaning": "a matrix to which A is similar, A = PBP⁻¹ for an invertible matrix P",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-definition-4-3-11"
   },
   {
    "sym": "C",
    "concept": "rotation-scaling-matrix",
    "meaning": "the matrix C = [a −b; b a] to which a 2 × 2 matrix with the complex eigenvalue a + bi is similar; it rotates vectors by θ and scales them by r",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-similar-to-c"
   },
   {
    "sym": "C_prime",
@@ -386,198 +440,232 @@
    "sym": "a",
    "meaning": "the real part of the complex eigenvalue λ = a + bi, the upper left entry of C; a = r cos θ",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-similar-to-c"
   },
   {
    "sym": "b",
    "meaning": "the imaginary part of the complex eigenvalue λ = a + bi; b = r sin θ",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-similar-to-c"
   },
   {
    "sym": "i",
    "meaning": "the imaginary unit, i² = −1, in the complex eigenvalue λ = a + bi",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-similar-to-c"
   },
   {
    "sym": "r",
    "meaning": "the distance from the origin to the point (a, b), r = √(a² + b²), the factor by which C scales vectors",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-polar-coordinates"
   },
   {
    "sym": "theta",
    "meaning": "the angle formed by the point (a, b) with the positive horizontal axis, through which C rotates vectors",
    "section": "4.3",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.3-polar-coordinates"
   },
   {
    "sym": "k",
    "meaning": "the exponent of a power Aᵏ or Dᵏ, the number of steps of a dynamical system",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-rental-car-powers"
   },
   {
    "sym": "n",
    "meaning": "the number of rows and of columns of a square matrix, the number of eigenvectors in a basis of ℝⁿ",
-   "section": "4.3"
+   "section": "4.3",
+   "anchor": "4.3-diagonalization-general"
   },
   {
    "sym": "A",
    "concept": "matrix",
    "meaning": "the matrix of a discrete dynamical system x_{k+1} = Ax_k, whose eigenvalues and eigenvectors determine the long-term behavior of the trajectories; A = PDP⁻¹ or A = PEP⁻¹",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-systems-considered"
   },
   {
    "sym": "x_k_vec",
    "concept": "state-vector",
    "meaning": "the state vector of a discrete dynamical system at time k, such as the populations x_k = [R_k, S_k] of two species in year k, with x_{k+1} = Ax_k and x_k = Aᵏx₀",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-systems-considered"
   },
   {
    "sym": "x_0_vec",
    "concept": "state-vector",
    "meaning": "the initial state vector, such as the initial populations x₀ = [2, 3], written as a linear combination of the eigenvectors of A",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-initial-populations"
   },
   {
    "sym": "x_vec",
    "concept": "state-vector",
    "meaning": "a state vector, written in the coordinates {x}_𝓑 of the basis of eigenvectors so that {Ax}_𝓑 = D{x}_𝓑",
    "section": "4.4",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.4-more-generally"
   },
   {
    "sym": "x_B",
    "concept": "coordinates-in-a-basis",
    "meaning": "the coordinates of a state vector x_k in the basis 𝓑 of eigenvectors, {x_k}_𝓑 = [1.3ᵏ·2, 0.5ᵏ·1], scaled at each step by the eigenvalues",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-coordinate-system"
   },
   {
    "sym": "B_cal",
    "concept": "basis",
    "meaning": "the basis 𝓑 of ℝ² or ℝ³ formed by the eigenvectors of A, whose coordinate system turns the system into the diagonal one",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-shift-perspective"
   },
   {
    "sym": "P",
    "concept": "matrix",
    "meaning": "the matrix P = [v₁ v₂] whose columns are the eigenvectors of A, with A = PDP⁻¹ or A = PEP⁻¹; Activity 4.4.3's P = [1 −1; 1 1]",
    "section": "4.4",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.4-shift-perspective"
   },
   {
    "sym": "P_inv",
    "concept": "matrix-inverse",
    "meaning": "the inverse of P, which converts standard coordinates into the coordinates of the basis of eigenvectors",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-shift-perspective"
   },
   {
    "sym": "D",
    "concept": "diagonal-matrix",
    "meaning": "the diagonal matrix of eigenvalues, D = [1.3 0; 0 0.5], whose phase portrait is drawn in the eigenvector coordinates",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-shift-perspective"
   },
   {
    "sym": "E",
    "concept": "matrix",
    "meaning": "the simpler matrix with A = PEP⁻¹, diagonal when the eigenvalues are real and a rotation and scaling [a −b; b a] when they are complex, whose phase portrait is drawn on the left",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-six-types"
   },
   {
    "sym": "E_lambda",
    "concept": "eigenspace",
    "meaning": "the eigenspace E_{λ₁} of the eigenvalue of largest absolute value, the line or subspace to which the trajectories of a saddle converge; E_1.3 for the two species, E_1.1 for the 3 × 3 systems",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-other-initial-populations"
   },
   {
    "sym": "lambda",
    "concept": "eigenvalue",
    "meaning": "an eigenvalue of A, real or complex λ = a + bi, whose absolute value against 1 decides the type of the dynamical system",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-spiral-repellor"
   },
   {
    "sym": "lambda_1",
    "concept": "eigenvalue",
    "meaning": "the first eigenvalue of A, 1.3 for the two species, whose absolute value is compared with 1 in classifying the system",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-specific-example"
   },
   {
    "sym": "lambda_2",
    "concept": "eigenvalue",
    "meaning": "the second eigenvalue of A, 0.5 for the two species",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-specific-example"
   },
   {
    "sym": "lambda_3",
    "concept": "eigenvalue",
    "meaning": "the third eigenvalue of a 3 × 3 system, 1.1, into whose eigenspace the trajectories converge",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-three-by-three"
   },
   {
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector v₁ = [2, 1] of the two-species matrix, with eigenvalue 1.3, whose line the trajectories approach",
    "section": "4.4",
-   "ref": "v-1"
+   "ref": "v-1",
+   "anchor": "4.4-specific-example"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector v₂ = [−2, 1] of the two-species matrix, with eigenvalue 0.5",
    "section": "4.4",
-   "ref": "v-2"
+   "ref": "v-2",
+   "anchor": "4.4-specific-example"
   },
   {
    "sym": "v_3_vec",
    "concept": "eigenvector",
    "meaning": "the third eigenvector of a 3 × 3 system, a basis vector of E_1.1",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-three-by-three"
   },
   {
    "sym": "v_i_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvectors v_j of A, which replace the standard basis vectors e_j in the phase portrait of A",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-phase-portraits"
   },
   {
    "sym": "e_j_vec",
    "concept": "standard-unit-vectors",
    "meaning": "the standard basis vectors e_j, the axes of the phase portrait of the diagonal matrix D",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-phase-portraits"
   },
   {
    "sym": "c_i",
    "meaning": "the weights of the initial vector x₀ as a linear combination c₁v₁ + c₂v₂ of eigenvectors, multiplied by λ₁ᵏ and λ₂ᵏ after k steps",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-initial-populations"
   },
   {
    "sym": "a",
    "meaning": "the real part of a complex eigenvalue λ = a + bi; a² + b² against 1 decides between a spiral repellor, a center and a spiral attractor",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-spiral-repellor"
   },
   {
    "sym": "b",
    "meaning": "the imaginary part of a complex eigenvalue λ = a + bi",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-spiral-repellor"
   },
   {
    "sym": "R",
    "meaning": "the first of two interacting species, R and S, the predator in a predator–prey system",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-species-interactions"
   },
   {
    "sym": "S",
    "meaning": "the second of two interacting species, R and S, the prey in a predator–prey system",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-species-interactions"
   },
   {
    "sym": "R_k",
    "meaning": "the population of species R, in thousands, after k years, the first component of x_k",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-eventually"
   },
   {
    "sym": "S_k",
    "meaning": "the population of species S, in thousands, after k years, the second component of x_k; the ratio R_k/S_k approaches 2",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-eventually"
   },
   {
    "sym": "J_k",
@@ -597,7 +685,8 @@
   {
    "sym": "k",
    "meaning": "the number of years elapsed, the index of the state vector x_k and the exponent of λᵏ",
-   "section": "4.4"
+   "section": "4.4",
+   "anchor": "4.4-systems-considered"
   },
   {
    "sym": "p",
@@ -610,21 +699,24 @@
    "concept": "stochastic-matrix",
    "meaning": "a stochastic matrix, a square matrix whose columns are probability vectors; the transition matrix of a Markov chain x_{k+1} = Ax_k, such as the rental-car matrix [0.8 0.4; 0.2 0.6] or the voting matrix",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-rental-car-system"
   },
   {
    "sym": "B",
    "concept": "stochastic-matrix",
    "meaning": "the stochastic matrix B = [0.4 0.3; 0.6 0.7], positive, with eigenvalues 1 and 0.1, whose Markov chains converge to q = [1/3, 2/3]",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-convergence-condition"
   },
   {
    "sym": "C",
    "concept": "positive-matrix",
    "meaning": "the stochastic matrix C = [0 0.5; 1 0.5], positive because C² has all positive entries",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-example-4-5-5"
   },
   {
    "sym": "D",
@@ -637,26 +729,30 @@
    "sym": "E",
    "concept": "matrix",
    "meaning": "the matrix with A = PEP⁻¹ for the voting matrix, E = [1 0 0; 0 0.4 −0.2; 0 0.2 0.4], the rotation and scaling of the complex eigenvalues beside the eigenvalue 1",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-voting-similar"
   },
   {
    "sym": "G",
    "concept": "google-matrix",
    "meaning": "the Google matrix of an Internet, the stochastic matrix with Gx = x whose entry in row i and column j is the share of page j's PageRank given to page i",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-two-ways"
   },
   {
    "sym": "G_prime",
    "concept": "modified-google-matrix",
    "meaning": "the modified Google matrix G′ = αG + (1 − α)Hₙ, a positive stochastic matrix whose Markov chains converge to the PageRank vector",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-modified-google-matrix"
   },
   {
    "sym": "H_n",
    "concept": "stochastic-matrix",
    "meaning": "the n × n matrix all of whose entries are 1/n, a positive stochastic matrix describing a jump from any page to any other with equal probability",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-uniform-jump"
   },
   {
    "sym": "S",
@@ -670,136 +766,158 @@
    "concept": "probability-vector",
    "meaning": "the kth term of a Markov chain, a probability vector giving the distribution of cars, voters or PageRank after k steps, with x_{k+1} = Ax_k",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-markov-chain"
   },
   {
    "sym": "x_0_vec",
    "concept": "probability-vector",
    "meaning": "the initial probability vector of a Markov chain, such as x₀ = [0.4, 0.3, 0.3] for the voters or e₁ for a Markov chain of PageRank",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-initial-voters"
   },
   {
    "sym": "x_vec",
    "concept": "pagerank-vector",
    "meaning": "the PageRank vector x = [x₁, x₂, …, xₙ] of an Internet, the steady-state vector of its Google matrix, Gx = x",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-two-ways"
   },
   {
    "sym": "x_i",
    "concept": "pagerank-vector",
    "meaning": "the PageRank x_j of page j, the jth component of the PageRank vector, which measures the quality of the page",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "type": null
   },
   {
    "sym": "q_vec",
    "concept": "steady-state-vector",
    "meaning": "a steady-state or stationary vector of a stochastic matrix A, a probability vector with Aq = q, to which a Markov chain converges when A is positive",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-definition-4-5-2"
   },
   {
    "sym": "v_vec",
    "concept": "eigenvector",
    "meaning": "a basis vector of the eigenspace E₁, such as v = [1, 2, 2] for the voting matrix, whose scalar multiple with entries adding to 1 is the steady-state vector",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-eigenvalue-one-unchanged"
   },
   {
    "sym": "E_1",
    "concept": "eigenspace",
    "meaning": "the eigenspace of the eigenvalue λ₁ = 1 of a stochastic matrix, Nul(A − I), in which the steady-state vectors lie and into which the trajectories of a Markov chain are pulled",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-spiral-into-e1"
   },
   {
    "sym": "lambda",
    "concept": "eigenvalue",
    "meaning": "an eigenvalue of a stochastic matrix, with |λ| ≤ 1",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-eigenvalue-facts"
   },
   {
    "sym": "lambda_1",
    "concept": "eigenvalue",
    "meaning": "the first eigenvalue of a stochastic matrix, λ₁ = 1, which every stochastic matrix has",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-voting-eigenvalues"
   },
   {
    "sym": "lambda_2",
    "concept": "eigenvalue",
    "meaning": "the second eigenvalue of a stochastic matrix; a Markov chain may fail to converge when |λ₂| = 1, as for [0 1; 1 0]",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-voting-eigenvalues"
   },
   {
    "sym": "lambda_3",
    "concept": "eigenvalue",
    "meaning": "the third eigenvalue of the voting matrix, 0.4 − 0.2i, the conjugate of λ₂",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-voting-eigenvalues"
   },
   {
    "sym": "lambda_j",
    "concept": "eigenvalue",
    "meaning": "the eigenvalues other than λ₁ = 1 of a stochastic matrix, which satisfy |λ_j| ≤ 1, and |λ_j| < 1 when the matrix is positive",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-role-of-eigenvalues"
   },
   {
    "sym": "c",
    "meaning": "the scalar for which cv, a multiple of a basis vector of E₁, is a probability vector; c = 1/5 for v = [1, 2, 2]",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-finding-q"
   },
   {
    "sym": "alpha",
    "meaning": "the parameter mixing G and Hₙ into the modified Google matrix G′ = αG + (1 − α)Hₙ, thought to be 0.85 at Google: the probability that a user follows a link rather than jumping to a random page",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-uniform-jump"
   },
   {
    "sym": "n",
    "meaning": "the number of pages of an Internet, the size of the Google matrix and of Hₙ",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-uniform-jump"
   },
   {
    "sym": "k",
    "meaning": "the number of steps taken in a Markov chain, the index of x_k",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-state-vector-recap"
   },
   {
    "sym": "P",
    "meaning": "the first of the two rental locations P and Q, or of the three political parties P, Q and R",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-entries-are-probabilities"
   },
   {
    "sym": "Q",
    "meaning": "the second of the two rental locations P and Q, or of the three political parties P, Q and R",
-   "section": "4.5"
+   "section": "4.5",
+   "anchor": "4.5-entries-are-probabilities"
   },
   {
    "sym": "R",
    "meaning": "the third of the three political parties P, Q and R",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "anchor": "4.5-voting-equations"
   },
   {
    "sym": "P_k",
    "meaning": "the number of cars at location P on day k; the percentage of voters voting for party P in election k",
    "section": "4.5",
    "redefines": true,
-   "ref": "party-p"
+   "ref": "party-p",
+   "anchor": "4.5-voting-equations"
   },
   {
    "sym": "Q_k",
    "meaning": "the number of cars at location Q on day k; the percentage of voters voting for party Q in election k",
    "section": "4.5",
    "redefines": true,
-   "ref": "party-q"
+   "ref": "party-q",
+   "anchor": "4.5-voting-equations"
   },
   {
    "sym": "R_k",
    "meaning": "the percentage of voters voting for party R in election k",
    "section": "4.5",
    "redefines": true,
-   "ref": "party-r"
+   "ref": "party-r",
+   "anchor": "4.5-voting-equations"
   }
  ]
 }
