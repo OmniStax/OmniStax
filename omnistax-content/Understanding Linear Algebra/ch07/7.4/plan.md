@@ -51,3 +51,4 @@ Considered and not built:
 - Forms of 7.4 carry no anchor: `eq-gram-matrix` → 7.4-gram-matrix; `eq-length-from-the-gram-matrix` → 7.4-gram-matrix; `eq-left-singular-vector` → 7.4-svd-recipe; `eq-singular-value-decomposition` → 7.4-theorem-svd; `eq-svd-of-the-transpose` → 7.4-prop-svd-transpose; `eq-reduced-svd` → 7.4-prop-reduced-svd.
 - Variables rows of 7.4 carry no anchor; where one is wanted: `7.4/G` → 7.4-gram-matrix; `7.4/l_A` → 7.4-length-function; `7.4/sigma` → 7.4-singular-values-and-vectors; `7.4/Row` → 7.4-row-space; `7.4/U_r`, `7.4/Sigma_r`, `7.4/V_r` → 7.4-prop-reduced-svd.
 - No new variables row, concept, edge or glossary change.
+- Chapter pass (2026-11-02): applied. Every form and variables anchor listed set; the other rows anchored on their first block of running text, those written only in cards left unanchored. Figure 7.4.1's caption reworded to the subject.

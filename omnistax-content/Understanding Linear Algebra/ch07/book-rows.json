@@ -473,7 +473,8 @@
     {
      "id": "eq-orthogonal-diagonalization",
      "latex": "A = QDQ^T",
-     "condition": "Q orthogonal, D diagonal"
+     "condition": "Q orthogonal, D diagonal",
+     "anchor": "7.1-orthogonal-basis-of-eigenvectors"
     }
    ]
   },
@@ -490,7 +491,8 @@
    "forms": [
     {
      "id": "eq-symmetric",
-     "latex": "A = A^T"
+     "latex": "A = A^T",
+     "anchor": "7.1-symmetric"
     }
    ]
   },
@@ -520,7 +522,8 @@
    "forms": [
     {
      "id": "eq-orthogonal-diagonalization-as-composition",
-     "latex": "A{\\mathbf x} = Q(D(Q^T{\\mathbf x}))"
+     "latex": "A{\\mathbf x} = Q(D(Q^T{\\mathbf x}))",
+     "anchor": "7.1-example-7-1-7"
     }
    ]
   },
@@ -540,12 +543,14 @@
    "forms": [
     {
      "id": "eq-transpose-across-the-dot-product",
-     "latex": "{\\mathbf v}\\cdot(A{\\mathbf w}) = (A^T{\\mathbf v})\\cdot{\\mathbf w}"
+     "latex": "{\\mathbf v}\\cdot(A{\\mathbf w}) = (A^T{\\mathbf v})\\cdot{\\mathbf w}",
+     "anchor": "7.1-prop-symmetric-dot"
     },
     {
      "id": "eq-symmetric-across-the-dot-product",
      "latex": "{\\mathbf v}\\cdot(A{\\mathbf w}) = (A{\\mathbf v})\\cdot{\\mathbf w}",
-     "condition": "A symmetric"
+     "condition": "A symmetric",
+     "anchor": "7.1-prop-symmetric-dot"
     }
    ]
   },
@@ -571,7 +576,8 @@
    "forms": [
     {
      "id": "eq-total-variance",
-     "latex": "V = \\frac 1N\\sum_j~|\\widetilde{\\mathbf d}_j|^2"
+     "latex": "V = \\frac 1N\\sum_j~|\\widetilde{\\mathbf d}_j|^2",
+     "anchor": "7.1-variance-measures"
     }
    ]
   },
@@ -587,7 +593,8 @@
     {
      "id": "eq-variance-in-a-direction",
      "latex": "V_{{\\mathbf u}} = \\frac1N\\sum_j~(\\widetilde{\\mathbf d}_j\\cdot{\\mathbf u})^2",
-     "condition": "u a unit vector"
+     "condition": "u a unit vector",
+     "anchor": "7.1-orthonormal-directions"
     }
    ]
   },
@@ -601,11 +608,13 @@
     {
      "id": "eq-additivity-of-variance",
      "latex": "V_W = V_{{\\mathbf u}_1} + V_{{\\mathbf u}_2} + \\ldots + V_{{\\mathbf u}_n}",
-     "condition": "u₁, …, uₙ an orthonormal basis of W"
+     "condition": "u₁, …, uₙ an orthonormal basis of W",
+     "anchor": "7.1-prop-variance-additivity"
     },
     {
      "id": "eq-total-variance-as-a-sum",
-     "latex": "V = V_x + V_y"
+     "latex": "V = V_x + V_y",
+     "anchor": "7.1-average-xy"
     }
    ]
   },
@@ -624,7 +633,8 @@
     {
      "id": "eq-covariance-matrix",
      "latex": "C=\\frac1N~AA^T",
-     "condition": "A the matrix of demeaned data points"
+     "condition": "A the matrix of demeaned data points",
+     "anchor": "7.1-covariance-defined"
     }
    ]
   },
@@ -638,7 +648,8 @@
     {
      "id": "eq-variance-from-the-covariance-matrix",
      "latex": "V_{{\\mathbf u}} = {\\mathbf u}\\cdot C{\\mathbf u}",
-     "condition": "u a unit vector"
+     "condition": "u a unit vector",
+     "anchor": "7.1-prop-covariance"
     }
    ]
   },
@@ -655,12 +666,14 @@
    "forms": [
     {
      "id": "eq-quadratic-form",
-     "latex": "q_A({\\mathbf x}) = {\\mathbf x}\\cdot(A{\\mathbf x})"
+     "latex": "q_A({\\mathbf x}) = {\\mathbf x}\\cdot(A{\\mathbf x})",
+     "anchor": "7.2-quadratic-form-defined"
     },
     {
      "id": "eq-quadratic-form-of-a-2x2-matrix",
      "latex": "q_A\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]\\right) = ax_1^2 + 2bx_1x_2 + cx_2^2",
-     "condition": "A = [a b; b c]"
+     "condition": "A = [a b; b c]",
+     "anchor": "7.2-nonlinear"
     }
    ]
   },
@@ -673,7 +686,8 @@
    "forms": [
     {
      "id": "eq-scaling-a-quadratic-form",
-     "latex": "q_A(s{\\mathbf x}) = s^2q_A({\\mathbf x})"
+     "latex": "q_A(s{\\mathbf x}) = s^2q_A({\\mathbf x})",
+     "anchor": "7.2-scaling"
     }
    ]
   },
@@ -687,7 +701,8 @@
     {
      "id": "eq-quadratic-form-on-an-eigenvector",
      "latex": "q_A({\\mathbf x}) = \\lambda \\left|{\\mathbf x}\\right|^2",
-     "condition": "x an eigenvector of A with eigenvalue λ"
+     "condition": "x an eigenvector of A with eigenvalue λ",
+     "anchor": "7.2-on-eigenvector"
     }
    ]
   },
@@ -711,7 +726,8 @@
     {
      "id": "eq-principal-axes",
      "latex": "q_A({\\mathbf x}) = \\lambda_1y_1^2 + \\lambda_2y_2^2 + \\ldots + \\lambda_my_m^2",
-     "condition": "y = Qᵀx, A = QDQᵀ"
+     "condition": "y = Qᵀx, A = QDQᵀ",
+     "anchor": "7.2-theorem-7-2-10"
     }
    ]
   },
@@ -745,7 +761,8 @@
    "forms": [
     {
      "id": "eq-critical-point-of-a-function-of-two-variables",
-     "latex": "f_x(x_0,y_0) = 0,\\hspace{24pt} f_y(x_0,y_0) = 0"
+     "latex": "f_x(x_0,y_0) = 0,\\hspace{24pt} f_y(x_0,y_0) = 0",
+     "anchor": "7.2-critical-point"
     }
    ]
   },
@@ -759,7 +776,8 @@
     {
      "id": "eq-quadratic-approximation-near-a-critical-point",
      "latex": "f(x,y) \\approx f(x_0, y_0) + q_A({\\mathbf w})",
-     "condition": "w = [x − x₀; y − y₀], A = ½H"
+     "condition": "w = [x − x₀; y − y₀], A = ½H",
+     "anchor": "7.2-quadratic-approximation"
     }
    ]
   },
@@ -777,7 +795,8 @@
    "forms": [
     {
      "id": "eq-hessian",
-     "latex": "H = \\begin{bmatrix} f_{xx}(x_0,y_0) & f_{xy}(x_0,y_0) \\\\ f_{yx}(x_0,y_0) & f_{yy}(x_0,y_0) \\end{bmatrix}"
+     "latex": "H = \\begin{bmatrix} f_{xx}(x_0,y_0) & f_{xy}(x_0,y_0) \\\\ f_{yx}(x_0,y_0) & f_{yy}(x_0,y_0) \\end{bmatrix}",
+     "anchor": "7.2-hessian"
     }
    ]
   },
@@ -847,7 +866,8 @@
     {
      "id": "eq-coordinates-of-projected-data",
      "latex": "Q^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf u}_1\\cdot{\\mathbf x} \\\\ {\\mathbf u}_2\\cdot{\\mathbf x} \\end{array}\\right]",
-     "condition": "Q = [u₁ u₂]"
+     "condition": "Q = [u₁ u₂]",
+     "anchor": "7.3-q-transpose-x"
     }
    ]
   },
@@ -865,11 +885,13 @@
    "forms": [
     {
      "id": "eq-gram-matrix",
-     "latex": "G = A^TA"
+     "latex": "G = A^TA",
+     "anchor": "7.4-gram-matrix"
     },
     {
      "id": "eq-length-from-the-gram-matrix",
-     "latex": "l_A({\\mathbf x}) = \\sqrt{q_G({\\mathbf x})}"
+     "latex": "l_A({\\mathbf x}) = \\sqrt{q_G({\\mathbf x})}",
+     "anchor": "7.4-gram-matrix"
     }
    ]
   },
@@ -901,7 +923,8 @@
    "forms": [
     {
      "id": "eq-left-singular-vector",
-     "latex": "A{\\mathbf v}_i = \\sigma_i{\\mathbf u}_i"
+     "latex": "A{\\mathbf v}_i = \\sigma_i{\\mathbf u}_i",
+     "anchor": "7.4-svd-recipe"
     }
    ]
   },
@@ -931,7 +954,8 @@
    "forms": [
     {
      "id": "eq-singular-value-decomposition",
-     "latex": "A=U\\Sigma V^T"
+     "latex": "A=U\\Sigma V^T",
+     "anchor": "7.4-theorem-svd"
     }
    ]
   },
@@ -944,7 +968,8 @@
    "forms": [
     {
      "id": "eq-svd-of-the-transpose",
-     "latex": "A^T = V\\Sigma^T U^T"
+     "latex": "A^T = V\\Sigma^T U^T",
+     "anchor": "7.4-prop-svd-transpose"
     }
    ]
   },
@@ -998,7 +1023,8 @@
     {
      "id": "eq-reduced-svd",
      "latex": "A=U_r \\Sigma_r V_r^T",
-     "condition": "r = rank(A)"
+     "condition": "r = rank(A)",
+     "anchor": "7.4-prop-reduced-svd"
     }
    ]
   },
@@ -1012,7 +1038,8 @@
     {
      "id": "eq-least-squares-by-svd",
      "latex": "\\widehat{{\\mathbf x}} = V_r\\Sigma_r^{-1}U_r^T{\\mathbf b}",
-     "condition": "A = U_rΣ_rV_rᵀ a reduced singular value decomposition"
+     "condition": "A = U_rΣ_rV_rᵀ a reduced singular value decomposition",
+     "anchor": "7.5-prop-svd-ols"
     }
    ]
   },
@@ -1030,7 +1057,8 @@
    "forms": [
     {
      "id": "eq-pseudoinverse",
-     "latex": "A^+ = V_r\\Sigma_r^{-1}U_r^T"
+     "latex": "A^+ = V_r\\Sigma_r^{-1}U_r^T",
+     "anchor": "7.5-pseudoinverse"
     }
    ]
   },
@@ -1048,7 +1076,8 @@
    "forms": [
     {
      "id": "eq-outer-product",
-     "latex": "{\\mathbf u}~{\\mathbf v}^T"
+     "latex": "{\\mathbf u}~{\\mathbf v}^T",
+     "anchor": "7.5-outer-product"
     }
    ]
   },
@@ -1063,11 +1092,13 @@
    "forms": [
     {
      "id": "eq-rank-k-approximation",
-     "latex": "A_k = U\\Sigma^{(k)}V^T"
+     "latex": "A_k = U\\Sigma^{(k)}V^T",
+     "anchor": "7.5-rank-k-intro"
     },
     {
      "id": "eq-rank-k-approximation-as-a-sum",
-     "latex": "A_k = \\sigma_1{\\mathbf u}_1{\\mathbf v}_1^T + \\sigma_2{\\mathbf u}_2{\\mathbf v}_2^T + \\ldots + \\sigma_k{\\mathbf u}_k{\\mathbf v}_k^T"
+     "latex": "A_k = \\sigma_1{\\mathbf u}_1{\\mathbf v}_1^T + \\sigma_2{\\mathbf u}_2{\\mathbf v}_2^T + \\ldots + \\sigma_k{\\mathbf u}_k{\\mathbf v}_k^T",
+     "anchor": "7.5-sum-of-terms"
     }
    ]
   },
@@ -1080,7 +1111,8 @@
    "forms": [
     {
      "id": "eq-variance-from-a-singular-value",
-     "latex": "V_{{\\mathbf u}_i} = \\frac1N\\sigma_i^2"
+     "latex": "V_{{\\mathbf u}_i} = \\frac1N\\sigma_i^2",
+     "anchor": "7.5-pca-variance"
     }
    ]
   },
