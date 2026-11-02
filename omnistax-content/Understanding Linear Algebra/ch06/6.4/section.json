@@ -1,0 +1,837 @@
+{
+ "id": "6.4",
+ "module": "sec-gram-schmidt",
+ "chapter": "6",
+ "title": "Finding orthogonal bases",
+ "lead": "This section builds <span data-concept=\"orthogonal-basis\">orthogonal</span> and <span data-concept=\"orthonormal-basis\">orthonormal bases</span> out of any <span data-concept=\"basis-of-a-subspace\">basis</span>: <span data-concept=\"gram-schmidt-process\">Gram-Schmidt orthogonalization</span> takes the basis vectors one at a time and removes from each its <span data-concept=\"orthogonal-projection\">orthogonal projection</span> onto the span of those before it, and writing those steps in matrix form leads to the <span data-concept=\"qr-factorization\">$QR$ factorization</span> of a matrix whose columns are linearly independent.",
+ "objectives": [],
+ "summary_html": "<p>This section explored the Gram-Schmidt orthogonalization algorithm and how it leads to the matrix factorization $\\kA=\\kQ\\kR$ when the columns of $\\kA$ are linearly independent.</p><ul><li><p>Beginning with a basis $\\kvecvone, \\kvecvtwo,\\ldots,\\kvecvn$ for a subspace $\\kW$ of ${\\mathbb R}^m$, the vectors</p>$$ \\begin{aligned} \\kvecwone & = \\kvecvone \\\\ \\kvecwtwo & = \\kvecvtwo - \\frac{\\kvecvtwo\\cdot\\kvecwone}{\\kvecwone\\cdot\\kvecwone}\\kvecwone \\\\ \\kvecwthree & = \\kvecvthree - \\frac{\\kvecvthree\\cdot\\kvecwone}{\\kvecwone\\cdot\\kvecwone}\\kvecwone - \\frac{\\kvecvthree\\cdot\\kvecwtwo}{\\kvecwtwo\\cdot\\kvecwtwo}\\kvecwtwo \\\\ & \\vdots \\\\ \\kvecwn & = \\kvecvn - \\frac{\\kvecvn\\cdot\\kvecwone}{\\kvecwone\\cdot\\kvecwone}\\kvecwone - \\frac{\\kvecvn\\cdot\\kvecwtwo}{\\kvecwtwo\\cdot\\kvecwtwo}\\kvecwtwo - \\ldots - \\frac{\\kvecvn\\cdot\\kvecwnmone} {\\kvecwnmone\\cdot\\kvecwnmone}\\kvecwnmone \\end{aligned} $$<p>form an orthogonal basis for $\\kW$.</p></li><li>We may scale each vector $\\kvecwi$ appropriately to obtain an orthonormal basis $\\kvecuone,\\kvecutwo,\\ldots,\\kvecun$.</li><li>Expressing the Gram-Schmidt algorithm in matrix form shows that, if the columns of $\\kA$ are linearly independent, then we can write $\\kA=\\kQ\\kR$, where the columns of $\\kQ$ form an orthonormal basis for $\\kCol(\\kA)$ and $\\kR$ is upper triangular.</li></ul>",
+ "notes": "The section’s Sage cells are not live: the two that load the author’s commands stand as code in Activities 6.4.3 and 6.4.5, and the seven empty cells are left out, as is the blank grid of Preview Activity 6.4.1 c.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the four activities stand in the text as cards, the Sage commands Activities 6.4.3 and 6.4.5 load kept in their prompts. Every keyed number was checked by computation. Slips in the book’s keys are kept as printed and noted under their cards: Activity 6.4.2 c’s “v₁ and v₁”, Activity 6.4.3 d’s −6√336, Activity 6.4.4 b’s three w₁, Exercise 6.4.4 d’s weights for b̂ (2, −3, −1, not 1, −8/3, −1) and Exercise 6.4.5 a’s w for w₃. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-gram-schmidt-plane",
+   "kind": "sim",
+   "number": "6.4.1",
+   "originals": [
+    "/media/ch06/gram-schmidt-intro.svg"
+   ],
+   "original_caption": "A basis for ℝ².",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-gram-schmidt-space",
+   "kind": "sim",
+   "number": "6.4.3",
+   "originals": [
+    "/media/ch06/3d-orthog-proj-2.svg"
+   ],
+   "original_caption": "If b̂ is the orthogonal projection of b onto W, then b − b̂ is orthogonal to W.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [
+  {
+   "id": "v-1",
+   "label": "the first basis vector v₁ and the w₁, u₁ made from it",
+   "figures": [
+    "sim-gram-schmidt-plane",
+    "sim-gram-schmidt-space"
+   ]
+  },
+  {
+   "id": "v-2",
+   "label": "the second basis vector v₂ and the v̂₂, w₂, u₂ made from it",
+   "figures": [
+    "sim-gram-schmidt-plane",
+    "sim-gram-schmidt-space"
+   ]
+  },
+  {
+   "id": "v-3",
+   "label": "the third basis vector v₃ and the v̂₃, w₃, u₃ made from it",
+   "figures": [
+    "sim-gram-schmidt-space"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "projection-formula-recalled",
+   "concept": "orthogonal-set",
+   "verb": "uses"
+  },
+  {
+   "span": "projection-formula-recalled",
+   "concept": "orthonormal-set",
+   "verb": "uses"
+  },
+  {
+   "span": "projection-formula-recalled",
+   "concept": "orthogonal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "projection-formula-recalled",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "projection-formula-recalled",
+   "concept": "projection-onto-a-subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "projection-formula-recalled",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "orthonormal-more-convenient",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "orthonormal-more-convenient",
+   "concept": "projection-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "forming-orthogonal-bases",
+   "concept": "orthogonal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "forming-orthogonal-bases",
+   "concept": "basis-of-a-subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "forming-orthogonal-bases",
+   "concept": "normalization",
+   "verb": "uses"
+  },
+  {
+   "span": "forming-orthogonal-bases",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-gram-schmidt-plane",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-gram-schmidt-plane",
+   "concept": "vector-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-gram-schmidt-plane",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-gram-schmidt-plane",
+   "concept": "normalization",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-named",
+   "concept": "gram-schmidt-process",
+   "verb": "introduces"
+  },
+  {
+   "span": "gram-schmidt-named",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-named",
+   "concept": "orthogonality-gives-the-closest-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-named",
+   "concept": "basis-of-a-subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-named",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-gram-schmidt-space",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-gram-schmidt-space",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-gram-schmidt-space",
+   "concept": "gram-schmidt-preserves-the-span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-gram-schmidt-space",
+   "concept": "finding-a-qr-factorization",
+   "verb": "reinforces"
+  },
+  {
+   "span": "gram-schmidt-works",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-works",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "gram-schmidt-illustrated",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "gram-schmidt-illustrated",
+   "concept": "orthogonal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "gram-schmidt-preserves-the-span",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "orthogonal-set",
+   "verb": "uses"
+  },
+  {
+   "span": "example-gram-schmidt",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-schmidt-general",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "gram-schmidt-general",
+   "concept": "basis-of-a-subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "orthonormal-from-orthogonal",
+   "concept": "normalization",
+   "verb": "uses"
+  },
+  {
+   "span": "orthonormal-from-orthogonal",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "orthonormal-from-orthogonal",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "qr-intro",
+   "concept": "gram-schmidt-process",
+   "verb": "reinforces"
+  },
+  {
+   "span": "qr-intro",
+   "concept": "qr-factorization",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-from-gram-schmidt",
+   "concept": "qr-factorization",
+   "verb": "introduces"
+  },
+  {
+   "span": "qr-from-gram-schmidt",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-from-gram-schmidt",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-from-gram-schmidt",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-from-gram-schmidt",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-qr",
+   "concept": "qr-factorization",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-qr",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-qr",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-4-6",
+   "concept": "finding-a-qr-factorization",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-6-4-6",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-value",
+   "concept": "qr-factorization",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-qr",
+   "concept": "qr-factorization",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "6.4.1",
+   "source_number": "6.4.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sim-gram-schmidt-plane"
+   },
+   "cite": "sim-gram-schmidt-plane",
+   "prompt": "<p>Suppose we have a basis for ${\\mathbb R}^2$ consisting of the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}0 \\\\ 2 \\end{array}\\right] $$<p>as shown in Figure 6.4.1. Notice that this basis is not orthogonal.</p><ol type=\"a\"><li>Find the vector $\\kvecvtwohat$ that is the orthogonal projection of $\\kvecvtwo$ onto the line defined by $\\kvecvone$.</li><li>Explain why $\\kvecvtwo - \\kvecvtwohat$ is orthogonal to $\\kvecvone$.</li><li>Define the new vectors $\\kvecwone=\\kvecvone$ and $\\kvecwtwo=\\kvecvtwo-\\kvecvtwohat$ and sketch them in Figure 6.4.2. Explain why $\\kvecwone$ and $\\kvecwtwo$ define an orthogonal basis for ${\\mathbb R}^2$.</li><li>Write the vector $\\kvecb=\\left[\\begin{array}{r}8 \\\\ -10 \\end{array}\\right]$ as a linear combination of $\\kvecwone$ and $\\kvecwtwo$.</li><li>Scale the vectors $\\kvecwone$ and $\\kvecwtwo$ to produce an orthonormal basis $\\kvecuone$ and $\\kvecutwo$ for ${\\mathbb R}^2$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecvtwohat = \\kvecvone$.</li><li>The orthogonal projection $\\kvecvtwohat$ is defined so that $\\kvecvtwo-\\kvecvtwohat$ is orthogonal to $\\kvecvone$.</li><li>$\\kvecwone = \\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and $\\kvecwtwo=\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$ are othogonal, which can be checked with the dot product.</li><li>The projection formula gives $\\kvecb = -\\kvecwone -9\\kvecwtwo$.</li><li>$\\kvecuone=\\frac1{\\sqrt{2}}\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and $\\kvecutwo=\\frac1{\\sqrt{2}}\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$.</li></ol>"
+   },
+   "changes": "The empty grid of part c, Figure 6.4.2, is not printed; Figure 6.4.1 draws $\\kvecwone$ and $\\kvecwtwo$."
+  },
+  {
+   "id": "a2",
+   "source_id": "6.4.2",
+   "source_number": "6.4.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "gram-schmidt-works"
+   },
+   "cite": "gram-schmidt-named",
+   "prompt": "<p>Suppose that $\\kW$ is a three-dimensional subspace of ${\\mathbb R}^4$ with basis:</p>$$ \\kvecvone = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo = \\left[\\begin{array}{r}1 \\\\ 3 \\\\ 2 \\\\ 2 \\end{array}\\right],\\hspace{24pt} \\kvecvthree = \\left[\\begin{array}{r}1 \\\\ -3 \\\\ -3 \\\\ -3 \\end{array}\\right]\\text{.} $$<p>We can see that this basis is not orthogonal by noting that $\\kvecvone\\cdot\\kvecvtwo = 8$. Our goal is to create an orthogonal basis $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ for $\\kW$. To begin, we declare that $\\kvecwone=\\kvecvone$, and we call $\\kWone$ the line defined by $\\kvecwone$.</p><ol type=\"a\"><li>Find the vector $\\kvecvtwohat$ that is the orthogonal projection of $\\kvecvtwo$ onto $\\kWone$, the line defined by $\\kvecwone$.</li><li>Form the vector $\\kvecwtwo = \\kvecvtwo-\\kvecvtwohat$ and verify that it is orthogonal to $\\kvecwone$.</li><li>Explain why $\\kSpan\\left\\{\\kvecwone,\\kvecwtwo\\right\\} = \\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$ by showing that any linear combination of $\\kvecvone$ and $\\kvecvtwo$ can be written as a linear combination of $\\kvecwone$ and $\\kvecwtwo$ and vice versa.</li><li>The vectors $\\kvecwone$ and $\\kvecwtwo$ are an orthogonal basis for a two-dimensional subspace $\\kWtwo$ of ${\\mathbb R}^4$. Find the vector $\\kvecvthreehat$ that is the orthogonal projection of $\\kvecvthree$ onto $\\kWtwo$.</li><li>Verify that $\\kvecwthree = \\kvecvthree-\\kvecvthreehat$ is orthogonal to both $\\kvecwone$ and $\\kvecwtwo$.</li><li>Explain why $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ form an orthogonal basis for $\\kW$.</li><li>Now find an orthonormal basis for $\\kW$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecvtwohat = \\left[\\begin{array}{r}2 \\\\ 2 \\\\ 2 \\\\ 2 \\end{array}\\right]$.</li><li>$\\kvecwtwo = \\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$</li><li>We have $\\kvecvone = \\kvecwone$ and $\\kvecvtwo = \\kvecwtwo + 2\\kvecwone$ so a linear combination of $\\kvecvone$ and $\\kvecvone$<sup class=\"fn\" data-note=\"a2-answer-c\"></sup> can be rewritten as a linear combination of $\\kvecwone$ and $\\kvecwtwo$.</li><li>$\\kvecvthreehat = \\left[\\begin{array}{r}0 \\\\ -4 \\\\ -2 \\\\ -2 \\end{array}\\right]$.</li><li>$\\kvecwthree = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\\\ -1 \\end{array}\\right]$</li><li>Since $\\kvecvi$ can be written in terms of $\\kvecwj$ and vice-versa, these new vectors form a basis for $\\kW$.</li><li>$$ \\kvecuone=\\left[\\begin{array}{r}1/2 \\\\ 1/2 \\\\ 1/2 \\\\ 1/2 \\end{array}\\right],\\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\\\ 0 \\\\ 0 \\end{array}\\right],\\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/2 \\\\ 1/2 \\\\ -1/2 \\\\ -1/2 \\end{array}\\right] $$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecvtwohat = \\frac{\\kvecvtwo\\cdot\\kvecwone} {\\kvecwone\\cdot\\kvecwone}\\kvecwone=\\left[\\begin{array}{r}2 \\\\ 2 \\\\ 2 \\\\ 2 \\end{array}\\right]$.</li><li>$\\kvecwtwo = \\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$</li><li><p>We have $\\kvecvone = \\kvecwone$ and $\\kvecvtwo = \\kvecwtwo + 2\\kvecwone$. Therefore, a linear combination of $\\kvecvone$ and $\\kvecvone$<sup class=\"fn\" data-note=\"a2-solution-c-1\"></sup> can be rewritten as</p>$$ c_1\\kvecvone+c_2\\kvecvtwo = c_1\\kvecwone+c_2(\\kvecwtwo+2\\kvecwone) = (c_1+2c_2)\\kvecwone + c_2\\kvecwtwo\\text{.} $$<p>In the same way, $\\kvecwone=\\kvecvone$ and $\\kvecwtwo = \\kvecvtwo-2\\kvecvone$ so any linear combination of $\\kvecwone$ and $\\kvecwtwo$ can be rewritten as a linear combination of $\\kvecvone$ and $\\kvecvone$<sup class=\"fn\" data-note=\"a2-solution-c-2\"></sup>.</p></li><li>By the Projection Formula, $\\kvecvthreehat = \\left[\\begin{array}{r}0 \\\\ -4 \\\\ -2 \\\\ -2 \\end{array}\\right]$.</li><li>$\\kvecwthree = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\\\ -1 \\end{array}\\right]$</li><li>We can check that $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ form an orthogonal set. Since $\\kvecvi$ can be written in terms of $\\kvecwj$ and vice-versa, these new vectors form a basis for $\\kW$.</li><li>$$ \\kvecuone=\\left[\\begin{array}{r}1/2 \\\\ 1/2 \\\\ 1/2 \\\\ 1/2 \\end{array}\\right],\\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\\\ 0 \\\\ 0 \\end{array}\\right],\\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/2 \\\\ 1/2 \\\\ -1/2 \\\\ -1/2 \\end{array}\\right] $$</li></ol>"
+   },
+   "changes": "The empty Sage cell after the statement is left out."
+  },
+  {
+   "id": "a3",
+   "source_id": "6.4.3",
+   "source_number": "6.4.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "orthonormal-from-orthogonal"
+   },
+   "cite": "gram-schmidt-general",
+   "prompt": "<p>Sage can automate these computations for us. Before we begin, however, it will be helpful to understand how we can combine things using a <code>list</code> in Python. For instance, if the vectors <code>v1</code>, <code>v2</code>, and <code>v3</code> form a basis for a subspace, we can bundle them together using square brackets: <code>[v1, v2, v3]</code>. Furthermore, we could assign this to a variable, such as <code>basis = [v1, v2, v3]</code>. Evaluating the following cell will load in some special commands.</p><pre class=\"sage\"><code>sage.repl.load.load(\"https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py\", globals())</code></pre><ul><li>There is a command to apply the projection formula: <code>projection(b, basis)</code> returns the orthogonal projection of <code>b</code> onto the subspace spanned by <code>basis</code>, which is a list of vectors.</li><li>The command <code>unit(w)</code> returns a unit vector parallel to <code>w</code>.</li><li>Given a collection of vectors, say, <code>v1</code> and <code>v2</code>, we can form the matrix whose columns are <code>v1</code> and <code>v2</code> using <code>matrix([v1, v2]).T</code>. When given a <code>list</code> of vectors, Sage constructs a matrix whose <em>rows</em> are the given vectors. For this reason, we need to apply the transpose.</li></ul><p>Let’s now consider $\\kW$, the subspace of ${\\mathbb R}^5$ having basis</p>$$ \\kvecvone = \\left[\\begin{array}{r}14 \\\\ -6 \\\\ 8 \\\\ 2 \\\\ -6 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecvtwo = \\left[\\begin{array}{r}5 \\\\ -3 \\\\ 4 \\\\ 3 \\\\ -7 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecvthree = \\left[\\begin{array}{r}2 \\\\ 3 \\\\ 0 \\\\ -2 \\\\ 1 \\\\ \\end{array}\\right]. $$<ol type=\"a\"><li>Apply the Gram-Schmidt algorithm to find an orthogonal basis $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ for $\\kW$.</li><li>Find $\\kvecbhat$, the orthogonal projection of $\\kvecb = \\left[\\begin{array}{r}-5 \\\\ 11 \\\\ 0 \\\\ -1 \\\\ 5 \\\\ \\end{array}\\right]$ onto $\\kW$.</li><li><p>Explain why we know that $\\kvecbhat$ is a linear combination of the original vectors $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ and then find weights so that</p>$$ \\kvecbhat = c_1\\kvecvone + c_2\\kvecvtwo + c_3\\kvecvthree. $$</li><li>Find an orthonormal basis $\\kvecuone$, $\\kvecutwo$, for $\\kvecuthree$ for $\\kW$ and form the matrix $\\kQ$ whose columns are these vectors.</li><li>Find the product $\\kQT\\kQ$ and explain the result.</li><li>Find the matrix $\\kP$ that projects vectors orthogonally onto $\\kW$ and verify that $\\kP\\kvecb$ gives $\\kvecbhat$, the orthogonal projection that you found earlier.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$$ \\kvecwone=\\left[\\begin{array}{r}14 \\\\ -6 \\\\ 8 \\\\ 2 \\\\ -6 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwtwo=\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 0 \\\\ 2 \\\\ -4 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwthree=\\left[\\begin{array}{r}1 \\\\ 3 \\\\ 0 \\\\ -1 \\\\ -1 \\\\ \\end{array}\\right] $$</li><li>$\\kvecbhat=\\left[\\begin{array}{r}-4 \\\\ 9 \\\\ -4 \\\\ -4 \\\\ 3 \\\\ \\end{array}\\right]$</li><li>$\\kvecbhat=-\\frac34\\kvecvone+\\frac12\\kvecvtwo+2\\kvecvthree$.</li><li>$$ \\kvecuone=\\left[\\begin{array}{r}14/\\sqrt{336} \\\\ -6\\sqrt{336} \\\\ 8/\\sqrt{336} \\\\ 2/\\sqrt{336} \\\\ -6/\\sqrt{336} \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-2/\\sqrt{24} \\\\ 0 \\\\ 0 \\\\ 2/\\sqrt{24} \\\\ -4/\\sqrt{24} \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/\\sqrt{12} \\\\ 3/\\sqrt{12} \\\\ 0 \\\\ -1/\\sqrt{12} \\\\ -1/\\sqrt{12} \\\\ \\end{array}\\right] $$<sup class=\"fn\" data-note=\"a3-answer-d\"></sup></li><li>$\\kQT\\kQ=\\kI$</li><li>$\\kP = \\kQ\\kQT = \\begin{bmatrix} 5/6 & 0 & 1/3 & -1/6 & 0 \\\\ 0 & 6/7 & -1/7 & -2/7 & -1/7 \\\\ 1/3 & -1/7 & 4/21 & 1/21 & -1/7 \\\\ -1/6 & -2/7 & 1/21 & 11/42 & -2/7 \\\\ 0 & -1/7 & -1/7 & -2/7 & 6/7 \\end{bmatrix}$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$$ \\kvecwone=\\left[\\begin{array}{r}14 \\\\ -6 \\\\ 8 \\\\ 2 \\\\ -6 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwtwo=\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 0 \\\\ 2 \\\\ -4 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwthree=\\left[\\begin{array}{r}1 \\\\ 3 \\\\ 0 \\\\ -1 \\\\ -1 \\\\ \\end{array}\\right] $$</li><li>$\\kvecbhat=\\left[\\begin{array}{r}-4 \\\\ 9 \\\\ -4 \\\\ -4 \\\\ 3 \\\\ \\end{array}\\right]$</li><li>We know that $\\kvecbhat$ is in $\\kW$ and $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ is a basis for $\\kW$. We find $\\kvecbhat=-\\frac34\\kvecvone+\\frac12\\kvecvtwo+2\\kvecvthree$.</li><li>$$ \\kvecuone=\\left[\\begin{array}{r}14/\\sqrt{336} \\\\ -6\\sqrt{336} \\\\ 8/\\sqrt{336} \\\\ 2/\\sqrt{336} \\\\ -6/\\sqrt{336} \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-2/\\sqrt{24} \\\\ 0 \\\\ 0 \\\\ 2/\\sqrt{24} \\\\ -4/\\sqrt{24} \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/\\sqrt{12} \\\\ 3/\\sqrt{12} \\\\ 0 \\\\ -1/\\sqrt{12} \\\\ -1/\\sqrt{12} \\\\ \\end{array}\\right] $$<sup class=\"fn\" data-note=\"a3-solution-d\"></sup></li><li>$\\kQT\\kQ=\\kI$ since the matrix product computes the dot products of the columns of $\\kQ$.</li><li>$\\kP = \\kQ\\kQT = \\begin{bmatrix} 5/6 & 0 & 1/3 & -1/6 & 0 \\\\ 0 & 6/7 & -1/7 & -2/7 & -1/7 \\\\ 1/3 & -1/7 & 4/21 & 1/21 & -1/7 \\\\ -1/6 & -2/7 & 1/21 & 11/42 & -2/7 \\\\ 0 & -1/7 & -1/7 & -2/7 & 6/7 \\end{bmatrix}$</li></ol>"
+   },
+   "changes": "The empty Sage cells of parts a and d are left out."
+  },
+  {
+   "id": "a4",
+   "source_id": "6.4.4",
+   "source_number": "6.4.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "qr-intro"
+   },
+   "cite": "qr-intro",
+   "prompt": "<p>Suppose that $\\kA$ is the $4\\times3$ matrix whose columns are</p>$$ \\kvecvone = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo = \\left[\\begin{array}{r}1 \\\\ 3 \\\\ 2 \\\\ 2 \\end{array}\\right],\\hspace{24pt} \\kvecvthree = \\left[\\begin{array}{r}1 \\\\ -3 \\\\ -3 \\\\ -3 \\end{array}\\right]\\text{.} $$<p>These vectors form a basis for $\\kW$, the subspace of ${\\mathbb R}^4$ that we encountered in <a href=\"#6.4-ex-a2\">Activity 6.4.2</a>. Since these vectors are the columns of $\\kA$, we have $\\kCol(\\kA) = \\kW$.</p><ol type=\"a\"><li><p>When we implemented Gram-Schmidt, we first found an orthogonal basis $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ using</p>$$ \\begin{aligned} \\kvecwone & = \\kvecvone \\\\ \\kvecwtwo & = \\kvecvtwo - \\frac{\\kvecvtwo\\cdot\\kvecwone}{\\kvecwone\\cdot\\kvecwone}\\kvecwone \\\\ \\kvecwthree & = \\kvecvthree - \\frac{\\kvecvthree\\cdot\\kvecwone}{\\kvecwone\\cdot\\kvecwone}\\kvecwone - \\frac{\\kvecvthree\\cdot\\kvecwtwo}{\\kvecwtwo\\cdot\\kvecwtwo}\\kvecwtwo\\text{.} \\\\ \\end{aligned} $$<p>Use these expressions to write $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ as linear combinations of $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$.</p></li><li><p>We next normalized the orthogonal basis $\\kvecwone$, $\\kvecwtwo$, and $\\kvecwthree$ to obtain an orthonormal basis $\\kvecuone$, $\\kvecutwo$, and $\\kvecuthree$.</p><p>Write the vectors $\\kvecwi$ as scalar multiples of $\\kvecui$. Then use these expressions to write $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ as linear combinations of $\\kvecuone$, $\\kvecutwo$, and $\\kvecuthree$.</p></li><li>Suppose that $\\kQ = \\left[ \\begin{array}{ccc} \\kvecuone & \\kvecutwo & \\kvecuthree \\end{array} \\right]$. Use the result of the previous part to find a vector $\\htmlClass{kv-vector}{{\\mathbf r}_1}$ so that $\\kQ\\htmlClass{kv-vector}{{\\mathbf r}_1} = \\kvecvone$.</li><li>Then find vectors $\\htmlClass{kv-vector}{{\\mathbf r}_2}$ and $\\htmlClass{kv-vector}{{\\mathbf r}_3}$ such that $\\kQ\\htmlClass{kv-vector}{{\\mathbf r}_2} = \\kvecvtwo$ and $\\kQ\\htmlClass{kv-vector}{{\\mathbf r}_3} = \\kvecvthree$.</li><li>Construct the matrix $\\kR = \\left[ \\begin{array}{ccc} \\htmlClass{kv-vector}{{\\mathbf r}_1} & \\htmlClass{kv-vector}{{\\mathbf r}_2} & \\htmlClass{kv-vector}{{\\mathbf r}_3} \\end{array} \\right]$. Remembering that $\\kA = \\left[ \\begin{array}{ccc} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{array} \\right]$, explain why $\\kA = \\kQ\\kR$.</li><li>What is special about the shape of $\\kR$?</li><li>Suppose that $\\kA$ is a $10\\times 6$ matrix whose columns are linearly independent. This means that the columns of $\\kA$ form a basis for $\\kW=\\kCol(\\kA)$, a 6-dimensional subspace of ${\\mathbb R}^{10}$. Suppose that we apply Gram-Schmidt orthogonalization to create an orthonormal basis whose vectors form the columns of $\\kQ$ and that we write $\\kA=\\kQ\\kR$. What are the shape of $\\kQ$ and what the shape of $\\kR$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$$ \\begin{aligned} \\kvecvone & = \\kvecwone \\\\ \\kvecvtwo & = 2\\kvecwone + \\kvecwtwo \\\\ \\kvecvthree & = -2\\kvecwone - 2\\kvecwtwo + \\kvecwthree \\\\ \\end{aligned} $$</li><li>$$ \\begin{aligned} \\kvecvone & = 2\\kvecuone \\\\ \\kvecvtwo & = 4\\kvecuone + \\sqrt{2}\\kvecutwo \\\\ \\kvecvthree & = -4\\kvecuone - 2\\sqrt{2}\\kvecutwo + 2\\kvecuthree \\\\ \\end{aligned} $$</li><li>$\\kvecvone = \\kQ\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 0 \\end{array}\\right]$.</li><li>$\\kvecvtwo = \\kQ\\left[\\begin{array}{r}4 \\\\ \\sqrt{2} \\\\ 0 \\end{array}\\right]$ and $\\kvecvthree=\\kQ\\left[\\begin{array}{r}-4 \\\\ -2\\sqrt{2} \\\\ 2 \\end{array}\\right]$.</li><li>We have $\\kQ\\kR = \\begin{bmatrix} \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_1} & \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_2} & \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_3} \\end{bmatrix} = \\kA$.</li><li>$\\kR$ is upper triangular.</li><li>$\\kQ$ will be $10\\times6$ and $\\kR$ will be $6\\times 6$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$$ \\begin{aligned} \\kvecwone & = \\kvecvone \\\\ \\kvecwtwo & = \\kvecvtwo - 2\\kvecwone \\\\ \\kvecwthree & = \\kvecvthree + 2\\kvecwone + 2\\kvecwtwo \\\\ \\end{aligned} $$<p>Therefore,</p>$$ \\begin{aligned} \\kvecvone & = \\kvecwone \\\\ \\kvecvtwo & = 2\\kvecwone + \\kvecwtwo \\\\ \\kvecvthree & = -2\\kvecwone - 2\\kvecwtwo + \\kvecwthree \\\\ \\end{aligned} $$</li><li><p>$\\kvecwi = \\left|\\kvecwi\\right|\\kvecui$ so we have</p>$$ \\kvecwone = 2\\kvecuone,\\hspace{24pt} \\kvecwone = \\sqrt{2}\\kvecutwo,\\hspace{24pt} \\kvecwone = 2\\kvecuthree\\text{.} $$<sup class=\"fn\" data-note=\"a4-solution-b\"></sup><p>This leads to</p>$$ \\begin{aligned} \\kvecvone & = 2\\kvecuone \\\\ \\kvecvtwo & = 4\\kvecuone + \\sqrt{2}\\kvecutwo \\\\ \\kvecvthree & = -4\\kvecuone - 2\\sqrt{2}\\kvecutwo + 2\\kvecuthree \\\\ \\end{aligned} $$</li><li>Since $\\kvecvone = 2\\kvecuone$, we have $\\kvecvone = \\kQ\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 0 \\end{array}\\right]$.</li><li>In the same way, we have $\\kvecvtwo = \\kQ\\left[\\begin{array}{r}4 \\\\ \\sqrt{2} \\\\ 0 \\end{array}\\right]$ and $\\kvecvthree=\\kQ\\left[\\begin{array}{r}-4 \\\\ -2\\sqrt{2} \\\\ 2 \\end{array}\\right]$.</li><li>We have $\\kQ\\kR = \\begin{bmatrix} \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_1} & \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_2} & \\kQ\\htmlClass{kv-vector}{{\\mathbf r}_3} \\end{bmatrix} = \\kA$.</li><li>$\\kR=\\begin{bmatrix} 2 & 4 & -4 \\\\ 0 & \\sqrt{2} & -2\\sqrt{2} \\\\ 0 & 0 & 2 \\\\ \\end{bmatrix}$ so $\\kR$ is upper triangular.</li><li>$\\kQ$ will be $10\\times6$ and $\\kR$ will be a $6\\times 6$ upper triangular matrix.</li></ol>"
+   },
+   "changes": "The empty Sage cell after the statement is left out."
+  },
+  {
+   "id": "a5",
+   "source_id": "6.4.5",
+   "source_number": "6.4.5",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "qr-value"
+   },
+   "cite": "prop-qr",
+   "prompt": "<p>As before, we would like to use Sage to automate the process of finding and using the $QR$ factorization of a matrix $\\kA$. Evaluating the following cell provides a command <code>QR(A)</code> that returns the factorization, which may be stored using, for example, <code>Q, R = QR(A)</code>.</p><pre class=\"sage\"><code>sage.repl.load.load(\"https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py\", globals())</code></pre><p>Suppose that $\\kA$ is the following matrix whose columns are linearly independent.</p>$$ \\kA = \\begin{bmatrix} 1 & 0 & -3 \\\\ 0 & 2 & -1 \\\\ 1 & 0 & 1 \\\\ 1 & 3 & 5 \\\\ \\end{bmatrix}. $$<ol type=\"a\"><li>If $\\kA=\\kQ\\kR$, what is the shape of $\\kQ$ and $\\kR$? What is special about the form of $\\kR$?</li><li>Find the $QR$ factorization using <code>Q, R = QR(A)</code> and verify that $\\kR$ has the predicted shape and that $\\kA=\\kQ\\kR$.</li><li>Find the matrix $\\kP$ that orthogonally projects vectors onto $\\kCol(\\kA)$.</li><li>Find $\\kvecbhat$, the orthogonal projection of $\\kvecb=\\left[\\begin{array}{r}4 \\\\ -17 \\\\ -14 \\\\ 22 \\end{array}\\right]$ onto $\\kCol(\\kA)$.</li><li>Explain why the equation $\\kA\\kvecx=\\kvecbhat$ must be consistent and then find $\\kvecx$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kQ$ is $4\\times3$ and $\\kR$ is a $3\\times3$ upper triangular matrix.</li><li><p>We see that</p>$$ \\kQ=\\begin{bmatrix} 1/\\sqrt{3} & -1/\\sqrt{10} & -3/\\sqrt{23} \\\\ 0 & 2/\\sqrt{10} & -3/\\sqrt{23} \\\\ 1/\\sqrt{3} & -1/\\sqrt{10} & 1/\\sqrt{23} \\\\ 1/\\sqrt{3} & 2/\\sqrt{10} & 2/\\sqrt{23} \\\\ \\end{bmatrix},\\hspace{24pt} \\kR = \\begin{bmatrix} \\sqrt{3} & \\sqrt{3} & \\sqrt{3} \\\\ 0 & \\sqrt{10} & \\sqrt{10} \\\\ 0 & 0 & \\sqrt{23} \\end{bmatrix} $$</li><li>$\\kP=\\kQ\\kQT = \\begin{bmatrix} 569/690 & 22/115 & 209/690 & -44/345 \\\\ 22/115 & 91/115 & -38/115 & 16/115 \\\\ 209/690 & -38/115 & 329/690 & 76/345 \\\\ -44/345 & 16/115 & 76/345 & 313/345 \\\\ \\end{bmatrix}$</li><li>$\\kvecbhat = \\left[\\begin{array}{r}-7 \\\\ -5 \\\\ 5 \\\\ 14 \\end{array}\\right]$</li><li>$\\kvecx = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ 3 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kQ$ is $4\\times3$ and $\\kR$ is a $3\\times3$ upper triangular matrix.</li><li><p>We see that</p>$$ \\kQ=\\begin{bmatrix} 1/\\sqrt{3} & -1/\\sqrt{10} & -3/\\sqrt{23} \\\\ 0 & 2/\\sqrt{10} & -3/\\sqrt{23} \\\\ 1/\\sqrt{3} & -1/\\sqrt{10} & 1/\\sqrt{23} \\\\ 1/\\sqrt{3} & 2/\\sqrt{10} & 2/\\sqrt{23} \\\\ \\end{bmatrix},\\hspace{24pt} \\kR = \\begin{bmatrix} \\sqrt{3} & \\sqrt{3} & \\sqrt{3} \\\\ 0 & \\sqrt{10} & \\sqrt{10} \\\\ 0 & 0 & \\sqrt{23} \\end{bmatrix} $$</li><li>$\\kP=\\kQ\\kQT = \\begin{bmatrix} 569/690 & 22/115 & 209/690 & -44/345 \\\\ 22/115 & 91/115 & -38/115 & 16/115 \\\\ 209/690 & -38/115 & 329/690 & 76/345 \\\\ -44/345 & 16/115 & 76/345 & 313/345 \\\\ \\end{bmatrix}$</li><li>$\\kvecbhat = \\kQ\\kQT\\kvecb = \\left[\\begin{array}{r}-7 \\\\ -5 \\\\ 5 \\\\ 14 \\end{array}\\right]$</li><li>Since $\\kvecbhat$ is in $\\kCol(\\kA)$, the system $\\kA\\kvecx=\\kvecbhat$ must be consistent. We find a solution by augmenting $\\kA$ by $\\kvecbhat$ and row reducing: $\\kvecx = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ 3 \\end{array}\\right]$.</li></ol>"
+   },
+   "changes": "The empty Sage cell of part b is left out."
+  },
+  {
+   "id": "e1",
+   "source_id": "6.4.1",
+   "source_number": "6.4.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "gram-schmidt-general",
+   "prompt": "<p>Suppose that a subspace $\\kW$ of ${\\mathbb R}^3$ has a basis formed by</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right], \\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}1 \\\\ -2 \\\\ -2 \\end{array}\\right]. $$<ol type=\"a\"><li>Find an orthogonal basis for $\\kW$.</li><li>Find an orthonormal basis for $\\kW$.</li><li>Find the matrix $\\kP$ that projects vectors orthogonally onto $\\kW$.</li><li>Find the orthogonal projection of $\\left[\\begin{array}{r}3 \\\\ 4 \\\\ -2 \\end{array}\\right]$ onto $\\kW$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecwone=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right]$ and $\\kvecwtwo = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ -1 \\end{array}\\right]$</li><li>$\\kvecuone=\\left[\\begin{array}{r}1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\end{array}\\right]$ and $\\kvecutwo = \\left[\\begin{array}{r}2/\\sqrt{6} \\\\ -1/\\sqrt{6} \\\\ -1/\\sqrt{6} \\end{array}\\right]$</li><li>$\\kP = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1/2 & 1/2 \\\\ 0 & 1/2 & 1/2 \\\\ \\end{bmatrix}$</li><li>$\\left[\\begin{array}{r}3 \\\\ 1 \\\\ 1 \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecwone=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right]$ and $\\kvecwtwo = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ -1 \\end{array}\\right]$</li><li>$\\kvecuone=\\left[\\begin{array}{r}1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\end{array}\\right]$ and $\\kvecutwo = \\left[\\begin{array}{r}2/\\sqrt{6} \\\\ -1/\\sqrt{6} \\\\ -1/\\sqrt{6} \\end{array}\\right]$</li><li>$\\kP = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1/2 & 1/2 \\\\ 0 & 1/2 & 1/2 \\\\ \\end{bmatrix}$</li><li>$\\left[\\begin{array}{r}3 \\\\ 1 \\\\ 1 \\end{array}\\right]$</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "6.4.2",
+   "source_number": "6.4.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-6-4-6",
+   "prompt": "<p>Find the $QR$ factorization of $\\kA=\\begin{bmatrix} 4 & 7 \\\\ -2 & 4 \\\\ 4 & 4 \\end{bmatrix}$.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><p>$\\kQ=\\begin{bmatrix} 2/3 & 1/\\sqrt{5} \\\\ -1/3 & 2/\\sqrt{5} \\\\ 2/3 & 0 \\end{bmatrix}$ and $\\kR = \\begin{bmatrix} 6 & 6 \\\\ 0 & 3\\sqrt{5} \\end{bmatrix}$</p><p><strong>Solution.</strong></p><p>Applying Gram-Schmidt, we have $\\kvecwone=\\left[\\begin{array}{r}4 \\\\ -2 \\\\ 4 \\end{array}\\right]$ and $\\kvecwtwo=\\left[\\begin{array}{r}3 \\\\ 6 \\\\ 0 \\end{array}\\right]$, which leads to $\\kvecuone=\\left[\\begin{array}{r}2/3 \\\\ -1/3 \\\\ 2/3 \\end{array}\\right]$ and $\\kvecutwo=\\left[\\begin{array}{r}1/\\sqrt{5} \\\\ 2/\\sqrt{5} \\\\ 0 \\end{array}\\right]$. It therefore follows that $\\kvecvone = 6\\kvecuone$ and $\\kvecvtwo = 6\\kvecuone + 3\\sqrt{5}\\kvecutwo$. This leads to $\\kA=\\kQ\\kR$ where $\\kQ=\\begin{bmatrix} 2/3 & 1/\\sqrt{5} \\\\ -1/3 & 2/\\sqrt{5} \\\\ 2/3 & 0 \\end{bmatrix}$ and $\\kR = \\begin{bmatrix} 6 & 6 \\\\ 0 & 3\\sqrt{5} \\end{bmatrix}$.</p>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "6.4.3",
+   "source_number": "6.4.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-6-4-6",
+   "prompt": "<p>Consider the basis of ${\\mathbb R}^3$ given by the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}2 \\\\ -2 \\\\ 2 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}-1 \\\\ -3 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvthree=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ -5 \\end{array}\\right]\\text{.} $$<ol type=\"a\"><li>Apply the Gram-Schmit orthogonalization algorithm to find an orthonormal basis $\\kvecuone$, $\\kvecutwo$, $\\kvecuthree$ for ${\\mathbb R}^3$.</li><li>If $\\kA$ is the $3\\times3$ whose columns are $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$, find the $QR$ factorization of $\\kA$.</li><li><p>Suppose that we want to solve the equation $\\kA\\kvecx=\\kvecb = \\left[\\begin{array}{r}-9 \\\\ 1 \\\\ 7 \\end{array}\\right]$, which we can rewrite as $\\kQ\\kR\\kvecx = \\kvecb$.</p><ol><li>If we set $\\kvecy=\\kR\\kvecx$, the equation $\\kQ\\kR\\kvecx=\\kvecb$ becomes $\\kQ\\kvecy=\\kvecb$. Explain how to solve the equation $\\kQ\\kvecy=\\kvecb$ in a computationally efficient manner.</li><li>Explain how to solve the equation $\\kR\\kvecx=\\kvecy$ in a computationally efficient manner.</li><li>Find the solution $\\kvecx$ by first solving $\\kQ\\kvecy = \\kvecb$ and then $\\kR\\kvecx = \\kvecy$.</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$$ \\kvecuone=\\left[\\begin{array}{r}1/\\sqrt{3} \\\\ -1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\end{array}\\right], \\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\\\ 0 \\end{array}\\right], \\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/\\sqrt{6} \\\\ -1/\\sqrt{6} \\\\ -2/\\sqrt{6} \\end{array}\\right], $$</li><li>$$ \\kQ = \\begin{bmatrix} 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\\\ -1/\\sqrt{3} & -1/\\sqrt{2} & -1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ \\end{bmatrix},\\hspace{24pt} \\kR = \\begin{bmatrix} 2\\sqrt{3} & \\sqrt{3} & -\\sqrt{3} \\\\ 0 & 2\\sqrt{2} & -\\sqrt{2} \\\\ 0 & 0 & 2\\sqrt{6} \\end{bmatrix} $$</li><li><ol><li>$\\kvecy = \\kQT\\kvecb$.</li><li>$\\kR$ is upper triangular</li><li>$\\kvecx = \\left[\\begin{array}{r}-2 \\\\ 1 \\\\ -2 \\end{array}\\right]$</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find that</p>$$ \\kvecuone=\\left[\\begin{array}{r}1/\\sqrt{3} \\\\ -1/\\sqrt{3} \\\\ 1/\\sqrt{3} \\end{array}\\right], \\hspace{24pt} \\kvecutwo=\\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\\\ 0 \\end{array}\\right], \\hspace{24pt} \\kvecuthree=\\left[\\begin{array}{r}1/\\sqrt{6} \\\\ -1/\\sqrt{6} \\\\ -2/\\sqrt{6} \\end{array}\\right], $$</li><li>$$ \\kQ = \\begin{bmatrix} 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\\\ -1/\\sqrt{3} & -1/\\sqrt{2} & -1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ \\end{bmatrix},\\hspace{24pt} \\kR = \\begin{bmatrix} 2\\sqrt{3} & \\sqrt{3} & -\\sqrt{3} \\\\ 0 & 2\\sqrt{2} & -\\sqrt{2} \\\\ 0 & 0 & 2\\sqrt{6} \\end{bmatrix} $$</li><li><ol><li>Since $\\kQT\\kQ = \\kI$, we have $\\kvecy = \\kQT\\kvecb$.</li><li>$\\kR$ is upper triangular so this equation can be solved using back substitution.</li><li>$\\kvecx = \\left[\\begin{array}{r}-2 \\\\ 1 \\\\ -2 \\end{array}\\right]$</li></ol></li></ol>"
+   },
+   "changes": "The empty Sage cell after the statement is left out."
+  },
+  {
+   "id": "e4",
+   "source_id": "6.4.4",
+   "source_number": "6.4.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "gram-schmidt-general",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ -1 \\\\ 1 \\\\ 1 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 4 \\\\ -4 \\\\ 2 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecvthree=\\left[\\begin{array}{r}5 \\\\ -4 \\\\ -3 \\\\ 7 \\\\ 1 \\\\ \\end{array}\\right] $$<p>and the subspace $\\kW$ of ${\\mathbb R}^5$ that they span.</p><ol type=\"a\"><li>Find an orthonormal basis for $\\kW$.</li><li>Find the $5\\times5$ matrix that projects vectors orthogonally onto $\\kW$.</li><li>Find $\\kvecbhat$, the orthogonal projection of $\\kvecb=\\left[\\begin{array}{r}-8 \\\\ 3 \\\\ -12 \\\\ 8 \\\\ -4 \\\\ \\end{array}\\right]$ onto $\\kW$.</li><li>Express $\\kvecbhat$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$$ \\kvecwone =\\left[\\begin{array}{r}1 \\\\ -1 \\\\ -1 \\\\ 1 \\\\ 1 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwtwo =\\left[\\begin{array}{r}3 \\\\ 0 \\\\ 3 \\\\ -3 \\\\ 3 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwthree =\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 2 \\\\ 2 \\\\ -2 \\\\ \\end{array}\\right],\\hspace{24pt} $$</li><li>$$ \\begin{bmatrix} 7/10 & -1/5 & 3/10 & 1/5 & 1/5 \\\\ -1/5 & 1/5 & 1/5 & -1/5& -1/5 \\\\ 3/10 & 1/5 & 7/10 & -1/5 & -1/5 \\\\ 1/5 & -1/5 & -1/5 & 7/10 & -3/10 \\\\ 1/5 & -1/5 & -1/5 & -3/10 & 7/10 \\\\ \\end{bmatrix} $$</li><li>$\\kvecbhat = \\left[\\begin{array}{r}-9 \\\\ -1 \\\\ -11 \\\\ 7 \\\\ -5 \\\\ \\end{array}\\right]$</li><li>$\\kvecbhat = \\kvecvone - \\frac83\\kvecvtwo -\\kvecvthree$<sup class=\"fn\" data-note=\"e4-answer-d\"></sup></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Applying Gram-Schmidt gives us</p>$$ \\kvecwone =\\left[\\begin{array}{r}1 \\\\ -1 \\\\ -1 \\\\ 1 \\\\ 1 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwtwo =\\left[\\begin{array}{r}3 \\\\ 0 \\\\ 3 \\\\ -3 \\\\ 3 \\\\ \\end{array}\\right],\\hspace{24pt} \\kvecwthree =\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 2 \\\\ 2 \\\\ -2 \\\\ \\end{array}\\right],\\hspace{24pt} $$</li><li><p>Let $\\kQ$ be the matrix whose columns are the orthonormal basis that results from Gram-Schmidt. Then</p>$$ \\kQ\\kQT = \\begin{bmatrix} 7/10 & -1/5 & 3/10 & 1/5 & 1/5 \\\\ -1/5 & 1/5 & 1/5 & -1/5& -1/5 \\\\ 3/10 & 1/5 & 7/10 & -1/5 & -1/5 \\\\ 1/5 & -1/5 & -1/5 & 7/10 & -3/10 \\\\ 1/5 & -1/5 & -1/5 & -3/10 & 7/10 \\\\ \\end{bmatrix} $$</li><li>$\\kvecbhat = \\kQ\\kQT\\kvecb = \\left[\\begin{array}{r}-9 \\\\ -1 \\\\ -11 \\\\ 7 \\\\ -5 \\\\ \\end{array}\\right]$</li><li>$\\kvecbhat = \\kvecvone - \\frac83\\kvecvtwo -\\kvecvthree$<sup class=\"fn\" data-note=\"e4-solution-d\"></sup></li></ol>"
+   },
+   "changes": "The empty Sage cell after the statement is left out."
+  },
+  {
+   "id": "e5",
+   "source_id": "6.4.5",
+   "source_number": "6.4.5",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "gram-schmidt-general",
+   "prompt": "<p>Consider the set of vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}1 \\\\ 2 \\\\ 2 \\end{array}\\right],\\hspace{24pt} \\kvecvthree=\\left[\\begin{array}{r}3 \\\\ 0 \\\\ 0 \\end{array}\\right]. $$<ol type=\"a\"><li>What happens when we apply the Gram-Schmit orthogonalization algorithm?</li><li>Why does the algorithm fail to produce an orthogonal basis for ${\\mathbb R}^3$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>We find $\\kvecw=\\kveczero$<sup class=\"fn\" data-note=\"e5-answer-a\"></sup>.</li><li>This set of vectors is linearly dependent.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find</p>$$ \\kvecwone = \\left[\\begin{array}{r}2 \\\\ 1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecwtwo = \\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecwthree = \\left[\\begin{array}{r}0 \\\\ 0 \\\\ 0 \\end{array}\\right] $$<p>Since $\\kvecwthree=\\kveczero$, this does not produce a basis for ${\\mathbb R}^3$.</p></li><li>The vector $\\kvecvthree=2\\kvecvone-\\kvecvtwo$ so this set of vectors is linearly dependent. Since $\\kvecvthree$ is in the span of $\\kvecvone$ and $\\kvecvtwo$, projecting $\\kvecvthree$ into that subspace gives $\\kvecvthreehat = \\kvecvthree$ so that $\\kvecwthree = \\kvecvthree - \\kvecvthreehat = \\kveczero$.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "6.4.6",
+   "source_number": "6.4.6",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-qr",
+   "prompt": "<p>Suppose that $\\kA$ is a matrix with linearly independent columns and having the factorization $\\kA=\\kQ\\kR$. Determine whether the following statements are true or false and explain your thinking.</p><ol type=\"a\"><li>It follows that $\\kR=\\kQT\\kA$.</li><li>The matrix $\\kR$ is invertible.</li><li>The product $\\kQT\\kQ$ projects vectors orthogonally onto $\\kCol(\\kA)$.</li><li>The columns of $\\kQ$ are an orthogonal basis for $\\kCol(\\kA)$.</li><li>The orthogonal complement $\\kCol(\\kA)^\\perp = \\kNul(\\kQT)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>True</li><li>True</li><li>False</li><li>True</li><li>True</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>True. Since $\\kQT\\kQ=\\kI$, we have $\\kQT\\kA = \\kQT\\kQ\\kR = \\kR$.</li><li>True. Since $\\kR$ is upper triangular and the diagonal entries of $\\kR$ are the lengths of the nonzero vectors $\\kvecwj$, we have $\\det(\\kR)\\neq 0$, which means that $\\kR$ is invertible.</li><li>False, because $\\kQT\\kQ=\\kI$.</li><li>True. In fact, they are an orthonormal basis for $\\kCol(\\kA)$.</li><li>True. If $\\kQT\\kvecx = \\kveczero$, then $\\kvecui\\cdot\\kvecx=0$ for every vector in an orthonormal basis of $\\kCol(\\kA)$. Therefore, $\\kvecx$ is orthogonal to $\\kCol(\\kA)$.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "6.4.7",
+   "source_number": "6.4.7",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-qr",
+   "prompt": "<p>Suppose we have the $QR$ factorization $\\kA=\\kQ\\kR$, where $\\kA$ is a $7\\times 4$ matrix.</p><ol type=\"a\"><li>What is the shape of the product $\\kQ\\kQT$? Explain the significance of this product.</li><li>What is the shape of the product $\\kQT\\kQ$? Explain the significance of this product.</li><li>What is the shape of the matrix $\\kR$?</li><li>If $\\kR$ is a diagonal matrix, what can you say about the columns of $\\kA$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$7\\times7$</li><li>$4\\times4$</li><li>$4\\times4$</li><li>They form an orthogonal set.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kQ\\kQT$ is $7\\times7$ and projects vectors orthogonally onto $\\kCol(\\kA)$.</li><li>$\\kQT\\kQ$ is the $4\\times4$ identity matrix because the product computes dot products between the columns of $\\kQ$.</li><li>$\\kR$ is a $4\\times4$ upper triangular matrix.</li><li>The columns of $\\kA$ form an orthogonal set.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "6.4.8",
+   "source_number": "6.4.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-qr",
+   "prompt": "<p>Suppose we have the $QR$ factorization $\\kA=\\kQ\\kR$ where the columns of $\\kA$ are $\\htmlClass{kv-vector}{{\\mathbf a}_1},\\htmlClass{kv-vector}{{\\mathbf a}_2},\\ldots,\\htmlClass{kv-vector}{{\\mathbf a}_n}$ and the columns of $\\kR$ are $\\htmlClass{kv-vector}{{\\mathbf r}_1},\\htmlClass{kv-vector}{{\\mathbf r}_2},\\ldots,\\htmlClass{kv-vector}{{\\mathbf r}_n}$.</p><ol type=\"a\"><li>How can the matrix product $\\kAT\\kA$ be expressed in terms of dot products?</li><li>How can the matrix product $\\kR^T\\kR$ be expressed in terms of dot products?</li><li>Explain why $\\kAT\\kA=\\kR^T\\kR$.</li><li>Explain why the dot products $\\kvecai\\cdot\\htmlClass{kv-vector}{{\\mathbf a}_j} = \\kvecri\\cdot\\htmlClass{kv-vector}{{\\mathbf r}_j}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecai\\cdot\\htmlClass{kv-vector}{{\\mathbf a}_j}$</li><li>$\\kvecri\\cdot\\htmlClass{kv-vector}{{\\mathbf r}_j}$</li><li>$\\kAT\\kA = (\\kQ\\kR)^T(\\kQ\\kR) = \\kR^T\\kR$</li><li>This follows from the previous parts of this exercise.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The entries of $\\kAT\\kA$ are the dot products $\\kvecai\\cdot\\htmlClass{kv-vector}{{\\mathbf a}_j}$.</li><li>The entries of $\\kR^T\\kR$ are the dot products $\\kvecri\\cdot\\htmlClass{kv-vector}{{\\mathbf r}_j}$.</li><li>$\\kAT\\kA = (\\kQ\\kR)^T(\\kQ\\kR) = \\kR^T\\kQT\\kQ\\kR = \\kR^T\\kI\\kR = \\kR^T\\kR$</li><li>This follows from the previous parts of this exercise.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "a1",
+   "concept": "vector-projection"
+  },
+  {
+   "exercise": "a1",
+   "concept": "orthogonal-basis"
+  },
+  {
+   "exercise": "a1",
+   "concept": "coordinates-in-an-orthogonal-basis"
+  },
+  {
+   "exercise": "a1",
+   "concept": "normalization"
+  },
+  {
+   "exercise": "a2",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "a2",
+   "concept": "projection-onto-a-subspace"
+  },
+  {
+   "exercise": "a2",
+   "concept": "gram-schmidt-preserves-the-span"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orthonormal-basis"
+  },
+  {
+   "exercise": "a3",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "a3",
+   "concept": "projection-onto-a-subspace"
+  },
+  {
+   "exercise": "a3",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "a3",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "a4",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "a4",
+   "concept": "finding-a-qr-factorization"
+  },
+  {
+   "exercise": "a4",
+   "concept": "triangular-matrix"
+  },
+  {
+   "exercise": "a5",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "a5",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "a5",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "e1",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "e1",
+   "concept": "orthonormal-basis"
+  },
+  {
+   "exercise": "e1",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e1",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "e2",
+   "concept": "finding-a-qr-factorization"
+  },
+  {
+   "exercise": "e3",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "e3",
+   "concept": "finding-a-qr-factorization"
+  },
+  {
+   "exercise": "e3",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "e3",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "e3",
+   "concept": "backsubstitution"
+  },
+  {
+   "exercise": "e4",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "e4",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e4",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e5",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "e5",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e6",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "e6",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "e6",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e6",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "e7",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "e7",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e7",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "e8",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "e8",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "e8",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "e8",
+   "concept": "dot-product-via-transpose"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "a2-answer-c",
+   "kind": "correction",
+   "html": "The book prints “a linear combination of $\\kvecvone$ and $\\kvecvone$”; the combination meant is of $\\kvecvone$ and $\\kvecvtwo$."
+  },
+  {
+   "id": "a2-solution-c-1",
+   "kind": "correction",
+   "html": "The book prints “a linear combination of $\\kvecvone$ and $\\kvecvone$”; the combination meant is of $\\kvecvone$ and $\\kvecvtwo$."
+  },
+  {
+   "id": "a2-solution-c-2",
+   "kind": "correction",
+   "html": "The book prints “a linear combination of $\\kvecvone$ and $\\kvecvone$” again; the combination meant is of $\\kvecvone$ and $\\kvecvtwo$."
+  },
+  {
+   "id": "a3-answer-d",
+   "kind": "correction",
+   "html": "The second entry of $\\kvecuone$ prints as $-6\\sqrt{336}$; it is $-6/\\sqrt{336}$, since $\\kvecuone = \\kvecwone/\\left|\\kvecwone\\right|$ and $\\left|\\kvecwone\\right| = \\sqrt{336}$."
+  },
+  {
+   "id": "a3-solution-d",
+   "kind": "correction",
+   "html": "The second entry of $\\kvecuone$ prints as $-6\\sqrt{336}$ here too; it is $-6/\\sqrt{336}$."
+  },
+  {
+   "id": "a4-solution-b",
+   "kind": "correction",
+   "html": "The book writes $\\kvecwone$ on the left of all three equations; they are $\\kvecwone = 2\\kvecuone$, $\\kvecwtwo = \\sqrt{2}\\kvecutwo$ and $\\kvecwthree = 2\\kvecuthree$, since $\\left|\\kvecwone\\right| = 2$, $\\left|\\kvecwtwo\\right| = \\sqrt{2}$ and $\\left|\\kvecwthree\\right| = 2$."
+  },
+  {
+   "id": "e4-answer-d",
+   "kind": "correction",
+   "html": "These weights do not give $\\kvecbhat$: $\\kvecvone - \\frac83\\kvecvtwo - \\kvecvthree$ has first entry $-28/3$. Solving $c_1\\kvecvone + c_2\\kvecvtwo + c_3\\kvecvthree = \\kvecbhat$ gives $\\kvecbhat = 2\\kvecvone - 3\\kvecvtwo - \\kvecvthree$, which is the $\\kvecbhat$ of part c."
+  },
+  {
+   "id": "e4-solution-d",
+   "kind": "correction",
+   "html": "As in the answer, the weights are $2$, $-3$ and $-1$: $\\kvecbhat = 2\\kvecvone - 3\\kvecvtwo - \\kvecvthree$."
+  },
+  {
+   "id": "e5-answer-a",
+   "kind": "correction",
+   "html": "The book prints $\\kvecw$; the vector that comes out zero is $\\kvecwthree$, as the solution says."
+  }
+ ]
+}
