@@ -1,0 +1,136 @@
+<section id="opening">
+<h2>Another way to solve Ax = b</h2>
+<p id="another-way">Up to this point, we have used the <span data-concept="gauss-jordan-elimination">Gaussian elimination</span> algorithm to find <span data-concept="solution-of-a-linear-system">solutions</span> to <span data-concept="linear-system-of-equations">linear systems</span>. We now investigate another way to find solutions to the <span data-concept="matrix-equation">equation $\kA\kvecx=\kvecb$</span> when the <span data-concept="matrix">matrix</span> $\kA$ has the same number of rows and columns. To get started, let’s look at some familiar examples.</p>
+</section>
+
+<section id="introduction">
+<h2>Introduction</h2>
+<div class="exercises" data-place="another-way"></div>
+</section>
+
+<section id="invertible-matrices">
+<h2>Invertible matrices</h2>
+<p id="multiplicative-inverse">The preview activity began with a familiar type of equation, $3x = 5$, and asked for a strategy to solve it. One possible response is to divide both sides by 3. Instead, let’s rephrase this as multiplying by $3^{-1} = \frac 13$, the multiplicative inverse of 3.</p>
+<p id="inverse-question">Now that we are interested in solving <span data-concept="matrix-equation">equations of the form $\kA\kvecx = \kvecb$</span>, we might try to find a similar approach. Is there a <span data-concept="matrix">matrix</span> $\kAinv$ that plays the role of the multiplicative inverse of $\kA$? Of course, the real number $0$ does not have a multiplicative inverse so we probably shouldn’t expect every <span data-concept="matrix">matrix</span> to have a multiplicative inverse. We will see, however, that many do.</p>
+<div class="note" id="definition-3-1-1">
+<div class="eyebrow">Definition 3.1.1</div>
+<p>An $n\times n$ <span data-concept="matrix">matrix</span> $\kA$ is called <em><span data-concept="invertible-matrix">invertible</span></em> if there is a <span data-concept="matrix">matrix</span> $\kB$ such that <span data-concept="invertible-matrix">$\kA\kB = \kIn$</span>, where $\kIn$ is the $n\times n$ <span data-concept="identity-matrix">identity matrix</span>. The <span data-concept="matrix">matrix</span> $\kB$ is called the <em><span data-concept="matrix-inverse">inverse</span></em> of $\kA$ and denoted $\kAinv$.</p>
+</div>
+<p id="square">Notice that we only define <span data-concept="invertible-matrix">invertibility</span> for <span data-concept="matrix">matrices</span> that have the same number of rows and columns in which case we say that the <span data-concept="matrix">matrix</span> is <em><span data-concept="square-matrix">square</span></em>.</p>
+<div class="example" id="example-3-1-2">
+<h3>Example 3.1.2</h3>
+<p>Suppose that $\kA$ is the <span data-concept="rotation-matrix">matrix that rotates two-dimensional vectors counterclockwise by $90^\circ$</span> and that $\kB$ rotates vectors by $-90^\circ$. We have</p>
+$$ \kA=\left[\begin{array}{rr} 0 &amp; -1 \\ 1 &amp; 0 \\ \end{array}\right],~~~ \kB=\left[\begin{array}{rr} 0 &amp; 1 \\ -1 &amp; 0 \\ \end{array}\right]. $$
+<p>We can check that</p>
+$$ \kA\kB = \begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0 \\ \end{bmatrix} \begin{bmatrix} 0 &amp; 1 \\ -1 &amp; 0 \\ \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ \end{bmatrix} = \kI $$
+<p>which shows that $\kA$ is <span data-concept="invertible-matrix">invertible</span> and that $\kAinv=\kB$.</p>
+<p>Notice that if we multiply the <span data-concept="matrix">matrices</span> in the opposite order, we find that $\kB\kA=\kI$, which says that $\kB$ is also <span data-concept="invertible-matrix">invertible</span> and that $\kBinv = \kA$. In other words, $\kA$ and $\kB$ are <span data-concept="matrix-inverse">inverses</span> of each other.</p>
+</div>
+<figure class="sim" id="sim-inverse-transformation">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>A <span data-concept="matrix">matrix</span> carries the plane’s grid to the grid of its columns, and its <span data-concept="matrix-inverse">inverse</span> carries that grid back: applying $\kA$ and then $\kAinv$ leaves every vector where it started, which is what <span data-concept="inverse-of-an-inverse">$\kAinv\kA = \kI$</span> says. The <span data-concept="solving-with-the-inverse">solution of $\kA\kvecx = \kvecb$ is the vector that $\kA$ carries onto $\kvecb$, and running $\kA$ backward from $\kvecb$ finds it, $\kvecx = \kAinv\kvecb$</span>. A <span data-concept="matrix">matrix</span> whose entries have <span data-concept="inverse-of-a-2x2-matrix">$ad - bc = 0$</span> squashes the whole plane onto a line, and no matrix unfolds a line back into the plane, so it has no <span data-concept="matrix-inverse">inverse</span>.</span></div>
+</figure>
+<div class="exercises" data-place="sim-inverse-transformation"></div>
+<div class="example" id="example-inverse-augment-I">
+<h3>Example 3.1.3</h3>
+<p>We can reformulate this <span data-concept="computing-a-matrix-inverse">procedure for finding the inverse of a matrix</span>. For the sake of convenience, suppose that $\kA$ is a $2\times2$ <span data-concept="invertible-matrix">invertible</span> <span data-concept="matrix">matrix</span> with <span data-concept="matrix-inverse">inverse</span> <span data-concept="matrix-as-columns">$\kB=\begin{bmatrix} \kvecbone &amp; \kvecbtwo \end{bmatrix}$</span>. Rather than solving the equations</p>
+$$ \kA\kvecbone = \left[\begin{array}{r}1 \\ 0 \end{array}\right],~~~ \kA\kvecbtwo = \left[\begin{array}{r}0 \\ 1 \end{array}\right] $$
+<p>separately, we can solve them at the same time by <span data-concept="augmentation">augmenting</span> $\kA$ by both vectors $\left[\begin{array}{r}1 \\ 0 \end{array}\right]$ and $\left[\begin{array}{r}0 \\ 1 \end{array}\right]$ and finding the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span>.</p>
+<p>For example, if $\kA = \begin{bmatrix} 1 &amp; 2 \\ 1 &amp; 1 \\ \end{bmatrix}$, we form</p>
+$$ \left[ \begin{array}{rr|rr} 1 &amp; 2 &amp; 1 &amp; 0 \\ 1 &amp; 1 &amp; 0 &amp; 1 \\ \end{array} \right] \sim \left[ \begin{array}{rr|rr} 1 &amp; 0 &amp; -1 &amp; 2 \\ 0 &amp; 1 &amp; 1 &amp; -1 \\ \end{array} \right]. $$
+<p>This shows that the <span data-concept="matrix">matrix</span> $\kB = \begin{bmatrix} -1 &amp; 2 \\ 1 &amp; 1 \\ \end{bmatrix}$ is the <span data-concept="matrix-inverse">inverse</span> of $\kA$.</p>
+<p>In other words, beginning with $\kA$, we <span data-concept="augmentation">augment</span> by the identify and find the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> to determine $\kAinv$:</p>
+$$ \left[ \begin{array}{r|r} \kA &amp; \kI \\ \end{array} \right] \sim \left[ \begin{array}{r|r} \kI &amp; \kAinv \\ \end{array} \right]. $$
+</div>
+<p id="always-works">In fact, this reformulation will always work. Suppose that $\kA$ is an <span data-concept="invertible-matrix">invertible</span> $n\times n$ <span data-concept="matrix">matrix</span> with <span data-concept="matrix-inverse">inverse</span> $\kB$. Suppose furthermore that $\kvecb$ is any $n$-dimensional <span data-concept="vector">vector</span> and consider the <span data-concept="matrix-equation">equation $\kA\kvecx = \kvecb$</span>. We know that $x=\kB\kvecb$ is a solution because <span data-concept="solving-with-the-inverse">$\kA(\kB\kvecb) = (\kA\kB)\kvecb = \kI\kvecb = \kvecb.$</span></p>
+<div class="note" id="proposition-inverse-solve">
+<div class="eyebrow">Proposition 3.1.4</div>
+<p>If $\kA$ is an <span data-concept="invertible-matrix">invertible</span> <span data-concept="matrix">matrix</span> with <span data-concept="matrix-inverse">inverse</span> $\kB$, then any <span data-concept="matrix-equation">equation $\kA\kvecx = \kvecb$</span> is <span data-concept="consistent-system">consistent</span> and <span data-concept="solving-with-the-inverse">$\kvecx = \kB\kvecb$ is a solution</span>. In other words, the solution to $\kA\kvecx = \kvecb$ is <span data-concept="solving-with-the-inverse">$\kvecx = \kAinv\kvecb$</span>.</p>
+</div>
+<p id="like-3x">Notice that this is similar to saying that the solution to $3x=5$ is $x = \frac13\cdot 5$, as we saw in the preview activity.</p>
+<p id="columns-span">Now since $\kA\kvecx=\kvecb$ is <span data-concept="consistent-system">consistent</span> for every <span data-concept="vector">vector</span> $\kvecb$, the columns of $\kA$ must <span data-concept="pivot-rows-and-span">span ${\mathbb R}^n$ so there is a pivot position in every row</span>. Since $\kA$ is also <span data-concept="square-matrix">square</span>, this means that the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> of $\kA$ is the <span data-concept="identity-matrix">identity matrix</span>.</p>
+<div class="note" id="proposition-invertible-rref">
+<div class="eyebrow">Proposition 3.1.5</div>
+<p>The <span data-concept="matrix">matrix</span> $\kA$ is <span data-concept="invertible-matrix">invertible</span> if and only if the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> of $\kA$ is the <span data-concept="identity-matrix">identity matrix</span>: <span data-concept="invertible-iff-row-equivalent-to-identity">$\kA\sim \kI$</span>. In addition, we can find the <span data-concept="matrix-inverse">inverse</span> by <span data-concept="augmentation">augmenting</span> $\kA$ by the identity and finding the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span>:</p>
+$$ \left[ \begin{array}{r|r} \kA &amp; \kI \\ \end{array} \right] \sim \left[ \begin{array}{r|r} \kI &amp; \kAinv \\ \end{array} \right]. $$
+</div>
+<p id="unique-solution">You may have noticed that <a href="#proposition-inverse-solve">Proposition 3.1.4</a> says that <em>the</em> solution to the <span data-concept="matrix-equation">equation $\kA\kvecx = \kvecb$</span> is $\kvecx = \kAinv\kvecb$. Indeed, we know that this equation has a <span data-concept="pivot-columns-and-uniqueness">unique solution because $\kA$ has a pivot position in every column</span>.</p>
+<p id="order-matters">It is important to remember that the <span data-concept="matrix-product">product of two matrices</span> depends on the order in which they are multiplied. That is, if $\kC$ and $\kD$ are <span data-concept="matrix">matrices</span>, then it sometimes happens that <span data-concept="noncommutativity-of-matrix-multiplication">$\kC\kD \neq \kD\kC$</span>. However, something fortunate happens when we consider <span data-concept="invertible-matrix">invertibility</span>. It turns out that if $\kA$ is an $n\times n$ <span data-concept="matrix">matrix</span> and that $\kA\kB=\kI$, then it is also true that $\kB\kA=\kI$. We have verified this in a few examples so far, and <a href="#3.1-ex-e12">Exercise 3.1.12</a> explains why it always happens. This leads to the following proposition.</p>
+<div class="note" id="proposition-inverse-inverse">
+<div class="eyebrow">Proposition 3.1.6</div>
+<p>If $\kA$ is a $n\times n$ <span data-concept="invertible-matrix">invertible</span> <span data-concept="matrix">matrix</span> with <span data-concept="matrix-inverse">inverse</span> $\kB$, then <span data-concept="inverse-of-an-inverse">$\kB\kA=\kI$</span>, which tells us that $\kB$ is <span data-concept="invertible-matrix">invertible</span> with <span data-concept="matrix-inverse">inverse</span> $\kA$. In other words,</p>
+$$ (\kAinv)^{-1} = \kA. $$
+</div>
+</section>
+
+<section id="solving-equations-with-an-inverse">
+<h2>Solving equations with an inverse</h2>
+<p id="solve-with-inverse">If $\kA$ is an <span data-concept="invertible-matrix">invertible</span> <span data-concept="matrix">matrix</span>, then <a href="#proposition-inverse-solve">Proposition 3.1.4</a> shows us how to use $\kAinv$ to solve equations involving $\kA$. In particular, the solution to $\kA\kvecx = \kvecb$ is <span data-concept="solving-with-the-inverse">$\kvecx = \kAinv\kvecb$</span>.</p>
+<div class="exercises" data-place="solve-with-inverse"></div>
+<p id="summarizes">The next proposition summarizes much of what we have found about <span data-concept="invertible-matrix">invertible matrices</span>.</p>
+<div class="note" id="proposition-invertible-properties">
+<div class="eyebrow">Proposition 3.1.7 · Properties of invertible matrices</div>
+<ul>
+<li>An $n\times n$ <span data-concept="matrix">matrix</span> $\kA$ is <span data-concept="invertible-matrix">invertible</span> if and only if <span data-concept="invertible-iff-row-equivalent-to-identity">$\kA\sim \kI$</span>.</li>
+<li>If $\kA$ is <span data-concept="invertible-matrix">invertible</span>, then the solution to the <span data-concept="matrix-equation">equation $\kA\kvecx = \kvecb$</span> is given by <span data-concept="solving-with-the-inverse">$\kvecx = \kAinv\kvecb$</span>.</li>
+<li>We can <span data-concept="computing-a-matrix-inverse">find $\kAinv$ by finding the reduced row echelon form of $\left[\begin{array}{r|r} \kA &amp; \kI \end{array}\right]$</span>; namely,
+$$ \left[\begin{array}{r|r} \kA &amp; \kI \end{array}\right] \sim \left[\begin{array}{r|r} \kI &amp; \kAinv \end{array}\right]. $$
+</li>
+<li>If $\kA$ and $\kB$ are two <span data-concept="invertible-matrix">invertible</span> $n\times n$ <span data-concept="matrix">matrices</span>, then their <span data-concept="matrix-product">product</span> $\kA\kB$ is also <span data-concept="invertible-matrix">invertible</span> and <span data-concept="inverse-of-a-product">$(\kA\kB)^{-1} = \kBinv\kAinv$</span>.</li>
+</ul>
+</div>
+<p id="two-by-two-formula">There is a <span data-concept="inverse-of-a-2x2-matrix">simple formula for finding the inverse of a $2\times2$ matrix</span>:</p>
+$$ \left[\begin{array}{rr} a &amp; b \\ c &amp; d \\ \end{array}\right]^{-1} = \frac{1}{ad-bc} \left[\begin{array}{rr} d &amp; -b \\ -c &amp; a \\ \end{array}\right], $$
+<p>which can be easily checked. The condition that $\kA$ be <span data-concept="invertible-matrix">invertible</span> is, in this case, reduced to the condition that $ad-bc\neq 0$. We will understand this condition better once we have explored <a href="/understanding-linear-algebra/ch03/3.4/">determinants</a> in <a href="/understanding-linear-algebra/ch03/3.4/">Section 3.4</a>. There is a similar formula for the <span data-concept="matrix-inverse">inverse</span> of a $3\times 3$ <span data-concept="matrix">matrix</span>, but there is not a good reason to write it here.</p>
+</section>
+
+<section id="triangular-matrices-and-gaussian-elimination">
+<h2>Triangular matrices and Gaussian elimination</h2>
+<p id="recast">With some of the ideas we’ve developed, we can recast the <span data-concept="gauss-jordan-elimination">Gaussian elimination</span> algorithm in terms of <span data-concept="matrix-product">matrix multiplication</span> and <span data-concept="invertible-matrix">invertibility</span>. This will be especially helpful later when we consider <a href="/understanding-linear-algebra/ch03/3.4/">determinants</a> and <a href="/understanding-linear-algebra/ch05/5.1/">LU factorizations.</a> <span data-concept="triangular-matrix">Triangular matrices</span> will play an important role.</p>
+<div class="note" id="definition-3-1-8">
+<div class="eyebrow">Definition 3.1.8</div>
+<p>We say that a <span data-concept="matrix">matrix</span> $\kA$ is <em><span data-concept="triangular-matrix">lower triangular</span></em> if all its entries above the diagonal are zero. Similarly, $\kA$ is <em><span data-concept="triangular-matrix">upper triangular</span></em> if all the entries below the diagonal are zero.</p>
+</div>
+<p id="triangular-examples">For example, the <span data-concept="matrix">matrix</span> $\kL$ below is a <span data-concept="triangular-matrix">lower triangular</span> <span data-concept="matrix">matrix</span> while $\kU$ is an <span data-concept="triangular-matrix">upper triangular</span> one.</p>
+$$ \kL = \left[\begin{array}{rrrr} * &amp; 0 &amp; 0 &amp; 0 \\ * &amp; * &amp; 0 &amp; 0 \\ * &amp; * &amp; * &amp; 0 \\ * &amp; * &amp; * &amp; * \\ \end{array}\right], \hspace{24pt} \kU = \left[\begin{array}{rrrr} * &amp; * &amp; * &amp; * \\ 0 &amp; * &amp; * &amp; * \\ 0 &amp; 0 &amp; * &amp; * \\ 0 &amp; 0 &amp; 0 &amp; * \\ \end{array}\right]. $$
+<p id="triangular-test">We can develop a simple test to determine whether an $n\times n$ <span data-concept="triangular-matrix">lower triangular</span> <span data-concept="matrix">matrix</span> is <span data-concept="invertible-matrix">invertible</span>. Let’s use <span data-concept="gauss-jordan-elimination">Gaussian elimination</span> to find the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> of the <span data-concept="triangular-matrix">lower triangular</span> <span data-concept="matrix">matrix</span></p>
+$$ \begin{aligned} \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 2 &amp; -2 &amp; 0 \\ -3 &amp; 4 &amp; -4 \\ \end{array}\right] &amp; {}\sim{} \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; -2 &amp; 0 \\ 0 &amp; 4 &amp; -4 \\ \end{array}\right] \\ &amp; {}\sim{} \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; -2 &amp; 0 \\ 0 &amp; 0 &amp; -4 \\ \end{array}\right] \sim \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ \end{array}\right]\text{.} \end{aligned} $$
+<p id="nonzero-diagonal">Because the entries on the diagonal are nonzero, we find a <span data-concept="pivot">pivot position</span> in every row, which tells us that the <span data-concept="matrix">matrix</span> is <span data-concept="invertibility-of-a-triangular-matrix">invertible</span>.</p>
+<p id="zero-diagonal">If, however, there is a zero entry on the diagonal, the <span data-concept="matrix">matrix</span> cannot be <span data-concept="invertible-matrix">invertible</span>. Considering the <span data-concept="matrix">matrix</span> below, we see that having a zero on the diagonal leads to a row without a <span data-concept="pivot">pivot position</span>.</p>
+$$ \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 2 &amp; 0 &amp; 0 \\ -3 &amp; 4 &amp; -4 \\ \end{array}\right] \sim \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 \\ 0 &amp; 4 &amp; -4 \\ \end{array}\right] \sim \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; -1 \\ 0 &amp; 0 &amp; 0 \\ \end{array}\right]\text{.} $$
+<div class="note" id="proposition-triangular-invertibility">
+<div class="eyebrow">Proposition 3.1.9</div>
+<p>An $n\times n$ <span data-concept="triangular-matrix">triangular</span> <span data-concept="matrix">matrix</span> is <span data-concept="invertibility-of-a-triangular-matrix">invertible if and only if the entries on the diagonal are all nonzero</span>.</p>
+</div>
+<div class="exercises" data-place="proposition-triangular-invertibility"></div>
+<p id="elementary-matrices">The following are examples of <span data-concept="matrix">matrices</span>, known as <em><span data-concept="elementary-matrix">elementary matrices</span></em>, that <span data-concept="row-operations-as-matrix-multiplication">perform the row operations on a matrix</span> having three rows.</p>
+<ul id="elementary-list">
+<li id="replacement"><strong><span data-concept="elementary-row-operations">Replacement</span></strong>: Multiplying the second row by 3 and adding it to the third row is performed by
+$$ \kL = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 3 &amp; 1 \\ \end{bmatrix}. $$
+We often use $\kL$ to describe these <span data-concept="matrix">matrices</span> because they are <span data-concept="triangular-matrix">lower triangular</span>.</li>
+<li id="scaling"><strong><span data-concept="elementary-row-operations">Scaling</span></strong>: Multiplying the third row by 2 is performed by
+$$ \kS = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 2 \\ \end{bmatrix}. $$
+</li>
+<li id="interchange"><strong><span data-concept="elementary-row-operations">Interchange</span></strong>: <span data-concept="permutation-matrix">Interchanging the first two rows is performed by</span>
+$$ \kP = \begin{bmatrix} 0 &amp; 1 &amp; 0 \\ 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ \end{bmatrix}. $$
+</li>
+</ul>
+<div class="example" id="example-3-1-10">
+<h3>Example 3.1.10</h3>
+<p>Suppose we have</p>
+$$ \kA = \left[\begin{array}{rrr} 1 &amp; 3 &amp; -2 \\ -3 &amp; -6 &amp; 3 \\ 2 &amp; 0 &amp; -2 \\ \end{array}\right]. $$
+<p>For the forward substitution phase of <span data-concept="gauss-jordan-elimination">Gaussian elimination</span>, we perform a sequence of three <span data-concept="elementary-row-operations">replacement</span> operations. The first <span data-concept="elementary-row-operations">replacement</span> operation multiplies the first row by $3$ and adds the result to the second row. We can <span data-concept="row-operations-as-matrix-multiplication">perform this operation by multiplying $\kA$ by the lower triangular matrix $\kL_1$</span> where</p>
+$$ \kL_1\kA = \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ \end{array}\right] \left[\begin{array}{rrr} 1 &amp; 3 &amp; -2 \\ -3 &amp; -6 &amp; 3 \\ 2 &amp; 0 &amp; -2 \\ \end{array}\right] = \left[\begin{array}{rrr} 1 &amp; 3 &amp; -2 \\ 0 &amp; 3 &amp; -3 \\ 2 &amp; 0 &amp; -2 \\ \end{array}\right]. $$
+<p>The next two <span data-concept="elementary-row-operations">replacement</span> operations are performed by the <span data-concept="elementary-matrix">matrices</span></p>
+$$ \kL_2 = \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ -2 &amp; 0 &amp; 1 \\ \end{array}\right], \hspace{24pt} \kL_3 = \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 2 &amp; 1 \\ \end{array}\right] $$
+<p>so that</p>
+$$ \kL_3\kL_2\kL_1\kA = \kU = \begin{bmatrix} 1 &amp; 3 &amp; -2 \\ 0 &amp; 3 &amp; -3 \\ 0 &amp; 0 &amp; -4 \\ \end{bmatrix}. $$
+<p>Notice that the <span data-concept="matrix-inverse">inverse</span> of $\kL_1$ has the simple form:</p>
+$$ \kL_1 = \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ 3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ \end{array}\right], \hspace{24pt} \kL_1^{-1} = \left[\begin{array}{rrr} 1 &amp; 0 &amp; 0 \\ -3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \\ \end{array}\right]. $$
+<p>This says that if we want to undo the operation of multiplying the first row by $3$ and adding to the second row, we should multiply the first row by $-3$ and add it to the second row. That is the effect of $\kL_1^{-1}$.</p>
+<p>Notice that we now have $\kL_3\kL_2\kL_1\kA = \kU$, which gives</p>
+$$ \begin{aligned} (\kL_3\kL_2\kL_1)\kA &amp; = \kU \\ (\kL_3\kL_2\kL_1)^{-1}(\kL_3\kL_2\kL_1)\kA &amp; = (\kL_3\kL_2\kL_1)^{-1}\kU \\ \kA &amp; = (\kL_3\kL_2\kL_1)^{-1}\kU = \kL\kU\\ \end{aligned} $$
+<p>where $\kL$ is the <span data-concept="triangular-matrix">lower triangular</span> <span data-concept="matrix">matrix</span></p>
+$$ \kL = (\kL_3\kL_2\kL_1)^{-1}=\begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -3 &amp; 1 &amp; 0 \\ 2 &amp; -2 &amp; 1 \\ \end{bmatrix}. $$
+<p>This way of writing $\kA=\kL\kU$ as the <span data-concept="matrix-product">product</span> of a <span data-concept="triangular-matrix">lower and an upper triangular</span> <span data-concept="matrix">matrix</span> is known as an <span data-concept="lu-factorization">$LU$ factorization</span> of $\kA$, and its usefulness will be explored in <a href="/understanding-linear-algebra/ch05/5.1/">Section 5.1</a>.</p>
+</div>
+</section>
