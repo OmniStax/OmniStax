@@ -1,0 +1,1043 @@
+{
+ "id": "2.6",
+ "module": "sec-transforms-geom",
+ "chapter": "2",
+ "title": "The geometry of matrix transformations",
+ "lead": "Matrix transformations describe <span data-concept=\"geometric-matrix-transformations\">geometric operations</span> on the plane: reflections, stretches, rotations, shears and projections, each read off the images of <span data-concept=\"standard-unit-vectors\">the standard vectors</span>. The section asks which functions are <span data-concept=\"linear-mapping\">matrix transformations</span> at all, works a rotation through as an example, and ends with how animators move a character with <span data-concept=\"homogeneous-coordinates\">homogeneous coordinates</span>.",
+ "objectives": [],
+ "summary_html": "<p>This section explored how geometric operations are performed by matrix transformations.</p><ul><li>A function $\\kT:{\\mathbb R}^n\\to{\\mathbb R}^m$ is a matrix transformation if and only if these properties are satisfied: $$ \\begin{aligned} \\kT(c\\kvecv) & = c\\kT(\\kvecv) \\\\ \\kT(\\kvecv+\\kvecw) & = \\kT(\\kvecv)+\\kT(\\kvecw). \\\\ \\end{aligned} $$</li><li>Geometric operations, such as rotations, reflections, and scalings, can be represented as matrix transformations.</li><li>Composing geometric operations corresponds to matrix multiplication.</li><li>Computer animators use homogeneous coordinates and matrix transformations to create the illusion of motion.</li></ul>",
+ "notes": "The empty Sage cell of Exercise 2.6.3 is dropped, since the cells are not live here, and the unnumbered drawing of the character is the stick figure’s own pose in its figure.",
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the three activities stand in the text as cards, and the activity figures are the section’s simulations. Two misprints in the book’s solutions (Activity 2.6.4 d and Exercise 2.6.7 c) are noted under their cards. Bloom levels and concept tags are AI-judged.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "figures": [
+  {
+   "id": "sim-reflection",
+   "kind": "sim",
+   "number": "2.6.1",
+   "originals": [
+    "/media/ch02/reflect-intro.svg"
+   ],
+   "original_caption": "A vector x and its reflection T(x) across the horizontal axis.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-matrix-transformation",
+   "kind": "sim",
+   "number": "2.6.2",
+   "originals": [
+    "/media/ch02/mult-preview.png"
+   ],
+   "original_caption": "The matrix transformation T transforms features shown on the left into features shown on the right.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-rotation-45",
+   "kind": "sim",
+   "number": "2.6.5",
+   "folds": [
+    "2.6.6",
+    "2.6.7",
+    "2.6.8"
+   ],
+   "originals": [
+    "/media/ch02/45-rotation-a.svg",
+    "/media/ch02/45-rotation-b.svg",
+    "/media/ch02/45-rotation-linear-a-a.svg",
+    "/media/ch02/45-rotation-linear-a-b.svg",
+    "/media/ch02/45-rotation-linear-b-a.svg",
+    "/media/ch02/45-rotation-linear-b-b.svg",
+    "/media/ch02/45-rotation-basis-a.svg",
+    "/media/ch02/45-rotation-basis-b.svg"
+   ],
+   "original_caption": "(Figure 2.6.5) The function T rotates a vector counterclockwise by 45°. (Figure 2.6.6) We see that the vector T(cv) is a scalar multiple to T(v) so that T(cv) = cT(v). (Figure 2.6.7) We see that the vector T(v + w) is the sum of T(v) and T(w) so that T(v + w) = T(v) + T(w). (Figure 2.6.8) The matrix transformation T rotates e1 and e2 by 45°.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-rotation-triangle",
+   "kind": "sim",
+   "number": "2.6.9",
+   "originals": [
+    "/media/ch02/45-rotation-e1.svg"
+   ],
+   "original_caption": "The vector T(e1) has length 1 and is the hypotenuse of a right isosceles triangle.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "fig-blob-man",
+   "kind": "photo",
+   "number": "2.6.10",
+   "originals": [],
+   "original_caption": "Computer animators define a character and create motion by drawing it in a sequence of poses. © Disney/Pixar",
+   "widths": [],
+   "draws": [],
+   "withheld": "The two photographs of Figure 2.6.10, a Pixar test character in its original pose and in a new one, are © Disney/Pixar and not under the book’s CC BY licence, so they are not shown here."
+  },
+  {
+   "id": "sim-homogeneous-plane",
+   "kind": "sim",
+   "number": "2.6.12",
+   "originals": [
+    "/media/ch02/animate-homogeneous.svg"
+   ],
+   "original_caption": "We include the two-dimensional coordinate plane in R3 as the plane z = 1 so that we can translate the character.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-stick-figure",
+   "kind": "sim",
+   "number": "2.6.11",
+   "folds": [
+    "2.6.13",
+    "2.6.14",
+    "2.6.15",
+    "2.6.16",
+    "2.6.17",
+    "2.6.18"
+   ],
+   "originals": [
+    "/media/ch02/animate-translate.svg",
+    "/media/ch02/animation-preview.png",
+    "/media/ch02/animate-char.svg",
+    "/media/ch02/animate-reflect.svg",
+    "/media/ch02/animate-rotate-a.svg",
+    "/media/ch02/animate-rotate-b.svg",
+    "/media/ch02/animate-rotate-c.svg",
+    "/media/ch02/animate-rotate-d.svg",
+    "/media/ch02/animate-closeup-a.svg",
+    "/media/ch02/animate-closeup-b.svg",
+    "/media/ch02/animate-closeup-c.svg",
+    "/media/ch02/animate-shadow-a.svg",
+    "/media/ch02/animate-shadow-b.svg",
+    "/media/ch02/animate-shadow-c.svg"
+   ],
+   "original_caption": "(Figure 2.6.11) Translating our character to a new position in the plane. (Figure 2.6.13) An interactive diagram that allows us to move the character using homogeneous coordinates. (Figure 2.6.14) Translating to a new position. (Figure 2.6.15) Waving with the other hand. (Figure 2.6.16) Performing a cartwheel. (Figure 2.6.17) Zooming in on our characters' face. (Figure 2.6.18) Casting a shadow.",
+   "widths": [],
+   "draws": [
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "matrix-transformations-geometry",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformations-geometry",
+   "concept": "geometric-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-transformations-geometry",
+   "concept": "matrix-transformations-in-animation",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-reflection",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-reflection",
+   "concept": "geometric-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "geometric-operations",
+   "concept": "geometric-matrix-transformations",
+   "verb": "introduces"
+  },
+  {
+   "span": "geometric-operations",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-matrix-transformation",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-matrix-transformation",
+   "concept": "geometric-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-matrix-transformation",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-matrix-transformation",
+   "concept": "standard-unit-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "why-matrix-transformations",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "why-matrix-transformations",
+   "concept": "geometric-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "linearity-key",
+   "concept": "linearity-of-matrix-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-key",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-key",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-key",
+   "concept": "scalar",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-property",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-property",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "linearity-of-linear-transformations",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "linear-implies-matrix",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "linear-implies-matrix",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "linear-implies-matrix",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "check-linearity",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-linear-is-matrix",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "drv-linear-is-matrix",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-linear-is-matrix",
+   "concept": "linearity-of-matrix-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-linear-is-matrix",
+   "concept": "standard-unit-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-linear-trans-characterization",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-linear-trans-characterization",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-linear-trans-characterization",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-linear-trans-characterization",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "said-simply",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "said-simply",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-6-4",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-6-4",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-6-4",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-6-4",
+   "concept": "geometric-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-rotation-45",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-rotation-45",
+   "concept": "rotation-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-rotation-45",
+   "concept": "scalar-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-rotation-45",
+   "concept": "vector-addition",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-then-rotating",
+   "concept": "scalar",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-then-rotating",
+   "concept": "scalar-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-then-rotating",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rotating-the-parallelogram",
+   "concept": "geometry-of-vector-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "rotating-the-parallelogram",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rotation-columns",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "rotation-columns",
+   "concept": "matrix-of-a-linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-rotation-triangle",
+   "concept": "rotation-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rotation-45-matrix",
+   "concept": "rotation-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "rotation-is-matrix",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "rotation-is-matrix",
+   "concept": "linearity-of-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "same-thinking",
+   "concept": "geometric-matrix-transformations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "same-thinking",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "animation-intro",
+   "concept": "matrix-transformations-in-animation",
+   "verb": "introduces"
+  },
+  {
+   "span": "animation-intro",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "pixar-character",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "pixar-character",
+   "concept": "matrix-transformations-in-animation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "fig-blob-man",
+   "concept": "matrix-transformations-in-animation",
+   "verb": "uses"
+  },
+  {
+   "span": "two-dimensional-character",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "translations",
+   "concept": "translation",
+   "verb": "introduces"
+  },
+  {
+   "span": "homogeneous-problem",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous-problem",
+   "concept": "zero-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous-problem",
+   "concept": "homogeneous-coordinates",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-homogeneous-plane",
+   "concept": "homogeneous-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-homogeneous-plane",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-homogeneous-plane",
+   "concept": "translation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-homogeneous-plane",
+   "concept": "zero-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous-vectors",
+   "concept": "translation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "homogeneous-vectors",
+   "concept": "homogeneous-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-stick-figure",
+   "concept": "homogeneous-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-stick-figure",
+   "concept": "translation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-stick-figure",
+   "concept": "composing-geometric-transformations",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-stick-figure",
+   "concept": "matrix-transformations-in-animation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-stick-figure",
+   "concept": "matrix-product-as-composition",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.6.1",
+   "source_number": "2.6.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "matrix-transformations-geometry"
+   },
+   "cite": "matrix-transformations-geometry",
+   "prompt": "<p>We will describe the matrix transformation $\\kT$ that reflects 2-dimensional vectors across the horizontal axis. For instance, Figure 2.6.1 illustrates how a vector $\\kvecx$ is reflected onto the vector $\\kT(\\kvecx)$.</p><ol type=\"a\"><li>If $\\kvecx = \\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$, what is the vector $\\kT(\\kvecx)$? Sketch the vectors $\\kvecx$ and $\\kT(\\kvecx)$.</li><li>More generally, if $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, what is $\\kT(\\kvecx)$?</li><li>Find the vectors $\\kT\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right)$ and $\\kT\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right)$.</li><li>Use your results to write the matrix $\\kA$ so that $\\kT(\\kvecx) = \\kA\\kvecx$. Then verify that $\\kT\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right)$ agrees with what you found in part b.</li><li>Describe the transformation that results from composing $\\kT$ with itself; that is, what is the transformation $\\kT\\circ \\kT$? Explain how matrix multiplication can be used to justify your response.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kT(\\kvecx) = \\left[\\begin{array}{r}2 \\\\ -4 \\end{array}\\right]$.</li><li>$\\kT(\\kvecx) = \\left[\\begin{array}{r}x \\\\ -y \\end{array}\\right]$.</li><li>$\\kT\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ and $\\kT\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0 \\\\ -1 \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$.</li><li>$\\kA\\kA= \\kA^2 = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kT(\\kvecx) = \\left[\\begin{array}{r}2 \\\\ -4 \\end{array}\\right]$.</li><li>$\\kT(\\kvecx) = \\left[\\begin{array}{r}x \\\\ -y \\end{array}\\right]$.</li><li>$\\kT\\left(\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ and $\\kT\\left(\\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}0 \\\\ -1 \\end{array}\\right]$.</li><li>We have the matrix $\\kA=\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$. It follows that $\\kT\\left(\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]\\right) = \\kA\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right] = \\left[\\begin{array}{r}x \\\\ -y \\end{array}\\right]$ as expected.</li><li>If we reflect a vector twice in the horizontal axis, we obtain the original vector. The matrix for the transformation $\\kT\\circ \\kT$ is simply $\\kA\\kA= \\kA^2 = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.6.2",
+   "source_number": "2.6.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "geometric-operations"
+   },
+   "cite": "geometric-operations",
+   "prompt": "<p>For the following $2\\times2$ matrices $\\kA$, use the diagram of Figure 2.6.2 to study the effect of the corresponding matrix transformation $\\kT(\\kvecx) = \\kA\\kvecx$. For each transformation, describe the geometric effect the transformation has on the plane.</p><ol type=\"a\"><li>$\\kA=\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & 2 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 1 & 1 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\kA=\\left[\\begin{array}{rr} 1 & -1 \\\\ -2 & 2 \\\\ \\end{array}\\right]$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>This transformation stretches by a factor of 2 in the horizontal direction.</li><li>This transformation stretches by a factor of 2 uniformly in all directions.</li><li>This is a $90^\\circ$ clockwise rotation.</li><li>This transformation is called a <em>shear</em>; it pushes vectors horizontally an amount equal to the vertical component.</li><li>This transformation reflects vectors in the vertical axis.</li><li>This transformation is called a <em>projection</em>; it produces the shadow of the vector on the horizontal axis.</li><li>This transformation is called the <em>identity</em>; it causes no change.</li><li>This transformation pushes vectors onto the line defined by the vector $\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.6.3",
+   "source_number": "2.6.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "same-thinking"
+   },
+   "cite": "prop-linear-trans-characterization",
+   "prompt": "<p>In this activity, we seek to describe various matrix transformations by finding the matrix that gives the desired transformation. All of the transformations that we study here have the form $\\kT:{\\mathbb R}^2\\to{\\mathbb R}^2$.</p><ol type=\"a\"><li>Find the matrix of the transformation that has no effect on vectors; that is, $\\kT(\\kvecx) = \\kvecx$.</li><li>Find the matrix of the transformation that reflects vectors in ${\\mathbb R}^2$ across the line $y=x$.</li><li>What is the result of composing the reflection you found in the previous part with itself; that is, what is the effect of reflecting across the line $y=x$ and then reflecting across this line again? Provide a geometric explanation for your result as well as an algebraic one obtained by multiplying matrices.</li><li>Find the matrix that rotates vectors counterclockwise in the plane by $90^\\circ$.</li><li>Compare the result of rotating by $90^\\circ$ and then reflecting in the line $y=x$ to the result of first reflecting in $y=x$ and then rotating $90^\\circ$.</li><li>Find the matrix that results from composing a $90^\\circ$ rotation with itself four times; that is, if $\\kT$ is the matrix transformation that rotates vectors by $90^\\circ$, find the matrix for $\\kT\\circ \\kT\\circ \\kT \\circ \\kT$. Explain why your result makes sense geometrically.</li><li><p>Explain why the matrix that rotates vectors counterclockwise by an angle $\\theta$ is</p>$$ \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right]. $$</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><p>We use the fact that the columns of the requested matrices have the form $\\left[\\begin{array}{rr} \\kT(\\kveceone) & \\kT(\\kvecetwo) \\end{array}\\right]$.</p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$.</li><li>The composition of this reflection with itself is described by multiplying the matrix by itself. This produces the matrix $\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$, which we just saw is the matrix for the identity transformation. This means that reflecting a vector in the line $y=x$ twice produces the original vector.</li><li>$\\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$.</li><li><p>If we first rotate and then reflect, we obtain the matrix transformation defined by</p>$$ \\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]\\text{,} $$<p>which is the matrix for reflecting in the horizontal axis.</p><p>If we first reflect and then rotate, we obtain the matrix</p>$$ \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]\\text{,} $$<p>which is the matrix for reflecting in the vertical axis.</p></li><li>Composing four times corresponds to raising the matrix to the fourth power, which gives us the identity matrix $\\kI$.</li><li>If we consider the effect of rotating the vector $\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ by an angle $\\theta$, we obtain the vector $\\left[\\begin{array}{r}\\cos\\theta \\\\ \\sin\\theta \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "2.6.4",
+   "source_number": "2.6.4",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "homogeneous-vectors"
+   },
+   "cite": "homogeneous-vectors",
+   "prompt": "<p>In this activity, we will use homogeneous coordinates and matrix transformations to move our character into a variety of poses.</p><ol type=\"a\"><li><p>Since we regard our character as living in ${\\mathbb R}^3$, we will consider matrix transformations defined by matrices</p>$$ \\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]. $$<p>Verify that such a matrix transformation transforms points in the plane $z=1$ into points in the same plane; that is, verify that</p>$$ \\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{r}x' \\\\ y' \\\\ 1 \\end{array}\\right]. $$<p>Express the coordinates of the resulting point $x'$ and $y'$ in terms of the coordinates of the original point $x$ and $y$. The diagram of Figure 2.6.13 moves the character using homogeneous coordinates.</p></li><li>Find the matrix transformation that translates our character to a new position in the plane, as shown in Figure 2.6.14.</li><li>As originally drawn, our character is waving with one of their hands. In one of the movie’s scenes, we would like them to wave with their other hand, as shown in Figure 2.6.15. Find the matrix transformation that moves them into this pose.</li><li>Later, our character performs a cartwheel by moving through the sequence of poses shown in Figure 2.6.16. Find the matrix transformations that create these poses.</li><li>Next, we would like to find the transformations that zoom in on our character’s face, as shown in Figure 2.6.17. To do this, you should think about composing matrix transformations. This can be accomplished in the diagram by using the <em>Compose</em> button, which makes the current pose, displayed on the right, the new beginning pose, displayed on the left. What is the matrix transformation that moves the character from the original pose, shown in the upper left, to the final pose, shown in the lower right?</li><li>We would also like to create our character’s shadow, shown in the sequence of poses in Figure 2.6.18. Find the sequence of matrix transformations that achieves this. In particular, find the matrix transformation that takes our character from their original pose to their shadow in the lower right.</li><li>Write a final scene to the movie and describe how to construct a sequence of matrix transformations that create your scene.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$$ \\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]\\text{,} $$<p>which shows that</p>$$ \\begin{alignedat}{2} x' & {}={} ax+by+c \\\\ y' & {}={} dx+ey+f\\text{.} \\\\ \\end{alignedat} $$</li><li>Notice that the entries $c$ and $f$ are responsible for the translation. Therefore, we need the matrix transformation defined by $\\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>We would like to reflect in the vertical axis so we use the matrix $\\left[\\begin{array}{rrr} -1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>The character is successively rotated by $45^\\circ$ using the matrix $\\left[\\begin{array}{rrr} \\cos(45^\\circ) & -\\sin(45^\\circ) & 0 \\\\ \\sin(45^\\circ) & \\sin(45^\\circ) & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rrr} \\frac{1}{\\sqrt{2}} & -\\frac{1}{\\sqrt{2}} & 0 \\\\ \\frac{1}{\\sqrt{2}} & \\frac{1}{\\sqrt{2}} & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.<sup class=\"fn\" data-note=\"c-a4-d\"></sup></li><li><p>We first translate the character down two units using the matrix $\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & -2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$. Then we zoom in by uniformly stretching by a factor of $2$ using the matrix $\\left[\\begin{array}{rrr} 2 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$. The net effect is the transformation described by the matrix</p>$$ \\left[\\begin{array}{rrr} 2 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & -2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rrr} 2 & 0 & 0 \\\\ 0 & 2 & -4 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]\\text{.} $$</li><li>The shadow is first created using the shear $\\left[\\begin{array}{rrr} 1 & 1 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$. Then the vertical scale is compressed using the matrix $\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & \\frac12 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.6.1",
+   "source_number": "2.6.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rotation-45-matrix",
+   "prompt": "<p>For each of the following geometric operations in the plane, find a $2\\times 2$ matrix that defines the matrix transformation performing the operation.</p><ol type=\"a\"><li>Rotates vectors by $180^\\circ$.</li><li>Reflects vectors across the vertical axis.</li><li>Reflects vectors across the line $y=-x$.</li><li>Rotates vectors counterclockwise by $60^\\circ$.</li><li>First rotates vectors counterclockwise by $60^\\circ$ and then reflects in the line $y=x$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & -1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\frac{\\sqrt{3}}2 & \\frac12 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} \\frac{\\sqrt{3}}2 & \\frac12 \\\\ \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><p>We create the following matrices as $\\left[\\begin{array}{rr} \\kT(\\kveceone) & \\kT(\\kvecetwo) \\\\ \\end{array}\\right]$.</p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & -1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} \\cos(60^\\circ) & -\\sin(60^\\circ) \\\\ \\sin(60^\\circ) & \\cos(60^\\circ) \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\frac{\\sqrt{3}}2 & \\frac12 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\frac{\\sqrt{3}}2 & \\frac12 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} \\frac{\\sqrt{3}}2 & \\frac12 \\\\ \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.6.2",
+   "source_number": "2.6.2",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-stick-figure",
+   "prompt": "<p>This exercise investigates the composition of reflections in the plane.</p><ol type=\"a\"><li>Find the result of first reflecting across the line $y=0$ and then $y=x$. What familiar operation is the cumulative effect of this composition?</li><li>What happens if you compose the operations in the opposite order; that is, what happens if you first reflect across $y=x$ and then $y=0$? What familiar operation results?</li><li>What familiar geometric operation results if you first reflect across the line $y=x$ and then $y=-x$?</li><li>What familiar geometric operation results if you first rotate by $90^\\circ$ and then reflect across the line $y=x$?</li></ol><p>It is a general fact that the composition of two reflections results in a rotation through twice the angle from the first line of reflection to the second. We will investigate this more generally in Exercise 2.6.8.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>This is the same as a counterclockwise $90^\\circ$ rotation.</li><li>This is the same as a clockwise $90^\\circ$ rotation.</li><li>This is the same as a $180^\\circ$ rotation.</li><li>This is the same as a reflection in the horizontal axis.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$. This is the same as a counterclockwise $90^\\circ$ rotation.</li><li>$\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$. This is the same as a clockwise $90^\\circ$ rotation.</li><li>$\\left[\\begin{array}{rr} 0 & -1 \\\\ -1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$. This is the same as a $180^\\circ$ rotation.</li><li>$\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right]$. This is the same as a reflection in the horizontal axis.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.6.3",
+   "source_number": "2.6.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "linear-implies-matrix",
+   "prompt": "<p>Shown below in Figure 2.6.19 are the vectors $\\kveceone$, $\\kvecetwo$, and $\\kvecethree$ in ${\\mathbb R}^3$.</p><ol type=\"a\"><li>Imagine that the thumb of your right hand points in the direction of $\\kveceone$. A positive rotation about the $x$ axis corresponds to a rotation in the direction in which your fingers point. Find the matrix definining the matrix transformation $\\kT$ that rotates vectors by $90^\\circ$ around the $x$-axis.</li><li>In the same way, find the matrix that rotates vectors by $90^\\circ$ around the $y$-axis.</li><li>Find the matrix that rotates vectors by $90^\\circ$ around the $z$-axis.</li><li>What is the cumulative effect of rotating by $90^\\circ$ about the $x$-axis, followed by a $90^\\circ$ rotation about the $y$-axis, followed by a $-90^\\circ$ rotation about the $x$-axis.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 0 & -1 \\\\ 0 & 1 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ -1 & 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & 1 & 0 \\\\ -1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><p>We construct the matrices as $\\left[\\begin{array}{rrr} \\kT(\\kveceone) & \\kT(\\kvecetwo) & \\kT(\\kvecethree) \\\\ \\end{array}\\right]$.</p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 0 & -1 \\\\ 0 & 1 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ -1 & 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & -1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ -1 & 0 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 0 & -1 \\\\ 0 & 1 & 0 \\\\ \\end{array}\\right]= \\left[\\begin{array}{rrr} 0 & 1 & 0 \\\\ -1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$, which is a $-90^\\circ$ rotation about the $z$-axis.</li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/3d-basis-2-6.svg",
+    "alt": "A set of three dimensional coordinate axes with a vector of length one drawn on each of the axes.",
+    "caption": "Figure 2.6.19 The vectors e1, e2, and e3 in R3."
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.6.4",
+   "source_number": "2.6.4",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "same-thinking",
+   "prompt": "<p>If a matrix transformation performs a geometric operation, we would like to find a matrix transformation that undoes that operation.</p><ol type=\"a\"><li><p>Suppose that $\\kT:{\\mathbb R}^2\\to{\\mathbb R}^2$ is the matrix transformation that rotates vectors by $90^\\circ$. Find a matrix transformation $\\kS:{\\mathbb R}^2\\to{\\mathbb R}^2$ that undoes the rotation; that is, $\\kS$ takes $\\kT(\\kvecx)$ back into $\\kvecx$ so that $(\\kS\\circ \\kT)(\\kvecx) = \\kvecx$. Think geometrically about what the transformation $\\kS$ should be and then verify it algebraically.</p><p>We say that $\\kS$ is the <em>inverse</em> of $\\kT$ and we will write it as $\\kT^{-1}$.</p></li><li>Verify algebraically that the reflection $\\kR:{\\mathbb R}^2\\to{\\mathbb R}^2$ across the line $y=x$ is its own inverse; that is, $\\kR^{-1} = \\kR$.</li><li><p>The matrix transformation $\\kT:{\\mathbb R}^2\\to{\\mathbb R}^2$ defined by the matrix</p>$$ \\kA= \\left[\\begin{array}{rr} 1 & 1 \\\\ 0 & 1 \\\\ \\end{array}\\right] $$<p>is called a <em>shear</em>. Find the inverse of $\\kT$.</p></li><li><p>Describe the geometric effect of the matrix transformation defined by</p>$$ \\kA=\\left[\\begin{array}{rr} \\frac12 & 0 \\\\ 0 & 3 \\\\ \\end{array}\\right] $$<p>and then find its inverse.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$.</li><li>The square of the matrix $\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$ is the identity.</li><li>$\\left[\\begin{array}{rr} 1 & -1 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & \\frac13 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The transformation $\\kS$ should rotate vectors by $-90^\\circ$. The matrix is therefore $\\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\\\ \\end{array}\\right]$.</p><p>To check $\\kS\\circ \\kT$, we compute $\\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</p></li><li>The matrix defining the reflection is $\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$. Multiplying this by itself gives the identity.</li><li>We should apply a shear in the opposite direction: $\\left[\\begin{array}{rr} 1 & -1 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>We will undo the stretch in the horizontal and vertical directions with the matrix $\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & \\frac13 \\\\ \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.6.5",
+   "source_number": "2.6.5",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "homogeneous-vectors",
+   "prompt": "<p>We have seen that the matrix</p>$$ \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] $$<p>performs a rotation through an angle $\\theta$ about the origin. Suppose instead that we would like to rotate by $90^\\circ$ about the point $(1,2)$. Using homogeneous coordinates, we will develop a matrix that performs this operation. Our strategy is to</p><ul><li>begin with a vector whose tail is at the point $(1,2)$,</li><li>translate the vector so that its tail is at the origin,</li><li>rotate by $90^\\circ$, and</li><li>translate the vector so that its tail is back at $(1,2)$.</li></ul><p>This is shown in Figure 2.6.20. Remember that, when working with homogeneous coordinates, we consider matrices of the form</p>$$ \\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]. $$<ol type=\"a\"><li>The first operation is a translation by $(-1,-2)$. Find the matrix that performs this translation.</li><li>The second operation is a $90^\\circ$ rotation about the origin. Find the matrix that performs this rotation.</li><li>The third operation is a translation by $(1,2)$. Find the matrix that performs this translation.</li><li>Use these matrices to find the matrix that performs a $90^\\circ$ rotation about $(1,2)$.</li><li>Use your matrix to determine where the point $(-10, 5)$ ends up if rotated by $90^\\circ$ about the $(1,2)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & -1 \\\\ 0 & 1 & -2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & 1 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & -1 & 3 \\\\ 1 & 0 & 1 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right].$</li><li>The point $(-10,5)$ is rotated to $(-2,-9)$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & -1 \\\\ 0 & 1 & -2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & 1 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & 1 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rrr} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rrr} 1 & 0 & -1 \\\\ 0 & 1 & -2 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rrr} 0 & -1 & 3 \\\\ 1 & 0 & 1 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right].$</li><li>If we call this matrix $\\kC$, we compute $\\kC\\left[\\begin{array}{r}-10 \\\\ 5 \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{r}-2 \\\\ -9 \\\\ 1 \\end{array}\\right]$. Therefore, the point $(-10,5)$ is rotated to $(-2,-9)$.</li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/ex-rotate-about-p.svg",
+    "alt": "Four panels: a vector based at the point (1, 2); the vector translated so that it is based at the origin; the translated vector rotated by 90 degrees; the vector translated back to the point (1, 2).",
+    "caption": "Figure 2.6.20 A sequence of matrix transformations that, when read right to left and top to bottom, rotate a vector about the point (1, 2)."
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.6.6",
+   "source_number": "2.6.6",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "geometric-operations",
+   "prompt": "<p>Consider the matrix transformation $\\kT:{\\mathbb R}^2\\to{\\mathbb R}^2$ that assigns to a vector $\\kvecx$ the closest vector on horizontal axis as illustrated in Figure 2.6.21. This transformation is called the <em>projection</em> onto the horizontal axis. You may imagine $\\kT(\\kvecx)$ as the shadow cast by $\\kvecx$ from a flashlight far up on the positive $y$-axis.</p><ol type=\"a\"><li>Find the matrix that defines this matrix transformation $\\kT$.</li><li>Find the matrix that defines projection on the vertical axis.</li><li>What is the result of composing the projection onto the horizontal axis with the projection onto the vertical axis?</li><li>Find the matrix that defines projection onto the line $y=x$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} \\frac12 & \\frac12 \\\\ \\frac12 & \\frac12 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 0 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} 0 & 0 \\\\ 0 & 0 \\\\ \\end{array}\\right]$. The result of composing the two projections sends every vector to $\\kveczero$.</li><li>$\\left[\\begin{array}{rr} \\frac12 & \\frac12 \\\\ \\frac12 & \\frac12 \\\\ \\end{array}\\right]$.</li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/v-projection.svg",
+    "alt": "Two panels: the vector x whose components are two three; the same vector with its shadow on the horizontal axis.",
+    "caption": "Figure 2.6.21 Projection onto the x-axis."
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.6.7",
+   "source_number": "2.6.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rotation-45-matrix",
+   "prompt": "<p>This exercise concerns the matrix transformations defined by matrices of the form</p>$$ \\kA = \\left[\\begin{array}{rr} a & -b \\\\ b & a \\\\ \\end{array}\\right]. $$<p>Let’s begin by looking at two special types of these matrices.</p><ol type=\"a\"><li><p>First, consider the matrix where $a = 2$ and $b=0$ so that</p>$$ \\kA = \\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & 2 \\\\ \\end{array}\\right]. $$<p>Describe the geometric effect of this matrix. More generally, suppose we have</p>$$ \\kA = \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right], $$<p>where $r$ is a positive number. What is the geometric effect of $\\kA$ on vectors in the plane?</p></li><li><p>Suppose now that $a = 0$ and $b = 1$ so that</p>$$ \\kA = \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]. $$<p>What is the geometric effect of $\\kA$ on vectors in the plane? More generally, suppose we have</p>$$ \\kA = \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right]. $$<p>What is the geometric effect of $\\kA$ on vectors in the plane?</p></li><li><p>In general, the composition of matrix transformation depends on the order in which we compose them. For these transformations, however, it is not the case. Check this by verifying that</p>$$ \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right]. $$</li><li><p>Let’s now look at the general case where</p>$$ \\kA = \\left[\\begin{array}{rr} a & -b \\\\ b & a \\\\ \\end{array}\\right]. $$<p>We will draw the vector $\\left[\\begin{array}{r}a \\\\ b \\end{array}\\right]$ in the plane and express it using polar coordinates $r$ and $\\theta$ as shown in Figure 2.6.22. We then have</p>$$ \\left[\\begin{array}{r}a \\\\ b \\end{array}\\right] = \\left[\\begin{array}{r}r\\cos\\theta \\\\ r\\sin\\theta \\end{array}\\right]. $$<p>Show that the matrix</p>$$ \\left[\\begin{array}{rr} a & -b \\\\ b & a \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right]. $$</li><li><p>Using this description, describe the geometric effect on vectors in the plane of the matrix transformation defined by</p>$$ \\kA= \\left[\\begin{array}{rr} a & -b \\\\ b & a \\\\ \\end{array}\\right]. $$</li><li><p>Suppose we have a matrix transformation $\\kT$ defined by a matrix $\\kA$ and another transformation $\\kS$ defined by $\\kB$ where</p>$$ \\kA= \\left[\\begin{array}{rr} a & -b \\\\ b & a \\\\ \\end{array}\\right],~~~ \\kB= \\left[\\begin{array}{rr} c & -d \\\\ d & c \\\\ \\end{array}\\right]. $$<p>Describe the geometric effect of the composition $\\kS\\circ \\kT$ in terms of the $a$, $b$, $c$, and $d$.</p></li></ol><p>The matrices of this form give a model for the complex numbers and will play an important role in <a href=\"/understanding-linear-algebra/ch04/4.4/\">Section 4.4</a>.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>It stretches vectors by $r$.</li><li>This matrix rotates vectors by an angle $\\theta$.</li><li><p>No matter which order we multiply the matrices, we find that their product is</p>$$ \\left[\\begin{array}{rr} r\\cos\\theta & -r\\sin\\theta \\\\ r\\sin\\theta & r\\sin\\theta \\\\ \\end{array}\\right]\\text{.} $$</li><li>This follows from the previous part.</li><li>If we use polar coordinates to write $\\left[\\begin{array}{r}a \\\\ b \\end{array}\\right] = \\left[\\begin{array}{r}r\\cos\\theta \\\\ r\\sin\\theta \\end{array}\\right]$, multiplying a vector by $\\kA$ will stretch the vector by $r$ and rotate it by $\\theta$.</li><li><p>If</p>$$ \\left[\\begin{array}{r}a \\\\ b \\end{array}\\right] = \\left[\\begin{array}{r}r\\cos\\theta \\\\ r\\sin\\theta \\end{array}\\right], \\left[\\begin{array}{r}c \\\\ d \\end{array}\\right] = \\left[\\begin{array}{r}s\\cos\\phi \\\\ s\\sin\\phi \\end{array}\\right]\\text{,} $$<p>then $\\kS\\circ \\kT$ has the effect of stretching a vector by $rs$ and rotating it by $\\theta + \\phi$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The matrix $\\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right]$ stretches vectors by $r$. It has the same effect as scalar multiplication by $r$.</li><li>This matrix rotates vectors by an angle $\\theta$.</li><li><p>No matter which order we multiply the matrices, we find that their product is</p>$$ \\left[\\begin{array}{rr} r & 0 \\\\ 0 & r \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\sin\\theta \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} r\\cos\\theta & -r\\sin\\theta \\\\ r\\sin\\theta & r\\sin\\theta \\\\ \\end{array}\\right]\\text{.} $$<sup class=\"fn\" data-note=\"c-e7-c\"></sup></li><li>This follows from the previous part.</li><li>If we use polar coordinates to write $\\left[\\begin{array}{r}a \\\\ b \\end{array}\\right] = \\left[\\begin{array}{r}r\\cos\\theta \\\\ r\\sin\\theta \\end{array}\\right]$, multiplying a vector by $\\kA$ will stretch the vector by $r$ and rotate it by $\\theta$.</li><li><p>If</p>$$ \\left[\\begin{array}{r}a \\\\ b \\end{array}\\right] = \\left[\\begin{array}{r}r\\cos\\theta \\\\ r\\sin\\theta \\end{array}\\right], \\left[\\begin{array}{r}c \\\\ d \\end{array}\\right] = \\left[\\begin{array}{r}s\\cos\\phi \\\\ s\\sin\\phi \\end{array}\\right]\\text{,} $$<p>then $\\kS\\circ \\kT$ has the effect of stretching a vector by $rs$ and rotating it by $\\theta + \\phi$.</p></li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/ex-complex-polar.svg",
+    "alt": "A vector is represented by an arrow with its length and the angle with the horizontal axis indicated.",
+    "caption": "Figure 2.6.22 A vector may be expressed in polar coordinates."
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.6.8",
+   "source_number": "2.6.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rotation-45-matrix",
+   "prompt": "<p>We saw earlier that the rotation in the plane through an angle $\\theta$ is given by the matrix:</p>$$ \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right]. $$<p>We would like to find a similar expression for the matrix that represents the reflection across $L_\\theta$, the line passing through the origin and making an angle of $\\theta$ with the positive $x$-axis, as shown in Figure 2.6.23.</p><ol type=\"a\"><li><p>To do this, notice that this reflection can be obtained by composing three separate transformations as shown in <a href=\"/media/ch02/ex-reflection-compose.svg\">Figure 2.6.24</a>. Beginning with the vector $\\kvecx$, we apply the transformation $\\kR$ to rotate by $-\\theta$ and obtain $\\kR(\\kvecx)$. Next, we apply $\\kS$, a reflection in the horizontal axis, followed by $\\kT$, a rotation by $\\theta$. We see that $\\kT(\\kS(\\kR(\\kvecx)))$ is the same as the reflection of $\\kvecx$ in the original line $L_\\theta$.</p><p><img src=\"/media/ch02/ex-reflection-compose.svg\" alt=\"A line that makes an angle theta with the horizontal axis and a vector x; the vector and the line rotated by negative theta; the rotated vector reflected across the horizontal axis; finally the line and vector rotated by theta.\"></p><p><a href=\"/media/ch02/ex-reflection-compose.svg\">Figure 2.6.24</a> Reflection in the line $L_\\theta$ as a composition of three transformations.</p><p>Using this decomposition, show that the reflection in the line $L_\\theta$ is described by the matrix</p>$$ \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\\\ \\end{array}\\right]. $$<p>You will need to remember the trigonometric identities:</p>$$ \\begin{aligned} \\cos(2\\theta) & {}={} \\cos^2\\theta - \\sin^2\\theta \\\\ \\sin(2\\theta) & {}={} 2\\sin\\theta\\cos\\theta\\text{.} \\\\ \\end{aligned} $$</li><li>Now that we have a matrix that describes the reflection in the line $L_\\theta$, show that the composition of the reflection in the horizontal axis followed by the reflection in $L_\\theta$ is a counterclockwise rotation by an angle $2\\theta$. We saw some examples of this earlier in Exercise 2.6.2.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\begin{array}{rl} \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] & \\left[\\begin{array}{rr} \\cos\\theta & \\sin\\theta \\\\ -\\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] \\\\ = & \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\\\ \\end{array}\\right] \\text{.} \\end{array} $$</li><li><p>Compute that</p>$$ \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} \\cos(2\\theta) & -\\sin(2\\theta) \\\\ \\sin(2\\theta) & \\cos(2\\theta) \\\\ \\end{array}\\right]\\text{.} $$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\begin{array}{rl} \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] & \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & \\sin\\theta \\\\ -\\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] \\\\ = & \\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} \\cos\\theta & \\sin\\theta \\\\ \\sin\\theta & -\\cos\\theta \\\\ \\end{array}\\right] \\\\ = & \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\\\ \\end{array}\\right] \\text{.} \\end{array} $$</li><li><p>Compute that</p>$$ \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\\\ \\end{array}\\right] \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\\\ \\end{array}\\right] = \\left[\\begin{array}{rr} \\cos(2\\theta) & -\\sin(2\\theta) \\\\ \\sin(2\\theta) & \\cos(2\\theta) \\\\ \\end{array}\\right]\\text{.} $$</li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch02/ex-reflection-def.svg",
+    "alt": "A line, a vector x, and the result of reflecting x in the line.",
+    "caption": "Figure 2.6.23 The reflection across the line L_theta."
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a1",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "a2",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-mapping"
+  },
+  {
+   "exercise": "a3",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "a3",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "a3",
+   "concept": "rotation-matrix"
+  },
+  {
+   "exercise": "a3",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "a4",
+   "concept": "homogeneous-coordinates"
+  },
+  {
+   "exercise": "a4",
+   "concept": "translation"
+  },
+  {
+   "exercise": "a4",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "a4",
+   "concept": "matrix-transformations-in-animation"
+  },
+  {
+   "exercise": "e1",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "e1",
+   "concept": "rotation-matrix"
+  },
+  {
+   "exercise": "e1",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e2",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e2",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "e3",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "e3",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e4",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e4",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "e5",
+   "concept": "homogeneous-coordinates"
+  },
+  {
+   "exercise": "e5",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e5",
+   "concept": "rotation-matrix"
+  },
+  {
+   "exercise": "e6",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "e6",
+   "concept": "matrix-of-a-linear-mapping"
+  },
+  {
+   "exercise": "e7",
+   "concept": "rotation-matrix"
+  },
+  {
+   "exercise": "e7",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e7",
+   "concept": "geometric-matrix-transformations"
+  },
+  {
+   "exercise": "e8",
+   "concept": "composing-geometric-transformations"
+  },
+  {
+   "exercise": "e8",
+   "concept": "rotation-matrix"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "c-a4-d",
+   "kind": "correction",
+   "html": "The book’s matrix prints $\\sin(45^\\circ)$ in the lower right entry, where the rotation matrix has $\\cos(45^\\circ)$; the numerical matrix beside it, with $\\frac{1}{\\sqrt{2}}$ in that entry, is the one meant."
+  },
+  {
+   "id": "c-e7-c",
+   "kind": "correction",
+   "html": "The book’s answer and solution print $r\\sin\\theta$ in the lower right entry of the product, and the solution’s rotation matrix prints $\\sin\\theta$ there; the rotation matrix has $\\cos\\theta$ in that entry, and the product is $\\left[\\begin{array}{rr} r\\cos\\theta & -r\\sin\\theta \\\\ r\\sin\\theta & r\\cos\\theta \\\\ \\end{array}\\right]$."
+  }
+ ],
+ "derivations": [
+  {
+   "id": "linear-is-matrix",
+   "what": "a linear function is a matrix transformation",
+   "source": "Understanding Linear Algebra, 2.6 The geometry of matrix transformations",
+   "nodes": [
+    {
+     "assumes": [
+      {
+       "tex": "\\kvecx = \\begin{bmatrix} x_1 \\\\ x_2 \\\\ \\vdots \\\\ x_n \\end{bmatrix} = x_1\\kveceone + x_2\\kvecetwo + \\ldots + x_n\\mathbf{e}_n",
+       "src": "2.5, the standard vectors"
+      },
+      {
+       "tex": "\\kT(c\\kvecv) = c\\kT(\\kvecv),\\quad \\kT(\\kvecv + \\kvecw) = \\kT(\\kvecv) + \\kT(\\kvecw)",
+       "src": "Proposition 2.6.3, the hypothesis"
+      },
+      {
+       "tex": "\\kA = \\left[\\begin{array}{rrrr} \\kT(\\kveceone) & \\kT(\\kvecetwo) & \\ldots & \\kT(\\mathbf{e}_n) \\end{array}\\right],\\quad\\text{so}\\quad \\kT(\\kvecej) = \\kA\\kvecej",
+       "src": "Proposition 2.5.6"
+      },
+      {
+       "tex": "\\kA(c\\kvecv) = c\\kA\\kvecv,\\quad \\kA(\\kvecv + \\kvecw) = \\kA\\kvecv + \\kA\\kvecw",
+       "src": "Proposition 2.2.3"
+      }
+     ],
+     "then": {
+      "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{arg}{\\kT\\left(\\begin{bmatrix} x_1 \\\\ x_2 \\\\ \\vdots \\\\ x_n \\end{bmatrix}\\right)}"
+     },
+     "steps": [
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{arg}{\\kT(x_1\\kveceone + x_2\\kvecetwo + \\ldots + x_n\\mathbf{e}_n)}",
+       "uses": [
+        0
+       ]
+      },
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{s1}{x_1\\kT(\\kveceone)} + \\mk{s2}{x_2\\kT(\\kvecetwo)} + \\ldots + \\mk{sn}{x_n\\kT(\\mathbf{e}_n)}",
+       "uses": [
+        1
+       ],
+       "map": {
+        "arg": [
+         "s1",
+         "s2",
+         "sn"
+        ]
+       },
+       "cap": "The linearity of $\\kT$ splits $\\kT$ over the sum, $\\kT(\\kvecv + \\kvecw) = \\kT(\\kvecv) + \\kT(\\kvecw)$, and brings each scalar $x_j$ out in front, $\\kT(c\\kvecv) = c\\kT(\\kvecv)$."
+      },
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{s1}{x_1\\kA\\kveceone} + \\mk{s2}{x_2\\kA\\kvecetwo} + \\ldots + \\mk{sn}{x_n\\kA\\mathbf{e}_n}",
+       "uses": [
+        2
+       ]
+      },
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{sum}{\\kA(x_1\\kveceone + x_2\\kvecetwo + \\ldots + x_n\\mathbf{e}_n)}",
+       "uses": [
+        3
+       ],
+       "map": {
+        "s1": "sum",
+        "s2": "sum",
+        "sn": "sum"
+       },
+       "cap": "Read from right to left, the linearity of matrix-vector multiplication gathers the scaled products into one product: $\\kA(c\\kvecv) = c\\kA\\kvecv$ and $\\kA(\\kvecv + \\kvecw) = \\kA\\kvecv + \\kA\\kvecw$."
+      },
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{sum}{\\kA\\begin{bmatrix} x_1 \\\\ x_2 \\\\ \\vdots \\\\ x_n \\end{bmatrix}}",
+       "uses": [
+        0
+       ]
+      },
+      {
+       "tex": "\\mk{lhs}{\\kT(\\kvecx)} = \\mk{sum}{\\kA\\kvecx}",
+       "uses": [
+        0
+       ]
+      }
+     ],
+     "src": "Proposition 2.6.3"
+    }
+   ]
+  }
+ ]
+}
